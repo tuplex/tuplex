@@ -11,7 +11,7 @@
 #ifndef TUPLEX_PARSER_H
 #define TUPLEX_PARSER_H
 
-#include "ASTNodes.h"
+#include "ast/ASTNodes.h"
 
 namespace tuplex {
 

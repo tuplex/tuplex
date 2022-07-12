@@ -14,7 +14,7 @@
 #include <Logger.h>
 #include <TypeSystem.h>
 #include <ErrorDataSet.h>
-#include <ClosureEnvironment.h>
+#include <symbols/ClosureEnvironment.h>
 #include "PythonCommon.h"
 #include "PythonException.h"
 

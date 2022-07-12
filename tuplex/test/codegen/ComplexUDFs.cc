@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include "gtest/gtest.h"
-#include <AnnotatedAST.h>
+#include <ast/AnnotatedAST.h>
 #include "Helper.h"
 #include <graphviz/GraphVizGraph.h>
 #include "../../codegen/include/parser/Parser.h"

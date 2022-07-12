@@ -39,6 +39,18 @@ TEST(VecUtils, Reverse) {
     EXPECT_EQ(vRes2, v2);
 }
 
+TEST(VecUtils, SortAsc) {
+    using namespace std;
+    using namespace tuplex;
+    EXPECT_TRUE(isSortedAsc(vector<int>{}));
+    EXPECT_TRUE(isSortedAsc(vector<int>{1, 2, 3}));
+    EXPECT_TRUE(isSortedAsc(vector<int>{1}));
+    EXPECT_TRUE(isSortedAsc(vector<int>{-10, 20, 90}));
+    EXPECT_FALSE(isSortedAsc(vector<int>{-90, 89, 0}));
+    EXPECT_FALSE(isSortedAsc(vector<int>{5, 4, 3}));
+    EXPECT_FALSE(isSortedAsc(vector<int>{1, 2, 4, 5, 4, 3, 2, 1}));
+}
+
 TEST(URI, INVALID) {
     using namespace tuplex;
 

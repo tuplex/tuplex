@@ -5,12 +5,15 @@ file(GLOB_RECURSE INCLUDES include/*.h)
 
 include_directories("include")
 
+# find zlin
+find_package(ZLIB REQUIRED)
+
 ### include fmtlib/fmt
 include(ExternalProject)
 set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
 ExternalProject_Add(fmt
         GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-        GIT_TAG 6.2.0
+        GIT_TAG 9.0.0
         GIT_CONFIG advice.detachedHead=false
         TIMEOUT 5
         CMAKE_ARGS -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
@@ -27,7 +30,7 @@ set(fmt_INCLUDE_DIR ${source_dir}/include)
 set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
 ExternalProject_Add(spdlog
         GIT_REPOSITORY https://github.com/gabime/spdlog.git
-        GIT_TAG v1.3.1
+        GIT_TAG v1.10.0
         GIT_CONFIG advice.detachedHead=false
         TIMEOUT 5
         CMAKE_ARGS -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} #-DSPDLOG_BUILD_BENCH=OFF
@@ -69,7 +72,7 @@ if(NOT BUILD_WITH_AWS)
     list(APPEND SOURCES ${cjson_SOURCE_DIR}/cJSON.c)
 endif()
 
-add_library(libutils OBJECT
+add_library(libutils ${LIBRARY_MODE}
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
 set_target_properties(libutils PROPERTIES PREFIX "")
 
@@ -90,20 +93,45 @@ ExternalProject_Get_Property(json source_dir)
 set(json_INCLUDE_DIR ${source_dir}/include)
 include_directories(${json_INCLUDE_DIR})
 
+if(BUILD_WITH_CEREAL)
+ExternalProject_Add(cereal
+        GIT_REPOSITORY https://github.com/USCiLab/cereal.git
+        GIT_TAG v1.3.2
+        TIMEOUT 5
+        CMAKE_ARGS -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+        PREFIX "${EXTERNAL_INSTALL_LOCATION}"
+        CONFIGURE_COMMAND "" # Disable configure step
+        BUILD_COMMAND "" # Disable build step
+        INSTALL_COMMAND "" # Disable install step
+        UPDATE_COMMAND "" # Disable update step: clones the project only once
+        )
+ExternalProject_Get_Property(cereal source_dir)
+set(cereal_INCLUDE_DIR ${source_dir}/include)
+endif()
+
 # ------
 # dependencies
 
-add_dependencies(libutils fmt spdlog json)
+# set here dependencies, include_targets, link_targets
+if(BUILD_WITH_CEREAL)
+    set(UTILS_DEPENDENCIES fmt spdlog json cereal)
+else()
+    set(UTILS_DEPENDENCIES fmt spdlog json)
+endif()
 
-target_include_directories(libutils PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+set(UTILS_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR}
         ${fmt_INCLUDE_DIR}
         ${spdlog_INCLUDE_DIR}
         ${cjson_SOURCE_DIR}
         ${json_INCLUDE_DIR}
+        ${cereal_INCLUDE_DIR}
         ${Boost_INCLUDE_DIR}
-        ${AWSSDK_INCLUDE_DIR})
+        ${AWSSDK_INCLUDE_DIR}
+        ${ZLIB_INCLUDE_DIRS})
+set(UTILS_LIBRARIES Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${ZLIB_LIBRARIES} ${AWSSDK_LINK_LIBRARIES})
 
-# Specify here the libraries this program depends on
-target_link_libraries(libutils Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${AWSSDK_LINK_LIBRARIES})
+# object library
+add_dependencies(libutils ${UTILS_DEPENDENCIES})
+target_include_directories(libutils PUBLIC ${UTILS_INCLUDE_DIRS})
+target_link_libraries(libutils ${UTILS_LIBRARIES})

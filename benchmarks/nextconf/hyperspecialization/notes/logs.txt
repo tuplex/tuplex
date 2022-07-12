@@ -1,0 +1,256 @@
+for 2003/06 hyperspecialization fails like this here:
+
+[2022-03-10 18:03:58.038] [codegen] [info] Serialized CodeGeneration Context to 41.28 KB
+[2022-03-10 18:03:58.040] [codegen] [info] ZLIB compressed CodeGeneration Context is: 3.81 KB
+[2022-03-10 18:03:58.043] [history server] [warning] Could not register job, is history server running? To disable this warning, set webui=False in the context configuration.
+[2022-03-10 18:03:58.043] [hyper specializer] [info] specializing code to file file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv
+[2022-03-10 18:03:58.043] [hyper specializer] [info] Decompressed Code context from 3.81 KB to 41.28 KB
+[2022-03-10 18:03:58.208] [hyper specializer] [info] Decode took 0.164276s
+[2022-03-10 18:03:58.209] [global] [info] sampled file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv on 512.00 KB
+[2022-03-10 18:03:59.900] [global] [info] sampled file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv on 512.00 KB
+[2022-03-10 18:04:01.593] [specializing stage optimizer] [info] performing NVO
+[2022-03-10 18:04:01.788] [global] [debug] saving rewritten Python AST to PDF skipped.
+[2022-03-10 18:04:01.788] [global] [debug] performing static typing for UDF in operator map
+[2022-03-10 18:04:01.794] [global] [debug] writing type-annotated Python AST to PDF skipped.
+[2022-03-10 18:04:01.795] [global] [info] detected output type for map operator is (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-03-10 18:04:02.001] [global] [debug] saving rewritten Python AST to PDF skipped.
+[2022-03-10 18:04:02.001] [global] [debug] performing static typing for UDF in operator map
+[2022-03-10 18:04:02.007] [global] [debug] writing type-annotated Python AST to PDF skipped.
+[2022-03-10 18:04:03.289] [specializing stage optimizer] [info] Performing constant folding optimization
+Following columns detected to be constant: [0, 1, 2, 6, 7, 8, 53, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109]
+ - YEAR: 2003 : i64
+ - QUARTER: 2 : i64
+ - MONTH: 6 : i64
+ - OP_UNIQUE_CARRIER: 'XE' : str
+ - OP_CARRIER_AIRLINE_ID: 20374 : i64
+ - OP_CARRIER: 'RU' : str
+ - FLIGHTS: 1.00000 : f64
+ - FIRST_DEP_TIME: None : null
+ - TOTAL_ADD_GTIME: None : null
+ - LONGEST_ADD_GTIME: None : null
+ - DIV_AIRPORT_LANDINGS: None : null
+ - DIV_REACHED_DEST: None : null
+ - DIV_ACTUAL_ELAPSED_TIME: None : null
+ - DIV_ARR_DELAY: None : null
+ - DIV_DISTANCE: None : null
+ - DIV1_AIRPORT: None : null
+ - DIV1_AIRPORT_ID: None : null
+ - DIV1_AIRPORT_SEQ_ID: None : null
+ - DIV1_WHEELS_ON: None : null
+ - DIV1_TOTAL_GTIME: None : null
+ - DIV1_LONGEST_GTIME: None : null
+ - DIV1_WHEELS_OFF: None : null
+ - DIV1_TAIL_NUM: None : null
+ - DIV2_AIRPORT: None : null
+ - DIV2_AIRPORT_ID: None : null
+ - DIV2_AIRPORT_SEQ_ID: None : null
+ - DIV2_WHEELS_ON: None : null
+ - DIV2_TOTAL_GTIME: None : null
+ - DIV2_LONGEST_GTIME: None : null
+ - DIV2_WHEELS_OFF: None : null
+ - DIV2_TAIL_NUM: None : null
+ - DIV3_AIRPORT: None : null
+ - DIV3_AIRPORT_ID: None : null
+ - DIV3_AIRPORT_SEQ_ID: None : null
+ - DIV3_WHEELS_ON: None : null
+ - DIV3_TOTAL_GTIME: None : null
+ - DIV3_LONGEST_GTIME: None : null
+ - DIV3_WHEELS_OFF: None : null
+ - DIV3_TAIL_NUM: None : null
+ - DIV4_AIRPORT: None : null
+ - DIV4_AIRPORT_ID: None : null
+ - DIV4_AIRPORT_SEQ_ID: None : null
+ - DIV4_WHEELS_ON: None : null
+ - DIV4_TOTAL_GTIME: None : null
+ - DIV4_LONGEST_GTIME: None : null
+ - DIV4_WHEELS_OFF: None : null
+ - DIV4_TAIL_NUM: None : null
+ - DIV5_AIRPORT: None : null
+ - DIV5_AIRPORT_ID: None : null
+ - DIV5_AIRPORT_SEQ_ID: None : null
+ - DIV5_WHEELS_ON: None : null
+ - DIV5_TOTAL_GTIME: None : null
+ - DIV5_LONGEST_GTIME: None : null
+ - DIV5_WHEELS_OFF: None : null
+ - DIV5_TAIL_NUM: None : null
+ - : None : null
+input type before: ((i64,i64,i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]))
+output type before: (i64,i64,i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+num input columns required: 18
+specialized type ((i64,i64,i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]))
+  - to - 
+((_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,i64,f64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]))
+[2022-03-10 18:04:03.724] [global] [debug] saving rewritten Python AST to PDF skipped.
+[2022-03-10 18:04:03.724] [global] [debug] performing static typing for UDF in operator map
+[2022-03-10 18:04:03.731] [global] [debug] writing type-annotated Python AST to PDF skipped.
+input type after: ((_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,i64,f64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]))
+output type after: (_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+num input columns required after opt: 12
+There were 6 columns optimized away:
+-> [YEAR, MONTH, OP_UNIQUE_CARRIER, CRS_DEP_TIME, CRS_ARR_TIME, CRS_ELAPSED_TIME]
+reading columns: [0, 2, 3, 6, 10, 11, 20, 29, 31, 40, 42, 50, 54, 56, 57, 58, 59, 60]
+Column indices to read before opt: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+After opt only need to read: [2, 4, 5, 6, 8, 10, 12, 13, 14, 15, 16, 17]
+Rewriting indices: [2 -> 0, 4 -> 1, 5 -> 2, 6 -> 3, 8 -> 4, 10 -> 5, 12 -> 6, 13 -> 7, 14 -> 8, 15 -> 9, 16 -> 10, 17 -> 11]
+file input now only reading: [3, 10, 11, 20, 31, 42, 54, 56, 57, 58, 59, 60]
+I.e., read before: [YEAR, MONTH, DAY_OF_MONTH, OP_UNIQUE_CARRIER, OP_CARRIER_FL_NUM, ORIGIN_AIRPORT_ID, DEST_AIRPORT_ID, CRS_DEP_TIME, DEP_DELAY, CRS_ARR_TIME, ARR_DELAY, CRS_ELAPSED_TIME, DISTANCE, CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY]
+now: [DAY_OF_MONTH, OP_CARRIER_FL_NUM, ORIGIN_AIRPORT_ID, DEST_AIRPORT_ID, DEP_DELAY, ARR_DELAY, DISTANCE, CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY]
+[2022-03-10 18:04:03.737] [global] [debug] writing type-annotated Python AST to PDF skipped.
+[2022-03-10 18:04:03.738] [global] [debug] saving rewritten Python AST to PDF skipped.
+mop updated: 
+input type: ((i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]))
+output type: (_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-03-10 18:04:03.826] [hyper specializer] [info] specialized to input:  (i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-03-10 18:04:03.826] [hyper specializer] [info] specialized to output: (_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-03-10 18:04:03.826] [hyper specializer] [info] specialized code reads: 12 columns
+[2022-03-10 18:04:03.826] [codegen] [debug] 
+[2022-03-10 18:04:03.826] [codegen] [debug] output type of specialized pipeline is: (_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+is this the most outer stage?: 1
+
+[2022-03-10 18:04:03.826] [codegen] [info] generating pipeline for (i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) -> (_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+[2022-03-10 18:04:03.826] [global] [debug] DEBUG PRINT: creating func for (i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-03-10 18:04:03.827] [codegen] [info] upcasting function return type from (i64,i64,i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) to (_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-03-10 18:04:03.832] [codegen] [info] generating function fill_in_delays for ((i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-03-10 18:04:03.841] [codegen] [debug] added normalcase speculation on return type (i64,i64,i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]).
+[2022-03-10 18:04:03.841] [codegen] [debug] Actual oberserved funcReturnType is: (_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-03-10 18:04:03.844] [codegen] [warning] hack, need to fix stuff here...
+[2022-03-10 18:04:03.847] [hyper specializer] [info] generated code in 0.021218s
+[2022-03-10 18:04:04.065] [global] [info] syms registered (or skipped), compile now
+[2022-03-10 18:04:04.092] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-03-10 18:04:04.092] [LLVM] [error] Symbols not found: { _fast_init_aggregate_stage0 }
+[2022-03-10 18:04:04.092] [LLVM] [error] Symbols not found: { _fast_init_aggregate_stage0 }
+[2022-03-10 18:04:04.092] [LLVM] [error] Symbols not found: { _fast_init_aggregate_stage0 }
+[2022-03-10 18:04:04.092] [LLVM] [error] Symbols not found: { _fast_init_aggregate_stage0 }
+[2022-03-10 18:04:04.092] [LLVM] [error] Symbols not found: { _fast_init_aggregate_stage0 }
+[2022-03-10 18:04:04.092] [LLVM] [error] Symbols not found: { _fast_init_aggregate_stage0 }
+[2022-03-10 18:04:04.092] [LLVM] [error] could not find symbol fast_init_aggregate_stage0. 
+[2022-03-10 18:04:04.093] [LLVM] [error] Symbols not found: { _combine_aggregate_stage0 }
+[2022-03-10 18:04:04.093] [LLVM] [error] Symbols not found: { _combine_aggregate_stage0 }
+[2022-03-10 18:04:04.093] [LLVM] [error] Symbols not found: { _combine_aggregate_stage0 }
+[2022-03-10 18:04:04.093] [LLVM] [error] Symbols not found: { _combine_aggregate_stage0 }
+[2022-03-10 18:04:04.093] [LLVM] [error] Symbols not found: { _combine_aggregate_stage0 }
+[2022-03-10 18:04:04.093] [LLVM] [error] Symbols not found: { _combine_aggregate_stage0 }
+[2022-03-10 18:04:04.093] [LLVM] [error] could not find symbol combine_aggregate_stage0. 
+[2022-03-10 18:04:04.093] [LLVM] [error] Symbols not found: { _aggregate_aggregate_stage0 }
+[2022-03-10 18:04:04.093] [LLVM] [error] Symbols not found: { _aggregate_aggregate_stage0 }
+[2022-03-10 18:04:04.093] [LLVM] [error] Symbols not found: { _aggregate_aggregate_stage0 }
+[2022-03-10 18:04:04.093] [LLVM] [error] Symbols not found: { _aggregate_aggregate_stage0 }
+[2022-03-10 18:04:04.093] [LLVM] [error] Symbols not found: { _aggregate_aggregate_stage0 }
+[2022-03-10 18:04:04.093] [LLVM] [error] Symbols not found: { _aggregate_aggregate_stage0 }
+[2022-03-10 18:04:04.093] [LLVM] [error] could not find symbol aggregate_aggregate_stage0. 
+[2022-03-10 18:04:04.093] [global] [info] Compiled code paths for stage 0 in 0.03 ms
+[2022-03-10 18:04:04.093] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 6.05003s
+[2022-03-10 18:04:04.094] [local ee] [info] split /Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv into 14 tasks
+[2022-03-10 18:04:04.094] [local ee] [debug] task without order found, please fix in code.
+[2022-03-10 18:04:04.752] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:0-16777255 (0-16777216) 37506 rows
+[2022-03-10 18:04:04.752] [driver] [info] [Task Finished] Transform to mem in 0.657999s (0 normal rows, 37506 exceptions)
+[2022-03-10 18:04:05.412] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:16777255-33554638 (16777216-33554432) 37643 rows
+[2022-03-10 18:04:05.413] [driver] [info] [Task Finished] Transform to mem in 0.660712s (0 normal rows, 37643 exceptions)
+[2022-03-10 18:04:06.072] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:33554638-50332027 (33554432-50331648) 37605 rows
+[2022-03-10 18:04:06.072] [driver] [info] [Task Finished] Transform to mem in 0.659202s (0 normal rows, 37605 exceptions)
+[2022-03-10 18:04:06.727] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:50332027-67108906 (50331648-67108864) 37387 rows
+[2022-03-10 18:04:06.728] [driver] [info] [Task Finished] Transform to mem in 0.655552s (0 normal rows, 37387 exceptions)
+[2022-03-10 18:04:07.374] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:67108906-83886102 (67108864-83886080) 37477 rows
+[2022-03-10 18:04:07.375] [driver] [info] [Task Finished] Transform to mem in 0.647136s (0 normal rows, 37477 exceptions)
+[2022-03-10 18:04:08.012] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:83886102-100663610 (83886080-100663296) 37414 rows
+[2022-03-10 18:04:08.012] [driver] [info] [Task Finished] Transform to mem in 0.637687s (0 normal rows, 37414 exceptions)
+[2022-03-10 18:04:08.651] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:100663610-117440834 (100663296-117440512) 37275 rows
+[2022-03-10 18:04:08.651] [driver] [info] [Task Finished] Transform to mem in 0.638491s (0 normal rows, 37275 exceptions)
+[2022-03-10 18:04:09.287] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:117440834-134217897 (117440512-134217728) 37279 rows
+[2022-03-10 18:04:09.287] [driver] [info] [Task Finished] Transform to mem in 0.635856s (0 normal rows, 37279 exceptions)
+[2022-03-10 18:04:09.944] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:134217897-150995037 (134217728-150994944) 37431 rows
+[2022-03-10 18:04:09.944] [driver] [info] [Task Finished] Transform to mem in 0.657179s (0 normal rows, 37431 exceptions)
+[2022-03-10 18:04:10.561] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:150995037-167772554 (150994944-167772160) 37240 rows
+[2022-03-10 18:04:10.562] [driver] [info] [Task Finished] Transform to mem in 0.617598s (0 normal rows, 37240 exceptions)
+[2022-03-10 18:04:11.184] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:167772554-184549751 (167772160-184549376) 37588 rows
+[2022-03-10 18:04:11.184] [driver] [info] [Task Finished] Transform to mem in 0.622599s (0 normal rows, 37588 exceptions)
+[2022-03-10 18:04:11.805] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:184549751-201326730 (184549376-201326592) 37342 rows
+[2022-03-10 18:04:11.805] [driver] [info] [Task Finished] Transform to mem in 0.621098s (0 normal rows, 37342 exceptions)
+[2022-03-10 18:04:12.428] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:201326730-218104067 (201326592-218103808) 37382 rows
+[2022-03-10 18:04:12.428] [driver] [info] [Task Finished] Transform to mem in 0.622509s (0 normal rows, 37382 exceptions)
+[2022-03-10 18:04:13.259] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:218104067-240486967 (218103808-240486967) 49927 rows
+[2022-03-10 18:04:13.259] [driver] [info] [Task Finished] Transform to mem in 0.831116s (0 normal rows, 49927 exceptions)
+[2022-03-10 18:04:13.259] [global] [info] [Transform Stage] Stage 0 completed 14 load&transform tasks in 9.16599s
+[2022-03-10 18:04:13.259] [global] [info] [Transform Stage] Stage 0 total wall clock time: 9.16473s, 536496 input rows, time to process 1 row via fast path: 0.0170826ms
+[2022-03-10 18:04:13.260] [global] [info] Exception details: 
+
+
+
+
+I.e.,
+
+need to perform correct exception storage etc. of data in correct format when hyper-specializing!
+
+[2022-03-10 18:19:43.861] [hyper specializer] [info] specialized to input:  (i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-03-10 18:19:43.861] [hyper specializer] [info] specialized to output: (_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-03-10 18:19:43.861] [hyper specializer] [info] specialized code reads: 12 columns
+[2022-03-10 18:19:43.861] [codegen] [debug] 
+[2022-03-10 18:19:43.861] [codegen] [debug] output type of specialized pipeline is: (_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+is this the most outer stage?: 1
+
+[2022-03-10 18:19:43.861] [codegen] [info] generating pipeline for (i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) -> (_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+[2022-03-10 18:19:43.861] [global] [debug] DEBUG PRINT: creating func for (i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-03-10 18:19:43.863] [codegen] [info] upcasting function return type from (i64,i64,i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) to (_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-03-10 18:19:43.867] [codegen] [info] generating function fill_in_delays for ((i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-03-10 18:19:43.873] [codegen] [debug] added normalcase speculation on return type (i64,i64,i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]).
+[2022-03-10 18:19:43.873] [codegen] [debug] Actual oberserved funcReturnType is: (_Constant[i64,value=2003],_Constant[i64,value=6],i64,_Constant[str,value='XE'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-03-10 18:19:43.876] [codegen] [warning] hack, need to fix stuff here...
+[2022-03-10 18:19:43.879] [hyper specializer] [info] generated code in 0.017654s
+[2022-03-10 18:19:44.057] [global] [info] syms registered (or skipped), compile now
+[2022-03-10 18:19:44.085] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-03-10 18:19:44.086] [LLVM] [error] Symbols not found: { _fast_init_aggregate_stage0 }
+[2022-03-10 18:19:44.086] [LLVM] [error] could not find symbol fast_init_aggregate_stage0. 
+[2022-03-10 18:19:44.086] [LLVM] [error] Symbols not found: { _combine_aggregate_stage0 }
+[2022-03-10 18:19:44.086] [LLVM] [error] could not find symbol combine_aggregate_stage0. 
+[2022-03-10 18:19:44.086] [LLVM] [error] Symbols not found: { _aggregate_aggregate_stage0 }
+[2022-03-10 18:19:44.086] [LLVM] [error] could not find symbol aggregate_aggregate_stage0. 
+[2022-03-10 18:19:44.086] [global] [info] Compiled code paths for stage 0 in 0.03 ms
+[2022-03-10 18:19:44.086] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 4.7795s
+[2022-03-10 18:19:44.087] [local ee] [info] split /Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv into 14 tasks
+[2022-03-10 18:19:44.087] [local ee] [debug] task without order found, please fix in code.
+[2022-03-10 18:19:44.665] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:0-16777255 (0-16777216) 37506 rows
+[2022-03-10 18:19:44.665] [driver] [info] [Task Finished] Transform to mem in 0.577686s (0 normal rows, 37506 exceptions)
+[2022-03-10 18:19:45.220] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:16777255-33554638 (16777216-33554432) 37643 rows
+[2022-03-10 18:19:45.221] [driver] [info] [Task Finished] Transform to mem in 0.555571s (0 normal rows, 37643 exceptions)
+[2022-03-10 18:19:45.776] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:33554638-50332027 (33554432-50331648) 37605 rows
+[2022-03-10 18:19:45.776] [driver] [info] [Task Finished] Transform to mem in 0.555695s (0 normal rows, 37605 exceptions)
+[2022-03-10 18:19:46.315] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:50332027-67108906 (50331648-67108864) 37387 rows
+[2022-03-10 18:19:46.315] [driver] [info] [Task Finished] Transform to mem in 0.538923s (0 normal rows, 37387 exceptions)
+[2022-03-10 18:19:46.862] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:67108906-83886102 (67108864-83886080) 37477 rows
+[2022-03-10 18:19:46.862] [driver] [info] [Task Finished] Transform to mem in 0.547049s (0 normal rows, 37477 exceptions)
+[2022-03-10 18:19:47.416] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:83886102-100663610 (83886080-100663296) 37414 rows
+[2022-03-10 18:19:47.416] [driver] [info] [Task Finished] Transform to mem in 0.553916s (0 normal rows, 37414 exceptions)
+[2022-03-10 18:19:47.983] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:100663610-117440834 (100663296-117440512) 37275 rows
+[2022-03-10 18:19:47.983] [driver] [info] [Task Finished] Transform to mem in 0.567049s (0 normal rows, 37275 exceptions)
+[2022-03-10 18:19:48.531] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:117440834-134217897 (117440512-134217728) 37279 rows
+[2022-03-10 18:19:48.531] [driver] [info] [Task Finished] Transform to mem in 0.547786s (0 normal rows, 37279 exceptions)
+[2022-03-10 18:19:49.078] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:134217897-150995037 (134217728-150994944) 37431 rows
+[2022-03-10 18:19:49.078] [driver] [info] [Task Finished] Transform to mem in 0.546985s (0 normal rows, 37431 exceptions)
+[2022-03-10 18:19:49.625] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:150995037-167772554 (150994944-167772160) 37240 rows
+[2022-03-10 18:19:49.626] [driver] [info] [Task Finished] Transform to mem in 0.547205s (0 normal rows, 37240 exceptions)
+[2022-03-10 18:19:50.168] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:167772554-184549751 (167772160-184549376) 37588 rows
+[2022-03-10 18:19:50.168] [driver] [info] [Task Finished] Transform to mem in 0.542172s (0 normal rows, 37588 exceptions)
+[2022-03-10 18:19:50.706] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:184549751-201326730 (184549376-201326592) 37342 rows
+[2022-03-10 18:19:50.707] [driver] [info] [Task Finished] Transform to mem in 0.538798s (0 normal rows, 37342 exceptions)
+[2022-03-10 18:19:51.255] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:201326730-218104067 (201326592-218103808) 37382 rows
+[2022-03-10 18:19:51.256] [driver] [info] [Task Finished] Transform to mem in 0.548898s (0 normal rows, 37382 exceptions)
+[2022-03-10 18:19:51.984] [global] [debug] Read CSV from file:///Users/leonhards/Downloads/flights/flights_on_time_performance_2003_06.csv:218104067-240486967 (218103808-240486967) 49927 rows
+[2022-03-10 18:19:51.984] [driver] [info] [Task Finished] Transform to mem in 0.728293s (0 normal rows, 49927 exceptions)
+[2022-03-10 18:19:51.984] [global] [info] [Transform Stage] Stage 0 completed 14 load&transform tasks in 7.89774s
+[2022-03-10 18:19:51.984] [global] [info] [Transform Stage] Stage 0 total wall clock time: 7.89603s, 536496 input rows, time to process 1 row via fast path: 0.0147178ms
+[2022-03-10 18:19:51.984] [global] [info] Exception details: 
++------------+-------------------------------------+--------+
+| OperatorID | Exception                           | Count  |
++------------+-------------------------------------+--------+
+| 100001     | tuplex.internal.normalCaseViolation | 531310 |
++------------+-------------------------------------+--------+
+| 100000     | tuplex.internal.BadParseStringInput | 5186   |
++------------+-------------------------------------+--------+
+[2022-03-10 18:19:52.007] [local ee] [info] compiled pure python pipeline in 0.022069s
+[2022-03-10 18:19:52.007] [local ee] [info] creating hybrid intermediates took 0.000013s
+[2022-03-10 18:19:52.007] [local ee] [debug] Resolve tasks for stage 0
+	target normal case output schema: (str)
+	target general case output schema: (str)
+	should cases be persisted separately: false
+	schema the regular exceptions are stored in: (i64,i64,i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+	schema the compiled slow path outputs: (str)

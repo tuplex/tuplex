@@ -203,7 +203,7 @@ DataTree.prototype.getChildren = function (row) {
 		config.children.forEach(function (child) {
 			output.push(child);
 
-			var subChildren = _this3.getChildren(child);
+			var subChildren = _this3.children(child);
 
 			subChildren.forEach(function (sub) {
 				output.push(sub);

@@ -13,12 +13,12 @@
 
 
 #include <graphviz/GraphVizGraph.h>
-#include <IPrePostVisitor.h>
+#include <visitors/IPrePostVisitor.h>
 #include <unordered_map>
-#include <IReplaceVisitor.h>
-#include <ColumnRewriteVisitor.h>
-#include <TraceVisitor.h>
-#include <ApplyVisitor.h>
+#include <visitors/IReplaceVisitor.h>
+#include <visitors/ColumnRewriteVisitor.h>
+#include <tracing/TraceVisitor.h>
+#include <visitors/ApplyVisitor.h>
 
 #ifndef NDEBUG
 static int g_func_counter = 0;
@@ -182,7 +182,7 @@ namespace tuplex {
     }
 
     Schema UDF::getInputSchema() const {
-        // assert(_inputSchema.getRowType() != python::Type::UNKNOWN);
+        // assert(_generalCaseInputSchema.getRowType() != python::Type::UNKNOWN);
         return _inputSchema;
     }
 
@@ -255,7 +255,7 @@ namespace tuplex {
                     foundPyObject = true;
 
                 // check pos args are not of pyobject, if they're default to fallback compilation...
-                for(auto arg : call->_positionalArguments) {
+                for(const auto &arg : call->_positionalArguments) {
                     if(arg->getInferredType() == python::Type::PYOBJECT)
                         foundPyObject = true;
                 }
@@ -743,7 +743,7 @@ namespace tuplex {
 
     std::vector<size_t> LambdaAccessedColumnVisitor::getAccessedIndices() const {
 
-        std::vector<size_t> idxs;
+        std::set<size_t> idxs;
 
         // first check what type it is
         if(_tupleArgument) {
@@ -751,19 +751,20 @@ namespace tuplex {
             std::string argName = _argNames.front();
             if(_argFullyUsed.at(argName)) {
                 for(unsigned i = 0; i < _numColumns; ++i)
-                    idxs.push_back(i);
+                    idxs.insert(i);
             } else {
-                return _argSubscriptIndices.at(argName);
+                auto v_idxs = _argSubscriptIndices.at(argName);
+                idxs = std::set<size_t>(v_idxs.begin(), v_idxs.end());
             }
         } else {
             // simple, see which params are fully used.
             for(unsigned i = 0; i < _argNames.size(); ++i) {
                 if(_argFullyUsed.at(_argNames[i]))
-                    idxs.push_back(i);
+                    idxs.insert(i);
             }
         }
 
-        return idxs;
+        return std::vector<size_t>(idxs.begin(), idxs.end());
     }
 
     void LambdaAccessedColumnVisitor::preOrder(ASTNode *node) {
@@ -783,9 +784,9 @@ namespace tuplex {
                 _numColumns = _tupleArgument ? itype.parameters().front().parameters().size() : itype.parameters().size();
 
                 // fetch identifiers for args
-                for(auto argNode : lambda->_arguments->_args) {
+                for(const auto &argNode : lambda->_arguments->_args) {
                     assert(argNode->type() == ASTNodeType::Parameter);
-                    NIdentifier* id = ((NParameter*)argNode)->_identifier;
+                    NIdentifier* id = ((NParameter*)argNode.get())->_identifier.get();
                     _argNames.push_back(id->_name);
                     _argFullyUsed[id->_name] = false;
                     _argSubscriptIndices[id->_name] = std::vector<size_t>();
@@ -809,9 +810,9 @@ namespace tuplex {
                 _numColumns = _tupleArgument ? itype.parameters().front().parameters().size() : itype.parameters().size();
 
                 // fetch identifiers for args
-                for(auto argNode : func->_parameters->_args) {
+                for(const auto &argNode : func->_parameters->_args) {
                     assert(argNode->type() == ASTNodeType::Parameter);
-                    NIdentifier* id = ((NParameter*)argNode)->_identifier;
+                    NIdentifier* id = ((NParameter*)argNode.get())->_identifier.get();
                     _argNames.push_back(id->_name);
                     _argFullyUsed[id->_name] = false;
                     _argSubscriptIndices[id->_name] = std::vector<size_t>();
@@ -842,19 +843,20 @@ namespace tuplex {
                 // just simple stuff yet.
                 if (sub->_value->type() == ASTNodeType::Identifier &&
                     (val_type.isTupleType() || val_type.isDictionaryType())) {
-                    NIdentifier* id = (NIdentifier*)sub->_value;
+                    NIdentifier* id = (NIdentifier*)sub->_value.get();
 
                     // first check whether this identifier is in args,
                     // if not ignore.
                     if(std::find(_argNames.begin(), _argNames.end(), id->_name) != _argNames.end()) {
                         // no nested paths yet, i.e. x[0][2]
                         if(sub->_expression->type() == ASTNodeType::Number) {
-                            NNumber* num = (NNumber*)sub->_expression;
-
+                            NNumber* num = (NNumber*)sub->_expression.get();
+#ifndef NDEBUG
                             // should be I64 or bool
-                            assert(num->getInferredType() == python::Type::BOOLEAN ||
-                                   num->getInferredType() == python::Type::I64);
-
+                            auto deopt_num_type = deoptimizedType(num->getInferredType());
+                            assert(deopt_num_type == python::Type::BOOLEAN ||
+                                   deopt_num_type == python::Type::I64);
+#endif
 
                             // can save this one!
                             auto idx = num->getI64();
@@ -949,7 +951,7 @@ namespace tuplex {
         }
     };
 
-    ASTNode* RewriteVisitor::replace(ASTNode *parent, ASTNode *node) {
+    ASTNode* RewriteVisitor::replace(ASTNode *parent, ASTNode* node) {
 
         if(!node)
             return nullptr;
@@ -974,9 +976,9 @@ namespace tuplex {
                                          : itype.parameters().size();
 
             // fetch identifiers for args
-            for (auto argNode : lambda->_arguments->_args) {
+            for (const auto &argNode : lambda->_arguments->_args) {
                 assert(argNode->type() == ASTNodeType::Parameter);
-                NIdentifier *id = ((NParameter *) argNode)->_identifier;
+                NIdentifier *id = ((NParameter *) argNode.get())->_identifier.get();
                 _argNames.push_back(id->_name);
             }
 
@@ -1000,9 +1002,9 @@ namespace tuplex {
                                          : itype.parameters().size();
 
             // fetch identifiers for args
-            for (auto argNode : func->_parameters->_args) {
+            for (const auto &argNode : func->_parameters->_args) {
                 assert(argNode->type() == ASTNodeType::Parameter);
-                NIdentifier *id = ((NParameter *) argNode)->_identifier;
+                NIdentifier *id = ((NParameter *) argNode.get())->_identifier.get();
                 _argNames.push_back(id->_name);
             }
 
@@ -1068,17 +1070,15 @@ namespace tuplex {
 
                         // need to replace paramlist with params to rewrite
                         // reduce
-                        std::vector<ASTNode*> keepNodes;
+                        std::vector<std::unique_ptr<ASTNode>> keepNodes;
 
                         for(unsigned i = 0; i < _numColumns; ++i) {
                             if(_rewriteMap.find(i) != _rewriteMap.end()) {
-                                keepNodes.push_back(paramList->_args[i]);
+                                keepNodes.push_back(std::move(paramList->_args[i]));
                                 reducedArgTypes.push_back(ptype.parameters()[i]);
-                            } else {
-                                delete paramList->_args[i];
                             }
                         }
-                        paramList->_args = keepNodes;
+                        paramList->_args = std::move(keepNodes);
 
                         // update type
                         ptype = python::Type::makeTupleType(reducedArgTypes);
@@ -1107,20 +1107,20 @@ namespace tuplex {
                     if(sub->_value->type() == ASTNodeType::Identifier &&
                     sub->_expression->type() == ASTNodeType::Number) {
                         // matches argname?
-                        NIdentifier* id = (NIdentifier*)sub->_value;
+                        NIdentifier* id = (NIdentifier*)sub->_value.get();
 
                         if(id->_name == _argNames.front()) {
-                            assert(sub->_expression->getInferredType() == python::Type::I64 ||
-                            sub->_expression->getInferredType() == python::Type::BOOLEAN);
-
+#ifndef NDEBUG
+                            auto exp_type = deoptimizedType(sub->_expression->getInferredType());
+                            assert(exp_type == python::Type::I64 || exp_type == python::Type::BOOLEAN);
+#endif
                             // there are two options:
                             // opt1: expression is a simple number
                             if(sub->_expression->type() == ASTNodeType::Number) {
-                                auto old_idx = ((NNumber*)sub->_expression)->getI64();
+                                auto old_idx = ((NNumber*)sub->_expression.get())->getI64();
                                 // correct for negative indices
                                 if(old_idx < 0)
                                     old_idx += _numColumns;
-
 
                                 // assert(0 <= old_idx && old_idx < _numColumns);
 
@@ -1140,8 +1140,7 @@ namespace tuplex {
                                 // replace
                                 NNumber* num_new = new NNumber(std::to_string(new_idx));
 
-                                delete sub->_expression;
-                                sub->_expression = num_new;
+                                sub->_expression = std::unique_ptr<ASTNode>(num_new);
                             } else {
                                 // opt2: it is something else
                                 // trick is to add a NBinaryOp to remap the index
@@ -1208,7 +1207,7 @@ namespace tuplex {
 
         // need to update type hints too. Else, everything gets overwritten from the code generator.
         auto hints = rv.getTypeHints();
-        for(auto el : hints)
+        for(const auto &el : hints)
             getAnnotatedAST().addTypeHint(el.first, el.second);
 
         // call define types then again
@@ -1290,8 +1289,8 @@ namespace tuplex {
         return true;
     }
 
-    void UDF::saveASTToPDF(const std::string &filePath) {
-        getAnnotatedAST().writeGraphToPDF(filePath);
+    void UDF::saveASTToPDF(const std::string &filePath, bool with_types) {
+        getAnnotatedAST().writeGraphToPDF(filePath, with_types);
     }
 
     bool UDF::dictMode() const {
@@ -1336,7 +1335,9 @@ namespace tuplex {
 
 
     bool UDF::hintSchemaWithSample(const std::vector<PyObject *>& sample, const python::Type& inputRowType, bool acquireGIL) {
-        TraceVisitor tv(inputRowType);
+        auto& logger = Logger::instance().logger("type inference");
+
+        TraceVisitor tv(inputRowType, _policy);
 
         auto funcNode = _ast.getFunctionAST();
 
@@ -1374,7 +1375,11 @@ namespace tuplex {
         _outputSchema = Schema(Schema::MemoryLayout::ROW, row_type);
 
         // run type annotator on top of tree which has been equipped with annotations now
-        hintInputSchema(Schema(Schema::MemoryLayout::ROW, inputSchema.getRowType()), false, false); // TODO: could do this directly in tracevisitor as well, but let's separate concerns here...
+        auto res = hintInputSchema(Schema(Schema::MemoryLayout::ROW, inputSchema.getRowType()), false, false); // TODO: could do this directly in tracevisitor as well, but let's separate concerns here...
+        if(!res) {
+            logger.error("type inference using traced sample failed. Details: Failed to annotate AST tree with tracing results.");
+            return false;
+        }
 
         _inputSchema = inputSchema; // somehow hintInputSchema overwrites current one? => Restore.
 
@@ -1426,5 +1431,10 @@ namespace tuplex {
 
         // else, create new UDF based on whatever is already here
         return UDF(_code, _pickledCode, _ast.globals(), policy);
+    }
+
+    void UDF::optimizeConstants() {
+        // run reduce expressions visitor to fold whatever is possible...
+        _ast.reduceConstantTypes();
     }
 }

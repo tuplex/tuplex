@@ -1,8 +1,26 @@
 ## AWS Lambda function
 
+## Changing runner behavior
+For simplicity, certain behaviors can be changed of the AWS Lambda runner by submitting approriate Environment variables.
+This is because it's cheaper to update the environment than to upload everytime a new package.
+
+TUPLEX_ENABLE_FULL_AWS_LOGGING=TRUE
+
+
+## Old content:
 This folder contains code for the AWS C++ Lambda executor which can be deployed when using the AWS Lambda backend.
 
 Is only built on Linux (for MacOS use the hosted package).
+
+
+
+
+
+
+
+
+
+
 
 # Setup Guide
 ## Initial AWS Setup

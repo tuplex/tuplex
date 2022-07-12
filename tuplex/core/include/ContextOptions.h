@@ -49,6 +49,7 @@ namespace tuplex {
         bool OPT_DETAILED_CODE_STATS() const { return stringToBool(_store.at("tuplex.optimizer.codeStats")); }
         bool OPT_GENERATE_PARSER() const { return stringToBool(_store.at("tuplex.optimizer.generateParser")); }
         bool OPT_NULLVALUE_OPTIMIZATION() const { return stringToBool(_store.at("tuplex.optimizer.nullValueOptimization")); }
+        bool OPT_CONSTANTFOLDING_OPTIMIZATION() const { return stringToBool(_store.at("tuplex.optimizer.constantFoldingOptimization")); }
         bool OPT_SHARED_OBJECT_PROPAGATION() const { return stringToBool(_store.at("tuplex.optimizer.sharedObjectPropagation")); }
         bool OPT_FILTER_PUSHDOWN() const { return stringToBool(_store.at("tuplex.optimizer.filterPushdown")); }
         bool OPT_OPERATOR_REORDERING() const { return stringToBool(_store.at("tuplex.optimizer.operatorReordering")); }
@@ -67,7 +68,15 @@ namespace tuplex {
         std::string AWS_REGION() const { return _store.at("tuplex.aws.region"); }
         size_t AWS_LAMBDA_MEMORY() const { return std::stoi(_store.at("tuplex.aws.lambdaMemory")); } // 1536MB
         size_t AWS_LAMBDA_TIMEOUT() const { return std::stoi(_store.at("tuplex.aws.lambdaTimeout"));  } // 5min?
+        std::string AWS_LAMBDA_THREAD_COUNT() const { return _store.at("tuplex.aws.lambdaThreads"); } // auto or number > 0
+        bool AWS_LAMBDA_SELF_INVOCATION() const { return stringToBool(_store.at("tuplex.aws.lambdaInvokeOthers")); } // whether Lambdas should perform self-invocation to scale faster...
         bool AWS_REQUESTER_PAY() const { return stringToBool(_store.at("tuplex.aws.requesterPay")); }
+        bool AWS_VERBOSE_LOGGING() const { return stringToBool(_store.at("tuplex.aws.verboseLogging")); }
+        bool PURE_PYTHON_MODE() const { return stringToBool(_store.at("tuplex.useInterpreterOnly")); } // if set to true, then everything will be processed using the generated py-code only!
+
+        bool USE_EXPERIMENTAL_HYPERSPECIALIZATION() const { return stringToBool(_store.at("tuplex.experimental.hyperspecialization")); }
+
+        std::string AWS_LAMBDA_INVOCATION_STRATEGY() const { return _store.at("tuplex.aws.lambdaInvocationStrategy"); }
 
         // access parameters via their getter functions
         size_t RUNTIME_MEMORY() const;                        //! in bytes how much memory should be given to UDFs (soft limit)
@@ -99,6 +108,7 @@ namespace tuplex {
         size_t CSV_MAX_DETECTION_MEMORY() const; //! maximum bytes to use for CSV schema inference
         size_t CSV_MAX_DETECTION_ROWS() const; //! maximum number of rows to use for CSV schema inference
 
+        size_t SAMPLE_SIZE() const { return CSV_MAX_DETECTION_MEMORY(); } // @TODO, change this setting name.
         double NORMALCASE_THRESHOLD() const; //! threshold for normalcase, between 0.0 and 1.0
         double OPTIONAL_THRESHOLD() const; //! threshold for detecting an optional field, between 0.0 and 1.0
 

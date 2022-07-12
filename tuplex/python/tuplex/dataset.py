@@ -20,8 +20,20 @@ from tuplex.utils.framework import UDFCodeExtractionError
 from tuplex.utils.source_vault import SourceVault
 from .exceptions import classToExceptionCode
 
+from enum import IntFlag
+
 # signed 64bit limit
 max_rows = 9223372036854775807
+
+# helper enum for different sampling modes
+class SamplingMode(IntFlag):
+    FIRST_ROWS = 1
+    LAST_ROWS = 2
+    RANDOM_ROWS = 4
+    FIRST_FILE = 8
+    LAST_FILE = 16
+    RANDOM_FILE = 32
+    ALL_FILES = 64
 
 class DataSet:
 

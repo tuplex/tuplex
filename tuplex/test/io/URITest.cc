@@ -98,6 +98,38 @@ TEST(URI, Writable) {
     EXPECT_TRUE(isWritable(non_existing_path));
 }
 
+TEST(URI, RangeBased) {
+    // check that encoding/decoding ranges works!
+    using namespace tuplex;
+
+    auto t1 = encodeRangeURI("s3://test/test/test", 120, 500);
+    auto t2 = encodeRangeURI("s3://test/test/test", 0, 0);
+    EXPECT_EQ(t1, "s3://test/test/test:120-500");
+    EXPECT_EQ(t2, "s3://test/test/test");
+
+    // decode
+    size_t rangeStart=42, rangeEnd=42;
+    URI uri;
+    decodeRangeURI(t1, uri, rangeStart, rangeEnd);
+    EXPECT_EQ(uri.toString(), "s3://test/test/test");
+    EXPECT_EQ(rangeStart, 120);
+    EXPECT_EQ(rangeEnd, 500);
+    rangeStart=42; rangeEnd=42;
+    uri = URI("file://something-else");
+    decodeRangeURI(t2, uri, rangeStart, rangeEnd);
+    EXPECT_EQ(uri.toString(), "s3://test/test/test");
+    EXPECT_EQ(rangeStart, 0);
+    EXPECT_EQ(rangeEnd, 0);
+
+    // check bad s3 example
+    rangeStart=42; rangeEnd=42;
+    uri = URI();
+    decodeRangeURI("s3://tuplex-public/data/100GB/zillow_00001.csv:62500637-250002549", uri, rangeStart, rangeEnd);
+    EXPECT_EQ(uri.toString(), "s3://tuplex-public/data/100GB/zillow_00001.csv");
+    EXPECT_EQ(rangeStart, 62500637);
+    EXPECT_EQ(rangeEnd, 250002549);
+}
+
 #ifdef BUILD_WITH_AWS
 TEST(URI, CorrectS3Behavior) {
     using namespace tuplex;

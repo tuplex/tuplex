@@ -46,4 +46,5 @@ namespace tuplex {
     const Context &PhysicalStage::context() const {
         return plan()->getContext();
     }
+
 }

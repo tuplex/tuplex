@@ -7,15 +7,12 @@
 //  Created by Leonhard Spiegelberg first on 3/2/20                                                                   //
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
-
-#include <utility>
-
-//
-// Created by Leonhard Spiegelberg on 3/2/20.
-//
-
 #ifndef TUPLEX_AGGREGATEOPERATOR_H
 #define TUPLEX_AGGREGATEOPERATOR_H
+
+#include <utility>
+#include <logical/LogicalOperator.h>
+#include <logical/UDFOperator.h>
 
 namespace tuplex {
 
@@ -28,9 +25,12 @@ namespace tuplex {
 
     class AggregateOperator : public LogicalOperator {
     public:
+        // required by Cereal
+        AggregateOperator() = default;
+
         virtual ~AggregateOperator() override = default;
 
-        AggregateOperator(LogicalOperator* parent,
+        AggregateOperator(const std::shared_ptr<LogicalOperator>& parent,
                           const AggregateType& at,
                           const UDF& combiner=UDF("",""),
                           const UDF& aggregator=UDF("",""),
@@ -112,7 +112,7 @@ namespace tuplex {
             return std::vector<std::string>();
         }
 
-        LogicalOperator* clone() override;
+        std::shared_ptr<LogicalOperator> clone() override;
 
         const UDF& aggregatorUDF() const { return _aggregator; }
         const UDF& combinerUDF() const { return _combiner; }
@@ -133,6 +133,18 @@ namespace tuplex {
          */
         std::vector<size_t> keyColsInParent() const { assert(aggType() == AggregateType::AGG_BYKEY); return _keyColsInParent; }
         python::Type keyType() const { assert(aggType() == AggregateType::AGG_BYKEY); return _keyType; }
+
+#ifdef BUILD_WITH_CEREAL
+        // cereal serialization functions
+        template<class Archive> void save(Archive &ar) const {
+            ar(::cereal::base_class<LogicalOperator>(this), _aggType, _aggregateOutputType, _combiner, _aggregator, _initialValue);
+        }
+
+        template<class Archive> void load(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _aggType, _aggregateOutputType, _combiner, _aggregator, _initialValue);
+        }
+#endif
+
     private:
         AggregateType _aggType;
 
@@ -149,5 +161,9 @@ namespace tuplex {
         bool inferAndCheckTypes();
     };
 }
+
+#ifdef BUILD_WITH_CEREAL
+CEREAL_REGISTER_TYPE(tuplex::AggregateOperator);
+#endif
 
 #endif //TUPLEX_AGGREGATEOPERATOR_H

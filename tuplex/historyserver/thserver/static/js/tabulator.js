@@ -11281,7 +11281,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 			config.children.forEach(function (child) {
 				output.push(child);
 
-				var subChildren = _this26.getChildren(child);
+				var subChildren = _this26.children(child);
 
 				subChildren.forEach(function (sub) {
 					output.push(sub);

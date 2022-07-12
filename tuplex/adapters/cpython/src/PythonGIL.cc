@@ -13,6 +13,7 @@
 #include <iostream>
 #include <Base.h>
 #include <mutex>
+#include <cstdint>
 
 namespace python {
 
@@ -27,7 +28,9 @@ namespace python {
         ss.flush();
         auto thread_id = ss.str();
         int64_t id = -1;
-        sscanf(thread_id.c_str(), "%lld", &id);
+        // https://stackoverflow.com/questions/31534474/format-lld-expects-type-long-long-int-but-argument-4-has-type-int64-t
+        // sscanf(thread_id.c_str(), "%lld", &id);
+        sscanf(thread_id.c_str(), "%" PRId64, &id); // platform independent way.
         return id;
     }
 

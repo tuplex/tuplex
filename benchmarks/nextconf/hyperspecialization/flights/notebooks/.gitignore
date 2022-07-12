@@ -1,0 +1,6 @@
+data/
+full_flight_data/
+zipped_data/
+*.log
+*.tar.gz
+result-*/

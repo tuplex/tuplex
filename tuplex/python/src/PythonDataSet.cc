@@ -12,7 +12,7 @@
 #include <PythonWrappers.h>
 #include <cstdio>
 #include <CSVUtils.h>
-#include <Signals.h>
+#include <utils/Signals.h>
 #include <limits>
 
 #ifdef NDEBUG

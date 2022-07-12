@@ -13,7 +13,7 @@
 
 #include <memory>
 #include <string>
-#include <ASTNodes.h>
+#include <ast/ASTNodes.h>
 
 // test function
 extern void testDefCode(const std::string& code,

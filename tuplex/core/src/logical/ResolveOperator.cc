@@ -15,7 +15,7 @@ static const size_t typeDetectionSampleSize = 5; // use 5 as default for now
 
 namespace tuplex {
 
-    ResolveOperator::ResolveOperator(LogicalOperator *parent,
+    ResolveOperator::ResolveOperator(const std::shared_ptr<LogicalOperator>& parent,
             const ExceptionCode &ecToResolve,
             const UDF &udf,
             const std::vector<std::string>& columnNames) : UDFOperator::UDFOperator(parent, udf, columnNames) {
@@ -35,8 +35,8 @@ namespace tuplex {
             return false;
         }
 
-        if(hasUDF(parent)) {
-            auto udfop = dynamic_cast<UDFOperator*>(parent);
+        if(hasUDF(parent.get())) {
+            auto udfop = dynamic_cast<UDFOperator*>(parent.get());
 
             // check that udf schemas match (up to upcasting)
             // Note: better use unifyTypes here??
@@ -69,7 +69,7 @@ namespace tuplex {
 
         // check if MapColumn Operator b.c. this operator doesn't map the full row
         if(getNormalParent()->type() == LogicalOperatorType::MAPCOLUMN) {
-            auto mcop = dynamic_cast<MapColumnOperator*>(getNormalParent()); assert(mcop);
+            auto mcop = dynamic_cast<MapColumnOperator*>(getNormalParent().get()); assert(mcop);
             auto colTypes = inputSchema.getRowType().parameters();
             auto hintSchema = Schema(inputSchema.getMemoryLayout(), python::Type::propagateToTupleType(colTypes[mcop->getColumnIndex()]));
             inputSchema = hintSchema;
@@ -92,8 +92,8 @@ namespace tuplex {
             _udf.hintInputSchema(inputSchema);
             Logger::instance().defaultLogger().info("detected type for " + name() + " operator is " + _udf.getOutputSchema().getRowType().desc());
 
-            if(hasUDF(normalParent)) {
-                auto udfop = dynamic_cast<UDFOperator*>(normalParent);
+            if(hasUDF(normalParent.get())) {
+                auto udfop = dynamic_cast<UDFOperator*>(normalParent.get());
 
                 // if schema of resolver udf does not match *normal* parent ones, need to upcast
                 // need to upcast result. E.g., could be that resolver is lambda x: 0, but something more elaborate is wanted
@@ -134,8 +134,8 @@ namespace tuplex {
             std::stringstream ss;
             ss<<"detected type for " + name() + " operator using "<<typeDetectionSampleSize<<" samples as "<<detectedType.desc();
             Logger::instance().defaultLogger().info(ss.str());
-            if(hasUDF(parent())) {
-                UDFOperator *udfop = dynamic_cast<UDFOperator*>(parent());
+            if(hasUDF(parent().get())) {
+                UDFOperator *udfop = dynamic_cast<UDFOperator*>(parent().get());
                 assert(udfop->getUDF().getOutputSchema() == _udf.getOutputSchema());
             }
 
@@ -144,13 +144,13 @@ namespace tuplex {
         }
     }
 
-    LogicalOperator *ResolveOperator::clone() {
+    std::shared_ptr<LogicalOperator> ResolveOperator::clone() {
         auto copy = new ResolveOperator(parent()->clone(), ecCode(), _udf,
                                         UDFOperator::columns());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
     void ResolveOperator::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
@@ -163,8 +163,8 @@ namespace tuplex {
         UDFOperator::rewriteParametersInAST(rewriteMap);
 
         // update schema
-        if(hasUDF(np)) {
-            auto udfop = dynamic_cast<UDFOperator*>(np);
+        if(hasUDF(np.get())) {
+            auto udfop = dynamic_cast<UDFOperator*>(np.get());
 
             // if schema of resolver udf does not match *normal* parent ones, need to upcast
             // need to upcast result. E.g., could be that resolver is lambda x: 0, but something more elaborate is wanted

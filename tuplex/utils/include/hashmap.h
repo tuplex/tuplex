@@ -39,6 +39,14 @@ typedef struct _hashmap_element {
     any_t data;
 } hashmap_element;
 
+/* A hashmap has some maximum size and current size,
+ * as well as the data to hold. */
+typedef struct _hashmap_map {
+    int table_size;
+    int size;
+    hashmap_element *data;
+} hashmap_map;
+
 /*
  * PFany is a pointer to a function that can take two any_t arguments
  * and return an integer. Returns status code..
@@ -98,6 +106,13 @@ extern int hashmap_remove(map_t in, char* key, uint64_t keylen)  __attribute__((
  * remove - should the element be removed from the hashmap
  */
 extern int hashmap_get_one(map_t in, any_t *arg, int remove)  __attribute__((used));
+
+/*!
+ * computes the size of the hashmap and data elements
+ * @param in map
+ * @return size in bytes of the hashmap (not incl. data!)
+ */
+extern int hashmap_size(map_t in);
 
 /*
  * Free the hashmap

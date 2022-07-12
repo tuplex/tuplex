@@ -34,16 +34,24 @@ ExternalProject_Get_Property(json source_dir)
 set(json_INCLUDE_DIR ${source_dir}/include)
 include_directories(${json_INCLUDE_DIR})
 
+# manually add the worker files to build AWS Lambda version...
+include_directories("../worker/include")
 
 # linking
-add_executable(${LAMBDA_NAME} "src/main.cc" "src/lambda_main.cc" "src/sighandler.cc")
+add_executable(${LAMBDA_NAME} "src/main.cc"
+        "src/lambda_main.cc"
+        "src/sighandler.cc"
+        "${CMAKE_CURRENT_LIST_DIR}/../worker/src/LambdaWorkerApp.cc"
+        "${CMAKE_CURRENT_LIST_DIR}/../worker/src/WorkerApp.cc")
 
 # enable export symbols in debug for backtrace
 set_target_properties(${LAMBDA_NAME} PROPERTIES ENABLE_EXPORTS 1)
+message(STATUS "Protobuf libs are: ${Protobuf_LIBRARIES}")
 
 # note: for the Lambda, the interpreter gets actually embedded. Therefore link to it!
-target_link_libraries(${LAMBDA_NAME} PRIVATE AWS::aws-lambda-runtime ${AWSSDK_LINK_LIBRARIES}
-        libio libutils libcore libcodegen libcpythonadapter ${Boost_LIBRARIES} ${LibMagic_LIBRARIES} ${Python3_LIBRARIES})
+target_link_libraries(${LAMBDA_NAME} PRIVATE AWS::aws-lambda-runtime
+        libio libutils libcore libcodegen libcpythonadapter
+        ${AWSSDK_LINK_LIBRARIES} ${Boost_LIBRARIES} ${LibMagic_LIBRARIES} ${Protobuf_LIBRARIES} ${Python3_LIBRARIES})
 target_compile_features(${LAMBDA_NAME} PRIVATE "cxx_std_11")
 
 

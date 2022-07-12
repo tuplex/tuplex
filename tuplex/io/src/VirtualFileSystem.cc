@@ -47,6 +47,13 @@ namespace tuplex {
         return VirtualFileSystem::registerFileSystem(std::make_shared<S3FileSystemImpl>(access_key, secret_key, session_token, region, ns, lambdaMode, requesterPay), "s3://");
     }
 
+    void VirtualFileSystem::removeS3FileSystem() {
+        auto it = fsRegistry.find("s3://");
+        if(it != fsRegistry.end()) {
+            fsRegistry.erase(it);
+        }
+    }
+
     std::map<std::string, size_t> VirtualFileSystem::s3TransferStats() {
         MessageHandler& logger = Logger::instance().logger("filesystem");
         std::map<std::string, size_t> m;
@@ -305,6 +312,16 @@ namespace tuplex {
     }
 
 #ifdef BUILD_WITH_AWS
+
+    S3FileSystemImpl* VirtualFileSystem::getS3FileSystemImpl() {
+        // check whether s3 is registered
+        auto it = fsRegistry.find("s3://");
+        if(it == fsRegistry.end())
+            return nullptr;
+        return static_cast<S3FileSystemImpl*>(it->second.get());
+    }
+
+
     int VirtualFileSystem::copyLocalToS3(const std::vector<std::string> &src_uris, const URI &target,
                                             const std::string &lcp, std::vector<URI> &copied_uris, bool overwrite) {
         using namespace std;

@@ -13,14 +13,17 @@
 #include <nlohmann/json.hpp>
 #include <google/protobuf/util/json_util.h>
 
-
 using namespace nlohmann;
 using namespace aws::lambda_runtime;
 
 static bool g_reused = false;
 static tuplex::uniqueid_t g_id = tuplex::getUniqueID();
+uint64_t g_start_timestamp = 0;
+uint32_t g_num_requests_served = 0;
+
 bool container_reused() { return g_reused; }
 extern tuplex::uniqueid_t container_id() { return g_id; }
+
 
 
 std::string proto_to_json(const tuplex::messages::InvocationResponse& r) {
@@ -29,7 +32,7 @@ std::string proto_to_json(const tuplex::messages::InvocationResponse& r) {
     return json_buf;
 }
 
-static invocation_response lambda_handler(invocation_request const& req) {
+static tuplex::messages::InvocationResponse lambda_handler(invocation_request const& req) {
 
     // for signals, do jmp_buf
     // why is this important?
@@ -44,23 +47,31 @@ static invocation_response lambda_handler(invocation_request const& req) {
             auto result = lambda_main(req);
             // do error handling in master...
             g_reused = true;
-            return invocation_response::success(proto_to_json(result),
-                                                "application/json");
+            return result;
         } catch(const std::exception& e) {
             g_reused = true;
-            return invocation_response::success(proto_to_json(make_exception(std::string("lambda_handler caught an exception! ") + e.what())),
-                                                "application/json");
+            return make_exception(std::string("lambda_handler caught an exception! ") + e.what());
         } catch(...) {
             g_reused = true;
-            return invocation_response::success(proto_to_json(make_exception("Unknown exception encountered in catch(...) block.")),
-                                                "application/json");
+            return make_exception("Unknown exception encountered in catch(...) block.");
         }
     } else {
         // special exception code
         g_reused = true;
-        return invocation_response::success(proto_to_json(make_exception("SIGSEV encountered")),
-                                            "application/json");
+        return make_exception("SIGSEV encountered");
     }
+}
+
+// expose app as global object throughout code-base
+static std::shared_ptr<tuplex::LambdaWorkerApp> the_app;
+void init_app() {
+    using namespace tuplex;
+    LambdaWorkerSettings ws;
+    the_app = std::make_shared<tuplex::LambdaWorkerApp>(ws);
+}
+
+extern std::shared_ptr<tuplex::LambdaWorkerApp> get_app() {
+    return the_app;
 }
 
 // main function which setups error handling & invocation of custom lambda function
@@ -68,23 +79,49 @@ int main() {
 
     // TODO: determine whether this is needed for the new AWS C++ Runtime
     using namespace aws::lambda_runtime;
+    using namespace tuplex;
+
+    // record start timestamp
+    g_start_timestamp = current_utc_timestamp();
+
+    // init logger to only act with stdout sink (no file logging!)
+    auto log_sink = std::make_shared<tuplex::memory_sink_mt>();
+    auto log_id = uuidToString(container_id());
+    Logger::init({std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>(), log_sink});
+
     // install sigsev handler to throw C++ exception which is caught in handler...
     struct sigaction sigact;
     sigact.sa_sigaction = sigsev_handler;
     sigact.sa_flags = SA_RESTART | SA_SIGINFO;
 
-
     // set sigabort too
     sigaction(SIGABRT, &sigact, nullptr);
 
-    global_init();
-    reset_executor_setup();
+    // initialize LambdaWorkerApp
+    init_app();
+    if(!get_app()) {
+        run_handler([&,log_sink, log_id](invocation_request const& req) {
+            auto proto_msg = make_exception("failed to initiailize worker application");
+            log_sink->add_to_proto_message(proto_msg, log_id);
+            log_sink->reset();
+            return invocation_response::success(proto_to_json(proto_msg),
+                                                "application/json");
+        });
+        return 0;
+    }
+
+    //    // old:
+    //    global_init();
+    //    reset_executor_setup();
 
     // signal(SIGSEGV, sigsev_handler);
     if(sigaction(SIGSEGV, &sigact, nullptr) != 0) {
 
-        run_handler([](invocation_request const& req) {
-            return invocation_response::success(proto_to_json(make_exception("could not add sigsev handler")),
+        run_handler([log_sink, log_id](invocation_request const& req) {
+            auto proto_msg = make_exception("could not add sigsev handler");
+            log_sink->add_to_proto_message(proto_msg, log_id);
+            log_sink->reset();
+            return invocation_response::success(proto_to_json(proto_msg),
                                                 "application/json");
         });
 
@@ -107,14 +144,23 @@ int main() {
 
         // also, don't forget to reset stats counters for each invocation
 
-        run_handler(lambda_handler);
+        run_handler([log_sink, log_id](invocation_request const& req) {
+            auto proto_msg = lambda_handler(req);
+            log_sink->add_to_proto_message(proto_msg, log_id);
+            log_sink->reset();
+            // add to json (?)
+            return invocation_response::success(proto_to_json(proto_msg),
+                                         "application/json");
+        });
     }
 
     // flush buffers
     std::cout.flush();
     std::cerr.flush();
 
-    global_cleanup();
+    // run cleanup from app? => doesn't matter. just let it get killed...
+    get_app()->shutdown();
+    // global_cleanup();
 
     return 0;
 }

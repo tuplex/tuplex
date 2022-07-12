@@ -1,0 +1,2121 @@
+[2022-06-10 11:11:53.346] [memory] [info] allocated bitmap managed memory region (2.00 GB, 32.00 MB block size)
+[2022-06-10 11:11:53.346] [aws-lambda] [info] Execution over lambda with 10000MB
+[2022-06-10 11:11:53.346] [aws-lambda] [info] Adjusted lambda size to 10000MB
+[2022-06-10 11:11:53.514] [aws-lambda] [info] Found AWS Lambda function tuplex-lambda-runner (10000MB)
+[2022-06-10 11:11:53.514] [aws-lambda] [info] Using Lambda running on x86_64
+[2022-06-10 11:11:53.514] [aws-lambda] [info] Lambda client uses JSON AST serialization format.
+[2022-06-10 11:11:53.790] [fileinputoperator] [info] found 36 files (7.86 GB) to process.
+[2022-06-10 11:11:53.954] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv on 256.00 KB
+[2022-06-10 11:11:53.954] [fileinputoperator] [info] Parallel sample fetch done.
+[2022-06-10 11:11:53.954] [fileinputoperator] [info] Filling sample cache for csv operator took 0.164368s (1 entries, 0 rows)
+[2022-06-10 11:11:54.104] [fileinputoperator] [info] Auto-detected presence of a header line in CSV files.
+[2022-06-10 11:11:54.298] [fileinputoperator] [info] Parallel sample parse done.
+[2022-06-10 11:11:54.298] [fileinputoperator] [info] Extracting row sample took 0.194029s
+col 0: i64 (584), 
+col 1: i64 (584), 
+col 2: i64 (584), 
+col 3: i64 (584), 
+col 4: i64 (584), 
+col 5: str (584), 
+col 6: str (584), 
+col 7: i64 (584), 
+col 8: str (584), 
+col 9: str (584), 
+col 10: i64 (583), 
+col 11: i64 (583), 
+col 12: i64 (583), 
+col 13: i64 (583), 
+col 14: str (583), 
+col 15: str (583), 
+col 16: str (583), 
+col 17: i64 (583), 
+col 18: str (583), 
+col 19: i64 (583), 
+col 20: i64 (583), 
+col 21: i64 (583), 
+col 22: i64 (583), 
+col 23: str (583), 
+col 24: str (583), 
+col 25: str (583), 
+col 26: i64 (583), 
+col 27: str (583), 
+col 28: i64 (583), 
+col 29: i64 (583), 
+col 30: i64 (572), null (11), 
+col 31: f64 (572), null (11), 
+col 32: f64 (572), null (11), 
+col 33: f64 (572), null (11), 
+col 34: i64 (572), null (11), 
+col 35: str (583), 
+col 36: f64 (572), null (11), 
+col 37: i64 (572), null (11), 
+col 38: i64 (571), null (12), 
+col 39: f64 (571), null (12), 
+col 40: i64 (583), 
+col 41: i64 (571), null (12), 
+col 42: f64 (571), null (12), 
+col 43: f64 (571), null (12), 
+col 44: f64 (571), null (12), 
+col 45: i64 (571), null (12), 
+col 46: str (583), 
+col 47: f64 (583), 
+col 48: null (583), 
+col 49: f64 (583), 
+col 50: f64 (583), 
+col 51: f64 (571), null (12), 
+col 52: f64 (571), null (12), 
+col 53: f64 (583), 
+col 54: f64 (583), 
+col 55: i64 (583), 
+col 56: null (583), 
+col 57: null (583), 
+col 58: null (583), 
+col 59: null (583), 
+col 60: null (583), 
+col 61: null (583), 
+col 62: null (583), 
+col 63: null (583), 
+col 64: null (583), 
+col 65: null (583), 
+col 66: null (583), 
+col 67: null (583), 
+col 68: null (583), 
+col 69: null (583), 
+col 70: null (583), 
+col 71: null (583), 
+col 72: null (583), 
+col 73: null (583), 
+col 74: null (583), 
+col 75: null (583), 
+col 76: null (583), 
+col 77: null (583), 
+col 78: null (583), 
+col 79: null (583), 
+col 80: null (583), 
+col 81: null (583), 
+col 82: null (583), 
+col 83: null (583), 
+col 84: null (583), 
+col 85: null (583), 
+col 86: null (583), 
+col 87: null (583), 
+col 88: null (583), 
+col 89: null (583), 
+col 90: null (583), 
+col 91: null (583), 
+col 92: null (583), 
+col 93: null (583), 
+col 94: null (583), 
+col 95: null (583), 
+col 96: null (583), 
+col 97: null (583), 
+col 98: null (583), 
+col 99: null (583), 
+col 100: null (583), 
+col 101: null (583), 
+col 102: null (583), 
+col 103: null (583), 
+col 104: null (583), 
+col 105: null (583), 
+col 106: null (583), 
+col 107: null (583), 
+col 108: null (583), 
+col 109: null (583), 
+
+[2022-06-10 11:11:54.906] [logical planner] [info] logical optimization took 0.013815ms
+[2022-06-10 11:11:54.907] [global] [warning] requested 2000 rows for sampling, but only 584 stored. Consider decreasing sample size. Returning all available rows.
+0: YEAR
+1: MONTH
+2: DAY_OF_MONTH
+3: OP_UNIQUE_CARRIER
+4: OP_CARRIER_FL_NUM
+5: ORIGIN_AIRPORT_ID
+6: DEST_AIRPORT_ID
+7: CRS_DEP_TIME
+8: DEP_DELAY
+9: CRS_ARR_TIME
+10: ARR_DELAY
+11: CRS_ELAPSED_TIME
+12: DISTANCE
+13: CARRIER_DELAY
+14: WEATHER_DELAY
+15: NAS_DELAY
+16: SECURITY_DELAY
+17: LATE_AIRCRAFT_DELAY
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str)
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,null,null,i64,null,null,null,null,null,str,f64,null,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+571: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,i64,f64,i64,i64,f64,f64,f64,i64,str,f64,null,f64,f64,f64,f64,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+11: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,null,null,null,null,null,str,null,null,null,null,i64,null,null,null,null,null,str,f64,null,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+col 0: i64 (584), 
+col 1: i64 (584), 
+col 2: i64 (584), 
+col 3: i64 (584), 
+col 4: i64 (584), 
+col 5: str (584), 
+col 6: str (584), 
+col 7: i64 (584), 
+col 8: str (584), 
+col 9: str (584), 
+col 10: i64 (583), 
+col 11: i64 (583), 
+col 12: i64 (583), 
+col 13: i64 (583), 
+col 14: str (583), 
+col 15: str (583), 
+col 16: str (583), 
+col 17: i64 (583), 
+col 18: str (583), 
+col 19: i64 (583), 
+col 20: i64 (583), 
+col 21: i64 (583), 
+col 22: i64 (583), 
+col 23: str (583), 
+col 24: str (583), 
+col 25: str (583), 
+col 26: i64 (583), 
+col 27: str (583), 
+col 28: i64 (583), 
+col 29: i64 (583), 
+col 30: i64 (572), null (11), 
+col 31: f64 (572), null (11), 
+col 32: f64 (572), null (11), 
+col 33: f64 (572), null (11), 
+col 34: i64 (572), null (11), 
+col 35: str (583), 
+col 36: f64 (572), null (11), 
+col 37: i64 (572), null (11), 
+col 38: i64 (571), null (12), 
+col 39: f64 (571), null (12), 
+col 40: i64 (583), 
+col 41: i64 (571), null (12), 
+col 42: f64 (571), null (12), 
+col 43: f64 (571), null (12), 
+col 44: f64 (571), null (12), 
+col 45: i64 (571), null (12), 
+col 46: str (583), 
+col 47: f64 (583), 
+col 48: null (583), 
+col 49: f64 (583), 
+col 50: f64 (583), 
+col 51: f64 (571), null (12), 
+col 52: f64 (571), null (12), 
+col 53: f64 (583), 
+col 54: f64 (583), 
+col 55: i64 (583), 
+col 56: null (583), 
+col 57: null (583), 
+col 58: null (583), 
+col 59: null (583), 
+col 60: null (583), 
+col 61: null (583), 
+col 62: null (583), 
+col 63: null (583), 
+col 64: null (583), 
+col 65: null (583), 
+col 66: null (583), 
+col 67: null (583), 
+col 68: null (583), 
+col 69: null (583), 
+col 70: null (583), 
+col 71: null (583), 
+col 72: null (583), 
+col 73: null (583), 
+col 74: null (583), 
+col 75: null (583), 
+col 76: null (583), 
+col 77: null (583), 
+col 78: null (583), 
+col 79: null (583), 
+col 80: null (583), 
+col 81: null (583), 
+col 82: null (583), 
+col 83: null (583), 
+col 84: null (583), 
+col 85: null (583), 
+col 86: null (583), 
+col 87: null (583), 
+col 88: null (583), 
+col 89: null (583), 
+col 90: null (583), 
+col 91: null (583), 
+col 92: null (583), 
+col 93: null (583), 
+col 94: null (583), 
+col 95: null (583), 
+col 96: null (583), 
+col 97: null (583), 
+col 98: null (583), 
+col 99: null (583), 
+col 100: null (583), 
+col 101: null (583), 
+col 102: null (583), 
+col 103: null (583), 
+col 104: null (583), 
+col 105: null (583), 
+col 106: null (583), 
+col 107: null (583), 
+col 108: null (583), 
+col 109: null (583), 
+
+Majority detected row type is: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-10 11:11:54.977] [specializing stage optimizer] [info] performing Retyping
+[2022-06-10 11:11:54.977] [specializing stage optimizer] [info] Row type before retype: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-10 11:11:54.977] [specializing stage optimizer] [info] Row type after retype: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,Option[f64],Option[i64],Option[i64],Option[f64],i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,f64,null,f64,f64,Option[f64],Option[f64],f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+(unoptimized) output schema of input op: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+(optimized) output schema of input op: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-10 11:11:55.010] [physical planner] [info] specialized to input:  (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-10 11:11:55.010] [physical planner] [info] specialized to output: (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:11:55.010] [physical planner] [info] specialized code reads: 18 columns
+[2022-06-10 11:11:55.010] [physical planner] [info] Specialized stage in 103.646212ms
+[2022-06-10 11:11:55.012] [codegen] [info] generating pipeline for (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null) -> (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+[2022-06-10 11:11:55.016] [codegen] [info] generating function fill_in_delays for ((i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)) -> (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:11:55.017] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:11:55.034] [codegen] [warning] hack, need to fix stuff here...
+HACK: need to fix resolver throwing exception case here.
+[2022-06-10 11:11:55.171] [aws-lambda] [info] client-side LLVM IR optimization of took 0.086516s
+[2022-06-10 11:11:55.171] [aws-lambda] [info] Setting buffer size for each thread to 125.00 MB
+[2022-06-10 11:11:55.175] [aws-lambda] [info] Created 36 LAMBDA requests.
+[2022-06-10 11:11:55.175] [aws-lambda] [info] Invoking 36 requests ...
+[2022-06-10 11:11:55.447] [aws-lambda] [info] LAMBDA requesting took 0.275898s
+[2022-06-10 11:12:00.355] [aws-lambda] [info] LAMBDA task done in 4.91281s [200, 438141 rows, 0 exceptions, reused, id: 224c3a32-ade3-4fbd-bf94-8cfd5333925d] Cost so far: $0.0008
+[2022-06-10 11:12:00.403] [aws-lambda] [info] LAMBDA task done in 4.98401s [200, 399535 rows, 0 exceptions, reused, id: 29d4d4b6-e58e-4375-99fe-f82e0f43cc04] Cost so far: $0.0017
+[2022-06-10 11:12:00.457] [aws-lambda] [info] LAMBDA task done in 4.93254s [200, 448333 rows, 0 exceptions, reused, id: ffe22b85-ffa2-46a3-9482-d174130416b7] Cost so far: $0.0025
+[2022-06-10 11:12:00.459] [aws-lambda] [info] LAMBDA task done in 4.88103s [200, 415024 rows, 0 exceptions, reused, id: c8cfc3ee-1991-4721-b455-d34660445267] Cost so far: $0.0033
+[2022-06-10 11:12:00.523] [aws-lambda] [info] LAMBDA task done in 4.96907s [200, 429996 rows, 0 exceptions, reused, id: 6f7ef5f5-93bd-4b8f-8564-1299776de895] Cost so far: $0.0042
+[2022-06-10 11:12:00.632] [aws-lambda] [info] LAMBDA task done in 5.16798s [200, 450046 rows, 0 exceptions, reused, id: 4b2045fd-2afa-445b-be7e-1262b6e0bb09] Cost so far: $0.0051
+[2022-06-10 11:12:00.749] [aws-lambda] [info] LAMBDA task done in 5.38905s [200, 436336 rows, 0 exceptions, reused, id: a8895c60-c0a8-48e4-bd6a-967e712427b4] Cost so far: $0.0060
+[2022-06-10 11:12:00.762] [aws-lambda] [info] LAMBDA task done in 5.34185s [200, 447896 rows, 0 exceptions, reused, id: 98dda3f5-0128-4cb6-8bc0-9b5b4cc4b73b] Cost so far: $0.0069
+[2022-06-10 11:12:00.809] [aws-lambda] [info] LAMBDA task done in 5.26813s [200, 465573 rows, 0 exceptions, reused, id: 0b281767-118e-46b7-9a26-c187f2a79741] Cost so far: $0.0078
+[2022-06-10 11:12:00.811] [aws-lambda] [info] LAMBDA task done in 5.26627s [200, 466764 rows, 0 exceptions, reused, id: d12bed21-4837-42c6-87eb-086078cd004d] Cost so far: $0.0087
+[2022-06-10 11:12:00.957] [aws-lambda] [info] LAMBDA task done in 5.3926s [200, 446590 rows, 0 exceptions, reused, id: 15c90bb6-7358-4155-9cce-66a79921a9b7] Cost so far: $0.0096
+[2022-06-10 11:12:01.672] [aws-lambda] [info] LAMBDA task done in 6.09495s [200, 552109 rows, 0 exceptions, reused, id: 10dbbae8-d7a7-4261-8206-97a47c3a710b] Cost so far: $0.010612
+[2022-06-10 11:12:01.810] [aws-lambda] [info] LAMBDA task done in 6.23406s [200, 559342 rows, 0 exceptions, reused, id: d1d20605-292f-4b1e-b51c-5ffb3ecb2ac9] Cost so far: $0.011666
+[2022-06-10 11:12:01.902] [aws-lambda] [info] LAMBDA task done in 6.34071s [200, 427125 rows, 0 exceptions, reused, id: 02741519-b585-4ec7-9651-576f89a020e0] Cost so far: $0.012736
+[2022-06-10 11:12:02.053] [aws-lambda] [info] LAMBDA task done in 6.18345s [200, 500206 rows, 0 exceptions, new, id: 5cd8297d-59c0-4b6f-af53-b04338c04f51] Cost so far: $0.013917
+[2022-06-10 11:12:02.614] [aws-lambda] [info] LAMBDA task done in 5.55209s [200, 527303 rows, 0 exceptions, new, id: 4074c299-aaaa-4628-8fe2-a11ecbe4713d] Cost so far: $0.014987
+[2022-06-10 11:12:02.779] [aws-lambda] [info] LAMBDA task done in 5.71757s [200, 533782 rows, 0 exceptions, new, id: 923b9ca7-5ff2-41b3-ad05-20c277a662f2] Cost so far: $0.016082
+[2022-06-10 11:12:11.574] [aws-lambda] [info] LAMBDA task done in 14.6309s [200, 552370 rows, 0 exceptions, new, id: ba915ef5-35a1-4e50-82e7-91bb9edbcf0b] Cost so far: $0.018645
+[2022-06-10 11:12:13.550] [aws-lambda] [info] LAMBDA task done in 16.4509s [200, 527714 rows, 0 exceptions, new, id: 6db45572-981d-4ac0-8785-c58a923286a6] Cost so far: $0.021537
+[2022-06-10 11:12:15.149] [aws-lambda] [info] LAMBDA task done in 18.0813s [200, 585125 rows, 0 exceptions, new, id: 62d275b8-0089-4e97-bd08-e184806489a5] Cost so far: $0.024695
+[2022-06-10 11:12:16.984] [aws-lambda] [info] LAMBDA task done in 19.9574s [200, 536496 rows, 0 exceptions, new, id: a432b502-4c70-4be5-8e0b-30be445e0f14] Cost so far: $0.028160
+[2022-06-10 11:12:17.581] [aws-lambda] [info] LAMBDA task done in 20.5496s [200, 528171 rows, 0 exceptions, new, id: d4903cc1-6086-4194-8e9b-647a1953782d] Cost so far: $0.031723
+[2022-06-10 11:12:17.941] [aws-lambda] [info] LAMBDA task done in 20.8558s [200, 582970 rows, 0 exceptions, new, id: 9daf568e-445c-4c0e-aa82-38b51c465a84] Cost so far: $0.035341
+[2022-06-10 11:12:19.062] [aws-lambda] [info] LAMBDA task done in 21.9518s [200, 556984 rows, 0 exceptions, new, id: 7c06c995-edd7-4a69-bf01-aaeca58168db] Cost so far: $0.039152
+[2022-06-10 11:12:19.723] [aws-lambda] [info] LAMBDA task done in 22.362s [200, 558568 rows, 0 exceptions, new, id: 65a1e745-699b-44ab-be72-286a17fe7e5e] Cost so far: $0.043023
+[2022-06-10 11:12:20.295] [aws-lambda] [info] LAMBDA task done in 23.1821s [200, 553876 rows, 0 exceptions, new, id: 8d95f847-ac45-4725-b0fa-adec6892e864] Cost so far: $0.047034
+[2022-06-10 11:12:20.820] [aws-lambda] [info] LAMBDA task done in 23.7364s [200, 584610 rows, 0 exceptions, new, id: e367319c-3186-4dc8-9a02-ff8047043b25] Cost so far: $0.051134
+[2022-06-10 11:12:20.934] [aws-lambda] [info] LAMBDA task done in 23.8503s [200, 601412 rows, 0 exceptions, new, id: 808aadb7-98ab-458e-b3d0-b5f03eda168b] Cost so far: $0.055252
+[2022-06-10 11:12:21.070] [aws-lambda] [info] LAMBDA task done in 24.1032s [200, 623107 rows, 0 exceptions, new, id: b56fad64-084d-452d-8995-b8c3755c09de] Cost so far: $0.059392
+[2022-06-10 11:12:21.490] [aws-lambda] [info] LAMBDA task done in 24.2958s [200, 610037 rows, 0 exceptions, new, id: cbc1c9ef-3eff-4970-bf9a-933d0c5f3d62] Cost so far: $0.063588
+[2022-06-10 11:12:21.639] [aws-lambda] [info] LAMBDA task done in 24.5062s [200, 555495 rows, 0 exceptions, new, id: f1c6c15e-eac9-4fb0-a74d-6a8d554f09aa] Cost so far: $0.067823
+[2022-06-10 11:12:21.880] [aws-lambda] [info] LAMBDA task done in 24.8471s [200, 594457 rows, 0 exceptions, new, id: f90cd9c9-6a08-42f3-ac58-df982fa69a20] Cost so far: $0.072104
+[2022-06-10 11:12:24.523] [aws-lambda] [info] LAMBDA task done in 27.3755s [200, 583987 rows, 0 exceptions, new, id: b228a729-033b-466f-9437-ea02693d3f59] Cost so far: $0.076815
+[2022-06-10 11:12:24.888] [aws-lambda] [info] LAMBDA task done in 27.8698s [200, 614166 rows, 0 exceptions, new, id: d81702a1-b498-4b09-84e1-e14c80e88d92] Cost so far: $0.081596
+[2022-06-10 11:12:26.983] [aws-lambda] [info] LAMBDA task done in 29.9513s [200, 588792 rows, 0 exceptions, new, id: c1f5f235-ca66-4a55-80fa-d77ceadfde8f] Cost so far: $0.086727
+[2022-06-10 11:12:28.108] [aws-lambda] [info] LAMBDA task done in 30.9709s [200, 606731 rows, 0 exceptions, new, id: 6d66a87b-5ac2-485b-948a-f0c4ba6f0d48] Cost so far: $0.092039
+[2022-06-10 11:12:28.113] [aws-lambda] [info] LAMBDA Stage: 18889169 rows, 0 exceptions
+[2022-06-10 11:12:28.113] [aws-lambda] [info] LAMBDA paths rows took: normal: 16813806 general: 1 interpreter: 2075362 unresolved: 0
+[2022-06-10 11:12:28.113] [aws-lambda] [info] LAMBDA statistics: 
+Lambda #containers used: 36 reused: 14 newly initialized: 22
+Lambda init time: 0 +- 0 min: 0 max: 2.22507e-308
+Lambda execution time: 14.7821 +- 9.46063 min: 4.88103 max: 30.9709
+
+----- BREAKDOWN TIMINGS -----
+{}
+Lambda cost: $0.0920394
+[2022-06-10 11:12:28.114] [aws-lambda] [info] LAMBDA compute took 32.9426s, cost $0.09
+[2022-06-10 11:12:28.115] [global] [info] Query Execution took 33.2328s. (planning: 0.198441s, execution: 33.0344s)
+[2022-06-10 11:12:28.317] [fileinputoperator] [info] found 36 files (7.86 GB) to process.
+[2022-06-10 11:12:28.459] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv on 256.00 KB
+[2022-06-10 11:12:28.459] [fileinputoperator] [info] Parallel sample fetch done.
+[2022-06-10 11:12:28.459] [fileinputoperator] [info] Filling sample cache for csv operator took 0.141968s (1 entries, 0 rows)
+[2022-06-10 11:12:28.539] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv on 256.00 KB
+[2022-06-10 11:12:28.684] [fileinputoperator] [info] Auto-detected presence of a header line in CSV files.
+[2022-06-10 11:12:28.938] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv on 256.00 KB
+[2022-06-10 11:12:29.212] [fileinputoperator] [info] Parallel sample parse done.
+[2022-06-10 11:12:29.212] [fileinputoperator] [info] Extracting row sample took 0.527706s
+col 0: i64 (1179), null (1), 
+col 1: i64 (1179), f64 (1), 
+col 2: i64 (1179), null (1), 
+col 3: i64 (1179), f64 (1), 
+col 4: i64 (1179), f64 (1), 
+col 5: str (1179), f64 (1), 
+col 6: str (1179), f64 (1), 
+col 7: i64 (1179), f64 (1), 
+col 8: str (1179), f64 (1), 
+col 9: str (1179), i64 (1), 
+col 10: i64 (1178), null (1), 
+col 11: i64 (1178), null (1), 
+col 12: i64 (1178), null (1), 
+col 13: i64 (1178), null (1), 
+col 14: str (1178), null (1), 
+col 15: str (1178), null (1), 
+col 16: str (1178), null (1), 
+col 17: i64 (1178), null (1), 
+col 18: str (1178), null (1), 
+col 19: i64 (1178), null (1), 
+col 20: i64 (1178), null (1), 
+col 21: i64 (1178), null (1), 
+col 22: i64 (1178), null (1), 
+col 23: str (1178), null (1), 
+col 24: str (1178), null (1), 
+col 25: str (1178), null (1), 
+col 26: i64 (1178), null (1), 
+col 27: str (1178), null (1), 
+col 28: i64 (1178), null (1), 
+col 29: i64 (1178), null (1), 
+col 30: i64 (1165), null (14), 
+col 31: f64 (1165), null (14), 
+col 32: f64 (1165), null (14), 
+col 33: f64 (1165), null (14), 
+col 34: i64 (1165), null (14), 
+col 35: str (1178), null (1), 
+col 36: f64 (1165), null (14), 
+col 37: i64 (1165), null (14), 
+col 38: i64 (1164), null (15), 
+col 39: f64 (1164), null (15), 
+col 40: i64 (1178), null (1), 
+col 41: i64 (1164), null (15), 
+col 42: f64 (1164), null (15), 
+col 43: f64 (1164), null (15), 
+col 44: f64 (1164), null (15), 
+col 45: i64 (1164), null (15), 
+col 46: str (1178), null (1), 
+col 47: f64 (1178), null (1), 
+col 48: null (1179), 
+col 49: f64 (1178), null (1), 
+col 50: f64 (1178), null (1), 
+col 51: f64 (1164), null (15), 
+col 52: f64 (1164), null (15), 
+col 53: f64 (1178), null (1), 
+col 54: f64 (1178), null (1), 
+col 55: i64 (1178), null (1), 
+col 56: null (1179), 
+col 57: null (1179), 
+col 58: null (1179), 
+col 59: null (1179), 
+col 60: null (1179), 
+col 61: null (1179), 
+col 62: null (1179), 
+col 63: null (1179), 
+col 64: null (1178), 
+col 65: null (1178), 
+col 66: null (1178), 
+col 67: null (1178), 
+col 68: null (1178), 
+col 69: null (1178), 
+col 70: null (1178), 
+col 71: null (1178), 
+col 72: null (1178), 
+col 73: null (1178), 
+col 74: null (1178), 
+col 75: null (1178), 
+col 76: null (1178), 
+col 77: null (1178), 
+col 78: null (1178), 
+col 79: null (1178), 
+col 80: null (1178), 
+col 81: null (1178), 
+col 82: null (1178), 
+col 83: null (1178), 
+col 84: null (1178), 
+col 85: null (1178), 
+col 86: null (1178), 
+col 87: null (1178), 
+col 88: null (1178), 
+col 89: null (1178), 
+col 90: null (1178), 
+col 91: null (1178), 
+col 92: null (1178), 
+col 93: null (1178), 
+col 94: null (1178), 
+col 95: null (1178), 
+col 96: null (1178), 
+col 97: null (1178), 
+col 98: null (1178), 
+col 99: null (1178), 
+col 100: null (1178), 
+col 101: null (1178), 
+col 102: null (1178), 
+col 103: null (1178), 
+col 104: null (1178), 
+col 105: null (1178), 
+col 106: null (1178), 
+col 107: null (1178), 
+col 108: null (1178), 
+col 109: null (1178), 
+
+[2022-06-10 11:12:29.843] [logical planner] [info] logical optimization took 0.021838ms
+[2022-06-10 11:12:29.844] [global] [warning] requested 2000 rows for sampling, but only 1180 stored. Consider decreasing sample size. Returning all available rows.
+0: YEAR
+1: MONTH
+2: DAY_OF_MONTH
+3: OP_UNIQUE_CARRIER
+4: OP_CARRIER_FL_NUM
+5: ORIGIN_AIRPORT_ID
+6: DEST_AIRPORT_ID
+7: CRS_DEP_TIME
+8: DEP_DELAY
+9: CRS_ARR_TIME
+10: ARR_DELAY
+11: CRS_ELAPSED_TIME
+12: DISTANCE
+13: CARRIER_DELAY
+14: WEATHER_DELAY
+15: NAS_DELAY
+16: SECURITY_DELAY
+17: LATE_AIRCRAFT_DELAY
+1: (null,f64,null,f64,f64,f64,f64,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str)
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,null,null,i64,null,null,null,null,null,str,f64,null,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+1164: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,i64,f64,i64,i64,f64,f64,f64,i64,str,f64,null,f64,f64,f64,f64,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+13: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,null,null,null,null,null,str,null,null,null,null,i64,null,null,null,null,null,str,f64,null,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+col 0: i64 (1179), null (1), 
+col 1: i64 (1179), f64 (1), 
+col 2: i64 (1179), null (1), 
+col 3: i64 (1179), f64 (1), 
+col 4: i64 (1179), f64 (1), 
+col 5: str (1179), f64 (1), 
+col 6: str (1179), f64 (1), 
+col 7: i64 (1179), f64 (1), 
+col 8: str (1179), f64 (1), 
+col 9: str (1179), i64 (1), 
+col 10: i64 (1178), null (1), 
+col 11: i64 (1178), null (1), 
+col 12: i64 (1178), null (1), 
+col 13: i64 (1178), null (1), 
+col 14: str (1178), null (1), 
+col 15: str (1178), null (1), 
+col 16: str (1178), null (1), 
+col 17: i64 (1178), null (1), 
+col 18: str (1178), null (1), 
+col 19: i64 (1178), null (1), 
+col 20: i64 (1178), null (1), 
+col 21: i64 (1178), null (1), 
+col 22: i64 (1178), null (1), 
+col 23: str (1178), null (1), 
+col 24: str (1178), null (1), 
+col 25: str (1178), null (1), 
+col 26: i64 (1178), null (1), 
+col 27: str (1178), null (1), 
+col 28: i64 (1178), null (1), 
+col 29: i64 (1178), null (1), 
+col 30: i64 (1165), null (14), 
+col 31: f64 (1165), null (14), 
+col 32: f64 (1165), null (14), 
+col 33: f64 (1165), null (14), 
+col 34: i64 (1165), null (14), 
+col 35: str (1178), null (1), 
+col 36: f64 (1165), null (14), 
+col 37: i64 (1165), null (14), 
+col 38: i64 (1164), null (15), 
+col 39: f64 (1164), null (15), 
+col 40: i64 (1178), null (1), 
+col 41: i64 (1164), null (15), 
+col 42: f64 (1164), null (15), 
+col 43: f64 (1164), null (15), 
+col 44: f64 (1164), null (15), 
+col 45: i64 (1164), null (15), 
+col 46: str (1178), null (1), 
+col 47: f64 (1178), null (1), 
+col 48: null (1179), 
+col 49: f64 (1178), null (1), 
+col 50: f64 (1178), null (1), 
+col 51: f64 (1164), null (15), 
+col 52: f64 (1164), null (15), 
+col 53: f64 (1178), null (1), 
+col 54: f64 (1178), null (1), 
+col 55: i64 (1178), null (1), 
+col 56: null (1179), 
+col 57: null (1179), 
+col 58: null (1179), 
+col 59: null (1179), 
+col 60: null (1179), 
+col 61: null (1179), 
+col 62: null (1179), 
+col 63: null (1179), 
+col 64: null (1178), 
+col 65: null (1178), 
+col 66: null (1178), 
+col 67: null (1178), 
+col 68: null (1178), 
+col 69: null (1178), 
+col 70: null (1178), 
+col 71: null (1178), 
+col 72: null (1178), 
+col 73: null (1178), 
+col 74: null (1178), 
+col 75: null (1178), 
+col 76: null (1178), 
+col 77: null (1178), 
+col 78: null (1178), 
+col 79: null (1178), 
+col 80: null (1178), 
+col 81: null (1178), 
+col 82: null (1178), 
+col 83: null (1178), 
+col 84: null (1178), 
+col 85: null (1178), 
+col 86: null (1178), 
+col 87: null (1178), 
+col 88: null (1178), 
+col 89: null (1178), 
+col 90: null (1178), 
+col 91: null (1178), 
+col 92: null (1178), 
+col 93: null (1178), 
+col 94: null (1178), 
+col 95: null (1178), 
+col 96: null (1178), 
+col 97: null (1178), 
+col 98: null (1178), 
+col 99: null (1178), 
+col 100: null (1178), 
+col 101: null (1178), 
+col 102: null (1178), 
+col 103: null (1178), 
+col 104: null (1178), 
+col 105: null (1178), 
+col 106: null (1178), 
+col 107: null (1178), 
+col 108: null (1178), 
+col 109: null (1178), 
+
+Majority detected row type is: (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],null,null,null,null,null)
+[2022-06-10 11:12:29.985] [specializing stage optimizer] [info] performing Retyping
+[2022-06-10 11:12:29.985] [specializing stage optimizer] [info] Row type before retype: (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],null,null,null,null,null)
+[2022-06-10 11:12:29.985] [specializing stage optimizer] [info] Row type after retype: (Option[i64],i64,Option[i64],i64,i64,str,str,i64,str,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[i64],Option[i64],Option[f64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],null,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+(unoptimized) output schema of input op: (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],null,null,null,null,null)
+(optimized) output schema of input op: (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],null,null,null,null,null)
+[2022-06-10 11:12:30.050] [physical planner] [info] specialized to input:  (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],null,null,null,null,null)
+[2022-06-10 11:12:30.050] [physical planner] [info] specialized to output: (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:12:30.050] [physical planner] [info] specialized code reads: 18 columns
+[2022-06-10 11:12:30.050] [physical planner] [info] Specialized stage in 206.205587ms
+[2022-06-10 11:12:30.051] [codegen] [info] generating pipeline for (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],null,null,null,null,null) -> (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+[2022-06-10 11:12:30.053] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:12:30.055] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],null,null,null,null,null)) -> (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:12:30.077] [codegen] [warning] hack, need to fix stuff here...
+HACK: need to fix resolver throwing exception case here.
+[2022-06-10 11:12:30.221] [aws-lambda] [info] client-side LLVM IR optimization of took 0.113052s
+[2022-06-10 11:12:30.221] [aws-lambda] [info] Setting buffer size for each thread to 125.00 MB
+[2022-06-10 11:12:30.225] [aws-lambda] [info] Created 36 LAMBDA requests.
+[2022-06-10 11:12:30.225] [aws-lambda] [info] Invoking 36 requests ...
+[2022-06-10 11:12:30.342] [aws-lambda] [info] LAMBDA requesting took 0.120532s
+[2022-06-10 11:12:34.481] [aws-lambda] [info] LAMBDA task done in 4.01291s [200, 438141 rows, 0 exceptions, reused, id: d81702a1-b498-4b09-84e1-e14c80e88d92] Cost so far: $0.0007
+[2022-06-10 11:12:34.521] [aws-lambda] [info] LAMBDA task done in 4.04753s [200, 436336 rows, 0 exceptions, reused, id: f90cd9c9-6a08-42f3-ac58-df982fa69a20] Cost so far: $0.0014
+[2022-06-10 11:12:34.625] [aws-lambda] [info] LAMBDA task done in 4.12028s [200, 429996 rows, 0 exceptions, reused, id: e367319c-3186-4dc8-9a02-ff8047043b25] Cost so far: $0.0021
+[2022-06-10 11:12:34.693] [aws-lambda] [info] LAMBDA task done in 4.22531s [200, 466764 rows, 0 exceptions, reused, id: b56fad64-084d-452d-8995-b8c3755c09de] Cost so far: $0.0028
+[2022-06-10 11:12:34.701] [aws-lambda] [info] LAMBDA task done in 4.23163s [200, 447896 rows, 0 exceptions, reused, id: c1f5f235-ca66-4a55-80fa-d77ceadfde8f] Cost so far: $0.0036
+[2022-06-10 11:12:34.714] [aws-lambda] [info] LAMBDA task done in 4.21633s [200, 427125 rows, 0 exceptions, reused, id: 7c06c995-edd7-4a69-bf01-aaeca58168db] Cost so far: $0.0043
+[2022-06-10 11:12:34.717] [aws-lambda] [info] LAMBDA task done in 4.24065s [200, 399535 rows, 0 exceptions, reused, id: 6d66a87b-5ac2-485b-948a-f0c4ba6f0d48] Cost so far: $0.0050
+[2022-06-10 11:12:34.720] [aws-lambda] [info] LAMBDA task done in 4.23115s [200, 446590 rows, 0 exceptions, reused, id: 808aadb7-98ab-458e-b3d0-b5f03eda168b] Cost so far: $0.0058
+[2022-06-10 11:12:34.731] [aws-lambda] [info] LAMBDA task done in 4.24081s [200, 415024 rows, 0 exceptions, reused, id: 8d95f847-ac45-4725-b0fa-adec6892e864] Cost so far: $0.0065
+[2022-06-10 11:12:34.961] [aws-lambda] [info] LAMBDA task done in 4.47956s [200, 450046 rows, 0 exceptions, reused, id: b228a729-033b-466f-9437-ea02693d3f59] Cost so far: $0.0073
+[2022-06-10 11:12:35.178] [aws-lambda] [info] LAMBDA task done in 4.69189s [200, 465573 rows, 0 exceptions, reused, id: cbc1c9ef-3eff-4970-bf9a-933d0c5f3d62] Cost so far: $0.0081
+[2022-06-10 11:12:35.248] [aws-lambda] [info] LAMBDA task done in 4.74458s [200, 552109 rows, 0 exceptions, reused, id: 9daf568e-445c-4c0e-aa82-38b51c465a84] Cost so far: $0.0089
+[2022-06-10 11:12:35.259] [aws-lambda] [info] LAMBDA task done in 4.77741s [200, 448333 rows, 0 exceptions, reused, id: f1c6c15e-eac9-4fb0-a74d-6a8d554f09aa] Cost so far: $0.0097
+[2022-06-10 11:12:35.307] [aws-lambda] [info] LAMBDA task done in 4.78056s [200, 527303 rows, 0 exceptions, reused, id: 62d275b8-0089-4e97-bd08-e184806489a5] Cost so far: $0.010548
+[2022-06-10 11:12:35.325] [aws-lambda] [info] LAMBDA task done in 4.82145s [200, 533782 rows, 0 exceptions, reused, id: d4903cc1-6086-4194-8e9b-647a1953782d] Cost so far: $0.011377
+[2022-06-10 11:12:35.559] [aws-lambda] [info] LAMBDA task done in 5.05765s [200, 500206 rows, 0 exceptions, reused, id: a432b502-4c70-4be5-8e0b-30be445e0f14] Cost so far: $0.012245
+[2022-06-10 11:12:35.874] [aws-lambda] [info] LAMBDA task done in 5.37619s [200, 559342 rows, 0 exceptions, reused, id: 65a1e745-699b-44ab-be72-286a17fe7e5e] Cost so far: $0.013167
+[2022-06-10 11:12:45.842] [aws-lambda] [info] LAMBDA task done in 15.3101s [200, 527714 rows, 0 exceptions, reused, id: 923b9ca7-5ff2-41b3-ad05-20c277a662f2] Cost so far: $0.015745
+[2022-06-10 11:12:46.199] [aws-lambda] [info] LAMBDA task done in 15.6666s [200, 552370 rows, 0 exceptions, reused, id: 4074c299-aaaa-4628-8fe2-a11ecbe4713d] Cost so far: $0.018382
+[2022-06-10 11:12:47.550] [aws-lambda] [info] LAMBDA task done in 16.9893s [200, 585125 rows, 0 exceptions, reused, id: 6f7ef5f5-93bd-4b8f-8564-1299776de895] Cost so far: $0.021239
+[2022-06-10 11:12:48.964] [aws-lambda] [info] LAMBDA task done in 18.4666s [200, 556984 rows, 0 exceptions, reused, id: ba915ef5-35a1-4e50-82e7-91bb9edbcf0b] Cost so far: $0.024338
+[2022-06-10 11:12:49.062] [aws-lambda] [info] LAMBDA task done in 18.5487s [200, 536496 rows, 0 exceptions, reused, id: 6db45572-981d-4ac0-8785-c58a923286a6] Cost so far: $0.027456
+[2022-06-10 11:12:50.311] [aws-lambda] [info] LAMBDA task done in 19.7827s [200, 528171 rows, 0 exceptions, reused, id: 02741519-b585-4ec7-9651-576f89a020e0] Cost so far: $0.030778
+[2022-06-10 11:12:51.291] [aws-lambda] [info] LAMBDA task done in 20.7633s [200, 558568 rows, 0 exceptions, reused, id: 5cd8297d-59c0-4b6f-af53-b04338c04f51] Cost so far: $0.034264
+[2022-06-10 11:12:51.333] [aws-lambda] [info] LAMBDA task done in 20.7559s [200, 582970 rows, 0 exceptions, reused, id: 0b281767-118e-46b7-9a26-c187f2a79741] Cost so far: $0.037753
+[2022-06-10 11:12:52.231] [aws-lambda] [info] LAMBDA task done in 21.6868s [200, 601412 rows, 0 exceptions, reused, id: d12bed21-4837-42c6-87eb-086078cd004d] Cost so far: $0.041393
+[2022-06-10 11:12:52.758] [aws-lambda] [info] LAMBDA task done in 22.2212s [200, 553876 rows, 0 exceptions, reused, id: 15c90bb6-7358-4155-9cce-66a79921a9b7] Cost so far: $0.045122
+[2022-06-10 11:12:52.850] [aws-lambda] [info] LAMBDA task done in 22.2826s [200, 610037 rows, 0 exceptions, reused, id: ffe22b85-ffa2-46a3-9482-d174130416b7] Cost so far: $0.048862
+[2022-06-10 11:12:53.505] [aws-lambda] [info] LAMBDA task done in 22.9647s [200, 594457 rows, 0 exceptions, reused, id: 98dda3f5-0128-4cb6-8bc0-9b5b4cc4b73b] Cost so far: $0.052714
+[2022-06-10 11:12:53.724] [aws-lambda] [info] LAMBDA task done in 23.1458s [200, 584610 rows, 0 exceptions, reused, id: 224c3a32-ade3-4fbd-bf94-8cfd5333925d] Cost so far: $0.056597
+[2022-06-10 11:12:53.791] [aws-lambda] [info] LAMBDA task done in 23.2511s [200, 555495 rows, 0 exceptions, reused, id: d1d20605-292f-4b1e-b51c-5ffb3ecb2ac9] Cost so far: $0.060499
+[2022-06-10 11:12:55.825] [aws-lambda] [info] LAMBDA task done in 25.286s [200, 583987 rows, 0 exceptions, reused, id: 10dbbae8-d7a7-4261-8206-97a47c3a710b] Cost so far: $0.064739
+[2022-06-10 11:12:55.968] [aws-lambda] [info] LAMBDA task done in 25.3983s [200, 623107 rows, 0 exceptions, reused, id: c8cfc3ee-1991-4721-b455-d34660445267] Cost so far: $0.068998
+[2022-06-10 11:12:57.717] [aws-lambda] [info] LAMBDA task done in 27.1641s [200, 614166 rows, 0 exceptions, reused, id: 4b2045fd-2afa-445b-be7e-1262b6e0bb09] Cost so far: $0.073550
+[2022-06-10 11:12:59.304] [aws-lambda] [info] LAMBDA task done in 28.7355s [200, 606731 rows, 0 exceptions, reused, id: 29d4d4b6-e58e-4375-99fe-f82e0f43cc04] Cost so far: $0.078365
+[2022-06-10 11:12:59.443] [aws-lambda] [info] LAMBDA task done in 28.8674s [200, 588792 rows, 0 exceptions, reused, id: a8895c60-c0a8-48e4-bd6a-967e712427b4] Cost so far: $0.083205
+[2022-06-10 11:12:59.500] [aws-lambda] [info] LAMBDA Stage: 18889169 rows, 0 exceptions
+[2022-06-10 11:12:59.500] [aws-lambda] [info] LAMBDA paths rows took: normal: 16813807 general: 0 interpreter: 2075362 unresolved: 0
+[2022-06-10 11:12:59.500] [aws-lambda] [info] LAMBDA statistics: 
+Lambda #containers used: 36 reused: 36 newly initialized: 0
+Lambda init time: 0 +- 0 min: 0 max: 2.22507e-308
+Lambda execution time: 13.7106 +- 9.30453 min: 4.01291 max: 28.8674
+
+----- BREAKDOWN TIMINGS -----
+{}
+Lambda cost: $0.0832051
+[2022-06-10 11:12:59.501] [aws-lambda] [info] LAMBDA compute took 29.2794s, cost $0.08
+[2022-06-10 11:12:59.501] [global] [info] Query Execution took 29.696s. (planning: 0.302001s, execution: 29.394s)
+[2022-06-10 11:12:59.734] [fileinputoperator] [info] found 36 files (7.86 GB) to process.
+[2022-06-10 11:12:59.850] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv on 256.00 KB
+[2022-06-10 11:12:59.938] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_12.csv on 256.00 KB
+[2022-06-10 11:12:59.939] [fileinputoperator] [info] Parallel sample fetch done.
+[2022-06-10 11:12:59.939] [fileinputoperator] [info] Filling sample cache for csv operator took 0.204489s (2 entries, 0 rows)
+[2022-06-10 11:13:00.086] [fileinputoperator] [info] Auto-detected presence of a header line in CSV files.
+[2022-06-10 11:13:00.427] [fileinputoperator] [info] Parallel sample parse done.
+[2022-06-10 11:13:00.427] [fileinputoperator] [info] Extracting row sample took 0.341504s
+col 0: i64 (1154), 
+col 1: i64 (1154), 
+col 2: i64 (1154), 
+col 3: i64 (1154), 
+col 4: i64 (1154), 
+col 5: str (1154), 
+col 6: str (1154), 
+col 7: i64 (1154), 
+col 8: str (1154), 
+col 9: str (1148), null (6), 
+col 10: i64 (1153), 
+col 11: i64 (1153), 
+col 12: i64 (1153), 
+col 13: i64 (1153), 
+col 14: str (1153), 
+col 15: str (1153), 
+col 16: str (1153), 
+col 17: i64 (1153), 
+col 18: str (1153), 
+col 19: i64 (1153), 
+col 20: i64 (1153), 
+col 21: i64 (1153), 
+col 22: i64 (1153), 
+col 23: str (1153), 
+col 24: str (1153), 
+col 25: str (1153), 
+col 26: i64 (1153), 
+col 27: str (1153), 
+col 28: i64 (1153), 
+col 29: i64 (1153), 
+col 30: i64 (1136), null (17), 
+col 31: f64 (1136), null (17), 
+col 32: f64 (1136), null (17), 
+col 33: f64 (1136), null (17), 
+col 34: i64 (1136), null (17), 
+col 35: str (1153), 
+col 36: f64 (1136), null (17), 
+col 37: i64 (1136), null (17), 
+col 38: i64 (1131), null (22), 
+col 39: f64 (1131), null (22), 
+col 40: i64 (1153), 
+col 41: i64 (1131), null (22), 
+col 42: f64 (1131), null (22), 
+col 43: f64 (1131), null (22), 
+col 44: f64 (1131), null (22), 
+col 45: i64 (1131), null (22), 
+col 46: str (1153), 
+col 47: f64 (1153), 
+col 48: null (1147), str (6), 
+col 49: f64 (1153), 
+col 50: f64 (1153), 
+col 51: f64 (1131), null (22), 
+col 52: f64 (1131), null (22), 
+col 53: f64 (1153), 
+col 54: f64 (1153), 
+col 55: i64 (1153), 
+col 56: null (994), f64 (159), 
+col 57: null (994), f64 (159), 
+col 58: null (994), f64 (159), 
+col 59: null (994), f64 (159), 
+col 60: null (994), f64 (159), 
+col 61: null (1153), 
+col 62: null (1153), 
+col 63: null (1153), 
+col 64: null (1153), 
+col 65: null (1153), 
+col 66: null (1153), 
+col 67: null (1153), 
+col 68: null (1153), 
+col 69: null (1153), 
+col 70: null (1153), 
+col 71: null (1153), 
+col 72: null (1153), 
+col 73: null (1153), 
+col 74: null (1153), 
+col 75: null (1152), 
+col 76: null (1152), 
+col 77: null (1152), 
+col 78: null (1152), 
+col 79: null (1152), 
+col 80: null (1152), 
+col 81: null (1152), 
+col 82: null (1152), 
+col 83: null (1152), 
+col 84: null (1152), 
+col 85: null (1152), 
+col 86: null (1152), 
+col 87: null (1152), 
+col 88: null (1152), 
+col 89: null (1152), 
+col 90: null (1152), 
+col 91: null (1152), 
+col 92: null (1152), 
+col 93: null (1152), 
+col 94: null (1152), 
+col 95: null (1152), 
+col 96: null (1152), 
+col 97: null (1152), 
+col 98: null (1152), 
+col 99: null (1152), 
+col 100: null (1152), 
+col 101: null (1152), 
+col 102: null (1152), 
+col 103: null (1152), 
+col 104: null (1152), 
+col 105: null (1152), 
+col 106: null (1152), 
+col 107: null (1152), 
+col 108: null (1152), 
+col 109: null (1152), 
+
+[2022-06-10 11:13:01.053] [logical planner] [info] logical optimization took 0.018536ms
+[2022-06-10 11:13:01.054] [global] [warning] requested 2000 rows for sampling, but only 1154 stored. Consider decreasing sample size. Returning all available rows.
+0: YEAR
+1: MONTH
+2: DAY_OF_MONTH
+3: OP_UNIQUE_CARRIER
+4: OP_CARRIER_FL_NUM
+5: ORIGIN_AIRPORT_ID
+6: DEST_AIRPORT_ID
+7: CRS_DEP_TIME
+8: DEP_DELAY
+9: CRS_ARR_TIME
+10: ARR_DELAY
+11: CRS_ELAPSED_TIME
+12: DISTANCE
+13: CARRIER_DELAY
+14: WEATHER_DELAY
+15: NAS_DELAY
+16: SECURITY_DELAY
+17: LATE_AIRCRAFT_DELAY
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,i64,f64,i64,i64,f64,f64,f64,i64,str,f64,null,f64,f64,f64,f64,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+11: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,null,null,null,null,null,str,null,null,null,null,i64,null,null,null,null,null,str,f64,null,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+159: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,i64,f64,i64,i64,f64,f64,f64,i64,str,f64,null,f64,f64,f64,f64,f64,f64,i64,f64,f64,f64,f64,f64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+6: (i64,i64,i64,i64,i64,str,str,i64,str,null,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,null,null,null,null,null,str,null,null,null,null,i64,null,null,null,null,null,str,f64,str,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+971: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,i64,f64,i64,i64,f64,f64,f64,i64,str,f64,null,f64,f64,f64,f64,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+5: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,null,null,i64,null,null,null,null,null,str,f64,null,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str)
+col 0: i64 (1154), 
+col 1: i64 (1154), 
+col 2: i64 (1154), 
+col 3: i64 (1154), 
+col 4: i64 (1154), 
+col 5: str (1154), 
+col 6: str (1154), 
+col 7: i64 (1154), 
+col 8: str (1154), 
+col 9: str (1148), null (6), 
+col 10: i64 (1153), 
+col 11: i64 (1153), 
+col 12: i64 (1153), 
+col 13: i64 (1153), 
+col 14: str (1153), 
+col 15: str (1153), 
+col 16: str (1153), 
+col 17: i64 (1153), 
+col 18: str (1153), 
+col 19: i64 (1153), 
+col 20: i64 (1153), 
+col 21: i64 (1153), 
+col 22: i64 (1153), 
+col 23: str (1153), 
+col 24: str (1153), 
+col 25: str (1153), 
+col 26: i64 (1153), 
+col 27: str (1153), 
+col 28: i64 (1153), 
+col 29: i64 (1153), 
+col 30: i64 (1136), null (17), 
+col 31: f64 (1136), null (17), 
+col 32: f64 (1136), null (17), 
+col 33: f64 (1136), null (17), 
+col 34: i64 (1136), null (17), 
+col 35: str (1153), 
+col 36: f64 (1136), null (17), 
+col 37: i64 (1136), null (17), 
+col 38: i64 (1131), null (22), 
+col 39: f64 (1131), null (22), 
+col 40: i64 (1153), 
+col 41: i64 (1131), null (22), 
+col 42: f64 (1131), null (22), 
+col 43: f64 (1131), null (22), 
+col 44: f64 (1131), null (22), 
+col 45: i64 (1131), null (22), 
+col 46: str (1153), 
+col 47: f64 (1153), 
+col 48: null (1147), str (6), 
+col 49: f64 (1153), 
+col 50: f64 (1153), 
+col 51: f64 (1131), null (22), 
+col 52: f64 (1131), null (22), 
+col 53: f64 (1153), 
+col 54: f64 (1153), 
+col 55: i64 (1153), 
+col 56: null (994), f64 (159), 
+col 57: null (994), f64 (159), 
+col 58: null (994), f64 (159), 
+col 59: null (994), f64 (159), 
+col 60: null (994), f64 (159), 
+col 61: null (1153), 
+col 62: null (1153), 
+col 63: null (1153), 
+col 64: null (1153), 
+col 65: null (1153), 
+col 66: null (1153), 
+col 67: null (1153), 
+col 68: null (1153), 
+col 69: null (1153), 
+col 70: null (1153), 
+col 71: null (1153), 
+col 72: null (1153), 
+col 73: null (1153), 
+col 74: null (1153), 
+col 75: null (1152), 
+col 76: null (1152), 
+col 77: null (1152), 
+col 78: null (1152), 
+col 79: null (1152), 
+col 80: null (1152), 
+col 81: null (1152), 
+col 82: null (1152), 
+col 83: null (1152), 
+col 84: null (1152), 
+col 85: null (1152), 
+col 86: null (1152), 
+col 87: null (1152), 
+col 88: null (1152), 
+col 89: null (1152), 
+col 90: null (1152), 
+col 91: null (1152), 
+col 92: null (1152), 
+col 93: null (1152), 
+col 94: null (1152), 
+col 95: null (1152), 
+col 96: null (1152), 
+col 97: null (1152), 
+col 98: null (1152), 
+col 99: null (1152), 
+col 100: null (1152), 
+col 101: null (1152), 
+col 102: null (1152), 
+col 103: null (1152), 
+col 104: null (1152), 
+col 105: null (1152), 
+col 106: null (1152), 
+col 107: null (1152), 
+col 108: null (1152), 
+col 109: null (1152), 
+
+Majority detected row type is: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:01.196] [specializing stage optimizer] [info] performing Retyping
+[2022-06-10 11:13:01.197] [specializing stage optimizer] [info] Row type before retype: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:01.197] [specializing stage optimizer] [info] Row type after retype: (i64,i64,i64,i64,i64,str,str,i64,str,Option[str],i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,Option[f64],Option[i64],Option[i64],Option[f64],i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,f64,null,f64,f64,Option[f64],Option[f64],f64,f64,i64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+(unoptimized) output schema of input op: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+(optimized) output schema of input op: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:01.258] [physical planner] [info] specialized to input:  (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:01.258] [physical planner] [info] specialized to output: (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:01.258] [physical planner] [info] specialized code reads: 18 columns
+[2022-06-10 11:13:01.258] [physical planner] [info] Specialized stage in 204.742968ms
+[2022-06-10 11:13:01.259] [codegen] [info] generating pipeline for (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) -> (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+[2022-06-10 11:13:01.262] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:01.263] [codegen] [info] generating function fill_in_delays for ((i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:01.282] [codegen] [warning] hack, need to fix stuff here...
+HACK: need to fix resolver throwing exception case here.
+[2022-06-10 11:13:01.421] [aws-lambda] [info] client-side LLVM IR optimization of took 0.097239s
+[2022-06-10 11:13:01.421] [aws-lambda] [info] Setting buffer size for each thread to 125.00 MB
+[2022-06-10 11:13:01.425] [aws-lambda] [info] Created 36 LAMBDA requests.
+[2022-06-10 11:13:01.425] [aws-lambda] [info] Invoking 36 requests ...
+[2022-06-10 11:13:01.542] [aws-lambda] [info] LAMBDA requesting took 0.120716s
+[2022-06-10 11:13:05.461] [aws-lambda] [info] LAMBDA task done in 3.82601s [200, 427125 rows, 0 exceptions, reused, id: ffe22b85-ffa2-46a3-9482-d174130416b7] Cost so far: $0.0007
+[2022-06-10 11:13:05.559] [aws-lambda] [info] LAMBDA task done in 3.9048s [200, 399535 rows, 0 exceptions, reused, id: 0b281767-118e-46b7-9a26-c187f2a79741] Cost so far: $0.0013
+[2022-06-10 11:13:05.568] [aws-lambda] [info] LAMBDA task done in 3.92494s [200, 415024 rows, 0 exceptions, reused, id: d12bed21-4837-42c6-87eb-086078cd004d] Cost so far: $0.0020
+[2022-06-10 11:13:05.650] [aws-lambda] [info] LAMBDA task done in 4.01773s [200, 429996 rows, 0 exceptions, reused, id: 224c3a32-ade3-4fbd-bf94-8cfd5333925d] Cost so far: $0.0027
+[2022-06-10 11:13:05.687] [aws-lambda] [info] LAMBDA task done in 4.06848s [200, 438141 rows, 0 exceptions, reused, id: 4b2045fd-2afa-445b-be7e-1262b6e0bb09] Cost so far: $0.0034
+[2022-06-10 11:13:05.765] [aws-lambda] [info] LAMBDA task done in 4.12662s [200, 446590 rows, 0 exceptions, reused, id: 15c90bb6-7358-4155-9cce-66a79921a9b7] Cost so far: $0.0041
+[2022-06-10 11:13:05.800] [aws-lambda] [info] LAMBDA task done in 4.18016s [200, 447896 rows, 0 exceptions, reused, id: 29d4d4b6-e58e-4375-99fe-f82e0f43cc04] Cost so far: $0.0048
+[2022-06-10 11:13:05.832] [aws-lambda] [info] LAMBDA task done in 4.20286s [200, 465573 rows, 0 exceptions, reused, id: 98dda3f5-0128-4cb6-8bc0-9b5b4cc4b73b] Cost so far: $0.0055
+[2022-06-10 11:13:05.887] [aws-lambda] [info] LAMBDA task done in 4.27607s [200, 436336 rows, 0 exceptions, reused, id: a8895c60-c0a8-48e4-bd6a-967e712427b4] Cost so far: $0.0063
+[2022-06-10 11:13:05.922] [aws-lambda] [info] LAMBDA task done in 4.2988s [200, 450046 rows, 0 exceptions, reused, id: c8cfc3ee-1991-4721-b455-d34660445267] Cost so far: $0.0070
+[2022-06-10 11:13:06.220] [aws-lambda] [info] LAMBDA task done in 4.57126s [200, 500206 rows, 0 exceptions, reused, id: 02741519-b585-4ec7-9651-576f89a020e0] Cost so far: $0.0078
+[2022-06-10 11:13:06.348] [aws-lambda] [info] LAMBDA task done in 4.68283s [200, 536496 rows, 0 exceptions, reused, id: 4074c299-aaaa-4628-8fe2-a11ecbe4713d] Cost so far: $0.0086
+[2022-06-10 11:13:06.366] [aws-lambda] [info] LAMBDA task done in 4.69419s [200, 527714 rows, 0 exceptions, reused, id: a432b502-4c70-4be5-8e0b-30be445e0f14] Cost so far: $0.0094
+[2022-06-10 11:13:06.384] [aws-lambda] [info] LAMBDA task done in 4.73325s [200, 552109 rows, 0 exceptions, reused, id: 5cd8297d-59c0-4b6f-af53-b04338c04f51] Cost so far: $0.010180
+[2022-06-10 11:13:06.388] [aws-lambda] [info] LAMBDA task done in 4.73158s [200, 527303 rows, 0 exceptions, reused, id: 6f7ef5f5-93bd-4b8f-8564-1299776de895] Cost so far: $0.010985
+[2022-06-10 11:13:06.394] [aws-lambda] [info] LAMBDA task done in 4.74219s [200, 533782 rows, 0 exceptions, reused, id: 6db45572-981d-4ac0-8785-c58a923286a6] Cost so far: $0.011793
+[2022-06-10 11:13:06.394] [aws-lambda] [info] LAMBDA task done in 4.75768s [200, 559342 rows, 0 exceptions, reused, id: ba915ef5-35a1-4e50-82e7-91bb9edbcf0b] Cost so far: $0.012601
+[2022-06-10 11:13:06.396] [aws-lambda] [info] LAMBDA task done in 4.71025s [200, 553876 rows, 0 exceptions, reused, id: b228a729-033b-466f-9437-ea02693d3f59] Cost so far: $0.013403
+[2022-06-10 11:13:06.445] [aws-lambda] [info] LAMBDA task done in 4.76432s [200, 528171 rows, 0 exceptions, reused, id: 62d275b8-0089-4e97-bd08-e184806489a5] Cost so far: $0.014214
+[2022-06-10 11:13:06.512] [aws-lambda] [info] LAMBDA task done in 4.84223s [200, 556984 rows, 0 exceptions, reused, id: 65a1e745-699b-44ab-be72-286a17fe7e5e] Cost so far: $0.015038
+[2022-06-10 11:13:06.516] [aws-lambda] [info] LAMBDA task done in 4.82798s [200, 555495 rows, 0 exceptions, reused, id: cbc1c9ef-3eff-4970-bf9a-933d0c5f3d62] Cost so far: $0.015860
+[2022-06-10 11:13:06.517] [aws-lambda] [info] LAMBDA task done in 4.84458s [200, 552370 rows, 0 exceptions, reused, id: d4903cc1-6086-4194-8e9b-647a1953782d] Cost so far: $0.016684
+[2022-06-10 11:13:06.530] [aws-lambda] [info] LAMBDA task done in 4.86376s [200, 558568 rows, 0 exceptions, reused, id: 923b9ca7-5ff2-41b3-ad05-20c277a662f2] Cost so far: $0.017512
+[2022-06-10 11:13:06.534] [aws-lambda] [info] LAMBDA task done in 4.84699s [200, 583987 rows, 0 exceptions, reused, id: 9daf568e-445c-4c0e-aa82-38b51c465a84] Cost so far: $0.018337
+[2022-06-10 11:13:06.596] [aws-lambda] [info] LAMBDA task done in 4.89892s [200, 582970 rows, 0 exceptions, reused, id: 7c06c995-edd7-4a69-bf01-aaeca58168db] Cost so far: $0.019170
+[2022-06-10 11:13:06.674] [aws-lambda] [info] LAMBDA task done in 4.98109s [200, 588792 rows, 0 exceptions, reused, id: 8d95f847-ac45-4725-b0fa-adec6892e864] Cost so far: $0.020017
+[2022-06-10 11:13:06.679] [aws-lambda] [info] LAMBDA task done in 5.05091s [200, 466764 rows, 0 exceptions, reused, id: d1d20605-292f-4b1e-b51c-5ffb3ecb2ac9] Cost so far: $0.020876
+[2022-06-10 11:13:06.691] [aws-lambda] [info] LAMBDA task done in 4.99297s [200, 594457 rows, 0 exceptions, reused, id: 808aadb7-98ab-458e-b3d0-b5f03eda168b] Cost so far: $0.021725
+[2022-06-10 11:13:06.859] [aws-lambda] [info] LAMBDA task done in 5.12816s [200, 585125 rows, 0 exceptions, reused, id: d81702a1-b498-4b09-84e1-e14c80e88d92] Cost so far: $0.022596
+[2022-06-10 11:13:07.145] [aws-lambda] [info] LAMBDA task done in 5.41546s [200, 584610 rows, 0 exceptions, reused, id: f90cd9c9-6a08-42f3-ac58-df982fa69a20] Cost so far: $0.023516
+[2022-06-10 11:13:07.399] [aws-lambda] [info] LAMBDA task done in 5.67601s [200, 610037 rows, 0 exceptions, reused, id: b56fad64-084d-452d-8995-b8c3755c09de] Cost so far: $0.024477
+[2022-06-10 11:13:07.478] [aws-lambda] [info] LAMBDA task done in 5.79574s [200, 601412 rows, 0 exceptions, reused, id: f1c6c15e-eac9-4fb0-a74d-6a8d554f09aa] Cost so far: $0.025460
+[2022-06-10 11:13:07.627] [aws-lambda] [info] LAMBDA task done in 5.91761s [200, 614166 rows, 0 exceptions, reused, id: c1f5f235-ca66-4a55-80fa-d77ceadfde8f] Cost so far: $0.026464
+[2022-06-10 11:13:07.679] [aws-lambda] [info] LAMBDA task done in 5.94575s [200, 606731 rows, 0 exceptions, reused, id: e367319c-3186-4dc8-9a02-ff8047043b25] Cost so far: $0.027472
+[2022-06-10 11:13:07.923] [aws-lambda] [info] LAMBDA task done in 6.22518s [200, 623107 rows, 0 exceptions, reused, id: 6d66a87b-5ac2-485b-948a-f0c4ba6f0d48] Cost so far: $0.028526
+[2022-06-10 11:13:08.395] [aws-lambda] [info] LAMBDA task done in 6.7621s [200, 448333 rows, 0 exceptions, reused, id: 10dbbae8-d7a7-4261-8206-97a47c3a710b] Cost so far: $0.029671
+[2022-06-10 11:13:08.455] [aws-lambda] [info] LAMBDA Stage: 18889169 rows, 0 exceptions
+[2022-06-10 11:13:08.455] [aws-lambda] [info] LAMBDA paths rows took: normal: 18889168 general: 1 interpreter: 0 unresolved: 0
+[2022-06-10 11:13:08.455] [aws-lambda] [info] LAMBDA statistics: 
+Lambda #containers used: 36 reused: 36 newly initialized: 0
+Lambda init time: 0 +- 0 min: 0 max: 2.22507e-308
+Lambda execution time: 4.83971 +- 0.681775 min: 3.82601 max: 6.7621
+
+----- BREAKDOWN TIMINGS -----
+{}
+Lambda cost: $0.0296708
+[2022-06-10 11:13:08.456] [aws-lambda] [info] LAMBDA compute took 7.03494s, cost $0.03
+[2022-06-10 11:13:08.456] [global] [info] Query Execution took 7.43679s. (planning: 0.303025s, execution: 7.13376s)
+[2022-06-10 11:13:08.655] [fileinputoperator] [info] found 36 files (7.86 GB) to process.
+[2022-06-10 11:13:08.784] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_12.csv on 256.00 KB
+[2022-06-10 11:13:08.865] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv on 256.00 KB
+[2022-06-10 11:13:08.865] [fileinputoperator] [info] Parallel sample fetch done.
+[2022-06-10 11:13:08.865] [fileinputoperator] [info] Filling sample cache for csv operator took 0.210553s (2 entries, 0 rows)
+[2022-06-10 11:13:08.954] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv on 256.00 KB
+[2022-06-10 11:13:09.100] [fileinputoperator] [info] Auto-detected presence of a header line in CSV files.
+[2022-06-10 11:13:09.167] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_12.csv on 256.00 KB
+[2022-06-10 11:13:09.405] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv on 256.00 KB
+[2022-06-10 11:13:09.520] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_12.csv on 256.00 KB
+[2022-06-10 11:13:09.807] [fileinputoperator] [info] Parallel sample parse done.
+[2022-06-10 11:13:09.807] [fileinputoperator] [info] Extracting row sample took 0.707325s
+col 0: i64 (2332), null (2), 
+col 1: i64 (2332), f64 (1), 
+col 2: i64 (2332), null (2), 
+col 3: i64 (2332), f64 (1), 
+col 4: i64 (2332), f64 (1), 
+col 5: str (2332), f64 (1), 
+col 6: str (2332), f64 (1), 
+col 7: i64 (2332), f64 (1), 
+col 8: str (2332), f64 (1), 
+col 9: str (2319), null (14), i64 (1), 
+col 10: i64 (2331), null (2), 
+col 11: i64 (2331), null (2), 
+col 12: i64 (2331), null (2), 
+col 13: i64 (2331), null (2), 
+col 14: str (2331), null (2), 
+col 15: str (2331), null (2), 
+col 16: str (2331), null (2), 
+col 17: i64 (2331), null (2), 
+col 18: str (2331), null (2), 
+col 19: i64 (2331), null (2), 
+col 20: i64 (2331), null (2), 
+col 21: i64 (2331), null (2), 
+col 22: i64 (2331), null (2), 
+col 23: str (2331), null (2), 
+col 24: str (2331), null (2), 
+col 25: str (2331), null (2), 
+col 26: i64 (2331), null (2), 
+col 27: str (2331), null (2), 
+col 28: i64 (2331), null (2), 
+col 29: i64 (2331), null (2), 
+col 30: i64 (2305), null (28), 
+col 31: f64 (2305), null (28), 
+col 32: f64 (2305), null (28), 
+col 33: f64 (2305), null (28), 
+col 34: i64 (2305), null (28), 
+col 35: str (2331), null (2), 
+col 36: f64 (2305), null (28), 
+col 37: i64 (2305), null (28), 
+col 38: i64 (2300), null (32), 
+col 39: f64 (2300), null (32), 
+col 40: i64 (2331), null (1), 
+col 41: i64 (2300), null (32), 
+col 42: f64 (2300), null (32), 
+col 43: f64 (2300), null (32), 
+col 44: f64 (2300), null (32), 
+col 45: i64 (2300), null (32), 
+col 46: str (2331), null (1), 
+col 47: f64 (2331), null (1), 
+col 48: null (2319), str (13), 
+col 49: f64 (2331), null (1), 
+col 50: f64 (2331), null (1), 
+col 51: f64 (2300), null (32), 
+col 52: f64 (2300), null (32), 
+col 53: f64 (2331), null (1), 
+col 54: f64 (2331), null (1), 
+col 55: i64 (2331), null (1), 
+col 56: null (1985), f64 (347), 
+col 57: null (1985), f64 (347), 
+col 58: null (1985), f64 (347), 
+col 59: null (1985), f64 (347), 
+col 60: null (1985), f64 (347), 
+col 61: null (2332), 
+col 62: null (2332), 
+col 63: null (2332), 
+col 64: null (2331), 
+col 65: null (2331), 
+col 66: null (2331), 
+col 67: null (2331), 
+col 68: null (2331), 
+col 69: null (2331), 
+col 70: null (2331), 
+col 71: null (2331), 
+col 72: null (2331), 
+col 73: null (2331), 
+col 74: null (2331), 
+col 75: null (2330), 
+col 76: null (2330), 
+col 77: null (2330), 
+col 78: null (2330), 
+col 79: null (2330), 
+col 80: null (2330), 
+col 81: null (2330), 
+col 82: null (2330), 
+col 83: null (2330), 
+col 84: null (2330), 
+col 85: null (2330), 
+col 86: null (2330), 
+col 87: null (2330), 
+col 88: null (2330), 
+col 89: null (2330), 
+col 90: null (2330), 
+col 91: null (2330), 
+col 92: null (2330), 
+col 93: null (2330), 
+col 94: null (2330), 
+col 95: null (2330), 
+col 96: null (2330), 
+col 97: null (2330), 
+col 98: null (2330), 
+col 99: null (2330), 
+col 100: null (2330), 
+col 101: null (2330), 
+col 102: null (2330), 
+col 103: null (2330), 
+col 104: null (2330), 
+col 105: null (2330), 
+col 106: null (2330), 
+col 107: null (2330), 
+col 108: null (2330), 
+col 109: null (2330), 
+
+[2022-06-10 11:13:10.552] [logical planner] [info] logical optimization took 0.040135ms
+0: YEAR
+1: MONTH
+2: DAY_OF_MONTH
+3: OP_UNIQUE_CARRIER
+4: OP_CARRIER_FL_NUM
+5: ORIGIN_AIRPORT_ID
+6: DEST_AIRPORT_ID
+7: CRS_DEP_TIME
+8: DEP_DELAY
+9: CRS_ARR_TIME
+10: ARR_DELAY
+11: CRS_ELAPSED_TIME
+12: DISTANCE
+13: CARRIER_DELAY
+14: WEATHER_DELAY
+15: NAS_DELAY
+16: SECURITY_DELAY
+17: LATE_AIRCRAFT_DELAY
+1: (null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,i64,f64,i64,i64,f64,f64,f64,i64,str,f64,null,f64,f64,f64,f64,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+13: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,null,null,null,null,null,str,null,null,null,null,i64,null,null,null,null,null,str,f64,null,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+254: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,i64,f64,i64,i64,f64,f64,f64,i64,str,f64,null,f64,f64,f64,f64,f64,f64,i64,f64,f64,f64,f64,f64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+5: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,null,null,i64,null,null,null,null,null,str,f64,null,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str)
+11: (i64,i64,i64,i64,i64,str,str,i64,str,null,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,null,null,null,null,null,str,null,null,null,null,i64,null,null,null,null,null,str,f64,str,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+1713: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,i64,f64,i64,i64,f64,f64,f64,i64,str,f64,null,f64,f64,f64,f64,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+1: (null,f64,null,f64,f64,f64,f64,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+col 0: i64 (1998), null (2), 
+col 1: i64 (1998), f64 (1), 
+col 2: i64 (1998), null (2), 
+col 3: i64 (1998), f64 (1), 
+col 4: i64 (1998), f64 (1), 
+col 5: str (1998), f64 (1), 
+col 6: str (1998), f64 (1), 
+col 7: i64 (1998), f64 (1), 
+col 8: str (1998), f64 (1), 
+col 9: str (1987), null (12), i64 (1), 
+col 10: i64 (1997), null (2), 
+col 11: i64 (1997), null (2), 
+col 12: i64 (1997), null (2), 
+col 13: i64 (1997), null (2), 
+col 14: str (1997), null (2), 
+col 15: str (1997), null (2), 
+col 16: str (1997), null (2), 
+col 17: i64 (1997), null (2), 
+col 18: str (1997), null (2), 
+col 19: i64 (1997), null (2), 
+col 20: i64 (1997), null (2), 
+col 21: i64 (1997), null (2), 
+col 22: i64 (1997), null (2), 
+col 23: str (1997), null (2), 
+col 24: str (1997), null (2), 
+col 25: str (1997), null (2), 
+col 26: i64 (1997), null (2), 
+col 27: str (1997), null (2), 
+col 28: i64 (1997), null (2), 
+col 29: i64 (1997), null (2), 
+col 30: i64 (1973), null (26), 
+col 31: f64 (1973), null (26), 
+col 32: f64 (1973), null (26), 
+col 33: f64 (1973), null (26), 
+col 34: i64 (1973), null (26), 
+col 35: str (1997), null (2), 
+col 36: f64 (1973), null (26), 
+col 37: i64 (1973), null (26), 
+col 38: i64 (1968), null (30), 
+col 39: f64 (1968), null (30), 
+col 40: i64 (1997), null (1), 
+col 41: i64 (1968), null (30), 
+col 42: f64 (1968), null (30), 
+col 43: f64 (1968), null (30), 
+col 44: f64 (1968), null (30), 
+col 45: i64 (1968), null (30), 
+col 46: str (1997), null (1), 
+col 47: f64 (1997), null (1), 
+col 48: null (1987), str (11), 
+col 49: f64 (1997), null (1), 
+col 50: f64 (1997), null (1), 
+col 51: f64 (1968), null (30), 
+col 52: f64 (1968), null (30), 
+col 53: f64 (1997), null (1), 
+col 54: f64 (1997), null (1), 
+col 55: i64 (1997), null (1), 
+col 56: null (1744), f64 (254), 
+col 57: null (1744), f64 (254), 
+col 58: null (1744), f64 (254), 
+col 59: null (1744), f64 (254), 
+col 60: null (1744), f64 (254), 
+col 61: null (1998), 
+col 62: null (1998), 
+col 63: null (1998), 
+col 64: null (1997), 
+col 65: null (1997), 
+col 66: null (1997), 
+col 67: null (1997), 
+col 68: null (1997), 
+col 69: null (1997), 
+col 70: null (1997), 
+col 71: null (1997), 
+col 72: null (1997), 
+col 73: null (1997), 
+col 74: null (1997), 
+col 75: null (1996), 
+col 76: null (1996), 
+col 77: null (1996), 
+col 78: null (1996), 
+col 79: null (1996), 
+col 80: null (1996), 
+col 81: null (1996), 
+col 82: null (1996), 
+col 83: null (1996), 
+col 84: null (1996), 
+col 85: null (1996), 
+col 86: null (1996), 
+col 87: null (1996), 
+col 88: null (1996), 
+col 89: null (1996), 
+col 90: null (1996), 
+col 91: null (1996), 
+col 92: null (1996), 
+col 93: null (1996), 
+col 94: null (1996), 
+col 95: null (1996), 
+col 96: null (1996), 
+col 97: null (1996), 
+col 98: null (1996), 
+col 99: null (1996), 
+col 100: null (1996), 
+col 101: null (1996), 
+col 102: null (1996), 
+col 103: null (1996), 
+col 104: null (1996), 
+col 105: null (1996), 
+col 106: null (1996), 
+col 107: null (1996), 
+col 108: null (1996), 
+col 109: null (1996), 
+
+Majority detected row type is: (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:10.803] [specializing stage optimizer] [info] performing Retyping
+[2022-06-10 11:13:10.803] [specializing stage optimizer] [info] Row type before retype: (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:10.803] [specializing stage optimizer] [info] Row type after retype: (Option[i64],i64,Option[i64],i64,i64,str,str,i64,str,Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[i64],Option[i64],Option[f64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],null,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+(unoptimized) output schema of input op: (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+(optimized) output schema of input op: (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:10.925] [physical planner] [info] specialized to input:  (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:10.925] [physical planner] [info] specialized to output: (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:10.925] [physical planner] [info] specialized code reads: 18 columns
+[2022-06-10 11:13:10.925] [physical planner] [info] Specialized stage in 372.817231ms
+[2022-06-10 11:13:10.926] [codegen] [info] generating pipeline for (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) -> (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+[2022-06-10 11:13:10.928] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:10.931] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+HACK: need to fix resolver throwing exception case here.
+[2022-06-10 11:13:10.954] [codegen] [warning] hack, need to fix stuff here...
+[2022-06-10 11:13:11.128] [aws-lambda] [info] client-side LLVM IR optimization of took 0.133290s
+[2022-06-10 11:13:11.129] [aws-lambda] [info] Setting buffer size for each thread to 125.00 MB
+[2022-06-10 11:13:11.133] [aws-lambda] [info] Created 36 LAMBDA requests.
+[2022-06-10 11:13:11.133] [aws-lambda] [info] Invoking 36 requests ...
+[2022-06-10 11:13:11.251] [aws-lambda] [info] LAMBDA requesting took 0.122056s
+[2022-06-10 11:13:15.240] [aws-lambda] [info] LAMBDA task done in 3.83639s [200, 415024 rows, 0 exceptions, reused, id: 7c06c995-edd7-4a69-bf01-aaeca58168db] Cost so far: $0.0007
+[2022-06-10 11:13:15.251] [aws-lambda] [info] LAMBDA task done in 3.88601s [200, 448333 rows, 0 exceptions, reused, id: b56fad64-084d-452d-8995-b8c3755c09de] Cost so far: $0.0014
+[2022-06-10 11:13:15.295] [aws-lambda] [info] LAMBDA task done in 3.88762s [200, 427125 rows, 0 exceptions, reused, id: 9daf568e-445c-4c0e-aa82-38b51c465a84] Cost so far: $0.0020
+[2022-06-10 11:13:15.315] [aws-lambda] [info] LAMBDA task done in 3.93823s [200, 399535 rows, 0 exceptions, reused, id: e367319c-3186-4dc8-9a02-ff8047043b25] Cost so far: $0.0027
+[2022-06-10 11:13:15.376] [aws-lambda] [info] LAMBDA task done in 3.99246s [200, 450046 rows, 0 exceptions, reused, id: f90cd9c9-6a08-42f3-ac58-df982fa69a20] Cost so far: $0.0034
+[2022-06-10 11:13:15.419] [aws-lambda] [info] LAMBDA task done in 4.0512s [200, 447896 rows, 0 exceptions, reused, id: 6d66a87b-5ac2-485b-948a-f0c4ba6f0d48] Cost so far: $0.0041
+[2022-06-10 11:13:15.469] [aws-lambda] [info] LAMBDA task done in 4.08887s [200, 465573 rows, 0 exceptions, reused, id: c1f5f235-ca66-4a55-80fa-d77ceadfde8f] Cost so far: $0.0048
+[2022-06-10 11:13:15.479] [aws-lambda] [info] LAMBDA task done in 4.08885s [200, 446590 rows, 0 exceptions, reused, id: d81702a1-b498-4b09-84e1-e14c80e88d92] Cost so far: $0.0055
+[2022-06-10 11:13:15.521] [aws-lambda] [info] LAMBDA task done in 4.10849s [200, 527714 rows, 0 exceptions, reused, id: ba915ef5-35a1-4e50-82e7-91bb9edbcf0b] Cost so far: $0.0062
+[2022-06-10 11:13:15.533] [aws-lambda] [info] LAMBDA task done in 4.15171s [200, 438141 rows, 0 exceptions, reused, id: f1c6c15e-eac9-4fb0-a74d-6a8d554f09aa] Cost so far: $0.0070
+[2022-06-10 11:13:15.578] [aws-lambda] [info] LAMBDA task done in 4.18568s [200, 466764 rows, 0 exceptions, reused, id: 808aadb7-98ab-458e-b3d0-b5f03eda168b] Cost so far: $0.0077
+[2022-06-10 11:13:15.591] [aws-lambda] [info] LAMBDA task done in 4.19325s [200, 429996 rows, 0 exceptions, reused, id: d1d20605-292f-4b1e-b51c-5ffb3ecb2ac9] Cost so far: $0.0084
+[2022-06-10 11:13:15.944] [aws-lambda] [info] LAMBDA task done in 4.51512s [200, 527303 rows, 0 exceptions, reused, id: 65a1e745-699b-44ab-be72-286a17fe7e5e] Cost so far: $0.0092
+[2022-06-10 11:13:15.955] [aws-lambda] [info] LAMBDA task done in 4.51822s [200, 528171 rows, 0 exceptions, reused, id: a432b502-4c70-4be5-8e0b-30be445e0f14] Cost so far: $0.0100
+[2022-06-10 11:13:15.963] [aws-lambda] [info] LAMBDA task done in 4.53367s [200, 536496 rows, 0 exceptions, reused, id: d4903cc1-6086-4194-8e9b-647a1953782d] Cost so far: $0.010740
+[2022-06-10 11:13:16.025] [aws-lambda] [info] LAMBDA task done in 4.57407s [200, 553876 rows, 0 exceptions, reused, id: 98dda3f5-0128-4cb6-8bc0-9b5b4cc4b73b] Cost so far: $0.011527
+[2022-06-10 11:13:16.099] [aws-lambda] [info] LAMBDA task done in 4.70916s [200, 436336 rows, 0 exceptions, reused, id: 10dbbae8-d7a7-4261-8206-97a47c3a710b] Cost so far: $0.012341
+[2022-06-10 11:13:16.148] [aws-lambda] [info] LAMBDA task done in 4.7459s [200, 552109 rows, 0 exceptions, reused, id: 8d95f847-ac45-4725-b0fa-adec6892e864] Cost so far: $0.013158
+[2022-06-10 11:13:16.156] [aws-lambda] [info] LAMBDA task done in 4.71715s [200, 552370 rows, 0 exceptions, reused, id: 5cd8297d-59c0-4b6f-af53-b04338c04f51] Cost so far: $0.013970
+[2022-06-10 11:13:16.161] [aws-lambda] [info] LAMBDA task done in 4.73245s [200, 533782 rows, 0 exceptions, reused, id: cbc1c9ef-3eff-4970-bf9a-933d0c5f3d62] Cost so far: $0.014786
+[2022-06-10 11:13:16.199] [aws-lambda] [info] LAMBDA task done in 4.76996s [200, 559342 rows, 0 exceptions, reused, id: b228a729-033b-466f-9437-ea02693d3f59] Cost so far: $0.015606
+[2022-06-10 11:13:16.220] [aws-lambda] [info] LAMBDA task done in 4.79135s [200, 558568 rows, 0 exceptions, reused, id: 62d275b8-0089-4e97-bd08-e184806489a5] Cost so far: $0.016431
+[2022-06-10 11:13:16.240] [aws-lambda] [info] LAMBDA task done in 4.81224s [200, 556984 rows, 0 exceptions, reused, id: 6db45572-981d-4ac0-8785-c58a923286a6] Cost so far: $0.017259
+[2022-06-10 11:13:16.303] [aws-lambda] [info] LAMBDA task done in 4.84429s [200, 588792 rows, 0 exceptions, reused, id: 29d4d4b6-e58e-4375-99fe-f82e0f43cc04] Cost so far: $0.018092
+[2022-06-10 11:13:16.310] [aws-lambda] [info] LAMBDA task done in 4.90146s [200, 500206 rows, 0 exceptions, reused, id: 923b9ca7-5ff2-41b3-ad05-20c277a662f2] Cost so far: $0.018935
+[2022-06-10 11:13:16.339] [aws-lambda] [info] LAMBDA task done in 4.86057s [200, 585125 rows, 0 exceptions, reused, id: 224c3a32-ade3-4fbd-bf94-8cfd5333925d] Cost so far: $0.019771
+[2022-06-10 11:13:16.351] [aws-lambda] [info] LAMBDA task done in 4.89565s [200, 582970 rows, 0 exceptions, reused, id: c8cfc3ee-1991-4721-b455-d34660445267] Cost so far: $0.020613
+[2022-06-10 11:13:16.404] [aws-lambda] [info] LAMBDA task done in 4.96773s [200, 555495 rows, 0 exceptions, reused, id: 6f7ef5f5-93bd-4b8f-8564-1299776de895] Cost so far: $0.021466
+[2022-06-10 11:13:16.408] [aws-lambda] [info] LAMBDA task done in 4.95639s [200, 583987 rows, 0 exceptions, reused, id: 4074c299-aaaa-4628-8fe2-a11ecbe4713d] Cost so far: $0.022318
+[2022-06-10 11:13:16.485] [aws-lambda] [info] LAMBDA task done in 5.03501s [200, 594457 rows, 0 exceptions, reused, id: 02741519-b585-4ec7-9651-576f89a020e0] Cost so far: $0.023183
+[2022-06-10 11:13:16.553] [aws-lambda] [info] LAMBDA task done in 5.05777s [200, 584610 rows, 0 exceptions, reused, id: ffe22b85-ffa2-46a3-9482-d174130416b7] Cost so far: $0.024053
+[2022-06-10 11:13:17.258] [aws-lambda] [info] LAMBDA task done in 5.7755s [200, 606731 rows, 0 exceptions, reused, id: 0b281767-118e-46b7-9a26-c187f2a79741] Cost so far: $0.025042
+[2022-06-10 11:13:17.279] [aws-lambda] [info] LAMBDA task done in 5.80135s [200, 610037 rows, 0 exceptions, reused, id: d12bed21-4837-42c6-87eb-086078cd004d] Cost so far: $0.026035
+[2022-06-10 11:13:17.495] [aws-lambda] [info] LAMBDA task done in 6.02509s [200, 614166 rows, 0 exceptions, reused, id: 15c90bb6-7358-4155-9cce-66a79921a9b7] Cost so far: $0.027065
+[2022-06-10 11:13:17.581] [aws-lambda] [info] LAMBDA task done in 6.10519s [200, 623107 rows, 0 exceptions, reused, id: 4b2045fd-2afa-445b-be7e-1262b6e0bb09] Cost so far: $0.028108
+[2022-06-10 11:13:17.627] [aws-lambda] [info] LAMBDA task done in 6.16382s [200, 601412 rows, 0 exceptions, reused, id: a8895c60-c0a8-48e4-bd6a-967e712427b4] Cost so far: $0.029162
+[2022-06-10 11:13:17.663] [aws-lambda] [info] LAMBDA Stage: 18889169 rows, 0 exceptions
+[2022-06-10 11:13:17.663] [aws-lambda] [info] LAMBDA paths rows took: normal: 18889169 general: 0 interpreter: 0 unresolved: 0
+[2022-06-10 11:13:17.663] [aws-lambda] [info] LAMBDA statistics: 
+Lambda #containers used: 36 reused: 36 newly initialized: 0
+Lambda init time: 0 +- 0 min: 0 max: 2.22507e-308
+Lambda execution time: 4.7005 +- 0.640871 min: 3.83639 max: 6.16382
+
+----- BREAKDOWN TIMINGS -----
+{}
+Lambda cost: $0.0291624
+[2022-06-10 11:13:17.664] [aws-lambda] [info] LAMBDA compute took 6.53548s, cost $0.03
+[2022-06-10 11:13:17.665] [global] [info] Query Execution took 7.18351s. (planning: 0.513071s, execution: 6.67044s)
+[2022-06-10 11:13:17.899] [fileinputoperator] [info] found 36 files (7.86 GB) to process.
+[2022-06-10 11:13:18.086] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_03.csv on 256.00 KB
+[2022-06-10 11:13:18.315] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_05.csv on 256.00 KB
+[2022-06-10 11:13:18.319] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_08.csv on 256.00 KB
+[2022-06-10 11:13:18.333] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_06.csv on 256.00 KB
+[2022-06-10 11:13:18.341] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_07.csv on 256.00 KB
+[2022-06-10 11:13:18.344] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_03.csv on 256.00 KB
+[2022-06-10 11:13:18.347] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_01.csv on 256.00 KB
+[2022-06-10 11:13:18.349] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_12.csv on 256.00 KB
+[2022-06-10 11:13:18.351] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_12.csv on 256.00 KB
+[2022-06-10 11:13:18.353] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_09.csv on 256.00 KB
+[2022-06-10 11:13:18.354] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_11.csv on 256.00 KB
+[2022-06-10 11:13:18.359] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_02.csv on 256.00 KB
+[2022-06-10 11:13:18.363] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_02.csv on 256.00 KB
+[2022-06-10 11:13:18.366] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_04.csv on 256.00 KB
+[2022-06-10 11:13:18.369] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv on 256.00 KB
+[2022-06-10 11:13:18.370] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_09.csv on 256.00 KB
+[2022-06-10 11:13:18.373] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_06.csv on 256.00 KB
+[2022-06-10 11:13:18.378] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_05.csv on 256.00 KB
+[2022-06-10 11:13:18.378] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_10.csv on 256.00 KB
+[2022-06-10 11:13:18.379] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_09.csv on 256.00 KB
+[2022-06-10 11:13:18.381] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_08.csv on 256.00 KB
+[2022-06-10 11:13:18.381] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_07.csv on 256.00 KB
+[2022-06-10 11:13:18.383] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_04.csv on 256.00 KB
+[2022-06-10 11:13:18.384] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv on 256.00 KB
+[2022-06-10 11:13:18.394] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_03.csv on 256.00 KB
+[2022-06-10 11:13:18.396] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_02.csv on 256.00 KB
+[2022-06-10 11:13:18.398] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_05.csv on 256.00 KB
+[2022-06-10 11:13:18.398] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_06.csv on 256.00 KB
+[2022-06-10 11:13:18.416] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_11.csv on 256.00 KB
+[2022-06-10 11:13:18.422] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_11.csv on 256.00 KB
+[2022-06-10 11:13:18.424] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_10.csv on 256.00 KB
+[2022-06-10 11:13:18.425] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_04.csv on 256.00 KB
+[2022-06-10 11:13:18.438] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_12.csv on 256.00 KB
+[2022-06-10 11:13:18.444] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_07.csv on 256.00 KB
+[2022-06-10 11:13:18.446] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_08.csv on 256.00 KB
+[2022-06-10 11:13:18.451] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_01.csv on 256.00 KB
+[2022-06-10 11:13:18.451] [fileinputoperator] [info] Parallel sample fetch done.
+[2022-06-10 11:13:18.451] [fileinputoperator] [info] Filling sample cache for csv operator took 0.552044s (36 entries, 0 rows)
+[2022-06-10 11:13:18.599] [fileinputoperator] [info] Auto-detected presence of a header line in CSV files.
+[2022-06-10 11:13:27.052] [fileinputoperator] [info] Parallel sample parse done.
+[2022-06-10 11:13:27.052] [fileinputoperator] [info] Extracting row sample took 8.452811s
+col 0: i64 (20865), 
+col 1: i64 (20865), 
+col 2: i64 (20865), 
+col 3: i64 (20865), 
+col 4: i64 (20865), 
+col 5: str (20864), 
+col 6: str (20864), 
+col 7: i64 (20864), 
+col 8: str (20864), 
+col 9: str (20574), null (290), 
+col 10: i64 (20863), 
+col 11: i64 (20863), 
+col 12: i64 (20862), 
+col 13: i64 (20861), 
+col 14: str (20861), 
+col 15: str (20861), 
+col 16: str (20861), 
+col 17: i64 (20859), null (2), 
+col 18: str (20858), 
+col 19: i64 (20858), 
+col 20: i64 (20858), 
+col 21: i64 (20858), 
+col 22: i64 (20858), 
+col 23: str (20857), 
+col 24: str (20856), 
+col 25: str (20851), null (1), 
+col 26: i64 (20851), 
+col 27: str (20851), 
+col 28: i64 (20850), 
+col 29: i64 (20849), 
+col 30: i64 (20534), null (315), 
+col 31: f64 (20533), null (315), 
+col 32: f64 (20531), null (315), 
+col 33: f64 (20530), null (315), 
+col 34: i64 (20530), null (315), 
+col 35: str (20844), i64 (1), 
+col 36: f64 (20527), null (315), i64 (1), 
+col 37: i64 (20527), null (315), 
+col 38: i64 (20469), null (373), 
+col 39: f64 (20475), null (367), 
+col 40: i64 (20842), 
+col 41: i64 (20475), null (367), 
+col 42: f64 (20474), null (367), 
+col 43: f64 (20473), null (367), 
+col 44: f64 (20472), null (367), 
+col 45: i64 (20471), null (367), 
+col 46: str (20837), 
+col 47: f64 (20837), 
+col 48: null (20640), str (197), 
+col 49: f64 (20836), 
+col 50: f64 (20836), 
+col 51: f64 (20469), null (367), 
+col 52: f64 (20468), null (367), 
+col 53: f64 (20835), 
+col 54: f64 (20835), 
+col 55: i64 (20835), 
+col 56: null (18656), f64 (2179), 
+col 57: null (18656), f64 (2179), 
+col 58: null (18656), f64 (2179), 
+col 59: null (18656), f64 (2179), 
+col 60: null (18656), f64 (2179), 
+col 61: null (20835), 
+col 62: null (20835), 
+col 63: null (20835), 
+col 64: null (20835), 
+col 65: null (20835), 
+col 66: null (20834), 
+col 67: null (20834), 
+col 68: null (20834), 
+col 69: null (20834), 
+col 70: null (20834), 
+col 71: null (20834), 
+col 72: null (20834), 
+col 73: null (20834), 
+col 74: null (20834), 
+col 75: null (20833), 
+col 76: null (20832), 
+col 77: null (20832), 
+col 78: null (20832), 
+col 79: null (20831), 
+col 80: null (20831), 
+col 81: null (20831), 
+col 82: null (20831), 
+col 83: null (20831), 
+col 84: null (20831), 
+col 85: null (20831), 
+col 86: null (20831), 
+col 87: null (20831), 
+col 88: null (20831), 
+col 89: null (20831), 
+col 90: null (20831), 
+col 91: null (20831), 
+col 92: null (20831), 
+col 93: null (20831), 
+col 94: null (20830), 
+col 95: null (20830), 
+col 96: null (20830), 
+col 97: null (20830), 
+col 98: null (20830), 
+col 99: null (20830), 
+col 100: null (20830), 
+col 101: null (20830), 
+col 102: null (20830), 
+col 103: null (20830), 
+col 104: null (20830), 
+col 105: null (20830), 
+col 106: null (20830), 
+col 107: null (20830), 
+col 108: null (20830), 
+col 109: null (20829), 
+
+[2022-06-10 11:13:29.691] [logical planner] [info] logical optimization took 0.340467ms
+0: YEAR
+1: MONTH
+2: DAY_OF_MONTH
+3: OP_UNIQUE_CARRIER
+4: OP_CARRIER_FL_NUM
+5: ORIGIN_AIRPORT_ID
+6: DEST_AIRPORT_ID
+7: CRS_DEP_TIME
+8: DEP_DELAY
+9: CRS_ARR_TIME
+10: ARR_DELAY
+11: CRS_ELAPSED_TIME
+12: DISTANCE
+13: CARRIER_DELAY
+14: WEATHER_DELAY
+15: NAS_DELAY
+16: SECURITY_DELAY
+17: LATE_AIRCRAFT_DELAY
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str)
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,null)
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str)
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,null,null,i64,null,null,null,null,null,str,f64,null,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+1973: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,i64,f64,i64,i64,f64,f64,f64,i64,str,f64,null,f64,f64,f64,f64,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+23: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,null,null,null,null,null,str,null,null,null,null,i64,null,null,null,null,null,str,f64,null,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+col 0: i64 (2000), 
+col 1: i64 (2000), 
+col 2: i64 (2000), 
+col 3: i64 (2000), 
+col 4: i64 (2000), 
+col 5: str (2000), 
+col 6: str (2000), 
+col 7: i64 (2000), 
+col 8: str (2000), 
+col 9: str (2000), 
+col 10: i64 (1999), 
+col 11: i64 (1999), 
+col 12: i64 (1999), 
+col 13: i64 (1999), 
+col 14: str (1999), 
+col 15: str (1999), 
+col 16: str (1999), 
+col 17: i64 (1998), null (1), 
+col 18: str (1998), 
+col 19: i64 (1998), 
+col 20: i64 (1998), 
+col 21: i64 (1998), 
+col 22: i64 (1998), 
+col 23: str (1998), 
+col 24: str (1998), 
+col 25: str (1997), 
+col 26: i64 (1997), 
+col 27: str (1997), 
+col 28: i64 (1997), 
+col 29: i64 (1997), 
+col 30: i64 (1974), null (23), 
+col 31: f64 (1974), null (23), 
+col 32: f64 (1974), null (23), 
+col 33: f64 (1974), null (23), 
+col 34: i64 (1974), null (23), 
+col 35: str (1997), 
+col 36: f64 (1974), null (23), 
+col 37: i64 (1974), null (23), 
+col 38: i64 (1973), null (24), 
+col 39: f64 (1973), null (24), 
+col 40: i64 (1997), 
+col 41: i64 (1973), null (24), 
+col 42: f64 (1973), null (24), 
+col 43: f64 (1973), null (24), 
+col 44: f64 (1973), null (24), 
+col 45: i64 (1973), null (24), 
+col 46: str (1997), 
+col 47: f64 (1997), 
+col 48: null (1997), 
+col 49: f64 (1997), 
+col 50: f64 (1997), 
+col 51: f64 (1973), null (24), 
+col 52: f64 (1973), null (24), 
+col 53: f64 (1997), 
+col 54: f64 (1997), 
+col 55: i64 (1997), 
+col 56: null (1997), 
+col 57: null (1997), 
+col 58: null (1997), 
+col 59: null (1997), 
+col 60: null (1997), 
+col 61: null (1997), 
+col 62: null (1997), 
+col 63: null (1997), 
+col 64: null (1997), 
+col 65: null (1997), 
+col 66: null (1997), 
+col 67: null (1997), 
+col 68: null (1997), 
+col 69: null (1997), 
+col 70: null (1997), 
+col 71: null (1997), 
+col 72: null (1997), 
+col 73: null (1997), 
+col 74: null (1997), 
+col 75: null (1997), 
+col 76: null (1997), 
+col 77: null (1997), 
+col 78: null (1997), 
+col 79: null (1997), 
+col 80: null (1997), 
+col 81: null (1997), 
+col 82: null (1997), 
+col 83: null (1997), 
+col 84: null (1997), 
+col 85: null (1997), 
+col 86: null (1997), 
+col 87: null (1997), 
+col 88: null (1997), 
+col 89: null (1997), 
+col 90: null (1997), 
+col 91: null (1997), 
+col 92: null (1997), 
+col 93: null (1997), 
+col 94: null (1997), 
+col 95: null (1997), 
+col 96: null (1997), 
+col 97: null (1997), 
+col 98: null (1997), 
+col 99: null (1997), 
+col 100: null (1997), 
+col 101: null (1997), 
+col 102: null (1997), 
+col 103: null (1997), 
+col 104: null (1997), 
+col 105: null (1997), 
+col 106: null (1997), 
+col 107: null (1997), 
+col 108: null (1997), 
+col 109: null (1997), 
+
+Majority detected row type is: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-10 11:13:29.940] [specializing stage optimizer] [info] performing Retyping
+[2022-06-10 11:13:29.940] [specializing stage optimizer] [info] Row type before retype: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:29.940] [specializing stage optimizer] [info] Row type after retype: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,Option[i64],str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,Option[f64],Option[i64],Option[i64],Option[f64],i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,f64,null,f64,f64,Option[f64],Option[f64],f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+(unoptimized) output schema of input op: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+(optimized) output schema of input op: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-10 11:13:30.897] [physical planner] [info] specialized to input:  (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-10 11:13:30.898] [physical planner] [info] specialized to output: (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:30.898] [physical planner] [info] specialized code reads: 18 columns
+[2022-06-10 11:13:30.898] [physical planner] [info] Specialized stage in 1206.469735ms
+[2022-06-10 11:13:30.899] [codegen] [info] generating pipeline for (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null) -> (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+[2022-06-10 11:13:30.901] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:30.902] [codegen] [info] generating function fill_in_delays for ((i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)) -> (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:13:30.918] [codegen] [warning] hack, need to fix stuff here...
+HACK: need to fix resolver throwing exception case here.
+[2022-06-10 11:13:31.296] [aws-lambda] [info] client-side LLVM IR optimization of took 0.086295s
+[2022-06-10 11:13:31.296] [aws-lambda] [info] Setting buffer size for each thread to 125.00 MB
+[2022-06-10 11:13:31.300] [aws-lambda] [info] Created 36 LAMBDA requests.
+[2022-06-10 11:13:31.300] [aws-lambda] [info] Invoking 36 requests ...
+[2022-06-10 11:13:31.417] [aws-lambda] [info] LAMBDA requesting took 0.121586s
+[2022-06-10 11:13:35.400] [aws-lambda] [info] LAMBDA task done in 3.92138s [200, 438141 rows, 0 exceptions, reused, id: d12bed21-4837-42c6-87eb-086078cd004d] Cost so far: $0.0007
+[2022-06-10 11:13:35.400] [aws-lambda] [info] LAMBDA task done in 3.91766s [200, 448333 rows, 0 exceptions, reused, id: ffe22b85-ffa2-46a3-9482-d174130416b7] Cost so far: $0.0014
+[2022-06-10 11:13:35.417] [aws-lambda] [info] LAMBDA task done in 3.91634s [200, 415024 rows, 0 exceptions, reused, id: 29d4d4b6-e58e-4375-99fe-f82e0f43cc04] Cost so far: $0.0020
+[2022-06-10 11:13:35.435] [aws-lambda] [info] LAMBDA task done in 3.92921s [200, 446590 rows, 0 exceptions, reused, id: 224c3a32-ade3-4fbd-bf94-8cfd5333925d] Cost so far: $0.0027
+[2022-06-10 11:13:35.468] [aws-lambda] [info] LAMBDA task done in 3.97832s [200, 429996 rows, 0 exceptions, reused, id: 4074c299-aaaa-4628-8fe2-a11ecbe4713d] Cost so far: $0.0034
+[2022-06-10 11:13:35.471] [aws-lambda] [info] LAMBDA task done in 4.00193s [200, 399535 rows, 0 exceptions, reused, id: 4b2045fd-2afa-445b-be7e-1262b6e0bb09] Cost so far: $0.0041
+[2022-06-10 11:13:35.491] [aws-lambda] [info] LAMBDA task done in 3.99248s [200, 427125 rows, 0 exceptions, reused, id: 923b9ca7-5ff2-41b3-ad05-20c277a662f2] Cost so far: $0.0047
+[2022-06-10 11:13:35.521] [aws-lambda] [info] LAMBDA task done in 4.04866s [200, 447896 rows, 0 exceptions, reused, id: 15c90bb6-7358-4155-9cce-66a79921a9b7] Cost so far: $0.0054
+[2022-06-10 11:13:35.545] [aws-lambda] [info] LAMBDA task done in 4.06163s [200, 450046 rows, 0 exceptions, reused, id: 02741519-b585-4ec7-9651-576f89a020e0] Cost so far: $0.0061
+[2022-06-10 11:13:35.654] [aws-lambda] [info] LAMBDA task done in 4.17978s [200, 436336 rows, 0 exceptions, reused, id: a8895c60-c0a8-48e4-bd6a-967e712427b4] Cost so far: $0.0068
+[2022-06-10 11:13:35.690] [aws-lambda] [info] LAMBDA task done in 4.21139s [200, 465573 rows, 0 exceptions, reused, id: 0b281767-118e-46b7-9a26-c187f2a79741] Cost so far: $0.0076
+[2022-06-10 11:13:35.875] [aws-lambda] [info] LAMBDA task done in 4.37588s [200, 500206 rows, 0 exceptions, reused, id: 6db45572-981d-4ac0-8785-c58a923286a6] Cost so far: $0.0083
+[2022-06-10 11:13:35.901] [aws-lambda] [info] LAMBDA task done in 4.41338s [200, 466764 rows, 0 exceptions, reused, id: 6f7ef5f5-93bd-4b8f-8564-1299776de895] Cost so far: $0.0090
+[2022-06-10 11:13:36.209] [aws-lambda] [info] LAMBDA task done in 4.69303s [200, 559342 rows, 0 exceptions, reused, id: b228a729-033b-466f-9437-ea02693d3f59] Cost so far: $0.0098
+[2022-06-10 11:13:36.213] [aws-lambda] [info] LAMBDA task done in 4.67621s [200, 528171 rows, 0 exceptions, reused, id: a432b502-4c70-4be5-8e0b-30be445e0f14] Cost so far: $0.010633
+[2022-06-10 11:13:36.255] [aws-lambda] [info] LAMBDA task done in 4.74768s [200, 527303 rows, 0 exceptions, reused, id: 62d275b8-0089-4e97-bd08-e184806489a5] Cost so far: $0.011439
+[2022-06-10 11:13:36.264] [aws-lambda] [info] LAMBDA task done in 4.76455s [200, 552109 rows, 0 exceptions, reused, id: c8cfc3ee-1991-4721-b455-d34660445267] Cost so far: $0.012247
+[2022-06-10 11:13:36.288] [aws-lambda] [info] LAMBDA task done in 4.76601s [200, 536496 rows, 0 exceptions, reused, id: 8d95f847-ac45-4725-b0fa-adec6892e864] Cost so far: $0.013055
+[2022-06-10 11:13:36.295] [aws-lambda] [info] LAMBDA task done in 4.76152s [200, 527714 rows, 0 exceptions, reused, id: d4903cc1-6086-4194-8e9b-647a1953782d] Cost so far: $0.013863
+[2022-06-10 11:13:36.319] [aws-lambda] [info] LAMBDA task done in 4.79545s [200, 556984 rows, 0 exceptions, reused, id: 98dda3f5-0128-4cb6-8bc0-9b5b4cc4b73b] Cost so far: $0.014675
+[2022-06-10 11:13:36.369] [aws-lambda] [info] LAMBDA task done in 4.80398s [200, 588792 rows, 0 exceptions, reused, id: b56fad64-084d-452d-8995-b8c3755c09de] Cost so far: $0.015488
+[2022-06-10 11:13:36.458] [aws-lambda] [info] LAMBDA task done in 4.91336s [200, 553876 rows, 0 exceptions, reused, id: d1d20605-292f-4b1e-b51c-5ffb3ecb2ac9] Cost so far: $0.016321
+[2022-06-10 11:13:36.494] [aws-lambda] [info] LAMBDA task done in 4.97474s [200, 558568 rows, 0 exceptions, reused, id: 5cd8297d-59c0-4b6f-af53-b04338c04f51] Cost so far: $0.017164
+[2022-06-10 11:13:36.505] [aws-lambda] [info] LAMBDA task done in 4.96283s [200, 555495 rows, 0 exceptions, reused, id: 65a1e745-699b-44ab-be72-286a17fe7e5e] Cost so far: $0.018005
+[2022-06-10 11:13:36.593] [aws-lambda] [info] LAMBDA task done in 5.0589s [200, 552370 rows, 0 exceptions, reused, id: 10dbbae8-d7a7-4261-8206-97a47c3a710b] Cost so far: $0.018863
+[2022-06-10 11:13:36.632] [aws-lambda] [info] LAMBDA task done in 5.0569s [200, 584610 rows, 0 exceptions, reused, id: d81702a1-b498-4b09-84e1-e14c80e88d92] Cost so far: $0.019720
+[2022-06-10 11:13:36.641] [aws-lambda] [info] LAMBDA task done in 5.09397s [200, 582970 rows, 0 exceptions, reused, id: f1c6c15e-eac9-4fb0-a74d-6a8d554f09aa] Cost so far: $0.020583
+[2022-06-10 11:13:36.879] [aws-lambda] [info] LAMBDA task done in 5.3263s [200, 583987 rows, 0 exceptions, reused, id: 808aadb7-98ab-458e-b3d0-b5f03eda168b] Cost so far: $0.021485
+[2022-06-10 11:13:36.905] [aws-lambda] [info] LAMBDA task done in 5.32795s [200, 594457 rows, 0 exceptions, reused, id: e367319c-3186-4dc8-9a02-ff8047043b25] Cost so far: $0.022387
+[2022-06-10 11:13:37.315] [aws-lambda] [info] LAMBDA task done in 5.75056s [200, 614166 rows, 0 exceptions, reused, id: ba915ef5-35a1-4e50-82e7-91bb9edbcf0b] Cost so far: $0.023357
+[2022-06-10 11:13:37.638] [aws-lambda] [info] LAMBDA task done in 6.05486s [200, 606731 rows, 0 exceptions, reused, id: 7c06c995-edd7-4a69-bf01-aaeca58168db] Cost so far: $0.024380
+[2022-06-10 11:13:37.679] [aws-lambda] [info] LAMBDA task done in 6.10286s [200, 610037 rows, 0 exceptions, reused, id: c1f5f235-ca66-4a55-80fa-d77ceadfde8f] Cost so far: $0.025411
+[2022-06-10 11:13:37.706] [aws-lambda] [info] LAMBDA task done in 6.12977s [200, 585125 rows, 0 exceptions, reused, id: 9daf568e-445c-4c0e-aa82-38b51c465a84] Cost so far: $0.026447
+[2022-06-10 11:13:37.788] [aws-lambda] [info] LAMBDA task done in 6.20705s [200, 623107 rows, 0 exceptions, reused, id: 6d66a87b-5ac2-485b-948a-f0c4ba6f0d48] Cost so far: $0.027496
+[2022-06-10 11:13:37.829] [aws-lambda] [info] LAMBDA task done in 6.25505s [200, 601412 rows, 0 exceptions, reused, id: f90cd9c9-6a08-42f3-ac58-df982fa69a20] Cost so far: $0.028552
+[2022-06-10 11:13:41.103] [aws-lambda] [info] LAMBDA task done in 9.58689s [200, 533782 rows, 0 exceptions, reused, id: cbc1c9ef-3eff-4970-bf9a-933d0c5f3d62] Cost so far: $0.030164
+[2022-06-10 11:13:41.137] [aws-lambda] [info] LAMBDA Stage: 18889169 rows, 0 exceptions
+[2022-06-10 11:13:41.137] [aws-lambda] [info] LAMBDA paths rows took: normal: 16813806 general: 2075363 interpreter: 0 unresolved: 0
+[2022-06-10 11:13:41.137] [aws-lambda] [info] LAMBDA statistics: 
+Lambda #containers used: 36 reused: 36 newly initialized: 0
+Lambda init time: 0 +- 0 min: 0 max: 2.22507e-308
+Lambda execution time: 4.93773 +- 1.07404 min: 3.91634 max: 9.58689
+
+----- BREAKDOWN TIMINGS -----
+{}
+Lambda cost: $0.0301636
+[2022-06-10 11:13:41.137] [aws-lambda] [info] LAMBDA compute took 9.84159s, cost $0.03
+[2022-06-10 11:13:41.138] [global] [info] Query Execution took 12.1108s. (planning: 2.17971s, execution: 9.93107s)
+[2022-06-10 11:13:41.568] [fileinputoperator] [info] found 36 files (7.86 GB) to process.
+[2022-06-10 11:13:41.781] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_04.csv on 256.00 KB
+[2022-06-10 11:13:41.791] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_06.csv on 256.00 KB
+[2022-06-10 11:13:41.800] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_06.csv on 256.00 KB
+[2022-06-10 11:13:41.800] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_03.csv on 256.00 KB
+[2022-06-10 11:13:41.803] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_02.csv on 256.00 KB
+[2022-06-10 11:13:41.807] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_08.csv on 256.00 KB
+[2022-06-10 11:13:41.820] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_10.csv on 256.00 KB
+[2022-06-10 11:13:41.820] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_02.csv on 256.00 KB
+[2022-06-10 11:13:41.823] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_03.csv on 256.00 KB
+[2022-06-10 11:13:41.824] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_09.csv on 256.00 KB
+[2022-06-10 11:13:41.824] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_12.csv on 256.00 KB
+[2022-06-10 11:13:41.826] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_08.csv on 256.00 KB
+[2022-06-10 11:13:41.827] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_01.csv on 256.00 KB
+[2022-06-10 11:13:41.827] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_05.csv on 256.00 KB
+[2022-06-10 11:13:41.828] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_03.csv on 256.00 KB
+[2022-06-10 11:13:41.832] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv on 256.00 KB
+[2022-06-10 11:13:41.832] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_11.csv on 256.00 KB
+[2022-06-10 11:13:41.832] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_05.csv on 256.00 KB
+[2022-06-10 11:13:41.834] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_12.csv on 256.00 KB
+[2022-06-10 11:13:41.839] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_06.csv on 256.00 KB
+[2022-06-10 11:13:41.854] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_02.csv on 256.00 KB
+[2022-06-10 11:13:41.854] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_05.csv on 256.00 KB
+[2022-06-10 11:13:41.854] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_04.csv on 256.00 KB
+[2022-06-10 11:13:41.855] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_04.csv on 256.00 KB
+[2022-06-10 11:13:41.869] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_07.csv on 256.00 KB
+[2022-06-10 11:13:41.871] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_10.csv on 256.00 KB
+[2022-06-10 11:13:41.881] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_12.csv on 256.00 KB
+[2022-06-10 11:13:41.885] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_11.csv on 256.00 KB
+[2022-06-10 11:13:41.890] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_07.csv on 256.00 KB
+[2022-06-10 11:13:41.891] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_07.csv on 256.00 KB
+[2022-06-10 11:13:41.897] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_09.csv on 256.00 KB
+[2022-06-10 11:13:41.900] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_09.csv on 256.00 KB
+[2022-06-10 11:13:41.901] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_01.csv on 256.00 KB
+[2022-06-10 11:13:41.908] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_11.csv on 256.00 KB
+[2022-06-10 11:13:41.912] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv on 256.00 KB
+[2022-06-10 11:13:41.926] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_08.csv on 256.00 KB
+[2022-06-10 11:13:41.926] [fileinputoperator] [info] Parallel sample fetch done.
+[2022-06-10 11:13:41.926] [fileinputoperator] [info] Filling sample cache for csv operator took 0.358375s (36 entries, 0 rows)
+[2022-06-10 11:13:42.128] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv on 256.00 KB
+[2022-06-10 11:13:42.291] [fileinputoperator] [info] Auto-detected presence of a header line in CSV files.
+[2022-06-10 11:13:42.368] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_09.csv on 256.00 KB
+[2022-06-10 11:13:42.389] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_11.csv on 256.00 KB
+[2022-06-10 11:13:42.402] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_08.csv on 256.00 KB
+[2022-06-10 11:13:42.402] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_02.csv on 256.00 KB
+[2022-06-10 11:13:42.406] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_11.csv on 256.00 KB
+[2022-06-10 11:13:42.409] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_12.csv on 256.00 KB
+[2022-06-10 11:13:42.411] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_07.csv on 256.00 KB
+[2022-06-10 11:13:42.411] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_08.csv on 256.00 KB
+[2022-06-10 11:13:42.421] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_10.csv on 256.00 KB
+[2022-06-10 11:13:42.421] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_09.csv on 256.00 KB
+[2022-06-10 11:13:42.430] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_04.csv on 256.00 KB
+[2022-06-10 11:13:42.430] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_04.csv on 256.00 KB
+[2022-06-10 11:13:42.434] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_03.csv on 256.00 KB
+[2022-06-10 11:13:42.437] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_01.csv on 256.00 KB
+[2022-06-10 11:13:42.437] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_06.csv on 256.00 KB
+[2022-06-10 11:13:42.443] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv on 256.00 KB
+[2022-06-10 11:13:42.449] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_06.csv on 256.00 KB
+[2022-06-10 11:13:42.450] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_02.csv on 256.00 KB
+[2022-06-10 11:13:42.456] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_05.csv on 256.00 KB
+[2022-06-10 11:13:42.463] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_01.csv on 256.00 KB
+[2022-06-10 11:13:42.467] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_05.csv on 256.00 KB
+[2022-06-10 11:13:42.473] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_03.csv on 256.00 KB
+[2022-06-10 11:13:42.474] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_06.csv on 256.00 KB
+[2022-06-10 11:13:42.476] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_12.csv on 256.00 KB
+[2022-06-10 11:13:42.482] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_04.csv on 256.00 KB
+[2022-06-10 11:13:42.484] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_09.csv on 256.00 KB
+[2022-06-10 11:13:42.487] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_03.csv on 256.00 KB
+[2022-06-10 11:13:42.491] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_08.csv on 256.00 KB
+[2022-06-10 11:13:42.498] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_07.csv on 256.00 KB
+[2022-06-10 11:13:42.501] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_05.csv on 256.00 KB
+[2022-06-10 11:13:42.508] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_11.csv on 256.00 KB
+[2022-06-10 11:13:42.516] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_02.csv on 256.00 KB
+[2022-06-10 11:13:42.520] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_07.csv on 256.00 KB
+[2022-06-10 11:13:42.523] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_12.csv on 256.00 KB
+[2022-06-10 11:13:42.531] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_10.csv on 256.00 KB
+[2022-06-10 11:13:43.320] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv on 256.00 KB
+[2022-06-10 11:13:46.057] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_05.csv on 256.00 KB
+[2022-06-10 11:13:46.661] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_12.csv on 256.00 KB
+[2022-06-10 11:13:46.841] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_04.csv on 256.00 KB
+[2022-06-10 11:13:47.420] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_02.csv on 256.00 KB
+[2022-06-10 11:13:47.717] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_09.csv on 256.00 KB
+[2022-06-10 11:13:47.907] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_03.csv on 256.00 KB
+[2022-06-10 11:13:48.064] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_06.csv on 256.00 KB
+[2022-06-10 11:13:48.372] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_11.csv on 256.00 KB
+[2022-06-10 11:13:48.982] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_09.csv on 256.00 KB
+[2022-06-10 11:13:49.160] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_06.csv on 256.00 KB
+[2022-06-10 11:13:49.194] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_10.csv on 256.00 KB
+[2022-06-10 11:13:49.508] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_07.csv on 256.00 KB
+[2022-06-10 11:13:49.820] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_02.csv on 256.00 KB
+[2022-06-10 11:13:50.069] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_11.csv on 256.00 KB
+[2022-06-10 11:13:50.085] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_05.csv on 256.00 KB
+[2022-06-10 11:13:50.740] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_10.csv on 256.00 KB
+[2022-06-10 11:13:50.854] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_07.csv on 256.00 KB
+[2022-06-10 11:13:50.961] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_07.csv on 256.00 KB
+[2022-06-10 11:13:50.992] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_03.csv on 256.00 KB
+[2022-06-10 11:13:50.997] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_02.csv on 256.00 KB
+[2022-06-10 11:13:51.171] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_08.csv on 256.00 KB
+[2022-06-10 11:13:51.197] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_06.csv on 256.00 KB
+[2022-06-10 11:13:51.280] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_08.csv on 256.00 KB
+[2022-06-10 11:13:51.349] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_12.csv on 256.00 KB
+[2022-06-10 11:13:51.522] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_11.csv on 256.00 KB
+[2022-06-10 11:13:51.552] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_01.csv on 256.00 KB
+[2022-06-10 11:13:51.616] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_12.csv on 256.00 KB
+[2022-06-10 11:13:51.965] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_04.csv on 256.00 KB
+[2022-06-10 11:13:51.968] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_04.csv on 256.00 KB
+[2022-06-10 11:13:51.984] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_09.csv on 256.00 KB
+[2022-06-10 11:13:52.551] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_10.csv on 256.00 KB
+[2022-06-10 11:13:52.873] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_05.csv on 256.00 KB
+[2022-06-10 11:13:53.022] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_01.csv on 256.00 KB
+[2022-06-10 11:13:53.048] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_03.csv on 256.00 KB
+[2022-06-10 11:13:53.200] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_08.csv on 256.00 KB
+[2022-06-10 11:13:58.864] [fileinputoperator] [info] Parallel sample parse done.
+[2022-06-10 11:13:58.865] [fileinputoperator] [info] Extracting row sample took 16.573194s
+col 0: i64 (35665), null (10), str (3), f64 (1), 
+col 1: i64 (35659), str (8), f64 (6), 
+col 2: i64 (35664), null (8), str (7), 
+col 3: i64 (35655), str (15), null (7), f64 (2), 
+col 4: i64 (35658), str (8), null (7), f64 (6), 
+col 5: str (35659), null (10), i64 (7), f64 (2), 
+col 6: str (35655), i64 (11), null (7), f64 (5), 
+col 7: i64 (35663), null (7), f64 (6), str (2), 
+col 8: str (35653), i64 (12), null (8), f64 (5), 
+col 9: str (35230), null (434), i64 (7), 
+col 10: i64 (35655), null (9), str (4), 
+col 11: i64 (35654), null (9), str (5), 
+col 12: i64 (35660), null (9), str (4), f64 (3), 
+col 13: i64 (35653), null (12), str (8), f64 (2), 
+col 14: str (35654), null (12), i64 (6), f64 (3), 
+col 15: str (35652), null (12), i64 (9), f64 (2), 
+col 16: str (35651), null (13), i64 (9), f64 (2), 
+col 17: i64 (35657), null (14), f64 (4), 
+col 18: str (35650), null (12), i64 (7), f64 (3), 
+col 19: i64 (35652), null (12), f64 (5), str (3), 
+col 20: i64 (35649), null (12), f64 (8), str (3), 
+col 21: i64 (35652), null (12), f64 (8), 
+col 22: i64 (35649), null (12), f64 (7), str (4), 
+col 23: str (35648), null (12), i64 (8), f64 (3), 
+col 24: str (35649), null (13), i64 (5), f64 (3), 
+col 25: str (35641), null (15), i64 (6), f64 (4), 
+col 26: i64 (35642), null (16), f64 (6), str (1), 
+col 27: str (35640), null (13), f64 (9), i64 (2), 
+col 28: i64 (35641), null (13), f64 (9), 
+col 29: i64 (35643), null (12), f64 (7), 
+col 30: i64 (35181), null (470), f64 (8), str (3), 
+col 31: f64 (35191), null (470), 
+col 32: f64 (35184), null (470), i64 (5), 
+col 33: f64 (35179), null (471), i64 (7), str (1), 
+col 34: i64 (35178), null (474), f64 (5), str (1), 
+col 35: str (35634), null (18), i64 (5), f64 (1), 
+col 36: f64 (35175), null (477), i64 (4), 
+col 37: i64 (35173), null (477), f64 (5), 
+col 38: i64 (35095), null (553), f64 (6), 
+col 39: f64 (35107), null (547), 
+col 40: i64 (35634), null (17), f64 (3), 
+col 41: i64 (35101), null (547), str (3), 
+col 42: f64 (35105), null (546), i64 (1), 
+col 43: f64 (35100), null (550), i64 (1), 
+col 44: f64 (35101), null (547), i64 (1), 
+col 45: i64 (35097), null (548), f64 (3), 
+col 46: str (35626), null (18), f64 (3), 
+col 47: f64 (35629), null (18), 
+col 48: null (35372), str (272), f64 (3), 
+col 49: f64 (35628), null (18), 
+col 50: f64 (35625), null (17), i64 (3), 
+col 51: f64 (35095), null (550), 
+col 52: f64 (35094), null (550), 
+col 53: f64 (35624), null (20), 
+col 54: f64 (35624), null (20), 
+col 55: i64 (35624), null (19), 
+col 56: null (32127), f64 (3515), 
+col 57: null (32126), f64 (3515), 
+col 58: null (32126), f64 (3515), 
+col 59: null (32126), f64 (3515), 
+col 60: null (32126), f64 (3515), 
+col 61: null (35641), 
+col 62: null (35641), 
+col 63: null (35641), 
+col 64: null (35640), 
+col 65: null (35640), 
+col 66: null (35639), 
+col 67: null (35636), 
+col 68: null (35636), 
+col 69: null (35636), 
+col 70: null (35636), 
+col 71: null (35636), 
+col 72: null (35636), 
+col 73: null (35636), 
+col 74: null (35636), 
+col 75: null (35635), 
+col 76: null (35634), 
+col 77: null (35634), 
+col 78: null (35633), 
+col 79: null (35632), 
+col 80: null (35632), 
+col 81: null (35632), 
+col 82: null (35632), 
+col 83: null (35632), 
+col 84: null (35632), 
+col 85: null (35632), 
+col 86: null (35632), 
+col 87: null (35631), 
+col 88: null (35628), 
+col 89: null (35627), 
+col 90: null (35626), 
+col 91: null (35626), 
+col 92: null (35626), 
+col 93: null (35626), 
+col 94: null (35625), 
+col 95: null (35625), 
+col 96: null (35625), 
+col 97: null (35624), 
+col 98: null (35623), 
+col 99: null (35622), 
+col 100: null (35622), 
+col 101: null (35622), 
+col 102: null (35622), 
+col 103: null (35622), 
+col 104: null (35622), 
+col 105: null (35619), 
+col 106: null (35619), 
+col 107: null (35619), 
+col 108: null (35619), 
+col 109: null (35618), 
+
+[2022-06-10 11:14:03.650] [logical planner] [info] logical optimization took 0.590219ms
+0: YEAR
+1: MONTH
+2: DAY_OF_MONTH
+3: OP_UNIQUE_CARRIER
+4: OP_CARRIER_FL_NUM
+5: ORIGIN_AIRPORT_ID
+6: DEST_AIRPORT_ID
+7: CRS_DEP_TIME
+8: DEP_DELAY
+9: CRS_ARR_TIME
+10: ARR_DELAY
+11: CRS_ELAPSED_TIME
+12: DISTANCE
+13: CARRIER_DELAY
+14: WEATHER_DELAY
+15: NAS_DELAY
+16: SECURITY_DELAY
+17: LATE_AIRCRAFT_DELAY
+1: (f64,f64,i64,str,f64,i64,i64,f64,i64,i64,f64,f64,f64,i64,str,f64,null,f64,f64,f64,f64,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+25: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,null,null,null,null,null,str,null,null,null,null,i64,null,null,null,null,null,str,f64,null,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+3: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,null,null,i64,null,null,null,null,null,str,f64,null,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str)
+1968: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,i64,f64,i64,i64,f64,f64,f64,i64,str,f64,null,f64,f64,f64,f64,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+1: (null,f64,null,f64,f64,f64,f64,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str)
+col 0: i64 (1998), null (1), 
+col 1: i64 (1998), f64 (2), 
+col 2: i64 (1999), null (1), 
+col 3: i64 (1998), f64 (1), 
+col 4: i64 (1998), f64 (2), 
+col 5: str (1998), i64 (1), 
+col 6: str (1998), i64 (1), 
+col 7: i64 (1998), f64 (2), 
+col 8: str (1998), i64 (1), 
+col 9: str (1998), i64 (2), 
+col 10: i64 (1997), null (1), 
+col 11: i64 (1997), null (1), 
+col 12: i64 (1997), null (1), 
+col 13: i64 (1998), null (1), 
+col 14: str (1998), null (1), 
+col 15: str (1997), null (1), 
+col 16: str (1997), null (2), 
+col 17: i64 (1997), null (1), 
+col 18: str (1997), null (1), 
+col 19: i64 (1997), null (1), 
+col 20: i64 (1997), null (1), 
+col 21: i64 (1997), null (1), 
+col 22: i64 (1997), null (1), 
+col 23: str (1997), null (1), 
+col 24: str (1997), null (2), 
+col 25: str (1996), null (2), 
+col 26: i64 (1996), null (2), 
+col 27: str (1996), null (2), 
+col 28: i64 (1996), null (2), 
+col 29: i64 (1996), null (2), 
+col 30: i64 (1971), null (27), 
+col 31: f64 (1971), null (27), 
+col 32: f64 (1971), null (27), 
+col 33: f64 (1971), null (27), 
+col 34: i64 (1971), null (27), 
+col 35: str (1996), null (2), 
+col 36: f64 (1971), null (27), 
+col 37: i64 (1971), null (27), 
+col 38: i64 (1968), null (30), 
+col 39: f64 (1968), null (30), 
+col 40: i64 (1996), null (2), 
+col 41: i64 (1968), null (30), 
+col 42: f64 (1968), null (30), 
+col 43: f64 (1968), null (30), 
+col 44: f64 (1968), null (30), 
+col 45: i64 (1968), null (30), 
+col 46: str (1996), null (2), 
+col 47: f64 (1996), null (2), 
+col 48: null (1998), 
+col 49: f64 (1996), null (2), 
+col 50: f64 (1996), null (2), 
+col 51: f64 (1968), null (30), 
+col 52: f64 (1968), null (30), 
+col 53: f64 (1996), null (2), 
+col 54: f64 (1996), null (2), 
+col 55: i64 (1996), null (2), 
+col 56: null (1998), 
+col 57: null (1998), 
+col 58: null (1998), 
+col 59: null (1998), 
+col 60: null (1998), 
+col 61: null (1998), 
+col 62: null (1998), 
+col 63: null (1998), 
+col 64: null (1997), 
+col 65: null (1997), 
+col 66: null (1997), 
+col 67: null (1997), 
+col 68: null (1997), 
+col 69: null (1997), 
+col 70: null (1997), 
+col 71: null (1997), 
+col 72: null (1997), 
+col 73: null (1997), 
+col 74: null (1997), 
+col 75: null (1997), 
+col 76: null (1997), 
+col 77: null (1997), 
+col 78: null (1996), 
+col 79: null (1996), 
+col 80: null (1996), 
+col 81: null (1996), 
+col 82: null (1996), 
+col 83: null (1996), 
+col 84: null (1996), 
+col 85: null (1996), 
+col 86: null (1996), 
+col 87: null (1996), 
+col 88: null (1996), 
+col 89: null (1996), 
+col 90: null (1996), 
+col 91: null (1996), 
+col 92: null (1996), 
+col 93: null (1996), 
+col 94: null (1996), 
+col 95: null (1996), 
+col 96: null (1996), 
+col 97: null (1996), 
+col 98: null (1996), 
+col 99: null (1996), 
+col 100: null (1996), 
+col 101: null (1996), 
+col 102: null (1996), 
+col 103: null (1996), 
+col 104: null (1996), 
+col 105: null (1996), 
+col 106: null (1996), 
+col 107: null (1996), 
+col 108: null (1996), 
+col 109: null (1996), 
+
+Majority detected row type is: (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],null,null,null,null,null)
+[2022-06-10 11:14:03.900] [specializing stage optimizer] [info] performing Retyping
+[2022-06-10 11:14:03.900] [specializing stage optimizer] [info] Row type before retype: (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],null,null,null,null,null)
+[2022-06-10 11:14:03.900] [specializing stage optimizer] [info] Row type after retype: (Option[i64],i64,Option[i64],i64,i64,str,str,i64,str,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[i64],Option[i64],Option[f64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],null,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+(unoptimized) output schema of input op: (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],null,null,null,null,null)
+(optimized) output schema of input op: (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],null,null,null,null,null)
+[2022-06-10 11:14:05.553] [physical planner] [info] specialized to input:  (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],null,null,null,null,null)
+[2022-06-10 11:14:05.553] [physical planner] [info] specialized to output: (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:14:05.553] [physical planner] [info] specialized code reads: 18 columns
+[2022-06-10 11:14:05.553] [physical planner] [info] Specialized stage in 1902.252602ms
+[2022-06-10 11:14:05.554] [codegen] [info] generating pipeline for (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],null,null,null,null,null) -> (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+[2022-06-10 11:14:05.557] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:14:05.558] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],null,null,null,null,null)) -> (Option[i64],Option[i64],i64,str,Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-10 11:14:05.579] [codegen] [warning] hack, need to fix stuff here...
+HACK: need to fix resolver throwing exception case here.
+[2022-06-10 11:14:06.165] [aws-lambda] [info] client-side LLVM IR optimization of took 0.112505s
+[2022-06-10 11:14:06.166] [aws-lambda] [info] Setting buffer size for each thread to 125.00 MB
+[2022-06-10 11:14:06.169] [aws-lambda] [info] Created 36 LAMBDA requests.
+[2022-06-10 11:14:06.170] [aws-lambda] [info] Invoking 36 requests ...
+[2022-06-10 11:14:06.288] [aws-lambda] [info] LAMBDA requesting took 0.122205s
+[2022-06-10 11:14:10.140] [aws-lambda] [info] LAMBDA task done in 3.7326s [200, 465573 rows, 0 exceptions, reused, id: ba915ef5-35a1-4e50-82e7-91bb9edbcf0b] Cost so far: $0.0007
+[2022-06-10 11:14:10.160] [aws-lambda] [info] LAMBDA task done in 3.75328s [200, 399535 rows, 0 exceptions, reused, id: 6d66a87b-5ac2-485b-948a-f0c4ba6f0d48] Cost so far: $0.0013
+[2022-06-10 11:14:10.395] [aws-lambda] [info] LAMBDA task done in 3.96462s [200, 427125 rows, 0 exceptions, reused, id: d81702a1-b498-4b09-84e1-e14c80e88d92] Cost so far: $0.0020
+[2022-06-10 11:14:10.405] [aws-lambda] [info] LAMBDA task done in 3.99094s [200, 447896 rows, 0 exceptions, reused, id: cbc1c9ef-3eff-4970-bf9a-933d0c5f3d62] Cost so far: $0.0027
+[2022-06-10 11:14:10.422] [aws-lambda] [info] LAMBDA task done in 3.98764s [200, 415024 rows, 0 exceptions, reused, id: 10dbbae8-d7a7-4261-8206-97a47c3a710b] Cost so far: $0.0034
+[2022-06-10 11:14:10.462] [aws-lambda] [info] LAMBDA task done in 4.02621s [200, 446590 rows, 0 exceptions, reused, id: f1c6c15e-eac9-4fb0-a74d-6a8d554f09aa] Cost so far: $0.0041
+[2022-06-10 11:14:10.488] [aws-lambda] [info] LAMBDA task done in 4.05447s [200, 429996 rows, 0 exceptions, reused, id: 808aadb7-98ab-458e-b3d0-b5f03eda168b] Cost so far: $0.0048
+[2022-06-10 11:14:10.526] [aws-lambda] [info] LAMBDA task done in 4.10144s [200, 448333 rows, 0 exceptions, reused, id: 7c06c995-edd7-4a69-bf01-aaeca58168db] Cost so far: $0.0055
+[2022-06-10 11:14:10.539] [aws-lambda] [info] LAMBDA task done in 4.11686s [200, 450046 rows, 0 exceptions, reused, id: c1f5f235-ca66-4a55-80fa-d77ceadfde8f] Cost so far: $0.0062
+[2022-06-10 11:14:10.541] [aws-lambda] [info] LAMBDA task done in 4.11483s [200, 466764 rows, 0 exceptions, reused, id: e367319c-3186-4dc8-9a02-ff8047043b25] Cost so far: $0.0069
+[2022-06-10 11:14:10.787] [aws-lambda] [info] LAMBDA task done in 4.35921s [200, 559342 rows, 0 exceptions, reused, id: b56fad64-084d-452d-8995-b8c3755c09de] Cost so far: $0.0077
+[2022-06-10 11:14:11.029] [aws-lambda] [info] LAMBDA task done in 4.57857s [200, 533782 rows, 0 exceptions, reused, id: d1d20605-292f-4b1e-b51c-5ffb3ecb2ac9] Cost so far: $0.0085
+[2022-06-10 11:14:11.083] [aws-lambda] [info] LAMBDA task done in 4.636s [200, 552109 rows, 0 exceptions, reused, id: 65a1e745-699b-44ab-be72-286a17fe7e5e] Cost so far: $0.0093
+[2022-06-10 11:14:11.142] [aws-lambda] [info] LAMBDA task done in 4.69586s [200, 527303 rows, 0 exceptions, reused, id: 5cd8297d-59c0-4b6f-af53-b04338c04f51] Cost so far: $0.010083
+[2022-06-10 11:14:11.448] [aws-lambda] [info] LAMBDA task done in 5.04465s [200, 436336 rows, 0 exceptions, reused, id: f90cd9c9-6a08-42f3-ac58-df982fa69a20] Cost so far: $0.010949
+[2022-06-10 11:14:11.526] [aws-lambda] [info] LAMBDA task done in 5.10418s [200, 438141 rows, 0 exceptions, reused, id: 9daf568e-445c-4c0e-aa82-38b51c465a84] Cost so far: $0.011827
+[2022-06-10 11:14:11.899] [aws-lambda] [info] LAMBDA task done in 5.43482s [200, 500206 rows, 0 exceptions, reused, id: 8d95f847-ac45-4725-b0fa-adec6892e864] Cost so far: $0.012758
+[2022-06-10 11:14:21.516] [aws-lambda] [info] LAMBDA task done in 15.0497s [200, 527714 rows, 0 exceptions, reused, id: a432b502-4c70-4be5-8e0b-30be445e0f14] Cost so far: $0.015291
+[2022-06-10 11:14:21.773] [aws-lambda] [info] LAMBDA task done in 15.307s [200, 552370 rows, 0 exceptions, reused, id: c8cfc3ee-1991-4721-b455-d34660445267] Cost so far: $0.017868
+[2022-06-10 11:14:22.839] [aws-lambda] [info] LAMBDA task done in 16.3169s [200, 585125 rows, 0 exceptions, reused, id: 29d4d4b6-e58e-4375-99fe-f82e0f43cc04] Cost so far: $0.020615
+[2022-06-10 11:14:24.568] [aws-lambda] [info] LAMBDA task done in 18.1193s [200, 536496 rows, 0 exceptions, reused, id: 98dda3f5-0128-4cb6-8bc0-9b5b4cc4b73b] Cost so far: $0.023659
+[2022-06-10 11:14:25.870] [aws-lambda] [info] LAMBDA task done in 19.3976s [200, 528171 rows, 0 exceptions, reused, id: b228a729-033b-466f-9437-ea02693d3f59] Cost so far: $0.026918
+[2022-06-10 11:14:25.961] [aws-lambda] [info] LAMBDA task done in 19.4729s [200, 582970 rows, 0 exceptions, reused, id: 0b281767-118e-46b7-9a26-c187f2a79741] Cost so far: $0.030189
+[2022-06-10 11:14:27.346] [aws-lambda] [info] LAMBDA task done in 20.8832s [200, 556984 rows, 0 exceptions, reused, id: d4903cc1-6086-4194-8e9b-647a1953782d] Cost so far: $0.033695
+[2022-06-10 11:14:27.397] [aws-lambda] [info] LAMBDA task done in 20.927s [200, 558568 rows, 0 exceptions, reused, id: 62d275b8-0089-4e97-bd08-e184806489a5] Cost so far: $0.037209
+[2022-06-10 11:14:28.216] [aws-lambda] [info] LAMBDA task done in 21.725s [200, 601412 rows, 0 exceptions, reused, id: 02741519-b585-4ec7-9651-576f89a020e0] Cost so far: $0.040855
+[2022-06-10 11:14:28.637] [aws-lambda] [info] LAMBDA task done in 22.1212s [200, 584610 rows, 0 exceptions, reused, id: ffe22b85-ffa2-46a3-9482-d174130416b7] Cost so far: $0.044567
+[2022-06-10 11:14:29.231] [aws-lambda] [info] LAMBDA task done in 22.7252s [200, 610037 rows, 0 exceptions, reused, id: 4074c299-aaaa-4628-8fe2-a11ecbe4713d] Cost so far: $0.048380
+[2022-06-10 11:14:29.268] [aws-lambda] [info] LAMBDA task done in 22.7761s [200, 553876 rows, 0 exceptions, reused, id: a8895c60-c0a8-48e4-bd6a-967e712427b4] Cost so far: $0.052202
+[2022-06-10 11:14:29.980] [aws-lambda] [info] LAMBDA task done in 23.5071s [200, 555495 rows, 0 exceptions, reused, id: 6f7ef5f5-93bd-4b8f-8564-1299776de895] Cost so far: $0.056145
+[2022-06-10 11:14:30.122] [aws-lambda] [info] LAMBDA task done in 23.6154s [200, 594457 rows, 0 exceptions, reused, id: 4b2045fd-2afa-445b-be7e-1262b6e0bb09] Cost so far: $0.060107
+[2022-06-10 11:14:30.638] [aws-lambda] [info] LAMBDA task done in 24.1525s [200, 583987 rows, 0 exceptions, reused, id: 6db45572-981d-4ac0-8785-c58a923286a6] Cost so far: $0.064158
+[2022-06-10 11:14:31.511] [aws-lambda] [info] LAMBDA task done in 25.0052s [200, 623107 rows, 0 exceptions, reused, id: 224c3a32-ade3-4fbd-bf94-8cfd5333925d] Cost so far: $0.068351
+[2022-06-10 11:14:33.880] [aws-lambda] [info] LAMBDA task done in 27.3831s [200, 588792 rows, 0 exceptions, reused, id: 15c90bb6-7358-4155-9cce-66a79921a9b7] Cost so far: $0.072940
+[2022-06-10 11:14:34.319] [aws-lambda] [info] LAMBDA task done in 27.8231s [200, 614166 rows, 0 exceptions, reused, id: 923b9ca7-5ff2-41b3-ad05-20c277a662f2] Cost so far: $0.077602
+[2022-06-10 11:14:35.768] [aws-lambda] [info] LAMBDA task done in 29.25s [200, 606731 rows, 0 exceptions, reused, id: d12bed21-4837-42c6-87eb-086078cd004d] Cost so far: $0.082503
+[2022-06-10 11:14:35.847] [aws-lambda] [info] LAMBDA Stage: 18889169 rows, 0 exceptions
+[2022-06-10 11:14:35.847] [aws-lambda] [info] LAMBDA paths rows took: normal: 16813807 general: 0 interpreter: 2075362 unresolved: 0
+[2022-06-10 11:14:35.847] [aws-lambda] [info] LAMBDA statistics: 
+Lambda #containers used: 36 reused: 36 newly initialized: 0
+Lambda init time: 0 +- 0 min: 0 max: 2.22507e-308
+Lambda execution time: 13.5904 +- 9.34128 min: 3.7326 max: 29.25
+
+----- BREAKDOWN TIMINGS -----
+{}
+Lambda cost: $0.0825025
+[2022-06-10 11:14:35.847] [aws-lambda] [info] LAMBDA compute took 29.6817s, cost $0.08
+[2022-06-10 11:14:35.848] [global] [info] Query Execution took 33.3281s. (planning: 3.53171s, execution: 29.7964s)
+Welcome to
+
+  _____            _
+ |_   _|   _ _ __ | | _____  __
+   | || | | | '_ \| |/ _ \ \/ /
+   | || |_| | |_) | |  __/>  <
+   |_| \__,_| .__/|_|\___/_/\_\ 0.3.3rc0
+            |_|
+    
+using Python 3.9.8 (main, Jun  7 2022, 15:03:50) 
+[GCC 7.5.0] on linux
+>>> running tuplex on s3://tuplex-public/data/flights_all/flights_on_time_performance_2002*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004*.csv -> s3://tuplex-leonhard/experiments/flights_hyper/sampling
+    hyperspecialization: False
+Tuplex startup time: 0.23987936973571777
+Following sampling modes are supported: [<SamplingMode.FIRST_ROWS: 1>, <SamplingMode.LAST_ROWS: 2>, <SamplingMode.RANDOM_ROWS: 4>, <SamplingMode.FIRST_FILE: 8>, <SamplingMode.LAST_FILE: 16>, <SamplingMode.RANDOM_FILE: 32>, <SamplingMode.ALL_FILES: 64>]
+Testing sampling times for following modes: [<SamplingMode.FIRST_FILE|FIRST_ROWS: 9>, <SamplingMode.FIRST_FILE|LAST_ROWS|FIRST_ROWS: 11>, <SamplingMode.LAST_FILE|FIRST_FILE|FIRST_ROWS: 25>, <SamplingMode.LAST_FILE|FIRST_FILE|LAST_ROWS|FIRST_ROWS: 27>, <SamplingMode.ALL_FILES|FIRST_ROWS: 65>, <SamplingMode.ALL_FILES|LAST_ROWS|FIRST_ROWS: 67>]
+{'sampling_mode': 'SamplingMode.FIRST_FILE|FIRST_ROWS', 'job_time': 34.57366466522217, 'metrics': {'logical_optimization_time_s': 0.0138145, 'llvm_optimization_time_s': 0, 'llvm_compilation_time_s': 0, 'total_compilation_time_s': 0, 'sampling_time_s': 0.7885, 'generate_llvm_time_s': 0.146126, 'stages': []}}
+{'sampling_mode': 'SamplingMode.FIRST_FILE|LAST_ROWS|FIRST_ROWS', 'job_time': 31.392026901245117, 'metrics': {'logical_optimization_time_s': 0.0218377, 'llvm_optimization_time_s': 0, 'llvm_compilation_time_s': 0, 'total_compilation_time_s': 0, 'sampling_time_s': 1.16736, 'generate_llvm_time_s': 0.253186, 'stages': []}}
+{'sampling_mode': 'SamplingMode.LAST_FILE|FIRST_FILE|FIRST_ROWS', 'job_time': 8.954330921173096, 'metrics': {'logical_optimization_time_s': 0.0185359, 'llvm_optimization_time_s': 0, 'llvm_compilation_time_s': 0, 'total_compilation_time_s': 0, 'sampling_time_s': 0.990514, 'generate_llvm_time_s': 0.248905, 'stages': []}}
+{'sampling_mode': 'SamplingMode.LAST_FILE|FIRST_FILE|LAST_ROWS|FIRST_ROWS', 'job_time': 9.221219778060913, 'metrics': {'logical_optimization_time_s': 0.0401353, 'llvm_optimization_time_s': 0, 'llvm_compilation_time_s': 0, 'total_compilation_time_s': 0, 'sampling_time_s': 1.49456, 'generate_llvm_time_s': 0.431464, 'stages': []}}
+{'sampling_mode': 'SamplingMode.ALL_FILES|FIRST_ROWS', 'job_time': 23.707191705703735, 'metrics': {'logical_optimization_time_s': 0.340467, 'llvm_optimization_time_s': 0, 'llvm_compilation_time_s': 0, 'total_compilation_time_s': 0, 'sampling_time_s': 10.8074, 'generate_llvm_time_s': 1.49571, 'stages': []}}
+{'sampling_mode': 'SamplingMode.ALL_FILES|LAST_ROWS|FIRST_ROWS', 'job_time': 54.89137291908264, 'metrics': {'logical_optimization_time_s': 0.590219, 'llvm_optimization_time_s': 0, 'llvm_compilation_time_s': 0, 'total_compilation_time_s': 0, 'sampling_time_s': 20.1256, 'generate_llvm_time_s': 2.38077, 'stages': []}}
+SAMPLING RESULTS::
+[{'sampling_mode': 'SamplingMode.FIRST_FILE|FIRST_ROWS', 'job_time': 34.57366466522217, 'metrics': {'logical_optimization_time_s': 0.0138145, 'llvm_optimization_time_s': 0, 'llvm_compilation_time_s': 0, 'total_compilation_time_s': 0, 'sampling_time_s': 0.7885, 'generate_llvm_time_s': 0.146126, 'stages': []}}, {'sampling_mode': 'SamplingMode.FIRST_FILE|LAST_ROWS|FIRST_ROWS', 'job_time': 31.392026901245117, 'metrics': {'logical_optimization_time_s': 0.0218377, 'llvm_optimization_time_s': 0, 'llvm_compilation_time_s': 0, 'total_compilation_time_s': 0, 'sampling_time_s': 1.16736, 'generate_llvm_time_s': 0.253186, 'stages': []}}, {'sampling_mode': 'SamplingMode.LAST_FILE|FIRST_FILE|FIRST_ROWS', 'job_time': 8.954330921173096, 'metrics': {'logical_optimization_time_s': 0.0185359, 'llvm_optimization_time_s': 0, 'llvm_compilation_time_s': 0, 'total_compilation_time_s': 0, 'sampling_time_s': 0.990514, 'generate_llvm_time_s': 0.248905, 'stages': []}}, {'sampling_mode': 'SamplingMode.LAST_FILE|FIRST_FILE|LAST_ROWS|FIRST_ROWS', 'job_time': 9.221219778060913, 'metrics': {'logical_optimization_time_s': 0.0401353, 'llvm_optimization_time_s': 0, 'llvm_compilation_time_s': 0, 'total_compilation_time_s': 0, 'sampling_time_s': 1.49456, 'generate_llvm_time_s': 0.431464, 'stages': []}}, {'sampling_mode': 'SamplingMode.ALL_FILES|FIRST_ROWS', 'job_time': 23.707191705703735, 'metrics': {'logical_optimization_time_s': 0.340467, 'llvm_optimization_time_s': 0, 'llvm_compilation_time_s': 0, 'total_compilation_time_s': 0, 'sampling_time_s': 10.8074, 'generate_llvm_time_s': 1.49571, 'stages': []}}, {'sampling_mode': 'SamplingMode.ALL_FILES|LAST_ROWS|FIRST_ROWS', 'job_time': 54.89137291908264, 'metrics': {'logical_optimization_time_s': 0.590219, 'llvm_optimization_time_s': 0, 'llvm_compilation_time_s': 0, 'total_compilation_time_s': 0, 'sampling_time_s': 20.1256, 'generate_llvm_time_s': 2.38077, 'stages': []}}]
+Tuplex job time: 54.892168045043945 s
+{'tuplex.useLLVMOptimizer': True, 'tuplex.autoUpcast': False, 'tuplex.allowUndefinedBehavior': False, 'tuplex.optimizer.codeStats': False, 'tuplex.optimizer.generateParser': False, 'tuplex.optimizer.retypeUsingOptimizedInputSchema': True, 'tuplex.optimizer.filterPushdown': True, 'tuplex.optimizer.sharedObjectPropagation': True, 'tuplex.optimizer.mergeExceptionsInOrder': True, 'tuplex.optimizer.operatorReordering': False, 'tuplex.interleaveIO': True, 'tuplex.resolveWithInterpreterOnly': False, 'tuplex.network.verifySSL': False, 'tuplex.redirectToPythonLogging': False, 'tuplex.useInterpreterOnly': False, 'tuplex.aws.lambdaInvokeOthers': True, 'tuplex.csv.selectionPushdown': True, 'tuplex.webui.enable': False, 'tuplex.executorCount': 0, 'tuplex.csv.maxDetectionRows': 10000, 'tuplex.webui.port': 5000, 'tuplex.webui.mongodb.port': 27017, 'tuplex.webui.exceptionDisplayLimit': 5, 'tuplex.aws.requestTimeout': 600, 'tuplex.aws.connectTimeout': 1, 'tuplex.aws.maxConcurrency': 100, 'tuplex.aws.httpThreadCount': 128, 'tuplex.aws.lambdaMemory': 10000, 'tuplex.aws.lambdaTimeout': 600, 'tuplex.aws.requesterPay': False, 'tuplex.normalcaseThreshold': 0.9, 'tuplex.optionalThreshold': 0.7, 'tuplex.aws.lambdaInvocationStrategy': 'direct', 'tuplex.aws.lambdaThreads': '2', 'tuplex.aws.region': 'us-east-1', 'tuplex.aws.scratchDir': 's3://tuplex-leonhard/scratch/flights-exp', 'tuplex.backend': 'lambda', 'tuplex.csv.comments': ['#', '~'], 'tuplex.csv.maxDetectionMemory': '256KB', 'tuplex.csv.quotechar': '"', 'tuplex.csv.separators': [',', ';', '|', '\t'], 'tuplex.driverMemory': '2G', 'tuplex.env.hostname': 'bbsn00', 'tuplex.env.mode': 'file', 'tuplex.env.user': 'lspiegel', 'tuplex.executorMemory': '2G', 'tuplex.experimental.hyperspecialization': 'false', 'tuplex.inputSplitSize': '64MB', 'tuplex.logDir': '.', 'tuplex.network.caFile': '', 'tuplex.network.caPath': '', 'tuplex.optimizer.constantFoldingOptimization': 'false', 'tuplex.optimizer.nullValueOptimization': 'true', 'tuplex.partitionSize': '32MB', 'tuplex.readBufferSize': '128KB', 'tuplex.runTimeLibrary': '/home/lspiegel/tuplex-remote/tuplex/build/dist/python/tuplex/libexec/tuplex_runtime.so', 'tuplex.runTimeMemory': '128MB', 'tuplex.runTimeMemoryBlockSize': '4MB', 'tuplex.scratchDir': '/tmp/tuplex-cache-lspiegel', 'tuplex.webui.mongodb.path': '/tmp/tuplex-cache-lspiegel/mongodb', 'tuplex.webui.mongodb.url': 'localhost', 'tuplex.webui.url': 'localhost'}
+{"logical_optimization_time_s":0.590219,"llvm_optimization_time_s":0,"llvm_compilation_time_s":0,"total_compilation_time_s":0,"sampling_time_s":20.1256,"generate_llvm_time_s":2.38077,"stages":[]}
+{"startupTime": 0.23987936973571777, "jobTime": 54.892168045043945}

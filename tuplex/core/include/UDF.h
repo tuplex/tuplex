@@ -13,12 +13,24 @@
 
 #include <Utils.h>
 #include <Schema.h>
-#include <AnnotatedAST.h>
-#include <CompiledFunction.h>
-#include <LLVMEnvironment.h>
+#include <ast/AnnotatedAST.h>
+#include <codegen/CompiledFunction.h>
+#include <codegen/LLVMEnvironment.h>
 #include <Python.h>
-#include <ClosureEnvironment.h>
-#include <IFailable.h>
+#include <symbols/ClosureEnvironment.h>
+#include <codegen/IFailable.h>
+
+#ifdef BUILD_WITH_CEREAL
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
+#include "cereal/archives/binary.hpp"
+#endif
 
 namespace tuplex {
     class UDF : public IFailable {
@@ -55,10 +67,14 @@ namespace tuplex {
          */
         bool hasPythonObjectTyping() const;
     public:
+
         UDF(const std::string& pythonLambdaStr,
             const std::string& pickledCode="",
             const ClosureEnvironment& globals=ClosureEnvironment(),
             const codegen::CompilePolicy& policy=codegen::DEFAULT_COMPILE_POLICY);
+
+        // required by cereal
+        UDF() : UDF("") {}
 
         UDF(const UDF &other) : _ast(other._ast),
                                 _isCompiled(other._isCompiled),
@@ -127,6 +143,12 @@ namespace tuplex {
         bool hintSchemaWithSample(const std::vector<PyObject*>& sample,
                                   const python::Type& inputRowType=python::Type::UNKNOWN,
                                   bool acquireGIL=false);
+
+        /*!
+         * HACK: this function optimizes constants -
+         * > constant folding! hooray!
+         */
+        void optimizeConstants();
 
         std::string getCode() const { return _code; }
 
@@ -204,8 +226,9 @@ namespace tuplex {
         /*!
          * produces using graphviz a pdf of the AST tree for this function.
          * @param filePath where to save the pdf (only local allowed).
+         * @param with_types whether to include types with the PDF or not (default=false)
          */
-        void saveASTToPDF(const std::string& filePath);
+        void saveASTToPDF(const std::string& filePath, bool with_types=false);
 
         /*!
          * whether input args are expected to be passed as dict
@@ -249,6 +272,13 @@ namespace tuplex {
         // maybe this is actually the most elegant solution for cloudpickled code???
         // --> however, this may cause a problem if a user wants to test his/her function.
         // HENCE, best is to use ONE mode exclusively...
+
+#ifdef BUILD_WITH_CEREAL
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(_ast, _isCompiled, _failed, _code, _pickledCode, _outputSchema, _inputSchema, _dictAccessFound, _rewriteDictExecuted);
+        }
+#endif
     };
 }
 

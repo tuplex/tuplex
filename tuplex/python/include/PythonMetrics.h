@@ -11,7 +11,7 @@
 #ifndef TUPLEX_PYTHONMETRICS_H
 #define TUPLEX_PYTHONMETRICS_H
 
-#include <JobMetrics.h>
+#include <utils/JobMetrics.h>
 
 namespace tuplex {
 
@@ -70,7 +70,15 @@ namespace tuplex {
             double getTotalCompilationTime() {
                 return _metrics->getTotalCompilationTime();
             }
-
+            /*!
+            * getter for total time it takes to generate LLVM time (i.e.
+            * for StageBuilder::build to run)
+            * @returns a double representing time in seconds
+            */
+            double getGenerateLLVMTime() {
+                return _metrics->getGenerateLLVMTime();
+            }
+            
             /*!
              * returns metrics as json string
              * @return string object with all metrics encoded

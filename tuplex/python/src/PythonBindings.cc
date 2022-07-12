@@ -82,6 +82,7 @@ PYMODULE {
             .def("getLLVMOptimizationTime", &tuplex::PythonMetrics::getLLVMOptimizationTime)
             .def("getLLVMCompilationTime", &tuplex::PythonMetrics::getLLVMCompilationTime)
             .def("getTotalCompilationTime", &tuplex::PythonMetrics::getTotalCompilationTime)
+            .def("getGenerateLLVMTime", &tuplex::PythonMetrics::getGenerateLLVMTime)
             .def("getTotalExceptionCount", &tuplex::PythonMetrics::getTotalExceptionCount)
             .def("getJSONString", &tuplex::PythonMetrics::getJSONString);
 

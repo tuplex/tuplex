@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # tests using fallback solution require cloudpickle, so install it
-pip3 install cloudpickle numpy
+pip3 install 'cloudpickle<2.0.0' numpy
 
 cd /code &&
 mkdir -p build &&

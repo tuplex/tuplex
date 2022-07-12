@@ -26,13 +26,7 @@ namespace tuplex {
     class LogicalPlan {
     private:
         // the action which is called
-        LogicalOperator* _action;
-
-
-        void optimizeFilters();
-        void emitPartialFilters();
-        void reorderDataProcessingOperators();
-
+        std::shared_ptr<LogicalOperator> _action;
     public:
 
         LogicalPlan() = delete;
@@ -74,13 +68,18 @@ namespace tuplex {
          */
         PhysicalPlan* createPhysicalPlan(const Context& context);
 
-        LogicalOperator* getAction() const { return _action; }
+        std::shared_ptr<LogicalOperator> getAction() const { return _action; }
 
         /*!
          * output logical plan as PDF (graphviz)
          * @param path
          */
         void toPDF(const std::string& path) const;
+
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(_action);
+        }
     };
 }
 

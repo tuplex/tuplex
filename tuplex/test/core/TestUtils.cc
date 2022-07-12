@@ -8,11 +8,11 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <JITCompiler.h>
+#include <jit/JITCompiler.h>
 #include "TestUtils.h"
-#include <physical/PipelineBuilder.h>
-#include <RuntimeInterface.h>
-#include <physical/CodeDefs.h>
+#include <physical/codegen/PipelineBuilder.h>
+#include <jit/RuntimeInterface.h>
+#include <physical/codegen/CodeDefs.h>
 
 #define OUTPUT_BUFFER_SIZE 2048
 

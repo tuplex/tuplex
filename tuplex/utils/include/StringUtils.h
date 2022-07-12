@@ -226,6 +226,16 @@ namespace tuplex {
      */
     extern bool parseBoolString(const std::string& str);
 
+    /*!
+     * parses using tuplex functions
+     */
+    extern int64_t parseI64String(const std::string& str);
+
+    /*!
+     * parses using tuplex functions
+     */
+    extern double parseF64String(const std::string& str);
+
     extern bool isIntegerString(const char* s, bool ignoreWhitespace=true);
     extern bool isFloatString(const char* s, bool ignoreWhitespace=true);
 
@@ -267,6 +277,19 @@ namespace tuplex {
         return count;
     }
 
+//    // from https://en.cppreference.com/w/cpp/algorithm/lexicographical_compare
+//    // C++17 feature...
+//    template<class InputIt1, class InputIt2>
+//    bool lexicographical_compare(InputIt1 first1, InputIt1 last1,
+//                                 InputIt2 first2, InputIt2 last2)
+//    {
+//        for ( ; (first1 != last1) && (first2 != last2); ++first1, (void) ++first2 ) {
+//            if (*first1 < *first2) return true;
+//            if (*first2 < *first1) return false;
+//        }
+//        return (first1 == last1) && (first2 != last2);
+//    }
+
 
     /*!
      * takes a string, and calls function over all substrings separated by delimiter
@@ -291,6 +314,25 @@ namespace tuplex {
      * @return true if any UTF8 character was found
      */
     extern bool containsUTF8(const char *start, const size_t size);
+
+    // check whether string is valid utf8 string.
+    extern bool utf8_check_is_valid(const std::string& string);
+
+    // from https://stackoverflow.com/questions/4059775/convert-iso-8859-1-strings-to-utf-8-in-c-c
+    inline std::string iso_8859_1_to_utf8(const std::string &str) {
+        std::string strOut;
+        for (auto it = str.cbegin(); it != str.cend(); ++it) {
+            uint8_t ch = *it;
+            if (ch < 0x80) {
+                strOut.push_back(ch);
+            }
+            else {
+                strOut.push_back(0xc0 | ch >> 6);
+                strOut.push_back(0x80 | (ch & 0x3f));
+            }
+        }
+        return strOut;
+    }
 
     /*!
      * returns maximum linewidth of a '\n' delimited string
@@ -357,6 +399,49 @@ namespace tuplex {
             v.push_back(line);
 
         return v;
+    }
+
+
+    inline std::string quoteForCSV(const std::string& str, char separator, char quotechar) {
+        auto size = str.size();
+
+        if(str.empty())
+            return "";
+
+        // check if there are chars in it that need to be quoted
+        size_t num_quotes = 0;
+        bool need_to_quote = false;
+
+        auto len = size - 1;
+        for(unsigned i = 0; i < len; ++i) {
+            if(str[i] == quotechar)
+                num_quotes++;
+            if(str[i] == separator || str[i] == '\n' || str[i] == '\r')
+                need_to_quote = true;
+        }
+
+        if(num_quotes > 0 || need_to_quote) {
+            auto resSize = len + 1 + 2 + num_quotes;
+            // alloc new string
+            std::string res('\0', resSize);
+            size_t pos = 0;
+
+            res[pos] = quotechar; ++pos;
+            for(unsigned i = 0; i < len; ++i) {
+                if(str[i] == quotechar) {
+                    res[pos] = quotechar; ++pos;
+                    res[pos] = quotechar; ++pos;
+                } else {
+                    res[pos] = str[i]; ++pos;
+                }
+            }
+            res[pos] = quotechar; ++pos;
+            res[pos] = '\0';
+
+            return res;
+        } else {
+           return str;
+        }
     }
 
     /*!

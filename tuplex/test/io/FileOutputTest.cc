@@ -93,3 +93,11 @@ TEST_F(FileOutputTest, NonEmptyFolder) {
     std::vector<Row> rows({Row(1), Row(2), Row(3)});
     EXPECT_ANY_THROW(c.parallelize(rows).tocsv(nonEmptyFolder));
 }
+
+TEST(FileOutput, AbsoluteAndRelativePaths) {
+    using namespace tuplex;
+
+    // check conversion to local & absolute paths!
+    URI local_rel("test.csv");
+    EXPECT_EQ(local_rel.toPath(), current_working_directory() + "/test.csv");
+}

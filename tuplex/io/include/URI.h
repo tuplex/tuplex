@@ -14,6 +14,20 @@
 #include <string>
 #include <vector>
 
+#ifdef BUILD_WITH_CEREAL
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/map.hpp"
+#include "cereal/types/unordered_map.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
+#include "cereal/archives/binary.hpp"
+#endif
+
 namespace tuplex {
 
     /*!
@@ -43,6 +57,16 @@ namespace tuplex {
         URI(const std::string& path);
 
         template<std::size_t N> URI(const char(&path)[N]) : URI(std::string(path)) {}
+
+        inline URI join(const std::string& file_name) {
+            // ends with '/'?
+            if(_uri.empty())
+                return URI(file_name);
+            if(_uri.back() == '/')
+                return URI(_uri + file_name);
+            else
+                return URI(_uri + "/" + file_name);
+        }
 
         /*!
          * checks whether URI locates a file or not. True if file doesn't exist.
@@ -160,6 +184,13 @@ namespace tuplex {
 
         static URI fromS3(const std::string& bucket, const std::string& key);
 #endif
+
+#ifdef BUILD_WITH_CEREAL
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(_uri, _type);
+        }
+#endif
     private:
         std::string _uri;
         URIType _type;
@@ -168,7 +199,42 @@ namespace tuplex {
     };
 
 
+    /*!
+     *
+     * @param uri string containing uri w. range description
+     * @param target to which URI to decode
+     * @param rangeStart byte offset
+     * @param rangeEnd byte offset
+     * @return true if decode was successful, else false
+     */
+    extern bool decodeRangeURI(const std::string& uri, URI& target, size_t& rangeStart, size_t& rangeEnd);
 
+    /*!
+     * encode range into URI
+     * @param uri
+     * @param rangeStart
+     * @param rangeEnd
+     * @return string representing uri + ranges
+     */
+    extern std::string encodeRangeURI(const URI& uri, size_t rangeStart, size_t rangeEnd);
+
+    inline std::ostream& operator << (std::ostream& os, const URI& uri) {
+        os<<uri.toString();
+        return os;
+    }
+}
+
+// make URI hashabke
+namespace std {
+    template <> struct hash<tuplex::URI> {
+        std::size_t operator()(const tuplex::URI& uri) const {
+            using std::size_t;
+            using std::hash;
+            using std::string;
+
+            return hash<string>()(uri.toString());
+        }
+    };
 }
 
 #endif //TUPLEX_URI_H

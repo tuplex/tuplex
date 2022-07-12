@@ -18,6 +18,7 @@
 #include <StringUtils.h> // <-- implemented in StringUtils
 #include <ExceptionCodes.h>
 #include <fmt/format.h>
+#include <fmt/args.h>
 #include <pcre2.h>
 #include <Logger.h>
 #include <random>

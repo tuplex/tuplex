@@ -120,4 +120,15 @@ namespace tuplex {
         }
         return num;
     }
+
+    List* List::allocate_deep_copy() const {
+        List *L = new List();
+        assert(L->_elements == nullptr);
+        L->_numElements = _numElements;
+        L->_elements = new Field[L->_numElements];
+        for(unsigned i = 0; i < _numElements; ++i) {
+            L->_elements[i] = _elements[i];
+        }
+        return L;
+    }
 }

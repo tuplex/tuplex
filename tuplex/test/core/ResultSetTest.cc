@@ -9,8 +9,8 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include "TestUtils.h"
-#include <physical/ResultSet.h>
-#include <PartitionWriter.h>
+#include <physical/execution/ResultSet.h>
+#include <physical/memory/PartitionWriter.h>
 
 class ResultSetTest : public PyTest {
 protected:

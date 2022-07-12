@@ -28,7 +28,7 @@ TEST_F(CacheTest, MergeInOrderWithFilter) {
     opt.set("tuplex.optimizer.generateParser", "true");
     opt.set("tuplex.executorCount", "0");
     opt.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
-    opt.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     opt.set("tuplex.normalcaseThreshold", "0.6");
     opt.set("tuplex.resolveWithInterpreterOnly", "false");
 
@@ -75,7 +75,7 @@ TEST_F(CacheTest, MergeInOrder) {
     opt.set("tuplex.optimizer.generateParser", "true");
     opt.set("tuplex.executorCount", "0");
     opt.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
-    opt.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     opt.set("tuplex.normalcaseThreshold", "0.6");
     opt.set("tuplex.resolveWithInterpreterOnly", "false");
 
@@ -119,7 +119,7 @@ TEST_F(CacheTest, SimpleCSVLoad) {
 
     // first, deactivate logical optimizations and make caching work as is...
     opt.set("tuplex.csv.selectionPushdown", "false");
-    opt.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
     opt.set("tuplex.optimizer.filterPushdown", "false");
     opt.set("tuplex.optimizer.sharedObjectPropagation", "false");
     opt.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
@@ -152,7 +152,7 @@ TEST_F(CacheTest, LogicalOptCSVLoad) {
 
     // first, deactivate logical optimizations and make caching work as is...
     opt.set("tuplex.csv.selectionPushdown", "true");
-    opt.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
     opt.set("tuplex.optimizer.filterPushdown", "true");
     opt.set("tuplex.optimizer.sharedObjectPropagation", "false");
     opt.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
@@ -194,7 +194,7 @@ TEST_F(CacheTest, NullValueOptIf) {
     opt_nopt.set("tuplex.optimizer.generateParser", "true");
     opt_nopt.set("tuplex.executorCount", "0");
     opt_nopt.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
-    opt_nopt.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt_nopt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     opt_nopt.set("tuplex.normalcaseThreshold", "0.6"); // set higher, so optimization is more aggressive.
 
     // whether to use compiled functor or not
@@ -241,7 +241,7 @@ TEST_F(CacheTest, NullValueOptIfAlt) {
     opt_nopt.set("tuplex.optimizer.generateParser", "true");
     opt_nopt.set("tuplex.executorCount", "0");
     opt_nopt.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
-    opt_nopt.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt_nopt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     opt_nopt.set("tuplex.normalcaseThreshold", "0.6"); // set higher, so optimization is more aggressive.
 
     // whether to use compiled functor or not
@@ -304,7 +304,7 @@ TEST_F(CacheTest, NullValueOptIfAlt) {
 //    opt_nopt.set("tuplex.optimizer.generateParser", "true");
 //    opt_nopt.set("tuplex.executorCount", "0");
 //    opt_nopt.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
-//    opt_nopt.set("tuplex.optimizer.nullValueOptimization", "true");
+//    opt_nopt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
 //    opt_nopt.set("tuplex.normalcaseThreshold", "0.6"); // set lower, so optimization is more aggressive which will result in more exceptions typically.
 //    Context c(opt_nopt);
 //
@@ -340,7 +340,7 @@ TEST_F(CacheTest, NullValueOptJoinNoCachedErrors) {
     opt_nopt.set("tuplex.optimizer.generateParser", "true");
     opt_nopt.set("tuplex.executorCount", "0");
     opt_nopt.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
-    opt_nopt.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt_nopt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     opt_nopt.set("tuplex.normalcaseThreshold", "0.9");
     Context c(opt_nopt);
 

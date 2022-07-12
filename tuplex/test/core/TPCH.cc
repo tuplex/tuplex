@@ -11,7 +11,7 @@
 #include <Context.h>
 #include "TestUtils.h"
 
-#include <physical/PipelineBuilder.h>
+#include <physical/codegen/PipelineBuilder.h>
 
 class TpchTest : public PyTest {};
 

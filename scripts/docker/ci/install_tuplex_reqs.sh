@@ -94,11 +94,11 @@ cd /tmp &&
   ./configure --prefix=/opt --enable-jit=auto --disable-shared CFLAGS="-O2 -fPIC" && make -j 32 && make install
 popd
 
-# protobuf 3.12
+# protobuf 3.19.3
 cd /tmp &&
-curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.12.0/protobuf-cpp-3.12.0.tar.gz &&
-tar xf protobuf-cpp-3.12.0.tar.gz &&
-pushd protobuf-3.12.0 &&
+curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.19.3/protobuf-cpp-3.19.3.tar.gz &&
+tar xf protobuf-cpp-3.19.3.tar.gz &&
+pushd protobuf-3.19.3 &&
 ./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" &&
 make -j4 && make install && ldconfig &&
 pushd

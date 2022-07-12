@@ -1,0 +1,2869 @@
+[2022-06-14 17:21:21.985] [global] [debug] Using runtime library from  /home/lspiegel/tuplex-remote/tuplex/build/dist/python/tuplex/libexec/tuplex_runtime.so
+[WARN] 2022-06-14 21:21:22.025 ClientConfiguration [140602201175872] Retry Strategy will use the default max attempts.
+[INFO] 2022-06-14 21:21:22.025 CurlHandleContainer [140602201175872] Initializing CurlHandleContainer with size 25
+[2022-06-14 17:21:22.026] [core] [debug] initialized AWS SDK in 0.000693s
+[WARN] 2022-06-14 21:21:22.026 ClientConfiguration [140602201175872] Retry Strategy will use the default max attempts.
+[INFO] 2022-06-14 21:21:22.026 CurlHandleContainer [140602201175872] Initializing CurlHandleContainer with size 25
+[2022-06-14 17:21:22.026] [filesystem] [debug] filesystem already registered under prefix 's3://'
+[INFO] 2022-06-14 21:21:22.026 CurlHandleContainer [140602201175872] Cleaning up CurlHandleContainer.
+[2022-06-14 17:21:22.027] [memory] [info] allocated bitmap managed memory region (2.00 GB, 32.00 MB block size)
+[2022-06-14 17:21:22.027] [aws-lambda] [info] Execution over lambda with 10000MB
+[2022-06-14 17:21:22.027] [aws-lambda] [info] Adjusted lambda size to 10000MB
+[WARN] 2022-06-14 21:21:22.027 ClientConfiguration [140602201175872] Retry Strategy will use the default max attempts.
+[INFO] 2022-06-14 21:21:22.029 CurlHandleContainer [140602201175872] Initializing CurlHandleContainer with size 100
+[INFO] 2022-06-14 21:21:22.030 CurlHandleContainer [140602201175872] Pool grown by 2
+[INFO] 2022-06-14 21:21:22.030 CurlHandleContainer [140602201175872] Connection has been released. Continuing.
+[WARN] 2022-06-14 21:21:22.243 EnumParseOverflowContainer [140602201175872] Encountered enum member python3.9 which is not modeled in your clients. You should update your clients when you get a chance.
+[2022-06-14 17:21:22.244] [aws-lambda] [info] Found AWS Lambda function tuplex-lambda-runner (10000MB)
+[2022-06-14 17:21:22.244] [aws-lambda] [info] Using Lambda running on x86_64
+[2022-06-14 17:21:22.244] [aws-lambda] [info] Lambda client uses JSON AST serialization format.
+[INFO] 2022-06-14 21:21:22.244 CurlHandleContainer [140602201175872] Connection has been released. Continuing.
+[ERROR] 2022-06-14 21:21:22.284 EnumParseOverflowContainer [140602201175872] Could not find a previously stored overflow value for hash 0. This will likely break some requests.
+[INFO] 2022-06-14 21:21:22.284 CurlHandleContainer [140602201175872] Pool grown by 2
+[INFO] 2022-06-14 21:21:22.285 CurlHandleContainer [140602201175872] Connection has been released. Continuing.
+[2022-06-14 17:21:22.538] [global] [info] made list request
+[ERROR] 2022-06-14 21:21:22.539 EnumParseOverflowContainer [140602201175872] Could not find a previously stored overflow value for hash 0. This will likely break some requests.
+[INFO] 2022-06-14 21:21:22.540 CurlHandleContainer [140602201175872] Connection has been released. Continuing.
+[2022-06-14 17:21:22.569] [global] [info] made list request
+[ERROR] 2022-06-14 21:21:22.570 EnumParseOverflowContainer [140602201175872] Could not find a previously stored overflow value for hash 0. This will likely break some requests.
+[INFO] 2022-06-14 21:21:22.571 CurlHandleContainer [140602201175872] Connection has been released. Continuing.
+[2022-06-14 17:21:22.603] [global] [info] made list request
+[2022-06-14 17:21:22.605] [fileinputoperator] [info] found 36 files (7.86 GB) to process.
+[INFO] 2022-06-14 21:21:22.607 CurlHandleContainer [140596979144448] Connection has been released. Continuing.
+[ERROR] 2022-06-14 21:21:22.630 EnumParseOverflowContainer [140596979144448] Could not find a previously stored overflow value for hash 0. This will likely break some requests.
+[INFO] 2022-06-14 21:21:22.631 CurlHandleContainer [140596979144448] Connection has been released. Continuing.
+[2022-06-14 17:21:22.856] [global] [info] sampled s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv on 256.00 KB
+[2022-06-14 17:21:22.856] [fileinputoperator] [info] Parallel sample fetch done.
+[2022-06-14 17:21:22.856] [fileinputoperator] [info] Filling sample cache for csv operator took 0.251522s (1 entries, 0 rows)
+utf8 detection took: 0.000870163s 
+finding sep took: 0.0809251s 
+numColumns/header detection took: 0.0490944s 
+type detection took: 0.966238s 
+CSV statistics:
+---------------
+header:		yes
+separator:	','
+#columns:	110
+
+-- YEAR
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	false
+		length:	4
+-- QUARTER
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	false
+		length:	1
+-- MONTH
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	false
+		length:	1
+-- DAY_OF_MONTH
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	false
+-- DAY_OF_WEEK
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	false
+		length:	1
+-- FL_DATE
+		type:	string
+		estimated python type:	str
+		null:	0%
+		quoted:	false
+		length:	10
+-- OP_UNIQUE_CARRIER
+		type:	string
+		estimated python type:	str
+		null:	0%
+		quoted:	true
+		length:	4
+-- OP_CARRIER_AIRLINE_ID
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	false
+		length:	5
+-- OP_CARRIER
+		type:	string
+		estimated python type:	str
+		null:	0%
+		quoted:	true
+		length:	4
+-- TAIL_NUM
+		type:	string
+		estimated python type:	str
+		null:	0%
+		quoted:	true
+		length:	8
+-- OP_CARRIER_FL_NUM
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	true
+		length:	5
+-- ORIGIN_AIRPORT_ID
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	false
+		length:	5
+-- ORIGIN_AIRPORT_SEQ_ID
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	false
+		length:	7
+-- ORIGIN_CITY_MARKET_ID
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	false
+		length:	5
+-- ORIGIN
+		type:	string
+		estimated python type:	str
+		null:	0%
+		quoted:	true
+		length:	5
+-- ORIGIN_CITY_NAME
+		type:	string
+		estimated python type:	str
+		null:	0%
+		quoted:	true
+-- ORIGIN_STATE_ABR
+		type:	string
+		estimated python type:	str
+		null:	0%
+		quoted:	true
+		length:	4
+-- ORIGIN_STATE_FIPS
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	true
+		length:	4
+-- ORIGIN_STATE_NM
+		type:	string
+		estimated python type:	str
+		null:	0%
+		quoted:	true
+-- ORIGIN_WAC
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	false
+		length:	2
+-- DEST_AIRPORT_ID
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	false
+		length:	5
+-- DEST_AIRPORT_SEQ_ID
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	false
+		length:	7
+-- DEST_CITY_MARKET_ID
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	false
+		length:	5
+-- DEST
+		type:	string
+		estimated python type:	str
+		null:	0%
+		quoted:	true
+		length:	5
+-- DEST_CITY_NAME
+		type:	string
+		estimated python type:	str
+		null:	0%
+		quoted:	true
+-- DEST_STATE_ABR
+		type:	string
+		estimated python type:	str
+		null:	0%
+		quoted:	true
+		length:	4
+-- DEST_STATE_FIPS
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	true
+		length:	4
+-- DEST_STATE_NM
+		type:	string
+		estimated python type:	str
+		null:	0%
+		quoted:	true
+-- DEST_WAC
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	false
+		length:	2
+-- CRS_DEP_TIME
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	true
+		length:	6
+-- DEP_TIME
+		type:	positive integer
+		estimated python type:	i64
+		null:	1.88356%
+		quoted:	true
+		length:	6
+-- DEP_DELAY
+		type:	float
+		estimated python type:	f64
+		null:	1.88356%
+		quoted:	false
+-- DEP_DELAY_NEW
+		type:	float
+		estimated python type:	f64
+		null:	1.88356%
+		quoted:	false
+-- DEP_DEL15
+		type:	float
+		estimated python type:	f64
+		null:	1.88356%
+		quoted:	false
+		length:	4
+-- DEP_DELAY_GROUP
+		type:	integer
+		estimated python type:	i64
+		null:	1.88356%
+		quoted:	false
+-- DEP_TIME_BLK
+		type:	string
+		estimated python type:	str
+		null:	0%
+		quoted:	true
+		length:	11
+-- TAXI_OUT
+		type:	float
+		estimated python type:	f64
+		null:	1.88356%
+		quoted:	false
+-- WHEELS_OFF
+		type:	positive integer
+		estimated python type:	i64
+		null:	1.88356%
+		quoted:	true
+		length:	6
+-- WHEELS_ON
+		type:	positive integer
+		estimated python type:	i64
+		null:	2.05479%
+		quoted:	true
+		length:	6
+-- TAXI_IN
+		type:	float
+		estimated python type:	f64
+		null:	2.05479%
+		quoted:	false
+-- CRS_ARR_TIME
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	true
+		length:	6
+-- ARR_TIME
+		type:	positive integer
+		estimated python type:	i64
+		null:	2.05479%
+		quoted:	true
+		length:	6
+-- ARR_DELAY
+		type:	float
+		estimated python type:	f64
+		null:	2.05479%
+		quoted:	false
+-- ARR_DELAY_NEW
+		type:	float
+		estimated python type:	f64
+		null:	2.05479%
+		quoted:	false
+-- ARR_DEL15
+		type:	float
+		estimated python type:	f64
+		null:	2.05479%
+		quoted:	false
+		length:	4
+-- ARR_DELAY_GROUP
+		type:	integer
+		estimated python type:	i64
+		null:	2.05479%
+		quoted:	false
+-- ARR_TIME_BLK
+		type:	string
+		estimated python type:	str
+		null:	0%
+		quoted:	true
+		length:	11
+-- CANCELLED
+		type:	float
+		estimated python type:	f64
+		null:	0%
+		quoted:	false
+		length:	4
+-- CANCELLATION_CODE
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIVERTED
+		type:	float
+		estimated python type:	f64
+		null:	0%
+		quoted:	false
+		length:	4
+-- CRS_ELAPSED_TIME
+		type:	float
+		estimated python type:	f64
+		null:	0%
+		quoted:	false
+-- ACTUAL_ELAPSED_TIME
+		type:	float
+		estimated python type:	f64
+		null:	2.05479%
+		quoted:	false
+-- AIR_TIME
+		type:	float
+		estimated python type:	f64
+		null:	2.05479%
+		quoted:	false
+-- FLIGHTS
+		type:	float
+		estimated python type:	f64
+		null:	0%
+		quoted:	false
+		length:	4
+-- DISTANCE
+		type:	float
+		estimated python type:	f64
+		null:	0%
+		quoted:	false
+-- DISTANCE_GROUP
+		type:	positive integer
+		estimated python type:	i64
+		null:	0%
+		quoted:	false
+		length:	1
+-- CARRIER_DELAY
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- WEATHER_DELAY
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- NAS_DELAY
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- SECURITY_DELAY
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- LATE_AIRCRAFT_DELAY
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- FIRST_DEP_TIME
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- TOTAL_ADD_GTIME
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- LONGEST_ADD_GTIME
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV_AIRPORT_LANDINGS
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV_REACHED_DEST
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV_ACTUAL_ELAPSED_TIME
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV_ARR_DELAY
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV_DISTANCE
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV1_AIRPORT
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV1_AIRPORT_ID
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV1_AIRPORT_SEQ_ID
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV1_WHEELS_ON
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV1_TOTAL_GTIME
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV1_LONGEST_GTIME
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV1_WHEELS_OFF
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV1_TAIL_NUM
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV2_AIRPORT
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV2_AIRPORT_ID
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV2_AIRPORT_SEQ_ID
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV2_WHEELS_ON
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV2_TOTAL_GTIME
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV2_LONGEST_GTIME
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV2_WHEELS_OFF
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV2_TAIL_NUM
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV3_AIRPORT
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV3_AIRPORT_ID
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV3_AIRPORT_SEQ_ID
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV3_WHEELS_ON
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV3_TOTAL_GTIME
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV3_LONGEST_GTIME
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV3_WHEELS_OFF
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV3_TAIL_NUM
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV4_AIRPORT
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV4_AIRPORT_ID
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV4_AIRPORT_SEQ_ID
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV4_WHEELS_ON
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV4_TOTAL_GTIME
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV4_LONGEST_GTIME
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV4_WHEELS_OFF
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV4_TAIL_NUM
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV5_AIRPORT
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV5_AIRPORT_ID
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV5_AIRPORT_SEQ_ID
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV5_WHEELS_ON
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV5_TOTAL_GTIME
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV5_LONGEST_GTIME
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+-- DIV5_WHEELS_OFF
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- DIV5_TAIL_NUM
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	true
+		length:	2
+-- 
+		type:	string
+		estimated python type:	null
+		null:	99.8288%
+		quoted:	false
+		length:	0
+
+[2022-06-14 17:21:24.246] [fileinputoperator] [info] Auto-detected presence of a header line in CSV files.
+[2022-06-14 17:21:26.837] [fileinputoperator] [info] Parallel sample parse done.
+[2022-06-14 17:21:26.837] [fileinputoperator] [info] Extracting row sample took 2.590465s
+col 0: i64 (584), 
+col 1: i64 (584), 
+col 2: i64 (584), 
+col 3: i64 (584), 
+col 4: i64 (584), 
+col 5: str (584), 
+col 6: str (584), 
+col 7: i64 (584), 
+col 8: str (584), 
+col 9: str (584), 
+col 10: i64 (583), 
+col 11: i64 (583), 
+col 12: i64 (583), 
+col 13: i64 (583), 
+col 14: str (583), 
+col 15: str (583), 
+col 16: str (583), 
+col 17: i64 (583), 
+col 18: str (583), 
+col 19: i64 (583), 
+col 20: i64 (583), 
+col 21: i64 (583), 
+col 22: i64 (583), 
+col 23: str (583), 
+col 24: str (583), 
+col 25: str (583), 
+col 26: i64 (583), 
+col 27: str (583), 
+col 28: i64 (583), 
+col 29: i64 (583), 
+col 30: i64 (572), null (11), 
+col 31: f64 (572), null (11), 
+col 32: f64 (572), null (11), 
+col 33: f64 (572), null (11), 
+col 34: i64 (572), null (11), 
+col 35: str (583), 
+col 36: f64 (572), null (11), 
+col 37: i64 (572), null (11), 
+col 38: i64 (571), null (12), 
+col 39: f64 (571), null (12), 
+col 40: i64 (583), 
+col 41: i64 (571), null (12), 
+col 42: f64 (571), null (12), 
+col 43: f64 (571), null (12), 
+col 44: f64 (571), null (12), 
+col 45: i64 (571), null (12), 
+col 46: str (583), 
+col 47: f64 (583), 
+col 48: null (583), 
+col 49: f64 (583), 
+col 50: f64 (583), 
+col 51: f64 (571), null (12), 
+col 52: f64 (571), null (12), 
+col 53: f64 (583), 
+col 54: f64 (583), 
+col 55: i64 (583), 
+col 56: null (583), 
+col 57: null (583), 
+col 58: null (583), 
+col 59: null (583), 
+col 60: null (583), 
+col 61: null (583), 
+col 62: null (583), 
+col 63: null (583), 
+col 64: null (583), 
+col 65: null (583), 
+col 66: null (583), 
+col 67: null (583), 
+col 68: null (583), 
+col 69: null (583), 
+col 70: null (583), 
+col 71: null (583), 
+col 72: null (583), 
+col 73: null (583), 
+col 74: null (583), 
+col 75: null (583), 
+col 76: null (583), 
+col 77: null (583), 
+col 78: null (583), 
+col 79: null (583), 
+col 80: null (583), 
+col 81: null (583), 
+col 82: null (583), 
+col 83: null (583), 
+col 84: null (583), 
+col 85: null (583), 
+col 86: null (583), 
+col 87: null (583), 
+col 88: null (583), 
+col 89: null (583), 
+col 90: null (583), 
+col 91: null (583), 
+col 92: null (583), 
+col 93: null (583), 
+col 94: null (583), 
+col 95: null (583), 
+col 96: null (583), 
+col 97: null (583), 
+col 98: null (583), 
+col 99: null (583), 
+col 100: null (583), 
+col 101: null (583), 
+col 102: null (583), 
+col 103: null (583), 
+col 104: null (583), 
+col 105: null (583), 
+col 106: null (583), 
+col 107: null (583), 
+col 108: null (583), 
+col 109: null (583), 
+
+[2022-06-14 17:21:27.536] [python] [debug] entering map function
+[2022-06-14 17:21:28.079] [global] [debug] writing Python AST to PDF skipped.
+[2022-06-14 17:21:28.080] [global] [debug] writing cleaned Python AST to PDF skipped.
+[2022-06-14 17:21:28.080] [global] [debug] writing constant-folded Python AST to PDF skipped.
+[2022-06-14 17:21:28.080] [global] [debug] writing for loops unrolled Python AST to PDF skipped.
+[2022-06-14 17:21:28.658] [global] [debug] writing Python AST to PDF skipped.
+[2022-06-14 17:21:28.658] [global] [debug] writing cleaned Python AST to PDF skipped.
+[2022-06-14 17:21:28.659] [global] [debug] writing constant-folded Python AST to PDF skipped.
+[2022-06-14 17:21:28.659] [global] [debug] writing for loops unrolled Python AST to PDF skipped.
+[2022-06-14 17:21:28.662] [global] [debug] saving rewritten Python AST to PDF skipped.
+[2022-06-14 17:21:28.662] [global] [debug] performing static typing for UDF in operator map
+[2022-06-14 17:21:28.683] [global] [debug] writing type-annotated Python AST to PDF skipped.
+[2022-06-14 17:21:28.684] [global] [info] detected output type for map operator is (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:28.804] [global] [debug] saving rewritten Python AST to PDF skipped.
+[2022-06-14 17:21:28.804] [global] [debug] performing static typing for UDF in operator map
+[2022-06-14 17:21:28.818] [global] [debug] writing type-annotated Python AST to PDF skipped.
+[2022-06-14 17:21:28.819] [global] [info] detected output type for map operator is (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:28.937] [global] [debug] saving rewritten Python AST to PDF skipped.
+[2022-06-14 17:21:28.937] [global] [debug] performing static typing for UDF in operator map
+[2022-06-14 17:21:28.952] [global] [debug] writing type-annotated Python AST to PDF skipped.
+[2022-06-14 17:21:28.953] [global] [info] detected output type for map operator is (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:28.954] [global] [debug] saving logical plan before optimizations to PDF skipped.
+[2022-06-14 17:21:28.954] [global] [debug] saving logical plan after filter breakup to PDF skipped.
+[2022-06-14 17:21:28.954] [global] [debug] saving logical plan after filter pushdown to PDF skipped.
+[2022-06-14 17:21:28.975] [global] [debug] writing type-annotated Python AST to PDF skipped.
+[2022-06-14 17:21:28.976] [global] [debug] saving rewritten Python AST to PDF skipped.
+[2022-06-14 17:21:28.976] [global] [debug] saving logical plan before optimizations to PDF skipped.
+[2022-06-14 17:21:28.976] [logical planner] [info] logical optimization took 0.156480ms
+[2022-06-14 17:21:28.976] [global] [debug] saving logical plan to PDF skipped.
+[2022-06-14 17:21:28.978] [codegen] [debug] TODO: Need to add specialization/optimization here...
+[2022-06-14 17:21:28.979] [specializing stage optimizer] [debug] initial pipeline validation: ok
+[2022-06-14 17:21:28.979] [global] [warning] requested 2000 rows for sampling, but only 584 stored. Consider decreasing sample size. Returning all available rows.
+0: YEAR
+1: MONTH
+2: DAY_OF_MONTH
+3: OP_UNIQUE_CARRIER
+4: OP_CARRIER_FL_NUM
+5: ORIGIN_AIRPORT_ID
+6: DEST_AIRPORT_ID
+7: CRS_DEP_TIME
+8: DEP_DELAY
+9: CRS_ARR_TIME
+10: ARR_DELAY
+11: CRS_ELAPSED_TIME
+12: DISTANCE
+13: CARRIER_DELAY
+14: WEATHER_DELAY
+15: NAS_DELAY
+16: SECURITY_DELAY
+17: LATE_AIRCRAFT_DELAY
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str)
+1: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,null,null,i64,null,null,null,null,null,str,f64,null,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+571: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,f64,f64,f64,i64,str,f64,i64,i64,f64,i64,i64,f64,f64,f64,i64,str,f64,null,f64,f64,f64,f64,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+11: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,null,null,null,null,null,str,null,null,null,null,i64,null,null,null,null,null,str,f64,null,f64,f64,null,null,f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+col 0: i64 (584), 
+col 1: i64 (584), 
+col 2: i64 (584), 
+col 3: i64 (584), 
+col 4: i64 (584), 
+col 5: str (584), 
+col 6: str (584), 
+col 7: i64 (584), 
+col 8: str (584), 
+col 9: str (584), 
+col 10: i64 (583), 
+col 11: i64 (583), 
+col 12: i64 (583), 
+col 13: i64 (583), 
+col 14: str (583), 
+col 15: str (583), 
+col 16: str (583), 
+col 17: i64 (583), 
+col 18: str (583), 
+col 19: i64 (583), 
+col 20: i64 (583), 
+col 21: i64 (583), 
+col 22: i64 (583), 
+col 23: str (583), 
+col 24: str (583), 
+col 25: str (583), 
+col 26: i64 (583), 
+col 27: str (583), 
+col 28: i64 (583), 
+col 29: i64 (583), 
+col 30: i64 (572), null (11), 
+col 31: f64 (572), null (11), 
+col 32: f64 (572), null (11), 
+col 33: f64 (572), null (11), 
+col 34: i64 (572), null (11), 
+col 35: str (583), 
+col 36: f64 (572), null (11), 
+col 37: i64 (572), null (11), 
+col 38: i64 (571), null (12), 
+col 39: f64 (571), null (12), 
+col 40: i64 (583), 
+col 41: i64 (571), null (12), 
+col 42: f64 (571), null (12), 
+col 43: f64 (571), null (12), 
+col 44: f64 (571), null (12), 
+col 45: i64 (571), null (12), 
+col 46: str (583), 
+col 47: f64 (583), 
+col 48: null (583), 
+col 49: f64 (583), 
+col 50: f64 (583), 
+col 51: f64 (571), null (12), 
+col 52: f64 (571), null (12), 
+col 53: f64 (583), 
+col 54: f64 (583), 
+col 55: i64 (583), 
+col 56: null (583), 
+col 57: null (583), 
+col 58: null (583), 
+col 59: null (583), 
+col 60: null (583), 
+col 61: null (583), 
+col 62: null (583), 
+col 63: null (583), 
+col 64: null (583), 
+col 65: null (583), 
+col 66: null (583), 
+col 67: null (583), 
+col 68: null (583), 
+col 69: null (583), 
+col 70: null (583), 
+col 71: null (583), 
+col 72: null (583), 
+col 73: null (583), 
+col 74: null (583), 
+col 75: null (583), 
+col 76: null (583), 
+col 77: null (583), 
+col 78: null (583), 
+col 79: null (583), 
+col 80: null (583), 
+col 81: null (583), 
+col 82: null (583), 
+col 83: null (583), 
+col 84: null (583), 
+col 85: null (583), 
+col 86: null (583), 
+col 87: null (583), 
+col 88: null (583), 
+col 89: null (583), 
+col 90: null (583), 
+col 91: null (583), 
+col 92: null (583), 
+col 93: null (583), 
+col 94: null (583), 
+col 95: null (583), 
+col 96: null (583), 
+col 97: null (583), 
+col 98: null (583), 
+col 99: null (583), 
+col 100: null (583), 
+col 101: null (583), 
+col 102: null (583), 
+col 103: null (583), 
+col 104: null (583), 
+col 105: null (583), 
+col 106: null (583), 
+col 107: null (583), 
+col 108: null (583), 
+col 109: null (583), 
+
+Majority detected row type is: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-14 17:21:30.202] [specializing stage optimizer] [info] performing Retyping
+[2022-06-14 17:21:30.202] [specializing stage optimizer] [info] Row type before retype: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-14 17:21:30.202] [specializing stage optimizer] [info] Row type after retype: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,Option[f64],Option[i64],Option[i64],Option[f64],i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,f64,null,f64,f64,Option[f64],Option[f64],f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+[2022-06-14 17:21:30.202] [specializing stage optimizer] [debug] StagePlanner.cc+718
+specializing pipeline for normal case (1 operator)
+input node: csv
+optimized schema of input node: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,Option[f64],Option[i64],Option[i64],Option[f64],i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,f64,null,f64,f64,Option[f64],Option[f64],f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+
+[2022-06-14 17:21:30.203] [specializing stage optimizer] [debug] NVO can specialize input schema from
+(Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])
+- to - 
+(i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,Option[f64],Option[i64],Option[i64],Option[f64],i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,f64,null,f64,f64,Option[f64],Option[f64],f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+[2022-06-14 17:21:30.446] [global] [debug] saving rewritten Python AST to PDF skipped.
+[2022-06-14 17:21:30.447] [global] [debug] performing static typing for UDF in operator map
+[2022-06-14 17:21:30.465] [global] [debug] writing type-annotated Python AST to PDF skipped.
+[2022-06-14 17:21:30.466] [global] [info] detected output type for map operator is (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.573] [global] [debug] saving rewritten Python AST to PDF skipped.
+[2022-06-14 17:21:30.573] [global] [debug] performing static typing for UDF in operator map
+[2022-06-14 17:21:30.588] [global] [debug] writing type-annotated Python AST to PDF skipped.
+[2022-06-14 17:21:30.590] [specializing stage optimizer] [debug] StagePlanner.cc+791
+retyped map
+	old input type: ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str]))
+	old output type: ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str]))
+	new input type: ((i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null))
+	new output type: (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+
+[2022-06-14 17:21:30.590] [specializing stage optimizer] [debug] post-specialization pipeline validation: ok
+(unoptimized) output schema of input op: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+(optimized) output schema of input op: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-14 17:21:30.700] [physical planner] [debug] read schema is: (i64,i64,i64,i64,i64,str,str,i64,str,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,i64,i64,str,str,str,i64,str,i64,i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,Option[f64],Option[i64],Option[i64],Option[f64],i64,Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],str,f64,null,f64,f64,Option[f64],Option[f64],f64,f64,i64,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
+[2022-06-14 17:21:30.700] [physical planner] [info] specialized to input:  (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-14 17:21:30.700] [physical planner] [info] specialized to output: (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.700] [physical planner] [info] specialized code reads: 18 columns
+[2022-06-14 17:21:30.700] [physical planner] [info] Specialized stage in 1721.943988ms
+[2022-06-14 17:21:30.700] [codegen] [debug] Stage 0:
+---------------
+general case::
+	input schema (after projection): (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])
+	output schema (after projection): (str)
+	columns to tread (after projection): 18
+---
+normal case::
+	input schema (after projection): (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+	output schema (after projection): (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+	columns to tread (after projection): 18
+
+[2022-06-14 17:21:30.703] [codegen] [debug] input schema for general case is: (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])
+[2022-06-14 17:21:30.703] [codegen] [debug] intermediate type for general case is: unknown
+[2022-06-14 17:21:30.703] [global] [debug] DEBUG PRINT: creating func for (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])
+[2022-06-14 17:21:30.725] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.758] [codegen] [debug] Deoptimized func ret type:   (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.758] [codegen] [debug] Deoptimized target ret type: (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.788] [codegen] [debug] Deoptimized func ret type:   (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.788] [codegen] [debug] Deoptimized target ret type: (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.814] [codegen] [debug] Deoptimized func ret type:   (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.814] [codegen] [debug] Deoptimized target ret type: (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.849] [codegen] [debug] Deoptimized func ret type:   (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.850] [codegen] [debug] Deoptimized target ret type: (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.887] [codegen] [debug] Deoptimized func ret type:   (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.887] [codegen] [debug] Deoptimized target ret type: (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])
+[2022-06-14 17:21:30.888] [codegen] [debug] types are not identical, but null-compatible. Adding speculative null return extration.
+[2022-06-14 17:21:30.893] [PipelineBuilder] [debug] Compiled function takes input row type: ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str]))
+[2022-06-14 17:21:30.894] [PipelineBuilder] [debug] Last LLVM input row is: (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])
+HACK: need to fix resolver throwing exception case here.
+[2022-06-14 17:21:30.901] [codegen] [debug] creating slow path single-row wrapper
+	normalcase:  (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+	generalcase: (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])
+
+Columns to read from string:
+[YEAR, QUARTER, MONTH, DAY_OF_MONTH, DAY_OF_WEEK, FL_DATE, OP_UNIQUE_CARRIER, OP_CARRIER_AIRLINE_ID, OP_CARRIER, TAIL_NUM, OP_CARRIER_FL_NUM, ORIGIN_AIRPORT_ID, ORIGIN_AIRPORT_SEQ_ID, ORIGIN_CITY_MARKET_ID, ORIGIN, ORIGIN_CITY_NAME, ORIGIN_STATE_ABR, ORIGIN_STATE_FIPS, ORIGIN_STATE_NM, ORIGIN_WAC, DEST_AIRPORT_ID, DEST_AIRPORT_SEQ_ID, DEST_CITY_MARKET_ID, DEST, DEST_CITY_NAME, DEST_STATE_ABR, DEST_STATE_FIPS, DEST_STATE_NM, DEST_WAC, CRS_DEP_TIME, DEP_TIME, DEP_DELAY, DEP_DELAY_NEW, DEP_DEL15, DEP_DELAY_GROUP, DEP_TIME_BLK, TAXI_OUT, WHEELS_OFF, WHEELS_ON, TAXI_IN, CRS_ARR_TIME, ARR_TIME, ARR_DELAY, ARR_DELAY_NEW, ARR_DEL15, ARR_DELAY_GROUP, ARR_TIME_BLK, CANCELLED, CANCELLATION_CODE, DIVERTED, CRS_ELAPSED_TIME, ACTUAL_ELAPSED_TIME, AIR_TIME, FLIGHTS, DISTANCE, DISTANCE_GROUP, CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY, FIRST_DEP_TIME, TOTAL_ADD_GTIME, LONGEST_ADD_GTIME, DIV_AIRPORT_LANDINGS, DIV_REACHED_DEST, DIV_ACTUAL_ELAPSED_TIME, DIV_ARR_DELAY, DIV_DISTANCE, DIV1_AIRPORT, DIV1_AIRPORT_ID, DIV1_AIRPORT_SEQ_ID, DIV1_WHEELS_ON, DIV1_TOTAL_GTIME, DIV1_LONGEST_GTIME, DIV1_WHEELS_OFF, DIV1_TAIL_NUM, DIV2_AIRPORT, DIV2_AIRPORT_ID, DIV2_AIRPORT_SEQ_ID, DIV2_WHEELS_ON, DIV2_TOTAL_GTIME, DIV2_LONGEST_GTIME, DIV2_WHEELS_OFF, DIV2_TAIL_NUM, DIV3_AIRPORT, DIV3_AIRPORT_ID, DIV3_AIRPORT_SEQ_ID, DIV3_WHEELS_ON, DIV3_TOTAL_GTIME, DIV3_LONGEST_GTIME, DIV3_WHEELS_OFF, DIV3_TAIL_NUM, DIV4_AIRPORT, DIV4_AIRPORT_ID, DIV4_AIRPORT_SEQ_ID, DIV4_WHEELS_ON, DIV4_TOTAL_GTIME, DIV4_LONGEST_GTIME, DIV4_WHEELS_OFF, DIV4_TAIL_NUM, DIV5_AIRPORT, DIV5_AIRPORT_ID, DIV5_AIRPORT_SEQ_ID, DIV5_WHEELS_ON, DIV5_TOTAL_GTIME, DIV5_LONGEST_GTIME, DIV5_WHEELS_OFF, DIV5_TAIL_NUM, ]
+reading columns:
+YEAR  (0 -> 0)
+MONTH  (2 -> 1)
+DAY_OF_MONTH  (3 -> 2)
+OP_UNIQUE_CARRIER  (6 -> 3)
+OP_CARRIER_FL_NUM  (10 -> 4)
+ORIGIN_AIRPORT_ID  (11 -> 5)
+DEST_AIRPORT_ID  (20 -> 6)
+CRS_DEP_TIME  (29 -> 7)
+DEP_DELAY  (31 -> 8)
+CRS_ARR_TIME  (40 -> 9)
+ARR_DELAY  (42 -> 10)
+CRS_ELAPSED_TIME  (50 -> 11)
+DISTANCE  (54 -> 12)
+CARRIER_DELAY  (56 -> 13)
+WEATHER_DELAY  (57 -> 14)
+NAS_DELAY  (58 -> 15)
+SECURITY_DELAY  (59 -> 16)
+LATE_AIRCRAFT_DELAY  (60 -> 17)
+[2022-06-14 17:21:30.932] [codegen] [debug] general case input row type: (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])
+has #columns: 18
+normal case input row type: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+has #columns: 18
+
+[2022-06-14 17:21:30.932] [codegen] [debug] generating fast path with::
+	input schema: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+	output schema: (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+when exceptions occur, the input schema needs to be upcasted to general case input row type if possible.
+	general case input row type: (Option[i64],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[i64],Option[str],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[str],Option[str],Option[str],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[i64],Option[i64],Option[f64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[f64],Option[str],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[i64],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str],Option[str])
+	general case output row type: (str)
+
+[2022-06-14 17:21:30.932] [codegen] [debug] 
+[2022-06-14 17:21:30.932] [codegen] [debug] output type of specialized pipeline is: (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+is this the most outer stage?: 1
+
+[2022-06-14 17:21:30.932] [codegen] [info] generating pipeline for (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null) -> (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+[2022-06-14 17:21:30.933] [codegen] [debug] Creating pipeline with input row type: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-14 17:21:30.933] [global] [debug] DEBUG PRINT: creating func for (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-14 17:21:30.948] [codegen] [info] generating function fill_in_delays for ((i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)) -> (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.970] [codegen] [debug] Deoptimized func ret type:   (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.970] [codegen] [debug] Deoptimized target ret type: (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.990] [codegen] [debug] Deoptimized func ret type:   (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:30.990] [codegen] [debug] Deoptimized target ret type: (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:31.009] [codegen] [debug] Deoptimized func ret type:   (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:31.009] [codegen] [debug] Deoptimized target ret type: (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:31.032] [codegen] [debug] Deoptimized func ret type:   (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:31.033] [codegen] [debug] Deoptimized target ret type: (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:31.055] [codegen] [debug] Deoptimized func ret type:   (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:31.055] [codegen] [debug] Deoptimized target ret type: (i64,i64,i64,str,i64,i64,i64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+[2022-06-14 17:21:31.059] [PipelineBuilder] [debug] Compiled function takes input row type: ((i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null))
+[2022-06-14 17:21:31.059] [PipelineBuilder] [debug] Last LLVM input row is: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-14 17:21:31.066] [codegen] [debug] reader produces normal case rows of type: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null) (hash=255
+[2022-06-14 17:21:31.066] [codegen] [debug] pipeline expects normal case rows of type: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null) (hash=255
+[2022-06-14 17:21:31.068] [codegen] [debug] emitting auto-upcast for exceptions
+[2022-06-14 17:21:31.068] [codegen] [warning] hack, need to fix stuff here...
+[2022-06-14 17:21:31.075] [codegen] [debug] UDF exceptions are emitted in general case format (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])
+[2022-06-14 17:21:31.075] [codegen] [debug] emitting exception upcast on code-path
+[2022-06-14 17:21:31.077] [codegen] [debug] normal-case input row type of block-based builder is: (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-14 17:21:31.077] [codegen] [debug] general-case input row type of block-based builder is: (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])
+[2022-06-14 17:21:31.080] [codegen] [debug] CellSourceTaskBuilder: input row type in which exceptions from pipeline are stored that are **not** parse-exceptions is (i64,i64,i64,str,i64,i64,i64,i64,Option[f64],i64,Option[f64],f64,f64,null,null,null,null,null)
+[2022-06-14 17:21:31.080] [codegen] [debug] I.e., when creating resolve tasks for this pipeline - set exceptionRowType to this type.
+[2022-06-14 17:21:31.624] [aws-lambda] [info] client-side LLVM IR optimization of took 0.265122s
+[2022-06-14 17:21:31.625] [aws-lambda] [info] Setting buffer size for each thread to 125.00 MB
+[2022-06-14 17:21:31.658] [aws-lambda] [info] Created 36 LAMBDA requests.
+[2022-06-14 17:21:31.658] [aws-lambda] [info] Invoking 36 requests ...
+[INFO] 2022-06-14 21:21:31.688 CurlHandleContainer [140597390190336] Connection has been released. Continuing.
+[INFO] 2022-06-14 21:21:31.694 CurlHandleContainer [140597381797632] Connection has been released. Continuing.
+[INFO] 2022-06-14 21:21:31.701 CurlHandleContainer [140597029500672] Pool grown by 4
+[INFO] 2022-06-14 21:21:31.701 CurlHandleContainer [140597029500672] Connection has been released. Continuing.
+[INFO] 2022-06-14 21:21:31.707 CurlHandleContainer [140597021107968] Connection has been released. Continuing.
+[INFO] 2022-06-14 21:21:31.714 CurlHandleContainer [140597012715264] Connection has been released. Continuing.
+[INFO] 2022-06-14 21:21:31.720 CurlHandleContainer [140597004322560] Connection has been released. Continuing.
+[INFO] 2022-06-14 21:21:31.729 CurlHandleContainer [140596995929856] Pool grown by 12
+[INFO] 2022-06-14 21:21:31.729 CurlHandleContainer [140596995929856] Connection has been released. Continuing.
+[INFO] 2022-06-14 21:21:31.733 CurlHandleContainer [140596987537152] Connection has been released. Continuing.
+[2022-06-14 17:21:31.912] [aws-lambda] [info] LAMBDA requesting took 0.287089s
+[2022-06-14 17:21:39.158] [aws-lambda] [info] LAMBDA task done in 5.37693s [200, 438141 rows, 0 exceptions, new, id: 9fcda33b-b665-46dc-a711-258254cd79fb] Cost so far: $0.0010
+[2022-06-14 17:21:39.159] [aws-lambda] [debug] START RequestId: a21e66b5-ff84-4caf-b278-2d7dfbb4d804 Version: $LATEST
+[2022-06-14 21:21:33.523] [global] [info] S3 Client initialized using defaults
+[2022-06-14 21:21:33.539] [LLVM] [info] compiling code for haswell
+[2022-06-14 21:21:33.607] [Lambda worker] [info] Lambda is using JSON AST serializastion
+[2022-06-14 21:21:33.621] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:33.622] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:33.623] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:33.640] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:33.756] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:33.757] [global] [info] Compiled code paths for stage 0 in 0.13 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:38.742] [Lambda worker] [info] fast path took: 4.985468s
+[2022-06-14 21:21:38.742] [Lambda worker] [info] Input rows processed: normal: 438141 unresolved: 0
+[2022-06-14 21:21:38.742] [Lambda worker] [info] Normal rows before resolve: 438141, except rows before resolve: 0
+[2022-06-14 21:21:38.742] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:38.742] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:38.742] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:38.742] [Lambda worker] [info] Data processed in 4.98557s 38.35 MB (438141 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:38.742] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part3.csv.csv
+[2022-06-14 21:21:38.742] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:38.742] [Lambda worker] [info] Writing output from 2 parts (38.35 MB, 438141 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part3.csv.csv
+[2022-06-14 21:21:38.742] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part3.csv.csv
+wrote buf of size 20188146 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part3.csv.csv
+[2022-06-14 21:21:38.742] [s3fs] [info] Writing buffer of size 20188146
+wrote buf of size 20022374 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part3.csv.csv
+[2022-06-14 21:21:38.754] [s3fs] [info] Writing buffer of size 20022374
+[2022-06-14 21:21:38.766] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part3.csv.csv
+[2022-06-14 21:21:38.766] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:39.132] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:39.133] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:39.133] [Lambda worker] [info] Took 5.376934s in total
+[2022-06-14 21:21:39.133] [Lambda worker] [info] Paths rows took: normal: 438141 general: 0 interpreter: 0 unresolved: 0
+END RequestId: a21e66b5-ff84-4caf-b278-2d7dfbb4d804
+REPORT RequestId: a21e66b5-ff84-4caf-b278-2d7dfbb4d804	Duration: 5684.17 ms	Billed Duration: 6122 ms	Memory Size: 10000 MB	Max Memory Used: 386 MB	Init Duration: 437.43 ms	
+
+[INFO] 2022-06-14 21:21:39.162 CurlHandleContainer [140597021107968] Connection has been released. Continuing.
+[2022-06-14 17:21:39.195] [aws-lambda] [info] LAMBDA task done in 5.27907s [200, 465573 rows, 0 exceptions, new, id: b28f4922-c2b9-4101-bc63-2968714b42a3] Cost so far: $0.0021
+[2022-06-14 17:21:39.195] [aws-lambda] [debug] START RequestId: 0db3e53c-fdc5-4e24-b436-2bfb0f250a21 Version: $LATEST
+[2022-06-14 21:21:33.628] [global] [info] S3 Client initialized using defaults
+[2022-06-14 21:21:33.645] [LLVM] [info] compiling code for haswell
+[2022-06-14 21:21:33.725] [Lambda worker] [info] Lambda is using JSON AST serializastion
+[2022-06-14 21:21:33.740] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:33.742] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:33.743] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:33.762] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:33.894] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:33.894] [global] [info] Compiled code paths for stage 0 in 0.15 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:38.689] [Lambda worker] [info] fast path took: 4.794781s
+[2022-06-14 21:21:38.689] [Lambda worker] [info] Input rows processed: normal: 465573 unresolved: 0
+[2022-06-14 21:21:38.689] [Lambda worker] [info] Normal rows before resolve: 465573, except rows before resolve: 0
+[2022-06-14 21:21:38.689] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:38.689] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:38.689] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:38.689] [Lambda worker] [info] Data processed in 4.79489s 41.18 MB (465573 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:38.689] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part6.csv.csv
+[2022-06-14 21:21:38.689] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:38.689] [Lambda worker] [info] Writing output from 2 parts (41.18 MB, 465573 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part6.csv.csv
+[2022-06-14 21:21:38.689] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part6.csv.csv
+wrote buf of size 21605175 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part6.csv.csv
+[2022-06-14 21:21:38.689] [s3fs] [info] Writing buffer of size 21605175
+wrote buf of size 21572721 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part6.csv.csv
+[2022-06-14 21:21:38.702] [s3fs] [info] Writing buffer of size 21572721
+[2022-06-14 21:21:38.715] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part6.csv.csv
+[2022-06-14 21:21:38.715] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:39.172] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:39.173] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:39.173] [Lambda worker] [info] Took 5.279073s in total
+[2022-06-14 21:21:39.173] [Lambda worker] [info] Paths rows took: normal: 465573 general: 0 interpreter: 0 unresolved: 0
+END RequestId: 0db3e53c-fdc5-4e24-b436-2bfb0f250a21
+REPORT RequestId: 0db3e53c-fdc5-4e24-b436-2bfb0f250a21	Duration: 5630.81 ms	Billed Duration: 6155 ms	Memory Size: 10000 MB	Max Memory Used: 430 MB	Init Duration: 523.69 ms	
+
+[INFO] 2022-06-14 21:21:39.197 CurlHandleContainer [140596995929856] Connection has been released. Continuing.
+[2022-06-14 17:21:39.259] [aws-lambda] [info] LAMBDA task done in 5.5348s [200, 436336 rows, 0 exceptions, new, id: ee09da7b-f9b3-4178-8d12-ce6f923bf83f] Cost so far: $0.0031
+[2022-06-14 17:21:39.260] [aws-lambda] [debug] START RequestId: 8c9ca9ed-1513-440c-8a30-bc243c61483a Version: $LATEST
+[2022-06-14 21:21:33.474] [global] [info] S3 Client initialized using defaults
+[2022-06-14 21:21:33.489] [LLVM] [info] compiling code for haswell
+[2022-06-14 21:21:33.557] [Lambda worker] [info] Lambda is using JSON AST serializastion
+[2022-06-14 21:21:33.570] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:33.572] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:33.573] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:33.589] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:33.704] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:33.705] [global] [info] Compiled code paths for stage 0 in 0.13 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:38.800] [Lambda worker] [info] fast path took: 5.095756s
+[2022-06-14 21:21:38.800] [Lambda worker] [info] Input rows processed: normal: 436336 unresolved: 0
+[2022-06-14 21:21:38.800] [Lambda worker] [info] Normal rows before resolve: 436336, except rows before resolve: 0
+[2022-06-14 21:21:38.800] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:38.800] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:38.800] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:38.800] [Lambda worker] [info] Data processed in 5.09585s 38.43 MB (436336 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:38.800] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part0.csv.csv
+[2022-06-14 21:21:38.800] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:38.800] [Lambda worker] [info] Writing output from 2 parts (38.43 MB, 436336 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part0.csv.csv
+[2022-06-14 21:21:38.800] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part0.csv.csv
+wrote buf of size 20233900 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part0.csv.csv
+[2022-06-14 21:21:38.800] [s3fs] [info] Writing buffer of size 20233900
+wrote buf of size 20063802 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part0.csv.csv
+[2022-06-14 21:21:38.812] [s3fs] [info] Writing buffer of size 20063802
+[2022-06-14 21:21:38.823] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part0.csv.csv
+[2022-06-14 21:21:38.823] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:39.237] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:39.239] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:39.239] [Lambda worker] [info] Took 5.534799s in total
+[2022-06-14 21:21:39.239] [Lambda worker] [info] Paths rows took: normal: 436336 general: 0 interpreter: 0 unresolved: 0
+END RequestId: 8c9ca9ed-1513-440c-8a30-bc243c61483a
+REPORT RequestId: 8c9ca9ed-1513-440c-8a30-bc243c61483a	Duration: 5838.56 ms	Billed Duration: 6271 ms	Memory Size: 10000 MB	Max Memory Used: 381 MB	Init Duration: 431.77 ms	
+
+[INFO] 2022-06-14 21:21:39.262 CurlHandleContainer [140597390190336] Connection has been released. Continuing.
+[2022-06-14 17:21:39.488] [aws-lambda] [info] LAMBDA task done in 5.5954s [200, 399535 rows, 0 exceptions, new, id: 33547f5a-4b6d-4ce8-8a35-6bd2bb6c2322] Cost so far: $0.0042
+[2022-06-14 17:21:39.489] [aws-lambda] [debug] START RequestId: ea185e66-c831-40f2-bb5f-76e7af4c6bbb Version: $LATEST
+[2022-06-14 21:21:33.596] [global] [info] S3 Client initialized using defaults
+[2022-06-14 21:21:33.613] [LLVM] [info] compiling code for haswell
+[2022-06-14 21:21:33.696] [Lambda worker] [info] Lambda is using JSON AST serializastion
+[2022-06-14 21:21:33.712] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:33.714] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:33.714] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:33.734] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:33.869] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:33.869] [global] [info] Compiled code paths for stage 0 in 0.16 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:39.064] [Lambda worker] [info] fast path took: 5.194509s
+[2022-06-14 21:21:39.064] [Lambda worker] [info] Input rows processed: normal: 399535 unresolved: 0
+[2022-06-14 21:21:39.064] [Lambda worker] [info] Normal rows before resolve: 399535, except rows before resolve: 0
+[2022-06-14 21:21:39.064] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:39.064] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:39.064] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:39.064] [Lambda worker] [info] Data processed in 5.19461s 34.42 MB (399535 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:39.064] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part1.csv.csv
+[2022-06-14 21:21:39.064] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:39.064] [Lambda worker] [info] Writing output from 2 parts (34.42 MB, 399535 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part1.csv.csv
+[2022-06-14 21:21:39.064] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part1.csv.csv
+wrote buf of size 18029438 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part1.csv.csv
+[2022-06-14 21:21:39.064] [s3fs] [info] Writing buffer of size 18029438
+wrote buf of size 18061850 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part1.csv.csv
+[2022-06-14 21:21:39.074] [s3fs] [info] Writing buffer of size 18061850
+[2022-06-14 21:21:39.085] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part1.csv.csv
+[2022-06-14 21:21:39.085] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:39.463] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:39.465] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:39.465] [Lambda worker] [info] Took 5.595398s in total
+[2022-06-14 21:21:39.465] [Lambda worker] [info] Paths rows took: normal: 399535 general: 0 interpreter: 0 unresolved: 0
+END RequestId: ea185e66-c831-40f2-bb5f-76e7af4c6bbb
+REPORT RequestId: ea185e66-c831-40f2-bb5f-76e7af4c6bbb	Duration: 5957.29 ms	Billed Duration: 6459 ms	Memory Size: 10000 MB	Max Memory Used: 355 MB	Init Duration: 501.63 ms	
+
+[INFO] 2022-06-14 21:21:39.492 CurlHandleContainer [140597381797632] Connection has been released. Continuing.
+[2022-06-14 17:21:39.504] [aws-lambda] [info] LAMBDA task done in 5.54577s [200, 448333 rows, 0 exceptions, new, id: 3e0e1d97-748c-47c2-a8e9-c4d993dc81b6] Cost so far: $0.0052
+[2022-06-14 17:21:39.505] [aws-lambda] [debug] START RequestId: aba52286-7f0e-4532-bea6-24dc6641c8db Version: $LATEST
+[2022-06-14 21:21:33.659] [global] [info] S3 Client initialized using defaults
+[2022-06-14 21:21:33.677] [LLVM] [info] compiling code for haswell
+[2022-06-14 21:21:33.757] [Lambda worker] [info] Lambda is using JSON AST serializastion
+[2022-06-14 21:21:33.772] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:33.774] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:33.775] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:33.796] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:33.932] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:33.932] [global] [info] Compiled code paths for stage 0 in 0.16 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:39.038] [Lambda worker] [info] fast path took: 5.105859s
+[2022-06-14 21:21:39.038] [Lambda worker] [info] Input rows processed: normal: 448333 unresolved: 0
+[2022-06-14 21:21:39.038] [Lambda worker] [info] Normal rows before resolve: 448333, except rows before resolve: 0
+[2022-06-14 21:21:39.038] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:39.038] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:39.038] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:39.038] [Lambda worker] [info] Data processed in 5.10597s 39.89 MB (448333 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:39.038] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part5.csv.csv
+[2022-06-14 21:21:39.038] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:39.038] [Lambda worker] [info] Writing output from 2 parts (39.89 MB, 448333 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part5.csv.csv
+[2022-06-14 21:21:39.039] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part5.csv.csv
+wrote buf of size 20840918 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part5.csv.csv
+[2022-06-14 21:21:39.039] [s3fs] [info] Writing buffer of size 20840918
+wrote buf of size 20985489 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part5.csv.csv
+[2022-06-14 21:21:39.053] [s3fs] [info] Writing buffer of size 20985489
+[2022-06-14 21:21:39.068] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part5.csv.csv
+[2022-06-14 21:21:39.068] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:39.476] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:39.478] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:39.478] [Lambda worker] [info] Took 5.545771s in total
+[2022-06-14 21:21:39.478] [Lambda worker] [info] Paths rows took: normal: 448333 general: 0 interpreter: 0 unresolved: 0
+END RequestId: aba52286-7f0e-4532-bea6-24dc6641c8db
+REPORT RequestId: aba52286-7f0e-4532-bea6-24dc6641c8db	Duration: 5908.97 ms	Billed Duration: 6448 ms	Memory Size: 10000 MB	Max Memory Used: 477 MB	Init Duration: 538.06 ms	
+
+[INFO] 2022-06-14 21:21:39.508 CurlHandleContainer [140597004322560] Connection has been released. Continuing.
+[2022-06-14 17:21:39.607] [aws-lambda] [info] LAMBDA task done in 5.75271s [200, 447896 rows, 0 exceptions, new, id: 094be549-de93-4d81-8efa-8ef8e029b89c] Cost so far: $0.0063
+[2022-06-14 17:21:39.608] [aws-lambda] [debug] START RequestId: 1c6393e1-4cb8-49ce-b8d4-dd88dee6d585 Version: $LATEST
+[2022-06-14 21:21:33.569] [global] [info] S3 Client initialized using defaults
+[2022-06-14 21:21:33.586] [LLVM] [info] compiling code for haswell
+[2022-06-14 21:21:33.662] [Lambda worker] [info] Lambda is using JSON AST serializastion
+[2022-06-14 21:21:33.677] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:33.679] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:33.679] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:33.699] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:33.831] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:33.831] [global] [info] Compiled code paths for stage 0 in 0.15 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:39.155] [Lambda worker] [info] fast path took: 5.323744s
+[2022-06-14 21:21:39.155] [Lambda worker] [info] Input rows processed: normal: 447896 unresolved: 0
+[2022-06-14 21:21:39.155] [Lambda worker] [info] Normal rows before resolve: 447896, except rows before resolve: 0
+[2022-06-14 21:21:39.155] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:39.155] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:39.155] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:39.155] [Lambda worker] [info] Data processed in 5.32385s 40.53 MB (447896 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:39.155] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part2.csv.csv
+[2022-06-14 21:21:39.155] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:39.155] [Lambda worker] [info] Writing output from 2 parts (40.53 MB, 447896 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part2.csv.csv
+[2022-06-14 21:21:39.155] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part2.csv.csv
+wrote buf of size 21246893 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part2.csv.csv
+[2022-06-14 21:21:39.155] [s3fs] [info] Writing buffer of size 21246893
+wrote buf of size 21247347 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part2.csv.csv
+[2022-06-14 21:21:39.169] [s3fs] [info] Writing buffer of size 21247347
+[2022-06-14 21:21:39.181] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part2.csv.csv
+[2022-06-14 21:21:39.181] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:39.582] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:39.584] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:39.584] [Lambda worker] [info] Took 5.752715s in total
+[2022-06-14 21:21:39.584] [Lambda worker] [info] Paths rows took: normal: 447896 general: 0 interpreter: 0 unresolved: 0
+END RequestId: 1c6393e1-4cb8-49ce-b8d4-dd88dee6d585
+REPORT RequestId: 1c6393e1-4cb8-49ce-b8d4-dd88dee6d585	Duration: 6098.62 ms	Billed Duration: 6584 ms	Memory Size: 10000 MB	Max Memory Used: 423 MB	Init Duration: 484.77 ms	
+
+[INFO] 2022-06-14 21:21:39.611 CurlHandleContainer [140597029500672] Connection has been released. Continuing.
+[2022-06-14 17:21:40.248] [aws-lambda] [info] LAMBDA task done in 6.34189s [200, 466764 rows, 0 exceptions, new, id: 8975510e-6f53-4e20-b601-da7e0fef81b9] Cost so far: $0.0076
+[2022-06-14 17:21:40.249] [aws-lambda] [debug] START RequestId: cdd6d09a-30eb-47d7-91f4-b55ff8871617 Version: $LATEST
+[2022-06-14 21:21:33.610] [global] [info] S3 Client initialized using defaults
+[2022-06-14 21:21:33.627] [LLVM] [info] compiling code for haswell
+[2022-06-14 21:21:33.713] [Lambda worker] [info] Lambda is using JSON AST serializastion
+[2022-06-14 21:21:33.728] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:33.730] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:33.730] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:33.753] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:33.890] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:33.890] [global] [info] Compiled code paths for stage 0 in 0.16 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:39.789] [Lambda worker] [info] fast path took: 5.898229s
+[2022-06-14 21:21:39.789] [Lambda worker] [info] Input rows processed: normal: 466764 unresolved: 0
+[2022-06-14 21:21:39.789] [Lambda worker] [info] Normal rows before resolve: 466764, except rows before resolve: 0
+[2022-06-14 21:21:39.789] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:39.789] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:39.789] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:39.789] [Lambda worker] [info] Data processed in 5.89833s 40.41 MB (466764 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:39.789] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part7.csv.csv
+[2022-06-14 21:21:39.789] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:39.789] [Lambda worker] [info] Writing output from 2 parts (40.41 MB, 466764 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part7.csv.csv
+[2022-06-14 21:21:39.789] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part7.csv.csv
+wrote buf of size 21199556 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part7.csv.csv
+[2022-06-14 21:21:39.789] [s3fs] [info] Writing buffer of size 21199556
+wrote buf of size 21170719 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part7.csv.csv
+[2022-06-14 21:21:39.803] [s3fs] [info] Writing buffer of size 21170719
+[2022-06-14 21:21:39.815] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part7.csv.csv
+[2022-06-14 21:21:39.815] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:40.230] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:40.232] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:40.232] [Lambda worker] [info] Took 6.341892s in total
+[2022-06-14 21:21:40.232] [Lambda worker] [info] Paths rows took: normal: 466764 general: 0 interpreter: 0 unresolved: 0
+END RequestId: cdd6d09a-30eb-47d7-91f4-b55ff8871617
+REPORT RequestId: cdd6d09a-30eb-47d7-91f4-b55ff8871617	Duration: 6707.35 ms	Billed Duration: 7260 ms	Memory Size: 10000 MB	Max Memory Used: 413 MB	Init Duration: 552.51 ms	
+
+[INFO] 2022-06-14 21:21:40.250 CurlHandleContainer [140596987537152] Connection has been released. Continuing.
+[2022-06-14 17:21:44.345] [aws-lambda] [info] LAMBDA task done in 10.3795s [200, 450046 rows, 0 exceptions, new, id: 5a9b3fec-f5a8-4a2a-b92d-be60cacbb1e9] Cost so far: $0.0094
+[2022-06-14 17:21:44.346] [aws-lambda] [debug] START RequestId: 058269dc-2f12-4c8b-819f-aaeb06398b94 Version: $LATEST
+[2022-06-14 21:21:33.640] [global] [info] S3 Client initialized using defaults
+[2022-06-14 21:21:33.660] [LLVM] [info] compiling code for haswell
+[2022-06-14 21:21:33.742] [Lambda worker] [info] Lambda is using JSON AST serializastion
+[2022-06-14 21:21:33.758] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:33.760] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:33.760] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:33.788] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:33.936] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:33.936] [global] [info] Compiled code paths for stage 0 in 0.18 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:38.928] [Lambda worker] [info] fast path took: 4.991332s
+[2022-06-14 21:21:38.928] [Lambda worker] [info] Input rows processed: normal: 450046 unresolved: 0
+[2022-06-14 21:21:38.928] [Lambda worker] [info] Normal rows before resolve: 450046, except rows before resolve: 0
+[2022-06-14 21:21:38.928] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:38.928] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:38.928] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:38.928] [Lambda worker] [info] Data processed in 4.99143s 39.14 MB (450046 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:38.928] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part4.csv.csv
+[2022-06-14 21:21:38.928] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:38.928] [Lambda worker] [info] Writing output from 2 parts (39.14 MB, 450046 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part4.csv.csv
+[2022-06-14 21:21:38.928] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part4.csv.csv
+wrote buf of size 20459946 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part4.csv.csv
+[2022-06-14 21:21:38.928] [s3fs] [info] Writing buffer of size 20459946
+wrote buf of size 20580425 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part4.csv.csv
+[2022-06-14 21:21:38.940] [s3fs] [info] Writing buffer of size 20580425
+[2022-06-14 21:21:38.953] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part4.csv.csv
+[2022-06-14 21:21:38.953] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:44.314] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:44.316] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:44.316] [Lambda worker] [info] Took 10.379529s in total
+[2022-06-14 21:21:44.316] [Lambda worker] [info] Paths rows took: normal: 450046 general: 0 interpreter: 0 unresolved: 0
+END RequestId: 058269dc-2f12-4c8b-819f-aaeb06398b94
+REPORT RequestId: 058269dc-2f12-4c8b-819f-aaeb06398b94	Duration: 10759.98 ms	Billed Duration: 11346 ms	Memory Size: 10000 MB	Max Memory Used: 420 MB	Init Duration: 585.58 ms	
+
+[INFO] 2022-06-14 21:21:44.350 CurlHandleContainer [140597012715264] Connection has been released. Continuing.
+[2022-06-14 17:21:44.437] [aws-lambda] [info] LAMBDA task done in 5.02073s [200, 415024 rows, 0 exceptions, reused, id: 9fcda33b-b665-46dc-a711-258254cd79fb] Cost so far: $0.010297
+[2022-06-14 17:21:44.437] [aws-lambda] [debug] START RequestId: a556e020-c138-43b8-9133-60d6670346f3 Version: $LATEST
+[2022-06-14 21:21:39.332] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:39.334] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:39.334] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:39.336] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:39.399] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:39.399] [global] [info] Compiled code paths for stage 0 in 0.06 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:43.784] [Lambda worker] [info] fast path took: 4.384599s
+[2022-06-14 21:21:43.784] [Lambda worker] [info] Input rows processed: normal: 415024 unresolved: 0
+[2022-06-14 21:21:43.784] [Lambda worker] [info] Normal rows before resolve: 415024, except rows before resolve: 0
+[2022-06-14 21:21:43.784] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:43.784] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:43.784] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:43.784] [Lambda worker] [info] Data processed in 4.3847s 35.83 MB (415024 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:43.784] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part10.csv.csv
+[2022-06-14 21:21:43.784] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:43.784] [Lambda worker] [info] Writing output from 2 parts (35.83 MB, 415024 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part10.csv.csv
+[2022-06-14 21:21:43.784] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part10.csv.csv
+wrote buf of size 18721937 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part10.csv.csv
+[2022-06-14 21:21:43.784] [s3fs] [info] Writing buffer of size 18721937
+wrote buf of size 18851372 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part10.csv.csv
+[2022-06-14 21:21:43.795] [s3fs] [info] Writing buffer of size 18851372
+[2022-06-14 21:21:43.806] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part10.csv.csv
+[2022-06-14 21:21:43.807] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:44.418] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:44.420] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:44.420] [Lambda worker] [info] Took 5.020728s in total
+[2022-06-14 21:21:44.420] [Lambda worker] [info] Paths rows took: normal: 415024 general: 0 interpreter: 0 unresolved: 0
+END RequestId: a556e020-c138-43b8-9133-60d6670346f3
+REPORT RequestId: a556e020-c138-43b8-9133-60d6670346f3	Duration: 5092.87 ms	Billed Duration: 5093 ms	Memory Size: 10000 MB	Max Memory Used: 393 MB	
+
+[INFO] 2022-06-14 21:21:44.439 CurlHandleContainer [140597390190336] Connection has been released. Continuing.
+[2022-06-14 17:21:44.551] [aws-lambda] [info] LAMBDA task done in 5.1916s [200, 446590 rows, 0 exceptions, reused, id: ee09da7b-f9b3-4178-8d12-ce6f923bf83f] Cost so far: $0.011175
+[2022-06-14 17:21:44.551] [aws-lambda] [debug] START RequestId: 41000649-3380-4b36-afc1-4077b043cbe2 Version: $LATEST
+[2022-06-14 21:21:39.272] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:39.274] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:39.275] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:39.276] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:39.342] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:39.342] [global] [info] Compiled code paths for stage 0 in 0.07 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:44.144] [Lambda worker] [info] fast path took: 4.801027s
+[2022-06-14 21:21:44.144] [Lambda worker] [info] Input rows processed: normal: 446590 unresolved: 0
+[2022-06-14 21:21:44.144] [Lambda worker] [info] Normal rows before resolve: 446590, except rows before resolve: 0
+[2022-06-14 21:21:44.144] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:44.144] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:44.144] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:44.144] [Lambda worker] [info] Data processed in 4.80113s 39.02 MB (446590 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:44.144] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part9.csv.csv
+[2022-06-14 21:21:44.144] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:44.144] [Lambda worker] [info] Writing output from 2 parts (39.02 MB, 446590 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part9.csv.csv
+[2022-06-14 21:21:44.144] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part9.csv.csv
+wrote buf of size 20270434 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part9.csv.csv
+[2022-06-14 21:21:44.144] [s3fs] [info] Writing buffer of size 20270434
+wrote buf of size 20646016 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part9.csv.csv
+[2022-06-14 21:21:44.155] [s3fs] [info] Writing buffer of size 20646016
+[2022-06-14 21:21:44.168] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part9.csv.csv
+[2022-06-14 21:21:44.168] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:44.532] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:44.534] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:44.534] [Lambda worker] [info] Took 5.191599s in total
+[2022-06-14 21:21:44.534] [Lambda worker] [info] Paths rows took: normal: 446590 general: 0 interpreter: 0 unresolved: 0
+END RequestId: 41000649-3380-4b36-afc1-4077b043cbe2
+REPORT RequestId: 41000649-3380-4b36-afc1-4077b043cbe2	Duration: 5267.98 ms	Billed Duration: 5268 ms	Memory Size: 10000 MB	Max Memory Used: 458 MB	
+
+[INFO] 2022-06-14 21:21:44.553 CurlHandleContainer [140596995929856] Connection has been released. Continuing.
+[2022-06-14 17:21:44.874] [aws-lambda] [info] LAMBDA task done in 5.20723s [200, 427125 rows, 0 exceptions, reused, id: 3e0e1d97-748c-47c2-a8e9-c4d993dc81b6] Cost so far: $0.012057
+[2022-06-14 17:21:44.874] [aws-lambda] [debug] START RequestId: 4bab27ff-85fb-41c9-90ce-f7c5e5e55ad5 Version: $LATEST
+[2022-06-14 21:21:39.566] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:39.568] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:39.568] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:39.570] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:39.643] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:39.643] [global] [info] Compiled code paths for stage 0 in 0.07 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:44.484] [Lambda worker] [info] fast path took: 4.840698s
+[2022-06-14 21:21:44.484] [Lambda worker] [info] Input rows processed: normal: 427125 unresolved: 0
+[2022-06-14 21:21:44.484] [Lambda worker] [info] Normal rows before resolve: 427125, except rows before resolve: 0
+[2022-06-14 21:21:44.484] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:44.484] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:44.484] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:44.484] [Lambda worker] [info] Data processed in 4.84082s 38.60 MB (427125 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:44.484] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part11.csv.csv
+[2022-06-14 21:21:44.484] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:44.484] [Lambda worker] [info] Writing output from 2 parts (38.60 MB, 427125 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part11.csv.csv
+[2022-06-14 21:21:44.484] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part11.csv.csv
+wrote buf of size 20240796 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part11.csv.csv
+[2022-06-14 21:21:44.484] [s3fs] [info] Writing buffer of size 20240796
+wrote buf of size 20230434 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part11.csv.csv
+[2022-06-14 21:21:44.499] [s3fs] [info] Writing buffer of size 20230434
+[2022-06-14 21:21:44.514] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part11.csv.csv
+[2022-06-14 21:21:44.514] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:44.848] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:44.850] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:44.851] [Lambda worker] [info] Took 5.207237s in total
+[2022-06-14 21:21:44.851] [Lambda worker] [info] Paths rows took: normal: 427125 general: 0 interpreter: 0 unresolved: 0
+END RequestId: 4bab27ff-85fb-41c9-90ce-f7c5e5e55ad5
+REPORT RequestId: 4bab27ff-85fb-41c9-90ce-f7c5e5e55ad5	Duration: 5292.29 ms	Billed Duration: 5293 ms	Memory Size: 10000 MB	Max Memory Used: 477 MB	
+
+[INFO] 2022-06-14 21:21:44.878 CurlHandleContainer [140597381797632] Connection has been released. Continuing.
+[2022-06-14 17:21:44.891] [aws-lambda] [info] LAMBDA task done in 5.55484s [200, 429996 rows, 0 exceptions, reused, id: b28f4922-c2b9-4101-bc63-2968714b42a3] Cost so far: $0.012997
+[2022-06-14 17:21:44.892] [aws-lambda] [debug] START RequestId: ccc4e3af-4381-4554-9bde-33545aedf040 Version: $LATEST
+[2022-06-14 21:21:39.235] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:39.237] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:39.238] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:39.239] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:39.312] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:39.312] [global] [info] Compiled code paths for stage 0 in 0.07 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:44.411] [Lambda worker] [info] fast path took: 5.098697s
+[2022-06-14 21:21:44.411] [Lambda worker] [info] Input rows processed: normal: 429996 unresolved: 0
+[2022-06-14 21:21:44.411] [Lambda worker] [info] Normal rows before resolve: 429996, except rows before resolve: 0
+[2022-06-14 21:21:44.411] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:44.411] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:44.411] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:44.411] [Lambda worker] [info] Data processed in 5.0988s 35.25 MB (429996 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:44.411] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part8.csv.csv
+[2022-06-14 21:21:44.411] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:44.411] [Lambda worker] [info] Writing output from 2 parts (35.25 MB, 429996 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part8.csv.csv
+[2022-06-14 21:21:44.411] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part8.csv.csv
+wrote buf of size 18413793 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part8.csv.csv
+[2022-06-14 21:21:44.411] [s3fs] [info] Writing buffer of size 18413793
+wrote buf of size 18550910 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part8.csv.csv
+[2022-06-14 21:21:44.422] [s3fs] [info] Writing buffer of size 18550910
+[2022-06-14 21:21:44.433] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part8.csv.csv
+[2022-06-14 21:21:44.433] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:44.865] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:44.867] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:44.867] [Lambda worker] [info] Took 5.554846s in total
+[2022-06-14 21:21:44.867] [Lambda worker] [info] Paths rows took: normal: 429996 general: 0 interpreter: 0 unresolved: 0
+END RequestId: ccc4e3af-4381-4554-9bde-33545aedf040
+REPORT RequestId: ccc4e3af-4381-4554-9bde-33545aedf040	Duration: 5638.08 ms	Billed Duration: 5639 ms	Memory Size: 10000 MB	Max Memory Used: 430 MB	
+
+[INFO] 2022-06-14 21:21:44.895 CurlHandleContainer [140597021107968] Connection has been released. Continuing.
+[2022-06-14 17:21:46.236] [aws-lambda] [info] LAMBDA task done in 6.44777s [200, 500206 rows, 0 exceptions, reused, id: 094be549-de93-4d81-8efa-8ef8e029b89c] Cost so far: $0.014086
+[2022-06-14 17:21:46.237] [aws-lambda] [debug] START RequestId: 1dd31268-919b-49a2-86d6-4f97d9807b06 Version: $LATEST
+[2022-06-14 21:21:39.684] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:39.686] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:39.686] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:39.688] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:39.762] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:39.762] [global] [info] Compiled code paths for stage 0 in 0.08 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:45.786] [Lambda worker] [info] fast path took: 6.023613s
+[2022-06-14 21:21:45.786] [Lambda worker] [info] Input rows processed: normal: 500206 unresolved: 0
+[2022-06-14 21:21:45.786] [Lambda worker] [info] Normal rows before resolve: 500206, except rows before resolve: 0
+[2022-06-14 21:21:45.786] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:45.786] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:45.786] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:45.786] [Lambda worker] [info] Data processed in 6.02372s 44.18 MB (500206 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:45.786] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part13.csv.csv
+[2022-06-14 21:21:45.786] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:45.786] [Lambda worker] [info] Writing output from 2 parts (44.18 MB, 500206 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part13.csv.csv
+[2022-06-14 21:21:45.786] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part13.csv.csv
+wrote buf of size 23358538 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part13.csv.csv
+[2022-06-14 21:21:45.786] [s3fs] [info] Writing buffer of size 23358538
+wrote buf of size 22965674 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part13.csv.csv
+[2022-06-14 21:21:45.800] [s3fs] [info] Writing buffer of size 22965674
+[2022-06-14 21:21:45.814] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part13.csv.csv
+[2022-06-14 21:21:45.814] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:46.208] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:46.210] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:46.210] [Lambda worker] [info] Took 6.447768s in total
+[2022-06-14 21:21:46.210] [Lambda worker] [info] Paths rows took: normal: 500206 general: 0 interpreter: 0 unresolved: 0
+END RequestId: 1dd31268-919b-49a2-86d6-4f97d9807b06
+REPORT RequestId: 1dd31268-919b-49a2-86d6-4f97d9807b06	Duration: 6532.20 ms	Billed Duration: 6533 ms	Memory Size: 10000 MB	Max Memory Used: 423 MB	
+
+[INFO] 2022-06-14 21:21:46.241 CurlHandleContainer [140597029500672] Connection has been released. Continuing.
+[2022-06-14 17:21:46.385] [aws-lambda] [info] LAMBDA task done in 6.70743s [200, 552109 rows, 0 exceptions, reused, id: 33547f5a-4b6d-4ce8-8a35-6bd2bb6c2322] Cost so far: $0.015218
+[2022-06-14 17:21:46.385] [aws-lambda] [debug] START RequestId: 4e7f855d-948e-4877-8128-376a0509df6c Version: $LATEST
+[2022-06-14 21:21:39.580] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:39.582] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:39.583] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:39.584] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:39.659] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:39.659] [global] [info] Compiled code paths for stage 0 in 0.08 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:45.891] [Lambda worker] [info] fast path took: 6.231680s
+[2022-06-14 21:21:45.891] [Lambda worker] [info] Input rows processed: normal: 552109 unresolved: 0
+[2022-06-14 21:21:45.891] [Lambda worker] [info] Normal rows before resolve: 552109, except rows before resolve: 0
+[2022-06-14 21:21:45.891] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:45.891] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:45.891] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:45.891] [Lambda worker] [info] Data processed in 6.23179s 47.46 MB (552109 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:45.891] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part12.csv.csv
+[2022-06-14 21:21:45.891] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:45.891] [Lambda worker] [info] Writing output from 2 parts (47.46 MB, 552109 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part12.csv.csv
+[2022-06-14 21:21:45.891] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part12.csv.csv
+wrote buf of size 24805919 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part12.csv.csv
+[2022-06-14 21:21:45.891] [s3fs] [info] Writing buffer of size 24805919
+wrote buf of size 24956456 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part12.csv.csv
+[2022-06-14 21:21:45.906] [s3fs] [info] Writing buffer of size 24956456
+[2022-06-14 21:21:45.921] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part12.csv.csv
+[2022-06-14 21:21:45.921] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:46.364] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:46.366] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:46.366] [Lambda worker] [info] Took 6.707432s in total
+[2022-06-14 21:21:46.366] [Lambda worker] [info] Paths rows took: normal: 552109 general: 0 interpreter: 0 unresolved: 0
+END RequestId: 4e7f855d-948e-4877-8128-376a0509df6c
+REPORT RequestId: 4e7f855d-948e-4877-8128-376a0509df6c	Duration: 6792.71 ms	Billed Duration: 6793 ms	Memory Size: 10000 MB	Max Memory Used: 470 MB	
+
+[INFO] 2022-06-14 21:21:46.387 CurlHandleContainer [140597004322560] Connection has been released. Continuing.
+[2022-06-14 17:21:47.076] [aws-lambda] [info] LAMBDA task done in 6.64603s [200, 559342 rows, 0 exceptions, reused, id: 8975510e-6f53-4e20-b601-da7e0fef81b9] Cost so far: $0.016341
+[2022-06-14 17:21:47.077] [aws-lambda] [debug] START RequestId: e39282d2-6087-4688-aa41-ec8eba9ee3b6 Version: $LATEST
+[2022-06-14 21:21:40.327] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:40.330] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:40.330] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:40.332] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:40.409] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:40.409] [global] [info] Compiled code paths for stage 0 in 0.08 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:46.481] [Lambda worker] [info] fast path took: 6.071918s
+[2022-06-14 21:21:46.481] [Lambda worker] [info] Input rows processed: normal: 559342 unresolved: 0
+[2022-06-14 21:21:46.481] [Lambda worker] [info] Normal rows before resolve: 559342, except rows before resolve: 0
+[2022-06-14 21:21:46.481] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:46.482] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:46.482] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:46.482] [Lambda worker] [info] Data processed in 6.07202s 48.14 MB (559342 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:46.482] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part14.csv.csv
+[2022-06-14 21:21:46.482] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:46.482] [Lambda worker] [info] Writing output from 2 parts (48.14 MB, 559342 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part14.csv.csv
+[2022-06-14 21:21:46.482] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part14.csv.csv
+wrote buf of size 25356781 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part14.csv.csv
+[2022-06-14 21:21:46.482] [s3fs] [info] Writing buffer of size 25356781
+wrote buf of size 25120519 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part14.csv.csv
+[2022-06-14 21:21:46.497] [s3fs] [info] Writing buffer of size 25120519
+[2022-06-14 21:21:46.513] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part14.csv.csv
+[2022-06-14 21:21:46.513] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:47.053] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:47.056] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:47.056] [Lambda worker] [info] Took 6.646036s in total
+[2022-06-14 21:21:47.056] [Lambda worker] [info] Paths rows took: normal: 559342 general: 0 interpreter: 0 unresolved: 0
+END RequestId: e39282d2-6087-4688-aa41-ec8eba9ee3b6
+REPORT RequestId: e39282d2-6087-4688-aa41-ec8eba9ee3b6	Duration: 6737.57 ms	Billed Duration: 6738 ms	Memory Size: 10000 MB	Max Memory Used: 471 MB	
+
+[INFO] 2022-06-14 21:21:47.080 CurlHandleContainer [140596987537152] Connection has been released. Continuing.
+[2022-06-14 17:21:50.488] [aws-lambda] [info] LAMBDA task done in 5.89079s [200, 533782 rows, 0 exceptions, reused, id: 9fcda33b-b665-46dc-a711-258254cd79fb] Cost so far: $0.017335
+[2022-06-14 17:21:50.488] [aws-lambda] [debug] START RequestId: 4f3d34d2-8353-4e67-abe0-badd9fbf0376 Version: $LATEST
+[2022-06-14 21:21:44.510] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:44.512] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:44.512] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:44.513] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:44.578] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:44.579] [global] [info] Compiled code paths for stage 0 in 0.07 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:49.852] [Lambda worker] [info] fast path took: 5.273623s
+[2022-06-14 21:21:49.852] [Lambda worker] [info] Input rows processed: normal: 533782 unresolved: 0
+[2022-06-14 21:21:49.852] [Lambda worker] [info] Normal rows before resolve: 533782, except rows before resolve: 0
+[2022-06-14 21:21:49.852] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:49.852] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:49.852] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:49.852] [Lambda worker] [info] Data processed in 5.27372s 45.39 MB (533782 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:49.852] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part16.csv.csv
+[2022-06-14 21:21:49.852] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:49.852] [Lambda worker] [info] Writing output from 2 parts (45.39 MB, 533782 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part16.csv.csv
+[2022-06-14 21:21:49.852] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part16.csv.csv
+wrote buf of size 23805504 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part16.csv.csv
+[2022-06-14 21:21:49.852] [s3fs] [info] Writing buffer of size 23805504
+wrote buf of size 23786659 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part16.csv.csv
+[2022-06-14 21:21:49.866] [s3fs] [info] Writing buffer of size 23786659
+[2022-06-14 21:21:49.879] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part16.csv.csv
+[2022-06-14 21:21:49.879] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:50.467] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:50.469] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:50.469] [Lambda worker] [info] Took 5.890794s in total
+[2022-06-14 21:21:50.469] [Lambda worker] [info] Paths rows took: normal: 533782 general: 0 interpreter: 0 unresolved: 0
+END RequestId: 4f3d34d2-8353-4e67-abe0-badd9fbf0376
+REPORT RequestId: 4f3d34d2-8353-4e67-abe0-badd9fbf0376	Duration: 5965.71 ms	Billed Duration: 5966 ms	Memory Size: 10000 MB	Max Memory Used: 534 MB	
+
+[INFO] 2022-06-14 21:21:50.491 CurlHandleContainer [140597390190336] Connection has been released. Continuing.
+[2022-06-14 17:21:50.604] [aws-lambda] [info] LAMBDA task done in 6.08303s [200, 527303 rows, 0 exceptions, reused, id: 5a9b3fec-f5a8-4a2a-b92d-be60cacbb1e9] Cost so far: $0.018363
+[2022-06-14 17:21:50.604] [aws-lambda] [debug] START RequestId: de36a960-21cc-4612-9546-228583342591 Version: $LATEST
+[2022-06-14 21:21:44.426] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:44.428] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:44.429] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:44.430] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:44.504] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:44.504] [global] [info] Compiled code paths for stage 0 in 0.07 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:50.198] [Lambda worker] [info] fast path took: 5.694215s
+[2022-06-14 21:21:50.198] [Lambda worker] [info] Input rows processed: normal: 527303 unresolved: 0
+[2022-06-14 21:21:50.198] [Lambda worker] [info] Normal rows before resolve: 527303, except rows before resolve: 0
+[2022-06-14 21:21:50.198] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:50.198] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:50.198] [Lambda worker] [info] Exception resolution/slow path done. Took 0.000001s
+[2022-06-14 21:21:50.198] [Lambda worker] [info] Data processed in 5.69437s 43.74 MB (527303 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:21:50.198] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part15.csv.csv
+[2022-06-14 21:21:50.198] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:21:50.198] [Lambda worker] [info] Writing output from 2 parts (43.74 MB, 527303 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part15.csv.csv
+[2022-06-14 21:21:50.198] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part15.csv.csv
+wrote buf of size 22973005 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part15.csv.csv
+[2022-06-14 21:21:50.198] [s3fs] [info] Writing buffer of size 22973005
+wrote buf of size 22896470 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part15.csv.csv
+[2022-06-14 21:21:50.213] [s3fs] [info] Writing buffer of size 22896470
+[2022-06-14 21:21:50.227] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part15.csv.csv
+[2022-06-14 21:21:50.227] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:21:50.584] [Lambda worker] [info] file output done.
+[2022-06-14 21:21:50.587] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:21:50.587] [Lambda worker] [info] Took 6.083029s in total
+[2022-06-14 21:21:50.587] [Lambda worker] [info] Paths rows took: normal: 527303 general: 0 interpreter: 0 unresolved: 0
+END RequestId: de36a960-21cc-4612-9546-228583342591
+REPORT RequestId: de36a960-21cc-4612-9546-228583342591	Duration: 6167.04 ms	Billed Duration: 6168 ms	Memory Size: 10000 MB	Max Memory Used: 466 MB	
+
+[INFO] 2022-06-14 21:21:50.606 CurlHandleContainer [140597012715264] Connection has been released. Continuing.
+[2022-06-14 17:22:02.316] [aws-lambda] [info] LAMBDA task done in 17.598s [200, 536496 rows, 0 exceptions, reused, id: ee09da7b-f9b3-4178-8d12-ce6f923bf83f] Cost so far: $0.021309
+[2022-06-14 17:22:02.316] [aws-lambda] [debug] START RequestId: d7fd57e7-c4fa-494b-ad3f-fc571a482802 Version: $LATEST
+[2022-06-14 21:21:44.629] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:44.631] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:44.631] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:44.632] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:44.696] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:44.696] [global] [info] Compiled code paths for stage 0 in 0.06 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:50.184] [Lambda worker] [info] fast path took: 5.487754s
+[2022-06-14 21:21:50.184] [Lambda worker] [info] Input rows processed: normal: 447055 unresolved: 89441
+[2022-06-14 21:21:50.184] [Lambda worker] [info] Normal rows before resolve: 447055, except rows before resolve: 89441
+[2022-06-14 21:21:50.184] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:50.184] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:50.184] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:21:50.332] [Lambda worker] [info] Compilation of slow path took 0.147747s
+[2022-06-14 21:21:56.237] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 44946 unresolved: 0
+[2022-06-14 21:22:01.954] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 44495 unresolved: 0
+[2022-06-14 21:22:01.954] [Lambda worker] [info] Exception resolution/slow path done. Took 11.770672s
+[2022-06-14 21:22:01.954] [Lambda worker] [info] Data processed in 17.2586s 35.93 MB (536496 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:01.954] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part17.csv.csv
+[2022-06-14 21:22:01.954] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:01.954] [Lambda worker] [info] Writing output from 2 parts (35.93 MB, 536496 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part17.csv.csv
+[2022-06-14 21:22:01.955] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part17.csv.csv
+wrote buf of size 18836021 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part17.csv.csv
+[2022-06-14 21:22:01.955] [s3fs] [info] Writing buffer of size 18836021
+wrote buf of size 18836440 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part17.csv.csv
+[2022-06-14 21:22:01.965] [s3fs] [info] Writing buffer of size 18836440
+[2022-06-14 21:22:01.975] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part17.csv.csv
+[2022-06-14 21:22:01.975] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:02.293] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:02.294] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:02.294] [Lambda worker] [info] Took 17.598052s in total
+[2022-06-14 21:22:02.294] [Lambda worker] [info] Paths rows took: normal: 447055 general: 0 interpreter: 89441 unresolved: 0
+END RequestId: d7fd57e7-c4fa-494b-ad3f-fc571a482802
+REPORT RequestId: d7fd57e7-c4fa-494b-ad3f-fc571a482802	Duration: 17671.04 ms	Billed Duration: 17672 ms	Memory Size: 10000 MB	Max Memory Used: 540 MB	
+
+[INFO] 2022-06-14 21:22:02.319 CurlHandleContainer [140596995929856] Connection has been released. Continuing.
+[2022-06-14 17:22:03.338] [aws-lambda] [info] LAMBDA task done in 16.9222s [200, 527714 rows, 0 exceptions, reused, id: 094be549-de93-4d81-8efa-8ef8e029b89c] Cost so far: $0.024143
+[2022-06-14 17:22:03.339] [aws-lambda] [debug] START RequestId: 5660ce2e-79bd-4582-afc0-dd70fd9fda2d Version: $LATEST
+[2022-06-14 21:21:46.318] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:46.320] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:46.321] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:46.322] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:46.395] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:46.396] [global] [info] Compiled code paths for stage 0 in 0.07 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:52.301] [Lambda worker] [info] fast path took: 5.905411s
+[2022-06-14 21:21:52.301] [Lambda worker] [info] Input rows processed: normal: 460328 unresolved: 67386
+[2022-06-14 21:21:52.301] [Lambda worker] [info] Normal rows before resolve: 460328, except rows before resolve: 67386
+[2022-06-14 21:21:52.301] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:52.301] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:52.301] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:21:52.480] [Lambda worker] [info] Compilation of slow path took 0.178784s
+[2022-06-14 21:21:57.703] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 33222 unresolved: 0
+[2022-06-14 21:22:02.906] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 34164 unresolved: 0
+[2022-06-14 21:22:02.906] [Lambda worker] [info] Exception resolution/slow path done. Took 10.604538s
+[2022-06-14 21:22:02.906] [Lambda worker] [info] Data processed in 16.5101s 35.41 MB (527714 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:02.906] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part20.csv.csv
+[2022-06-14 21:22:02.906] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:02.906] [Lambda worker] [info] Writing output from 2 parts (35.41 MB, 527714 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part20.csv.csv
+[2022-06-14 21:22:02.906] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part20.csv.csv
+wrote buf of size 18575776 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part20.csv.csv
+[2022-06-14 21:22:02.906] [s3fs] [info] Writing buffer of size 18575776
+wrote buf of size 18554859 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part20.csv.csv
+[2022-06-14 21:22:02.917] [s3fs] [info] Writing buffer of size 18554859
+[2022-06-14 21:22:02.928] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part20.csv.csv
+[2022-06-14 21:22:02.928] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:03.316] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:03.318] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:03.318] [Lambda worker] [info] Took 16.922239s in total
+[2022-06-14 21:22:03.318] [Lambda worker] [info] Paths rows took: normal: 460328 general: 0 interpreter: 67386 unresolved: 0
+END RequestId: 5660ce2e-79bd-4582-afc0-dd70fd9fda2d
+REPORT RequestId: 5660ce2e-79bd-4582-afc0-dd70fd9fda2d	Duration: 17006.96 ms	Billed Duration: 17007 ms	Memory Size: 10000 MB	Max Memory Used: 464 MB	
+
+[INFO] 2022-06-14 21:22:03.342 CurlHandleContainer [140597029500672] Connection has been released. Continuing.
+[2022-06-14 17:22:03.823] [aws-lambda] [info] LAMBDA task done in 17.2602s [200, 552370 rows, 0 exceptions, reused, id: 33547f5a-4b6d-4ce8-8a35-6bd2bb6c2322] Cost so far: $0.027034
+[2022-06-14 17:22:03.823] [aws-lambda] [debug] START RequestId: 4fc3a4f4-a404-421f-a2b3-222fa5f58297 Version: $LATEST
+[2022-06-14 21:21:46.462] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:46.465] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:46.465] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:46.467] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:46.541] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:46.541] [global] [info] Compiled code paths for stage 0 in 0.08 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:52.338] [Lambda worker] [info] fast path took: 5.796898s
+[2022-06-14 21:21:52.338] [Lambda worker] [info] Input rows processed: normal: 482975 unresolved: 69395
+[2022-06-14 21:21:52.338] [Lambda worker] [info] Normal rows before resolve: 482975, except rows before resolve: 69395
+[2022-06-14 21:21:52.338] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:52.338] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:52.338] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:21:52.510] [Lambda worker] [info] Compilation of slow path took 0.171783s
+[2022-06-14 21:21:58.202] [Lambda worker] [info] Resolved buffer, compiled: 1 interpreted: 35836 unresolved: 0
+[2022-06-14 21:22:03.348] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 33558 unresolved: 0
+[2022-06-14 21:22:03.349] [Lambda worker] [info] Exception resolution/slow path done. Took 11.010726s
+[2022-06-14 21:22:03.349] [Lambda worker] [info] Data processed in 16.8077s 37.63 MB (552370 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:03.349] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part21.csv.csv
+[2022-06-14 21:22:03.349] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:03.349] [Lambda worker] [info] Writing output from 2 parts (37.63 MB, 552370 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part21.csv.csv
+[2022-06-14 21:22:03.349] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part21.csv.csv
+wrote buf of size 19736533 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part21.csv.csv
+[2022-06-14 21:22:03.349] [s3fs] [info] Writing buffer of size 19736533
+wrote buf of size 19726095 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part21.csv.csv
+[2022-06-14 21:22:03.360] [s3fs] [info] Writing buffer of size 19726095
+[2022-06-14 21:22:03.372] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part21.csv.csv
+[2022-06-14 21:22:03.372] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:03.800] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:03.801] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:03.801] [Lambda worker] [info] Took 17.260157s in total
+[2022-06-14 21:22:03.801] [Lambda worker] [info] Paths rows took: normal: 482975 general: 1 interpreter: 69394 unresolved: 0
+END RequestId: 4fc3a4f4-a404-421f-a2b3-222fa5f58297
+REPORT RequestId: 4fc3a4f4-a404-421f-a2b3-222fa5f58297	Duration: 17345.11 ms	Billed Duration: 17346 ms	Memory Size: 10000 MB	Max Memory Used: 470 MB	
+
+[INFO] 2022-06-14 21:22:03.826 CurlHandleContainer [140597004322560] Connection has been released. Continuing.
+[2022-06-14 17:22:07.435] [aws-lambda] [info] LAMBDA task done in 22.3828s [200, 558568 rows, 0 exceptions, reused, id: b28f4922-c2b9-4101-bc63-2968714b42a3] Cost so far: $0.030778
+[2022-06-14 17:22:07.436] [aws-lambda] [debug] START RequestId: 88e8ff72-0c6e-4112-82ec-e17e5955ef63 Version: $LATEST
+[2022-06-14 21:21:44.952] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:44.954] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:44.955] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:44.956] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:45.028] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:45.029] [global] [info] Compiled code paths for stage 0 in 0.07 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:51.012] [Lambda worker] [info] fast path took: 5.983529s
+[2022-06-14 21:21:51.012] [Lambda worker] [info] Input rows processed: normal: 453989 unresolved: 104579
+[2022-06-14 21:21:51.012] [Lambda worker] [info] Normal rows before resolve: 453989, except rows before resolve: 104579
+[2022-06-14 21:21:51.012] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:51.012] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:51.012] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:21:51.186] [Lambda worker] [info] Compilation of slow path took 0.174149s
+[2022-06-14 21:21:59.222] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 53064 unresolved: 0
+[2022-06-14 21:22:06.944] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 51515 unresolved: 0
+[2022-06-14 21:22:06.944] [Lambda worker] [info] Exception resolution/slow path done. Took 15.931953s
+[2022-06-14 21:22:06.944] [Lambda worker] [info] Data processed in 21.9156s 37.30 MB (558568 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:06.944] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part18.csv.csv
+[2022-06-14 21:22:06.944] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:06.944] [Lambda worker] [info] Writing output from 2 parts (37.30 MB, 558568 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part18.csv.csv
+[2022-06-14 21:22:06.944] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part18.csv.csv
+wrote buf of size 19561852 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part18.csv.csv
+[2022-06-14 21:22:06.944] [s3fs] [info] Writing buffer of size 19561852
+wrote buf of size 19546002 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part18.csv.csv
+[2022-06-14 21:22:06.955] [s3fs] [info] Writing buffer of size 19546002
+[2022-06-14 21:22:06.972] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part18.csv.csv
+[2022-06-14 21:22:06.972] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:07.410] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:07.411] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:07.411] [Lambda worker] [info] Took 22.382837s in total
+[2022-06-14 21:22:07.411] [Lambda worker] [info] Paths rows took: normal: 453989 general: 0 interpreter: 104579 unresolved: 0
+END RequestId: 88e8ff72-0c6e-4112-82ec-e17e5955ef63
+REPORT RequestId: 88e8ff72-0c6e-4112-82ec-e17e5955ef63	Duration: 22465.93 ms	Billed Duration: 22466 ms	Memory Size: 10000 MB	Max Memory Used: 481 MB	
+
+[INFO] 2022-06-14 21:22:07.440 CurlHandleContainer [140597381797632] Connection has been released. Continuing.
+[2022-06-14 17:22:08.449] [aws-lambda] [info] LAMBDA task done in 23.3843s [200, 556984 rows, 0 exceptions, reused, id: 3e0e1d97-748c-47c2-a8e9-c4d993dc81b6] Cost so far: $0.034691
+[2022-06-14 17:22:08.450] [aws-lambda] [debug] START RequestId: 62ed6afb-edc1-4987-b1ce-56e66826b3a3 Version: $LATEST
+[2022-06-14 21:21:44.960] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:44.967] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:44.967] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:44.969] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:45.042] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:45.042] [global] [info] Compiled code paths for stage 0 in 0.08 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:51.593] [Lambda worker] [info] fast path took: 6.550451s
+[2022-06-14 21:21:51.593] [Lambda worker] [info] Input rows processed: normal: 450658 unresolved: 106326
+[2022-06-14 21:21:51.593] [Lambda worker] [info] Normal rows before resolve: 450658, except rows before resolve: 106326
+[2022-06-14 21:21:51.593] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:51.593] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:51.593] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:21:51.766] [Lambda worker] [info] Compilation of slow path took 0.172699s
+[2022-06-14 21:21:59.876] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 53020 unresolved: 0
+[2022-06-14 21:22:07.932] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 53306 unresolved: 0
+[2022-06-14 21:22:07.932] [Lambda worker] [info] Exception resolution/slow path done. Took 16.338593s
+[2022-06-14 21:22:07.932] [Lambda worker] [info] Data processed in 22.8892s 37.15 MB (556984 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:07.932] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part19.csv.csv
+[2022-06-14 21:22:07.932] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:07.932] [Lambda worker] [info] Writing output from 2 parts (37.15 MB, 556984 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part19.csv.csv
+[2022-06-14 21:22:07.932] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part19.csv.csv
+wrote buf of size 19468176 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part19.csv.csv
+[2022-06-14 21:22:07.932] [s3fs] [info] Writing buffer of size 19468176
+wrote buf of size 19488013 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part19.csv.csv
+[2022-06-14 21:22:07.960] [s3fs] [info] Writing buffer of size 19488013
+[2022-06-14 21:22:07.990] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part19.csv.csv
+[2022-06-14 21:22:07.991] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:08.425] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:08.427] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:08.427] [Lambda worker] [info] Took 23.384305s in total
+[2022-06-14 21:22:08.427] [Lambda worker] [info] Paths rows took: normal: 450658 general: 0 interpreter: 106326 unresolved: 0
+END RequestId: 62ed6afb-edc1-4987-b1ce-56e66826b3a3
+REPORT RequestId: 62ed6afb-edc1-4987-b1ce-56e66826b3a3	Duration: 23473.20 ms	Billed Duration: 23474 ms	Memory Size: 10000 MB	Max Memory Used: 499 MB	
+
+[INFO] 2022-06-14 21:22:08.452 CurlHandleContainer [140597021107968] Connection has been released. Continuing.
+[2022-06-14 17:22:09.222] [aws-lambda] [info] LAMBDA task done in 21.9715s [200, 528171 rows, 0 exceptions, reused, id: 8975510e-6f53-4e20-b601-da7e0fef81b9] Cost so far: $0.038367
+[2022-06-14 17:22:09.222] [aws-lambda] [debug] START RequestId: 3f38a136-c7ce-4a45-ab6c-6a6e14253be6 Version: $LATEST
+[2022-06-14 21:21:47.152] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:47.155] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:47.156] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:47.158] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:47.232] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:47.232] [global] [info] Compiled code paths for stage 0 in 0.08 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:53.376] [Lambda worker] [info] fast path took: 6.144481s
+[2022-06-14 21:21:53.376] [Lambda worker] [info] Input rows processed: normal: 431994 unresolved: 96177
+[2022-06-14 21:21:53.376] [Lambda worker] [info] Normal rows before resolve: 431994, except rows before resolve: 96177
+[2022-06-14 21:21:53.376] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:53.376] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:53.376] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:21:53.547] [Lambda worker] [info] Compilation of slow path took 0.170468s
+[2022-06-14 21:22:01.188] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 49744 unresolved: 0
+[2022-06-14 21:22:08.545] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 46433 unresolved: 0
+[2022-06-14 21:22:08.545] [Lambda worker] [info] Exception resolution/slow path done. Took 15.168944s
+[2022-06-14 21:22:08.545] [Lambda worker] [info] Data processed in 21.3135s 35.78 MB (528171 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:08.545] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part22.csv.csv
+[2022-06-14 21:22:08.545] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:08.545] [Lambda worker] [info] Writing output from 2 parts (35.78 MB, 528171 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part22.csv.csv
+[2022-06-14 21:22:08.545] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part22.csv.csv
+wrote buf of size 18724712 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part22.csv.csv
+[2022-06-14 21:22:08.545] [s3fs] [info] Writing buffer of size 18724712
+wrote buf of size 18788677 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part22.csv.csv
+[2022-06-14 21:22:08.556] [s3fs] [info] Writing buffer of size 18788677
+[2022-06-14 21:22:08.568] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part22.csv.csv
+[2022-06-14 21:22:08.568] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:09.202] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:09.203] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:09.203] [Lambda worker] [info] Took 21.971526s in total
+[2022-06-14 21:22:09.203] [Lambda worker] [info] Paths rows took: normal: 431994 general: 0 interpreter: 96177 unresolved: 0
+END RequestId: 3f38a136-c7ce-4a45-ab6c-6a6e14253be6
+REPORT RequestId: 3f38a136-c7ce-4a45-ab6c-6a6e14253be6	Duration: 22057.67 ms	Billed Duration: 22058 ms	Memory Size: 10000 MB	Max Memory Used: 473 MB	
+
+[INFO] 2022-06-14 21:22:09.224 CurlHandleContainer [140596987537152] Connection has been released. Continuing.
+[2022-06-14 17:22:12.687] [aws-lambda] [info] LAMBDA task done in 22.0349s [200, 555495 rows, 0 exceptions, reused, id: 9fcda33b-b665-46dc-a711-258254cd79fb] Cost so far: $0.042052
+[2022-06-14 17:22:12.688] [aws-lambda] [debug] START RequestId: 207744c1-1804-490a-b279-4c101b5b8856 Version: $LATEST
+[2022-06-14 21:21:50.564] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:50.567] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:50.567] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:50.569] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:50.632] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:50.632] [global] [info] Compiled code paths for stage 0 in 0.06 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:56.248] [Lambda worker] [info] fast path took: 5.615453s
+[2022-06-14 21:21:56.248] [Lambda worker] [info] Input rows processed: normal: 434827 unresolved: 120668
+[2022-06-14 21:21:56.248] [Lambda worker] [info] Normal rows before resolve: 434827, except rows before resolve: 120668
+[2022-06-14 21:21:56.248] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:56.248] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:56.248] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:21:56.402] [Lambda worker] [info] Compilation of slow path took 0.154216s
+[2022-06-14 21:22:04.231] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 59271 unresolved: 0
+[2022-06-14 21:22:12.297] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 61397 unresolved: 0
+[2022-06-14 21:22:12.298] [Lambda worker] [info] Exception resolution/slow path done. Took 16.050093s
+[2022-06-14 21:22:12.298] [Lambda worker] [info] Data processed in 21.6657s 37.44 MB (555495 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:12.298] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part23.csv.csv
+[2022-06-14 21:22:12.298] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:12.298] [Lambda worker] [info] Writing output from 2 parts (37.44 MB, 555495 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part23.csv.csv
+[2022-06-14 21:22:12.298] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part23.csv.csv
+wrote buf of size 19616732 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part23.csv.csv
+[2022-06-14 21:22:12.298] [s3fs] [info] Writing buffer of size 19616732
+wrote buf of size 19642051 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part23.csv.csv
+[2022-06-14 21:22:12.309] [s3fs] [info] Writing buffer of size 19642051
+[2022-06-14 21:22:12.320] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part23.csv.csv
+[2022-06-14 21:22:12.320] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:12.666] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:12.667] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:12.667] [Lambda worker] [info] Took 22.034882s in total
+[2022-06-14 21:22:12.667] [Lambda worker] [info] Paths rows took: normal: 434827 general: 0 interpreter: 120668 unresolved: 0
+END RequestId: 207744c1-1804-490a-b279-4c101b5b8856
+REPORT RequestId: 207744c1-1804-490a-b279-4c101b5b8856	Duration: 22108.46 ms	Billed Duration: 22109 ms	Memory Size: 10000 MB	Max Memory Used: 534 MB	
+
+[INFO] 2022-06-14 21:22:12.692 CurlHandleContainer [140597390190336] Connection has been released. Continuing.
+[2022-06-14 17:22:17.789] [aws-lambda] [info] LAMBDA task done in 27.0083s [200, 583987 rows, 0 exceptions, reused, id: 5a9b3fec-f5a8-4a2a-b92d-be60cacbb1e9] Cost so far: $0.046568
+[2022-06-14 17:22:17.789] [aws-lambda] [debug] START RequestId: 47aa79df-e2d6-46b3-8644-84b4afdfe2a0 Version: $LATEST
+[2022-06-14 21:21:50.681] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:21:50.684] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:21:50.684] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:21:50.686] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:21:50.760] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:21:50.760] [global] [info] Compiled code paths for stage 0 in 0.08 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:21:57.618] [Lambda worker] [info] fast path took: 6.858103s
+[2022-06-14 21:21:57.618] [Lambda worker] [info] Input rows processed: normal: 455751 unresolved: 128236
+[2022-06-14 21:21:57.618] [Lambda worker] [info] Normal rows before resolve: 455751, except rows before resolve: 128236
+[2022-06-14 21:21:57.618] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:21:57.618] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:21:57.619] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:21:57.790] [Lambda worker] [info] Compilation of slow path took 0.171600s
+[2022-06-14 21:22:07.743] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 64810 unresolved: 0
+[2022-06-14 21:22:17.449] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 63426 unresolved: 0
+[2022-06-14 21:22:17.449] [Lambda worker] [info] Exception resolution/slow path done. Took 19.830665s
+[2022-06-14 21:22:17.449] [Lambda worker] [info] Data processed in 26.6889s 38.73 MB (583987 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:17.449] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part24.csv.csv
+[2022-06-14 21:22:17.449] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:17.449] [Lambda worker] [info] Writing output from 2 parts (38.73 MB, 583987 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part24.csv.csv
+[2022-06-14 21:22:17.449] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part24.csv.csv
+wrote buf of size 20285119 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part24.csv.csv
+[2022-06-14 21:22:17.449] [s3fs] [info] Writing buffer of size 20285119
+wrote buf of size 20321759 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part24.csv.csv
+[2022-06-14 21:22:17.463] [s3fs] [info] Writing buffer of size 20321759
+[2022-06-14 21:22:17.475] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part24.csv.csv
+[2022-06-14 21:22:17.475] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:17.767] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:17.769] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:17.769] [Lambda worker] [info] Took 27.008275s in total
+[2022-06-14 21:22:17.769] [Lambda worker] [info] Paths rows took: normal: 455751 general: 0 interpreter: 128236 unresolved: 0
+END RequestId: 47aa79df-e2d6-46b3-8644-84b4afdfe2a0
+REPORT RequestId: 47aa79df-e2d6-46b3-8644-84b4afdfe2a0	Duration: 27094.21 ms	Billed Duration: 27095 ms	Memory Size: 10000 MB	Max Memory Used: 551 MB	
+
+[INFO] 2022-06-14 21:22:17.792 CurlHandleContainer [140597012715264] Connection has been released. Continuing.
+[2022-06-14 17:22:23.677] [aws-lambda] [info] LAMBDA task done in 21.1961s [200, 553876 rows, 0 exceptions, reused, id: ee09da7b-f9b3-4178-8d12-ce6f923bf83f] Cost so far: $0.050113
+[2022-06-14 17:22:23.678] [aws-lambda] [debug] START RequestId: d11678fe-7ffe-4c34-a9c5-e582b35e6117 Version: $LATEST
+[2022-06-14 21:22:02.391] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:22:02.394] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:22:02.394] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:22:02.395] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:22:02.458] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:22:02.458] [global] [info] Compiled code paths for stage 0 in 0.06 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:22:08.156] [Lambda worker] [info] fast path took: 5.698152s
+[2022-06-14 21:22:08.156] [Lambda worker] [info] Input rows processed: normal: 439359 unresolved: 114517
+[2022-06-14 21:22:08.156] [Lambda worker] [info] Normal rows before resolve: 439359, except rows before resolve: 114517
+[2022-06-14 21:22:08.156] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:22:08.156] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:22:08.156] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:22:08.303] [Lambda worker] [info] Compilation of slow path took 0.146761s
+[2022-06-14 21:22:15.681] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 56890 unresolved: 0
+[2022-06-14 21:22:23.285] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 57627 unresolved: 0
+[2022-06-14 21:22:23.285] [Lambda worker] [info] Exception resolution/slow path done. Took 15.128768s
+[2022-06-14 21:22:23.285] [Lambda worker] [info] Data processed in 20.827s 36.91 MB (553876 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:23.285] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part25.csv.csv
+[2022-06-14 21:22:23.285] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:23.285] [Lambda worker] [info] Writing output from 2 parts (36.91 MB, 553876 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part25.csv.csv
+[2022-06-14 21:22:23.285] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part25.csv.csv
+wrote buf of size 19346250 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part25.csv.csv
+[2022-06-14 21:22:23.285] [s3fs] [info] Writing buffer of size 19346250
+wrote buf of size 19353077 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part25.csv.csv
+[2022-06-14 21:22:23.307] [s3fs] [info] Writing buffer of size 19353077
+[2022-06-14 21:22:23.329] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part25.csv.csv
+[2022-06-14 21:22:23.329] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:23.653] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:23.654] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:23.654] [Lambda worker] [info] Took 21.196077s in total
+[2022-06-14 21:22:23.654] [Lambda worker] [info] Paths rows took: normal: 439359 general: 0 interpreter: 114517 unresolved: 0
+END RequestId: d11678fe-7ffe-4c34-a9c5-e582b35e6117
+REPORT RequestId: d11678fe-7ffe-4c34-a9c5-e582b35e6117	Duration: 21268.88 ms	Billed Duration: 21269 ms	Memory Size: 10000 MB	Max Memory Used: 719 MB	
+
+[INFO] 2022-06-14 21:22:23.681 CurlHandleContainer [140596995929856] Connection has been released. Continuing.
+[2022-06-14 17:22:25.642] [aws-lambda] [info] LAMBDA task done in 21.6422s [200, 582970 rows, 0 exceptions, reused, id: 33547f5a-4b6d-4ce8-8a35-6bd2bb6c2322] Cost so far: $0.053734
+[2022-06-14 17:22:25.643] [aws-lambda] [debug] START RequestId: 5e71ef3b-a593-4250-90bb-e609c7a810c8 Version: $LATEST
+[2022-06-14 21:22:03.896] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:22:03.900] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:22:03.901] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:22:03.902] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:22:03.975] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:22:03.975] [global] [info] Compiled code paths for stage 0 in 0.07 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:22:10.372] [Lambda worker] [info] fast path took: 6.396707s
+[2022-06-14 21:22:10.372] [Lambda worker] [info] Input rows processed: normal: 489216 unresolved: 93754
+[2022-06-14 21:22:10.372] [Lambda worker] [info] Normal rows before resolve: 489216, except rows before resolve: 93754
+[2022-06-14 21:22:10.372] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:22:10.372] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:22:10.372] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:22:10.543] [Lambda worker] [info] Compilation of slow path took 0.170611s
+[2022-06-14 21:22:17.816] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 46815 unresolved: 0
+[2022-06-14 21:22:25.107] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 46939 unresolved: 0
+[2022-06-14 21:22:25.107] [Lambda worker] [info] Exception resolution/slow path done. Took 14.735434s
+[2022-06-14 21:22:25.107] [Lambda worker] [info] Data processed in 21.1323s 39.09 MB (582970 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:25.107] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part27.csv.csv
+[2022-06-14 21:22:25.107] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:25.107] [Lambda worker] [info] Writing output from 2 parts (39.09 MB, 582970 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part27.csv.csv
+[2022-06-14 21:22:25.107] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part27.csv.csv
+wrote buf of size 20495099 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part27.csv.csv
+[2022-06-14 21:22:25.107] [s3fs] [info] Writing buffer of size 20495099
+wrote buf of size 20498923 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part27.csv.csv
+[2022-06-14 21:22:25.119] [s3fs] [info] Writing buffer of size 20498923
+[2022-06-14 21:22:25.132] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part27.csv.csv
+[2022-06-14 21:22:25.132] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:25.616] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:25.617] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:25.617] [Lambda worker] [info] Took 21.642237s in total
+[2022-06-14 21:22:25.617] [Lambda worker] [info] Paths rows took: normal: 489216 general: 0 interpreter: 93754 unresolved: 0
+END RequestId: 5e71ef3b-a593-4250-90bb-e609c7a810c8
+REPORT RequestId: 5e71ef3b-a593-4250-90bb-e609c7a810c8	Duration: 21727.11 ms	Billed Duration: 21728 ms	Memory Size: 10000 MB	Max Memory Used: 635 MB	
+
+[INFO] 2022-06-14 21:22:25.645 CurlHandleContainer [140597004322560] Connection has been released. Continuing.
+[2022-06-14 17:22:28.145] [aws-lambda] [info] LAMBDA task done in 24.6136s [200, 601412 rows, 0 exceptions, reused, id: 094be549-de93-4d81-8efa-8ef8e029b89c] Cost so far: $0.057851
+[2022-06-14 17:22:28.146] [aws-lambda] [debug] START RequestId: 4793da01-7cc6-44eb-8884-b5c4d3cd4bf7 Version: $LATEST
+[2022-06-14 21:22:03.420] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:22:03.423] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:22:03.423] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:22:03.425] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:22:03.500] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:22:03.501] [global] [info] Compiled code paths for stage 0 in 0.08 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:22:11.720] [Lambda worker] [info] fast path took: 8.218971s
+[2022-06-14 21:22:11.720] [Lambda worker] [info] Input rows processed: normal: 497381 unresolved: 104031
+[2022-06-14 21:22:11.720] [Lambda worker] [info] Normal rows before resolve: 497381, except rows before resolve: 104031
+[2022-06-14 21:22:11.720] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:22:11.720] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:22:11.720] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:22:11.894] [Lambda worker] [info] Compilation of slow path took 0.173520s
+[2022-06-14 21:22:19.957] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 52322 unresolved: 0
+[2022-06-14 21:22:27.731] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 51709 unresolved: 0
+[2022-06-14 21:22:27.731] [Lambda worker] [info] Exception resolution/slow path done. Took 16.010155s
+[2022-06-14 21:22:27.731] [Lambda worker] [info] Data processed in 24.2292s 40.24 MB (601412 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:27.731] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part26.csv.csv
+[2022-06-14 21:22:27.731] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:27.731] [Lambda worker] [info] Writing output from 2 parts (40.24 MB, 601412 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part26.csv.csv
+[2022-06-14 21:22:27.731] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part26.csv.csv
+wrote buf of size 21079753 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part26.csv.csv
+[2022-06-14 21:22:27.731] [s3fs] [info] Writing buffer of size 21079753
+wrote buf of size 21119392 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part26.csv.csv
+[2022-06-14 21:22:27.743] [s3fs] [info] Writing buffer of size 21119392
+[2022-06-14 21:22:27.755] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part26.csv.csv
+[2022-06-14 21:22:27.755] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:28.113] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:28.115] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:28.115] [Lambda worker] [info] Took 24.613579s in total
+[2022-06-14 21:22:28.115] [Lambda worker] [info] Paths rows took: normal: 497381 general: 0 interpreter: 104031 unresolved: 0
+END RequestId: 4793da01-7cc6-44eb-8884-b5c4d3cd4bf7
+REPORT RequestId: 4793da01-7cc6-44eb-8884-b5c4d3cd4bf7	Duration: 24702.26 ms	Billed Duration: 24703 ms	Memory Size: 10000 MB	Max Memory Used: 681 MB	
+
+[INFO] 2022-06-14 21:22:28.150 CurlHandleContainer [140597029500672] Connection has been released. Continuing.
+[2022-06-14 17:22:33.074] [aws-lambda] [info] LAMBDA task done in 25.4393s [200, 594457 rows, 0 exceptions, reused, id: b28f4922-c2b9-4101-bc63-2968714b42a3] Cost so far: $0.062105
+[2022-06-14 17:22:33.075] [aws-lambda] [debug] START RequestId: 2da6eca5-5890-45b1-a624-2b37b18eba4c Version: $LATEST
+[2022-06-14 21:22:07.529] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:22:07.533] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:22:07.534] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:22:07.535] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:22:07.608] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:22:07.609] [global] [info] Compiled code paths for stage 0 in 0.08 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:22:14.462] [Lambda worker] [info] fast path took: 6.852956s
+[2022-06-14 21:22:14.462] [Lambda worker] [info] Input rows processed: normal: 473438 unresolved: 121019
+[2022-06-14 21:22:14.462] [Lambda worker] [info] Normal rows before resolve: 473438, except rows before resolve: 121019
+[2022-06-14 21:22:14.462] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:22:14.462] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:22:14.462] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:22:14.631] [Lambda worker] [info] Compilation of slow path took 0.168931s
+[2022-06-14 21:22:23.609] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 60283 unresolved: 0
+[2022-06-14 21:22:32.614] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 60736 unresolved: 0
+[2022-06-14 21:22:32.614] [Lambda worker] [info] Exception resolution/slow path done. Took 18.151989s
+[2022-06-14 21:22:32.614] [Lambda worker] [info] Data processed in 25.0051s 39.64 MB (594457 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:32.614] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part28.csv.csv
+[2022-06-14 21:22:32.614] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:32.614] [Lambda worker] [info] Writing output from 2 parts (39.64 MB, 594457 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part28.csv.csv
+[2022-06-14 21:22:32.614] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part28.csv.csv
+wrote buf of size 20783955 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part28.csv.csv
+[2022-06-14 21:22:32.614] [s3fs] [info] Writing buffer of size 20783955
+wrote buf of size 20780293 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part28.csv.csv
+[2022-06-14 21:22:32.640] [s3fs] [info] Writing buffer of size 20780293
+[2022-06-14 21:22:32.666] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part28.csv.csv
+[2022-06-14 21:22:32.666] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:33.047] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:33.048] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:33.048] [Lambda worker] [info] Took 25.439349s in total
+[2022-06-14 21:22:33.048] [Lambda worker] [info] Paths rows took: normal: 473438 general: 0 interpreter: 121019 unresolved: 0
+END RequestId: 2da6eca5-5890-45b1-a624-2b37b18eba4c
+REPORT RequestId: 2da6eca5-5890-45b1-a624-2b37b18eba4c	Duration: 25525.70 ms	Billed Duration: 25526 ms	Memory Size: 10000 MB	Max Memory Used: 775 MB	
+
+[2022-06-14 17:22:36.839] [aws-lambda] [info] LAMBDA task done in 18.8658s [200, 585125 rows, 0 exceptions, reused, id: 5a9b3fec-f5a8-4a2a-b92d-be60cacbb1e9] Cost so far: $0.065265
+[2022-06-14 17:22:36.840] [aws-lambda] [debug] START RequestId: 2168df0c-481f-4443-99d8-30c9cc748846 Version: $LATEST
+[2022-06-14 21:22:17.867] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:22:17.872] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:22:17.872] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:22:17.874] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:22:17.949] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:22:17.949] [global] [info] Compiled code paths for stage 0 in 0.08 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:22:24.742] [Lambda worker] [info] fast path took: 6.792605s
+[2022-06-14 21:22:24.742] [Lambda worker] [info] Input rows processed: normal: 509978 unresolved: 75147
+[2022-06-14 21:22:24.742] [Lambda worker] [info] Normal rows before resolve: 509978, except rows before resolve: 75147
+[2022-06-14 21:22:24.742] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:22:24.742] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:22:24.742] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:22:24.913] [Lambda worker] [info] Compilation of slow path took 0.171015s
+[2022-06-14 21:22:30.931] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 39734 unresolved: 0
+[2022-06-14 21:22:36.330] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 35413 unresolved: 0
+[2022-06-14 21:22:36.330] [Lambda worker] [info] Exception resolution/slow path done. Took 11.587908s
+[2022-06-14 21:22:36.330] [Lambda worker] [info] Data processed in 18.3807s 39.08 MB (585125 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:36.330] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part32.csv.csv
+[2022-06-14 21:22:36.330] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:36.330] [Lambda worker] [info] Writing output from 2 parts (39.08 MB, 585125 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part32.csv.csv
+[2022-06-14 21:22:36.330] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part32.csv.csv
+wrote buf of size 20471337 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part32.csv.csv
+[2022-06-14 21:22:36.330] [s3fs] [info] Writing buffer of size 20471337
+wrote buf of size 20511463 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part32.csv.csv
+[2022-06-14 21:22:36.342] [s3fs] [info] Writing buffer of size 20511463
+[2022-06-14 21:22:36.354] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part32.csv.csv
+[2022-06-14 21:22:36.354] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:36.814] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:36.815] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:36.815] [Lambda worker] [info] Took 18.865794s in total
+[2022-06-14 21:22:36.815] [Lambda worker] [info] Paths rows took: normal: 509978 general: 0 interpreter: 75147 unresolved: 0
+END RequestId: 2168df0c-481f-4443-99d8-30c9cc748846
+REPORT RequestId: 2168df0c-481f-4443-99d8-30c9cc748846	Duration: 18954.67 ms	Billed Duration: 18955 ms	Memory Size: 10000 MB	Max Memory Used: 811 MB	
+
+[2022-06-14 17:22:36.851] [aws-lambda] [info] LAMBDA task done in 24.0024s [200, 623107 rows, 0 exceptions, reused, id: 9fcda33b-b665-46dc-a711-258254cd79fb] Cost so far: $0.069277
+[2022-06-14 17:22:36.852] [aws-lambda] [debug] START RequestId: 1718b8c8-0e8d-4a64-869e-fd59d43a4f44 Version: $LATEST
+[2022-06-14 21:22:12.761] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:22:12.765] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:22:12.766] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:22:12.767] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:22:12.829] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:22:12.829] [global] [info] Compiled code paths for stage 0 in 0.06 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:22:20.021] [Lambda worker] [info] fast path took: 7.191858s
+[2022-06-14 21:22:20.021] [Lambda worker] [info] Input rows processed: normal: 499223 unresolved: 123884
+[2022-06-14 21:22:20.021] [Lambda worker] [info] Normal rows before resolve: 499223, except rows before resolve: 123884
+[2022-06-14 21:22:20.021] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:22:20.021] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:22:20.021] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:22:20.176] [Lambda worker] [info] Compilation of slow path took 0.154604s
+[2022-06-14 21:22:27.964] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 60072 unresolved: 0
+[2022-06-14 21:22:36.418] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 63812 unresolved: 0
+[2022-06-14 21:22:36.418] [Lambda worker] [info] Exception resolution/slow path done. Took 16.396584s
+[2022-06-14 21:22:36.418] [Lambda worker] [info] Data processed in 23.5886s 41.58 MB (623107 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:36.418] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part31.csv.csv
+[2022-06-14 21:22:36.418] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:36.418] [Lambda worker] [info] Writing output from 2 parts (41.58 MB, 623107 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part31.csv.csv
+[2022-06-14 21:22:36.418] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part31.csv.csv
+wrote buf of size 21802218 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part31.csv.csv
+[2022-06-14 21:22:36.418] [s3fs] [info] Writing buffer of size 21802218
+wrote buf of size 21800517 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part31.csv.csv
+[2022-06-14 21:22:36.430] [s3fs] [info] Writing buffer of size 21800517
+[2022-06-14 21:22:36.444] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part31.csv.csv
+[2022-06-14 21:22:36.444] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:36.830] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:36.831] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:36.832] [Lambda worker] [info] Took 24.002391s in total
+[2022-06-14 21:22:36.832] [Lambda worker] [info] Paths rows took: normal: 499223 general: 0 interpreter: 123884 unresolved: 0
+END RequestId: 1718b8c8-0e8d-4a64-869e-fd59d43a4f44
+REPORT RequestId: 1718b8c8-0e8d-4a64-869e-fd59d43a4f44	Duration: 24075.37 ms	Billed Duration: 24076 ms	Memory Size: 10000 MB	Max Memory Used: 830 MB	
+
+[2022-06-14 17:22:38.314] [aws-lambda] [info] LAMBDA task done in 29.6857s [200, 588792 rows, 0 exceptions, reused, id: 3e0e1d97-748c-47c2-a8e9-c4d993dc81b6] Cost so far: $0.074239
+[2022-06-14 17:22:38.315] [aws-lambda] [debug] START RequestId: ea03de13-aa04-4420-a854-db82aacc77d0 Version: $LATEST
+[2022-06-14 21:22:08.526] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:22:08.530] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:22:08.530] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:22:08.532] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:22:08.604] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:22:08.604] [global] [info] Compiled code paths for stage 0 in 0.07 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:22:15.123] [Lambda worker] [info] fast path took: 6.519352s
+[2022-06-14 21:22:15.124] [Lambda worker] [info] Input rows processed: normal: 440066 unresolved: 148726
+[2022-06-14 21:22:15.124] [Lambda worker] [info] Normal rows before resolve: 440066, except rows before resolve: 148726
+[2022-06-14 21:22:15.124] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:22:15.124] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:22:15.124] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:22:15.298] [Lambda worker] [info] Compilation of slow path took 0.174089s
+[2022-06-14 21:22:26.715] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 76579 unresolved: 0
+[2022-06-14 21:22:37.814] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 72147 unresolved: 0
+[2022-06-14 21:22:37.814] [Lambda worker] [info] Exception resolution/slow path done. Took 22.690098s
+[2022-06-14 21:22:37.814] [Lambda worker] [info] Data processed in 29.2096s 39.11 MB (588792 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:37.814] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part29.csv.csv
+[2022-06-14 21:22:37.814] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:37.814] [Lambda worker] [info] Writing output from 2 parts (39.11 MB, 588792 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part29.csv.csv
+[2022-06-14 21:22:37.814] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part29.csv.csv
+wrote buf of size 20490310 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part29.csv.csv
+[2022-06-14 21:22:37.814] [s3fs] [info] Writing buffer of size 20490310
+wrote buf of size 20521661 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part29.csv.csv
+[2022-06-14 21:22:37.845] [s3fs] [info] Writing buffer of size 20521661
+[2022-06-14 21:22:37.876] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part29.csv.csv
+[2022-06-14 21:22:37.876] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:38.288] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:38.290] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:38.290] [Lambda worker] [info] Took 29.685694s in total
+[2022-06-14 21:22:38.290] [Lambda worker] [info] Paths rows took: normal: 440066 general: 0 interpreter: 148726 unresolved: 0
+END RequestId: ea03de13-aa04-4420-a854-db82aacc77d0
+REPORT RequestId: ea03de13-aa04-4420-a854-db82aacc77d0	Duration: 29769.75 ms	Billed Duration: 29770 ms	Memory Size: 10000 MB	Max Memory Used: 837 MB	
+
+[2022-06-14 17:22:38.782] [aws-lambda] [info] LAMBDA task done in 29.3625s [200, 614166 rows, 0 exceptions, reused, id: 8975510e-6f53-4e20-b601-da7e0fef81b9] Cost so far: $0.079149
+[2022-06-14 17:22:38.783] [aws-lambda] [debug] START RequestId: 163717a7-1fa0-490c-a09e-c2fca1a24e3b Version: $LATEST
+[2022-06-14 21:22:09.306] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:22:09.310] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:22:09.311] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:22:09.312] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:22:09.394] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:22:09.394] [global] [info] Compiled code paths for stage 0 in 0.08 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:22:17.061] [Lambda worker] [info] fast path took: 7.667653s
+[2022-06-14 21:22:17.061] [Lambda worker] [info] Input rows processed: normal: 478167 unresolved: 135999
+[2022-06-14 21:22:17.061] [Lambda worker] [info] Normal rows before resolve: 478167, except rows before resolve: 135999
+[2022-06-14 21:22:17.061] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:22:17.061] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:22:17.061] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:22:17.242] [Lambda worker] [info] Compilation of slow path took 0.180501s
+[2022-06-14 21:22:27.999] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 70140 unresolved: 0
+[2022-06-14 21:22:38.314] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 65859 unresolved: 0
+[2022-06-14 21:22:38.314] [Lambda worker] [info] Exception resolution/slow path done. Took 21.252977s
+[2022-06-14 21:22:38.314] [Lambda worker] [info] Data processed in 28.9208s 40.87 MB (614166 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:38.314] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part30.csv.csv
+[2022-06-14 21:22:38.314] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:38.314] [Lambda worker] [info] Writing output from 2 parts (40.87 MB, 614166 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part30.csv.csv
+[2022-06-14 21:22:38.314] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part30.csv.csv
+wrote buf of size 21437855 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part30.csv.csv
+[2022-06-14 21:22:38.314] [s3fs] [info] Writing buffer of size 21437855
+wrote buf of size 21419702 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part30.csv.csv
+[2022-06-14 21:22:38.331] [s3fs] [info] Writing buffer of size 21419702
+[2022-06-14 21:22:38.358] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part30.csv.csv
+[2022-06-14 21:22:38.358] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:38.755] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:38.756] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:38.756] [Lambda worker] [info] Took 29.362546s in total
+[2022-06-14 21:22:38.756] [Lambda worker] [info] Paths rows took: normal: 478167 general: 0 interpreter: 135999 unresolved: 0
+END RequestId: 163717a7-1fa0-490c-a09e-c2fca1a24e3b
+REPORT RequestId: 163717a7-1fa0-490c-a09e-c2fca1a24e3b	Duration: 29456.50 ms	Billed Duration: 29457 ms	Memory Size: 10000 MB	Max Memory Used: 804 MB	
+
+[2022-06-14 17:22:45.662] [aws-lambda] [info] LAMBDA task done in 21.8145s [200, 610037 rows, 0 exceptions, reused, id: ee09da7b-f9b3-4178-8d12-ce6f923bf83f] Cost so far: $0.082797
+[2022-06-14 17:22:45.663] [aws-lambda] [debug] START RequestId: 57ebe899-edea-4cf5-bd0f-02f9e5f327b8 Version: $LATEST
+[2022-06-14 21:22:23.756] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:22:23.760] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:22:23.760] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:22:23.762] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:22:23.824] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:22:23.824] [global] [info] Compiled code paths for stage 0 in 0.06 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:22:30.754] [Lambda worker] [info] fast path took: 6.929508s
+[2022-06-14 21:22:30.754] [Lambda worker] [info] Input rows processed: normal: 501696 unresolved: 108341
+[2022-06-14 21:22:30.754] [Lambda worker] [info] Normal rows before resolve: 501696, except rows before resolve: 108341
+[2022-06-14 21:22:30.754] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:22:30.754] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:22:30.754] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:22:30.904] [Lambda worker] [info] Compilation of slow path took 0.149709s
+[2022-06-14 21:22:37.805] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 53086 unresolved: 0
+[2022-06-14 21:22:45.038] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 55255 unresolved: 0
+[2022-06-14 21:22:45.038] [Lambda worker] [info] Exception resolution/slow path done. Took 14.284362s
+[2022-06-14 21:22:45.038] [Lambda worker] [info] Data processed in 21.214s 41.39 MB (610037 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:45.038] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part33.csv.csv
+[2022-06-14 21:22:45.038] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:45.038] [Lambda worker] [info] Writing output from 2 parts (41.39 MB, 610037 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part33.csv.csv
+[2022-06-14 21:22:45.038] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part33.csv.csv
+wrote buf of size 21727616 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part33.csv.csv
+[2022-06-14 21:22:45.038] [s3fs] [info] Writing buffer of size 21727616
+wrote buf of size 21674299 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part33.csv.csv
+[2022-06-14 21:22:45.050] [s3fs] [info] Writing buffer of size 21674299
+[2022-06-14 21:22:45.063] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part33.csv.csv
+[2022-06-14 21:22:45.063] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:45.638] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:45.639] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:45.639] [Lambda worker] [info] Took 21.814519s in total
+[2022-06-14 21:22:45.639] [Lambda worker] [info] Paths rows took: normal: 501696 general: 0 interpreter: 108341 unresolved: 0
+END RequestId: 57ebe899-edea-4cf5-bd0f-02f9e5f327b8
+REPORT RequestId: 57ebe899-edea-4cf5-bd0f-02f9e5f327b8	Duration: 21888.22 ms	Billed Duration: 21889 ms	Memory Size: 10000 MB	Max Memory Used: 988 MB	
+
+[2022-06-14 17:22:50.003] [aws-lambda] [info] LAMBDA task done in 24.1894s [200, 584610 rows, 0 exceptions, reused, id: 33547f5a-4b6d-4ce8-8a35-6bd2bb6c2322] Cost so far: $0.086842
+[2022-06-14 17:22:50.004] [aws-lambda] [debug] START RequestId: 386d4ff8-0280-4106-8c9e-8df573b983c9 Version: $LATEST
+[2022-06-14 21:22:25.718] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:22:25.722] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:22:25.722] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:22:25.724] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:22:25.796] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:22:25.796] [global] [info] Compiled code paths for stage 0 in 0.07 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:22:32.034] [Lambda worker] [info] fast path took: 6.238512s
+[2022-06-14 21:22:32.034] [Lambda worker] [info] Input rows processed: normal: 470914 unresolved: 113696
+[2022-06-14 21:22:32.034] [Lambda worker] [info] Normal rows before resolve: 470914, except rows before resolve: 113696
+[2022-06-14 21:22:32.034] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:22:32.034] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:22:32.034] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:22:32.205] [Lambda worker] [info] Compilation of slow path took 0.170918s
+[2022-06-14 21:22:40.810] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 56093 unresolved: 0
+[2022-06-14 21:22:49.600] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 57603 unresolved: 0
+[2022-06-14 21:22:49.600] [Lambda worker] [info] Exception resolution/slow path done. Took 17.566056s
+[2022-06-14 21:22:49.600] [Lambda worker] [info] Data processed in 23.8047s 39.61 MB (584610 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:49.600] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part34.csv.csv
+[2022-06-14 21:22:49.600] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:49.600] [Lambda worker] [info] Writing output from 2 parts (39.61 MB, 584610 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part34.csv.csv
+[2022-06-14 21:22:49.600] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part34.csv.csv
+wrote buf of size 20770315 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part34.csv.csv
+[2022-06-14 21:22:49.600] [s3fs] [info] Writing buffer of size 20770315
+wrote buf of size 20766879 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part34.csv.csv
+[2022-06-14 21:22:49.625] [s3fs] [info] Writing buffer of size 20766879
+[2022-06-14 21:22:49.648] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part34.csv.csv
+[2022-06-14 21:22:49.648] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:49.984] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:49.985] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:49.985] [Lambda worker] [info] Took 24.189398s in total
+[2022-06-14 21:22:49.985] [Lambda worker] [info] Paths rows took: normal: 470914 general: 0 interpreter: 113696 unresolved: 0
+END RequestId: 386d4ff8-0280-4106-8c9e-8df573b983c9
+REPORT RequestId: 386d4ff8-0280-4106-8c9e-8df573b983c9	Duration: 24272.54 ms	Billed Duration: 24273 ms	Memory Size: 10000 MB	Max Memory Used: 890 MB	
+
+[2022-06-14 17:22:59.312] [aws-lambda] [info] LAMBDA task done in 30.9823s [200, 606731 rows, 0 exceptions, reused, id: 094be549-de93-4d81-8efa-8ef8e029b89c] Cost so far: $0.092021
+[2022-06-14 17:22:59.313] [aws-lambda] [debug] START RequestId: f147c128-06cc-4d58-aa5e-f870ca1db772 Version: $LATEST
+[2022-06-14 21:22:28.229] [Lambda worker] [info] performing global initialization (Worker App)
+enter LambdaWorkerApp::processMessage
+got transform message
+read settings
+[2022-06-14 21:22:28.234] [Lambda worker] [info] Invoking WorkerApp fallback
+[2022-06-14 21:22:28.234] [Lambda worker] [info] Found 1 input URIs to process
+symbols are all registered
+[2022-06-14 21:22:28.236] [global] [info] syms registered (or skipped), compile now
+[2022-06-14 21:22:28.312] [global] [info] functor fast_Stage_0 retrieved from llvm
+[2022-06-14 21:22:28.312] [global] [info] Compiled code paths for stage 0 in 0.08 ms
+entering processTrafoStage
+init trafo stage (only fast path)
+calling initStageFunctor with 0 args
+initStageFunctor called,
+initTrafoStage done
+[2022-06-14 21:22:35.339] [Lambda worker] [info] fast path took: 7.027851s
+[2022-06-14 21:22:35.340] [Lambda worker] [info] Input rows processed: normal: 452690 unresolved: 154041
+[2022-06-14 21:22:35.340] [Lambda worker] [info] Normal rows before resolve: 452690, except rows before resolve: 154041
+[2022-06-14 21:22:35.340] [Lambda worker] [info] Starting exception resolution/slow path execution
+[2022-06-14 21:22:35.340] [Lambda worker] [info] has interpreter path: yes has compiled fallback path: yes
+[2022-06-14 21:22:35.340] [Lambda worker] [info] compiling slow code path b.c. exceptions occurred.
+[2022-06-14 21:22:35.512] [Lambda worker] [info] Compilation of slow path took 0.172037s
+[2022-06-14 21:22:47.130] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 76423 unresolved: 0
+[2022-06-14 21:22:58.880] [Lambda worker] [info] Resolved buffer, compiled: 0 interpreted: 77618 unresolved: 0
+[2022-06-14 21:22:58.880] [Lambda worker] [info] Exception resolution/slow path done. Took 23.540206s
+[2022-06-14 21:22:58.880] [Lambda worker] [info] Data processed in 30.5682s 40.75 MB (606731 normal rows) 0.00 B (0 exception rows)  128.03 KB (0 hash rows)
+[2022-06-14 21:22:58.880] [Lambda worker] [info] Writing data to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part35.csv.csv
+[2022-06-14 21:22:58.880] [Lambda worker] [info] file output initiated...
+[2022-06-14 21:22:58.880] [Lambda worker] [info] Writing output from 2 parts (40.75 MB, 606731 rows)
+outputURI is: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part35.csv.csv
+[2022-06-14 21:22:58.880] [s3fs] [info] Writing buffer of size 146
+wrote header to: s3://tuplex-leonhard/experiments/flights_hyper/sampling/part35.csv.csv
+wrote buf of size 21343091 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part35.csv.csv
+[2022-06-14 21:22:58.880] [s3fs] [info] Writing buffer of size 21343091
+wrote buf of size 21388680 to s3://tuplex-leonhard/experiments/flights_hyper/sampling/part35.csv.csv
+[2022-06-14 21:22:58.905] [s3fs] [info] Writing buffer of size 21388680
+[2022-06-14 21:22:58.930] [s3fs] [info] Invoking lazyUpload to uri s3://tuplex-leonhard/experiments/flights_hyper/sampling/part35.csv.csv
+[2022-06-14 21:22:58.930] [s3fs] [info] Issuing simple write request
+[2022-06-14 21:22:59.292] [Lambda worker] [info] file output done.
+[2022-06-14 21:22:59.294] [Lambda worker] [info] Data fully materialized
+release transform stage (only fast path)
+[2022-06-14 21:22:59.294] [Lambda worker] [info] Took 30.982306s in total
+[2022-06-14 21:22:59.294] [Lambda worker] [info] Paths rows took: normal: 452690 general: 0 interpreter: 154041 unresolved: 0
+END RequestId: f147c128-06cc-4d58-aa5e-f870ca1db772
+REPORT RequestId: f147c128-06cc-4d58-aa5e-f870ca1db772	Duration: 31071.07 ms	Billed Duration: 31072 ms	Memory Size: 10000 MB	Max Memory Used: 1007 MB	
+
+[2022-06-14 17:22:59.408] [aws-lambda] [info] LAMBDA Stage: 18889169 rows, 0 exceptions
+[2022-06-14 17:22:59.408] [aws-lambda] [info] LAMBDA paths rows took: normal: 16813806 general: 1 interpreter: 2075362 unresolved: 0
+[2022-06-14 17:22:59.408] [aws-lambda] [info] LAMBDA statistics: 
+Lambda #containers used: 8 reused: 28 newly initialized: 8
+Lambda init time: 0 +- 0 min: 0 max: 2.22507e-308
+Lambda execution time: 15.0809 +- 9.19939 min: 5.02073 max: 30.9823
+
+----- BREAKDOWN TIMINGS -----
+{}
+Lambda cost: $0.0920209
+[2022-06-14 17:22:59.409] [aws-lambda] [info] LAMBDA compute took 87.784s, cost $0.09
+[2022-06-14 17:22:59.410] [global] [info] Query Execution took 90.7235s. (planning: 2.63313s, execution: 88.0904s)
+Welcome to
+
+  _____            _
+ |_   _|   _ _ __ | | _____  __
+   | || | | | '_ \| |/ _ \ \/ /
+   | || |_| | |_) | |  __/>  <
+   |_| \__,_| .__/|_|\___/_/\_\ 0.3.3rc0
+            |_|
+    
+using Python 3.9.8 (main, Jun  7 2022, 15:03:50) 
+[GCC 7.5.0] on linux
+>>> running tuplex on s3://tuplex-public/data/flights_all/flights_on_time_performance_2002*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004*.csv -> s3://tuplex-leonhard/experiments/flights_hyper/sampling
+    hyperspecialization: False
+Tuplex startup time: 0.3360741138458252
+Following sampling modes are supported: [<SamplingMode.FIRST_ROWS: 1>, <SamplingMode.LAST_ROWS: 2>, <SamplingMode.RANDOM_ROWS: 4>, <SamplingMode.FIRST_FILE: 8>, <SamplingMode.LAST_FILE: 16>, <SamplingMode.RANDOM_FILE: 32>, <SamplingMode.ALL_FILES: 64>]
+Testing sampling times for following modes: [<SamplingMode.FIRST_FILE|FIRST_ROWS: 9>, <SamplingMode.FIRST_FILE|LAST_ROWS|FIRST_ROWS: 11>, <SamplingMode.LAST_FILE|FIRST_FILE|FIRST_ROWS: 25>, <SamplingMode.LAST_FILE|FIRST_FILE|LAST_ROWS|FIRST_ROWS: 27>, <SamplingMode.ALL_FILES|FIRST_ROWS: 65>, <SamplingMode.ALL_FILES|LAST_ROWS|FIRST_ROWS: 67>]
+--> Running with Sampling mode 9
+--- done ---
+{'sampling_mode': 'SamplingMode.FIRST_FILE|FIRST_ROWS', 'job_time': 97.23778533935547, 'metrics': {'logical_optimization_time_s': 0.15648, 'llvm_optimization_time_s': 0, 'llvm_compilation_time_s': 0, 'total_compilation_time_s': 0, 'sampling_time_s': 5.2109, 'generate_llvm_time_s': 2.25644, 'stages': []}}
+SAMPLING RESULTS::
+[{'sampling_mode': 'SamplingMode.FIRST_FILE|FIRST_ROWS', 'job_time': 97.23778533935547, 'metrics': {'logical_optimization_time_s': 0.15648, 'llvm_optimization_time_s': 0, 'llvm_compilation_time_s': 0, 'total_compilation_time_s': 0, 'sampling_time_s': 5.2109, 'generate_llvm_time_s': 2.25644, 'stages': []}}]
+Tuplex job time: 97.23987460136414 s
+{'tuplex.useLLVMOptimizer': True, 'tuplex.autoUpcast': False, 'tuplex.allowUndefinedBehavior': False, 'tuplex.optimizer.codeStats': True, 'tuplex.optimizer.generateParser': False, 'tuplex.optimizer.retypeUsingOptimizedInputSchema': True, 'tuplex.optimizer.filterPushdown': True, 'tuplex.optimizer.sharedObjectPropagation': True, 'tuplex.optimizer.mergeExceptionsInOrder': False, 'tuplex.optimizer.operatorReordering': False, 'tuplex.interleaveIO': True, 'tuplex.resolveWithInterpreterOnly': False, 'tuplex.network.verifySSL': False, 'tuplex.redirectToPythonLogging': True, 'tuplex.useInterpreterOnly': False, 'tuplex.aws.lambdaInvokeOthers': True, 'tuplex.csv.selectionPushdown': True, 'tuplex.webui.enable': False, 'tuplex.executorCount': 0, 'tuplex.csv.maxDetectionRows': 10000, 'tuplex.webui.port': 5000, 'tuplex.webui.mongodb.port': 27017, 'tuplex.webui.exceptionDisplayLimit': 5, 'tuplex.aws.requestTimeout': 600, 'tuplex.aws.connectTimeout': 1, 'tuplex.aws.maxConcurrency': 100, 'tuplex.aws.httpThreadCount': 8, 'tuplex.aws.lambdaMemory': 10000, 'tuplex.aws.lambdaTimeout': 600, 'tuplex.aws.requesterPay': False, 'tuplex.normalcaseThreshold': 0.9, 'tuplex.optionalThreshold': 0.7, 'tuplex.aws.lambdaInvocationStrategy': 'direct', 'tuplex.aws.lambdaThreads': '2', 'tuplex.aws.region': 'us-east-1', 'tuplex.aws.scratchDir': 's3://tuplex-leonhard/scratch/flights-exp', 'tuplex.backend': 'lambda', 'tuplex.csv.comments': ['#', '~'], 'tuplex.csv.maxDetectionMemory': '256KB', 'tuplex.csv.quotechar': '"', 'tuplex.csv.separators': [',', ';', '|', '\t'], 'tuplex.driverMemory': '2G', 'tuplex.env.hostname': 'bbsn00', 'tuplex.env.mode': 'file', 'tuplex.env.user': 'lspiegel', 'tuplex.executorMemory': '2G', 'tuplex.experimental.hyperspecialization': 'false', 'tuplex.inputSplitSize': '16MB', 'tuplex.logDir': '.', 'tuplex.network.caFile': '', 'tuplex.network.caPath': '', 'tuplex.optimizer.constantFoldingOptimization': 'false', 'tuplex.optimizer.nullValueOptimization': 'true', 'tuplex.partitionSize': '32MB', 'tuplex.readBufferSize': '4KB', 'tuplex.runTimeLibrary': '/home/lspiegel/tuplex-remote/tuplex/build/dist/python/tuplex/libexec/tuplex_runtime.so', 'tuplex.runTimeMemory': '128MB', 'tuplex.runTimeMemoryBlockSize': '4MB', 'tuplex.scratchDir': '/tmp/tuplex-cache-lspiegel', 'tuplex.webui.mongodb.path': '/tmp/tuplex-cache-lspiegel/mongodb', 'tuplex.webui.mongodb.url': 'localhost', 'tuplex.webui.url': 'localhost'}
+{"logical_optimization_time_s":0.15648,"llvm_optimization_time_s":0,"llvm_compilation_time_s":0,"total_compilation_time_s":0,"sampling_time_s":5.2109,"generate_llvm_time_s":2.25644,"stages":[]}
+{"startupTime": 0.3360741138458252, "jobTime": 97.23987460136414}
+[INFO] 2022-06-14 21:22:59.750 CurlHandleContainer [140602201175872] Cleaning up CurlHandleContainer.
+[INFO] 2022-06-14 21:22:59.784 CurlHandleContainer [140602201175872] Cleaning up CurlHandleContainer.
+[INFO] 2022-06-14 21:22:59.788 CurlHandleContainer [140602201175872] Cleaning up CurlHandleContainer.

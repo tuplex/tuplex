@@ -1,0 +1,960 @@
+lspiegel@bbsn00:~/tuplex-public/benchmarks/nextconf/hyperspecialization/flights$ bash pgo-experiment.sh
+Starting flights PGO specialization experiment
+Step 0: prepping experiment, compiling runner...
+In file included from src/runner.cc:1:
+src/./csvmonkey.h:234:30: warning: comparison of integers of different signs: 'int' and 'std::vector::size_type' (aka 'unsigned long') [-Wsign-compare]
+            for(int i = 0; i < vec_.size(); ++i)
+                           ~ ^ ~~~~~~~~~~~
+src/runner.cc:50:30: warning: unused parameter 'userData' [-Wunused-parameter]
+int64_t write_callback(void *userData, uint8_t *buf, size_t buf_size) {
+                             ^
+src/runner.cc:106:63: warning: 'errorMessage' is deprecated [-Wdeprecated-declarations]
+        std::cerr << "Error parsing command line: " << result.errorMessage() << std::endl;
+                                                              ^
+src/lyra.h:440:15: note: 'errorMessage' has been explicitly marked deprecated here
+            [[deprecated]] std::string errorMessage() const { return message(); }
+              ^
+src/runner.cc:153:74: warning: unused parameter 'path' [-Wunused-parameter]
+std::vector<std::tuple<char**,int64_t*>> preloadCells(const std::string& path) {
+                                                                         ^
+src/runner.cc:358:14: warning: unused variable 'num_parsed_rows' [-Wunused-variable]
+        auto num_parsed_rows = processCells(preloadedCells);
+             ^
+5 warnings generated.
+done!
+Step 1: Create profile generating shared-object
+
+real	0m41.296s
+user	0m40.909s
+sys	0m0.247s
+Step 2: Running profiles for each file
+Profiling flights_on_time_performance_2003_01.csv
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_profiler.so
+transform stage: 10171594092 ns
+output stage: 265405122 ns
+{"output":0.265405,"transform":10.1716,"total":10.437}
+-- converting to llvm usable profile
+-- compile specialized version using profile for file flights_on_time_performance_2003_01.csv
+warning: profile data may be out of date: of 1017 functions, 58 have mismatched data that will be ignored [-Wprofile-instr-out-of-date]
+1 warning generated.
+
+real	1m27.156s
+user	1m26.988s
+sys	0m0.167s
+done, stored in process_row_pgo_flights_on_time_performance_2003_01.so
+Profiling flights_on_time_performance_2003_02.csv
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_profiler.so
+transform stage: 9355866558 ns
+output stage: 77727462 ns
+{"output":0.0777275,"transform":9.35587,"total":9.43359}
+-- converting to llvm usable profile
+-- compile specialized version using profile for file flights_on_time_performance_2003_02.csv
+warning: profile data may be out of date: of 1017 functions, 58 have mismatched data that will be ignored [-Wprofile-instr-out-of-date]
+1 warning generated.
+
+real	1m27.122s
+user	1m26.950s
+sys	0m0.170s
+done, stored in process_row_pgo_flights_on_time_performance_2003_02.so
+Profiling flights_on_time_performance_2003_03.csv
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_profiler.so
+transform stage: 10432966243 ns
+output stage: 79202360 ns
+{"output":0.0792024,"transform":10.433,"total":10.5122}
+-- converting to llvm usable profile
+-- compile specialized version using profile for file flights_on_time_performance_2003_03.csv
+warning: profile data may be out of date: of 1017 functions, 58 have mismatched data that will be ignored [-Wprofile-instr-out-of-date]
+1 warning generated.
+
+real	1m27.487s
+user	1m27.319s
+sys	0m0.167s
+done, stored in process_row_pgo_flights_on_time_performance_2003_03.so
+Profiling flights_on_time_performance_2003_04.csv
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_profiler.so
+transform stage: 9636790883 ns
+output stage: 76804054 ns
+{"output":0.0768041,"transform":9.63679,"total":9.71359}
+-- converting to llvm usable profile
+-- compile specialized version using profile for file flights_on_time_performance_2003_04.csv
+warning: profile data may be out of date: of 1017 functions, 58 have mismatched data that will be ignored [-Wprofile-instr-out-of-date]
+1 warning generated.
+
+real	1m27.347s
+user	1m27.191s
+sys	0m0.154s
+done, stored in process_row_pgo_flights_on_time_performance_2003_04.so
+Profiling flights_on_time_performance_2003_05.csv
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_profiler.so
+transform stage: 9721906082 ns
+output stage: 79753440 ns
+{"output":0.0797534,"transform":9.72191,"total":9.80166}
+-- converting to llvm usable profile
+-- compile specialized version using profile for file flights_on_time_performance_2003_05.csv
+warning: profile data may be out of date: of 1017 functions, 58 have mismatched data that will be ignored [-Wprofile-instr-out-of-date]
+1 warning generated.
+
+real	1m27.432s
+user	1m27.246s
+sys	0m0.184s
+done, stored in process_row_pgo_flights_on_time_performance_2003_05.so
+Profiling flights_on_time_performance_2003_06.csv
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_profiler.so
+transform stage: 9832283832 ns
+output stage: 75250990 ns
+{"output":0.075251,"transform":9.83228,"total":9.90753}
+-- converting to llvm usable profile
+-- compile specialized version using profile for file flights_on_time_performance_2003_06.csv
+warning: profile data may be out of date: of 1017 functions, 58 have mismatched data that will be ignored [-Wprofile-instr-out-of-date]
+1 warning generated.
+
+real	1m27.518s
+user	1m27.347s
+sys	0m0.170s
+done, stored in process_row_pgo_flights_on_time_performance_2003_06.so
+Profiling flights_on_time_performance_2003_07.csv
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_profiler.so
+transform stage: 10554604764 ns
+output stage: 80132776 ns
+{"output":0.0801328,"transform":10.5546,"total":10.6347}
+-- converting to llvm usable profile
+-- compile specialized version using profile for file flights_on_time_performance_2003_07.csv
+warning: profile data may be out of date: of 1017 functions, 58 have mismatched data that will be ignored [-Wprofile-instr-out-of-date]
+1 warning generated.
+
+real	1m27.287s
+user	1m27.141s
+sys	0m0.146s
+done, stored in process_row_pgo_flights_on_time_performance_2003_07.so
+Profiling flights_on_time_performance_2003_08.csv
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_profiler.so
+transform stage: 10162869375 ns
+output stage: 83314988 ns
+{"output":0.083315,"transform":10.1629,"total":10.2462}
+-- converting to llvm usable profile
+-- compile specialized version using profile for file flights_on_time_performance_2003_08.csv
+warning: profile data may be out of date: of 1017 functions, 58 have mismatched data that will be ignored [-Wprofile-instr-out-of-date]
+1 warning generated.
+
+real	1m27.356s
+user	1m27.186s
+sys	0m0.169s
+done, stored in process_row_pgo_flights_on_time_performance_2003_08.so
+Profiling flights_on_time_performance_2003_09.csv
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_profiler.so
+transform stage: 9757652395 ns
+output stage: 78580149 ns
+{"output":0.0785801,"transform":9.75765,"total":9.83623}
+-- converting to llvm usable profile
+-- compile specialized version using profile for file flights_on_time_performance_2003_09.csv
+warning: profile data may be out of date: of 1017 functions, 58 have mismatched data that will be ignored [-Wprofile-instr-out-of-date]
+1 warning generated.
+
+real	1m27.578s
+user	1m27.446s
+sys	0m0.131s
+done, stored in process_row_pgo_flights_on_time_performance_2003_09.so
+Profiling flights_on_time_performance_2003_10.csv
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_profiler.so
+transform stage: 10350722645 ns
+output stage: 81340191 ns
+{"output":0.0813402,"transform":10.3507,"total":10.4321}
+-- converting to llvm usable profile
+-- compile specialized version using profile for file flights_on_time_performance_2003_10.csv
+warning: profile data may be out of date: of 1017 functions, 58 have mismatched data that will be ignored [-Wprofile-instr-out-of-date]
+1 warning generated.
+
+real	1m27.363s
+user	1m27.212s
+sys	0m0.150s
+done, stored in process_row_pgo_flights_on_time_performance_2003_10.so
+Profiling flights_on_time_performance_2003_11.csv
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_profiler.so
+transform stage: 9930637000 ns
+output stage: 80742328 ns
+{"output":0.0807423,"transform":9.93064,"total":10.0114}
+-- converting to llvm usable profile
+-- compile specialized version using profile for file flights_on_time_performance_2003_11.csv
+warning: profile data may be out of date: of 1017 functions, 58 have mismatched data that will be ignored [-Wprofile-instr-out-of-date]
+1 warning generated.
+
+real	1m27.507s
+user	1m27.320s
+sys	0m0.186s
+done, stored in process_row_pgo_flights_on_time_performance_2003_11.so
+Profiling flights_on_time_performance_2003_12.csv
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_profiler.so
+transform stage: 10877481335 ns
+output stage: 83837945 ns
+{"output":0.0838379,"transform":10.8775,"total":10.9613}
+-- converting to llvm usable profile
+-- compile specialized version using profile for file flights_on_time_performance_2003_12.csv
+warning: profile data may be out of date: of 1017 functions, 58 have mismatched data that will be ignored [-Wprofile-instr-out-of-date]
+1 warning generated.
+
+real	1m27.125s
+user	1m26.925s
+sys	0m0.200s
+done, stored in process_row_pgo_flights_on_time_performance_2003_12.so
+Step 3: Creating general shared obj, no PGO - just all optimizations on
+
+real	1m43.906s
+user	1m43.745s
+sys	0m0.160s
+Step 4: Running benchmark
+general case for flights_on_time_performance_2003_01
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4404895920 ns
+output stage: 70779967 ns
+{"output":0.07078,"transform":4.4049,"total":4.47568}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4357388731 ns
+output stage: 82181257 ns
+{"output":0.0821813,"transform":4.35739,"total":4.43957}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4286062797 ns
+output stage: 77685438 ns
+{"output":0.0776854,"transform":4.28606,"total":4.36375}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4357238692 ns
+output stage: 80006560 ns
+{"output":0.0800066,"transform":4.35724,"total":4.43725}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4269411191 ns
+output stage: 82338147 ns
+{"output":0.0823381,"transform":4.26941,"total":4.35175}
+-- run 5
+PGO optimized case for flights_on_time_performance_2003_01
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_01.so
+transform stage: 4333422759 ns
+output stage: 81884952 ns
+{"output":0.081885,"transform":4.33342,"total":4.41531}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_01.so
+transform stage: 4248043643 ns
+output stage: 82780228 ns
+{"output":0.0827802,"transform":4.24804,"total":4.33082}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_01.so
+transform stage: 4271197981 ns
+output stage: 80578158 ns
+{"output":0.0805782,"transform":4.2712,"total":4.35178}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_01.so
+transform stage: 4195388598 ns
+output stage: 81605768 ns
+{"output":0.0816058,"transform":4.19539,"total":4.27699}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_01.so
+transform stage: 4261228972 ns
+output stage: 79942927 ns
+{"output":0.0799429,"transform":4.26123,"total":4.34117}
+-- run 5
+general case for flights_on_time_performance_2003_02
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4025120735 ns
+output stage: 76506924 ns
+{"output":0.0765069,"transform":4.02512,"total":4.10163}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 3881213118 ns
+output stage: 71221338 ns
+{"output":0.0712213,"transform":3.88121,"total":3.95243}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 3910377807 ns
+output stage: 71498139 ns
+{"output":0.0714981,"transform":3.91038,"total":3.98188}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 3876684637 ns
+output stage: 72416080 ns
+{"output":0.0724161,"transform":3.87668,"total":3.9491}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 3864519229 ns
+output stage: 74037698 ns
+{"output":0.0740377,"transform":3.86452,"total":3.93856}
+-- run 5
+PGO optimized case for flights_on_time_performance_2003_02
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_02.so
+transform stage: 3846778195 ns
+output stage: 73122532 ns
+{"output":0.0731225,"transform":3.84678,"total":3.9199}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_02.so
+transform stage: 3791935919 ns
+output stage: 71700849 ns
+{"output":0.0717008,"transform":3.79194,"total":3.86364}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_02.so
+transform stage: 3820927841 ns
+output stage: 70778289 ns
+{"output":0.0707783,"transform":3.82093,"total":3.89171}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_02.so
+transform stage: 3977273100 ns
+output stage: 72095459 ns
+{"output":0.0720955,"transform":3.97727,"total":4.04937}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_02.so
+transform stage: 3827402810 ns
+output stage: 74846995 ns
+{"output":0.074847,"transform":3.8274,"total":3.90225}
+-- run 5
+general case for flights_on_time_performance_2003_03
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4362046960 ns
+output stage: 80758112 ns
+{"output":0.0807581,"transform":4.36205,"total":4.44281}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4352956522 ns
+output stage: 84307742 ns
+{"output":0.0843077,"transform":4.35296,"total":4.43726}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4380012396 ns
+output stage: 83530510 ns
+{"output":0.0835305,"transform":4.38001,"total":4.46354}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4314737862 ns
+output stage: 79878652 ns
+{"output":0.0798787,"transform":4.31474,"total":4.39462}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4419227707 ns
+output stage: 81903006 ns
+{"output":0.081903,"transform":4.41923,"total":4.50113}
+-- run 5
+PGO optimized case for flights_on_time_performance_2003_03
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_03.so
+transform stage: 4342055432 ns
+output stage: 83183856 ns
+{"output":0.0831839,"transform":4.34206,"total":4.42524}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_03.so
+transform stage: 4271483801 ns
+output stage: 82973890 ns
+{"output":0.0829739,"transform":4.27148,"total":4.35446}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_03.so
+transform stage: 4240189636 ns
+output stage: 80926180 ns
+{"output":0.0809262,"transform":4.24019,"total":4.32112}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_03.so
+transform stage: 4246361402 ns
+output stage: 79755548 ns
+{"output":0.0797555,"transform":4.24636,"total":4.32612}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_03.so
+transform stage: 4285607727 ns
+output stage: 81480809 ns
+{"output":0.0814808,"transform":4.28561,"total":4.36709}
+-- run 5
+general case for flights_on_time_performance_2003_04
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4193171278 ns
+output stage: 79050709 ns
+{"output":0.0790507,"transform":4.19317,"total":4.27222}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4119620418 ns
+output stage: 75017234 ns
+{"output":0.0750172,"transform":4.11962,"total":4.19464}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4148090517 ns
+output stage: 78384156 ns
+{"output":0.0783842,"transform":4.14809,"total":4.22647}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4093398803 ns
+output stage: 74028413 ns
+{"output":0.0740284,"transform":4.0934,"total":4.16743}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4160058288 ns
+output stage: 76434358 ns
+{"output":0.0764344,"transform":4.16006,"total":4.23649}
+-- run 5
+PGO optimized case for flights_on_time_performance_2003_04
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_04.so
+transform stage: 3977675040 ns
+output stage: 76994130 ns
+{"output":0.0769941,"transform":3.97768,"total":4.05467}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_04.so
+transform stage: 3977381304 ns
+output stage: 77156236 ns
+{"output":0.0771562,"transform":3.97738,"total":4.05454}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_04.so
+transform stage: 3991406000 ns
+output stage: 76203626 ns
+{"output":0.0762036,"transform":3.99141,"total":4.06761}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_04.so
+transform stage: 4025767219 ns
+output stage: 75528387 ns
+{"output":0.0755284,"transform":4.02577,"total":4.1013}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_04.so
+transform stage: 4031727577 ns
+output stage: 74691439 ns
+{"output":0.0746914,"transform":4.03173,"total":4.10642}
+-- run 5
+general case for flights_on_time_performance_2003_05
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4158223522 ns
+output stage: 78960379 ns
+{"output":0.0789604,"transform":4.15822,"total":4.23718}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4185824856 ns
+output stage: 75001901 ns
+{"output":0.0750019,"transform":4.18582,"total":4.26083}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4180224193 ns
+output stage: 78438389 ns
+{"output":0.0784384,"transform":4.18022,"total":4.25866}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4116960253 ns
+output stage: 79926086 ns
+{"output":0.0799261,"transform":4.11696,"total":4.19689}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4159432954 ns
+output stage: 79816426 ns
+{"output":0.0798164,"transform":4.15943,"total":4.23925}
+-- run 5
+PGO optimized case for flights_on_time_performance_2003_05
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_05.so
+transform stage: 4060645826 ns
+output stage: 76528407 ns
+{"output":0.0765284,"transform":4.06065,"total":4.13717}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_05.so
+transform stage: 4112578619 ns
+output stage: 75472605 ns
+{"output":0.0754726,"transform":4.11258,"total":4.18805}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_05.so
+transform stage: 4023000159 ns
+output stage: 77825221 ns
+{"output":0.0778252,"transform":4.023,"total":4.10083}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_05.so
+transform stage: 4155976094 ns
+output stage: 79517888 ns
+{"output":0.0795179,"transform":4.15598,"total":4.23549}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_05.so
+transform stage: 4056123433 ns
+output stage: 80264470 ns
+{"output":0.0802645,"transform":4.05612,"total":4.13639}
+-- run 5
+general case for flights_on_time_performance_2003_06
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4206473531 ns
+output stage: 78739809 ns
+{"output":0.0787398,"transform":4.20647,"total":4.28521}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4207339542 ns
+output stage: 78505573 ns
+{"output":0.0785056,"transform":4.20734,"total":4.28585}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4409000481 ns
+output stage: 79730408 ns
+{"output":0.0797304,"transform":4.409,"total":4.48873}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4300569591 ns
+output stage: 80031590 ns
+{"output":0.0800316,"transform":4.30057,"total":4.3806}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4203388358 ns
+output stage: 76145460 ns
+{"output":0.0761455,"transform":4.20339,"total":4.27953}
+-- run 5
+PGO optimized case for flights_on_time_performance_2003_06
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_06.so
+transform stage: 4076835954 ns
+output stage: 77002626 ns
+{"output":0.0770026,"transform":4.07684,"total":4.15384}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_06.so
+transform stage: 4079402957 ns
+output stage: 77892776 ns
+{"output":0.0778928,"transform":4.0794,"total":4.1573}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_06.so
+transform stage: 4093282762 ns
+output stage: 76955913 ns
+{"output":0.0769559,"transform":4.09328,"total":4.17024}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_06.so
+transform stage: 4091326081 ns
+output stage: 80515579 ns
+{"output":0.0805156,"transform":4.09133,"total":4.17184}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_06.so
+transform stage: 4087327893 ns
+output stage: 79139091 ns
+{"output":0.0791391,"transform":4.08733,"total":4.16647}
+-- run 5
+general case for flights_on_time_performance_2003_07
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4617132239 ns
+output stage: 82452375 ns
+{"output":0.0824524,"transform":4.61713,"total":4.69958}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4317920863 ns
+output stage: 80356609 ns
+{"output":0.0803566,"transform":4.31792,"total":4.39828}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4394464803 ns
+output stage: 81903274 ns
+{"output":0.0819033,"transform":4.39446,"total":4.47637}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4389051360 ns
+output stage: 78236650 ns
+{"output":0.0782367,"transform":4.38905,"total":4.46729}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4413112428 ns
+output stage: 82252759 ns
+{"output":0.0822528,"transform":4.41311,"total":4.49537}
+-- run 5
+PGO optimized case for flights_on_time_performance_2003_07
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_07.so
+transform stage: 4297496898 ns
+output stage: 82946314 ns
+{"output":0.0829463,"transform":4.2975,"total":4.38044}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_07.so
+transform stage: 4213103587 ns
+output stage: 79171291 ns
+{"output":0.0791713,"transform":4.2131,"total":4.29227}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_07.so
+transform stage: 4222007340 ns
+output stage: 81034664 ns
+{"output":0.0810347,"transform":4.22201,"total":4.30304}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_07.so
+transform stage: 4261928207 ns
+output stage: 79926594 ns
+{"output":0.0799266,"transform":4.26193,"total":4.34185}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_07.so
+transform stage: 4249804498 ns
+output stage: 83043008 ns
+{"output":0.083043,"transform":4.2498,"total":4.33285}
+-- run 5
+general case for flights_on_time_performance_2003_08
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4334623195 ns
+output stage: 81857426 ns
+{"output":0.0818574,"transform":4.33462,"total":4.41648}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4329940817 ns
+output stage: 81577594 ns
+{"output":0.0815776,"transform":4.32994,"total":4.41152}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4462754553 ns
+output stage: 82686451 ns
+{"output":0.0826865,"transform":4.46275,"total":4.54544}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4341641488 ns
+output stage: 80600463 ns
+{"output":0.0806005,"transform":4.34164,"total":4.42224}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4317816065 ns
+output stage: 80157885 ns
+{"output":0.0801579,"transform":4.31782,"total":4.39797}
+-- run 5
+PGO optimized case for flights_on_time_performance_2003_08
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_08.so
+transform stage: 4253477284 ns
+output stage: 80430661 ns
+{"output":0.0804307,"transform":4.25348,"total":4.33391}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_08.so
+transform stage: 4285823021 ns
+output stage: 82681970 ns
+{"output":0.082682,"transform":4.28582,"total":4.3685}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_08.so
+transform stage: 4291017644 ns
+output stage: 82232203 ns
+{"output":0.0822322,"transform":4.29102,"total":4.37325}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_08.so
+transform stage: 4229604818 ns
+output stage: 82952916 ns
+{"output":0.0829529,"transform":4.2296,"total":4.31256}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_08.so
+transform stage: 4237570287 ns
+output stage: 81529144 ns
+{"output":0.0815291,"transform":4.23757,"total":4.3191}
+-- run 5
+general case for flights_on_time_performance_2003_09
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4115362061 ns
+output stage: 77403272 ns
+{"output":0.0774033,"transform":4.11536,"total":4.19277}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4173282551 ns
+output stage: 76746356 ns
+{"output":0.0767464,"transform":4.17328,"total":4.25003}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4168433537 ns
+output stage: 77789618 ns
+{"output":0.0777896,"transform":4.16843,"total":4.24622}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4245426457 ns
+output stage: 75562987 ns
+{"output":0.075563,"transform":4.24543,"total":4.32099}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4124467597 ns
+output stage: 76793552 ns
+{"output":0.0767936,"transform":4.12447,"total":4.20126}
+-- run 5
+PGO optimized case for flights_on_time_performance_2003_09
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_09.so
+transform stage: 4013141576 ns
+output stage: 76817793 ns
+{"output":0.0768178,"transform":4.01314,"total":4.08996}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_09.so
+transform stage: 4034245916 ns
+output stage: 76896414 ns
+{"output":0.0768964,"transform":4.03425,"total":4.11114}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_09.so
+transform stage: 3993265104 ns
+output stage: 75791554 ns
+{"output":0.0757916,"transform":3.99327,"total":4.06906}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_09.so
+transform stage: 4072977981 ns
+output stage: 77404873 ns
+{"output":0.0774049,"transform":4.07298,"total":4.15038}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_09.so
+transform stage: 4080270000 ns
+output stage: 76990610 ns
+{"output":0.0769906,"transform":4.08027,"total":4.15726}
+-- run 5
+general case for flights_on_time_performance_2003_10
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4393612133 ns
+output stage: 84134951 ns
+{"output":0.084135,"transform":4.39361,"total":4.47775}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4376279246 ns
+output stage: 78423868 ns
+{"output":0.0784239,"transform":4.37628,"total":4.4547}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4295294098 ns
+output stage: 80661692 ns
+{"output":0.0806617,"transform":4.29529,"total":4.37596}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4377413165 ns
+output stage: 81471066 ns
+{"output":0.0814711,"transform":4.37741,"total":4.45888}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4464963277 ns
+output stage: 83623548 ns
+{"output":0.0836235,"transform":4.46496,"total":4.54859}
+-- run 5
+PGO optimized case for flights_on_time_performance_2003_10
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_10.so
+transform stage: 4243907725 ns
+output stage: 81243641 ns
+{"output":0.0812436,"transform":4.24391,"total":4.32515}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_10.so
+transform stage: 4217052558 ns
+output stage: 79703996 ns
+{"output":0.079704,"transform":4.21705,"total":4.29676}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_10.so
+transform stage: 4253964691 ns
+output stage: 80054745 ns
+{"output":0.0800547,"transform":4.25396,"total":4.33402}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_10.so
+transform stage: 4209506090 ns
+output stage: 81152684 ns
+{"output":0.0811527,"transform":4.20951,"total":4.29066}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_10.so
+transform stage: 4295966981 ns
+output stage: 84475472 ns
+{"output":0.0844755,"transform":4.29597,"total":4.38044}
+-- run 5
+general case for flights_on_time_performance_2003_11
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4134668690 ns
+output stage: 79455263 ns
+{"output":0.0794553,"transform":4.13467,"total":4.21412}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4137356764 ns
+output stage: 78928887 ns
+{"output":0.0789289,"transform":4.13736,"total":4.21629}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4126359706 ns
+output stage: 79394616 ns
+{"output":0.0793946,"transform":4.12636,"total":4.20575}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4164029586 ns
+output stage: 76877014 ns
+{"output":0.076877,"transform":4.16403,"total":4.24091}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4261616200 ns
+output stage: 78439099 ns
+{"output":0.0784391,"transform":4.26162,"total":4.34006}
+-- run 5
+PGO optimized case for flights_on_time_performance_2003_11
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_11.so
+transform stage: 4089427975 ns
+output stage: 79027619 ns
+{"output":0.0790276,"transform":4.08943,"total":4.16846}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_11.so
+transform stage: 4067801477 ns
+output stage: 78887238 ns
+{"output":0.0788872,"transform":4.0678,"total":4.14669}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_11.so
+transform stage: 4080965135 ns
+output stage: 78146512 ns
+{"output":0.0781465,"transform":4.08097,"total":4.15911}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_11.so
+transform stage: 4134375727 ns
+output stage: 78389119 ns
+{"output":0.0783891,"transform":4.13438,"total":4.21276}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_11.so
+transform stage: 4094383278 ns
+output stage: 79814301 ns
+{"output":0.0798143,"transform":4.09438,"total":4.1742}
+-- run 5
+general case for flights_on_time_performance_2003_12
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4370997769 ns
+output stage: 81558745 ns
+{"output":0.0815587,"transform":4.371,"total":4.45256}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4348182136 ns
+output stage: 83220055 ns
+{"output":0.0832201,"transform":4.34818,"total":4.4314}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4358950905 ns
+output stage: 83519232 ns
+{"output":0.0835192,"transform":4.35895,"total":4.44247}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4366155495 ns
+output stage: 79842671 ns
+{"output":0.0798427,"transform":4.36616,"total":4.446}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_orig_general.so
+transform stage: 4390662175 ns
+output stage: 82276661 ns
+{"output":0.0822767,"transform":4.39066,"total":4.47294}
+-- run 5
+PGO optimized case for flights_on_time_performance_2003_12
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_12.so
+transform stage: 4349735210 ns
+output stage: 81900491 ns
+{"output":0.0819005,"transform":4.34974,"total":4.43164}
+-- run 1
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_12.so
+transform stage: 4326119783 ns
+output stage: 80592235 ns
+{"output":0.0805922,"transform":4.32612,"total":4.40671}
+-- run 2
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_12.so
+transform stage: 4305109278 ns
+output stage: 80492622 ns
+{"output":0.0804926,"transform":4.30511,"total":4.3856}
+-- run 3
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_12.so
+transform stage: 4327143484 ns
+output stage: 82928810 ns
+{"output":0.0829288,"transform":4.32714,"total":4.41007}
+-- run 4
+1 input files found
+SO Path: pgo-experiment-results/libexec/process_row_pgo_flights_on_time_performance_2003_12.so
+transform stage: 4328695945 ns
+output stage: 81382098 ns
+{"output":0.0813821,"transform":4.3287,"total":4.41008}
+-- run 5

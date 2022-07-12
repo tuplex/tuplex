@@ -23,6 +23,7 @@
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/DeleteObjectsRequest.h>
 #include <aws/s3/model/CopyObjectRequest.h>
+#include <aws/s3/model/HeadObjectRequest.h>
 #include <Timer.h>
 #include <Utils.h>
 #include <FileUtils.h>
@@ -490,6 +491,17 @@ namespace tuplex {
 
         using namespace Aws;
 
+
+        // set counters to zero
+        _putRequests = 0;
+        _initMultiPartUploadRequests = 0;
+        _multiPartPutRequests = 0;
+        _closeMultiPartUploadRequests = 0;
+        _getRequests = 0;
+        _bytesTransferred = 0;
+        _bytesReceived = 0;
+        _lsRequests = 0;
+
         Client::ClientConfiguration config;
 
         AWSCredentials credentials;
@@ -515,8 +527,6 @@ namespace tuplex {
         if(lambdaMode) {
             if(config.region.empty())
                 config.region = Aws::Environment::GetEnv("AWS_REGION");
-            char const TAG[] = "LAMBDA_ALLOC";
-            auto credentialsProvider = Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>(TAG);
         }
 
         if(requesterPay)
@@ -524,19 +534,38 @@ namespace tuplex {
         else
             _requestPayer = Aws::S3::Model::RequestPayer::NOT_SET;
 
-        _client = std::make_shared<S3::S3Client>(Auth::AWSCredentials(credentials.access_key.c_str(),
-                                                                      credentials.secret_key.c_str(),
-                                                                      credentials.session_token.c_str()), config);
+        auto aws_credentials = Auth::AWSCredentials(credentials.access_key.c_str(),
+                                                    credentials.secret_key.c_str(),
+                                                    credentials.session_token.c_str());
 
-        // set counters to zero
-        _putRequests = 0;
-        _initMultiPartUploadRequests = 0;
-        _multiPartPutRequests = 0;
-        _closeMultiPartUploadRequests = 0;
-        _getRequests = 0;
-        _bytesTransferred = 0;
-        _bytesReceived = 0;
-        _lsRequests = 0;
+        // lambda Mode? just use default settings.
+        if(lambdaMode) {
+            _client = std::make_shared<S3::S3Client>(aws_credentials);
+            _requestPayer = Aws::S3::Model::RequestPayer::requester;
+
+            std::stringstream ss;
+            ss<<"S3 Client initialized using defaults";
+            Logger::instance().defaultLogger().info(ss.str());
+            return;
+        }
+
+        _client = std::make_shared<S3::S3Client>(aws_credentials, config);
+
+//        if(lambdaMode) {
+//            // disable virtual host to prevent curl code 6 https://guihao-liang.github.io/2020/04/08/aws-virtual-address
+//            _client = std::make_shared<S3::S3Client>(aws_credentials,
+//                                                     config,
+//                                                     Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never,
+//                                                     false);
+//
+//            // log out settings quickly (debug)
+//            std::stringstream ss;
+//            ss<<"S3 settings: REGION="<<config.region.c_str()<<" VERIFY_SSL="<<config.verifySSL<<" CAFILE="<<config.caFile<<" CAPATH="<<config.caPath;
+//            Logger::instance().defaultLogger().info(ss.str());
+//
+//        } else {
+//
+//        }
     }
 
 
@@ -974,6 +1003,73 @@ namespace tuplex {
             logger.debug("copied " + s3_src.toString() + " to " + s3_dest.toString());
             return true;
         }
+    }
+
+
+    std::string s3GetHeadObject(Aws::S3::S3Client const& client, const URI& uri, std::ostream *os_err) {
+        using namespace std;
+        string meta_data;
+
+        assert(uri.prefix() == "s3://");
+
+        // perform request
+        Aws::S3::Model::HeadObjectRequest request;
+        request.WithBucket(uri.s3Bucket().c_str());
+        request.WithKey(uri.s3Key().c_str());
+        auto head_outcome = client.HeadObject(request);
+        if (head_outcome.IsSuccess()) {
+            auto& result = head_outcome.GetResult();
+
+            // there's a ton of options, https://docs.aws.amazon.com/cli/latest/reference/s3api/head-object.html
+            // just serialize as json out a couple
+            stringstream ss;
+
+            ss<<"{";
+            ss<<"\"LastModified\":"<<chronoToISO8601(result.GetLastModified().UnderlyingTimestamp())<<","
+              <<"\"ContentLength\":"<<result.GetContentLength()<<","
+              <<"\"VersionId\":"<<result.GetVersionId().c_str()<<","
+              <<"\"ContentType\":"<<result.GetContentType().c_str();
+            ss<<"}";
+
+            return ss.str();
+        } else {
+            if(os_err) {
+                *os_err<<"HeadObject Request failed with HTTP code "
+                       <<static_cast<int>(head_outcome.GetError().GetResponseCode())
+                       <<", details: "
+                       <<head_outcome.GetError().GetMessage().c_str();
+            }
+        }
+
+        return meta_data;
+    }
+
+    size_t s3GetContentLength(Aws::S3::S3Client const& client, const URI& uri, std::ostream *os_err) {
+        using namespace std;
+        string meta_data;
+
+        assert(uri.prefix() == "s3://");
+
+        size_t content_length = 0;
+
+        // perform request
+        Aws::S3::Model::HeadObjectRequest request;
+        request.WithBucket(uri.s3Bucket().c_str());
+        request.WithKey(uri.s3Key().c_str());
+        auto head_outcome = client.HeadObject(request);
+        if (head_outcome.IsSuccess()) {
+            auto& result = head_outcome.GetResult();
+            content_length = result.GetContentLength();
+        } else {
+            if(os_err) {
+                *os_err<<"HeadObject Request failed with HTTP code "
+                       <<static_cast<int>(head_outcome.GetError().GetResponseCode())
+                       <<", details: "
+                       <<head_outcome.GetError().GetMessage().c_str();
+            }
+        }
+
+        return content_length;
     }
 
 }

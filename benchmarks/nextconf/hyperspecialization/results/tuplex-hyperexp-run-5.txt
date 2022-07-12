@@ -1,0 +1,831 @@
+UpdateCTestConfiguration  from :/home/ubuntu/tuplex-public/tuplex/build/DartConfiguration.tcl
+UpdateCTestConfiguration  from :/home/ubuntu/tuplex-public/tuplex/build/DartConfiguration.tcl
+Test project /home/ubuntu/tuplex-public/tuplex/build
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 219
+    Start 219: SamplingTest.FlightsLambdaVersion
+
+219: Test command: /home/ubuntu/tuplex-public/tuplex/build/dist/bin/testhyper "--gtest_filter=SamplingTest.FlightsLambdaVersion"
+219: Test timeout computed to be: 10000000
+219: Note: Google Test filter = SamplingTest.FlightsLambdaVersion
+219: [==========] Running 1 test from 1 test suite.
+219: [----------] Global test environment set-up.
+219: [----------] 1 test from SamplingTest
+219: [ RUN      ] SamplingTest.FlightsLambdaVersion
+219: HyperSpecialization Benchmark:
+219: ------------
+219: [2022-04-29 04:15:29.245] [local ee] [info] loaded runtime library from/home/ubuntu/tuplex-public/tuplex/build/dist/bin/tuplex_runtime.so
+219: [2022-04-29 04:15:29.245] [local ee] [info] initializing LLVM backend
+219: [2022-04-29 04:15:29.245] [local ee] [warning] init JIT compiler also only in local mode
+219: [2022-04-29 04:15:29.246] [LLVM] [info] compiling code for skylake-avx512
+219: [2022-04-29 04:15:29.247] [history server] [warning] could not connect to http://localhost:5000/api/version, if you wish to disable the webui consider setting tuplex.webui=False for the context.
+219: [2022-04-29 04:15:29.247] [memory] [info] allocated bitmap managed memory region (32.00 GB, 32.00 MB block size)
+219: [2022-04-29 04:15:29.247] [local execution engine] [info] started driver (32.00 GB, 32.00 MB default partition size)
+219: checking for file file:///disk/data/flights/flights_on_time_performance_2003_01.csv
+219: [2022-04-29 04:15:29.247] [fileinputoperator] [info] found 1 file (233.95 MB) to process.
+219: [2022-04-29 04:15:29.247] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_01.csv on 256.00 KB
+219: [2022-04-29 04:15:29.380] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_01.csv on 256.00 KB
+219: [2022-04-29 04:15:29.727] [logical planner] [info] logical optimization took 0.008944ms
+219: [2022-04-29 04:15:29.727] [codegen] [info] hyper specialization encoding
+219: [2022-04-29 04:15:29.752] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:29.759] [codegen] [info] Serialized CodeGeneration Context to 28.62 KB
+219: [2022-04-29 04:15:29.760] [codegen] [info] ZLIB compressed CodeGeneration Context is: 2.78 KB
+219: [2022-04-29 04:15:29.780] [history server] [warning] Could not register job, is history server running? To disable this warning, set webui=False in the context configuration.
+219: [2022-04-29 04:15:29.780] [hyper specializer] [info] specializing code to file file:///disk/data/flights/flights_on_time_performance_2003_01.csv
+219: [2022-04-29 04:15:29.780] [hyper specializer] [info] Decompressed Code context from 2.78 KB to 28.62 KB
+219: [2022-04-29 04:15:30.033] [hyper specializer] [info] Deserialization of Code context took 0.253517s
+219: [2022-04-29 04:15:30.033] [hyper specializer] [info] Total Stage Decode took 0.253774s
+219: [2022-04-29 04:15:30.034] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_01.csv on 512.00 KB
+219: [2022-04-29 04:15:30.180] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_01.csv on 512.00 KB
+219: [2022-04-29 04:15:30.325] [hyper specializer] [info] sampling (setInputFiles) took 0.291675s
+219: [2022-04-29 04:15:30.325] [specializing stage optimizer] [info] performing NVO
+219: [2022-04-29 04:15:30.442] [specializing stage optimizer] [info] performing Constant-Folding specialization
+219: [2022-04-29 04:15:30.442] [specializing stage optimizer] [info] Performing constant folding optimization
+219: [2022-04-29 04:15:30.539] [hyper specializer] [info] specialized to input:  (i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64)
+219: [2022-04-29 04:15:30.539] [hyper specializer] [info] specialized to output: (_Constant[i64,value=2003],_Constant[i64,value=1],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:30.539] [hyper specializer] [info] specialized code reads: 11 columns
+219: [2022-04-29 04:15:30.539] [codegen] [info] generating pipeline for (i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64) -> (_Constant[i64,value=2003],_Constant[i64,value=1],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+219: [2022-04-29 04:15:30.539] [codegen] [info] generating function fill_in_delays for ((i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64)) -> (_Constant[i64,value=2003],_Constant[i64,value=1],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:30.542] [codegen] [warning] hack, need to fix stuff here...
+219: [2022-04-29 04:15:30.543] [hyper specializer] [info] generated code in 0.003895s
+219: [2022-04-29 04:15:30.595] [global] [info] TransformStage - Optimization via LLVM passes took 0.026800 ms
+219: [2022-04-29 04:15:30.595] [global] [info] syms registered (or skipped), compile now
+219: [2022-04-29 04:15:30.609] [global] [info] functor fast_Stage_0 retrieved from llvm
+219: [2022-04-29 04:15:30.719] [global] [info] Compiled code paths for stage 0 in 0.15 ms
+219: [2022-04-29 04:15:30.719] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.939662s
+219: [2022-04-29 04:15:30.719] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_01.csv into 1 task
+219: [2022-04-29 04:15:32.766] [driver] [info] [Task Finished] Transform to mem in 2.046247s (542921 normal rows, 9188 exceptions)
+219: [2022-04-29 04:15:32.766] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 2.0464s
+219: [2022-04-29 04:15:32.766] [global] [info] [Transform Stage] Stage 0 total wall clock time: 2.04625s, 552109 input rows, time to process 1 row via fast path: 0.00370624ms
+219: [2022-04-29 04:15:32.766] [global] [info] Exception details: 
+219: +------------+-------------------------------------+-------+
+219: | OperatorID | Exception                           | Count |
+219: +------------+-------------------------------------+-------+
+219: | 100000     | tuplex.internal.BadParseStringInput | 9188  |
+219: +------------+-------------------------------------+-------+
+219: [2022-04-29 04:15:32.770] [local ee] [info] compiled pure python pipeline in 0.004330s
+219: [2022-04-29 04:15:32.770] [local ee] [info] creating hybrid intermediates took 0.000003s
+219: [2022-04-29 04:15:32.770] [local ee] [info] Created 1 resolve task in 0.000038s
+219: [2022-04-29 04:15:32.770] [local ee] [info] 1/1 task require executing the slow path.
+219: [2022-04-29 04:15:32.876] [driver] [info] [Task Finished] Resolve in 0.105498s
+219: [2022-04-29 04:15:32.876] [local ee] [info] slow path resolved 9188/9188 exceptions in 0.110011s
+219: [2022-04-29 04:15:32.876] [local ee] [info] slow path for Stage 0: total wall clock time: 0.105498s, time to process 1 row via slow path: 0.0114822ms
+219: [2022-04-29 04:15:32.876] [global] [info] [Transform Stage] Stage 0 completed 1 resolve task in 0.110051s
+219: 
+219: [2022-04-29 04:15:32.882] [global] [info] Writing 552109 rows as output to file (47.46 MB)
+219: [2022-04-29 04:15:33.002] [driver] [info] [Task Finished] write to file in 0.119575s (552109 rows, 47.46 MB)
+219: [2022-04-29 04:15:33.002] [global] [info] writing output took 0.125838s
+219: [2022-04-29 04:15:33.002] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 0.125872s
+219: [2022-04-29 04:15:33.002] [global] [info] [Transform Stage] Stage 0 took 3.22202s
+219: [2022-04-29 04:15:33.002] [global] [info] Query Execution took 3.29175s. (planning: 0.0692342s, execution: 3.22251s)
+219: checking for file file:///disk/data/flights/flights_on_time_performance_2003_02.csv
+219: [2022-04-29 04:15:33.010] [fileinputoperator] [info] found 1 file (211.12 MB) to process.
+219: [2022-04-29 04:15:33.010] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_02.csv on 256.00 KB
+219: [2022-04-29 04:15:33.146] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_02.csv on 256.00 KB
+219: [2022-04-29 04:15:33.407] [logical planner] [info] logical optimization took 0.004368ms
+219: [2022-04-29 04:15:33.407] [codegen] [info] hyper specialization encoding
+219: [2022-04-29 04:15:33.408] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:33.415] [codegen] [info] Serialized CodeGeneration Context to 28.62 KB
+219: [2022-04-29 04:15:33.416] [codegen] [info] ZLIB compressed CodeGeneration Context is: 2.78 KB
+219: [2022-04-29 04:15:33.431] [history server] [warning] Could not register job, is history server running? To disable this warning, set webui=False in the context configuration.
+219: [2022-04-29 04:15:33.431] [hyper specializer] [info] specializing code to file file:///disk/data/flights/flights_on_time_performance_2003_02.csv
+219: [2022-04-29 04:15:33.431] [hyper specializer] [info] Decompressed Code context from 2.78 KB to 28.62 KB
+219: [2022-04-29 04:15:33.685] [hyper specializer] [info] Deserialization of Code context took 0.253611s
+219: [2022-04-29 04:15:33.685] [hyper specializer] [info] Total Stage Decode took 0.253847s
+219: [2022-04-29 04:15:33.685] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_02.csv on 512.00 KB
+219: [2022-04-29 04:15:33.829] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_02.csv on 512.00 KB
+219: [2022-04-29 04:15:33.829] [hyper specializer] [info] sampling (setInputFiles) took 0.143529s
+219: [2022-04-29 04:15:33.829] [specializing stage optimizer] [info] performing NVO
+219: [2022-04-29 04:15:33.846] [global] [warning] requested 2000 rows for sampling, but only 1170 stored. Consider decreasing sample size.
+219: [2022-04-29 04:15:33.862] [specializing stage optimizer] [info] performing Constant-Folding specialization
+219: [2022-04-29 04:15:33.862] [specializing stage optimizer] [info] Performing constant folding optimization
+219: [2022-04-29 04:15:33.913] [hyper specializer] [info] specialized to input:  (i64,i64,i64,i64,i64,f64,i64,f64,f64,f64)
+219: [2022-04-29 04:15:33.913] [hyper specializer] [info] specialized to output: (_Constant[i64,value=2003],_Constant[i64,value=2],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:33.913] [hyper specializer] [info] specialized code reads: 10 columns
+219: [2022-04-29 04:15:33.913] [codegen] [info] generating pipeline for (i64,i64,i64,i64,i64,f64,i64,f64,f64,f64) -> (_Constant[i64,value=2003],_Constant[i64,value=2],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+219: [2022-04-29 04:15:33.914] [codegen] [info] generating function fill_in_delays for ((i64,i64,i64,i64,i64,f64,i64,f64,f64,f64)) -> (_Constant[i64,value=2003],_Constant[i64,value=2],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:33.916] [codegen] [warning] hack, need to fix stuff here...
+219: [2022-04-29 04:15:33.917] [hyper specializer] [info] generated code in 0.003857s
+219: [2022-04-29 04:15:33.953] [global] [info] TransformStage - Optimization via LLVM passes took 0.022833 ms
+219: [2022-04-29 04:15:33.953] [global] [info] syms registered (or skipped), compile now
+219: [2022-04-29 04:15:33.965] [global] [info] functor fast_Stage_0 retrieved from llvm
+219: [2022-04-29 04:15:34.074] [global] [info] Compiled code paths for stage 0 in 0.14 ms
+219: [2022-04-29 04:15:34.074] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.642813s
+219: [2022-04-29 04:15:34.074] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_02.csv into 1 task
+219: [2022-04-29 04:15:35.921] [driver] [info] [Task Finished] Transform to mem in 1.846525s (479022 normal rows, 21184 exceptions)
+219: [2022-04-29 04:15:35.921] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 1.84666s
+219: [2022-04-29 04:15:35.921] [global] [info] [Transform Stage] Stage 0 total wall clock time: 1.84652s, 500206 input rows, time to process 1 row via fast path: 0.00369153ms
+219: [2022-04-29 04:15:35.921] [global] [info] Exception details: 
+219: +------------+-------------------------------------+-------+
+219: | OperatorID | Exception                           | Count |
+219: +------------+-------------------------------------+-------+
+219: | 100019     | tuplex.internal.BadParseStringInput | 21184 |
+219: +------------+-------------------------------------+-------+
+219: [2022-04-29 04:15:35.924] [local ee] [info] compiled pure python pipeline in 0.003044s
+219: [2022-04-29 04:15:35.924] [local ee] [info] creating hybrid intermediates took 0.000003s
+219: [2022-04-29 04:15:35.924] [local ee] [info] Created 1 resolve task in 0.000034s
+219: [2022-04-29 04:15:35.924] [local ee] [info] 1/1 task require executing the slow path.
+219: [2022-04-29 04:15:36.027] [driver] [info] [Task Finished] Resolve in 0.103535s
+219: [2022-04-29 04:15:36.027] [local ee] [info] slow path resolved 21184/21184 exceptions in 0.106749s
+219: [2022-04-29 04:15:36.027] [local ee] [info] slow path for Stage 0: total wall clock time: 0.103535s, time to process 1 row via slow path: 0.00488743ms
+219: [2022-04-29 04:15:36.027] [global] [info] [Transform Stage] Stage 0 completed 1 resolve task in 0.106763s
+219: 
+219: [2022-04-29 04:15:36.033] [global] [info] Writing 500206 rows as output to file (44.18 MB)
+219: [2022-04-29 04:15:36.141] [driver] [info] [Task Finished] write to file in 0.107632s (500206 rows, 44.18 MB)
+219: [2022-04-29 04:15:36.141] [global] [info] writing output took 0.113496s
+219: [2022-04-29 04:15:36.141] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 0.113528s
+219: [2022-04-29 04:15:36.141] [global] [info] [Transform Stage] Stage 0 took 2.70981s
+219: [2022-04-29 04:15:36.141] [global] [info] Query Execution took 2.74168s. (planning: 0.0313955s, execution: 2.71029s)
+219: checking for file file:///disk/data/flights/flights_on_time_performance_2003_03.csv
+219: [2022-04-29 04:15:36.145] [fileinputoperator] [info] found 1 file (236.96 MB) to process.
+219: [2022-04-29 04:15:36.145] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_03.csv on 256.00 KB
+219: [2022-04-29 04:15:36.280] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_03.csv on 256.00 KB
+219: [2022-04-29 04:15:36.619] [logical planner] [info] logical optimization took 0.006910ms
+219: [2022-04-29 04:15:36.619] [codegen] [info] hyper specialization encoding
+219: [2022-04-29 04:15:36.620] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:36.626] [codegen] [info] Serialized CodeGeneration Context to 28.62 KB
+219: [2022-04-29 04:15:36.627] [codegen] [info] ZLIB compressed CodeGeneration Context is: 2.78 KB
+219: [2022-04-29 04:15:36.638] [history server] [warning] Could not register job, is history server running? To disable this warning, set webui=False in the context configuration.
+219: [2022-04-29 04:15:36.638] [hyper specializer] [info] specializing code to file file:///disk/data/flights/flights_on_time_performance_2003_03.csv
+219: [2022-04-29 04:15:36.638] [hyper specializer] [info] Decompressed Code context from 2.78 KB to 28.62 KB
+219: [2022-04-29 04:15:36.891] [hyper specializer] [info] Deserialization of Code context took 0.252999s
+219: [2022-04-29 04:15:36.891] [hyper specializer] [info] Total Stage Decode took 0.253230s
+219: [2022-04-29 04:15:36.892] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_03.csv on 512.00 KB
+219: [2022-04-29 04:15:37.035] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_03.csv on 512.00 KB
+219: [2022-04-29 04:15:37.182] [hyper specializer] [info] sampling (setInputFiles) took 0.291211s
+219: [2022-04-29 04:15:37.182] [specializing stage optimizer] [info] performing NVO
+219: [2022-04-29 04:15:37.305] [specializing stage optimizer] [info] performing Constant-Folding specialization
+219: [2022-04-29 04:15:37.305] [specializing stage optimizer] [info] Performing constant folding optimization
+219: [2022-04-29 04:15:37.408] [hyper specializer] [info] specialized to input:  (i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64)
+219: [2022-04-29 04:15:37.408] [hyper specializer] [info] specialized to output: (_Constant[i64,value=2003],_Constant[i64,value=3],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:37.408] [hyper specializer] [info] specialized code reads: 11 columns
+219: [2022-04-29 04:15:37.409] [codegen] [info] generating pipeline for (i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64) -> (_Constant[i64,value=2003],_Constant[i64,value=3],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+219: [2022-04-29 04:15:37.409] [codegen] [info] generating function fill_in_delays for ((i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64)) -> (_Constant[i64,value=2003],_Constant[i64,value=3],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:37.411] [codegen] [warning] hack, need to fix stuff here...
+219: [2022-04-29 04:15:37.412] [hyper specializer] [info] generated code in 0.003879s
+219: [2022-04-29 04:15:37.466] [global] [info] TransformStage - Optimization via LLVM passes took 0.026221 ms
+219: [2022-04-29 04:15:37.466] [global] [info] syms registered (or skipped), compile now
+219: [2022-04-29 04:15:37.479] [global] [info] functor fast_Stage_0 retrieved from llvm
+219: [2022-04-29 04:15:37.588] [global] [info] Compiled code paths for stage 0 in 0.15 ms
+219: [2022-04-29 04:15:37.588] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.950237s
+219: [2022-04-29 04:15:37.588] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_03.csv into 1 task
+219: [2022-04-29 04:15:39.639] [driver] [info] [Task Finished] Transform to mem in 2.050225s (548843 normal rows, 10499 exceptions)
+219: [2022-04-29 04:15:39.639] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 2.05037s
+219: [2022-04-29 04:15:39.639] [global] [info] [Transform Stage] Stage 0 total wall clock time: 2.05022s, 559342 input rows, time to process 1 row via fast path: 0.00366542ms
+219: [2022-04-29 04:15:39.639] [global] [info] Exception details: 
+219: +------------+-------------------------------------+-------+
+219: | OperatorID | Exception                           | Count |
+219: +------------+-------------------------------------+-------+
+219: | 100038     | tuplex.internal.BadParseStringInput | 10499 |
+219: +------------+-------------------------------------+-------+
+219: [2022-04-29 04:15:39.641] [local ee] [info] compiled pure python pipeline in 0.001980s
+219: [2022-04-29 04:15:39.641] [local ee] [info] creating hybrid intermediates took 0.000003s
+219: [2022-04-29 04:15:39.641] [local ee] [info] Created 1 resolve task in 0.000037s
+219: [2022-04-29 04:15:39.641] [local ee] [info] 1/1 task require executing the slow path.
+219: [2022-04-29 04:15:39.748] [driver] [info] [Task Finished] Resolve in 0.107670s
+219: [2022-04-29 04:15:39.748] [local ee] [info] slow path resolved 10499/10499 exceptions in 0.109827s
+219: [2022-04-29 04:15:39.748] [local ee] [info] slow path for Stage 0: total wall clock time: 0.10767s, time to process 1 row via slow path: 0.0102553ms
+219: [2022-04-29 04:15:39.748] [global] [info] [Transform Stage] Stage 0 completed 1 resolve task in 0.109841s
+219: 
+219: [2022-04-29 04:15:39.755] [global] [info] Writing 559342 rows as output to file (48.14 MB)
+219: [2022-04-29 04:15:39.882] [driver] [info] [Task Finished] write to file in 0.127254s (559342 rows, 48.14 MB)
+219: [2022-04-29 04:15:39.882] [global] [info] writing output took 0.133596s
+219: [2022-04-29 04:15:39.882] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 0.13363s
+219: [2022-04-29 04:15:39.882] [global] [info] [Transform Stage] Stage 0 took 3.24412s
+219: [2022-04-29 04:15:39.882] [global] [info] Query Execution took 3.27673s. (planning: 0.0321407s, execution: 3.24459s)
+219: checking for file file:///disk/data/flights/flights_on_time_performance_2003_04.csv
+219: [2022-04-29 04:15:39.889] [fileinputoperator] [info] found 1 file (223.57 MB) to process.
+219: [2022-04-29 04:15:39.889] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_04.csv on 256.00 KB
+219: [2022-04-29 04:15:40.027] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_04.csv on 256.00 KB
+219: [2022-04-29 04:15:40.369] [logical planner] [info] logical optimization took 0.007332ms
+219: [2022-04-29 04:15:40.369] [codegen] [info] hyper specialization encoding
+219: [2022-04-29 04:15:40.370] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:40.377] [codegen] [info] Serialized CodeGeneration Context to 28.62 KB
+219: [2022-04-29 04:15:40.378] [codegen] [info] ZLIB compressed CodeGeneration Context is: 2.78 KB
+219: [2022-04-29 04:15:40.392] [history server] [warning] Could not register job, is history server running? To disable this warning, set webui=False in the context configuration.
+219: [2022-04-29 04:15:40.392] [hyper specializer] [info] specializing code to file file:///disk/data/flights/flights_on_time_performance_2003_04.csv
+219: [2022-04-29 04:15:40.392] [hyper specializer] [info] Decompressed Code context from 2.78 KB to 28.62 KB
+219: [2022-04-29 04:15:40.645] [hyper specializer] [info] Deserialization of Code context took 0.253215s
+219: [2022-04-29 04:15:40.645] [hyper specializer] [info] Total Stage Decode took 0.253454s
+219: [2022-04-29 04:15:40.646] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_04.csv on 512.00 KB
+219: [2022-04-29 04:15:40.794] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_04.csv on 512.00 KB
+219: [2022-04-29 04:15:40.941] [hyper specializer] [info] sampling (setInputFiles) took 0.295862s
+219: [2022-04-29 04:15:40.941] [specializing stage optimizer] [info] performing NVO
+219: [2022-04-29 04:15:41.057] [specializing stage optimizer] [info] performing Constant-Folding specialization
+219: [2022-04-29 04:15:41.057] [specializing stage optimizer] [info] Performing constant folding optimization
+219: [2022-04-29 04:15:41.160] [hyper specializer] [info] specialized to input:  (i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64)
+219: [2022-04-29 04:15:41.160] [hyper specializer] [info] specialized to output: (_Constant[i64,value=2003],_Constant[i64,value=4],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:41.160] [hyper specializer] [info] specialized code reads: 11 columns
+219: [2022-04-29 04:15:41.160] [codegen] [info] generating pipeline for (i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64) -> (_Constant[i64,value=2003],_Constant[i64,value=4],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+219: [2022-04-29 04:15:41.160] [codegen] [info] generating function fill_in_delays for ((i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64)) -> (_Constant[i64,value=2003],_Constant[i64,value=4],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:41.162] [codegen] [warning] hack, need to fix stuff here...
+219: [2022-04-29 04:15:41.164] [hyper specializer] [info] generated code in 0.003906s
+219: [2022-04-29 04:15:41.217] [global] [info] TransformStage - Optimization via LLVM passes took 0.026392 ms
+219: [2022-04-29 04:15:41.217] [global] [info] syms registered (or skipped), compile now
+219: [2022-04-29 04:15:41.230] [global] [info] functor fast_Stage_0 retrieved from llvm
+219: [2022-04-29 04:15:41.340] [global] [info] Compiled code paths for stage 0 in 0.15 ms
+219: [2022-04-29 04:15:41.340] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.948036s
+219: [2022-04-29 04:15:41.340] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_04.csv into 1 task
+219: [2022-04-29 04:15:43.266] [driver] [info] [Task Finished] Transform to mem in 1.926348s (520357 normal rows, 6946 exceptions)
+219: [2022-04-29 04:15:43.266] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 1.9265s
+219: [2022-04-29 04:15:43.266] [global] [info] [Transform Stage] Stage 0 total wall clock time: 1.92635s, 527303 input rows, time to process 1 row via fast path: 0.00365321ms
+219: [2022-04-29 04:15:43.266] [global] [info] Exception details: 
+219: +------------+-------------------------------------+-------+
+219: | OperatorID | Exception                           | Count |
+219: +------------+-------------------------------------+-------+
+219: | 100057     | tuplex.internal.BadParseStringInput | 6946  |
+219: +------------+-------------------------------------+-------+
+219: [2022-04-29 04:15:43.268] [local ee] [info] compiled pure python pipeline in 0.001997s
+219: [2022-04-29 04:15:43.268] [local ee] [info] creating hybrid intermediates took 0.000003s
+219: [2022-04-29 04:15:43.268] [local ee] [info] Created 1 resolve task in 0.000035s
+219: [2022-04-29 04:15:43.268] [local ee] [info] 1/1 task require executing the slow path.
+219: [2022-04-29 04:15:43.366] [driver] [info] [Task Finished] Resolve in 0.097292s
+219: [2022-04-29 04:15:43.366] [local ee] [info] slow path resolved 6946/6946 exceptions in 0.0994615s
+219: [2022-04-29 04:15:43.366] [local ee] [info] slow path for Stage 0: total wall clock time: 0.0972917s, time to process 1 row via slow path: 0.0140069ms
+219: [2022-04-29 04:15:43.366] [global] [info] [Transform Stage] Stage 0 completed 1 resolve task in 0.0994745s
+219: 
+219: [2022-04-29 04:15:43.371] [global] [info] Writing 527303 rows as output to file (43.74 MB)
+219: [2022-04-29 04:15:43.480] [driver] [info] [Task Finished] write to file in 0.108822s (527303 rows, 43.74 MB)
+219: [2022-04-29 04:15:43.480] [global] [info] writing output took 0.114305s
+219: [2022-04-29 04:15:43.480] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 0.114336s
+219: [2022-04-29 04:15:43.480] [global] [info] [Transform Stage] Stage 0 took 3.08838s
+219: [2022-04-29 04:15:43.480] [global] [info] Query Execution took 3.12524s. (planning: 0.0363732s, execution: 3.08886s)
+219: checking for file file:///disk/data/flights/flights_on_time_performance_2003_05.csv
+219: [2022-04-29 04:15:43.487] [fileinputoperator] [info] found 1 file (226.42 MB) to process.
+219: [2022-04-29 04:15:43.487] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_05.csv on 256.00 KB
+219: [2022-04-29 04:15:43.625] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_05.csv on 256.00 KB
+219: [2022-04-29 04:15:43.886] [logical planner] [info] logical optimization took 0.004433ms
+219: [2022-04-29 04:15:43.886] [codegen] [info] hyper specialization encoding
+219: [2022-04-29 04:15:43.888] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:43.894] [codegen] [info] Serialized CodeGeneration Context to 28.62 KB
+219: [2022-04-29 04:15:43.895] [codegen] [info] ZLIB compressed CodeGeneration Context is: 2.78 KB
+219: [2022-04-29 04:15:43.907] [history server] [warning] Could not register job, is history server running? To disable this warning, set webui=False in the context configuration.
+219: [2022-04-29 04:15:43.907] [hyper specializer] [info] specializing code to file file:///disk/data/flights/flights_on_time_performance_2003_05.csv
+219: [2022-04-29 04:15:43.907] [hyper specializer] [info] Decompressed Code context from 2.78 KB to 28.62 KB
+219: [2022-04-29 04:15:44.161] [hyper specializer] [info] Deserialization of Code context took 0.253550s
+219: [2022-04-29 04:15:44.161] [hyper specializer] [info] Total Stage Decode took 0.253784s
+219: [2022-04-29 04:15:44.161] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_05.csv on 512.00 KB
+219: [2022-04-29 04:15:44.309] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_05.csv on 512.00 KB
+219: [2022-04-29 04:15:44.457] [hyper specializer] [info] sampling (setInputFiles) took 0.295940s
+219: [2022-04-29 04:15:44.457] [specializing stage optimizer] [info] performing NVO
+219: [2022-04-29 04:15:44.572] [specializing stage optimizer] [info] performing Constant-Folding specialization
+219: [2022-04-29 04:15:44.572] [specializing stage optimizer] [info] Performing constant folding optimization
+219: [2022-04-29 04:15:44.672] [hyper specializer] [info] specialized to input:  (i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64)
+219: [2022-04-29 04:15:44.672] [hyper specializer] [info] specialized to output: (_Constant[i64,value=2003],_Constant[i64,value=5],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:44.672] [hyper specializer] [info] specialized code reads: 11 columns
+219: [2022-04-29 04:15:44.672] [codegen] [info] generating pipeline for (i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64) -> (_Constant[i64,value=2003],_Constant[i64,value=5],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+219: [2022-04-29 04:15:44.673] [codegen] [info] generating function fill_in_delays for ((i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64)) -> (_Constant[i64,value=2003],_Constant[i64,value=5],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:44.675] [codegen] [warning] hack, need to fix stuff here...
+219: [2022-04-29 04:15:44.676] [hyper specializer] [info] generated code in 0.003851s
+219: [2022-04-29 04:15:44.730] [global] [info] TransformStage - Optimization via LLVM passes took 0.026144 ms
+219: [2022-04-29 04:15:44.730] [global] [info] syms registered (or skipped), compile now
+219: [2022-04-29 04:15:44.743] [global] [info] functor fast_Stage_0 retrieved from llvm
+219: [2022-04-29 04:15:44.852] [global] [info] Compiled code paths for stage 0 in 0.15 ms
+219: [2022-04-29 04:15:44.852] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.944901s
+219: [2022-04-29 04:15:44.852] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_05.csv into 1 task
+219: [2022-04-29 04:15:46.808] [driver] [info] [Task Finished] Transform to mem in 1.956312s (528723 normal rows, 5059 exceptions)
+219: [2022-04-29 04:15:46.808] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 1.95646s
+219: [2022-04-29 04:15:46.808] [global] [info] [Transform Stage] Stage 0 total wall clock time: 1.95631s, 533782 input rows, time to process 1 row via fast path: 0.003665ms
+219: [2022-04-29 04:15:46.809] [global] [info] Exception details: 
+219: +------------+-------------------------------------+-------+
+219: | OperatorID | Exception                           | Count |
+219: +------------+-------------------------------------+-------+
+219: | 100076     | tuplex.internal.BadParseStringInput | 5059  |
+219: +------------+-------------------------------------+-------+
+219: [2022-04-29 04:15:46.810] [local ee] [info] compiled pure python pipeline in 0.001916s
+219: [2022-04-29 04:15:46.810] [local ee] [info] creating hybrid intermediates took 0.000004s
+219: [2022-04-29 04:15:46.811] [local ee] [info] Created 1 resolve task in 0.000033s
+219: [2022-04-29 04:15:46.811] [local ee] [info] 1/1 task require executing the slow path.
+219: [2022-04-29 04:15:46.910] [driver] [info] [Task Finished] Resolve in 0.099773s
+219: [2022-04-29 04:15:46.910] [local ee] [info] slow path resolved 5059/5059 exceptions in 0.10186s
+219: [2022-04-29 04:15:46.910] [local ee] [info] slow path for Stage 0: total wall clock time: 0.0997733s, time to process 1 row via slow path: 0.0197219ms
+219: [2022-04-29 04:15:46.910] [global] [info] [Transform Stage] Stage 0 completed 1 resolve task in 0.101873s
+219: 
+219: [2022-04-29 04:15:46.916] [global] [info] Writing 533782 rows as output to file (45.39 MB)
+219: [2022-04-29 04:15:47.034] [driver] [info] [Task Finished] write to file in 0.117985s (533782 rows, 45.39 MB)
+219: [2022-04-29 04:15:47.034] [global] [info] writing output took 0.123714s
+219: [2022-04-29 04:15:47.034] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 0.123748s
+219: [2022-04-29 04:15:47.034] [global] [info] [Transform Stage] Stage 0 took 3.12703s
+219: [2022-04-29 04:15:47.034] [global] [info] Query Execution took 3.15591s. (planning: 0.028404s, execution: 3.1275s)
+219: checking for file file:///disk/data/flights/flights_on_time_performance_2003_06.csv
+219: [2022-04-29 04:15:47.038] [fileinputoperator] [info] found 1 file (229.35 MB) to process.
+219: [2022-04-29 04:15:47.038] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_06.csv on 256.00 KB
+219: [2022-04-29 04:15:47.178] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_06.csv on 256.00 KB
+219: [2022-04-29 04:15:47.520] [logical planner] [info] logical optimization took 0.007352ms
+219: [2022-04-29 04:15:47.520] [codegen] [info] hyper specialization encoding
+219: [2022-04-29 04:15:47.521] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:47.528] [codegen] [info] Serialized CodeGeneration Context to 28.75 KB
+219: [2022-04-29 04:15:47.529] [codegen] [info] ZLIB compressed CodeGeneration Context is: 2.78 KB
+219: [2022-04-29 04:15:47.543] [history server] [warning] Could not register job, is history server running? To disable this warning, set webui=False in the context configuration.
+219: [2022-04-29 04:15:47.543] [hyper specializer] [info] specializing code to file file:///disk/data/flights/flights_on_time_performance_2003_06.csv
+219: [2022-04-29 04:15:47.543] [hyper specializer] [info] Decompressed Code context from 2.78 KB to 28.75 KB
+219: [2022-04-29 04:15:47.796] [hyper specializer] [info] Deserialization of Code context took 0.253246s
+219: [2022-04-29 04:15:47.796] [hyper specializer] [info] Total Stage Decode took 0.253492s
+219: [2022-04-29 04:15:47.797] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_06.csv on 512.00 KB
+219: [2022-04-29 04:15:47.947] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_06.csv on 512.00 KB
+219: [2022-04-29 04:15:48.096] [hyper specializer] [info] sampling (setInputFiles) took 0.299989s
+219: [2022-04-29 04:15:48.096] [specializing stage optimizer] [info] performing NVO
+219: [2022-04-29 04:15:48.214] [specializing stage optimizer] [info] performing Constant-Folding specialization
+219: [2022-04-29 04:15:48.214] [specializing stage optimizer] [info] Performing constant folding optimization
+219: [2022-04-29 04:15:48.315] [hyper specializer] [info] specialized to input:  (i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:48.315] [hyper specializer] [info] specialized to output: (_Constant[i64,value=2003],_Constant[i64,value=6],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:48.315] [hyper specializer] [info] specialized code reads: 13 columns
+219: [2022-04-29 04:15:48.315] [codegen] [info] generating pipeline for (i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) -> (_Constant[i64,value=2003],_Constant[i64,value=6],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+219: [2022-04-29 04:15:48.315] [codegen] [info] upcasting function return type from (_Constant[i64,value=2003],_Constant[i64,value=6],i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) to (_Constant[i64,value=2003],_Constant[i64,value=6],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:48.315] [codegen] [info] generating function fill_in_delays for ((i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (_Constant[i64,value=2003],_Constant[i64,value=6],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:48.316] [codegen] [warning] hack, need to fix stuff here...
+219: [2022-04-29 04:15:48.317] [hyper specializer] [info] generated code in 0.002824s
+219: [2022-04-29 04:15:48.368] [global] [info] TransformStage - Optimization via LLVM passes took 0.023242 ms
+219: [2022-04-29 04:15:48.368] [global] [info] syms registered (or skipped), compile now
+219: [2022-04-29 04:15:48.381] [global] [info] functor fast_Stage_0 retrieved from llvm
+219: [2022-04-29 04:15:48.485] [global] [info] Compiled code paths for stage 0 in 0.14 ms
+219: [2022-04-29 04:15:48.485] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.942629s
+219: [2022-04-29 04:15:48.486] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_06.csv into 1 task
+219: [2022-04-29 04:15:50.409] [driver] [info] [Task Finished] Transform to mem in 1.923233s (531310 normal rows, 5186 exceptions)
+219: [2022-04-29 04:15:50.409] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 1.92338s
+219: [2022-04-29 04:15:50.409] [global] [info] [Transform Stage] Stage 0 total wall clock time: 1.92323s, 536496 input rows, time to process 1 row via fast path: 0.0035848ms
+219: [2022-04-29 04:15:50.409] [global] [info] Exception details: 
+219: +------------+-------------------------------------+-------+
+219: | OperatorID | Exception                           | Count |
+219: +------------+-------------------------------------+-------+
+219: | 100095     | tuplex.internal.BadParseStringInput | 5186  |
+219: +------------+-------------------------------------+-------+
+219: [2022-04-29 04:15:50.411] [local ee] [info] compiled pure python pipeline in 0.001903s
+219: [2022-04-29 04:15:50.411] [local ee] [info] creating hybrid intermediates took 0.000003s
+219: [2022-04-29 04:15:50.411] [local ee] [info] Created 1 resolve task in 0.000036s
+219: [2022-04-29 04:15:50.411] [local ee] [info] 1/1 task require executing the slow path.
+219: [2022-04-29 04:15:50.502] [driver] [info] [Task Finished] Resolve in 0.091622s
+219: [2022-04-29 04:15:50.502] [local ee] [info] slow path resolved 5186/5186 exceptions in 0.0936953s
+219: [2022-04-29 04:15:50.503] [local ee] [info] slow path for Stage 0: total wall clock time: 0.0916217s, time to process 1 row via slow path: 0.0176671ms
+219: [2022-04-29 04:15:50.503] [global] [info] [Transform Stage] Stage 0 completed 1 resolve task in 0.0937083s
+219: 
+219: [2022-04-29 04:15:50.508] [global] [info] Writing 536496 rows as output to file (40.70 MB)
+219: [2022-04-29 04:15:50.635] [driver] [info] [Task Finished] write to file in 0.127182s (536496 rows, 40.70 MB)
+219: [2022-04-29 04:15:50.635] [global] [info] writing output took 0.132305s
+219: [2022-04-29 04:15:50.635] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 0.132336s
+219: [2022-04-29 04:15:50.635] [global] [info] [Transform Stage] Stage 0 took 3.09211s
+219: [2022-04-29 04:15:50.635] [global] [info] Query Execution took 3.12912s. (planning: 0.0365386s, execution: 3.09258s)
+219: checking for file file:///disk/data/flights/flights_on_time_performance_2003_07.csv
+219: [2022-04-29 04:15:50.642] [fileinputoperator] [info] found 1 file (238.83 MB) to process.
+219: [2022-04-29 04:15:50.642] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_07.csv on 256.00 KB
+219: [2022-04-29 04:15:50.782] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_07.csv on 256.00 KB
+219: [2022-04-29 04:15:51.043] [logical planner] [info] logical optimization took 0.004438ms
+219: [2022-04-29 04:15:51.043] [codegen] [info] hyper specialization encoding
+219: [2022-04-29 04:15:51.044] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:51.050] [codegen] [info] Serialized CodeGeneration Context to 28.75 KB
+219: [2022-04-29 04:15:51.051] [codegen] [info] ZLIB compressed CodeGeneration Context is: 2.78 KB
+219: [2022-04-29 04:15:51.064] [history server] [warning] Could not register job, is history server running? To disable this warning, set webui=False in the context configuration.
+219: [2022-04-29 04:15:51.065] [hyper specializer] [info] specializing code to file file:///disk/data/flights/flights_on_time_performance_2003_07.csv
+219: [2022-04-29 04:15:51.065] [hyper specializer] [info] Decompressed Code context from 2.78 KB to 28.75 KB
+219: [2022-04-29 04:15:51.318] [hyper specializer] [info] Deserialization of Code context took 0.253298s
+219: [2022-04-29 04:15:51.318] [hyper specializer] [info] Total Stage Decode took 0.253548s
+219: [2022-04-29 04:15:51.318] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_07.csv on 512.00 KB
+219: [2022-04-29 04:15:51.470] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_07.csv on 512.00 KB
+219: [2022-04-29 04:15:51.470] [hyper specializer] [info] sampling (setInputFiles) took 0.151729s
+219: [2022-04-29 04:15:51.470] [specializing stage optimizer] [info] performing NVO
+219: [2022-04-29 04:15:51.489] [global] [warning] requested 2000 rows for sampling, but only 1159 stored. Consider decreasing sample size.
+219: [2022-04-29 04:15:51.506] [specializing stage optimizer] [info] performing Constant-Folding specialization
+219: [2022-04-29 04:15:51.506] [specializing stage optimizer] [info] Performing constant folding optimization
+219: [2022-04-29 04:15:51.561] [hyper specializer] [info] specialized to input:  (i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:51.561] [hyper specializer] [info] specialized to output: (_Constant[i64,value=2003],_Constant[i64,value=7],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:51.561] [hyper specializer] [info] specialized code reads: 11 columns
+219: [2022-04-29 04:15:51.561] [codegen] [info] generating pipeline for (i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64]) -> (_Constant[i64,value=2003],_Constant[i64,value=7],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+219: [2022-04-29 04:15:51.561] [codegen] [info] upcasting function return type from (_Constant[i64,value=2003],_Constant[i64,value=7],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],_Constant[f64,value=0.00000],Option[f64]) to (_Constant[i64,value=2003],_Constant[i64,value=7],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:51.561] [codegen] [info] generating function fill_in_delays for ((i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64])) -> (_Constant[i64,value=2003],_Constant[i64,value=7],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:51.562] [codegen] [warning] hack, need to fix stuff here...
+219: [2022-04-29 04:15:51.563] [hyper specializer] [info] generated code in 0.002759s
+219: [2022-04-29 04:15:51.597] [global] [info] TransformStage - Optimization via LLVM passes took 0.020218 ms
+219: [2022-04-29 04:15:51.597] [global] [info] syms registered (or skipped), compile now
+219: [2022-04-29 04:15:51.608] [global] [info] functor fast_Stage_0 retrieved from llvm
+219: [2022-04-29 04:15:51.712] [global] [info] Compiled code paths for stage 0 in 0.14 ms
+219: [2022-04-29 04:15:51.712] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.647718s
+219: [2022-04-29 04:15:51.712] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_07.csv into 1 task
+219: [2022-04-29 04:15:53.716] [driver] [info] [Task Finished] Transform to mem in 2.003667s (549528 normal rows, 9040 exceptions)
+219: [2022-04-29 04:15:53.716] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 2.00381s
+219: [2022-04-29 04:15:53.716] [global] [info] [Transform Stage] Stage 0 total wall clock time: 2.00367s, 558568 input rows, time to process 1 row via fast path: 0.00358715ms
+219: [2022-04-29 04:15:53.716] [global] [info] Exception details: 
+219: +------------+-------------------------------------+-------+
+219: | OperatorID | Exception                           | Count |
+219: +------------+-------------------------------------+-------+
+219: | 100114     | tuplex.internal.BadParseStringInput | 9040  |
+219: +------------+-------------------------------------+-------+
+219: [2022-04-29 04:15:53.718] [local ee] [info] compiled pure python pipeline in 0.001929s
+219: [2022-04-29 04:15:53.718] [local ee] [info] creating hybrid intermediates took 0.000003s
+219: [2022-04-29 04:15:53.718] [local ee] [info] Created 1 resolve task in 0.000032s
+219: [2022-04-29 04:15:53.718] [local ee] [info] 1/1 task require executing the slow path.
+219: [2022-04-29 04:15:53.825] [driver] [info] [Task Finished] Resolve in 0.106460s
+219: [2022-04-29 04:15:53.825] [local ee] [info] slow path resolved 9040/9040 exceptions in 0.108551s
+219: [2022-04-29 04:15:53.825] [local ee] [info] slow path for Stage 0: total wall clock time: 0.10646s, time to process 1 row via slow path: 0.0117765ms
+219: [2022-04-29 04:15:53.825] [global] [info] [Transform Stage] Stage 0 completed 1 resolve task in 0.108565s
+219: 
+219: [2022-04-29 04:15:53.830] [global] [info] Writing 558568 rows as output to file (47.12 MB)
+219: [2022-04-29 04:15:53.945] [driver] [info] [Task Finished] write to file in 0.114725s (558568 rows, 47.12 MB)
+219: [2022-04-29 04:15:53.945] [global] [info] writing output took 0.120617s
+219: [2022-04-29 04:15:53.945] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 0.120634s
+219: [2022-04-29 04:15:53.945] [global] [info] [Transform Stage] Stage 0 took 2.88075s
+219: [2022-04-29 04:15:53.945] [global] [info] Query Execution took 2.91074s. (planning: 0.0295384s, execution: 2.8812s)
+219: checking for file file:///disk/data/flights/flights_on_time_performance_2003_08.csv
+219: [2022-04-29 04:15:53.949] [fileinputoperator] [info] found 1 file (238.10 MB) to process.
+219: [2022-04-29 04:15:53.949] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_08.csv on 256.00 KB
+219: [2022-04-29 04:15:54.090] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_08.csv on 256.00 KB
+219: [2022-04-29 04:15:54.351] [logical planner] [info] logical optimization took 0.004351ms
+219: [2022-04-29 04:15:54.351] [codegen] [info] hyper specialization encoding
+219: [2022-04-29 04:15:54.352] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:54.358] [codegen] [info] Serialized CodeGeneration Context to 28.75 KB
+219: [2022-04-29 04:15:54.359] [codegen] [info] ZLIB compressed CodeGeneration Context is: 2.78 KB
+219: [2022-04-29 04:15:54.375] [history server] [warning] Could not register job, is history server running? To disable this warning, set webui=False in the context configuration.
+219: [2022-04-29 04:15:54.375] [hyper specializer] [info] specializing code to file file:///disk/data/flights/flights_on_time_performance_2003_08.csv
+219: [2022-04-29 04:15:54.375] [hyper specializer] [info] Decompressed Code context from 2.78 KB to 28.75 KB
+219: [2022-04-29 04:15:54.628] [hyper specializer] [info] Deserialization of Code context took 0.253301s
+219: [2022-04-29 04:15:54.628] [hyper specializer] [info] Total Stage Decode took 0.253530s
+219: [2022-04-29 04:15:54.628] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_08.csv on 512.00 KB
+219: [2022-04-29 04:15:54.780] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_08.csv on 512.00 KB
+219: [2022-04-29 04:15:54.930] [hyper specializer] [info] sampling (setInputFiles) took 0.301363s
+219: [2022-04-29 04:15:54.930] [specializing stage optimizer] [info] performing NVO
+219: [2022-04-29 04:15:55.044] [specializing stage optimizer] [info] performing Constant-Folding specialization
+219: [2022-04-29 04:15:55.044] [specializing stage optimizer] [info] Performing constant folding optimization
+219: [2022-04-29 04:15:55.143] [hyper specializer] [info] specialized to input:  (i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:55.143] [hyper specializer] [info] specialized to output: (_Constant[i64,value=2003],_Constant[i64,value=8],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:55.143] [hyper specializer] [info] specialized code reads: 13 columns
+219: [2022-04-29 04:15:55.143] [codegen] [info] generating pipeline for (i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) -> (_Constant[i64,value=2003],_Constant[i64,value=8],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+219: [2022-04-29 04:15:55.144] [codegen] [info] upcasting function return type from (_Constant[i64,value=2003],_Constant[i64,value=8],i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) to (_Constant[i64,value=2003],_Constant[i64,value=8],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:55.144] [codegen] [info] generating function fill_in_delays for ((i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (_Constant[i64,value=2003],_Constant[i64,value=8],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:55.145] [codegen] [warning] hack, need to fix stuff here...
+219: [2022-04-29 04:15:55.146] [hyper specializer] [info] generated code in 0.002805s
+219: [2022-04-29 04:15:55.196] [global] [info] TransformStage - Optimization via LLVM passes took 0.023309 ms
+219: [2022-04-29 04:15:55.196] [global] [info] syms registered (or skipped), compile now
+219: [2022-04-29 04:15:55.209] [global] [info] functor fast_Stage_0 retrieved from llvm
+219: [2022-04-29 04:15:55.313] [global] [info] Compiled code paths for stage 0 in 0.14 ms
+219: [2022-04-29 04:15:55.313] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.938392s
+219: [2022-04-29 04:15:55.313] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_08.csv into 1 task
+219: [2022-04-29 04:15:57.318] [driver] [info] [Task Finished] Transform to mem in 2.005169s (546358 normal rows, 10626 exceptions)
+219: [2022-04-29 04:15:57.318] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 2.00532s
+219: [2022-04-29 04:15:57.318] [global] [info] [Transform Stage] Stage 0 total wall clock time: 2.00517s, 556984 input rows, time to process 1 row via fast path: 0.00360005ms
+219: [2022-04-29 04:15:57.318] [global] [info] Exception details: 
+219: +------------+-------------------------------------+-------+
+219: | OperatorID | Exception                           | Count |
+219: +------------+-------------------------------------+-------+
+219: | 100133     | tuplex.internal.BadParseStringInput | 10626 |
+219: +------------+-------------------------------------+-------+
+219: [2022-04-29 04:15:57.320] [local ee] [info] compiled pure python pipeline in 0.001983s
+219: [2022-04-29 04:15:57.320] [local ee] [info] creating hybrid intermediates took 0.000003s
+219: [2022-04-29 04:15:57.320] [local ee] [info] Created 1 resolve task in 0.000034s
+219: [2022-04-29 04:15:57.320] [local ee] [info] 1/1 task require executing the slow path.
+219: [2022-04-29 04:15:57.420] [driver] [info] [Task Finished] Resolve in 0.099311s
+219: [2022-04-29 04:15:57.420] [local ee] [info] slow path resolved 10626/10626 exceptions in 0.101471s
+219: [2022-04-29 04:15:57.420] [local ee] [info] slow path for Stage 0: total wall clock time: 0.0993111s, time to process 1 row via slow path: 0.00934605ms
+219: [2022-04-29 04:15:57.420] [global] [info] [Transform Stage] Stage 0 completed 1 resolve task in 0.101485s
+219: 
+219: [2022-04-29 04:15:57.425] [global] [info] Writing 556984 rows as output to file (42.83 MB)
+219: [2022-04-29 04:15:57.542] [driver] [info] [Task Finished] write to file in 0.116485s (556984 rows, 42.83 MB)
+219: [2022-04-29 04:15:57.542] [global] [info] writing output took 0.121894s
+219: [2022-04-29 04:15:57.542] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 0.121927s
+219: [2022-04-29 04:15:57.542] [global] [info] [Transform Stage] Stage 0 took 3.16716s
+219: [2022-04-29 04:15:57.542] [global] [info] Query Execution took 3.19912s. (planning: 0.031489s, execution: 3.16763s)
+219: checking for file file:///disk/data/flights/flights_on_time_performance_2003_09.csv
+219: [2022-04-29 04:15:57.546] [fileinputoperator] [info] found 1 file (225.00 MB) to process.
+219: [2022-04-29 04:15:57.546] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_09.csv on 256.00 KB
+219: [2022-04-29 04:15:57.686] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_09.csv on 256.00 KB
+219: [2022-04-29 04:15:58.028] [logical planner] [info] logical optimization took 0.007326ms
+219: [2022-04-29 04:15:58.028] [codegen] [info] hyper specialization encoding
+219: [2022-04-29 04:15:58.029] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:58.035] [codegen] [info] Serialized CodeGeneration Context to 28.75 KB
+219: [2022-04-29 04:15:58.036] [codegen] [info] ZLIB compressed CodeGeneration Context is: 2.78 KB
+219: [2022-04-29 04:15:58.049] [history server] [warning] Could not register job, is history server running? To disable this warning, set webui=False in the context configuration.
+219: [2022-04-29 04:15:58.049] [hyper specializer] [info] specializing code to file file:///disk/data/flights/flights_on_time_performance_2003_09.csv
+219: [2022-04-29 04:15:58.049] [hyper specializer] [info] Decompressed Code context from 2.78 KB to 28.75 KB
+219: [2022-04-29 04:15:58.303] [hyper specializer] [info] Deserialization of Code context took 0.253582s
+219: [2022-04-29 04:15:58.303] [hyper specializer] [info] Total Stage Decode took 0.253815s
+219: [2022-04-29 04:15:58.303] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_09.csv on 512.00 KB
+219: [2022-04-29 04:15:58.453] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_09.csv on 512.00 KB
+219: [2022-04-29 04:15:58.602] [hyper specializer] [info] sampling (setInputFiles) took 0.298885s
+219: [2022-04-29 04:15:58.602] [specializing stage optimizer] [info] performing NVO
+219: [2022-04-29 04:15:58.719] [specializing stage optimizer] [info] performing Constant-Folding specialization
+219: [2022-04-29 04:15:58.719] [specializing stage optimizer] [info] Performing constant folding optimization
+219: [2022-04-29 04:15:58.822] [hyper specializer] [info] specialized to input:  (i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:58.822] [hyper specializer] [info] specialized to output: (_Constant[i64,value=2003],_Constant[i64,value=9],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:58.822] [hyper specializer] [info] specialized code reads: 12 columns
+219: [2022-04-29 04:15:58.822] [codegen] [info] generating pipeline for (i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64]) -> (_Constant[i64,value=2003],_Constant[i64,value=9],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+219: [2022-04-29 04:15:58.823] [codegen] [info] upcasting function return type from (_Constant[i64,value=2003],_Constant[i64,value=9],i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],_Constant[f64,value=0.00000],Option[f64]) to (_Constant[i64,value=2003],_Constant[i64,value=9],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:58.823] [codegen] [info] generating function fill_in_delays for ((i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64])) -> (_Constant[i64,value=2003],_Constant[i64,value=9],i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:15:58.824] [codegen] [warning] hack, need to fix stuff here...
+219: [2022-04-29 04:15:58.825] [hyper specializer] [info] generated code in 0.002788s
+219: [2022-04-29 04:15:58.874] [global] [info] TransformStage - Optimization via LLVM passes took 0.022365 ms
+219: [2022-04-29 04:15:58.874] [global] [info] syms registered (or skipped), compile now
+219: [2022-04-29 04:15:58.886] [global] [info] functor fast_Stage_0 retrieved from llvm
+219: [2022-04-29 04:15:58.991] [global] [info] Compiled code paths for stage 0 in 0.14 ms
+219: [2022-04-29 04:15:58.991] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.941795s
+219: [2022-04-29 04:15:58.991] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_09.csv into 1 task
+219: [2022-04-29 04:16:00.883] [driver] [info] [Task Finished] Transform to mem in 1.891767s (519252 normal rows, 8462 exceptions)
+219: [2022-04-29 04:16:00.883] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 1.89191s
+219: [2022-04-29 04:16:00.883] [global] [info] [Transform Stage] Stage 0 total wall clock time: 1.89177s, 527714 input rows, time to process 1 row via fast path: 0.00358483ms
+219: [2022-04-29 04:16:00.883] [global] [info] Exception details: 
+219: +------------+-------------------------------------+-------+
+219: | OperatorID | Exception                           | Count |
+219: +------------+-------------------------------------+-------+
+219: | 100152     | tuplex.internal.BadParseStringInput | 8462  |
+219: +------------+-------------------------------------+-------+
+219: [2022-04-29 04:16:00.885] [local ee] [info] compiled pure python pipeline in 0.001990s
+219: [2022-04-29 04:16:00.885] [local ee] [info] creating hybrid intermediates took 0.000003s
+219: [2022-04-29 04:16:00.885] [local ee] [info] Created 1 resolve task in 0.000035s
+219: [2022-04-29 04:16:00.885] [local ee] [info] 1/1 task require executing the slow path.
+219: [2022-04-29 04:16:00.982] [driver] [info] [Task Finished] Resolve in 0.096964s
+219: [2022-04-29 04:16:00.982] [local ee] [info] slow path resolved 8462/8462 exceptions in 0.0991253s
+219: [2022-04-29 04:16:00.982] [local ee] [info] slow path for Stage 0: total wall clock time: 0.0969645s, time to process 1 row via slow path: 0.0114588ms
+219: [2022-04-29 04:16:00.982] [global] [info] [Transform Stage] Stage 0 completed 1 resolve task in 0.0991389s
+219: 
+219: [2022-04-29 04:16:00.987] [global] [info] Writing 527714 rows as output to file (43.32 MB)
+219: [2022-04-29 04:16:01.092] [driver] [info] [Task Finished] write to file in 0.105165s (527714 rows, 43.32 MB)
+219: [2022-04-29 04:16:01.092] [global] [info] writing output took 0.110614s
+219: [2022-04-29 04:16:01.092] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 0.110646s
+219: [2022-04-29 04:16:01.092] [global] [info] [Transform Stage] Stage 0 took 3.04353s
+219: [2022-04-29 04:16:01.092] [global] [info] Query Execution took 3.07875s. (planning: 0.0347336s, execution: 3.04402s)
+219: checking for file file:///disk/data/flights/flights_on_time_performance_2003_10.csv
+219: [2022-04-29 04:16:01.099] [fileinputoperator] [info] found 1 file (236.18 MB) to process.
+219: [2022-04-29 04:16:01.099] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_10.csv on 256.00 KB
+219: [2022-04-29 04:16:01.239] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_10.csv on 256.00 KB
+219: [2022-04-29 04:16:01.500] [logical planner] [info] logical optimization took 0.004439ms
+219: [2022-04-29 04:16:01.500] [codegen] [info] hyper specialization encoding
+219: [2022-04-29 04:16:01.501] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:01.507] [codegen] [info] Serialized CodeGeneration Context to 28.75 KB
+219: [2022-04-29 04:16:01.508] [codegen] [info] ZLIB compressed CodeGeneration Context is: 2.78 KB
+219: [2022-04-29 04:16:01.523] [history server] [warning] Could not register job, is history server running? To disable this warning, set webui=False in the context configuration.
+219: [2022-04-29 04:16:01.523] [hyper specializer] [info] specializing code to file file:///disk/data/flights/flights_on_time_performance_2003_10.csv
+219: [2022-04-29 04:16:01.523] [hyper specializer] [info] Decompressed Code context from 2.78 KB to 28.75 KB
+219: [2022-04-29 04:16:01.776] [hyper specializer] [info] Deserialization of Code context took 0.253423s
+219: [2022-04-29 04:16:01.776] [hyper specializer] [info] Total Stage Decode took 0.253670s
+219: [2022-04-29 04:16:01.777] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_10.csv on 512.00 KB
+219: [2022-04-29 04:16:01.927] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_10.csv on 512.00 KB
+219: [2022-04-29 04:16:02.077] [hyper specializer] [info] sampling (setInputFiles) took 0.300328s
+219: [2022-04-29 04:16:02.077] [specializing stage optimizer] [info] performing NVO
+219: [2022-04-29 04:16:02.191] [specializing stage optimizer] [info] performing Constant-Folding specialization
+219: [2022-04-29 04:16:02.191] [specializing stage optimizer] [info] Performing constant folding optimization
+219: [2022-04-29 04:16:02.291] [hyper specializer] [info] specialized to input:  (i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:02.291] [hyper specializer] [info] specialized to output: (_Constant[i64,value=2003],_Constant[i64,value=10],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:02.291] [hyper specializer] [info] specialized code reads: 12 columns
+219: [2022-04-29 04:16:02.291] [codegen] [info] generating pipeline for (i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) -> (_Constant[i64,value=2003],_Constant[i64,value=10],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+219: [2022-04-29 04:16:02.291] [codegen] [info] upcasting function return type from (_Constant[i64,value=2003],_Constant[i64,value=10],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) to (_Constant[i64,value=2003],_Constant[i64,value=10],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:02.292] [codegen] [info] generating function fill_in_delays for ((i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (_Constant[i64,value=2003],_Constant[i64,value=10],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:02.293] [codegen] [warning] hack, need to fix stuff here...
+219: [2022-04-29 04:16:02.294] [hyper specializer] [info] generated code in 0.002830s
+219: [2022-04-29 04:16:02.342] [global] [info] TransformStage - Optimization via LLVM passes took 0.021461 ms
+219: [2022-04-29 04:16:02.342] [global] [info] syms registered (or skipped), compile now
+219: [2022-04-29 04:16:02.354] [global] [info] functor fast_Stage_0 retrieved from llvm
+219: [2022-04-29 04:16:02.459] [global] [info] Compiled code paths for stage 0 in 0.14 ms
+219: [2022-04-29 04:16:02.459] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.935834s
+219: [2022-04-29 04:16:02.459] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_10.csv into 1 task
+219: [2022-04-29 04:16:04.429] [driver] [info] [Task Finished] Transform to mem in 1.970561s (546559 normal rows, 5811 exceptions)
+219: [2022-04-29 04:16:04.429] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 1.97071s
+219: [2022-04-29 04:16:04.429] [global] [info] [Transform Stage] Stage 0 total wall clock time: 1.97056s, 552370 input rows, time to process 1 row via fast path: 0.00356747ms
+219: [2022-04-29 04:16:04.429] [global] [info] Exception details: 
+219: +------------+-------------------------------------+-------+
+219: | OperatorID | Exception                           | Count |
+219: +------------+-------------------------------------+-------+
+219: | 100171     | tuplex.internal.BadParseStringInput | 5811  |
+219: +------------+-------------------------------------+-------+
+219: [2022-04-29 04:16:04.431] [local ee] [info] compiled pure python pipeline in 0.001932s
+219: [2022-04-29 04:16:04.431] [local ee] [info] creating hybrid intermediates took 0.000003s
+219: [2022-04-29 04:16:04.431] [local ee] [info] Created 1 resolve task in 0.000035s
+219: [2022-04-29 04:16:04.431] [local ee] [info] 1/1 task require executing the slow path.
+219: [2022-04-29 04:16:04.524] [driver] [info] [Task Finished] Resolve in 0.092637s
+219: [2022-04-29 04:16:04.524] [local ee] [info] slow path resolved 5811/5811 exceptions in 0.0947429s
+219: [2022-04-29 04:16:04.524] [local ee] [info] slow path for Stage 0: total wall clock time: 0.0926367s, time to process 1 row via slow path: 0.0159416ms
+219: [2022-04-29 04:16:04.524] [global] [info] [Transform Stage] Stage 0 completed 1 resolve task in 0.0947563s
+219: 
+219: [2022-04-29 04:16:04.529] [global] [info] Writing 552370 rows as output to file (41.34 MB)
+219: [2022-04-29 04:16:04.629] [driver] [info] [Task Finished] write to file in 0.099541s (552370 rows, 41.34 MB)
+219: [2022-04-29 04:16:04.629] [global] [info] writing output took 0.104800s
+219: [2022-04-29 04:16:04.629] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 0.104832s
+219: [2022-04-29 04:16:04.629] [global] [info] [Transform Stage] Stage 0 took 3.10617s
+219: [2022-04-29 04:16:04.629] [global] [info] Query Execution took 3.13721s. (planning: 0.0305813s, execution: 3.10663s)
+219: checking for file file:///disk/data/flights/flights_on_time_performance_2003_11.csv
+219: [2022-04-29 04:16:04.633] [fileinputoperator] [info] found 1 file (226.26 MB) to process.
+219: [2022-04-29 04:16:04.633] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_11.csv on 256.00 KB
+219: [2022-04-29 04:16:04.773] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_11.csv on 256.00 KB
+219: [2022-04-29 04:16:05.115] [logical planner] [info] logical optimization took 0.007312ms
+219: [2022-04-29 04:16:05.116] [codegen] [info] hyper specialization encoding
+219: [2022-04-29 04:16:05.117] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:05.123] [codegen] [info] Serialized CodeGeneration Context to 28.75 KB
+219: [2022-04-29 04:16:05.124] [codegen] [info] ZLIB compressed CodeGeneration Context is: 2.78 KB
+219: [2022-04-29 04:16:05.138] [history server] [warning] Could not register job, is history server running? To disable this warning, set webui=False in the context configuration.
+219: [2022-04-29 04:16:05.138] [hyper specializer] [info] specializing code to file file:///disk/data/flights/flights_on_time_performance_2003_11.csv
+219: [2022-04-29 04:16:05.138] [hyper specializer] [info] Decompressed Code context from 2.78 KB to 28.75 KB
+219: [2022-04-29 04:16:05.392] [hyper specializer] [info] Deserialization of Code context took 0.253907s
+219: [2022-04-29 04:16:05.392] [hyper specializer] [info] Total Stage Decode took 0.254140s
+219: [2022-04-29 04:16:05.393] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_11.csv on 512.00 KB
+219: [2022-04-29 04:16:05.544] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_11.csv on 512.00 KB
+219: [2022-04-29 04:16:05.544] [hyper specializer] [info] sampling (setInputFiles) took 0.151337s
+219: [2022-04-29 04:16:05.544] [specializing stage optimizer] [info] performing NVO
+219: [2022-04-29 04:16:05.562] [global] [warning] requested 2000 rows for sampling, but only 1162 stored. Consider decreasing sample size.
+219: [2022-04-29 04:16:05.579] [specializing stage optimizer] [info] performing Constant-Folding specialization
+219: [2022-04-29 04:16:05.579] [specializing stage optimizer] [info] Performing constant folding optimization
+219: [2022-04-29 04:16:05.634] [hyper specializer] [info] specialized to input:  (i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:05.634] [hyper specializer] [info] specialized to output: (_Constant[i64,value=2003],_Constant[i64,value=11],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:05.634] [hyper specializer] [info] specialized code reads: 11 columns
+219: [2022-04-29 04:16:05.635] [codegen] [info] generating pipeline for (i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64]) -> (_Constant[i64,value=2003],_Constant[i64,value=11],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+219: [2022-04-29 04:16:05.635] [codegen] [info] upcasting function return type from (_Constant[i64,value=2003],_Constant[i64,value=11],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],_Constant[f64,value=0.00000],Option[f64]) to (_Constant[i64,value=2003],_Constant[i64,value=11],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:05.635] [codegen] [info] generating function fill_in_delays for ((i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64])) -> (_Constant[i64,value=2003],_Constant[i64,value=11],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:05.636] [codegen] [warning] hack, need to fix stuff here...
+219: [2022-04-29 04:16:05.637] [hyper specializer] [info] generated code in 0.002828s
+219: [2022-04-29 04:16:05.671] [global] [info] TransformStage - Optimization via LLVM passes took 0.020213 ms
+219: [2022-04-29 04:16:05.671] [global] [info] syms registered (or skipped), compile now
+219: [2022-04-29 04:16:05.682] [global] [info] functor fast_Stage_0 retrieved from llvm
+219: [2022-04-29 04:16:05.786] [global] [info] Compiled code paths for stage 0 in 0.14 ms
+219: [2022-04-29 04:16:05.786] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.648216s
+219: [2022-04-29 04:16:05.787] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_11.csv into 1 task
+219: [2022-04-29 04:16:07.687] [driver] [info] [Task Finished] Transform to mem in 1.900350s (519771 normal rows, 8400 exceptions)
+219: [2022-04-29 04:16:07.687] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 1.90049s
+219: [2022-04-29 04:16:07.687] [global] [info] [Transform Stage] Stage 0 total wall clock time: 1.90035s, 528171 input rows, time to process 1 row via fast path: 0.00359798ms
+219: [2022-04-29 04:16:07.687] [global] [info] Exception details: 
+219: +------------+-------------------------------------+-------+
+219: | OperatorID | Exception                           | Count |
+219: +------------+-------------------------------------+-------+
+219: | 100190     | tuplex.internal.BadParseStringInput | 8400  |
+219: +------------+-------------------------------------+-------+
+219: [2022-04-29 04:16:07.689] [local ee] [info] compiled pure python pipeline in 0.002006s
+219: [2022-04-29 04:16:07.689] [local ee] [info] creating hybrid intermediates took 0.000003s
+219: [2022-04-29 04:16:07.689] [local ee] [info] Created 1 resolve task in 0.000033s
+219: [2022-04-29 04:16:07.689] [local ee] [info] 1/1 task require executing the slow path.
+219: [2022-04-29 04:16:07.790] [driver] [info] [Task Finished] Resolve in 0.100484s
+219: [2022-04-29 04:16:07.790] [local ee] [info] slow path resolved 8400/8400 exceptions in 0.102672s
+219: [2022-04-29 04:16:07.790] [local ee] [info] slow path for Stage 0: total wall clock time: 0.100484s, time to process 1 row via slow path: 0.0119624ms
+219: [2022-04-29 04:16:07.790] [global] [info] [Transform Stage] Stage 0 completed 1 resolve task in 0.102685s
+219: 
+219: [2022-04-29 04:16:07.795] [global] [info] Writing 528171 rows as output to file (44.95 MB)
+219: [2022-04-29 04:16:07.907] [driver] [info] [Task Finished] write to file in 0.111310s (528171 rows, 44.95 MB)
+219: [2022-04-29 04:16:07.907] [global] [info] writing output took 0.116973s
+219: [2022-04-29 04:16:07.907] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 0.117008s
+219: [2022-04-29 04:16:07.907] [global] [info] [Transform Stage] Stage 0 took 2.76844s
+219: [2022-04-29 04:16:07.907] [global] [info] Query Execution took 2.80528s. (planning: 0.0363797s, execution: 2.7689s)
+219: checking for file file:///disk/data/flights/flights_on_time_performance_2003_12.csv
+219: [2022-04-29 04:16:07.913] [fileinputoperator] [info] found 1 file (238.12 MB) to process.
+219: [2022-04-29 04:16:07.914] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_12.csv on 256.00 KB
+219: [2022-04-29 04:16:08.054] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_12.csv on 256.00 KB
+219: [2022-04-29 04:16:08.397] [logical planner] [info] logical optimization took 0.007403ms
+219: [2022-04-29 04:16:08.397] [codegen] [info] hyper specialization encoding
+219: [2022-04-29 04:16:08.398] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:08.405] [codegen] [info] Serialized CodeGeneration Context to 28.75 KB
+219: [2022-04-29 04:16:08.406] [codegen] [info] ZLIB compressed CodeGeneration Context is: 2.78 KB
+219: [2022-04-29 04:16:08.421] [history server] [warning] Could not register job, is history server running? To disable this warning, set webui=False in the context configuration.
+219: [2022-04-29 04:16:08.421] [hyper specializer] [info] specializing code to file file:///disk/data/flights/flights_on_time_performance_2003_12.csv
+219: [2022-04-29 04:16:08.421] [hyper specializer] [info] Decompressed Code context from 2.78 KB to 28.75 KB
+219: [2022-04-29 04:16:08.675] [hyper specializer] [info] Deserialization of Code context took 0.253585s
+219: [2022-04-29 04:16:08.675] [hyper specializer] [info] Total Stage Decode took 0.253819s
+219: [2022-04-29 04:16:08.675] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_12.csv on 512.00 KB
+219: [2022-04-29 04:16:08.827] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_12.csv on 512.00 KB
+219: [2022-04-29 04:16:08.827] [hyper specializer] [info] sampling (setInputFiles) took 0.152036s
+219: [2022-04-29 04:16:08.827] [specializing stage optimizer] [info] performing NVO
+219: [2022-04-29 04:16:08.845] [global] [warning] requested 2000 rows for sampling, but only 1152 stored. Consider decreasing sample size.
+219: [2022-04-29 04:16:08.862] [specializing stage optimizer] [info] performing Constant-Folding specialization
+219: [2022-04-29 04:16:08.862] [specializing stage optimizer] [info] Performing constant folding optimization
+219: [2022-04-29 04:16:08.918] [hyper specializer] [info] specialized to input:  (i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:08.918] [hyper specializer] [info] specialized to output: (_Constant[i64,value=2003],_Constant[i64,value=12],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:08.918] [hyper specializer] [info] specialized code reads: 12 columns
+219: [2022-04-29 04:16:08.918] [codegen] [info] generating pipeline for (i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) -> (_Constant[i64,value=2003],_Constant[i64,value=12],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+219: [2022-04-29 04:16:08.918] [codegen] [info] upcasting function return type from (_Constant[i64,value=2003],_Constant[i64,value=12],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) to (_Constant[i64,value=2003],_Constant[i64,value=12],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:08.918] [codegen] [info] generating function fill_in_delays for ((i64,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])) -> (_Constant[i64,value=2003],_Constant[i64,value=12],i64,_Constant[str,value='AA'],i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:08.920] [codegen] [warning] hack, need to fix stuff here...
+219: [2022-04-29 04:16:08.921] [hyper specializer] [info] generated code in 0.002904s
+219: [2022-04-29 04:16:08.955] [global] [info] TransformStage - Optimization via LLVM passes took 0.021107 ms
+219: [2022-04-29 04:16:08.955] [global] [info] syms registered (or skipped), compile now
+219: [2022-04-29 04:16:08.967] [global] [info] functor fast_Stage_0 retrieved from llvm
+219: [2022-04-29 04:16:09.071] [global] [info] Compiled code paths for stage 0 in 0.14 ms
+219: [2022-04-29 04:16:09.071] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.65032s
+219: [2022-04-29 04:16:09.071] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_12.csv into 1 task
+219: [2022-04-29 04:16:11.071] [driver] [info] [Task Finished] Transform to mem in 1.999058s (543045 normal rows, 12450 exceptions)
+219: [2022-04-29 04:16:11.071] [global] [info] [Transform Stage] Stage 0 completed 1 load&transform tasks in 1.99919s
+219: [2022-04-29 04:16:11.071] [global] [info] [Transform Stage] Stage 0 total wall clock time: 1.99906s, 555495 input rows, time to process 1 row via fast path: 0.0035987ms
+219: [2022-04-29 04:16:11.071] [global] [info] Exception details: 
+219: +------------+-------------------------------------+-------+
+219: | OperatorID | Exception                           | Count |
+219: +------------+-------------------------------------+-------+
+219: | 100209     | tuplex.internal.BadParseStringInput | 12450 |
+219: +------------+-------------------------------------+-------+
+219: [2022-04-29 04:16:11.073] [local ee] [info] compiled pure python pipeline in 0.002005s
+219: [2022-04-29 04:16:11.073] [local ee] [info] creating hybrid intermediates took 0.000004s
+219: [2022-04-29 04:16:11.073] [local ee] [info] Created 1 resolve task in 0.000034s
+219: [2022-04-29 04:16:11.073] [local ee] [info] 1/1 task require executing the slow path.
+219: [2022-04-29 04:16:11.174] [driver] [info] [Task Finished] Resolve in 0.101552s
+219: [2022-04-29 04:16:11.174] [local ee] [info] slow path resolved 12450/12450 exceptions in 0.10372s
+219: [2022-04-29 04:16:11.174] [local ee] [info] slow path for Stage 0: total wall clock time: 0.101552s, time to process 1 row via slow path: 0.00815678ms
+219: [2022-04-29 04:16:11.174] [global] [info] [Transform Stage] Stage 0 completed 1 resolve task in 0.103734s
+219: 
+219: [2022-04-29 04:16:11.180] [global] [info] Writing 555495 rows as output to file (43.88 MB)
+219: [2022-04-29 04:16:11.288] [driver] [info] [Task Finished] write to file in 0.108040s (555495 rows, 43.88 MB)
+219: [2022-04-29 04:16:11.288] [global] [info] writing output took 0.113583s
+219: [2022-04-29 04:16:11.288] [global] [info] [Transform Stage] Stage 0 completed 1 sink tasks in 0.113613s
+219: [2022-04-29 04:16:11.288] [global] [info] [Transform Stage] Stage 0 took 2.8669s
+219: [2022-04-29 04:16:11.288] [global] [info] Query Execution took 2.90493s. (planning: 0.0375604s, execution: 2.86737s)
+219: Hyper query done in 42.0483s
+219: [2022-04-29 04:16:11.360] [driver] [info] freed 36 partitions (1.12 GB)
+219: **************************************
+219: Running query with hyper-opt off
+219: [2022-04-29 04:16:11.362] [local ee] [info] loaded runtime library from/home/ubuntu/tuplex-public/tuplex/build/dist/bin/tuplex_runtime.so
+219: [2022-04-29 04:16:11.362] [local ee] [info] initializing LLVM backend
+219: [2022-04-29 04:16:11.362] [local ee] [warning] init JIT compiler also only in local mode
+219: [2022-04-29 04:16:11.362] [LLVM] [info] compiling code for skylake-avx512
+219: [2022-04-29 04:16:11.363] [history server] [warning] could not connect to http://localhost:5000/api/version, if you wish to disable the webui consider setting tuplex.webui=False for the context.
+219: running again for all files
+219: [2022-04-29 04:16:11.363] [fileinputoperator] [info] found 12 files (2.70 GB) to process.
+219: [2022-04-29 04:16:11.363] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_01.csv on 256.00 KB
+219: [2022-04-29 04:16:11.503] [global] [info] sampled file:///disk/data/flights/flights_on_time_performance_2003_12.csv on 256.00 KB
+219: [2022-04-29 04:16:11.853] [logical planner] [info] logical optimization took 0.007778ms
+219: [2022-04-29 04:16:11.854] [specializing stage optimizer] [info] performing NVO
+219: [2022-04-29 04:16:11.873] [global] [warning] requested 2000 rows for sampling, but only 1182 stored. Consider decreasing sample size.
+219: [2022-04-29 04:16:11.919] [physical planner] [info] specialized to input:  (i64,i64,i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64,null,null,null,null,null)
+219: [2022-04-29 04:16:11.920] [physical planner] [info] specialized to output: (i64,i64,i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:11.920] [physical planner] [info] specialized code reads: 18 columns
+219: [2022-04-29 04:16:11.920] [physical planner] [info] Specialized stage in 65.868235ms
+219: [2022-04-29 04:16:11.920] [codegen] [info] generating pipeline for (i64,i64,i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64,null,null,null,null,null) -> (i64,i64,i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]) (1 operator pipelined)
+219: [2022-04-29 04:16:11.920] [codegen] [info] generating function fill_in_delays for ((Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[i64],Option[f64],Option[i64],Option[f64],Option[f64],Option[f64],Option[str],Option[str],Option[str],Option[str],Option[str])) -> (Option[i64],Option[i64],Option[i64],Option[str],Option[i64],Option[i64],Option[i64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:11.921] [codegen] [info] generating function fill_in_delays for ((i64,i64,i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64,null,null,null,null,null)) -> (i64,i64,i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+219: [2022-04-29 04:16:11.927] [codegen] [warning] hack, need to fix stuff here...
+219: [2022-04-29 04:16:11.944] [history server] [warning] Could not register job, is history server running? To disable this warning, set webui=False in the context configuration.
+219: [2022-04-29 04:16:11.977] [global] [info] TransformStage - Optimization via LLVM passes took 0.029684 ms
+219: [2022-04-29 04:16:11.977] [global] [info] syms registered (or skipped), compile now
+219: [2022-04-29 04:16:11.992] [global] [info] functor fast_Stage_0 retrieved from llvm
+219: [2022-04-29 04:16:12.098] [global] [info] Compiled code paths for stage 0 in 0.15 ms
+219: [2022-04-29 04:16:12.098] [global] [info] [Transform Stage] Stage 0 compiled to x86 in 0.153398s
+219: [2022-04-29 04:16:12.098] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_01.csv into 1 task
+219: [2022-04-29 04:16:12.098] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_02.csv into 1 task
+219: [2022-04-29 04:16:12.098] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_03.csv into 1 task
+219: [2022-04-29 04:16:12.098] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_04.csv into 1 task
+219: [2022-04-29 04:16:12.098] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_05.csv into 1 task
+219: [2022-04-29 04:16:12.098] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_06.csv into 1 task
+219: [2022-04-29 04:16:12.098] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_07.csv into 1 task
+219: [2022-04-29 04:16:12.098] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_08.csv into 1 task
+219: [2022-04-29 04:16:12.098] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_09.csv into 1 task
+219: [2022-04-29 04:16:12.098] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_10.csv into 1 task
+219: [2022-04-29 04:16:12.098] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_11.csv into 1 task
+219: [2022-04-29 04:16:12.098] [local ee] [info] split /disk/data/flights/flights_on_time_performance_2003_12.csv into 1 task
+219: [2022-04-29 04:16:14.134] [driver] [info] [Task Finished] Transform to mem in 2.035330s (542921 normal rows, 9188 exceptions)
+219: [2022-04-29 04:16:15.994] [driver] [info] [Task Finished] Transform to mem in 1.860305s (479022 normal rows, 21184 exceptions)
+219: [2022-04-29 04:16:18.056] [driver] [info] [Task Finished] Transform to mem in 2.062014s (548843 normal rows, 10499 exceptions)
+219: [2022-04-29 04:16:19.994] [driver] [info] [Task Finished] Transform to mem in 1.937701s (520357 normal rows, 6946 exceptions)
+219: [2022-04-29 04:16:21.957] [driver] [info] [Task Finished] Transform to mem in 1.963530s (528723 normal rows, 5059 exceptions)
+219: [2022-04-29 04:16:23.949] [driver] [info] [Task Finished] Transform to mem in 1.992061s (441869 normal rows, 94627 exceptions)
+219: [2022-04-29 04:16:26.029] [driver] [info] [Task Finished] Transform to mem in 2.079480s (444949 normal rows, 113619 exceptions)
+219: [2022-04-29 04:16:28.105] [driver] [info] [Task Finished] Transform to mem in 2.076233s (440032 normal rows, 116952 exceptions)
+219: [2022-04-29 04:16:30.055] [driver] [info] [Task Finished] Transform to mem in 1.949958s (451866 normal rows, 75848 exceptions)
+219: [2022-04-29 04:16:32.106] [driver] [info] [Task Finished] Transform to mem in 2.050718s (477165 normal rows, 75205 exceptions)
+219: [2022-04-29 04:16:34.123] [driver] [info] [Task Finished] Transform to mem in 2.016899s (423594 normal rows, 104577 exceptions)
+219: [2022-04-29 04:16:36.266] [driver] [info] [Task Finished] Transform to mem in 2.143354s (422377 normal rows, 133118 exceptions)
+219: [2022-04-29 04:16:36.266] [global] [info] [Transform Stage] Stage 0 completed 12 load&transform tasks in 24.1683s
+219: [2022-04-29 04:16:36.266] [global] [info] [Transform Stage] Stage 0 total wall clock time: 24.1676s, 6488540 input rows, time to process 1 row via fast path: 0.00372466ms
+219: [2022-04-29 04:16:36.266] [global] [info] Exception details: 
+219: +------------+-------------------------------------+--------+
+219: | OperatorID | Exception                           | Count  |
+219: +------------+-------------------------------------+--------+
+219: | 100228     | tuplex.internal.BadParseStringInput | 766822 |
+219: +------------+-------------------------------------+--------+
+219: [2022-04-29 04:16:36.268] [local ee] [info] compiled pure python pipeline in 0.002068s
+219: [2022-04-29 04:16:36.268] [local ee] [info] creating hybrid intermediates took 0.000004s
+219: [2022-04-29 04:16:36.269] [local ee] [info] Created 12 resolve tasks in 0.000180s
+219: [2022-04-29 04:16:36.269] [local ee] [info] 12/12 tasks require executing the slow path.
+219: [2022-04-29 04:16:36.374] [driver] [info] [Task Finished] Resolve in 0.105550s
+219: [2022-04-29 04:16:36.461] [driver] [info] [Task Finished] Resolve in 0.087181s
+219: [2022-04-29 04:16:36.553] [driver] [info] [Task Finished] Resolve in 0.091161s
+219: [2022-04-29 04:16:36.633] [driver] [info] [Task Finished] Resolve in 0.080628s
+219: [2022-04-29 04:16:36.716] [driver] [info] [Task Finished] Resolve in 0.083244s
+219: [2022-04-29 04:16:49.162] [driver] [info] [Task Finished] Resolve in 12.445182s
+219: [2022-04-29 04:17:04.159] [driver] [info] [Task Finished] Resolve in 14.997764s
+219: [2022-04-29 04:17:19.631] [driver] [info] [Task Finished] Resolve in 15.471758s
+219: [2022-04-29 04:17:29.708] [driver] [info] [Task Finished] Resolve in 10.077203s
+219: [2022-04-29 04:17:39.855] [driver] [info] [Task Finished] Resolve in 10.146078s
+219: [2022-04-29 04:17:53.822] [driver] [info] [Task Finished] Resolve in 13.967017s
+219: [2022-04-29 04:18:11.498] [driver] [info] [Task Finished] Resolve in 17.676482s
+219: [2022-04-29 04:18:11.498] [local ee] [info] slow path resolved 766822/766822 exceptions in 95.232s
+219: [2022-04-29 04:18:11.498] [local ee] [info] slow path for Stage 0: total wall clock time: 95.2292s, time to process 1 row via slow path: 0.124187ms
+219: [2022-04-29 04:18:11.498] [global] [info] [Transform Stage] Stage 0 completed 12 resolve tasks in 95.232s
+219: 
+219: [2022-04-29 04:18:11.557] [global] [info] Writing 6488540 rows as output to file (485.09 MB)
+219: [2022-04-29 04:18:14.687] [driver] [info] [Task Finished] write to file in 3.130180s (6488540 rows, 485.09 MB)
+219: [2022-04-29 04:18:14.687] [global] [info] writing output took 3.188944s
+219: [2022-04-29 04:18:14.687] [global] [info] [Transform Stage] Stage 0 completed 12 sink tasks in 3.18899s
+219: [2022-04-29 04:18:14.687] [global] [info] [Transform Stage] Stage 0 took 122.743s
+219: [2022-04-29 04:18:14.687] [global] [info] Query Execution took 122.849s. (planning: 0.105327s, execution: 122.743s)
+219: General query done in 123.332s
+219: {"general_total_time":123.332,"hyper_total_time":42.0483}
+219: [2022-04-29 04:18:14.703] [driver] [info] freed 19 partitions (608.00 MB)
+219: test done.
+219: removed temp files in 6.404e-06s
+219: [       OK ] SamplingTest.FlightsLambdaVersion (167672 ms)
+219: [----------] 1 test from SamplingTest (167672 ms total)
+219: 
+219: [----------] Global test environment tear-down
+219: [==========] 1 test from 1 test suite ran. (167672 ms total)
+219: [  PASSED  ] 1 test.
+219: [GLOBAL] Local engine terminated.
+1/1 Test #219: SamplingTest.FlightsLambdaVersion ...   Passed  167.83 sec
+
+The following tests passed:
+	SamplingTest.FlightsLambdaVersion
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 167.85 sec

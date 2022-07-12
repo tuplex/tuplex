@@ -9,8 +9,8 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include "TestUtils.h"
-#include <physical/CSVParseRowGenerator.h>
-#include <JITCompiler.h>
+#include <physical/codegen/CSVParseRowGenerator.h>
+#include <jit/JITCompiler.h>
 #include <Context.h>
 
 using namespace tuplex;

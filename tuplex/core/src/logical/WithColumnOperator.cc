@@ -11,7 +11,7 @@
 #include <logical/WithColumnOperator.h>
 
 namespace tuplex {
-    WithColumnOperator::WithColumnOperator(LogicalOperator *parent, const std::vector <std::string>& columnNames,
+    WithColumnOperator::WithColumnOperator(const std::shared_ptr<LogicalOperator>& parent, const std::vector <std::string>& columnNames,
                                            const std::string &columnName, const UDF &udf): UDFOperator::UDFOperator(parent, udf, columnNames), _newColumn(columnName) {
 
         // define index
@@ -47,7 +47,7 @@ namespace tuplex {
         if(parentSchema == Schema::UNKNOWN)
             parentSchema = getInputSchema();
 
-        auto columnNames = UDFOperator::columns();
+        auto inputColumnNames = UDFOperator::inputColumns();
 
         // detect schema of UDF
         auto udfSchema = UDFOperator::inferSchema(parentSchema);
@@ -75,8 +75,8 @@ namespace tuplex {
         if(inParameters.size() == 1 && inParameters.front().isTupleType())
             inParameters = inParameters.front().parameters();
 
-        if(!columnNames.empty())
-            assert(columnNames.size() == inParameters.size());
+        if(!inputColumnNames.empty())
+            assert(inputColumnNames.size() == inParameters.size());
 
         if(_columnToMapIndex < inParameters.size())
             inParameters[_columnToMapIndex] = retType;
@@ -185,14 +185,14 @@ namespace tuplex {
         setSchema(inferSchema(parent()->getOutputSchema()));
     }
 
-    LogicalOperator *WithColumnOperator::clone() {
+    std::shared_ptr<LogicalOperator> WithColumnOperator::clone() {
         auto copy = new WithColumnOperator(parent()->clone(), UDFOperator::columns(),
                                            _newColumn, _udf);
         copy->setDataSet(getDataSet());
         // clone id
         copy->copyMembers(this);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
     bool WithColumnOperator::retype(const std::vector<python::Type> &rowTypes) {

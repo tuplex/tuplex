@@ -142,7 +142,7 @@ cd /tmp &&
 popd
 
 # install python packages for tuplex (needs cloudpickle to compile, numpy to run certain tests)
-pip3 install cloudpickle numpy
+pip3 install 'cloudpickle<2.0.0' numpy
 
 # protobuf (need at least > 3.19)
 cd /tmp &&

@@ -7,8 +7,6 @@ MAINTAINER Leonhard Spiegelberg "leonhard_spiegelberg@brown.edu"
 # Use /tmp folder to build everything...
 ENV DEBIAN_FRONTEND=noninteractive
 
-
-
 # (1) general packages
 RUN mkdir -p /opt/sbin
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \

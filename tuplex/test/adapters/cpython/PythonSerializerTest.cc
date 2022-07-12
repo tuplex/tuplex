@@ -16,6 +16,7 @@
 
 #include "PythonSerializer.h"
 #include "PythonSerializer_private.h"
+#include "PythonHelpers.h"
 #include "Row.h"
 
 using namespace tuplex;

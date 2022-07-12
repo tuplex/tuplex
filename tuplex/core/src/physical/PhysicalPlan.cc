@@ -210,7 +210,8 @@ namespace tuplex {
         if(ops.back()->isActionable()) {
             if(ops.back()->type() == LogicalOperatorType::FILEOUTPUT)
                 outputMode = EndPointMode::FILE;
-            else if(ops.back()->type() == LogicalOperatorType::TAKE || ops.back()->type() == LogicalOperatorType::CACHE) {
+            else if(ops.back()->type() == LogicalOperatorType::TAKE ||
+                    ops.back()->type() == LogicalOperatorType::CACHE) {
                // memory?
                outputMode = EndPointMode::MEMORY;
             } else
@@ -241,7 +242,7 @@ namespace tuplex {
         // user wants to merge exceptions in order.
         bool updateInputExceptions = hasFilter && hasInputExceptions && _context.getOptions().OPT_MERGE_EXCEPTIONS_INORDER();
 
-        // create trafostage via builder pattern
+        // create transform stage via builder pattern
         auto builder = codegen::StageBuilder(_num_stages++,
                                                isRootStage,
                                                _context.getOptions().UNDEFINED_BEHAVIOR_FOR_OPERATORS(),
@@ -383,7 +384,7 @@ namespace tuplex {
         // set limit if output node has a limit (currently only TakeOperator)
         if(outputNode->type() == LogicalOperatorType::TAKE) {
             auto top = static_cast<TakeOperator*>(outputNode);
-            builder.setOutputLimit(top->limit());
+            builder.setOutputLimit(top->topLimit(), top->bottomLimit());
         }
 
         // @TODO: add slowPip builder to this process...

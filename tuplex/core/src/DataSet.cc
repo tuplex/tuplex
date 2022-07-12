@@ -38,21 +38,17 @@ namespace tuplex {
     }
 
     std::shared_ptr<ResultSet> DataSet::collect(std::ostream &os) {
-        return take(-1, os);
+        return take(std::numeric_limits<size_t>::max(), 0, os);
     }
 
-    std::shared_ptr<ResultSet> DataSet::take(int64_t numElements, std::ostream &os) {
+    std::shared_ptr<ResultSet> DataSet::take(size_t topLimit, size_t bottomLimit, std::ostream &os) {
         // error dataset?
         if (isError())
             throw std::runtime_error("is error dataset!");
 
-        // negative numbers mean get all elements!
-        if (numElements < 0)
-            numElements = std::numeric_limits<int64_t>::max();
-
         // create a take node
         assert(_context);
-        LogicalOperator *op = _context->addOperator(new TakeOperator(this->_operator, numElements));
+        LogicalOperator *op = _context->addOperator(new TakeOperator(this->_operator, topLimit, bottomLimit));
         DataSet *dsptr = _context->createDataSet(op->getOutputSchema());
         dsptr->_operator = op;
         op->setDataSet(dsptr);
@@ -66,18 +62,14 @@ namespace tuplex {
 
     // collect functions
     std::vector<Row> DataSet::collectAsVector(std::ostream &os) {
-        return takeAsVector(-1, os);
+        return takeAsVector(std::numeric_limits<size_t>::max(), os);
     }
 
-    // -1 means to retrieve all elements
-    std::vector<Row> DataSet::takeAsVector(int64_t numElements, std::ostream &os) {
-        auto rs = take(numElements, os);
+    std::vector<Row> DataSet::takeAsVector(size_t numElements, std::ostream &os) {
+        auto rs = take(numElements, 0, os);
         Timer timer;
 
 #warning "limiting should make this hack irrelevant..."
-        if (numElements < 0)
-            numElements = std::numeric_limits<int64_t>::max();
-
         // std::vector<Row> v;
         // while (rs->hasNextRow() && v.size() < numElements) {
         //     v.push_back(rs->getNextRow());
@@ -734,10 +726,14 @@ namespace tuplex {
     }
 
 
-    void DataSet::show(const int64_t numRows, std::ostream &os) {
+    void DataSet::show(int64_t numRows, std::ostream &os) {
         assert(_context);
 
         // get rows
+        if (numRows < 0) {
+            numRows = std::numeric_limits<size_t>::max();
+        }
+
         auto rows = takeAsVector(numRows, os);
         if (rows.empty()) {
             return;

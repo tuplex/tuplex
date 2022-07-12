@@ -325,8 +325,6 @@ def get_job(jobid):
 def display_all_operators():
     res = normalize_from_mongo(mongo.db.operators.find({}))
 
-    print(res)
-
     return jsonify(res)
 
 
@@ -447,16 +445,11 @@ def clear_jobs():
 
 @app.route('/api/stage/result', methods=['POST'])
 def update_stage_result():
-
-    print(request)
-
-
     if not request.json:
         abort(400)
 
     js = request.get_json()
     # layout is
-    print(js)
 
     # set global normal / exceptional row count for a stage
     job = Job(js['jobid'])
@@ -469,4 +462,4 @@ def update_stage_result():
     num_normal_rows = js['ncount']
     job.update_stage_counts(stageid, num_normal_rows, num_exception_rows, exceptionCounts)
 
-    return jsonify({'status' : 'ok'})
+    return jsonify({'status': 'ok'})

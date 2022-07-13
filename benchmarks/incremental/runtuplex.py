@@ -227,8 +227,8 @@ if __name__ == '__main__':
     # configuration, make sure to give enough runtime memory to the executors!
     conf = {"webui.enable" : False,
             "executorCount" : 16,
-            "executorMemory" : "6G",
-            "driverMemory" : "6G",
+            "executorMemory" : "12G",
+            "driverMemory" : "12G",
             "partitionSize" : "32MB",
             "runTimeMemory" : "128MB",
             "useLLVMOptimizer" : True,

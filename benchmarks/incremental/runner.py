@@ -131,7 +131,7 @@ def run_zillow_experiment(container, local_result_dir, clear_cache):
         logging.error("clearcache does not exist on host machine, skip clearing caches.")
         clear_cache = None
 
-    INPUT_PATH = '/data/zillow_dirty@10G.csv'
+    INPUT_PATH = '/data/zillow_dirty@50G.csv'
     SCRATCH_DIR = '/data/scratch'
     NUM_RUNS = 1
 

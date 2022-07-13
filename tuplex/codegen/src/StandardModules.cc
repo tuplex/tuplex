@@ -101,7 +101,7 @@ namespace tuplex {
             // inf/nan since version 3.5
             // tau since version 3.6
             // use here C constants. Note, python might have depending on version different constants.
-            m->addAttribute(Symbol::makeConstant("nan", Field(D_NAN)));
+            m->addAttribute(Symbol::makeConstant("nan", Field(DOUBLE_QUIET_NAN)));
             m->addAttribute(Symbol::makeConstant("inf", Field(INFINITY)));
             m->addAttribute(Symbol::makeConstant("pi", Field(Py_MATH_PI))); // C constant M_PI
             m->addAttribute(Symbol::makeConstant("e", Field(Py_MATH_E))); // C constant M_E

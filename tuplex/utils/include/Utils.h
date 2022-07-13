@@ -75,7 +75,8 @@ constexpr const char* base_file_name(const char* path) {
 
 // generates a QNAN
 // note: not used for direct comparison in isnan, as there are other representations of NAN (e.g. SNAN)
-constexpr double D_NAN = nan("");
+// cf. https://en.cppreference.com/w/cpp/types/numeric_limits/quiet_NaN
+constexpr double DOUBLE_QUIET_NAN = std::numeric_limits<double>::quiet_NaN();
 
 // macros to print out filename + line
 #define FLINESTR (std::string(base_file_name(__FILE__)) + "+" + std::to_string(__LINE__))

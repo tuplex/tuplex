@@ -821,12 +821,11 @@ namespace tuplex {
         if (mergeExceptionsInOrder) {
             for (const auto &partitionGroup : cachedPartitionGroups) {
                 std::vector<Partition*> taskNormalPartitions;
-                for (int i = partitionGroup.normalPartitionStartInd; i < partitionGroup.normalPartitionStartInd + partitionGroup.numNormalPartitions; ++i)
+                for (int i = partitionGroup.normalPartitionStartIndex; i < partitionGroup.normalPartitionStartIndex + partitionGroup.numNormalPartitions; ++i)
                     taskNormalPartitions.push_back(cachedNormalPartitions[i]);
                 std::vector<Partition*> taskExceptionPartitions;
-                for (int i = partitionGroup.exceptionPartitionStartInd; i < partitionGroup.exceptionPartitionStartInd + partitionGroup.numExceptionPartitions; ++i)
+                for (int i = partitionGroup.exceptionPartitionStartIndex; i < partitionGroup.exceptionPartitionStartIndex + partitionGroup.numExceptionPartitions; ++i)
                     taskExceptionPartitions.push_back(cachedExceptionPartitions[i]);
-
 
                 auto rtask = new ResolveTask(
                         stageID,
@@ -1393,7 +1392,7 @@ namespace tuplex {
                     taskGeneralPartitions.size(), generalPartitions.size(),
                     taskFallbackPartitions.size(), fallbackPartitions.size());
             pGroup.numExceptionPartitions = taskExceptionPartitions.size();
-            pGroup.exceptionPartitionStartInd = exceptionPartitions.size();
+            pGroup.exceptionPartitionStartIndex = exceptionPartitions.size();
             partitionGroups.push_back(pGroup);
             std::copy(taskNormalPartitions.begin(), taskNormalPartitions.end(), std::back_inserter(normalPartitions));
             std::copy(taskGeneralPartitions.begin(), taskGeneralPartitions.end(), std::back_inserter(generalPartitions));

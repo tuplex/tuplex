@@ -26,13 +26,17 @@ namespace tuplex {
          * @param generalPartitionStartIndex starting index in list of all general partitions
          * @param numFallbackPartitions number of fallback partitions in group
          * @param fallbackPartitionStartIndex starting index in list of all fallback partitions
+         *  @param numExceptionPartitions number of exception partitions in group (incremental cache)
+         * @param exceptionPartitionStartIndex starting index in list of all exception partitions (incremental cache)
          */
         PartitionGroup(size_t numNormalPartitions, size_t normalPartitionStartIndex,
                        size_t numGeneralPartitions=0, size_t generalPartitionStartIndex=0,
-                       size_t numFallbackPartitions=0, size_t fallbackPartitionStartIndex=0):
+                       size_t numFallbackPartitions=0, size_t fallbackPartitionStartIndex=0,
+                       size_t numExceptionPartitions=0, size_t exceptionPartitionStartIndex=0):
                 numNormalPartitions(numNormalPartitions), normalPartitionStartIndex(normalPartitionStartIndex),
                 numGeneralPartitions(numGeneralPartitions), generalPartitionStartIndex(generalPartitionStartIndex),
-                numFallbackPartitions(numFallbackPartitions), fallbackPartitionStartIndex(fallbackPartitionStartIndex) {}
+                numFallbackPartitions(numFallbackPartitions), fallbackPartitionStartIndex(fallbackPartitionStartIndex),
+                numExceptionPartitions(numExceptionPartitions), exceptionPartitionStartIndex(exceptionPartitionStartIndex) {}
 
        /*!
         * Initialize empty struct with all values set to zero.
@@ -47,6 +51,10 @@ namespace tuplex {
         size_t generalPartitionStartIndex;
         size_t numFallbackPartitions;
         size_t fallbackPartitionStartIndex;
+
+        // used for incremental exception handling
+        size_t exceptionPartitionStartIndex;
+        size_t numExceptionPartitions;
     };
 }
 

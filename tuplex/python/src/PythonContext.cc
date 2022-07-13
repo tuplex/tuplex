@@ -1636,7 +1636,7 @@ namespace tuplex {
         Logger::instance().flushToPython();
 
         // first manual fetch
-       return py::reinterpret_steal<py::dict>(dictObject);
+       return py::reinterpret_borrow<py::dict>(dictObject);
     }
 
     py::object PythonContext::ls(const std::string &pattern) const {

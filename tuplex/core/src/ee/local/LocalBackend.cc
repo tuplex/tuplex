@@ -997,7 +997,13 @@ namespace tuplex {
                     auto resolveFunctor = _options.RESOLVE_WITH_INTERPRETER_ONLY() ? nullptr : syms->resolveFunctor;
 
                     // cout<<"*** num tasks before resolution: "<<completedTasks.size()<<" ***"<<endl;
-                    completedTasks = resolveViaSlowPath(completedTasks, merge_except_rows, resolveFunctor, tstage, combineOutputHashmaps);
+                    completedTasks = resolveViaSlowPath(completedTasks,
+                                                        merge_except_rows,
+                                                        resolveFunctor,
+                                                        tstage,
+                                                        combineOutputHashmaps,
+                                                        syms->aggInitFunctor,
+                                                        syms->aggCombineFunctor);
                     // cout<<"*** num tasks after resolution: "<<completedTasks.size()<<" ***";
                 }
 
@@ -1108,7 +1114,11 @@ namespace tuplex {
                 if(completedTasks.empty()) {
                     tstage->setHashResult(nullptr, nullptr);
                 } else {
-                    auto hsink = createFinalHashmap({completedTasks.cbegin(), completedTasks.cend()}, tstage->hashtableKeyByteWidth(), combineOutputHashmaps);
+                    auto hsink = createFinalHashmap({completedTasks.cbegin(), completedTasks.cend()},
+                                                    tstage->hashtableKeyByteWidth(),
+                                                    combineOutputHashmaps,
+                                                    syms->aggInitFunctor,
+                                                    syms->aggCombineFunctor);
                     tstage->setHashResult(hsink.hm, hsink.null_bucket);
                 }
                 break;
@@ -1193,7 +1203,11 @@ namespace tuplex {
     std::vector<IExecutorTask*> LocalBackend::resolveViaSlowPath(
             std::vector<IExecutorTask*> &tasks,
             bool merge_rows_in_order,
-            codegen::resolve_f functor, tuplex::TransformStage *tstage, bool combineHashmaps) {
+            codegen::resolve_f functor,
+            tuplex::TransformStage *tstage,
+            bool combineHashmaps,
+            codegen::agg_init_f init_aggregate,
+            codegen::agg_combine_f combine_aggregate) {
 
         using namespace std;
         assert(tstage);
@@ -1208,7 +1222,11 @@ namespace tuplex {
 
             // special case: create a global hash output result and put it into the FIRST resolve task.
             Timer timer;
-            hsink = createFinalHashmap({tasks.cbegin(), tasks.cend()}, tstage->hashtableKeyByteWidth(), combineHashmaps);
+            hsink = createFinalHashmap({tasks.cbegin(), tasks.cend()},
+                                       tstage->hashtableKeyByteWidth(),
+                                       combineHashmaps,
+                                       init_aggregate,
+                                       combine_aggregate);
             logger().info("created combined normal-case result in " + std::to_string(timer.time()) + "s");
             hasNormalHashSink = true;
         }
@@ -1815,7 +1833,197 @@ namespace tuplex {
         }
     }
 
-    HashTableSink LocalBackend::createFinalHashmap(const std::vector<const IExecutorTask*>& tasks, int hashtableKeyByteWidth, bool combine) {
+    struct apply_context {
+        map_t hm;
+        codegen::agg_init_f init_aggregate;
+        codegen::agg_combine_f combine_aggregate;
+    };
+    static int apply_to_bucket(const apply_context* ctx, hashmap_element* entry) {
+        assert(ctx->hm);
+        auto key = entry->key;
+        auto keylen = entry->keylen;
+        auto data = (uint8_t*)entry->data;
+
+        // if no data found, no need to apply func.
+        if(!data)
+            return MAP_OK;
+
+        // update data
+        // initialize
+        uint8_t* init_val = nullptr;
+        int64_t init_size = 0;
+        ctx->init_aggregate(&init_val, &init_size);
+
+        // call combine over null-bucket
+        // decode first bucket values!
+        // --> for aggregate by key a single value is stored there
+        int64_t  bucket_size =  *(int64_t*)data;
+        uint8_t* bucket_val = data + 8;
+        auto new_val = init_val;
+        auto new_size = init_size;
+        auto rc = ctx->combine_aggregate(&new_val, &new_size, bucket_val, bucket_size);
+
+        // rc no 0? -> resolve!
+        if(rc != 0) {
+            std::cerr<<"combine function failed"<<std::endl;
+        }
+
+        // create new combined pointer
+        uint8_t* new_data = static_cast<uint8_t *>(malloc(new_size + 8));
+        *(int64_t*)new_data = new_size;
+        memcpy(new_data + 8, new_val, new_size);
+
+        // free original aggregate (must come after data copy!)
+        free(init_val);
+        auto old_ptr = data;
+
+        // assign to hashmap
+        entry->data = new_data;
+        free(old_ptr);
+        runtime::rtfree_all(); // combine aggregate allocates via runtime
+
+        // // check
+        // uint8_t* bucket = nullptr;
+        //hashmap_get(ctx->hm, key, keylen, (void **) (&bucket));
+
+        return MAP_OK;
+    }
+
+    // why two versions??
+    static int apply_to_bucket_i64(const apply_context* ctx, int64_hashmap_element* entry) {
+        assert(ctx->hm);
+        auto key = entry->key;
+        auto data = (uint8_t*)entry->data;
+
+        // if no data found, no need to apply func.
+        if(!data)
+            return MAP_OK;
+
+        // update data
+        // initialize
+        uint8_t* init_val = nullptr;
+        int64_t init_size = 0;
+        ctx->init_aggregate(&init_val, &init_size);
+
+        // call combine over null-bucket
+        // decode first bucket values!
+        // --> for aggregate by key a single value is stored there
+        int64_t  bucket_size =  *(int64_t*)data;
+        uint8_t* bucket_val = data + 8;
+        auto new_val = init_val;
+        auto new_size = init_size;
+        auto rc = ctx->combine_aggregate(&new_val, &new_size, bucket_val, bucket_size);
+
+        // rc no 0? -> resolve!
+        if(rc != 0) {
+            std::cerr<<"combine function failed"<<std::endl;
+        }
+
+        // create new combined pointer
+        uint8_t* new_data = static_cast<uint8_t *>(malloc(new_size + 8));
+        *(int64_t*)new_data = new_size;
+        memcpy(new_data + 8, new_val, new_size);
+
+        // free original aggregate (must come after data copy!)
+        free(init_val);
+        auto old_ptr = data;
+
+        // assign to hashmap
+        entry->data = new_data;
+        free(old_ptr);
+        runtime::rtfree_all(); // combine aggregate allocates via runtime
+
+        // // check
+        // uint8_t* bucket = nullptr;
+        //hashmap_get(ctx->hm, key, keylen, (void **) (&bucket));
+
+        return MAP_OK;
+    }
+
+    void applyCombinePerGroup(HashTableSink& sink, int hashtableKeyByteWidth, codegen::agg_init_f init_aggregate,
+                              codegen::agg_combine_f combine_aggregate) {
+
+        // combineBuckets code:
+        //    auto sizeA = *(int64_t*)bucketA;
+        //        auto valA = static_cast<uint8_t*>(malloc(sizeA));
+        //        // TODO: when we convert everything to thread locals, we should change agg_combine_functor to match the size | value format of agg_aggregate_functor so that we can roll aggregate into aggregateByKey and just using the nullbucket
+        //        memcpy(valA, bucketA + 8, sizeA);
+        //
+        //        auto sizeB = *(uint64_t*)bucketB;
+        //        auto valB = bucketB + 8;
+        //
+        //        agg_combine_functor(&valA, &sizeA, valB, sizeB);
+        //
+        //        // allocate the output buffer (should be avoided by the above TODO eventually)
+        //        auto ret = static_cast<uint8_t*>(malloc(sizeA + 8));
+        //        *(int64_t*)ret = sizeA;
+        //        memcpy(ret + 8, valA, sizeA);
+        //        free(valA); free(bucketA);
+        //        return ret;
+
+        // apply to null bucket if it exists
+        if(sink.null_bucket) {
+            // initialize
+            uint8_t* init_val = nullptr;
+            int64_t init_size = 0;
+            init_aggregate(&init_val, &init_size);
+
+            // call combine over null-bucket
+            // decode first bucket values!
+            // --> for aggregate by key a single value is stored there
+            uint64_t  bucket_size =  *(uint64_t*)sink.null_bucket;
+            uint8_t* bucket_val = sink.null_bucket + 8;
+            auto new_val = init_val;
+            auto new_size = init_size;
+            auto rc = combine_aggregate(&new_val, &new_size, bucket_val, bucket_size);
+
+            // rc no 0? -> resolve!
+            if(rc != 0) {
+                std::cerr<<"combine function failed"<<std::endl;
+            }
+
+            // free original aggregate
+            free(init_val);
+            auto old_ptr = sink.null_bucket;
+            assert(new_size == init_size);
+            // create new combined pointer
+            sink.null_bucket = static_cast<uint8_t*>(malloc(new_size + 8));
+            *(int64_t*)sink.null_bucket = new_size;
+            memcpy(sink.null_bucket + 8, new_val, new_size);
+            free(new_val);
+            free(old_ptr);
+        }
+
+        if(hashtableKeyByteWidth == 8) {
+            // this dispatch is not great, should get refactored...
+            apply_context ctx;
+            ctx.hm = sink.hm;
+            ctx.init_aggregate = init_aggregate;
+            ctx.combine_aggregate = combine_aggregate;
+            int64_hashmap_iterate(sink.hm, reinterpret_cast<PFintany>(apply_to_bucket_i64), &ctx);
+        } else {
+            // the regular, bytes based hashmap
+            apply_context ctx;
+            ctx.hm = sink.hm;
+            ctx.init_aggregate = init_aggregate;
+            ctx.combine_aggregate = combine_aggregate;
+            hashmap_iterate(sink.hm, reinterpret_cast<PFany>(apply_to_bucket), &ctx);
+        }
+
+        // TODO: missing is, need to apply UDFs to hybrid hashmap as well in case...
+        // --> should be a trivial function (?)
+        // @TODO.
+    }
+
+    HashTableSink LocalBackend::createFinalHashmap(const std::vector<const IExecutorTask*>& tasks,
+                                                   int hashtableKeyByteWidth,
+                                                   bool combine,
+                                                   codegen::agg_init_f init_aggregate,
+                                                   codegen::agg_combine_f combine_aggregate) {
+
+        // note: in order to preserve semantics on each group at least once the combine function has to be run.
+        // this can be achieved by running combine with the initial value
+
         if(tasks.empty()) {
             HashTableSink sink;
             if(hashtableKeyByteWidth == 8) sink.hm = int64_hashmap_new();
@@ -1826,7 +2034,14 @@ namespace tuplex {
             // no merge necessary, just directly return result
             // fetch hash table from task
             assert(tasks.front()->type() == TaskType::UDFTRAFOTASK || tasks.front()->type() == TaskType::RESOLVE);
-            return getHashSink(tasks.front());
+            auto sink = getHashSink(tasks.front());
+
+            // aggByKey or aggregate?
+            if(init_aggregate && combine_aggregate) {
+                applyCombinePerGroup(sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
+            }
+
+            return sink;
         } else {
 
             // @TODO: getHashSink should be updated to also work with hybrids. Yet, the merging of normal hashtables
@@ -1864,6 +2079,11 @@ namespace tuplex {
                     int64_hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
                 else
                     hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
+            }
+
+            // aggByKey or aggregate?
+            if(init_aggregate && combine_aggregate) {
+                applyCombinePerGroup(sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
             }
             return sink;
         }

@@ -186,7 +186,6 @@ TEST_F(ClosureTest, DoNotCrashOnMissingSymbol) {
     ClosureEnvironment ce;
     ce.fromModuleImport("math", "*"); // everything
     c.parallelize({Row(0), Row(10)}).map(UDF("lambda x: math.xyz(x)")).collect();
-
 }
 
 

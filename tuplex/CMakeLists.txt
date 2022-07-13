@@ -565,12 +565,35 @@ if(PYTHON3_VERSION STREQUAL "")
         message(STATUS "Found full python3-dev installation")
         set(Python3_Embed_FOUND TRUE)
     else()
-        find_package(Python3 COMPONENTS Interpreter REQUIRED)
-        # python3 -c 'import distutils.sysconfig; print(distutils.sysconfig.get_python_lib(plat_specific=False,standard_lib=True))'
-        # try to get get module libs at least
+        find_package(Python3 COMPONENTS Interpreter QUIET)
+        if(Python3_FOUND)
+            # python3 -c 'import distutils.sysconfig; print(distutils.sysconfig.get_python_lib(plat_specific=False,standard_lib=True))'
+            # try to get get module libs at least
 
-        # mark embed lib as not found
-        unset(Python3_Embed_FOUND)
+            # mark embed lib as not found
+            unset(Python3_Embed_FOUND)
+        else()
+            # use interpreter find script to detect python interpreter
+            include(FindPythonInterpreter)
+            find_python_interpreter(VERSION 3
+                    INTERPRETER_OUT_VAR PYTHON_INTERPRETER
+                    VERSION_OUT_VAR PYTHON_VERSION
+                    REQUIRED
+            )
+            message(STATUS "Found interpreter ${PYTHON_INTERPRETER} version ${PYTHON_VERSION}")
+            set(Python3_EXECUTABLE ${PYTHON_INTERPRETER})
+            set(PYTHON3_VERSION ${PYTHON_VERSION})
+            unset(Python3_Embed_FOUND)
+            set(Python3_FOUND TRUE)
+
+            # check if embed artifacts are there...
+            set(Python3_FIND_VIRTUALENV "FIRST")
+            find_package(Python3 COMPONENTS Interpreter Development QUIET)
+            if(Python3_FOUND)
+                message(STATUS "Found full python3-dev installation")
+                set(Python3_Embed_FOUND TRUE)
+            endif()
+        endif()
     endif()
 else()
     set(Python3_FIND_VIRTUALENV "FIRST")

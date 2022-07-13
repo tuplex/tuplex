@@ -159,7 +159,7 @@ make -j4 && make install && ldconfig &&
 popd
 
 # install python packages for tuplex (needs cloudpickle to compile, numpy to run certain tests)
-pip3 install cloudpickle numpy
+pip3 install 'cloudpickle<2.0.0' numpy
 
 # protobuf 3.12
 cd /tmp &&

@@ -77,6 +77,17 @@ namespace python {
         }
     }
 
+    inline PyObject* boolean(bool val) { return boolToPython(val); }
+
+    /*!
+     * returns Py_None after calling incref, similar to Py_RETURN_NONE
+     * @return Py_None
+     */
+    inline PyObject* none() {
+        Py_XINCREF(Py_None);
+        return Py_None;
+    }
+
     /*!
      * set python home to local directory
      * @param home_dir string pointing to local path where standard python libraries are stored.
@@ -98,15 +109,6 @@ namespace python {
             version += "." + std::to_string(PY_MICRO_VERSION);
         return version;
     }
-
-    /*!
-     * find python standardlib location.
-     * @param version python version string. E.g., "3" or "3.7". Per default search for version build against.
-     * @param prefix_list list of paths where to search for <prefix>/lib/python<version> pattern.
-     * @return string for first match found, empty string else
-     */
-    std::string find_stdlib_location(const std::string& version=python_version(true, false),
-                                     const std::vector<std::string>& prefix_list=std::vector<std::string>{"/usr/local"});
 
     /*!
      * retrieves main module and loads cloudpickle module. Exits program if cloudpickle is not found.

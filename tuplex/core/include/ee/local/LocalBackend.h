@@ -77,7 +77,11 @@ namespace tuplex {
          * @param combine whether this is an aggregate (e.g. if we should call the aggregate combiner, rather than simply merging the hashtables)
          * @return the final hashtable sink
          */
-        HashTableSink createFinalHashmap(const std::vector<const IExecutorTask*>& tasks, int hashtableKeyByteWidth, bool combine);
+        HashTableSink createFinalHashmap(const std::vector<const IExecutorTask*>& tasks,
+                                         int hashtableKeyByteWidth,
+                                         bool combine,
+                                         codegen::agg_init_f init_aggregate,
+                                         codegen::agg_combine_f combine_aggregate);
 
         // hash join stage
         void executeHashJoinStage(HashJoinStage* hstage);
@@ -172,7 +176,9 @@ namespace tuplex {
         std::vector<IExecutorTask*> resolveViaSlowPath(std::vector<IExecutorTask*>& tasks,
                 bool merge_rows_in_order,
                 codegen::resolve_f functor,
-                TransformStage* tstage, bool combineHashmaps);
+                TransformStage* tstage, bool combineHashmaps,
+               codegen::agg_init_f init_aggregate,
+               codegen::agg_combine_f combine_aggregate);
     };
 
     /*!

@@ -336,7 +336,7 @@ def build(ctx, cereal):
     """Downloads tuplex repo to tuplex, switches to correct branch and builds it using the sigmod21 experiment container."""
 
     GIT_REPO_URI = 'https://github.com/LeonhardFS/tuplex-public'
-    GIT_BRANCH = 'origin/lambda-exp'
+    GIT_BRANCH = 'origin/inc-exp'
     if not os.path.isdir('tuplex'):
         logging.info('Tuplex repo does not exist here yet, cloning')
 
@@ -373,7 +373,7 @@ def build(ctx, cereal):
 
     # build tuplex within docker container & install it there as well!
     # i.e. build command is: docker exec sigmod21 bash /code/benchmarks/sigmod21-reproducibility/build_scripts/build_tuplex.sh
-    BUILD_SCRIPT_PATH = '/code/benchmarks/nextconf/build_scripts/build_tuplex.sh'
+    BUILD_SCRIPT_PATH = '/code/benchmarks/incremental/build_scripts/build_tuplex.sh'
     cmd = ['docker', 'exec', '-e', CEREAL_FLAG, DOCKER_CONTAINER_NAME, 'bash', BUILD_SCRIPT_PATH]
 
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1)

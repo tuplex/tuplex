@@ -187,8 +187,8 @@ namespace tuplex {
                 for(size_t i=0; i<numElements; i++) {
                     PyObject* element;
                     if(elementType == python::Type::NULLVALUE) {
-                        element = Py_None;
                         Py_XINCREF(Py_None);
+                        element = Py_None;
                     } else if(elementType == python::Type::EMPTYDICT) {
                         element = PyDict_New();
                     } else if(elementType == python::Type::EMPTYTUPLE) {
@@ -252,8 +252,8 @@ namespace tuplex {
                         auto underlyingType = elementType.getReturnType();
                         if(underlyingType == python::Type::BOOLEAN) {
                             if(bitmapV[i]) {
-                                Py_XINCREF(Py_None);
                                 element = Py_None;
+                                Py_XINCREF(Py_None);
                             } else {
                                 element = PyBool_FromLong(*reinterpret_cast<const int64_t*>(ptr));
                                 ptr += sizeof(int64_t);

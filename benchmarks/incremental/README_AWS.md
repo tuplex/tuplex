@@ -68,3 +68,9 @@ int main() {
 ```
 
 sudo apt install g++ -y 
+
+Also, need to setup dependencies first before invoking runner
+```
+sudo apt install python3-pip -y
+pip3 install -r requirements.txt
+```

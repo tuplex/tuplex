@@ -35,6 +35,7 @@ namespace tuplex {
              * @param sharedObjectPropagation whether to use shared object propogation
              * @param nullValueOptimization whether to use null value optimization
              * @param updateInputExceptions whether input exceptions indices need to be updated
+             * @param incrementalResolution whether to execute with incremental resolution
              */
             StageBuilder(int64_t stage_number,
                          bool rootStage,
@@ -43,7 +44,8 @@ namespace tuplex {
                          double normalCaseThreshold,
                          bool sharedObjectPropagation,
                          bool nullValueOptimization,
-                         bool updateInputExceptions);
+                         bool updateInputExceptions,
+                         bool incrementalResolution);
 
             // builder functions
             void addMemoryInput(const Schema& schema, LogicalOperator* node);
@@ -91,6 +93,7 @@ namespace tuplex {
             bool _sharedObjectPropagation;
             bool _nullValueOptimization;
             bool _updateInputExceptions;
+            bool _incrementalResolution;
             std::vector<LogicalOperator*> _operators;
 
             // codegen strings

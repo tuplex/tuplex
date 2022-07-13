@@ -28,8 +28,8 @@ namespace tuplex {
          * @param fallbackPartitionStartIndex starting index in list of all fallback partitions
          */
         PartitionGroup(size_t numNormalPartitions, size_t normalPartitionStartIndex,
-                       size_t numGeneralPartitions, size_t generalPartitionStartIndex,
-                       size_t numFallbackPartitions, size_t fallbackPartitionStartIndex):
+                       size_t numGeneralPartitions=0, size_t generalPartitionStartIndex=0,
+                       size_t numFallbackPartitions=0, size_t fallbackPartitionStartIndex=0):
                 numNormalPartitions(numNormalPartitions), normalPartitionStartIndex(normalPartitionStartIndex),
                 numGeneralPartitions(numGeneralPartitions), generalPartitionStartIndex(generalPartitionStartIndex),
                 numFallbackPartitions(numFallbackPartitions), fallbackPartitionStartIndex(fallbackPartitionStartIndex) {}

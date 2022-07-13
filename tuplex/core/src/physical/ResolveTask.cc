@@ -352,6 +352,7 @@ default:
                     // check if there is a partition left
                     if(_currentNormalPartitionIdx + 1 < _partitions.size()) {
                         _partitions[_currentNormalPartitionIdx]->unlock();
+                        _partitions[_currentNormalPartitionIdx]->invalidate();
                         _currentNormalPartitionIdx++;
 
                         _normalPtr = _partitions[_currentNormalPartitionIdx]->lockRaw();
@@ -419,7 +420,8 @@ default:
         bool potentiallyHasResolverOnSlowPath = !_operatorIDsAffectedByResolvers.empty() &&
                                                 std::binary_search(_operatorIDsAffectedByResolvers.begin(),
                                                                    _operatorIDsAffectedByResolvers.end(), operatorID);
-        if(!requiresInterpreterReprocessing(i64ToEC(ecCode)) && !potentiallyHasResolverOnSlowPath) {
+//        bool potentiallyHasResolverOnSlowPath = true;
+        if(!_isIncremental && !requiresInterpreterReprocessing(i64ToEC(ecCode)) && !potentiallyHasResolverOnSlowPath) {
             // TODO: check with resolvers!
             // i.e., we can directly save this as exception IF code is not an interpreter code
             // and true exception, i.e. no resolvers available.
@@ -456,7 +458,6 @@ default:
         // fallback 2: interpreter path
         // --> only go there if a non-true exception was recorded. Else, it will be dealt with above
         if(resCode == -1 && _interpreterFunctor) {
-
             // acquire GIL
             python::lockGIL();
             PyCallable_Check(_interpreterFunctor);
@@ -1216,8 +1217,10 @@ default:
             _normalRowNumber++;
         }
 
-        if (!_partitions.empty())
+        if (!_partitions.empty()) {
             _partitions[_currentNormalPartitionIdx]->unlock();
+            _partitions[_currentNormalPartitionIdx]->invalidate();
+        }
 
         // merging is done, unlock the last partition & copy the others over.
         unlockAll();

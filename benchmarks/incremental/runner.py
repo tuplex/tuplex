@@ -19,7 +19,7 @@ except ModuleNotFoundError as e:
     sys.exit(1)
 
 # subtargets can be done via /
-experiment_targets = ['all', 'flights/sampling', 'flights/hyper']
+experiment_targets = ['all', 'zillow']
 
 experiment_targets_description = {'all': 'a meta target to run all experiments',
                                   'zillow': 'runs the zillow experiment using different modes'}

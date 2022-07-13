@@ -122,7 +122,7 @@ def run_zillow_experiment(container, local_result_dir, clear_cache):
     # check that path in docker exists
     cmd = ['stat', INPUT_PATH]
     exit_code, output = container.exec_run(cmd, stderr=True, stdout=True)
-    if 0 != exit_code or 'No such file or' in output:
+    if 0 != exit_code or 'No such file or' in output.decode():
         logging.error("Did not find input path {} in container.".format(INPUT_PATH))
         sys.exit(1)
 

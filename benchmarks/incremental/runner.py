@@ -107,6 +107,21 @@ def is_tool(name):
 
     return which(name) is not None
 
+
+def run_cmd_in_docker(container, cmd, log_path, clear_cache):
+    if clear_cache is not None:
+        logging.info('clearing caches...')
+        subprocess.run(["clearcache"])
+        logging.info('OS caches cleared.')
+
+    exit_code, output = container.exec_run(cmd, stderr=True, stdout=True)
+    if 0 != exit_code:
+        logging.error("failed to execute {}, code={}".format(' '.join(cmd), exit_code))
+        log_path += '.failed'
+
+    with open(log_path, 'w') as fp:
+        fp.write(output.decode() if isinstance(output, bytes) else output)
+
 # zillow experiment (different configurations)
 def run_zillow_experiment(container, local_result_dir, clear_cache):
     # this is the AWS setup
@@ -118,6 +133,7 @@ def run_zillow_experiment(container, local_result_dir, clear_cache):
 
     INPUT_PATH = '/data/zillow_dirty@10G.csv'
     SCRATCH_DIR = '/data/scratch'
+    NUM_RUNS = 1
 
     # check that path in docker exists
     cmd = ['stat', INPUT_PATH]
@@ -129,26 +145,42 @@ def run_zillow_experiment(container, local_result_dir, clear_cache):
     # execute scripts now
     os.makedirs(local_result_dir, exist_ok=True)
 
-    run = 1
 
-    # basically benchmark.sh, but in docker
-    # docker exec vldb22 python3.9 /code/benchmarks/incremental/runtuplex.py --path /data/zillow_dirty@10G.csv --output-path /data/scratch/plain
-    cmd = ['python3.9', '/code/benchmarks/incremental/runtuplex.py', '--path', INPUT_PATH, '--output-path', os.path.join(SCRATCH_DIR, 'plain')]
-    log_path = os.path.join(local_result_dir, 'tuplex-plain-out-of-order-ssd-{:02d}.txt'.format(run))
-    if clear_cache is not None:
-        logging.info('clearing caches...')
-        subprocess.run(["clearcache"])
-        logging.info('OS caches cleared.')
+    logging.info("running out-of-order ssd experiments")
+    for run in range(1, NUM_RUNS + 1):
+        # basically benchmark.sh, but in docker
+        # docker exec vldb22 python3.9 /code/benchmarks/incremental/runtuplex.py --path /data/zillow_dirty@10G.csv --output-path /data/scratch/plain
 
-    # run within docker
-    exit_code, output = container.exec_run(cmd, stderr=True, stdout=True)
-    if 0 != exit_code:
-        logging.error("failed to execute {}, code={}".format(' '.join(cmd), exit_code))
-        log_path += '.failed'
+        logging.info('running plain')
+        cmd = ['python3.9', '/code/benchmarks/incremental/runtuplex.py', '--path', INPUT_PATH, '--output-path', os.path.join(SCRATCH_DIR, 'plain')]
+        log_path = os.path.join(local_result_dir, 'tuplex-plain-out-of-order-ssd-{:02d}.txt'.format(run))
+        run_cmd_in_docker(container, cmd, log_path, clear_cache)
 
-    with open(log_path, 'w') as fp:
-        fp.write(output.decode() if isinstance(output, bytes) else output)
+        logging.info('running incremental')
+        cmd = ['python3.9', '/code/benchmarks/incremental/runtuplex.py', '--incremental-resolution', '--path', INPUT_PATH, '--output-path',
+               os.path.join(SCRATCH_DIR, 'plain')]
+        log_path = os.path.join(local_result_dir, 'tuplex-incremental-out-of-order-ssd-{:02d}.txt'.format(run))
+        run_cmd_in_docker(container, cmd, log_path, clear_cache)
 
+    logging.info("running in-order ssd experiments")
+    for run in range(1, NUM_RUNS + 1):
+        logging.info('running plain')
+        cmd = ['python3.9', '/code/benchmarks/incremental/runtuplex.py', '--resolve-in-order', '--path', INPUT_PATH, '--output-path',
+               os.path.join(SCRATCH_DIR, 'plain')]
+        log_path = os.path.join(local_result_dir, 'tuplex-plain-in-order-ssd-{:02d}.txt'.format(run))
+        run_cmd_in_docker(container, cmd, log_path, clear_cache)
+
+        logging.info('running incremental')
+        cmd = ['python3.9', '/code/benchmarks/incremental/runtuplex.py', '--resolve-in-order', '--incremental-resolution', '--path', INPUT_PATH, '--output-path',
+               os.path.join(SCRATCH_DIR, 'plain')]
+        log_path = os.path.join(local_result_dir, 'tuplex-incremental-in-order-ssd-{:02d}.txt'.format(run))
+        run_cmd_in_docker(container, cmd, log_path, clear_cache)
+
+        logging.info('running commit')
+        cmd = ['python3.9', '/code/benchmarks/incremental/runtuplex.py', '--resolve-in-order', '--incremental-resolution', '--commit', '--path', INPUT_PATH, '--output-path',
+               os.path.join(SCRATCH_DIR, 'plain')]
+        log_path = os.path.join(local_result_dir, 'tuplex-incremental-in-order-commit-ssd-{:02d}.txt'.format(run))
+        run_cmd_in_docker(container, cmd, log_path, clear_cache)
 
     logging.info('zillow exp done!')
 

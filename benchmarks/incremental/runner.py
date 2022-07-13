@@ -304,8 +304,11 @@ def start_container():
             # check directory layout!
 
             REPO_PATH = os.path.join(os.getcwd(), 'tuplex')
+            LOCAL_DATA_PATH = '/disk/data'
             logging.info('Mounting source code from {}'.format(REPO_PATH))
-            volumes = {REPO_PATH: {'bind': '/code', 'mode': 'rw'}}
+            logging.info('Mounting data from {}'.format(LOCAL_DATA_PATH))
+            volumes = {REPO_PATH: {'bind': '/code', 'mode': 'rw'},
+                       LOCAL_DATA_PATH: {'bind': '/data', 'mode': 'rw'}}
 
             dc.containers.run(DOCKER_IMAGE_TAG + ':latest', name=DOCKER_CONTAINER_NAME,
                               tty=True, stdin_open=True, detach=True, volumes=volumes, remove=True)

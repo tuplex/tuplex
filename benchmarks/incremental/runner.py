@@ -99,6 +99,59 @@ def retrieve_targets_to_run(name):
     return sorted(targets)
 
 
+def is_tool(name):
+    """Check whether `name` is on PATH and marked as executable."""
+
+    # from whichcraft import which
+    from shutil import which
+
+    return which(name) is not None
+
+# zillow experiment (different configurations)
+def run_zillow_experiment(container, local_result_dir, clear_cache):
+    # this is the AWS setup
+
+    # first check whether clearcache program exists...
+    if not is_tool('clearcache'):
+        logging.error("clearcache does not exist on host machine, skip clearing caches.")
+        clear_cache = None
+
+    INPUT_PATH = '/data/zillow_dirty@10G.csv'
+    SCRATCH_DIR = '/data/scratch'
+
+    # check that path in docker exists
+    cmd = ['stat', INPUT_PATH]
+    exit_code, output = container.exec_run(cmd, stderr=True, stdout=True)
+    if 0 != exit_code or 'No such file or' in output:
+        logging.error("Did not find input path {} in container.".format(INPUT_PATH))
+        sys.exit(1)
+
+    # execute scripts now
+    os.makedirs(local_result_dir, exist_ok=True)
+
+    run = 1
+
+    # basically benchmark.sh, but in docker
+    # docker exec vldb22 python3.9 /code/benchmarks/incremental/runtuplex.py --path /data/zillow_dirty@10G.csv --output-path /data/scratch/plain
+    cmd = ['python3.9', '/code/benchmarks/incremental/runtuplex.py', '--path', INPUT_PATH, '--output-path', os.path.join(SCRATCH_DIR, 'plain')]
+    log_path = os.path.join(local_result_dir, 'tuplex-plain-out-of-order-ssd-{:02d}.txt'.format(run))
+    if clear_cache is not None:
+        logging.info('clearing caches...')
+        subprocess.run(["clearcache"])
+        logging.info('OS caches cleared.')
+
+    # run within docker
+    exit_code, output = container.exec_run(cmd, stderr=True, stdout=True)
+    if 0 != exit_code or 'No such file or' in output:
+        logging.error("failed to execute {}, code={}".format(' '.join(cmd), exit_code))
+        log_path += '.failed'
+
+    with open(log_path, 'w') as fp:
+        fp.write(output.decode() is isinstance(output, bytes) else output)
+
+
+    logging.info('zillow exp done!')
+
 @click.command()
 @click.argument('target', type=click.Choice(sorted(list(set(meta_targets + experiment_targets))), case_sensitive=False))
 @click.option('--num-runs', type=int, default=1,  # 11,
@@ -176,22 +229,24 @@ def run(ctx, target, num_runs, detach, help, clear_cache):
         # run individual targets
         # for these, the runbenchmark.sh scripts are used!
         # e.g., docker exec -e NUM_RUNS=1 sigmod21 bash -c 'cd /code/benchmarks/zillow/Z1/ && bash runbenchmark.sh'
-        path_dict = {'flights/sampling': {'script': '-c \'python3.9 runtuplex.py\'',
-                                          'wd': '/code/benchmarks/nextconf/hyperspecialization/flights/sampling_experiment'},
-                     'flights/hyper': {'script': 'benchmark.sh',
-                                       'wd': '/code/benchmarks/nextconf/hyperspecialization/flights'}}
 
         # lowercase
         target = target.lower()
         results_root_dir = 'results'
         local_result_dir = os.path.join(results_root_dir, target)
         log_run_path = os.path.join(local_result_dir, 'experiment-log.txt')
+        os.makedirs(local_result_dir, exist_ok=True)
 
+        if target == 'zillow':
+            run_zillow_experiment(container, local_result_dir, clear_cache)
+            num_targets_run += 1
+            continue
+
+        # other targets...
+        path_dict = {}
         if not target in path_dict.keys():
             logging.error('target {} not found, skip.'.format(target))
             continue
-
-        os.makedirs(local_result_dir, exist_ok=True)
 
         # get script
         benchmark_path = path_dict[target]['wd']

@@ -74,3 +74,9 @@ Also, need to setup dependencies first before invoking runner
 sudo apt install python3-pip -y
 pip3 install -r requirements.txt
 ```
+
+Generate data via
+```angular2html
+mkdir -p /disk/data && cd /disk/data
+/disk/tuplex-public/benchmarks/incremental/replicate-data.py -i /disk/tuplex-public/tuplex/test/resources/zillow_dirty.csv -s 1460 -o /disk/data/zillow_dirty@10G.csv
+```

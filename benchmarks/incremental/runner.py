@@ -50,7 +50,7 @@ plot_targets = []
 # default paths
 DEFAULT_RESULT_PATH = 'r5d.8xlarge'
 DEFAULT_OUTPUT_PATH = 'plots'
-DOCKER_IMAGE_TAG = 'tuplex/benchmark'
+DOCKER_IMAGE_TAG = 'tuplex/benchmarkii'
 DOCKER_CONTAINER_NAME = 'vldb22'
 
 # hidden config file to check compatibility of settings

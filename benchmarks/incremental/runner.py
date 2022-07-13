@@ -142,12 +142,12 @@ def run_zillow_experiment(container, local_result_dir, clear_cache):
 
     # run within docker
     exit_code, output = container.exec_run(cmd, stderr=True, stdout=True)
-    if 0 != exit_code or 'No such file or' in output:
+    if 0 != exit_code:
         logging.error("failed to execute {}, code={}".format(' '.join(cmd), exit_code))
         log_path += '.failed'
 
     with open(log_path, 'w') as fp:
-        fp.write(output.decode() is isinstance(output, bytes) else output)
+        fp.write(output.decode() if isinstance(output, bytes) else output)
 
 
     logging.info('zillow exp done!')

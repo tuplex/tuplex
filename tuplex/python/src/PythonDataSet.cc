@@ -1675,6 +1675,6 @@ namespace tuplex {
             PyDict_SetItemString(dict, keyval.first.c_str(), PyLong_FromLongLong(keyval.second));
         }
 
-        return py::reinterpret_steal<py::dict>(dict);
+        return py::reinterpret_borrow<py::dict>(dict);
     }
 }

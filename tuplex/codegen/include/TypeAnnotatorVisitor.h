@@ -53,6 +53,7 @@ namespace tuplex {
                                        const TokenType tt, ASTNode* right,
                                        const python::Type& b);
         void assignHelper(NIdentifier *id, python::Type type);
+        void dictAssign(NSubscription* subscript, python::Type key_type, python::Type value_type);
         void checkRetType(python::Type t);
         /*!
          * Annotate iterator-related NCall with iterator-specific info

@@ -1220,6 +1220,28 @@ namespace tuplex {
         _nameTable[id->_name] = type;
     }
 
+    void TypeAnnotatorVisitor::dictAssign(NSubscription* subscript, python::Type key_type, python::Type value_type) {
+        assert(subscript->_value->getInferredType().isDictionaryType());
+
+        NDictionary* dict = (NDictionary*)subscript->_value;
+        // not entirely sure what the below loop is for rn
+        // if(_ongoingLoopCount != 0 && !_loopTypeChange) {
+        //     // we are now inside a loop; no type change detected yet
+        //     // check potential type change during loops
+        //     if(_nameTable.find(id->_name) != _nameTable.end() && type != _nameTable.at(id->_name)) {
+        //         error("variable " + id->_name + " changed type during loop from " + _nameTable.at(id->_name).desc() + " to " + type.desc() + ", traced typing needed to determine if the type change is stable");
+        //         _loopTypeChange = true;
+        //     }
+        // }
+
+        // set dictionary's inferred type to be key_type -> value_type
+        // should maybe make a helper function for this? or does this count as the helper function...
+        dict->setInferredType(python::TypeFactory::instance().createOrGetDictionaryType(key_type, value_type));
+        
+        // overwrite entry in nametable with new type (Q: how to do this for dictionaries?)
+        // _nameTable[dict->] = type;
+    }
+
     void TypeAnnotatorVisitor::visit(NAssign *assign) {
         ApatheticVisitor::visit(assign);
 
@@ -1277,8 +1299,49 @@ namespace tuplex {
             } else {
                 error("bad type annotation in tuple assign");
             }
+        } else if (assign->_target->type() == ASTNodeType::Subscription) {
+            NSubscription* subscript = (NSubscription*)assign->_target;
+
+            assert(subscript->_value);
+            assert(subscript->_expression);
+
+            auto type = subscript->_value->getInferredType();
+            auto index_type = subscript->_expression->getInferredType();
+
+            // this is a null check operation. I.e. strip option from either type or index type
+            if (type.isOptionType())
+                type = type.getReturnType();
+            if (index_type.isOptionType())
+                index_type = index_type.getReturnType();
+
+            // if object is dict-like, subscript must have a type compatible with mapping's key type
+            // question: the index is technically an expression: so we need to be able to handle multiple kinds of expressions?
+            // although, we don't really need to know what kind of expression the index is, we just need the resulting return type.
+            // is there an easy way to get this without having to check what kind of expression the index is?
+
+            if (type == python::Type::EMPTYDICT) {
+                // if object is an empty dictionary, upcast empty dictionary to match type of requested subscript and value
+                // Q: do I need to check if the value being assigned is an iterator here?
+                dictAssign(subscript, index_type, assign->_value->getInferredType()); 
+            } else if (python::Type::GENERICDICT == type) {
+                dictAssign(subscript, python::Type::PYOBJECT, python::Type::PYOBJECT);
+            } else if (type.isDictionaryType()) {
+                // if object is not an empty dictionary, check if dict's key type matches subscript type
+                    // if they don't match, mark the dictionary as having type [PYOBJECT, PYOBJECT]
+                    // and set a marker in the typeannotator that this function always triggers the interpreter fallback
+                    // Q: how to do ^^ ?
+                dictAssign(subscript, python::Type::PYOBJECT, python::Type::PYOBJECT);
+            } else {
+                error("only assignment to dictionary subscriptions supported yet!");
+                // if object is list-like, subscript must be an integer
+                // if subscript is negative, list-like object's length is added to subscript
+                // resulting subscript must be in range of object, then ask object to assign value to element/item at the subscript
+            }
+            
+            NDictionary* dict = (NDictionary*)subscript->_value;
+
         } else {
-            error("only assignment to tuples/identifiers supported yet!!!");
+            error("only assignment to tuples/identifiers/subscriptions supported yet!!!");
         }
         // in all cases, set the type of the entire assign
         // TODO we def want this in the single identifier case, but in general?

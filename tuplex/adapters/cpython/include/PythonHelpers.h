@@ -77,6 +77,17 @@ namespace python {
         }
     }
 
+    inline PyObject* boolean(bool val) { return boolToPython(val); }
+
+    /*!
+     * returns Py_None after calling incref, similar to Py_RETURN_NONE
+     * @return Py_None
+     */
+    inline PyObject* none() {
+        Py_XINCREF(Py_None);
+        return Py_None;
+    }
+
     /*!
      * set python home to local directory
      * @param home_dir string pointing to local path where standard python libraries are stored.

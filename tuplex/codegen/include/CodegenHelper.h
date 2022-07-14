@@ -309,6 +309,11 @@ namespace tuplex {
                                            bool HasNUW = false, bool HasNSW = false) const {
                  return get_or_throw().CreateAdd(LHS, RHS, Name, HasNUW, HasNSW);
              }
+
+            inline llvm::Value *CreateNUWAdd(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "") const {
+                 return get_or_throw().CreateNUWAdd(LHS, RHS, Name);
+             }
+
             inline llvm::Value* CreateSub(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
                                           bool HasNUW = false, bool HasNSW = false) const {
                 return get_or_throw().CreateSub(LHS, RHS, Name, HasNUW, HasNSW);

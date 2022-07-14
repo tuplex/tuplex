@@ -31,10 +31,10 @@ bash install_boost.sh /opt/python/cp39-cp39/bin/python3.9 /opt/boost/python3.9
 bash install_boost.sh /opt/python/cp310-cp310/bin/python3.10 /opt/boost/python3.10
 
 # matrix?
-python3.7 -m pip install cloudpickle numpy
-python3.8 -m pip install cloudpickle numpy
-python3.9 -m pip install cloudpickle numpy
-python3.10 -m pip install cloudpickle numpy
+python3.7 -m pip install 'cloudpickle<2.0.0' numpy
+python3.8 -m pip install 'cloudpickle<2.0.0' numpy
+python3.9 -m pip install 'cloudpickle<2.0.0' numpy
+python3.10 -m pip install 'cloudpickle<2.0.0' numpy
 
 # tuplex requirements
 bash install_tuplex_reqs.sh

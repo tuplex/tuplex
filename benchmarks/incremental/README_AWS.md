@@ -79,4 +79,6 @@ Generate data via
 ```angular2html
 mkdir -p /disk/data && cd /disk/data
 /disk/tuplex-public/benchmarks/incremental/replicate-data.py -i /disk/tuplex-public/tuplex/test/resources/zillow_dirty.csv -s 1460 -o /disk/data/zillow_dirty@10G.csv
+
+/disk/tuplex-public/benchmarks/incremental/replicate-data.py -i /disk/tuplex-public/tuplex/test/resources/zillow_dirty.csv -s 7300 -o /disk/data/zillow_dirty@50G.csv
 ```

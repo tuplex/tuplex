@@ -133,7 +133,7 @@ def run_zillow_experiment(container, local_result_dir, clear_cache):
 
     INPUT_PATH = '/data/zillow_dirty@50G.csv'
     SCRATCH_DIR = '/data/scratch'
-    NUM_RUNS = 1
+    NUM_RUNS = 10
 
     # check that path in docker exists
     cmd = ['stat', INPUT_PATH]

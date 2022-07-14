@@ -21,7 +21,7 @@ namespace tuplex {
             return func;
         }
 
-        void TuplexSourceTaskBuilder::processRow(llvm::IRBuilder<> &builder, llvm::Value *userData,
+        void TuplexSourceTaskBuilder::processRow(IRBuilder &builder, llvm::Value *userData,
                                                  const FlattenedTuple &tuple,
                                                  llvm::Value *normalRowCountVar,
                                                  llvm::Value *badRowCountVar,
@@ -42,7 +42,7 @@ namespace tuplex {
             }
         }
 
-        void TuplexSourceTaskBuilder::callProcessFuncWithHandler(llvm::IRBuilder<> &builder, llvm::Value *userData,
+        void TuplexSourceTaskBuilder::callProcessFuncWithHandler(IRBuilder &builder, llvm::Value *userData,
                                                                  const FlattenedTuple& tuple,
                                                                  llvm::Value *normalRowCountVar,
                                                                  llvm::Value *rowNumberVar,
@@ -111,7 +111,7 @@ namespace tuplex {
 
             BasicBlock *bbBody = BasicBlock::Create(context, "entry", read_block_func);
 
-            IRBuilder<> builder(bbBody);
+            IRBuilder builder(bbBody);
 
 
             // there should be a check if argInSize is 0
@@ -201,7 +201,8 @@ namespace tuplex {
 
             // return bytes read
             Value* curPtr = builder.CreateLoad(currentInputPtrVar, "ptr");
-            Value* bytesRead = builder.CreateSub(builder.CreatePtrToInt(curPtr, env().i64Type()), builder.CreatePtrToInt(argInPtr, env().i64Type()));
+            Value* bytesRead = builder.CreateSub(builder.CreatePtrToInt(curPtr, env().i64Type()),
+                                                 builder.CreatePtrToInt(argInPtr, env().i64Type()));
             builder.CreateRet(bytesRead);
         }
     }

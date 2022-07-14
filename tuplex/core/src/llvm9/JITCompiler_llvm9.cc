@@ -7,8 +7,11 @@
 //  Created by Leonhard Spiegelberg first on 1/1/2021                                                                 //
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
+// need to include some llvm file, so version is picked up
+#include <llvm/IR/IRBuilder.h>
 
-#include <JITCompiler.h>
+#if LLVM_VERSION_MAJOR < 10
+#include <llvm9/JITCompiler_llvm9.h>
 #include <Logger.h>
 
 #include <llvm/IR/Verifier.h>
@@ -21,7 +24,7 @@
 #include <Timer.h>
 
 //LLVM9 fixes
-#include <FixedRTDyldObjectLinkingLayer.h>
+#include <llvm9/FixedRTDyldObjectLinkingLayer_llvm9.h>
 
 // C functions
 #include <hashmap.h>
@@ -455,3 +458,5 @@ namespace tuplex {
     }
 #endif
 }
+
+#endif

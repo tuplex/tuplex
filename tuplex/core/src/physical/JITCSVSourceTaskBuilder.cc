@@ -64,7 +64,7 @@ namespace tuplex {
             _inputRowType = _parseRowGen->serializedType(); // get the type of the CSV row parser ==> this is the restricted one!
         }
 
-        FlattenedTuple JITCSVSourceTaskBuilder::createFlattenedTupleFromCSVParseResult(llvm::IRBuilder<>& builder, llvm::Value *parseResult,
+        FlattenedTuple JITCSVSourceTaskBuilder::createFlattenedTupleFromCSVParseResult(IRBuilder& builder, llvm::Value *parseResult,
                                                                                        const python::Type &parseRowType) {
             FlattenedTuple ft(&env());
             ft.init(parseRowType);
@@ -90,7 +90,7 @@ namespace tuplex {
             return ft;
         }
 
-        void JITCSVSourceTaskBuilder::processRow(llvm::IRBuilder<>& builder,
+        void JITCSVSourceTaskBuilder::processRow(IRBuilder& builder,
                                                  llvm::Value* userData, llvm::Value* parseCode, llvm::Value *parseResult,
                                                  llvm::Value *normalRowCountVar,
                                                  llvm::Value *badRowCountVar,
@@ -294,7 +294,7 @@ namespace tuplex {
 
             BasicBlock *bbBody = BasicBlock::Create(context, "entry", read_block_func);
 
-            IRBuilder<> builder(bbBody);
+            IRBuilder builder(bbBody);
 
 
             // there should be a check if argInSize is 0

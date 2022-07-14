@@ -1339,7 +1339,7 @@ TEST_F(UseCaseFunctionsTest, PaperExampleCode) {
 
     auto& mod = *env->getModule();
     // run cfg-simplification pass to get rid of unnecessary basic blocks
-    auto fpm = llvm::make_unique<llvm::legacy::FunctionPassManager>(&mod);
+    auto fpm = std::make_unique<llvm::legacy::FunctionPassManager>(&mod);
     assert(fpm.get());
     fpm->add(llvm::createCFGSimplificationPass());
     fpm->add(llvm::createDeadCodeEliminationPass());

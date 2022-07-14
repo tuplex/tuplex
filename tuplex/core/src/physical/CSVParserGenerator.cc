@@ -47,7 +47,7 @@ namespace tuplex {
 
             oldBuilder.CreateBr(bBody);
 
-            IRBuilder<> builder(bBody);
+            IRBuilder builder(bBody);
 
             // setup here all variables necessary for the parsing
             _resStructVar = builder.CreateAlloca(_rowGenerator.resultType(), 0, nullptr, "resultVar");

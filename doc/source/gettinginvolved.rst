@@ -129,7 +129,7 @@ Go to ``BlockGeneratorVisitor.cc`` and edit the
 .. code-block:: c++
 
     llvm::Value *
-    BlockGeneratorVisitor::compareInst(llvm::IRBuilder<>& builder, llvm::Value *L, const python::Type &leftType, const TokenType &tt,
+    BlockGeneratorVisitor::compareInst(codegen::IRBuilder&builder, llvm::Value *L, const python::Type &leftType, const TokenType &tt,
                                            llvm::Value *R, const python::Type &rightType)
 
 function to add support for the ``is`` tokens you added. You can use ``error(...)`` to fail on bad comparison expressions involving ``is`` as discussed above.

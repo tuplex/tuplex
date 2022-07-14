@@ -59,7 +59,7 @@ tuplex::Row execRow(const tuplex::Row& input, tuplex::UDF udf) {
 
     // create simple mapper
     auto llvmFunc = codegen::createSingleProcessRowWrapper(*pip.get(), "execRow");
-    string funName = llvmFunc->getName();
+    string funName = llvmFunc->getName().str();
 
     auto ir = env->getIR();
 

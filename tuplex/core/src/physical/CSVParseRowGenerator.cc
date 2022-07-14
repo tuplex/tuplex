@@ -95,7 +95,7 @@ namespace tuplex {
             return _resultType;
         }
 
-        void CSVParseRowGenerator::updateLookAhead(llvm::IRBuilder<> &builder) {
+        void CSVParseRowGenerator::updateLookAhead(IRBuilder& builder) {
             auto ptr = builder.CreateLoad(_currentPtrVar);
             auto lessThanEnd = builder.CreateICmpULT(ptr, _endPtr);
             auto la = builder.CreateSelect(lessThanEnd, builder.CreateLoad(builder.CreateGEP(ptr, _env->i32Const(1))),
@@ -104,7 +104,7 @@ namespace tuplex {
 
         }
 
-        llvm::Value *CSVParseRowGenerator::newlineCondition(llvm::IRBuilder<> &builder, llvm::Value *curChar) {
+        llvm::Value *CSVParseRowGenerator::newlineCondition(IRBuilder& builder, llvm::Value *curChar) {
             assert(curChar->getType() == llvm::Type::getInt8Ty(_env->getContext()));
             auto left = builder.CreateICmpEQ(curChar, _env->i8Const('\n'));
             auto right = builder.CreateICmpEQ(curChar, _env->i8Const('\r'));
@@ -112,7 +112,7 @@ namespace tuplex {
         }
 
         llvm::Value *
-        CSVParseRowGenerator::generateCellSpannerCode(llvm::IRBuilder<> &builder, char c1, char c2, char c3, char c4) {
+        CSVParseRowGenerator::generateCellSpannerCode(IRBuilder& builder, char c1, char c2, char c3, char c4) {
             auto &context = _env->getContext();
             using namespace llvm;
 
@@ -126,10 +126,7 @@ namespace tuplex {
             //  __m128i _v = (__m128i)vq;
             // const char *buf = "Hello world";
             // size_t pos = _mm_cmpistri(_v, _mm_loadu_si128((__m128i*)buf), 0);
-
-            auto v16qi_type = llvm::VectorType::get(llvm::Type::getInt8Ty(context), 16);
-
-            auto v16qi_val = builder.CreateAlloca(v16qi_type);
+            auto v16qi_val = builder.CreateAlloca(v16qi_type(context));
             uint64_t idx = 0ul;
             llvm::Value *whereToStore = builder.CreateLoad(v16qi_val);
             whereToStore = builder.CreateInsertElement(whereToStore, _env->i8Const(c1), idx++);
@@ -145,7 +142,7 @@ namespace tuplex {
 
 
         llvm::Value *
-        CSVParseRowGenerator::executeSpanner(llvm::IRBuilder<> &builder, llvm::Value *spanner, llvm::Value *ptr) {
+        CSVParseRowGenerator::executeSpanner(IRBuilder& builder, llvm::Value *spanner, llvm::Value *ptr) {
             auto &context = _env->getContext();
             using namespace llvm;
 
@@ -154,12 +151,11 @@ namespace tuplex {
 
 
             // unsafe version: this requires that there are 15 zeroed bytes after endptr at least
-            auto v16qi_type = llvm::VectorType::get(llvm::Type::getInt8Ty(context), 16);
             auto val = builder.CreateLoad(spanner);
-            auto casted_ptr = builder.CreateBitCast(ptr, v16qi_type->getPointerTo(0));
+            auto casted_ptr = builder.CreateBitCast(ptr, v16qi_type(context)->getPointerTo(0));
 
             Function *pcmpistri128func = Intrinsic::getDeclaration(_env->getModule().get(),
-                                                                   Intrinsic::x86_sse42_pcmpistri128);
+                                                                   LLVMIntrinsic::x86_sse42_pcmpistri128);
             auto res = builder.CreateCall(pcmpistri128func, {val, builder.CreateLoad(casted_ptr), _env->i8Const(0)});
             return res;
 
@@ -229,7 +225,7 @@ namespace tuplex {
             BasicBlock *bUnquotedCellBeginSkipEntry = BasicBlock::Create(context, "unquoted_cell_begin_skip", _func);
 
 
-            IRBuilder<> builder(bUnquotedCellBegin);
+            IRBuilder builder(bUnquotedCellBegin);
             //_env->debugPrint(builder, "entering unquoted cell begin", _env->i64Const(0));
             // save cell begin ptr
             saveCellBegin(builder);
@@ -282,7 +278,7 @@ namespace tuplex {
             BasicBlock *bQuotedCellDQError = BasicBlock::Create(context, "quoted_cell_double_quote_error", _func);
             BasicBlock *bQuotedCellDQCheck = BasicBlock::Create(context, "quoted_cell_double_quote_check", _func);
             BasicBlock *bQuotedCellEndCheck = BasicBlock::Create(context, "quoted_cell_end_reached_check", _func);
-            IRBuilder<> builder(bQuotedCellBegin);
+            IRBuilder builder(bQuotedCellBegin);
 
             // (1) ------------------------------------------------------------------------
             //     Quoted Cell begin block [consume ", save cell start]
@@ -399,7 +395,7 @@ namespace tuplex {
 
             BasicBlock *bCellDone = BasicBlock::Create(context, "cell_done", _func);
             BasicBlock *bParseDone = BasicBlock::Create(context, "parse_done", _func);
-            IRBuilder<> builder(bEntry);
+            IRBuilder builder(bEntry);
             _lineBeginVar = builder.CreateAlloca(i8ptr_type);
             _lineEndVar = builder.CreateAlloca(i8ptr_type);
 
@@ -547,7 +543,7 @@ namespace tuplex {
             using namespace llvm;
             auto &context = _env->getContext();
 
-            IRBuilder<> builder(bParseDone);
+            IRBuilder builder(bParseDone);
             saveLineEnd(builder); // depending
 
 
@@ -578,7 +574,7 @@ namespace tuplex {
             fillResultCode(builder, false);
         }
 
-        void CSVParseRowGenerator::saveCurrentCell(llvm::IRBuilder<> &builder) {
+        void CSVParseRowGenerator::saveCurrentCell(IRBuilder& builder) {
             using namespace llvm;
             auto &context = _env->getContext();
 
@@ -615,7 +611,7 @@ namespace tuplex {
 
 
         void
-        CSVParseRowGenerator::storeParseInfo(llvm::IRBuilder<> &builder, llvm::Value *lineStart, llvm::Value *lineEnd,
+        CSVParseRowGenerator::storeParseInfo(IRBuilder& builder, llvm::Value *lineStart, llvm::Value *lineEnd,
                                              llvm::Value *numParsedBytes) {
             assert(_resultPtr);
             assert(_resultPtr->getType() == resultType()->getPointerTo(0));
@@ -655,7 +651,7 @@ namespace tuplex {
 
 
         void
-        CSVParseRowGenerator::storeValue(llvm::IRBuilder<> &builder, int column, llvm::Value *val, llvm::Value *size,
+        CSVParseRowGenerator::storeValue(IRBuilder& builder, int column, llvm::Value *val, llvm::Value *size,
                                          llvm::Value *isnull) {
             assert(0 <= column && column < _cellDescs.size());
 
@@ -677,7 +673,7 @@ namespace tuplex {
                                                   {_env->i32Const(0), _env->i32Const(3), _env->i32Const(column / 64)});
                 auto qword = builder.CreateLoad(idxQword);
                 auto new_qword = builder.CreateOr(qword, builder.CreateShl(builder.CreateZExt(isnull, _env->i64Type()),
-                                                                           column % 64));
+                                                                           _env->i64Const(column % 64)));
 
                 builder.CreateStore(new_qword, idxQword);
             }
@@ -685,7 +681,7 @@ namespace tuplex {
 
 
         codegen::SerializableValue
-        CSVParseRowGenerator::getColumnResult(llvm::IRBuilder<> &builder, int column, llvm::Value *result) const {
+        CSVParseRowGenerator::getColumnResult(IRBuilder& builder, int column, llvm::Value *result) const {
 
             // make sure column is within range!
             assert(0 <= column && column < serializedType().parameters().size());
@@ -748,7 +744,7 @@ namespace tuplex {
         }
 
         // @Todo: maybe rename this
-        void CSVParseRowGenerator::fillResultCode(llvm::IRBuilder<> &builder, bool errorOccured) {
+        void CSVParseRowGenerator::fillResultCode(IRBuilder& builder, bool errorOccured) {
             using namespace llvm;
             auto &context = _env->getContext();
             auto i8ptr_type = Type::getInt8PtrTy(context, 0);
@@ -764,7 +760,7 @@ namespace tuplex {
             // create block for special error codes
             BasicBlock* bbValueError = BasicBlock::Create(context, "null_schema_mismatch", builder.GetInsertBlock()->getParent());
             BasicBlock* bbNullError = BasicBlock::Create(context, "null_schema_mismatch", builder.GetInsertBlock()->getParent());
-            IRBuilder<> errBuilder(bbValueError);
+            IRBuilder errBuilder(bbValueError);
             storeBadParseInfo(errBuilder);
             errBuilder.CreateRet(_env->i32Const(ecToI32(ExceptionCode::VALUEERROR))); // i.e. raised for bad number parse
             errBuilder.SetInsertPoint(bbNullError);
@@ -829,7 +825,6 @@ namespace tuplex {
                         if(type.withoutOptions() == python::Type::STRING) {
                             builder.CreateStore(_env->strConst(builder, ""), valPtr);
                         }
-
 
                         // if option type, null is ok. I.e. only parse if not null
                         BasicBlock* bbParseDone = BasicBlock::Create(context, "parse_done_col" + std::to_string(pos), _func);
@@ -943,12 +938,13 @@ namespace tuplex {
                                            "parse_row",
                                            _env->getModule().get());
 
-            AttrBuilder ab;
 
-            // deactivate to lower compilation time?
-            // ab.addAttribute(Attribute::AlwaysInline);
-            _func->addAttributes(llvm::AttributeList::FunctionIndex, ab);
-
+//
+//            AttrBuilder ab;
+//
+//            // deactivate to lower compilation time?
+//            // ab.addAttribute(Attribute::AlwaysInline);
+//            _func->addAttributes(llvm::AttributeList::FunctionIndex, ab);
 
             vector<llvm::Value *> args;
             int counter = 0;
@@ -964,7 +960,7 @@ namespace tuplex {
             _endPtr = args[2];
         }
 
-        void CSVParseRowGenerator::storeBadParseInfo(llvm::IRBuilder<> &builder) {
+        void CSVParseRowGenerator::storeBadParseInfo(const IRBuilder& builder) {
             using namespace llvm;
             using namespace std;
 
@@ -996,7 +992,7 @@ namespace tuplex {
                                                             {_env->i8Const(_quotechar), cellBegin, cellEndIncl,
                                                              ret_size_ptr});
                     cells.push_back(normalizedStr);
-                    cell_sizes.push_back(builder.CreateLoad(ret_size_ptr, true));
+                    cell_sizes.push_back(builder.CreateLoad(ret_size_ptr));
                     pos++;
                 }
             }
@@ -1044,7 +1040,7 @@ namespace tuplex {
                 Value* offset = builder.CreateAdd(acc_size, _env->i64Const((cells.size() - i) * sizeof(int64_t)));
 
                 //     info = (size << 32u) | offset;
-                Value* info = builder.CreateOr(offset, builder.CreateShl(cell_sizes[i], 32));
+                Value* info = builder.CreateOr(offset, builder.CreateShl(cell_sizes[i], _env->i64Const(32)));
 
                 //     *(uint64_t*)buf = info
                 builder.CreateStore(info, builder.CreateBitCast(lastPtr, _env->i64ptrType()));
@@ -1071,7 +1067,7 @@ namespace tuplex {
             builder.CreateStore(buf_size, idx_buf_length);
         }
 
-        SerializableValue CSVParseRowGenerator::getCellInfo(llvm::IRBuilder<> &builder, llvm::Value *result) const {
+        SerializableValue CSVParseRowGenerator::getCellInfo(IRBuilder& builder, llvm::Value *result) const {
             using namespace llvm;
 
             // cast result type if necessary

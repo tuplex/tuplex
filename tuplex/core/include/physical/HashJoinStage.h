@@ -98,7 +98,7 @@ namespace tuplex {
         int64_t _outputDataSetID;
 
         void generateProbingCode(std::shared_ptr<codegen::LLVMEnvironment>& env,
-                llvm::IRBuilder<>& builder,
+                codegen::IRBuilder& builder,
                                  llvm::Value *userData,
                                  llvm::Value *hashMap,
                 llvm::Value* ptrVar,
@@ -110,16 +110,16 @@ namespace tuplex {
                 const JoinType& jt);
 
         llvm::Value* makeKey(std::shared_ptr<codegen::LLVMEnvironment>& env,
-                llvm::IRBuilder<>& builder, const python::Type& type, const codegen::SerializableValue& key);
+                codegen::IRBuilder& builder, const python::Type& type, const codegen::SerializableValue& key);
 
         void writeJoinResult(std::shared_ptr<codegen::LLVMEnvironment>& env,
-                             llvm::IRBuilder<>& builder,
+                             codegen::IRBuilder& builder,
                              llvm::Value* userData,
                              llvm::Value* bucketPtr,
                              const python::Type& buildType, int buildKeyIndex,
                              const codegen::FlattenedTuple& ftProbe, int probeKeyIndex);
         void writeBuildNullResult(std::shared_ptr<codegen::LLVMEnvironment>& env,
-                             llvm::IRBuilder<>& builder,
+                             codegen::IRBuilder& builder,
                              llvm::Value* userData,
                              const python::Type& buildType, int buildKeyIndex,
                              const codegen::FlattenedTuple& ftProbe, int probeKeyIndex);

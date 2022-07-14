@@ -29,7 +29,7 @@ namespace tuplex {
             auto args = mapLLVMFunctionArgs(func, {"agg", "agg_size"});
 
             auto body = BasicBlock::Create(env->getContext(), "body", func);
-            IRBuilder<> builder(body);
+            IRBuilder builder(body);
 
             auto ft = FlattenedTuple::fromRow(env, builder, row);
 
@@ -59,7 +59,7 @@ namespace tuplex {
         // this function basically should take
         // int64_t combineAggregates(void** aggOut, int64_t* aggOut_size, void* agg, int64_t agg_size)
         llvm::Function *createAggregateCombineFunction(LLVMEnvironment *env, const std::string &name, const UDF &udf,
-                                                       const python::Type aggType,
+                                                       const python::Type& aggType,
                                                        decltype(malloc) allocator) {
             using namespace llvm;
 
@@ -74,7 +74,7 @@ namespace tuplex {
             auto args = mapLLVMFunctionArgs(func, {"out", "out_size", "agg", "agg_size"});
 
             auto body = BasicBlock::Create(env->getContext(), "body", func);
-            IRBuilder<> builder(body);
+            IRBuilder builder(body);
 
             // do not touch agg, this is externally handled.
 
@@ -113,7 +113,7 @@ namespace tuplex {
             builder.CreateStore(env->i64Const(ecToI64(ExceptionCode::SUCCESS)), exceptionVar);
 
             auto exceptionBlock = BasicBlock::Create(env->getContext(), "except", func);
-            IRBuilder<> eb(exceptionBlock);
+            IRBuilder eb(exceptionBlock);
             eb.CreateRet(eb.CreateLoad(exceptionVar));
 
             auto ftOut = cf.callWithExceptionHandler(builder, ftin, resultVar, exceptionBlock, exceptionVar);
@@ -164,7 +164,7 @@ namespace tuplex {
             auto args = mapLLVMFunctionArgs(func, {"out", "row", "row_size"});
 
             auto body = BasicBlock::Create(env->getContext(), "body", func);
-            IRBuilder<> builder(body);
+            IRBuilder builder(body);
 
             // pull the row out of the input buffer
             auto buf_offset = env->i64Const(8);
@@ -208,7 +208,7 @@ namespace tuplex {
             builder.CreateStore(env->i64Const(ecToI64(ExceptionCode::SUCCESS)), exceptionVar);
 
             auto exceptionBlock = BasicBlock::Create(env->getContext(), "except", func);
-            IRBuilder<> eb(exceptionBlock);
+            IRBuilder eb(exceptionBlock);
             eb.CreateRet(eb.CreateLoad(exceptionVar));
 
             auto ftOut = cf.callWithExceptionHandler(builder, ftin, resultVar, exceptionBlock, exceptionVar);

@@ -26,7 +26,7 @@
 namespace tuplex {
     namespace codegen {
 
-        FlattenedTuple CompiledFunction::callWithExceptionHandler(llvm::IRBuilder<> &builder,
+        FlattenedTuple CompiledFunction::callWithExceptionHandler(codegen::IRBuilder& builder,
                                                                   const FlattenedTuple &args,
                                                                   llvm::Value *const resPtr,
                                                                   llvm::BasicBlock *const handler,
@@ -50,7 +50,7 @@ namespace tuplex {
             return ret;
         }
 
-        FlattenedTuple CompiledFunction::callWithExceptionHandler(llvm::IRBuilder<> &builder,
+        FlattenedTuple CompiledFunction::callWithExceptionHandler(codegen::IRBuilder &builder,
                                                                   const FlattenedTuple &args,
                                                                   llvm::Value* const resPtr,
                                                                   llvm::BasicBlock *const handler,

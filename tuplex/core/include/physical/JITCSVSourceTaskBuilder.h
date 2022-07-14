@@ -35,7 +35,7 @@ namespace tuplex {
              * @param processRowFunc (optional) function to be called before output is written.
              *        Most likely this is not a nullptr, because users want to transform data.
              */
-            void processRow(llvm::IRBuilder<> &builder,
+            void processRow(IRBuilder &builder,
                             llvm::Value *userData,
                             llvm::Value *parseCode,
                             llvm::Value *parseResult,
@@ -52,7 +52,7 @@ namespace tuplex {
             // building vars for LLVM
             void createMainLoop(llvm::Function *read_block_func, bool terminateEarlyOnLimitCode);
 
-            FlattenedTuple createFlattenedTupleFromCSVParseResult(llvm::IRBuilder<> &builder, llvm::Value *parseResult,
+            FlattenedTuple createFlattenedTupleFromCSVParseResult(IRBuilder &builder, llvm::Value *parseResult,
                                                                   const python::Type &parseRowType);
 
             std::vector<bool> _columnsToSerialize;

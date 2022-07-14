@@ -100,7 +100,9 @@ TEST_F(AggregateTest, StrUniqueTest) {
     EXPECT_EQ(m1["c"], 1);
 
     auto v2 = context.parallelize(
-            {Row("hello"), Row("world"), Row("! :)"), Row("world"), Row("hello"), Row("!"), Row("! :)"), Row("!")}).unique().collectAsVector();
+            {Row("hello"), Row("world"), Row("! :)"),
+             Row("world"), Row("hello"), Row("!"),
+             Row("! :)"), Row("!")}).unique().collectAsVector();
 
     ASSERT_EQ(v2.size(), 4);
 

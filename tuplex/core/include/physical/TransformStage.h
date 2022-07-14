@@ -32,6 +32,7 @@
 #include <Defs.h>
 #include <logical/FileOutputOperator.h>
 #include <logical/AggregateOperator.h>
+#include <JITCompiler.h>
 
 #ifdef BUILD_WITH_AWS
 // include protobuf serialization of TrafoStage for Lambda executor

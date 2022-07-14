@@ -21,7 +21,7 @@ namespace tuplex {
             return func;
         }
 
-        void ExceptionSourceTaskBuilder::processRow(llvm::IRBuilder<> &builder, llvm::Value *userData,
+        void ExceptionSourceTaskBuilder::processRow(IRBuilder &builder, llvm::Value *userData,
                                                  const FlattenedTuple &tuple,
                                                  llvm::Value *normalRowCountVar,
                                                  llvm::Value *badRowCountVar,
@@ -42,7 +42,7 @@ namespace tuplex {
             }
         }
 
-        void ExceptionSourceTaskBuilder::callProcessFuncWithHandler(llvm::IRBuilder<> &builder, llvm::Value *userData,
+        void ExceptionSourceTaskBuilder::callProcessFuncWithHandler(IRBuilder &builder, llvm::Value *userData,
                                                                  const FlattenedTuple& tuple,
                                                                  llvm::Value *normalRowCountVar,
                                                                  llvm::Value *badRowCountVar,
@@ -134,7 +134,7 @@ namespace tuplex {
             // Initialize function body
             BasicBlock *bbBody = BasicBlock::Create(context, "entry", read_block_func);
 
-            IRBuilder<> builder(bbBody);
+            IRBuilder builder(bbBody);
 
             // Define basic blocks for function
             auto bbInitializeGeneral = llvm::BasicBlock::Create(context, "initialize_general", builder.GetInsertBlock()->getParent());

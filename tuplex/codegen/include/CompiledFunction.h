@@ -65,7 +65,7 @@ namespace tuplex {
              */
             std::string name() const {
                 assert(function);
-                return function->getName();
+                return function->getName().str();
             }
 
 
@@ -79,7 +79,7 @@ namespace tuplex {
              * @param failureBlock block where to go when alloc fails
              * @return the output of the exception (valid in normal block)
              */
-            FlattenedTuple callWithExceptionHandler(llvm::IRBuilder<> &builder,
+            FlattenedTuple callWithExceptionHandler(codegen::IRBuilder &builder,
                                                     const FlattenedTuple &args,
                                                     llvm::Value *const resPtr,
                                                     llvm::BasicBlock *const handler,
@@ -87,7 +87,7 @@ namespace tuplex {
                                                     llvm::BasicBlock *const failureBlock);
 
 
-            FlattenedTuple callWithExceptionHandler(llvm::IRBuilder<> &builder,
+            FlattenedTuple callWithExceptionHandler(codegen::IRBuilder &builder,
                                                     const FlattenedTuple &args,
                                                     llvm::Value *const resPtr,
                                                     llvm::BasicBlock *const handler,

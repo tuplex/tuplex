@@ -36,7 +36,7 @@ namespace tuplex {
 
             BasicBlock* bbEntry = BasicBlock::Create(env().getContext(), "entry", func);
 
-            IRBuilder<> builder(bbEntry);
+            IRBuilder builder(bbEntry);
 
             // where to store how many output rows are produced from this call.
             Value *outputRowNumberVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "outputRowNumberVar");
@@ -116,7 +116,7 @@ namespace tuplex {
             return func;
         }
 
-        FlattenedTuple CellSourceTaskBuilder::cellsToTuple(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
+        FlattenedTuple CellSourceTaskBuilder::cellsToTuple(IRBuilder& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
 
             using namespace llvm;
 
@@ -203,14 +203,14 @@ namespace tuplex {
         }
 
 
-        llvm::BasicBlock* CellSourceTaskBuilder::valueErrorBlock(llvm::IRBuilder<> &builder) {
+        llvm::BasicBlock* CellSourceTaskBuilder::valueErrorBlock(IRBuilder &builder) {
             using namespace llvm;
 
             // create value error block lazily
             if(!_valueErrorBlock) {
                 _valueErrorBlock = BasicBlock::Create(env().getContext(), "value_error", builder.GetInsertBlock()->getParent());
 
-                IRBuilder<> b(_valueErrorBlock);
+                IRBuilder b(_valueErrorBlock);
 
                 // could use here value error as well. However, for internal resolve use badparse string input!
                 b.CreateRet(env().i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
@@ -219,12 +219,13 @@ namespace tuplex {
             return _valueErrorBlock;
         }
 
-        llvm::BasicBlock* CellSourceTaskBuilder::nullErrorBlock(llvm::IRBuilder<> &builder) {
+        llvm::BasicBlock* CellSourceTaskBuilder::nullErrorBlock(IRBuilder &builder) {
             using namespace llvm;
             if(!_nullErrorBlock) {
-                _nullErrorBlock = BasicBlock::Create(env().getContext(), "null_error", builder.GetInsertBlock()->getParent());
-                IRBuilder<> b(_nullErrorBlock);
-
+                _nullErrorBlock = BasicBlock::Create(env().getContext(),
+                                               "null_error",
+                                                     builder.GetInsertBlock()->getParent());
+                IRBuilder b(_nullErrorBlock);
                 b.CreateRet(env().i64Const(ecToI64(ExceptionCode::NULLERROR))); // internal error!
             }
             return _nullErrorBlock;

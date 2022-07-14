@@ -663,8 +663,8 @@ namespace tuplex {
 
             BasicBlock *bbISBody = BasicBlock::Create(env->getContext(), "", initStageFunc);
             BasicBlock *bbRSBody = BasicBlock::Create(env->getContext(), "", releaseStageFunc);
-            IRBuilder<> isBuilder(bbISBody);
-            IRBuilder<> rsBuilder(bbRSBody);
+            IRBuilder isBuilder(bbISBody);
+            IRBuilder rsBuilder(bbRSBody);
             auto isArgs = codegen::mapLLVMFunctionArgs(initStageFunc, {"num_args", "hashmaps", "null_buckets"});
 
             // step 1. build pipeline, i.e. how to process data
@@ -1080,7 +1080,7 @@ namespace tuplex {
 
             // save into variables (allows to serialize stage etc.)
             // IR is generated. Save into stage.
-            _funcStageName = func->getName();
+            _funcStageName = func->getName().str();
             _irBitCode = codegen::moduleToBitCodeString(*env->getModule()); // trafo stage takes ownership of module
 
             // @TODO: lazy & fast codegen of the different paths + lowering of them
@@ -1273,7 +1273,7 @@ namespace tuplex {
             auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(*slowPip, funcResolveRowName,
                                                                             normalCaseType, null_values);
 
-            _resolveRowFunctionName = rowProcessFunc->getName();
+            _resolveRowFunctionName = rowProcessFunc->getName().str();
             _resolveRowWriteCallbackName = slowPathMemoryWriteCallback;
             _resolveRowExceptionCallbackName = slowPathExceptionCallback;
             _resolveHashCallbackName = slowPathHashWriteCallback;

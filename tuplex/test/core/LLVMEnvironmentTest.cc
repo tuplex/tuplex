@@ -39,13 +39,13 @@ str_test_func_f compileNullValueComparisonFunction(tuplex::JITCompiler& jit, con
 #else
     Function* func = cast<Function>(env->getModule()->getOrInsertFunction(name, FT).getCallee());
 #endif
-    name = func->getName();
+    name = func->getName().str();
 
     auto args = mapLLVMFunctionArgs(func, vector<string>{"str"});
 
     BasicBlock* bbEntry = BasicBlock::Create(env->getContext(), "entry", func);
 
-    IRBuilder<> builder(bbEntry);
+    tuplex::codegen::IRBuilder builder(bbEntry);
 
     // execute compare code
     auto resVal = env->compareToNullValues(builder, args["str"], null_values);
@@ -128,13 +128,13 @@ bitmap_test_func_f compileBitmapTestFunction(tuplex::JITCompiler& jit) {
 #else
     Function* func = cast<Function>(env->getModule()->getOrInsertFunction(name, FT).getCallee());
 #endif
-    name = func->getName();
+    name = func->getName().str();
 
     auto args = mapLLVMFunctionArgs(func, vector<string>{"isnull", "pos"});
 
     BasicBlock* bbEntry = BasicBlock::Create(env->getContext(), "entry", func);
 
-    IRBuilder<> builder(bbEntry);
+    tuplex::codegen::IRBuilder builder(bbEntry);
 
     // isnull << pos is the result
     // does that work for pos > 32? doubt it...
@@ -352,7 +352,7 @@ TEST(LLVMENV, TupleStructs) {
 
     // codegen
     BasicBlock* bbEntry = BasicBlock::Create(ctx, "entry", func);
-    IRBuilder<> builder(bbEntry);
+    tuplex::codegen::IRBuilder builder(bbEntry);
 
     auto val = env->getTupleElement(builder, argTupleType, argMap["inRow"], 0);
     env->setTupleElement(builder, retTupleType, argMap["outRow"], 1, SerializableValue(env->f64Const(3.141), nullptr, nullptr));
@@ -403,7 +403,7 @@ TEST(LLVMENV, SingleElementStructTypes) {
 
     // codegen
     BasicBlock* bbEntry = BasicBlock::Create(ctx, "entry", func);
-    IRBuilder<> builder(bbEntry);
+    ::tuplex::codegen::IRBuilder builder(bbEntry);
 
     auto et_res = env->getTupleElement(builder, et_type, argMap["outRow"], 0);
     auto ed_res = env->getTupleElement(builder, ed_type, argMap["inRow"], 0);
@@ -448,7 +448,7 @@ TEST(LLVMENV, StringConstantFromGlobal) {
 #endif
 
     BasicBlock* bb = BasicBlock::Create(ctx, "body", func);
-    IRBuilder<> builder(bb);
+    tuplex::codegen::IRBuilder builder(bb);
 
     auto strObj = env->strConst(builder, "teststring");
     builder.CreateRet(env->i64Const(0));

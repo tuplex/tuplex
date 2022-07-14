@@ -35,9 +35,14 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/IRBuilder.h"
+// llvm 13
+#if LLVM_VERSION_MAJOR >= 10
+#include "llvm/Analysis/TargetTransformInfo.h"
+#endif
 
 #include <ASTNodes.h>
 #include <CodegenHelper.h>
+#include <LLVMIntrinsics.h>
 
 #include <memory>
 #include <TypeSystem.h>
@@ -48,12 +53,90 @@
 
 #include "InstructionCountPass.h"
 
+
+// helper to enable llvm6 and llvm9 comaptibility // --> force onto llvm9+ for now.
+namespace llvm {
+    inline CallInst *createCallHelper(Function *Callee, ArrayRef<Value*> Ops,
+                                      const tuplex::codegen::IRBuilder& builder,
+                                      const Twine &Name = "",
+                                      Instruction *FMFSource = nullptr) {
+        CallInst *CI = CallInst::Create(Callee, Ops, Name);
+        if (FMFSource)
+            CI->copyFastMathFlags(FMFSource);
+        builder.GetInsertBlock()->getInstList().insert(builder.GetInsertPoint(), CI);
+        builder.SetInstDebugLocation(CI);
+        return CI;
+    }
+
+    inline CallInst* createBinaryIntrinsic(const tuplex::codegen::IRBuilder& builder,
+                                           Intrinsic::ID ID,
+                                           Value *LHS, Value* RHS,
+                                           const Twine& Name="",
+                                           Instruction *FMFSource = nullptr) {
+        Module *M = builder.GetInsertBlock()->getModule();
+        assert(M);
+        Function *Fn = Intrinsic::getDeclaration(M, ID, {LHS->getType()});
+        assert(Fn);
+        return createCallHelper(Fn, {LHS, RHS}, builder, Name, FMFSource);
+    }
+
+    inline CallInst* createUnaryIntrinsic(const tuplex::codegen::IRBuilder& builder,
+                                          Intrinsic::ID ID,
+                                          Value *V,
+                                          const Twine& Name="",
+                                          Instruction *FMFSource = nullptr) {
+        Module *M = builder.GetInsertBlock()->getModule();
+        Function *Fn = Intrinsic::getDeclaration(M, ID, {V->getType()});
+        return createCallHelper(Fn, {V}, builder, Name, FMFSource);
+    }
+
+    inline Value* CreateStructGEP(const tuplex::codegen::IRBuilder& builder, Value* ptr, unsigned int idx, const Twine& Name="") {
+#if LLVM_VERSION_MAJOR < 9
+        // compatibility
+        return builder.CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
+#else
+        return builder.CreateStructGEP(ptr, idx);
+#endif
+    }
+
+    inline Function* getOrInsertFunction(Module& mod, const std::string& name, FunctionType* FT) {
+#if LLVM_VERSION_MAJOR < 9
+        Function* func = cast<Function>(mod.getOrInsertFunction(name, FT));
+#else
+        Function *func = cast<Function>(mod.getOrInsertFunction(name, FT).getCallee());
+#endif
+        return func;
+    }
+
+    inline Function* getOrInsertFunction(Module* mod, const std::string& name, FunctionType* FT) {
+        if(!mod)
+            return nullptr;
+
+#if LLVM_VERSION_MAJOR < 9
+        Function* func = cast<Function>(mod->getOrInsertFunction(name, FT));
+#else
+        Function *func = cast<Function>(mod->getOrInsertFunction(name, FT).getCallee());
+#endif
+        return func;
+    }
+
+    template <typename... ArgsTy>
+    Function* getOrInsertFunction(llvm::Module* mod, const std::string& Name, Type *RetTy,
+                                  ArgsTy... Args) {
+        if(!mod)
+            return nullptr;
+        SmallVector<Type*, sizeof...(ArgsTy)> ArgTys{Args...};
+        return getOrInsertFunction(mod, Name, FunctionType::get(RetTy, ArgTys, false));
+    }
+
+}
+
 namespace tuplex {
     namespace codegen {
         /*!
- * helper class to generate LLVM Code into one module. Captures all globals necessary for LLVM based
- * code generation. Also provides helper functions to create individual LLVM code pieces.
- */
+         * helper class to generate LLVM Code into one module. Captures all globals necessary for LLVM based
+         * code generation. Also provides helper functions to create individual LLVM code pieces.
+         */
 
         /*!
          * get index for value, size and bitmapPosition
@@ -114,9 +197,12 @@ namespace tuplex {
             llvm::BasicBlock* _releaseGlobalEntryBlock;
             llvm::Value* _releaseGlobalRetValue;
             // Returns a builder into which global variable release can be inserted.
-            llvm::IRBuilder<> getReleaseGlobalBuilder(const std::string &block_name);
+            codegen::IRBuilder getReleaseGlobalBuilder(const std::string &block_name);
 
             std::unique_ptr<llvm::legacy::FunctionPassManager> _fpm; // lazy initialized function pass manager for quick optimization of function
+
+            // creates the iterator name based on what type is iterated on...
+            std::string iterator_name_from_type(const python::Type& iterated_type);
 
         public:
             LLVMEnvironment(const std::string& moduleName="tuplex") : _module(nullptr),
@@ -133,7 +219,7 @@ namespace tuplex {
             std::unique_ptr<llvm::Module> &getModule() { return _module; }
 
             // Returns a builder into which global variable initialization can be inserted.
-            llvm::IRBuilder<> getInitGlobalBuilder(const std::string &block_name);
+            codegen::IRBuilder getInitGlobalBuilder(const std::string &block_name);
 
 //            void preOptimize(llvm::Function* func) {
 // run https://github.com/llvm-mirror/llvm/blob/master/lib/Transforms/IPO/PassManagerBuilder.cpp then whatever is in populateFunctionPassManager.
@@ -193,7 +279,7 @@ namespace tuplex {
                     return it->second;
                 else {
                     llvm::Type *t = createTupleStructType(tupleType, twine);
-                    std::string name = t->getStructName();
+                    std::string name = t->getStructName().str();
                     _generatedTupleTypes[tupleType] = t;
                     return t;
                 }
@@ -211,7 +297,7 @@ namespace tuplex {
              * @param twine an identifier for the codegen
              * @return llvm Type to be used as the given listType
              */
-            llvm::Type *getListType(const python::Type &listType, const std::string &twine = "list");
+            llvm::Type *createOrGetListType(const python::Type &listType, const std::string &twine = "list");
 
             /*!
              * return LLVM type that is used to represent a iterator internally
@@ -262,7 +348,7 @@ namespace tuplex {
              * @param index
              * @return
              */
-            SerializableValue getTupleElement(llvm::IRBuilder<>& builder, const python::Type& tupleType, llvm::Value* tuplePtr, unsigned int index);
+            SerializableValue getTupleElement(const codegen::IRBuilder& builder, const python::Type& tupleType, llvm::Value* tuplePtr, unsigned int index);
 
             /*!
              * same as getTupleElement, but for a struct val. I.e. for a val where CreateLoad was done on a tuple ptr.
@@ -272,12 +358,12 @@ namespace tuplex {
              * @param index
              * @return
              */
-            SerializableValue extractTupleElement(llvm::IRBuilder<>& builder, const python::Type& tupleType, llvm::Value* tupleVal, unsigned int index);
+            SerializableValue extractTupleElement(const codegen::IRBuilder& builder, const python::Type& tupleType, llvm::Value* tupleVal, unsigned int index);
 
-            void setTupleElement(llvm::IRBuilder<> &builder, const python::Type &tupleType, llvm::Value *tuplePtr,
+            void setTupleElement(const codegen::IRBuilder &builder, const python::Type &tupleType, llvm::Value *tuplePtr,
                                  unsigned int index, const SerializableValue &value);
 
-            llvm::Value* CreateMaximum(llvm::IRBuilder<>& builder, llvm::Value* rhs, llvm::Value* lhs);
+            llvm::Value* CreateMaximum(const codegen::IRBuilder& builder, llvm::Value* rhs, llvm::Value* lhs);
 
             /*!
              * convert constant data to LLVM value represenation
@@ -285,7 +371,7 @@ namespace tuplex {
              * @param f
              * @return LLVM representation of constant data
              */
-            SerializableValue primitiveFieldToLLVM(llvm::IRBuilder<>& builder, const Field& f);
+            SerializableValue primitiveFieldToLLVM(const codegen::IRBuilder& builder, const Field& f);
 
             /*!
              * returns whatever is used to represent a boolean type. Should be i8. Why? Because byte is the smallest addressable unit
@@ -359,14 +445,14 @@ namespace tuplex {
              * @param val
              * @return upcasted val
              */
-            inline llvm::Value *upcastToBoolean(llvm::IRBuilder<> &builder, llvm::Value *val) {
+            inline llvm::Value *upcastToBoolean(const codegen::IRBuilder &builder, llvm::Value *val) {
                 if (val->getType()->getIntegerBitWidth() != getBooleanType()->getIntegerBitWidth())
                     return builder.CreateZExt(val, getBooleanType());
                 else
                     return val;
             }
 
-            inline llvm::Value *upCast(llvm::IRBuilder<> &builder, llvm::Value *val, llvm::Type *type) {
+            inline llvm::Value *upCast(const codegen::IRBuilder &builder, llvm::Value *val, llvm::Type *type) {
                 // check if types are the same, then just return val
                 if (val->getType() == type)
                     return val;
@@ -457,7 +543,7 @@ namespace tuplex {
                 return llvm::ConstantPointerNull::get(llvm::Type::getInt8PtrTy(const_cast<LLVMEnvironment*>(this)->getContext(), 0));
             }
 
-            inline llvm::Value* strConst(llvm::IRBuilder<>& builder, const std::string& s) {
+            inline llvm::Value* strConst(const codegen::IRBuilder& builder, const std::string& s) {
                 assert(builder.GetInsertBlock()->getParent()); // make sure block has a parent, else pretty bad bugs could happen...
 
                 auto sconst = builder.CreateGlobalStringPtr(s);
@@ -470,7 +556,7 @@ namespace tuplex {
              * @param size number of bytes requested
              * @return i8* pointer to memory region with size bytes
              */
-            llvm::Value *malloc(llvm::IRBuilder<> &builder, llvm::Value *size);
+            llvm::Value *malloc(const codegen::IRBuilder& builder, llvm::Value *size);
 
             /*!
              * call C's malloc function (need to generate free code as well!)
@@ -478,7 +564,7 @@ namespace tuplex {
              * @param size
              * @return
              */
-            llvm::Value* cmalloc(llvm::IRBuilder<>& builder, llvm::Value *size);
+            llvm::Value* cmalloc(const codegen::IRBuilder& builder, llvm::Value *size);
 
             /*!
              * call C's free function (need to make sure it works with malloc)
@@ -486,13 +572,13 @@ namespace tuplex {
              * @param ptr
              * @return
              */
-            llvm::Value* cfree(llvm::IRBuilder<>& builder, llvm::Value* ptr);
+            llvm::Value* cfree(const codegen::IRBuilder& builder, llvm::Value* ptr);
 
             /*!
              * frees all previously allocated memory regions through the runtime (memory management implemented in Runtime.c)
              * if no mallocs have been performed, generates no code
              */
-            void freeAll(llvm::IRBuilder<> &builder);
+            void freeAll(const codegen::IRBuilder& builder);
 
             /*!
              * helper function for debug purposes to print out llvm types
@@ -515,9 +601,9 @@ namespace tuplex {
              * @param numElements
              * @return value holding the result whether 0 <= val < numElements
              */
-            llvm::Value* indexCheck(llvm::IRBuilder<>& builder, llvm::Value* val, llvm::Value* numElements);
+            llvm::Value* indexCheck(const codegen::IRBuilder& builder, llvm::Value* val, llvm::Value* numElements);
 
-            inline llvm::Value* indexCheck(llvm::IRBuilder<>& builder, llvm::Value* val, int64_t numElements) {
+            inline llvm::Value* indexCheck(const codegen::IRBuilder& builder, llvm::Value* val, int64_t numElements) {
                 return indexCheck(builder, val, i64Const(numElements));
             }
 
@@ -532,17 +618,16 @@ namespace tuplex {
              * logical negation (DO NOT USE CreateNeg!)
              * @return i1 logically negated. I.e. 0 => 1 amd 1 => 0
              */
-            inline llvm::Value* i1neg(llvm::IRBuilder<>& builder, llvm::Value *val) {
+            inline llvm::Value* i1neg(const codegen::IRBuilder& builder, llvm::Value *val) {
                 assert(val->getType() == llvm::Type::getInt1Ty(_context));
                 return builder.CreateSub(i1Const(true), val);
             }
 
-            void debugPrint(llvm::IRBuilder<>& builder, const std::string& message, llvm::Value* value=nullptr);
+            void debugPrint(const codegen::IRBuilder& builder, const std::string& message, llvm::Value* value=nullptr);
 
-            void debugCellPrint(llvm::IRBuilder<>& builder, llvm::Value* cellStart, llvm::Value* cellEnd);
+            void debugCellPrint(const codegen::IRBuilder& builder, llvm::Value* cellStart, llvm::Value* cellEnd);
 
-
-            llvm::Value* booleanToCondition(llvm::IRBuilder<>& builder, llvm::Value* val) {
+            inline llvm::Value* booleanToCondition(const codegen::IRBuilder& builder, llvm::Value* val) {
                 assert(val->getType() == getBooleanType());
                 return builder.CreateTrunc(val, llvm::Type::getInt1Ty(_context));
             }
@@ -551,7 +636,7 @@ namespace tuplex {
              * debug print any llvm value
              * @param builder
              */
-            void printValue(llvm::IRBuilder<>& builder, llvm::Value*, std::string msg="");
+            void printValue(const codegen::IRBuilder& builder, llvm::Value*, std::string msg="");
 
             /*!
              * debug print any llvm value as its corresponding hex value
@@ -569,7 +654,7 @@ namespace tuplex {
              * @param idx n
              * @return i1 containing true/false
              */
-            llvm::Value* extractNthBit(llvm::IRBuilder<>& builder, llvm::Value* value, llvm::Value* idx);
+            llvm::Value* extractNthBit(const codegen::IRBuilder& builder, llvm::Value* value, llvm::Value* idx);
 
             /*!
              * generates code to perform Python3 compliant integer floor division, i.e. //
@@ -577,7 +662,7 @@ namespace tuplex {
              * @param right must be i64 signed integer
              * @return i64 signed integer holding the result
              */
-            llvm::Value* floorDivision(llvm::IRBuilder<>& builder, llvm::Value* left, llvm::Value* right);
+            llvm::Value* floorDivision(const codegen::IRBuilder& builder, llvm::Value* left, llvm::Value* right);
 
             /*!
              * generates code to perform Python3 compliant floor division. Note, both operands must have the same type
@@ -586,7 +671,7 @@ namespace tuplex {
              * @param right either i64 or double
              * @return result.
              */
-            llvm::Value* floorModulo(llvm::IRBuilder<>& builder, llvm::Value* left, llvm::Value* right);
+            llvm::Value* floorModulo(const codegen::IRBuilder& builder, llvm::Value* left, llvm::Value* right);
 
 
             /*!
@@ -595,7 +680,7 @@ namespace tuplex {
              * @param val value to store
              * @param ptr where to store val when ptr is not null
              */
-            void storeIfNotNull(llvm::IRBuilder<>& builder, llvm::Value* val, llvm::Value* ptr);
+            void storeIfNotNull(const codegen::IRBuilder& builder, llvm::Value* val, llvm::Value* ptr);
 
 
             /*!
@@ -606,7 +691,7 @@ namespace tuplex {
              * @param copy whether to copy to a new str with rtmalloc or simply zero terminate if necessary
              * @return
              */
-            llvm::Value* zeroTerminateString(llvm::IRBuilder<>& builder, llvm::Value* str, llvm::Value* size, bool copy=true);
+            llvm::Value* zeroTerminateString(const codegen::IRBuilder& builder, llvm::Value* str, llvm::Value* size, bool copy=true);
 
             /*!
              * compares memory at ptr to string.
@@ -616,7 +701,7 @@ namespace tuplex {
              * @param include_zero whether to check for zero at end too.
              * @return
              */
-            llvm::Value* fixedSizeStringCompare(llvm::IRBuilder<>& builder, llvm::Value* ptr, const std::string& str, bool include_zero=false);
+            llvm::Value* fixedSizeStringCompare(const codegen::IRBuilder& builder, llvm::Value* ptr, const std::string& str, bool include_zero=false);
 
 
             /*!
@@ -626,7 +711,7 @@ namespace tuplex {
              * @param eps epsilon value to use for floats, per default DBL_EPSILON from float.h (also what CPython uses)
              * @return i1 indicating true/false
              */
-            llvm::Value* isInteger(llvm::IRBuilder<>& builder, llvm::Value* value, llvm::Value* eps=nullptr);
+            llvm::Value* isInteger(const codegen::IRBuilder& builder, llvm::Value* value, llvm::Value* eps=nullptr);
 
             /*!
              * create alloca instruction in first block of function. Helpful for variables within loops
@@ -634,13 +719,11 @@ namespace tuplex {
              * @param llvmType
              * @return allocated result
              */
-            static inline llvm::Value* CreateFirstBlockAlloca(llvm::IRBuilder<>& builder,
+            static inline llvm::Value* CreateFirstBlockAlloca(const codegen::IRBuilder& builder,
                                                               llvm::Type* llvmType,
                                                               const std::string& name="") {
-                auto ctorBuilder = getFirstBlockBuilder(builder);
-
-                auto res = ctorBuilder.CreateAlloca(llvmType, 0, nullptr, name);
-                assert(res);
+                auto ctor_builder = builder.firstBlockBuilder(false); // insert at beginning.
+                auto res = ctor_builder.CreateAlloca(llvmType, 0, nullptr, name); assert(res);
                 return res;
             }
 
@@ -648,12 +731,17 @@ namespace tuplex {
                 return f64Const(DBL_EPSILON);
             }
 
-            llvm::Value* double_eq(llvm::IRBuilder<>& builder, llvm::Value* value, llvm::Value* eps=nullptr) {
+            llvm::Value* double_eq(const codegen::IRBuilder& builder, llvm::Value* value, llvm::Value* eps=nullptr) {
                 assert(value && value->getType() == doubleType());
 
                 if(!eps)
                     eps = defaultEpsilon();
-                return builder.CreateFCmpOLT(builder.CreateUnaryIntrinsic(llvm::Intrinsic::ID::fabs, value), eps);
+#if LLVM_VERSION_MAJOR >= 10
+                auto fabs_id = llvm::Intrinsic::fabs;
+#else
+                auto fabs_id = llvm::Intrinsic::ID::fabs;
+#endif
+                return builder.CreateFCmpOLT(builder.CreateUnaryIntrinsic(LLVMIntrinsic::fabs, value), eps);
             }
 
             /*!
@@ -663,15 +751,15 @@ namespace tuplex {
              * @param name
              * @return pointer to new var
              */
-            inline llvm::Value* CreateFirstBlockVariable(llvm::IRBuilder<>& builder,
+            inline llvm::Value* CreateFirstBlockVariable(codegen::IRBuilder builder,
                                                               llvm::Constant* initialValue,
                                                               const std::string& name="") {
                 assert(initialValue);
 
-                auto ctorBuilder = getFirstBlockBuilder(builder);
+                auto ctor_builder = IRBuilder(builder).firstBlockBuilder();
                 auto llvmType = initialValue->getType();
-                auto res = ctorBuilder.CreateAlloca(llvmType, 0, nullptr, name);
-                ctorBuilder.CreateStore(initialValue, res);
+                auto res = ctor_builder.CreateAlloca(llvmType, 0, nullptr, name);
+                ctor_builder.CreateStore(initialValue, res);
                 assert(res);
                 return res;
             }
@@ -681,7 +769,7 @@ namespace tuplex {
              * @param builder
              * @param ptr pointer variable
              */
-            inline void storeNULL(llvm::IRBuilder<>& builder, llvm::Value* ptr) {
+            inline void storeNULL(const codegen::IRBuilder& builder, llvm::Value* ptr) {
                 assert(ptr->getType()->isPointerTy());
 
                 // set respective nullptr or null value
@@ -697,7 +785,7 @@ namespace tuplex {
              * @param ptrIsZeroTerminated if true, then check also the 0 char. If false, the check becomes a prefix check.
              * @return
              */
-            inline llvm::Value* compareToNullValues(llvm::IRBuilder<>& builder,
+            inline llvm::Value* compareToNullValues(const codegen::IRBuilder& builder,
                                                     llvm::Value* ptr,
                                                     const std::vector<std::string>& null_values,
                                                     bool ptrIsZeroTerminated=false) {
@@ -732,7 +820,7 @@ namespace tuplex {
              * @param type
              * @return
              */
-            llvm::Value* truthValueTest(llvm::IRBuilder<>& builder, const SerializableValue& val, const python::Type& type);
+            llvm::Value* truthValueTest(const codegen::IRBuilder& builder, const SerializableValue& val, const python::Type& type);
 
 
             /*!
@@ -741,7 +829,7 @@ namespace tuplex {
              * @param value must be doubletype
              * @return runtime allocated string together with size
              */
-            SerializableValue f64ToString(llvm::IRBuilder<>& builder, llvm::Value* value);
+            SerializableValue f64ToString(const codegen::IRBuilder& builder, llvm::Value* value);
 
             /*!
              * converts int to runtime allocated string
@@ -749,15 +837,10 @@ namespace tuplex {
              * @param value must be doubletype
              * @return runtime allocated string together with size
              */
-            SerializableValue i64ToString(llvm::IRBuilder<>& builder, llvm::Value* value);
+            SerializableValue i64ToString(const codegen::IRBuilder& builder, llvm::Value* value);
 
-            static inline llvm::Value* CreateStructGEP(llvm::IRBuilder<>& builder, llvm::Value* ptr, unsigned int idx, const llvm::Twine& Name="") {
-#if LLVM_VERSION_MAJOR < 9
-                // compatibility
-                return builder.CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
-#else
-                return builder.CreateStructGEP(ptr, idx);
-#endif
+            static inline llvm::Value* CreateStructGEP(const codegen::IRBuilder& builder, llvm::Value* ptr, unsigned int idx, const std::string& Name="") {
+                return builder.CreateStructGEP(ptr, idx, Name);
             }
 
             /*!
@@ -767,11 +850,11 @@ namespace tuplex {
              * @param elseBlock
              * @return value of result of conditionally executing ifBlock or elseBlock!
              */
-            llvm::Value* CreateTernaryLogic(llvm::IRBuilder<> &builder, llvm::Value *condition,
+            llvm::Value* CreateTernaryLogic(const codegen::IRBuilder &builder, llvm::Value *condition,
                                                              std::function<llvm::Value *(
-                                                                     llvm::IRBuilder<> &)> ifBlock,
+                                                                     const codegen::IRBuilder&)> ifBlock,
                                                              std::function<llvm::Value *(
-                                                                     llvm::IRBuilder<> &)> elseBlock);
+                                                                     const codegen::IRBuilder&)> elseBlock);
 
             /*!
              * return the length/size of a list.
@@ -780,7 +863,7 @@ namespace tuplex {
              * @param listType
              * @return i64 containing the size of the list.
              */
-            llvm::Value* getListSize(llvm::IRBuilder<>& builder, llvm::Value* val, const python::Type& listType);
+            llvm::Value* getListSize(const codegen::IRBuilder& builder, llvm::Value* val, const python::Type& listType);
 
             /*!
              * Creates a global pcre2 jit compiled regex pattern using the given [regexPattern]. Uses [twine] as a
@@ -800,16 +883,16 @@ namespace tuplex {
              */
             std::tuple<llvm::Value*, llvm::Value*, llvm::Value*> addGlobalPCRE2RuntimeContexts();
 
-            llvm::Value* callGlobalsInit(llvm::IRBuilder<>& builder);
-            llvm::Value* callGlobalsRelease(llvm::IRBuilder<>& builder);
+            llvm::Value* callGlobalsInit(const codegen::IRBuilder& builder);
+            llvm::Value* callGlobalsRelease(const codegen::IRBuilder& builder);
 
-            llvm::Value* callBytesHashmapGet(llvm::IRBuilder<>& builder, llvm::Value* hashmap, llvm::Value* key, llvm::Value* key_size, llvm::Value* returned_bucket);
+            llvm::Value* callBytesHashmapGet(const codegen::IRBuilder& builder, llvm::Value* hashmap, llvm::Value* key, llvm::Value* key_size, llvm::Value* returned_bucket);
 
             /*!
              * Call get on an int64 hashmap (utils/int_hashmap.h) with an int64 key; load value into returned_bucket argument
              * @return i1 condition if the key was found or not
              */
-            llvm::Value *callIntHashmapGet(llvm::IRBuilder<>& builder, llvm::Value *hashmap, llvm::Value *key, llvm::Value *returned_bucket);
+            llvm::Value *callIntHashmapGet(const codegen::IRBuilder& builder, llvm::Value *hashmap, llvm::Value *key, llvm::Value *returned_bucket);
             /*!
              * generate i1 condition for whether codeValue is of ExceptionCode ec incl. base classes etc.
              * @param builder
@@ -817,7 +900,7 @@ namespace tuplex {
              * @param ec
              * @return codegenerated i1 true/false
              */
-            llvm::Value* matchExceptionHierarchy(llvm::IRBuilder<>& builder, llvm::Value* codeValue, const ExceptionCode& ec);
+            llvm::Value* matchExceptionHierarchy(const codegen::IRBuilder& builder, llvm::Value* codeValue, const ExceptionCode& ec);
 
             /*!
              * Create or get a llvm function with signature i1(struct.iterator) that does the following:
@@ -834,7 +917,7 @@ namespace tuplex {
              * @param reverse should only be used for reverseiterator
              * @return llvm::BlockAddress* to be stored in an iterator struct later
              */
-            llvm::BlockAddress *createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(llvm::IRBuilder<> &builder,
+            llvm::BlockAddress *createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(const codegen::IRBuilder &builder,
                                                                                           const python::Type &iterableType,
                                                                                           bool reverse=false);
         };
@@ -1870,13 +1953,13 @@ namespace tuplex {
 
 
         // parse functions for individual cells
-        extern  SerializableValue parseBoolean(LLVMEnvironment& env, llvm::IRBuilder<> &builder, llvm::BasicBlock *bbFailed,
+        extern  SerializableValue parseBoolean(LLVMEnvironment& env, IRBuilder &builder, llvm::BasicBlock *bbFailed,
                                                llvm::Value *str, llvm::Value *strSize,
                                                llvm::Value *isnull);
-        extern SerializableValue parseF64(LLVMEnvironment& env, llvm::IRBuilder<> &builder, llvm::BasicBlock *bbFailed,
+        extern SerializableValue parseF64(LLVMEnvironment& env, IRBuilder &builder, llvm::BasicBlock *bbFailed,
                                           llvm::Value *str, llvm::Value *strSize,
                                           llvm::Value *isnull);
-        extern SerializableValue parseI64(LLVMEnvironment& env, llvm::IRBuilder<> &builder, llvm::BasicBlock *bbFailed,
+        extern SerializableValue parseI64(LLVMEnvironment& env, IRBuilder &builder, llvm::BasicBlock *bbFailed,
                                           llvm::Value *str, llvm::Value *strSize,
                                           llvm::Value *isnull);
 

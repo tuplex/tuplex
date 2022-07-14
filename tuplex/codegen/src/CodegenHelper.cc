@@ -17,7 +17,11 @@
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/TargetSelect.h>
+#if LLVM_VERSION_MAJOR < 14
 #include <llvm/Support/TargetRegistry.h>
+#else
+#include <llvm/MC/TargetRegistry.h>
+#endif
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/IR/LegacyPassManager.h>
@@ -35,9 +39,13 @@
 #include <llvm/Bitstream/BitCodes.h>
 #include <llvm/Bitcode/BitcodeReader.h>
 
+// llvm 10 refactored sys into Host
+#if LLVM_VERSION_MAJOR > 9
+#include <llvm/Support/Host.h>
+#endif
+
 namespace tuplex {
     namespace codegen {
-
         // global var because often only references are passed around.
         // CompilePolicy DEFAULT_COMPILE_POLICY = CompilePolicy();
 
@@ -57,8 +65,136 @@ namespace tuplex {
             llvmInitialized = false;
         }
 
+        // IRBuilder definitions
+        IRBuilder::IRBuilder(llvm::BasicBlock *bb) {
+            _llvm_builder = std::make_unique<llvm::IRBuilder<>>(bb);
+        }
+
+        IRBuilder::IRBuilder(llvm::IRBuilder<> &llvm_builder) {
+            _llvm_builder = std::make_unique<llvm::IRBuilder<>>(llvm_builder.getContext());
+            _llvm_builder->SetInsertPoint(llvm_builder.GetInsertBlock(), llvm_builder.GetInsertPoint());
+        }
+
+        IRBuilder::IRBuilder(const IRBuilder &other) : _llvm_builder(nullptr) {
+            if(other._llvm_builder) {
+                // cf. https://reviews.llvm.org/D74693
+                auto& ctx = other._llvm_builder->getContext();
+                const llvm::DILocation *DL = nullptr; //llvm::DILocation::get(ctx, 0, 0, );
+                _llvm_builder.reset(new llvm::IRBuilder<>(ctx/*DL->getContext()*/));
+                //initIRBuilder(*_llvm_builder, DL, InsertBB, InsertBefore);
+                llvm::Instruction* InsertBefore = nullptr;
+                auto InsertBB = other._llvm_builder->GetInsertBlock();
+                if(InsertBB && !InsertBB->empty()) {
+                    auto& inst = *InsertBB->getFirstInsertionPt();
+                    InsertBefore = &inst;
+                }
+                if(InsertBefore)
+                    _llvm_builder->SetInsertPoint(InsertBefore);
+                else if(InsertBB)
+                    _llvm_builder->SetInsertPoint(InsertBB);
+                _llvm_builder->SetCurrentDebugLocation(DL);
+
+//                const auto it = other._llvm_builder->GetInsertPoint();
+//                initFromIterator(it);
+
+
+            }
+        }
+
+        IRBuilder::IRBuilder(llvm::LLVMContext& ctx) {
+            _llvm_builder = std::make_unique<llvm::IRBuilder<>>(ctx);
+        }
+
+        IRBuilder::~IRBuilder() {
+            if(_llvm_builder)
+                _llvm_builder->ClearInsertionPoint();
+            // std::cout<<"IRBuilder destructor called..."<<std::endl;
+        }
+
+        IRBuilder IRBuilder::firstBlockBuilder(bool insertAtEnd) const {
+            // create new IRBuilder for first block
+
+            // empty builder? I.e., no basicblock?
+            if(!_llvm_builder)
+                return IRBuilder();
+
+            assert(_llvm_builder->GetInsertBlock());
+            assert(_llvm_builder->GetInsertBlock()->getParent());
+
+            // function shouldn't be empty when this function here is called!
+            assert(!_llvm_builder->GetInsertBlock()->getParent()->empty());
+
+            // create new builder to avoid memory issues
+            auto b = std::make_unique<llvm::IRBuilder<>>(_llvm_builder->GetInsertBlock());
+
+            // special case: no instructions yet present?
+            auto func = b->GetInsertBlock()->getParent();
+            auto is_empty = b->GetInsertBlock()->getParent()->empty();
+            //auto num_blocks = func->getBasicBlockList().size();
+            auto firstBlock = &func->getEntryBlock();
+
+            if(firstBlock->empty())
+                return IRBuilder(firstBlock);
+
+            if(!insertAtEnd) {
+                auto it = firstBlock->getFirstInsertionPt();
+                auto inst_name = it->getName().str();
+                return IRBuilder(it);
+            } else {
+                // create inserter unless it's a branch instruction
+                auto it = firstBlock->getFirstInsertionPt();
+                auto lastit = it;
+                while(it != firstBlock->end() && !llvm::isa<llvm::BranchInst>(*it)) {
+                    lastit = it;
+                    ++it;
+                }
+                return IRBuilder(lastit);
+            }
+        }
+
+        void IRBuilder::initFromIterator(llvm::BasicBlock::iterator it) {
+            if(it->getParent()->empty())
+                _llvm_builder = std::make_unique<llvm::IRBuilder<>>(it->getParent());
+            else {
+                //llvm::Instruction &inst = *it;
+                //_llvm_builder = std::make_unique<llvm::IRBuilder<>>(it->getParent());
+                auto& ctx = it->getParent()->getContext();
+                _llvm_builder = std::make_unique<llvm::IRBuilder<>>(ctx);
+
+                // instruction & basic block
+                auto bb = it->getParent();
+
+                auto pt = llvm::IRBuilderBase::InsertPoint(bb, it);
+                //_llvm_builder->CollectMetadataToCopy()
+                _llvm_builder->restoreIP(pt);
+
+                //auto inst = *it;
+                //_llvm_builder->SetInsertPoint(bb, it);
+
+//                // change iterator!
+//                auto firstBlock = _llvm_builder->GetInsertBlock();
+//
+//                if(!firstBlock->empty()) {
+//                    const auto jt = firstBlock->getInstList().begin();
+//                    // auto jt = firstBlock->getFirstInsertionPt();
+//                    auto lastit = jt;
+////                while(jt != firstBlock->end() && !llvm::isa<llvm::BranchInst>(*jt)) {
+////                    lastit = jt;
+////                    ++jt;
+////                }
+//                    _llvm_builder->SetInsertPoint(firstBlock, lastit);
+//                }
+            }
+        }
+
+        IRBuilder::IRBuilder(const llvm::IRBuilder<> &llvm_builder) : IRBuilder(llvm_builder.GetInsertPoint()) {}
+
+        IRBuilder::IRBuilder(llvm::BasicBlock::iterator it) {
+            initFromIterator(it);
+        }
+
         // Clang doesn't work well with ASAN, disable here container overflow.
-        __attribute__((no_sanitize_address)) std::string getLLVMFeatureStr() {
+        ATTRIBUTE_NO_SANITIZE_ADDRESS std::string getLLVMFeatureStr() {
             using namespace llvm;
             SubtargetFeatures Features;
 
@@ -85,7 +221,7 @@ namespace tuplex {
             auto triple = sys::getProcessTriple();//sys::getDefaultTargetTriple();
             std::string error;
             auto theTarget = llvm::TargetRegistry::lookupTarget(triple, error);
-            std::string CPUStr = sys::getHostCPUName();
+            std::string CPUStr = sys::getHostCPUName().str();
 
             //logger.info("using LLVM for target triple: " + triple + " target: " + theTarget->getName() + " CPU: " + CPUStr);
 
@@ -126,9 +262,12 @@ namespace tuplex {
 #if LLVM_VERSION_MAJOR == 9
             target_machine->addPassesToEmitFile(pass_manager, asm_sstream, nullptr,
                                                 llvm::TargetMachine::CGFT_AssemblyFile);
-#else
+#elif LLVM_VERSION_MAJOR < 9
             target_machine->addPassesToEmitFile(pass_manager, asm_sstream,
                                                 llvm::TargetMachine::CGFT_AssemblyFile);
+#else
+            target_machine->addPassesToEmitFile(pass_manager, asm_sstream, nullptr,
+                                                llvm::CodeGenFileType::CGFT_AssemblyFile);
 #endif
 
             pass_manager.run(*module);
@@ -211,7 +350,7 @@ namespace tuplex {
             return mod;
         }
 
-        llvm::Value* upCast(llvm::IRBuilder<> &builder, llvm::Value *val, llvm::Type *destType) {
+        llvm::Value* upCast(const codegen::IRBuilder& builder, llvm::Value *val, llvm::Type *destType) {
             // check if types are the same, then just return val
             if (val->getType() == destType)
                 return val;
@@ -236,7 +375,7 @@ namespace tuplex {
         }
 
         llvm::Value *
-        dictionaryKey(llvm::LLVMContext &ctx, llvm::Module *mod, llvm::IRBuilder<> &builder, llvm::Value *val,
+        dictionaryKey(llvm::LLVMContext &ctx, llvm::Module *mod, const codegen::IRBuilder &builder, llvm::Value *val,
                       python::Type keyType, python::Type valType) {
             // get key to string
             auto strFormat_func = strFormat_prototype(ctx, mod);
@@ -285,7 +424,7 @@ namespace tuplex {
         // TODO: Do we need to use lfb to add checks?
         SerializableValue
         dictionaryKeyCast(llvm::LLVMContext &ctx, llvm::Module* mod,
-                          llvm::IRBuilder<> &builder, llvm::Value *val, python::Type keyType) {
+                          const codegen::IRBuilder& builder, llvm::Value *val, python::Type keyType) {
             // type chars
             auto s_char = llvm::Constant::getIntegerValue(llvm::Type::getInt8Ty(ctx), llvm::APInt(8, 's'));
             auto b_char = llvm::Constant::getIntegerValue(llvm::Type::getInt8Ty(ctx), llvm::APInt(8, 'b'));
@@ -514,6 +653,24 @@ namespace tuplex {
             }
 
 #endif
+
+            // iterate over functions
+            {
+                std::stringstream ss;
+                for(auto& func : module) {
+                    ss<<"function: "<<func.getName().str()<<std::endl;
+
+                    // type
+                    auto type = func.getType();
+                    ss<<"type: "<<type<<std::endl;
+                }
+
+                Logger::instance().logger("LLVM Backend").debug(ss.str());
+            }
+
+
+            // cf. https://github.com/llvm-mirror/llvm/blob/master/tools/verify-uselistorder/verify-uselistorder.cpp#L179
+            // to check that everything is mappable?
 
             // simple conversion using LLVM builtins...
             std::string out_str;

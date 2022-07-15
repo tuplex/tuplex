@@ -1222,6 +1222,8 @@ namespace tuplex {
 
     void TypeAnnotatorVisitor::dictAssign(NSubscription* subscript, python::Type key_type, python::Type value_type) {
         assert(subscript->_value->getInferredType().isDictionaryType());
+        // check what type the _value is 
+
 
         NDictionary* dict = (NDictionary*)subscript->_value;
         // not entirely sure what the below loop is for rn
@@ -1242,110 +1244,111 @@ namespace tuplex {
         // _nameTable[dict->] = type;
     }
 
-    void TypeAnnotatorVisitor::visit(NAssign *assign) {
-        ApatheticVisitor::visit(assign);
+    bool TypeAnnotatorVisitor::is_nested_subscript_target(ASTNode* target) {
+        // check if target is a subscript target
+        return assign->_target->type() == ASTNodeType::Subscription;
+    }
 
+    // note: "target" refers to the LHS of the assign (should be a subscription), and then 
+    //       the value of every subsequent subscription
+    void TypeAnnotatorVisitor::recursive_set_subscript_types(ASTNode* target, python::Type value_type) {
+        // if the target is not a subscription (should be an identifier/dictionary ?), then 
+            // the next target should be an identifier
+            // check what type the identifier maps to
+            // error check if the type of the identifier is something subscriptable (for now, a dictionary)
+            // if type is subscriptable, then
+                // set the typing for the identifier to be index_type -> value_type
+                // if type of identifier is empty_dict, then we can just reset type (i.e. upcast dictionary)
+                // else if generic dict: type is still generic dict, and need to set flag in annotator?
+                // else:
+                    // check if index_type matches current index type, if not upcast and set flag
+            
+        // otherwise if the target is a subscription
+            // do recursive_set_subscript_types on the next target, with value_type being ????
+
+    }
+
+    void TypeAnnotatorVisitor::visit(NAssign *assign) {
         // now interesting part comes
         // check what left side is
 
-        // TODO cases
-        /**
-         * id = id
-         * id, id, ... = id/val
-         * id, id, ... = id, val, ... (SPECIAL CASE even here for a, b = b, a)
-         */
-        if(assign->_target->type() == ASTNodeType::Identifier) {
-            // Single identifier case
-            //@Todo: check that symbol table contains target!
+        // a[x][y][z][w] = b
+        // a[5 + x * 2] = b
 
-            // then check if identifier is already within symbol table. If not, add!
-            NIdentifier* id = (NIdentifier*)assign->_target;
-            assignHelper(id, assign->_value->getInferredType());
-            if(assign->_value->getInferredType().isIteratorType()) {
-                id->annotation().iteratorInfo = assign->_value->annotation().iteratorInfo;
-                _iteratorInfoTable[id->_name] = assign->_value->annotation().iteratorInfo;
-            }
-        } else if(assign->_target->type() == ASTNodeType::Tuple) {
-            // now we have a tuple assignment!
-            // the right hand side MUST be some unpackable thing. Currently this is a tuple but later we will
-            // have lists as well
-            NTuple *ids = (NTuple *) assign->_target;
-            auto rhsInferredType = assign->_value->getInferredType();
-            // TODO add support for dictionaries, etc.
-            if (rhsInferredType.isTupleType()) {
-                // get the types contained in our tuple
-                std::vector<python::Type> tupleTypes = rhsInferredType.parameters();
-                if(ids->_elements.size() != tupleTypes.size()) {
-                    error("Incorrect number of arguments to unpack in assignment");
-                }
+        // could have assign single target helper
+        
+        if (is_nested_subscript_target(assign->_target)) {
+            // visit b's tree
+            assign->_value->accept(*this);
 
-                for(unsigned long i = 0; i < ids->_elements.size(); i ++) {
-                    auto elt = ids->_elements[i];
-                    if(elt->type() != ASTNodeType::Identifier) {
-                        error("Trying to assign to a non identifier in a tuple");
-                    }
-                    NIdentifier *id = (NIdentifier *) elt;
-                    // assign each identifier to the type in the tuple at the corresponding index
-                    assignHelper(id, tupleTypes[i]);
-                }
-            } else if(rhsInferredType == python::Type::STRING) {
-                for(const auto& elt : ids->_elements) {
-                    if(elt->type() != ASTNodeType::Identifier) {
-                        error("Trying to assign to a non identifier in a tuple");
-                    }
-                    NIdentifier *id = (NIdentifier *) elt;
-                    assignHelper(id, python::Type::STRING);
-                }
-            } else {
-                error("bad type annotation in tuple assign");
-            }
-        } else if (assign->_target->type() == ASTNodeType::Subscription) {
-            NSubscription* subscript = (NSubscription*)assign->_target;
+            auto value_type = assign->_value->getInferredType();
 
-            assert(subscript->_value);
-            assert(subscript->_expression);
+            // recursively handle each subscription target 
+            recursive_set_subscript_types(assign->_target, value_type);
 
-            auto type = subscript->_value->getInferredType();
-            auto index_type = subscript->_expression->getInferredType();
-
-            // this is a null check operation. I.e. strip option from either type or index type
-            if (type.isOptionType())
-                type = type.getReturnType();
-            if (index_type.isOptionType())
-                index_type = index_type.getReturnType();
-
-            // if object is dict-like, subscript must have a type compatible with mapping's key type
-            // question: the index is technically an expression: so we need to be able to handle multiple kinds of expressions?
-            // although, we don't really need to know what kind of expression the index is, we just need the resulting return type.
-            // is there an easy way to get this without having to check what kind of expression the index is?
-
-            if (type == python::Type::EMPTYDICT) {
-                // if object is an empty dictionary, upcast empty dictionary to match type of requested subscript and value
-                // Q: do I need to check if the value being assigned is an iterator here?
-                dictAssign(subscript, index_type, assign->_value->getInferredType()); 
-            } else if (python::Type::GENERICDICT == type) {
-                dictAssign(subscript, python::Type::PYOBJECT, python::Type::PYOBJECT);
-            } else if (type.isDictionaryType()) {
-                // if object is not an empty dictionary, check if dict's key type matches subscript type
-                    // if they don't match, mark the dictionary as having type [PYOBJECT, PYOBJECT]
-                    // and set a marker in the typeannotator that this function always triggers the interpreter fallback
-                    // Q: how to do ^^ ?
-                dictAssign(subscript, python::Type::PYOBJECT, python::Type::PYOBJECT);
-            } else {
-                error("only assignment to dictionary subscriptions supported yet!");
-                // if object is list-like, subscript must be an integer
-                // if subscript is negative, list-like object's length is added to subscript
-                // resulting subscript must be in range of object, then ask object to assign value to element/item at the subscript
-            }
-            
-            NDictionary* dict = (NDictionary*)subscript->_value;
-
+            // set assign type to value type
+            assign->setInferredType(value_type);
         } else {
-            error("only assignment to tuples/identifiers/subscriptions supported yet!!!");
+            ApatheticVisitor::visit(assign);
+            // TODO cases
+            /**
+             * id = id
+             * id, id, ... = id/val
+             * id, id, ... = id, val, ... (SPECIAL CASE even here for a, b = b, a)
+             */
+            if(assign->_target->type() == ASTNodeType::Identifier) {
+                // Single identifier case
+                //@Todo: check that symbol table contains target!
+
+                // then check if identifier is already within symbol table. If not, add!
+                NIdentifier* id = (NIdentifier*)assign->_target;
+                assignHelper(id, assign->_value->getInferredType());
+                if(assign->_value->getInferredType().isIteratorType()) {
+                    id->annotation().iteratorInfo = assign->_value->annotation().iteratorInfo;
+                    _iteratorInfoTable[id->_name] = assign->_value->annotation().iteratorInfo;
+                }
+            } else if(assign->_target->type() == ASTNodeType::Tuple) {
+                // now we have a tuple assignment!
+                // the right hand side MUST be some unpackable thing. Currently this is a tuple but later we will
+                // have lists as well
+                NTuple *ids = (NTuple *) assign->_target;
+                auto rhsInferredType = assign->_value->getInferredType();
+                // TODO add support for dictionaries, etc.
+                if (rhsInferredType.isTupleType()) {
+                    // get the types contained in our tuple
+                    std::vector<python::Type> tupleTypes = rhsInferredType.parameters();
+                    if(ids->_elements.size() != tupleTypes.size()) {
+                        error("Incorrect number of arguments to unpack in assignment");
+                    }
+
+                    for(unsigned long i = 0; i < ids->_elements.size(); i ++) {
+                        auto elt = ids->_elements[i];
+                        if(elt->type() != ASTNodeType::Identifier) {
+                            error("Trying to assign to a non identifier in a tuple");
+                        }
+                        NIdentifier *id = (NIdentifier *) elt;
+                        // assign each identifier to the type in the tuple at the corresponding index
+                        assignHelper(id, tupleTypes[i]);
+                    }
+                } else if(rhsInferredType == python::Type::STRING) {
+                    for(const auto& elt : ids->_elements) {
+                        if(elt->type() != ASTNodeType::Identifier) {
+                            error("Trying to assign to a non identifier in a tuple");
+                        }
+                        NIdentifier *id = (NIdentifier *) elt;
+                        assignHelper(id, python::Type::STRING);
+                    }
+                } else {
+                    error("bad type annotation in tuple assign");
+                }
+            } else {
+                error("only assignment to tuples/identifiers supported yet!!!");
+                // error("only assignment to tuples/identifiers/subscriptions supported yet!!!");
+            }
+            // in all cases, set the type of the entire assign
+            // TODO we def want this in the single identifier case, but in general?
+            assign->setInferredType(assign->_target->getInferredType());
         }
-        // in all cases, set the type of the entire assign
-        // TODO we def want this in the single identifier case, but in general?
-        assign->setInferredType(assign->_target->getInferredType());
     }
 
     void TypeAnnotatorVisitor::resolveNameConflicts(const std::unordered_map<std::string, python::Type> &table) {

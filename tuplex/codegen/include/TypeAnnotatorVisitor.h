@@ -56,7 +56,7 @@ namespace tuplex {
         
         void dictAssign(NSubscription* subscript, python::Type key_type, python::Type value_type);
         bool is_nested_subscript_target(ASTNode* target);
-        void recursive_set_subscript_types(ASTNode* next_target, python::Type value_type);
+        void recursive_set_subscript_types(NSubscription* target, python::Type value_type);
 
         
         void checkRetType(python::Type t);

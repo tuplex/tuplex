@@ -787,7 +787,7 @@ namespace tuplex {
                 auto func_type = python::Type::makeFunctionType(python::Type::makeTupleType(param_types), ret_type);
                 call->_func->setInferredType(func_type);
             } else {
-                fatal_error("Could not infer typing for callable " + name);
+                fatal_error("Could not infer typing for callable " + name); //$$
             }
         }
 
@@ -1220,52 +1220,62 @@ namespace tuplex {
         _nameTable[id->_name] = type;
     }
 
-    void TypeAnnotatorVisitor::dictAssign(NSubscription* subscript, python::Type key_type, python::Type value_type) {
-        assert(subscript->_value->getInferredType().isDictionaryType());
-        // check what type the _value is 
-
-
-        NDictionary* dict = (NDictionary*)subscript->_value;
-        // not entirely sure what the below loop is for rn
-        // if(_ongoingLoopCount != 0 && !_loopTypeChange) {
-        //     // we are now inside a loop; no type change detected yet
-        //     // check potential type change during loops
-        //     if(_nameTable.find(id->_name) != _nameTable.end() && type != _nameTable.at(id->_name)) {
-        //         error("variable " + id->_name + " changed type during loop from " + _nameTable.at(id->_name).desc() + " to " + type.desc() + ", traced typing needed to determine if the type change is stable");
-        //         _loopTypeChange = true;
-        //     }
-        // }
-
-        // set dictionary's inferred type to be key_type -> value_type
-        // should maybe make a helper function for this? or does this count as the helper function...
-        dict->setInferredType(python::TypeFactory::instance().createOrGetDictionaryType(key_type, value_type));
-        
-        // overwrite entry in nametable with new type (Q: how to do this for dictionaries?)
-        // _nameTable[dict->] = type;
-    }
-
     bool TypeAnnotatorVisitor::is_nested_subscript_target(ASTNode* target) {
         // check if target is a subscript target
-        return assign->_target->type() == ASTNodeType::Subscription;
+        return target->type() == ASTNodeType::Subscription;
     }
 
     // note: "target" refers to the LHS of the assign (should be a subscription), and then 
     //       the value of every subsequent subscription
-    void TypeAnnotatorVisitor::recursive_set_subscript_types(ASTNode* target, python::Type value_type) {
-        // if the target is not a subscription (should be an identifier/dictionary ?), then 
-            // the next target should be an identifier
-            // check what type the identifier maps to
-            // error check if the type of the identifier is something subscriptable (for now, a dictionary)
-            // if type is subscriptable, then
-                // set the typing for the identifier to be index_type -> value_type
-                // if type of identifier is empty_dict, then we can just reset type (i.e. upcast dictionary)
-                // else if generic dict: type is still generic dict, and need to set flag in annotator?
-                // else:
-                    // check if index_type matches current index type, if not upcast and set flag
-            
-        // otherwise if the target is a subscription
-            // do recursive_set_subscript_types on the next target, with value_type being ????
+    void TypeAnnotatorVisitor::recursive_set_subscript_types(NSubscription* target, python::Type value_type) {
+        target->_expression->accept(*this);
+        python::Type index_type = target->_expression->getInferredType();
+        python::Type new_value_type = python::TypeFactory::instance().createOrGetDictionaryType(index_type, value_type);
 
+        if (target->_value->type() == ASTNodeType::Subscription) {
+            /* if the next target is a subscription, do recursive_set_subscript_types 
+               on the next target, with value_type being Dict[index_type, value_type] */
+            // Q: do I need to set intermediate types? e.g. for a[x][y][z] do I need to set the type for a[x][y]? (don't think there would be anywhere to rewrite in the nametable...)
+            recursive_set_subscript_types((NSubscription*)target->_value, new_value_type);
+        } else if (target->_value->type() == ASTNodeType::Identifier) {
+            // if the next target is an identifier (e.g. d[0])
+            NIdentifier* id = (NIdentifier*)target->_value;
+            // check if the type the identifier maps to is something subscriptable (for now, a dictionary)
+            // could use _nameTable[id->_name].isIterableType() ?
+                // No - tuples can't have element assignment, and each type that can needs to be handled differently
+            if (_nameTable[id->_name].isDictionaryType()) {
+                python::Type curr_type = _nameTable[id->_name];
+
+                if (curr_type == python::Type::EMPTYDICT) {
+                    // we can just upcast type to Dict[index_type, value_type]
+                    assignHelper(id, new_value_type);
+                } else if (curr_type == python::Type::GENERICDICT) {
+                    // type remains generic dict (and need to set flag in annotator?)
+                    // Q: Do I need to do anything in this branch?
+                    // assignHelper(python::Type::PYOBJECT, python::Type::PYOBJECT);
+                } else {
+                    // check if index_type and new_value_type match current index type and value type
+                    if (curr_type.keyType() != index_type) {
+                        // upcast index type to PYOBJECT and set flag
+                        index_type = python::Type::PYOBJECT;
+                    }
+
+                    if (curr_type.valueType() != value_type) {
+                        // upcast value type to PYOBJECT and set flag
+                        new_value_type = python::TypeFactory::instance().createOrGetDictionaryType(index_type, python::Type::PYOBJECT);
+                    }
+
+                    assignHelper(id, new_value_type);
+                }
+            } else {
+                // otherwise, raise an error (identifier not subscriptable)
+                error("cannot index into type " + _nameTable[id->_name].desc());
+            }
+        } else {
+            // otherwise, need to check if final type of expression is something subscriptable
+                // TODO: not really sure how to do this case
+            // else: raise error (can't subscript type)
+        }
     }
 
     void TypeAnnotatorVisitor::visit(NAssign *assign) {
@@ -1278,13 +1288,17 @@ namespace tuplex {
         // could have assign single target helper
         
         if (is_nested_subscript_target(assign->_target)) {
+            assert(assign->_target->type() == ASTNodeType::Subscription);
+
+            NSubscription* sub_node = (NSubscription*) assign->_target;
+
             // visit b's tree
             assign->_value->accept(*this);
 
             auto value_type = assign->_value->getInferredType();
 
             // recursively handle each subscription target 
-            recursive_set_subscript_types(assign->_target, value_type);
+            recursive_set_subscript_types(sub_node, value_type);
 
             // set assign type to value type
             assign->setInferredType(value_type);

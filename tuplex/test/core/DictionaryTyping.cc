@@ -38,7 +38,7 @@ TEST(DictionaryTyping, Simple) {
     ast.parseString(simple_c);
 
     // make typing
-    python::Type inputType = python::Type::makeListType(python::Type::I64);
+    python::Type inputType = python::Type::makeListType(python::Type::F64);
 
     // create symbol table
     ast.addTypeHint("L", inputType);

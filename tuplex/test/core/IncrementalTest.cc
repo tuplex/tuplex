@@ -564,3 +564,19 @@ TEST_F(IncrementalTest, FileOutput2) {
         ASSERT_TRUE(expectedOutput2.find(row.toPythonString()) != expectedOutput1.end());
     }
 }
+
+TEST_F(IncrementalTest, FlightsPipeline) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opts = microTestOptions();
+    opts.set("tuplex.resolverWithInterpreterOnly", "false");
+    opts.set("tuplex.optimizer.incrementalResolution", "true");
+    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
+    Context c(opts);
+
+    // create flights pipeline with aggregation
+    auto& ds = c.csv("../resources/flights_on_time_performance_2019_01.sample.csv");
+    auto v = ds.collectAsVector();
+    EXPECT_FALSE(v.empty());
+}

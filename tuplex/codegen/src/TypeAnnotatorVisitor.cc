@@ -787,7 +787,7 @@ namespace tuplex {
                 auto func_type = python::Type::makeFunctionType(python::Type::makeTupleType(param_types), ret_type);
                 call->_func->setInferredType(func_type);
             } else {
-                fatal_error("Could not infer typing for callable " + name); //$$
+                fatal_error("Could not infer typing for callable " + name);
             }
         }
 
@@ -1230,29 +1230,31 @@ namespace tuplex {
     void TypeAnnotatorVisitor::recursive_set_subscript_types(NSubscription* target, python::Type value_type) {
         target->_expression->accept(*this);
         python::Type index_type = target->_expression->getInferredType();
-        python::Type new_value_type = python::TypeFactory::instance().createOrGetDictionaryType(index_type, value_type);
+        python::Type new_value_type = python::Type::makeDictionaryType(index_type, value_type);
 
         if (target->_value->type() == ASTNodeType::Subscription) {
             /* if the next target is a subscription, do recursive_set_subscript_types 
-               on the next target, with value_type being Dict[index_type, value_type] */
-            // Q: do I need to set intermediate types? e.g. for a[x][y][z] do I need to set the type for a[x][y]? (don't think there would be anywhere to rewrite in the nametable...)
+               on the next target, with value_type being Dict[index_type, value_type] */            
+            // set type of subscription
+            // target->setInferredType();
             recursive_set_subscript_types((NSubscription*)target->_value, new_value_type);
         } else if (target->_value->type() == ASTNodeType::Identifier) {
             // if the next target is an identifier (e.g. d[0])
             NIdentifier* id = (NIdentifier*)target->_value;
-            // check if the type the identifier maps to is something subscriptable (for now, a dictionary)
-            // could use _nameTable[id->_name].isIterableType() ?
-                // No - tuples can't have element assignment, and each type that can needs to be handled differently
+            // check if the type the identifier maps to is something subscriptable (for now, just a dictionary)
             if (_nameTable[id->_name].isDictionaryType()) {
                 python::Type curr_type = _nameTable[id->_name];
 
                 if (curr_type == python::Type::EMPTYDICT) {
                     // we can just upcast type to Dict[index_type, value_type]
                     assignHelper(id, new_value_type);
+                    // set type of subscription: value_type
+                    target->setInferredType(value_type);
                 } else if (curr_type == python::Type::GENERICDICT) {
                     // type remains generic dict (and need to set flag in annotator?)
                     // Q: Do I need to do anything in this branch?
                     // assignHelper(python::Type::PYOBJECT, python::Type::PYOBJECT);
+                    target->setInferredType(python::Type::PYOBJECT);
                 } else {
                     // check if index_type and new_value_type match current index type and value type
                     if (curr_type.keyType() != index_type) {
@@ -1262,19 +1264,32 @@ namespace tuplex {
 
                     if (curr_type.valueType() != value_type) {
                         // upcast value type to PYOBJECT and set flag
-                        new_value_type = python::TypeFactory::instance().createOrGetDictionaryType(index_type, python::Type::PYOBJECT);
+                        new_value_type = python::Type::makeDictionaryType(index_type, python::Type::PYOBJECT);
                     }
 
                     assignHelper(id, new_value_type);
+
+                    if (curr_type.valueType() != value_type) {
+                        // set subscript type to PYOBJECT
+                        target->setInferredType(python::Type::PYOBJECT);
+                    } else {
+                        // set subscript type to value_type
+                        target->setInferredType(value_type);
+                    }
                 }
             } else {
-                // otherwise, raise an error (identifier not subscriptable)
-                error("cannot index into type " + _nameTable[id->_name].desc());
+                // otherwise, raise an error (identifier type not subscriptable)
+                error("only dictionary subscription supported; " + _nameTable[id->_name].desc() + " not (yet) supported");
             }
         } else {
-            // otherwise, need to check if final type of expression is something subscriptable
-                // TODO: not really sure how to do this case
+            // otherwise, need to check if final type of expression is something subscriptable (just dictionary for now)
             // else: raise error (can't subscript type)
+            target->_value->accept(*this);
+            if (!target->_value->getInferredType().isDictionaryType()) {
+                error(target->_value->getInferredType().desc() + " is not (yet) subscriptable; only dictionaries supported");
+            }
+
+            // TODO: anything else here?
         }
     }
 
@@ -1282,11 +1297,6 @@ namespace tuplex {
         // now interesting part comes
         // check what left side is
 
-        // a[x][y][z][w] = b
-        // a[5 + x * 2] = b
-
-        // could have assign single target helper
-        
         if (is_nested_subscript_target(assign->_target)) {
             assert(assign->_target->type() == ASTNodeType::Subscription);
 
@@ -1297,7 +1307,7 @@ namespace tuplex {
 
             auto value_type = assign->_value->getInferredType();
 
-            // recursively handle each subscription target 
+            // recursively set types for each subscription target 
             recursive_set_subscript_types(sub_node, value_type);
 
             // set assign type to value type

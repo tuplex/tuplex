@@ -18,6 +18,9 @@
 #include <algorithm>
 #include <TTuple.h>
 
+// need to define new type for d.keys (compound type - dictkeys)
+// make createdictkeystype and createdictvaluestype
+
 namespace python {
 
     class Type {
@@ -345,6 +348,7 @@ namespace python {
         Type createOrGetFunctionType(const Type& param, const Type& ret=Type::EMPTYTUPLE);
         Type createOrGetDictionaryType(const Type& key, const Type& val);
         Type createOrGetListType(const Type& val);
+        // add support for dictkeys and dictvalues types
 
         Type createOrGetTupleType(const std::initializer_list<Type> args);
         Type createOrGetTupleType(const TTuple<Type>& args);

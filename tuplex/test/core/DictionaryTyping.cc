@@ -17,21 +17,50 @@
 #include <CodegenHelper.h>
 #include <AnnotatedAST.h>
 
+// TEST(DictionaryTyping, Template) {
+//     using namespace tuplex;
+//     using namespace std;
+
+//     auto code = "";
+    
+//     // parse code to AST
+//     auto ast = tuplex::codegen::AnnotatedAST();
+//     ast.parseString(code);
+
+//     // make input typing
+//     python::Type inputType = python::Type::PYOBJECT;
+
+//     // create symbol table (add parameters and types)
+//     ast.addTypeHint("L", inputType);
+//     ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
+
+//     // print type annotated ast
+//     GraphVizGraph graph;
+//     graph.createFromAST(ast.getFunctionAST(), true);
+//     graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/<test_name>.pdf");
+
+//     cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
+
+//     python::Type expected_ret = python::Type::PYOBJECT;
+
+//     // check return type
+//     ASSERT_EQ(ast.getReturnType(), expected_ret);
+// }
+
 TEST(DictionaryTyping, Simple) {
     using namespace tuplex;
     using namespace std;
 
-    // test simple UDF
-    auto simple_c = "def f(L):\n"
-                    "    d = {}\n"
-                    "    k = L[0]\n"
-                    "    d[k] = 0\n"
-                    "    d[k] += 1\n"
-                    "    return d";
+    auto code = "def f(L):\n"
+                "    d = {}\n"
+                "    k = L[0]\n"
+                "    d[k] = 0\n"
+                "    d[k] += 1\n"
+                "    return d";
     
     // parse code to AST
     auto ast = tuplex::codegen::AnnotatedAST();
-    ast.parseString(simple_c);
+    ast.parseString(code);
 
     // make typing
     python::Type inputType = python::Type::makeListType(python::Type::F64);
@@ -43,20 +72,17 @@ TEST(DictionaryTyping, Simple) {
     // print type annotated ast
     GraphVizGraph graph;
     graph.createFromAST(ast.getFunctionAST(), true);
-    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/typed_ast.pdf");
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/simple_ast.pdf");
 
     cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
 
     ASSERT_EQ(ast.getReturnType(), python::Type::makeDictionaryType(python::Type::F64, python::Type::I64));
-
-    // TODO: case where d = {0: {}, 1: {0: 10, 1: 15}, 2: None} --> Dict[i64, Option[Dict[i64, i64]]]
 }
 
 TEST(DictionaryTyping, IndexExpression) {
     using namespace tuplex;
     using namespace std;
 
-    // a[2 * k + 1] = n
     auto code = "def f(L):\n"
                 "    d = {}\n"
                 "    k = L[0]\n"
@@ -77,174 +103,391 @@ TEST(DictionaryTyping, IndexExpression) {
     // print type annotated ast
     GraphVizGraph graph;
     graph.createFromAST(ast.getFunctionAST(), true);
-    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/typed_ast_1.pdf");
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/index_exp_ast.pdf");
 
     cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
 
     ASSERT_EQ(ast.getReturnType(), python::Type::makeDictionaryType(python::Type::I64, python::Type::I64));
 }
 
-TEST(DictionaryTyping, NestedSubscripts) {
+TEST(DictionaryTyping, NestedSubscriptSimple) {
     using namespace tuplex;
     using namespace std;
 
-    // Q: what should I do about the case where dictionaries don't have the same number of entries (is this supported?)
-
-    // a[x][y] = n
-    auto code_1 = "def f(L):\n"
-                  "    d = {0: {0: 10, 1: 100}, 1: {0: 15, 1: 500}}\n"
-                  "    w = L[0]\n"
-                  "    x = L[1]\n"
-                  "    d[w][x] = 15\n"
-                  "    return d";
-
+    auto code = "def f(L):\n"
+                "    d = {0: {0: 10, 1: 100}, 1: {0: 15, 1: 500}}\n"
+                "    w = L[0]\n"
+                "    x = L[1]\n"
+                "    d[w][x] = 15\n"
+                "    return d";
+    
     // parse code to AST
-    auto ast_1 = tuplex::codegen::AnnotatedAST();
-    ast_1.parseString(code_1);
+    auto ast = tuplex::codegen::AnnotatedAST();
+    ast.parseString(code);
 
     // make typing
-    python::Type inputType_1 = python::Type::makeListType(python::Type::I64);
+    python::Type inputType = python::Type::makeListType(python::Type::I64);
 
     // create symbol table
-    ast_1.addTypeHint("L", inputType_1);
-    ast_1.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
+    ast.addTypeHint("L", inputType);
+    ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
 
     // print type annotated ast
-    GraphVizGraph graph_1;
-    graph_1.createFromAST(ast_1.getFunctionAST(), true);
-    graph_1.saveAsPDF("typed_ast.pdf");
+    GraphVizGraph graph;
+    graph.createFromAST(ast.getFunctionAST(), true);
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/nested_sub_simple.pdf");
 
-    cout<<"return type of function is: "<<ast_1.getReturnType().desc()<<endl;
+    cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
 
-    python::Type expected_ret_1 = python::Type::makeDictionaryType(python::Type::I64, python::Type::makeDictionaryType(python::Type::I64, python::Type::I64));
-    ASSERT_EQ(ast_1.getReturnType(), expected_ret_1);
+    python::Type expected_ret = python::Type::makeDictionaryType(python::Type::I64, python::Type::makeDictionaryType(python::Type::I64, python::Type::I64));
 
-    // a[x][y] = n, with case where empty dictionary type should be upcasted to Dict[i64, i64]
-    auto code_2 = "def f(L):\n"
-                  "    d = {0: {0: 10, 1: 100}, 1: {}}\n"
-                  "    w = L[0]\n"
-                  "    x = L[1]\n"
-                  "    d[w][x] = 15\n"
-                  "    return d";
-
-    // parse code to AST
-    auto ast_2 = tuplex::codegen::AnnotatedAST();
-    ast_2.parseString(code_2);
-
-    // make typing
-    python::Type inputType_2 = python::Type::makeListType(python::Type::I64);
-
-    // create symbol table
-    ast_2.addTypeHint("L", inputType_2);
-    ast_2.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
-
-    // print type annotated ast
-    GraphVizGraph graph_2;
-    graph_2.createFromAST(ast_2.getFunctionAST(), true);
-    graph_2.saveAsPDF("typed_ast.pdf");
-
-    cout<<"return type of function is: "<<ast_2.getReturnType().desc()<<endl;
-
-    python::Type expected_ret_2 = python::Type::makeDictionaryType(python::Type::I64, python::Type::makeDictionaryType(python::Type::I64, python::Type::I64));
-    ASSERT_EQ(ast_2.getReturnType(), expected_ret_2);
-
-    // a[x][y][z][w] = n
-    // auto code = "def f(L):\n"
-    //             "    d = {0: {0: {0: {0: 10}, 1: {0: 1}}, 1: {0: {0: 15}, 1: {0: 2}}}, 1: {0: {0: {0: 20}, 1: {0: 0}}, 1: {0: {0: 19}, 1: {0: 4}}}}\n"
-    //             "    w = L[0]\n"
-    //             "    x = L[1]\n"
-    //             "    y = L[2]\n"
-    //             "    z = L[3]\n"
-    //             "    d[w][x][y][z] = 60\n"
-    //             "    return d";
-
-    // // parse code to AST
-    // auto ast = tuplex::codegen::AnnotatedAST();
-    // ast.parseString(code);
-
-    // // make typing
-    // python::Type inputType = python::Type::makeListType(python::Type::I64);
-
-    // // create symbol table
-    // ast.addTypeHint("L", inputType);
-    // ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
-
-    // // print type annotated ast
-    // GraphVizGraph graph;
-    // graph.createFromAST(ast.getFunctionAST(), true);
-    // graph.saveAsPDF("typed_ast.pdf");
-
-    // cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
-
-    // ASSERT_EQ(ast->getInferredType().getReturnType(), python::Type::makeDictionaryType(python::Type::I64, python::Type::I64));
+    // check return type
+    ASSERT_EQ(ast.getReturnType(), expected_ret);
 }
 
-TEST(DictionaryTyping, AttributeSubscripts) {
+TEST(DictionaryTyping, NestedSubscriptUpcast) {
     using namespace tuplex;
     using namespace std;
 
-    // how should I write tests that use classes + class attributes?
-
-    // a.b[x] = n
-    auto code_1 = "def f(L):\n"
-                  "    d = {0: {0: 10, 1: 100}, 1: {0: 15, 1: 500}}\n"
-                  "    w = L[0]\n"
-                  "    x = L[1]\n"
-                  "    d[w][x] = 15\n"
-                  "    return d";
-
-    // parse code to AST
-    auto ast_1 = tuplex::codegen::AnnotatedAST();
-    ast_1.parseString(code_1);
-
-    // make typing
-    python::Type inputType_1 = python::Type::makeListType(python::Type::I64);
-
-    // create symbol table
-    ast_1.addTypeHint("L", inputType_1);
-    ast_1.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
-
-    // print type annotated ast
-    GraphVizGraph graph_1;
-    graph_1.createFromAST(ast_1.getFunctionAST(), true);
-    graph_1.saveAsPDF("typed_ast.pdf");
-
-    cout<<"return type of function is: "<<ast_1.getReturnType().desc()<<endl;
-
-    python::Type expected_ret_1 = python::Type::makeDictionaryType(python::Type::I64, python::Type::makeDictionaryType(python::Type::I64, python::Type::I64));
-    ASSERT_EQ(ast_1.getReturnType(), expected_ret_1);
-
-    // a.b.c[x] = n
-    auto code_2 = "def f(L):\n"
-                  "    d = {0: {0: 10, 1: 100}, 1: {}}\n"
-                  "    w = L[0]\n"
-                  "    x = L[1]\n"
-                  "    d[w][x] = 15\n"
-                  "    return d";
-
-    // parse code to AST
-    auto ast_2 = tuplex::codegen::AnnotatedAST();
-    ast_2.parseString(code_2);
-
-    // make typing
-    python::Type inputType_2 = python::Type::makeListType(python::Type::I64);
-
-    // create symbol table
-    ast_2.addTypeHint("L", inputType_2);
-    ast_2.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
-
-    // print type annotated ast
-    GraphVizGraph graph_2;
-    graph_2.createFromAST(ast_2.getFunctionAST(), true);
-    graph_2.saveAsPDF("typed_ast.pdf");
-
-    cout<<"return type of function is: "<<ast_2.getReturnType().desc()<<endl;
-
-    python::Type expected_ret_2 = python::Type::makeDictionaryType(python::Type::I64, python::Type::makeDictionaryType(python::Type::I64, python::Type::I64));
-    ASSERT_EQ(ast_2.getReturnType(), expected_ret_2);
+    auto code = "def f(L):\n"
+                "    d = {0: {0: 10, 1: 100}, 1: {}}\n"
+                "    w = L[0]\n"
+                "    x = L[1]\n"
+                "    d[w][x] = 60\n"
+                "    return d";
     
-    // a[x].b[y] = n
-    // a.b[x][y][z] = n
+    // parse code to AST
+    auto ast = tuplex::codegen::AnnotatedAST();
+    ast.parseString(code);
+
+    // make input typing
+    python::Type inputType = python::Type::makeListType(python::Type::I64);
+
+    // create symbol table (add parameters and types)
+    ast.addTypeHint("L", inputType);
+    ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
+
+    // print type annotated ast
+    GraphVizGraph graph;
+    graph.createFromAST(ast.getFunctionAST(), true);
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/nested_sub_upcast.pdf");
+
+    cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
+
+    python::Type expected_ret = python::Type::makeDictionaryType(python::Type::I64, python::Type::makeDictionaryType(python::Type::I64, python::Type::I64));
+
+    // check return type
+    ASSERT_EQ(ast.getReturnType(), expected_ret);
+}
+
+TEST(DictionaryTyping, NestedSubscriptOption) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto code = "def f(L):\n"
+                "    d = {0: {}, 1: {0: 10, 1: 15}, 2: None}\n"
+                "    w = L[0]\n"
+                "    x = L[1]\n"
+                "    d[w][x] = 60\n"
+                "    return d";
+    
+    // parse code to AST
+    auto ast = tuplex::codegen::AnnotatedAST();
+    ast.parseString(code);
+
+    // make input typing
+    python::Type inputType = python::Type::makeListType(python::Type::I64);
+
+    // create symbol table (add parameters and types)
+    ast.addTypeHint("L", inputType);
+    ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
+
+    // print type annotated ast
+    GraphVizGraph graph;
+    graph.createFromAST(ast.getFunctionAST(), true);
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/nested_sub_option.pdf");
+
+    cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
+
+    python::Type expected_ret = python::Type::makeDictionaryType(python::Type::I64, python::Type::makeOptionType(python::Type::makeDictionaryType(python::Type::I64, python::Type::I64)));
+
+    // check return type
+    ASSERT_EQ(ast.getReturnType(), expected_ret);
+}
+
+TEST(DictionaryTyping, NestedSubscriptMultiple) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto code = "def f(L):\n"
+                "    d = {0: {0: {0: {0: 10}, 1: {0: 1}}, 1: {0: {0: 15}, 1: {0: 2}}}, 1: {0: {0: {0: 20}, 1: {0: 0}}, 1: {0: {0: 19}, 1: {0: 4}}}}\n"
+                "    w = L[0]\n"
+                "    x = L[1]\n"
+                "    y = L[2]\n"
+                "    z = L[3]\n"
+                "    d[w][x][y][z] = 60\n"
+                "    return d";
+    
+    // parse code to AST
+    auto ast = tuplex::codegen::AnnotatedAST();
+    ast.parseString(code);
+
+    // make input typing
+    python::Type inputType = python::Type::makeListType(python::Type::I64);
+
+    // create symbol table (add parameters and types)
+    ast.addTypeHint("L", inputType);
+    ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
+
+    // print type annotated ast
+    GraphVizGraph graph;
+    graph.createFromAST(ast.getFunctionAST(), true);
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/nested_sub_multiple.pdf");
+
+    cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
+
+    python::Type expected_ret = 
+        python::Type::makeDictionaryType(
+            python::Type::I64, 
+            python::Type::makeDictionaryType(
+                python::Type::I64, 
+                python::Type::makeDictionaryType(
+                    python::Type::I64, 
+                    python::Type::makeDictionaryType(
+                        python::Type::I64, 
+                        python::Type::I64))));
+
+    // check return type
+    ASSERT_EQ(ast.getReturnType(), expected_ret);
+}
+
+TEST(DictionaryTyping, ControlFlowSimple) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto code = "def f(L):\n"
+                "    d = {}\n"
+                "    d[0] = 0\n"
+                "    d[1] = 0\n"
+                "    if L[0] <= 5:\n"
+                "        d[0] += 1\n"
+                "    else:\n"
+                "        d[1] += 1\n"
+                "    return d";
+    
+    // parse code to AST
+    auto ast = tuplex::codegen::AnnotatedAST();
+    ast.parseString(code);
+
+    // make input typing
+    python::Type inputType = python::Type::makeListType(python::Type::I64);
+
+    // create symbol table (add parameters and types)
+    ast.addTypeHint("L", inputType);
+    ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
+
+    // print type annotated ast
+    GraphVizGraph graph;
+    graph.createFromAST(ast.getFunctionAST(), true);
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/control_flow_simple.pdf");
+
+    cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
+
+    python::Type expected_ret = python::Type::makeDictionaryType(python::Type::I64, python::Type::I64);
+
+    // check return type
+    ASSERT_EQ(ast.getReturnType(), expected_ret);
+}
+
+TEST(DictionaryTyping, ControlFlowLoop) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto code = "def f(L):\n"
+                "    d = {}\n"
+                "    d[0] = 0\n"
+                "    d[1] = 0\n"
+                "    for i in L:\n"
+                "        if i <= 5:\n"
+                "            d[0] += 1\n"
+                "        else:\n"
+                "            d[1] += 1\n"
+                "    return d";
+    
+    // parse code to AST
+    auto ast = tuplex::codegen::AnnotatedAST();
+    ast.parseString(code);
+
+    // make input typing
+    python::Type inputType = python::Type::makeListType(python::Type::I64);
+
+    // create symbol table (add parameters and types)
+    ast.addTypeHint("L", inputType);
+    ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
+
+    // print type annotated ast
+    GraphVizGraph graph;
+    graph.createFromAST(ast.getFunctionAST(), true);
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/control_flow_loop.pdf");
+
+    cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
+
+    python::Type expected_ret = python::Type::makeDictionaryType(python::Type::I64, python::Type::I64);
+
+    // check return type
+    ASSERT_EQ(ast.getReturnType(), expected_ret);
+}
+
+TEST(DictionaryTyping, ControlFlowKeyAssignment) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto code = "def f(L):\n"
+                "    d = {}\n"
+                "    for i in L:\n"
+                "        if (i % 2) not in d.keys():\n"
+                "            d[i % 2] = 0\n"
+                "        if i > 5:\n"
+                "            d[i % 2] += 5\n"
+                "        else:\n"
+                "            d[i % 2] += i\n"
+                "    return d";
+    
+    // parse code to AST
+    auto ast = tuplex::codegen::AnnotatedAST();
+    ast.parseString(code);
+
+    // make input typing
+    python::Type inputType = python::Type::makeListType(python::Type::I64);
+
+    // create symbol table (add parameters and types)
+    ast.addTypeHint("L", inputType);
+    ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
+
+    // print type annotated ast
+    GraphVizGraph graph;
+    graph.createFromAST(ast.getFunctionAST(), true);
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/control_flow_key_assign.pdf");
+
+    cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
+
+    python::Type expected_ret = python::Type::makeDictionaryType(python::Type::I64, python::Type::I64);
+
+    // check return type
+    ASSERT_EQ(ast.getReturnType(), expected_ret);
+}
+
+TEST(DictionaryTyping, DictionaryInputSimple) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto code = "def f(D):\n"
+                "    D[0] += 1\n"
+                "    D[1] += 2\n"
+                "    D[2] = D[0] + D[1]\n"
+                "    return D";
+    
+    // parse code to AST
+    auto ast = tuplex::codegen::AnnotatedAST();
+    ast.parseString(code);
+
+    // make input typing
+    python::Type inputType = python::Type::makeDictionaryType(python::Type::F64, python::Type::F64);
+
+    // create symbol table (add parameters and types)
+    ast.addTypeHint("D", inputType);
+    ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
+
+    // print type annotated ast
+    GraphVizGraph graph;
+    graph.createFromAST(ast.getFunctionAST(), true);
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/dict_input_simple.pdf");
+
+    cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
+
+    python::Type expected_ret = python::Type::makeDictionaryType(python::Type::F64, python::Type::F64);
+
+    // check return type
+    ASSERT_EQ(ast.getReturnType(), expected_ret);
+}
+
+TEST(DictionaryTyping, DictionaryInputControlFlow) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto code = "def f(D):\n"
+                "    if D[0] < D[1]:\n"
+                "        D[0] = D[1]\n"
+                "        return D[1]\n"
+                "    else:\n"
+                "        D[0] = D[2]\n"
+                "        return D[2]";
+    
+    // parse code to AST
+    auto ast = tuplex::codegen::AnnotatedAST();
+    ast.parseString(code);
+
+    // make input typing
+    python::Type inputType = python::Type::makeDictionaryType(python::Type::I64, python::Type::F64);
+
+    // create symbol table (add parameters and types)
+    ast.addTypeHint("D", inputType);
+    ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
+
+    // print type annotated ast
+    GraphVizGraph graph;
+    graph.createFromAST(ast.getFunctionAST(), true);
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/dict_input_control_flow.pdf");
+
+    cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
+
+    python::Type expected_ret = python::Type::makeDictionaryType(python::Type::I64, python::Type::F64);
+
+    // check return type
+    ASSERT_EQ(ast.getReturnType(), expected_ret);
+}
+
+TEST(DictionaryTyping, Everything) {
+    using namespace tuplex;
+    using namespace std;
+
+    // example: we have a dictionary mapping countries to the continent they are in
+    auto code = "def f(D):\n"
+                "    continents = {\n"
+                "        'Africa': 0,\n"
+                "        'Asia': 0,\n"
+                "        'Europe': 0,\n"
+                "        'Other': 0\n"
+                "    }\n"
+                "    for for continent in D.values():\n"
+                "        if continent not in continents.keys():\n"
+                "            continents['Other'] += 1\n"
+                "        else:\n"
+                "            continents[continent] += 1\n"
+                "    return continents";
+    
+    // parse code to AST
+    auto ast = tuplex::codegen::AnnotatedAST();
+    ast.parseString(code);
+
+    // make input typing
+    python::Type inputType = python::Type::makeDictionaryType(python::Type::STRING, python::Type::STRING);
+
+    // create symbol table (add parameters and types)
+    ast.addTypeHint("D", inputType);
+    ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
+
+    // print type annotated ast
+    GraphVizGraph graph;
+    graph.createFromAST(ast.getFunctionAST(), true);
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/everything.pdf");
+
+    cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
+
+    python::Type expected_ret = python::Type::makeDictionaryType(python::Type::STRING, python::Type::I64);
+
+    // check return type
+    ASSERT_EQ(ast.getReturnType(), expected_ret);
 }
 
 TEST(DictionaryTyping, Count) {
@@ -265,7 +508,7 @@ TEST(DictionaryTyping, Count) {
     ast.parseString(count_c);
 
     // make typing
-    python::Type inputType = python::Type::makeListType(python::Type::I64);
+    python::Type inputType = python::Type::makeListType(python::Type::STRING);
 
     // create symbol table
     ast.addTypeHint("L", inputType);
@@ -278,5 +521,5 @@ TEST(DictionaryTyping, Count) {
 
     cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
 
-    ASSERT_EQ(ast.getReturnType(), python::Type::makeDictionaryType(python::Type::I64, python::Type::I64));
+    ASSERT_EQ(ast.getReturnType(), python::Type::makeDictionaryType(python::Type::STRING, python::Type::I64));
 }

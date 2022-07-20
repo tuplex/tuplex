@@ -99,6 +99,22 @@ namespace llvm {
 #endif
     }
 
+     inline llvm::Value* getOrInsertCallable(Module& mod, const std::string& name, FunctionType* FT) {
+#if LLVM_VERSION_MAJOR < 9
+        return mod.getOrInsertFunction(name, FT);
+#else
+        return mod.getOrInsertFunction(name, FT).getCallee();
+#endif
+    }
+
+    inline llvm::Value* getOrInsertCallable(Module* mod, const std::string& name, FunctionType* FT) {
+        assert(mod);
+        if(!mod)
+            return nullptr;
+        return getOrInsertCallable(*mod, name, FT);
+    }
+
+
     inline Function* getOrInsertFunction(Module& mod, const std::string& name, FunctionType* FT) {
 #if LLVM_VERSION_MAJOR < 9
         Function* func = cast<Function>(mod.getOrInsertFunction(name, FT));

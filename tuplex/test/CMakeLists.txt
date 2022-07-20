@@ -72,6 +72,10 @@ else()
     set(GTest_LIBRARIES GTest::gtest)
 endif()
 
+if(BUILD_WITH_AWS)
+    #set(Protobuf_USE_STATIC_LIBS ON)
+    find_package(Protobuf REQUIRED)
+endif()
 
 add_subdirectory(codegen)
 add_subdirectory(io)

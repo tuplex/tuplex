@@ -9,6 +9,7 @@ include(GoogleTest)
 
 ADD_EXECUTABLE(testio ${SRCS} main.cc)
 
+message(STATUS "probutf (testio): ${Protobuf_LIBRARIES} ${Protobuf_LITE_LIBRARIES}")
 TARGET_LINK_LIBRARIES(testio
         libio
         libutils
@@ -18,6 +19,10 @@ TARGET_LINK_LIBRARIES(testio
         ${GTest_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES}
         ${Python3_LIBRARIES}
+        ${Protobuf_LIBRARIES}
+        ${Protobuf_LITE_LIBRARIES}
+        ${Protobuf_LIBRARIES}
+        protobuf::libprotobuf
         )
 
 gtest_add_tests(TARGET testio TEST_PREFIX "")

@@ -21,7 +21,7 @@ include_directories(${Boost_INCLUDE_DIR})
 if(BUILD_WITH_ORC)
     message(STATUS "Building Tuplex with ORC support")
 
-    find_package(Protobuf REQUIRED)
+find_package(Protobuf REQUIRED)
     get_filename_component(Protobuf_HOME "${Protobuf_INCLUDE_DIRS}" DIRECTORY)
 
     include(ExternalProject)

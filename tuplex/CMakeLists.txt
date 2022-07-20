@@ -202,6 +202,12 @@ if(BUILD_WITH_AWS)
     else()
         message(FATAL_ERROR "option build with AWSSDK specified, but AWS SDK was not found.")
     endif ()
+
+    # building with AWS backend support?
+    # communication with AWS Lambda happens via protobuf, i.e. make sure protobuf compiler
+    # is installed
+    #set(Protobuf_USE_STATIC_LIBS ON)
+    find_package(Protobuf REQUIRED)
 endif()
 
 if(GENERATE_PDFS)

@@ -16,7 +16,7 @@ if(BUILD_WITH_AWS)
 
     # communication with AWS Lambda happens via protobuf, i.e. make sure protobuf compiler
     # is installed
-    set(Protobuf_USE_STATIC_LIBS ON)
+    # set(Protobuf_USE_STATIC_LIBS ON)
     find_package(Protobuf REQUIRED)
     include_directories(Protobuf_INCLUDE_DIRS)
     protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS proto/Lambda.proto)
@@ -45,7 +45,6 @@ include_directories(${Boost_INCLUDE_DIR})
 
 # Source code & linking
 file(GLOB_RECURSE SOURCES src/*.cc)
-
 if(BUILD_WITH_AWS)
     # add protobuf srcs
     list(APPEND SOURCES ${PROTO_SRCS} ${PROTO_HDRS})

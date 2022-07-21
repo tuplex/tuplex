@@ -225,129 +225,105 @@ def spark_rdd_pipeline(sc, path, output_path):
 
     def extractZipcode(x):
         x = tuple(x)
-        try:
-            return x + ('{:05}'.format(int(float(x[4]))),)
-        except:
-            return x + (None,)
+        return x + ('{:05}'.format(int(float(x[4]))),)
 
     def cleanCity(x):
         x = tuple(x)
-        try:
-            return x[:2] + (x[2][0].upper() + x[2][1:].lower(),) + x[3:]
-        except:
-            return x[:2] + (None,) + x[3:]
+        return x[:2] + (x[2][0].upper() + x[2][1:].lower(),) + x[3:]
 
     def extractBd(x):
         x = tuple(x)
-        try:
-            val = x[6]
-            max_idx = val.find(' bd')
-            if max_idx < 0:
-                max_idx = len(val)
-            s = val[:max_idx]
+        val = x[6]
+        max_idx = val.find(' bd')
+        if max_idx < 0:
+            max_idx = len(val)
+        s = val[:max_idx]
 
-            # find comma before
-            split_idx = s.rfind(',')
-            if split_idx < 0:
-                split_idx = 0
-            else:
-                split_idx += 2
-            r = s[split_idx:]
-            return x + (int(r),)
-        except:
-            return x + (None,)
+        # find comma before
+        split_idx = s.rfind(',')
+        if split_idx < 0:
+            split_idx = 0
+        else:
+            split_idx += 2
+        r = s[split_idx:]
+        return x + (int(r),)
 
     def extractBa(x):
         x = tuple(x)
-        try:
-            val = x[6]
-            max_idx = val.find(' ba')
-            if max_idx < 0:
-                max_idx = len(val)
-            s = val[:max_idx]
+        val = x[6]
+        max_idx = val.find(' ba')
+        if max_idx < 0:
+            max_idx = len(val)
+        s = val[:max_idx]
 
-            # find comma before
-            split_idx = s.rfind(',')
-            if split_idx < 0:
-                split_idx = 0
-            else:
-                split_idx += 2
-            r = s[split_idx:]
-            ba = math.ceil(2.0 * float(r)) / 2.0
-            return x + (ba,)
-        except:
-            return x + (None,)
+        # find comma before
+        split_idx = s.rfind(',')
+        if split_idx < 0:
+            split_idx = 0
+        else:
+            split_idx += 2
+        r = s[split_idx:]
+        ba = math.ceil(2.0 * float(r)) / 2.0
+        return x + (ba,)
 
     def extractSqft(x):
         x = tuple(x)
-        try:
-            val = x[6]
-            max_idx = val.find(' sqft')
-            if max_idx < 0:
-                max_idx = len(val)
-            s = val[:max_idx]
+        val = x[6]
+        max_idx = val.find(' sqft')
+        if max_idx < 0:
+            max_idx = len(val)
+        s = val[:max_idx]
 
-            split_idx = s.rfind('ba ,')
-            if split_idx < 0:
-                split_idx = 0
-            else:
-                split_idx += 5
-            r = s[split_idx:]
-            r = r.replace(',', '')
-            return x + (int(r),)
-        except:
-            return x + (None,)
+        split_idx = s.rfind('ba ,')
+        if split_idx < 0:
+            split_idx = 0
+        else:
+            split_idx += 5
+        r = s[split_idx:]
+        r = r.replace(',', '')
+        return x + (int(r),)
 
     def extractOffer(x):
         x = tuple(x)
-        try:
-            offer = x[0].lower()
-            if 'sale' in offer:
-                return x + ('sale',)
-            if 'rent' in offer:
-                return x + ('rent',)
-            if 'sold' in offer:
-                return x + ('sold',)
-            if 'foreclose' in offer.lower():
-                return x + ('foreclosed',)
-            return x + (offer,)
-        except:
-            return x + (None,)
+        offer = x[0].lower()
+        if 'sale' in offer:
+            return x + ('sale',)
+        if 'rent' in offer:
+            return x + ('rent',)
+        if 'sold' in offer:
+            return x + ('sold',)
+        if 'foreclose' in offer.lower():
+            return x + ('foreclosed',)
+        return x + (offer,)
 
     def extractType(x):
         x = tuple(x)
-        try:
-            t = x[0].lower()
-            type = 'unknown'
-            if 'condo' in t or 'apartment' in t:
-                type = 'condo'
-            if 'house' in t:
-                type = 'house'
-            return x + (type,)
-        except:
-            return x + (None,)
+        t = x[0].lower()
+        type = 'unknown'
+        if 'condo' in t or 'apartment' in t:
+            type = 'condo'
+        if 'house' in t:
+            type = 'house'
+        return x + (type,)
 
     def extractPrice(x):
         x = tuple(x)
-        try:
-            price = x[5]
-            if x[15] == 'sold':
-                # price is to be calculated using price/sqft * sqft
-                val = x[6]
-                s = val[val.find('Price/sqft:') + len('Price/sqft:') + 1:]
-                r = s[s.find('$')+1:s.find(', ') - 1]
-                price_per_sqft = int(r)
-                price = price_per_sqft * x['sqft']
-            elif x[15] == 'rent':
-                max_idx = price.rfind('/')
-                price = int(price[1:max_idx].replace(',', ''))
-            else:
-                # take price from price column
-                price = int(price[1:].replace(',', ''))
+        price = x[5]
+        if x[15] == 'sold':
+            # price is to be calculated using price/sqft * sqft
+            val = x[6]
+            s = val[val.find('Price/sqft:') + len('Price/sqft:') + 1:]
+            r = s[s.find('$')+1:s.find(', ') - 1]
+            price_per_sqft = int(r)
+            price = price_per_sqft * x['sqft']
+        elif x[15] == 'rent':
+            max_idx = price.rfind('/')
+            price = int(price[1:max_idx].replace(',', ''))
+        else:
+            # take price from price column
+            price = int(price[1:].replace(',', ''))
 
-            return x[:5] + (price,) + x[6:]
-        except:
-            return x[:5] + (None,) + x[6:]
+        return x[:5] + (price,) + x[6:]
 
     def selectCols(x):
         x = tuple(x)
@@ -355,26 +331,16 @@ def spark_rdd_pipeline(sc, path, output_path):
 
     def filterPrice(x):
         x = tuple(x)
-        try:
-            # in original 6th column is price
-            return 100000 < x[5] <= 2e7 and x[15] == 'sale'
-        except:
-            return False
+        # in original 6th column is price
+        return 100000 < x[5] <= 2e7 and x[15] == 'sale'
 
     def filterType(x):
         x = tuple(x)
-        try:
-            return x[-1] == 'condo'
-        except:
-            return False
+        return x[-1] == 'condo'
 
     def filterBd(x):
         x = tuple(x)
-        try:
-            return x[-1] < 10
-        except:
-            return False
-
+        return x[-1] < 10
 
     # note the ignore header to have the contents ready
     rdd1 = sc.textFile(path)

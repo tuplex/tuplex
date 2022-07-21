@@ -14,6 +14,16 @@ import shutil
 import subprocess
 import random
 import csv
+import logging
+
+# standard logging setup
+file_handler = logging.FileHandler(filename='experiment.log')
+stdout_handler = logging.StreamHandler(sys.stdout)
+handlers = [file_handler, stdout_handler]
+
+logging.basicConfig(level=logging.INFO,
+        format='[%(asctime)s] %(levelname)s - %(message)s',
+        handlers=handlers)
 
 try:
     tstart = time.time()
@@ -210,7 +220,7 @@ except:
 #     ds.tocsv(output_path, commit=commit)
 #     return ctx.metrics
 
-def spark_rdd_pipeline(sc):
+def spark_rdd_pipeline(sc, path, output_path):
     # Spark pipeline
 
     def extractZipcode(x):
@@ -412,7 +422,7 @@ if __name__ == '__main__':
     user = os.getlogin()
     parser = argparse.ArgumentParser(description='Incremental resolution (Pyspark modes)')
     #parser.add_argument('--mode')
-    parser.add_argument('--path', type=str, dest='data_path', default='/hot/scratch/bgivertz/data/zillow_dirty.csv', help='path or pattern to zillow data')
+    parser.add_argument('--path', type=str, dest='data_path', default='/hot/scratch/bgivertz/data/zillow_dirty@50G.csv', help='path or pattern to zillow data')
     parser.add_argument('--output-path', type=str, dest='output_path', default='/hot/scratch/{}/output/'.format(user), help='specify path where to save output data files')
     parser.add_argument('--resolve-in-order', dest='resolve_in_order', action="store_true", help="whether to resolve exceptions in order")
     parser.add_argument('--num-steps', dest='num_steps', type=int, default=7)
@@ -463,7 +473,7 @@ if __name__ == '__main__':
 
     sc = spark.sparkContext
     tstart = time.time()
-    spark_rdd_pipeline(sc)
+    spark_rdd_pipeline(sc, path, output_path)
     logging.info('completed pipeline in {}s'.format(time.time() - tstart))
 
     shutil.rmtree(output_path, ignore_errors=True)

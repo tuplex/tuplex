@@ -20,10 +20,11 @@ NUM_RUNS=3
 TIMEOUT=14400
 
 RESDIR='results_dirty_zillow@100G'
-DATA_PATH_SSD='/hot/scratch/bgivertz/data/zillow_dirty@100G.csv'
-INCREMENTAL_OUT_PATH_SSD='/hot/scratch/bgivertz/output/incremental'
-INCREMENTAL_COMMIT_OUT_PATH_SSD='/hot/scratch/bgivertz/output/commit'
-PLAIN_OUT_PATH_SSD='/hot/scratch/bgivertz/output/plain'
+DATA_PATH_SSD="/hot/scratch/$USER/data/zillow_dirty@100G.csv"
+DATA_PATH_SSD=/hot/scratch/bgivertz/data/zillow_dirty@100G.csv
+INCREMENTAL_OUT_PATH_SSD="/hot/scratch/$USER/output/incremental"
+INCREMENTAL_COMMIT_OUT_PATH_SSD="/hot/scratch/$USER/output/commit"
+PLAIN_OUT_PATH_SSD="/hot/scratch/$USER/output/plain"
 
 rm -rf $RESDIR
 rm -rf $INCREMENTAL_OUT_PATH_SSD

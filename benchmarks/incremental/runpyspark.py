@@ -439,8 +439,12 @@ if __name__ == '__main__':
 
     sc = spark.sparkContext
     tstart = time.time()
-    spark_rdd_pipeline(sc, path, output_path)
-    logging.info('completed pipeline in {}s'.format(time.time() - tstart))
+    try:
+        spark_rdd_pipeline(sc, path, output_path)
+        logging.info('completed pipeline in {}s'.format(time.time() - tstart))
+    except Exception as e:
+        logging.error('Spark pipeline failed: {}'.format(e))
+        logging.info('pipeline till failure took {}s'.format(time.time() - tstart))
 
     shutil.rmtree(output_path, ignore_errors=True)
 

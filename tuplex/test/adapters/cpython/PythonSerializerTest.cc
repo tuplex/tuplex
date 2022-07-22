@@ -109,7 +109,7 @@ void checkCreatePyObjectFromMemoryBool(uint8_t *buffer, size_t capacity, bool go
     EXPECT_EQ(1,
               PyObject_RichCompareBool(
                       PyBool_FromLong(want),
-                      createPyObjectFromMemory(buffer, python::Type::BOOLEAN, (uintptr_t)(buffer + capacity)),
+                      createPyObjectFromMemory(buffer, python::Type::BOOLEAN, capacity),
                       equal ? Py_EQ : Py_NE));
 }
 
@@ -132,7 +132,7 @@ void checkCreatePyObjectFromMemoryLong(uint8_t *buffer, size_t capacity, int64_t
     EXPECT_EQ(1,
               PyObject_RichCompareBool(
                       PyLong_FromLong(want),
-                      createPyObjectFromMemory(buffer, python::Type::I64, (uintptr_t)(buffer + capacity)),
+                      createPyObjectFromMemory(buffer, python::Type::I64, capacity),
                       equal ? Py_EQ : Py_NE));
 }
 
@@ -161,7 +161,7 @@ void checkCreatePyObjectFromMemoryFloat(uint8_t *buffer, size_t capacity, double
     EXPECT_EQ(1,
               PyObject_RichCompareBool(
                       PyFloat_FromDouble(want),
-                      createPyObjectFromMemory(buffer, python::Type::F64, (uintptr_t)(buffer + capacity)),
+                      createPyObjectFromMemory(buffer, python::Type::F64, capacity),
                       equal ? Py_EQ : Py_NE));
 }
 
@@ -192,7 +192,7 @@ void checkCreatePyObjectFromMemoryString(uint8_t *buffer, size_t capacity, const
     EXPECT_EQ(1,
               PyObject_RichCompareBool(
                       PyUnicode_DecodeASCII(want.c_str(), want.length(), string_errors),
-                      createPyObjectFromMemory(buffer, python::Type::STRING, (uintptr_t)(buffer + capacity)),
+                      createPyObjectFromMemory(buffer, python::Type::STRING, capacity),
                       equal ? Py_EQ : Py_NE));
 }
 
@@ -217,7 +217,7 @@ void checkCreatePyObjectFromMemoryTuple(uint8_t *buffer, size_t capacity, const 
     EXPECT_EQ(1,
               PyObject_RichCompareBool(
                       want,
-                      createPyObjectFromMemory(buffer, row.getSchema().getRowType(), (uintptr_t)(buffer + capacity)),
+                      createPyObjectFromMemory(buffer, row.getSchema().getRowType(), capacity),
                       equal ? Py_EQ : Py_NE));
 }
 
@@ -312,7 +312,7 @@ TEST(PythonSerializer, TestCreatePyObjectFromMemoryNestedTuple) {
     PyTuple_SetItem(tuple, 1, inner_tuple_2);
     PyTuple_SetItem(tuple, 2, PyUnicode_DecodeASCII(sample_str.c_str(), sample_str.length(), string_errors));
 
-    auto reconstructed = createPyObjectFromMemory(buffer, row.getSchema().getRowType(), (uintptr_t)(buffer + capacity));
+    auto reconstructed = createPyObjectFromMemory(buffer, row.getSchema().getRowType(), capacity);
     EXPECT_EQ(1,
               PyObject_RichCompareBool(
                       tuple,

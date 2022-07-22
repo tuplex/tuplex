@@ -67,7 +67,7 @@ TEST_F(WrapperTest, LambdaBackend) {
 //     PyTuple_SET_ITEM(tupleObj1, 1, python::PyString_FromString("a"));
 
 //     PyList_SetItem(listObj, 0, tupleObj1);
-    
+
 //     { // need to keep curly braces (for weird memory errors)
 //         auto list = py::reinterpret_borrow<py::list>(listObj);
 //         // add parallelize-map-collect
@@ -126,13 +126,13 @@ TEST_F(WrapperTest, MathIsInf) {
 
     // list object contains all rows in test (in this test, only one row)
     PyObject *listObj = PyList_New(1);
-    
+
     // initialize listObj
     // note that using runAndGet on each individual value, and then setting
     // them as an element of the list is buggy (doesn't always return the right value)
     listObj = python::runAndGet(
-        "import math; x = [0, -1, 5, math.inf * 0, math.inf, 97]",
-        "x");
+            "import math; x = [0, -1, 5, math.inf * 0, math.inf, 97]",
+            "x");
 
     Py_XINCREF(listObj);
     PyObject_Print(listObj, stdout, 0);

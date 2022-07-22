@@ -628,6 +628,7 @@ TEST_F(MathFunctionsTest, MathAsin) {
 }
 
 
+
 TEST_F(MathFunctionsTest, MathPow) {
     using namespace std;
     using namespace tuplex;
@@ -815,7 +816,7 @@ TEST_F(MathFunctionsTest, MathIsClose) {
     auto v1 = c.parallelize({
         Row(-0.5, 0.0), Row(0.5, 0.50001), Row(0.5, 0.500000005), Row(-0.5, -0.5000000001), Row(0.5, 0.50000000005)
     }).map(UDF("lambda x, y: math.isclose(x, y)", "", ce)).collectAsVector();
-    
+
     EXPECT_EQ(v1.size(), 5);
     EXPECT_EQ(v1[0].getBoolean(0), false);
     EXPECT_EQ(v1[1].getBoolean(0), false);
@@ -894,7 +895,7 @@ TEST_F(MathFunctionsTest, MathIsClose) {
     EXPECT_EQ(v9.size(), 2);
     EXPECT_EQ(v9[0].getBoolean(0), true);
     EXPECT_EQ(v9[1].getBoolean(0), false);
-    
+
     auto v10 = c.parallelize({
         Row(1.0000000009, true), Row(0.0000000001, false)
     }).map(UDF("lambda x, y: math.isclose(x, y)", "", ce)).collectAsVector();
@@ -902,7 +903,7 @@ TEST_F(MathFunctionsTest, MathIsClose) {
     EXPECT_EQ(v10.size(), 2);
     EXPECT_EQ(v10[0].getBoolean(0), true);
     EXPECT_EQ(v10[1].getBoolean(0), false);
-    
+
     auto v11 = c.parallelize({
         Row(INFINITY, INFINITY),
         Row(INFINITY, -INFINITY),

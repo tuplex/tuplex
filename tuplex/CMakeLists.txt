@@ -19,11 +19,25 @@ option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for
 option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
 option(USE_LD_GOLD "Use GNU gold linker" ON)
 
-# set default MacOS target, if not set.
-# cf. https://cmake.org/cmake/help/latest/variable/CMAKE_OSX_DEPLOYMENT_TARGET.html
-if(NOT CMAKE_OSX_DEPLOYMENT_TARGET OR "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
-    # use high sierra target per default
-    set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)
+# detect MacOS Version because at least 10.13 is required when building with AWS SDK
+if(APPLE)
+    execute_process(COMMAND bash -c "sw_vers | grep -Eo '([0-9]{1,}\\.)+[0-9]{1,}' | head -1" OUTPUT_VARIABLE MACOSX_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    if(NOT CMAKE_OSX_DEPLOYMENT_TARGET OR "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
+
+        # check what the major OS X version is, if 10 -> build for 10.13 (lowest supported)
+        string(REPLACE "." ";" VERSION_LIST ${MACOSX_VERSION_STRING})
+        list(GET VERSION_LIST 0 MACOSX_VERSION_MAJOR)
+        if(MACOSX_VERSION_MAJOR LESS_EQUAL 10)
+            # use high sierra target per default
+            set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)
+        else()
+            # use maj.0 as default
+            set(CMAKE_OSX_DEPLOYMENT_TARGET ${MACOSX_VERSION_MAJOR}.0)
+        endif()
+    endif()
+
+    message(STATUS "Detected macOS ${MACOSX_VERSION_STRING} host platform, building for deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}. To use a different deployment target either set CMAKE_OSX_DEPLOYMENT_TARGET or the environment variable MACOSX_DEPLOYMENT_TARGET to the desired version.")
 endif()
 
 # via -DVERSION_INFO a string may be passed down. --> include it somehow

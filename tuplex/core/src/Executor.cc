@@ -325,7 +325,7 @@ namespace tuplex {
                 // remove from list
                 _storedPartitions.remove(partition);
             } else {
-
+                return;
                 error("INTERNAL ERROR: Could not find partition " + uuidToString(partition->uuid())
                                + " belonging to operator " + std::to_string(partition->getDataSetID()) + " and type " + partition->schema().getRowType().desc() + "");
                 std::abort();

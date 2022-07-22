@@ -177,7 +177,7 @@ namespace tuplex {
 
             /*!
              * annotates the tree with final types. If this is not possible, returns false
-             * @param pokicy compiler policy
+             * @param policy compiler policy
              * @param silentMode determines whether the type inference should log out problems or not
              * @param removeBranches whether to use RemoveDeadBranchesVisitor to prune AST
              * @return whether types could be successfully annotated/defined for all AST nodes

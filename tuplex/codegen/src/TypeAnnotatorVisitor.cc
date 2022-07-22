@@ -826,7 +826,7 @@ namespace tuplex {
 
     void TypeAnnotatorVisitor::visit(NDictionary* dict) {
         ApatheticVisitor::visit(dict);
-
+        
         // Try to make it Dictionary[Key, Val] type (if every pair has the same key type and val type, respectively)
         bool is_key_val = true;
         python::Type keyType, valType;
@@ -835,8 +835,20 @@ namespace tuplex {
             valType = dict->_pairs[0].second->getInferredType(); // save the key type, val type of the first pair
             for(const auto& p: dict->_pairs) { // check if every pair has the same key type, val type
                 if(p.first->getInferredType() != keyType || p.second->getInferredType() != valType) {
-                    is_key_val = false; // if they are not the same, then it is not of type Dictionary[Key, Val]
-                    break;
+                    // also for None case
+                    if (valType.isDictionaryType() && p.second->getInferredType() == python::Type::EMPTYDICT) {
+                        continue;
+                    } else if (valType == python::Type::EMPTYDICT && p.second->getInferredType().isDictionaryType()) {
+                        // upcast valType
+                        valType = p.second->getInferredType();
+                    } else if (valType == python::Type::NULLVALUE) {
+                        valType = python::Type::makeOptionType(p.second->getInferredType());
+                    } else if (p.second->getInferredType() == python::Type::NULLVALUE) {
+                        valType = python::Type::makeOptionType(valType);
+                    } else {
+                        is_key_val = false; // if they are not the same, then it is not of type Dictionary[Key, Val]
+                        break;
+                    }
                 }
             }
 
@@ -1225,18 +1237,15 @@ namespace tuplex {
         return target->type() == ASTNodeType::Subscription;
     }
 
-    // note: "target" refers to the LHS of the assign (should be a subscription), and then 
-    //       the value of every subsequent subscription
     void TypeAnnotatorVisitor::recursive_set_subscript_types(NSubscription* target, python::Type value_type) {
         target->_expression->accept(*this);
+        python::Type subscription_type = value_type;
         python::Type index_type = target->_expression->getInferredType();
-        python::Type new_value_type = python::Type::makeDictionaryType(index_type, value_type);
+        python::Type new_value_type = python::Type::makeDictionaryType(index_type, subscription_type);
 
         if (target->_value->type() == ASTNodeType::Subscription) {
             /* if the next target is a subscription, do recursive_set_subscript_types 
                on the next target, with value_type being Dict[index_type, value_type] */            
-            // set type of subscription
-            // target->setInferredType();
             recursive_set_subscript_types((NSubscription*)target->_value, new_value_type);
         } else if (target->_value->type() == ASTNodeType::Identifier) {
             // if the next target is an identifier (e.g. d[0])
@@ -1244,17 +1253,13 @@ namespace tuplex {
             // check if the type the identifier maps to is something subscriptable (for now, just a dictionary)
             if (_nameTable[id->_name].isDictionaryType()) {
                 python::Type curr_type = _nameTable[id->_name];
-
+                
                 if (curr_type == python::Type::EMPTYDICT) {
                     // we can just upcast type to Dict[index_type, value_type]
                     assignHelper(id, new_value_type);
-                    // set type of subscription: value_type
-                    target->setInferredType(value_type);
                 } else if (curr_type == python::Type::GENERICDICT) {
                     // type remains generic dict (and need to set flag in annotator?)
-                    // Q: Do I need to do anything in this branch?
-                    // assignHelper(python::Type::PYOBJECT, python::Type::PYOBJECT);
-                    target->setInferredType(python::Type::PYOBJECT);
+                    subscription_type = python::Type::PYOBJECT;
                 } else {
                     // check if index_type and new_value_type match current index type and value type
                     if (curr_type.keyType() != index_type) {
@@ -1263,19 +1268,24 @@ namespace tuplex {
                     }
 
                     if (curr_type.valueType() != value_type) {
-                        // upcast value type to PYOBJECT and set flag
-                        new_value_type = python::Type::makeDictionaryType(index_type, python::Type::PYOBJECT);
+                        if (curr_type.valueType().isOptionType()) {
+                            // case where dictionary values are nullable
+                            // check if non-null option is the same type as value_type
+                            if (curr_type.valueType().elementType() == value_type) {
+                                // need to make subscription_type an option type instead
+                                subscription_type = python::Type::makeOptionType(subscription_type);
+                            } else {
+                                // upcast value type to PYOBJECT and set flag
+                                subscription_type = python::Type::PYOBJECT;
+                            }
+                        } else {
+                            // upcast value type to PYOBJECT and set flag
+                            subscription_type = python::Type::PYOBJECT;
+                        }
                     }
 
+                    new_value_type = python::Type::makeDictionaryType(index_type, subscription_type);
                     assignHelper(id, new_value_type);
-
-                    if (curr_type.valueType() != value_type) {
-                        // set subscript type to PYOBJECT
-                        target->setInferredType(python::Type::PYOBJECT);
-                    } else {
-                        // set subscript type to value_type
-                        target->setInferredType(value_type);
-                    }
                 }
             } else {
                 // otherwise, raise an error (identifier type not subscriptable)
@@ -1288,9 +1298,10 @@ namespace tuplex {
             if (!target->_value->getInferredType().isDictionaryType()) {
                 error(target->_value->getInferredType().desc() + " is not (yet) subscriptable; only dictionaries supported");
             }
-
-            // TODO: anything else here?
         }
+
+        // set type of subscription node (target)
+        target->setInferredType(subscription_type);
     }
 
     void TypeAnnotatorVisitor::visit(NAssign *assign) {

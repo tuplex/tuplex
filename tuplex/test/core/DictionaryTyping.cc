@@ -79,6 +79,108 @@ TEST(DictionaryTyping, Simple) {
     ASSERT_EQ(ast.getReturnType(), python::Type::makeDictionaryType(python::Type::F64, python::Type::I64));
 }
 
+TEST(DictionaryTyping, KeyTypeChange) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto code = "def f(L):\n"
+                "    d = {}\n"
+                "    d['a'] = L[0]\n"
+                "    d[2] = L[1]\n"
+                "    return d";
+    
+    // parse code to AST
+    auto ast = tuplex::codegen::AnnotatedAST();
+    ast.parseString(code);
+
+    // make input typing
+    python::Type inputType = python::Type::makeListType(python::Type::I64);
+
+    // create symbol table (add parameters and types)
+    ast.addTypeHint("L", inputType);
+    ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
+
+    // print type annotated ast
+    GraphVizGraph graph;
+    graph.createFromAST(ast.getFunctionAST(), true);
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/key_type_change.pdf");
+
+    cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
+
+    python::Type expected_ret = python::Type::makeDictionaryType(python::Type::PYOBJECT, python::Type::I64);
+
+    // check return type
+    ASSERT_EQ(ast.getReturnType(), expected_ret);
+}
+
+TEST(DictionaryTyping, ValueTypeChange) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto code = "def f(L):\n"
+                "    d = {}\n"
+                "    d[0] = L[0]\n"
+                "    d[1] = L[1]\n"
+                "    return d";
+    
+    // parse code to AST
+    auto ast = tuplex::codegen::AnnotatedAST();
+    ast.parseString(code);
+
+    // make input typing
+    python::Type inputType = python::Type::GENERICLIST;
+
+    // create symbol table (add parameters and types)
+    ast.addTypeHint("L", inputType);
+    ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
+
+    // print type annotated ast
+    GraphVizGraph graph;
+    graph.createFromAST(ast.getFunctionAST(), true);
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/value_type_change.pdf");
+
+    cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
+
+    python::Type expected_ret = python::Type::makeDictionaryType(python::Type::I64, python::Type::PYOBJECT);
+
+    // check return type
+    ASSERT_EQ(ast.getReturnType(), expected_ret);
+}
+
+TEST(DictionaryTyping, DictTypeChange) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto code = "def f(L):\n"
+                "    d = {}\n"
+                "    d[0] = L[0]\n"
+                "    d['one'] = L[1]\n"
+                "    return d";
+    
+    // parse code to AST
+    auto ast = tuplex::codegen::AnnotatedAST();
+    ast.parseString(code);
+
+    // make input typing
+    python::Type inputType = python::Type::GENERICLIST;
+
+    // create symbol table (add parameters and types)
+    ast.addTypeHint("L", inputType);
+    ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
+
+    // print type annotated ast
+    GraphVizGraph graph;
+    graph.createFromAST(ast.getFunctionAST(), true);
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/dict_type_change.pdf");
+
+    cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
+
+    python::Type expected_ret = python::Type::makeDictionaryType(python::Type::PYOBJECT, python::Type::PYOBJECT);
+
+    // check return type
+    ASSERT_EQ(ast.getReturnType(), expected_ret);
+}
+
 TEST(DictionaryTyping, IndexExpression) {
     using namespace tuplex;
     using namespace std;
@@ -338,7 +440,10 @@ TEST(DictionaryTyping, ControlFlowLoop) {
     ASSERT_EQ(ast.getReturnType(), expected_ret);
 }
 
+// TODO: need case where value being assigned to the same key is of a different type in each if/else branch
+
 TEST(DictionaryTyping, ControlFlowKeyAssignment) {
+    // currently fails; need to add support for dict_keys
     using namespace tuplex;
     using namespace std;
 
@@ -382,9 +487,9 @@ TEST(DictionaryTyping, DictionaryInputSimple) {
     using namespace std;
 
     auto code = "def f(D):\n"
-                "    D[0] += 1\n"
-                "    D[1] += 2\n"
-                "    D[2] = D[0] + D[1]\n"
+                "    D[0.0] += 1\n"
+                "    D[1.0] += 2\n"
+                "    D[2.0] = D[0] + D[1]\n"
                 "    return D";
     
     // parse code to AST
@@ -441,13 +546,14 @@ TEST(DictionaryTyping, DictionaryInputControlFlow) {
 
     cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
 
-    python::Type expected_ret = python::Type::makeDictionaryType(python::Type::I64, python::Type::F64);
+    python::Type expected_ret = python::Type::F64;
 
     // check return type
     ASSERT_EQ(ast.getReturnType(), expected_ret);
 }
 
 TEST(DictionaryTyping, Everything) {
+    // expected to fail; need to add support for dict_keys and dict_values
     using namespace tuplex;
     using namespace std;
 
@@ -459,7 +565,7 @@ TEST(DictionaryTyping, Everything) {
                 "        'Europe': 0,\n"
                 "        'Other': 0\n"
                 "    }\n"
-                "    for for continent in D.values():\n"
+                "    for continent in D.values():\n"
                 "        if continent not in continents.keys():\n"
                 "            continents['Other'] += 1\n"
                 "        else:\n"
@@ -491,6 +597,7 @@ TEST(DictionaryTyping, Everything) {
 }
 
 TEST(DictionaryTyping, Count) {
+    // expected to fail; need to add support for dict_keys
     using namespace tuplex;
     using namespace std;
 

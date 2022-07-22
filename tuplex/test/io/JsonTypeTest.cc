@@ -36,7 +36,7 @@ TEST(JsonTypes, FlatTypes) {
 
     stat.estimate(buf.c_str() + 5, buf.size() - 5);
 
-    EXPECT_EQ(stat.columns(), {"num_bedrooms", "price"}); // fix this!
+    EXPECT_EQ(stat.columns(), vector<string>({"num_bedrooms", "price"})); // fix this!
     EXPECT_EQ(stat.type(), stat.superType()); // <-- no specialization here
     EXPECT_EQ(stat.type().desc(), "(i64,f64)");
 

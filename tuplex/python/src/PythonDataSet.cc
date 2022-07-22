@@ -419,7 +419,9 @@ namespace tuplex {
 
     PythonDataSet PythonDataSet::aggregateByKey(const std::string& comb, const std::string& comb_pickled,
                                            const std::string& agg, const std::string& agg_pickled,
-                                           const std::string& initial_value_pickled, py::list columns) {
+                                           const std::string& initial_value_pickled, py::list columns,
+                                                const py::object& comb_closure,
+                                                const py::object& agg_closure) {
         using namespace std;
 
         // @TODO: warning if udfs are wrongly submitted
@@ -430,6 +432,11 @@ namespace tuplex {
             pds.wrap(this->_dataset);
             return pds;
         }
+
+        PyObject* combClosureObject = comb_closure.ptr();
+        PyObject* aggClosureObject = agg_closure.ptr();
+        auto combCE = closureFromDict(combClosureObject);
+        auto aggCE = closureFromDict(aggClosureObject);
 
         // parse pickled initial_value
         if(initial_value_pickled.empty()) {
@@ -949,8 +956,7 @@ namespace tuplex {
             if(check_and_forward_signals(true)) {
                 rs->clear();
                 Py_XDECREF(listObj);
-                Py_XINCREF(Py_None);
-                return Py_None;
+                return python::none();
             }
         }
 
@@ -1051,14 +1057,8 @@ namespace tuplex {
             size_t numRows = *((const int64_t *) ptr);
             ptr += sizeof(int64_t);
 
-            logger.info("found partition with " + std::to_string(numRows) + " rows ");
-
             int64_t *dataptr = (int64_t *) ptr;
             for (unsigned i = 0; i < numRows && pos < maxRowCount; ++i) {
-
-#ifndef NDEBUG
-                logger.info("value of row "+ std::to_string(pos) + " is: " + std::to_string(*dataptr));
-#endif
                 if (*dataptr > 0) {
                     Py_INCREF(Py_True); // list needs a ref, so inc ref count
                     PyList_SET_ITEM(listObj, pos++, Py_True);
@@ -1675,6 +1675,6 @@ namespace tuplex {
             PyDict_SetItemString(dict, keyval.first.c_str(), PyLong_FromLongLong(keyval.second));
         }
 
-        return py::reinterpret_steal<py::dict>(dict);
+        return py::reinterpret_borrow<py::dict>(dict);
     }
 }

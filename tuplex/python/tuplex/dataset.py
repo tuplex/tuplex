@@ -490,6 +490,7 @@ class DataSet:
 
     def aggregate(self, combine, aggregate, initial_value):
         """
+        cf. aggregateByKey for details
         Args:
             combine: a UDF to combine two aggregates (results of the aggregate function or the initial_value)
             aggregate: a UDF which produces a result
@@ -524,9 +525,12 @@ class DataSet:
 
     def aggregateByKey(self, combine, aggregate, initial_value, key_columns):
         """
+        An experimental aggregateByKey function similar to aggregate. There are several scenarios that do not work with this function yet and its performance hasn't been properly
+        optimized either. Data is grouped by the supplied key_columns. Then, for each group a new aggregate is initialized using the initial_value, which can be thought of as a neutral value.
+        The aggregate function is then called for each element and the current aggregate structure. It is guaranteed that the combine function is called at least once per group by applying the initial_value to the aggregate.
         Args:
-            combine: a UDF to combine two aggregates (results of the aggregate function or the initial_value)
-            aggregate: a UDF which produces a result
+            combine: a UDF to combine two aggregates (results of the aggregate function or the initial_value). E.g., cobmine = lambda agg1, agg2: agg1 + agg2. The initial value should be the neutral element.
+            aggregate: a UDF which produces a result by combining a value with the aggregate initialized by initial_value. E.g., aggreagte = lambda agg, value: agg + value sums up values.
             initial_value: a neutral initial value.
             key_columns: the columns to group the aggregate by
         Returns:
@@ -549,10 +553,14 @@ class DataSet:
         except UDFCodeExtractionError as e:
             logging.warn('Could not extract code for aggregate UDF {}. Details:\n{}'.format(ftor, e))
 
+        g_comb = get_globals(combine)
+        g_agg = get_globals(aggregate)
+
         ds = DataSet()
         ds._dataSet = self._dataSet.aggregateByKey(comb_code, comb_code_pickled,
                                               agg_code, agg_code_pickled,
-                                              cloudpickle.dumps(initial_value), key_columns)
+                                              cloudpickle.dumps(initial_value), key_columns,
+                                              g_comb, g_agg)
         return ds
 
     @property

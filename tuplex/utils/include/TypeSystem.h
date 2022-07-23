@@ -467,7 +467,9 @@ namespace python {
      * @param s string to be used for type decoding
      * @return decoded type or unknown if decoding error occurred
      */
-    extern Type decodeType(const std::string& s);
+    inline Type decodeType(const std::string& s) {
+        return Type::decode(s);
+    }
 
 
     /*!

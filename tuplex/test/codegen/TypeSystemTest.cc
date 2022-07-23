@@ -91,7 +91,8 @@ TEST(TypeSys, fixedSizeTypes) {
 TEST(TypeSys, StrDecoding) {
     using namespace python;
 
-    EXPECT_TRUE(Type::EMPTYTUPLE == decodeType("()"));
+    EXPECT_TRUE(Type::EMPTYTUPLE ==
+    decodeType("()"));
     Type complex = Type::makeTupleType({Type::I64, Type::EMPTYTUPLE,
                                         Type::F64, Type::makeTupleType({Type::STRING,Type::BOOLEAN})});
     EXPECT_TRUE(complex == decodeType("(i64, (), f64, (str, bool))"));

@@ -13,6 +13,7 @@
 #include <TokenType.h>
 #include <ApplyVisitor.h>
 #include <ASTHelpers.h>
+#include <TypeHelper.h>
 
 namespace tuplex {
     bool isPythonIntegerType(const python::Type& t ) {
@@ -93,7 +94,7 @@ namespace tuplex {
             // go through all func types, and check whether they can be unified.
             auto combined_ret_type = _funcReturnTypes.front();
             for(int i = 1; i < _funcReturnTypes.size(); ++i)
-                combined_ret_type = python::unifyTypes(combined_ret_type, _funcReturnTypes[i],
+                combined_ret_type = unifyTypes(combined_ret_type, _funcReturnTypes[i],
                                                        _policy.allowNumericTypeUnification);
 
             if(combined_ret_type == python::Type::UNKNOWN) {
@@ -123,7 +124,7 @@ namespace tuplex {
                     auto best_so_far = std::get<0>(v.front());
 
                     for(int i = 1; i < v.size(); ++i) {
-                        auto u_type = python::unifyTypes(best_so_far, std::get<0>(v[i]),
+                        auto u_type = unifyTypes(best_so_far, std::get<0>(v[i]),
                                                          _policy.allowNumericTypeUnification);
                         if(u_type != python::Type::UNKNOWN)
                             best_so_far = u_type;
@@ -160,7 +161,7 @@ namespace tuplex {
                                         if(n.getInferredType() == python::Type::UNKNOWN) // i.e. code that is never visited
                                             return;
 
-                                        auto uni_type = python::unifyTypes(n.getInferredType(), combined_ret_type,
+                                        auto uni_type = unifyTypes(n.getInferredType(), combined_ret_type,
                                                                            autoUpcast);
                                         if(uni_type != python::Type::UNKNOWN)
                                             n.setInferredType(combined_ret_type);
@@ -1293,7 +1294,7 @@ namespace tuplex {
             if(_nameTable.find(name) != _nameTable.end()) {
                 if(_nameTable[name] != type) {
                     // can we unify types?
-                    auto uni_type = python::unifyTypes(type, _nameTable[name], _policy.allowNumericTypeUnification);
+                    auto uni_type = unifyTypes(type, _nameTable[name], _policy.allowNumericTypeUnification);
                     if(uni_type != python::Type::UNKNOWN)
                         _nameTable[name] = uni_type;
                     else {
@@ -1330,7 +1331,7 @@ namespace tuplex {
 
                 if(if_type != else_type) {
                     // check if they can be unified
-                    auto uni_type = python::unifyTypes(if_type, else_type, _policy.allowNumericTypeUnification);
+                    auto uni_type = unifyTypes(if_type, else_type, _policy.allowNumericTypeUnification);
                     if(uni_type != python::Type::UNKNOWN) {
                         if_table[name] = uni_type;
                         else_table[name] = else_type;
@@ -1477,7 +1478,7 @@ namespace tuplex {
                 if(ifelse->isExpression()) {
                     // check:
                     if (iftype != elsetype) {
-                        auto combined_type = python::unifyTypes(iftype, elsetype, _policy.allowNumericTypeUnification);
+                        auto combined_type = unifyTypes(iftype, elsetype, _policy.allowNumericTypeUnification);
                         if(combined_type == python::Type::UNKNOWN)
                             error("could not combine type " + iftype.desc() +
                                   " of if-branch with type " + elsetype.desc() + " of else-branch in if-else expression");

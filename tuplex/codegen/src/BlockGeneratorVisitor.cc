@@ -15,6 +15,7 @@
 #include <Base.h>
 #include <TypeAnnotatorVisitor.h>
 #include <ApplyVisitor.h>
+#include "TypeHelper.h"
 
 using namespace llvm;
 
@@ -5048,7 +5049,7 @@ namespace tuplex {
                     // if not, error. Type annotation failed then!
                     auto& slot = it->second;
 
-                    auto uni_type = python::unifyTypes(slot.type, var.second.type, allowNumericUpcasting);
+                    auto uni_type = unifyTypes(slot.type, var.second.type, allowNumericUpcasting);
                     if(uni_type == python::Type::UNKNOWN) {
                         error("variable " + name + " declared in " + branch_name + " with type "
                               + var.second.type.desc() + " conflicts with slot type" +

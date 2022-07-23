@@ -20,6 +20,8 @@
 
 #include <unordered_map>
 
+#include <TypeHelper.h>
+
 // module specific vars
 static std::unordered_map<std::string, PyObject*> cached_functions;
 
@@ -1418,7 +1420,7 @@ namespace python {
                 python::Type currElementType = mapPythonClassToTuplexType(PyList_GetItem(o, j), autoUpcast);
                 if(elementType != currElementType) {
                     // possible to use nullable type as element type?
-                    auto newElementType = unifyTypes(elementType, currElementType, autoUpcast);
+                    auto newElementType = tuplex::unifyTypes(elementType, currElementType, autoUpcast);
                     if (newElementType == python::Type::UNKNOWN) {
                         Logger::instance().defaultLogger().error("list with variable element type " + elementType.desc() + " and " + currElementType.desc() + " not supported.");
                         return python::Type::PYOBJECT;

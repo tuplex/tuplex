@@ -16,9 +16,11 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <mutex>
 #include <TTuple.h>
+#include <limits>
+#include <unordered_map>
 
-// change to std any later, should anyways change codebase to use C++20.
 #include <boost/any.hpp>
 
 namespace python {
@@ -257,6 +259,14 @@ namespace python {
          */
         static Type makeStructuredDictType(const std::vector<std::pair<boost::any, python::Type>>& kv_pairs);
 
+
+        // TODO: could create dict compressed type as well..
+        // static Type makeDictCompressedType()
+
+        // TODO: could create delta-encoded type or so as well...
+
+
+
         /*!
          * create iterator type from yieldType.
          * @param yieldType
@@ -375,6 +385,7 @@ namespace python {
         // need threadsafe hashmap here...
         // either tbb's or the one from folly...
         std::map<int, TypeEntry> _typeMap;
+        mutable std::mutex _typeMapMutex;
 
         TypeFactory() : _hash_generator(0)  {}
         std::string getDesc(const int _hash) const;
@@ -481,17 +492,6 @@ namespace python {
      * @return
      */
     extern bool canUpcastToRowType(const python::Type& minor, const python::Type& major);
-
-    /*!
-     * return unified type for both a and b
-     * e.g. a == [Option[[I64]]] and b == [[Option[I64]]] should return [Option[[Option[I64]]]]
-     * return python::Type::UNKNOWN if no compatible type can be found
-     * @param a (optional) primitive or list or tuple type
-     * @param b (optional) primitive or list or tuple type
-     * @param autoUpcast whether to upcast numeric types to a unified type when type conflicts, false by default
-     * @return (optional) compatible type or UNKNOWN
-     */
-    extern Type unifyTypes(const python::Type &a, const python::Type &b, bool autoUpcast=false);
 
     /*!
      * two types may be combined into one nullable type.

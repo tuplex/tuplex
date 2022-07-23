@@ -12,7 +12,7 @@
 #include "TypeSystem.h"
 #include <TupleTree.h>
 #include <vector>
-
+#include <TypeHelper.h>
 /*!
  * returns a core vector of types to support
  * @return vector of types
@@ -205,6 +205,7 @@ TEST(TypeSys, flattenWithPyObject) {
 }
 
 TEST(TypeSys, compatibleType) {
+    using namespace tuplex;
 
     // [Option[[i64]]] and [[Option[i64]]] ==> [Option[[Option[i64]]]]
     auto a1_type = python::Type::makeListType(python::Type::makeOptionType(python::Type::makeListType(python::Type::I64)));

@@ -23,6 +23,9 @@
 
 namespace python {
 
+    class Type;
+    class TypeFactory;
+
     class Type {
         friend class TypeFactory;
         friend bool operator < (const Type& lhs, const Type& rhs);
@@ -63,11 +66,11 @@ namespace python {
 
         Type():_hash(-1) {}
         Type(const Type& other):_hash(other._hash)  {
-            assert(_hash >= -1);
+            // assert(_hash >= -1);
         }
 
         Type& operator = (const Type& other) {
-            assert(_hash >= -1);
+            // assert(_hash >= -1);
             _hash = other._hash;
             return *this;
         }
@@ -99,10 +102,12 @@ namespace python {
         bool isNumericType() const;
         bool isOptionType() const;
         bool isOptional() const;
+        bool isOptimizedType() const;
         bool isSingleValued() const;
         bool hasVariablePositionalArgs() const;
         bool isExceptionType() const;
         bool isIteratorType() const;
+        bool isConstantValued() const;
 
         inline bool isGeneric() const {
             if(_hash == python::Type::PYOBJECT._hash ||
@@ -153,6 +158,8 @@ namespace python {
         Type valueType() const;
         // returns the element type in a list or within an option
         Type elementType() const;
+        Type underlying() const;
+        std::string constant() const; // returns the underlying constant of the type (opt. HACK)
 
         /*!
          * return yield type of an iterator
@@ -219,6 +226,30 @@ namespace python {
 
         static Type makeListType(const python::Type &elementType);
 
+        // optimizing types (delayed parsing, range compression, ...)
+        /*!
+         * create a delayed parsing type, i.e. this helpful for small strings, integers having a small ASCII representation or
+         * @param underlying which type the data actually represents (should be a primitive like bool, int, float, str)
+         * @return the dummy type created.
+         */
+        static Type makeDelayedParsingType(const python::Type& underlying);
+
+        /*!
+         * create a range compressed integer type using lower & upper bound exclusively
+         * @param lower_bound integer lower bound (inclusive!)
+         * @param upper_bound integer upper bound (inclusive!)
+         * @return the dummy type created.
+         */
+        static Type makeRangeCompressedIntegerType(int64_t lower_bound, int64_t upper_bound);
+
+        /*!
+         * create a constant valued type, i.e. this type can get folded via constant folding!
+         * @param underlying what actual type this is representing.
+         * @param value the constant value. Note: this needs to be decodable...
+         * @return the dummy type created.
+         */
+        static Type makeConstantValuedType(const python::Type& underlying, const std::string& value);
+
         /*!
          * creates a (structured) dictionary with known keys.
          * @param kv_pairs
@@ -270,6 +301,8 @@ namespace python {
 
         static Type byName(const std::string& name);
 
+        static Type decode(const std::string& s);
+        std::string encode() const;
     };
 
     extern bool isLiteralType(const Type& type);
@@ -292,7 +325,10 @@ namespace python {
             LIST,
             CLASS,
             OPTION, // for nullable
-            ITERATOR
+            ITERATOR,
+            OPTIMIZED_CONSTANT, // constant value
+            OPTIMIZED_DELAYEDPARSING, // dummy types to allow for certain optimizations
+            OPTIMIZED_RANGECOMPRESSION // range compression
         };
 
         struct TypeEntry {
@@ -306,6 +342,11 @@ namespace python {
             // structured dict:
             std::vector<std::pair<boost::any, python::Type>> _struct_pairs; // pairs for structured dicts.
 
+            // opt properties
+            int64_t _lower_bound;
+            int64_t _upper_bound;
+            std::string _constant_value; // everything once was a string...
+
             TypeEntry()     {}
             TypeEntry(const std::string& desc,
                       const AbstractType at,
@@ -313,10 +354,19 @@ namespace python {
                         const Type& ret,
                         const std::vector<Type>& baseClasses=std::vector<Type>{},
                         bool isVarLen=false,
-                        const std::vector<std::pair<boost::any, python::Type>>& kv_pairs={}) : _desc(desc), _type(at),
-                        _params(params), _ret(ret), _baseClasses(baseClasses), _isVarLen(isVarLen), _struct_pairs(kv_pairs) {}
-            TypeEntry(const TypeEntry& other) : _desc(other._desc), _type(other._type), _params(other._params), _ret(other._ret), _baseClasses(other._baseClasses), _isVarLen(other._isVarLen) {}
-
+                      const std::vector<std::pair<boost::any, python::Type>>& kv_pairs={},
+                        int64_t lower_bound=std::numeric_limits<int64_t>::min(),
+                        int64_t upper_bound=std::numeric_limits<int64_t>::max(),
+                        const std::string& constant="") : _desc(desc), _type(at), _params(params),
+                        _ret(ret), _baseClasses(baseClasses), _isVarLen(isVarLen),
+                        _struct_pairs(kv_pairs),
+                        _lower_bound(lower_bound),
+                        _upper_bound(upper_bound),
+                        _constant_value(constant) {}
+            TypeEntry(const TypeEntry& other) : _desc(other._desc), _type(other._type), _params(other._params),
+            _ret(other._ret), _baseClasses(other._baseClasses), _isVarLen(other._isVarLen),
+            _struct_pairs(other._struct_pairs),
+            _lower_bound(other._lower_bound), _upper_bound(other._upper_bound), _constant_value(other._constant_value) {}
             std::string desc();
         };
 
@@ -334,7 +384,10 @@ namespace python {
                                const python::Type& retval=python::Type::VOID,
                                const std::vector<Type>& baseClasses = std::vector<Type>(),
                                bool isVarLen=false,
-                               const std::vector<std::pair<boost::any, python::Type>>& kv_pairs={});
+                               const std::vector<std::pair<boost::any, python::Type>>& kv_pairs={},
+                               int64_t lower_bound=std::numeric_limits<int64_t>::min(),
+                               int64_t upper_bound=std::numeric_limits<int64_t>::max(),
+                               const std::string& constant="");
 
         bool isFunctionType(const Type& t) const;
         bool isDictionaryType(const Type& t) const;
@@ -342,6 +395,7 @@ namespace python {
         bool isOptionType(const Type& t) const;
         bool isListType(const Type& t) const;
         bool isIteratorType(const Type& t) const;
+        bool isConstantValued(const Type& t) const;
 
         std::vector<Type> parameters(const Type& t) const;
         Type returnType(const Type& t) const;
@@ -356,8 +410,13 @@ namespace python {
             return theoneandonly;
         }
 
-        Type createOrGetPrimitiveType(const std::string& name,
-                                      const std::vector<Type>& baseClasses=std::vector<Type>{});
+        /*!
+         * returns a lookup map of all registered primitive type keywords (they can be created dynamically...)
+         * @return map of keywords -> type.
+         */
+        std::unordered_map<std::string, Type> get_primitive_keywords() const;
+
+        Type createOrGetPrimitiveType(const std::string& name, const std::vector<Type>& baseClasses=std::vector<Type>{});
 
         // right now, no tuples or other weird types...
         Type createOrGetFunctionType(const Type& param, const Type& ret=Type::EMPTYTUPLE);
@@ -371,6 +430,10 @@ namespace python {
         Type createOrGetTupleType(const std::vector<Type>& args);
         Type createOrGetOptionType(const Type& type);
         Type createOrGetIteratorType(const Type& yieldType);
+
+        Type createOrGetConstantValuedType(const Type& underlying, const std::string& constant);
+        Type createOrGetDelayedParsingType(const Type& underlying);
+        Type createOrGetRangeCompressedIntegerType(int64_t lower_bound, int64_t upper_bound);
 
 
         Type getByName(const std::string& name);
@@ -391,7 +454,7 @@ namespace python {
      * i64, f64, str, bool supported as primitive types
      * also () for tuples
      * @param s string to be used for type decoding
-     * @return decoded type or unknown if decoding error occured
+     * @return decoded type or unknown if decoding error occurred
      */
     extern Type decodeType(const std::string& s);
 
@@ -516,6 +579,41 @@ namespace python {
             return ret;
         }
         return 0;
+    }
+
+    /*!
+     * a constant option can be simplified (i.e. remove polymoprhism)
+     * @param underlying
+     * @param constant
+     * @return the simplified underlying type.
+     */
+    inline python::Type simplifyConstantOption(const python::Type& type) {
+        if(!type.isConstantValued())
+            return type;
+
+        auto underlying = type.underlying();
+        auto value = type.constant();
+        if(underlying.isOptionType()) {
+            // is the constant null? None?
+            if(value == "None" || value == "null") {
+                return python::Type::NULLVALUE; // simple, null-value is already a constant!
+            } else
+                return python::Type::makeConstantValuedType(underlying.elementType(), value);
+        }
+        return type;
+    }
+
+    inline python::Type simplifyConstantType(const python::Type& type) {
+        if(!type.isConstantValued())
+            return type;
+
+        auto t = simplifyConstantOption(type);
+
+        // special case: _Constant[null] --> null
+        if(t.isConstantValued() && t.underlying() == python::Type::NULLVALUE)
+            return python::Type::NULLVALUE;
+
+        return t;
     }
 
     /*!

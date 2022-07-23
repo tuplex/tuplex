@@ -302,6 +302,9 @@ namespace python {
             bool _isVarLen; // params.empty && _isVarlen => GENERICTUPLE
             Type _ret; //! return value
             std::vector<Type> _baseClasses; //! base classes from left to right
+            // type specific meta-data
+            // structured dict:
+            std::vector<std::pair<boost::any, python::Type>> _struct_pairs; // pairs for structured dicts.
 
             TypeEntry()     {}
             TypeEntry(const std::string& desc,
@@ -309,7 +312,9 @@ namespace python {
                         const std::vector<Type>& params,
                         const Type& ret,
                         const std::vector<Type>& baseClasses=std::vector<Type>{},
-                        bool isVarLen=false) : _desc(desc), _type(at), _params(params), _ret(ret), _baseClasses(baseClasses), _isVarLen(isVarLen) {}
+                        bool isVarLen=false,
+                        const std::vector<std::pair<boost::any, python::Type>>& kv_pairs={}) : _desc(desc), _type(at),
+                        _params(params), _ret(ret), _baseClasses(baseClasses), _isVarLen(isVarLen), _struct_pairs(kv_pairs) {}
             TypeEntry(const TypeEntry& other) : _desc(other._desc), _type(other._type), _params(other._params), _ret(other._ret), _baseClasses(other._baseClasses), _isVarLen(other._isVarLen) {}
 
             std::string desc();
@@ -328,7 +333,8 @@ namespace python {
                                const std::vector<Type>& params = std::vector<Type>(),
                                const python::Type& retval=python::Type::VOID,
                                const std::vector<Type>& baseClasses = std::vector<Type>(),
-                               bool isVarLen=false);
+                               bool isVarLen=false,
+                               const std::vector<std::pair<boost::any, python::Type>>& kv_pairs={});
 
         bool isFunctionType(const Type& t) const;
         bool isDictionaryType(const Type& t) const;
@@ -350,7 +356,8 @@ namespace python {
             return theoneandonly;
         }
 
-        Type createOrGetPrimitiveType(const std::string& name, const std::vector<Type>& baseClasses=std::vector<Type>{});
+        Type createOrGetPrimitiveType(const std::string& name,
+                                      const std::vector<Type>& baseClasses=std::vector<Type>{});
 
         // right now, no tuples or other weird types...
         Type createOrGetFunctionType(const Type& param, const Type& ret=Type::EMPTYTUPLE);

@@ -75,7 +75,8 @@ namespace python {
                                         const std::vector<Type>& params,
                                         const python::Type& retval,
                                         const std::vector<Type>& baseClasses,
-                                        bool isVarLen) {
+                                        bool isVarLen,
+                                        const std::vector<std::pair<boost::any, python::Type>>& kv_pairs) {
         auto it = std::find_if(_typeMap.begin(),
                                _typeMap.end(),
                                [name](const std::pair<const int, TypeEntry>& p) {
@@ -88,7 +89,7 @@ namespace python {
         } else {
             // add new type to hashmap
             hash = _hash_generator++;
-            _typeMap[hash] = TypeEntry(name, at, params, retval, baseClasses, isVarLen);
+            _typeMap[hash] = TypeEntry(name, at, params, retval, baseClasses, isVarLen, kv_pairs);
         }
 
         Type t = Type();
@@ -215,8 +216,8 @@ namespace python {
             name += "]";
 
         // store as new type in type factory (@TODO)
-
-        return python::Type::UNKNOWN;
+        auto t = registerOrGetType(name, AbstractType::STRUCTURED_DICTIONARY, {}, {}, {}, false, kv_pairs);
+        return t;
     }
 
     Type TypeFactory::createOrGetTupleType(const std::initializer_list<Type> args) {

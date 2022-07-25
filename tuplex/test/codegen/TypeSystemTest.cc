@@ -225,12 +225,15 @@ TEST(TypeSys, structuredDictType) {
     using namespace tuplex;
     using namespace std;
 
+    // Struct[] is empty dict!
+    // EXPECT_EQ(python::decodeType("Struct[]"), python::Type::EMPTYDICT);
+
     // all primitive types
     // -> create structured types
 
     // test 1: string keys (this is probably the most common scenario)
     vector<pair<boost::any, python::Type>> pairs;
-    for(auto p : primitiveTypes(true)) {
+    for(const auto& p : primitiveTypes(true)) {
         pairs.push_back(make_pair(p.desc(), p));
     }
     auto t = python::Type::makeStructuredDictType(pairs);
@@ -238,6 +241,10 @@ TEST(TypeSys, structuredDictType) {
     auto decoded_t = python::decodeType(encoded);
     EXPECT_EQ(decoded_t.desc(), t.desc());
 
+
+
     // test 2: full type test
+
+
 
 }

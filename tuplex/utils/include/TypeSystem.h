@@ -315,6 +315,12 @@ namespace python {
         std::string encode() const;
     };
 
+    struct StructEntry { // an entry of a structured dict
+        std::string key; // the value of the key, represented as string
+        Type keyType; // type required to decode the string key
+        Type valueType; // type what to store under key
+    };
+
     extern bool isLiteralType(const Type& type);
 
     inline bool operator < (const Type& lhs, const Type& rhs) { return lhs._hash < rhs._hash; }
@@ -350,7 +356,7 @@ namespace python {
             std::vector<Type> _baseClasses; //! base classes from left to right
             // type specific meta-data
             // structured dict:
-            std::vector<std::pair<boost::any, python::Type>> _struct_pairs; // pairs for structured dicts.
+            std::vector<StructEntry> _struct_pairs; // pairs for structured dicts.
 
             // opt properties
             int64_t _lower_bound;
@@ -364,7 +370,7 @@ namespace python {
                         const Type& ret,
                         const std::vector<Type>& baseClasses=std::vector<Type>{},
                         bool isVarLen=false,
-                      const std::vector<std::pair<boost::any, python::Type>>& kv_pairs={},
+                      const std::vector<StructEntry>& kv_pairs={},
                         int64_t lower_bound=std::numeric_limits<int64_t>::min(),
                         int64_t upper_bound=std::numeric_limits<int64_t>::max(),
                         const std::string& constant="") : _desc(desc), _type(at), _params(params),
@@ -395,7 +401,7 @@ namespace python {
                                const python::Type& retval=python::Type::VOID,
                                const std::vector<Type>& baseClasses = std::vector<Type>(),
                                bool isVarLen=false,
-                               const std::vector<std::pair<boost::any, python::Type>>& kv_pairs={},
+                               const std::vector<StructEntry>& kv_pairs={},
                                int64_t lower_bound=std::numeric_limits<int64_t>::min(),
                                int64_t upper_bound=std::numeric_limits<int64_t>::max(),
                                const std::string& constant="");
@@ -435,6 +441,7 @@ namespace python {
         Type createOrGetListType(const Type& val);
 
         Type createOrGetStructuredDictType(const std::vector<std::pair<boost::any, python::Type>>& kv_pairs);
+        Type createOrGetStructuredDictType(const std::vector<StructEntry>& kv_pairs);
 
         Type createOrGetTupleType(const std::initializer_list<Type> args);
         Type createOrGetTupleType(const TTuple<Type>& args);

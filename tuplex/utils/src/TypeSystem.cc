@@ -77,7 +77,7 @@ namespace python {
                                         const python::Type& retval,
                                         const std::vector<Type>& baseClasses,
                                         bool isVarLen,
-                                        const std::vector<std::pair<boost::any, python::Type>>& kv_pairs,
+                                        const std::vector<StructEntry>& kv_pairs,
                                         int64_t lower_bound,
                                         int64_t upper_bound,
                                         const std::string& constant) {
@@ -182,12 +182,10 @@ namespace python {
         return registerOrGetType(name, AbstractType::TUPLE, args);
     }
 
-    Type TypeFactory::createOrGetStructuredDictType(const std::vector<std::pair<boost::any, python::Type>> &kv_pairs) {
-
-        std::string name = "Struct[";
-
+    Type TypeFactory::createOrGetStructuredDictType(const std::vector<std::pair<boost::any, python::Type>> &pairs) {
+        std::vector<StructEntry> kv_pairs;
         // for each pair, construct tuple (val_type, value) -> type
-        for(auto pair : kv_pairs) {
+        for(auto pair : pairs) {
             std::string pair_str = "(";
 
             // field?
@@ -209,9 +207,27 @@ namespace python {
                 }
             }
 
+            // create the actual kv_pair
+            StructEntry kv_pair;
+            kv_pair.keyType = f.getType();
+            kv_pair.key = f.toPythonString();
+            kv_pair.valueType = pair.second;
+            kv_pairs.push_back(kv_pair);
+        }
+        return createOrGetStructuredDictType(kv_pairs);
+    }
+
+    Type TypeFactory::createOrGetStructuredDictType(const std::vector<StructEntry> &kv_pairs) {
+
+        std::string name = "Struct[";
+
+        // for each pair, construct tuple (val_type, value) -> type
+        for(const auto& kv_pair : kv_pairs) {
+            std::string pair_str = "(";
+
             // @TODO: we basically need a mechanism to serialize/deserialize field values to string and back.
             // add mapping
-            pair_str += f.getType().desc() + "," + f.toPythonString() + "->" + pair.second.desc();
+            pair_str += kv_pair.keyType.desc() + "," + escape_to_python_str(kv_pair.key) + "->" + kv_pair.valueType.desc();
 
             pair_str += ")";
             name += pair_str + ",";
@@ -1229,10 +1245,12 @@ namespace python {
         return TypeFactory::instance().createOrGetDelayedParsingType(underlying);
     }
 
-    Type Type::decode(const std::string& s) {
+
+    inline Type decodeEx(const std::string& s, size_t *end_position=nullptr) {
         if(s == "uninitialized") {
-            Type t;
-            t._hash = -1;
+            Type t = Type::fromHash(-1);
+            if(end_position)
+                *end_position = s.length();
             return t;
         }
 
@@ -1260,6 +1278,8 @@ namespace python {
         std::stack<std::vector<python::Type> > expressionStack;
         std::stack<std::string> compoundStack;
 
+        std::stack<std::vector<StructEntry>> kvStack;
+
         while(pos < s.length()) {
 
             // check against all keywords
@@ -1286,17 +1306,74 @@ namespace python {
                 else
                     expressionStack.top().push_back(keyword_type);
                 pos += keyword.size(); // should be 3 for i64 e.g.
+            } else if(s[pos] == '(' ) {
+                numOpenParentheses++;
+                // push new pair
+                assert(!kvStack.empty());
+                kvStack.top().push_back(StructEntry());
+                pos++;
+            } else if(s[pos] == ')') {
+                // must be a pair -> so take results from stack and push to pairs stack!
+                numOpenParentheses--;
+                pos++;
+
+                // edit last pair.
+                assert(!kvStack.empty());
+                assert(!kvStack.top().empty());
+                assert(!expressionStack.empty());
+                assert(expressionStack.top().size() >= 2);
+                auto value_type = expressionStack.top().back();
+                expressionStack.top().pop_back();
+                auto key_type = expressionStack.top().back();
+                expressionStack.top().pop_back();
+
+                kvStack.top().back().keyType = key_type;
+                kvStack.top().back().valueType = value_type;
+            } else if(s[pos] == '\'') {
+                // decode '...'-> string
+                std::string decoded_string = "";
+                pos++;
+                while(pos < s.size()) {
+                    if(pos + 1 < s.size() && s[pos] == '\\' && s[pos + 1] == '\'') {
+                        decoded_string += tuplex::char2str('\'');
+                        pos += 2;
+                    }  if(pos + 1 < s.size() && s[pos] == '\\' && s[pos + 1] == '\\') {
+                        decoded_string += tuplex::char2str('\\');
+                        pos += 2;
+                    } else if(s[pos] == '\'') {
+                        // string is done
+                        pos++;
+                        break;
+                    } else {
+                        decoded_string += tuplex::char2str(s[pos]);
+                        pos++;
+                    }
+                }
+
+                // skip any whitespace
+                while(pos < s.size() && isspace(s[pos]))
+                    pos++;
+                // check if next one is ->
+                if(s.substr(pos, 2) == "->")
+                    pos += 2;
+                else {
+                    throw std::runtime_error("invalid pair found.");
+                }
+                // save onto last pair the string value!
+                assert(!kvStack.empty());
+                assert(!kvStack.top().empty());
+                kvStack.top().back().key = decoded_string;
             } else if(s[pos] == '[') {
                 // should never get entered??
                 numOpenSqBrackets++;
                 expressionStack.push(std::vector<python::Type>());
                 pos++;
             } else if(s[pos] == ']') {
-              numClosedSqBrackets++;
-              if(numOpenSqBrackets < numClosedSqBrackets) {
-                  Logger::instance().defaultLogger().error("square brackets [...] mismatch in encoded typestr '" + s + "'");
-                  return Type::UNKNOWN;
-              }
+                numClosedSqBrackets++;
+                if(numOpenSqBrackets < numClosedSqBrackets) {
+                    Logger::instance().defaultLogger().error("square brackets [...] mismatch in encoded typestr '" + s + "'");
+                    return Type::UNKNOWN;
+                }
                 auto topVec = expressionStack.top();
                 auto compound_type = compoundStack.top();
                 Type t;
@@ -1310,6 +1387,10 @@ namespace python {
                     t = TypeFactory::instance().createOrGetFunctionType(topVec[0], topVec[1]); // order?? --> might need revser?
                 } else if("Dict" == compound_type) {
                     t = TypeFactory::instance().createOrGetDictionaryType(topVec[0], topVec[1]); // order?? --> might need revser?
+                } else if("Struct" == compound_type) {
+                    auto kv_pairs = kvStack.top();
+                    kvStack.pop();
+                    t = TypeFactory::instance().createOrGetStructuredDictType(kv_pairs);
                 } else {
                     Logger::instance().defaultLogger().error("Unknown compound type '" + compound_type + "' encountered, can't create compound type. Returning unknown.");
                     return Type::UNKNOWN;
@@ -1349,6 +1430,46 @@ namespace python {
                 compoundStack.push("List");
                 numOpenSqBrackets++;
                 pos += 5;
+            } else if(s.substr(pos, strlen("Struct[")).compare("Struct[") == 0) {
+                // it's a compound struct type made up of a bunch of other types
+                // need to decode pairs manually!
+                // i.e., what is the next token? -> if ] => then empty dict!
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("Struct");
+                kvStack.push({}); // new pair entry!
+                numOpenSqBrackets++;
+                pos += strlen("Struct[");
+//                if(pos < s.size()) {
+//                    if(']' == s[pos]) {
+//                        pos++;
+//                        auto t = python::Type::EMPTYDICT;
+//                        if(expressionStack.empty()) {
+//                            expressionStack.push({t});
+//                            compoundStack.push("primitive");
+//                        }
+//                        else
+//                            expressionStack.top().push_back(t);
+//                    } else if('(' == s[pos]) {
+//                        // a bunch of tuples (...) describing the struct elements... => need to support arbitarily nested struct types here
+//                        // they are encoded as (type, value_string -> type)
+//                        pos++;
+//                        size_t end_pos = 0;
+//                        auto t = decodeEx(s.substr(pos), &end_pos);
+//
+//                        // type properly decoded
+//                        if(t != python::Type::UNKNOWN && end_pos != 0) {
+//                            std::cout<<t.desc()<<std::endl;
+//                        } else {
+//                            throw std::runtime_error("decode error in struct type");
+//                        }
+//
+//                        throw std::runtime_error("nyimpl");
+//                    } else {
+//                        throw std::runtime_error("decode error for struct type, expected token '(' but go instead ..." + s.substr(pos) + ".");
+//                    }
+//                } else {
+//                    throw std::runtime_error("decode error for struct type.");
+//                }
             } else if(s[pos] == ',' || s[pos] == ' ' || s[pos] == '\t' || s[pos] == '\n') {
                 // skip ,
                 pos++;
@@ -1359,10 +1480,15 @@ namespace python {
                 return Type::UNKNOWN;
             }
         }
-
+        if(end_position)
+            *end_position = pos;
         assert(expressionStack.size() > 0);
         assert(expressionStack.top().size() > 0);
         return expressionStack.top().front();
+    }
+
+    Type Type::decode(const std::string& s) {
+        return decodeEx(s, nullptr);
     }
 
     // TODO: more efficient encoding using binary representation?

@@ -227,7 +227,9 @@ namespace python {
 
             // @TODO: we basically need a mechanism to serialize/deserialize field values to string and back.
             // add mapping
-            pair_str += kv_pair.keyType.desc() + "," + escape_to_python_str(kv_pair.key) + "->" + kv_pair.valueType.desc();
+            // escape non-string values as string
+            auto py_string = kv_pair.keyType == python::Type::STRING ? kv_pair.key : escape_to_python_str(kv_pair.key);
+            pair_str += kv_pair.keyType.desc() + "," + py_string + "->" + kv_pair.valueType.desc();
 
             pair_str += ")";
             name += pair_str + ",";
@@ -1262,6 +1264,12 @@ namespace python {
         size_t min_keyword_length = s.length();
         size_t max_keyword_length = 0;
         std::unordered_map<std::string, Type> keywords = TypeFactory::instance().get_primitive_keywords();
+
+        // add (), {}, and [] as keywords
+        keywords["()"] = python::Type::EMPTYTUPLE;
+        keywords["[]"] = python::Type::EMPTYLIST;
+        keywords["{}"] = python::Type::EMPTYDICT;
+
         for(const auto& kv : keywords) {
             min_keyword_length = std::min(min_keyword_length, kv.first.length());
             max_keyword_length = std::max(max_keyword_length, kv.first.length());

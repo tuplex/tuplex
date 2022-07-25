@@ -301,7 +301,7 @@ namespace tuplex {
                     return updateIteratorIndex(builder, iterator, argsIteratorInfo.front());
                 }
             } else if(iteratorName == "reversed") {
-                prefix = "reverse";
+                prefix = "reverse_";
             } else {
                 throw std::runtime_error("unsupported iterator" + iteratorName);
             }

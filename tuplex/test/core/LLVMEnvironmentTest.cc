@@ -342,10 +342,10 @@ TEST(LLVMENV, TupleStructs) {
         }
     }
 
-    // add norecurse to function & inline hint
-    func->addFnAttr(Attribute::NoRecurse);
-    func->addFnAttr(Attribute::InlineHint);
-    func->addFnAttr(Attribute::NoUnwind); // explicitly disable unwind! (no external lib calls!)
+//    // add norecurse to function & inline hint
+//    func->addFnAttr(Attribute::NoRecurse);
+//    func->addFnAttr(Attribute::InlineHint);
+//    func->addFnAttr(Attribute::NoUnwind); // explicitly disable unwind! (no external lib calls!)
 
 
     auto argMap = mapLLVMFunctionArgs(func, {"outRow", "inRow"});

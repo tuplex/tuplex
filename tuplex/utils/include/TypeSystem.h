@@ -52,9 +52,8 @@ namespace python {
         static const Type MODULE; //! generic module object, used in symbol table
         static const Type ITERATOR; //! iterator/generator type
         static const Type EMPTYITERATOR; //! special type for empty iterator
-        // TODO: add types for dict_keys and dict_values
-        static const Type DICTKEYS; //! special type for list of dictionary keys
-        static const Type DICTVALUES; //! special type for list of dictionary values
+        // static const Type DICTKEYS; //! special type for list of dictionary keys
+        // static const Type DICTVALUES; //! special type for list of dictionary values
         
         // define two special types, used in the inference to describe bounds
         // any is a subtype of everything
@@ -98,7 +97,6 @@ namespace python {
         bool isTupleType() const;
         bool isFunctionType() const;
         bool isDictionaryType() const;
-        // TODO: add is...Type for dict_keys and dict_values
         bool isListType() const;
         bool isNumericType() const;
         bool isOptionType() const;
@@ -107,6 +105,8 @@ namespace python {
         bool hasVariablePositionalArgs() const;
         bool isExceptionType() const;
         bool isIteratorType() const;
+        bool isDictKeysType() const;
+        bool isDictValuesType() const;
 
         inline bool isGeneric() const {
             if(_hash == python::Type::PYOBJECT._hash ||
@@ -121,7 +121,7 @@ namespace python {
                 return false;
             }
 
-            if(isListType() || isOptionType()) {
+            if(isListType() || isOptionType() || isDictKeysType() || isDictValuesType()) {
                 if(elementType().isGeneric())
                     return true;
                 return false;
@@ -140,8 +140,6 @@ namespace python {
                     return true;
                 return false;
             }
-
-            // TODO: add case for iterating through dict_keys and dict_values
 
             return false;
         }
@@ -166,42 +164,36 @@ namespace python {
          */
         Type yieldType() const;
 
-        // TODO: add dict_keys and dict_values cases to below function
         /*!
          * checks whether type contains one or more of Unknown, Inf, Any.
          * @return
          */
         bool isIllDefined() const;
 
-        // TODO: add dict_keys and dict_values cases to below function
         /*!
          * checks whether type is of fixed size. I.e. also a tuple of fixed size datatypes will yield true
          * @return
          */
         bool isFixedSizeType() const;
 
-        // TODO: add dict_keys and dict_values cases to below function
         /*!
          * if tuple of nulls/empty dict etc.
          * @return
          */
         bool isZeroSerializationSize() const;
 
-        // TODO: add dict_keys and dict_values cases to below function
          /*!
          * checks whether given type is a primtive type. Currently true for bool, i64, double, str
          * @return
          */
         bool isPrimitiveType() const;
 
-        // TODO: add dict_keys and dict_values cases to below function
         /*!
-         * check whether a given type is iterable. Currently true for iterator, list, tuple, string, range and dictionary.
+         * check whether a given type is iterable. Currently true for iterator, list, tuple, string, range, dictionary, dict_keys, and dict_values.
          * @return
          */
         bool isIterableType() const;
 
-        // TODO: add dict_keys and dict_values cases to below function
         /*!
          * check whether this is a base class of derived. E.g. int.subclass(float) is true,
          * but float.subclass(int) is false
@@ -210,14 +202,12 @@ namespace python {
          */
         bool isSubclass(const Type& derived) const;
 
-        // TODO: add dict_keys and dict_values cases to below function
         /*!
          * retrieves a vector of all types which are base classes of this type
          * @return all types which are a base class
          */
         std::vector<Type> baseClasses() const;
 
-        // TODO: add dict_keys and dict_values cases to below function
         /*!
          * retrieves vector of all types which are derived from this type
          * @return vector of type, may be empty.
@@ -233,7 +223,8 @@ namespace python {
 
         static Type makeListType(const python::Type &elementType);
 
-        // TODO: add make...Type for dict_keys and dict_values
+        static Type makeDictKeysType(const python::Type& keyType);
+        static Type makeDictValuesType(const python::Type& valType);
 
         /*!
          * create iterator type from yieldType.
@@ -297,11 +288,12 @@ namespace python {
             FUNCTION,
             TUPLE,
             DICTIONARY,
+            DICT_KEYS,
+            DICT_VALUES,
             LIST,
             CLASS,
             OPTION, // for nullable
             ITERATOR
-            // TODO: add dict_keys and dict_values types (?)
         };
 
         struct TypeEntry {
@@ -341,12 +333,13 @@ namespace python {
 
         bool isFunctionType(const Type& t) const;
         bool isDictionaryType(const Type& t) const;
+        bool isDictKeysType(const Type& t);
+        bool isDictValuesType(const Type& t);
         bool isTupleType(const Type& t) const;
         bool isOptionType(const Type& t) const;
         bool isListType(const Type& t) const;
         bool isIteratorType(const Type& t) const;
-        // TODO: add is...Type functions for dict_keys and dict_values
-
+        
         std::vector<Type> parameters(const Type& t) const;
         Type returnType(const Type& t) const;
 
@@ -365,14 +358,14 @@ namespace python {
         // right now, no tuples or other weird types...
         Type createOrGetFunctionType(const Type& param, const Type& ret=Type::EMPTYTUPLE);
         Type createOrGetDictionaryType(const Type& key, const Type& val);
+        Type createOrGetDictKeysType(const Type& key);
+        Type createOrGetDictValuesType(const Type& val);
         Type createOrGetListType(const Type& val);
-        // TODO: add create...Type functions for dict_keys and dict_values
         Type createOrGetTupleType(const std::initializer_list<Type> args);
         Type createOrGetTupleType(const TTuple<Type>& args);
         Type createOrGetTupleType(const std::vector<Type>& args);
         Type createOrGetOptionType(const Type& type);
         Type createOrGetIteratorType(const Type& yieldType);
-
 
         Type getByName(const std::string& name);
 

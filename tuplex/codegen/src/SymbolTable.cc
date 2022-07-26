@@ -409,6 +409,32 @@ namespace tuplex {
 
         // i.e. type depending on input
 
+        // typer function for dict.keys() and dict.values()
+        // this currently doesn't handle empty dicts...
+        std::vector<python::Type> all_types = {python::Type::BOOLEAN, python::Type::I64, python::Type::F64,
+                                                python::Type::STRING, python::Type::PYOBJECT};
+        for (const auto &t1 : all_types) {
+            for (const auto &t2 : all_types) {
+
+                auto dict_type = python::Type::makeDictionaryType(t1, t2);
+
+                // create specialized dict type
+                auto dict_sym = std::make_shared<Symbol>(dict_type.desc(), "dictionary", t1, SymbolType::TYPE);
+                // add here symbol so other functions can be easily added.
+                addSymbol(dict_sym);
+
+                // dict_keys
+                auto keys_sym = std::make_shared<Symbol>("keys", python::Type::makeFunctionType(python::Type::EMPTYTUPLE, python::Type::makeDictKeysType(dict_type.keyType())));
+                dict_sym->addAttribute(keys_sym);
+
+                // dict_keys
+                auto values_sym = std::make_shared<Symbol>("values", python::Type::makeFunctionType(python::Type::EMPTYTUPLE, python::Type::makeDictValuesType(dict_type.valueType())));
+                dict_sym->addAttribute(values_sym);
+            }
+        }
+
+        // addBuiltinTypeAttribute(python::Type::EMPTYDICT, "keys", python::Type::makeFunctionType(python::Type::EMPTYTUPLE, ???));
+
         // for pop/popitem things are actually a bit more complicated...
         // i.e. the default keyword may introduce an issue...
         // https://www.programiz.com/python-programming/methods/dictionary/pop
@@ -477,7 +503,7 @@ namespace tuplex {
                                                                        python::Type::makeTupleType({dict_type.keyType(), dict_type.valueType()})));
 
             }
-
+        
         // for the weird case of the default object having different type than the dict value type, use tracing.
 
         // another good design for builtin functions could be:

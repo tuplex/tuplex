@@ -225,22 +225,27 @@ TEST(TypeSys, structuredDictType) {
     using namespace tuplex;
     using namespace std;
 
-    // Struct[] is empty dict!
-    // EXPECT_EQ(python::decodeType("Struct[]"), python::Type::EMPTYDICT);
+//    // Struct[] is empty dict!
+//    EXPECT_EQ(python::decodeType("Struct[]").desc(), python::Type::EMPTYDICT.desc());
+//
+//    // all primitive types
+//    // -> create structured types
+//
+//    // test 1: string keys (this is probably the most common scenario)
+//    vector<pair<boost::any, python::Type>> pairs;
+//    for(const auto& p : primitiveTypes(true)) {
+//        pairs.push_back(make_pair(p.desc(), p));
+//    }
+//    auto t = python::Type::makeStructuredDictType(pairs);
+//    auto encoded = t.desc();
+//    auto decoded_t = python::decodeType(encoded);
+//    EXPECT_EQ(decoded_t.desc(), t.desc());
 
-    // all primitive types
-    // -> create structured types
-
-    // test 1: string keys (this is probably the most common scenario)
-    vector<pair<boost::any, python::Type>> pairs;
-    for(const auto& p : primitiveTypes(true)) {
-        pairs.push_back(make_pair(p.desc(), p));
-    }
-    auto t = python::Type::makeStructuredDictType(pairs);
-    auto encoded = t.desc();
-    auto decoded_t = python::decodeType(encoded);
-    EXPECT_EQ(decoded_t.desc(), t.desc());
-
+    // test 2: non-string keys -> i.e., use Tuples, integers etc. as keys
+    auto t_2 = python::Type::makeStructuredDictType({make_pair(10, python::Type::F64)}); // i64 -> f64 struct!
+    auto encoded_2 = t_2.desc();
+    auto decoded_2 = python::decodeType(encoded_2);
+    EXPECT_EQ(decoded_2.desc(), t_2.desc());
 
 
     // test 2: full type test

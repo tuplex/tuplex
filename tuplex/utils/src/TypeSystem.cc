@@ -188,24 +188,8 @@ namespace python {
         for(auto pair : pairs) {
             std::string pair_str = "(";
 
-            // field?
-            tuplex::Field f = tuplex::Field::null();
-
-            // upcast a couple of basic C++ types
-            if(pair.first.type() == typeid(std::string)) {
-                f = tuplex::Field(boost::any_cast<std::string>(pair.first));
-            } else if(pair.first.type() == typeid(const char*)) {
-                f = tuplex::Field(std::string(boost::any_cast<const char*>(pair.first)));
-            } else {
-                try {
-                    f = boost::any_cast<tuplex::Field>(pair.first);
-                } catch (const boost::bad_any_cast& b) {
-#ifndef NDEBUG
-                    std::cerr<<"bad cast, expecting Field here but got instead "<<pair.first.type().name()<<std::endl;
-                    assert(false);
-#endif
-                }
-            }
+            // convert value to field
+            tuplex::Field f = tuplex::any_to_field(pair.first, tuplex::Field::null());
 
             // create the actual kv_pair
             StructEntry kv_pair;
@@ -218,6 +202,10 @@ namespace python {
     }
 
     Type TypeFactory::createOrGetStructuredDictType(const std::vector<StructEntry> &kv_pairs) {
+
+        // Struct[] is empty dict
+        if(kv_pairs.empty())
+            return python::Type::EMPTYDICT;
 
         std::string name = "Struct[";
 

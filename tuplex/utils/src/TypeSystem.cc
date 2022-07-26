@@ -1337,6 +1337,11 @@ namespace python {
 
                 kvStack.top().back().keyType = key_type;
                 kvStack.top().back().valueType = value_type;
+
+                // special case: encode string (b.c. it's the raw string decoded right now!)
+                if(python::Type::STRING == key_type) {
+                    kvStack.top().back().key = escape_to_python_str(kvStack.top().back().key);
+                }
             } else if(s[pos] == '\'') {
                 // decode '...'-> string
                 std::string decoded_string = "";

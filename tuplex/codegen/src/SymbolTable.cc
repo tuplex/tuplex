@@ -412,6 +412,8 @@ namespace tuplex {
         {
             addBuiltinTypeAttribute(python::Type::GENERICDICT, "keys", [](const python::Type& parameterType) {
 
+                //  @TODO: @rhea once you changed the signature of the Lambda here, you should be abel to type correctly.
+                // I can give it a try to refactor everything better than. 
                 std::cout<<"need to get concrete dict type here!"<<std::endl;
 
                 return python::Type::UNKNOWN;
@@ -811,6 +813,8 @@ namespace tuplex {
                     // else, return single type
                     return attr_sym->type();
                 python::Type funcType = python::Type::UNKNOWN;
+
+                //  @TODO: @rhea -> change function here to include objectType as well and make typer a two parameter function
                 attr_sym->findFunctionTypeBasedOnParameterType(parameterType, funcType); // ignore ret value.
                 return funcType;
             }

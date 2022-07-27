@@ -33,11 +33,13 @@ namespace python {
     const Type Type::EMPTYTUPLE = python::TypeFactory::instance().createOrGetTupleType(std::vector<python::Type>());
     const Type Type::EMPTYDICT = python::TypeFactory::instance().createOrGetPrimitiveType("{}"); // empty dict
     const Type Type::EMPTYLIST = python::TypeFactory::instance().createOrGetPrimitiveType("[]"); // empty list: primitive because it can have any type element
+    const Type Type::EMPTYSET = python::TypeFactory::instance().createOrGetPrimitiveType("empty_set"); // empty list: primitive because it can have any type element
     const Type Type::NULLVALUE = python::TypeFactory::instance().createOrGetPrimitiveType("null");
     const Type Type::PYOBJECT = python::TypeFactory::instance().createOrGetPrimitiveType("pyobject");
     const Type Type::GENERICTUPLE = python::TypeFactory::instance().createOrGetPrimitiveType("tuple");
     const Type Type::GENERICDICT = python::TypeFactory::instance().createOrGetDictionaryType(python::Type::PYOBJECT, python::Type::PYOBJECT);
     const Type Type::GENERICLIST = python::TypeFactory::instance().createOrGetListType(python::Type::PYOBJECT);
+    //const Type Type::GENERICSET = python::TypeFactory::instance().createOrGetSetType(python::Type::PYOBJECT); // @TODO: implement.
     const Type Type::VOID = python::TypeFactory::instance().createOrGetPrimitiveType("void");
     const Type Type::MATCHOBJECT = python::TypeFactory::instance().createOrGetPrimitiveType("matchobject");
     const Type Type::RANGE = python::TypeFactory::instance().createOrGetPrimitiveType("range");
@@ -398,6 +400,9 @@ namespace python {
     }
 
     Type Type::keyType() const {
+        if(_hash == EMPTYDICT._hash || _hash == GENERICDICT._hash)
+            return PYOBJECT;
+
         assert(isDictionaryType() && _hash != EMPTYDICT._hash && _hash != GENERICDICT._hash);
         auto& factory = TypeFactory::instance();
         auto it = factory._typeMap.find(_hash);
@@ -415,6 +420,9 @@ namespace python {
     }
 
     Type Type::valueType() const {
+        if(_hash == EMPTYDICT._hash || _hash == GENERICDICT._hash)
+            return PYOBJECT;
+
         assert(isDictionaryType() && _hash != EMPTYDICT._hash && _hash != GENERICDICT._hash);
         auto& factory = TypeFactory::instance();
         auto it = factory._typeMap.find(_hash);
@@ -1115,8 +1123,15 @@ namespace python {
 
         // dictionary type
         if(aUnderlyingType.isDictionaryType() && bUnderlyingType.isDictionaryType()) {
+
+            // empty dict can be always upcasted to concrete dict
+            if(python::Type::EMPTYDICT == aUnderlyingType)
+                return bUnderlyingType;
+            if(python::Type::EMPTYDICT == bUnderlyingType)
+                return aUnderlyingType;
+
             auto key_t = unifyTypes(aUnderlyingType.keyType(), bUnderlyingType.keyType(), autoUpcast);
-            auto val_t = unifyTypes(aUnderlyingType.elementType(), bUnderlyingType.elementType(), autoUpcast);
+            auto val_t = unifyTypes(aUnderlyingType.valueType(), bUnderlyingType.valueType(), autoUpcast);
             if(key_t == python::Type::UNKNOWN || val_t == python::Type::UNKNOWN) {
                 return python::Type::UNKNOWN;
             }

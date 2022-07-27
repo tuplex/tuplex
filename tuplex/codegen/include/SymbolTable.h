@@ -176,6 +176,14 @@ namespace tuplex {
         void addBuiltinTypeAttribute(const python::Type& builtinType, const std::string& name, const python::Type& type);
 
         /*!
+         * add an attribute to a builtin type, e.g. dict.keys()
+         * @param builtinType to which type to add the function
+         * @param name name of the attribute
+         * @param typer a dynamic typing function
+         */
+        void addBuiltinTypeAttribute(const python::Type& builtinType, const std::string& name, std::function<python::Type(const python::Type&)> typer);
+
+        /*!
          * checks whether a symbol can be looked up or not
          * @param symbol
          * @return

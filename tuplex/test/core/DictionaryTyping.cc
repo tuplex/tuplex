@@ -624,7 +624,7 @@ TEST(DictionaryTyping, Count) {
     // print type annotated ast
     GraphVizGraph graph;
     graph.createFromAST(ast.getFunctionAST(), true);
-    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/dict_count.pdf");
+    graph.saveAsPDF("dict_count.pdf");
 
     cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
 

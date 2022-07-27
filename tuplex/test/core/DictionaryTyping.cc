@@ -624,7 +624,43 @@ TEST(DictionaryTyping, Count) {
     // print type annotated ast
     GraphVizGraph graph;
     graph.createFromAST(ast.getFunctionAST(), true);
-    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/dict_count.pdf");
+    graph.saveAsPDF("dict_count.pdf");
+
+    cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
+
+    ASSERT_EQ(ast.getReturnType(), python::Type::makeDictionaryType(python::Type::STRING, python::Type::I64));
+}
+
+TEST(DictionaryTyping, KeyView) {
+    // expected to fail; need to add support for dict_keys
+    using namespace tuplex;
+    using namespace std;
+
+    // could also use list((10, 20, 30)) e.g., or tuple(list(...)) -> needs speculation.
+
+    // test count UDF
+//    auto count_c = "def count_keys(x):\n"
+//                   "    d = {'A':10, 'B': 10, x: 20}\n"
+//                   "    return list(d.keys())";
+    auto count_c = "def count_keys(x):\n"
+                   "    d = {'A':10, 'B': 10, x: 20}\n"
+                   "    return d.keys()";
+
+    // parse code to AST
+    auto ast = tuplex::codegen::AnnotatedAST();
+    ast.parseString(count_c);
+
+    // make typing
+    python::Type inputType = python::Type::STRING;
+
+    // create symbol table
+    ast.addTypeHint("x", inputType);
+    ast.defineTypes(codegen::DEFAULT_COMPILE_POLICY);
+
+    // print type annotated ast
+    GraphVizGraph graph;
+    graph.createFromAST(ast.getFunctionAST(), true);
+    graph.saveAsPDF("dict_count_keys.pdf");
 
     cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
 

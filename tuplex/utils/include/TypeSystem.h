@@ -42,6 +42,7 @@ namespace python {
         static const Type EMPTYTUPLE; //! special type for an empty tuple
         static const Type EMPTYDICT; //! special type for empty dict
         static const Type EMPTYLIST; //! special type for empty list
+        static const Type EMPTYSET; //! special type for empty set
         static const Type NULLVALUE; //! special type for a nullvalue / None
         static const Type PYOBJECT; //! special type for any python object
         static const Type GENERICTUPLE; //! special type to accept ANY tuple object (helpful for symbol table)

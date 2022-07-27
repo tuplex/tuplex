@@ -1220,8 +1220,19 @@ namespace tuplex {
             // we are now inside a loop; no type change detected yet
             // check potential type change during loops
             if(_nameTable.find(id->_name) != _nameTable.end() && type != _nameTable.at(id->_name)) {
-                error("variable " + id->_name + " changed type during loop from " + _nameTable.at(id->_name).desc() + " to " + type.desc() + ", traced typing needed to determine if the type change is stable");
-                _loopTypeChange = true;
+
+                // special case:
+                // emptylist, emptydict (and emptyset) can get promoted
+                auto type_of_named = _nameTable.at(id->_name);
+                if((type_of_named == python::Type::EMPTYLIST && type.isListType()) ||
+                   (type_of_named == python::Type::EMPTYDICT && type.isDictionaryType()) ) {
+                    // || (type_of_named == python::Type::EMPTYSET && type.isSetType())
+                    auto& logger = Logger::instance().logger("codegen");
+                    logger.debug("promoting " + id->_name + " from " + _nameTable.at(id->_name).desc() + " to " + type.desc());
+                } else {
+                    error("variable " + id->_name + " changed type during loop from " + _nameTable.at(id->_name).desc() + " to " + type.desc() + ", traced typing needed to determine if the type change is stable");
+                    _loopTypeChange = true;
+                }
             }
         }
 

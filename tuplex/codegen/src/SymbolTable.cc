@@ -415,7 +415,7 @@ namespace tuplex {
                 std::cout<<"need to get concrete dict type here!"<<std::endl;
 
                 return python::Type::UNKNOWN;
-            });
+            }, SymbolType::FUNCTION);
         }
 
 
@@ -683,8 +683,11 @@ namespace tuplex {
     }
 
     void SymbolTable::addBuiltinTypeAttribute(const python::Type &builtinType, const std::string &name,
-                                              std::function<python::Type(const python::Type &)> typer) {
+                                              std::function<python::Type(const python::Type &)> typer,
+                                              const SymbolType& sym_type = SymbolType::VARIABLE) {
         using namespace std;
+        assert(sym_type == SymbolType::VARIABLE || sym_type == SymbolType::FUNCTION);
+
         // this seems wrong, need to perform the lookup directly...
         // use desc as name
         auto scope = currentScope();
@@ -696,12 +699,11 @@ namespace tuplex {
         }
         auto sym_att = it->second->findAttribute(name);
         if(!sym_att) {
-            it->second->addAttribute(make_shared<Symbol>(name, name, builtinType, builtinType.isFunctionType() ? SymbolType::FUNCTION : SymbolType::VARIABLE));
+            it->second->addAttribute(make_shared<Symbol>(name, name, builtinType, sym_type));
             sym_att = it->second->findAttribute(name);
         } else {
             // replace symbol, there can be only one symbol with a typer function
-            auto symbolType = builtinType.isFunctionType() ? SymbolType::FUNCTION : SymbolType::VARIABLE;
-            if(symbolType != sym_att->symbolType)
+            if(sym_type != sym_att->symbolType)
                 throw std::runtime_error("symbol can only have one kind of types associated with it!");
             assert(sym_att->qualifiedName == name);
             sym_att->name = name;
@@ -796,7 +798,10 @@ namespace tuplex {
         return python::Type::UNKNOWN;
     }
 
-    static python::Type typeAttribute(std::shared_ptr<Symbol> sym, std::string attribute, python::Type parameterType) {
+    static python::Type typeAttribute(std::shared_ptr<Symbol> sym,
+                                      std::string attribute,
+                                      python::Type parameterType,
+                                      python::Type objectType) {
         if(sym) {
             auto attr_sym = sym->findAttribute(attribute);
 
@@ -855,7 +860,7 @@ namespace tuplex {
         auto name = type.desc();
         auto sym = findSymbol(name);
 
-        resultType = typeAttribute(sym, attribute, parameterType);
+        resultType = typeAttribute(sym, attribute, parameterType, type);
         if(resultType != python::Type::UNKNOWN)
             return resultType;
 
@@ -869,7 +874,7 @@ namespace tuplex {
             if(type.isDictionaryType() || type == python::Type::EMPTYDICT)
                 name = python::Type::GENERICDICT.desc();
             sym = findSymbol(name);
-            resultType = typeAttribute(sym, attribute, parameterType);
+            resultType = typeAttribute(sym, attribute, parameterType, type);
         }
 
         return resultType;

@@ -171,17 +171,23 @@ namespace tuplex {
          * add an attribute to a builtin type, e.g. str.lower
          * @param builtinType
          * @param name
-         * @param type
+         * @param type type of the attribute, i.e. if it is a function type then a function symbol will be added.
+         * If it is not a function type a variable symbol will be added.
          */
-        void addBuiltinTypeAttribute(const python::Type& builtinType, const std::string& name, const python::Type& type);
+        void addBuiltinTypeAttribute(const python::Type& builtinType,
+                                     const std::string& name,
+                                     const python::Type& type);
 
         /*!
          * add an attribute to a builtin type, e.g. dict.keys()
          * @param builtinType to which type to add the function
          * @param name name of the attribute
          * @param typer a dynamic typing function
+         * @param sym_type what kind of symbol it is (function? variable?), needed because typer works for both.
          */
-        void addBuiltinTypeAttribute(const python::Type& builtinType, const std::string& name, std::function<python::Type(const python::Type&)> typer);
+        void addBuiltinTypeAttribute(const python::Type& builtinType, const std::string& name,
+                                     std::function<python::Type(const python::Type&)> typer,
+                                     const SymbolType& sym_type);
 
         /*!
          * checks whether a symbol can be looked up or not

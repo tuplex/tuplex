@@ -39,7 +39,7 @@ namespace tuplex {
             BuiltinDictProxy& putItem(const Field& key, const Field& value) { assert(_impl); _impl->putItem(key, value); return *this; }
             BuiltinDictProxy& putItem(const python::Type& keyType, const SerializableValue& key, const python::Type& valueType, const SerializableValue& value) { assert(_impl); _impl->putItem(keyType, key, valueType, value); return *this; }
 
-//            // getItemß
+//            // getItem
 //            BuiltinDictProxy& getItem(const Field& key);
 //            BuiltinDictProxy& getItem(const python::Type& keyType, const SerializableValue& key);
 //

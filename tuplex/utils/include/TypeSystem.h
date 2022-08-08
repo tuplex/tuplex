@@ -28,6 +28,8 @@ namespace python {
     class Type;
     class TypeFactory;
 
+    struct StructEntry;
+
     class Type {
         friend class TypeFactory;
         friend bool operator < (const Type& lhs, const Type& rhs);
@@ -258,6 +260,13 @@ namespace python {
          * @return type created
          */
         static Type makeStructuredDictType(const std::vector<std::pair<boost::any, python::Type>>& kv_pairs);
+
+        /*!
+        * creates a (structured) dictionary with known keys.
+        * @param kv_pairs
+        * @return type created
+        */
+        static Type makeStructuredDictType(const std::vector<StructEntry>& kv_pairs);
 
 
         // TODO: could create dict compressed type as well..

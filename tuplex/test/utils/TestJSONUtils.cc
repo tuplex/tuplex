@@ -13,6 +13,7 @@
 #include <JSONUtils.h>
 #include <JsonStatistic.h>
 #include <fstream>
+#include <TypeHelper.h>
 
 static std::string fileToString(const std::string& path) {
     std::ifstream t(path);
@@ -43,6 +44,19 @@ TEST(JSONUtils, Chunker) {
 
 namespace tuplex {
 
+    // for estimation a tree structure is required
+    struct JSONTypeNode {
+        std::string key;
+        std::unordered_map<python::Type, size_t> types;
+        std::vector<std::unique_ptr<JSONTypeNode>> children;
+
+        inline bool isLeaf() const { return children.empty(); }
+
+        inline void inc_type(const python::Type& type) {
+            types[type]++;
+        }
+    };
+
     // non-recursive mapping
     python::Type jsonTypeToPythonTypeNonRecursive(const simdjson::ondemand::json_type& jtype, const std::string_view& value) {
         switch(jtype) {
@@ -72,6 +86,61 @@ namespace tuplex {
                 return python::Type::UNKNOWN;
             }
         }
+    }
+
+    python::Type jsonTypeToPythonTypeRecursive(simdjson::simdjson_result<simdjson::fallback::ondemand::value> obj) {
+        using namespace std;
+
+        // is a nested field?
+        if(obj.type() == simdjson::ondemand::json_type::object) {
+
+            // json is always string keys -> value
+            vector<python::StructEntry> kv_pairs;
+            for(auto field : obj.get_object()) {
+                // add to names
+                auto sv_key = field.unescaped_key().value();
+                std::string key = {sv_key.begin(), sv_key.end()};
+
+                python::StructEntry entry;
+                entry.key = escape_to_python_str(key);
+                entry.keyType = python::Type::STRING;
+                entry.valueType = jsonTypeToPythonTypeRecursive(field.value()); // recurse if necessary!
+                kv_pairs.push_back(entry);
+            }
+
+            return python::Type::makeStructuredDictType(kv_pairs);
+        }
+        // is it an array? => only homogenous arrays supported!
+        if(obj.type() == simdjson::ondemand::json_type::array) {
+
+            // homogenous type?
+            auto token = obj.raw_json_token().value();
+            auto arr = obj.get_array();
+            size_t arr_size = 0;
+
+            // go through array and check that types are the same
+            python::Type element_type;
+            bool first = true;
+            for(auto el : arr) {
+                auto next_type = jsonTypeToPythonTypeRecursive(el);
+                if(first) {
+                    element_type = next_type;
+                    first = false;
+                }
+                auto uni_type = unifyTypes(element_type, next_type);
+                if(uni_type == python::Type::UNKNOWN)
+                    return python::Type::makeListType(python::Type::PYOBJECT); // non-homogenous list
+                element_type = uni_type;
+                arr_size++;
+            }
+
+            if(arr_size == 0)
+                return python::Type::EMPTYLIST;
+
+            return python::Type::makeListType(element_type);
+        }
+
+        return jsonTypeToPythonTypeNonRecursive(obj.type(), obj.raw_json_token());
     }
 }
 
@@ -112,6 +181,9 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
 
     bool first_row = false;
 
+    // cf. Tree Walking and JSON Element Types in https://github.com/simdjson/simdjson/blob/master/doc/basics.md
+    // use scalar() => for simple numbers etc.
+
     // anonymous row? I.e., simple value?
     for(auto it = stream.begin(); it != stream.end(); ++it) {
         auto doc = (*it);
@@ -138,6 +210,12 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
 
                     // perform type count (lookups necessary because can be ANY order)
                     auto py_type = jsonTypeToPythonTypeNonRecursive(field.value().type(), field.value().raw_json_token());
+
+                    // generic types? -> recurse!
+                    if(py_type == python::Type::GENERICDICT || py_type == python::Type::GENERICLIST) {
+                        py_type = jsonTypeToPythonTypeRecursive(field.value());
+                    }
+
                     // add to count array
                     type_counts[std::make_tuple(column_index_lookup_table[key], py_type)]++;
                 }
@@ -166,12 +244,11 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
                         pos++;
                     }
                 }
-
-                // todo, parse types???
-
                 break;
             }
             default: {
+                // basic element -> directly map type!
+                auto py_type = jsonTypeToPythonTypeNonRecursive(doc.type().value(), doc.raw_json_token());
                 break;
             }
         }

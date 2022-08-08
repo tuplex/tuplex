@@ -33,7 +33,7 @@ namespace tuplex {
     public:
         JsonStatistic(double threshold, const std::vector<std::string>& null_values=std::vector<std::string>{""}) : _threshold(threshold), _null_values(null_values) {}
 
-        //@March: Implement, this function basically takes a buffer, needs to find the start of a valid JSON (i.e. \n{, \r\n{ if start[0] is not {)
+        // This function basically takes a buffer, needs to find the start of a valid JSON (i.e. \n{, \r\n{ if start[0] is not {)
         void estimate(const char* start, size_t size, bool disableNullColumns=false);
 
         //@March: implement, columns present in json file
@@ -49,6 +49,24 @@ namespace tuplex {
     private:
         double _threshold;
         std::vector<std::string> _null_values;
+
+        // for estimation a tree structure is required
+        struct JSONTypeNode {
+            std::string key;
+            std::unordered_map<python::Type, size_t> types;
+            std::vector<std::unique_ptr<JSONTypeNode>> children;
+
+            inline bool isLeaf() const { return children.empty(); }
+
+            inline void inc_type(const python::Type& type) {
+                types[type]++;
+            }
+        };
+
+        std::unique_ptr<JSONTypeNode> _root;
+
+        void walkJSONTree(std::unique_ptr<JSONTypeNode>& node, cJSON* json);
+
     };
 }
 

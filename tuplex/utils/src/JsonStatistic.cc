@@ -84,8 +84,51 @@ namespace tuplex {
         return -1;
     }
 
+    void JsonStatistic::walkJSONTree(std::unique_ptr<JSONTypeNode>& node, cJSON* json) {
+        if(!json || !node)
+            return;
+
+        // check type of JSON, recurse if necessary
+        if(cJSON_IsNull(json)) {
+           node->inc_type(python::Type::NULLVALUE);
+        } else if(cJSON_IsBool(json)) {
+            node->inc_type(python::Type::BOOLEAN);
+        } else if(cJSON_IsNumber(json)) {
+            // parse...
+
+        } else if(cJSON_IsString(json)) {
+            node->inc_type(python::Type::STRING);
+        } else if(cJSON_IsArray(json)) {
+            // only homogenous arrays supported!
+        } else if(cJSON_IsObject(json)) {
+          // recurse..
+        }
+    }
+
     //@March: Implement, this function basically takes a buffer, needs to find the start of a valid JSON (i.e. \n{, \r\n{ if start[0] is not {)
     void JsonStatistic::estimate(const char *start, size_t size, bool disableNullColumns) {
+
+        // find start offset (limited to size)
+        auto start_offset = findNLJsonStart(start, size);
+        if(start_offset < 0)
+            throw std::runtime_error("Coul not find start of valid JSON document in buffer of size " + std::to_string(size));
+
+        // start parsing at start + offset -> count then types/fields in tree structure
+        const char *end_ptr = nullptr;
+        auto buf = start + start_offset;
+        auto buf_size = size - start_offset;
+        auto json_obj = cJSON_ParseWithLengthOpts(buf, buf_size, &end_ptr, false);
+        while(json_obj) {
+            // count types...
+
+            cJSON_free(json_obj);
+
+            // parse next object
+            auto parsed_bytes = end_ptr - buf;
+            buf += parsed_bytes;
+            buf_size -= parsed_bytes;
+            json_obj = cJSON_ParseWithLengthOpts(buf, buf_size, &end_ptr, false);
+        }
         throw std::runtime_error("not yet implemented");
     }
 

@@ -690,7 +690,11 @@ namespace python {
         return python::TypeFactory::instance().createOrGetListType(elementType);
     }
 
-    Type Type::makeStructuredDictType(const std::vector <std::pair<boost::any, python::Type>> &kv_pairs) {
+    Type Type::makeStructuredDictType(const std::vector<std::pair<boost::any, python::Type>> &kv_pairs) {
+        return python::TypeFactory::instance().createOrGetStructuredDictType(kv_pairs);
+    }
+
+    Type Type::makeStructuredDictType(const std::vector<StructEntry> &kv_pairs) {
         return python::TypeFactory::instance().createOrGetStructuredDictType(kv_pairs);
     }
 

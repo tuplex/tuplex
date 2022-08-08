@@ -255,6 +255,15 @@ namespace tuplex {
             f = tuplex::Field(boost::any_cast<std::string>(value));
         } else if(value.type() == typeid(const char*)) {
             f = tuplex::Field(std::string(boost::any_cast<const char*>(value)));
+        } else if(value.type() == typeid(float)) {
+#ifndef NDEBUG
+            std::cerr<<"WARNING: number supplied as float (f32) but Tuplex internally only uses double"
+                     <<"precision floating point numbers. Consider calling with the correct double type (f64)."
+                     <<std::endl;
+#endif
+            f = tuplex::Field(static_cast<double>(boost::any_cast<float>(value)));
+        }else if(value.type() == typeid(double)) {
+            f = tuplex::Field(boost::any_cast<double>(value));
         } else if(value.type() == typeid(int64_t)) {
             f = tuplex::Field(boost::any_cast<int64_t>(value));
         } else if(value.type() == typeid(int8_t)) {

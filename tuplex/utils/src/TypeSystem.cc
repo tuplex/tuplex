@@ -147,18 +147,18 @@ namespace python {
 
     Type TypeFactory::createOrGetDictionaryType(const Type &key, const Type &val) {
         std::string name = "";
-        name += "{";
+        name += "Dict[";
         name += TypeFactory::instance().getDesc(key._hash);
         name += ",";
         name += TypeFactory::instance().getDesc(val._hash);
-        name += "}";
+        name += "]";
 
         return registerOrGetType(name, AbstractType::DICTIONARY, {key, val});
     }
 
     Type TypeFactory::createOrGetListType(const Type &val) {
         std::string name;
-        name += "[";
+        name += "List[";
         name += TypeFactory::instance().getDesc(val._hash);
         name += "]";
 
@@ -1258,6 +1258,9 @@ namespace python {
         keywords["[]"] = python::Type::EMPTYLIST;
         keywords["{}"] = python::Type::EMPTYDICT;
 
+        // fix for bool
+        keywords["bool"] = python::Type::BOOLEAN;
+
         for(const auto& kv : keywords) {
             min_keyword_length = std::min(min_keyword_length, kv.first.length());
             max_keyword_length = std::max(max_keyword_length, kv.first.length());
@@ -1304,32 +1307,65 @@ namespace python {
                 pos += keyword.size(); // should be 3 for i64 e.g.
             } else if(s[pos] == '(' ) {
                 numOpenParentheses++;
-                // push new pair
-                assert(!kvStack.empty());
-                kvStack.top().push_back(StructEntry());
+
+                // if in struct compound mode -> push pairs
+                if(!compoundStack.empty() && compoundStack.top() == "Struct") {
+                    // push new pair
+                    assert(!kvStack.empty());
+                    kvStack.top().push_back(StructEntry());
+                } else {
+                    expressionStack.push(std::vector<python::Type>());
+                    compoundStack.push("Tuple");
+                }
                 pos++;
             } else if(s[pos] == ')') {
                 // must be a pair -> so take results from stack and push to pairs stack!
-                numOpenParentheses--;
+                numClosedParentheses++;
                 pos++;
 
-                // edit last pair.
-                assert(!kvStack.empty());
-                assert(!kvStack.top().empty());
-                assert(!expressionStack.empty());
-                assert(expressionStack.top().size() >= 2);
-                auto value_type = expressionStack.top().back();
-                expressionStack.top().pop_back();
-                auto key_type = expressionStack.top().back();
-                expressionStack.top().pop_back();
-
-                kvStack.top().back().keyType = key_type;
-                kvStack.top().back().valueType = value_type;
-
-                // special case: encode string (b.c. it's the raw string decoded right now!)
-                if(python::Type::STRING == key_type) {
-                    kvStack.top().back().key = escape_to_python_str(kvStack.top().back().key);
+                if(numOpenParentheses < numClosedParentheses) {
+                    Logger::instance().defaultLogger().error("parentheses (...) mismatch in encoded typestr '" + s + "'");
+                    return Type::UNKNOWN;
                 }
+
+                // if in struct compound mode -> push pairs
+                if(!compoundStack.empty() && compoundStack.top() == "Struct") {
+                    // edit last pair.
+                    assert(!kvStack.empty());
+                    assert(!kvStack.top().empty());
+                    assert(!expressionStack.empty());
+                    assert(expressionStack.top().size() >= 2);
+                    auto value_type = expressionStack.top().back();
+                    expressionStack.top().pop_back();
+                    auto key_type = expressionStack.top().back();
+                    expressionStack.top().pop_back();
+
+                    kvStack.top().back().keyType = key_type;
+                    kvStack.top().back().valueType = value_type;
+
+                    // special case: encode string (b.c. it's the raw string decoded right now!)
+                    if(python::Type::STRING == key_type) {
+                        kvStack.top().back().key = escape_to_python_str(kvStack.top().back().key);
+                    }
+                } else if(!compoundStack.empty() && compoundStack.top() == "Tuple") {
+                    // in tuple mode, pop from stack and replace!
+                    auto topVec = expressionStack.top();
+                    auto compound_type = compoundStack.top();
+                    Type t = TypeFactory::instance().createOrGetTupleType(topVec);
+
+                    compoundStack.pop();
+                    expressionStack.pop();
+
+                    if(expressionStack.empty()) {
+                        expressionStack.push({t});
+                        compoundStack.push("primitive");
+                    }
+                    else
+                        expressionStack.top().push_back(t);
+                } else {
+                   throw std::runtime_error("invalid type!");
+                }
+
             } else if(s[pos] == '\'') {
                 // decode '...'-> string
                 std::string decoded_string = "";
@@ -1364,11 +1400,6 @@ namespace python {
                 assert(!kvStack.empty());
                 assert(!kvStack.top().empty());
                 kvStack.top().back().key = decoded_string;
-            } else if(s[pos] == '[') {
-                // should never get entered??
-                numOpenSqBrackets++;
-                expressionStack.push(std::vector<python::Type>());
-                pos++;
             } else if(s[pos] == ']') {
                 numClosedSqBrackets++;
                 if(numOpenSqBrackets < numClosedSqBrackets) {
@@ -1385,9 +1416,9 @@ namespace python {
                 } else if ("Option" == compound_type) {
                     t = TypeFactory::instance().createOrGetOptionType(topVec[0]); // order?? --> might need reverse...
                 } else if("Function" == compound_type) {
-                    t = TypeFactory::instance().createOrGetFunctionType(topVec[0], topVec[1]); // order?? --> might need revser?
+                    t = TypeFactory::instance().createOrGetFunctionType(topVec[0], topVec[1]); // order?? --> might need reversion?
                 } else if("Dict" == compound_type) {
-                    t = TypeFactory::instance().createOrGetDictionaryType(topVec[0], topVec[1]); // order?? --> might need revser?
+                    t = TypeFactory::instance().createOrGetDictionaryType(topVec[0], topVec[1]); // order?? --> might need reversion?
                 } else if("Struct" == compound_type) {
                     auto kv_pairs = kvStack.top();
                     kvStack.pop();
@@ -1406,7 +1437,42 @@ namespace python {
                 else
                     expressionStack.top().push_back(t);
                 pos++;
-            } else if (s.substr(pos, 7).compare("Option[") == 0) {
+            } else if(s[pos] == '[') {
+                // legacy, encodes a list
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("List");
+                numOpenSqBrackets++;
+                pos++;
+            } else if(s[pos] == '{') {
+                // legacy, should now be treated as Dict[...] except for empty dict
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("Dict");
+                numOpenBrackets++;
+                pos++;
+            } else if(s[pos] == '}') {
+                // legacy, should now be treated as Dict[...] except for empty dict
+
+                numClosedBrackets++;
+                if(numOpenBrackets < numClosedBrackets) {
+                    Logger::instance().defaultLogger().error("brackets {...} mismatch in encoded typestr '" + s + "'");
+                    return Type::UNKNOWN;
+                }
+                auto topVec = expressionStack.top();
+                auto compound_type = compoundStack.top();
+                assert("Dict" == compound_type);
+                auto t = TypeFactory::instance().createOrGetDictionaryType(topVec[0], topVec[1]); // order?? --> might need reversion?
+
+                compoundStack.pop();
+                expressionStack.pop();
+
+                if(expressionStack.empty()) {
+                    expressionStack.push({t});
+                    compoundStack.push("primitive");
+                }
+                else
+                    expressionStack.top().push_back(t);
+                pos++;
+            }  else if (s.substr(pos, 7).compare("Option[") == 0) {
                 expressionStack.push(std::vector<python::Type>());
                 compoundStack.push("Option");
                 numOpenSqBrackets++;
@@ -1440,37 +1506,6 @@ namespace python {
                 kvStack.push({}); // new pair entry!
                 numOpenSqBrackets++;
                 pos += strlen("Struct[");
-//                if(pos < s.size()) {
-//                    if(']' == s[pos]) {
-//                        pos++;
-//                        auto t = python::Type::EMPTYDICT;
-//                        if(expressionStack.empty()) {
-//                            expressionStack.push({t});
-//                            compoundStack.push("primitive");
-//                        }
-//                        else
-//                            expressionStack.top().push_back(t);
-//                    } else if('(' == s[pos]) {
-//                        // a bunch of tuples (...) describing the struct elements... => need to support arbitarily nested struct types here
-//                        // they are encoded as (type, value_string -> type)
-//                        pos++;
-//                        size_t end_pos = 0;
-//                        auto t = decodeEx(s.substr(pos), &end_pos);
-//
-//                        // type properly decoded
-//                        if(t != python::Type::UNKNOWN && end_pos != 0) {
-//                            std::cout<<t.desc()<<std::endl;
-//                        } else {
-//                            throw std::runtime_error("decode error in struct type");
-//                        }
-//
-//                        throw std::runtime_error("nyimpl");
-//                    } else {
-//                        throw std::runtime_error("decode error for struct type, expected token '(' but go instead ..." + s.substr(pos) + ".");
-//                    }
-//                } else {
-//                    throw std::runtime_error("decode error for struct type.");
-//                }
             } else if(s[pos] == ',' || s[pos] == ' ' || s[pos] == '\t' || s[pos] == '\n') {
                 // skip ,
                 pos++;

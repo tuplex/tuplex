@@ -91,21 +91,20 @@ TEST(TypeSys, fixedSizeTypes) {
 TEST(TypeSys, StrDecoding) {
     using namespace python;
 
-    EXPECT_TRUE(Type::EMPTYTUPLE ==
-    decodeType("()"));
+    EXPECT_EQ(Type::EMPTYTUPLE, decodeType("()"));
     Type complex = Type::makeTupleType({Type::I64, Type::EMPTYTUPLE,
                                         Type::F64, Type::makeTupleType({Type::STRING,Type::BOOLEAN})});
-    EXPECT_TRUE(complex == decodeType("(i64, (), f64, (str, bool))"));
+    EXPECT_EQ(complex, decodeType("(i64, (), f64, (str, bool))"));
     Type more_complex = Type::makeTupleType({Type::F64, Type::makeDictionaryType(Type::STRING, Type::makeTupleType(
             {Type::I64, Type::BOOLEAN, Type::makeDictionaryType(Type::F64, Type::STRING)})), Type::F64});
-    EXPECT_TRUE(more_complex == decodeType("(f64, {str, (i64, bool, {f64, str})}, f64)"));
+    EXPECT_EQ(more_complex, decodeType("(f64, {str, (i64, bool, {f64, str})}, f64)"));
     Type even_more_complex = Type::makeTupleType(
             {Type::makeListType(Type::F64), Type::makeDictionaryType(Type::STRING, Type::makeTupleType(
                     {Type::makeListType(Type::I64), Type::BOOLEAN,
                      Type::makeListType(Type::makeDictionaryType(Type::F64, Type::makeOptionType(Type::STRING)))})),
              Type::F64,
              Type::makeListType(Type::makeOptionType(Type::STRING))});
-    EXPECT_TRUE(even_more_complex == decodeType("([f64], {str, ([i64], bool, [{f64, Option[str]}])}, f64, [Option[str]])"));
+    EXPECT_EQ(even_more_complex, decodeType("([f64], {str, ([i64], bool, [{f64, Option[str]}])}, f64, [Option[str]])"));
 }
 
 TEST(TypeSys, TupleHaveSameType) {

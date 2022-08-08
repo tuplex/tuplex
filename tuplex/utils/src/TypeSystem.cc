@@ -1285,11 +1285,11 @@ namespace python {
             // for debug:
             std::string remaining_string = s.substr(pos, std::string::npos);
 #endif
-            // check against all keywords
+            // check against all keywords, match longest keyword first!
             bool keyword_found = false;
             Type keyword_type = Type::UNKNOWN;
             std::string keyword = "";
-            for(unsigned i = min_keyword_length; i <= max_keyword_length && i < s.length() - pos + 1; ++i) {
+            for(unsigned i = std::min(s.length() - pos + 1, max_keyword_length); i >= min_keyword_length; --i) {
                 auto it = keywords.find(s.substr(pos, i));
                 if(it != keywords.end()) {
                     // found keyword, append

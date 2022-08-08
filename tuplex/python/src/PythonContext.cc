@@ -15,6 +15,7 @@
 #include <JSONUtils.h>
 #include <limits>
 #include <Signals.h>
+#include <TypeHelper.h>
 
 // possible classes are
 // int, float, str, list, tuple, dict

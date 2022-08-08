@@ -15,6 +15,8 @@
 #include <bucket.h>
 #include <TypeAnnotatorVisitor.h>
 #include <CSVUtils.h>
+#include <TypeHelper.h>
+
 
 #define BUF_FORMAT_COMPILED_RESOLVE 0
 #define BUF_FORMAT_NORMAL_OUTPUT 1

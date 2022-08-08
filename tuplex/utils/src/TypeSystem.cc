@@ -1281,6 +1281,10 @@ namespace python {
 
         while(pos < s.length()) {
 
+#ifndef NDEBUG
+            // for debug:
+            std::string remaining_string = s.substr(pos, std::string::npos);
+#endif
             // check against all keywords
             bool keyword_found = false;
             Type keyword_type = Type::UNKNOWN;
@@ -1308,8 +1312,24 @@ namespace python {
             } else if(s[pos] == '(' ) {
                 numOpenParentheses++;
 
+                // a new pair for struct is encountered when:
+                // 1. compoundStack top is Struct
+                // 2. expressionStack top is empty -> i.e. the top has been consumed as pair!
+                // 3. don't push if the last pair is not filled out completely yet! -> i.e. a tuple type was encountered
+
+                bool push_new_pair = false;
+                if(!compoundStack.empty() && compoundStack.top() == "Struct"
+                   && (expressionStack.empty() || expressionStack.top().empty()))
+                    push_new_pair = true;
+
+                // special case: tuple key
+                if(!kvStack.empty()
+                   && !kvStack.top().empty()
+                   && kvStack.top().back().isUndefined())
+                    push_new_pair = false;
+
                 // if in struct compound mode -> push pairs
-                if(!compoundStack.empty() && compoundStack.top() == "Struct") {
+                if(push_new_pair) {
                     // push new pair
                     assert(!kvStack.empty());
                     kvStack.top().push_back(StructEntry());

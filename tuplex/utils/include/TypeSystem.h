@@ -319,6 +319,10 @@ namespace python {
         std::string key; // the value of the key, represented as string
         Type keyType; // type required to decode the string key
         Type valueType; // type what to store under key
+
+        inline bool isUndefined() const {
+            return key.empty() && keyType == Type() && valueType == Type();
+        }
     };
 
     extern bool isLiteralType(const Type& type);

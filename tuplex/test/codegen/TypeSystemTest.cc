@@ -224,21 +224,21 @@ TEST(TypeSys, structuredDictType) {
     using namespace tuplex;
     using namespace std;
 
-//    // Struct[] is empty dict!
-//    EXPECT_EQ(python::decodeType("Struct[]").desc(), python::Type::EMPTYDICT.desc());
-//
-//    // all primitive types
-//    // -> create structured types
-//
-//    // test 1: string keys (this is probably the most common scenario)
-//    vector<pair<boost::any, python::Type>> pairs;
-//    for(const auto& p : primitiveTypes(true)) {
-//        pairs.push_back(make_pair(p.desc(), p));
-//    }
-//    auto t = python::Type::makeStructuredDictType(pairs);
-//    auto encoded = t.desc();
-//    auto decoded_t = python::decodeType(encoded);
-//    EXPECT_EQ(decoded_t.desc(), t.desc());
+    // Struct[] is empty dict!
+    EXPECT_EQ(python::decodeType("Struct[]").desc(), python::Type::EMPTYDICT.desc());
+
+    // all primitive types
+    // -> create structured types
+
+    // test 1: string keys (this is probably the most common scenario)
+    vector<pair<boost::any, python::Type>> pairs;
+    for(const auto& p : primitiveTypes(true)) {
+        pairs.push_back(make_pair(p.desc(), p));
+    }
+    auto t = python::Type::makeStructuredDictType(pairs);
+    auto encoded = t.desc();
+    auto decoded_t = python::decodeType(encoded);
+    EXPECT_EQ(decoded_t.desc(), t.desc());
 
     // test 2: non-string keys -> i.e., use Tuples, integers etc. as keys
     auto t_2 = python::Type::makeStructuredDictType({make_pair(10, python::Type::F64)}); // i64 -> f64 struct!
@@ -247,8 +247,27 @@ TEST(TypeSys, structuredDictType) {
     EXPECT_EQ(decoded_2.desc(), t_2.desc());
 
 
-    // test 2: full type test
-
-
+    // test 3: nested struct type, different keys etc.
+    auto subt_3_1 = python::Type::makeStructuredDictType({make_pair(10, python::Type::F64)}); // i64 -> f64 struct!
+    auto encoded_subt_3_1 = subt_3_1.desc();
+    auto decoded_subt_3_1 = python::decodeType(encoded_subt_3_1);
+    EXPECT_EQ(decoded_subt_3_1.desc(), subt_3_1.desc());
+    auto subt_3_2 = python::Type::makeStructuredDictType({make_pair(Field(Tuple(20, 30)), python::Type::I64),
+                                                          make_pair(Field(Tuple(Field(Tuple(20, 32)), 20, 30)), Field(Tuple(20, 3.4)).getType()),
+                                                          make_pair("test", python::Type::STRING),
+                                                          make_pair("world", python::Type::I64),
+                                                          make_pair(42, python::Type::makeTupleType({
+                                                              python::Type::makeOptionType(python::Type::I64), python::Type::STRING
+                                                          }))
+    });
+    auto encoded_subt_3_2 = subt_3_2.desc();
+    auto decoded_subt_3_2 = python::decodeType(encoded_subt_3_2);
+    EXPECT_EQ(decoded_subt_3_2.desc(), subt_3_2.desc());
+    auto t_3 = python::Type::makeStructuredDictType({make_pair("nested_1", subt_3_1),
+                                                     make_pair("nested_2", subt_3_2),
+                                                     make_pair("str_list", python::Type::makeListType(python::Type::I64))});
+    auto encoded_3 = t_3.desc();
+    auto decoded_3 = python::decodeType(encoded_3);
+    EXPECT_EQ(decoded_3.desc(), t_3.desc());
 
 }

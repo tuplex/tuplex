@@ -14,6 +14,7 @@
 #include <JsonStatistic.h>
 #include <fstream>
 #include <TypeHelper.h>
+#include <Utils.h>
 
 static std::string fileToString(const std::string& path) {
     std::ifstream t(path);
@@ -56,6 +57,92 @@ namespace tuplex {
             types[type]++;
         }
     };
+
+    //
+    /*!
+     * check whether strings in needle adheres to order of reference array. Each element of needle must be contained within reference,
+     * but there may be elements in reference that aren't contained. No duplicates allowed in either needle or reference!
+     */
+    bool adheresToRelativeOrder(const std::vector<std::string>& needle, const std::vector<std::string>& reference) {
+        assert(std::set<std::string>(needle.begin(), needle.end()).size() == needle.size());
+        assert(std::set<std::string>(reference.begin(), reference.end()).size() == reference.size());
+        assert(needle.size() <= reference.size());
+
+        if(needle.empty())
+            return true;
+
+        // construct relative positioning lookup
+        size_t needle_pos = 0;
+        size_t ref_pos = 0;
+        while(needle_pos < needle.size()) {
+            // check whether element can be found in reference
+            while(ref_pos < reference.size() && reference[ref_pos] != needle[needle_pos])
+                ref_pos++;
+            if(ref_pos >= reference.size() || needle_pos > ref_pos)
+                return false;
+            needle_pos++;
+        }
+
+        return needle_pos == needle.size() && ref_pos != reference.size() && needle_pos <= ref_pos; // all were found
+    }
+
+
+    bool columnsAdheringAllToSameOrder(const std::vector<std::vector<std::string>>& v, std::vector<std::string>* detectedOrderedUniqueNames) {
+
+        using namespace std;
+        if(v.empty())
+            return true;
+
+        // pass 1: get default order of how column names are encountered.
+        vector<string> column_names = v.front();
+        set<string> unique_names(column_names.begin(), column_names.end());
+        for(unsigned i = 1; i < v.size(); ++i) {
+            // go through names and check whether they are all contained within the collected names
+            for(unsigned j = 0; j < v[i].size(); ++j) {
+                auto name = v[i][j];
+                if(unique_names.find(name) == unique_names.end()) {
+                    // not contained! Therefore insert at the current position and shift the rest of the vector further up!
+                    column_names.insert(column_names.begin() + j, name);
+                    unique_names.insert(name);
+                } else {
+                    // check if index j is smaller equal than detected index in already encountered column names
+                    size_t idx = 0;
+                    while(idx < column_names.size() && column_names[idx] != name)
+                        idx++;
+                    if(idx < j)
+                        return false; // wrong!
+                }
+            }
+        }
+
+        if(detectedOrderedUniqueNames)
+            *detectedOrderedUniqueNames = column_names;
+
+        // pass 2: check whether the columns adhere to the order computed.
+
+        return true;
+    }
+}
+
+TEST(JSONUtils, relativeOrderTest) {
+    EXPECT_TRUE(tuplex::adheresToRelativeOrder({}, {"a", "b", "c"}));
+    EXPECT_TRUE(tuplex::adheresToRelativeOrder({"a"}, {"a", "b", "c"}));
+    EXPECT_TRUE(tuplex::adheresToRelativeOrder({"b"}, {"a", "b", "c"}));
+    EXPECT_TRUE(tuplex::adheresToRelativeOrder({"c"}, {"a", "b", "c"}));
+    EXPECT_TRUE(tuplex::adheresToRelativeOrder({"a", "b"}, {"a", "b", "c"}));
+    EXPECT_TRUE(tuplex::adheresToRelativeOrder({"a", "c"}, {"a", "b", "c"}));
+    EXPECT_TRUE(tuplex::adheresToRelativeOrder({"b", "c"}, {"a", "b", "c"}));
+    // false
+    EXPECT_FALSE(tuplex::adheresToRelativeOrder({"b", "a"}, {"a", "b", "c"})); // wrong order
+    EXPECT_FALSE(tuplex::adheresToRelativeOrder({"c", "a"}, {"a", "b", "c"})); // wrong order
+    EXPECT_FALSE(tuplex::adheresToRelativeOrder({"c", "b"}, {"a", "b", "c"})); // wrong order
+    EXPECT_FALSE(tuplex::adheresToRelativeOrder({"d"}, {"a", "b", "c"})); // not contained
+    EXPECT_FALSE(tuplex::adheresToRelativeOrder({"a", "d"}, {"a", "b", "c"})); // partially not contained
+    EXPECT_FALSE(tuplex::adheresToRelativeOrder({"d", "a"}, {"a", "b", "c"})); // partially not contained
+    EXPECT_FALSE(tuplex::adheresToRelativeOrder({"b", "d"}, {"a", "b", "c"})); // partially not contained
+    EXPECT_FALSE(tuplex::adheresToRelativeOrder({"d", "b"}, {"a", "b", "c"})); // partially not contained
+    EXPECT_FALSE(tuplex::adheresToRelativeOrder({"c", "d"}, {"a", "b", "c"})); // partially not contained
+    EXPECT_FALSE(tuplex::adheresToRelativeOrder({"d", "c"}, {"a", "b", "c"})); // partially not contained
 }
 
 TEST(JSONUtils, SIMDJSONFieldParse) {
@@ -83,6 +170,35 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
     }
 
     std::cout<<"sample contains "<<min_column_name_count<<" - "<<max_column_name_count<<" columns"<<std::endl;
+    std::vector<std::string> column_names_ordered;
+    std::cout<<"Do all rows adhere to same column order?: "<<std::boolalpha<<columnsAdheringAllToSameOrder(column_names, &column_names_ordered)<<std::endl;
+
+    // @TODO: might need to resort columns after names b.c. JSON order is NOT unique...
+    // other option is to use struct type to find majority types...
+
+
+    bool treatMissingValuesAsNulls = false;
+
+    // if not same column order -> need to resort rows!!!
+    bool same_column_order = columnsAdheringAllToSameOrder(column_names, &column_names_ordered);
+    if(!same_column_order) {
+        throw std::runtime_error("need to resort/reorder column");
+    } else {
+        // if fill-in with missing null-values is ok, then can use maximum order of columns, if not need to first detect maximum order
+        if(treatMissingValuesAsNulls) {
+
+        } else {
+            std::cout<<"detecting majority case column count and names"<<std::endl;
+            std::unordered_map<std::vector<std::string>, size_t> column_count_counts;
+            for(auto names : column_names) {
+                column_count_counts[names]++;
+            }
+
+            // majority case
+
+        }
+    }
+
 
     return;
 

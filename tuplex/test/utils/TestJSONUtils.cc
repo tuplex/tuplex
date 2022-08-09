@@ -122,6 +122,41 @@ namespace tuplex {
 
         return true;
     }
+
+    template<typename T> bool vec_set_eq(const std::vector<T>& lhs, const std::vector<T>& rhs) {
+        std::set<T> L(lhs.begin(), lhs.end());
+        std::set<T> R(rhs.begin(), rhs.end());
+
+        auto lsize = L.size();
+        auto rsize = R.size();
+
+        if(lsize != rsize)
+            return false;
+
+        // merge sets
+        for(auto el : rhs)
+            L.insert(el);
+        return L.size() == lsize;
+    }
+
+    void reorder_row(Row& row,
+                     const std::vector<std::string>& row_column_names,
+                     const std::vector<std::string>& dest_column_names) {
+
+        assert(row_column_names.size() == dest_column_names.size());
+        assert(vec_set_eq(row_column_names, dest_column_names)); // expensive check
+
+        // for each name, figure out where it has to be moved to!
+        std::unordered_map<unsigned, unsigned> map;
+        std::vector<Field> fields(row_column_names.size());
+        for(unsigned i = 0; i < row_column_names.size(); ++i) {
+            map[i] = indexInVector(row_column_names[i], dest_column_names);
+        }
+        for(unsigned i = 0; i < row_column_names.size(); ++i)
+            fields[map[i]] = row.get(i);
+        row = Row::from_vector(fields);
+    }
+
 }
 
 TEST(JSONUtils, relativeOrderTest) {
@@ -143,6 +178,15 @@ TEST(JSONUtils, relativeOrderTest) {
     EXPECT_FALSE(tuplex::adheresToRelativeOrder({"d", "b"}, {"a", "b", "c"})); // partially not contained
     EXPECT_FALSE(tuplex::adheresToRelativeOrder({"c", "d"}, {"a", "b", "c"})); // partially not contained
     EXPECT_FALSE(tuplex::adheresToRelativeOrder({"d", "c"}, {"a", "b", "c"})); // partially not contained
+}
+
+TEST(JSONUtils, ReorderRow) {
+    using namespace std;
+    using namespace tuplex;
+
+    Row r(10, 20, 30);
+    reorder_row(r, {"a", "b", "c"}, {"b", "c", "a"});
+    EXPECT_EQ(r.toPythonString(), "(20,30,10)");
 }
 
 TEST(JSONUtils, SIMDJSONFieldParse) {
@@ -176,17 +220,35 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
     // @TODO: might need to resort columns after names b.c. JSON order is NOT unique...
     // other option is to use struct type to find majority types...
 
-
-    bool treatMissingValuesAsNulls = false;
-
     // if not same column order -> need to resort rows!!!
     bool same_column_order = columnsAdheringAllToSameOrder(column_names, &column_names_ordered);
+
+    // the detection results
+    size_t detected_column_count = 0;
+    std::vector<std::string> detected_column_names;
+
+    // detection conf variables
+    double conf_nc_threshold = 0.9;
+    bool conf_independent_columns=true;
+    bool conf_use_nvo=true;
+    bool conf_treatMissingDictKeysAsNone = false;
+    bool conf_autoupcast_numbers = false;
+    bool conf_allowUnifyWithPyObject = false;
+
     if(!same_column_order) {
         throw std::runtime_error("need to resort/reorder column");
     } else {
-        // if fill-in with missing null-values is ok, then can use maximum order of columns, if not need to first detect maximum order
-        if(treatMissingValuesAsNulls) {
 
+        std::vector<Row> sample;
+
+        // if fill-in with missing null-values is ok, then can use maximum order of columns, if not need to first detect maximum order
+        if(conf_treatMissingDictKeysAsNone) {
+            // detect majority type of rows (individual columns (?) )
+            detected_column_count = column_names_ordered.size();
+            detected_column_names = column_names_ordered;
+
+            // fix up columns and add them to sample
+            throw std::runtime_error("nyimpl");
         } else {
             std::cout<<"detecting majority case column count and names"<<std::endl;
             std::unordered_map<std::vector<std::string>, size_t> column_count_counts;
@@ -195,10 +257,76 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
             }
 
             // majority case
+            std::cout<<"found "<<pluralize(column_count_counts.size(), "unique column name constellation")<<std::endl;
 
+            auto most_frequent_count = 0;
+            std::vector<std::string> most_frequent_names;
+            for(auto el : column_count_counts)
+                if(el.second > most_frequent_count) {
+                    most_frequent_count = el.second;
+                    most_frequent_names = el.first;
+                }
+            std::cout<<"most common column names are: "<<most_frequent_names<<" ("
+                     <<pluralize(most_frequent_names.size(), "column")<<", "
+                     <<(100.0 * most_frequent_count / (1.0 * column_names.size()))<<"%)"<<std::endl;
+
+            // now compute majority row type by first filtering on the columns adhering to that column count
+            detected_column_count = most_frequent_names.size();
+            detected_column_names = most_frequent_names;
+
+            // create sample by scanning
+            assert(column_names.size() == rows.size());
+            for(unsigned i = 0; i < column_names.size(); ++i) {
+                if(rows[i].getNumColumns() != detected_column_count)
+                    continue;
+                if(column_names[i] == detected_column_names) {
+                    // add to sample
+                    sample.push_back(rows[i]);
+                } else {
+                    // skip for now, later implement here order-invariant => i.e. reorder columns!
+                    if(vec_set_eq(column_names[i], detected_column_names)) {
+                        Row row = rows[i];
+                        reorder_row(row, column_names[i], detected_column_names);
+                        sample.push_back(row);
+                    } else {
+                        continue;
+                    }
+                }
+            }
         }
-    }
 
+        std::cout<<"sample has "<<pluralize(sample.size(), "row")<<std::endl;
+
+        // detect type based on sample...
+        auto majorityRowType = detectMajorityRowType(sample, conf_nc_threshold, conf_independent_columns, conf_use_nvo);
+        std::cout<<"detected majority column type is: "<<majorityRowType.desc()<<std::endl;
+
+        // check how many (of the original) rows adhere to this detected normal-case type
+        // this also requires column name checking!
+        size_t nc_count = 0;
+        for(unsigned i = 0; i < column_names.size(); ++i) {
+            if(rows[i].getNumColumns() != detected_column_count)
+                continue;
+            if(column_names[i] == detected_column_names) {
+               if(unifyTypes(rows[i].getRowType(), majorityRowType,
+                             conf_autoupcast_numbers, conf_treatMissingDictKeysAsNone, conf_allowUnifyWithPyObject) == python::Type::UNKNOWN)
+                   continue;
+            } else {
+                // skip for now, later implement here order-invariant => i.e. reorder columns!
+                if(vec_set_eq(column_names[i], detected_column_names)) {
+                    Row row = rows[i];
+                    reorder_row(row, column_names[i], detected_column_names);
+                    if(unifyTypes(row.getRowType(), majorityRowType,
+                                  conf_autoupcast_numbers, conf_treatMissingDictKeysAsNone, conf_allowUnifyWithPyObject) == python::Type::UNKNOWN)
+                        continue;
+                } else {
+                    continue;
+                }
+            }
+            nc_count++;
+        }
+        std::cout<<"Of original sample, "<<nc_count<<"/"<<pluralize(rows.size(), "row")<<" ("(100.0 * nc_count / (1.0 * rows.size()))<<"%) adhere to normal case"<<std::endl;
+    }
 
     return;
 

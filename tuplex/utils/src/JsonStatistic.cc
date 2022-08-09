@@ -213,7 +213,7 @@ namespace tuplex {
         // https://simdjson.org/api/2.0.0/md_doc_iterate_many.html
         simdjson::ondemand::parser parser;
         simdjson::ondemand::document_stream stream;
-        auto error = parser.iterate_many(buf, buf_size, SIMDJSON_BATCH_SIZE).get(stream);
+        auto error = parser.iterate_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).get(stream);
         if(error) {
             stringstream err_stream; err_stream<<error;
             throw std::runtime_error(err_stream.str());
@@ -242,6 +242,10 @@ namespace tuplex {
         // anonymous row? I.e., simple value?
         for(auto it = stream.begin(); it != stream.end(); ++it) {
             auto doc = (*it);
+
+            // error? stop parse, return partial results
+            if(doc.type().error())
+                break;
 
             auto line_type = doc.type().value();
             line_types[line_type]++;
@@ -304,7 +308,7 @@ namespace tuplex {
                         } else if(row_field_types[i].isListType()) {
                             // list field?
                             // TODO
-                            throw std::runtime_error("nyimpl");
+                            throw std::runtime_error("field type list not yet implemented, todo");
                         } else {
                             // convert primitive string to field
                             fields.push_back(stringToField(row_json_strings[i], row_field_types[i]));
@@ -318,6 +322,9 @@ namespace tuplex {
                 case simdjson::ondemand::json_type::array: {
                     // unknown, i.e. error line.
                     // header? -> first line?
+
+                    // @TODO: not yet fully implemented!!!
+
                     if(first_row) {
                         bool all_elements_strings = true;
                         auto arr = doc.get_array();

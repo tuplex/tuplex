@@ -95,7 +95,8 @@ namespace tuplex {
         // special case: optimized types!
         // -> @TODO: can unify certain types, else just deoptimize.
         if(a.isOptimizedType() || b.isOptimizedType())
-            return unifyTypes(deoptimizedType(a), deoptimizedType(b), allowAutoUpcastOfNumbers);
+            return unifyTypes(deoptimizedType(a), deoptimizedType(b),
+                              allowAutoUpcastOfNumbers, treatMissingDictKeysAsNone, allowUnifyWithPyObject);
 
         if(a == python::Type::NULLVALUE)
             return python::Type::makeOptionType(b);
@@ -146,7 +147,7 @@ namespace tuplex {
         // list type? check if element type compatible
         if(aUnderlyingType.isListType() && bUnderlyingType.isListType() && aUnderlyingType != python::Type::EMPTYLIST && bUnderlyingType != python::Type::EMPTYLIST) {
             python::Type newElementType = unifyTypes(aUnderlyingType.elementType(), bUnderlyingType.elementType(),
-                                                     allowAutoUpcastOfNumbers);
+                                                     allowAutoUpcastOfNumbers, treatMissingDictKeysAsNone, allowUnifyWithPyObject);
             if(newElementType == python::Type::UNKNOWN) {
                 // incompatible list element type
                 return python::Type::UNKNOWN;
@@ -166,7 +167,10 @@ namespace tuplex {
             std::vector<python::Type> newTuple;
             for (size_t i = 0; i < aUnderlyingType.parameters().size(); i++) {
                 python::Type newElementType = unifyTypes(aUnderlyingType.parameters()[i],
-                                                         bUnderlyingType.parameters()[i], allowAutoUpcastOfNumbers);
+                                                         bUnderlyingType.parameters()[i],
+                                                         allowAutoUpcastOfNumbers,
+                                                         treatMissingDictKeysAsNone,
+                                                         allowUnifyWithPyObject);
                 if(newElementType == python::Type::UNKNOWN) {
                     // incompatible tuple element type
                     return python::Type::UNKNOWN;
@@ -177,20 +181,6 @@ namespace tuplex {
                 return python::Type::makeOptionType(python::Type::makeTupleType(newTuple));
             }
             return python::Type::makeTupleType(newTuple);
-        }
-
-        // dictionary type
-        if(aUnderlyingType.isDictionaryType() && bUnderlyingType.isDictionaryType()) {
-            auto key_t = unifyTypes(aUnderlyingType.keyType(), bUnderlyingType.keyType(), allowAutoUpcastOfNumbers);
-            auto val_t = unifyTypes(aUnderlyingType.elementType(), bUnderlyingType.elementType(), allowAutoUpcastOfNumbers);
-            if(key_t == python::Type::UNKNOWN || val_t == python::Type::UNKNOWN) {
-                return python::Type::UNKNOWN;
-            }
-            if(makeOption) {
-                return python::Type::makeOptionType(python::Type::makeDictionaryType(key_t, val_t));
-            } else {
-                return python::Type::makeDictionaryType(key_t, val_t);
-            }
         }
 
         // ---
@@ -300,6 +290,20 @@ namespace tuplex {
                     return python::Type::UNKNOWN;
                 // else, create new dict structure of this!
                 return python::Type::makeDictionaryType(uni_key_type, uni_value_type);
+            }
+        }
+
+        // dictionary type
+        if(aUnderlyingType.isDictionaryType() && bUnderlyingType.isDictionaryType()) {
+            auto key_t = unifyTypes(aUnderlyingType.keyType(), bUnderlyingType.keyType(),  allowAutoUpcastOfNumbers, treatMissingDictKeysAsNone, allowUnifyWithPyObject);
+            auto val_t = unifyTypes(aUnderlyingType.elementType(), bUnderlyingType.elementType(),  allowAutoUpcastOfNumbers, treatMissingDictKeysAsNone, allowUnifyWithPyObject);
+            if(key_t == python::Type::UNKNOWN || val_t == python::Type::UNKNOWN) {
+                return python::Type::UNKNOWN;
+            }
+            if(makeOption) {
+                return python::Type::makeOptionType(python::Type::makeDictionaryType(key_t, val_t));
+            } else {
+                return python::Type::makeDictionaryType(key_t, val_t);
             }
         }
 

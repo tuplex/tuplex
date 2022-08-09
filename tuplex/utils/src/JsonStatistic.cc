@@ -11,6 +11,93 @@
 
 namespace tuplex {
 
+    // non-recursive mapping
+    python::Type jsonTypeToPythonTypeNonRecursive(const simdjson::ondemand::json_type& jtype, const std::string_view& value) {
+        switch(jtype) {
+            case simdjson::ondemand::json_type::array: {
+                return python::Type::GENERICLIST;
+            }
+            case simdjson::ondemand::json_type::object: {
+                return python::Type::GENERICDICT;
+            }
+            case simdjson::ondemand::json_type::string: {
+                return python::Type::STRING;
+            }
+            case simdjson::ondemand::json_type::boolean: {
+                return python::Type::BOOLEAN;
+            }
+            case simdjson::ondemand::json_type::null: {
+                return python::Type::NULLVALUE;
+            }
+            case simdjson::ondemand::json_type::number: {
+                // if a . can be found -> floating point, else integer (if length is not too large!)
+                if(value.find('.') == std::string_view::npos)
+                    return python::Type::I64;
+                else
+                    return python::Type::F64;
+            }
+            default: {
+                return python::Type::UNKNOWN;
+            }
+        }
+    }
+
+    python::Type jsonTypeToPythonTypeRecursive(simdjson::simdjson_result<simdjson::fallback::ondemand::value> obj) {
+        using namespace std;
+
+        // is a nested field?
+        if(obj.type() == simdjson::ondemand::json_type::object) {
+
+            // json is always string keys -> value
+            vector<python::StructEntry> kv_pairs;
+            for(auto field : obj.get_object()) {
+                // add to names
+                auto sv_key = field.unescaped_key().value();
+                std::string key = {sv_key.begin(), sv_key.end()};
+
+                python::StructEntry entry;
+                entry.key = escape_to_python_str(key);
+                entry.keyType = python::Type::STRING;
+                entry.valueType = jsonTypeToPythonTypeRecursive(field.value()); // recurse if necessary!
+                kv_pairs.push_back(entry);
+            }
+
+            return python::Type::makeStructuredDictType(kv_pairs);
+        }
+        // is it an array? => only homogenous arrays supported!
+        if(obj.type() == simdjson::ondemand::json_type::array) {
+
+            // homogenous type?
+            auto token = obj.raw_json_token().value();
+            auto arr = obj.get_array();
+            size_t arr_size = 0;
+
+            // go through array and check that types are the same
+            python::Type element_type;
+            bool first = true;
+            for(auto el : arr) {
+                auto next_type = jsonTypeToPythonTypeRecursive(el);
+                if(first) {
+                    element_type = next_type;
+                    first = false;
+                }
+                auto uni_type = unifyTypes(element_type, next_type);
+                if(uni_type == python::Type::UNKNOWN)
+                    return python::Type::makeListType(python::Type::PYOBJECT); // non-homogenous list
+                element_type = uni_type;
+                arr_size++;
+            }
+
+            if(arr_size == 0)
+                return python::Type::EMPTYLIST;
+
+            return python::Type::makeListType(element_type);
+        }
+
+        return jsonTypeToPythonTypeNonRecursive(obj.type(), obj.raw_json_token());
+    }
+
+
     //@March implement: finding Json Offset
     //@March + write tests.
     // we need this function to chunk JSON files later.
@@ -82,6 +169,195 @@ namespace tuplex {
         }
         // not found
         return -1;
+    }
+
+    static Field stringToField(const std::string& s, const python::Type& type) {
+        if(type == python::Type::NULLVALUE)
+            return Field::null();
+        if(type == python::Type::BOOLEAN) {
+            assert(s == "true" || s == "false");
+            return Field((bool)(s == "true"));
+        }
+        if(type == python::Type::I64) {
+            int64_t i = 0;
+            if(ecToI32(ExceptionCode::SUCCESS) == fast_atoi64(s.c_str(), s.c_str() + s.length(), &i)) {
+                return Field(i);
+            } else
+                throw std::runtime_error("integer parse error for field " + s);
+        }
+        if(type == python::Type::F64) {
+            double d = 0.0;
+            if(ecToI32(ExceptionCode::SUCCESS) == fast_atod(s.c_str(), s.c_str() + s.length(), &d)) {
+                return Field(d);
+            } else
+                throw std::runtime_error("double parse error for field " + s);
+        }
+        if(type == python::Type::STRING)
+            return Field(s);
+
+        if(type.isDictionaryType())
+            return Field::from_str_data(s, type);
+
+        throw std::runtime_error("unsupported primitive type " + type.desc());
+    }
+
+
+    std::vector<Row> parseRowsFromJSON(const char* buf, size_t buf_size, std::vector<std::vector<std::string>>* outColumnNames) {
+        using namespace std;
+
+        assert(buf[buf_size - 1] == '\0');
+
+        auto SIMDJSON_BATCH_SIZE=simdjson::dom::DEFAULT_BATCH_SIZE;
+
+        // use simdjson as parser b.c. cJSON has issues with integers/floats.
+        // https://simdjson.org/api/2.0.0/md_doc_iterate_many.html
+        simdjson::ondemand::parser parser;
+        simdjson::ondemand::document_stream stream;
+        auto error = parser.iterate_many(buf, buf_size, SIMDJSON_BATCH_SIZE).get(stream);
+        if(error) {
+            stringstream err_stream; err_stream<<error;
+            throw std::runtime_error(err_stream.str());
+        }
+
+        // break up into Rows and detect things along the way.
+        std::vector<Row> rows;
+
+        // pass I: detect column names
+        // first: detect column names (ordered? as they are?)
+        std::vector<std::string> column_names;
+        std::unordered_map<std::string, size_t> column_index_lookup_table;
+        std::set<std::string> column_names_set;
+
+        // @TODO: test with corrupted files & make sure this doesn't fail...
+        std::unordered_map<simdjson::ondemand::json_type, size_t> line_types;
+
+        // counting tables for types
+        std::unordered_map<std::tuple<size_t, python::Type>, size_t> type_counts;
+
+        bool first_row = false;
+
+        // cf. Tree Walking and JSON Element Types in https://github.com/simdjson/simdjson/blob/master/doc/basics.md
+        // use scalar() => for simple numbers etc.
+
+        // anonymous row? I.e., simple value?
+        for(auto it = stream.begin(); it != stream.end(); ++it) {
+            auto doc = (*it);
+
+            auto line_type = doc.type().value();
+            line_types[line_type]++;
+
+            std::vector<Field> fields;
+
+            // type of doc
+            switch(line_type) {
+                case simdjson::ondemand::json_type::object: {
+                    auto obj = doc.get_object();
+
+                    // key names == column names
+                    vector<string> row_column_names;
+                    vector<string> row_json_strings;
+                    vector<python::Type> row_field_types;
+
+                    // objects per line
+                    for(auto field : obj) {
+                        // add to names
+                        auto sv_key = field.unescaped_key().value();
+                        std::string key = {sv_key.begin(), sv_key.end()};
+                        auto jt = column_names_set.find(key);
+                        if(jt == column_names_set.end()) {
+                            size_t cur_index = column_index_lookup_table.size();
+                            column_index_lookup_table[key] = cur_index;
+                            column_names.push_back(key);
+                            column_names_set.insert(key);
+                        }
+
+                        // perform type count (lookups necessary because can be ANY order)
+                        auto py_type = jsonTypeToPythonTypeNonRecursive(field.value().type(), field.value().raw_json_token());
+
+                        // generic types? -> recurse!
+                        if(py_type == python::Type::GENERICDICT || py_type == python::Type::GENERICLIST) {
+                            py_type = jsonTypeToPythonTypeRecursive(field.value());
+                        }
+
+                        // add to count array
+                        type_counts[std::make_tuple(column_index_lookup_table[key], py_type)]++;
+
+                        // save raw data for more info
+                        row_column_names.push_back(key);
+                        auto sv_value = field.value().raw_json_token().value();
+                        row_json_strings.push_back({sv_value.begin(), sv_value.end()});
+                        row_field_types.push_back(py_type);
+                    }
+
+                    // output column names if desired & save row
+                    if(outColumnNames) {
+                        outColumnNames->push_back(row_column_names);
+                    }
+                    vector<Field> fields;
+                    for(unsigned i = 0; i < row_field_types.size(); ++i) {
+                        // can't be opt type -> primitives are parsed!
+                        assert(!row_field_types[i].isOptionType());
+                        if(row_field_types[i].isDictionaryType()) {
+                            // dict field?
+                            // simple, use json dict
+                            fields.push_back(Field::from_str_data(row_json_strings[i], row_field_types[i]));
+                        } else if(row_field_types[i].isListType()) {
+                            // list field?
+                            // TODO
+                            throw std::runtime_error("nyimpl");
+                        } else {
+                            // convert primitive string to field
+                            fields.push_back(stringToField(row_json_strings[i], row_field_types[i]));
+                        }
+
+                    }
+                    rows.push_back(Row::from_vector(fields));
+
+                    break;
+                }
+                case simdjson::ondemand::json_type::array: {
+                    // unknown, i.e. error line.
+                    // header? -> first line?
+                    if(first_row) {
+                        bool all_elements_strings = true;
+                        auto arr = doc.get_array();
+                        size_t pos = 0;
+                        for(auto field : arr) {
+                            if(field.type() != simdjson::ondemand::json_type::string)
+                                all_elements_strings = false;
+                            else {
+                                auto sv = field.get_string().value();
+                                auto name = std::string{sv.begin(), sv.end()};
+                                column_names.push_back(name);
+                            }
+
+                            // perform type count (lookups necessary because can be ANY order)
+                            auto py_type = jsonTypeToPythonTypeNonRecursive(field.value().type(), field.value().raw_json_token());
+                            // add to count array
+                            type_counts[std::make_tuple(pos, py_type)]++;
+                            pos++;
+                        }
+                    }
+                    break;
+                }
+                default: {
+                    // basic element -> directly map type!
+                    auto py_type = jsonTypeToPythonTypeNonRecursive(doc.type().value(), doc.raw_json_token());
+                    break;
+                }
+            }
+            first_row = true;
+
+            // the full json string of a row can be obtained via
+            // std::cout << it.source() << std::endl;
+            // {
+            //     stringstream ss;
+            //     ss<<it.source()<<std::endl;
+            //     string full_row = ss.str();
+            // }
+        }
+
+        return rows;
     }
 
     void JsonStatistic::walkJSONTree(std::unique_ptr<JSONTypeNode>& node, cJSON* json) {

@@ -19,6 +19,8 @@
 
 
 #include <Field.h>
+
+#include <TypeHelper.h>
 // types should be like form mypy https://mypy.readthedocs.io/en/latest/cheat_sheet_py3.html
 
 
@@ -382,6 +384,10 @@ namespace python {
         return TypeFactory::instance().isDictionaryType(*this);
     }
 
+    bool Type::isStructuredDictionaryType() const {
+        return TypeFactory::instance().isStructuredDictionaryType(*this);
+    }
+
     bool Type::isListType() const {
         return TypeFactory::instance().isListType(*this);
     }
@@ -423,7 +429,16 @@ namespace python {
             return false;
 
         auto type = it->second._type;
-        return type == AbstractType::DICTIONARY || t == Type::EMPTYDICT || t == Type::GENERICDICT;
+        return type == AbstractType::DICTIONARY || t == Type::EMPTYDICT || t == Type::GENERICDICT || type == AbstractType::STRUCTURED_DICTIONARY;
+    }
+
+    bool TypeFactory::isStructuredDictionaryType(const Type& t) const {
+        auto it = _typeMap.find(t._hash);
+        if(it == _typeMap.end())
+            return false;
+
+        auto type = it->second._type;
+        return type == AbstractType::STRUCTURED_DICTIONARY;
     }
 
     bool TypeFactory::isListType(const Type &t) const {
@@ -472,8 +487,40 @@ namespace python {
         return TypeFactory::instance().parameters(*this);
     }
 
+    std::vector<StructEntry> Type::get_struct_pairs() const {
+        assert(isStructuredDictionaryType());
+        auto& factory = TypeFactory::instance();
+        auto it = factory._typeMap.find(_hash);
+        assert(it != factory._typeMap.end());
+        return it->second._struct_pairs;
+    }
+
     Type Type::keyType() const {
-        assert(isDictionaryType() && _hash != EMPTYDICT._hash && _hash != GENERICDICT._hash);
+
+        // special cases: empty dict, generic dict and structured dict
+        if(_hash == EMPTYDICT._hash || _hash == GENERICDICT._hash)
+            return PYOBJECT;
+
+        // is it a structured dict? -> same key type?
+        if(isStructuredDictionaryType()) {
+            // check pairs and whether they all have the same type, if not return pyobject
+            auto& factory = TypeFactory::instance();
+            auto it = factory._typeMap.find(_hash);
+            assert(it != factory._typeMap.end());
+            auto pairs = it->second._struct_pairs;
+            assert(!pairs.empty()); // --> should be empty dict
+            auto key_type = pairs.front().keyType;
+            for(auto entry : pairs) {
+                // unify types...
+                key_type = tuplex::unifyTypes(key_type, entry.keyType);
+                if(key_type == UNKNOWN)
+                    return PYOBJECT;
+            }
+            return key_type;
+        }
+
+        // regular dict
+        assert(isDictionaryType() && !isStructuredDictionaryType() && _hash != EMPTYDICT._hash && _hash != GENERICDICT._hash);
         auto& factory = TypeFactory::instance();
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
@@ -490,6 +537,28 @@ namespace python {
     }
 
     Type Type::valueType() const {
+        // special cases: empty dict, generic dict and structured dict
+        if(_hash == EMPTYDICT._hash || _hash == GENERICDICT._hash)
+            return PYOBJECT;
+
+        // is it a structured dict? -> same key type?
+        if(isStructuredDictionaryType()) {
+            // check pairs and whether they all have the same type, if not return pyobject
+            auto& factory = TypeFactory::instance();
+            auto it = factory._typeMap.find(_hash);
+            assert(it != factory._typeMap.end());
+            auto pairs = it->second._struct_pairs;
+            assert(!pairs.empty()); // --> should be empty dict
+            auto value_type = pairs.front().keyType;
+            for(auto entry : pairs) {
+                // unify types...
+                value_type = tuplex::unifyTypes(value_type, entry.valueType);
+                if(value_type == UNKNOWN)
+                    return PYOBJECT;
+            }
+            return value_type;
+        }
+
         assert(isDictionaryType() && _hash != EMPTYDICT._hash && _hash != GENERICDICT._hash);
         auto& factory = TypeFactory::instance();
         auto it = factory._typeMap.find(_hash);
@@ -645,6 +714,15 @@ namespace python {
                 return true;
             return false;
         } else if(isDictionaryType()) {
+
+            // special case, structured dict:
+            if(isStructuredDictionaryType()) {
+                for(auto pair : get_struct_pairs())
+                    if(pair.keyType.isIllDefined() || pair.valueType.isIllDefined())
+                        return true;
+                return false;
+            }
+
             // empty or generic are well defined
             if(_hash == Type::EMPTYDICT._hash || _hash == Type::GENERICDICT._hash)
                 return false;
@@ -915,14 +993,25 @@ namespace python {
         if(isTupleType()) {
             // go through elements & construct optionless tuples
             vector<Type> params;
-            for(auto t : parameters())
+            for(const auto& t : parameters())
                 params.push_back(t.withoutOptions());
             return Type::makeTupleType(params);
         }
 
         // dict?
         if(isDictionaryType()) {
-            return Type::makeDictionaryType(keyType().withoutOptions(), valueType().withoutOptions());
+            if(isStructuredDictionaryType()) {
+                // go through pairs!
+                auto pairs = get_struct_pairs();
+                for(auto& entry : pairs) {
+                    entry.keyType = entry.keyType.withoutOptions();
+                    entry.valueType = entry.valueType.withoutOptions();
+                }
+                return Type::makeStructuredDictType(pairs);
+            } else {
+                // homogenous key/value type dict
+                return Type::makeDictionaryType(keyType().withoutOptions(), valueType().withoutOptions());
+            }
         }
 
         // list?
@@ -1001,6 +1090,52 @@ namespace python {
             return true;
         if(from == python::Type::EMPTYLIST && to.isListType())
             return true;
+
+        // cast between struct dict and dict
+        if(from.isStructuredDictionaryType() && to.isDictionaryType()) {
+            // special case from & to are both structured -> are they compatible?
+            if(from.isStructuredDictionaryType() && to.isStructuredDictionaryType()) {
+                auto from_pairs = from.get_struct_pairs();
+                auto to_pairs = to.get_struct_pairs();
+
+                // same number of elements? if not -> no cast possible!
+                if(from_pairs.size() != to_pairs.size())
+                    return false;
+
+                // go through pairs (note: they may be differently sorted...)
+                std::sort(from_pairs.begin(), from_pairs.end(), [](const StructEntry& a, const StructEntry& b) {
+                   return lexicographical_compare(a.key.begin(), a.key.end(), b.key.begin(), b.key.end());
+                });
+                std::sort(to_pairs.begin(), to_pairs.end(), [](const StructEntry& a, const StructEntry& b) {
+                    return lexicographical_compare(a.key.begin(), a.key.end(), b.key.begin(), b.key.end());
+                });
+
+                assert(from_pairs.size() == to_pairs.size());
+                for(unsigned i = 0; i < from_pairs.size(); ++i) {
+                    // must have same key
+                    if(from_pairs[i].key != to_pairs[i].key)
+                        return false;
+                    // keytype and valuetype must be compatible
+                    if(!canUpcastType(from_pairs[i].keyType, to_pairs[i].keyType))
+                        return false;
+                    if(!canUpcastType(from_pairs[i].valueType, to_pairs[i].valueType))
+                        return false;
+                }
+                return true;
+            } else {
+                // check whether ALL from key types and value types can be upcasted to generic type
+                auto dest_key_type = to.keyType();
+                auto dest_value_type = to.valueType();
+                auto pairs = from.get_struct_pairs();
+                for(const auto& p : pairs) {
+                    if(!canUpcastType(p.keyType, dest_key_type))
+                        return false;
+                    if(!canUpcastType(p.valueType, dest_value_type))
+                        return false;
+                }
+                return true;
+            }
+        }
 
         return false;
     }

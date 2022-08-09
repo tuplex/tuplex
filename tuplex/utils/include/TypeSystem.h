@@ -102,6 +102,7 @@ namespace python {
         bool isTupleType() const;
         bool isFunctionType() const;
         bool isDictionaryType() const;
+        bool isStructuredDictionaryType() const;
         bool isListType() const;
         bool isNumericType() const;
         bool isOptionType() const;
@@ -220,6 +221,10 @@ namespace python {
          * @return vector of type, may be empty.
          */
         std::vector<Type> derivedClasses() const;
+
+        // helper functions
+        std::vector<StructEntry> get_struct_pairs() const;
+
 
         static Type makeTupleType(std::initializer_list<Type> L);
         static Type makeTupleType(std::vector<Type> v);
@@ -421,6 +426,7 @@ namespace python {
 
         bool isFunctionType(const Type& t) const;
         bool isDictionaryType(const Type& t) const;
+        bool isStructuredDictionaryType(const Type& t) const;
         bool isTupleType(const Type& t) const;
         bool isOptionType(const Type& t) const;
         bool isListType(const Type& t) const;

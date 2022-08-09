@@ -10,6 +10,7 @@
 #include "TypeSystem.h"
 
 #include <simdjson.h>
+#include <TypeHelper.h>
 
 namespace tuplex {
 
@@ -24,6 +25,35 @@ namespace tuplex {
      */
     int64_t findNLJsonStart(const char* buf, size_t buf_size);
 
+    /*!
+     * maps a single primitive value to a python type (non-recursing_
+     * @param jtype
+     * @param value
+     * @return tuplex python type
+     */
+    extern python::Type jsonTypeToPythonTypeNonRecursive(const simdjson::ondemand::json_type& jtype, const std::string_view& value);
+
+    /*!
+     * recursively maps a json field to a python type value, recurses on arrays and objects. Arrays are
+     * mapped to List[PyObject] if they're not homogenous (i.e. all elements have the same type)
+     * @param obj
+     * @return python type
+     */
+    extern python::Type jsonTypeToPythonTypeRecursive(simdjson::simdjson_result<simdjson::fallback::ondemand::value> obj);
+
+    /*!
+     * parses rows from buf (newline delimited json) as tuplex rows,
+     * assigning detected type (StructType) per individual row.
+     * @param buf
+     * @param buf_size
+     * @param outColumnNames vector of string vectors storing the column names for each individual row if desired. If top-level is given as [...] takes either the first rows names or empty string.
+     * @return vector of Rows with types assigned.
+     */
+    extern std::vector<Row> parseRowsFromJSON(const char* buf, size_t buf_size, std::vector<std::vector<std::string>>* outColumnNames=nullptr);
+
+    inline std::vector<Row> parseRowsFromJSON(const std::string& s, std::vector<std::vector<std::string>>* outColumnNames=nullptr) {
+        return parseRowsFromJSON(s.c_str(), s.size() + 1, outColumnNames);
+    }
 
     // --> put implementation of this into JsonStatistic.cc file in utils/src/JsonStatistic.cc
 

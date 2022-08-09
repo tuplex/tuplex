@@ -329,7 +329,18 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
             }
             nc_count++;
         }
-        std::cout<<"Of original sample, "<<nc_count<<"/"<<pluralize(rows.size(), "row")<<" ("(100.0 * nc_count / (1.0 * rows.size()))<<"%) adhere to normal case"<<std::endl;
+        std::cout<<"Of the original sample, "<<nc_count<<"/"<<pluralize(rows.size(), "row")
+                 <<" ("<<(100.0 * nc_count / (1.0 * rows.size()))<<"%) adhere to the normal case"<<std::endl;
+
+        // how many can be processed when allowing for parsing into a tree like structure?
+        // @TODO
+        // ==> basically create max-struct type for this case! => in physical layer this requires a key-present check
+        //     at each level! => could be done e.g. with tree like struct to save space? => is this always a good idea?
+        // i.e., sparsity of json tree dictates the physical representation.
+
+        // how many rows require fallback because they do not fit normal nor general case?
+        // @TODO
+
     }
 
     return;

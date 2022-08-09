@@ -309,7 +309,9 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
                 continue;
             if(column_names[i] == detected_column_names) {
                if(unifyTypes(rows[i].getRowType(), majorityRowType,
-                             conf_autoupcast_numbers, conf_treatMissingDictKeysAsNone, conf_allowUnifyWithPyObject) == python::Type::UNKNOWN)
+                             conf_autoupcast_numbers,
+                             conf_treatMissingDictKeysAsNone,
+                             conf_allowUnifyWithPyObject) == python::Type::UNKNOWN)
                    continue;
             } else {
                 // skip for now, later implement here order-invariant => i.e. reorder columns!
@@ -317,7 +319,9 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
                     Row row = rows[i];
                     reorder_row(row, column_names[i], detected_column_names);
                     if(unifyTypes(row.getRowType(), majorityRowType,
-                                  conf_autoupcast_numbers, conf_treatMissingDictKeysAsNone, conf_allowUnifyWithPyObject) == python::Type::UNKNOWN)
+                                  conf_autoupcast_numbers,
+                                  conf_treatMissingDictKeysAsNone,
+                                  conf_allowUnifyWithPyObject) == python::Type::UNKNOWN)
                         continue;
                 } else {
                     continue;

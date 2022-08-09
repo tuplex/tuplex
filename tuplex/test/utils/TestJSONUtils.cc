@@ -65,8 +65,25 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
     std::string test_path = "../resources/ndjson/github.json";
     std::string data = fileToString(test_path);
 
-    //
-    auto rows = parseRowsFromJSON(data);
+    std::vector<std::vector<std::string>> column_names;
+    auto rows = parseRowsFromJSON(data, &column_names);
+
+    // fetch stat about column names, i.e. which ones occur how often?
+    // ==> per row stat?
+    // ==> replacing missing values with nulls or not?
+    std::set<std::string> unique_column_names;
+    size_t min_column_name_count = std::numeric_limits<size_t>::max();
+    size_t max_column_name_count = std::numeric_limits<size_t>::min();
+
+    for(auto names: column_names) {
+        for(auto name : names)
+            unique_column_names.insert(name);
+        min_column_name_count = std::min(min_column_name_count, names.size());
+        max_column_name_count = std::max(max_column_name_count, names.size());
+    }
+
+    std::cout<<"sample contains "<<min_column_name_count<<" - "<<max_column_name_count<<" columns"<<std::endl;
+
     return;
 
 

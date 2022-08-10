@@ -5049,7 +5049,8 @@ namespace tuplex {
                     // if not, error. Type annotation failed then!
                     auto& slot = it->second;
 
-                    auto uni_type = unifyTypes(slot.type, var.second.type, allowNumericUpcasting);
+                    TypeUnificationPolicy t_policy; t_policy.allowAutoUpcastOfNumbers = allowNumericUpcasting;
+                    auto uni_type = unifyTypes(slot.type, var.second.type, t_policy);
                     if(uni_type == python::Type::UNKNOWN) {
                         error("variable " + name + " declared in " + branch_name + " with type "
                               + var.second.type.desc() + " conflicts with slot type" +

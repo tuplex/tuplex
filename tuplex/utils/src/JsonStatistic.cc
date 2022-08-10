@@ -202,6 +202,53 @@ namespace tuplex {
     }
 
 
+    std::string jsonDictFromBuffer(const char* buf, size_t buf_size, int numBraces=0) {
+        // parse till either buf is exhausted or numStartBraces hits 0
+        size_t pos = 0;
+        auto startBraces = std::max(0, numBraces);
+        while(pos < buf_size) {
+            char c = buf[pos];
+
+            // what field is char?
+            if(c == '\"') {
+                // start of escaped field, skip till end of it!
+                pos++;
+                while(pos < buf_size && buf[pos] != '\"') {
+                    if(pos + 1 < buf_size && buf[pos] == '\\' && buf[pos + 1] == '\"')
+                        pos += 2;
+                    else
+                        pos++;
+                }
+                pos++;
+            } else if(c == '{') {
+                numBraces++;
+                pos++;
+            } else if(c == '}') {
+                numBraces--;
+                pos++;
+            } else {
+                pos++;
+            }
+
+            // braces done?
+            if(0 == numBraces) {
+                // return string!
+                char *rc = new char[startBraces + pos + 1];
+                memset(rc, 0, startBraces + pos + 1);
+                for(unsigned i = 0; i < startBraces; ++i)
+                    rc[i] = '{';
+                memcpy(rc + startBraces, buf, pos);
+
+                std::string res(rc);
+                delete [] rc;
+                return res;
+            }
+        }
+        // exhausted, no positive result...
+
+        return "";
+    }
+
     std::vector<Row> parseRowsFromJSON(const char* buf, size_t buf_size, std::vector<std::vector<std::string>>* outColumnNames) {
         using namespace std;
 
@@ -288,8 +335,14 @@ namespace tuplex {
 
                         // save raw data for more info
                         row_column_names.push_back(key);
-                        auto sv_value = field.value().raw_json_token().value();
-                        row_json_strings.push_back({sv_value.begin(), sv_value.end()});
+
+                        // fetch data for field (i.e., raw string)
+                        auto sv_value = simdjson::to_json_string(obj[key]).value();
+                        std::string str_value(sv_value.begin(), sv_value.end());
+
+                        row_json_strings.push_back(str_value);
+                        // cf. https://github.com/simdjson/simdjson/blob/master/doc/basics.md#direct-access-to-the-raw-string
+                        // --> however this works only for non-array/non-object data.
                         row_field_types.push_back(py_type);
                     }
 

@@ -236,6 +236,10 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
     bool conf_autoupcast_numbers = false;
     bool conf_allowUnifyWithPyObject = false;
 
+    TypeUnificationPolicy conf_type_policy;
+    conf_type_policy.unifyMissingDictKeys = true;
+
+
     if(!same_column_order) {
         throw std::runtime_error("need to resort/reorder column");
     } else {
@@ -306,23 +310,21 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
         // this also requires column name checking!
         size_t nc_count = 0;
         for(unsigned i = 0; i < column_names.size(); ++i) {
+
+            // row check:
+            std::cout<<"row: "<<rows[i].toPythonString()<<" type: "<<rows[i].getRowType().desc()<<std::endl;
+
             if(rows[i].getNumColumns() != detected_column_count)
                 continue;
             if(column_names[i] == detected_column_names) {
-               if(unifyTypes(rows[i].getRowType(), majorityRowType,
-                             conf_autoupcast_numbers,
-                             conf_treatMissingDictKeysAsNone,
-                             conf_allowUnifyWithPyObject) == python::Type::UNKNOWN)
+               if(!python::canUpcastToRowType(rows[i].getRowType(), majorityRowType))
                    continue;
             } else {
                 // skip for now, later implement here order-invariant => i.e. reorder columns!
                 if(vec_set_eq(column_names[i], detected_column_names)) {
                     Row row = rows[i];
                     reorder_row(row, column_names[i], detected_column_names);
-                    if(unifyTypes(row.getRowType(), majorityRowType,
-                                  conf_autoupcast_numbers,
-                                  conf_treatMissingDictKeysAsNone,
-                                  conf_allowUnifyWithPyObject) == python::Type::UNKNOWN)
+                    if(!python::canUpcastToRowType(row.getRowType(), majorityRowType))
                         continue;
                 } else {
                     continue;

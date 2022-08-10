@@ -1559,15 +1559,21 @@ namespace python {
                 while(pos < s.size() && isspace(s[pos]))
                     pos++;
                 // check if next one is ->
-                if(s.substr(pos, 2) == "->")
+                bool alwaysPresent = true;
+                if(s.substr(pos, 2) == "->") {
+                    alwaysPresent = true;
                     pos += 2;
-                else {
+                } else if(s.substr(pos, 2) == "=>") {
+                    alwaysPresent = false;
+                    pos += 2;
+                } else {
                     throw std::runtime_error("invalid pair found.");
                 }
                 // save onto last pair the string value!
                 assert(!kvStack.empty());
                 assert(!kvStack.top().empty());
                 kvStack.top().back().key = decoded_string;
+                kvStack.top().back().alwaysPresent = alwaysPresent;
             } else if(s[pos] == ']') {
                 numClosedSqBrackets++;
                 if(numOpenSqBrackets < numClosedSqBrackets) {

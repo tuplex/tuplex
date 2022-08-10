@@ -267,8 +267,12 @@ namespace tuplex {
             Tuple *t = (Tuple*) this->_ptrValue;
             return t->desc();
         } else if(type.isDictionaryType() || type == python::Type::GENERICDICT) {
+            // @TODO: update with concrete/correct typing -> conversion to python!
             char *dstr = reinterpret_cast<char*>(_ptrValue);
-            return PrintCJSONDict(cJSON_Parse(dstr));
+            if(!type.isStructuredDictionaryType())
+                return PrintCJSONDict(cJSON_Parse(dstr));
+
+            return dstr;
         } else if(type.isListType()) {
             List *l = (List*)this->_ptrValue;
             return l->desc();

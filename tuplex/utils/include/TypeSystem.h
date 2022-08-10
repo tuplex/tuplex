@@ -333,10 +333,13 @@ namespace python {
         std::string key; // the value of the key, represented as string
         Type keyType; // type required to decode the string key
         Type valueType; // type what to store under key
+        bool alwaysPresent; // whether this (key,value) pair is always present or not. if true, use ->, else use =>
 
         inline bool isUndefined() const {
             return key.empty() && keyType == Type() && valueType == Type();
         }
+
+        StructEntry() : alwaysPresent(true) {}
     };
 
     extern bool isLiteralType(const Type& type);

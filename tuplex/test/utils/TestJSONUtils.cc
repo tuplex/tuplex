@@ -193,7 +193,8 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
     using namespace tuplex;
 
     // super slow parse into tuplex structure using SIMDJSON
-    std::string test_path = "../resources/ndjson/github.json";
+//    std::string test_path = "../resources/ndjson/github.json";
+    std::string test_path = "../resources/ndjson/example1.json";
     std::string data = fileToString(test_path);
 
     std::vector<std::vector<std::string>> column_names;
@@ -340,6 +341,12 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
 
         // how many rows require fallback because they do not fit normal nor general case?
         // @TODO
+
+
+        // a sample query that helps for specializing:
+        // internal representation when rewriting data (?) => could also use original strings, so this could be stupid.
+        // however, different when partial data is extracted. => could apply to github. E.g., partially rewrite commit message (?)
+
 
     }
 

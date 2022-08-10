@@ -198,6 +198,7 @@ namespace python {
             kv_pair.keyType = f.getType();
             kv_pair.key = f.toPythonString();
             kv_pair.valueType = pair.second;
+            kv_pair.alwaysPresent = true;
             kv_pairs.push_back(kv_pair);
         }
         return createOrGetStructuredDictType(kv_pairs);
@@ -219,7 +220,8 @@ namespace python {
             // add mapping
             // escape non-string values as string
             auto py_string = kv_pair.keyType == python::Type::STRING ? kv_pair.key : escape_to_python_str(kv_pair.key);
-            pair_str += kv_pair.keyType.desc() + "," + py_string + "->" + kv_pair.valueType.desc();
+            auto map_str = kv_pair.alwaysPresent ? "->" : "=>";
+            pair_str += kv_pair.keyType.desc() + "," + py_string + map_str + kv_pair.valueType.desc();
 
             pair_str += ")";
             name += pair_str + ",";
@@ -1115,6 +1117,11 @@ namespace python {
                     // must have same key
                     if(from_pairs[i].key != to_pairs[i].key)
                         return false;
+                    // only maybe present -> maybe present, or present -> maybe, or present-> present can be casted. I.e
+                    // disallowed case is maybe present -> present!
+                    if(!from_pairs[i].alwaysPresent && to_pairs[i].alwaysPresent)
+                        return false;
+
                     // keytype and valuetype must be compatible
                     if(!canUpcastType(from_pairs[i].keyType, to_pairs[i].keyType))
                         return false;
@@ -1128,6 +1135,8 @@ namespace python {
                 auto dest_value_type = to.valueType();
                 auto pairs = from.get_struct_pairs();
                 for(const auto& p : pairs) {
+                    // for a dict[keytype,valuetype] keys are always maybe present, so no issue with upcasting.
+
                     if(!canUpcastType(p.keyType, dest_key_type))
                         return false;
                     if(!canUpcastType(p.valueType, dest_value_type))

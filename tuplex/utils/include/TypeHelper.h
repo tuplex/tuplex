@@ -96,6 +96,14 @@ namespace tuplex {
                                    const TypeUnificationPolicy& policy=TypeUnificationPolicy::defaultPolicy());
 
 
+    inline python::Type unifyTypes(const python::Type& a,
+                                   const python::Type& b,
+                                   bool allowNumericTypeUnification) {
+        TypeUnificationPolicy policy;
+        policy.allowAutoUpcastOfNumbers = allowNumericTypeUnification;
+        return unifyTypes(a, b, policy);
+    }
+
     /*!
     * special function to unify to a super type for two optimized types...
     * @param A

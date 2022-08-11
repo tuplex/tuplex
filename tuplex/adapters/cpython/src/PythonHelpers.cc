@@ -1420,7 +1420,7 @@ namespace python {
                 python::Type currElementType = mapPythonClassToTuplexType(PyList_GetItem(o, j), autoUpcast);
                 if(elementType != currElementType) {
                     // possible to use nullable type as element type?
-                    TypeUnificationPolicy policy; policy.allowAutoUpcastOfNumbers = autoUpcast;
+                    tuplex::TypeUnificationPolicy policy; policy.allowAutoUpcastOfNumbers = autoUpcast;
                     auto newElementType = tuplex::unifyTypes(elementType, currElementType, policy);
                     if (newElementType == python::Type::UNKNOWN) {
                         Logger::instance().defaultLogger().error("list with variable element type " + elementType.desc() + " and " + currElementType.desc() + " not supported.");

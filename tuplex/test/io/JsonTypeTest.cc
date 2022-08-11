@@ -42,4 +42,6 @@ TEST(JsonTypes, FlatTypes) {
 
 }
 
+// "_bedrooms\":10,\"price\":80.9}\n{\"num_bedrooms\":9,\"price\":20.9}"
+
 // @March: TODO, more tests...

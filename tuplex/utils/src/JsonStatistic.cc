@@ -160,7 +160,7 @@ namespace tuplex {
                 if(json_obj) {
                     cJSON_free(json_obj);
                     if(*end_ptr == '\n' || *end_ptr == '\r' || *end_ptr == '\0')
-                        return buf - ptr;
+                        return ptr - buf;
                 }
                 return pos;
             }
@@ -447,7 +447,7 @@ namespace tuplex {
         // find start offset (limited to size)
         auto start_offset = findNLJsonStart(start, size);
         if(start_offset < 0)
-            throw std::runtime_error("Coul not find start of valid JSON document in buffer of size " + std::to_string(size));
+            throw std::runtime_error("Could not find start of valid JSON document in buffer of size " + std::to_string(size));
 
         // start parsing at start + offset -> count then types/fields in tree structure
         const char *end_ptr = nullptr;

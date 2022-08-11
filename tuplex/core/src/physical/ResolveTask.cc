@@ -621,13 +621,15 @@ default:
                             } else {
 
                                 // there are three options where to store the result now
+                                TypeUnificationPolicy t_policy; t_policy.allowAutoUpcastOfNumbers = _allowNumericTypeUnification;
+
 
                                 // 1. fits targetOutputSchema (i.e. row becomes normalcase row)
-                                bool outputAsNormalRow = python::Type::UNKNOWN != unifyTypes(rowType, _targetOutputSchema.getRowType(), _allowNumericTypeUnification)
+                                bool outputAsNormalRow = python::Type::UNKNOWN != unifyTypes(rowType, _targetOutputSchema.getRowType(), t_policy)
                                                          && canUpcastToRowType(rowType, _targetOutputSchema.getRowType());
                                 // 2. fits generalCaseOutputSchema (i.e. row becomes generalcase row)
                                 bool outputAsGeneralRow = python::Type::UNKNOWN != unifyTypes(rowType,
-                                                                                              commonCaseOutputSchema().getRowType(), _allowNumericTypeUnification)
+                                                                                              commonCaseOutputSchema().getRowType(), t_policy)
                                                           && canUpcastToRowType(rowType, commonCaseOutputSchema().getRowType());
 
                                 // 3. doesn't fit, store as python object. => we should use block storage for this as well. Then data can be shared.

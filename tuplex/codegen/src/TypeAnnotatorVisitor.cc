@@ -95,7 +95,7 @@ namespace tuplex {
             auto combined_ret_type = _funcReturnTypes.front();
             for(int i = 1; i < _funcReturnTypes.size(); ++i)
                 combined_ret_type = unifyTypes(combined_ret_type, _funcReturnTypes[i],
-                                                       _policy.allowNumericTypeUnification);
+                                               _typeUnificationPolicy);
 
             if(combined_ret_type == python::Type::UNKNOWN) {
 
@@ -125,7 +125,7 @@ namespace tuplex {
 
                     for(int i = 1; i < v.size(); ++i) {
                         auto u_type = unifyTypes(best_so_far, std::get<0>(v[i]),
-                                                         _policy.allowNumericTypeUnification);
+                                                 _typeUnificationPolicy);
                         if(u_type != python::Type::UNKNOWN)
                             best_so_far = u_type;
                     }
@@ -150,19 +150,19 @@ namespace tuplex {
             // update suite with combined type!
             func->_suite->setInferredType(combined_ret_type);
 
-            bool autoUpcast = _policy.allowNumericTypeUnification;
+            auto typeUnificationPolicy = _typeUnificationPolicy;
 
             // set return type of all return statements to combined type!
             // ==> they will need to expand the respective value, usually given via their expression.
             tuplex::ApplyVisitor av([](const ASTNode* n) { return n->type() == ASTNodeType::Return; },
-                                    [combined_ret_type,autoUpcast](ASTNode& n) {
+                                    [combined_ret_type,typeUnificationPolicy](ASTNode& n) {
 
                                         // can upcast? => only then set. This allows in Blockgenerator to detect deviating return statements!
                                         if(n.getInferredType() == python::Type::UNKNOWN) // i.e. code that is never visited
                                             return;
 
                                         auto uni_type = unifyTypes(n.getInferredType(), combined_ret_type,
-                                                                           autoUpcast);
+                                                                   typeUnificationPolicy);
                                         if(uni_type != python::Type::UNKNOWN)
                                             n.setInferredType(combined_ret_type);
                                     });
@@ -252,6 +252,9 @@ namespace tuplex {
                              {"str", python::Type::STRING},
                              {"bool", python::Type::BOOLEAN}};
         assert(0.0 <= _policy.normalCaseThreshold && _policy.normalCaseThreshold <= 1.0);
+
+        // @TODO: add other flags from compile policy!
+        _typeUnificationPolicy.allowAutoUpcastOfNumbers = _policy.allowNumericTypeUnification;
     }
 
     void TypeAnnotatorVisitor::visit(NIdentifier* id) {
@@ -1294,7 +1297,7 @@ namespace tuplex {
             if(_nameTable.find(name) != _nameTable.end()) {
                 if(_nameTable[name] != type) {
                     // can we unify types?
-                    auto uni_type = unifyTypes(type, _nameTable[name], _policy.allowNumericTypeUnification);
+                    auto uni_type = unifyTypes(type, _nameTable[name], _typeUnificationPolicy);
                     if(uni_type != python::Type::UNKNOWN)
                         _nameTable[name] = uni_type;
                     else {
@@ -1331,7 +1334,7 @@ namespace tuplex {
 
                 if(if_type != else_type) {
                     // check if they can be unified
-                    auto uni_type = unifyTypes(if_type, else_type, _policy.allowNumericTypeUnification);
+                    auto uni_type = unifyTypes(if_type, else_type, _typeUnificationPolicy);
                     if(uni_type != python::Type::UNKNOWN) {
                         if_table[name] = uni_type;
                         else_table[name] = else_type;
@@ -1478,7 +1481,7 @@ namespace tuplex {
                 if(ifelse->isExpression()) {
                     // check:
                     if (iftype != elsetype) {
-                        auto combined_type = unifyTypes(iftype, elsetype, _policy.allowNumericTypeUnification);
+                        auto combined_type = unifyTypes(iftype, elsetype, _typeUnificationPolicy);
                         if(combined_type == python::Type::UNKNOWN)
                             error("could not combine type " + iftype.desc() +
                                   " of if-branch with type " + elsetype.desc() + " of else-branch in if-else expression");

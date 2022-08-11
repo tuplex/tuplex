@@ -17,6 +17,7 @@
 #include <IFailable.h>
 #include <tuple>
 #include <ASTHelpers.h>
+#include <TypeHelper.h>
 
 namespace tuplex {
 
@@ -24,6 +25,7 @@ namespace tuplex {
     private:
         SymbolTable& _symbolTable; // global symbol table for everything.
         const codegen::CompilePolicy& _policy;
+        TypeUnificationPolicy _typeUnificationPolicy;
         std::unordered_map<std::string, python::Type> _nameTable; // i.e. mini symbol table for assignments.
         std::unordered_map<std::string, std::shared_ptr<IteratorInfo>> _iteratorInfoTable; // i.e. name table for storing iteratorInfo of variables.
 

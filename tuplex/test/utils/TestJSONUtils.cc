@@ -266,7 +266,7 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
 
             auto most_frequent_count = 0;
             std::vector<std::string> most_frequent_names;
-            for(auto el : column_count_counts)
+            for(const auto& el : column_count_counts)
                 if(el.second > most_frequent_count) {
                     most_frequent_count = el.second;
                     most_frequent_names = el.first;
@@ -349,6 +349,13 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
         // internal representation when rewriting data (?) => could also use original strings, so this could be stupid.
         // however, different when partial data is extracted. => could apply to github. E.g., partially rewrite commit message (?)
 
+
+        // for parser: 1.) check normal-case 2.) check general-case -> NV violation! 3.) badparse input.
+
+
+        // next steps: TODO run large-scale analysis over github data, for each file detect how many
+        // data points would confirm to a) normal-case b) general-case c) fallback
+        // and how many different cases are detected!
 
     }
 

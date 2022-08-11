@@ -14,6 +14,7 @@
 #include <Serializer.h>
 #include <Field.h>
 #include <ExceptionCodes.h>
+#include <TypeHelper.h>
 
 namespace tuplex {
     /*!
@@ -199,12 +200,14 @@ namespace tuplex {
      * @param threshold normal-case threshold
      * @param independent_columns whether to treat each column independently or use joint maximization
      * @param use_nvo if active Option[T] types are speculated on to be either None, T or Option[T] depending on threshold
+     * @param t_policy to create a bigger majority case, types may be unified. This controls which policy to apply when unifying types.
      * @return majority type
      */
     extern python::Type detectMajorityRowType(const std::vector<Row>& rows,
                                               double threshold,
                                               bool independent_columns=true,
-                                              bool use_nvo=true);
+                                              bool use_nvo=true,
+                                              const TypeUnificationPolicy& t_policy=TypeUnificationPolicy::defaultPolicy());
 
 }
 #endif //TUPLEX_ROW_H

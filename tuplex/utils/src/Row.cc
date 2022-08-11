@@ -317,7 +317,8 @@ namespace tuplex {
     python::Type detectMajorityRowType(const std::vector<Row>& rows,
                                        double threshold,
                                        bool independent_columns,
-                                       bool use_nvo) {
+                                       bool use_nvo,
+                                       const TypeUnificationPolicy& t_policy) {
         if(rows.empty())
             return python::Type::UNKNOWN;
 
@@ -362,7 +363,7 @@ namespace tuplex {
                } else if(col_counts[i].size() == 1) {
                    col_types[i] = python::Type::fromHash(col_counts[i].begin()->second);
                } else {
-                   // more than one count. Now it getting tricky...
+                   // more than one count. Now it's getting tricky...
                    // is the first null and something else present? => use threshold to determine whether option type or not!
                    auto most_common_type = python::Type::fromHash(col_counts[i].begin()->second);
                    auto most_freq = col_counts[i].begin()->first;

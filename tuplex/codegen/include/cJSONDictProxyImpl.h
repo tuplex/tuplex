@@ -22,7 +22,9 @@ namespace tuplex {
     namespace codegen {
         class cJSONDictProxyImpl : public BuiltinDictProxyImpl {
         public:
-            cJSONDictProxyImpl() : _root(nullptr) {}
+            // cJSONDictProxyImpl() : _root(nullptr) {}
+            // is there a reason we want to separate the initialisation of cjsondictproxy objects and the actual cjson object?
+            cJSONDictProxyImpl() : _root(cJSON_CreateObject()) {}
             ~cJSONDictProxyImpl() {
                 if(_root) {
                     cJSON_free(_root);
@@ -35,6 +37,17 @@ namespace tuplex {
             void putItem(const Field& key, const Field& value) override;
             void putItem(const python::Type& keyType, const SerializableValue& key, const python::Type& valueType, const SerializableValue& value) override;
 
+            bool keyExists(const Field& key) override;
+
+            Field getItem(const Field& key) override;
+
+            void replaceItem(const Field& key, const Field& value) override;
+
+            void deleteItem(const Field& key) override;
+
+            // void getKeyView() override;
+
+            // void getValuesView() override;
 
             // notes:
             // for cJSON subscripting, need to perform

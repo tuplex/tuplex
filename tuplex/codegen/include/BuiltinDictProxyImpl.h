@@ -19,8 +19,21 @@ namespace tuplex {
     namespace codegen {
         class BuiltinDictProxyImpl {
         public:
+            // Q: what does virtual do ?
             virtual void putItem(const Field& key, const Field& value) = 0;
             virtual void putItem(const python::Type& keyType, const SerializableValue& key, const python::Type& valueType, const SerializableValue& value) = 0;
+
+            virtual bool keyExists(const Field& key) = 0;
+
+            virtual Field getItem(const Field& key) = 0;
+
+            virtual void replaceItem(const Field& key, const Field& value) = 0;
+
+            virtual void deleteItem(const Field& key) = 0;
+
+            // virtual void getKeyView() = 0;
+
+            // virtual void getValuesView() = 0;
         };
     }
 }

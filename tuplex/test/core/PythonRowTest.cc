@@ -238,6 +238,8 @@ TEST(PythonFunc, TracebackLambdaPickled) {
     PyInterpreterGuard g;
 
     std::string code = "\n\nlambda x: (x\n,10 / x)"; // note the \n at the beginning and within the lambda
+
+
     // to make the test more interesting.
     auto pickled_code = python::serializeFunction(python::getMainModule(), code);
 
@@ -254,7 +256,28 @@ TEST(PythonFunc, TracebackLambdaPickled) {
     EXPECT_EQ(pcr.functionName, "<lambda>");
 }
 
+TEST(PythonFunc, TracebackDefPickled) {
+  PyInterpreterGuard g;
 
+  std::string code = "\n\ndef f(x):\n\treturn (x\n,10 / x)\n\n"; // note the \n at the beginning and within the lambda
+
+  std::cout<<"Python function to test: "<<core::withLineNumbers(code)<<std::endl;
+
+  // to make the test more interesting.
+  auto pickled_code = python::serializeFunction(python::getMainModule(), code);
+
+  PyObject* pFunc = python::deserializePickledFunction(python::getMainModule(),
+                                                       pickled_code.c_str(),
+                                                       pickled_code.length());
+
+  auto pcr = python::callFunctionEx(pFunc, python::rowToPython((Row(0))));
+
+  EXPECT_EQ(pcr.res, nullptr);
+  EXPECT_EQ(pcr.exceptionClass, "ZeroDivisionError");
+  EXPECT_EQ(pcr.exceptionLineNo, 5);
+  EXPECT_EQ(pcr.functionFirstLineNo, 3);
+  EXPECT_EQ(pcr.functionName, "f");
+}
 
 //TEST(PythonFunc, Traceback) {
 //    python::initInterpreter();

@@ -1186,7 +1186,13 @@ namespace python {
         PyObject* e_lineno = traceback ? PyObject_GetAttrString(traceback, "tb_lineno") : nullptr;
         pcr.exceptionMessage = python::PyString_AsString(e_msg);
         pcr.exceptionClass = python::PyString_AsString(e_type);
-        pcr.exceptionLineNo = e_lineno ? PyLong_AsLong(e_lineno) : 0;
+
+#if (PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 10)
+      // there's a +1 off error for Python 3.10+
+      pcr.exceptionLineNo = e_lineno ? (PyLong_AsLong(e_lineno) + 1) : 0;
+#else
+      pcr.exceptionLineNo = e_lineno ? PyLong_AsLong(e_lineno) : 0;
+#endif
         pcr.exceptionCode = translatePythonExceptionType(type);
         Py_XDECREF(e_msg);
         Py_XDECREF(e_type);
@@ -1204,11 +1210,11 @@ namespace python {
         Py_XDECREF(traceback);
         PyErr_Clear();
 
-
         // fetch potential offset
         if(func) {
             auto dict = PyObject_GetAttrString(func, "__dict__");
             auto offset = PyDict_GetItemString(dict, "line_offset");
+
             if(offset) {
                 pcr.exceptionLineNo += PyLong_AsLong(offset);
                 pcr.functionFirstLineNo += PyLong_AsLong(offset);

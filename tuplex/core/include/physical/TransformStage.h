@@ -32,6 +32,7 @@
 #include <Defs.h>
 #include <logical/FileOutputOperator.h>
 #include <logical/AggregateOperator.h>
+#include <IncrementalCache.h>
 
 #ifdef BUILD_WITH_AWS
 // include protobuf serialization of TrafoStage for Lambda executor
@@ -131,6 +132,24 @@ namespace tuplex {
          */
          std::vector<PartitionGroup> partitionGroups() const { return _partitionGroups; }
 
+         /*!
+          * set cache entry of previous execution to be used by the incremental resolution
+          * @param entry
+          */
+         void setIncrementalCacheEntry(IncrementalCacheEntry* entry) { _incrementalCacheEntry = entry; }
+
+         /*!
+          * get cache entry of previous execution
+          * @return
+          */
+         IncrementalCacheEntry* incrementalCacheEntry() const { return _incrementalCacheEntry; }
+
+         /*!
+          * whether or not to use incremental resolution during stage execution
+          * @return
+          */
+         bool incrementalResolution() const { return _incrementalResolution; }
+
         /*!
          * sets maximum number of rows this pipeline will produce
          * @param outputLimit
@@ -181,6 +200,28 @@ namespace tuplex {
          * @return resultset of this stage
          */
         std::shared_ptr<ResultSet> resultSet() const override { return _rs;}
+
+        /*!
+         * Cache pipeline execution for merge in order
+         * @param normalPartitions normal rows
+         * @param exceptionPartitions exception rows
+         * @param partitionGroups mapping of normal to exception rows
+         */
+        void setIncrementalResult(const std::vector<Partition*>& normalPartitions,
+                                  const std::vector<Partition*>& exceptionPartitions,
+                                  const std::vector<PartitionGroup>& partitionGroups);
+
+        /*!
+         * Cache pipeline execution for merge out of order
+         * @param exceptionPartitions exception rows
+         * @param generalPartitions general rows
+         * @param fallbackPartitions fallback rows
+         * @param startFileNumber next file number to output rows to
+         */
+        void setIncrementalResult(const std::vector<Partition*>& exceptionPartitions,
+                                  const std::vector<Partition*>& generalPartitions,
+                                  const std::vector<Partition*>& fallbackPartitions,
+                                  size_t startFileNumber);
 
         void setMemoryResult(const std::vector<Partition*>& normalPartitions=std::vector<Partition*>{},
                              const std::vector<Partition*>& generalPartitions=std::vector<Partition*>{},
@@ -486,7 +527,10 @@ namespace tuplex {
         std::string _pyCode;
         std::string _pyPipelineName;
         std::string _writerFuncName;
+
         bool _updateInputExceptions;
+        bool _incrementalResolution;
+        IncrementalCacheEntry* _incrementalCacheEntry;
 
         std::shared_ptr<ResultSet> emptyResultSet() const;
 

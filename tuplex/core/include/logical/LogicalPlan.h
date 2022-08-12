@@ -32,7 +32,7 @@ namespace tuplex {
         void optimizeFilters();
         void emitPartialFilters();
         void reorderDataProcessingOperators();
-
+        void incrementalResolution(const Context &context);
     public:
 
         LogicalPlan() = delete;

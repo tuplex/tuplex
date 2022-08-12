@@ -144,7 +144,8 @@ namespace tuplex {
               size_t shardSize=0,
               size_t limit=std::numeric_limits<size_t>::max(),
               const std::string& null_value="",
-              py::object header=py::none());
+              py::object header=py::none(),
+              const bool commit=true);
 
         /*!
          * save dataset to one or more orc files. Triggers execution of pipeline.

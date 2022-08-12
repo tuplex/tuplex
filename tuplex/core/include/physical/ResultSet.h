@@ -166,7 +166,7 @@ namespace tuplex {
 
         /*!
          * retrieve all good rows in bulk, removes them from this result set.
-         * @return
+         * @return vector of partitions
          */
         std::vector<Partition*> normalPartitions() {
             std::vector<Partition*> p;
@@ -177,7 +177,7 @@ namespace tuplex {
 
         /*!
          * returns all general partitions, removes them from result set.
-         * @return
+         * @return vector of partitions
          */
         std::vector<Partition*> generalPartitions() {
             std::vector<Partition*> p;
@@ -188,7 +188,7 @@ namespace tuplex {
 
         /*!
          * returns all fallback partitions, removes them from result set.
-         * @return
+         * @return vector partitions
          */
         std::vector<Partition*> fallbackPartitions() {
             std::vector<Partition*> p;
@@ -198,14 +198,11 @@ namespace tuplex {
         }
 
         /*!
-         * returns all partition groups, removes them from result set.
-         * @return
+         * returns all partition groups
+         * @return vector of partitiongroup objects
          */
-        std::vector<PartitionGroup> partitionGroups() {
-            std::vector<PartitionGroup> g;
-            for (const auto& group : _partitionGroups)
-                g.push_back(group);
-            return g;
+        std::vector<PartitionGroup> partitionGroups() const {
+            return std::vector<PartitionGroup>(_partitionGroups.begin(), _partitionGroups.end());
         }
     };
 }

@@ -69,6 +69,8 @@ namespace tuplex {
         std::vector<IExecutorTask*> createLoadAndTransformToMemoryTasks(TransformStage* tstage, const ContextOptions& options, const std::shared_ptr<TransformStage::JITSymbols>& syms);
         void executeTransformStage(TransformStage* tstage);
 
+        std::vector<IExecutorTask*> createIncrementalTasks(TransformStage* tstage, const ContextOptions& options, const std::shared_ptr<TransformStage::JITSymbols>& syms);
+        void executeIncrementalStage(TransformStage* tstage);
 
         /*!
          * Create the final hashmap from all of the input [tasks] (e.g. either merge them (join) or combine them (aggregate)
@@ -93,7 +95,7 @@ namespace tuplex {
         MessageHandler& logger() const { return Logger::instance().logger("local ee"); }
 
         // write output (may be already in correct format!)
-        void writeOutput(TransformStage* tstage, std::vector<IExecutorTask*>& sortedTasks);
+        size_t writeOutput(TransformStage* tstage, std::vector<IExecutorTask*>& sortedTasks, size_t startFileNumber=0);
 
         std::vector<IExecutorTask*> performTasks(std::vector<IExecutorTask*>& tasks, std::function<void()> driverCallback=[](){});
 

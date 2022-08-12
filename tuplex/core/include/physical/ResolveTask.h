@@ -75,7 +75,8 @@ namespace tuplex {
                     char csvDelimiter,
                     char csvQuotechar,
                     codegen::resolve_f functor=nullptr,
-                    PyObject* interpreterFunctor=nullptr) : IExceptionableTask::IExceptionableTask(exceptionInputSchema, contextID),
+                    PyObject* interpreterFunctor=nullptr,
+                    bool isIncremental=false) : IExceptionableTask::IExceptionableTask(exceptionInputSchema, contextID),
                                                             _stageID(stageID),
                                                             _partitions(partitions),
                                                             _exceptionPartitions(exceptionPartitions),
@@ -100,7 +101,9 @@ namespace tuplex {
                                                             _outputRowNumber(0),
                                                             _wallTime(0.0),
                                                             _numInputRowsRead(0),
-                                                            _numUnresolved(0) {
+                                                            _numUnresolved(0),
+                                                            _numResolved(0),
+                                                            _isIncremental(isIncremental) {
             // copy the IDs and sort them so binary search can be used.
             std::sort(_operatorIDsAffectedByResolvers.begin(), _operatorIDsAffectedByResolvers.end());
             _normalPtrBytesRemaining = 0;
@@ -222,6 +225,8 @@ namespace tuplex {
         size_t _generalCounter;
         size_t _fallbackCounter;
 
+        bool _isIncremental;
+
         inline Schema commonCaseInputSchema() const { return _deserializerGeneralCaseOutput->getSchema(); }
         Schema                  _resolverOutputSchema; //! what the resolve functor produces
         Schema                  _targetOutputSchema; //! which schema the final rows should be in...
@@ -236,6 +241,7 @@ namespace tuplex {
         char _csvQuotechar;
 
         size_t _numUnresolved;
+        size_t _numResolved;
 
         int64_t                 _currentRowNumber;
         // std::vector<Partition*> _mergedPartitions;

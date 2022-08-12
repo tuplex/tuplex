@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-08-12 13:07:47.288214
+# auto-generated on 2022-08-12 13:47:02.297874
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -59,6 +59,10 @@ mkdir -p ${WORKDIR}/cmake && cd ${WORKDIR}/cmake &&
   cp -rp share/* ${PREFIX}/share/ &&
   cd / && rm -rf ${WORKDIR}/cmake
 
+export PATH=$PREFIX/bin:$PATH
+cmake --version
+
+
 echo ">> Installing Boost"
 mkdir -p ${WORKDIR/boost}
     
@@ -77,7 +81,7 @@ mkdir -p ${WORKDIR}/llvm && cd ${WORKDIR}/llvm && wget https://github.com/llvm/l
 && cd llvm9 && mkdir build && cd build \
 && cmake -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON \
         -DLLVM_ENABLE_PROJECTS="clang" \
-         -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release \
+         -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-std=c++11 -include /usr/include/c++/11/limits" \
          -DCMAKE_INSTALL_PREFIX=/opt/llvm-9.0.1 ../llvm-9.0.1.src \
 && make -j "$(nproc)" && make install
 

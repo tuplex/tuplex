@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-08-12 12:49:07.530450
+# auto-generated on 2022-08-12 13:07:47.288214
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -34,7 +34,7 @@ echo ">> Building dependencies for ${PYTHON_VERSION}"
 echo ">> Installing apt dependencies"
 apt update -y
 
-apt-get install -y apt-utils curl libxml2-dev vim build-essential libssl-dev zlib1g-dev libncurses5-dev \
+apt-get install -y apt-utils dh-autoreconf curl libxml2-dev vim build-essential libssl-dev zlib1g-dev libncurses5-dev \
     libncursesw5-dev libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev \
     libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git
   
@@ -46,7 +46,7 @@ echo ">> Installing recent cmake"
 # fetch recent cmake & install
 CMAKE_VER_MAJOR=3
 CMAKE_VER_MINOR=23
-CMAKE_VER_PATCH=2
+CMAKE_VER_PATCH=3
 CMAKE_VER="${CMAKE_VER_MAJOR}.${CMAKE_VER_MINOR}"
 CMAKE_VERSION="${CMAKE_VER}.${CMAKE_VER_PATCH}"
 URL=https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz
@@ -87,15 +87,15 @@ mkdir -p ${WORKDIR}/pcre2 && cd ${WORKDIR}/pcre2 \
 && unzip pcre2-10.39.zip \
 && rm pcre2-10.39.zip \
 && cd pcre2-10.39 \
-&& ./configure --prefix=${PREFIX} --enable-jit=auto --disable-shared CFLAGS="-O2 -fPIC" \
+&& ./configure CFLAGS="-O2 -fPIC" --prefix=${PREFIX} --enable-jit=auto --disable-shared \
 && make -j$(nproc) && make install
 
 echo ">> Installing Celero"
 mkdir -p ${WORKDIR}/celero && cd ${WORKDIR}/celero \
-&&  git clone https://github.com/DigitalInBlue/Celero.git celero && celero \
-&& git checkout tags/v2.6.0 \
+&&  git clone https://github.com/DigitalInBlue/Celero.git celero && cd celero \
+&& git checkout tags/v2.8.3 \
 && mkdir build && cd build \
-&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \
+&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC -std=c++11" .. \
 && make -j$(nproc) && make install
 
 echo ">> Installing YAMLCPP"
@@ -103,8 +103,8 @@ mkdir -p ${WORKDIR}/yamlcpp && cd ${WORKDIR}/yamlcpp \
 && git clone https://github.com/jbeder/yaml-cpp.git yaml-cpp \
 && cd yaml-cpp \
 && git checkout tags/yaml-cpp-0.6.3 \
-&& mkdir build && cd build \ 
-&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${prefix} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS='-fPIC' .. \
+&& mkdir build && cd build \
+&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${prefix} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \
 && make -j$(nproc) && make install
 
 echo ">> Installing ANTLR"
@@ -120,9 +120,9 @@ mkdir -p ${WORKDIR}/antlr && cd ${WORKDIR}/antlr \
 
 echo ">> Installing protobuf"
 mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf \
-&& curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.19.3/protobuf-cpp-3.19.3.tar.gz \
-&& tar xf protobuf-cpp-3.19.3.tar.gz \
-&& cd protobuf-3.19.3 \
+&& curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.21.5/protobuf-cpp-3.21.5.tar.gz \
+&& tar xf protobuf-cpp-3.21.5.tar.gz \
+&& cd protobuf-3.21.5 \
 && ./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" \
 && make -j$(nproc) && make install && ldconfig
 

@@ -12,8 +12,25 @@
 #include <cassert>
 #include <MessageHandler.h>
 #include <Logger.h>
+
+#define BOOST_NO_SCOPED_ENUMS
+#define BOOST_NO_CXX11_SCOPED_ENUMS
+
+// gcc 11 fix
+#if defined(__GNUC__) && (__GNUC___ > 11 || (__GNUC__ == 11 && __GNUC_MINOR__ >= 0))
+#define BOOST_NO_CXX11_SCOPED_ENUMS
+#define BOOST_NO_SCOPED_ENUMS
+#include <boost/filesystem.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/filesystem/operations.hpp>
+#undef BOOST_NO_SCOPED_ENUMS
+#undef BOOST_NO_CXX11_SCOPED_ENUMS
+#else
+#include <boost/filesystem.hpp>
+#include <boost/system/error_code.hpp>
+#include <boost/filesystem/operations.hpp>
+#endif
+
 #include <Utils.h>
 #include <sys/mman.h>
 #include <glob.h>

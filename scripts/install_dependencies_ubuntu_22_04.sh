@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-08-12 13:47:02.297874
+# auto-generated on 2022-08-12 15:14:27.594102
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -34,7 +34,7 @@ echo ">> Building dependencies for ${PYTHON_VERSION}"
 echo ">> Installing apt dependencies"
 apt update -y
 
-apt-get install -y apt-utils dh-autoreconf curl libxml2-dev vim build-essential libssl-dev zlib1g-dev libncurses5-dev \
+apt-get install -y apt-utils dh-autoreconf libmagic-dev curl libxml2-dev vim build-essential libssl-dev zlib1g-dev libncurses5-dev \
     libncursesw5-dev libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev \
     libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git
   
@@ -67,11 +67,11 @@ echo ">> Installing Boost"
 mkdir -p ${WORKDIR/boost}
     
 # build incl. boost python
-pushd ${WORKDIR/boost} && wget https://boostorg.jfrog.io/artifactory/main/release/1.75.0/source/boost_1_75_0.tar.gz && tar xf boost_1_75_0.tar.gz && cd ${WORKDIR/boost}/boost_1_75_0 \
+pushd ${WORKDIR/boost} && wget https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79_0.tar.gz && tar xf boost_1_79_0.tar.gz && cd ${WORKDIR/boost}/boost_1_79_0 \
 && ./bootstrap.sh --with-python=${PYTHON_EXECUTABLE} --prefix=${PREFIX} --with-libraries="thread,iostreams,regex,system,filesystem,python,stacktrace,atomic,chrono,date_time" \
  && ./b2 cxxflags="-fPIC" link=static -j "$(nproc)" \
- && ./b2 cxxflags="-fPIC" link=static install
-
+ && ./b2 cxxflags="-fPIC" link=static install && sed -i 's/#if PTHREAD_STACK_MIN > 0/#ifdef PTHREAD_STACK_MIN/g' /opt/include/boost/thread/pthread/thread_data.hpp
+exit 0
 echo ">> Installing LLVM"
 mkdir -p ${WORKDIR}/llvm && cd ${WORKDIR}/llvm && wget https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1/llvm-9.0.1.src.tar.xz \
 && wget https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1/clang-9.0.1.src.tar.xz \

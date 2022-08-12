@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-08-12 12:28:46.938212
+# auto-generated on 2022-08-12 12:49:07.530450
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -39,8 +39,8 @@ apt-get install -y apt-utils curl libxml2-dev vim build-essential libssl-dev zli
     libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git
   
 ldconfig
-export CC=gcc-10
-export CXX=g++-10
+export CC=gcc-11
+export CXX=g++-11
 
 echo ">> Installing recent cmake"
 # fetch recent cmake & install
@@ -69,9 +69,9 @@ pushd ${WORKDIR/boost} && wget https://boostorg.jfrog.io/artifactory/main/releas
  && ./b2 cxxflags="-fPIC" link=static install
 
 echo ">> Installing LLVM"
-mkdir -p ${WORKDIR}/llvm && cd ${WORKDIR}/llvm && wget https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1/llvm-9.0.1.src.tar.xz \ 
-&& wget https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1/clang-9.0.1.src.tar.xz \ 
-&& tar xf llvm-9.0.1.src.tar.xz && tar xf clang-9.0.1.src.tar.xz \ 
+mkdir -p ${WORKDIR}/llvm && cd ${WORKDIR}/llvm && wget https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1/llvm-9.0.1.src.tar.xz \
+&& wget https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1/clang-9.0.1.src.tar.xz \
+&& tar xf llvm-9.0.1.src.tar.xz && tar xf clang-9.0.1.src.tar.xz \
 && mkdir llvm9 && mv clang-9.0.1.src llvm9/clang \
 && mv llvm-9.0.1.src llvm9/llvm-9.0.1.src \
 && cd llvm9 && mkdir build && cd build \

@@ -71,19 +71,22 @@ namespace tuplex {
         if(needle.empty())
             return true;
 
-        // construct relative positioning lookup
-        size_t needle_pos = 0;
-        size_t ref_pos = 0;
-        while(needle_pos < needle.size()) {
-            // check whether element can be found in reference
-            while(ref_pos < reference.size() && reference[ref_pos] != needle[needle_pos])
-                ref_pos++;
-            if(ref_pos >= reference.size() || needle_pos > ref_pos)
-                return false;
-            needle_pos++;
-        }
+        // slow algorithm, could be improved to be linear -> postponed for time reasons
 
-        return needle_pos == needle.size() && ref_pos != reference.size() && needle_pos <= ref_pos; // all were found
+        int last_idx = -1;
+        for(unsigned i = 0; i < needle.size(); ++i) {
+            // needle has to be contained within reference!
+            auto idx = indexInVector(needle[i], reference);
+            if(idx < 0)
+                return false; // needle not contained within reference
+
+            // idx has to be larger than last idx!
+            if(idx <= last_idx)
+                return false;
+
+            last_idx = idx;
+        }
+        return true;
     }
 
 

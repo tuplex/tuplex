@@ -261,7 +261,7 @@ TEST(PythonFunc, TracebackDefPickled) {
 
   std::string code = "\n\ndef f(x):\n\treturn (x\n,10 / x)\n\n"; // note the \n at the beginning and within the lambda
 
-  std::cout<<"Python function to test: "<<core::withLineNumbers(code)<<std::endl;
+  std::cout<<"Python function to test:\n"<<core::withLineNumbers(code)<<std::endl;
 
   // to make the test more interesting.
   auto pickled_code = python::serializeFunction(python::getMainModule(), code);

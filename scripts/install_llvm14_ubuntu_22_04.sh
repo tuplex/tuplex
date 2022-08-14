@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-08-12 17:40:10.551992
+# auto-generated on 2022-08-14 17:42:10.414990
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -36,12 +36,12 @@ echo ">> Installing LLVM"
 mkdir -p ${WORKDIR}/llvm && cd ${WORKDIR}/llvm && wget https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.6/llvm-14.0.6.src.tar.xz \
 && wget https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.6/clang-14.0.6.src.tar.xz \
 && tar xf llvm-14.0.6.src.tar.xz && tar xf clang-14.0.6.src.tar.xz \
-&& mkdir llvm14 && mv clang-14.0.6.src llvm14/clang \
-&& mv llvm-14.0.6.src llvm14/llvm-14.0.6.src \
-&& cd llvm14 && mkdir build && cd build \
+&& mkdir llvm14 && mv clang-14.0.6.src llvm14/clang && mv cmake llvm14/cmake \
+    && mv llvm-14.0.6.src llvm14/llvm-14.0.6.src \
+    && cd llvm14 && mkdir build && cd build \
 && cmake -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON \
         -DLLVM_ENABLE_PROJECTS="clang" \
-         -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-std=c++11 -include /usr/include/c++/11/limits" \
+         -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DLLVM_INCLUDE_BENCHMARKS=OFF -DCMAKE_CXX_FLAGS="-std=c++11 -include /usr/include/c++/11/limits" \
          -DCMAKE_INSTALL_PREFIX=/opt/llvm-14.0.6 ../llvm-14.0.6.src \
 && make -j "$(nproc)" && make install
 

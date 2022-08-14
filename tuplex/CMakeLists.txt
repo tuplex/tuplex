@@ -785,3 +785,8 @@ ucm_add_flags("-fexceptions -frtti")
 
 # print flags
 ucm_print_flags()
+
+
+# TODO: check cloudpickle versions
+# should be < 2.0.0 for python3.9 and >= 2.1.0 for python3.10
+# ython3 -c 'import cloudpickle; print(cloudpickle.__version__)'

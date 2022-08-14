@@ -232,13 +232,35 @@ TEST(PythonFunc, TracebackLambdaCompile) {
     EXPECT_EQ(pcr.exceptionLineNo, 4);
     EXPECT_EQ(pcr.functionFirstLineNo, 3);
     EXPECT_EQ(pcr.functionName, "<lambda>");
+
+    // TODO: this here above is correct, but the pickled version is not!
+}
+
+TEST(PythonFunc, TracebackFunc) {
+  PyInterpreterGuard g;
+
+  std::string code = "\n\ndef f(x):\n\treturn (x\n,10 / x)\n\n"; // note the \n at the beginning and within the lambda
+  std::cout<<"Python function to test:\n"<<core::withLineNumbers(code)<<std::endl;
+
+  auto pFunc = python::compileFunction(python::getMainModule(), code);
+
+  auto pcr = python::callFunctionEx(pFunc, python::rowToPython((Row(0))));
+
+  EXPECT_EQ(pcr.res, nullptr);
+  EXPECT_EQ(pcr.exceptionClass, "ZeroDivisionError");
+  EXPECT_EQ(pcr.exceptionLineNo, 5);
+  EXPECT_EQ(pcr.functionFirstLineNo, 3);
+  EXPECT_EQ(pcr.functionName, "f");
 }
 
 TEST(PythonFunc, TracebackLambdaPickled) {
     PyInterpreterGuard g;
 
-    std::string code = "\n\nlambda x: (x\n,10 / x)"; // note the \n at the beginning and within the lambda
 
+    // #if (PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 10)
+  //      // there's a +1 off error for Python 3.10+
+    std::string code = "\n\nlambda x: (x\n,10 / x)"; // note the \n at the beginning and within the lambda
+    std::cout<<"Python function to test:\n"<<core::withLineNumbers(code)<<std::endl;
 
     // to make the test more interesting.
     auto pickled_code = python::serializeFunction(python::getMainModule(), code);
@@ -254,6 +276,28 @@ TEST(PythonFunc, TracebackLambdaPickled) {
     EXPECT_EQ(pcr.exceptionLineNo, 4);
     EXPECT_EQ(pcr.functionFirstLineNo, 3);
     EXPECT_EQ(pcr.functionName, "<lambda>");
+}
+
+TEST(PythonFunc, TracebackLambdaPickledNoLinebreak) {
+  PyInterpreterGuard g;
+
+  std::string code = "\n\nlambda x: (x,10 / x)"; // note the \n at the beginning and within the lambda
+  std::cout<<"Python function to test:\n"<<core::withLineNumbers(code)<<std::endl;
+
+  // to make the test more interesting.
+  auto pickled_code = python::serializeFunction(python::getMainModule(), code);
+
+  PyObject* pFunc = python::deserializePickledFunction(python::getMainModule(),
+                                                       pickled_code.c_str(),
+                                                       pickled_code.length());
+
+  auto pcr = python::callFunctionEx(pFunc, python::rowToPython((Row(0))));
+
+  EXPECT_EQ(pcr.res, nullptr);
+  EXPECT_EQ(pcr.exceptionClass, "ZeroDivisionError");
+  EXPECT_EQ(pcr.exceptionLineNo, 3);
+  EXPECT_EQ(pcr.functionFirstLineNo, 3);
+  EXPECT_EQ(pcr.functionName, "<lambda>");
 }
 
 TEST(PythonFunc, TracebackDefPickled) {
@@ -277,6 +321,38 @@ TEST(PythonFunc, TracebackDefPickled) {
   EXPECT_EQ(pcr.exceptionLineNo, 5);
   EXPECT_EQ(pcr.functionFirstLineNo, 3);
   EXPECT_EQ(pcr.functionName, "f");
+}
+
+TEST(PythonFunc, TracebackDefPickledNoLinebreak) {
+  PyInterpreterGuard g;
+
+  std::string code = "\n\ndef f(x):\n\n\treturn (x,10 / x)\n\n"; // note the \n at the beginning and within the lambda
+
+  std::cout<<"Python function to test:\n"<<core::withLineNumbers(code)<<std::endl;
+
+  // to make the test more interesting.
+  auto pickled_code = python::serializeFunction(python::getMainModule(), code);
+
+  PyObject* pFunc = python::deserializePickledFunction(python::getMainModule(),
+                                                       pickled_code.c_str(),
+                                                       pickled_code.length());
+
+  auto pcr = python::callFunctionEx(pFunc, python::rowToPython((Row(0))));
+
+  EXPECT_EQ(pcr.res, nullptr);
+  EXPECT_EQ(pcr.exceptionClass, "ZeroDivisionError");
+  EXPECT_EQ(pcr.exceptionLineNo, 5);
+  EXPECT_EQ(pcr.functionFirstLineNo, 3);
+  EXPECT_EQ(pcr.functionName, "f");
+}
+
+TEST(PythonFunc, Cloupickle) {
+  PyInterpreterGuard g;
+  std::stringstream err_stream;
+  bool rc = python::cloudpickleCompatibility(&err_stream);
+
+  ASSERT_TRUE(rc);
+  EXPECT_EQ(err_stream.str().size(), 0);
 }
 
 //TEST(PythonFunc, Traceback) {

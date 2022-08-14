@@ -314,6 +314,25 @@ namespace tuplex {
         os.flush();
     }
 
+    /*!
+     * maximizeTypeCover computes the most likely type by potentially fusing types together.
+     * @param counts
+     * @param threshold
+     * @param use_nvo
+     * @param t_policy
+     * @return
+     */
+    std::pair<python::Type, size_t> maximizeTypeCover(const std::vector<std::pair<python::Type, size_t>>& counts,
+                                                 double threshold,
+                                                 bool use_nvo,
+                                                 const TypeUnificationPolicy& t_policy) {
+        using namespace std;
+
+        // @TODO: implement this here! incl. recursive null checking for structured dict types...
+
+        return make_pair(python::Type::UNKNOWN, 0);
+    }
+
     python::Type detectMajorityRowType(const std::vector<Row>& rows,
                                        double threshold,
                                        bool independent_columns,

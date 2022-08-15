@@ -204,17 +204,26 @@ def resolve_delay(row):
     actual_elapsed_time = row['ACTUAL_ELAPSED_TIME']
     crs_elapsed_time = row['CRS_ELAPSED_TIME']
 
-    assert (calculated_elapsed_time - actual_elapsed_time) % 30 == 0
+    assert (calculated_elapsed_time - actual_elapsed_time) % 60 == 0
 
     return actual_elapsed_time - crs_elapsed_time
 
 
 ds = ds.withColumn('CALCULATED_ELAPSED_TIME', extract_elapsed_time)
 ds = ds.resolve(AssertionError, resolve_elapsed_time)
+#
+# ds = ds.withColumn('CALCULATED_DELAY', extract_delay)
+# ds = ds.resolve(AssertionError, resolve_delay)
 
-ds = ds.withColumn('CALCULATED_DELAY', extract_delay)
-ds = ds.resolve(AssertionError, resolve_delay)
 
-ds = ds.selectColumns(['ARR_TIME', 'DEP_TIME', 'ACTUAL_ELAPSED_TIME', 'CALCULATED_ELAPSED_TIME', 'CALCULATED_DELAY'])
+def view_exceptions(row):
+    calculated_elapsed_time = row['CALCULATED_ELAPSED_TIME']
+    actual_elapsed_time = row['ACTUAL_ELAPSED_TIME']
+
+    return (calculated_elapsed_time - actual_elapsed_time) % 60 != 0
+
+ds = ds.filter(view_exceptions)
+
+ds = ds.selectColumns(['YEAR', 'MONTH', 'ARR_TIME', 'DEP_TIME', 'ACTUAL_ELAPSED_TIME', 'CALCULATED_ELAPSED_TIME'])
 
 ds.tocsv(output_path)

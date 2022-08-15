@@ -542,7 +542,7 @@ TEST(DictionaryTyping, DictionaryInputControlFlow) {
     // print type annotated ast
     GraphVizGraph graph;
     graph.createFromAST(ast.getFunctionAST(), true);
-    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/dict_input_control_flow.pdf");
+    graph.saveAsPDF("dict_input_control_flow.pdf");
 
     cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
 
@@ -586,7 +586,7 @@ TEST(DictionaryTyping, Everything) {
     // print type annotated ast
     GraphVizGraph graph;
     graph.createFromAST(ast.getFunctionAST(), true);
-    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dictionary_asts/everything.pdf");
+    graph.saveAsPDF("dict_everything.pdf");
 
     cout<<"return type of function is: "<<ast.getReturnType().desc()<<endl;
 

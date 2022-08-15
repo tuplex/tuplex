@@ -204,7 +204,7 @@ def resolve_delay(row):
     actual_elapsed_time = row['ACTUAL_ELAPSED_TIME']
     crs_elapsed_time = row['CRS_ELAPSED_TIME']
 
-    assert (calculated_elapsed_time - actual_elapsed_time) % 60 == 0
+    assert (calculated_elapsed_time - actual_elapsed_time) % 30 == 0
 
     return actual_elapsed_time - crs_elapsed_time
 

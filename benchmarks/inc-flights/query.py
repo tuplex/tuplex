@@ -310,7 +310,8 @@ def validate_dep_delay(row):
     crs_dep_time_mins = row['CRS_DEP_TIME_MINS']
     dep_time_mins = row['DEP_TIME_MINS']
 
-    assert dep_delay is None or (crs_dep_time_mins + dep_delay == dep_time_mins)
+    # assert dep_delay is None or (crs_dep_time_mins + dep_delay == dep_time_mins)
+    assert (crs_dep_time_mins + dep_delay == dep_time_mins)
 
     return dep_delay
 
@@ -319,7 +320,8 @@ def resolve_dep_delay_1(row):
     crs_dep_time_mins = row['CRS_DEP_TIME_MINS']
     dep_time_mins = row['DEP_TIME_MINS']
 
-    assert dep_delay is None or ((crs_dep_time_mins + dep_delay) % 1440 == dep_time_mins)
+    # assert dep_delay is None or ((crs_dep_time_mins + dep_delay) % 1440 == dep_time_mins)
+    assert ((crs_dep_time_mins + dep_delay) % 1440 == dep_time_mins)
 
     return dep_delay
 
@@ -328,15 +330,10 @@ def resolve_dep_delay_2(row):
     crs_dep_time_mins = row['CRS_DEP_TIME_MINS']
     dep_time_mins = row['DEP_TIME_MINS']
 
-    assert dep_delay is None or ((crs_dep_time_mins + dep_delay) % 1440 == dep_time_mins % 1440)
+    # assert dep_delay is None or ((crs_dep_time_mins + dep_delay) % 1440 == dep_time_mins % 1440)
+    assert ((crs_dep_time_mins + dep_delay) % 1440 == dep_time_mins % 1440)
 
     return dep_delay
-
-ds = ds.withColumn('CRS_DEP_TIME_MINS', extract_crs_dep_time_mins)
-ds = ds.withColumn('DEP_TIME_MINS', extract_dep_time_mins)
-ds = ds.withColumn('DEP_DELAY', validate_dep_delay)
-ds = ds.resolve(AssertionError, resolve_dep_delay_1)
-ds = ds.resolve(AssertionError, resolve_dep_delay_2)
 
 def extract_crs_arr_time_mins(row):
     crs_arr_time = row['CRS_ARR_TIME']
@@ -351,7 +348,8 @@ def validate_arr_delay(row):
     crs_arr_time_mins = row['CRS_ARR_TIME_MINS']
     arr_time_mins = row['ARR_TIME_MINS']
 
-    assert arr_delay is None or (crs_arr_time_mins + arr_delay == arr_time_mins)
+    # assert arr_delay is None or (crs_arr_time_mins + arr_delay == arr_time_mins)
+    assert (crs_arr_time_mins + arr_delay == arr_time_mins)
 
     return arr_delay
 
@@ -360,7 +358,8 @@ def resolve_arr_delay_1(row):
     crs_arr_time_mins = row['CRS_ARR_TIME_MINS']
     arr_time_mins = row['ARR_TIME_MINS']
 
-    assert arr_delay is None or ((crs_arr_time_mins + arr_delay) % 1440 == arr_time_mins)
+    # assert arr_delay is None or ((crs_arr_time_mins + arr_delay) % 1440 == arr_time_mins)
+    assert ((crs_arr_time_mins + arr_delay) % 1440 == arr_time_mins)
 
     return arr_delay
 
@@ -369,15 +368,22 @@ def resolve_arr_delay_2(row):
     crs_arr_time_mins = row['CRS_ARR_TIME_MINS']
     arr_time_mins = row['ARR_TIME_MINS']
 
-    assert arr_delay is None or ((crs_arr_time_mins + arr_delay) % 1440 == arr_time_mins % 1440)
+    # assert arr_delay is None or ((crs_arr_time_mins + arr_delay) % 1440 == arr_time_mins % 1440)
+    assert ((crs_arr_time_mins + arr_delay) % 1440 == arr_time_mins % 1440)
 
     return arr_delay
+
+ds = ds.withColumn('CRS_DEP_TIME_MINS', extract_crs_dep_time_mins)
+ds = ds.withColumn('DEP_TIME_MINS', extract_dep_time_mins)
+ds = ds.withColumn('DEP_DELAY', validate_dep_delay)
+# ds = ds.resolve(AssertionError, resolve_dep_delay_1)
+# ds = ds.resolve(AssertionError, resolve_dep_delay_2)
 
 ds = ds.withColumn('CRS_ARR_TIME_MINS', extract_crs_arr_time_mins)
 ds = ds.withColumn('ARR_TIME_MINS', extract_arr_time_mins)
 ds = ds.withColumn('ARR_DELAY', validate_arr_delay)
-ds = ds.resolve(AssertionError, resolve_arr_delay_1)
-ds = ds.resolve(AssertionError, resolve_arr_delay_2)
+# ds = ds.resolve(AssertionError, resolve_arr_delay_1)
+# ds = ds.resolve(AssertionError, resolve_arr_delay_2)
 
 ds = ds.selectColumns(['ARR_DELAY'])
 # ds = ds.selectColumns(['IS_ON_TIME'])

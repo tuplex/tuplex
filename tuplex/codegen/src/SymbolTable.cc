@@ -346,6 +346,55 @@ namespace tuplex {
         addSymbol(make_shared<Symbol>("enumerate", enumerateFunctionTyper));
         addSymbol(make_shared<Symbol>("next", nextFunctionTyper));
 
+        // conversions for list/tuple
+
+        auto list_ret_type = [](const python::Type& type) {
+            // list? trivial
+            if(type.isListType())
+                return type;
+
+            // what can be converted to/from list?
+            // -> homogenous tuple
+
+            // TODO iterator...
+
+            // -> string
+            if(type == python::Type::STRING) {
+                return python::Type::makeListType(python::Type::STRING);
+            }
+            if(type.isOptionType() && type.withoutOptions() == python::Type::STRING) {
+                return python::Type::makeListType(python::Type::makeOptionType(python::Type::STRING));
+            }
+
+            // -> keyview/valueview
+            if(type.isDictKeysType() || type.isDictValuesType()) {
+                // get dict type
+                auto dict_type = type.elementType();
+
+                if(type.isDictValuesType())
+                    return python::Type::makeListType(dict_type.valueType());
+                if(type.isDictKeysType())
+                    return python::Type::makeListType(dict_type.keyType());
+            }
+
+            return python::Type::UNKNOWN;
+        };
+
+        addSymbol(make_shared<Symbol>("list", [&list_ret_type](const python::Type& parameterType) {
+
+            python::Type type = parameterType;
+
+            // param should be single tuple
+            if(parameterType.isTupleType() && parameterType.parameters().size() == 1)
+                type = parameterType.parameters().front();
+
+            auto ret_type = list_ret_type(type);
+            if(ret_type != python::Type::UNKNOWN)
+                return python::Type::makeFunctionType(parameterType, ret_type);
+            return python::Type::UNKNOWN;
+        }));
+        // tuple is special case -> need to speculate on list/str/sequence length!
+
         // TODO: other parameters? i.e. step size and Co?
         // also, boolean, float? etc.?
         addSymbol("range", python::Type::makeFunctionType(python::Type::I64, python::Type::RANGE));

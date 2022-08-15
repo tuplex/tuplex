@@ -410,13 +410,24 @@ namespace tuplex {
         // for keys()/values() use generic dict and let symbol table create specialized type on the fly using
         // typer function
         {
-            addBuiltinTypeAttribute(python::Type::GENERICDICT, "keys", [](const python::Type& parameterType) {
+            addBuiltinTypeAttribute(python::Type::GENERICDICT, "keys", [](const python::Type& callerType,
+                    const python::Type& parameterType) {
 
-                //  @TODO: @rhea once you changed the signature of the Lambda here, you should be abel to type correctly.
-                // I can give it a try to refactor everything better than.
-                std::cout<<"need to get concrete dict type here!"<<std::endl;
+                assert(callerType.isDictionaryType() && callerType != python::Type::GENERICDICT);
+                // dict_view is always based on dictionary type
+                auto view_type = python::Type::makeDictKeysViewType(callerType);
 
-                return python::Type::UNKNOWN;
+                return python::Type::makeFunctionType(callerType, view_type);
+            }, SymbolType::FUNCTION);
+
+            addBuiltinTypeAttribute(python::Type::GENERICDICT, "values", [](const python::Type& callerType,
+                                                                          const python::Type& parameterType) {
+
+                assert(callerType.isDictionaryType() && callerType != python::Type::GENERICDICT);
+                // dict_view is always based on dictionary type
+                auto values_type = python::Type::makeDictValuesViewType(callerType);
+
+                return python::Type::makeFunctionType(callerType, values_type);
             }, SymbolType::FUNCTION);
         }
 
@@ -685,6 +696,41 @@ namespace tuplex {
     }
 
     void SymbolTable::addBuiltinTypeAttribute(const python::Type &builtinType, const std::string &name,
+                                              std::function<python::Type(const python::Type &,
+                                                                         const python::Type &)> attributeTyper,
+                                              const SymbolType &sym_type) {
+        using namespace std;
+        assert(sym_type == SymbolType::VARIABLE || sym_type == SymbolType::FUNCTION);
+
+        // this seems wrong, need to perform the lookup directly...
+        // use desc as name
+        auto scope = currentScope();
+        auto it = scope->symbols.find(builtinType.desc());
+        if(it == scope->symbols.end()) {
+            auto sym = make_shared<Symbol>();
+            sym->name = sym->qualifiedName = builtinType.desc();
+            scope->symbols[builtinType.desc()] = sym;
+
+            it = scope->symbols.find(builtinType.desc());
+            assert(it != scope->symbols.end());
+        }
+        auto sym_att = it->second->findAttribute(name);
+        if(!sym_att) {
+            it->second->addAttribute(make_shared<Symbol>(name, name, builtinType, sym_type));
+            sym_att = it->second->findAttribute(name);
+        } else {
+            // replace symbol, there can be only one symbol with a typer function
+            if(sym_type != sym_att->symbolType)
+                throw std::runtime_error("symbol can only have one kind of types associated with it!");
+            assert(sym_att->qualifiedName == name);
+            sym_att->name = name;
+        }
+        assert(sym_att);
+        sym_att->parent = scope->symbols[name];
+        sym_att->attributeFunctionTyper = attributeTyper;
+    }
+
+    void SymbolTable::addBuiltinTypeAttribute(const python::Type &builtinType, const std::string &name,
                                               std::function<python::Type(const python::Type &)> typer,
                                               const SymbolType& sym_type = SymbolType::VARIABLE) {
         using namespace std;
@@ -813,9 +859,7 @@ namespace tuplex {
                     // else, return single type
                     return attr_sym->type();
                 python::Type funcType = python::Type::UNKNOWN;
-
-                //  @TODO: @rhea -> change function here to include objectType as well and make typer a two parameter function
-                attr_sym->findFunctionTypeBasedOnParameterType(parameterType, funcType); // ignore ret value.
+                attr_sym->findAttributeFunctionType(objectType, parameterType, funcType); // ignore ret value.
                 return funcType;
             }
         }

@@ -224,8 +224,8 @@ namespace python {
 
         static Type makeListType(const python::Type &elementType);
 
-        static Type makeDictKeysType(const python::Type& keyType);
-        static Type makeDictValuesType(const python::Type& valType);
+        static Type makeDictKeysViewType(const python::Type& dictType);
+        static Type makeDictValuesViewType(const python::Type& dictType);
 
         /*!
          * create iterator type from yieldType.
@@ -359,8 +359,8 @@ namespace python {
         // right now, no tuples or other weird types...
         Type createOrGetFunctionType(const Type& param, const Type& ret=Type::EMPTYTUPLE);
         Type createOrGetDictionaryType(const Type& key, const Type& val);
-        Type createOrGetDictKeysType(const Type& key);
-        Type createOrGetDictValuesType(const Type& val);
+        Type createOrGetDictKeysViewType(const Type& key);
+        Type createOrGetDictValuesViewType(const Type& val);
         Type createOrGetListType(const Type& val);
         Type createOrGetTupleType(const std::initializer_list<Type> args);
         Type createOrGetTupleType(const TTuple<Type>& args);

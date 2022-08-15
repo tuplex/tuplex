@@ -149,18 +149,18 @@ namespace python {
         return registerOrGetType(name, AbstractType::DICTIONARY, {key, val});
     }
 
-    Type TypeFactory::createOrGetDictKeysType(const Type& key) {
+    Type TypeFactory::createOrGetDictKeysViewType(const Type& key) {
         std::string name;
-        name += "[";
+        name += "DictKeysView[";
         name += TypeFactory::instance().getDesc(key._hash);
         name += "]";
 
         return registerOrGetType(name, AbstractType::DICT_KEYS, {key});
     }
 
-    Type TypeFactory::createOrGetDictValuesType(const Type& val) {
+    Type TypeFactory::createOrGetDictValuesViewType(const Type& val) {
         std::string name;
-        name += "[";
+        name += "DictValuesView[";
         name += TypeFactory::instance().getDesc(val._hash);
         name += "]";
 
@@ -583,12 +583,12 @@ namespace python {
         return python::TypeFactory::instance().createOrGetDictionaryType(keyType, valType);
     }
 
-    Type Type::makeDictKeysType(const python::Type& keyType) {
-        return python::TypeFactory::instance().createOrGetDictKeysType(keyType);
+    Type Type::makeDictKeysViewType(const python::Type& keyType) {
+        return python::TypeFactory::instance().createOrGetDictKeysViewType(keyType);
     }
 
-    Type Type::makeDictValuesType(const python::Type& valType) {
-        return python::TypeFactory::instance().createOrGetDictValuesType(valType);
+    Type Type::makeDictValuesViewType(const python::Type& valType) {
+        return python::TypeFactory::instance().createOrGetDictValuesViewType(valType);
     }
 
     Type Type::makeListType(const python::Type &elementType){

@@ -48,7 +48,12 @@ public:
     std::shared_ptr<Symbol> parent;
 
     ///! an optional abstract typer function which can be applied if the symboltype is function
+    ///! to deliver a concretely typed type based on the paramter type
     std::function<python::Type(const python::Type&)> functionTyper;
+
+    ///! an optional abstract typer that takes the original type of the caller (e.g., for an attribute)
+    ///! and provides then together with the parameterType symilar to functionTyper a concrete type for the attribute function
+    std::function<python::Type(const python::Type&,const python::Type&)> attributeFunctionTyper;
 
     ///! optionally constant data associated with that symbol
     tuplex::Field constantData;
@@ -90,55 +95,43 @@ public:
         auto generic_result = functionTyper(parameterType);
         if(generic_result != python::Type::UNKNOWN) {
             specializedFunctionType = generic_result;
-
             assertFunctionDoesNotReturnGeneric(specializedFunctionType);
             return true;
         }
 
-        for(auto& type : types) {
-            // found symbol, now check its type
-            if(!type.isFunctionType())
-                continue;
+        // typer did not yield a result, hence try stored funciton types incl. upcasting
+        return findStoredTypedFunction(parameterType, specializedFunctionType);
+    }
 
-            auto tupleArgType = getTupleArg(type.getParamsType());
-
-            // check if there's a direct type match => use that function then!
-            if(parameterType == tupleArgType) {
-                specializedFunctionType = type;
-                assertFunctionDoesNotReturnGeneric(specializedFunctionType);
-                return true;
-            }
+    /*!
+     * the typing of an attribute which is a function may be based on both the callerType and the parameters. I.e.,
+     * this function helps to type an attribute x.a(p) where callerType = type(x) and parameterType = type(p) for some
+     * symbol a which is this.
+     * @param callerType
+     * @param parameterType
+     * @param specializedFunctionType where to store the concrete (non-generic!) output type!
+     * @return true if a specialized function type could be generated, false else.
+     */
+    inline bool findAttributeFunctionType(const python::Type& callerType,
+                                          const python::Type& parameterType,
+                                          python::Type& specializedFunctionType) {
+        // fallback based typing:
+        // 1. check attribute typer
+        // 2. check general typer
+        auto typed_result = attributeFunctionTyper(callerType, parameterType);
+        if(python::Type::UNKNOWN == typed_result) {
+            typed_result = functionTyper(parameterType);
         }
 
-        // no direct match was found. Check whether casting would work or partial matching.
-        for(auto& type : types) {
-            // found symbol, now check its type
-            if (!type.isFunctionType())
-                continue;
-
-            auto tupleArgType = getTupleArg(type.getParamsType());
-
-            // check if given parameters type is compatible with function type?
-            // actual invocation is with parameterType
-            // ==> can we upcast them to fit the defined one OR does is partially work?
-            // e.g., when the function is defined for NULL, but we have opt?
-            if (isTypeCompatible(parameterType, tupleArgType)) {
-                specializedFunctionType = type;
-
-                // specialize according to parameterType if it's a generic function so further typing works
-                assert(!specializedFunctionType.getReturnType().isGeneric());
-                if(specializedFunctionType.getParamsType().isGeneric()) {
-                    auto specializedParams = python::specializeGenerics(parameterType, tupleArgType);
-                    specializedFunctionType = python::Type::makeFunctionType(specializedParams,
-                                                                             specializedFunctionType.getReturnType());
-                }
-
-                assertFunctionDoesNotReturnGeneric(specializedFunctionType);
-                return true;
-            }
+        // check if result is valid, then take it
+        if(typed_result != python::Type::UNKNOWN) {
+            specializedFunctionType = typed_result;
+            assertFunctionDoesNotReturnGeneric(specializedFunctionType);
+            return true;
         }
 
-        return false;
+        // typer did not yield a result, hence try stored funciton types incl. upcasting
+        return findStoredTypedFunction(parameterType, specializedFunctionType);
     }
 
     /*!
@@ -169,7 +162,8 @@ public:
         return full_name;
     }
 
-    Symbol() {}
+    Symbol() : functionTyper([](const python::Type&){return python::Type::UNKNOWN;}),
+               attributeFunctionTyper([](const python::Type&, const python::Type&){return python::Type::UNKNOWN;}) {}
     virtual ~Symbol()  {
         _attributes.clear();
         parent.reset();
@@ -216,23 +210,75 @@ public:
 
     Symbol(std::string _name,
            std::function<python::Type(const python::Type&)> typer) : name(_name), qualifiedName(_name),
-           functionTyper(std::move(typer)), symbolType(SymbolType::FUNCTION) {}
+           functionTyper(std::move(typer)), attributeFunctionTyper([](const python::Type&, const python::Type&){return python::Type::UNKNOWN;}), symbolType(SymbolType::FUNCTION) {}
 
     Symbol(std::string _name, python::Type _type) : name(_name), qualifiedName(_name),
     types{_type},
-    symbolType(_type.isFunctionType() ? SymbolType::FUNCTION : SymbolType::VARIABLE), functionTyper([](const python::Type&) { return python::Type::UNKNOWN; }) {}
+    symbolType(_type.isFunctionType() ? SymbolType::FUNCTION : SymbolType::VARIABLE),
+    functionTyper([](const python::Type&) { return python::Type::UNKNOWN; }),
+    attributeFunctionTyper([](const python::Type&, const python::Type&){return python::Type::UNKNOWN;}) {}
 
     Symbol(std::string _name, std::string _qualifiedName, python::Type _type, SymbolType _symbolType) : name(_name),
     qualifiedName(_qualifiedName),
     types{_type},
     symbolType(_symbolType),
-    functionTyper([](const python::Type&) { return python::Type::UNKNOWN; }) {}
+    functionTyper([](const python::Type&) { return python::Type::UNKNOWN; }),
+    attributeFunctionTyper([](const python::Type&, const python::Type&){return python::Type::UNKNOWN;}) {}
 
 private:
     ///! i.e. to store something like re.search. re is then of module type. search will have a concrete function type.
     std::vector<std::shared_ptr<Symbol>> _attributes;
 
     /********* HELPER FUNCTIONS *************/
+
+    inline bool findStoredTypedFunction(const python::Type& parameterType, python::Type& specializedFunctionType) {
+
+        // typing using typer functions above failed, hence now search for concrete stored types.
+        for(auto& type : types) {
+            // found symbol, now check its type
+            if(!type.isFunctionType())
+                continue;
+
+            auto tupleArgType = getTupleArg(type.getParamsType());
+
+            // check if there's a direct type match => use that function then!
+            if(parameterType == tupleArgType) {
+                specializedFunctionType = type;
+                assertFunctionDoesNotReturnGeneric(specializedFunctionType);
+                return true;
+            }
+        }
+
+        // no direct match was found. Check whether casting would work or partial matching.
+        for(auto& type : types) {
+            // found symbol, now check its type
+            if (!type.isFunctionType())
+                continue;
+
+            auto tupleArgType = getTupleArg(type.getParamsType());
+
+            // check if given parameters type is compatible with function type?
+            // actual invocation is with parameterType
+            // ==> can one upcast them to fit the defined one OR does is partially work?
+            // e.g., when the function is defined for NULL, but we have opt?
+            if (isTypeCompatible(parameterType, tupleArgType)) {
+                specializedFunctionType = type;
+
+                // specialize according to parameterType if it's a generic function so further typing works
+                assert(!specializedFunctionType.getReturnType().isGeneric());
+                if(specializedFunctionType.getParamsType().isGeneric()) {
+                    auto specializedParams = python::specializeGenerics(parameterType, tupleArgType);
+                    specializedFunctionType = python::Type::makeFunctionType(specializedParams,
+                                                                             specializedFunctionType.getReturnType());
+                }
+
+                assertFunctionDoesNotReturnGeneric(specializedFunctionType);
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /*!
      * helper function to check for compatibility, i.e. whether from type can be cast to to type.

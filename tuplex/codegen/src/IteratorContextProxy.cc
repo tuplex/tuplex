@@ -330,8 +330,9 @@ namespace tuplex {
 
             // ok, update is something crazy fancy here: mod.getOrInsertFunction(name, FT).getCallee()->getType()->getPointerElementType()->isFunctionTy()
 
-            auto nextFunc = llvm::getOrInsertFunction(*_env->getModule(), funcName, ft);
-            auto exhausted = builder.CreateCall(nextFunc, iterator);
+            auto nextFunc_value = llvm::getOrInsertCallable(*_env->getModule(), funcName, ft);
+            llvm::FunctionCallee nextFunc_callee(ft, nextFunc_value);
+            auto exhausted = builder.CreateCall(nextFunc_callee, iterator);
             return exhausted;
         }
 

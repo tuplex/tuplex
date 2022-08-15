@@ -337,7 +337,9 @@ TEST(LLVMENV, TupleStructs) {
 
         if(1 == i) {
             arg.setName("inRow");
-            arg.addAttr(Attribute::ByVal);
+
+            // attributes broken...
+            // arg.addAttr(Attribute::ByVal);
             // maybe align by 8?
         }
     }

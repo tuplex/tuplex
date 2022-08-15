@@ -135,9 +135,13 @@ namespace tuplex {
             _args = mapLLVMFunctionArgs(_func, argNames);
             auto argRow = llvm::dyn_cast<llvm::Argument>(_args["row"]);
 
-            // make result noalias + sret
-            llvm::dyn_cast<llvm::Argument>(_args["result"])->addAttr(Attribute::StructRet);
-            llvm::dyn_cast<llvm::Argument>(_args["result"])->addAttr(Attribute::NoAlias);
+            // @TODO: https://github.com/llvm/llvm-project/commit/a7f183afe7cc792c50d64b3b9ea22269c87ec35f#diff-799e8fd590fee711e1bbdf3524f8182b271caa0d03755cf5dae84f74a49f624d
+            // --> use this to add attributes. Below causes errors...
+
+            // this results in problems for LLVM 10+
+            // // make result noalias + sret
+            // llvm::dyn_cast<llvm::Argument>(_args["result"])->addAttr(Attribute::StructRet);
+            // llvm::dyn_cast<llvm::Argument>(_args["result"])->addAttr(Attribute::NoAlias);
 
             if(intermediateOutputType != python::Type::UNKNOWN) {
                 // set nocapture

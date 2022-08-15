@@ -223,6 +223,6 @@ def view_exceptions(row):
 
 # ds = ds.filter(view_exceptions)
 #
-# ds = ds.selectColumns(['YEAR', 'MONTH', 'ARR_TIME', 'DEP_TIME', 'ACTUAL_ELAPSED_TIME', 'CALCULATED_ELAPSED_TIME'])
+ds = ds.selectColumns(['YEAR', 'MONTH', 'ARR_TIME', 'DEP_TIME', 'ACTUAL_ELAPSED_TIME', 'CALCULATED_ELAPSED_TIME'])
 
 ds.tocsv(output_path)

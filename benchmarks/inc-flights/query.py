@@ -310,8 +310,8 @@ def validate_dep_delay(row):
     crs_dep_time_mins = row['CRS_DEP_TIME_MINS']
     dep_time_mins = row['DEP_TIME_MINS']
 
-    # assert dep_delay is None or (crs_dep_time_mins + dep_delay == dep_time_mins)
-    assert (crs_dep_time_mins + dep_delay == dep_time_mins)
+    assert dep_delay is None or (crs_dep_time_mins + dep_delay == dep_time_mins)
+    # assert (crs_dep_time_mins + dep_delay == dep_time_mins)
 
     return dep_delay
 
@@ -348,8 +348,8 @@ def validate_arr_delay(row):
     crs_arr_time_mins = row['CRS_ARR_TIME_MINS']
     arr_time_mins = row['ARR_TIME_MINS']
 
-    # assert arr_delay is None or (crs_arr_time_mins + arr_delay == arr_time_mins)
-    assert (crs_arr_time_mins + arr_delay == arr_time_mins)
+    assert arr_delay is None or (crs_arr_time_mins + arr_delay == arr_time_mins)
+    # assert (crs_arr_time_mins + arr_delay == arr_time_mins)
 
     return arr_delay
 

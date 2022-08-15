@@ -18,6 +18,10 @@
 #include <TypeSystem.h>
 #include <Field.h>
 
+#if LLVM_VERSION_MAJOR > 9
+#include <llvm/AsmParser/Parser.h>
+#endif
+
 #if LLVM_VERSION_MAJOR >= 9
 // LLVM9 fix
 #include <llvm/Target/TargetMachine.h>
@@ -1033,8 +1037,11 @@ namespace tuplex {
 
             auto ctx = std::make_unique<LLVMContext>();
             assert(ctx);
+#if LLVM_VERSION_MAJOR >= 10
+          std::unique_ptr<Module> mod = llvm::parseAssemblyString(llvmIR, err, *ctx); // use err
+#else
             std::unique_ptr<Module> mod = llvm::parseIR(buff->getMemBufferRef(), err, *ctx); // use err directly
-
+#endif
             // check if any errors occured during module parsing
             if(nullptr == mod) {
                 // print errors

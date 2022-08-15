@@ -2034,11 +2034,11 @@ namespace tuplex {
 
             std::string funcName, prefix;
             if(reverse) {
-                prefix = "reverse";
+                prefix = "_reverse";
             } // else: empty string
 
             auto iteratorName = iterator_name_from_type(iterableType);
-            funcName = iteratorName + "_iterator_update";
+            funcName = iteratorName + prefix + "_iterator_update";
 
             auto it = _generatedIteratorUpdateIndexFunctions.find(funcName);
             if(_generatedIteratorUpdateIndexFunctions.end() != it) {

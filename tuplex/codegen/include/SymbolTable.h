@@ -185,9 +185,22 @@ namespace tuplex {
          * @param typer a dynamic typing function
          * @param sym_type what kind of symbol it is (function? variable?), needed because typer works for both.
          */
-        void addBuiltinTypeAttribute(const python::Type& builtinType, const std::string& name,
+        void addBuiltinTypeAttribute(const python::Type& builtinType,
+                                     const std::string& name,
                                      std::function<python::Type(const python::Type&)> typer,
                                      const SymbolType& sym_type);
+
+        /*!
+         * add an attribute to a builtin type, e.g. dict.keys()
+         * @param builtinType to which type to add the function
+         * @param name name of the attribute
+         * @param typer a dynamic typing function
+         * @param sym_type what kind of symbol it is (function? variable?), needed because typer works for both.
+         */
+        void addBuiltinTypeAttribute(const python::Type& builtinType,
+                                     const std::string& name,
+                                     std::function<python::Type(const python::Type&, const python::Type&)> attributeTyper,
+                                     const SymbolType& sym_type=SymbolType::FUNCTION);
 
         /*!
          * checks whether a symbol can be looked up or not

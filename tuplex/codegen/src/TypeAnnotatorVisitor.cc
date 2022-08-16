@@ -1763,6 +1763,26 @@ namespace tuplex {
             } else if(exprType.isIteratorType()) {
                 _nameTable[id->_name] = exprType.yieldType();
                 id->setInferredType(exprType.yieldType());
+            } else if(exprType.isDictValuesType()) {
+                auto dict_type = exprType.elementType();
+                auto yield_type = dict_type.valueType();
+                if(yield_type == python::Type::PYOBJECT || yield_type == python::Type::UNKNOWN) {
+                    // might require unrolling & speculation on view length!
+                    addCompileError(CompileError::TYPE_ERROR_UNSUPPORTED_LOOP_TESTLIST_TYPE);
+                    return;
+                }
+                _nameTable[id->_name] = yield_type;
+                id->setInferredType(yield_type);
+            } else if(exprType.isDictKeysType()) {
+                auto dict_type = exprType.elementType();
+                auto yield_type = dict_type.keyType();
+                if(yield_type == python::Type::PYOBJECT || yield_type == python::Type::UNKNOWN) {
+                    // might require unrolling & speculation on view length!
+                    addCompileError(CompileError::TYPE_ERROR_UNSUPPORTED_LOOP_TESTLIST_TYPE);
+                    return;
+                }
+                _nameTable[id->_name] = yield_type;
+                id->setInferredType(yield_type);
             } else {
                 addCompileError(CompileError::TYPE_ERROR_UNSUPPORTED_LOOP_TESTLIST_TYPE);
             }

@@ -102,6 +102,52 @@ def resolve_arr_delay_2(row):
 
     return arr_delay
 
+def validate_dep_delay(row):
+    dep_delay = row['DEP_DELAY']
+    crs_dep_time = row['CRS_DEP_TIME']
+    dep_time = row['DEP_TIME']
+
+    if dep_delay is None:
+        return dep_delay
+
+    crs_dep_time_mins = crs_dep_time // 100 * 60 + crs_dep_time % 100
+    dep_time_mins = dep_time // 100 * 60 + dep_time % 100
+
+    assert crs_dep_time_mins + dep_delay == dep_time_mins
+
+    return dep_delay
+
+def resolve_dep_delay_1(row):
+    dep_delay = row['DEP_DELAY']
+    crs_dep_time = row['CRS_DEP_TIME']
+    dep_time = row['DEP_TIME']
+
+    if dep_delay is None:
+        return dep_delay
+
+    crs_dep_time_mins = crs_dep_time // 100 * 60 + crs_dep_time % 100
+    dep_time_mins = dep_time // 100 * 60 + dep_time % 100
+
+    assert (crs_dep_time_mins + dep_delay) % 1440 == dep_time_mins
+
+    return dep_delay
+
+def resolve_dep_delay_2(row):
+    dep_delay = row['DEP_DELAY']
+    crs_dep_time = row['CRS_DEP_TIME']
+    dep_time = row['DEP_TIME']
+
+    if dep_delay is None:
+        return dep_delay
+
+    crs_dep_time_mins = crs_dep_time // 100 * 60 + crs_dep_time % 100
+    dep_time_mins = dep_time // 100 * 60 + dep_time % 100
+
+    assert (crs_dep_time_mins + dep_delay) % 1440 == dep_time_mins % 1440
+
+    return dep_delay
+
+
 def is_delayed(row):
     arr_delay = row['ARR_DELAY']
     return arr_delay >= 15
@@ -116,6 +162,12 @@ metrics = []
 for i in range(4):
     jobstart = time.time()
     ds = ctx.csv(flights_path)
+
+    ds = ds.withColumn('DEP_DELAY', validate_dep_delay)
+    if i > 0:
+        ds = ds.resolve(AssertionError, resolve_dep_delay_1)
+    if i > 1:
+        ds = ds.resolve(AssertionError, resolve_dep_delay_2)
 
     ds = ds.withColumn('ARR_DELAY', validate_arr_delay)
     if i > 0:

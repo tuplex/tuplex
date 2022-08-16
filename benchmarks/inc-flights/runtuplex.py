@@ -43,7 +43,7 @@ conf = {"webui.enable" : False,
         "csv.selectionPushdown" : True,
         "optimizer.generateParser" : True,
         "optimizer.mergeExceptionsInOrder": args.in_order,
-        "optimizer.incrementalResolution": args.in_res}
+        "optimizer.incrementalResolution": args.inc_res}
 
 if os.path.exists('tuplex_config.json'):
     with open('tuplex_config.json') as fp:

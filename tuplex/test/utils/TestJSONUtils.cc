@@ -192,6 +192,56 @@ TEST(JSONUtils, ReorderRow) {
     EXPECT_EQ(r.toPythonString(), "(20,30,10)");
 }
 
+namespace tuplex {
+    /*!
+     * maximizeTypeCover computes the most likely type by potentially fusing types together.
+     * @param counts
+     * @param threshold
+     * @param use_nvo
+     * @param t_policy
+     * @return
+     */
+    std::pair<python::Type, size_t> maximizeTypeCover(const std::vector<std::pair<python::Type, size_t>>& counts,
+                                                      double threshold,
+                                                      bool use_nvo,
+                                                      const TypeUnificationPolicy& t_policy) {
+        using namespace std;
+
+        if(counts.empty()) {
+            return make_pair(python::Type::UNKNOWN, 0);
+        }
+
+        // @TODO: implement this here! incl. recursive null checking for structured dict types...
+
+        // sort desc after count pairs. Note: goal is to have maximum type cover!
+        auto t_counts = counts;
+        std::sort(t_counts.begin(), t_counts.end(), [](const pair<python::Type, size_t>& lhs,
+                const pair<python::Type, size_t>& rhs) { return lhs.second > rhs.second; });
+
+        // for each pair, try to combine it!
+        auto num_pairs = t_counts.size();
+        for(unsigned i = 0; i  < num_pairs; ++i) {
+            for(unsigned j = 0; j < num_pairs; ++j) {
+                if(i != j) {
+                    auto combined_type = unifyTypes(t_counts[i].first, counts[j].first, t_policy);
+                    if(combined_type != python::Type::UNKNOWN) {
+                        t_counts[i].first = combined_type;
+                        t_counts[i].second += counts[j].second;
+                    }
+                }
+            }
+        }
+
+        // find maximum pair in all of t_counts...
+        std::pair<python::Type, size_t> best_pair = t_counts.front();
+        for(auto pair : t_counts) {
+            if(pair.second > best_pair.second)
+                best_pair = pair;
+        }
+        return best_pair;
+    }
+}
+
 TEST(JSONUtils, SIMDJSONFieldParse) {
     using namespace tuplex;
 
@@ -308,6 +358,28 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
         // detect type based on sample...
         auto majorityRowType = detectMajorityRowType(sample, conf_nc_threshold, conf_independent_columns, conf_use_nvo);
         std::cout<<"detected majority column type is: "<<majorityRowType.desc()<<std::endl;
+
+        // type cover maximization
+        std::vector<std::pair<python::Type, size_t>> type_counts;
+        for(unsigned i = 0; i < column_names.size(); ++i) {
+            // row check:
+            std::cout<<"row: "<<rows[i].toPythonString()<<" type: "<<rows[i].getRowType().desc()<<std::endl;
+            type_counts.emplace_back(std::make_pair(rows[i].getRowType(), 1));
+        }
+
+        auto conf_general_case_type_policy = TypeUnificationPolicy::defaultPolicy();
+        conf_general_case_type_policy.unifyMissingDictKeys = true;
+        conf_general_case_type_policy.allowUnifyWithPyObject = true;
+
+
+        auto general_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
+        auto normal_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true, TypeUnificationPolicy::defaultPolicy());
+
+        double num_rows_d = column_names.size() * 1.0;
+        double normal_pct = normal_case_max_type.second / num_rows_d * 100.0;
+        double general_pct = general_case_max_type.second / num_rows_d * 100.0;
+        std::cout<<"normal  case max type ("<<normal_pct<<"%): "<<normal_case_max_type.first.desc()<<std::endl;
+        std::cout<<"general case max type ("<<general_pct<<"%): "<<normal_case_max_type.first.desc()<<std::endl;
 
         // check how many (of the original) rows adhere to this detected normal-case type
         // this also requires column name checking!

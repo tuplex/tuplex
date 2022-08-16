@@ -306,6 +306,8 @@ namespace tuplex {
                            aggInitFunctor(nullptr),
                            aggCombineFunctor(nullptr),
                            aggAggregateFunctor(nullptr) {}
+
+            inline bool valid() const { return functor || functorWithExp || resolveFunctor; }
         };
 
         /*!

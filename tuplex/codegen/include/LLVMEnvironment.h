@@ -217,9 +217,6 @@ namespace tuplex {
 
             std::unique_ptr<llvm::legacy::FunctionPassManager> _fpm; // lazy initialized function pass manager for quick optimization of function
 
-            // creates the iterator name based on what type is iterated on...
-            std::string iterator_name_from_type(const python::Type& iterated_type);
-
         public:
             LLVMEnvironment(const std::string& moduleName="tuplex") : _module(nullptr),
                                                                       _memoryRequested(false) {
@@ -278,6 +275,9 @@ namespace tuplex {
 
             // see https://github.com/cmu-db/peloton/blob/1de89798f271804f8be38a71219a20e761a1b4b6/src/codegen/code_context.cpp on how to implement
             std::string getAssembly() const;
+
+            // creates the iterator name based on what type is iterated on...
+            std::string iterator_name_from_type(const python::Type& iterated_type);
 
             /*!
              * creates (or returns already created) LLVM type for a tuple type

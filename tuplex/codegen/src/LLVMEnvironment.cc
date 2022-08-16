@@ -386,7 +386,6 @@ namespace tuplex {
         std::string LLVMEnvironment::iterator_name_from_type(const python::Type &iterated_type) {
             // there are only a couple types yet supported for iteration
 
-
             if(iterated_type== python::Type::RANGE) { // this is a unique type
                 return "range";
             } else if(iterated_type.isListType()) {
@@ -403,7 +402,8 @@ namespace tuplex {
                 name = std::regex_replace(name, std::regex("struct\\."), "");
                 return name;
             } else {
-                    throw std::runtime_error("unsupported iterable type" + iterated_type.desc());
+                throw std::runtime_error("unsupported iterable type" + iterated_type.desc());
+                return "";
             }
         }
 
@@ -2039,6 +2039,10 @@ namespace tuplex {
 
             auto iteratorName = iterator_name_from_type(iterableType);
             funcName = iteratorName + prefix + "_iterator_update";
+
+            // special case range: -> always the same update function
+            if(iterableType == python::Type::RANGE)
+                funcName = "range_iterator_update";
 
             auto it = _generatedIteratorUpdateIndexFunctions.find(funcName);
             if(_generatedIteratorUpdateIndexFunctions.end() != it) {

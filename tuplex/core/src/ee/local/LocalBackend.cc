@@ -841,10 +841,16 @@ namespace tuplex {
         JobMetrics& metrics = tstage->PhysicalStage::plan()->getContext().metrics();
         double total_compilation_time = metrics.getTotalCompilationTime() + timer.time();
         metrics.setTotalCompilationTime(total_compilation_time);
-        {
+        if(syms->valid()) {
             std::stringstream ss;
             ss<<"[Transform Stage] Stage "<<tstage->number()<<" compiled to x86 in "<<timer.time()<<"s";
             Logger::instance().defaultLogger().info(ss.str());
+        } else {
+            // failed to compile, abort stage execution
+            std::stringstream ss;
+            ss<<"[Transform Stage] Failed to compile stage to x86.";
+            Logger::instance().defaultLogger().error(ss.str());
+            throw std::runtime_error("transform stage compilation error");
         }
 
         // -------------------------------------------------------------------

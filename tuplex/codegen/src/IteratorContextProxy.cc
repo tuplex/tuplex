@@ -306,17 +306,17 @@ namespace tuplex {
                 throw std::runtime_error("unsupported iterator" + iteratorName);
             }
 
-            if(iterablesType.isListType()) {
-                funcName = "list_" + prefix + "iterator_update";
-            } else if(iterablesType == python::Type::STRING) {
-                funcName = "str_" + prefix + "iterator_update";
+            auto iterable_name = _env->iterator_name_from_type(iterablesType);
+            if(iterable_name.empty()) {
+              throw std::runtime_error("Iterator struct " + _env->getLLVMTypeName(iteratorContextType)
+                                           + " does not have the corresponding LLVM UpdateIteratorIndex function");
             } else if(iterablesType == python::Type::RANGE) {
-                // range_iterator is always used
+                // special case range -> it's one structure (for all!)
                 funcName = "range_iterator_update";
-            } else if(iterablesType.isTupleType()) {
-                funcName = "tuple_" + prefix + "iterator_update";
             } else {
-                throw std::runtime_error("Iterator struct " + _env->getLLVMTypeName(iteratorContextType) + " does not have the corresponding LLVM UpdateIteratorIndex function");
+              if(!strEndsWith(iterable_name, "_"))
+                iterable_name += "_";
+              funcName = iterable_name + prefix + "iterator_update";
             }
 
             // function type: i1(*struct.iterator)

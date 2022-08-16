@@ -144,6 +144,12 @@ namespace tuplex {
                 }
             }
 
+            // check that a valid type can be created, else abort.
+            if(combined_ret_type == python::Type::UNKNOWN) {
+                fatal_error("can not create combined return type for function " + func->_name->_name);
+                return;
+            }
+
             assert(combined_ret_type != python::Type::UNKNOWN); // make sure control flow does not else hit this!
 
             // update suite with combined type!

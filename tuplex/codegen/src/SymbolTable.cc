@@ -161,6 +161,7 @@ namespace tuplex {
             }
 
             if(iterableType == python::Type::RANGE) {
+                // hack: could be float as well...
                 return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::I64));
             }
 
@@ -337,7 +338,8 @@ namespace tuplex {
                 }
             }
 
-            return python::Type::makeFunctionType(parameterType, python::Type::UNKNOWN);
+            return python::Type::UNKNOWN; // no typing possible for next(...), e.g. next(range(...))
+            // return python::Type::makeFunctionType(parameterType, python::Type::UNKNOWN);
         };
 
         addSymbol(make_shared<Symbol>("iter", iterFunctionTyper));

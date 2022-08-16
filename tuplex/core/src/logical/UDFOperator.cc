@@ -85,7 +85,7 @@ namespace tuplex {
                                 // => should use beefed up sample processor class for this...
                                 return Schema::UNKNOWN;
                             } else {
-                                // all good, keep sampled type but mark as non compilable
+                                // all good, keep sampled type but mark as non-compilable
                                 // cannot statically type AST, but sampling yields common-case output type to propagate to subsequent stages
                             }
                         }

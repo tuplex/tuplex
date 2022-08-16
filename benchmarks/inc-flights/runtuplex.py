@@ -179,8 +179,11 @@ for i in range(4):
     if i > 2:
         ds = ds.resolve(TypeError, resolve_is_delayed)
 
-    ds = ds.selectColumns(['ARR_DELAY', 'IS_DELAYED'])
-
+    ds = ds.selectColumns(['YEAR', 'MONTH', 'DAY_OF_MONTH', 'OP_CARRIER', 'ORIGIN_AIRPORT_SEQ_ID', 'ORIGIN', 'DEST',
+                            'CRS_DEP_TIME', 'DEP_TIME', 'DEP_DELAY',
+                            'IS_DELAYED', 'CRS_ARR_TIME', 'ARR_TIME', 'ARR_DELAY',
+                            'CRS_ELAPSED_TIME', 'ACTUAL_ELAPSED_TIME', 'AIR_TIME',
+                            'DISTANCE'])
     ds.tocsv(output_path)
 
     m = ctx.metrics

@@ -86,6 +86,11 @@ public:
      * @return true if a specialized function type could be generated, false else.
      */
     inline bool findFunctionTypeBasedOnParameterType(const python::Type& parameterType, python::Type& specializedFunctionType) {
+        // functionTyper helper function can expect a well-formed parameter type, however need therefore to
+        // perform quick check here.
+        if(parameterType.isIllDefined())
+            return false;
+
         // check if typer function is there?
         auto generic_result = functionTyper(parameterType);
         if(generic_result != python::Type::UNKNOWN) {

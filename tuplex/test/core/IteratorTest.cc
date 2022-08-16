@@ -336,7 +336,7 @@ TEST_F(IteratorTest, TrivialIterator) {
     // next(range) -> TypeError: range object is not an iterator
     // but next(iter(range)) works
     auto func = "def f(x):\n"
-                           "    return next(range(2, 10))\n";
+                           "    return next(iter(range(2, 10)))\n";
 
     auto v = c.parallelize({
                                Row(10)
@@ -349,26 +349,38 @@ TEST_F(IteratorTest, CodegenTestDifferentRangeIterators) {
     using namespace tuplex;
     Context c(microTestOptions());
 
-//    auto func = "def f(x):\n"
-//                "    L = [i * i for i in range(0, x)]\n"
-//                "    r1 = range(0, 100 * x, 2)\n"
-//                "    r2 = range(0, 100 * x, 4)\n"
-//                "    r3 = range(0, 100 * x, 8)\n"
-//                "    x = next(r1)\n"
-//                "    y = next(next(r2))\n"
-//                "    z = next(next(next(r3)))\n"
-//                "    \n"
-//                "    return y, z, z\n";
-
+    // this func will produce errors because next(range(...)) is undefined.
+    // same goes for next(next(...))
+    // auto func = "def f(x):\n"
+    //             "    L = [i * i for i in range(0, x)]\n"
+    //             "    r1 = range(0, 100 * x, 2)\n"
+    //             "    r2 = range(0, 100 * x, 4)\n"
+    //             "    r3 = range(0, 100 * x, 8)\n"
+    //             "    x = next(r1)\n"
+    //             "    y = next(next(r2))\n"
+    //             "    z = next(next(next(r3)))\n"
+    //             "    \n"
+    //             "    return y, z, z\n";
     auto func = "def f(x):\n"
-                "    return next(range(0, 10))\n";
+                "    L = [i * i for i in range(0, x)]\n"
+                "    r1 = iter(range(0, 100 * x, 2))\n"
+                "    r2 = iter(range(0, 100 * x, 4))\n"
+                "    r3 = iter(range(0, 100 * x, 8))\n"
+                "    x = next(r1)\n"
+                "    next(r2)\n"
+                "    y = next(r2)\n"
+                "    next(r3)\n"
+                "    next(r3)\n"
+                "    z = next(r3)\n"
+                "    \n"
+                "    return y, z, z";
 
     auto v = c.parallelize({
                                Row(10)
                            }).map(UDF(func)).collectAsVector();
 
     EXPECT_EQ(v.size(), 1);
-    // EXPECT_EQ(v[0], Row(29190, -1799580));
+    EXPECT_EQ(v[0], Row(4, 16, 16));
 }
 
 TEST_F(IteratorTest, CodegenTestRangeReverseIteratorI) {

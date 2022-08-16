@@ -2,16 +2,18 @@
 // Created by Leonhard Spiegelberg on 1/2/22.
 //
 
-#include <procinfo.h>
-#include <string>
-
-namespace tuplex {
-
 #ifdef _WiN32
 #include <process.h>
 #endif
 #include <unistd.h>
 #include <cstddef>
+#include <cstdio>
+#include <procinfo.h>
+#include <string>
+
+namespace tuplex {
+
+
 
     process_t pid_from_self() {
 #ifdef _WIN32

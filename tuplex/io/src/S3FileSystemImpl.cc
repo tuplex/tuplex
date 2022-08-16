@@ -738,9 +738,17 @@ namespace tuplex {
     }
 
     void S3FileSystemImpl::initTransferThreadPool(size_t numThreads) {
+        // there's a typo in older AWS SDK versions
+    #if AWS_SDK_VERSION_PATCH < 309
+        auto overflow_policy = Aws::Utils::Threading::OverflowPolicy::QUEUE_TASKS_EVENLY_ACCROSS_THREADS;
+    #else
+        auto overflow_policy = Aws::Utils::Threading::OverflowPolicy::QUEUE_TASKS_EVENLY_ACROSS_THREADS;
+    #endif
+
         // lazy init
         if(!_thread_pool)
-            _thread_pool = std::make_shared<Aws::Utils::Threading::PooledThreadExecutor>(numThreads, Aws::Utils::Threading::OverflowPolicy::QUEUE_TASKS_EVENLY_ACCROSS_THREADS);
+            _thread_pool = std::make_shared<Aws::Utils::Threading::PooledThreadExecutor>(numThreads,
+                                                                                         overflow_policy);
 
         if(!_transfer_manager) {
             Aws::Transfer::TransferManagerConfiguration config(_thread_pool.get());

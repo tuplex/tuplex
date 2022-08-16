@@ -967,7 +967,7 @@ TEST_F(PipelinesTest, TypeErrorFlightPipeline) {
     auto bts_paths = "../resources/flights_on_time_performance_2019_01.sample.csv";
     auto carrier_path="../resources/pipelines/flights/L_CARRIER_HISTORY.csv";
     auto airport_path="../resources/pipelines/flights/GlobalAirportDatabase.txt";
-    flightPipeline(ctx, bts_paths,carrier_path, airport_path, false, true).tocsv("test_flights_output");
+    flightPipeline(ctx, bts_paths, carrier_path, airport_path, false, true).tocsv("test_flights_output");
 }
 
 

@@ -371,12 +371,14 @@ namespace tuplex {
                         auto oldInputType = op->getInputSchema().getRowType();
                         auto oldOutputType = op->getInputSchema().getRowType();
 
+#ifdef NDEBUG
                         if(node->type() == LogicalOperatorType::WITHCOLUMN) {
                             auto wop = (WithColumnOperator*)node;
                             if(wop->columnToMap() == "ActualElapsedTime") {
                                 std::cout<<"start checking retyping here!!!"<<std::endl;
                             }
                         }
+#endif
 
                         checkRowType(last_rowtype);
                         // set FIRST the parent. Why? because operators like ingore depend on parent schema

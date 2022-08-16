@@ -379,7 +379,7 @@ TEST(JSONUtils, SIMDJSONFieldParse) {
         double normal_pct = normal_case_max_type.second / num_rows_d * 100.0;
         double general_pct = general_case_max_type.second / num_rows_d * 100.0;
         std::cout<<"normal  case max type ("<<normal_pct<<"%): "<<normal_case_max_type.first.desc()<<std::endl;
-        std::cout<<"general case max type ("<<general_pct<<"%): "<<normal_case_max_type.first.desc()<<std::endl;
+        std::cout<<"general case max type ("<<general_pct<<"%): "<<general_case_max_type.first.desc()<<std::endl;
 
         // check how many (of the original) rows adhere to this detected normal-case type
         // this also requires column name checking!

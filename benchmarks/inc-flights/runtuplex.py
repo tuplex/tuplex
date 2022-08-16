@@ -4,6 +4,7 @@ import argparse
 import time
 import json
 import glob
+import subprocess
 
 # Parser args
 parser = argparse.ArgumentParser(description='Flight data query testing')
@@ -107,6 +108,8 @@ def is_delayed(row):
 
 def resolve_is_delayed(row):
     return row['CANCELLED'] == 1 or row['DIVERTED'] == 1
+
+subprocess.run(["clearcache"])
 
 metrics = []
 

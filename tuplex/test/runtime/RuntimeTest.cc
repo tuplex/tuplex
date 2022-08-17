@@ -16,123 +16,26 @@
 #include <cctype>
 #include <string>
 
-#include <fmt/format.h>
-#include <fmt/args.h>
 
-
-bool is_fmt_float_type(const fmt::detail::type& t) {
-    switch(t) {
-        case fmt::detail::type::float_type:
-        case fmt::detail::type::double_type:
-        case fmt::detail::type::long_double_type:
-            return true;
-        default:
-            return false;
-    }
-}
-
-std::string pyfmtToFmtlib(size_t argNo, const std::string& fmt, const fmt::format_args& args) {
-
-    //assert(argNo < store.size());
-    // does the fmt start with a number and not :?
-    if(!fmt.empty()) {
-        // extract number...
-
-        //-> replace : with :# for float!
-        if(is_fmt_float_type(args.get(argNo).type())) {
-            auto idx = fmt.find(':');
-            if(idx >= 0) {
-                return fmt.substr(0, idx-1) + ":#" + fmt.substr(idx + 1);
-            }
-            // doesn't matter, prob. invalid format...
-        }
-    } else {
-        // default fmt, i.e. {}
-        // adjust only for float!
-        if(is_fmt_float_type(args.get(argNo).type())) {
-            // prepend # to fmt!
-            return ":#";
-        }
-    }
-
-    // per default use the python fmt
-    return fmt;
-}
-
-std::string adjust_fmt_string(const std::string& fmt_string, const fmt::format_args& args) {
-    // parse format string, i.e. watch out for { ... }, but they can be escaped...
-    std::stringstream ss;
-    char buf[2]; buf[1] = '\0';
-    // not correct, need to do proper escaping...
-    size_t argNo = 0;
-    for(unsigned i = 0; i < fmt_string.size(); ++i) {
-        // special case: escaped {{ and }}
-        if(i + 1 < fmt_string.size()) {
-            char c1 = fmt_string[i];
-            char c2 = fmt_string[i + 1];
-            if(c1 == '{' && c2 == '{') {
-                i++;
-                ss<<"{{";
-                continue;
-            }
-            if(c1 == '}' && c2 == '}') {
-                i++;
-                ss<<"}}";
-                continue;
-            }
-        }
-
-
-        if(i < fmt_string.size() - 1 && '{' == fmt_string[i]) {
-            if('{' == fmt_string[i] && '{' != fmt_string[i + 1]) {
-                // format specification found
-                auto start_idx = i;
-                // read till '}' is encountered!
-                while(i < fmt_string.size() && fmt_string[i] != '}')
-                    ++i;
-
-                // fmt string is start_idx to i
-                // this is the fmt incl {}, fmt_string.substr(start_idx, i - start_idx + 1)
-                // but we want to have only what's inside
-                auto fmt = fmt_string.substr(start_idx + 1, i - start_idx - 1);
-
-                // translate
-                auto translated_fmt = pyfmtToFmtlib(argNo, fmt, args);
-                argNo++;
-
-                ss<<"{"<<translated_fmt<<"}";
-                continue;
-            }
-        }
-
-        // regular char
-        buf[0] = fmt_string[i];
-        ss<<buf;
-    }
-
-    // write rest of output...
-
-    return ss.str();
-}
-
-TEST(Runtime, FmtlibFloatingFormats) {
-    using namespace std;
-
-    fmt::dynamic_format_arg_store<fmt::format_context> store;
-    store.push_back(1.12);
-    store.push_back(1.0);
-    store.push_back(0.0);
-
-    // translate python specific fmt lang args to fmtlib specific fmt args
-    // e.g., for float need to transform {} to {#}
-    auto args = fmt::basic_format_args<fmt::format_context>(store);
-
-    string fmt = "{} {} {{hel}}lo}} {}";
-    string adjusted_fmt = adjust_fmt_string(fmt, args);
-    auto ret = fmt::vformat(adjusted_fmt, store);
-
-    EXPECT_EQ(ret, "1.12 1.0 {hel}lo} 0.0");
-}
+// this would be a test for the internal fmtlib conversion functions...
+//TEST(Runtime, FmtlibFloatingFormats) {
+//    using namespace std;
+//
+//    fmt::dynamic_format_arg_store<fmt::format_context> store;
+//    store.push_back(1.12);
+//    store.push_back(1.0);
+//    store.push_back(0.0);
+//
+//    // translate python specific fmt lang args to fmtlib specific fmt args
+//    // e.g., for float need to transform {} to {#}
+//    auto args = fmt::basic_format_args<fmt::format_context>(store);
+//
+//    string fmt = "{} {} {{hel}}lo}} {}";
+//    string adjusted_fmt = adjust_fmt_string(fmt, args);
+//    auto ret = fmt::vformat(adjusted_fmt, store);
+//
+//    EXPECT_EQ(ret, "1.12 1.0 {hel}lo} 0.0");
+//}
 
 TEST(Runtime, malloc) {
     setRunTimeMemory(1024 * 1024 * 10, 0); // use 10MB

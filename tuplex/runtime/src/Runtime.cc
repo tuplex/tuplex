@@ -534,6 +534,101 @@ end_repl_str:
 }
 
 
+bool is_fmt_float_type(const fmt::detail::type& t) {
+    switch(t) {
+        case fmt::detail::type::float_type:
+        case fmt::detail::type::double_type:
+        case fmt::detail::type::long_double_type:
+            return true;
+        default:
+            return false;
+    }
+}
+
+std::string pyfmtToFmtlib(size_t argNo, const std::string& fmt, const fmt::format_args& args) {
+
+    //assert(argNo < store.size());
+    // does the fmt start with a number and not :?
+    if(!fmt.empty()) {
+        // extract number...
+
+        //-> replace : with :# for float!
+        if(is_fmt_float_type(args.get(argNo).type())) {
+            auto idx = fmt.find(':');
+            if(idx >= 0) {
+                return fmt.substr(0, idx-1) + ":#" + fmt.substr(idx + 1);
+            }
+            // doesn't matter, prob. invalid format...
+        }
+    } else {
+        // default fmt, i.e. {}
+        // adjust only for float!
+        if(is_fmt_float_type(args.get(argNo).type())) {
+            // prepend # to fmt!
+            return ":#";
+        }
+    }
+
+    // per default use the python fmt
+    return fmt;
+}
+
+std::string adjust_fmt_string(const std::string& fmt_string, const fmt::format_args& args) {
+    // parse format string, i.e. watch out for { ... }, but they can be escaped...
+    std::stringstream ss;
+    char buf[2]; buf[1] = '\0';
+    // not correct, need to do proper escaping...
+    size_t argNo = 0;
+    for(unsigned i = 0; i < fmt_string.size(); ++i) {
+        // special case: escaped {{ and }}
+        if(i + 1 < fmt_string.size()) {
+            char c1 = fmt_string[i];
+            char c2 = fmt_string[i + 1];
+            if(c1 == '{' && c2 == '{') {
+                i++;
+                ss<<"{{";
+                continue;
+            }
+            if(c1 == '}' && c2 == '}') {
+                i++;
+                ss<<"}}";
+                continue;
+            }
+        }
+
+
+        if(i < fmt_string.size() - 1 && '{' == fmt_string[i]) {
+            if('{' == fmt_string[i] && '{' != fmt_string[i + 1]) {
+                // format specification found
+                auto start_idx = i;
+                // read till '}' is encountered!
+                while(i < fmt_string.size() && fmt_string[i] != '}')
+                    ++i;
+
+                // fmt string is start_idx to i
+                // this is the fmt incl {}, fmt_string.substr(start_idx, i - start_idx + 1)
+                // but we want to have only what's inside
+                auto fmt = fmt_string.substr(start_idx + 1, i - start_idx - 1);
+
+                // translate
+                auto translated_fmt = pyfmtToFmtlib(argNo, fmt, args);
+                argNo++;
+
+                ss<<"{"<<translated_fmt<<"}";
+                continue;
+            }
+        }
+
+        // regular char
+        buf[0] = fmt_string[i];
+        ss<<buf;
+    }
+
+    // write rest of output...
+
+    return ss.str();
+}
+
 /*!
  * strFormat function with variable number of arguments. Supports formatting for bool, int, float, str.
  * No support for tuples or other objects yet.
@@ -605,7 +700,15 @@ extern "C" char* strFormat(const char *str, int64_t *res_size, const char* argty
 
 
     // make the formatting call
-    res = fmt::vformat(str, store);
+
+    // old and deprecated for newer fmtlib versions since they abandon compatibility with python
+    // res = fmt::vformat(str, store);
+
+    // new: adjust format before to reach python compatibility
+    auto args = fmt::basic_format_args<fmt::format_context>(store);
+    string adjusted_fmt_string = adjust_fmt_string(str, args);
+    res = fmt::vformat(adjusted_fmt_string, args);
+
     *res_size = res.length() + 1;
     ret = (char*)rtmalloc((size_t)*res_size);
     memcpy(ret, res.c_str(), (size_t)*res_size);

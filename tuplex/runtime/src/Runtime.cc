@@ -599,6 +599,11 @@ extern "C" char* strFormat(const char *str, int64_t *res_size, const char* argty
     }
     va_end(argp);
 
+
+    // note: fmtlib has different formatting behavior than python for floating points
+    // hence, manually change string to be formatted...
+
+
     // make the formatting call
     res = fmt::vformat(str, store);
     *res_size = res.length() + 1;

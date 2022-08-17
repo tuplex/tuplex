@@ -35,6 +35,28 @@ protected:
     }
 };
 
+TEST_F(FileOutputTest, SimpleCSVFileRead) {
+    using namespace tuplex;
+
+    auto opts = microTestOptions();
+    Context c(opts);
+
+    URI file_path(folderName + "/test.csv");
+    auto content = "1\n2\n3\n";
+    stringToFile(file_path, content);
+
+    auto outputRows = c.csv(folderName + "/test.csv").collectAsVector();
+    ASSERT_EQ(3, outputRows.size());
+    std::vector<Row> rows({Row(1), Row(2), Row(3)});
+    for (int i = 0; i < rows.size(); ++i) {
+        EXPECT_EQ(rows.at(i).toPythonString(), outputRows.at(i).toPythonString());
+    }
+
+    for(unsigned i = 0; i < rows.size(); ++i) {
+        std::cout<<"row "<<i<<": "<<outputRows.at(i).getRowType().desc()<<" "<<outputRows.at(i).toPythonString()<<std::endl;
+    }
+}
+
 TEST_F(FileOutputTest, NewFolder) {
     using namespace tuplex;
 

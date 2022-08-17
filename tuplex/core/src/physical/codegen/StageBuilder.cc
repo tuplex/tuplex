@@ -772,21 +772,21 @@ namespace tuplex {
                      // only exception is if source is cache and no exceptions happened.
 
                      bool leaveNormalCase = false;
+                     if(!pathContext.operators.empty())
+                         leaveNormalCase = pathContext.operators.back()->type() == LogicalOperatorType::CACHE;
 
                      // special case: join is executed on top of a .cache()
                      // =>
-                    if(ctx.nullValueOptimization) {
-                        if(!leaveNormalCase) {
-                            if (!pip->addTypeUpgrade(generalCaseOutputRowType))
-                                throw std::runtime_error(
-                                        "type upgrade from " + pathContext.outputSchema.getRowType().desc() + " to " +
-                                                generalCaseOutputRowType.desc() + "failed.");
-                            // set normal case output type to general case
-                            logger.warn("using const cast here, it's a code smell. need to fix...");
+                    if(!leaveNormalCase) {
+                        if (!pip->addTypeUpgrade(generalCaseOutputRowType))
+                            throw std::runtime_error(
+                                    "type upgrade from " + pathContext.outputSchema.getRowType().desc() + " to " +
+                                            generalCaseOutputRowType.desc() + "failed.");
+                        // set normal case output type to general case
+                        logger.warn("using const cast here, it's a code smell. need to fix...");
 
-                            // HACK: uncommented... need to fix.
-                            //const_cast<StageBuilder*>(this)->_normalCaseOutputSchema = _generalCaseOutputSchema;
-                        }
+                        // HACK: uncommented... need to fix.
+                        //const_cast<StageBuilder*>(this)->_normalCaseOutputSchema = _generalCaseOutputSchema;
                     }
                     pip->buildWithHashmapWriter(ret.writeHashCallbackName,
                                                 ctx.hashColKeys,
@@ -805,21 +805,19 @@ namespace tuplex {
                         // is outputNode a cache operator? Then leave normal case as is...
                         // => always pass cache node!
                         bool leaveNormalCase = false;
-
                         if(!pathContext.operators.empty())
                             leaveNormalCase = pathContext.operators.back()->type() == LogicalOperatorType::CACHE;
 
                         // force output type to be always general case (=> so merging works easily!)
-                        if(ctx.nullValueOptimization) {
-                            if(!leaveNormalCase) {
-                                if (!pip->addTypeUpgrade(generalCaseOutputRowType))
-                                    throw std::runtime_error(
-                                            "type upgrade from " + pathContext.outputSchema.getRowType().desc() + " to " +
-                                            generalCaseOutputRowType.desc() + "failed.");
-                                // set normal case output type to general case
-                                // _normalCaseOutputSchema = _generalCaseOutputSchema;
-                            }
+                        if(!leaveNormalCase) {
+                            if (!pip->addTypeUpgrade(generalCaseOutputRowType))
+                                throw std::runtime_error(
+                                        "type upgrade from " + pathContext.outputSchema.getRowType().desc() + " to " +
+                                        generalCaseOutputRowType.desc() + "failed.");
+                            // set normal case output type to general case
+                            // _normalCaseOutputSchema = _generalCaseOutputSchema;
                         }
+
                         pip->buildWithTuplexWriter(ret.writeMemoryCallbackName,
                                                    ctx.outputNodeID,
                                                    ctx.hasOutputLimit());
@@ -1552,7 +1550,7 @@ namespace tuplex {
             logger.debug("read schema is: " + readSchema.getRowType().desc());
             path_ctx.inputNode = planner.input_node();
             path_ctx.operators = planner.optimized_operators();
-            path_ctx.outputSchema = path_ctx.operators.empty() ? inputSchema : path_ctx.operators.back()->getOutputSchema(); // special case: file output operator?
+            path_ctx.outputSchema = path_ctx.operators.empty() ? general_path_ctx.outputSchema : path_ctx.operators.back()->getOutputSchema(); // special case: file output operator?
             path_ctx.inputSchema = inputSchema;
             path_ctx.readSchema = readSchema;
             path_ctx.columnsToRead = columnsToRead;
@@ -1592,7 +1590,11 @@ namespace tuplex {
                 // 1. fetch general code generation context
                 auto codeGenerationContext = createCodeGenerationContext();
 
-                logger.debug("TODO: Need to add specialization/optimization here...");
+                // adjust settings
+                codeGenerationContext.nullValueOptimization = _nullValueOptimization;
+                codeGenerationContext.allowUndefinedBehavior = _policy.allowUndefinedBehavior;
+                codeGenerationContext.sharedObjectPropagation = _policy.sharedObjectPropagation;
+//                codeGenerationContext.normalCaseThreshold = ??
 
                 // need to set codeGenerationContext.normalToGeneralMapping here as well!
                 // 2. specialize fast path (if desired)

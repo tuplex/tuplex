@@ -68,10 +68,9 @@ namespace tuplex {
         bool _makeParseErrorsInternal;
         int64_t _operatorID; // operator ID of the reader (passed down to exception handler)
         codegen::exception_handler_f _exceptionHandler;
-        size_t _numColumns;
+        size_t _numColumns; /// what to expect in terms of column count, may be changed
         char _delimiter;
         char _quotechar;
-        size_t numColumns; /// what to expect in terms of column count, may be changed
         std::vector<std::string> _header;
         std::vector<bool> _columnsToKeep; /// used for projection pushdown, i.e. when serializing exceptions out
         size_t _rangeStart;

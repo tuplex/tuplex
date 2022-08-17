@@ -1552,7 +1552,7 @@ namespace tuplex {
             logger.debug("read schema is: " + readSchema.getRowType().desc());
             path_ctx.inputNode = planner.input_node();
             path_ctx.operators = planner.optimized_operators();
-            path_ctx.outputSchema = path_ctx.operators.back()->getOutputSchema(); // this is not entirely correct... -> fileoutput operator?
+            path_ctx.outputSchema = path_ctx.operators.empty() ? inputSchema : path_ctx.operators.back()->getOutputSchema(); // special case: file output operator?
             path_ctx.inputSchema = inputSchema;
             path_ctx.readSchema = readSchema;
             path_ctx.columnsToRead = columnsToRead;
@@ -1624,7 +1624,7 @@ namespace tuplex {
                     ss<<"\tinput schema (after projection): "<<codeGenerationContext.fastPathContext.inputSchema.getRowType().desc()<<"\n";
                     ss<<"\toutput schema (after projection): "<<codeGenerationContext.fastPathContext.outputSchema.getRowType().desc()<<"\n";
                     // how many rows to read?
-                    ss<<"\tcolumns to tread (after projection): "<<codeGenerationContext.fastPathContext.columnsToReadCount()<<"\n";
+                    ss<<"\tcolumns to read (after projection): "<<codeGenerationContext.fastPathContext.columnsToReadCount()<<"\n";
 
                     logger.debug(ss.str());
                 }

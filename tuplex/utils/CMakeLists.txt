@@ -52,7 +52,7 @@ if(NOT BUILD_WITH_AWS)
     set(FETCHCONTENT_BASE_DIR ${CMAKE_BINARY_DIR}/third_party/src)
     FetchContent_Declare(cJSON
         GIT_REPOSITORY https://github.com/DaveGamble/cJSON.git
-        GIT_TAG        v1.7.14
+        GIT_TAG        v1.7.15
         GIT_CONFIG advice.detachedHead=false
     )
     FetchContent_GetProperties(cJSON)

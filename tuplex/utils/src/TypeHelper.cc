@@ -3,6 +3,7 @@
 //
 
 #include <TypeHelper.h>
+#include <set>
 
 namespace tuplex {
 

@@ -16,6 +16,10 @@
 #include <TypeHelper.h>
 #include <Utils.h>
 
+// other util files
+#include <Timer.h>
+#include <compression.h>
+
 static std::string fileToString(const std::string& path) {
     std::ifstream t(path);
     std::stringstream buffer;
@@ -240,6 +244,40 @@ namespace tuplex {
         }
         return best_pair;
     }
+}
+
+TEST(JSONUtils, CheckFiles) {
+    using namespace tuplex;
+    using namespace std;
+
+    // for each file, run sampling stats
+    string root_path = "/hot/data/flights_all/";
+    string pattern = root_path + "flights_on_time_performance_*.csv";
+
+
+    // test
+    pattern = "../resources/*.json.gz";
+
+    size_t num_files_found = 0;
+    auto paths = glob(pattern);
+    num_files_found = paths.size();
+    cout<<"Found "<<pluralize(num_files_found, "file")<<" to analyze schema for."<<endl;
+
+    auto path = paths[0];
+
+    // step 1: decode file
+    Timer timer;
+
+    auto raw_data = fileToString(path);
+
+    const char * pointer = raw_data.data();
+    std::size_t size = raw_data.size();
+
+// Check if compressed. Can check both gzip and zlib.
+    bool c = gzip::is_compressed(pointer, size); // false
+    std::string decompressed_data = gzip::decompress(pointer, size);
+    cout<<"loaded "<<path<<" "<<sizeToMemString(raw_data.size())<<" -> "<<sizeToMemString(decompressed_data.size())<<" (decompressed)"<<endl;
+
 }
 
 TEST(JSONUtils, SIMDJSONFieldParse) {

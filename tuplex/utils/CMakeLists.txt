@@ -5,6 +5,9 @@ file(GLOB_RECURSE INCLUDES include/*.h)
 
 include_directories("include")
 
+# find zlib (any will do)
+find_package(ZLIB REQUIRED)
+
 ### include fmtlib/fmt
 include(ExternalProject)
 set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
@@ -114,7 +117,8 @@ target_include_directories(libutils PUBLIC
         ${cjson_SOURCE_DIR}
         ${json_INCLUDE_DIR}
         ${Boost_INCLUDE_DIR}
-        ${AWSSDK_INCLUDE_DIR})
+        ${AWSSDK_INCLUDE_DIR}
+        ${ZLIB_INCLUDE_DIRS})
 
 # Specify here the libraries this program depends on
-target_link_libraries(libutils Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${AWSSDK_LINK_LIBRARIES} simdjson)
+target_link_libraries(libutils Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${AWSSDK_LINK_LIBRARIES} ${ZLIB_LIBRARIES} simdjson)

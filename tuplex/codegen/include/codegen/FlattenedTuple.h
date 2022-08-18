@@ -108,9 +108,10 @@ namespace tuplex {
              * upcast this flattened Tuple to a new flattened tuple.
              * @param builder IR Builder
              * @param target_type the target type, needs to be compatible with FlattenedTuple
+             * @param allow_simple_tuple_wrap because row-types per definition are
              * @return new FlattenedTuple.
              */
-            FlattenedTuple upcastTo(llvm::IRBuilder<>& builder, const python::Type& target_type) const;
+            FlattenedTuple upcastTo(llvm::IRBuilder<>& builder, const python::Type& target_type, bool allow_simple_tuple_wrap=false) const;
 
             /*!
              * retrieves an element based on the index. I.e. to access the

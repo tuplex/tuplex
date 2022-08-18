@@ -2601,7 +2601,8 @@ namespace tuplex {
 
             IRBuilder<> builder(_lastBlock);
             try {
-                _lastRowResult = _lastRowResult.upcastTo(builder, rowType);
+                logger.debug("upcasting from " + _lastRowResult.getTupleType().desc() + " to " + rowType.desc());
+                _lastRowResult = _lastRowResult.upcastTo(builder, rowType, true);
             } catch (const std::exception& e) {
                 logger.error("type upcast failed: " + std::string(e.what()));
                 return false;

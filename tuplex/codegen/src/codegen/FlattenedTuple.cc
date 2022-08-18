@@ -1184,7 +1184,9 @@ namespace tuplex {
             return ft;
         }
 
-        FlattenedTuple FlattenedTuple::upcastTo(llvm::IRBuilder<>& builder, const python::Type& target_type) const {
+        FlattenedTuple FlattenedTuple::upcastTo(llvm::IRBuilder<>& builder,
+                                                const python::Type& target_type,
+                                                bool allow_simple_tuple_wrap) const {
             // create new FlattenedTuple
             FlattenedTuple ft(_env);
             ft.init(target_type);
@@ -1192,9 +1194,24 @@ namespace tuplex {
 
             // check, make sure they upcastable...
             if(!python::canUpcastType(getTupleType(), target_type)) {
-                auto err_msg = "Code generation failure, can't upcast type " + getTupleType().desc() + " to type " + target_type.desc();
-                Logger::instance().logger("codegen").debug(err_msg);
-                throw std::runtime_error(err_msg);
+
+                // special case: simple tuple wrap
+                if(!getTupleType().isTupleType() && python::canUpcastType(python::Type::propagateToTupleType(getTupleType()), target_type)) {
+                    // ok, handle here -> this is a special case!
+                    auto num_desired = ft.numElements();
+                    auto num_given = numElements();
+
+                    if(num_desired == 1 && num_given == 1) {
+                        ft.setElement(builder, 0, get(0), getSize(0), getIsNull(0));
+                        return ft;
+                    } else {
+                        throw std::runtime_error("wrapping not possible for upcast");
+                    }
+                } else {
+                    auto err_msg = "Code generation failure, can't upcast type " + getTupleType().desc() + " to type " + target_type.desc();
+                    Logger::instance().logger("codegen").debug(err_msg);
+                    throw std::runtime_error(err_msg);
+                }
             }
 
             // upgrade params

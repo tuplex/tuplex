@@ -1304,6 +1304,25 @@ default:
         assert(rowObject);
 
         switch(_hash_agg_type) {
+            // TODO: @bgivertz Temp hack to make join exceptions work
+            case AggregateType::AGG_NONE: {
+                auto key = PyTuple_GetItem(rowObject, _hash_key_col);
+                auto value = PyTuple_New(PyTuple_Size(rowObject) - 1);
+
+                for (int i = 0; i < _hash_key_col; ++i)
+                    PyTuple_SetItem(value, i, PyTuple_GetItem(rowObject, i));
+                for (int i = _hash_key_col + 1; i < PyTuple_Size(rowObject); ++i)
+                    PyTuple_SetItem(value, i - 1, PyTuple_GetItem(rowObject, i));
+
+                assert(_htable.hybrid_hm);
+                int rc =((HybridLookupTable*)_htable.hybrid_hm)->putItem(key, value);
+                if(PyErr_Occurred()) {
+                    PyErr_Print();
+                    cout<<endl;
+                    PyErr_Clear();
+                }
+                break;
+            }
             case AggregateType::AGG_UNIQUE: {
                 auto rowType = python::mapPythonClassToTuplexType(rowObject, false);
 
@@ -1338,7 +1357,7 @@ default:
             }
 
             default: {
-                string err_msg = "unsupported aggregate fallback encountered, key type: " + _hash_element_type.desc() + ", bucket type: " + _hash_element_type.desc();
+                string err_msg = "unsupported aggregate fallback encountered, key type: " + _hash_element_type.desc() + ", bucket type: " + _hash_bucket_type.desc();
                 owner()->error(err_msg);
                 break;
             }

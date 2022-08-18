@@ -34,6 +34,225 @@ protected:
     }
 };
 
+TEST_F(IncrementalTest, JoinNoExp) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opts = microTestOptions();
+    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
+    opts.set("tuplex.optimizer.incrementalResolution", "false");
+    Context c(opts);
+
+    auto writeURI = URI(testName + "/" + testName + ".csv");
+    auto readURI = URI(testName + "/" + testName + ".*.csv");
+
+    auto ds1 = c.parallelize({Row("A", 1),
+                              Row("B", 2),
+                              Row("C", 3)},
+                             vector<string>{"a", "b"});
+    auto ds2 = c.parallelize({Row("A", -1),
+                              Row("B", -2),
+                              Row("C", -3)},
+                             vector<string>{"c", "d"});
+
+    ds1.join(ds2, string("a"), string("c"))
+        .tocsv(writeURI);
+
+    unordered_multiset<string> expectedOutput({Row(1, "A", -1).toPythonString(), Row(2, "B", -2).toPythonString(), Row(3, "C", -3).toPythonString()});
+    auto actualOutput = c.csv(readURI.toPath()).collectAsVector();
+
+    ASSERT_EQ(expectedOutput.size(), actualOutput.size());
+    for (const auto &row : actualOutput)
+        ASSERT_TRUE(expectedOutput.find(row.toPythonString()) != expectedOutput.end());
+}
+
+TEST_F(IncrementalTest, JoinLeftBeforeExp) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opts = microTestOptions();
+    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
+    opts.set("tuplex.optimizer.incrementalResolution", "false");
+    Context c(opts);
+
+    auto writeURI = URI(testName + "/" + testName + ".csv");
+    auto readURI = URI(testName + "/" + testName + ".*.csv");
+
+    auto ds1 = c.parallelize({Row("A", 1),
+                              Row("B", 2),
+                              Row("C", 3)},
+                             vector<string>{"a", "b"});
+    auto ds2 = c.parallelize({Row("A", -1),
+                              Row("B", -2),
+                              Row("C", -3)},
+                             vector<string>{"c", "d"});
+
+    ds1.mapColumn("b", UDF("lambda x: 1 // (x - x) if x == 2 else x"))
+            .join(ds2, string("a"), string("c"))
+            .tocsv(writeURI);
+
+    unordered_multiset<string> expectedOutput1({Row(1, "A", -1).toPythonString(),
+                                                Row(3, "C", -3).toPythonString()});
+    auto actualOutput1 = c.csv(readURI.toPath()).collectAsVector();
+    ASSERT_EQ(expectedOutput1.size(), actualOutput1.size());
+    for (const auto &row : actualOutput1)
+        ASSERT_TRUE(expectedOutput1.find(row.toPythonString()) != expectedOutput1.end());
+
+    ds1.mapColumn("b", UDF("lambda x: 1 // (x - x) if x == 2 else x"))
+        .resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x"))
+        .join(ds2, string("a"), string("c"))
+        .tocsv(writeURI);
+
+    unordered_multiset<string> expectedOutput2({Row(1, "A", -1).toPythonString(),
+                                                Row(2, "B", -2).toPythonString(),
+                                                Row(3, "C", -3).toPythonString()});
+    auto actualOutput2 = c.csv(readURI.toPath()).collectAsVector();
+    ASSERT_EQ(expectedOutput2.size(), actualOutput2.size());
+    for (const auto &row : actualOutput2)
+        ASSERT_TRUE(expectedOutput2.find(row.toPythonString()) != expectedOutput2.end());
+}
+
+TEST_F(IncrementalTest, JoinRightBeforeExp) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opts = microTestOptions();
+    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
+    opts.set("tuplex.optimizer.incrementalResolution", "false");
+    Context c(opts);
+
+    auto writeURI = URI(testName + "/" + testName + ".csv");
+    auto readURI = URI(testName + "/" + testName + ".*.csv");
+
+    auto ds1 = c.parallelize({Row("A", 1),
+                              Row("B", 2),
+                              Row("C", 3)},
+                             vector<string>{"a", "b"});
+    auto ds2 = c.parallelize({Row("A", -1),
+                              Row("B", -2),
+                              Row("C", -3)},
+                             vector<string>{"c", "d"});
+
+    ds2 = ds2.mapColumn("d", UDF("lambda x: 1 // (x - x) if x == -2 else x"));
+
+    ds1.join(ds2, string("a"), string("c"))
+        .tocsv(writeURI);
+
+    unordered_multiset<string> expectedOutput1({Row(1, "A", -1).toPythonString(),
+                                                Row(3, "C", -3).toPythonString()});
+    auto actualOutput1 = c.csv(readURI.toPath()).collectAsVector();
+    ASSERT_EQ(expectedOutput1.size(), actualOutput1.size());
+    for (const auto &row : actualOutput1)
+        ASSERT_TRUE(expectedOutput1.find(row.toPythonString()) != expectedOutput1.end());
+
+    ds2 = ds2.resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x"));
+
+    ds1.join(ds2, string("a"), string("c"))
+        .tocsv(writeURI);
+
+    unordered_multiset<string> expectedOutput2({Row(1, "A", -1).toPythonString(),
+                                                Row(2, "B", -2).toPythonString(),
+                                                Row(3, "C", -3).toPythonString()});
+    auto actualOutput2 = c.csv(readURI.toPath()).collectAsVector();
+    ASSERT_EQ(expectedOutput2.size(), actualOutput2.size());
+    for (const auto &row : actualOutput2)
+        ASSERT_TRUE(expectedOutput2.find(row.toPythonString()) != expectedOutput2.end());
+}
+
+TEST_F(IncrementalTest, JoinBothBeforeExp) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opts = microTestOptions();
+    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
+    opts.set("tuplex.optimizer.incrementalResolution", "false");
+    Context c(opts);
+
+    auto writeURI = URI(testName + "/" + testName + ".csv");
+    auto readURI = URI(testName + "/" + testName + ".*.csv");
+
+    auto ds1 = c.parallelize({Row("A", 1),
+                              Row("B", 2),
+                              Row("C", 3)},
+                             vector<string>{"a", "b"});
+    auto ds2 = c.parallelize({Row("A", -1),
+                              Row("B", -2),
+                              Row("C", -3)},
+                             vector<string>{"c", "d"});
+
+    ds1 = ds1.mapColumn("b", UDF("lambda x: 1 // (x - x) if x == 1 else x"));
+    ds2 = ds2.mapColumn("d", UDF("lambda x: 1 // (x - x) if x == -2 else x"));
+
+    ds1.join(ds2, string("a"), string("c"))
+        .tocsv(writeURI);
+
+    unordered_multiset<string> expectedOutput1({Row(3, "C", -3).toPythonString()});
+    auto actualOutput1 = c.csv(readURI.toPath()).collectAsVector();
+    ASSERT_EQ(expectedOutput1.size(), actualOutput1.size());
+    for (const auto &row : actualOutput1)
+        ASSERT_TRUE(expectedOutput1.find(row.toPythonString()) != expectedOutput1.end());
+
+    ds1 = ds1.resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x"));
+    ds2 = ds2.resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x"));
+
+    ds1.join(ds2, string("a"), string("c"))
+            .tocsv(writeURI);
+
+    unordered_multiset<string> expectedOutput2({Row(1, "A", -1).toPythonString(),
+                                                Row(2, "B", -2).toPythonString(),
+                                                Row(3, "C", -3).toPythonString()});
+    auto actualOutput2 = c.csv(readURI.toPath()).collectAsVector();
+    ASSERT_EQ(expectedOutput2.size(), actualOutput2.size());
+    for (const auto &row : actualOutput2)
+        ASSERT_TRUE(expectedOutput2.find(row.toPythonString()) != expectedOutput2.end());
+}
+
+TEST_F(IncrementalTest, JoinAfterExp) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opts = microTestOptions();
+    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
+    opts.set("tuplex.optimizer.incrementalResolution", "false");
+    Context c(opts);
+
+    auto writeURI = URI(testName + "/" + testName + ".csv");
+    auto readURI = URI(testName + "/" + testName + ".*.csv");
+
+    auto ds1 = c.parallelize({Row("A", 1),
+                              Row("B", 2),
+                              Row("C", 3)},
+                             vector<string>{"a", "b"});
+    auto ds2 = c.parallelize({Row("A", -1),
+                              Row("B", -2),
+                              Row("C", -3)},
+                             vector<string>{"c", "d"});
+
+    ds1.join(ds2, string("a"), string("c"))
+        .mapColumn("b", UDF("lambda x: 1 // (x - x) if x == 2 else x"))
+        .tocsv(writeURI);
+
+    unordered_multiset<string> expectedOutput1({Row(1, "A", -1).toPythonString(),
+                                                Row(3, "C", -3).toPythonString()});
+    auto actualOutput1 = c.csv(readURI.toPath()).collectAsVector();
+    ASSERT_EQ(expectedOutput1.size(), actualOutput1.size());
+    for (const auto &row : actualOutput1)
+        ASSERT_TRUE(expectedOutput1.find(row.toPythonString()) != expectedOutput1.end());
+
+    ds1.join(ds2, string("a"), string("c"))
+        .mapColumn("b", UDF("lambda x: 1 // (x - x) if x == 2 else x"))
+        .resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x"))
+        .tocsv(writeURI);
+
+    unordered_multiset<string> expectedOutput2({Row(1, "A", -1).toPythonString(),
+                                                Row(2, "B", -2).toPythonString(),
+                                                Row(3, "C", -3).toPythonString()});
+    auto actualOutput2 = c.csv(readURI.toPath()).collectAsVector();
+    ASSERT_EQ(expectedOutput2.size(), actualOutput2.size());
+    for (const auto &row : actualOutput2)
+        ASSERT_TRUE(expectedOutput2.find(row.toPythonString()) != expectedOutput2.end());
+}
+
 TEST_F(IncrementalTest, CommitMode) {
     using namespace tuplex;
     using namespace std;

@@ -1441,6 +1441,9 @@ namespace tuplex {
             stage->_outputMode = _outputMode;
             stage->_hashOutputKeyType = _hashKeyType;
             stage->_hashOutputBucketType = _hashBucketType;
+            // TODO: @bgivertz Temp hack to make join exceptions work
+            if (_hashColKeys.size() > 0)
+                stage->_hashKeyCol = _hashColKeys[0];
 
             // copy code
             // llvm ir as string is super wasteful, use bitcode instead. Can be faster parsed.

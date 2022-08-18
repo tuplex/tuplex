@@ -1737,7 +1737,8 @@ namespace tuplex {
 
                     // is it the first task? If so, set the current combined result!
                     if(hasNormalHashSink) {
-                        rtask->sinkOutputToHashTable(tt->hashTableFormat(), tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType(), hsink.hm, hsink.null_bucket);
+                        // TODO: @bgivertz Temp hack to make join exceptions work
+                        rtask->sinkOutputToHashTable(tt->hashTableFormat(), tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType(), hsink.hm, hsink.null_bucket, tstage->hashKeyCol());
                         hasNormalHashSink = false;
                     } else {
                         rtask->sinkOutputToHashTable(tt->hashTableFormat(), tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType());

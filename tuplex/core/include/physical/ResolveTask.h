@@ -153,11 +153,12 @@ namespace tuplex {
          * @param hashBucketType the type of the rows to store in the table
          */
         void sinkOutputToHashTable(HashTableFormat fmt, const AggregateType& aggType, const python::Type& hashKeyType, const python::Type& hashBucketType, map_t hm=nullptr,
-                                   uint8_t* null_bucket=nullptr) {
+                                   uint8_t* null_bucket=nullptr, int64_t hashKeyCol=-1) {
             _htableFormat = fmt;
             _hash_element_type = hashKeyType;
             _hash_bucket_type = hashBucketType;
             _hash_agg_type = aggType;
+            _hash_key_col = hashKeyCol; // TODO: @bgivertz Temp hack to make join exceptions work
 
             // init sink if data is given
             _htable.hm = hm;
@@ -276,6 +277,7 @@ namespace tuplex {
         python::Type _hash_element_type;
         python::Type _hash_bucket_type;
         AggregateType _hash_agg_type;
+        int64_t _hash_key_col;
 
         // hybrid inputs (i.e. when having a long stage the hash-tables of a join)
         std::vector<PyObject*> _py_intermediates;

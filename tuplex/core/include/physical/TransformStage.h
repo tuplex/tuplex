@@ -455,6 +455,9 @@ namespace tuplex {
          */
         void setDataAggregationMode(const AggregateType& t) { _aggMode = t; }
 
+        // TODO: @bgivertz Temp hack to make join exceptions work
+        int64_t hashKeyCol() const { return _hashKeyCol; }
+
     private:
         /*!
          * creates a new TransformStage with generated code
@@ -502,6 +505,7 @@ namespace tuplex {
         Schema _normalCaseInputSchema;
         bool _persistSeparateCases;
         AggregateType _aggMode;
+        int64_t _hashKeyCol;
 
         std::vector<int64_t> _operatorIDsWithResolvers;
 

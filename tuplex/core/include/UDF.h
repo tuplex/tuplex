@@ -116,10 +116,14 @@ namespace tuplex {
 
         /*!
          * returns output schema with a guaranteed tuple type as row type.
-         * @return
+         * @return Schema with row type
          */
         Schema getOutputSchema() const;
 
+        /*!
+         * returns input schema with guaranteed tuple type as row type.
+         * @return Schema with row type
+         */
         Schema getInputSchema() const;
 
         std::vector<std::tuple<std::string, python::Type> > getInputParameters() const;

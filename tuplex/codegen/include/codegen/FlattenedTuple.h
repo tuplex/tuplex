@@ -23,17 +23,20 @@ namespace tuplex {
      * use this function here
      * @return
      */
-    inline python::Type pyTypeToRowType(const python::Type &type) {
+    inline python::Type pyTypeToRowType(python::Type type) {
+        auto original_type = type;
+        type = deoptimizedType(type); // deoptimize first...
+
         if (type.isPrimitiveType() || python::Type::EMPTYTUPLE == type || type.isDictionaryType() ||
             python::Type::NULLVALUE == type || python::Type::GENERICTUPLE == type ||
             python::Type::PYOBJECT == type ||
             python::Type::GENERICDICT == type || type.isOptionType() || type.isListType())
-            return python::Type::makeTupleType({type});
+            return python::Type::makeTupleType({original_type});
         else if (type.isTupleType()) {
             if (1 == type.parameters().size())
-                return python::Type::makeTupleType({type});
+                return python::Type::makeTupleType({original_type});
         }
-        return type;
+        return original_type;
     }
 
     namespace codegen {

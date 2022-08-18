@@ -435,9 +435,11 @@ namespace tuplex {
             // lambda syntax doesn't support this
 
             auto retType = _ast.getReturnType();
-            return Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(retType));
+            auto schema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(retType));
+            assert(schema.getRowType().isTupleType());
+            return schema;
         }
-
+        assert(_outputSchema.getRowType().isTupleType());
         return _outputSchema;
     }
 

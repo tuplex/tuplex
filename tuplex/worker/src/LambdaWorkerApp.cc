@@ -105,6 +105,8 @@ namespace tuplex {
         auto self_ctx = callback_ctx->ctx();
         assert(self_ctx);
 
+        double timeout = self_ctx->timeOutInMs / 1000.0;
+
         MessageHandler& logger = Logger::instance().logger("lambda-warmup");
 
         int statusCode = 0;
@@ -123,6 +125,11 @@ namespace tuplex {
 
             } else {
                 logger.error("Self-Invoke request errored with code " + std::to_string(statusCode) + " details: " + std::string(error.GetMessage().c_str()));
+                if(self_ctx->timeSinceStartInSeconds() < timeout) {
+                    // timeout reached...
+                    logger.error("timeout reached");
+                    // failure??
+                }
             }
         } else {
             // write response
@@ -139,7 +146,6 @@ namespace tuplex {
             google::protobuf::util::JsonStringToMessage(data, &response);
 
             // logger.info("got answer from self-invocation request");
-            double timeout = self_ctx->timeOutInMs / 1000.0;
 
             if(response.status() == messages::InvocationResponse_Status_SUCCESS) {
 

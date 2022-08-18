@@ -973,7 +973,8 @@ namespace tuplex {
                 std::memcpy(ptr, bitmap, bitmapSize);
             }
 
-            std::memcpy((uint8_t *) ptr + bitmapSize, _fixedLenFields.buffer(), _fixedLenFields.size());
+            if(_fixedLenFields.size() > 0) // do not serialize fields like EMPTYTUPLE etc. E.g., a field like empty tuple will serialize to 0 bytes.
+                std::memcpy((uint8_t *) ptr + bitmapSize, _fixedLenFields.buffer(), _fixedLenFields.size());
 
             // always write this addr if varlen fields are present
             if(hasSchemaVarLenFields())

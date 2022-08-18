@@ -263,7 +263,7 @@ TEST(JSONUtils, CheckFiles) {
     num_files_found = paths.size();
     cout<<"Found "<<pluralize(num_files_found, "file")<<" to analyze schema for."<<endl;
 
-    auto path = paths[0];
+    auto path = paths[1];
 
     // step 1: decode file
     Timer timer;
@@ -446,16 +446,6 @@ TEST(JSONUtils, CheckFiles) {
     size_t gc_count = 0;
     size_t fb_count = 0;
     for(unsigned i = 0; i < row_types.size(); ++i) {
-        // does not work...
-//        if(python::canUpcastToRowType(python::Type::propagateToTupleType(row_types[i]),
-//                                      python::Type::propagateToTupleType(normal_case_max_type.first)))
-//            nc_count++;
-//        else if(python::canUpcastToRowType(python::Type::propagateToTupleType(row_types[i]),
-//                                           python::Type::propagateToTupleType(general_case_max_type.first)))
-//            gc_count++;
-//        else
-//            fb_count++;
-
         if(python::canUpcastType(row_types[i], normal_case_max_type.first))
             nc_count++;
         else if(python::canUpcastType(row_types[i], general_case_max_type.first))

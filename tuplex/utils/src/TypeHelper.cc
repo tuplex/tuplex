@@ -272,7 +272,7 @@ namespace tuplex {
         // other dictionary types
         if(aUnderlyingType.isDictionaryType() && bUnderlyingType.isDictionaryType()) {
             auto key_t = unifyTypes(aUnderlyingType.keyType(), bUnderlyingType.keyType(), policy);
-            auto val_t = unifyTypes(aUnderlyingType.elementType(), bUnderlyingType.elementType(), policy);
+            auto val_t = unifyTypes(aUnderlyingType.valueType(), bUnderlyingType.valueType(), policy);
             if(key_t == python::Type::UNKNOWN || val_t == python::Type::UNKNOWN) {
                 return python::Type::UNKNOWN;
             }

@@ -553,8 +553,8 @@ namespace tuplex {
         // a.) could either do this by inserting dummy ast nodes, or simply b.) coding it directly up
         if(cg.getRowType() != getOutputSchema().getRowType()) {
             // is it a primitive or a tuple?
-            auto rt = cg.getReturnType();
-            python::Type targetType = getOutputSchema().getRowType();
+            auto rt = deoptimizedType(cg.getReturnType());
+            python::Type targetType = deoptimizedType(getOutputSchema().getRowType());
             if(rt.isPrimitiveType()) {
                 assert(targetType.parameters().size() == 1);
                 targetType = targetType.parameters().front();

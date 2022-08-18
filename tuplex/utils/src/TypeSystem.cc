@@ -1077,8 +1077,17 @@ namespace python {
             return true;
         }
 
-        if(from.isListType() && to.isListType())
+        if(from.isListType() && to.isListType()) {
+            // empty list can be upcasted to anything, but only empty list can be casted to emptylist
+            if(python::Type::EMPTYLIST == from)
+                return true;
+            if(python::Type::EMPTYLIST == to) {
+                assert(python::Type::EMPTYLIST != from);
+                return false;
+            }
             return canUpcastType(from.elementType(), to.elementType());
+        }
+
 
 
         // primitive types
@@ -1100,33 +1109,47 @@ namespace python {
                 auto from_pairs = from.get_struct_pairs();
                 auto to_pairs = to.get_struct_pairs();
 
-                // same number of elements? if not -> no cast possible!
-                if(from_pairs.size() != to_pairs.size())
+                // to pairs must have at least as many pairs as from!
+                if(from_pairs.size() > to_pairs.size())
                     return false;
 
-                // go through pairs (note: they may be differently sorted...)
-                std::sort(from_pairs.begin(), from_pairs.end(), [](const StructEntry& a, const StructEntry& b) {
-                   return lexicographical_compare(a.key.begin(), a.key.end(), b.key.begin(), b.key.end());
-                });
-                std::sort(to_pairs.begin(), to_pairs.end(), [](const StructEntry& a, const StructEntry& b) {
-                    return lexicographical_compare(a.key.begin(), a.key.end(), b.key.begin(), b.key.end());
-                });
+                std::unordered_map<std::string, StructEntry> from_key_type_map;
+                std::unordered_map<std::string, StructEntry> to_key_type_map;
+                for(const auto& p : from_pairs)
+                    from_key_type_map[p.key] = p;
+                for(const auto& p :to_pairs)
+                    to_key_type_map[p.key] = p;
 
-                assert(from_pairs.size() == to_pairs.size());
-                for(unsigned i = 0; i < from_pairs.size(); ++i) {
-                    // must have same key
-                    if(from_pairs[i].key != to_pairs[i].key)
-                        return false;
-                    // only maybe present -> maybe present, or present -> maybe, or present-> present can be casted. I.e
-                    // disallowed case is maybe present -> present!
-                    if(!from_pairs[i].alwaysPresent && to_pairs[i].alwaysPresent)
+                // now go through from entries and check whether maybe upcast is possible
+                for(const auto& kv_from : from_pairs) {
+                    // need to put it into from
+                    if(to_key_type_map.find(kv_from.key) == to_key_type_map.end())
                         return false;
 
-                    // keytype and valuetype must be compatible
-                    if(!canUpcastType(from_pairs[i].keyType, to_pairs[i].keyType))
+                    // check "maybe" compatibility. I.e., can upcast a present to maybe but not the other way round
+                    auto kv_to = to_key_type_map.at(kv_from.key);
+                    if(!kv_from.alwaysPresent && kv_to.alwaysPresent)
                         return false;
-                    if(!canUpcastType(from_pairs[i].valueType, to_pairs[i].valueType))
+
+                    // can we upcast both key/value?
+                    if(!canUpcastType(kv_from.keyType, kv_to.keyType))
                         return false;
+                    if(!canUpcastType(kv_from.valueType, kv_to.valueType))
+                        return false;
+                }
+
+                // each key in "to" that is required must be present in "from" as well
+                // => if this fails, can early determine upcast not possible.
+                for(const auto& kv : to_key_type_map) {
+                    if(kv.second.alwaysPresent) {
+                        // must be present and castable
+                        if(from_key_type_map.find(kv.first) == from_key_type_map.end())
+                            return false;
+                        if(!canUpcastType(from_key_type_map[kv.first].keyType, kv.second.keyType))
+                            return false;
+                        if(!canUpcastType(from_key_type_map[kv.first].valueType, kv.second.valueType))
+                            return false;
+                    }
                 }
                 return true;
             } else {

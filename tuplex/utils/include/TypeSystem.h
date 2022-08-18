@@ -225,7 +225,6 @@ namespace python {
         // helper functions
         std::vector<StructEntry> get_struct_pairs() const;
 
-
         static Type makeTupleType(std::initializer_list<Type> L);
         static Type makeTupleType(std::vector<Type> v);
 

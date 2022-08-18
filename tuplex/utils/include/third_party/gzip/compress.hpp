@@ -1,4 +1,6 @@
-#include <gzip/config.hpp>
+#pragma once
+
+#include "config.hpp"
 
 // zlib
 #include <zlib.h>

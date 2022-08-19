@@ -669,13 +669,22 @@ namespace tuplex {
 
             // go through ops and check input/output is compatible (flattened!)
             for(const auto& op : _operators) {
+                // note: chain of resolvers works differently, i.e. update lastRowType ONLY for non-resolve ops
+                // (ignore is fine)
+                if(op->type() == LogicalOperatorType::RESOLVE) {
+                    auto rop = std::dynamic_pointer_cast<ResolveOperator>(op);
+                    assert(rop);
+                    lastRowType = rop->getNormalParent()->getInputSchema().getRowType();
+                }
+
                 if(flattenedType(lastRowType) != flattenedType(op->getInputSchema().getRowType())) {
                     logger.error("(" + op->name() + "): input schema "
-                    + op->getInputSchema().getRowType().desc()
-                    + " incompatible with previous operator's output schema "
-                    + lastRowType.desc());
+                                     + op->getInputSchema().getRowType().desc()
+                                     + " incompatible with previous operator's output schema "
+                                     + lastRowType.desc());
                     validation_ok = false;
                 }
+
                 lastRowType = op->getOutputSchema().getRowType();
             }
 

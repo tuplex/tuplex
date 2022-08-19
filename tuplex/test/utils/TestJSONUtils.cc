@@ -258,6 +258,8 @@ TEST(JSONUtils, CheckFiles) {
     // test
     pattern = "../resources/*.json.gz";
 
+    pattern = "/disk/download/data/*2021*.json.gz";
+
     size_t num_files_found = 0;
     auto paths = glob(pattern);
     num_files_found = paths.size();

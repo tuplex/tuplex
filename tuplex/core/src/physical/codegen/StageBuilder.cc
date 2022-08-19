@@ -1621,7 +1621,7 @@ namespace tuplex {
                     ss<<"\tinput schema (after projection): "<<codeGenerationContext.slowPathContext.inputSchema.getRowType().desc()<<"\n";
                     ss<<"\toutput schema (after projection): "<<codeGenerationContext.slowPathContext.outputSchema.getRowType().desc()<<"\n";
                     // how many rows to read?
-                    ss<<"\tcolumns to tread (after projection): "<<codeGenerationContext.slowPathContext.columnsToReadCount()<<"\n";
+                    ss<<"\tcolumns to read (after projection): "<<codeGenerationContext.slowPathContext.columnsToReadCount()<<"\n";
                     ss<<"---\nnormal case::\n";
                     ss<<"\tinput schema (after projection): "<<codeGenerationContext.fastPathContext.inputSchema.getRowType().desc()<<"\n";
                     ss<<"\toutput schema (after projection): "<<codeGenerationContext.fastPathContext.outputSchema.getRowType().desc()<<"\n";

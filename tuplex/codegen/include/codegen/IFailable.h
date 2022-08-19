@@ -100,6 +100,14 @@ public:
      */
     std::vector<CompileError> getCompileErrors() {return _compileErrors;}
 
+    std::string getCompileErrorsAsStr() {
+        std::stringstream  ss;
+        for(auto err : getCompileErrors()) {
+            ss<<compileErrorToStr(err)<<"\n";
+        }
+        return ss.str();
+    }
+
     /*!
      * return CompileError of returning list of lists/tuples/dicts/multi-types. If no such error exists, return COMPILE_ERROR_NONE.
      * @return

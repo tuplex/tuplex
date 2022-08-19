@@ -134,6 +134,13 @@ namespace tuplex {
         addSymbol("abs", python::Type::makeFunctionType(python::Type::I64, python::Type::I64));
         addSymbol("abs", python::Type::makeFunctionType(python::Type::F64, python::Type::F64));
 
+        // debug: support printing
+        auto printFunctionTyper = [this](const python::Type& parameterType) {
+            // create func param -> void
+            return python::Type::makeFunctionType(parameterType, python::Type::NULLVALUE);
+        };
+        addSymbol(make_shared<Symbol>("print", printFunctionTyper));
+
         // use functionTyper to dynamically infer function type for iterator-related functions (currently: iter, zip, enumerate, reversed, next)
         auto iterFunctionTyper = [this](const python::Type& parameterType) {
 

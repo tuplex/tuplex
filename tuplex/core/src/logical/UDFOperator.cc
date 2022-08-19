@@ -62,7 +62,8 @@ namespace tuplex {
             logger.debug("performing static typing for UDF in operator " + name());
             bool success = _udf.hintInputSchema(parentSchema, false, false);
             if(!success) {
-
+                // in debug, print compile errors.
+                logger.debug("static typing failed because of:\n  -- " + _udf.getCompileErrorsAsStr());
                 _udf.clearCompileErrors();
                 // 2. try by annotating with if-blocks getting ignored statically...
                 logger.debug("performing static typing with partially ignoring branches for UDF in operator " + name());

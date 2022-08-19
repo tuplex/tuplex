@@ -1049,6 +1049,8 @@ namespace tuplex {
             // deoptimize, no optimized functins in symboltable
             lastCallParameterType = deoptimizedType(lastCallParameterType);
 
+            // deoptimize object type as well..
+            object_type = deoptimizedType(object_type);
             auto type = _symbolTable.findAttributeType(object_type, attr->_attribute->_name, lastCallParameterType);
 
             // unknown type but annotation available? -> use that one

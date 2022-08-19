@@ -553,6 +553,8 @@ TEST_F(LoopTest, CodegenTestWhile) {
                 "    while t > 0:\n"
                 "        x += t\n"
                 "        t -= 1\n"
+                //"        print(x)\n"
+                "        print('t={}'.format(t))\n"
                 "    return x";
 
     auto v = c.parallelize({

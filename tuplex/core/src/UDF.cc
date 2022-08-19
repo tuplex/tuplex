@@ -1374,7 +1374,7 @@ namespace tuplex {
         //_ast.setUnpacking(tv.unpackParams());
 
         auto row_type = tv.majorityOutputType().isExceptionType() ? tv.majorityOutputType() : python::Type::propagateToTupleType(tv.majorityOutputType());
-        _outputSchema = Schema(Schema::MemoryLayout::ROW, row_type);
+        _outputSchema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(row_type));
 
         // run type annotator on top of tree which has been equipped with annotations now
         auto res = hintInputSchema(Schema(Schema::MemoryLayout::ROW, inputSchema.getRowType()), false, false); // TODO: could do this directly in tracevisitor as well, but let's separate concerns here...

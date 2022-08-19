@@ -929,20 +929,29 @@ namespace tuplex {
         if(list->_elements.empty()) {
             list->setInferredType(python::Type::EMPTYLIST);
         } else {
-            auto valType = list->_elements[0]->getInferredType();
-            for(auto& el : list->_elements) {
+            // need to unify types according to policy
+            auto elementType = list->_elements[0]->getInferredType();
+
+            for(unsigned i = 1; i < list->_elements.size(); ++i) {
+                auto& el = list->_elements[i];
+
+                // list of lists is an unsupported feature right now, defer for now...
                 if(el->getInferredType().isListType() && el->getInferredType() != python::Type::EMPTYLIST) {
                     list->setInferredType(python::Type::makeListType(python::Type::PYOBJECT));
                     addCompileError(CompileError::TYPE_ERROR_LIST_OF_LISTS);
                     return;
                 }
-                if (el->getInferredType() != valType) {
+
+                // check whether type unification is possible, if so -> ok.
+                auto uni_type = unifyTypes(el->getInferredType(), elementType, _policy.allowNumericTypeUnification);
+                if (uni_type == python::Type::UNKNOWN) {
                     list->setInferredType(python::Type::makeListType(python::Type::PYOBJECT));
                     addCompileError(CompileError::TYPE_ERROR_LIST_OF_MULTITYPES);
                     return;
                 }
+                elementType = uni_type;
             }
-            python::Type t = python::Type::makeListType(valType);
+            python::Type t = python::Type::makeListType(elementType);
             list->setInferredType(t);
         }
     }

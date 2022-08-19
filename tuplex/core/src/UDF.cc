@@ -544,8 +544,8 @@ namespace tuplex {
 
         // input type corresponds to how the function is called:
         cf.input_type = python::Type::makeTupleType(cg.getParameterTypes().argTypes);
-        cf.output_type = cg.getReturnType();
-
+        cf.output_python_type = cg.getReturnType();
+        cf.output_type = getOutputSchema().getRowType();
 
         // check whether given output schema differs from output_type.
         // ==> could be that e.g. a resolver requests upcasting!

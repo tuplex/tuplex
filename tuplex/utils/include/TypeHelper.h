@@ -25,6 +25,9 @@ namespace tuplex {
             if(python::Type::UNKNOWN == optType)
                 return python::Type::UNKNOWN;
 
+            if(optType.isEmptyType())
+                return optType;
+
             // only constant folding so far supported.
             // also perform nested deoptimize...
             if(optType.isConstantValued()) {
@@ -36,11 +39,11 @@ namespace tuplex {
                 return python::Type::makeOptionType(deoptimizedType(optType.elementType()));
             }
 
-            if(optType.isListType()) {
+            if(optType.isListType() && python::Type::EMPTYLIST != optType) {
                 return python::Type::makeListType(deoptimizedType(optType.elementType()));
             }
 
-            if(optType.isDictionaryType()) {
+            if(optType.isDictionaryType() && python::Type::GENERICDICT != optType && python::Type::EMPTYDICT != optType) {
                 return python::Type::makeDictionaryType(deoptimizedType(optType.keyType()), deoptimizedType(optType.valueType()));
             }
 

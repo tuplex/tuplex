@@ -708,6 +708,16 @@ namespace python {
         return it->second._type == AbstractType::OPTIMIZED_CONSTANT;
     }
 
+    bool Type::isEmptyType() const {
+        // hashs of constant types
+        static std::set<int> empty_hashes{Type::EMPTYTUPLE._hash,
+                                          Type::EMPTYLIST._hash,
+                                          Type::EMPTYDICT._hash,
+                                          Type::EMPTYITERATOR._hash};
+
+        return empty_hashes.find(_hash) != empty_hashes.end();
+    }
+
     Type Type::propagateToTupleType(const python::Type &type) {
         if(type.isTupleType())
             return type;

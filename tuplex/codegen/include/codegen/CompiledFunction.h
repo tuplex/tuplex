@@ -21,8 +21,9 @@ namespace tuplex {
         public:
             llvm::Value *function_ptr; //! stored optionally for fallback mechanisms the ptr
             llvm::Function *function; //! the function to be called
-            python::Type input_type;
-            python::Type output_type;
+            python::Type input_type; //! the original python input type as tuple type
+            python::Type output_python_type; //! the actual output type of the python function (no auto wrapping)
+            python::Type output_type; //! the wrapped output type of the python function.
 
             CompiledFunction() : function_ptr(nullptr), function(nullptr) {}
 

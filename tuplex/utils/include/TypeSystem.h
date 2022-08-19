@@ -120,6 +120,7 @@ namespace python {
         bool isExceptionType() const;
         bool isIteratorType() const;
         bool isConstantValued() const;
+        bool isEmptyType() const;
 
         inline bool isGeneric() const {
             if(_hash == python::Type::PYOBJECT._hash ||

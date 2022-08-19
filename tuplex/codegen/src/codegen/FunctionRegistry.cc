@@ -1102,6 +1102,11 @@ namespace tuplex {
                 return createStrCast(lfb, builder, argsType, args);
             }
 
+            // print
+            if (symbol == "print") {
+                return createPrintCall(lfb, builder, argsType, args);
+            }
+
             // math module
             if (symbol == "math.sin")
                 return createMathSinCall(builder, argsType, retType, args);
@@ -1183,6 +1188,62 @@ namespace tuplex {
             }
 
             return SerializableValue(nullptr, nullptr);
+        }
+
+    SerializableValue FunctionRegistry::createPrintCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
+                                                        llvm::IRBuilder<> &builder,
+                                                        const python::Type &argsType,
+                                                        const std::vector<SerializableValue> &args) {
+           // how many args are there? need to convert everything to str and then concat using whitespace in between
+           // note: https://docs.python.org/3/library/functions.html#print
+           // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
+           // ==> this needs some serious work to be done to perform correctly. For now, simple debug function.
+           // convert all args to str
+
+           char sep = ' '; // note, can be advanced in later version!
+           char end = '\n'; // end keyword.
+
+           assert(argsType.isTupleType());
+           assert(argsType.parameters().size() == args.size());
+           std::vector<SerializableValue> strArgs;
+           for(unsigned i = 0; i < args.size(); ++i) {
+               auto arg = args[i];
+               auto argType = argsType.parameters()[i];
+               auto val = createStrCast(lfb, builder, python::Type::makeTupleType({argType}), {arg});
+               strArgs.push_back(val);
+           }
+
+           // compute actual string size, alloc and memcpy contents
+           llvm::Value* str_len = _env.i64Const(2); // +2 for '\n' and '\0'
+           for(const auto& v : strArgs) {
+               assert(v.size);
+               // size includes '\0' which gets replaced by sep which is ' ' per default
+               str_len = builder.CreateAdd(str_len, v.size);
+           }
+           // rtmalloc
+           llvm::Value* str = _env.malloc(builder, str_len);
+
+           // add args
+           auto strPtr = str;
+           for(const auto& v : strArgs) {
+               // copy str content
+               builder.CreateMemCpy(strPtr, 0, v.val, 0, v.size);
+               strPtr = builder.CreateGEP(strPtr, builder.CreateSub(v.size, _env.i64Const(1)));
+               builder.CreateStore(_env.i8Const(sep), strPtr);
+               strPtr = builder.CreateGEP(strPtr, _env.i64Const(1));
+           }
+           builder.CreateStore(_env.i8Const(end), strPtr);
+           strPtr = builder.CreateGEP(strPtr, _env.i64Const(1));
+           builder.CreateStore(_env.i8Const('\0'), strPtr);
+
+           // call printf function
+           // TODO: need to adjust this later and make it threadsafe...
+           auto printf_func = printf_prototype(builder.getContext(), _env.getModule().get());
+           llvm::Value *sFormat = builder.CreateGlobalStringPtr("%s");
+           builder.CreateCall(printf_func, {sFormat, str});
+           lfb.setLastBlock(builder.GetInsertBlock());
+
+           return SerializableValue(nullptr, nullptr, _env.boolConst(true)); // None
         }
 
         SerializableValue FunctionRegistry::createCenterCall(LambdaFunctionBuilder& lfb,

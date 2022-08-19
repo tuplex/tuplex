@@ -4380,7 +4380,11 @@ namespace tuplex {
                 }
             }
 
-            if (ret.val == nullptr && retType != python::Type::EMPTYLIST) {
+            if (ret.val == nullptr && ret.is_null == nullptr
+                && retType != python::Type::EMPTYLIST
+                && retType != python::Type::EMPTYDICT
+                && retType != python::Type::EMPTYTUPLE
+                && retType != python::Type::EMPTYITERATOR) {
                 std::string funcName = "<anon-fun>";
                 if (call->_func->type() == ASTNodeType::Function)
                     funcName = ((NFunction *) call->_func.get())->_name->_name;
@@ -4390,7 +4394,11 @@ namespace tuplex {
             }
 
             // make sure ret is valid!
-            assert(ret.val || ret.is_null || retType == python::Type::EMPTYLIST);
+            assert(ret.val || ret.is_null
+                   || retType == python::Type::EMPTYLIST
+                   || retType == python::Type::EMPTYDICT
+                   || retType == python::Type::EMPTYTUPLE
+                   || retType == python::Type::EMPTYITERATOR);
 
             addInstruction(ret.val, ret.size, ret.is_null);
         }

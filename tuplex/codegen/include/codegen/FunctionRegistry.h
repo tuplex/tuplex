@@ -192,6 +192,9 @@ namespace tuplex {
             // math module functions
             SerializableValue createMathCeilFloorCall(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, const std::string& qual_name, const SerializableValue& arg);
 
+            // print function
+            SerializableValue createPrintCall(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, const python::Type& argsType, const std::vector<SerializableValue>& args);
+
         private:
             LLVMEnvironment& _env;
             bool _sharedObjectPropagation;

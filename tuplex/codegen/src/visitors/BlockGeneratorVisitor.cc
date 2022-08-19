@@ -1808,7 +1808,7 @@ namespace tuplex {
             _blockStack.pop_back();
 
             if(!_loopBodyIdentifiersStack.empty()) {
-                // assign statement in the first iteration unrolled loop body; record the identifier and update it's type later if needed
+                // assign statement in the first iteration unrolled loop body; record the identifier and update its type later if needed
                 _loopBodyIdentifiersStack.back().insert(target);
             }
 
@@ -1830,7 +1830,10 @@ namespace tuplex {
                     return;
                 }
 
-                if(targetType != slot->type || !slot->var.ptr) {
+                // note: can not replace slot type with optimized type, e.g. there's an issue if this happens within a loop.
+                // -> need to detect type change then...
+                // this is a quick hack to fix this...
+                if(deoptimizedType(targetType) != slot->type || !slot->var.ptr) {
                     // LLVM endlifetime for this variable here, this hint helps the optimizer.
                     //slot->var.endLife(builder);
 
@@ -1969,7 +1972,8 @@ namespace tuplex {
 
                     auto targetType = target->getInferredType();
 
-                    if(targetType != slot->type || !slot->var.ptr) {
+                    // same hack here as in single value assignment. TODO: refactor?
+                    if(deoptimizedType(targetType) != slot->type || !slot->var.ptr) {
                         // LLVM endlifetime for this variable here, this hint helps the optimizer.
                         //slot->var.endLife(builder);
 

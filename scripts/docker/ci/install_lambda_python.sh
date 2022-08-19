@@ -43,4 +43,4 @@ set -ex && cd /tmp && wget https://www.python.org/ftp/python/${PYTHON3_VERSION}/
 
 # install cloudpickle numpy for Lambda python
 export LD_LIBRARY_PATH=/opt/lambda-python/lib:$LD_LIBRARY_PATH
-/opt/lambda-python/bin/python${PYTHON3_MAJMIN} -m pip install "cloudpickle<2.0.0" numpy tqdm
+/opt/lambda-python/bin/python${PYTHON3_MAJMIN} -m pip install 'cloudpickle<2.0.0' numpy tqdm

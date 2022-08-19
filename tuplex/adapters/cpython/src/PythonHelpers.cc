@@ -1461,6 +1461,7 @@ namespace python {
         return python::Type::UNKNOWN;
     }
 
+    // @TODO: inc type objects??
     PyObject* encodePythonSchema(const python::Type& t) {
         // unknown?
         // maybe special type?
@@ -1477,8 +1478,13 @@ namespace python {
             return reinterpret_cast<PyObject*>(&PyFloat_Type);
         if(python::Type::STRING == t)
             return reinterpret_cast<PyObject*>(&PyUnicode_Type);
-        if(python::Type::NULLVALUE == t)
-            return reinterpret_cast<PyObject*>(Py_None->ob_type);
+        if(python::Type::NULLVALUE == t) {
+            Py_XINCREF(Py_None);
+            auto none = Py_None;
+            auto typeobj = reinterpret_cast<PyObject*>(Py_None->ob_type);
+            Py_XDECREF(none);
+            return typeobj;
+        }
 
         // empty tuple handled below...
         if(python::Type::GENERICTUPLE == t)

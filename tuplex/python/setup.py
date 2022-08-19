@@ -62,6 +62,7 @@ setup(
         'jupyter<7.0',
         'nbconvert<7.0',
         'nbformat<7.0',
+        'Werkzeug<2.0.0',
         'attrs>=19.2.0',
         'dill>=0.2.7.1',
         'pluggy>=0.6.0, <1.0.0',

@@ -89,8 +89,7 @@ namespace tuplex {
 
     // leaf nodes
     void TraceVisitor::visit(NNone *node) {
-        Py_INCREF(Py_None);
-        addTraceResult(node, TraceItem(Py_None));
+        addTraceResult(node, TraceItem(python::none()));
     }
 
     void TraceVisitor::visit(NNumber *node) {
@@ -153,7 +152,7 @@ namespace tuplex {
     }
 
     void TraceVisitor::visit(NBoolean *node) {
-       addTraceResult(node, TraceItem(node->_value ? Py_True : Py_False));
+       addTraceResult(node, TraceItem(python::boolToPython(node->_value)));
     }
 
     void TraceVisitor::visit(NString *node) {
@@ -192,60 +191,121 @@ namespace tuplex {
     }
 
     void TraceVisitor::visit(NBinaryOp *node) {
-        ApatheticVisitor::visit(node);
+        // special case: boolean operators and and or -> they have short-circuit evaluation
+        if(TokenType::AND == node->_op) {
 
-        // @TODO: logical and and or operators.
-        // => special treatment there.
+            // python reference:
+            // The expression x and y first evaluates x; if x is false, its value is returned; otherwise, y is evaluated and the resulting value is returned.
 
-        // there should be at least 2 nodes on the stack!
-        assert(_evalStack.size() >= 2);
+            // evaluate left first
+            node->_left->accept(*this);
+            assert(_evalStack.size() >= 1);
+            auto left = _evalStack.back();
+            _evalStack.pop_back();
 
-        auto right = _evalStack.back();
-        _evalStack.pop_back();
-        auto left = _evalStack.back();
-        _evalStack.pop_back();
+            Py_XINCREF(left.value);
+            int rc = PyObject_IsTrue(left.value);
+            if(0 == rc) {
+                // object false -> simply return value, do not bother visiting right.
+                addTraceResult(node, TraceItem(left.value));
+            } else if(1 == rc) {
+                // Py_XDECREF(left.value);
+                // object true -> visit right and return result!
+                node->_right->accept(*this);
+                assert(_evalStack.size() >= 1);
+                auto right = _evalStack.back();
+                _evalStack.pop_back();
+                addTraceResult(node, TraceItem(right.value));
+            } else {
+                // Py_XDECREF(left.value);
+                // error!
+                error("PyObject_IsTrue failed");
+            }
+            return;
+        } else if(TokenType::OR == node->_op) {
+            // python reference:
+            // The expression x or y first evaluates x; if x is true, its value is returned; otherwise, y is evaluated and the resulting value is returned.
+            // evaluate left first
+            node->_left->accept(*this);
+            assert(_evalStack.size() >= 1);
+            auto left = _evalStack.back();
+            _evalStack.pop_back();
 
-        // import module operator
-        auto opMod = PyImport_ImportModule("operator"); // import operator
-        assert(opMod);
-        auto opModDict = PyModule_GetDict(opMod);
-        assert(opModDict);
+            Py_XINCREF(left.value);
+            int rc = PyObject_IsTrue(left.value);
+            if(1 == rc) {
+                // object false -> simply return value, do not bother visiting right.
+                addTraceResult(node, TraceItem(left.value));
+            } else if(0 == rc) {
+                // Py_XDECREF(left.value);
+                // object true -> visit right and return result!
+                node->_right->accept(*this);
+                assert(_evalStack.size() >= 1);
+                auto right = _evalStack.back();
+                _evalStack.pop_back();
+                addTraceResult(node, TraceItem(right.value));
+            } else {
+                // Py_XDECREF(left.value);
+                // error!
+                error("PyObject_IsTrue failed");
+            }
+        } else {
+            ApatheticVisitor::visit(node);
 
-        // lookup operations (need a test for that)
-        // i.e. map token type to function name in operator
-        // module
-        // cf. https://docs.python.org/3.9/library/operator.html#mapping-operators-to-functions
-        std::unordered_map<TokenType, std::string> opLookup{{TokenType::PLUS, "add"},
-                                                            {TokenType::AMPER, "and_"}, // bitwise and &
-                                                            {TokenType::VBAR, "or_"}, // bitwise or |
-                                                            {TokenType::CIRCUMFLEX, "xor"}, // bitwise xor ^
-                                                            {TokenType::DOUBLESLASH, "floordiv"},
-                                                            {TokenType::LEFTSHIFT, "lshift"},
-                                                            {TokenType::PERCENT, "mod"},
-                                                            {TokenType::STAR, "mul"},
-                                                            {TokenType::DOUBLESTAR, "pow"},
-                                                            {TokenType::RIGHTSHIFT, "rshift"},
-                                                            {TokenType::MINUS, "sub"},
-                                                            {TokenType::SLASH, "truediv"},
-                                                            {TokenType::CIRCUMFLEX, "xor"}};
+            // @TODO: logical and and or operators.
+            // => special treatment there.
+
+            // there should be at least 2 nodes on the stack!
+            assert(_evalStack.size() >= 2);
+
+            auto right = _evalStack.back();
+            _evalStack.pop_back();
+            auto left = _evalStack.back();
+            _evalStack.pop_back();
+
+            // import module operator
+            auto opMod = PyImport_ImportModule("operator"); // import operator
+            assert(opMod);
+            auto opModDict = PyModule_GetDict(opMod);
+            assert(opModDict);
+
+            // lookup operations (need a test for that)
+            // i.e. map token type to function name in operator
+            // module
+            // cf. https://docs.python.org/3.9/library/operator.html#mapping-operators-to-functions
+            std::unordered_map<TokenType, std::string> opLookup{{TokenType::PLUS, "add"},
+                                                                {TokenType::AMPER, "and_"}, // bitwise and &
+                                                                {TokenType::VBAR, "or_"}, // bitwise or |
+                                                                {TokenType::CIRCUMFLEX, "xor"}, // bitwise xor ^
+                                                                {TokenType::DOUBLESLASH, "floordiv"},
+                                                                {TokenType::LEFTSHIFT, "lshift"},
+                                                                {TokenType::PERCENT, "mod"},
+                                                                {TokenType::STAR, "mul"},
+                                                                {TokenType::DOUBLESTAR, "pow"},
+                                                                {TokenType::RIGHTSHIFT, "rshift"},
+                                                                {TokenType::MINUS, "sub"},
+                                                                {TokenType::SLASH, "truediv"},
+                                                                {TokenType::CIRCUMFLEX, "xor"}};
 
 
-        auto it = opLookup.find(node->_op);
-        if(it == opLookup.end())
-            throw std::runtime_error("Operator " + opToString(node->_op) + " not yet supported in TraceVisitor");
+            auto it = opLookup.find(node->_op);
+            if(it == opLookup.end()) {
+                throw std::runtime_error("Operator " + opToString(node->_op) + " not yet supported in TraceVisitor");
+            } else {
+                std::string op_name = it->second;
 
-        std::string op_name = it->second;
+                auto func = PyDict_GetItemString(opModDict, op_name.c_str());
+                assert(func);
+                auto args = PyTuple_Pack(2, left.value, right.value);
+                auto ret_obj = PyObject_Call(func, args, nullptr);
+                // perform python operation & check for errors
+                // confer https://docs.python.org/3/library/operator.html
+                errCheck();
 
-        auto func = PyDict_GetItemString(opModDict, op_name.c_str());
-        assert(func);
-        auto args = PyTuple_Pack(2, left.value, right.value);
-        auto ret_obj = PyObject_Call(func, args, nullptr);
-        // perform python operation & check for errors
-        // confer https://docs.python.org/3/library/operator.html
-        errCheck();
-
-        // only add trace result if no err happened.
-        addTraceResult(node, TraceItem(ret_obj));
+                // only add trace result if no err happened.
+                addTraceResult(node, TraceItem(ret_obj));
+            }
+        }
     }
 
     void TraceVisitor::visit(NUnaryOp *node) {
@@ -469,7 +529,20 @@ namespace tuplex {
                 bool finalResult = (ti_vals[i+1].value == res.value);
                 // invert result if op is ISNOT.
                 finalResult = (op == TokenType::IS) ? finalResult : !finalResult;
-                res.value = finalResult ? Py_True : Py_False;
+                res.value = python::boolean(finalResult);
+            } else if(op == TokenType::IN || op == TokenType::NOTIN) {
+                // cf. https://github.com/python/cpython/blob/8a285df806816805484fed36dce5fd5b77a215a6/Python/ceval.c#L4013
+                PyObject* left = res.value, *right = ti_vals[i + 1].value;
+                assert(left && right);
+                int rc = PySequence_Contains(right, left);
+                if(rc < 0)
+                    error("internal error when checking sequence");
+
+                errCheck();
+                if(op == TokenType::IN)
+                    res.value = python::boolean(rc > 0);
+                else
+                    res.value = python::boolean(rc == 0);
             } else {
                 auto it = cmpLookup.find(op);
                 if(it == cmpLookup.end())
@@ -910,7 +983,7 @@ namespace tuplex {
 
             // number?
             if(item.value == Py_True || item.value == Py_False) {
-                int64_t val = item.value == Py_True ? 1 : 0;
+                int64_t val = (item.value == Py_True) ? 1 : 0;
                 if(node->annotation().numTimesVisited == 0) { // init
                     node->annotation().iMin = std::numeric_limits<int64_t>::max();
                     node->annotation().iMax = std::numeric_limits<int64_t>::min();

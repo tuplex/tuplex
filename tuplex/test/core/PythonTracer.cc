@@ -142,7 +142,7 @@ TEST_F(TracerTest, IsKeyword) {
     python::lockGIL();
 
     auto udf1 = "lambda x: x is None";
-    PyObject* arg1 = Py_None;
+    PyObject* arg1 = python::none();
 
     traceAndValidateResult(udf1, arg1);
 
@@ -172,7 +172,7 @@ TEST_F(TracerTest, IsKeyword) {
     traceAndValidateResult(udf6, arg6);
 
     auto udf7 = "lambda x: x is 1";
-    PyObject* arg7 = Py_None;
+    PyObject* arg7 = python::none();
 
     traceAndValidateResult(udf7, arg7);
 
@@ -223,6 +223,139 @@ TEST_F(TracerTest, UseCaseFunctions) {
     python::unlockGIL();
 }
 
+TEST_F(TracerTest, BooleanOpCombo) {
+    using namespace tuplex;
+    using namespace std;
+
+    const std::string code = "lambda a, b: (not a) and b or (a and b)";
+
+    auto ast = tuplex::parseToAST(code);
+
+    python::lockGIL();
+    TraceVisitor tv;
+    PyObject* tuple = PyTuple_New(2);
+    PyTuple_SET_ITEM(tuple, 0, PyLong_FromLong(0));
+    PyTuple_SET_ITEM(tuple, 1, PyLong_FromLong(42));
+    tv.recordTrace(ast, tuple);
+    python::unlockGIL();
+
+    // result should be 42
+    EXPECT_EQ(tv.majorityOutputType().desc(), "(i64)");
+}
+
+TEST_F(TracerTest, BooleanAndOr) {
+    using namespace tuplex;
+    using namespace std;
+
+    // testing and
+    {
+        std::vector<std::tuple<Row, std::string>> v{make_tuple(Row(0, 0), "0"),
+                                                    make_tuple(Row(1, 0), "0"),
+                                                    make_tuple(Row(0, 1), "0"),
+                                                    make_tuple(Row(1, 1), "1")};
+        const std::string code = "lambda a, b: a and b";
+        auto ast = tuplex::parseToAST(code);
+        python::lockGIL();
+        TraceVisitor tv;
+        for(auto t : v) {
+            auto row = std::get<0>(t);
+            auto expect = std::get<1>(t);
+            auto obj = python::runAndGet("x = " + row.toPythonString(), "x");
+            tv.recordTrace(ast, obj);
+            auto str = python::PyString_AsString(tv.lastResult());
+            EXPECT_EQ(str, expect);
+        }
+
+        python::unlockGIL();
+    }
+
+    // testing or
+    {
+        std::vector<std::tuple<Row, std::string>> v{make_tuple(Row(0, 0), "0"),
+                                                    make_tuple(Row(1, 0), "1"),
+                                                    make_tuple(Row(0, 1), "1"),
+                                                    make_tuple(Row(1, 1), "1")};
+        const std::string code = "lambda a, b: a or b";
+        auto ast = tuplex::parseToAST(code);
+        python::lockGIL();
+        TraceVisitor tv;
+        for(auto t : v) {
+            auto row = std::get<0>(t);
+            auto expect = std::get<1>(t);
+            auto obj = python::runAndGet("x = " + row.toPythonString(), "x");
+            tv.recordTrace(ast, obj);
+            auto str = python::PyString_AsString(tv.lastResult());
+            EXPECT_EQ(str, expect);
+        }
+
+        python::unlockGIL();
+    }
+
+    // testing and -> short circuit
+    {
+        const std::string code = "lambda a, b: 2 * a and 10 / b";
+        auto ast = tuplex::parseToAST(code);
+        python::lockGIL();
+        TraceVisitor tv;
+        auto expect = "[]";
+        auto obj = python::runAndGet("x = ([], 0)", "x");
+        tv.recordTrace(ast, obj);
+        auto str = python::PyString_AsString(tv.lastResult());
+        EXPECT_EQ(str, expect);
+
+        python::unlockGIL();
+    }
+
+    // testing or -> short circuit
+    {
+        const std::string code = "lambda a, b: 2 * a or 10 / b";
+        auto ast = tuplex::parseToAST(code);
+        python::lockGIL();
+        TraceVisitor tv;
+        auto expect = "20";
+        auto obj = python::runAndGet("x = (10, 0)", "x");
+        tv.recordTrace(ast, obj);
+        auto str = python::PyString_AsString(tv.lastResult());
+        EXPECT_EQ(str, expect);
+
+        python::unlockGIL();
+    }
+}
+
+TEST_F(TracerTest, InOperations) {
+    using namespace tuplex;
+    using namespace std;
+
+    // testing in
+    {
+        const std::string code = "lambda a, b: a in b";
+        auto ast = tuplex::parseToAST(code);
+        python::lockGIL();
+        TraceVisitor tv;
+        auto expect = "True";
+        auto obj = python::runAndGet("x = (20, [10, 20, 30, 40])", "x");
+        tv.recordTrace(ast, obj);
+        auto str = python::PyString_AsString(tv.lastResult());
+        EXPECT_EQ(str, expect);
+
+        python::unlockGIL();
+    }
+
+    // testing not in
+    {
+        const std::string code = "lambda a, b: a not in b";
+        auto ast = tuplex::parseToAST(code);
+        python::lockGIL();
+        TraceVisitor tv;
+        auto expect = "True";
+        auto obj = python::runAndGet("x = (42, [10, 20, 30, 40])", "x");
+        tv.recordTrace(ast, obj);
+        auto str = python::PyString_AsString(tv.lastResult());
+        EXPECT_EQ(str, expect);
+
+        python::unlockGIL();
+    }
+}
 
 // test here normal case/exception case compile for special null value opt case
 //   auto fillInTimes_C = "def fillInTimesUDF(row):\n"

@@ -62,12 +62,13 @@ test_dependencies = [
 'jupyter<7.0',
 'nbformat<7.0',
 'prompt_toolkit>=2.0.7',
-'pytest>=5.3.2',
+'pytest>=5.3.2'
 ]
 
 # Also requires to install MongoDB
 webui_dependencies = [
     'Flask>=2.0.2',
+    'Werkzeug<2.2.0',
     'gunicorn',
     'eventlet==0.30.0', # newer versions of eventlet have a bug under MacOS
     'flask-socketio',
@@ -597,7 +598,7 @@ def tplx_package_data():
 # logic and declaration, and simpler if you include description/version in a file.
 setup(name="tuplex",
     python_requires='>=3.7.0',
-    version="0.3.3rc0",
+    version="0.3.3",
     author="Leonhard Spiegelberg",
     author_email="tuplex@cs.brown.edu",
     description="Tuplex is a novel big data analytics framework incorporating a Python UDF compiler based on LLVM "

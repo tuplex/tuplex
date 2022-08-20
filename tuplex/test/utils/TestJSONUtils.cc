@@ -378,7 +378,7 @@ namespace tuplex {
             for(unsigned j = 0; j < num_columns; ++j) {
                 python::StructEntry entry;
                 entry.alwaysPresent = true;
-                entry.key = column_names[i][j];
+                entry.key = escape_to_python_str(column_names[i][j]);
                 entry.keyType = python::Type::STRING;
                 entry.valueType = rows[i].getType(j);
                 kv_pairs.push_back(entry);

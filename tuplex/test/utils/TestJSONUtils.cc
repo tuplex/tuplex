@@ -516,10 +516,10 @@ TEST(JSONUtils, CheckFiles) {
 
     size_t num_files_found = 0;
     auto paths = glob(pattern);
+    std::sort(paths.begin(), paths.end());
     num_files_found = paths.size();
     cout<<"Found "<<pluralize(num_files_found, "file")<<" to analyze schema for."<<endl;
 
-    auto path = paths[0];
     for(const auto& path : paths) {
         auto json_string = process_path(path);
         auto fname = base_file_name(path.c_str());
@@ -527,7 +527,6 @@ TEST(JSONUtils, CheckFiles) {
         cout<<"saving stats data to "<<save_path<<endl;
         stringToFile(json_string, save_path);
     }
-
 }
 
 TEST(JSONUtils, SIMDJSONFieldParse) {

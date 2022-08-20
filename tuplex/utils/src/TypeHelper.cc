@@ -118,7 +118,7 @@ namespace tuplex {
                 }
                 for(auto b_pair : b_pairs) {
                     unique_keys.insert(b_pair.key);
-                    a_map[b_pair.key] = b_pair;
+                    b_map[b_pair.key] = b_pair;
                 }
 
                 // go through keys & unify -> check for policy

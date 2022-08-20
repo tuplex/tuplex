@@ -222,7 +222,7 @@ TEST(TypeSys, StructTypeStringKeyDecodingEncoding) {
     TypeUnificationPolicy t_policy; t_policy.unifyMissingDictKeys = true;
     auto combo_type = unifyTypes(t1, t2, t_policy);
     std::cout<<"unified: "<<combo_type.desc()<<std::endl;
-
+    EXPECT_EQ(combo_type.desc(), "Struct[(str,'42'=>str),(str,'key'->Option[str]),(i64,'10'=>str)]");
 }
 
 TEST(TypeSys, compatibleType) {

@@ -20,11 +20,34 @@
 #include <Timer.h>
 #include <compression.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+bool create_dir(const std::string& path) {
+    struct stat st = {0};
+
+    if (stat(path.c_str(), &st) == -1) {
+        mkdir(path.c_str(), 0700);
+        return true;
+    }
+    return false;
+}
+
+
+
+
 static std::string fileToString(const std::string& path) {
     std::ifstream t(path);
     std::stringstream buffer;
     buffer << t.rdbuf();
     return buffer.str();
+}
+static bool stringToFile(const std::string& data, const std::string& path) {
+    std::ofstream ofs(path);
+    ofs << data;
+    ofs.close();
+    return true;
 }
 
 TEST(JSONUtils, Chunker) {
@@ -487,14 +510,24 @@ TEST(JSONUtils, CheckFiles) {
     // test
     pattern = "../resources/*.json.gz";
 
+    // where to output stats...
+    string output_path = "stats";
+    cout<<"Saving detailed stats in "<<"./"<<output_path<<endl;
+
     size_t num_files_found = 0;
     auto paths = glob(pattern);
     num_files_found = paths.size();
     cout<<"Found "<<pluralize(num_files_found, "file")<<" to analyze schema for."<<endl;
 
     auto path = paths[0];
+    for(const auto& path : paths) {
+        auto json_string = process_path(path);
+        auto fname = base_file_name(path.c_str());
+        auto save_path = output_path + "/" + fname + "_stats.json";
+        cout<<"saving stats data to "<<save_path<<endl;
+        stringToFile(json_string, save_path);
+    }
 
-    auto json_string = process_path(path);
 }
 
 TEST(JSONUtils, SIMDJSONFieldParse) {

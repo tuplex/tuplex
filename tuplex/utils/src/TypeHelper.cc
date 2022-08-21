@@ -108,31 +108,60 @@ namespace tuplex {
                 return python::Type::makeStructuredDictType(uni_pairs);
             } else {
                 // go through pairs (note: they may be differently sorted, so sort first!)
-                std::sort(a_pairs.begin(), a_pairs.end(), [](const python::StructEntry& a, const python::StructEntry& b) {
-                    return lexicographical_compare(a.key.begin(), a.key.end(), b.key.begin(), b.key.end());
-                });
-                std::sort(b_pairs.begin(), b_pairs.end(), [](const python::StructEntry& a, const python::StructEntry& b) {
-                    return lexicographical_compare(a.key.begin(), a.key.end(), b.key.begin(), b.key.end());
-                });
+                // and unify them!
+                std::set<std::string> unique_keys;
+                std::unordered_map<std::string, python::StructEntry> a_map;
+                std::unordered_map<std::string, python::StructEntry> b_map;
+                for(auto a_pair : a_pairs) {
+                    unique_keys.insert(a_pair.key);
+                    a_map[a_pair.key] = a_pair;
+                }
+                for(auto b_pair : b_pairs) {
+                    unique_keys.insert(b_pair.key);
+                    b_map[b_pair.key] = b_pair;
+                }
 
-                // same size, check if keys are the same and types can be unified for each pair...
+                // go through keys & unify -> check for policy
                 std::vector<python::StructEntry> uni_pairs;
-                for(unsigned i = 0; i < a_pairs.size(); ++i) {
-                    if(a_pairs[i].key != b_pairs[i].key)
-                        return python::Type::UNKNOWN;
+                for(const auto& key : unique_keys) {
 
                     python::StructEntry uni;
-                    uni.key = a_pairs[i].key;
-                    // if either is maybe present -> result is a maybe present
-                    // but dicts can be always unified this way!
-                    uni.alwaysPresent = a_pairs[i].alwaysPresent && b_pairs[i].alwaysPresent;
+                    uni.key = key;
 
-                    uni.keyType = unifyTypes(a_pairs[i].keyType, b_pairs[i].keyType, policy);
-                    if(uni.keyType == python::Type::UNKNOWN)
-                        return python::Type::UNKNOWN;
-                    uni.valueType = unifyTypes(a_pairs[i].valueType, b_pairs[i].valueType, policy);
-                    if(uni.valueType == python::Type::UNKNOWN)
-                        return python::Type::UNKNOWN;
+                    // both pairs present?
+                    auto a_it = a_map.find(key);
+                    auto b_it = b_map.find(key);
+
+                    if(a_it != a_map.end() && b_it != b_map.end()) {
+                        auto a_pair = a_it->second;
+                        auto b_pair = b_it->second;
+                        // if either is maybe present -> result is a maybe present
+                        // but dicts can be always unified this way!
+                        uni.alwaysPresent = a_pair.alwaysPresent && b_pair.alwaysPresent;
+
+                        uni.keyType = unifyTypes(a_pair.keyType, b_pair.keyType, policy);
+                        if(uni.keyType == python::Type::UNKNOWN)
+                            return python::Type::UNKNOWN;
+                        uni.valueType = unifyTypes(a_pair.valueType, b_pair.valueType, policy);
+                        if(uni.valueType == python::Type::UNKNOWN)
+                            return python::Type::UNKNOWN;
+                    } else if(a_it != a_map.end()) {
+                        // only a is present
+                        if(!policy.unifyMissingDictKeys)
+                            return python::Type::UNKNOWN;
+                        uni.alwaysPresent = false;
+                        uni.keyType = a_it->second.keyType;
+                        uni.valueType = a_it->second.valueType;
+                    } else {
+                        assert(b_it != b_map.end());
+                        // only b is present
+                        if(!policy.unifyMissingDictKeys)
+                            return python::Type::UNKNOWN;
+                        uni.alwaysPresent = false;
+                        uni.keyType = b_it->second.keyType;
+                        uni.valueType = b_it->second.valueType;
+                    }
+
                     uni_pairs.push_back(uni);
                 }
                 return python::Type::makeStructuredDictType(uni_pairs);

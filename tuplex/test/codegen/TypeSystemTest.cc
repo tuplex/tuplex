@@ -204,6 +204,27 @@ TEST(TypeSys, flattenWithPyObject) {
     EXPECT_EQ(num_params, 3);
 }
 
+TEST(TypeSys, StructTypeStringKeyDecodingEncoding) {
+    using namespace tuplex;
+    using namespace std;
+
+    // create string key
+    auto t1 = python::Type::makeStructuredDictType(std::vector<pair<boost::any, python::Type>>{make_pair(10, python::Type::STRING),
+                                                                                               make_pair("key", python::Type::STRING)});
+    EXPECT_EQ(t1.desc(), "Struct[(i64,'10'->str),(str,'key'->str)]");
+
+    auto t2 = python::Type::makeStructuredDictType(std::vector<pair<boost::any, python::Type>>{make_pair("42", python::Type::STRING),
+                                                                                               make_pair("key", python::Type::NULLVALUE)});
+
+    std::cout<<"t1: "<<t1.desc()<<std::endl;
+    std::cout<<"t2: "<<t2.desc()<<std::endl;
+
+    TypeUnificationPolicy t_policy; t_policy.unifyMissingDictKeys = true;
+    auto combo_type = unifyTypes(t1, t2, t_policy);
+    std::cout<<"unified: "<<combo_type.desc()<<std::endl;
+    EXPECT_EQ(combo_type.desc(), "Struct[(str,'42'=>str),(str,'key'->Option[str]),(i64,'10'=>str)]");
+}
+
 TEST(TypeSys, compatibleType) {
     using namespace tuplex;
 

@@ -165,6 +165,8 @@ namespace python {
         assert(pArgs);
         PyTuple_SetItem(pArgs, 0, obj);
         auto pBytesObj = PyObject_CallObject(pDumpsFunc, pArgs);
+        if(!pBytesObj)
+            return ""; // error string...
         assert(pBytesObj);
 
         std::string res;

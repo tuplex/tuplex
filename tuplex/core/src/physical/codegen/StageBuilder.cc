@@ -781,7 +781,7 @@ namespace tuplex {
                         if (!pip->addTypeUpgrade(generalCaseOutputRowType))
                             throw std::runtime_error(
                                     "type upgrade from " + pathContext.outputSchema.getRowType().desc() + " to " +
-                                            generalCaseOutputRowType.desc() + "failed.");
+                                            generalCaseOutputRowType.desc() + " failed.");
                         // set normal case output type to general case
                         logger.warn("using const cast here, it's a code smell. need to fix...");
 
@@ -813,7 +813,7 @@ namespace tuplex {
                             if (!pip->addTypeUpgrade(generalCaseOutputRowType))
                                 throw std::runtime_error(
                                         "type upgrade from " + pathContext.outputSchema.getRowType().desc() + " to " +
-                                        generalCaseOutputRowType.desc() + "failed.");
+                                        generalCaseOutputRowType.desc() + " failed.");
                             // set normal case output type to general case
                             // _normalCaseOutputSchema = _generalCaseOutputSchema;
                         }

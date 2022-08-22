@@ -1446,6 +1446,14 @@ namespace python {
             return python::Type::makeListType(elementType);
         }
 
+        // match object
+        auto name = typeName(o);
+        if(o->ob_type->tp_name == "re.Match")
+            return python::Type::MATCHOBJECT;
+
+        if("module" ==  name)
+            return python::Type::MODULE;
+
         // check if serializable via cloudpickle, if so map!
 #ifndef NDEBUG
         auto pickled_obj = python::pickleObject(python::getMainModule(), o);
@@ -1454,11 +1462,9 @@ namespace python {
         } else {
             PyErr_Clear();
         }
-#else
-        return python::Type::PYOBJECT;
 #endif
 
-        return python::Type::UNKNOWN;
+        return python::Type::PYOBJECT;
     }
 
     // @TODO: inc type objects??

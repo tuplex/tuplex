@@ -17,6 +17,14 @@
 namespace tuplex {
 
     struct StageResult {
+        StageResult():
+        normalPartitions(std::vector<Partition*>{}),
+        exceptionPartitions(std::vector<Partition*>{}),
+        generalPartitions(std::vector<Partition*>{}),
+        fallbackPartitions(std::vector<Partition*>{}),
+        partitionGroups(std::vector<PartitionGroup>{}),
+        outputMode("") {}
+
         StageResult(const std::vector<Partition*>& normalPartitions,
                     const std::vector<Partition*>& exceptionPartitions,
                     const std::vector<Partition*>& generalPartitions,
@@ -44,7 +52,7 @@ namespace tuplex {
     class IncrementalCacheEntry {
     private:
         LogicalOperator* _pipeline;
-        std::unordered_map<size_t, StageResult> _stageResults;
+        std::unordered_map<size_t, StageResult*> _stageResults;
         size_t _startFileNumber;
     public:
         IncrementalCacheEntry(LogicalOperator* pipeline);

@@ -591,6 +591,10 @@ namespace tuplex {
                 if(fieldType.isSingleValued())
                     continue; // skip all these fields, they do not need to get serialized...
 
+                // skip constants, they're known!
+                if(fieldType.isConstantValued())
+                    continue;
+
                 // @TODO: improve this for NULL VALUES...
                 if(!field) {
                     // dummy value
@@ -1010,7 +1014,7 @@ namespace tuplex {
             // check that assigned val matches primitive type
             auto types = getFieldTypes();
 
-            auto type = types[i].withoutOptions();
+            auto type = deoptimizedType(types[i].withoutOptions());
 
             // null val & size for nulltype
             if(type == python::Type::NULLVALUE) {
@@ -1195,7 +1199,7 @@ namespace tuplex {
             // check, make sure they upcastable...
             if(!python::canUpcastType(getTupleType(), target_type)) {
 
-                // special case: simple tuple wrap
+                // special case: simple tuple wrap, e.g. for a single tuple ()
                 if(!getTupleType().isTupleType() && python::canUpcastType(python::Type::propagateToTupleType(getTupleType()), target_type)) {
                     // ok, handle here -> this is a special case!
                     auto num_desired = ft.numElements();
@@ -1207,6 +1211,13 @@ namespace tuplex {
                     } else {
                         throw std::runtime_error("wrapping not possible for upcast");
                     }
+                } else if(getTupleType().isTupleType() && getTupleType().parameters().size() == 1) {
+                    // ok, handle here -> this is a special case!
+                    auto num_desired = ft.numElements();
+                    auto num_given = numElements();
+
+                    // this is ok as well, i.e. (...) gets wrapped as (())
+
                 } else {
                     auto err_msg = "Code generation failure, can't upcast type " + getTupleType().desc() + " to type " + target_type.desc();
                     Logger::instance().logger("codegen").debug(err_msg);

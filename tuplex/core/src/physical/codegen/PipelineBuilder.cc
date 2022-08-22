@@ -2594,7 +2594,7 @@ namespace tuplex {
 
             assert(rowType.isTupleType());
 
-            if((_lastRowResult.flattenedTupleType().parameters().size() != rowType.parameters().size())) {
+            if((_lastRowResult.flattenedTupleType().parameters().size() != flattenedType(rowType).parameters().size())) {
                 logger.error("types not compatible.");
                 return false;
             }

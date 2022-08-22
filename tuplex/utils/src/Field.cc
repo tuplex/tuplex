@@ -410,4 +410,23 @@ namespace tuplex {
 
         return f;
     }
+
+    Field constantTypeToField(const python::Type& type) {
+        assert(type.isConstantValued());
+
+        auto value = type.constant();
+        auto u_type = type.underlying();
+        // decode...
+        if(python::Type::STRING == u_type) {
+            return Field(str_value_from_python_raw_value(value));
+        } else if(python::Type::BOOLEAN == u_type) {
+            return Field(stringToBool(value));
+        } else if(python::Type::I64 == u_type) {
+            return Field(parseI64String(value));
+        } else if(python::Type::F64 == u_type) {
+            return Field(parseF64String(value));
+        } else {
+            throw std::runtime_error("encountered unknown underlying type " + u_type.desc() + " when decoding constant type " + type.desc());
+        }
+    }
 }

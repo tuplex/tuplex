@@ -234,3 +234,4 @@ TEST(TypeSys, compatibleType) {
     auto ab2_compatible_type = unifyTypes(a2_type, b2_type, true);
     EXPECT_EQ(ab2_compatible_type, python::Type::makeOptionType(python::Type::makeListType(python::Type::makeOptionType(python::Type::makeTupleType({python::Type::makeOptionType(python::Type::STRING), python::Type::makeOptionType(python::Type::makeListType(python::Type::makeOptionType(python::Type::F64)))})))));
 }
+

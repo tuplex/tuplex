@@ -283,5 +283,13 @@ namespace tuplex {
         v.push_back(Field(value));
         vec_build(v, Fargs...);
     }
+
+    /*!
+     * decode constant valued type to a field
+     * @param type
+     * @return field with value obtained from type
+     */
+    extern Field constantTypeToField(const python::Type& type);
+
 }
 #endif //TUPLEX_FIELD_H

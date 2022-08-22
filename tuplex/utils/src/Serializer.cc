@@ -1069,7 +1069,7 @@ namespace tuplex {
             _requiresBitmap.push_back(el.isOptionType());
 
             // IMPORTANT: _isVarLenField has a value for every single object, so it is not the exact same as _isVarLenField in Serializer
-            if(type.isSingleValued()) {
+            if(type.isSingleValued() || type.isConstantValued()) {
                 _isVarLenField.push_back(false); // Opt[()], Opt[{}] are not varlenfields
             } else if (type == python::Type::BOOLEAN
                 || type == python::Type::I64
@@ -1085,6 +1085,8 @@ namespace tuplex {
                 _isVarLenField.push_back(true);
             } else {
                 Logger::instance().logger("core").error("non deserializable type '" + el.desc() + "' detected");
+                // treat as none...
+                _isVarLenField.push_back(false);
             }
         }
     }
@@ -1731,11 +1733,15 @@ namespace tuplex {
                     f = isNull(i) ? Field::null(type) : Field(option<List>(getList(i)));
                 else if(rt.isTupleType()) {
                     f = isNull(i) ? Field::null(type) : Field(option<Tuple>(getOptionTuple(i)));
+                } else if(rt.isConstantValued()) {
+                    f = constantTypeToField(rt);
                 } else {
                     f = Field::null(); // default to NULL
                     Logger::instance().defaultLogger().error(
                             "unknown type '" + type.desc() + "' occurred when trying to attempt deserialization of field");
                 }
+            } else if(type.isConstantValued()) {
+                f = constantTypeToField(type);
             } else {
                 f = Field::null(); // default to NULL
                 Logger::instance().defaultLogger().error(

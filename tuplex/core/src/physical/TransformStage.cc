@@ -110,21 +110,39 @@ namespace tuplex {
         int64_t dataSetID = 0; // no ID here
         _inputPartitions = rowsToPartitions(backend()->driver(), dataSetID, context().id(), rows);
     }
-    void TransformStage::setIncrementalResult(const std::vector<Partition*>& normalPartitions,
-                              const std::vector<Partition*>& exceptionPartitions,
-                              const std::vector<PartitionGroup>& partitionGroups) {
-        auto pipeline = PhysicalStage::plan()->originalLogicalPlan()->getAction();
-        auto cacheEntry = new IncrementalCacheEntry(pipeline, normalPartitions, exceptionPartitions, partitionGroups);
-        PhysicalStage::plan()->getContext().getIncrementalCache()->addEntry(IncrementalCache::newKey(pipeline), cacheEntry);
-    }
 
-    void TransformStage::setIncrementalResult(const std::vector<Partition*>& exceptionPartitions,
+    void TransformStage::setIncrementalStageResult(const std::vector<Partition*>& normalPartitions,
+                                              const std::vector<Partition*>& exceptionPartitions,
                                               const std::vector<Partition*>& generalPartitions,
                                               const std::vector<Partition*>& fallbackPartitions,
-                                              size_t startFileNumber) {
+                                              const std::vector<PartitionGroup>& partitionGroups,
+                                              std::string outputMode) {
+        auto incrementalCache = PhysicalStage::plan()->getContext().getIncrementalCache();
+
         auto pipeline = PhysicalStage::plan()->originalLogicalPlan()->getAction();
-        auto cacheEntry = new IncrementalCacheEntry(pipeline, exceptionPartitions, generalPartitions, fallbackPartitions, startFileNumber);
-        PhysicalStage::plan()->getContext().getIncrementalCache()->addEntry(IncrementalCache::newKey(pipeline), cacheEntry);
+        auto key = IncrementalCache::newKey(pipeline);
+        auto entry = incrementalCache->getEntry(key);
+        if (!entry) {
+            entry = new IncrementalCacheEntry(pipeline);
+            incrementalCache->addEntry(key, entry);
+        }
+
+        entry->setStageResult(
+                PhysicalStage::number(),
+                normalPartitions,
+                  exceptionPartitions,
+                  generalPartitions,
+                  fallbackPartitions,
+                  partitionGroups,
+                  outputMode);
+    }
+
+    void TransformStage::setIncrementalFileNumber(size_t startFileNumber) {
+        auto incrementalCache = PhysicalStage::plan()->getContext().getIncrementalCache();
+        auto pipeline = PhysicalStage::plan()->originalLogicalPlan()->getAction();
+        auto entry = incrementalCache->getEntry(IncrementalCache::newKey(pipeline));
+
+        entry->setStartFileNumber(startFileNumber);
     }
 
     void TransformStage::setFileResult(const std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> &ecounts) {

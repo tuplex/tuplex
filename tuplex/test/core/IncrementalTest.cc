@@ -34,6 +34,35 @@ protected:
     }
 };
 
+TEST_F(IncrementalTest, TwoJoins) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opts = microTestOptions();
+    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
+    opts.set("tuplex.optimizer.incrementalResolution", "false");
+    Context c(opts);
+
+    auto writeURI = URI(testName + "/" + testName + ".csv");
+    auto readURI = URI(testName + "/" + testName + ".*.csv");
+
+    auto ds1 = c.parallelize({Row("A", 1),
+                              Row("B", 2),
+                              Row("C", 3)},
+                             vector<string>{"a", "b"});
+    auto ds2 = c.parallelize({Row("A", true),
+                              Row("B", false),
+                              Row("C", true)},
+                             vector<string>{"c", "d"});
+    auto ds3 = c.parallelize({Row("A", 1.1),
+                              Row("B", 2.2),
+                              Row("C", 3.3)},
+                             vector<string>{"e", "f"});
+
+    ds3.join(ds1.join(ds2, string("a"), string("c")), string("e"), string("a")).tocsv(writeURI);
+    ASSERT_TRUE(true);
+}
+
 TEST_F(IncrementalTest, JoinNoExp) {
     using namespace tuplex;
     using namespace std;
@@ -66,13 +95,56 @@ TEST_F(IncrementalTest, JoinNoExp) {
         ASSERT_TRUE(expectedOutput.find(row.toPythonString()) != expectedOutput.end());
 }
 
+TEST_F(IncrementalTest, JoinTimeBenchmark) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opts = testOptions();
+    opts.set("tuplex.partitionSize", "32MB");
+    opts.set("tuplex.executorCount", "7");
+    opts.set("tuplex.executorMemory", "128MB");
+    opts.set("tuplex.driverMemory", "128MB");
+    Context c(opts);
+
+    auto normalURI = URI(testName + "/" + testName + "normal.csv");
+    auto expURI = URI(testName + "/" + testName + "exp.csv");
+    auto outputURI = URI(testName + "/" + testName + "out.csv");
+
+    stringstream normalFile;
+    normalFile <<"a,b\n";
+    for (int i = 0; i < 9000000; ++i)
+        normalFile << to_string(i) << ",hello\n";
+    stringToFile(normalURI, normalFile.str());
+
+    stringstream expFile;
+    expFile << "a,b\n";
+    for (int i = 0; i < 1000000; ++i)
+        expFile << to_string(i) << ",hello\n";
+    stringToFile(expURI, expFile.str());
+
+    auto exp = c.csv(expURI.toPath());
+    auto norm = c.csv(normalURI.toPath());
+
+    Timer timer;
+    norm.join(norm, string("a"), string("a")).tocsv(outputURI);
+    auto onePassTime = timer.time();
+
+    timer.reset();
+    exp.join(norm, string("a"), string("a")).tocsv(outputURI);
+    norm.join(exp, string("a"), string("a")).tocsv(outputURI);
+    exp.join(exp, string("a"), string("a")).tocsv(outputURI);
+    auto threePassTime = timer.time();
+
+    cout << "One Pass: " << onePassTime << " (s), Three Pass: " << threePassTime << " (s)\n";
+}
+
 TEST_F(IncrementalTest, JoinLeftBeforeExp) {
     using namespace tuplex;
     using namespace std;
 
     auto opts = microTestOptions();
     opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
-    opts.set("tuplex.optimizer.incrementalResolution", "false");
+    opts.set("tuplex.optimizer.incrementalResolution", "true");
     Context c(opts);
 
     auto writeURI = URI(testName + "/" + testName + ".csv");
@@ -118,7 +190,7 @@ TEST_F(IncrementalTest, JoinRightBeforeExp) {
 
     auto opts = microTestOptions();
     opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
-    opts.set("tuplex.optimizer.incrementalResolution", "false");
+    opts.set("tuplex.optimizer.incrementalResolution", "true");
     Context c(opts);
 
     auto writeURI = URI(testName + "/" + testName + ".csv");

@@ -16,72 +16,75 @@
 
 namespace tuplex {
 
+    struct StageResult {
+        StageResult(const std::vector<Partition*>& normalPartitions,
+                    const std::vector<Partition*>& exceptionPartitions,
+                    const std::vector<Partition*>& generalPartitions,
+                    const std::vector<Partition*>& fallbackPartitions,
+                    const std::vector<PartitionGroup>& partitionGroups,
+                    std::string outputMode):
+                    normalPartitions(normalPartitions),
+                    exceptionPartitions(exceptionPartitions),
+                    generalPartitions(generalPartitions),
+                    fallbackPartitions(fallbackPartitions),
+                    partitionGroups(partitionGroups),
+                    outputMode(outputMode) {}
+
+        std::vector<Partition*> normalPartitions;
+        std::vector<Partition*> exceptionPartitions;
+        std::vector<Partition*> generalPartitions;
+        std::vector<Partition*> fallbackPartitions;
+        std::vector<PartitionGroup> partitionGroups;
+        std::string outputMode;
+    };
+
     /*!
      * Holds information about pipeline execution to use for incremental exception resolution
      */
     class IncrementalCacheEntry {
     private:
         LogicalOperator* _pipeline;
-        std::vector<Partition*> _normalPartitions;
-        std::vector<Partition*> _exceptionPartitions;
-        std::vector<Partition*> _generalPartitions;
-        std::vector<Partition*> _fallbackPartitions;
-        std::vector<PartitionGroup> _partitionGroups;
+        std::vector<StageResult> _stageResults;
         size_t _startFileNumber;
     public:
-        /*!
-         * Incremental cache entry for merge out of order
-         * @param pipeline original logical plan
-         * @param exceptionPartitions exception rows
-         * @param generalPartitions general rows
-         * @param fallbackPartitions fallback rows
-         * @param startFileNumber next available file number
-         */
-        IncrementalCacheEntry(LogicalOperator* pipeline,
-                              const std::vector<Partition*>& exceptionPartitions,
-                              const std::vector<Partition*>& generalPartitions,
-                              const std::vector<Partition*>& fallbackPartitions,
-                              size_t startFileNumber);
-
-        /*!
-         * Incremental cache entry for merge in order
-         * @param pipeline original logical plan
-         * @param normalPartitions normal rows
-         * @param exceptionPartitions exception rows
-         * @param partitionGroups mapping of normal rows to exception rows
-         */
-        IncrementalCacheEntry(LogicalOperator *pipeline,
-                              const std::vector<Partition*>& normalPartitions,
-                              const std::vector<Partition*>& exceptionPartitions,
-                              const std::vector<PartitionGroup>& partitionGroups);
+        IncrementalCacheEntry(LogicalOperator* pipeline);
 
         ~IncrementalCacheEntry();
 
-        LogicalOperator* pipeline() const {
-            return _pipeline;
+        LogicalOperator* pipeline() const { return _pipeline; }
+
+        void setStageResult(
+                size_t stageNumber,
+                const std::vector<Partition*>& normalPartitions,
+                const std::vector<Partition*>& exceptionPartitions,
+                const std::vector<Partition*>& generalPartitions,
+                const std::vector<Partition*>& fallbackPartitions,
+                const std::vector<PartitionGroup>& partitionGroups,
+                std::string outputMode) {
+            if (stageNumber < _stageResults.size()) {
+                _stageResults[stageNumber] = StageResult(normalPartitions, exceptionPartitions, generalPartitions, fallbackPartitions, partitionGroups, outputMode);
+            } else if (stageNumber == _stageResults.size()) {
+                _stageResults.emplace_back(normalPartitions, exceptionPartitions, generalPartitions, fallbackPartitions, partitionGroups, outputMode);
+            } else {
+                throw std::runtime_error("Stage added out of order");
+            }
         }
 
-        void setExceptionPartitions(const std::vector<Partition*>& exceptionPartitions) { _exceptionPartitions = exceptionPartitions; }
+        std::vector<Partition*> normalPartitions(size_t stageNumber) const { return _stageResults[stageNumber].normalPartitions; }
 
-        std::vector<PartitionGroup> partitionGroups() const { return _partitionGroups; }
+        std::vector<Partition*> exceptionPartitions(size_t stageNumber) const { return _stageResults[stageNumber].exceptionPartitions; }
 
-        std::vector<Partition*> normalPartitions() const { return _normalPartitions; }
+        std::vector<Partition*> generalPartitions(size_t stageNumber) const { return _stageResults[stageNumber].generalPartitions; }
 
-        std::vector<Partition*> exceptionPartitions() const {
-            return _exceptionPartitions;
-        }
+        std::vector<Partition*> fallbackPartitions(size_t stageNumber) const { return _stageResults[stageNumber].fallbackPartitions; }
 
-        std::vector<Partition*> generalPartitions() const {
-            return _generalPartitions;
-        }
+        std::vector<PartitionGroup> partitionGroups(size_t stageNumber) const { return _stageResults[stageNumber].partitionGroups; }
 
-        std::vector<Partition*> fallbackPartitions() const {
-            return _fallbackPartitions;
-        }
+        std::string outputMode(size_t stageNumber) const { return _stageResults[stageNumber].outputMode; }
 
-        size_t startFileNumber() const {
-            return _startFileNumber;
-        }
+        void setStartFileNumber(size_t startFileNumber) { _startFileNumber = startFileNumber; }
+
+        size_t startFileNumber() const { return _startFileNumber; }
     };
 
     /*!

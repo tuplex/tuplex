@@ -148,11 +148,12 @@ namespace tuplex {
         // check what type of stage it is
         auto tstage = dynamic_cast<TransformStage*>(stage);
         if(tstage) {
-            if (tstage->incrementalResolution()) {
+            if (tstage->incrementalResolution() && tstage->outputMode() == EndPointMode::FILE && tstage->number() == 0)
                 executeIncrementalStage(tstage);
-            } else {
+            else if (tstage->incrementalResolution() && tstage->incrementalCacheEntry()->exceptionPartitions(tstage->number()).size() > 0)
+                executeIncrementalStage(tstage);
+            else
                 executeTransformStage(tstage);
-            }
         }
         else if(dynamic_cast<HashJoinStage*>(stage)) {
             executeHashJoinStage(dynamic_cast<HashJoinStage*>(stage));
@@ -774,7 +775,9 @@ namespace tuplex {
         return pip_object;
     }
 
-    std::vector<IExecutorTask*> LocalBackend::createIncrementalTasks(TransformStage* tstage,  const ContextOptions& options, const std::shared_ptr<TransformStage::JITSymbols>& syms) {
+    std::vector<IExecutorTask*> LocalBackend::createIncrementalTasks(TransformStage* tstage,  const ContextOptions& options, const std::shared_ptr<TransformStage::JITSymbols>& syms, bool combineHashmaps,
+                                                                     codegen::agg_init_f init_aggregate,
+                                                                     codegen::agg_combine_f combine_aggregate) {
         using namespace std;
         vector<IExecutorTask*> tasks;
         assert(tstage);
@@ -782,11 +785,11 @@ namespace tuplex {
 
         auto cacheEntry = tstage->incrementalCacheEntry();
         assert(cacheEntry);
-        auto cachedExceptionPartitions = cacheEntry->exceptionPartitions();
-        auto cachedGeneralPartitions = cacheEntry->generalPartitions();
-        auto cachedFallbackPartitions = cacheEntry->fallbackPartitions();
-        auto cachedPartitionGroups = cacheEntry->partitionGroups();
-        auto cachedNormalPartitions = cacheEntry->normalPartitions();
+        auto cachedExceptionPartitions = cacheEntry->exceptionPartitions(tstage->number());
+        auto cachedGeneralPartitions = cacheEntry->generalPartitions(tstage->number());
+        auto cachedFallbackPartitions = cacheEntry->fallbackPartitions(tstage->number());
+        auto cachedPartitionGroups = cacheEntry->partitionGroups(tstage->number());
+        auto cachedNormalPartitions = cacheEntry->normalPartitions(tstage->number());
 
         for (auto &p : cachedNormalPartitions)
             p->makeMortal();
@@ -807,15 +810,87 @@ namespace tuplex {
         auto resolveFunctor = options.RESOLVE_WITH_INTERPRETER_ONLY() ? nullptr : syms->resolveFunctor;
 
 
-        // compile & prep python pipeline for this stage
+        HashTableSink hsink;
+        bool hasNormalHashSink = false;
+
+        // make sure output mode is NOT hash table, not yet supported...
+        if(tstage->outputMode() == EndPointMode::HASHTABLE) {
+            // note: must hold that normal-case output type is equal to general-case output type
+            assert(tstage->normalCaseOutputSchema() == tstage->outputSchema()); // must hold for hash table!
+
+            // special case: create a global hash output result and put it into the FIRST resolve task.
+            Timer timer;
+            hsink = createFinalHashmap({tasks.cbegin(), tasks.cend()},
+                                       tstage->hashtableKeyByteWidth(),
+                                       combineHashmaps,
+                                       init_aggregate,
+                                       combine_aggregate);
+            logger().info("created combined normal-case result in " + std::to_string(timer.time()) + "s");
+            hasNormalHashSink = true;
+        }
+
         Timer timer;
+        // compile & prep python pipeline for this stage
         auto pipObject = preparePythonPipeline(tstage->purePythonCode(), tstage->pythonPipelineName());
+        // transform dependents into python format!
+        // when pip_object is nullptr, then something went wrong...
         if(!pipObject) {
-            logger().error("python pipeline invalid, details: \n" + core::withLineNumbers(tstage->purePythonCode()));
+            logger().error("python pipeline invalid, details: \n"
+                           + core::withLineNumbers(tstage->purePythonCode()));
             return tasks;
         }
+
         logger().info("compiled pure python pipeline in " + std::to_string(timer.time()) + "s");
         timer.reset();
+
+        // fetch intermediates of previous stages (i.e. hash tables)
+        // @TODO rewrite for general intermediates??
+        auto input_intermediates = tstage->initData();
+
+        // lazy init hybrids
+        if(!input_intermediates.hybrids) {
+            auto num_predecessors = tstage->predecessors().size();
+            input_intermediates.hybrids = new PyObject*[num_predecessors];
+            for(int i = 0; i < num_predecessors; ++i)
+                input_intermediates.hybrids[i] = nullptr;
+        }
+
+
+        python::lockGIL();
+
+        // construct intermediates from predecessors
+        size_t num_predecessors = tstage->predecessors().size();
+        for(unsigned i = 0; i < tstage->predecessors().size(); ++i) {
+            auto pred = tstage->predecessors()[i];
+            if(pred->outputMode() == EndPointMode::HASHTABLE) {
+                auto ts = dynamic_cast<TransformStage*>(pred); assert(ts);
+#ifndef NDEBUG
+                // print out key information about hashresults...
+                // cout<<"predecessor has output mode hash table"<<endl;
+                // cout<<"key type: "<<ts->hashResult().keyType.desc()<<endl;
+                // cout<<"bucket type: "<<ts->hashResult().bucketType.desc()<<endl;
+#endif
+                // create hybrid if not existing (could be if previous stage had output hashtable + slow resolve path!)
+                if(input_intermediates.hash_maps[i] && !input_intermediates.hybrids[i]) {
+#warning "fix this code after OSS, it's a memory bug."
+                    HashTableSink* hs = new HashTableSink(); // memory leak...
+                    hs->hm = input_intermediates.hash_maps[i];
+                    hs->null_bucket = input_intermediates.null_buckets[i];
+                    input_intermediates.hybrids[i] = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(*hs,
+                                                                                                             ts->hashResult().keyType.withoutOptions(),
+                                                                                                             ts->hashResult().bucketType));
+                }
+            }
+        }
+        python::unlockGIL();
+
+        // check whether hybrids exist. If not, create them quickly!
+        assert(input_intermediates.hybrids);
+        logger().info("creating hybrid intermediates took " + std::to_string(timer.time()) + "s");
+        timer.reset();
+
+        bool hashOutput = tstage->outputMode() == EndPointMode::HASHTABLE;
+
 
         auto order = 0;
         if (mergeExceptionsInOrder) {
@@ -854,7 +929,7 @@ namespace tuplex {
             }
         } else {
             for (const auto &p : cachedExceptionPartitions) {
-                tasks.push_back(new ResolveTask(
+                auto rtask = new ResolveTask(
                         stageID,
                         contextID,
                         vector<Partition*>{},
@@ -873,7 +948,16 @@ namespace tuplex {
                         csvOutputQuotechar,
                         resolveFunctor,
                         pipObject,
-                        true));
+                        true);
+
+
+                rtask->setHybridIntermediateHashTables(tstage->predecessors().size(), input_intermediates.hybrids);
+
+                if(tstage->outputMode() == EndPointMode::HASHTABLE) {
+                    rtask->sinkOutputToHashTable(tstage->hashtableKeyByteWidth() == 8 ? HashTableFormat::UINT64 : HashTableFormat::BYTES, tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType(), hsink.hm, hsink.null_bucket, tstage->hashKeyCol());
+                }
+
+                tasks.push_back(rtask);
             }
 
             for (const auto &p : cachedGeneralPartitions) {
@@ -936,9 +1020,10 @@ namespace tuplex {
         assert(tstage);
         auto cacheEntry = tstage->incrementalCacheEntry();
         assert(cacheEntry);
-        auto cachedGeneralPartitions = cacheEntry->generalPartitions();
-        auto cachedFallbackPartitions = cacheEntry->fallbackPartitions();
-        auto cachedExceptionPartitions = cacheEntry->exceptionPartitions();
+        auto cachedExceptionPartitions = cacheEntry->exceptionPartitions(tstage->number());
+        auto cachedGeneralPartitions = cacheEntry->generalPartitions(tstage->number());
+        auto cachedFallbackPartitions = cacheEntry->fallbackPartitions(tstage->number());
+        auto outputMode = cacheEntry->outputMode(tstage->number());
 
         // If pipeline does not contain code, or no new exceptions to resolve skip stage and store new cache entry
         if (cachedExceptionPartitions.empty() && cachedGeneralPartitions.empty() && cachedFallbackPartitions.empty()) {
@@ -969,8 +1054,7 @@ namespace tuplex {
 
         // Process tasks
         timer.reset();
-
-        auto tasks = createIncrementalTasks(tstage, _options, syms);
+        std::vector<IExecutorTask*> tasks = createIncrementalTasks(tstage, _options, syms, combineOutputHashmaps, syms->aggInitFunctor, syms->aggCombineFunctor);
         auto completedTasks = performTasks(tasks);
 
         size_t numInputRows = 0;
@@ -1037,7 +1121,12 @@ namespace tuplex {
         switch (tstage->outputMode()) {
             case EndPointMode::FILE: {
                 if (_options.OPT_MERGE_EXCEPTIONS_INORDER()) {
-                    tstage->setIncrementalResult(normalPartitions, exceptionPartitions, partitionGroups);
+                    tstage->setIncrementalStageResult(normalPartitions,
+                                                      exceptionPartitions,
+                                                      std::vector<Partition*>{},
+                                                      std::vector<Partition*>{},
+                                                      partitionGroups,
+                                                      "file");
                     if (stringToBool(tstage->outputOptions()["commit"])) {
                         timer.reset();
                         writeOutput(tstage, completedTasks);
@@ -1049,9 +1138,30 @@ namespace tuplex {
                     timer.reset();
                     auto partNo = writeOutput(tstage, completedTasks, cacheEntry->startFileNumber());
                     metrics.setWriteOutputTimes(tstage->number(), timer.time());
-                    tstage->setIncrementalResult(exceptionPartitions, generalPartitions, fallbackPartitions,
-                                                 partNo);
+                    tstage->setIncrementalStageResult(std::vector<Partition*>{},
+                                                 exceptionPartitions,
+                                                 generalPartitions,
+                                                 fallbackPartitions,
+                                                 std::vector<PartitionGroup>{},
+                                                 "file");
+                    tstage->setIncrementalFileNumber(partNo);
                 }
+                break;
+            }
+            case EndPointMode::HASHTABLE: {
+                auto hsink = createFinalHashmap({completedTasks.cbegin(), completedTasks.cend()},
+                                                tstage->hashtableKeyByteWidth(),
+                                                combineOutputHashmaps,
+                                                syms->aggInitFunctor,
+                                                syms->aggCombineFunctor);
+                tstage->setHashResult(hsink.hm, hsink.null_bucket);
+
+                tstage->setIncrementalStageResult(std::vector<Partition*>{},
+                                                  exceptionPartitions,
+                                                  std::vector<Partition*>{},
+                                                  std::vector<Partition*>{},
+                                                  std::vector<PartitionGroup>{},
+                                                  "hash");
                 break;
             }
             default:
@@ -1407,7 +1517,12 @@ namespace tuplex {
                 // ==> could maybe codegen avro as output format, and then write to whatever??
                 if (_options.OPT_INCREMENTAL_RESOLUTION()) {
                     if (_options.OPT_MERGE_EXCEPTIONS_INORDER()) {
-                        tstage->setIncrementalResult(normalPartitions, exceptionPartitions, partitionGroups);
+                        tstage->setIncrementalStageResult(normalPartitions,
+                                                          exceptionPartitions,
+                                                          std::vector<Partition*>{},
+                                                          std::vector<Partition*>{},
+                                                          partitionGroups,
+                                                          "file");
                         if (stringToBool(tstage->outputOptions()["commit"])) {
                             timer.reset();
                             writeOutput(tstage, completedTasks);
@@ -1417,10 +1532,20 @@ namespace tuplex {
                         }
                     } else {
                         timer.reset();
-                        auto partNo = writeOutput(tstage, completedTasks);
+                        auto cacheEntry = tstage->incrementalCacheEntry();
+                        size_t startNo = 0;
+                        if (cacheEntry)
+                            startNo = cacheEntry->startFileNumber();
+
+                        auto partNo = writeOutput(tstage, completedTasks, startNo);
                         metrics.setWriteOutputTimes(tstage->number(), timer.time());
-                        tstage->setIncrementalResult(exceptionPartitions, generalPartitions, fallbackPartitions,
-                                                     partNo);
+                        tstage->setIncrementalStageResult(std::vector<Partition*>{},
+                                                     exceptionPartitions,
+                                                     generalPartitions,
+                                                     fallbackPartitions,
+                                                     std::vector<PartitionGroup>{},
+                                                     "file");
+                        tstage->setIncrementalFileNumber(partNo);
                     }
                 } else {
                     timer.reset();
@@ -1446,6 +1571,13 @@ namespace tuplex {
                                                     syms->aggInitFunctor,
                                                     syms->aggCombineFunctor);
                     tstage->setHashResult(hsink.hm, hsink.null_bucket);
+
+                    tstage->setIncrementalStageResult(std::vector<Partition*>{},
+                                                      exceptionPartitions,
+                                                      std::vector<Partition*>{},
+                                                      std::vector<Partition*>{},
+                                                      std::vector<PartitionGroup>{},
+                                                      "hash");
                 }
                 break;
             }

@@ -371,13 +371,6 @@ namespace tuplex {
                         auto oldInputType = op->getInputSchema().getRowType();
                         auto oldOutputType = op->getInputSchema().getRowType();
 
-                        if(node->type() == LogicalOperatorType::WITHCOLUMN) {
-                            auto wop = (WithColumnOperator*)node;
-                            if(wop->columnToMap() == "ActualElapsedTime") {
-                                std::cout<<"start checking retyping here!!!"<<std::endl;
-                            }
-                        }
-
                         checkRowType(last_rowtype);
                         // set FIRST the parent. Why? because operators like ingore depend on parent schema
                         // therefore, this needs to get updated first.
@@ -434,8 +427,6 @@ namespace tuplex {
                                                 jop->joinType(), jop->leftPrefix(), jop->leftSuffix(), jop->rightPrefix(),
                                                 jop->rightSuffix()));
                         opt_ops.back()->setID(node->getID()); // so lookup map works!
-
-//#error "need a retype operator for the join operation..."
 #ifdef VERBOSE_BUILD
                         {
                             jop = (JoinOperator*)opt_ops.back();
@@ -881,24 +872,10 @@ namespace tuplex {
                 }
             }
 
-            //// opt: i.e. for outer stage this is not required
-            //// type upgrade because of nullvalue opt?
-            //if (_nullValueOptimization && !_isRootStage
-            //    && outSchema != operators.back()->getOutputSchema().getRowType()) {
-            //
-            //    if (!pip->addTypeUpgrade(outSchema))
-            //        throw std::runtime_error(
-            //                "type upgrade from " + operators.back()->getOutputSchema().getRowType().desc() + " to " +
-            //                outSchema.desc() + "failed.");
-            //}
-
-
             // only fast
             switch(_outputMode) {
                 case EndPointMode::FILE: {
                     // for file mode, can directly merge output rows
-                    //pip->buildWithTuplexWriter(_funcMemoryWriteCallbackName, _outputNodeID); //output node id
-
                     switch (_outputFileFormat) {
                         case FileFormat::OUTFMT_CSV: {
                             // i.e. write to memory writer!
@@ -916,12 +893,6 @@ namespace tuplex {
                         default:
                             throw std::runtime_error("unsupported output fmt encountered, can't codegen!");
                     }
-
-                    // old way used to be to generate additional file writer code with csv conversion
-                    // ==> speed it up by normal case specialization
-                    //                // generate separate function to write from main memory to file
-//                generateFileWriterCode(env, _funcFileWriteCallbackName, _funcExceptionCallback, _outputNodeID,
-//                                       _outputFileFormat, _fileOutputParameters["null_value"], _allowUndefinedBehavior);
                     break;
                 }
                 case EndPointMode::HASHTABLE: {
@@ -1382,15 +1353,6 @@ namespace tuplex {
             _outputDataSetID = 0;
 
             // leave others b.c. it's an intermediate stage...
-
-            // assert key type
-            // TODO(rahuly): do something about this assertion - it's false for AggregateByKey because the output schema doesn't match the parent's
-//            python::Type kt;
-//            if(colKey.has_value()) {
-//                kt = schema.getRowType().parameters().at(colKey.value());
-//                std::cout << "kt: " << kt.desc() << std::endl;
-//                assert(canUpcastType(kt, keyType));
-//            }
             _hashKeyType = keyType;
             _hashBucketType = bucketType;
         }
@@ -1444,8 +1406,6 @@ namespace tuplex {
             // copy code
             // llvm ir as string is super wasteful, use bitcode instead. Can be faster parsed.
             // => https://llvm.org/doxygen/BitcodeWriter_8cpp_source.html#l04457
-            // stage->_irCode = _irCode;
-            // stage->_irResolveCode = _irResolveCode;
             stage->_irBitCode = _irBitCode;
             stage->_pyCode = _pyCode;
             stage->_pyPipelineName = _pyPipelineName;

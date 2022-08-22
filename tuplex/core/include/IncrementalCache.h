@@ -44,7 +44,7 @@ namespace tuplex {
     class IncrementalCacheEntry {
     private:
         LogicalOperator* _pipeline;
-        std::vector<StageResult> _stageResults;
+        std::unordered_map<size_t, StageResult> _stageResults;
         size_t _startFileNumber;
     public:
         IncrementalCacheEntry(LogicalOperator* pipeline);
@@ -61,13 +61,7 @@ namespace tuplex {
                 const std::vector<Partition*>& fallbackPartitions,
                 const std::vector<PartitionGroup>& partitionGroups,
                 std::string outputMode) {
-            if (stageNumber < _stageResults.size()) {
-                _stageResults[stageNumber] = StageResult(normalPartitions, exceptionPartitions, generalPartitions, fallbackPartitions, partitionGroups, outputMode);
-            } else if (stageNumber == _stageResults.size()) {
-                _stageResults.emplace_back(normalPartitions, exceptionPartitions, generalPartitions, fallbackPartitions, partitionGroups, outputMode);
-            } else {
-                throw std::runtime_error("Stage added out of order");
-            }
+            _stageResults[stageNumber] = StageResult(normalPartitions, exceptionPartitions, generalPartitions, fallbackPartitions, partitionGroups, outputMode);
         }
 
         std::vector<Partition*> normalPartitions(size_t stageNumber) const { return _stageResults[stageNumber].normalPartitions; }

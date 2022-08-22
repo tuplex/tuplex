@@ -64,17 +64,17 @@ namespace tuplex {
             _stageResults[stageNumber] = StageResult(normalPartitions, exceptionPartitions, generalPartitions, fallbackPartitions, partitionGroups, outputMode);
         }
 
-        std::vector<Partition*> normalPartitions(size_t stageNumber) const { return _stageResults[stageNumber].normalPartitions; }
+        std::vector<Partition*> normalPartitions(size_t stageNumber) { return _stageResults[stageNumber].normalPartitions; }
 
-        std::vector<Partition*> exceptionPartitions(size_t stageNumber) const { return _stageResults[stageNumber].exceptionPartitions; }
+        std::vector<Partition*> exceptionPartitions(size_t stageNumber) { return _stageResults[stageNumber].exceptionPartitions; }
 
-        std::vector<Partition*> generalPartitions(size_t stageNumber) const { return _stageResults[stageNumber].generalPartitions; }
+        std::vector<Partition*> generalPartitions(size_t stageNumber) { return _stageResults[stageNumber].generalPartitions; }
 
-        std::vector<Partition*> fallbackPartitions(size_t stageNumber) const { return _stageResults[stageNumber].fallbackPartitions; }
+        std::vector<Partition*> fallbackPartitions(size_t stageNumber) { return _stageResults[stageNumber].fallbackPartitions; }
 
-        std::vector<PartitionGroup> partitionGroups(size_t stageNumber) const { return _stageResults[stageNumber].partitionGroups; }
+        std::vector<PartitionGroup> partitionGroups(size_t stageNumber) { return _stageResults[stageNumber].partitionGroups; }
 
-        std::string outputMode(size_t stageNumber) const { return _stageResults[stageNumber].outputMode; }
+        std::string outputMode(size_t stageNumber) { return _stageResults[stageNumber].outputMode; }
 
         void setStartFileNumber(size_t startFileNumber) { _startFileNumber = startFileNumber; }
 

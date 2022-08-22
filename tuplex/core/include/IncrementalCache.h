@@ -52,7 +52,7 @@ namespace tuplex {
     class IncrementalCacheEntry {
     private:
         LogicalOperator* _pipeline;
-        std::unordered_map<size_t, StageResult*> _stageResults;
+        std::unordered_map<size_t, StageResult> _stageResults;
         size_t _startFileNumber;
     public:
         IncrementalCacheEntry(LogicalOperator* pipeline);

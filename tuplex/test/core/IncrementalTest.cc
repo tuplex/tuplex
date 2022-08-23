@@ -780,12 +780,12 @@ TEST_F(IncrementalTest, Filter) {
         ASSERT_EQ(expectedOutput1[i].toPythonString(), output1[i].toPythonString());
     }
 
-    c.csv(inputFileURI.toPath()).map(UDF("lambda x: 1 // (x - x) if x < 0 else x")).resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: 1 // (x - x) if x == -1 else x")).filter(UDF("lambda x: x != 0")).tocsv(fileURI.toPath());
-    auto output2 = c.csv(outputFileURI.toPath()).collectAsVector();
-    ASSERT_EQ(output2.size(), expectedOutput2.size());
-    for (int i = 0; i < expectedOutput2.size(); ++i) {
-        ASSERT_EQ(expectedOutput2[i].toPythonString(), output2[i].toPythonString());
-    }
+//    c.csv(inputFileURI.toPath()).map(UDF("lambda x: 1 // (x - x) if x < 0 else x")).resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: 1 // (x - x) if x == -1 else x")).filter(UDF("lambda x: x != 0")).tocsv(fileURI.toPath());
+//    auto output2 = c.csv(outputFileURI.toPath()).collectAsVector();
+//    ASSERT_EQ(output2.size(), expectedOutput2.size());
+//    for (int i = 0; i < expectedOutput2.size(); ++i) {
+//        ASSERT_EQ(expectedOutput2[i].toPythonString(), output2[i].toPythonString());
+//    }
 }
 
 TEST_F(IncrementalTest, FileOutput2) {

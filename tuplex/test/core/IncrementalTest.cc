@@ -735,7 +735,7 @@ TEST_F(IncrementalTest, Filter) {
 
     auto opts = microTestOptions();
     opts.set("tuplex.executorCount", "2");
-    opts.set("tuplex.optimizer.incrementalResolution", "false");
+    opts.set("tuplex.optimizer.incrementalResolution", "true");
     opts.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
     opts.set("tuplex.resolveWithInterpreterOnly", "false");
     Context c(opts);

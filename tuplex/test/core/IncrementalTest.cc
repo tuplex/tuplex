@@ -751,7 +751,7 @@ TEST_F(IncrementalTest, Filter) {
         auto num = rand()%4;
         switch (num) {
             case 0: {
-                ss << to_string(i) << "\n";
+                ss << to_string(i + 1) << "\n";
                 expectedOutput1.push_back(Row(i));
                 expectedOutput2.push_back(Row(i));
                 break;

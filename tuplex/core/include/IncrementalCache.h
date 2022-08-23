@@ -28,12 +28,7 @@ namespace tuplex {
                     const std::vector<Partition*>& exceptionPartitions,
                     const std::vector<Partition*>& generalPartitions,
                     const std::vector<Partition*>& fallbackPartitions,
-                    const std::vector<PartitionGroup>& partitionGroups):
-                    normalPartitions(normalPartitions),
-                    exceptionPartitions(exceptionPartitions),
-                    generalPartitions(generalPartitions),
-                    fallbackPartitions(fallbackPartitions),
-                    partitionGroups(partitionGroups) {}
+                    const std::vector<PartitionGroup>& partitionGroups);
 
         std::vector<Partition*> normalPartitions;
         std::vector<Partition*> exceptionPartitions;

@@ -13,6 +13,20 @@
 #include <utility>
 
 namespace tuplex {
+    StageResult::StageResult(const std::vector<Partition*>& normalPartitions,
+                             const std::vector<Partition*>& exceptionPartitions,
+                             const std::vector<Partition*>& generalPartitions,
+                             const std::vector<Partition*>& fallbackPartitions,
+                             const std::vector<PartitionGroup>& partitionGroups):
+            normalPartitions(normalPartitions),
+            exceptionPartitions(exceptionPartitions),
+            generalPartitions(generalPartitions),
+            fallbackPartitions(fallbackPartitions),
+            partitionGroups(partitionGroups) {
+        for (auto& p : normalPartitions)
+            p->makeImmortal();
+    }
+
     IncrementalCacheEntry::IncrementalCacheEntry(LogicalOperator* pipeline) {
         _pipeline = pipeline->clone();
         _startFileNumber = 0;

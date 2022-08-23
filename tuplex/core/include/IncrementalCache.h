@@ -22,28 +22,24 @@ namespace tuplex {
         exceptionPartitions(std::vector<Partition*>{}),
         generalPartitions(std::vector<Partition*>{}),
         fallbackPartitions(std::vector<Partition*>{}),
-        partitionGroups(std::vector<PartitionGroup>{}),
-        outputMode("") {}
+        partitionGroups(std::vector<PartitionGroup>{}) {}
 
         StageResult(const std::vector<Partition*>& normalPartitions,
                     const std::vector<Partition*>& exceptionPartitions,
                     const std::vector<Partition*>& generalPartitions,
                     const std::vector<Partition*>& fallbackPartitions,
-                    const std::vector<PartitionGroup>& partitionGroups,
-                    std::string outputMode):
+                    const std::vector<PartitionGroup>& partitionGroups):
                     normalPartitions(normalPartitions),
                     exceptionPartitions(exceptionPartitions),
                     generalPartitions(generalPartitions),
                     fallbackPartitions(fallbackPartitions),
-                    partitionGroups(partitionGroups),
-                    outputMode(outputMode) {}
+                    partitionGroups(partitionGroups) {}
 
         std::vector<Partition*> normalPartitions;
         std::vector<Partition*> exceptionPartitions;
         std::vector<Partition*> generalPartitions;
         std::vector<Partition*> fallbackPartitions;
         std::vector<PartitionGroup> partitionGroups;
-        std::string outputMode;
     };
 
     /*!
@@ -61,15 +57,16 @@ namespace tuplex {
 
         LogicalOperator* pipeline() const { return _pipeline; }
 
-        void setStageResult(
-                size_t stageNumber,
-                const std::vector<Partition*>& normalPartitions,
-                const std::vector<Partition*>& exceptionPartitions,
-                const std::vector<Partition*>& generalPartitions,
-                const std::vector<Partition*>& fallbackPartitions,
-                const std::vector<PartitionGroup>& partitionGroups,
-                std::string outputMode) {
-            _stageResults[stageNumber] = StageResult(normalPartitions, exceptionPartitions, generalPartitions, fallbackPartitions, partitionGroups, outputMode);
+        void setStageResult(size_t stageNumber,
+                            const std::vector<Partition*>& normalPartitions,
+                            const std::vector<Partition*>& exceptionPartitions,
+                            const std::vector<Partition*>& generalPartitions,
+                            const std::vector<Partition*>& fallbackPartitions,
+                            const std::vector<PartitionGroup>& partitionGroups) {
+            auto elt = _stageResults.find(stageNumber);
+            if (elt != _stageResults.end())
+                _stageResults.erase(stageNumber);
+            _stageResults[stageNumber] = StageResult(normalPartitions, exceptionPartitions, generalPartitions, fallbackPartitions, partitionGroups);
         }
 
         std::vector<Partition*> normalPartitions(size_t stageNumber) { return _stageResults[stageNumber].normalPartitions; }
@@ -82,11 +79,11 @@ namespace tuplex {
 
         std::vector<PartitionGroup> partitionGroups(size_t stageNumber) { return _stageResults[stageNumber].partitionGroups; }
 
-        std::string outputMode(size_t stageNumber) { return _stageResults[stageNumber].outputMode; }
+        size_t startFileNumber() const { return _startFileNumber; }
+
+        void setPipeline(LogicalOperator* pipeline);
 
         void setStartFileNumber(size_t startFileNumber) { _startFileNumber = startFileNumber; }
-
-        size_t startFileNumber() const { return _startFileNumber; }
     };
 
     /*!
@@ -100,20 +97,41 @@ namespace tuplex {
             clear();
         }
 
-        /*!
-         * Add entry to the cache
-         * @param key string representation of the pipeline
-         * @param entry entry to store
-         */
-        void addEntry(const std::string& key, IncrementalCacheEntry* entry);
+        void setStageResult(LogicalOperator* pipeline,
+                            size_t stageNumber,
+                            const std::vector<Partition*>& normalPartitions,
+                            const std::vector<Partition*>& exceptionPartitions,
+                            const std::vector<Partition*>& generalPartitions,
+                            const std::vector<Partition*>& fallbackPartitions,
+                            const std::vector<PartitionGroup>& partitionGroups) {
+            auto key = pipelineToString(pipeline);
+            if (_cache.find(key) == _cache.end())
+                _cache[key] = new IncrementalCacheEntry(pipeline);
+            _cache[key]->setStageResult(stageNumber,
+                                        normalPartitions,
+                                        exceptionPartitions,
+                                        generalPartitions,
+                                        fallbackPartitions,
+                                        partitionGroups);
+            _cache[key]->setPipeline(pipeline);
+        }
+
+        void setStartFileNumber(LogicalOperator* pipeline,
+                                size_t startFileNumber) {
+            auto key = pipelineToString(pipeline);
+            if (_cache.find(key) == _cache.end())
+                _cache[key] = new IncrementalCacheEntry(pipeline);
+            _cache[key]->setStartFileNumber(startFileNumber);
+            _cache[key]->setPipeline(pipeline);
+        }
 
         /*!
          * Retrieve entry from the cache
          * @param key string representation of the pipeline
          * @return cache entry
          */
-        IncrementalCacheEntry* getEntry(const std::string& key) const {
-            auto elt = _cache.find(key);
+        IncrementalCacheEntry* getEntry(LogicalOperator* pipeline) const {
+            auto elt = _cache.find(pipelineToString(pipeline));
             if (elt == _cache.end())
                 return nullptr;
             return elt->second;
@@ -131,7 +149,7 @@ namespace tuplex {
          * @param pipeline original logical plan
          * @return 
          */
-        static std::string newKey(LogicalOperator* pipeline);
+        static std::string pipelineToString(LogicalOperator* pipeline);
     };
 
 }

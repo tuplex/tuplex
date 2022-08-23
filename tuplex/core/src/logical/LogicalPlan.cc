@@ -99,7 +99,7 @@ namespace tuplex {
         // If cache entry exists, need to copy over operator Ids from previous pipeline to current pipeline
         // This is because the exceptions are already encoded with the previous pipeline's operator IDs.
         auto cache = context.getIncrementalCache();
-        auto cacheEntry = cache->getEntry(IncrementalCache::newKey(_action));
+        auto cacheEntry = cache->getEntry(_action);
         if (cacheEntry && context.getOptions().OPT_INCREMENTAL_RESOLUTION()) {
             updateIDs(cacheEntry->pipeline(), _action);
         }

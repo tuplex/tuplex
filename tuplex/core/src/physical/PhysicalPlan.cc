@@ -243,7 +243,7 @@ namespace tuplex {
 
         // Use incremental resolution if pipelines match and user has enabled the option
         auto cache = _context.getIncrementalCache();
-        auto cacheEntry = cache->getEntry(IncrementalCache::newKey(originalLogicalPlan()->getAction()));
+        auto cacheEntry = cache->getEntry(originalLogicalPlan()->getAction());
         auto incrementalResolution = cacheEntry && _context.getOptions().OPT_INCREMENTAL_RESOLUTION();
 
         // create trafostage via builder pattern
@@ -423,9 +423,7 @@ namespace tuplex {
             stage->setInputFiles(csvop->getURIs(), csvop->getURISizes());
         } // else it must be an internal node! => need to set manually based on result
 
-        if (incrementalResolution) {
-            stage->setIncrementalCacheEntry(cacheEntry);
-        }
+        stage->setIncrementalCacheEntry(cacheEntry);
 
         return stage;
     }

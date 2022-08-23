@@ -13,28 +13,25 @@
 #include <utility>
 
 namespace tuplex {
-
     IncrementalCacheEntry::IncrementalCacheEntry(LogicalOperator* pipeline) {
         _pipeline = pipeline->clone();
+        _startFileNumber = 0;
     }
 
     IncrementalCacheEntry::~IncrementalCacheEntry() {
         delete _pipeline;
     }
 
-    void IncrementalCache::addEntry(const std::string& key, IncrementalCacheEntry* entry) {
-        auto elt = _cache.find(key);
-        if (elt != _cache.end())
-            _cache.erase(key);
-
-        _cache[key] = entry;
+    void IncrementalCacheEntry::setPipeline(LogicalOperator *pipeline) {
+        delete _pipeline;
+        _pipeline = pipeline->clone();
     }
 
-    std::string IncrementalCache::newKey(LogicalOperator* pipeline) {
+    std::string IncrementalCache::pipelineToString(LogicalOperator* pipeline) {
         std::stringstream ss;
         for (const auto & p : pipeline->parents())
-            ss << newKey(p);
-        if (pipeline->type() != LogicalOperatorType:: RESOLVE && pipeline->type() != LogicalOperatorType::IGNORE)
+            ss << pipelineToString(p);
+        if (pipeline->type() != LogicalOperatorType::RESOLVE && pipeline->type() != LogicalOperatorType::IGNORE)
             ss << std::to_string(static_cast<int>(pipeline->type()));
 
         return ss.str();

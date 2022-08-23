@@ -205,8 +205,7 @@ namespace tuplex {
                                       const std::vector<Partition*>& exceptionPartitions,
                                       const std::vector<Partition*>& generalPartitions,
                                       const std::vector<Partition*>& fallbackPartitions,
-                                      const std::vector<PartitionGroup>& partitionGroups,
-                                      std::string outputMode);
+                                      const std::vector<PartitionGroup>& partitionGroups);
 
         void setIncrementalFileNumber(size_t startFileNumber);
 

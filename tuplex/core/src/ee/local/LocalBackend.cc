@@ -148,9 +148,7 @@ namespace tuplex {
         // check what type of stage it is
         auto tstage = dynamic_cast<TransformStage*>(stage);
         if(tstage) {
-            if (tstage->incrementalResolution() && tstage->outputMode() == EndPointMode::FILE && tstage->number() == 0)
-                executeIncrementalStage(tstage);
-            else if (tstage->incrementalResolution() && tstage->incrementalCacheEntry()->exceptionPartitions(tstage->number()).size() > 0)
+            if (tstage->incrementalResolution())
                 executeIncrementalStage(tstage);
             else
                 executeTransformStage(tstage);
@@ -1023,7 +1021,6 @@ namespace tuplex {
         auto cachedExceptionPartitions = cacheEntry->exceptionPartitions(tstage->number());
         auto cachedGeneralPartitions = cacheEntry->generalPartitions(tstage->number());
         auto cachedFallbackPartitions = cacheEntry->fallbackPartitions(tstage->number());
-        auto outputMode = cacheEntry->outputMode(tstage->number());
 
         // If pipeline does not contain code, or no new exceptions to resolve skip stage and store new cache entry
         if (cachedExceptionPartitions.empty() && cachedGeneralPartitions.empty() && cachedFallbackPartitions.empty()) {
@@ -1125,8 +1122,7 @@ namespace tuplex {
                                                       exceptionPartitions,
                                                       std::vector<Partition*>{},
                                                       std::vector<Partition*>{},
-                                                      partitionGroups,
-                                                      "file");
+                                                      partitionGroups);
                     if (stringToBool(tstage->outputOptions()["commit"])) {
                         timer.reset();
                         writeOutput(tstage, completedTasks);
@@ -1142,8 +1138,7 @@ namespace tuplex {
                                                  exceptionPartitions,
                                                  generalPartitions,
                                                  fallbackPartitions,
-                                                 std::vector<PartitionGroup>{},
-                                                 "file");
+                                                 std::vector<PartitionGroup>{});
                     tstage->setIncrementalFileNumber(partNo);
                 }
                 break;
@@ -1160,8 +1155,7 @@ namespace tuplex {
                                                   exceptionPartitions,
                                                   std::vector<Partition*>{},
                                                   std::vector<Partition*>{},
-                                                  std::vector<PartitionGroup>{},
-                                                  "hash");
+                                                  std::vector<PartitionGroup>{});
                 break;
             }
             default:
@@ -1521,8 +1515,7 @@ namespace tuplex {
                                                           exceptionPartitions,
                                                           std::vector<Partition*>{},
                                                           std::vector<Partition*>{},
-                                                          partitionGroups,
-                                                          "file");
+                                                          partitionGroups);
                         if (stringToBool(tstage->outputOptions()["commit"])) {
                             timer.reset();
                             writeOutput(tstage, completedTasks);
@@ -1533,18 +1526,17 @@ namespace tuplex {
                     } else {
                         timer.reset();
                         auto cacheEntry = tstage->incrementalCacheEntry();
-                        size_t startNo = 0;
+                        size_t startFileNumber = 0;
                         if (cacheEntry)
-                            startNo = cacheEntry->startFileNumber();
+                            startFileNumber = cacheEntry->startFileNumber();
 
-                        auto partNo = writeOutput(tstage, completedTasks, startNo);
+                        auto partNo = writeOutput(tstage, completedTasks, startFileNumber);
                         metrics.setWriteOutputTimes(tstage->number(), timer.time());
                         tstage->setIncrementalStageResult(std::vector<Partition*>{},
                                                      exceptionPartitions,
                                                      generalPartitions,
                                                      fallbackPartitions,
-                                                     std::vector<PartitionGroup>{},
-                                                     "file");
+                                                     std::vector<PartitionGroup>{});
                         tstage->setIncrementalFileNumber(partNo);
                     }
                 } else {
@@ -1576,8 +1568,7 @@ namespace tuplex {
                                                       exceptionPartitions,
                                                       std::vector<Partition*>{},
                                                       std::vector<Partition*>{},
-                                                      std::vector<PartitionGroup>{},
-                                                      "hash");
+                                                      std::vector<PartitionGroup>{});
                 }
                 break;
             }

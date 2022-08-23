@@ -735,7 +735,7 @@ TEST_F(IncrementalTest, Filter) {
 
     auto opts = microTestOptions();
     opts.set("tuplex.executorCount", "2");
-    opts.set("tuplex.optimizer.incrementalResolution", "false");
+    opts.set("tuplex.optimizer.incrementalResolution", "true");
     opts.set("tuplex.optimizer.mergeExceptionsInOrder", "true");
     opts.set("tuplex.resolveWithInterpreterOnly", "false");
     Context c(opts);
@@ -747,7 +747,7 @@ TEST_F(IncrementalTest, Filter) {
     std::vector<Row> expectedOutput1;
     std::vector<Row> expectedOutput2;
     std::stringstream ss;
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 10000; ++i) {
         auto num = rand()%4;
         switch (num) {
             case 0: {
@@ -775,28 +775,17 @@ TEST_F(IncrementalTest, Filter) {
 
     c.csv(inputFileURI.toPath()).map(UDF("lambda x: 1 // (x - x) if x < 0 else x")).filter(UDF("lambda x: x != 0")).tocsv(fileURI.toPath());
     auto output1 = c.csv(outputFileURI.toPath()).collectAsVector();
-
-    cout << "Expected Output:\n";
-    for (auto row : expectedOutput1) {
-        cout << row.toPythonString() << "\n";
-    }
-
-    cout << "Actual Output:\n";
-    for (auto row : output1) {
-        cout << row.toPythonString() << "\n";
-    }
-
     ASSERT_EQ(output1.size(), expectedOutput1.size());
     for (int i = 0; i < expectedOutput1.size(); ++i) {
         ASSERT_EQ(expectedOutput1[i].toPythonString(), output1[i].toPythonString());
     }
 
-//    c.csv(inputFileURI.toPath()).map(UDF("lambda x: 1 // (x - x) if x < 0 else x")).resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: 1 // (x - x) if x == -1 else x")).filter(UDF("lambda x: x != 0")).tocsv(fileURI.toPath());
-//    auto output2 = c.csv(outputFileURI.toPath()).collectAsVector();
-//    ASSERT_EQ(output2.size(), expectedOutput2.size());
-//    for (int i = 0; i < expectedOutput2.size(); ++i) {
-//        ASSERT_EQ(expectedOutput2[i].toPythonString(), output2[i].toPythonString());
-//    }
+    c.csv(inputFileURI.toPath()).map(UDF("lambda x: 1 // (x - x) if x < 0 else x")).resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: 1 // (x - x) if x == -1 else x")).filter(UDF("lambda x: x != 0")).tocsv(fileURI.toPath());
+    auto output2 = c.csv(outputFileURI.toPath()).collectAsVector();
+    ASSERT_EQ(output2.size(), expectedOutput2.size());
+    for (int i = 0; i < expectedOutput2.size(); ++i) {
+        ASSERT_EQ(expectedOutput2[i].toPythonString(), output2[i].toPythonString());
+    }
 }
 
 TEST_F(IncrementalTest, FileOutput2) {

@@ -69,10 +69,7 @@ namespace tuplex {
         std::vector<IExecutorTask*> createLoadAndTransformToMemoryTasks(TransformStage* tstage, const ContextOptions& options, const std::shared_ptr<TransformStage::JITSymbols>& syms);
         void executeTransformStage(TransformStage* tstage);
 
-        std::vector<IExecutorTask*> createIncrementalTasks(TransformStage* tstage, const ContextOptions& options, const std::shared_ptr<TransformStage::JITSymbols>& syms,
-                                                           bool combineHashmaps,
-                                                           codegen::agg_init_f init_aggregate,
-                                                           codegen::agg_combine_f combine_aggregate);
+        std::vector<IExecutorTask*> createIncrementalTasks(TransformStage* tstage, const ContextOptions& options, const std::shared_ptr<TransformStage::JITSymbols>& syms);
         void executeIncrementalStage(TransformStage* tstage);
 
         /*!

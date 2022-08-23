@@ -775,6 +775,17 @@ TEST_F(IncrementalTest, Filter) {
 
     c.csv(inputFileURI.toPath()).map(UDF("lambda x: 1 // (x - x) if x < 0 else x")).filter(UDF("lambda x: x != 0")).tocsv(fileURI.toPath());
     auto output1 = c.csv(outputFileURI.toPath()).collectAsVector();
+
+    cout << "Expected Output:\n";
+    for (auto row : expectedOutput1) {
+        cout << row.toPythonString() << "\n";
+    }
+
+    cout << "Actual Output:\n";
+    for (auto row : output1) {
+        cout << row.toPythonString() << "\n";
+    }
+
     ASSERT_EQ(output1.size(), expectedOutput1.size());
     for (int i = 0; i < expectedOutput1.size(); ++i) {
         ASSERT_EQ(expectedOutput1[i].toPythonString(), output1[i].toPythonString());

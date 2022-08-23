@@ -747,7 +747,7 @@ TEST_F(IncrementalTest, Filter) {
     std::vector<Row> expectedOutput1;
     std::vector<Row> expectedOutput2;
     std::stringstream ss;
-    for (int i = 0; i < 100000; ++i) {
+    for (int i = 0; i < 1000; ++i) {
         auto num = rand()%4;
         switch (num) {
             case 0: {

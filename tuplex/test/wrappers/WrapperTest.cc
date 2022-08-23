@@ -2855,6 +2855,73 @@ TEST_F(WrapperTest, DoubleCollect) {
     }
 }
 
+TEST_F(WrapperTest, Subset311) {
+    using namespace tuplex;
+
+    // ds = c.csv('311_subset.small.csv')
+    //
+    //year_to_investigate = 2019
+    //
+    //def extract_month(row):
+    //  date = row['Created Date']
+    //  date = date[:date.find(' ')]
+    //  return int(date.split('/')[0])
+    //
+    //def extract_year(row):
+    //  date = row['Created Date']
+    //  date = date[:date.find(' ')]
+    //  return int(date.split('/')[-1])
+    //
+    //ds.withColumn('Month', extract_month) \
+    //  .withColumn('Year', extract_year) \
+    //  .filter(lambda row: 'Mosquito' in row['Complaint Type']) \
+    //  .filter(lambda row: row['Year'] == year_to_investigate) \
+    //  .selectColumns(['Month', 'Year', 'Complaint Type']) \
+    //  .show(5)
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+    std::string udf_code_1 = "def extract_month(row):\n"
+                      "  date = row['Created Date']\n"
+                      "  date = date[:date.find(' ')]\n"
+                      "  return int(date.split('/')[0])";
+
+    std::string udf_code_2 = "def extract_year(row):\n"
+                      "  date = row['Created Date']\n"
+                      "  date = date[:date.find(' ')]\n"
+                      "  return int(date.split('/')[-1])";
+    auto udf_closure = PyDict_New();
+    PyDict_SetItemString(udf_closure, "year_to_investigate", PyLong_FromLong(2011));
+    auto closure = py::reinterpret_borrow<py::dict>(udf_closure);
+
+//    auto list = PyList_New(3);
+//    PyList_SetItem(list, 0, python::PyString_FromString("Month"));
+//    PyList_SetItem(list, 1, python::PyString_FromString("Year"));
+//    PyList_SetItem(list, 2, python::PyString_FromString("Complaint Type"));
+//    auto cols_to_select = py::reinterpret_borrow<py::list>(list);
+
+    auto list = PyList_New(2);
+    PyList_SetItem(list, 0, python::PyString_FromString("Year"));
+    PyList_SetItem(list, 1, python::PyString_FromString("Complaint Type"));
+    auto cols_to_select = py::reinterpret_borrow<py::list>(list);
+
+    PythonContext ctx("", "", ctx_opts);
+    {
+        ctx.csv("../resources/311_subset.small.csv")
+//           .withColumn("Month", udf_code_1, "")
+           .withColumn("Year", udf_code_2, "")
+           .filter("lambda row: 'Mosquito' in row['Complaint Type']", "")
+           .filter("lambda row: row['Year'] == year_to_investigate", "", closure)
+           .selectColumns(cols_to_select).show();
+    }
+}
+
+
 //// debug any python module...
 ///** Takes a path and adds it to sys.paths by calling PyRun_SimpleString.
 // * This does rather laborious C string concatenation so that it will work in

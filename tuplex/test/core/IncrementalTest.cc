@@ -752,8 +752,8 @@ TEST_F(IncrementalTest, Filter) {
         switch (num) {
             case 0: {
                 ss << to_string(i + 1) << "\n";
-                expectedOutput1.push_back(Row(i));
-                expectedOutput2.push_back(Row(i));
+                expectedOutput1.push_back(Row(i + 1));
+                expectedOutput2.push_back(Row(i + 1));
                 break;
             }
             case 1: {

@@ -773,9 +773,7 @@ namespace tuplex {
         return pip_object;
     }
 
-    std::vector<IExecutorTask*> LocalBackend::createIncrementalTasks(TransformStage* tstage,  const ContextOptions& options, const std::shared_ptr<TransformStage::JITSymbols>& syms, bool combineHashmaps,
-                                                                     codegen::agg_init_f init_aggregate,
-                                                                     codegen::agg_combine_f combine_aggregate) {
+    std::vector<IExecutorTask*> LocalBackend::createIncrementalTasks(TransformStage* tstage,  const ContextOptions& options, const std::shared_ptr<TransformStage::JITSymbols>& syms) {
         using namespace std;
         vector<IExecutorTask*> tasks;
         assert(tstage);
@@ -807,26 +805,6 @@ namespace tuplex {
         auto csvOutputQuotechar = tstage->csvOutputQuotechar();
         auto resolveFunctor = options.RESOLVE_WITH_INTERPRETER_ONLY() ? nullptr : syms->resolveFunctor;
 
-
-        HashTableSink hsink;
-        bool hasNormalHashSink = false;
-
-        // make sure output mode is NOT hash table, not yet supported...
-        if(tstage->outputMode() == EndPointMode::HASHTABLE) {
-            // note: must hold that normal-case output type is equal to general-case output type
-            assert(tstage->normalCaseOutputSchema() == tstage->outputSchema()); // must hold for hash table!
-
-            // special case: create a global hash output result and put it into the FIRST resolve task.
-            Timer timer;
-            hsink = createFinalHashmap({tasks.cbegin(), tasks.cend()},
-                                       tstage->hashtableKeyByteWidth(),
-                                       combineHashmaps,
-                                       init_aggregate,
-                                       combine_aggregate);
-            logger().info("created combined normal-case result in " + std::to_string(timer.time()) + "s");
-            hasNormalHashSink = true;
-        }
-
         Timer timer;
         // compile & prep python pipeline for this stage
         auto pipObject = preparePythonPipeline(tstage->purePythonCode(), tstage->pythonPipelineName());
@@ -840,55 +818,6 @@ namespace tuplex {
 
         logger().info("compiled pure python pipeline in " + std::to_string(timer.time()) + "s");
         timer.reset();
-
-        // fetch intermediates of previous stages (i.e. hash tables)
-        // @TODO rewrite for general intermediates??
-        auto input_intermediates = tstage->initData();
-
-        // lazy init hybrids
-        if(!input_intermediates.hybrids) {
-            auto num_predecessors = tstage->predecessors().size();
-            input_intermediates.hybrids = new PyObject*[num_predecessors];
-            for(int i = 0; i < num_predecessors; ++i)
-                input_intermediates.hybrids[i] = nullptr;
-        }
-
-
-        python::lockGIL();
-
-        // construct intermediates from predecessors
-        size_t num_predecessors = tstage->predecessors().size();
-        for(unsigned i = 0; i < tstage->predecessors().size(); ++i) {
-            auto pred = tstage->predecessors()[i];
-            if(pred->outputMode() == EndPointMode::HASHTABLE) {
-                auto ts = dynamic_cast<TransformStage*>(pred); assert(ts);
-#ifndef NDEBUG
-                // print out key information about hashresults...
-                // cout<<"predecessor has output mode hash table"<<endl;
-                // cout<<"key type: "<<ts->hashResult().keyType.desc()<<endl;
-                // cout<<"bucket type: "<<ts->hashResult().bucketType.desc()<<endl;
-#endif
-                // create hybrid if not existing (could be if previous stage had output hashtable + slow resolve path!)
-                if(input_intermediates.hash_maps[i] && !input_intermediates.hybrids[i]) {
-#warning "fix this code after OSS, it's a memory bug."
-                    HashTableSink* hs = new HashTableSink(); // memory leak...
-                    hs->hm = input_intermediates.hash_maps[i];
-                    hs->null_bucket = input_intermediates.null_buckets[i];
-                    input_intermediates.hybrids[i] = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(*hs,
-                                                                                                             ts->hashResult().keyType.withoutOptions(),
-                                                                                                             ts->hashResult().bucketType));
-                }
-            }
-        }
-        python::unlockGIL();
-
-        // check whether hybrids exist. If not, create them quickly!
-        assert(input_intermediates.hybrids);
-        logger().info("creating hybrid intermediates took " + std::to_string(timer.time()) + "s");
-        timer.reset();
-
-        bool hashOutput = tstage->outputMode() == EndPointMode::HASHTABLE;
-
 
         auto order = 0;
         if (mergeExceptionsInOrder) {
@@ -947,13 +876,6 @@ namespace tuplex {
                         resolveFunctor,
                         pipObject,
                         true);
-
-
-                rtask->setHybridIntermediateHashTables(tstage->predecessors().size(), input_intermediates.hybrids);
-
-                if(tstage->outputMode() == EndPointMode::HASHTABLE) {
-                    rtask->sinkOutputToHashTable(tstage->hashtableKeyByteWidth() == 8 ? HashTableFormat::UINT64 : HashTableFormat::BYTES, tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType(), hsink.hm, hsink.null_bucket, tstage->hashKeyCol());
-                }
 
                 tasks.push_back(rtask);
             }
@@ -1051,7 +973,7 @@ namespace tuplex {
 
         // Process tasks
         timer.reset();
-        std::vector<IExecutorTask*> tasks = createIncrementalTasks(tstage, _options, syms, combineOutputHashmaps, syms->aggInitFunctor, syms->aggCombineFunctor);
+        std::vector<IExecutorTask*> tasks = createIncrementalTasks(tstage, _options, syms);
         auto completedTasks = performTasks(tasks);
 
         size_t numInputRows = 0;
@@ -1095,14 +1017,6 @@ namespace tuplex {
 
             // update exception counts
             exceptionCounts = merge_ecounts(exceptionCounts, taskExceptionCounts);
-
-            // debug trace issues
-            using namespace std;
-            std::string task_name = "unknown";
-            if(task->type() == TaskType::UDFTRAFOTASK)
-                task_name = "udf trafo task";
-            if(task->type() == TaskType::RESOLVE)
-                task_name = "resolve";
 
             partitionGroups.push_back(PartitionGroup(
                     taskNormalPartitions.size(), normalPartitions.size(),

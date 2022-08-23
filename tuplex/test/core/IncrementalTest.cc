@@ -95,48 +95,48 @@ TEST_F(IncrementalTest, JoinNoExp) {
         ASSERT_TRUE(expectedOutput.find(row.toPythonString()) != expectedOutput.end());
 }
 
-TEST_F(IncrementalTest, JoinTimeBenchmark) {
-    using namespace tuplex;
-    using namespace std;
-
-    auto opts = testOptions();
-    opts.set("tuplex.partitionSize", "32MB");
-    opts.set("tuplex.executorCount", "7");
-    opts.set("tuplex.executorMemory", "128MB");
-    opts.set("tuplex.driverMemory", "128MB");
-    Context c(opts);
-
-    auto normalURI = URI(testName + "/" + testName + "normal.csv");
-    auto expURI = URI(testName + "/" + testName + "exp.csv");
-    auto outputURI = URI(testName + "/" + testName + "out.csv");
-
-    stringstream normalFile;
-    normalFile <<"a,b\n";
-    for (int i = 0; i < 9000000; ++i)
-        normalFile << to_string(i) << ",hello\n";
-    stringToFile(normalURI, normalFile.str());
-
-    stringstream expFile;
-    expFile << "a,b\n";
-    for (int i = 0; i < 1000000; ++i)
-        expFile << to_string(i) << ",hello\n";
-    stringToFile(expURI, expFile.str());
-
-    auto exp = c.csv(expURI.toPath());
-    auto norm = c.csv(normalURI.toPath());
-
-    Timer timer;
-    norm.join(norm, string("a"), string("a")).tocsv(outputURI);
-    auto onePassTime = timer.time();
-
-    timer.reset();
-    exp.join(norm, string("a"), string("a")).tocsv(outputURI);
-    norm.join(exp, string("a"), string("a")).tocsv(outputURI);
-    exp.join(exp, string("a"), string("a")).tocsv(outputURI);
-    auto threePassTime = timer.time();
-
-    cout << "One Pass: " << onePassTime << " (s), Three Pass: " << threePassTime << " (s)\n";
-}
+//TEST_F(IncrementalTest, JoinTimeBenchmark) {
+//    using namespace tuplex;
+//    using namespace std;
+//
+//    auto opts = testOptions();
+//    opts.set("tuplex.partitionSize", "32MB");
+//    opts.set("tuplex.executorCount", "7");
+//    opts.set("tuplex.executorMemory", "128MB");
+//    opts.set("tuplex.driverMemory", "128MB");
+//    Context c(opts);
+//
+//    auto normalURI = URI(testName + "/" + testName + "normal.csv");
+//    auto expURI = URI(testName + "/" + testName + "exp.csv");
+//    auto outputURI = URI(testName + "/" + testName + "out.csv");
+//
+//    stringstream normalFile;
+//    normalFile <<"a,b\n";
+//    for (int i = 0; i < 9000000; ++i)
+//        normalFile << to_string(i) << ",hello\n";
+//    stringToFile(normalURI, normalFile.str());
+//
+//    stringstream expFile;
+//    expFile << "a,b\n";
+//    for (int i = 0; i < 1000000; ++i)
+//        expFile << to_string(i) << ",hello\n";
+//    stringToFile(expURI, expFile.str());
+//
+//    auto exp = c.csv(expURI.toPath());
+//    auto norm = c.csv(normalURI.toPath());
+//
+//    Timer timer;
+//    norm.join(norm, string("a"), string("a")).tocsv(outputURI);
+//    auto onePassTime = timer.time();
+//
+//    timer.reset();
+//    exp.join(norm, string("a"), string("a")).tocsv(outputURI);
+//    norm.join(exp, string("a"), string("a")).tocsv(outputURI);
+//    exp.join(exp, string("a"), string("a")).tocsv(outputURI);
+//    auto threePassTime = timer.time();
+//
+//    cout << "One Pass: " << onePassTime << " (s), Three Pass: " << threePassTime << " (s)\n";
+//}
 
 TEST_F(IncrementalTest, JoinLeftBeforeExp) {
     using namespace tuplex;

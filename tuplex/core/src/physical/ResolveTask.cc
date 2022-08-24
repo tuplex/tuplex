@@ -703,7 +703,7 @@ default:
 
         // Note: if output is hash-table then order doesn't really matter
         // --> can simply process things independent from each other.
-
+        Logger::instance().logger("resolve task").info("starting execute");
         using namespace std;
 
         Timer timer;
@@ -809,6 +809,7 @@ default:
                     auto delta = deserializeExceptionFromMemory(ptr, &ecCode, &operatorID, &_currentRowNumber, &ebuf,
                                                                 &eSize);
 
+                    Logger::instance().logger("resolve task").info("processing exception");
                     processExceptionRow(ecCode, operatorID, ebuf, eSize);
 
                     ptr += delta;

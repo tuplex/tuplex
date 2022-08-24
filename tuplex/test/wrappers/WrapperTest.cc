@@ -2899,15 +2899,10 @@ TEST_F(WrapperTest, Subset311) {
     PyDict_SetItemString(udf_closure, "year_to_investigate", PyLong_FromLong(2011));
     auto closure = py::reinterpret_borrow<py::dict>(udf_closure);
 
-//    auto list = PyList_New(3);
-//    PyList_SetItem(list, 0, python::PyString_FromString("Month"));
-//    PyList_SetItem(list, 1, python::PyString_FromString("Year"));
-//    PyList_SetItem(list, 2, python::PyString_FromString("Complaint Type"));
-//    auto cols_to_select = py::reinterpret_borrow<py::list>(list);
-
-    auto list = PyList_New(2);
-    PyList_SetItem(list, 0, python::PyString_FromString("Year"));
-    PyList_SetItem(list, 1, python::PyString_FromString("Complaint Type"));
+    auto list = PyList_New(3);
+    PyList_SetItem(list, 0, python::PyString_FromString("Month"));
+    PyList_SetItem(list, 1, python::PyString_FromString("Year"));
+    PyList_SetItem(list, 2, python::PyString_FromString("Complaint Type"));
     auto cols_to_select = py::reinterpret_borrow<py::list>(list);
 
     PythonContext ctx("", "", ctx_opts);

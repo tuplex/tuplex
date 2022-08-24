@@ -41,6 +41,7 @@ TEST_F(IncrementalTest, TwoJoins) {
     auto opts = microTestOptions();
     opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
     opts.set("tuplex.optimizer.incrementalResolution", "false");
+    opts.set("tuplex.resolveWithInterpreterOnly", "false");
     Context c(opts);
 
     auto writeURI = URI(testName + "/" + testName + ".csv");
@@ -58,9 +59,19 @@ TEST_F(IncrementalTest, TwoJoins) {
                               Row("B", 2.2),
                               Row("C", 3.3)},
                              vector<string>{"e", "f"});
+    ds1.mapColumn("b", UDF("lambda x: 1 // (x - x) if x == 2 else x")).join(ds3.join(ds2, string("e"), string("c")), string("a"), string("e")).tocsv(writeURI);
+    auto output1 = c.csv(readURI.toPath()).collectAsVector();
+    cout << "Output 1\n";
+    for (const auto& row : output1) {
+        cout << row.toPythonString() << "\n";
+    }
 
-    ds3.join(ds1.join(ds2, string("a"), string("c")), string("e"), string("a")).tocsv(writeURI);
-    ASSERT_TRUE(true);
+    ds1.mapColumn("b", UDF("lambda x: 1 // (x - x) if x == 2 else x")).resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x")).join(ds3.join(ds2, string("e"), string("c")), string("a"), string("e")).tocsv(writeURI);
+    auto output2 = c.csv(readURI.toPath()).collectAsVector();
+    cout << "Output 2\n";
+    for (const auto& row : output2) {
+        cout << row.toPythonString() << "\n";
+    }
 }
 
 TEST_F(IncrementalTest, JoinNoExp) {
@@ -184,6 +195,33 @@ TEST_F(IncrementalTest, JoinLeftBeforeExp) {
         ASSERT_TRUE(expectedOutput2.find(row.toPythonString()) != expectedOutput2.end());
 }
 
+TEST_F(IncrementalTest, JoinThree) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opts = microTestOptions();
+    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
+    opts.set("tuplex.optimizer.incrementalResolution", "true");
+    opts.set("tuplex.resolveWithInterpreterOnly", "false");
+    Context c(opts);
+
+    auto writeURI = URI(testName + "/" + testName + ".csv");
+    auto readURI = URI(testName + "/" + testName + ".*.csv");
+
+    auto ds1 = c.parallelize({Row("A", 1),
+                              Row("B", 2),
+                              Row("C", 3)},
+                             vector<string>{"a", "b"});
+    auto ds2 = c.parallelize({Row("A", -1),
+                              Row("B", -2),
+                              Row("C", -3)},
+                             vector<string>{"c", "d"});
+    auto ds3 = c.parallelize({Row("A", 1.1),
+                              Row("B", 2.2),
+                              Row("C", 3.3)},
+                             vector<string>{"e", "f"});
+}
+
 TEST_F(IncrementalTest, JoinRightBeforeExp) {
     using namespace tuplex;
     using namespace std;
@@ -191,6 +229,7 @@ TEST_F(IncrementalTest, JoinRightBeforeExp) {
     auto opts = microTestOptions();
     opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
     opts.set("tuplex.optimizer.incrementalResolution", "true");
+    opts.set("tuplex.resolveWithInterpreterOnly", "false");
     Context c(opts);
 
     auto writeURI = URI(testName + "/" + testName + ".csv");
@@ -237,7 +276,7 @@ TEST_F(IncrementalTest, JoinBothBeforeExp) {
 
     auto opts = microTestOptions();
     opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
-    opts.set("tuplex.optimizer.incrementalResolution", "false");
+    opts.set("tuplex.optimizer.incrementalResolution", "true");
     Context c(opts);
 
     auto writeURI = URI(testName + "/" + testName + ".csv");

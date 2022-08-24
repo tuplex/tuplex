@@ -773,7 +773,12 @@ namespace tuplex {
         return pip_object;
     }
 
-    std::vector<IExecutorTask*> LocalBackend::createIncrementalTasks(TransformStage* tstage,  const ContextOptions& options, const std::shared_ptr<TransformStage::JITSymbols>& syms) {
+    std::vector<IExecutorTask*> LocalBackend::createIncrementalTasks(TransformStage* tstage,
+                                                                     const ContextOptions& options,
+                                                                     const std::shared_ptr<TransformStage::JITSymbols>& syms,
+                                                                     bool combineHashmaps,
+                                                                     codegen::agg_init_f init_aggregate,
+                                                                     codegen::agg_combine_f combine_aggregate) {
         using namespace std;
         vector<IExecutorTask*> tasks;
         assert(tstage);
@@ -804,6 +809,19 @@ namespace tuplex {
         auto csvOutputDelimiter = tstage->csvOutputDelimiter();
         auto csvOutputQuotechar = tstage->csvOutputQuotechar();
         auto resolveFunctor = options.RESOLVE_WITH_INTERPRETER_ONLY() ? nullptr : syms->resolveFunctor;
+
+        HashTableSink hsink;
+        if (tstage->outputMode() == EndPointMode::HASHTABLE) {
+            assert(tstage->normalCaseOutputSchema() == tstage->outputSchema());
+            Timer timer;
+            hsink = createFinalHashmap({tasks.cbegin(), tasks.cend()},
+                                       tstage->hashtableKeyByteWidth(),
+                                       combineHashmaps,
+                                       init_aggregate,
+                                       combine_aggregate);
+            logger().info("created combined normal-case result in " + std::to_string(timer.time()) + "s");
+        }
+
 
         Timer timer;
         // compile & prep python pipeline for this stage
@@ -915,6 +933,16 @@ namespace tuplex {
 
                 rtask->setHybridIntermediateHashTables(tstage->predecessors().size(), input_intermediates.hybrids);
 
+                if (tstage->outputMode() == EndPointMode::HASHTABLE) {
+                    rtask->sinkOutputToHashTable(tstage->hashtableKeyByteWidth() == 8 ? HashTableFormat::UINT64 : HashTableFormat::BYTES,
+                                                 tstage->dataAggregationMode(),
+                                                 tstage->hashOutputKeyType().withoutOptions(),
+                                                 tstage->hashOutputBucketType(),
+                                                 hsink.hm,
+                                                 hsink.null_bucket,
+                                                 tstage->hashKeyCol());
+                }
+
                 tasks.push_back(rtask);
             }
 
@@ -1018,7 +1046,7 @@ namespace tuplex {
 
         // Process tasks
         timer.reset();
-        std::vector<IExecutorTask*> tasks = createIncrementalTasks(tstage, _options, syms);
+        std::vector<IExecutorTask*> tasks = createIncrementalTasks(tstage, _options, syms, combineOutputHashmaps, syms->aggInitFunctor, syms->aggCombineFunctor);
         auto completedTasks = performTasks(tasks);
 
         size_t numInputRows = 0;

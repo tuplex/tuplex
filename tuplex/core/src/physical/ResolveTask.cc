@@ -488,6 +488,7 @@ default:
                 // normal case, i.e. an exception occurred somewhere.
                 // --> this means if pipeline is using string as input, we should convert
                 auto row = Row::fromMemory(exceptionsInputSchema(), ebuf, eSize);
+                Logger::instance().logger("resolve task").info("got row from memory");
 
                 // cell source automatically takes input, i.e. no need to convert. simply get tuple from row object
                 tuple = python::rowToPython(row, true);
@@ -543,6 +544,7 @@ default:
 
             auto kwargs = PyDict_New(); PyDict_SetItemString(kwargs, "parse_cells", python::boolean(parse_cells));
             auto pcr = python::callFunctionEx(_interpreterFunctor, args, kwargs);
+            Logger::instance().logger("resolve task").info("excecuted row");
 
             if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
                 // this should not happen, bad internal error. codegen'ed python should capture everything.
@@ -584,6 +586,8 @@ default:
                         // the callback exceptionCallback(ecCode, opID, _rowNumber, ebuf, eSize) gets called below...!
                         resCode = -1;
                     } else {
+                        Logger::instance().logger("resolve task").info("not exception");
+
                         // normal, check type and either merge to normal set back OR onto python set together with row number?
                         auto resultRows = PyDict_GetItemString(pcr.res, "outputRows");
                         assert(PyList_Check(resultRows));

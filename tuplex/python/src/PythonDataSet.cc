@@ -846,7 +846,7 @@ namespace tuplex {
         assert(PyGILState_Check()); // make sure this thread holds the GIL!
         python::unlockGIL();
         std::stringstream ss;
-        std::string err_message = "";
+        std::string err_message;
         if (this->_dataset->isError()) {
             auto errset = dynamic_cast<ErrorDataSet *>(this->_dataset);
             assert(errset);
@@ -871,7 +871,7 @@ namespace tuplex {
         // python stdout
         if(!ss.str().empty() && err_message.empty())
             PySys_FormatStdout("%s", ss.str().c_str());
-        else {
+        else if(!err_message.empty()) {
             PySys_FormatStdout("Error occurred: %s", err_message.c_str());
         }
     }

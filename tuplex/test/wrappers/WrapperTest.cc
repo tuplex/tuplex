@@ -2913,11 +2913,13 @@ TEST_F(WrapperTest, Subset311) {
     PythonContext ctx("", "", ctx_opts);
     {
         ctx.csv("../resources/311_subset.small.csv")
-//           .withColumn("Month", udf_code_1, "")
+           .withColumn("Month", udf_code_1, "")
            .withColumn("Year", udf_code_2, "")
-           .filter("lambda row: 'Mosquito' in row['Complaint Type']", "")
+           .filter("lambda row: 'Street Sign' in row['Complaint Type']", "")
            .filter("lambda row: row['Year'] == year_to_investigate", "", closure)
            .selectColumns(cols_to_select).show();
+
+        std::cout<<std::endl; // flush
     }
 }
 

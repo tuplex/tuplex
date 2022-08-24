@@ -144,7 +144,7 @@ TEST_F(IncrementalTest, JoinLeftBeforeExp) {
 
     auto opts = microTestOptions();
     opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
-    opts.set("tuplex.optimizer.incrementalResolution", "true");
+    opts.set("tuplex.optimizer.incrementalResolution", "false");
     Context c(opts);
 
     auto writeURI = URI(testName + "/" + testName + ".csv");

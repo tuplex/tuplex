@@ -1010,6 +1010,12 @@ namespace tuplex {
             Logger::instance().defaultLogger().info(ss.str());
         }
 
+        int64_t init_rc = 0;
+        if((init_rc = syms->initStageFunctor(tstage->initData().numArgs,
+                                             reinterpret_cast<void**>(tstage->initData().hash_maps),
+                                             reinterpret_cast<void**>(tstage->initData().null_buckets))) != 0)
+            throw std::runtime_error("initStage() failed for stage " + std::to_string(tstage->number()) + " with code " + std::to_string(init_rc));
+
         // Process tasks
         timer.reset();
         std::vector<IExecutorTask*> tasks = createIncrementalTasks(tstage, _options, syms);

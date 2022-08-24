@@ -420,6 +420,8 @@ default:
         bool potentiallyHasResolverOnSlowPath = !_operatorIDsAffectedByResolvers.empty() &&
                                                 std::binary_search(_operatorIDsAffectedByResolvers.begin(),
                                                                    _operatorIDsAffectedByResolvers.end(), operatorID);
+
+        Logger::instance().logger("resolve task").info("potentially has resolver: " + std::to_string(potentiallyHasResolverOnSlowPath));
 //        bool potentiallyHasResolverOnSlowPath = true;
         if(!_isIncremental && !requiresInterpreterReprocessing(i64ToEC(ecCode)) && !potentiallyHasResolverOnSlowPath) {
             // TODO: check with resolvers!

@@ -437,7 +437,9 @@ default:
         // fallback 1: slow, compiled code path
         int resCode = -1;
         if(_functor && ecCode != ecToI32(ExceptionCode::PYTHON_PARALLELIZE)) {
+            Logger::instance().logger("resolve task").info("going in");
             resCode = _functor(this, _rowNumber, ecCode, ebuf, eSize);
+            Logger::instance().logger("resolve task").info("done :)))");
             // uncomment to print out details on demand
             // if(resCode != 0) {
             //     std::cout<<"functor delivered resCode "<<resCode<<std::endl;

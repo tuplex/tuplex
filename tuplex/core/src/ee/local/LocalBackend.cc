@@ -148,10 +148,10 @@ namespace tuplex {
         // check what type of stage it is
         auto tstage = dynamic_cast<TransformStage*>(stage);
         if(tstage) {
-            if (tstage->incrementalResolution())
-                executeIncrementalStage(tstage);
-            else
+            if (!tstage->incrementalResolution() || tstage->incrementalCacheEntry()->exceptionPartitions(tstage->number()).empty())
                 executeTransformStage(tstage);
+            else
+                executeIncrementalStage(tstage);
         }
         else if(dynamic_cast<HashJoinStage*>(stage)) {
             executeHashJoinStage(dynamic_cast<HashJoinStage*>(stage));
@@ -819,6 +819,42 @@ namespace tuplex {
         logger().info("compiled pure python pipeline in " + std::to_string(timer.time()) + "s");
         timer.reset();
 
+        // fetch intermediates of previous stages (i.e. hash tables)
+        auto input_intermediates = tstage->initData();
+
+        // lazy init hybrids
+        if(!input_intermediates.hybrids) {
+            auto num_predecessors = tstage->predecessors().size();
+            input_intermediates.hybrids = new PyObject*[num_predecessors];
+            for(int i = 0; i < num_predecessors; ++i)
+                input_intermediates.hybrids[i] = nullptr;
+        }
+
+
+        python::lockGIL();
+
+        // construct intermediates from predecessors
+        size_t num_predecessors = tstage->predecessors().size();
+        for(unsigned i = 0; i < tstage->predecessors().size(); ++i) {
+            auto pred = tstage->predecessors()[i];
+            if(pred->outputMode() == EndPointMode::HASHTABLE) {
+                auto ts = dynamic_cast<TransformStage*>(pred); assert(ts);
+                if(input_intermediates.hash_maps[i] && !input_intermediates.hybrids[i]) {
+                    HashTableSink* hs = new HashTableSink();
+                    hs->hm = input_intermediates.hash_maps[i];
+                    hs->null_bucket = input_intermediates.null_buckets[i];
+                    input_intermediates.hybrids[i] = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(*hs,
+                                                                                                             ts->hashResult().keyType.withoutOptions(),
+                                                                                                             ts->hashResult().bucketType));
+                }
+            }
+        }
+        python::unlockGIL();
+
+        assert(input_intermediates.hybrids);
+        logger().info("creating hybrid intermediates took " + std::to_string(timer.time()) + "s");
+        timer.reset();
+
         auto order = 0;
         if (mergeExceptionsInOrder) {
             for (const auto &partitionGroup : cachedPartitionGroups) {
@@ -876,6 +912,8 @@ namespace tuplex {
                         resolveFunctor,
                         pipObject,
                         true);
+
+                rtask->setHybridIntermediateHashTables(tstage->predecessors().size(), input_intermediates.hybrids);
 
                 tasks.push_back(rtask);
             }
@@ -1084,7 +1122,6 @@ namespace tuplex {
     }
 
     void LocalBackend::executeTransformStage(tuplex::TransformStage *tstage) {
-
         Timer stageTimer;
         Timer timer; // for detailed measurements.
 

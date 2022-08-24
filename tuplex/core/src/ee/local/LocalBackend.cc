@@ -964,6 +964,7 @@ namespace tuplex {
                         true));
             }
         }
+        logger.info("tasks created and being returned");
         return tasks;
     }
 
@@ -1013,6 +1014,7 @@ namespace tuplex {
         timer.reset();
         std::vector<IExecutorTask*> tasks = createIncrementalTasks(tstage, _options, syms);
         auto completedTasks = performTasks(tasks);
+        logger.info("tasks performed");
 
         size_t numInputRows = 0;
         size_t numOutputRows = 0;

@@ -810,19 +810,6 @@ namespace tuplex {
         auto csvOutputQuotechar = tstage->csvOutputQuotechar();
         auto resolveFunctor = options.RESOLVE_WITH_INTERPRETER_ONLY() ? nullptr : syms->resolveFunctor;
 
-        HashTableSink hsink;
-        if (tstage->outputMode() == EndPointMode::HASHTABLE) {
-            assert(tstage->normalCaseOutputSchema() == tstage->outputSchema());
-            Timer timer;
-            hsink = createFinalHashmap({tasks.cbegin(), tasks.cend()},
-                                       tstage->hashtableKeyByteWidth(),
-                                       combineHashmaps,
-                                       init_aggregate,
-                                       combine_aggregate);
-            logger().info("created combined normal-case result in " + std::to_string(timer.time()) + "s");
-        }
-
-
         Timer timer;
         // compile & prep python pipeline for this stage
         auto pipObject = preparePythonPipeline(tstage->purePythonCode(), tstage->pythonPipelineName());
@@ -934,13 +921,19 @@ namespace tuplex {
                 rtask->setHybridIntermediateHashTables(tstage->predecessors().size(), input_intermediates.hybrids);
 
                 if (tstage->outputMode() == EndPointMode::HASHTABLE) {
-                    rtask->sinkOutputToHashTable(tstage->hashtableKeyByteWidth() == 8 ? HashTableFormat::UINT64 : HashTableFormat::BYTES,
-                                                 tstage->dataAggregationMode(),
-                                                 tstage->hashOutputKeyType().withoutOptions(),
-                                                 tstage->hashOutputBucketType(),
-                                                 hsink.hm,
-                                                 hsink.null_bucket,
-                                                 tstage->hashKeyCol());
+                    HashTableSink hsink;
+                    if(tstage->hashtableKeyByteWidth() == 8) hsink.hm = int64_hashmap_new();
+                    else hsink.hm = hashmap_new();
+                    hsink.null_bucket = nullptr;
+
+                    rtask->sinkOutputToHashTable(
+                            tstage->hashtableKeyByteWidth() == 8 ? HashTableFormat::UINT64 : HashTableFormat::BYTES,
+                            tstage->dataAggregationMode(),
+                            tstage->hashOutputKeyType().withoutOptions(),
+                            tstage->hashOutputBucketType(),
+                            hsink.hm,
+                            hsink.null_bucket,
+                            tstage->hashKeyCol());
                 }
 
                 tasks.push_back(rtask);

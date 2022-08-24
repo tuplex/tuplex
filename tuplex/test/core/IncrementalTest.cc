@@ -149,46 +149,117 @@ TEST_F(IncrementalTest, JoinNoExp) {
 //    cout << "One Pass: " << onePassTime << " (s), Three Pass: " << threePassTime << " (s)\n";
 //}
 
-TEST_F(IncrementalTest, JoinLeftBeforeExp) {
+TEST_F(IncrementalTest, JoinRightBeforeExp) {
     using namespace tuplex;
     using namespace std;
 
     auto opts = microTestOptions();
     opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
     opts.set("tuplex.optimizer.incrementalResolution", "true");
+    opts.set("tuplex.resolveWithInterpreterOnly", "false");
     Context c(opts);
 
     auto writeURI = URI(testName + "/" + testName + ".csv");
     auto readURI = URI(testName + "/" + testName + ".*.csv");
 
-    auto ds1 = c.parallelize({Row("A", 1),
-                              Row("B", 2),
-                              Row("C", 3)},
-                             vector<string>{"a", "b"});
-    auto ds2 = c.parallelize({Row("A", -1),
-                              Row("B", -2),
-                              Row("C", -3)},
-                             vector<string>{"c", "d"});
+    auto numRows = 1000;
 
-    ds1.mapColumn("b", UDF("lambda x: 1 // (x - x) if x == 2 else x"))
-            .join(ds2, string("a"), string("c"))
+    unordered_multiset<string> expectedOutput1;
+    unordered_multiset<string> expectedOutput2;
+    auto ds1URI = URI(testName + "/" + testName + "in1.csv");
+    auto ds2URI = URI(testName + "/" + testName + "in2.csv");
+    stringstream ss1;
+    stringstream ss2;
+    ss1 << "a,b,z\n";
+    ss2 << "c,d\n";
+    for (int i = 1; i <= numRows; ++i) {
+        if (rand()%2 == 0) {
+            expectedOutput1.insert(Row(-1*i, "s" + to_string(i), i, 1).toPythonString());
+            expectedOutput2.insert(Row(-1*i, "s" + to_string(i), i, 1).toPythonString());
+            ss1 << "\"s" << to_string(i) << "\"," << to_string(i) << ",1\n";
+        } else {
+            expectedOutput2.insert(Row(-1*i, "s" + to_string(i), i, 0).toPythonString());
+            ss1 << "\"s" << to_string(i) << "\"," << to_string(i) << ",0\n";
+        }
+        ss2 << "\"s" << to_string(i) << "\"," << to_string(-1 * i) << "\n";
+    }
+    stringToFile(ds1URI, ss1.str());
+    stringToFile(ds2URI, ss2.str());
+
+    auto &ds1 = c.csv(ds1URI.toPath());
+    auto &ds2 = c.csv(ds2URI.toPath());
+
+    ds2.join(ds1.mapColumn("z", UDF("lambda x: 1 // x if x == 0 else x")), string("c"), string("a"))
             .tocsv(writeURI);
 
-    unordered_multiset<string> expectedOutput1({Row(1, "A", -1).toPythonString(),
-                                                Row(3, "C", -3).toPythonString()});
     auto actualOutput1 = c.csv(readURI.toPath()).collectAsVector();
     ASSERT_EQ(expectedOutput1.size(), actualOutput1.size());
     for (const auto &row : actualOutput1)
         ASSERT_TRUE(expectedOutput1.find(row.toPythonString()) != expectedOutput1.end());
 
-    ds1.mapColumn("b", UDF("lambda x: 1 // (x - x) if x == 2 else x"))
+    ds2.join(ds1.mapColumn("z", UDF("lambda x: 1 // x if x == 0 else x")).resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x")), string("c"), string("a"))
+        .tocsv(writeURI);
+
+    auto actualOutput2 = c.csv(readURI.toPath()).collectAsVector();
+    ASSERT_EQ(expectedOutput2.size(), actualOutput2.size());
+    for (const auto &row : actualOutput2)
+        ASSERT_TRUE(expectedOutput2.find(row.toPythonString()) != expectedOutput2.end());
+}
+
+
+TEST_F(IncrementalTest, JoinLeftBeforeExp) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opts = microTestOptions();
+    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
+    opts.set("tuplex.optimizer.incrementalResolution", "false");
+    Context c(opts);
+
+    auto writeURI = URI(testName + "/" + testName + ".csv");
+    auto readURI = URI(testName + "/" + testName + ".*.csv");
+
+    auto numRows = 1000;
+
+    unordered_multiset<string> expectedOutput1;
+    unordered_multiset<string> expectedOutput2;
+    auto ds1URI = URI(testName + "/" + testName + "in1.csv");
+    auto ds2URI = URI(testName + "/" + testName + "in2.csv");
+    stringstream ss1;
+    stringstream ss2;
+    ss1 << "a,b,z\n";
+    ss2 << "c,d\n";
+    for (int i = 1; i <= numRows; ++i) {
+        if (rand()%2 == 0) {
+            expectedOutput1.insert(Row(i, 1, "s" + to_string(i), -1 * i).toPythonString());
+            expectedOutput2.insert(Row(i, 1, "s" + to_string(i), -1 * i).toPythonString());
+            ss1 << "\"s" << to_string(i) << "\"," << to_string(i) << ",1\n";
+        } else {
+            expectedOutput2.insert(Row(i, 0, "s" + to_string(i), -1 * i).toPythonString());
+            ss1 << "\"s" << to_string(i) << "\"," << to_string(i) << ",0\n";
+        }
+        ss2 << "\"s" << to_string(i) << "\"," << to_string(-1 * i) << "\n";
+    }
+    stringToFile(ds1URI, ss1.str());
+    stringToFile(ds2URI, ss2.str());
+
+    auto &ds1 = c.csv(ds1URI.toPath());
+    auto &ds2 = c.csv(ds2URI.toPath());
+
+    ds1.mapColumn("z", UDF("lambda x: 1 // x if x == 0 else x"))
+            .join(ds2, string("a"), string("c"))
+            .tocsv(writeURI);
+
+    auto actualOutput1 = c.csv(readURI.toPath()).collectAsVector();
+    ASSERT_EQ(expectedOutput1.size(), actualOutput1.size());
+    for (const auto &row : actualOutput1)
+        ASSERT_TRUE(expectedOutput1.find(row.toPythonString()) != expectedOutput1.end());
+
+    ds1.mapColumn("z", UDF("lambda x: 1 // x if x == 0 else x"))
         .resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x"))
         .join(ds2, string("a"), string("c"))
         .tocsv(writeURI);
 
-    unordered_multiset<string> expectedOutput2({Row(1, "A", -1).toPythonString(),
-                                                Row(2, "B", -2).toPythonString(),
-                                                Row(3, "C", -3).toPythonString()});
     auto actualOutput2 = c.csv(readURI.toPath()).collectAsVector();
     ASSERT_EQ(expectedOutput2.size(), actualOutput2.size());
     for (const auto &row : actualOutput2)
@@ -220,54 +291,6 @@ TEST_F(IncrementalTest, JoinThree) {
                               Row("B", 2.2),
                               Row("C", 3.3)},
                              vector<string>{"e", "f"});
-}
-
-TEST_F(IncrementalTest, JoinRightBeforeExp) {
-    using namespace tuplex;
-    using namespace std;
-
-    auto opts = microTestOptions();
-    opts.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
-    opts.set("tuplex.optimizer.incrementalResolution", "true");
-    opts.set("tuplex.resolveWithInterpreterOnly", "false");
-    Context c(opts);
-
-    auto writeURI = URI(testName + "/" + testName + ".csv");
-    auto readURI = URI(testName + "/" + testName + ".*.csv");
-
-    auto ds1 = c.parallelize({Row("A", 1),
-                              Row("B", 2),
-                              Row("C", 3)},
-                             vector<string>{"a", "b"});
-    auto ds2 = c.parallelize({Row("A", -1),
-                              Row("B", -2),
-                              Row("C", -3)},
-                             vector<string>{"c", "d"});
-
-    ds2 = ds2.mapColumn("d", UDF("lambda x: 1 // (x - x) if x == -2 else x"));
-
-    ds1.join(ds2, string("a"), string("c"))
-        .tocsv(writeURI);
-
-    unordered_multiset<string> expectedOutput1({Row(1, "A", -1).toPythonString(),
-                                                Row(3, "C", -3).toPythonString()});
-    auto actualOutput1 = c.csv(readURI.toPath()).collectAsVector();
-    ASSERT_EQ(expectedOutput1.size(), actualOutput1.size());
-    for (const auto &row : actualOutput1)
-        ASSERT_TRUE(expectedOutput1.find(row.toPythonString()) != expectedOutput1.end());
-
-    ds2 = ds2.resolve(ExceptionCode::ZERODIVISIONERROR, UDF("lambda x: x"));
-
-    ds1.join(ds2, string("a"), string("c"))
-        .tocsv(writeURI);
-
-    unordered_multiset<string> expectedOutput2({Row(1, "A", -1).toPythonString(),
-                                                Row(2, "B", -2).toPythonString(),
-                                                Row(3, "C", -3).toPythonString()});
-    auto actualOutput2 = c.csv(readURI.toPath()).collectAsVector();
-    ASSERT_EQ(expectedOutput2.size(), actualOutput2.size());
-    for (const auto &row : actualOutput2)
-        ASSERT_TRUE(expectedOutput2.find(row.toPythonString()) != expectedOutput2.end());
 }
 
 TEST_F(IncrementalTest, JoinBothBeforeExp) {

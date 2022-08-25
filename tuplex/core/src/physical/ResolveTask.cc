@@ -1335,7 +1335,12 @@ default:
             }
 
             default: {
-                string err_msg = "unsupported aggregate fallback encountered, key type: " + _hash_element_type.desc() + ", bucket type: " + _hash_element_type.desc();
+                string agg_mode_str = "unknown";
+                if(_hash_agg_type == AggregateType::AGG_GENERAL)
+                    agg_mode_str = "general";
+                if(_hash_agg_type == AggregateType::AGG_BYKEY)
+                    agg_mode_str = "bykey";
+                string err_msg = "unsupported aggregate fallback for mode=" + agg_mode_str + "encountered, key type: " + _hash_element_type.desc() + ", bucket type: " + _hash_element_type.desc();
                 owner()->error(err_msg);
                 break;
             }

@@ -897,8 +897,9 @@ namespace tuplex {
             std::stringstream ss;
             double time_per_fast_path_row_in_ms = totalWallTime / numInputRows * 1000.0;
             ss<<"[Transform Stage] Stage "<<tstage->number()<<" total wall clock time: "
-              <<totalWallTime<<"s, "<<pluralize(numInputRows, "input row")
-              <<", time to process 1 row via fast path: "<<time_per_fast_path_row_in_ms<<"ms";
+              <<totalWallTime<<"s, "<<pluralize(numInputRows, "input row");
+            if(numInputRows != 0)
+              ss<<", time to process 1 row via fast path: "<<time_per_fast_path_row_in_ms<<"ms";
             Logger::instance().defaultLogger().info(ss.str());
 
             // fast path
@@ -1032,8 +1033,9 @@ namespace tuplex {
 
                 // print timing info for slow path
                 ss.str("");
-                ss<<"slow path for Stage "<<tstage->number()<<": total wall clock time: "<<totalWallTime<<"s, "
-                  <<"time to process 1 row via slow path: "<<time_per_row_slow_path_ms<<"ms";
+                ss<<"slow path for Stage "<<tstage->number()<<": total wall clock time: "<<totalWallTime<<"s, ";
+                if(slowPathNumInputRows != 0)
+                  ss<<"time to process 1 row via slow path: "<<time_per_row_slow_path_ms<<"ms";
                 logger().info(ss.str());
                 metrics.setSlowPathTimes(tstage->number(), totalWallTime, slow_path_total_time,
                                          time_per_row_slow_path_ms * 1000000.0);

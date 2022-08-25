@@ -2918,6 +2918,51 @@ TEST_F(WrapperTest, Subset311) {
     }
 }
 
+TEST_F(WrapperTest, Subset311Aggregate) {
+    using namespace tuplex;
+
+    // ds = c.csv('311_subset.small.csv')
+    // def combine_udf(a, b):
+    //  return a + b
+    //
+    // def aggregate_udf(agg, row):
+    //  return agg + 1
+    // ds.aggregateByKey(combine_udf, aggregate_udf, 0, ["Complaint Type"]).show()
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+    std::string udf_combine = "def combine_udf(a, b):\n"
+                              "  return a + b";
+    std::string udf_aggregate = "def aggregate_udf(agg, row):\n"
+                                "  return agg + 1";
+
+    auto initial_pickled = python::pickleObject(python::getMainModule(), PyLong_FromLong(0));
+
+    auto list = PyList_New(1);
+    PyList_SetItem(list, 0, python::PyString_FromString("Complaint Type"));
+    auto cols_to_select = py::reinterpret_borrow<py::list>(list);
+
+    auto list2 = PyList_New(1);
+    PyList_SetItem(list2, 0, python::PyString_FromString("Complaint Type"));
+    auto cols_to_agg = py::reinterpret_borrow<py::list>(list2);
+
+    PythonContext ctx("", "", ctx_opts);
+    {
+        ctx.csv("../resources/311_subset.small.csv")
+                .aggregateByKey(udf_combine, "", udf_aggregate, "", initial_pickled, cols_to_agg)
+                .selectColumns(cols_to_select).show();
+
+        std::cout<<std::endl; // flush
+    }
+}
+
+
+
 
 //// debug any python module...
 ///** Takes a path and adds it to sys.paths by calling PyRun_SimpleString.

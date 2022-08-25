@@ -149,8 +149,19 @@ namespace tuplex {
                     }
                     case LogicalOperatorType::AGGREGATE: {
                         assert(op == _operators.back()); // make sure it's the last one
-                        // usually it's a hash aggregate, so python output.
-                        ppb.pythonOutput();
+                        // generate according to mode
+                        auto aop = static_cast<AggregateOperator*>(op);
+                        switch(aop->aggType()) {
+                            case AggregateType::AGG_UNIQUE: {
+                                // usually it's a hash aggregate, so python output.
+                                // this is trivial, b.c. no function needs to be called/performed...
+                                ppb.pythonOutput();
+                                break;
+                            }
+                            default:
+                                throw std::runtime_error("unsupported aggregate type encountered for fallback codegen");
+                        }
+
                         break;
                     }
                     case LogicalOperatorType::TAKE: {

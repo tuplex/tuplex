@@ -24,7 +24,8 @@
 
 namespace python {
     const Type Type::UNKNOWN = TypeFactory::instance().createOrGetPrimitiveType("unknown");
-    const Type Type::BOOLEAN = TypeFactory::instance().createOrGetPrimitiveType("boolean");
+    // const Type Type::BOOLEAN = TypeFactory::instance().createOrGetPrimitiveType("boolean");
+    const Type Type::BOOLEAN = TypeFactory::instance().createOrGetPrimitiveType("bool");
     const Type Type::I64 = TypeFactory::instance().createOrGetPrimitiveType("i64", {python::Type::BOOLEAN});
     const Type Type::F64 = TypeFactory::instance().createOrGetPrimitiveType("f64", {python::Type::I64});
     const Type Type::STRING = TypeFactory::instance().createOrGetPrimitiveType("str");

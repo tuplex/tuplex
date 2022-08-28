@@ -50,7 +50,7 @@ namespace tuplex {
 //            // allocSize() --> helpful when dict size is known upfront, can be used for optimization.
 //            BuiltinDictProxy& allocSize(llvm::Value* size);
 
-            // getKeyView() --> codegen object
+            // getKeysView() --> codegen object
 
             // getValuesView() --> codegen object
 

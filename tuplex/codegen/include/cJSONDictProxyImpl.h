@@ -22,9 +22,9 @@ namespace tuplex {
     namespace codegen {
         class cJSONDictProxyImpl : public BuiltinDictProxyImpl {
         public:
-            // cJSONDictProxyImpl() : _root(nullptr) {}
-            // is there a reason we want to separate the initialisation of cjsondictproxy objects and the actual cjson object?
-            cJSONDictProxyImpl() : _root(cJSON_CreateObject()) {}
+            cJSONDictProxyImpl() {
+                _root = cJSON_CreateObject();   
+            }
             ~cJSONDictProxyImpl() {
                 if(_root) {
                     cJSON_free(_root);
@@ -45,9 +45,9 @@ namespace tuplex {
 
             void deleteItem(const Field& key) override;
 
-            // void getKeyView() override;
+            std::vector<Field> getKeysView() override;
 
-            // void getValuesView() override;
+            std::vector<Field> getValuesView() override;
 
             // notes:
             // for cJSON subscripting, need to perform
@@ -57,14 +57,21 @@ namespace tuplex {
 
         private:
             cJSON *_root;   // a map of the elements
-            cJSON *_typeMap; // a map of strings -> types (nested)
 
             /*!
-            * returns a string representing a type prefix when storing type information in cJSON object as well.
+            * returns a key (as a string) with the added type prefix
+            * @param key
             * @param type
             * @return
             */
-            static std::string typePrefix(const python::Type& type);
+            std::string addTypePrefix(std::string key, const python::Type& type);
+
+            /*!
+            * converts a key (stored as a string in cJSON) to equivalent Field value
+            * @param prefixed_key
+            * @return
+            */
+            Field keyToField(std::string prefixed_key);
         };
     }
 }

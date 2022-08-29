@@ -222,7 +222,7 @@ if(BUILD_WITH_AWS)
     # requires at least High Sierra (10.13)
     if(APPLE)
       if(CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS 10.13)
-        message(FATAL_ERROR "Building Tuplex with AWS SDK support on Darwin requires at least macOS 10.13 (High Sierra)")
+        message(FATAL_ERROR "Building Tuplex with AWS SDK support on Darwin requires at least macOS 10.13 (High Sierra). Detected ${CMAKE_OSX_DEPLOYMENT_TARGET}")
       endif()
     endif()
 

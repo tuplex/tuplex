@@ -267,7 +267,7 @@ namespace tuplex {
 
                     // check type is correct
                     auto expectedType = python::Type::BOOLEAN;
-                    if(ft.getTupleType() != expectedType) {
+                    if(ft.getTupleType() != expectedType && ft.getTupleType() != python::Type::propagateToTupleType(expectedType)) {
                         logger.error("wrong output type. Expected " + expectedType.desc() + " got " + ft.getTupleType().desc());
                         return false;
                     }
@@ -276,7 +276,7 @@ namespace tuplex {
                     // now the filter check happens:
                     // decide whether to skip row or not
                     assert(ft.numElements() ==  1);
-                    auto compareVal = ft.get(0);
+                    auto compareVal = ft.get(0); // good for boolean or (boolean)
 
                     assert(compareVal->getType() == env().getBooleanType());
 

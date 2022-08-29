@@ -85,8 +85,12 @@ namespace tuplex {
         std::string getCode() const { return _imports + "\n" + _header + "\n" + functionSignature() + _ss.str() + tailCode(); }
 
         // aggregate functions:
-        // --> @TODO.
-
+        void pythonAggByKey(int64_t operatorID,
+                            const std::string& hashmap_name,
+                            const UDF& aggUDF,
+                            const std::vector<size_t>& aggColumns,
+                            const Row& initial_value);
+        void pythonAggGeneral(int64_t operatorID, const UDF& aggUDF);
     private:
         std::string _funcName;
         std::stringstream _ss;

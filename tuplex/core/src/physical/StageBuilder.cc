@@ -158,6 +158,18 @@ namespace tuplex {
                                 ppb.pythonOutput();
                                 break;
                             }
+                            case AggregateType::AGG_BYKEY: {
+                                ppb.pythonAggByKey(aop->getID(),
+                                                   next_hashmap_name(),
+                                                   aop->aggregatorUDF(),
+                                                   aop->keyColsInParent(),
+                                                   aop->initialValue());
+                                break;
+                            }
+                            case AggregateType::AGG_GENERAL: {
+                                ppb.pythonAggGeneral(aop->getID(), aop->aggregatorUDF());
+                                break;
+                            }
                             default:
                                 throw std::runtime_error("unsupported aggregate type encountered for fallback codegen");
                         }

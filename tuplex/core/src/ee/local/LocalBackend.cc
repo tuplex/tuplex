@@ -1121,7 +1121,7 @@ namespace tuplex {
                                                     combineOutputHashmaps,
                                                     syms->aggInitFunctor,
                                                     syms->aggCombineFunctor);
-                    tstage->setHashResult(hsink.hm, hsink.null_bucket);
+                    tstage->setHashResult(hsink.hm, hsink.null_bucket, hsink.hybrid_hm);
                 }
                 break;
             }
@@ -2015,6 +2015,9 @@ namespace tuplex {
         // TODO: missing is, need to apply UDFs to hybrid hashmap as well in case...
         // --> should be a trivial function (?)
         // @TODO.
+        if(sink.hybrid_hm) {
+            throw std::runtime_error("applyCombinePerGroup not implemented for hybrid hash table yet.");
+        }
     }
 
     HashTableSink LocalBackend::createFinalHashmap(const std::vector<const IExecutorTask*>& tasks,

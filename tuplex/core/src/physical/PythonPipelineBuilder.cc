@@ -173,6 +173,14 @@ namespace tuplex {
         return list + "]";
     }
 
+    std::string vecToList(const std::vector<size_t> &column_indices) {
+        // convert to list of strings object as source code!
+        std::string list = "[";
+        for(const auto& c : column_indices)
+            list += std::to_string(c) + ",";
+        return list + "]";
+    }
+
     std::string PythonPipelineBuilder::columnsToList(const std::vector<std::string> &columns) {
         return vecToList(columns);
     }
@@ -864,6 +872,45 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
             ss<<c.identifier<<" = "<<c.value.toPythonString()<<endl;
         }
         return ss.str();
+    }
+
+
+    void PythonPipelineBuilder::pythonAggByKey(int64_t operatorID,
+                                               const std::string& hashmap_name,
+                                               const tuplex::UDF &aggUDF,
+                                               const std::vector<size_t> &aggColumns,
+                                               const Row& initial_value) {
+
+        flushLastFunction();
+
+        // add hashmap as var
+        _optArgs.push_back(hashmap_name);
+
+
+        // perform aggregate function on current output row & saved aggregate
+        // also yield key...
+        // fetch current key
+        std::stringstream ss;
+        ss<<"agg_key = ["<<row()<<"[key] for key in "<<vecToList(aggColumns)<<"]\n";
+        ss<<"agg_key = tuple(agg_key) if len(agg_key) != 1 else agg_key[0]\n";
+
+        // check if key exists in hashmap, if not create! Else, call aggregat function!
+        ss<<"agg_value = "<<hashmap_name<<".setdefault(agg_key, "<<initial_value.toPythonString()<<")\n";
+        ss<<hashmap_name<<"[agg_key] = "<<"None\n";
+
+        ss<<"res['outputRows'] += [" + row() + ".data]\n"
+                                                              "res['outputColumns'] = " + row() + ".columns\n";
+        ss<<"res['key'] = agg_key\n";
+        auto code = ss.str();
+
+        // could use yield here as well...
+        writeLine(code);
+
+        // throw std::runtime_error("agg by key python code path not yet implemented");
+    }
+
+    void PythonPipelineBuilder::pythonAggGeneral(int64_t operatorID, const tuplex::UDF &aggUDF) {
+        throw std::runtime_error("agg general python code path not yet implemented");
     }
 
 }

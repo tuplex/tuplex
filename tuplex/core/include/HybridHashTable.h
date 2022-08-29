@@ -41,6 +41,14 @@ namespace tuplex {
          * @return
          */
         size_t backupItemCount() const;
+
+        PyObject* setDefault(PyObject* key, PyObject* value);
+
+    private:
+        /*
+         * checks for key existence throughout all structures...
+         */
+        bool _key_exists(PyObject* key);
     };
 
     extern PyObject* decodeBucketToPythonList(const uint8_t* bucket, const python::Type& bucketType);
@@ -59,11 +67,40 @@ static Py_ssize_t wrapCCLength(PyObject *o) { assert(o); return ((tuplex::Hybrid
 static PyObject* wrapCCGetItem(PyObject *o, PyObject* key) { assert(o); return ((tuplex::HybridLookupTable*)o)->getItem(key); }
 static int wrapCCSetItem(PyObject *o, PyObject* key, PyObject* v) { assert(o); return ((tuplex::HybridLookupTable*)o)->putItem(key, v); }
 
+static PyObject* hybrid_dict_setdefault(PyObject* self, PyObject *const *args, Py_ssize_t nargs) {
+    PyObject *return_value = nullptr;
+    PyObject* key = nullptr;
+    PyObject *default_value = Py_None;
+    if(!_PyArg_CheckPositional("setdefault", nargs, 1, 2)) {
+        goto exit_func;
+    }
+
+    key = args[0];
+    if(nargs < 2) {
+        goto skip_optional;
+    }
+    default_value = args[1];
+
+skip_optional:
+    return_value = ((tuplex::HybridLookupTable*)self)->setDefault(key, default_value);
+exit_func:
+    return return_value;
+}
+
 // define here mapping methods, that's all what is required for this internal python object
 static PyMappingMethods hybrid_as_mapping {
         (lenfunc)wrapCCLength,             // mp_length
         (binaryfunc)wrapCCGetItem,         // mp_subscript
         (objobjargproc)wrapCCSetItem  // mp_ass_subscript
+};
+
+// from https://github.com/python/cpython/blob/6f6a4e6cc5cd76af4a53ffbb62b686142646ac9a/Objects/clinic/dictobject.c.h
+// #define DICT_SETDEFAULT_METHODDEF    \
+//    {"setdefault", _PyCFunction_CAST(dict_setdefault), METH_FASTCALL, dict_setdefault__doc__},
+
+static PyMethodDef hybrid_methods[] = {
+        {"setdefault", (PyCFunction)(void(*)(void))(hybrid_dict_setdefault), METH_FASTCALL, ""},
+        {NULL, NULL} // sentinel
 };
 
 
@@ -112,7 +149,7 @@ static PyTypeObject InternalHybridTableType = {
     0,                            /* tp_weaklistoffset */
     NULL,                         /* tp_iter */
     0,                            /* tp_iternext */
-    NULL,                         /* tp_methods */
+    hybrid_methods,               /* tp_methods */
     0,                            /* tp_members */
     0,                            /* tp_getset */
     &PyBaseObject_Type,           /* tp_base */

@@ -100,7 +100,8 @@ namespace tuplex {
                                                             _outputRowNumber(0),
                                                             _wallTime(0.0),
                                                             _numInputRowsRead(0),
-                                                            _numUnresolved(0) {
+                                                            _numUnresolved(0),
+                                                            _hybrid_htable(nullptr) {
             // copy the IDs and sort them so binary search can be used.
             std::sort(_operatorIDsAffectedByResolvers.begin(), _operatorIDsAffectedByResolvers.end());
             _normalPtrBytesRemaining = 0;
@@ -159,6 +160,10 @@ namespace tuplex {
             // init sink if data is given
             _htable.hm = hm;
             _htable.null_bucket = null_bucket;
+
+            python::lockGIL();
+            _hybrid_htable = reinterpret_cast<PyObject*>(CreatePythonHashMapWrapper(_htable, hashKeyType.withoutOptions(), hashBucketType));
+            python::unlockGIL();
         }
 
         HashTableSink hashTableSink() const { return _htable; } // needs to be freed manually!
@@ -270,6 +275,7 @@ namespace tuplex {
         python::Type _hash_element_type;
         python::Type _hash_bucket_type;
         AggregateType _hash_agg_type;
+        PyObject* _hybrid_htable;
 
         // hybrid inputs (i.e. when having a long stage the hash-tables of a join)
         std::vector<PyObject*> _py_intermediates;
@@ -354,7 +360,7 @@ namespace tuplex {
 
         PyObject* tupleFromParseException(const uint8_t* ebuf, size_t esize);
 
-        void sinkRowToHashTable(PyObject *rowObject);
+        void sinkRowToHashTable(PyObject *rowObject, PyObject* key=nullptr);
     };
 }
 

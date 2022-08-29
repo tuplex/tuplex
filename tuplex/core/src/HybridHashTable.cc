@@ -339,6 +339,87 @@ namespace tuplex {
         return 0;
     }
 
+    bool HybridLookupTable::_key_exists(PyObject *key) {
+        if(!key) {
+            PyErr_SetString(PyExc_KeyError, "could not find key nullptr in setdefault");
+            return false;
+        }
+
+        if(hmBucketType == python::Type::UNKNOWN) {
+            PyErr_SetString(PyExc_KeyError, "unknown bucket type");
+            return false;
+        }
+
+        auto key_type = python::mapPythonClassToTuplexType(key, false);
+
+        // None? -> check null bucket
+        if(python::Type::NULLVALUE == key_type) {
+            assert(sink);
+            // null bucket full?
+            if(!sink->null_bucket)
+                return false;
+            // no elements?
+            uint64_t info = *(const uint64_t*)sink->null_bucket;
+            auto num_elements = info >> 32ul;
+            return 0 != num_elements;
+        } else if(hmElementType == key_type) {
+            if(python::Type::STRING == key_type) {
+                char *value = nullptr;
+                auto skey = python::PyString_AsString(key);
+                if(sink->hm && MAP_OK == hashmap_get(sink->hm, skey.c_str(), skey.length() + 1, (void**)(&value))) {
+                    uint8_t* bucket = reinterpret_cast<uint8_t*>(value);
+                    if(!bucket)
+                        return false;
+                    uint64_t info = *(const uint64_t*)bucket;
+                    auto bucket_size = info & 0xFFFFFFFF;
+                    auto num_elements = (info >> 32ul);
+                    return 0 != num_elements;
+                } else {
+                    // not in regular dict
+                    if(!backupDict)
+                        return false;
+                    auto bucket = PyDict_GetItem(backupDict, key);
+                    return bucket;
+                }
+            } else if(python::Type::I64 == key_type) {
+                char *value = nullptr;
+                auto ikey = PyLong_AsUnsignedLongLong(key);
+                if(sink->hm && MAP_OK == int64_hashmap_get(sink->hm, ikey, (void**)(&value))) {
+                    uint8_t* bucket = reinterpret_cast<uint8_t*>(value);
+                    if(!bucket)
+                        return false;
+                    uint64_t info = *(const uint64_t*)bucket;
+                    auto bucket_size = info & 0xFFFFFFFF;
+                    auto num_elements = (info >> 32ul);
+                    return 0 != num_elements;
+                } else {
+                    if(!backupDict)
+                        return false;
+                    auto bucket = PyDict_GetItem(backupDict, key);
+                    return bucket;
+                }
+            } else
+                throw std::runtime_error("unsupported key type in lookup " + key_type.desc());
+        } else {
+            if(!backupDict)
+                return false;
+            return PyObject_GetItem(backupDict, key);
+        }
+    }
+
+    PyObject *HybridLookupTable::setDefault(PyObject *key, PyObject *value) {
+        // check if item exists, if so return. Else, set to default value!
+        if(!_key_exists(key)) {
+            PyErr_Clear(); // clear key error
+            Py_XINCREF(value);
+            putItem(key, value);
+            return value;
+        } else {
+            Py_XDECREF(value); // ??
+            return getItem(key);
+        }
+    }
+
 
     PyObject* decodeBucketToPythonList(const uint8_t* bucket, const python::Type& bucketType) {
         using namespace tuplex;

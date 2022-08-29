@@ -533,11 +533,18 @@ default:
 #endif
 
             // call pipFunctor
-            PyObject* args = PyTuple_New(1 + _py_intermediates.size());
+            size_t num_python_args = 1 + _py_intermediates.size() + hasHashTableSink();
+            PyObject* args = PyTuple_New(num_python_args);
             PyTuple_SET_ITEM(args, 0, tuple);
             for(unsigned i = 0; i < _py_intermediates.size(); ++i) {
                 Py_XINCREF(_py_intermediates[i]);
                 PyTuple_SET_ITEM(args, i + 1, _py_intermediates[i]);
+            }
+            // set hash table sink
+            if(hasHashTableSink()) {
+                assert(_htable.hybrid_hm);
+                Py_XINCREF(_htable.hybrid_hm);
+                PyTuple_SET_ITEM(args, num_python_args - 1, _htable.hybrid_hm);
             }
 
             auto kwargs = PyDict_New(); PyDict_SetItemString(kwargs, "parse_cells", python::boolean(parse_cells));
@@ -603,7 +610,8 @@ default:
                             // because we have the logic to separate types etc. in the hashtable, for hash table output we can use
                             // simplified output schema here!
                             if(hasHashTableSink()) {
-                                sinkRowToHashTable(rowObj);
+                                auto key = PyDict_GetItemString(pcr.res, "key");
+                                sinkRowToHashTable(rowObj, key);
                                 continue;
                             }
 
@@ -1294,7 +1302,7 @@ default:
         rowToMemorySink(owner(), _mergedRowsSink, commonCaseOutputSchema(), 0, contextID(), buf, bufSize);
     }
 
-    void ResolveTask::sinkRowToHashTable(PyObject *rowObject) {
+    void ResolveTask::sinkRowToHashTable(PyObject *rowObject, PyObject* key) {
         using namespace std;
 
         // sink rowObject to hash table
@@ -1326,6 +1334,29 @@ default:
                 assert(_htable.hybrid_hm);
                 int rc =((HybridLookupTable*)_htable.hybrid_hm)->putItem(rowObject, nullptr);
                 // could also invoke via PyObject_SetItem(_htable.hybrid_hm, rowObject, python::none());
+                if(PyErr_Occurred()) {
+                    PyErr_Print();
+                    cout<<endl;
+                    PyErr_Clear();
+                }
+                break;
+            }
+
+            case AggregateType::AGG_BYKEY: {
+                // get key from result.
+                assert(key);
+                // lazy create table
+                if(!_htable.hybrid_hm) {
+                    auto adjusted_key_type = _hash_element_type.isTupleType() && _hash_element_type.parameters().size() == 1 ?
+                                             _hash_element_type.parameters().front() : _hash_element_type;
+
+                    _htable.hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(_htable,
+                                                                                                adjusted_key_type,
+                                                                                                _hash_bucket_type));
+                }
+
+                assert(_htable.hybrid_hm);
+                int rc =((HybridLookupTable*)_htable.hybrid_hm)->putItem(key, rowObject);
                 if(PyErr_Occurred()) {
                     PyErr_Print();
                     cout<<endl;

@@ -556,7 +556,7 @@ std::string pyfmtToFmtlib(size_t argNo, const std::string& fmt, const fmt::forma
         if(is_fmt_float_type(args.get(argNo).type())) {
             auto idx = fmt.find(':');
             if(idx >= 0) {
-                return fmt.substr(0, idx-1) + ":#" + fmt.substr(idx + 1);
+                return fmt.substr(0, idx) + ":#" + fmt.substr(idx + 1);
             }
             // doesn't matter, prob. invalid format...
         }

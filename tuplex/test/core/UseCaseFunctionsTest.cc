@@ -394,6 +394,16 @@ TEST_F(UseCaseFunctionsTest, strReplaceFunction) {
     EXPECT_EQ(v[4], Row("hello world"));
 }
 
+TEST_F(UseCaseFunctionsTest, strFormatFunctionPositional) {
+    using namespace tuplex;
+
+    auto v3 = context->parallelize({
+                                           Row("{0:.2f} hi {2:{1}.0s}", 1.23, 3, "goodbye"),
+                                   }).map(UDF("lambda s, x, y, z: s.format(x, y, z)")).collectAsVector();
+    ASSERT_EQ(v3.size(), 1);
+    EXPECT_EQ(v3[0], std::string("1.23 hi    "));
+}
+
 TEST_F(UseCaseFunctionsTest, strFormatFunction) {
     using namespace tuplex;
 

@@ -248,7 +248,7 @@ namespace tuplex {
 
                     // check that the output type is the same as the expected one!
                     if(resultRow.getTupleType() != _lastRowResult.getTupleType())
-                        throw std::runtime_error("result type " + resultRow.getTupleType().desc() + "of resolver does not match type of previous operator " + _lastRowResult.getTupleType().desc());
+                        throw std::runtime_error("result type " + resultRow.getTupleType().desc() + " of resolver does not match type of previous operator " + _lastRowResult.getTupleType().desc());
 
                     // store result into var
                     resultRow.storeTo(builder, _lastTupleResultVar);
@@ -342,7 +342,7 @@ namespace tuplex {
                     // store final output to variable
                     // check that the output type is the same as the expected one!
                     if(resultRow.getTupleType() != _lastRowResult.getTupleType())
-                        throw std::runtime_error("result type " + resultRow.getTupleType().desc() + "of resolver does not match type of previous operator " + _lastRowResult.getTupleType().desc());
+                        throw std::runtime_error("result type " + resultRow.getTupleType().desc() + " of resolver does not match type of previous operator " + _lastRowResult.getTupleType().desc());
 
                     // store result into var
                     resultRow.storeTo(builder, _lastTupleResultVar);
@@ -389,7 +389,7 @@ namespace tuplex {
                     // store final output to variable
                     // check that the output type is the same as the expected one!
                     if(resultRow.getTupleType() != _lastRowResult.getTupleType())
-                        throw std::runtime_error("result type " + resultRow.getTupleType().desc() + "of resolver does not match type of previous operator " + _lastRowResult.getTupleType().desc());
+                        throw std::runtime_error("result type " + resultRow.getTupleType().desc() + " of resolver does not match type of previous operator " + _lastRowResult.getTupleType().desc());
 
                     // store result into var
                     resultRow.storeTo(builder, _lastTupleResultVar);

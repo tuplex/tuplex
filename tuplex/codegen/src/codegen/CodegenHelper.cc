@@ -248,6 +248,18 @@ namespace tuplex {
         llvm::Value *
         dictionaryKey(llvm::LLVMContext &ctx, llvm::Module *mod, llvm::IRBuilder<> &builder, llvm::Value *val,
                       python::Type keyType, python::Type valType) {
+
+            // optimized types? deoptimize!
+            if(keyType.isOptimizedType() || valType.isOptimizedType()) {
+                // special case: optimized value type
+                if(valType.isConstantValued()) {
+                    return dictionaryKey(ctx, mod, builder, constantValuedTypeToLLVM(builder, valType).val, deoptimizedType(keyType),
+                                         deoptimizedType(valType));
+                }
+                return dictionaryKey(ctx, mod, builder, val, deoptimizedType(keyType), deoptimizedType(valType));
+            }
+
+
             // get key to string
             auto strFormat_func = strFormat_prototype(ctx, mod);
             std::vector<llvm::Value *> valargs;

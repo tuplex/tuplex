@@ -905,13 +905,11 @@ namespace tuplex {
             keyType = dict->_pairs[0].first->getInferredType();
             valType = dict->_pairs[0].second->getInferredType(); // save the key type, val type of the first pair
             for(const auto& p: dict->_pairs) { // check if every pair has the same key type, val type
-                if(p.first->getInferredType() != keyType || p.second->getInferredType() != valType) {
-                    is_key_val = false; // if they are not the same, then it is not of type Dictionary[Key, Val]
-                    break;
-                }
+                keyType = unifyTypes(keyType, p.first->getInferredType(), _policy.allowNumericTypeUnification);
+                valType = unifyTypes(valType, p.second->getInferredType(), _policy.allowNumericTypeUnification);
             }
 
-            if(is_key_val) { // indicates whether every key, val have the same type
+            if(keyType != python::Type::UNKNOWN && valType != python::Type::UNKNOWN) { // indicates whether every key, val have the same type
                 dict->setInferredType(python::Type::makeDictionaryType(keyType, valType));
             }
             else {

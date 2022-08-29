@@ -64,6 +64,9 @@ namespace tuplex {
             if(optType == python::Type::MATCHOBJECT || optType == python::Type::MODULE)
                 return optType;
 
+            if(optType.isExceptionType())
+                return optType;
+
             throw std::runtime_error("unsupported type " + optType.desc() + " encountered in "
             + std::string(__FILE__) + ":" + std::to_string(__LINE__));
         }

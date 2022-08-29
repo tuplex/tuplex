@@ -3006,6 +3006,8 @@ namespace tuplex {
                 auto value_type = dict->_pairs[i].second->getInferredType();
                 auto value = cJSONObjectFromValue(builder, vals[i], value_type);
                 assert(value);
+                _env->debugPrint(builder, "calling cJSONAddITem with key=", key);
+                _env->debugPrint(builder, "calling cJSONAddITem with value=", value);
                 builder.CreateCall(cJSONAddItemToObject_prototype(_env->getContext(), _env->getModule().get()),
                                    {ret, key, value});
             }

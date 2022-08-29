@@ -246,17 +246,17 @@ namespace tuplex {
         }
 
         llvm::Value *
-        dictionaryKey(llvm::LLVMContext &ctx, llvm::Module *mod, llvm::IRBuilder<> &builder, llvm::Value *val,
+        dictionaryKey(llvm::LLVMContext &ctx, llvm::Module *mod, llvm::IRBuilder<> &builder, llvm::Value *key_value,
                       python::Type keyType, python::Type valType) {
 
             // optimized types? deoptimize!
             if(keyType.isOptimizedType() || valType.isOptimizedType()) {
                 // special case: optimized value type
                 if(valType.isConstantValued()) {
-                    return dictionaryKey(ctx, mod, builder, constantValuedTypeToLLVM(builder, valType).val, deoptimizedType(keyType),
+                    return dictionaryKey(ctx, mod, builder, constantValuedTypeToLLVM(builder, keyType).val, deoptimizedType(keyType),
                                          deoptimizedType(valType));
                 }
-                return dictionaryKey(ctx, mod, builder, val, deoptimizedType(keyType), deoptimizedType(valType));
+                return dictionaryKey(ctx, mod, builder, key_value, deoptimizedType(keyType), deoptimizedType(valType));
             }
 
 
@@ -274,7 +274,7 @@ namespace tuplex {
             else if (python::Type::BOOLEAN == keyType) {
                 typesstr = "b";
                 replacestr = "b_{}";
-                val = builder.CreateSExt(val, llvm::Type::getInt64Ty(ctx)); // extend to 64 bit integer
+                key_value = builder.CreateSExt(key_value, llvm::Type::getInt64Ty(ctx)); // extend to 64 bit integer
             } else if (python::Type::I64 == keyType) {
                 typesstr = "d";
                 replacestr = "i_{}";
@@ -300,7 +300,8 @@ namespace tuplex {
             valargs.push_back(replaceptr);
             valargs.push_back(sizeVar);
             valargs.push_back(typesptr);
-            valargs.push_back(val);
+            valargs.push_back(key_value);
+
             return builder.CreateCall(strFormat_func, valargs);
         }
 

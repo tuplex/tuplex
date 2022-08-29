@@ -47,16 +47,19 @@ endif ()
 
 # detect MacOS Version because at least 10.13 is required when building with AWS SDK
 if(APPLE)
-    execute_process(COMMAND bash -c "sw_vers | grep -Eo '([0-9]{1,}\.)+[0-9]{1,}' | head -1" OUTPUT_VARIABLE MACOSX_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND bash -c "sw_vers | grep -Eo '([0-9]{1,}\\.)+[0-9]{1,}' | head -1" OUTPUT_VARIABLE MACOSX_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-    # set default MacOS target, if not set.
-    # cf. https://cmake.org/cmake/help/latest/variable/CMAKE_OSX_DEPLOYMENT_TARGET.html
-    if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-        if(MACOSX_VERSION_STRING VERSION_GREATER_EQUAL 11.0)
-            set(CMAKE_OSX_DEPLOYMENT_TARGET 11.0)
-        else()
+    if(NOT CMAKE_OSX_DEPLOYMENT_TARGET OR "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
+
+        # check what the major OS X version is, if 10 -> build for 10.13 (lowest supported)
+        string(REPLACE "." ";" VERSION_LIST ${MACOSX_VERSION_STRING})
+        list(GET VERSION_LIST 0 MACOSX_VERSION_MAJOR)
+        if(MACOSX_VERSION_MAJOR LESS_EQUAL 10)
             # use high sierra target per default
             set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)
+        else()
+            # use maj.0 as default
+            set(CMAKE_OSX_DEPLOYMENT_TARGET ${MACOSX_VERSION_MAJOR}.0)
         endif()
     endif()
 

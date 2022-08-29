@@ -41,6 +41,7 @@ namespace tuplex {
         m["null_value"] = ""; // empty string
         m["delimiter"] = ",";
         m["quotechar"] = "\"";
+        m["commit"] = "true";
         return m;
     }
 

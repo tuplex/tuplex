@@ -101,6 +101,8 @@ namespace tuplex {
 
         const LogicalPlan* logicalPlan() const { return _lp; }
 
+        const LogicalPlan* originalLogicalPlan() const { return _lpOriginal; }
+
         nlohmann::json getStagedRepresentationAsJSON() const;
 
         /*!

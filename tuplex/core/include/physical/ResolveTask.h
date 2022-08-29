@@ -75,7 +75,8 @@ namespace tuplex {
                     char csvDelimiter,
                     char csvQuotechar,
                     codegen::resolve_f functor=nullptr,
-                    PyObject* interpreterFunctor=nullptr) : IExceptionableTask::IExceptionableTask(exceptionInputSchema, contextID),
+                    PyObject* interpreterFunctor=nullptr,
+                    bool isIncremental=false) : IExceptionableTask::IExceptionableTask(exceptionInputSchema, contextID),
                                                             _stageID(stageID),
                                                             _partitions(partitions),
                                                             _exceptionPartitions(exceptionPartitions),
@@ -100,7 +101,9 @@ namespace tuplex {
                                                             _outputRowNumber(0),
                                                             _wallTime(0.0),
                                                             _numInputRowsRead(0),
-                                                            _numUnresolved(0) {
+                                                            _numUnresolved(0),
+                                                            _numResolved(0),
+                                                            _isIncremental(isIncremental) {
             // copy the IDs and sort them so binary search can be used.
             std::sort(_operatorIDsAffectedByResolvers.begin(), _operatorIDsAffectedByResolvers.end());
             _normalPtrBytesRemaining = 0;
@@ -150,11 +153,12 @@ namespace tuplex {
          * @param hashBucketType the type of the rows to store in the table
          */
         void sinkOutputToHashTable(HashTableFormat fmt, const AggregateType& aggType, const python::Type& hashKeyType, const python::Type& hashBucketType, map_t hm=nullptr,
-                                   uint8_t* null_bucket=nullptr) {
+                                   uint8_t* null_bucket=nullptr, int64_t hashKeyCol=-1) {
             _htableFormat = fmt;
             _hash_element_type = hashKeyType;
             _hash_bucket_type = hashBucketType;
             _hash_agg_type = aggType;
+            _hash_key_col = hashKeyCol; // TODO: @bgivertz Temp hack to make join exceptions work
 
             // init sink if data is given
             _htable.hm = hm;
@@ -222,6 +226,8 @@ namespace tuplex {
         size_t _generalCounter;
         size_t _fallbackCounter;
 
+        bool _isIncremental;
+
         inline Schema commonCaseInputSchema() const { return _deserializerGeneralCaseOutput->getSchema(); }
         Schema                  _resolverOutputSchema; //! what the resolve functor produces
         Schema                  _targetOutputSchema; //! which schema the final rows should be in...
@@ -236,6 +242,7 @@ namespace tuplex {
         char _csvQuotechar;
 
         size_t _numUnresolved;
+        size_t _numResolved;
 
         int64_t                 _currentRowNumber;
         // std::vector<Partition*> _mergedPartitions;
@@ -270,6 +277,7 @@ namespace tuplex {
         python::Type _hash_element_type;
         python::Type _hash_bucket_type;
         AggregateType _hash_agg_type;
+        int64_t _hash_key_col;
 
         // hybrid inputs (i.e. when having a long stage the hash-tables of a join)
         std::vector<PyObject*> _py_intermediates;

@@ -32,6 +32,7 @@
 #include <Defs.h>
 #include <logical/FileOutputOperator.h>
 #include <logical/AggregateOperator.h>
+#include <IncrementalCache.h>
 
 #ifdef BUILD_WITH_AWS
 // include protobuf serialization of TrafoStage for Lambda executor
@@ -131,6 +132,24 @@ namespace tuplex {
          */
          std::vector<PartitionGroup> partitionGroups() const { return _partitionGroups; }
 
+         /*!
+          * set cache entry of previous execution to be used by the incremental resolution
+          * @param entry
+          */
+         void setIncrementalCacheEntry(IncrementalCacheEntry* entry) { _incrementalCacheEntry = entry; }
+
+         /*!
+          * get cache entry of previous execution
+          * @return
+          */
+         IncrementalCacheEntry* incrementalCacheEntry() const { return _incrementalCacheEntry; }
+
+         /*!
+          * whether or not to use incremental resolution during stage execution
+          * @return
+          */
+         bool incrementalResolution() const { return _incrementalResolution; }
+
         /*!
          * sets maximum number of rows this pipeline will produce
          * @param outputLimit
@@ -181,6 +200,14 @@ namespace tuplex {
          * @return resultset of this stage
          */
         std::shared_ptr<ResultSet> resultSet() const override { return _rs;}
+
+        void setIncrementalStageResult(const std::vector<Partition*>& normalPartitions,
+                                      const std::vector<Partition*>& exceptionPartitions,
+                                      const std::vector<Partition*>& generalPartitions,
+                                      const std::vector<Partition*>& fallbackPartitions,
+                                      const std::vector<PartitionGroup>& partitionGroups);
+
+        void setIncrementalFileNumber(size_t startFileNumber);
 
         void setMemoryResult(const std::vector<Partition*>& normalPartitions=std::vector<Partition*>{},
                              const std::vector<Partition*>& generalPartitions=std::vector<Partition*>{},
@@ -414,6 +441,9 @@ namespace tuplex {
          */
         void setDataAggregationMode(const AggregateType& t) { _aggMode = t; }
 
+        // TODO: @bgivertz Temp hack to make join exceptions work
+        int64_t hashKeyCol() const { return _hashKeyCol; }
+
     private:
         /*!
          * creates a new TransformStage with generated code
@@ -461,6 +491,7 @@ namespace tuplex {
         Schema _normalCaseInputSchema;
         bool _persistSeparateCases;
         AggregateType _aggMode;
+        int64_t _hashKeyCol;
 
         std::vector<int64_t> _operatorIDsWithResolvers;
 
@@ -486,7 +517,10 @@ namespace tuplex {
         std::string _pyCode;
         std::string _pyPipelineName;
         std::string _writerFuncName;
+
         bool _updateInputExceptions;
+        bool _incrementalResolution;
+        IncrementalCacheEntry* _incrementalCacheEntry;
 
         std::shared_ptr<ResultSet> emptyResultSet() const;
 

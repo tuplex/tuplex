@@ -147,8 +147,12 @@ namespace tuplex {
 
         // check what type of stage it is
         auto tstage = dynamic_cast<TransformStage*>(stage);
-        if(tstage)
-            executeTransformStage(tstage);
+        if(tstage) {
+            if (!tstage->incrementalResolution() || tstage->incrementalCacheEntry()->exceptionPartitions(tstage->number()).empty())
+                executeTransformStage(tstage);
+            else
+                executeIncrementalStage(tstage);
+        }
         else if(dynamic_cast<HashJoinStage*>(stage)) {
             executeHashJoinStage(dynamic_cast<HashJoinStage*>(stage));
         } else if(dynamic_cast<AggregateStage*>(stage)) {
@@ -701,7 +705,7 @@ namespace tuplex {
                            tstage->outputMode() == EndPointMode::MEMORY);
                     task->sinkOutputToMemory(outputSchema, tstage->outputDataSetID(), tstage->context().id());
                 }
-                task->sinkExceptionsToMemory(tstage->inputSchema());
+                task->sinkExceptionsToMemory(tstage->normalCaseInputSchema()); // input schema??
                 task->setStageID(tstage->getID());
                 task->setOutputLimit(tstage->outputLimit());
                 tasks.emplace_back(std::move(task));
@@ -769,8 +773,383 @@ namespace tuplex {
         return pip_object;
     }
 
-    void LocalBackend::executeTransformStage(tuplex::TransformStage *tstage) {
+    std::vector<IExecutorTask*> LocalBackend::createIncrementalTasks(TransformStage* tstage,
+                                                                     const ContextOptions& options,
+                                                                     const std::shared_ptr<TransformStage::JITSymbols>& syms,
+                                                                     bool combineHashmaps,
+                                                                     codegen::agg_init_f init_aggregate,
+                                                                     codegen::agg_combine_f combine_aggregate) {
+        using namespace std;
+        vector<IExecutorTask*> tasks;
+        assert(tstage);
+        assert(syms);
 
+        auto cacheEntry = tstage->incrementalCacheEntry();
+        assert(cacheEntry);
+        auto cachedExceptionPartitions = cacheEntry->exceptionPartitions(tstage->number());
+        auto cachedGeneralPartitions = cacheEntry->generalPartitions(tstage->number());
+        auto cachedFallbackPartitions = cacheEntry->fallbackPartitions(tstage->number());
+        auto cachedPartitionGroups = cacheEntry->partitionGroups(tstage->number());
+        auto cachedNormalPartitions = cacheEntry->normalPartitions(tstage->number());
+
+        for (auto &p : cachedNormalPartitions)
+            p->makeMortal();
+        for (auto &p : cachedExceptionPartitions)
+            p->makeMortal();
+
+        auto stageID = tstage->getID();
+        auto contextID = tstage->context().id();
+        auto operatorIDsWithResolvers = tstage->operatorIDsWithResolvers();
+        auto exceptionInputSchema = tstage->inputSchema();
+        auto outputSchema = tstage->outputSchema();
+        auto normalCaseOutputSchema = tstage->normalCaseOutputSchema();
+        auto mergeExceptionsInOrder = options.OPT_MERGE_EXCEPTIONS_INORDER();
+        auto autoUpcastNumbers = options.AUTO_UPCAST_NUMBERS();
+        auto outputFormat = tstage->outputFormat();
+        auto csvOutputDelimiter = tstage->csvOutputDelimiter();
+        auto csvOutputQuotechar = tstage->csvOutputQuotechar();
+        auto resolveFunctor = options.RESOLVE_WITH_INTERPRETER_ONLY() ? nullptr : syms->resolveFunctor;
+
+        Timer timer;
+        // compile & prep python pipeline for this stage
+        auto pipObject = preparePythonPipeline(tstage->purePythonCode(), tstage->pythonPipelineName());
+        // transform dependents into python format!
+        // when pip_object is nullptr, then something went wrong...
+        if(!pipObject) {
+            logger().error("python pipeline invalid, details: \n"
+                           + core::withLineNumbers(tstage->purePythonCode()));
+            return tasks;
+        }
+
+        logger().info("compiled pure python pipeline in " + std::to_string(timer.time()) + "s");
+        timer.reset();
+
+        // fetch intermediates of previous stages (i.e. hash tables)
+        auto input_intermediates = tstage->initData();
+
+        // lazy init hybrids
+        if(!input_intermediates.hybrids) {
+            auto num_predecessors = tstage->predecessors().size();
+            input_intermediates.hybrids = new PyObject*[num_predecessors];
+            for(int i = 0; i < num_predecessors; ++i)
+                input_intermediates.hybrids[i] = nullptr;
+        }
+
+
+        python::lockGIL();
+
+        // construct intermediates from predecessors
+        size_t num_predecessors = tstage->predecessors().size();
+        for(unsigned i = 0; i < tstage->predecessors().size(); ++i) {
+            auto pred = tstage->predecessors()[i];
+            if(pred->outputMode() == EndPointMode::HASHTABLE) {
+                auto ts = dynamic_cast<TransformStage*>(pred); assert(ts);
+                if(input_intermediates.hash_maps[i] && !input_intermediates.hybrids[i]) {
+                    HashTableSink* hs = new HashTableSink();
+                    hs->hm = input_intermediates.hash_maps[i];
+                    hs->null_bucket = input_intermediates.null_buckets[i];
+                    input_intermediates.hybrids[i] = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(*hs,
+                                                                                                             ts->hashResult().keyType.withoutOptions(),
+                                                                                                             ts->hashResult().bucketType));
+                }
+            }
+        }
+        python::unlockGIL();
+
+        assert(input_intermediates.hybrids);
+        logger().info("creating hybrid intermediates took " + std::to_string(timer.time()) + "s");
+        timer.reset();
+
+        auto order = 0;
+        if (mergeExceptionsInOrder) {
+            for (const auto &partitionGroup : cachedPartitionGroups) {
+                std::vector<Partition*> taskNormalPartitions;
+                for (int i = partitionGroup.normalPartitionStartIndex; i < partitionGroup.normalPartitionStartIndex + partitionGroup.numNormalPartitions; ++i)
+                    taskNormalPartitions.push_back(cachedNormalPartitions[i]);
+                std::vector<Partition*> taskExceptionPartitions;
+                for (int i = partitionGroup.exceptionPartitionStartIndex; i < partitionGroup.exceptionPartitionStartIndex + partitionGroup.numExceptionPartitions; ++i)
+                    taskExceptionPartitions.push_back(cachedExceptionPartitions[i]);
+
+                auto rtask = new ResolveTask(
+                        stageID,
+                        contextID,
+                        taskNormalPartitions,
+                        taskExceptionPartitions,
+                        vector<Partition*>{},
+                        vector<Partition*>{},
+                        operatorIDsWithResolvers,
+                        exceptionInputSchema,
+                        outputSchema,
+                        normalCaseOutputSchema,
+                        outputSchema,
+                        mergeExceptionsInOrder,
+                        autoUpcastNumbers,
+                        outputFormat,
+                        csvOutputDelimiter,
+                        csvOutputQuotechar,
+                        resolveFunctor,
+                        pipObject,
+                        true);
+
+                rtask->setOrder(order);
+                order++;
+                tasks.push_back(rtask);
+            }
+        } else {
+            for (const auto &p : cachedExceptionPartitions) {
+                auto rtask = new ResolveTask(
+                        stageID,
+                        contextID,
+                        vector<Partition*>{},
+                        vector<Partition*>{p},
+                        vector<Partition*>{},
+                        vector<Partition*>{},
+                        operatorIDsWithResolvers,
+                        exceptionInputSchema,
+                        outputSchema,
+                        normalCaseOutputSchema,
+                        outputSchema,
+                        mergeExceptionsInOrder,
+                        autoUpcastNumbers,
+                        outputFormat,
+                        csvOutputDelimiter,
+                        csvOutputQuotechar,
+                        resolveFunctor,
+                        pipObject,
+                        true);
+
+                rtask->setHybridIntermediateHashTables(tstage->predecessors().size(), input_intermediates.hybrids);
+
+                if (tstage->outputMode() == EndPointMode::HASHTABLE) {
+                    HashTableSink hsink;
+                    if(tstage->hashtableKeyByteWidth() == 8) hsink.hm = int64_hashmap_new();
+                    else hsink.hm = hashmap_new();
+                    hsink.null_bucket = nullptr;
+
+                    rtask->sinkOutputToHashTable(
+                            tstage->hashtableKeyByteWidth() == 8 ? HashTableFormat::UINT64 : HashTableFormat::BYTES,
+                            tstage->dataAggregationMode(),
+                            tstage->hashOutputKeyType().withoutOptions(),
+                            tstage->hashOutputBucketType(),
+                            hsink.hm,
+                            hsink.null_bucket,
+                            tstage->hashKeyCol());
+                }
+
+                tasks.push_back(rtask);
+            }
+
+            for (const auto &p : cachedGeneralPartitions) {
+                tasks.push_back(new ResolveTask(
+                        stageID,
+                        contextID,
+                        vector<Partition*>{},
+                        vector<Partition*>{},
+                        vector<Partition*>{p},
+                        vector<Partition*>{},
+                        operatorIDsWithResolvers,
+                        exceptionInputSchema,
+                        outputSchema,
+                        normalCaseOutputSchema,
+                        outputSchema,
+                        mergeExceptionsInOrder,
+                        autoUpcastNumbers,
+                        outputFormat,
+                        csvOutputDelimiter,
+                        csvOutputQuotechar,
+                        resolveFunctor,
+                        pipObject,
+                        true));
+            }
+
+            for (const auto &p : cachedFallbackPartitions) {
+                tasks.push_back(new ResolveTask(
+                        stageID,
+                        contextID,
+                        vector<Partition*>{},
+                        vector<Partition*>{},
+                        vector<Partition*>{},
+                        vector<Partition*>{p},
+                        operatorIDsWithResolvers,
+                        exceptionInputSchema,
+                        outputSchema,
+                        normalCaseOutputSchema,
+                        outputSchema,
+                        mergeExceptionsInOrder,
+                        autoUpcastNumbers,
+                        outputFormat,
+                        csvOutputDelimiter,
+                        csvOutputQuotechar,
+                        resolveFunctor,
+                        pipObject,
+                        true));
+            }
+        }
+        logger().info("tasks created and being returned");
+        return tasks;
+    }
+
+    void LocalBackend::executeIncrementalStage(TransformStage *tstage) {
+        using namespace std;
+
+        Timer stageTimer;
+        Timer timer;
+
+        Partition::resetStatistics();
+
+        assert(tstage);
+        auto cacheEntry = tstage->incrementalCacheEntry();
+        assert(cacheEntry);
+        auto cachedExceptionPartitions = cacheEntry->exceptionPartitions(tstage->number());
+        auto cachedGeneralPartitions = cacheEntry->generalPartitions(tstage->number());
+        auto cachedFallbackPartitions = cacheEntry->fallbackPartitions(tstage->number());
+
+        // If pipeline does not contain code, or no new exceptions to resolve skip stage and store new cache entry
+        if (cachedExceptionPartitions.empty() && cachedGeneralPartitions.empty() && cachedFallbackPartitions.empty()) {
+            switch (tstage->outputMode()) {
+                case EndPointMode::FILE: {
+                    tstage->setFileResult(std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t>());
+                    break;
+                }
+                default:
+                    throw std::runtime_error("output mode not yet supported for incremental resolution");
+            }
+            Logger::instance().defaultLogger().info("[Transform Stage] skipped stage " + std::to_string(tstage->number()) + " because there is nothing todo here.");
+            return;
+        }
+
+        // Compile the pipeline
+        LLVMOptimizer optimizer;
+        auto syms = tstage->compile(*_compiler, _options.USE_LLVM_OPTIMIZER() ? &optimizer : nullptr, false);
+        bool combineOutputHashmaps = syms->aggInitFunctor && syms->aggCombineFunctor && syms->aggAggregateFunctor;
+        JobMetrics& metrics = tstage->PhysicalStage::plan()->getContext().metrics();
+        double total_compilation_time = metrics.getTotalCompilationTime() + timer.time();
+        metrics.setTotalCompilationTime(total_compilation_time);
+        {
+            std::stringstream ss;
+            ss<<"[Transform Stage] Stage "<<tstage->number()<<" compiled to x86 in "<<timer.time()<<"s";
+            Logger::instance().defaultLogger().info(ss.str());
+        }
+
+        int64_t init_rc = 0;
+        if((init_rc = syms->initStageFunctor(tstage->initData().numArgs,
+                                             reinterpret_cast<void**>(tstage->initData().hash_maps),
+                                             reinterpret_cast<void**>(tstage->initData().null_buckets))) != 0)
+            throw std::runtime_error("initStage() failed for stage " + std::to_string(tstage->number()) + " with code " + std::to_string(init_rc));
+
+        // Process tasks
+        timer.reset();
+        std::vector<IExecutorTask*> tasks = createIncrementalTasks(tstage, _options, syms, combineOutputHashmaps, syms->aggInitFunctor, syms->aggCombineFunctor);
+        auto completedTasks = performTasks(tasks);
+
+        size_t numInputRows = 0;
+        size_t numOutputRows = 0;
+        double totalWallTime = 0.0;
+        for(auto task : completedTasks) {
+            numInputRows += task->getNumInputRows();
+            numOutputRows += task->getNumOutputRows();
+            totalWallTime += task->wallTime();
+        }
+        {
+            std::stringstream ss;
+            double time_per_slow_path_row_in_ms = totalWallTime / numInputRows * 1000.0;
+            ss<<"[Transform Stage] Stage "<<tstage->number()<<" total wall clock time: "
+              <<totalWallTime<<"s, "<<pluralize(numInputRows, "input row")
+              <<", time to process 1 row via fast path: "<<time_per_slow_path_row_in_ms<<"ms";
+            Logger::instance().defaultLogger().info(ss.str());
+
+            metrics.setSlowPathRowCount(tstage->number(), numInputRows, numOutputRows);
+            // fast path
+            metrics.setFastPathTimes(tstage->number(), 0, 0, 0);
+            metrics.setSlowPathTimes(tstage->number(), totalWallTime, timer.time(), time_per_slow_path_row_in_ms * 1000000.0);
+        }
+
+        sortTasks(completedTasks);
+
+        // fetch partitions & ecounts
+        vector<Partition*> normalPartitions;
+        vector<Partition*> generalPartitions;
+        vector<Partition*> fallbackPartitions;
+        vector<Partition*> exceptionPartitions;
+        vector<PartitionGroup> partitionGroups;
+        unordered_map<tuple<int64_t, ExceptionCode>, size_t> exceptionCounts;
+
+        for (const auto& task : completedTasks) {
+            auto taskNormalPartitions = getNormalPartitions(task);
+            auto taskGeneralPartitions = getGeneralPartitions(task);
+            auto taskFallbackPartitions = getFallbackPartitions(task);
+            auto taskExceptionPartitions = getExceptionPartitions(task);
+            auto taskExceptionCounts = getExceptionCounts(task);
+
+            // update exception counts
+            exceptionCounts = merge_ecounts(exceptionCounts, taskExceptionCounts);
+
+            partitionGroups.push_back(PartitionGroup(
+                    taskNormalPartitions.size(), normalPartitions.size(),
+                    taskGeneralPartitions.size(), generalPartitions.size(),
+                    taskFallbackPartitions.size(), fallbackPartitions.size(),
+                    taskExceptionPartitions.size(), exceptionPartitions.size()));
+            std::copy(taskNormalPartitions.begin(), taskNormalPartitions.end(), std::back_inserter(normalPartitions));
+            std::copy(taskGeneralPartitions.begin(), taskGeneralPartitions.end(), std::back_inserter(generalPartitions));
+            std::copy(taskFallbackPartitions.begin(), taskFallbackPartitions.end(), std::back_inserter(fallbackPartitions));
+            std::copy(taskExceptionPartitions.begin(), taskExceptionPartitions.end(), std::back_inserter(exceptionPartitions));
+        }
+
+        switch (tstage->outputMode()) {
+            case EndPointMode::FILE: {
+                if (_options.OPT_MERGE_EXCEPTIONS_INORDER()) {
+                    tstage->setIncrementalStageResult(normalPartitions,
+                                                      exceptionPartitions,
+                                                      std::vector<Partition*>{},
+                                                      std::vector<Partition*>{},
+                                                      partitionGroups);
+                    if (stringToBool(tstage->outputOptions()["commit"])) {
+                        timer.reset();
+                        writeOutput(tstage, completedTasks);
+                        metrics.setWriteOutputTimes(tstage->number(), timer.time());
+                    } else {
+                        tstage->setFileResult(exceptionCounts);
+                    }
+                } else {
+                    timer.reset();
+                    auto partNo = writeOutput(tstage, completedTasks, cacheEntry->startFileNumber());
+                    metrics.setWriteOutputTimes(tstage->number(), timer.time());
+                    tstage->setIncrementalStageResult(std::vector<Partition*>{},
+                                                 exceptionPartitions,
+                                                 generalPartitions,
+                                                 fallbackPartitions,
+                                                 std::vector<PartitionGroup>{});
+                    tstage->setIncrementalFileNumber(partNo);
+                }
+                break;
+            }
+            case EndPointMode::HASHTABLE: {
+                auto hsink = createFinalHashmap({completedTasks.cbegin(), completedTasks.cend()},
+                                                tstage->hashtableKeyByteWidth(),
+                                                combineOutputHashmaps,
+                                                syms->aggInitFunctor,
+                                                syms->aggCombineFunctor);
+                tstage->setHashResult(hsink.hm, hsink.null_bucket);
+
+                tstage->setIncrementalStageResult(std::vector<Partition*>{},
+                                                  exceptionPartitions,
+                                                  std::vector<Partition*>{},
+                                                  std::vector<Partition*>{},
+                                                  std::vector<PartitionGroup>{});
+                break;
+            }
+            default:
+                throw std::runtime_error("output mode not yet supported for incremental resolution");
+        }
+
+        // call release func for stage globals
+        if(syms->releaseStageFunctor() != 0)
+            throw std::runtime_error("releaseStage() failed for stage " + std::to_string(tstage->number()));
+
+        freeTasks(completedTasks);
+    }
+
+    void LocalBackend::executeTransformStage(tuplex::TransformStage *tstage) {
         Timer stageTimer;
         Timer timer; // for detailed measurements.
 
@@ -881,9 +1260,11 @@ namespace tuplex {
 
         // calc number of input rows and total wall clock time
         size_t numInputRows = 0;
+        size_t numOutputRows = 0;
         double totalWallTime = 0.0;
         for(auto task : completedTasks) {
             numInputRows += task->getNumInputRows();
+            numOutputRows += task->getNumOutputRows();
             totalWallTime += task->wallTime();
         }
 
@@ -901,6 +1282,7 @@ namespace tuplex {
               <<", time to process 1 row via fast path: "<<time_per_fast_path_row_in_ms<<"ms";
             Logger::instance().defaultLogger().info(ss.str());
 
+            metrics.setFastPathRowCount(tstage->number(), numInputRows, numOutputRows);
             // fast path
             metrics.setFastPathTimes(tstage->number(), totalWallTime, timer.time(), time_per_fast_path_row_in_ms * 1000000.0);
         }
@@ -1022,10 +1404,12 @@ namespace tuplex {
 
                 totalWallTime = 0.0;
                 size_t slowPathNumInputRows = 0;
+                size_t slowPathNumOutputRows = 0;
                 for(auto task : completedTasks) {
                     if(task->type() == TaskType::RESOLVE) {
                         totalWallTime += task->wallTime();
                         slowPathNumInputRows += task->getNumInputRows();
+                        slowPathNumOutputRows += task->getNumOutputRows();
                     }
                 }
                 double time_per_row_slow_path_ms = totalWallTime / slowPathNumInputRows * 1000.0;
@@ -1035,6 +1419,7 @@ namespace tuplex {
                 ss<<"slow path for Stage "<<tstage->number()<<": total wall clock time: "<<totalWallTime<<"s, "
                   <<"time to process 1 row via slow path: "<<time_per_row_slow_path_ms<<"ms";
                 logger().info(ss.str());
+                metrics.setSlowPathRowCount(tstage->number(), slowPathNumInputRows, slowPathNumOutputRows);
                 metrics.setSlowPathTimes(tstage->number(), totalWallTime, slow_path_total_time,
                                          time_per_row_slow_path_ms * 1000000.0);
             }
@@ -1059,51 +1444,88 @@ namespace tuplex {
         // sorting only make sense when order is needed
         sortTasks(completedTasks);
 
+        // fetch partitions & ecounts
+        vector<Partition*> normalPartitions;
+        vector<Partition*> generalPartitions;
+        vector<Partition*> fallbackPartitions;
+        vector<Partition*> exceptionPartitions;
+        vector<PartitionGroup> partitionGroups;
+        unordered_map<tuple<int64_t, ExceptionCode>, size_t> exceptionCounts;
+
+        for (const auto& task : completedTasks) {
+            auto taskNormalPartitions = getNormalPartitions(task);
+            auto taskGeneralPartitions = getGeneralPartitions(task);
+            auto taskFallbackPartitions = getFallbackPartitions(task);
+            auto taskExceptionPartitions = getExceptionPartitions(task);
+            auto taskExceptionCounts = getExceptionCounts(task);
+
+            // update exception counts
+            exceptionCounts = merge_ecounts(exceptionCounts, taskExceptionCounts);
+
+            // debug trace issues
+            using namespace std;
+            std::string task_name = "unknown";
+            if(task->type() == TaskType::UDFTRAFOTASK)
+                task_name = "udf trafo task";
+            if(task->type() == TaskType::RESOLVE)
+                task_name = "resolve";
+
+            auto pGroup = PartitionGroup(
+                    taskNormalPartitions.size(), normalPartitions.size(),
+                    taskGeneralPartitions.size(), generalPartitions.size(),
+                    taskFallbackPartitions.size(), fallbackPartitions.size());
+            pGroup.numExceptionPartitions = taskExceptionPartitions.size();
+            pGroup.exceptionPartitionStartIndex = exceptionPartitions.size();
+            partitionGroups.push_back(pGroup);
+            std::copy(taskNormalPartitions.begin(), taskNormalPartitions.end(), std::back_inserter(normalPartitions));
+            std::copy(taskGeneralPartitions.begin(), taskGeneralPartitions.end(), std::back_inserter(generalPartitions));
+            std::copy(taskFallbackPartitions.begin(), taskFallbackPartitions.end(), std::back_inserter(fallbackPartitions));
+            std::copy(taskExceptionPartitions.begin(), taskExceptionPartitions.end(), std::back_inserter(exceptionPartitions));
+        }
+
         // set result according to endpoint mode
         switch(tstage->outputMode()) {
             case EndPointMode::FILE: {
                 // i.e. if output format is tuplex, then attach special writer!
                 // ==> could maybe codegen avro as output format, and then write to whatever??
-                writeOutput(tstage, completedTasks);
+                if (_options.OPT_INCREMENTAL_RESOLUTION()) {
+                    if (_options.OPT_MERGE_EXCEPTIONS_INORDER()) {
+                        tstage->setIncrementalStageResult(normalPartitions,
+                                                          exceptionPartitions,
+                                                          std::vector<Partition*>{},
+                                                          std::vector<Partition*>{},
+                                                          partitionGroups);
+                        if (stringToBool(tstage->outputOptions()["commit"])) {
+                            timer.reset();
+                            writeOutput(tstage, completedTasks);
+                            metrics.setWriteOutputTimes(tstage->number(), timer.time());
+                        } else {
+                            tstage->setFileResult(exceptionCounts);
+                        }
+                    } else {
+                        timer.reset();
+                        auto cacheEntry = tstage->incrementalCacheEntry();
+                        size_t startFileNumber = 0;
+                        if (cacheEntry)
+                            startFileNumber = cacheEntry->startFileNumber();
+
+                        auto partNo = writeOutput(tstage, completedTasks, startFileNumber);
+                        metrics.setWriteOutputTimes(tstage->number(), timer.time());
+                        tstage->setIncrementalStageResult(std::vector<Partition*>{},
+                                                     exceptionPartitions,
+                                                     generalPartitions,
+                                                     fallbackPartitions,
+                                                     std::vector<PartitionGroup>{});
+                        tstage->setIncrementalFileNumber(partNo);
+                    }
+                } else {
+                    timer.reset();
+                    writeOutput(tstage, completedTasks);
+                    metrics.setWriteOutputTimes(tstage->number(), timer.time());
+                }
                 break;
             }
             case EndPointMode::MEMORY: {
-                // memory output, fetch partitions & ecounts
-                vector<Partition*> normalPartitions;
-                vector<Partition*> generalPartitions;
-                vector<Partition*> fallbackPartitions;
-                vector<Partition*> exceptionPartitions;
-                vector<PartitionGroup> partitionGroups;
-                unordered_map<tuple<int64_t, ExceptionCode>, size_t> exceptionCounts;
-
-                for (const auto& task : completedTasks) {
-                    auto taskNormalPartitions = getNormalPartitions(task);
-                    auto taskGeneralPartitions = getGeneralPartitions(task);
-                    auto taskFallbackPartitions = getFallbackPartitions(task);
-                    auto taskExceptionPartitions = getExceptionPartitions(task);
-                    auto taskExceptionCounts = getExceptionCounts(task);
-
-                    // update exception counts
-                    exceptionCounts = merge_ecounts(exceptionCounts, taskExceptionCounts);
-
-                    // debug trace issues
-                    using namespace std;
-                    std::string task_name = "unknown";
-                    if(task->type() == TaskType::UDFTRAFOTASK)
-                        task_name = "udf trafo task";
-                    if(task->type() == TaskType::RESOLVE)
-                        task_name = "resolve";
-
-                    partitionGroups.push_back(PartitionGroup(
-                            taskNormalPartitions.size(), normalPartitions.size(),
-                            taskGeneralPartitions.size(), generalPartitions.size(),
-                            taskFallbackPartitions.size(), fallbackPartitions.size()));
-                    std::copy(taskNormalPartitions.begin(), taskNormalPartitions.end(), std::back_inserter(normalPartitions));
-                    std::copy(taskGeneralPartitions.begin(), taskGeneralPartitions.end(), std::back_inserter(generalPartitions));
-                    std::copy(taskFallbackPartitions.begin(), taskFallbackPartitions.end(), std::back_inserter(fallbackPartitions));
-                    std::copy(taskExceptionPartitions.begin(), taskExceptionPartitions.end(), std::back_inserter(exceptionPartitions));
-                }
-
                 tstage->setMemoryResult(normalPartitions, generalPartitions, fallbackPartitions, partitionGroups, exceptionCounts);
                 break;
             }
@@ -1120,6 +1542,12 @@ namespace tuplex {
                                                     syms->aggInitFunctor,
                                                     syms->aggCombineFunctor);
                     tstage->setHashResult(hsink.hm, hsink.null_bucket);
+
+                    tstage->setIncrementalStageResult(std::vector<Partition*>{},
+                                                      exceptionPartitions,
+                                                      std::vector<Partition*>{},
+                                                      std::vector<Partition*>{},
+                                                      std::vector<PartitionGroup>{});
                 }
                 break;
             }
@@ -1183,6 +1611,12 @@ namespace tuplex {
             std::stringstream ss;
             ss<<"[Transform Stage] Stage "<<tstage->number()<<" completed "<<completedTasks.size()<<" sink tasks in "<<timer.time()<<"s";
             Logger::instance().defaultLogger().info(ss.str());
+        }
+
+        if (!_options.OPT_INCREMENTAL_RESOLUTION()) {
+            for (auto &p : exceptionPartitions) {
+                p->invalidate();
+            }
         }
 
         freeTasks(completedTasks);
@@ -1405,7 +1839,8 @@ namespace tuplex {
 
                     // is it the first task? If so, set the current combined result!
                     if(hasNormalHashSink) {
-                        rtask->sinkOutputToHashTable(tt->hashTableFormat(), tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType(), hsink.hm, hsink.null_bucket);
+                        // TODO: @bgivertz Temp hack to make join exceptions work
+                        rtask->sinkOutputToHashTable(tt->hashTableFormat(), tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType(), hsink.hm, hsink.null_bucket, tstage->hashKeyCol());
                         hasNormalHashSink = false;
                     } else {
                         rtask->sinkOutputToHashTable(tt->hashTableFormat(), tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType());
@@ -2089,7 +2524,7 @@ namespace tuplex {
         }
     }
 
-    void LocalBackend::writeOutput(TransformStage *tstage, std::vector<IExecutorTask*> &tasks) {
+    size_t LocalBackend::writeOutput(TransformStage *tstage, std::vector<IExecutorTask*> &tasks, size_t startFileNumber) {
         using namespace std;
 
         Timer timer;
@@ -2116,8 +2551,13 @@ namespace tuplex {
 
         auto ecounts = calcExceptionCounts(tasks);
 
+        if (outputs.empty()) {
+            tstage->setFileResult(ecounts);
+            return startFileNumber;
+        }
+
         // write to one file
-        int partNo = 0;
+        int partNo = startFileNumber;
         auto outputFilePath = outputURI(udf, uri, partNo, fmt);
 
         // check that outputFilePath is NOT empty.
@@ -2214,7 +2654,6 @@ namespace tuplex {
         // run using queue!
         // execute tasks using work queue.
         auto completedTasks = performTasks(wtasks);
-
         if(header) {
             delete [] header;
             header = nullptr;
@@ -2222,5 +2661,7 @@ namespace tuplex {
 
         Logger::instance().defaultLogger().info("writing output took " + std::to_string(timer.time()) + "s");
         tstage->setFileResult(ecounts);
+
+        return partNo;
     }
 } // namespace tuplex

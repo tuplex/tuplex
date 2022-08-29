@@ -241,6 +241,11 @@ namespace tuplex {
         // user wants to merge exceptions in order.
         bool updateInputExceptions = hasFilter && hasInputExceptions && _context.getOptions().OPT_MERGE_EXCEPTIONS_INORDER();
 
+        // Use incremental resolution if pipelines match and user has enabled the option
+        auto cache = _context.getIncrementalCache();
+        auto cacheEntry = cache->getEntry(originalLogicalPlan()->getAction());
+        auto incrementalResolution = cacheEntry && _context.getOptions().OPT_INCREMENTAL_RESOLUTION();
+
         // create trafostage via builder pattern
         auto builder = codegen::StageBuilder(_num_stages++,
                                                isRootStage,
@@ -249,7 +254,8 @@ namespace tuplex {
                                                _context.getOptions().NORMALCASE_THRESHOLD(),
                                                _context.getOptions().OPT_SHARED_OBJECT_PROPAGATION(),
                                                _context.getOptions().OPT_NULLVALUE_OPTIMIZATION(),
-                                               updateInputExceptions);
+                                               updateInputExceptions,
+                                               incrementalResolution);
         // start code generation
 
         // first, add input
@@ -416,6 +422,8 @@ namespace tuplex {
             auto csvop = dynamic_cast<FileInputOperator*>(inputNode);
             stage->setInputFiles(csvop->getURIs(), csvop->getURISizes());
         } // else it must be an internal node! => need to set manually based on result
+
+        stage->setIncrementalCacheEntry(cacheEntry);
 
         return stage;
     }

@@ -46,10 +46,11 @@ namespace tuplex {
                                    double normalCaseThreshold,
                                    bool sharedObjectPropagation,
                                    bool nullValueOptimization,
-                                   bool updateInputExceptions)
+                                   bool updateInputExceptions,
+                                   bool incrementalResolution)
                 : _stageNumber(stage_number), _isRootStage(rootStage), _allowUndefinedBehavior(allowUndefinedBehavior),
                   _generateParser(generateParser), _normalCaseThreshold(normalCaseThreshold), _sharedObjectPropagation(sharedObjectPropagation),
-                  _nullValueOptimization(nullValueOptimization), _updateInputExceptions(updateInputExceptions),
+                  _nullValueOptimization(nullValueOptimization), _updateInputExceptions(updateInputExceptions), _incrementalResolution(incrementalResolution),
                   _inputNode(nullptr), _outputLimit(std::numeric_limits<size_t>::max()) {
         }
 
@@ -1440,6 +1441,9 @@ namespace tuplex {
             stage->_outputMode = _outputMode;
             stage->_hashOutputKeyType = _hashKeyType;
             stage->_hashOutputBucketType = _hashBucketType;
+            // TODO: @bgivertz Temp hack to make join exceptions work
+            if (_hashColKeys.size() > 0)
+                stage->_hashKeyCol = _hashColKeys[0];
 
             // copy code
             // llvm ir as string is super wasteful, use bitcode instead. Can be faster parsed.
@@ -1449,7 +1453,9 @@ namespace tuplex {
             stage->_irBitCode = _irBitCode;
             stage->_pyCode = _pyCode;
             stage->_pyPipelineName = _pyPipelineName;
+
             stage->_updateInputExceptions = _updateInputExceptions;
+            stage->_incrementalResolution = _incrementalResolution;
 
             // if last op is CacheOperator, check whether normal/exceptional case should get cached separately
             // or an upcasting step should be performed.

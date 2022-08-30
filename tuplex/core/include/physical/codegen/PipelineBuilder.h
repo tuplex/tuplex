@@ -445,6 +445,19 @@ namespace tuplex {
 
 
             python::Type inputRowType() const { return _inputRowType; }
+
+            inline bool checkRowTypesCompatible(const python::Type& resultRowType, const python::Type& lastRowType, const std::string& op_name = "operator") {
+                if(resultRowType == lastRowType)
+                    return true;
+               else {
+                    if(python::Type::propagateToTupleType(resultRowType) == lastRowType)
+                        return true;
+                    throw std::runtime_error("result type " + resultRowType.desc() + " of " + op_name + " does not match type of previous operator " + lastRowType.desc());
+
+                }
+               return false;
+            }
+
         };
 
 

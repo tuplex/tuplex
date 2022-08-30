@@ -247,8 +247,8 @@ namespace tuplex {
                     FlattenedTuple resultRow = cf.callWithExceptionHandler(builder, _lastRowInput, resVal, bbException, getPointerToVariable(builder, "exceptionCode"));
 
                     // check that the output type is the same as the expected one!
-                    if(resultRow.getTupleType() != _lastRowResult.getTupleType())
-                        throw std::runtime_error("result type " + resultRow.getTupleType().desc() + " of resolver does not match type of previous operator " + _lastRowResult.getTupleType().desc());
+                    if(!checkRowTypesCompatible(resultRow.getTupleType(), _lastRowResult.getTupleType(), "resolve"))
+                        return false;
 
                     // store result into var
                     resultRow.storeTo(builder, _lastTupleResultVar);
@@ -341,8 +341,8 @@ namespace tuplex {
 
                     // store final output to variable
                     // check that the output type is the same as the expected one!
-                    if(resultRow.getTupleType() != _lastRowResult.getTupleType())
-                        throw std::runtime_error("result type " + resultRow.getTupleType().desc() + " of resolver does not match type of previous operator " + _lastRowResult.getTupleType().desc());
+                    if(!checkRowTypesCompatible(resultRow.getTupleType(), _lastRowResult.getTupleType(), "resolve"))
+                        return false;
 
                     // store result into var
                     resultRow.storeTo(builder, _lastTupleResultVar);
@@ -388,8 +388,8 @@ namespace tuplex {
 
                     // store final output to variable
                     // check that the output type is the same as the expected one!
-                    if(resultRow.getTupleType() != _lastRowResult.getTupleType())
-                        throw std::runtime_error("result type " + resultRow.getTupleType().desc() + " of resolver does not match type of previous operator " + _lastRowResult.getTupleType().desc());
+                    if(!checkRowTypesCompatible(resultRow.getTupleType(), _lastRowResult.getTupleType(), "resolve"))
+                        return false;
 
                     // store result into var
                     resultRow.storeTo(builder, _lastTupleResultVar);

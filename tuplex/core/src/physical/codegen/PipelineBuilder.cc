@@ -719,11 +719,14 @@ namespace tuplex {
             auto exceptionBlock = createExceptionBlock();
             auto outVal = cf.callWithExceptionHandler(builder, _lastRowResult, resVal, exceptionBlock, getPointerToVariable(builder, "exceptionCode"));
 
-            if(outVal.getTupleType().isTupleType())
-                EXCEPTION("tuples not yet supported...");
-
-            // assign to input vals
-            auto resLoad = codegen::SerializableValue(outVal.get(0), outVal.getSize(0), outVal.getIsNull(0));
+            SerializableValue resLoad;
+            if(!cf.output_python_type.isTupleType() || cf.output_python_type == python::Type::EMPTYTUPLE) {
+                // load single element
+                resLoad = codegen::SerializableValue(outVal.get(0), outVal.getSize(0), outVal.getIsNull(0));
+            } else {
+                // load tuple
+                resLoad.val = outVal.getLoad(builder); // load full tuple.
+            }
 
             // // debug
             // assert(resLoad.val);

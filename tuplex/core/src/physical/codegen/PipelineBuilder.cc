@@ -624,19 +624,23 @@ namespace tuplex {
             auto exceptionBlock = createExceptionBlock();
             auto outVal = cf.callWithExceptionHandler(builder, inVal, resVal, exceptionBlock, getPointerToVariable(builder, "exceptionCode"));
 
-            if(outVal.getTupleType().isTupleType())
-                EXCEPTION("tuples not yet supported...");
-
-            // assign to input vals
-#warning "untested code for tuples etc...."
-            auto resLoad = codegen::SerializableValue(outVal.get(0), outVal.getSize(0), outVal.getIsNull(0));
+            // check what original type is. If it is a non-tuple -> assign primitive.
+            // if not, load tuple!
+            SerializableValue resLoad;
+            if(!cf.output_python_type.isTupleType() || cf.output_python_type == python::Type::EMPTYTUPLE) {
+                // load single element
+                resLoad = codegen::SerializableValue(outVal.get(0), outVal.getSize(0), outVal.getIsNull(0));
+            } else {
+                // load tuple
+                resLoad.val = outVal.getLoad(builder); // load full tuple.
+            }
 
             // copy to new vals
             FlattenedTuple ftOut(&env());
 
             auto params = _lastSchemaType.isTupleType() ? _lastSchemaType.parameters() : std::vector<python::Type>({_lastSchemaType});
             // update with result of UDF
-            params[columnToMapIndex] = outVal.getTupleType();
+            params[columnToMapIndex] = cf.output_python_type;
             auto finalType = python::Type::makeTupleType(params);
 
             ftOut.init(finalType);
@@ -656,12 +660,12 @@ namespace tuplex {
 
             // check return type..
             if(_lastRowResult.getTupleType().isTupleType()) {
-                if(_lastRowResult.getTupleType().parameters()[columnToMapIndex] != cf.output_type) {
+                if(_lastRowResult.getTupleType().parameters()[columnToMapIndex] != cf.output_python_type) {
                     logger.error("wrong output type. Expected " + finalType.desc() + " got " + _lastRowResult.getTupleType().desc());
                     return false;
                 }
             } else {
-                if(_lastRowResult.getTupleType() != cf.output_type) {
+                if(_lastRowResult.getTupleType() != cf.output_python_type) {
                     logger.error("wrong output type. Expected " + cf.output_type.desc() + " got " + _lastRowResult.getTupleType().desc());
                     return false;
                 }

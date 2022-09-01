@@ -145,6 +145,30 @@ namespace tuplex {
         return t;
     }
 
+    PyObject* unwrapRow(PyObject *o) {
+        // internal row class?
+        if(0 == strcmp(o->ob_type->tp_name, "Row")) {
+           // check how many elements, if 1 unwrap!
+           auto data = PyObject_GetAttrString(o, "data");
+           auto seq_len = PySequence_Length(data);
+           if(1 == seq_len) {
+               if(PyTuple_Check(data)) {
+                   auto item = PyTuple_GetItem(data, 0);
+                   Py_XINCREF(item);
+                   return item;
+               } else if(PyList_Check(data)) {
+                   auto item = PyList_GetItem(data, 0);
+                   Py_XINCREF(item);
+                   return item;
+               } else {
+                   std::cerr<<"internal error while attempting to unwrap row object"<<std::endl;
+               }
+           }
+       }
+
+        return o;
+    }
+
     size_t HybridLookupTable::backupItemCount() const {
         if(!backupDict)
             return 0;
@@ -255,6 +279,11 @@ namespace tuplex {
             return -1;
         }
 
+        // special case: is class of value the dummy Row class created within the code?
+        // => unpack or keep as tuple!
+        value = unwrapRow(value);
+
+
         // decoce types of both key and val
         auto key_type = python::mapPythonClassToTuplexType(key, false);
         auto val_type = python::mapPythonClassToTuplexType(value, false);
@@ -345,6 +374,14 @@ namespace tuplex {
             return false;
         }
 
+        // check if key exists in backup dict
+        if(backupDict) {
+            auto item = PyObject_GetItem(backupDict, key);
+            if(item)
+                return true;
+        }
+
+        // if not, check in C++ hashmap.
         if(hmBucketType == python::Type::UNKNOWN) {
             PyErr_SetString(PyExc_KeyError, "unknown bucket type");
             return false;
@@ -400,11 +437,9 @@ namespace tuplex {
                 }
             } else
                 throw std::runtime_error("unsupported key type in lookup " + key_type.desc());
-        } else {
-            if(!backupDict)
-                return false;
-            return PyObject_GetItem(backupDict, key);
         }
+
+        return false;
     }
 
     PyObject *HybridLookupTable::setDefault(PyObject *key, PyObject *value) {

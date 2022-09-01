@@ -17,6 +17,9 @@
 #include <TypeSystem.h>
 
 namespace tuplex {
+
+    extern PyObject* unwrapRow(PyObject *o);
+
     // define hybrid Tuplex/Python hashtable object
     struct HybridLookupTable {
         PyObject_HEAD;

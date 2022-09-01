@@ -609,6 +609,13 @@ default:
                             _numUnresolved++;
                         }
 
+
+                        {
+                            // debug
+                            Py_XINCREF(resultRows);
+                            PyObject_Print(resultRows, stdout, 0); std::cout<<std::endl;
+                        }
+
                         for(int i = 0; i < listSize; ++i) {
                             // type check w. output schema
                             // cf. https://pythonextensionpatterns.readthedocs.io/en/latest/refcount.html
@@ -1311,6 +1318,15 @@ default:
         rowToMemorySink(owner(), _mergedRowsSink, commonCaseOutputSchema(), 0, contextID(), buf, bufSize);
     }
 
+    PyObject* unwrapTuple(PyObject* o) {
+        if(PyTuple_Check(o) && PyTuple_Size(o) == 1) {
+            auto item = PyTuple_GetItem(o, 0);
+            Py_XINCREF(item);
+            return item;
+        }
+        return o;
+    }
+
     void ResolveTask::sinkRowToHashTable(PyObject *rowObject, PyObject* key) {
         using namespace std;
 
@@ -1354,6 +1370,9 @@ default:
             case AggregateType::AGG_BYKEY: {
                 // get key from result.
                 assert(key);
+
+                // unwrap tuple if necessary to store original value.
+                rowObject = unwrapTuple(rowObject);
 
                 // debug print
                 {

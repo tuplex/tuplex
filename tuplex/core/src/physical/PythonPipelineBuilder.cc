@@ -950,12 +950,9 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         ss<<"agg_value = "<<"apply_func2(f_agg, result_to_row(agg_value), "<<row()<<")\n";
         ss<<"print('agg result: {}'.format(agg_value))\n";
 
+        // output aggregate value and key (b.c. special treatment necessary!)
         // update row to be agg value
         ss<<row()<<" = result_to_row(agg_value)\n";
-
-        // output aggregate value and key (b.c. special treatment necessary!)
-        ss<<"res['outputRows'] += [" + row() + ".data]\n"
-            "res['outputColumns'] = " + row() + ".columns\n";
         ss<<"res['key'] = agg_key\n";
 
         // debug

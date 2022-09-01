@@ -2058,32 +2058,34 @@ namespace tuplex {
 
                 // perform combine func for hash aggregate
                 auto hybrid = (HybridLookupTable*)sink.hybrid_hm;
-                auto pure_python_dict = hybrid->pythonDict(true); assert(pure_python_dict);
+                auto pure_python_dict = hybrid->pythonDict(true);
 
-                // debug
-                Py_XINCREF(pure_python_dict);
-                PyObject_Print(pure_python_dict, stdout, 0);
-                std::cout<<std::endl;
+                if(pure_python_dict) {
+                    // debug
+                    Py_XINCREF(pure_python_dict);
+                    PyObject_Print(pure_python_dict, stdout, 0);
+                    std::cout<<std::endl;
 
-                // call on top
-                PyObject* args = PyTuple_New(1);
-                PyTuple_SET_ITEM(args, 0, pure_python_dict);
-                auto pcr = python::callFunctionEx(py_combine_aggregate, args);
+                    // call on top
+                    PyObject* args = PyTuple_New(1);
+                    PyTuple_SET_ITEM(args, 0, pure_python_dict);
+                    auto pcr = python::callFunctionEx(py_combine_aggregate, args);
 
-                if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
-                    logger().error("calling python function on hash table failed.");
-                } else {
-                    auto resObj = pcr.res; assert(resObj);
-                    auto aggObj = PyDict_GetItemString(resObj, "aggregate");
-                    if(!aggObj) {
-                        PyObject_Print(resObj, stdout, 0);
-                        std::cout<<std::endl;
+                    if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
+                        logger().error("calling python function on hash table failed.");
+                    } else {
+                        auto resObj = pcr.res; assert(resObj);
+                        auto aggObj = PyDict_GetItemString(resObj, "aggregate");
+                        if(!aggObj) {
+                            PyObject_Print(resObj, stdout, 0);
+                            std::cout<<std::endl;
+                        }
+                        assert(aggObj);
+
+                        // update hybrid
+                        hybrid->update(aggObj);
+                        Py_XDECREF(aggObj);
                     }
-                    assert(aggObj);
-
-                    // update hybrid
-                    hybrid->update(aggObj);
-                    Py_XDECREF(aggObj);
                 }
 
                 if(acquireGIL)

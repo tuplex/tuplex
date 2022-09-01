@@ -14,6 +14,7 @@
 #include <ExceptionCodes.h>
 #include <UDF.h>
 #include <Base.h>
+#include <logical/AggregateOperator.h>
 
 namespace tuplex {
 
@@ -91,6 +92,9 @@ namespace tuplex {
                             const std::vector<size_t>& aggColumns,
                             const Row& initial_value);
         void pythonAggGeneral(int64_t operatorID, const UDF& aggUDF);
+
+
+        static std::string udfToByteCode(const UDF& udf);
     private:
         std::string _funcName;
         std::stringstream _ss;
@@ -192,9 +196,7 @@ namespace tuplex {
         std::string replaceTabs(const std::string& s);
 
         std::string columnsToList(const std::vector<std::string>& columns);
-        std::string toByteCode(const std::string& s);
-
-        std::string udfToByteCode(const UDF& udf);
+        static std::string toByteCode(const std::string& s);
 
         //! helper function to write one or more lines at specific indent level
         std::string indentLines(int indentFactor, const std::string& s);
@@ -222,6 +224,13 @@ namespace tuplex {
             return ss.str();
         }
     };
+
+    /*!
+     * generates a function that combines two aggregates
+     */
+    extern std::string codegenPythonCombineAggregateFunction(const std::string& function_name, int64_t operatorID,
+                                                             const AggregateType& agg_type, const UDF& combine_udf);
+
 }
 
 #endif //TUPLEX_PYTHONPIPELINEBUILDER_H

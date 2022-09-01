@@ -913,4 +913,49 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         throw std::runtime_error("agg general python code path not yet implemented");
     }
 
+    std::string codegenPythonCombineAggregateFunction(const std::string& function_name, int64_t operatorID, const AggregateType& agg_type, const UDF& combine_udf) {
+
+        std::stringstream ss;
+        ss<<"def "<<function_name<<"(a, b):\n";
+        ss<<"\tres = {'exceptionOperatorID': "<<operatorID<<"}\n";
+        ss<<"\ttry:\n";
+        ss<<"\t\tcode = "<<PythonPipelineBuilder::udfToByteCode(combine_udf)<<"\n";
+        ss<<"\t\tf = cloudpickle.loads(code)\n";
+        // emit code to combine aggregates depending on agg type
+        switch(agg_type) {
+            case AggregateType::AGG_UNIQUE: {
+                // ??
+                break;
+            }
+            case AggregateType::AGG_BYKEY: {
+                // iterate over all keys and combine
+                ss<<"\t\tcombined_agg = a.copy()\n";
+                ss<<"\t\tfor k in b.keys():\n";
+                ss<<"\t\t\tif k in a.keys():\n";
+                ss<<"\t\t\t\tcombined_agg[k] = f(a[k], b[k])\n";
+                ss<<"\t\t\telse:\n";
+                ss<<"\t\t\t\tcombined_agg[k] = b[k]\n";
+                break;
+            }
+            case AggregateType::AGG_GENERAL: {
+                // simply call combine once
+                // @TODO: maybe call with Row conversion first??
+                ss<<"\t\tcombined_agg = f(a, b)\n";
+                break;
+            }
+            default:
+                throw std::runtime_error("unknown aggregate type " + std::to_string(static_cast<int>(agg_type)) + " encountered.");
+        }
+
+
+        ss<<"\texcept Exception as e:\n";
+        ss<<"\t\tres['input_lhs'] = a\n";
+        ss<<"\t\tres['input_rhs'] = b\n";
+        ss<<"\t\tres['exception'] = e\n";
+        ss<<"\t\treturn res\n";
+        ss<<"\tres['aggregate'] = combined_agg\n";
+        ss<<"\treturn res\n";
+
+        return ss.str();
+    }
 }

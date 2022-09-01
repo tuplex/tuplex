@@ -8,14 +8,12 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <utility>
-
-//
-// Created by Leonhard Spiegelberg on 3/2/20.
-//
 
 #ifndef TUPLEX_AGGREGATEOPERATOR_H
 #define TUPLEX_AGGREGATEOPERATOR_H
+
+#include <utility>
+#include "LogicalOperator.h"
 
 namespace tuplex {
 

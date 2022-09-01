@@ -75,13 +75,27 @@ namespace tuplex {
          * @param tasks
          * @param hashtableKeyByteWidth The width of the keys in the hashtables (e.g. differentiate between i64 and str hashtable)
          * @param combine whether this is an aggregate (e.g. if we should call the aggregate combiner, rather than simply merging the hashtables)
+         * @param init_aggregate function to initialize an aggregate (codegen)
+         * @param combine_aggregate function to combine two aggregates (per key).
+         * @param initial_agg_value the initial aggregate value
+         * @param combine_aggregate_udf UDF to use for combining aggregates (used for Python part)
+         * @param acquireGIL whether this function should acquire the GIL on its own or not.
          * @return the final hashtable sink
          */
         HashTableSink createFinalHashmap(const std::vector<const IExecutorTask*>& tasks,
                                          int hashtableKeyByteWidth,
                                          bool combine,
                                          codegen::agg_init_f init_aggregate,
-                                         codegen::agg_combine_f combine_aggregate);
+                                         codegen::agg_combine_f combine_aggregate,
+                                         PyObject* py_combine_aggregate=nullptr,
+                                         bool acquireGIL=true);
+        // need something to combine python aggregates as well from multiple resolve tasks...
+        // --> generate function for this?
+        // const Row& initial_agg_value,
+        //                                         const UDF& combine_aggregate_udf,
+        //                                         bool acquireGIL=true
+
+
 
         // hash join stage
         void executeHashJoinStage(HashJoinStage* hstage);

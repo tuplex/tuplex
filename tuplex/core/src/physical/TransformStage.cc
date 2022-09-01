@@ -948,6 +948,8 @@ namespace tuplex {
 
         stage->_irBitCode = msg.bitcode();
         stage->_pyCode = msg.pycode();
+        stage->_pyAggregateCode = msg.pyaggcode();
+        stage->_pyAggregateFunctionName = msg.pyaggname();
 
         stage->_persistSeparateCases = msg.persistseparatecases();
 
@@ -980,6 +982,8 @@ namespace tuplex {
 
         msg->set_bitcode(_irBitCode);
         msg->set_pycode(_pyCode);
+        msg->set_pyaggcode(_pyAggregateCode);
+        msg->set_pyaggname(_pyAggregateFunctionName);
 
         for(const auto& col : _inputColumns)
             msg->add_inputcolumns(col);

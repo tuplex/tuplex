@@ -1154,6 +1154,8 @@ namespace tuplex {
             free(aggResult);
             // set resultset!
 
+            // @TODO: add here python based data...
+
             tstage->setMemoryResult(vector<Partition*>{p}); // @TODO: what about exceptions??
         }
 
@@ -2024,8 +2026,9 @@ namespace tuplex {
                                                    int hashtableKeyByteWidth,
                                                    bool combine,
                                                    codegen::agg_init_f init_aggregate,
-                                                   codegen::agg_combine_f combine_aggregate) {
-
+                                                   codegen::agg_combine_f combine_aggregate,
+                                                   PyObject* py_combine_aggregate,
+                                                   bool acquireGIL) {
         // note: in order to preserve semantics on each group at least once the combine function has to be run.
         // this can be achieved by running combine with the initial value
 

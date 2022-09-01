@@ -117,6 +117,8 @@ namespace tuplex {
             std::string _pyPipelineName;
             std::string _irBitCode;         // store code as bitcode (faster for parsing)
             std::string _pyCode;            // python backup code
+            std::string _pyAggregateCode;
+            std::string _pyAggregateFunctionName;
 
             std::string _writerFuncName; // name of the function where to write stuff to.
 

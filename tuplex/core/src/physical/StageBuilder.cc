@@ -528,6 +528,10 @@ namespace tuplex {
                     case LogicalOperatorType::AGGREGATE: {
                         // aggregate is currently not part of codegen, i.e. the aggregation happens when writing out the output!
                         // ==> what about aggByKey though?
+
+                        // aggByKey is not implemented
+#error "need to implement/add aggByKey."
+
                         break;
                     }
                     default: {

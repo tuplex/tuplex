@@ -1208,6 +1208,26 @@ namespace tuplex {
         Logger::instance().defaultLogger().info(ss.str());
     }
 
+
+    int print_hm_key(void* userData, hashmap_element* entry) {
+        auto data = (uint8_t*)entry->data; // bucket data. First is always an int64_t holding how many rows there are.
+
+        using namespace std;
+        if(entry->in_use) {
+            cout<<"key: "<<entry->key;
+
+            if(data) {
+                // other bucket count
+                auto num_entries =  (*(uint64_t*)data >> 32ul);
+                cout<<" "<<pluralize(num_entries, "value");
+            }
+
+            cout<<endl;
+        }
+
+        return MAP_OK;
+    }
+
     std::vector<IExecutorTask*> LocalBackend::resolveViaSlowPath(
             std::vector<IExecutorTask*> &tasks,
             bool merge_rows_in_order,
@@ -1242,6 +1262,16 @@ namespace tuplex {
                                        true);
             logger().info("created combined normal-case result in " + std::to_string(timer.time()) + "s");
             hasNormalHashSink = true;
+
+            // debug: print info on hash sink
+            using namespace std;
+            cout<<"hash sink result is: "<<endl;
+            if(hsink.hm) {
+                cout<<"hashmap contains following keys: "<<endl;
+                int test = 0;
+                hashmap_iterate(hsink.hm, print_hm_key, &test);
+            }
+
         }
 
         Timer timer;

@@ -231,7 +231,8 @@ namespace tuplex {
                 auto combine_udf = aop->combinerUDF();
                 _pyAggregateFunctionName = "combine_py_aggregates";
                 _pyAggregateCode = codegenPythonCombineAggregateFunction(_pyAggregateFunctionName, aop->getID(),
-                                                                         aop->aggType(), combine_udf);
+                                                                         aop->aggType(), aop->initialValue(),
+                                                                         combine_udf);
             }
 
             _pyCode = ppb.getCode();

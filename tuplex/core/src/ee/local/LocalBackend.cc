@@ -2029,7 +2029,7 @@ namespace tuplex {
                                                    codegen::agg_combine_f combine_aggregate,
                                                    PyObject* py_combine_aggregate,
                                                    bool acquireGIL) {
-        // note: in order to preserve semantics on each group at least once the combine function has to be run.
+        // note: in order to preserve semantics on each group at least ONCE the combine function has to be run.
         // this can be achieved by running combine with the initial value
 
         if(tasks.empty()) {

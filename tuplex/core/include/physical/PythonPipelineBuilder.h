@@ -229,7 +229,9 @@ namespace tuplex {
      * generates a function that combines two aggregates
      */
     extern std::string codegenPythonCombineAggregateFunction(const std::string& function_name, int64_t operatorID,
-                                                             const AggregateType& agg_type, const UDF& combine_udf);
+                                                             const AggregateType& agg_type,
+                                                             const Row& initial_value,
+                                                             const UDF& combine_udf);
 
 }
 

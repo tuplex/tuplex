@@ -44,6 +44,19 @@ namespace tuplex {
 
         PyObject* setDefault(PyObject* key, PyObject* value);
 
+        /*!
+         * retrieves underlying python dictionary
+         * @param remove whether to reset dict or not
+         * @return the underlying python backup dictionary
+         */
+        PyObject* pythonDict(bool remove= false);
+
+        /*!
+         * update internal structure with given dict object
+         * @param dictObject
+         */
+        void update(PyObject* dictObject);
+
     private:
         /*
          * checks for key existence throughout all structures...

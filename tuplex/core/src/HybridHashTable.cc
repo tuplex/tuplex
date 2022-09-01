@@ -409,13 +409,14 @@ namespace tuplex {
 
     PyObject *HybridLookupTable::setDefault(PyObject *key, PyObject *value) {
         // check if item exists, if so return. Else, set to default value!
+        Py_XINCREF(key);
+        Py_XINCREF(value);
         if(!_key_exists(key)) {
             PyErr_Clear(); // clear key error
-            Py_XINCREF(value);
             putItem(key, value);
             return value;
         } else {
-            Py_XDECREF(value); // ??
+            //Py_XDECREF(value); // ??
             return getItem(key);
         }
     }
@@ -486,5 +487,29 @@ namespace tuplex {
         o->backupDict = nullptr;
         o->sink = &sink;
         return o;
+    }
+
+    PyObject* HybridLookupTable::pythonDict(bool remove) {
+        if(remove) {
+            auto dict = backupDict;
+            backupDict = nullptr;
+            return dict;
+        } else {
+            Py_XINCREF(backupDict);
+            return backupDict;
+        }
+    }
+
+    void HybridLookupTable::update(PyObject* dictObject) {
+        assert(dictObject && PyDict_Check(dictObject));
+
+        // iterate and insert using putItem!
+        PyObject *key = nullptr, *val = nullptr;
+        Py_ssize_t pos = 0;
+        while (PyDict_Next(dictObject, &pos, &key, &val)) {
+           Py_XINCREF(key);
+           Py_XINCREF(val);
+           putItem(key, val);
+        }
     }
 }

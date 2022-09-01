@@ -162,7 +162,7 @@ namespace tuplex {
         indent(); // indent now everything
     }
 
-    std::string PythonPipelineBuilder::replaceTabs(const std::string &s) {
+    std::string PythonPipelineBuilder::replaceTabs(const std::string &s) const {
         std::string res;
         res = "";
         for(auto c : s) {
@@ -177,7 +177,7 @@ namespace tuplex {
         return res;
     }
 
-    std::string PythonPipelineBuilder::indentLines(int indentLevel, const std::string &s) {
+    std::string PythonPipelineBuilder::indentLines(int indentLevel, const std::string &s) const {
         std::stringstream ss;
 
         indentLevel = std::max(indentLevel, 0);
@@ -924,16 +924,45 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         // also yield key...
         // fetch current key
         std::stringstream ss;
+
+        // create at beginning of pipeline function lookup into aggregate value
+        std::stringstream header;
+        header<<"agg_value = None\n";
+
+        // check if key exists in hashmap, if not create! Else, call aggregate function on top!
         ss<<"agg_key = ["<<row()<<"[key] for key in "<<vecToList(aggColumns)<<"]\n";
         ss<<"agg_key = tuple(agg_key) if len(agg_key) != 1 else agg_key[0]\n";
+        ss<<"if agg_value is None:\n";
+        ss<<"\tagg_value = "<<hashmap_name<<".setdefault(agg_key, result_to_row("<<initial_value.toPythonString()<<"))\n";
 
-        // check if key exists in hashmap, if not create! Else, call aggregat function!
-        ss<<"agg_value = "<<hashmap_name<<".setdefault(agg_key, "<<initial_value.toPythonString()<<")\n";
-        ss<<hashmap_name<<"[agg_key] = "<<"None\n";
+        // debug
+        ss<<"\tprint('aggregate value: {}'.format(agg_value))\n";
+        ss<<"\tagg_value = agg_value[0]\n";
+        ss<<"\tprint('aggregate value after unpacking: {}'.format(agg_value))\n";
 
+        // add aggregate initialization to header
+        _headCode += header.str();
+
+
+        // decode function
+        ss<<"code = "<<udfToByteCode(aggUDF)<<"\n";
+        ss<<"f_agg = cloudpickle.loads(code)\n";
+        ss<<"agg_value = "<<"apply_func2(f_agg, result_to_row(agg_value), "<<row()<<")\n";
+        ss<<"print('agg result: {}'.format(agg_value))\n";
+
+        // update row to be agg value
+        ss<<row()<<" = result_to_row(agg_value)\n";
+
+        // output aggregate value and key (b.c. special treatment necessary!)
         ss<<"res['outputRows'] += [" + row() + ".data]\n"
-                                                              "res['outputColumns'] = " + row() + ".columns\n";
+            "res['outputColumns'] = " + row() + ".columns\n";
         ss<<"res['key'] = agg_key\n";
+
+        // debug
+        ss<<"print('agg ret: {}'.format(res))\n";
+
+        _header += codegenApplyFuncTwoArg();
+
         auto code = ss.str();
 
         // could use yield here as well...

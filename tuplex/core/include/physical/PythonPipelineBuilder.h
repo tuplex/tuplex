@@ -83,7 +83,7 @@ namespace tuplex {
         void resolve(int64_t operatorID, ExceptionCode ec, const UDF& udf); // resolver UDF (resolve last operator)
         void ignore(int64_t operatorID, ExceptionCode ec); // ignore specific exception code (i.e. filter out based on exception code)
 
-        std::string getCode() const { return _imports + "\n" + _header + "\n" + functionSignature() + _ss.str() + tailCode(); }
+        std::string getCode() const { return _imports + "\n" + _header + "\n" + functionSignature() + headCode() + _ss.str() + tailCode(); }
 
         // aggregate functions:
         void pythonAggByKey(int64_t operatorID,
@@ -181,6 +181,10 @@ namespace tuplex {
             return ss.str();
         }
 
+        std::string _headCode;
+        std::string headCode() const {
+            return indentLines(1, _headCode);
+        }
 
         // because resolvers are added lazily, need to lazy flush function with exception handling
         struct Function {
@@ -193,13 +197,13 @@ namespace tuplex {
         Function _lastFunction;
         void flushLastFunction(); // add last function to code
 
-        std::string replaceTabs(const std::string& s);
+        std::string replaceTabs(const std::string& s) const;
 
         std::string columnsToList(const std::vector<std::string>& columns);
         static std::string toByteCode(const std::string& s);
 
         //! helper function to write one or more lines at specific indent level
-        std::string indentLines(int indentFactor, const std::string& s);
+        std::string indentLines(int indentFactor, const std::string& s) const;
         void writeLine(const std::string& s);
         void indent() { _indentLevel++; }
         void dedent() { _indentLevel--; }

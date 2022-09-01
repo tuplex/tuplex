@@ -1116,11 +1116,15 @@ namespace tuplex {
                 if(completedTasks.empty()) {
                     tstage->setHashResult(nullptr, nullptr);
                 } else {
+
+                    auto py_combine = preparePythonPipeline(tstage->purePythonAggregateCode(), tstage->pythonAggregateFunctionName());
                     auto hsink = createFinalHashmap({completedTasks.cbegin(), completedTasks.cend()},
                                                     tstage->hashtableKeyByteWidth(),
                                                     combineOutputHashmaps,
                                                     syms->aggInitFunctor,
-                                                    syms->aggCombineFunctor);
+                                                    syms->aggCombineFunctor,
+                                                    py_combine,
+                                                    true);
                     tstage->setHashResult(hsink.hm, hsink.null_bucket, hsink.hybrid_hm);
                 }
                 break;
@@ -1226,11 +1230,16 @@ namespace tuplex {
 
             // special case: create a global hash output result and put it into the FIRST resolve task.
             Timer timer;
+            // compile & prep python pipeline for this stage
+            auto pip_object = preparePythonPipeline(tstage->purePythonAggregateCode(), tstage->pythonAggregateFunctionName());
+
             hsink = createFinalHashmap({tasks.cbegin(), tasks.cend()},
                                        tstage->hashtableKeyByteWidth(),
                                        combineHashmaps,
                                        init_aggregate,
-                                       combine_aggregate);
+                                       combine_aggregate,
+                                       pip_object,
+                                       true);
             logger().info("created combined normal-case result in " + std::to_string(timer.time()) + "s");
             hasNormalHashSink = true;
         }
@@ -2013,13 +2022,6 @@ namespace tuplex {
             ctx.combine_aggregate = combine_aggregate;
             hashmap_iterate(sink.hm, reinterpret_cast<PFany>(apply_to_bucket), &ctx);
         }
-
-        // TODO: missing is, need to apply UDFs to hybrid hashmap as well in case...
-        // --> should be a trivial function (?)
-        // @TODO.
-        if(sink.hybrid_hm) {
-            throw std::runtime_error("applyCombinePerGroup not implemented for hybrid hash table yet.");
-        }
     }
 
     HashTableSink LocalBackend::createFinalHashmap(const std::vector<const IExecutorTask*>& tasks,
@@ -2047,6 +2049,45 @@ namespace tuplex {
             // aggByKey or aggregate?
             if(init_aggregate && combine_aggregate) {
                 applyCombinePerGroup(sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
+            }
+
+            // check if hybrid exists, if so run python function on top
+            if(sink.hybrid_hm && py_combine_aggregate) {
+                if(acquireGIL)
+                    python::lockGIL();
+
+                // perform combine func for hash aggregate
+                auto hybrid = (HybridLookupTable*)sink.hybrid_hm;
+                auto pure_python_dict = hybrid->pythonDict(true); assert(pure_python_dict);
+
+                // debug
+                Py_XINCREF(pure_python_dict);
+                PyObject_Print(pure_python_dict, stdout, 0);
+                std::cout<<std::endl;
+
+                // call on top
+                PyObject* args = PyTuple_New(1);
+                PyTuple_SET_ITEM(args, 0, pure_python_dict);
+                auto pcr = python::callFunctionEx(py_combine_aggregate, args);
+
+                if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
+                    logger().error("calling python function on hash table failed.");
+                } else {
+                    auto resObj = pcr.res; assert(resObj);
+                    auto aggObj = PyDict_GetItemString(resObj, "aggregate");
+                    if(!aggObj) {
+                        PyObject_Print(resObj, stdout, 0);
+                        std::cout<<std::endl;
+                    }
+                    assert(aggObj);
+
+                    // update hybrid
+                    hybrid->update(aggObj);
+                    Py_XDECREF(aggObj);
+                }
+
+                if(acquireGIL)
+                    python::unlockGIL();
             }
 
             return sink;

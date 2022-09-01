@@ -553,8 +553,10 @@ default:
             if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
                 // this should not happen, bad internal error. codegen'ed python should capture everything.
                 owner()->error("bad internal python error: " + pcr.exceptionMessage);
+                python::unlockGIL();
+                return;
             } else {
-                // all good, row is fine. exception occured?
+                // all good, row is fine. exception occurred?
                 assert(pcr.res);
 
                 // type check: save to regular rows OR save to python row collection
@@ -592,6 +594,13 @@ default:
                     } else {
                         // normal, check type and either merge to normal set back OR onto python set together with row number?
                         auto resultRows = PyDict_GetItemString(pcr.res, "outputRows");
+
+                        // no output rows? continue.
+                        if(!resultRows) {
+                            python::unlockGIL();
+                            return;
+                        }
+
                         assert(PyList_Check(resultRows));
 
                         auto listSize = PyList_Size(resultRows);
@@ -1345,6 +1354,20 @@ default:
             case AggregateType::AGG_BYKEY: {
                 // get key from result.
                 assert(key);
+
+                // debug print
+                {
+                    Py_XINCREF(rowObject);
+                    Py_XINCREF(key);
+
+                    std::stringstream ss;
+                    ss<<"sinkining following to hash endpoint:\n";
+                    ss<<"key: "<<python::PyString_AsString(key)<<"\n";
+                    ss<<"object: "<<python::PyString_AsString(rowObject)<<"\n";
+                    std::cout<<ss.str()<<std::endl;
+                }
+
+
                 // lazy create table
                 if(!_htable.hybrid_hm) {
                     auto adjusted_key_type = _hash_element_type.isTupleType() && _hash_element_type.parameters().size() == 1 ?

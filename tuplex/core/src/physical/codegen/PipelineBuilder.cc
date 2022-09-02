@@ -742,10 +742,10 @@ namespace tuplex {
             auto params = _lastSchemaType.isTupleType() ? _lastSchemaType.parameters() : std::vector<python::Type>({_lastSchemaType});
             // update with result of UDF
             if(columnToMapIndex < params.size())
-                params[columnToMapIndex] = outVal.getTupleType();
+                params[columnToMapIndex] = cf.output_python_type;
             else {
                 assert(columnToMapIndex == params.size()); // append!
-                params.emplace_back(outVal.getTupleType());
+                params.emplace_back(cf.output_python_type);
             }
             auto finalType = python::Type::makeTupleType(params);
 
@@ -767,12 +767,12 @@ namespace tuplex {
 
             // check return type..
             if(_lastRowResult.getTupleType().isTupleType()) {
-                if(_lastRowResult.getTupleType().parameters()[columnToMapIndex] != cf.output_type) {
+                if(_lastRowResult.getTupleType().parameters()[columnToMapIndex] != cf.output_python_type) {
                     logger.error("wrong output type. Expected " + finalType.desc() + " got " + _lastRowResult.getTupleType().desc());
                     return false;
                 }
             } else {
-                if(_lastRowResult.getTupleType() != cf.output_type) {
+                if(_lastRowResult.getTupleType() != cf.output_python_type) {
                     logger.error("wrong output type. Expected " + cf.output_type.desc() + " got " + _lastRowResult.getTupleType().desc());
                     return false;
                 }

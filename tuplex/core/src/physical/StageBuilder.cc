@@ -530,7 +530,7 @@ namespace tuplex {
                         // ==> what about aggByKey though?
 
                         // aggByKey is not implemented
-#error "need to implement/add aggByKey."
+
 
                         break;
                     }

@@ -20,6 +20,8 @@ namespace tuplex {
 
     PyObject* HybridLookupTable::getItem(PyObject *key) {
 
+        assert(valueMode != LookupStorageMode::UNKNOWN);
+
         assert(sink);
 
         // nullptr? keyerror
@@ -178,6 +180,8 @@ namespace tuplex {
     int HybridLookupTable::putKey(PyObject *key) {
         assert(sink);
 
+        assert(valueMode != LookupStorageMode::UNKNOWN);
+
         // make sure value type is null or UNKNOWN
         if(!(hmBucketType == python::Type::UNKNOWN || hmBucketType == python::Type::NULLVALUE)) {
             PyErr_SetString(PyExc_KeyError, "using hybrid hash table likely for unique, yet bucket type is set. Wrong internal typing?");
@@ -269,6 +273,8 @@ namespace tuplex {
     int HybridLookupTable::putItem(PyObject *key, PyObject *value) {
         using namespace tuplex;
 
+        assert(valueMode != LookupStorageMode::UNKNOWN);
+
         if(!value && key)
             return putKey(key);
 
@@ -283,7 +289,6 @@ namespace tuplex {
         // => unpack or keep as tuple!
         value = unwrapRow(value);
 
-
         // decoce types of both key and val
         auto key_type = python::mapPythonClassToTuplexType(key, false);
         auto val_type = python::mapPythonClassToTuplexType(value, false);
@@ -291,11 +296,14 @@ namespace tuplex {
         // @TODO: upcasting b.c. of NVO!
 
         // match of internal dict? -> else use backup dict
-        if((key_type == hmElementType || key_type == python::Type::NULLVALUE) && val_type == hmBucketType) {
+        if((key_type == hmElementType || key_type == python::Type::NULLVALUE)
+            && val_type == hmBucketType) {
             // simply insert into hashmap (lazy create)
             if(!sink->hm)
                 sink->hm = hashmap_new();
-            if(key_type != python::Type::I64 && key_type != python::Type::STRING && key_type != python::Type::NULLVALUE) {
+            if(key_type != python::Type::I64
+               && key_type != python::Type::STRING
+               && key_type != python::Type::NULLVALUE) {
                 PyErr_SetString(PyExc_KeyError, "only i64, string or None as keys yet supported");
                 return -1;
             }
@@ -311,57 +319,135 @@ namespace tuplex {
 #endif
             bucket_row.serializeToMemory(buf, buf_length);
 
-            // special case: null bucket
-            if(key_type == python::Type::NULLVALUE) {
-                sink->null_bucket = extend_bucket(sink->null_bucket, buf, buf_length);
-            } else if(key_type == python::Type::STRING) {
-                // regular, key bucket
-                auto key_str = python::PyString_AsString(key);
+            switch(valueMode) {
+                case LookupStorageMode::VALUE: {
+                    // store the value as is (in serialized form)
 
-                if(!sink->hm)
-                    sink->hm = hashmap_new();
+                    // create buf with 8 byte length field for value
+                    uint8_t* value_buf = (uint8_t*)malloc(buf_length + sizeof(int64_t));
+                    if(!value_buf) {
+                        PyErr_SetString(PyExc_RuntimeError, "allocated null buffer for hybrid.");
+                    }
+                    *((int64_t*)value_buf) = buf_length;
+                    memcpy(value_buf + sizeof(int64_t), buf, buf_length);
 
-                // check whether bucket exists, if not set. Else, update
-                uint8_t *bucket = nullptr;
-                hashmap_get(sink->hm, key_str.c_str(), key_str.length() + 1, (void**)(&bucket));
+                    // special case: null bucket
+                    if(key_type == python::Type::NULLVALUE) {
+                        if(sink->null_bucket)
+                            free(sink->null_bucket);
+                        sink->null_bucket = value_buf;
+                    } else if(key_type == python::Type::STRING) {
+                        // regular, key bucket
+                        auto key_str = python::PyString_AsString(key);
 
-                // update or new entry
-                bucket = extend_bucket(bucket, reinterpret_cast<uint8_t*>(buf), buf_length);
-                // Note the +1 to get the '\0' char as well!
-                hashmap_put(sink->hm, key_str.c_str(), key_str.length() + 1, bucket);
-            } else if(key_type == python::Type::I64) {
-                // regular, key bucket
-                auto key_int = PyLong_AsUnsignedLongLong(key);
+                        if(!sink->hm)
+                            sink->hm = hashmap_new();
 
-                if(!sink->hm)
-                    sink->hm = int64_hashmap_new();
+                        // check whether bucket exists, if not set. Else, update
+                        uint8_t *bucket = nullptr;
+                        hashmap_get(sink->hm, key_str.c_str(), key_str.length() + 1, (void**)(&bucket));
+
+                        // update or new entry
+                        if(bucket)
+                            free(bucket);
+                        bucket = value_buf;
+
+                        // Note the +1 to get the '\0' char as well!
+                        hashmap_put(sink->hm, key_str.c_str(), key_str.length() + 1, bucket);
+                    } else if(key_type == python::Type::I64) {
+                        // regular, key bucket
+                        auto key_int = PyLong_AsUnsignedLongLong(key);
+
+                        if(!sink->hm)
+                            sink->hm = int64_hashmap_new();
 
 
-                // check whether bucket exists, if not set. Else, update
-                uint8_t *bucket = nullptr;
-                int64_hashmap_get(sink->hm, key_int, (void **) (&bucket));
+                        // check whether bucket exists, if not set. Else, update
+                        uint8_t *bucket = nullptr;
+                        int64_hashmap_get(sink->hm, key_int, (void **) (&bucket));
 
-                // update or new entry
-                bucket = extend_bucket(bucket, reinterpret_cast<uint8_t*>(buf), buf_length);
-                int64_hashmap_put(sink->hm, key_int, bucket);
+                        // update or new entry
+                        if(bucket)
+                            free(bucket);
+                        bucket = value_buf;
+                        int64_hashmap_put(sink->hm, key_int, bucket);
+                    }
+                    delete [] buf;
+                    break;
+                }
+                case LookupStorageMode::LISTOFVALUES: {
+
+                    // store as list (i.e. extend bucket)
+                    // special case: null bucket
+                    if(key_type == python::Type::NULLVALUE) {
+                        sink->null_bucket = extend_bucket(sink->null_bucket, buf, buf_length);
+                    } else if(key_type == python::Type::STRING) {
+                        // regular, key bucket
+                        auto key_str = python::PyString_AsString(key);
+
+                        if(!sink->hm)
+                            sink->hm = hashmap_new();
+
+                        // check whether bucket exists, if not set. Else, update
+                        uint8_t *bucket = nullptr;
+                        hashmap_get(sink->hm, key_str.c_str(), key_str.length() + 1, (void**)(&bucket));
+
+                        // update or new entry
+                        bucket = extend_bucket(bucket, reinterpret_cast<uint8_t*>(buf), buf_length);
+                        // Note the +1 to get the '\0' char as well!
+                        hashmap_put(sink->hm, key_str.c_str(), key_str.length() + 1, bucket);
+                    } else if(key_type == python::Type::I64) {
+                        // regular, key bucket
+                        auto key_int = PyLong_AsUnsignedLongLong(key);
+
+                        if(!sink->hm)
+                            sink->hm = int64_hashmap_new();
+
+
+                        // check whether bucket exists, if not set. Else, update
+                        uint8_t *bucket = nullptr;
+                        int64_hashmap_get(sink->hm, key_int, (void **) (&bucket));
+
+                        // update or new entry
+                        bucket = extend_bucket(bucket, reinterpret_cast<uint8_t*>(buf), buf_length);
+                        int64_hashmap_put(sink->hm, key_int, bucket);
+                    }
+                    delete [] buf;
+                    break;
+                }
+                default:
+                    PyErr_SetString(PyExc_ValueError, "undefined storage mode encountered");
+                    delete [] buf;
+                    return -1;
             }
-            delete [] buf;
         } else {
             if(!backupDict)
                 backupDict = PyDict_New();
 
-            // check whether element already exists, if not add new list
-            // else append
-            auto bucket = PyDict_GetItem(backupDict, key);
-            if(!bucket) {
-                bucket = PyList_New(1);
-                PyList_SetItem(bucket, 0, wrapValueAsRow(value));
-                return PyDict_SetItem(backupDict, key, bucket);
-            } else {
-                // append to bucket
-                PyList_Append(bucket, wrapValueAsRow(value));
-                return PyDict_SetItem(backupDict, key, bucket);
+            switch(valueMode) {
+                case LookupStorageMode::VALUE: {
+                    // simple, just update value (wrap as row)
+                    return PyDict_SetItem(backupDict, key, wrapValueAsRow(value));
+                }
+                case LookupStorageMode::LISTOFVALUES: {
+                    // check whether element already exists, if not add new list
+                    // else append
+                    auto bucket = PyDict_GetItem(backupDict, key);
+                    if(!bucket) {
+                        bucket = PyList_New(1);
+                        PyList_SetItem(bucket, 0, wrapValueAsRow(value));
+                        return PyDict_SetItem(backupDict, key, bucket);
+                    } else {
+                        // append to bucket
+                        PyList_Append(bucket, wrapValueAsRow(value));
+                        return PyDict_SetItem(backupDict, key, bucket);
+                    }
+                }
+                default:
+                    PyErr_SetString(PyExc_ValueError, "undefined storage mode encountered");
+                    return -1;
             }
+
             return 0;
         }
 
@@ -443,6 +529,8 @@ namespace tuplex {
     }
 
     PyObject *HybridLookupTable::setDefault(PyObject *key, PyObject *value) {
+        assert(valueMode != LookupStorageMode::UNKNOWN);
+
         // check if item exists, if so return. Else, set to default value!
         Py_XINCREF(key);
         Py_XINCREF(value);
@@ -536,6 +624,8 @@ namespace tuplex {
     }
 
     void HybridLookupTable::update(PyObject* dictObject) {
+        assert(valueMode != LookupStorageMode::UNKNOWN);
+
         assert(dictObject && PyDict_Check(dictObject));
 
         // iterate and insert using putItem!

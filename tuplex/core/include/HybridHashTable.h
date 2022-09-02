@@ -18,7 +18,20 @@
 
 namespace tuplex {
 
+#error "need to define value storage mode for lookup table. I.e., a list of values or values? For join/groupby use list of values, for aggregateByKey use value."
+
+
     extern PyObject* unwrapRow(PyObject *o);
+
+    enum LookupStorageMode {
+        UNKNOWN=0,
+        VALUE=1,
+        LISTOFVALUES=2
+    };
+
+    // binary layout of value mode is value size + value
+    // binary layout of listofvalues is more complex.
+
 
     // define hybrid Tuplex/Python hashtable object
     struct HybridLookupTable {
@@ -29,7 +42,9 @@ namespace tuplex {
         python::Type hmBucketType; // whatever is stored within the bucket, must be tuple type!
         PyObject* backupDict; // pure python backup dictionary holding all other keys...
 
-        HybridLookupTable() : sink(nullptr) {}
+        LookupStorageMode valueMode; // how values are stored
+
+        HybridLookupTable() : sink(nullptr), valueMode(LookupStorageMode::UNKNOWN) {}
 
         // hack: we know that C++ this comes first, so we can use this to hack the struct together
         Py_ssize_t length();

@@ -18,7 +18,7 @@
 
 namespace tuplex {
 
-#error "need to define value storage mode for lookup table. I.e., a list of values or values? For join/groupby use list of values, for aggregateByKey use value."
+// #error "need to define value storage mode for lookup table. I.e., a list of values or values? For join/groupby use list of values, for aggregateByKey use value."
 
 
     extern PyObject* unwrapRow(PyObject *o);

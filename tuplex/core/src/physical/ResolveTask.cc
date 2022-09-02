@@ -749,6 +749,16 @@ default:
 
             _htable.hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(_htable, adjusted_key_type,
                                                                                         _hash_bucket_type));
+            assert(_htable.hybrid_hm);
+            // value mode
+            if(_hash_agg_type == AggregateType::AGG_BYKEY || _hash_agg_type == AggregateType::AGG_GENERAL) {
+                ((HybridLookupTable*)_htable.hybrid_hm)->valueMode = LookupStorageMode::VALUE;
+            } else {
+                // list of values (i.e. for a join)
+                ((HybridLookupTable*)_htable.hybrid_hm)->valueMode = LookupStorageMode::LISTOFVALUES;
+            }
+
+
             python::unlockGIL();
         }
 

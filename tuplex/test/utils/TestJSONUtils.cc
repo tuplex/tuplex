@@ -514,6 +514,7 @@ TEST(JSONUtils, CheckFiles) {
     pattern = "/disk/download/data/*2021*.json.gz";
 
     // test file /disk/download/data/2021-01-05-11.json.gz
+    pattern = "/Users/leonhards/Downloads/2021-01-05-11.json.gz";
 
     // where to output stats...
     string output_path = "stats";

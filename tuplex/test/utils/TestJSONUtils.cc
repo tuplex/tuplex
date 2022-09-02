@@ -524,6 +524,9 @@ TEST(JSONUtils, CheckFiles) {
     // bbsn00 test
     pattern = "/disk/download/data/*2021*.json.gz";
 
+    // test file /disk/download/data/2021-01-05-11.json.gz
+    pattern = "/Users/leonhards/Downloads/2021-01-05-11.json.gz";
+
     // where to output stats...
     string output_path = "./stats";
     output_path = "/home/lspiegel/tuplex-public/tuplex/build/stats";

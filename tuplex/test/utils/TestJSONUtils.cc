@@ -525,7 +525,7 @@ TEST(JSONUtils, CheckFiles) {
     pattern = "/disk/download/data/*2021*.json.gz";
 
     // test file /disk/download/data/2021-01-05-11.json.gz
-    pattern = "/Users/leonhards/Downloads/2021-01-05-11.json.gz";
+    // pattern = "/Users/leonhards/Downloads/2021-01-05-11.json.gz";
 
     // where to output stats...
     string output_path = "./stats";
@@ -537,6 +537,7 @@ TEST(JSONUtils, CheckFiles) {
     size_t num_files_found = 0;
     auto paths = glob(pattern);
     std::sort(paths.begin(), paths.end());
+    std::reverse(paths.begin(), paths.end());
     num_files_found = paths.size();
     cout<<"Found "<<pluralize(num_files_found, "file")<<" to analyze schema for."<<endl;
 

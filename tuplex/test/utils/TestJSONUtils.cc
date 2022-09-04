@@ -265,6 +265,52 @@ namespace tuplex {
         return best_pair;
     }
 
+    /*!
+     * prints json struct type neatly out
+     * @param type
+     * @param spaces_per_level
+     * @return string
+     */
+    std::string prettyPrintStructType(const python::Type& type, const size_t spaces_per_level=2) {
+        std::stringstream ss;
+
+        std::string indent;
+        for(unsigned i = 0; i < spaces_per_level; ++i) {
+            indent += " ";
+        }
+
+        // is it struct type?
+        if(!type.isStructuredDictionaryType())
+            return type.desc();
+        else {
+            // go through pairs, and create JSON structure
+            ss<<"{\n";
+            for(unsigned i = 0; i < type.get_struct_pairs().size(); ++i) {
+                auto kv  = type.get_struct_pairs()[i];
+                if(kv.keyType == python::Type::STRING) {
+                    auto unescaped_key = str_value_from_python_raw_value(kv.key);
+                    auto json_key = simdjson::internal::escape_json_string(unescaped_key);
+
+                    ss<<indent<<"\""<<json_key<<"\": ";
+                } else {
+                    ss<<indent<<kv.key<<": ";
+                }
+
+                // check what type the other stuff is
+                auto subtype = prettyPrintStructType(kv.valueType);
+                trim(subtype);
+                subtype = core::prefixLines(subtype, indent);
+                trim(subtype);
+
+                // prefix lines with indent (except first one?)
+                auto comma = i != type.get_struct_pairs().size() - 1 ? "," : "";
+                ss<<subtype<<comma<<"\n";
+            }
+            ss<<"}";
+        }
+        return ss.str();
+    }
+
 
     std::string process_path(const std::string& path) {
         using namespace std;
@@ -443,6 +489,10 @@ namespace tuplex {
         std::cout<<"   -- normal  case max type ("<<normal_pct<<"%, "<<normal_case_max_type.second<<"x): "<<normal_case_max_type.first.desc()<<std::endl;
         std::cout<<"   -- general case max type ("<<general_pct<<"%, "<<general_case_max_type.second<<"x): "<<general_case_max_type.first.desc()<<std::endl;
 
+        // pretty print
+        std::cout<<"normal  case max type: "<<prettyPrintStructType(normal_case_max_type.first)<<std::endl;
+        std::cout<<"general case max type: "<<prettyPrintStructType(general_case_max_type.first)<<std::endl;
+
         // check how many rows would be on each path (normal, general, fallback)
         // check how many (of the original) rows adhere to this detected normal-case type
         // this also requires column name checking!
@@ -495,8 +545,9 @@ namespace tuplex {
 
         return json_string;
     }
-
 }
+
+
 
 TEST(JSONUtils, CheckFiles) {
     using namespace tuplex;
@@ -511,10 +562,10 @@ TEST(JSONUtils, CheckFiles) {
     pattern = "../resources/*.json.gz";
 
     // bbsn00 test
-    pattern = "/disk/download/data/*2021*.json.gz";
+    //pattern = "/disk/download/data/*2021*.json.gz";
 
     // test file /disk/download/data/2021-01-05-11.json.gz
-    pattern = "/Users/leonhards/Downloads/2021-01-05-11.json.gz";
+    //pattern = "/Users/leonhards/Downloads/2021-01-05-11.json.gz";
 
     // where to output stats...
     string output_path = "stats";
@@ -532,6 +583,7 @@ TEST(JSONUtils, CheckFiles) {
         auto save_path = output_path + "/" + fname + "_stats.json";
         cout<<"saving stats data to "<<save_path<<endl;
         stringToFile(json_string, save_path);
+        break;
     }
 }
 

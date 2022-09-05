@@ -60,6 +60,9 @@ namespace tuplex {
 
         // helper function to initialize field as tuple field from vector of elements
         void tuple_from_vector(const std::vector<Field>& elements);
+
+        // parses JSON and converts it into python syntax (together with type)
+        std::string internalJSONToPythonString() const;
     public:
 
         Field(): _ptrValue(nullptr), _type(python::Type::UNKNOWN), _size(0), _isNull(false) {}
@@ -164,6 +167,9 @@ namespace tuplex {
         std::string desc() const;
 
         std::string toPythonString() const {
+            // special case: struct type and dict -> they're stored as JSON string/dictionaries
+            if(getType().isDictionaryType())
+                return internalJSONToPythonString();
             return desc();
         }
 

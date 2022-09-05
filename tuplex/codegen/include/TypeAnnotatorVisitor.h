@@ -73,6 +73,8 @@ namespace tuplex {
         size_t _ongoingLoopCount;
 
 
+        void typeStructuredDictSubscription(NSubscription* sub, const python::Type& type);
+
     public:
 
         void reset() {

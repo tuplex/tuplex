@@ -989,6 +989,84 @@ namespace tuplex {
         }
     }
 
+    void TypeAnnotatorVisitor::typeStructuredDictSubscription(tuplex::NSubscription *sub, const python::Type &type) {
+        assert(type.isStructuredDictionaryType());
+
+        // index by literal (or future: constant value?)
+#ifndef NDEBUG
+        Logger::instance().defaultLogger().info("add support for constant-valued types here as well...");
+        // maybe also normal-case speculation on struct type??
+        // --> could be done as well...
+#endif
+
+        sub->setInferredType(python::Type::UNKNOWN);
+
+        // is it homogenous in value type? -> simple decision, what to use as return type.
+        if(type.valueType() != python::Type::PYOBJECT)
+            sub->setInferredType(type.valueType());
+        else {
+            // check whether there's a literal used for indexing and look up type
+            // (future: constant valued type should work as well!)
+            if(isLiteral(sub->_expression) || type.valueType().isConstantValued()) {
+                // check lookup in keys...
+
+                auto keyerror_sym = _symbolTable.findSymbol("KeyError");
+                assert(keyerror_sym); // must exist...
+                if(!keyerror_sym)
+                    fatal_error("could not find KeyError symbol.");
+                auto keyError_type = keyerror_sym->type();
+
+                std::string lookup_key;
+                if(isLiteral(sub->_expression)) {
+                    switch(sub->_expression->type()) {
+                        case ASTNodeType::String: {
+                            lookup_key = escape_to_python_str(static_cast<NString*>(sub->_expression)->value());
+                            break;
+                        }
+                        case ASTNodeType::Number: {
+                            lookup_key = static_cast<NNumber*>(sub->_expression)->_value;
+                            break;
+                        }
+                        case ASTNodeType::None: {
+                            lookup_key = "None";
+                            break;
+                        }
+                        case ASTNodeType::Boolean: {
+                            lookup_key = static_cast<NBoolean*>(sub->_expression)->_value;
+                            break;
+                        }
+                            // could also type empty tuple, empty list, empty dict, ... @TODO.
+                        default: {
+                            // key error
+                            sub->setInferredType(keyError_type);
+                            return;
+                            break;
+                        }
+                    }
+                } else if(type.valueType().isConstantValued()) {
+                    lookup_key = type.valueType().constant();
+                }
+
+                // lookup in kv pairs...
+                auto kv_pairs = type.get_struct_pairs();
+                auto it = std::find_if(kv_pairs.begin(), kv_pairs.end(), [&lookup_key](const python::StructEntry& entry) {
+                    return entry.key == lookup_key;
+                });
+                if(it != kv_pairs.end()) {
+                    sub->setInferredType(it->valueType);
+                } else {
+                    // -> if fails, set to key error!
+
+                    // warn?
+                    Logger::instance().defaultLogger().warn("could not find key '" + lookup_key
+                                                            + "' in structured dict type, code will always produce KeyError.");
+                    sub->setInferredType(keyError_type);
+                }
+            }
+        }
+    }
+
+
     void TypeAnnotatorVisitor::visit(NSubscription *sub) {
         ApatheticVisitor::visit(sub);
 
@@ -1083,7 +1161,12 @@ namespace tuplex {
             error("subscripting an empty dictionary will always yield a KeyError. Please fix code");
             sub->setInferredType(python::Type::UNKNOWN);
         } else if(type.isDictionaryType()) {
-            sub->setInferredType(type.valueType());
+            // special case: structured dict
+            if(type.isStructuredDictionaryType()) {
+                typeStructuredDictSubscription(sub, type);
+            } else {
+                sub->setInferredType(type.valueType());
+            }
         } else if(python::Type::EMPTYLIST == type) {
             error("subscripting an empty list will always yield an IndexError. Please fix code");
             sub->setInferredType(python::Type::UNKNOWN);

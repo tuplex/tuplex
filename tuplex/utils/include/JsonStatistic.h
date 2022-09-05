@@ -46,13 +46,22 @@ namespace tuplex {
      * assigning detected type (StructType) per individual row.
      * @param buf
      * @param buf_size
-     * @param outColumnNames vector of string vectors storing the column names for each individual row if desired. If top-level is given as [...] takes either the first rows names or empty string.
+     * @param outColumnNames vector of string vectors storing the column names
+     *                       for each individual row if desired. If top-level is
+     *                       given as [...] takes either the first rows names or empty string.
+     * @param unwrap_rows    if true, then rows are unwrapped (and if outColumnNames are given) and column names stored.
+     *                       Else, each row is represented as struct type.
      * @return vector of Rows with types assigned.
      */
-    extern std::vector<Row> parseRowsFromJSON(const char* buf, size_t buf_size, std::vector<std::vector<std::string>>* outColumnNames=nullptr);
+    extern std::vector<Row> parseRowsFromJSON(const char* buf,
+                                              size_t buf_size,
+                                              std::vector<std::vector<std::string>>* outColumnNames=nullptr,
+                                              bool unwrap_rows=true);
 
-    inline std::vector<Row> parseRowsFromJSON(const std::string& s, std::vector<std::vector<std::string>>* outColumnNames=nullptr) {
-        return parseRowsFromJSON(s.c_str(), s.size() + 1, outColumnNames);
+    inline std::vector<Row> parseRowsFromJSON(const std::string& s,
+                                              std::vector<std::vector<std::string>>* outColumnNames=nullptr,
+                                              bool unwrap_rows=true) {
+        return parseRowsFromJSON(s.c_str(), s.size() + 1, outColumnNames, unwrap_rows);
     }
 
     // --> put implementation of this into JsonStatistic.cc file in utils/src/JsonStatistic.cc

@@ -133,7 +133,7 @@ namespace tuplex {
                 if (current_type.isOptionType() && current_type.getReturnType().isTupleType()) {
                     // createPyTupleFromMemory requires a ptr to start of the actual tuple data, so need to decode and add offset here
                     uint64_t offset = *((uint64_t *)(ptr + current_buffer_index));
-                    assert((uintptr_t)(ptr + current_buffer_index + offset) < capacity);
+                    assert(current_buffer_index + offset <= capacity);
                     elem_to_insert = createPyObjectFromMemory(ptr + current_buffer_index + offset, current_type,
                                                               capacity, bitmap, bitmap_index);
                 } else {
@@ -207,7 +207,7 @@ namespace tuplex {
                 auto offset = (uint32_t) elem;
 
                 // move to varlen field
-                assert((uintptr_t)(ptr + offset) < capacity);
+                assert(offset <= capacity);
                 ptr = &ptr[offset];
 
                 // get number of elements
@@ -233,13 +233,13 @@ namespace tuplex {
                         char *string_errors = nullptr;
                         // get offset for string
                         auto currOffset = *reinterpret_cast<const uint64_t *>(ptr);
-                        assert((uintptr_t)(ptr + currOffset) < capacity);
+                        assert(currOffset <= capacity);
                         auto currStr = reinterpret_cast<const char*>(&ptr[currOffset]);
                         element = PyUnicode_DecodeUTF8(currStr, (long)(strlen(currStr)), string_errors);
                         ptr += sizeof(int64_t);
                     } else if(elementType.isTupleType()) {
                         auto currOffset = *(uint64_t *)ptr;
-                        assert((uintptr_t)(ptr + currOffset) < capacity);
+                        assert(currOffset <= capacity);
                         element = createPyTupleFromMemory(ptr + currOffset, elementType, capacity);
                         ptr += sizeof(int64_t);
                     } else if(elementType.isListType()) {
@@ -282,7 +282,7 @@ namespace tuplex {
                                 char *string_errors = nullptr;
                                 // get offset for string
                                 auto currOffset = *reinterpret_cast<const uint64_t *>(ptr);
-                                assert((uintptr_t)(ptr + currOffset) < capacity);
+                                assert(currOffset <= capacity);
                                 auto currStr = reinterpret_cast<const char*>(&ptr[currOffset]);
                                 element = PyUnicode_DecodeUTF8(currStr, (long)(strlen(currStr)), string_errors);
                                 ptr += sizeof(int64_t);
@@ -301,7 +301,7 @@ namespace tuplex {
                                 element = Py_None;
                             } else {
                                 uint64_t currOffset = *((uint64_t *)(ptr));
-                                assert((uintptr_t)(ptr + currOffset) < capacity);
+                                assert(currOffset <= capacity);
                                 element = createPyTupleFromMemory(ptr + currOffset, underlyingType, capacity);
                                 ptr += sizeof(int64_t);
                             }
@@ -326,7 +326,7 @@ namespace tuplex {
                 auto elem = *(uint64_t *) (ptr);
                 auto offset = (uint32_t) elem;
                 auto length = (uint32_t) (elem >> 32ul);
-                assert((uintptr_t)(ptr + offset + length) < capacity);
+                assert(offset + length <= capacity);
                 auto str = reinterpret_cast<const char *>(&ptr[offset]);
                 char *string_errors = nullptr;
                 return PyUnicode_DecodeUTF8(str, length - 1, string_errors);
@@ -362,7 +362,7 @@ namespace tuplex {
                     // offset exists
                     uint64_t sizeOffset = *((uint64_t *)ptr);
                     uint64_t offset = sizeOffset & 0xFFFFFFFF;
-                    assert((uintptr_t)(ptr + offset) < capacity);
+                    assert(offset <= capacity);
                     ptr += offset;
                 }
                 return createPyObjectFromMemory(ptr, t, capacity);
@@ -371,7 +371,7 @@ namespace tuplex {
                 auto elem = *(uint64_t *) (ptr);
                 auto offset = (uint32_t) elem;
                 auto buf_size = (uint32_t) (elem >> 32ul);
-                assert((uintptr_t)(ptr + offset + buf_size) < capacity);
+                assert(offset + buf_size <= capacity);
                 auto buf = reinterpret_cast<const char *>(&ptr[offset]);
                 return python::deserializePickledObject(python::getMainModule(), buf, buf_size);
             } else {

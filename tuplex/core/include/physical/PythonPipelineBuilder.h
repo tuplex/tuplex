@@ -91,7 +91,10 @@ namespace tuplex {
                             const UDF& aggUDF,
                             const std::vector<size_t>& aggColumns,
                             const Row& initial_value);
-        void pythonAggGeneral(int64_t operatorID, const UDF& aggUDF);
+        void pythonAggGeneral(int64_t operatorID,
+                              const std::string& agg_intermediate_name,
+                              const tuplex::UDF &aggUDF,
+                              const Row& initial_value);
 
 
         static std::string udfToByteCode(const UDF& udf);

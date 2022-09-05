@@ -995,7 +995,9 @@ namespace tuplex {
                     // create copy of filter ==> need to reparse UDF & Co because of column access!
                     auto code = dynamic_cast<FilterOperator*>(op)->getUDF().getCode();
                     auto pickled_code = dynamic_cast<FilterOperator*>(op)->getUDF().getPickledCode();
-                    auto fop = new FilterOperator(grandparent, dynamic_cast<FilterOperator*>(op)->getUDF(), grandparent->columns());
+                    auto fop_closure = dynamic_cast<FilterOperator*>(op)->getUDF().globals();
+                    auto new_udf = UDF(code, pickled_code, fop_closure);
+                    auto fop = new FilterOperator(grandparent, new_udf, grandparent->columns());
                     fop->setID(op->getID()); // clone with ID, important for exception tracking!
 #ifdef TRACE_LOGICAL_OPTIMIZATION
                     // debug:

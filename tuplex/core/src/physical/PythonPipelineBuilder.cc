@@ -968,8 +968,54 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         // throw std::runtime_error("agg by key python code path not yet implemented");
     }
 
-    void PythonPipelineBuilder::pythonAggGeneral(int64_t operatorID, const tuplex::UDF &aggUDF) {
-        throw std::runtime_error("agg general python code path not yet implemented");
+    void PythonPipelineBuilder::pythonAggGeneral(int64_t operatorID, const std::string& agg_intermediate_name,
+                                                 const tuplex::UDF &aggUDF, const Row& initial_value) {
+
+        // there's no key, but just a global aggregate. Hence, update the intermediate being passed down!
+        flushLastFunction();
+
+        // add hashmap as var
+        _optArgs.push_back(agg_intermediate_name);
+
+
+        // perform aggregate function on current output row & saved aggregate
+        // also yield key...
+        // fetch current key
+        std::stringstream ss;
+
+        // create at beginning of pipeline function lookup into aggregate value
+        std::stringstream header;
+        header<<"agg_value = "<<agg_intermediate_name<<"\n";
+
+        // debug
+#ifndef NDEBUG
+        ss<<"\tprint('aggregate value: {}'.format(agg_value))\n";
+#endif
+        // add aggregate initialization to header
+        _headCode += header.str();
+
+
+        // decode function
+        ss<<"code = "<<udfToByteCode(aggUDF)<<"\n";
+        ss<<"f_agg = cloudpickle.loads(code)\n";
+        ss<<"agg_value = "<<"apply_func2(f_agg, result_to_row(agg_value), "<<row()<<")\n";
+#ifndef NDEBUG
+        ss<<"print('agg result: {}'.format(agg_value))\n";
+#endif
+        // output aggregate value and key (b.c. special treatment necessary!)
+        // update row to be agg value
+        ss<<row()<<" = result_to_row(agg_value)\n";
+
+        // debug
+#ifndef NDEBUG
+        ss<<"print('agg ret: {}'.format(res))\n";
+#endif
+        _header += codegenApplyFuncTwoArg();
+
+        auto code = ss.str();
+
+        // could use yield here as well...
+        writeLine(code);
     }
 
     std::string codegenPythonCombineAggregateFunction(const std::string& function_name,

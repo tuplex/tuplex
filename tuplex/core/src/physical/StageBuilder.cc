@@ -167,7 +167,7 @@ namespace tuplex {
                                 break;
                             }
                             case AggregateType::AGG_GENERAL: {
-                                ppb.pythonAggGeneral(aop->getID(), aop->aggregatorUDF());
+                                ppb.pythonAggGeneral(aop->getID(), "agg_intermediate", aop->aggregatorUDF(), aop->initialValue());
                                 break;
                             }
                             default:

@@ -103,9 +103,18 @@ static PyObject* hybrid_dict_setdefault(PyObject* self, PyObject *const *args, P
     PyObject *return_value = nullptr;
     PyObject* key = nullptr;
     PyObject *default_value = Py_None;
+
+#if PY_MAJOR_VERSION >=3 && PY_MINOR_VERSION >= 8
     if(!_PyArg_CheckPositional("setdefault", nargs, 1, 2)) {
         goto exit_func;
     }
+#else
+    if (!_PyArg_UnpackStack(args, nargs, "setdefault",
+        1, 2,
+        &key, &default_value)) {
+        goto exit;
+    }
+#endif
 
     key = args[0];
     if(nargs < 2) {

@@ -155,7 +155,7 @@ namespace tuplex {
                             case AggregateType::AGG_UNIQUE: {
                                 // usually it's a hash aggregate, so python output.
                                 // this is trivial, b.c. no function needs to be called/performed...
-                                ppb.pythonOutput();
+                                 ppb.pythonOutput();
                                 break;
                             }
                             case AggregateType::AGG_BYKEY: {

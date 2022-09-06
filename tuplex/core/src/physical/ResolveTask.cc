@@ -534,6 +534,11 @@ default:
 
             // call pipFunctor
             size_t num_python_args = 1 + _py_intermediates.size() + hasHashTableSink();
+
+            // special case unique, no arg required (done via output)
+            if(hasHashTableSink() && _hash_agg_type == AggregateType::AGG_UNIQUE)
+                num_python_args -= 1;
+
             PyObject* args = PyTuple_New(num_python_args);
             PyTuple_SET_ITEM(args, 0, tuple);
             for(unsigned i = 0; i < _py_intermediates.size(); ++i) {
@@ -541,7 +546,7 @@ default:
                 PyTuple_SET_ITEM(args, i + 1, _py_intermediates[i]);
             }
             // set hash table sink
-            if(hasHashTableSink()) {
+            if(hasHashTableSink() && _hash_agg_type != AggregateType::AGG_UNIQUE) { // special case: unique -> note: unify handling this with the other cases...
                 assert(_htable.hybrid_hm);
                 Py_XINCREF(_htable.hybrid_hm);
                 PyTuple_SET_ITEM(args, num_python_args - 1, _htable.hybrid_hm);
@@ -747,6 +752,14 @@ default:
             if(adjusted_key_type.isOptionType())
                 adjusted_key_type = adjusted_key_type.elementType();
 
+            // unique adjustment, unknown bucket type -> None
+            if(_hash_bucket_type == python::Type::UNKNOWN && _hash_agg_type == AggregateType::AGG_UNIQUE)
+                _hash_bucket_type = python::Type::NULLVALUE;
+
+#ifndef NDEBUG
+            assert(owner());
+            owner()->info("initializing hybrid hash table with keytype=" + adjusted_key_type.desc() + ", valuetype=" + _hash_bucket_type.desc());
+#endif
             _htable.hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(_htable, adjusted_key_type,
                                                                                         _hash_bucket_type));
             assert(_htable.hybrid_hm);

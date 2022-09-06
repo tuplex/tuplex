@@ -5,57 +5,7 @@
 #include "TestUtils.h"
 #include "JsonStatistic.h"
 
-namespace tuplex {
-    class SelectionPathAtom {
-    public:
-        SelectionPathAtom() : _index(-1), _is_wildcard(true) {}
-
-        SelectionPathAtom(int index) : _index(index), _is_wildcard(false) {}
-        SelectionPathAtom(const std::string& key) : _index(-1), _is_wildcard(false), _key(key) {}
-
-        static SelectionPathAtom wildcard() {
-            SelectionPathAtom a; a._is_wildcard = true;
-            return a;
-        }
-
-        std::string desc() const {
-            if(_is_wildcard)
-                return "*";
-            if(_index < 0) {
-                return std::to_string(_index);
-            }
-            return escape_to_python_str(_key);
-        }
-    private:
-        // only int and string keys supported for now
-        int _index;
-        std::string _key;
-        bool _is_wildcard;
-    };
-
-    // new projection pushdown mechanism. I.e., subselect "paths" into JSON/dict structure
-    struct SelectionPath {
-        // each path maps a single item to a target?
-        // 0.*.'test'
-        // maybe use https://datatracker.ietf.org/doc/id/draft-goessner-dispatch-jsonpath-00.html ?
-
-        // so if we have something like row['repo']['name'] -> this should return only the name field
-        // and the selection path 'repo'.'name'.
-        // for arrays, use wildcard syntax for now, i.e. [*] to return everything. Yet, we can subselect within them
-        // by appending to the path
-        std::vector<SelectionPathAtom> atoms;
-
-        std::string desc() const {
-            std::stringstream ss;
-            for(unsigned i = 0; i < atoms.size(); ++i) {
-                ss<<atoms[i].desc();
-                if(i != atoms.size() - 1)
-                    ss<<".";
-            }
-            return ss.str();
-        }
-    };
-}
+#include <AccessPathVisitor.h>
 
 class JSONPathSelection : public PyTest {};
 
@@ -78,4 +28,37 @@ TEST_F(JSONPathSelection, BasicPathSelection) {
     udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, input_row_type));
     auto output_row_type = udf.getOutputSchema().getRowType();
     cout<<"output type of UDF: "<<output_row_type.desc()<<endl;
+
+    // detect paths
+    AccessPathVisitor apv;
+    auto root = udf.getAnnotatedAST().getFunctionAST();
+    root->accept(apv);
+    auto indices = apv.getAccessedIndices();
+    cout<<"visited indices: "<<indices<<endl;
+
+    // need to detect path access using identifier (single + multiple columns)
+    // e.g.,
+    // x['repo']['url']
+
+    // need to detect path access using multiple variables, i.e. more complex paths?
+    // y = x['repo']
+    // return y['url']
+    // => i.e., can this be restricted?
+    // what about redefinitions?d
+    // not really needed, use simple method for now...
+    // --> maybe track through assignments?
+    // if/else control flow is critical. Yet, that can be solved by simply following
+    // only valid control flow.
+    // also specialize according to normal case!
+    // i.e., maintain nametable pointing to access paths (?)
+    // def f(x):
+    //    y = x['repo']
+    //    return y['url']
+    // => this should make clear that only path 'repo'.'url' is needed.
+    // for literals/constants from global enclosure allow tracking as well!
+    // KEY = 'repo'
+    // def f(x):
+    //   return x[KEY]
+    // should work as well.
+
 }

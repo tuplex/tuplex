@@ -407,13 +407,37 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
     //  return agg + 1
     // ds.aggregateByKey(combine_udf, aggregate_udf, 0, ["Complaint Type"]).show()
 
+    // TODO: check special case: aggregateByKey and single key column?
+
     Context c(opt);
-    auto path = "/home/leonhard/Downloads/311_subset.csv";
+    auto path = "../resources/311_subset.micro.csv";
     auto& ds = c.csv(path);
     auto combine_code = "def combine_udf(a, b):\n"
                         "  return a + b\n";
 
     auto agg_code =     "def aggregate_udf(agg, row):\n"
                         "  return agg + 1";
-    ds.aggregateByKey(UDF(combine_code), UDF(agg_code), Row(0), std::vector<std::string>{"Complaint Type"}).show();
+    auto& ds_agg = ds.aggregateByKey(UDF(combine_code), UDF(agg_code),
+                      Row(0), std::vector<std::string>{"Complaint Type"});
+
+    // ds_agg.show();
+
+    // the counts are off...
+    // ==> need to fix this!
+    // i.e., small subset should have 120k rows in total...
+    // micro should have 10k rows in total...
+
+    auto rows = ds_agg.collectAsVector();
+    // sort rows after second entry
+    std::sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) {
+       return a.getInt(1) < b.getInt(1);
+    });
+    size_t total_rows = 0;
+    for(unsigned i = 0; i < rows.size(); ++i) {
+        std::cout<<i<<": "<<rows[i].toPythonString()<<std::endl;
+        total_rows += rows[i].getInt(1);
+    }
+
+    std::cout<<"====\n"<<pluralize(total_rows, "row")<<std::endl;
+    EXPECT_EQ(total_rows, 2000); // this should work.
 }

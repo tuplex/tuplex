@@ -1408,6 +1408,10 @@ default:
 
                     std::stringstream ss;
                     ss<<"sinking following to hash endpoint:\n";
+                    auto skey = python::PyString_AsString(key);
+                    if(skey == "For Hire Vehicle Complaint") {
+                        std::cout<<"found to debug"<<std::endl;
+                    }
                     ss<<"key: "<<python::PyString_AsString(key)<<"\n";
                     ss<<"object: "<<python::PyString_AsString(rowObject)<<"\n";
                     std::cout<<ss.str()<<std::endl;

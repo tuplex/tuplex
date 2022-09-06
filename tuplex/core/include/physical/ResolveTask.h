@@ -150,7 +150,10 @@ namespace tuplex {
          * @param hashKeyType the type of the key to hash for
          * @param hashBucketType the type of the rows to store in the table
          */
-        void sinkOutputToHashTable(HashTableFormat fmt, const AggregateType& aggType, const python::Type& hashKeyType, const python::Type& hashBucketType, map_t hm=nullptr,
+        void sinkOutputToHashTable(HashTableFormat fmt,
+                                   const AggregateType& aggType,
+                                   const python::Type& hashKeyType,
+                                   const python::Type& hashBucketType, map_t hm=nullptr,
                                    uint8_t* null_bucket=nullptr) {
             _htableFormat = fmt;
             _hash_element_type = hashKeyType;
@@ -162,7 +165,8 @@ namespace tuplex {
             _htable.null_bucket = null_bucket;
 
             python::lockGIL();
-            _hybrid_htable = reinterpret_cast<PyObject*>(CreatePythonHashMapWrapper(_htable, hashKeyType.withoutOptions(), hashBucketType));
+            auto valueMode = aggType == AggregateType::AGG_BYKEY ? LookupStorageMode::LISTOFVALUES : LookupStorageMode::VALUE;
+            _hybrid_htable = reinterpret_cast<PyObject*>(CreatePythonHashMapWrapper(_htable, hashKeyType.withoutOptions(), hashBucketType, valueMode));
             python::unlockGIL();
         }
 

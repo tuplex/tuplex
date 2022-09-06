@@ -760,18 +760,17 @@ default:
             assert(owner());
             owner()->info("initializing hybrid hash table with keytype=" + adjusted_key_type.desc() + ", valuetype=" + _hash_bucket_type.desc());
 #endif
-            _htable.hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(_htable, adjusted_key_type,
-                                                                                        _hash_bucket_type));
-            assert(_htable.hybrid_hm);
             // value mode
+            LookupStorageMode valueMode;
             if(_hash_agg_type == AggregateType::AGG_BYKEY || _hash_agg_type == AggregateType::AGG_GENERAL) {
-                ((HybridLookupTable*)_htable.hybrid_hm)->valueMode = LookupStorageMode::VALUE;
+                valueMode = LookupStorageMode::VALUE;
             } else {
                 // list of values (i.e. for a join)
-                ((HybridLookupTable*)_htable.hybrid_hm)->valueMode = LookupStorageMode::LISTOFVALUES;
+                valueMode = LookupStorageMode::LISTOFVALUES;
             }
-
-
+            _htable.hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(_htable, adjusted_key_type,
+                                                                                        _hash_bucket_type, valueMode));
+            assert(_htable.hybrid_hm);
             python::unlockGIL();
         }
 
@@ -1376,7 +1375,8 @@ default:
 
                     _htable.hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(_htable,
                                                                                                 adjusted_key_type,
-                                                                                                _hash_bucket_type));
+                                                                                                _hash_bucket_type,
+                                                                                                LookupStorageMode::VALUE));
                 }
 
                 assert(_htable.hybrid_hm);
@@ -1417,7 +1417,8 @@ default:
 
                     _htable.hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(_htable,
                                                                                                 adjusted_key_type,
-                                                                                                _hash_bucket_type));
+                                                                                                _hash_bucket_type,
+                                                                                                LookupStorageMode::LISTOFVALUES));
                 }
 
                 assert(_htable.hybrid_hm);

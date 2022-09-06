@@ -1323,7 +1323,8 @@ namespace tuplex {
                     hs->null_bucket = input_intermediates.null_buckets[i];
                     input_intermediates.hybrids[i] = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(*hs,
                                                                                                              ts->hashResult().keyType.withoutOptions(),
-                                                                                                             ts->hashResult().bucketType));
+                                                                                                             ts->hashResult().bucketType,
+                                                                                                             LookupStorageMode::LISTOFVALUES)); // this is for joins, i.e. list of values...
                 }
             }
         }

@@ -84,7 +84,8 @@ namespace tuplex {
 
     extern PyObject* decodeBucketToPythonList(const uint8_t* bucket, const python::Type& bucketType);
 
-    extern HybridLookupTable* CreatePythonHashMapWrapper(HashTableSink& sink, const python::Type& elementType, const python::Type& bucketType);
+    extern HybridLookupTable* CreatePythonHashMapWrapper(HashTableSink& sink, const python::Type& elementType,
+                                                         const python::Type& bucketType, const LookupStorageMode& valueMode);
 }
 
 

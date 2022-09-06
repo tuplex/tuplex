@@ -580,7 +580,8 @@ namespace tuplex {
     }
 
     // helper function to create the object and associate with a hashmap
-    HybridLookupTable* CreatePythonHashMapWrapper(HashTableSink& sink, const python::Type& elementType, const python::Type& bucketType) {
+    HybridLookupTable* CreatePythonHashMapWrapper(HashTableSink& sink, const python::Type& elementType,
+                                                  const python::Type& bucketType, const LookupStorageMode& valueMode) {
 
         assert(elementType != python::Type::UNKNOWN);
         if(elementType.isOptionType()) {
@@ -609,6 +610,7 @@ namespace tuplex {
         o->hmBucketType = bucketType;
         o->backupDict = nullptr;
         o->sink = &sink;
+        o->valueMode = valueMode;
         return o;
     }
 

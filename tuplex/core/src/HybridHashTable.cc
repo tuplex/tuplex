@@ -334,7 +334,7 @@ namespace tuplex {
                     // special case: null bucket
                     if(key_type == python::Type::NULLVALUE) {
                         if(sink->null_bucket)
-                            free(sink->null_bucket);
+                            ::free(sink->null_bucket);
                         sink->null_bucket = value_buf;
                     } else if(key_type == python::Type::STRING) {
                         // regular, key bucket
@@ -349,7 +349,7 @@ namespace tuplex {
 
                         // update or new entry
                         if(bucket)
-                            free(bucket);
+                            ::free(bucket);
                         bucket = value_buf;
 
                         // Note the +1 to get the '\0' char as well!
@@ -368,7 +368,7 @@ namespace tuplex {
 
                         // update or new entry
                         if(bucket)
-                            free(bucket);
+                            ::free(bucket);
                         bucket = value_buf;
                         int64_hashmap_put(sink->hm, key_int, bucket);
                     }
@@ -643,5 +643,34 @@ namespace tuplex {
            Py_XINCREF(val);
            putItem(key, val);
         }
+    }
+
+    void HybridLookupTable::free() {
+        // release pyobject and also internal hashmap
+        if(sink && sink->hm) {
+            if(hmElementType == python::Type::STRING) {
+                hashmap_free_key_and_data(sink->hm);
+            } else {
+                assert(hmElementType == python::Type::I64);
+                int64_hashmap_free_key_and_data(sink->hm);
+            }
+            sink->hm = nullptr;
+        }
+
+        if(backupDict) {
+            Py_XDECREF(backupDict);
+            backupDict = nullptr;
+        }
+
+        // clear sink
+        if(sink) {
+            sink->hm = nullptr;
+            sink->null_bucket = nullptr;
+            sink->hybrid_hm = nullptr;
+        }
+
+        valueMode = LookupStorageMode::UNKNOWN;
+        hmElementType = python::Type::UNKNOWN;
+        hmBucketType = python::Type::UNKNOWN;
     }
 }

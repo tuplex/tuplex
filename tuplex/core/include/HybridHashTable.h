@@ -75,6 +75,11 @@ namespace tuplex {
          */
         void update(PyObject* dictObject);
 
+        /*!
+         * release all memory hold by this hybrid.
+         */
+        void free();
+
     private:
         /*
          * checks for key existence throughout all structures...

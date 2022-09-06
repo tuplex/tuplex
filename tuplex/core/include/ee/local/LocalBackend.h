@@ -82,7 +82,7 @@ namespace tuplex {
          * @param acquireGIL whether this function should acquire the GIL on its own or not.
          * @return the final hashtable sink
          */
-        HashTableSink createFinalHashmap(const std::vector<const IExecutorTask*>& tasks,
+        HashTableSink* createFinalHashmap(const std::vector<const IExecutorTask*>& tasks,
                                          int hashtableKeyByteWidth,
                                          bool combine,
                                          codegen::agg_init_f init_aggregate,

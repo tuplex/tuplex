@@ -95,13 +95,10 @@ namespace tuplex {
     }
 
     void ResolveTask::writeRowToHashTable(char *key, size_t key_size, bool bucketize, char *buf, size_t buf_size) {
-        // debug: return.
-        return; // --> this doesn't solve the issue.
-
         // from TransformTask
         // @TODO: refactor more nicely using traits?
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // put into hashmap or null bucket
@@ -109,14 +106,14 @@ namespace tuplex {
             // put into hashmap!
             uint8_t *bucket = nullptr;
             if(bucketize) {
-                hashmap_get(_htable.hm, key, key_size, (void **) (&bucket));
+                hashmap_get(_htable->hm, key, key_size, (void **) (&bucket));
                 // update or new entry
                 bucket = extend_bucket(bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
             }
-            hashmap_put(_htable.hm, key, key_size, bucket);
+            hashmap_put(_htable->hm, key, key_size, bucket);
         } else {
             // goes into null bucket, no hash
-            _htable.null_bucket = extend_bucket(_htable.null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
+            _htable->null_bucket = extend_bucket(_htable->null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
         }
     }
 
@@ -124,17 +121,17 @@ namespace tuplex {
         // from TransformTask
         // @TODO: refactor more nicely using traits?
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // get the bucket
         uint8_t *bucket = nullptr;
         if(key != nullptr && key_len > 0) {
             // get current bucket
-            hashmap_get(_htable.hm, key, key_len, (void **) (&bucket));
+            hashmap_get(_htable->hm, key, key_len, (void **) (&bucket));
         } else {
             // goes into null bucket, no hash
-            bucket = _htable.null_bucket;
+            bucket = _htable->null_bucket;
         }
 
         // aggregate in the new value
@@ -142,9 +139,9 @@ namespace tuplex {
 
         // write back the bucket
         if(key != nullptr && key_len > 0) {
-            hashmap_put(_htable.hm, key, key_len, bucket);
+            hashmap_put(_htable->hm, key, key_len, bucket);
         } else {
-            _htable.null_bucket = bucket;
+            _htable->null_bucket = bucket;
         }
     }
 
@@ -152,7 +149,7 @@ namespace tuplex {
         // from TransformTask
         // @TODO: refactor more nicely using traits?
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // put into hashmap or null bucket
@@ -160,14 +157,14 @@ namespace tuplex {
             // put into hashmap!
             uint8_t *bucket = nullptr;
             if(bucketize) {
-                int64_hashmap_get(_htable.hm, key, (void **) (&bucket));
+                int64_hashmap_get(_htable->hm, key, (void **) (&bucket));
                 // update or new entry
                 bucket = extend_bucket(bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
             }
-            int64_hashmap_put(_htable.hm, key, bucket);
+            int64_hashmap_put(_htable->hm, key, bucket);
         } else {
             // goes into null bucket, no hash
-            _htable.null_bucket = extend_bucket(_htable.null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
+            _htable->null_bucket = extend_bucket(_htable->null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
         }
     }
 
@@ -175,25 +172,25 @@ namespace tuplex {
         // from TransformTask
         // @TODO: refactor more nicely using traits?
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // get the bucket
         uint8_t *bucket = nullptr;
         if(!key_null) {
             // get current bucket
-            int64_hashmap_get(_htable.hm, key, (void **) (&bucket));
+            int64_hashmap_get(_htable->hm, key, (void **) (&bucket));
         } else {
-            bucket = _htable.null_bucket;
+            bucket = _htable->null_bucket;
         }
         // aggregate in the new value
         aggregateValues(&bucket, buf, buf_size);
         if(!key_null) {
             // get current bucket
-            int64_hashmap_put(_htable.hm, key, bucket);
+            int64_hashmap_put(_htable->hm, key, bucket);
         } else {
             // goes into null bucket, no hash
-            _htable.null_bucket = bucket;
+            _htable->null_bucket = bucket;
         }
     }
 
@@ -550,9 +547,9 @@ default:
             }
             // set hash table sink
             if(hasHashTableSink() && _hash_agg_type != AggregateType::AGG_UNIQUE) { // special case: unique -> note: unify handling this with the other cases...
-                assert(_htable.hybrid_hm);
-                Py_XINCREF(_htable.hybrid_hm);
-                PyTuple_SET_ITEM(args, num_python_args - 1, _htable.hybrid_hm);
+                assert(_htable->hybrid_hm);
+                Py_XINCREF(_htable->hybrid_hm);
+                PyTuple_SET_ITEM(args, num_python_args - 1, _htable->hybrid_hm);
             }
 
             auto kwargs = PyDict_New(); PyDict_SetItemString(kwargs, "parse_cells", python::boolean(parse_cells));
@@ -745,8 +742,8 @@ default:
 
         // alloc hashmap if required
         if(hasHashTableSink()) {
-            if(!_htable.hm)
-                _htable.hm = hashmap_new();
+            if(!_htable->hm)
+                _htable->hm = hashmap_new();
 
             python::lockGIL();
             // init hybrid
@@ -773,10 +770,10 @@ default:
                 // list of values (i.e. for a join)
                 valueMode = LookupStorageMode::LISTOFVALUES;
             }
-            auto hybrid = CreatePythonHashMapWrapper(_htable, adjusted_key_type,
+            auto hybrid = CreatePythonHashMapWrapper(*_htable, adjusted_key_type,
                                                                                         _hash_bucket_type, valueMode);
-            assert(_htable.hybrid_hm);
-            assert(reinterpret_cast<uintptr_t>(hybrid) == reinterpret_cast<uintptr_t>(_htable.hybrid_hm)); // objects are the same pointer!
+            assert(_htable->hybrid_hm);
+            assert(reinterpret_cast<uintptr_t>(hybrid) == reinterpret_cast<uintptr_t>(_htable->hybrid_hm)); // objects are the same pointer!
             python::unlockGIL();
         }
 
@@ -1372,22 +1369,22 @@ default:
                 }
 
                 // lazy create table
-                if(!_htable.hybrid_hm) {
+                if(!_htable->hybrid_hm) {
 
                     // adjust element type for single objects
                     // @TODO: this properly has to be thought through again...
                     auto adjusted_key_type = _hash_element_type.isTupleType() && _hash_element_type.parameters().size() == 1 ?
                             _hash_element_type.parameters().front() : _hash_element_type;
 
-                    _htable.hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(_htable,
+                    _htable->hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(*_htable,
                                                                                                 adjusted_key_type,
                                                                                                 _hash_bucket_type,
                                                                                                 LookupStorageMode::VALUE));
                 }
 
-                assert(_htable.hybrid_hm);
-                int rc =((HybridLookupTable*)_htable.hybrid_hm)->putItem(rowObject, nullptr);
-                // could also invoke via PyObject_SetItem(_htable.hybrid_hm, rowObject, python::none());
+                assert(_htable->hybrid_hm);
+                int rc =((HybridLookupTable*)_htable->hybrid_hm)->putItem(rowObject, nullptr);
+                // could also invoke via PyObject_SetItem(_htable->hybrid_hm, rowObject, python::none());
                 if(PyErr_Occurred()) {
                     PyErr_Print();
                     cout<<endl;
@@ -1419,19 +1416,19 @@ default:
 
 
                 // lazy create table
-                if(!_htable.hybrid_hm) {
+                if(!_htable->hybrid_hm) {
                     auto adjusted_key_type = _hash_element_type.isTupleType() && _hash_element_type.parameters().size() == 1 ?
                                              _hash_element_type.parameters().front() : _hash_element_type;
 
-                    _htable.hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(_htable,
+                    _htable->hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(*_htable,
                                                                                                 adjusted_key_type,
                                                                                                 _hash_bucket_type,
                                                                                                 LookupStorageMode::LISTOFVALUES));
-                    assert(_htable.hm && _htable.hybrid_hm);
+                    assert(_htable->hm && _htable->hybrid_hm);
                 }
 
-                assert(_htable.hybrid_hm);
-                int rc =((HybridLookupTable*)_htable.hybrid_hm)->putItem(key, rowObject);
+                assert(_htable->hybrid_hm);
+                int rc =((HybridLookupTable*)_htable->hybrid_hm)->putItem(key, rowObject);
                 if(PyErr_Occurred()) {
                     PyErr_Print();
                     cout<<endl;

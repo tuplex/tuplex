@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-08-14 17:27:46.840617
+# auto-generated on 2022-09-05 21:49:52.822628
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -36,7 +36,7 @@ apt update -y
 
 apt-get install -y apt-utils dh-autoreconf libmagic-dev curl libxml2-dev vim build-essential libssl-dev zlib1g-dev libncurses5-dev \
     libncursesw5-dev libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev \
-    libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git
+    libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git libcurl4-openssl-dev python3-dev python3-pip openjdk-8-jre-headless
   
 ldconfig
 export CC=gcc-11
@@ -77,8 +77,8 @@ mkdir -p ${WORKDIR}/llvm && cd ${WORKDIR}/llvm && wget https://github.com/llvm/l
 && wget https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1/clang-9.0.1.src.tar.xz \
 && tar xf llvm-9.0.1.src.tar.xz && tar xf clang-9.0.1.src.tar.xz \
 && mkdir llvm9 && mv clang-9.0.1.src llvm9/clang \
-&& mv llvm-9.0.1.src llvm9/llvm-9.0.1.src \
-&& cd llvm9 && mkdir build && cd build \
+    && mv llvm-9.0.1.src llvm9/llvm-9.0.1.src \
+    && cd llvm9 && mkdir build && cd build \
 && cmake -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON \
         -DLLVM_ENABLE_PROJECTS="clang" \
          -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-std=c++11 -include /usr/include/c++/11/limits" \
@@ -124,7 +124,7 @@ mkdir -p ${WORKDIR}/antlr && cd ${WORKDIR}/antlr \
 
 echo ">> Installing protobuf"
 mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf \
-&& curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.21.5/protobuf-cpp-3.21.5.tar.gz \
+&& curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v21.5/protobuf-cpp-3.21.5.tar.gz \
 && tar xf protobuf-cpp-3.21.5.tar.gz \
 && cd protobuf-3.21.5 \
 && ./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" \

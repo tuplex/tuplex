@@ -1295,7 +1295,7 @@ namespace tuplex {
         // lazy init hybrids
         if(!input_intermediates.hybrids) {
             auto num_predecessors = tstage->predecessors().size();
-            input_intermediates.hybrids = new PyObject*[num_predecessors];
+            input_intermediates.hybrids = new PyObject*[num_predecessors]; // @TODO: free these intermediates. Where is this done?
             for(int i = 0; i < num_predecessors; ++i)
                 input_intermediates.hybrids[i] = nullptr;
         }
@@ -1449,10 +1449,24 @@ namespace tuplex {
 
                     // is it the first task? If so, set the current combined result!
                     if(hasNormalHashSink) {
-                        rtask->sinkOutputToHashTable(tt->hashTableFormat(), tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType(), hsink.hm, hsink.null_bucket);
+                        rtask->sinkOutputToHashTable(tt->hashTableFormat(),
+                                                     tstage->dataAggregationMode(),
+                                                     tstage->hashOutputKeyType().withoutOptions(),
+                                                     tstage->hashOutputBucketType(),
+                                                     hsink.hm,
+                                                     hsink.null_bucket);
                         hasNormalHashSink = false;
                     } else {
-                        rtask->sinkOutputToHashTable(tt->hashTableFormat(), tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType());
+
+                        // init hash table based on key
+                        auto hm = tstage->hashtableKeyByteWidth() == 8 ? int64_hashmap_new() : hashmap_new();
+                        assert(hm);
+                        rtask->sinkOutputToHashTable(tt->hashTableFormat(),
+                                                     tstage->dataAggregationMode(),
+                                                     tstage->hashOutputKeyType().withoutOptions(),
+                                                     tstage->hashOutputBucketType(),
+                                                     hm,
+                                                     nullptr);
                     }
                 }
 #ifndef NDEBUG
@@ -2142,6 +2156,34 @@ namespace tuplex {
             // merge in null bucket + other buckets from other tables (this could be slow...)
             for(int i = 1; i < tasks.size(); ++i) {
                 auto task_sink = getHashSink(tasks[i]);
+
+                // print description of hash sink
+#ifndef NDEBUG
+                {
+                  using namespace std;
+                  stringstream ss;
+                  ss<<"hash sink #"<<i<<": "<<boolalpha<<"null bucket: "<<(bool)task_sink.null_bucket<<" map: "<<(bool)task_sink.hm<<" hybrid: "<<(bool)task_sink.hybrid_hm<<endl;
+                  size_t num_elements = 0;
+                  size_t num_hybrid_elements = 0;
+                  if(task_sink.hm) {
+                      if(hashtableKeyByteWidth == 8)
+                          num_elements = int64_hashmap_length(task_sink.hm);
+                      else
+                          num_elements = hashmap_length(task_sink.hm);
+                      ss<<"hashmap has: "<<pluralize(num_elements, "element")<<endl;
+                  }
+                  if(task_sink.hybrid_hm) {
+                      auto hybrid = (HybridLookupTable*)task_sink.hybrid_hm;
+                      num_hybrid_elements = hybrid->length();
+                      ss<<"hybrid has: "<<pluralize(num_hybrid_elements, "element")<<endl;
+                  }
+
+
+                  cout<<ss.str(); cout.flush();
+                  Logger::instance().defaultLogger().debug(ss.str());
+                }
+#endif
+
                 if(combine) combineBuckets(sink.null_bucket, task_sink.null_bucket);
                 else sink.null_bucket = merge_buckets(sink.null_bucket, task_sink.null_bucket);
 
@@ -2157,10 +2199,17 @@ namespace tuplex {
                     }
                 }
 
-                if(hashtableKeyByteWidth == 8)
-                    int64_hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
-                else
-                    hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
+                // NOTE: following code causes memory corruption, it's a leak but keep it for now to make sure things work.
+                // ==> need to rework whole hashing system at some point.
+                // debug: uncomment
+                //  // also free hybrid???
+                //  // @TODO: error in freeing here?
+                //  if(hashtableKeyByteWidth == 8)
+                //      int64_hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
+                //  else
+                //      hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
+                //  task_sink.hm = nullptr;
+                //  task_sink.hybrid_hm = nullptr;
             }
 
             // aggByKey or aggregate?

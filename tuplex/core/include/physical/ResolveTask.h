@@ -100,8 +100,7 @@ namespace tuplex {
                                                             _outputRowNumber(0),
                                                             _wallTime(0.0),
                                                             _numInputRowsRead(0),
-                                                            _numUnresolved(0),
-                                                            _hybrid_htable(nullptr) {
+                                                            _numUnresolved(0) {
             // copy the IDs and sort them so binary search can be used.
             std::sort(_operatorIDsAffectedByResolvers.begin(), _operatorIDsAffectedByResolvers.end());
             _normalPtrBytesRemaining = 0;
@@ -164,9 +163,14 @@ namespace tuplex {
             _htable.hm = hm;
             _htable.null_bucket = null_bucket;
 
+            // null bucket can stay nullptr, however hashmap needs to be initialized
+            if(!_htable.hm)
+                throw std::runtime_error("internal error: need to have valid hashmap assigned.");
+
             python::lockGIL();
             auto valueMode = aggType == AggregateType::AGG_BYKEY ? LookupStorageMode::LISTOFVALUES : LookupStorageMode::VALUE;
-            _hybrid_htable = reinterpret_cast<PyObject*>(CreatePythonHashMapWrapper(_htable, hashKeyType.withoutOptions(), hashBucketType, valueMode));
+            auto hybrid = CreatePythonHashMapWrapper(_htable, hashKeyType.withoutOptions(), hashBucketType, valueMode);
+            assert(reinterpret_cast<uintptr_t>(hybrid) == reinterpret_cast<uintptr_t>(_htable.hybrid_hm)); // same object
             python::unlockGIL();
         }
 
@@ -279,7 +283,6 @@ namespace tuplex {
         python::Type _hash_element_type;
         python::Type _hash_bucket_type;
         AggregateType _hash_agg_type;
-        PyObject* _hybrid_htable;
 
         // hybrid inputs (i.e. when having a long stage the hash-tables of a join)
         std::vector<PyObject*> _py_intermediates;

@@ -936,9 +936,9 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         ss<<"\tagg_value = "<<hashmap_name<<".setdefault(agg_key, result_to_row("<<initial_value.toPythonString()<<"))\n";
 
         // debug
-        ss<<"\tprint('aggregate value: {}'.format(agg_value))\n";
-        ss<<"\tagg_value = agg_value[0]\n";
-        ss<<"\tprint('aggregate value after unpacking: {}'.format(agg_value))\n";
+        // ss<<"\tprint('aggregate value: {}'.format(agg_value))\n";
+        // ss<<"\tagg_value = agg_value[0]\n";
+        // ss<<"\tprint('aggregate value after unpacking: {}'.format(agg_value))\n";
 
         // add aggregate initialization to header
         _headCode += header.str();
@@ -948,7 +948,7 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         ss<<"code = "<<udfToByteCode(aggUDF)<<"\n";
         ss<<"f_agg = cloudpickle.loads(code)\n";
         ss<<"agg_value = "<<"apply_func2(f_agg, result_to_row(agg_value), "<<row()<<")\n";
-        ss<<"print('agg result: {}'.format(agg_value))\n";
+        // ss<<"print('agg result: {}'.format(agg_value))\n";
 
         // output aggregate value and key (b.c. special treatment necessary!)
         // update row to be agg value
@@ -956,7 +956,7 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         ss<<"res['key'] = agg_key\n";
 
         // debug
-        ss<<"print('agg ret: {}'.format(res))\n";
+        // ss<<"print('agg ret: {}'.format(res))\n";
 
         _header += codegenApplyFuncTwoArg();
 
@@ -989,7 +989,7 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
         // debug
 #ifndef NDEBUG
-        ss<<"\tprint('aggregate value: {}'.format(agg_value))\n";
+        // ss<<"\tprint('aggregate value: {}'.format(agg_value))\n";
 #endif
         // add aggregate initialization to header
         _headCode += header.str();
@@ -1000,7 +1000,7 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         ss<<"f_agg = cloudpickle.loads(code)\n";
         ss<<"agg_value = "<<"apply_func2(f_agg, result_to_row(agg_value), "<<row()<<")\n";
 #ifndef NDEBUG
-        ss<<"print('agg result: {}'.format(agg_value))\n";
+        // ss<<"print('agg result: {}'.format(agg_value))\n";
 #endif
         // output aggregate value and key (b.c. special treatment necessary!)
         // update row to be agg value
@@ -1008,7 +1008,7 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
         // debug
 #ifndef NDEBUG
-        ss<<"print('agg ret: {}'.format(res))\n";
+        // ss<<"print('agg ret: {}'.format(res))\n";
 #endif
         _header += codegenApplyFuncTwoArg();
 

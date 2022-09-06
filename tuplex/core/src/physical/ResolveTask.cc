@@ -95,6 +95,9 @@ namespace tuplex {
     }
 
     void ResolveTask::writeRowToHashTable(char *key, size_t key_size, bool bucketize, char *buf, size_t buf_size) {
+        // debug: return.
+        return; // --> this doesn't solve the issue.
+
         // from TransformTask
         // @TODO: refactor more nicely using traits?
         // saves key + rest in buckets (incl. null bucket)
@@ -616,9 +619,11 @@ default:
 
 
                         {
-                            // debug
-                            Py_XINCREF(resultRows);
-                            PyObject_Print(resultRows, stdout, 0); std::cout<<std::endl;
+#ifndef NDEBUG
+                            // // debug
+                            // Py_XINCREF(resultRows);
+                            // PyObject_Print(resultRows, stdout, 0); std::cout<<std::endl;
+#endif
                         }
 
                         for(int i = 0; i < listSize; ++i) {
@@ -768,9 +773,10 @@ default:
                 // list of values (i.e. for a join)
                 valueMode = LookupStorageMode::LISTOFVALUES;
             }
-            _htable.hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(_htable, adjusted_key_type,
-                                                                                        _hash_bucket_type, valueMode));
+            auto hybrid = CreatePythonHashMapWrapper(_htable, adjusted_key_type,
+                                                                                        _hash_bucket_type, valueMode);
             assert(_htable.hybrid_hm);
+            assert(reinterpret_cast<uintptr_t>(hybrid) == reinterpret_cast<uintptr_t>(_htable.hybrid_hm)); // objects are the same pointer!
             python::unlockGIL();
         }
 
@@ -1399,14 +1405,16 @@ default:
 
                 // debug print
                 {
+#ifndef NDEBUG
                     Py_XINCREF(rowObject);
                     Py_XINCREF(key);
 
                     std::stringstream ss;
-                    ss<<"sinkining following to hash endpoint:\n";
+                    ss<<"sinking following to hash endpoint:\n";
                     ss<<"key: "<<python::PyString_AsString(key)<<"\n";
                     ss<<"object: "<<python::PyString_AsString(rowObject)<<"\n";
                     std::cout<<ss.str()<<std::endl;
+#endif
                 }
 
 
@@ -1419,6 +1427,7 @@ default:
                                                                                                 adjusted_key_type,
                                                                                                 _hash_bucket_type,
                                                                                                 LookupStorageMode::LISTOFVALUES));
+                    assert(_htable.hm && _htable.hybrid_hm);
                 }
 
                 assert(_htable.hybrid_hm);

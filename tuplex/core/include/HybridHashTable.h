@@ -112,7 +112,7 @@ static PyObject* hybrid_dict_setdefault(PyObject* self, PyObject *const *args, P
     if (!_PyArg_UnpackStack(args, nargs, "setdefault",
         1, 2,
         &key, &default_value)) {
-        goto exit;
+        goto exit_func;
     }
 #endif
 

@@ -582,6 +582,7 @@ namespace tuplex {
     // helper function to create the object and associate with a hashmap
     HybridLookupTable* CreatePythonHashMapWrapper(HashTableSink& sink, const python::Type& elementType,
                                                   const python::Type& bucketType, const LookupStorageMode& valueMode) {
+        assert(sink.hm); // this needs to exist.
 
         assert(elementType != python::Type::UNKNOWN);
         if(elementType.isOptionType()) {
@@ -611,6 +612,10 @@ namespace tuplex {
         o->backupDict = nullptr;
         o->sink = &sink;
         o->valueMode = valueMode;
+
+        // vice versa, make hybrid based on newly allocated object
+        sink.hybrid_hm = (PyObject*)o;
+
         return o;
     }
 

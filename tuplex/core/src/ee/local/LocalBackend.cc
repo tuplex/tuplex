@@ -2075,6 +2075,32 @@ namespace tuplex {
         }
     }
 
+    static  int count_hm_helper(void* userData, hashmap_element* entry) {
+        auto data = (uint8_t*)entry->data; // bucket data. First is always an int64_t holding how many rows there are.
+
+        using namespace std;
+        if(entry->in_use) {
+            // cout<<"key: "<<entry->key;
+
+            if(data) {
+                // other bucket count
+                auto num_entries =  (*(uint64_t*)data >> 32ul);
+                auto x = *(int64_t*)(data + sizeof(int64_t));
+                // cout<<" "<<pluralize(num_entries, "value");
+                if(userData)
+                    *(int64_t*)userData += x;
+            }
+        }
+
+        return MAP_OK;
+    }
+
+    size_t count_hm_data(map_t hm) {
+        int64_t test = 0;
+        hashmap_iterate(hm, count_hm_helper, &test);
+        return test;
+    }
+
     HashTableSink* LocalBackend::createFinalHashmap(const std::vector<const IExecutorTask*>& tasks,
                                                    int hashtableKeyByteWidth,
                                                    bool combine,
@@ -2145,6 +2171,48 @@ namespace tuplex {
 
             return sink;
         } else {
+
+            // debug
+#ifndef NDEBUG
+            {
+                using namespace std;
+                size_t total_rows = 0;
+                for(unsigned i = 0; i < tasks.size(); ++i) {
+                    auto sink = getHashSink(tasks[i]);
+
+                    if(i == 17) {
+                        std::cerr<<"rogue task found..."<<std::endl;
+                    }
+
+                    // count for both hashmap and hybrid the data...
+                    size_t num_hm = count_hm_data(sink->hm);
+                    size_t num_hybrid = 0;
+                    if(sink->hybrid_hm) {
+                        python::lockGIL();
+                        auto hybrid = ((HybridLookupTable*)sink->hybrid_hm);
+                        auto dict = hybrid->backupDict;
+                        if(dict) {
+                            // iterate over all elements...
+                            PyObject *key = nullptr, *val = nullptr;
+                            Py_ssize_t pos = 0;
+                            while (PyDict_Next(dict, &pos, &key, &val)) {
+                                Py_XINCREF(key);
+                                Py_XINCREF(val);
+                                num_hybrid += PyLong_AsLong(val);
+                            }
+                        }
+                        python::unlockGIL();
+                    }
+
+                    total_rows += num_hm + num_hybrid;
+                    cout<<"task "<<i<<": "<<num_hm<<" in C++, "<<num_hybrid<<" in Python"<<endl;
+                }
+
+                cout<<"total rows: "<<total_rows<<endl;
+            }
+#endif
+
+
 
             // @TODO: getHashSink should be updated to also work with hybrids. Yet, the merging of normal hashtables
             //        with resolve hashtables is done by simply setting the merged normal result as input to the first resolve task.

@@ -936,6 +936,9 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         ss<<"\tagg_value = "<<hashmap_name<<".setdefault(agg_key, result_to_row("<<initial_value.toPythonString()<<"))\n";
 
         // debug
+#ifndef NDEBUG
+        ss<<"print('looked up aggregate value (before UDF) is: {}'.format(agg_value))\n";
+#endif
         // ss<<"\tprint('aggregate value: {}'.format(agg_value))\n";
         // ss<<"\tagg_value = agg_value[0]\n";
         // ss<<"\tprint('aggregate value after unpacking: {}'.format(agg_value))\n";
@@ -949,6 +952,11 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         ss<<"f_agg = cloudpickle.loads(code)\n";
         ss<<"agg_value = "<<"apply_func2(f_agg, result_to_row(agg_value), "<<row()<<")\n";
         // ss<<"print('agg result: {}'.format(agg_value))\n";
+
+        // debug
+#ifndef NDEBUG
+        ss<<"print('aggregate value (after UDF) is: {}'.format(agg_value))\n";
+#endif
 
         // output aggregate value and key (b.c. special treatment necessary!)
         // update row to be agg value

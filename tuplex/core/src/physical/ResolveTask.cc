@@ -390,18 +390,18 @@ default:
 
         using namespace std;
         if(entry->in_use) {
-            cout<<"key: "<<entry->key;
+            // cout<<"key: "<<entry->key;
 
             if(data) {
                 // other bucket count
                 auto num_entries =  (*(uint64_t*)data >> 32ul);
                 auto x = *(int64_t*)(data + sizeof(int64_t));
-                cout<<" "<<pluralize(num_entries, "value");
+                // cout<<" "<<pluralize(num_entries, "value");
                 if(userData)
                     *(int64_t*)userData += x;
             }
-
-            cout<<endl;
+//
+//            cout<<endl;
         }
 
         return MAP_OK;

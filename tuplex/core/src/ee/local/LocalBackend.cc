@@ -2242,6 +2242,8 @@ namespace tuplex {
             // need to merge.
             // => fetch hash table form first
             auto sink = moveHashSink(tasks.front());
+            if(!sink)
+                sink = new HashTableSink();
 
             // init hashmap
             if(!sink->hm) {
@@ -2252,6 +2254,10 @@ namespace tuplex {
             // merge in null bucket + other buckets from other tables (this could be slow...)
             for(int i = 1; i < tasks.size(); ++i) {
                 auto task_sink = moveHashSink(tasks[i]);
+
+                // can skip this task sink, b.c. it's empty
+                if(!task_sink)
+                    continue;
 
                 // print description of hash sink
 #ifndef NDEBUG

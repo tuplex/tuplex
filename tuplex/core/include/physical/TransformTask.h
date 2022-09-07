@@ -186,6 +186,7 @@ namespace tuplex {
 
         void sinkOutputToHashTable(HashTableFormat fmt, int64_t outputDataSetID);
         HashTableSink* hashTableSink() const { return _htable; } // needs to be freed manually!
+        HashTableSink* moveHashSink() { auto ptr = _htable; _htable = nullptr; return ptr; }
 
         void setOutputLimit(size_t limit) { _outLimit = limit; resetOutputLimitCounter(); }
         void setOutputSkip(size_t numRowsToSkip) { _outSkipRows = numRowsToSkip; }

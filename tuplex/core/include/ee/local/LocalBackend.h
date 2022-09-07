@@ -72,6 +72,7 @@ namespace tuplex {
 
         /*!
          * Create the final hashmap from all of the input [tasks] (e.g. either merge them (join) or combine them (aggregate)
+         * also removed in each task the hashtable (i.e. resets sink).
          * @param tasks
          * @param hashtableKeyByteWidth The width of the keys in the hashtables (e.g. differentiate between i64 and str hashtable)
          * @param combine whether this is an aggregate (e.g. if we should call the aggregate combiner, rather than simply merging the hashtables)
@@ -82,7 +83,7 @@ namespace tuplex {
          * @param acquireGIL whether this function should acquire the GIL on its own or not.
          * @return the final hashtable sink
          */
-        HashTableSink* createFinalHashmap(const std::vector<const IExecutorTask*>& tasks,
+        HashTableSink* createFinalHashmap(const std::vector<IExecutorTask*>& tasks,
                                          int hashtableKeyByteWidth,
                                          bool combine,
                                          codegen::agg_init_f init_aggregate,

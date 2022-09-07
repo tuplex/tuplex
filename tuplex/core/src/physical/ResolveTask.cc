@@ -771,9 +771,19 @@ default:
     void ResolveTask::execute() {
 
         // Note: if output is hash-table then order doesn't really matter
-        // --> can process things independently from each other.
+        // --> can simply process things independent of each other.
 
         using namespace std;
+
+        // DEBUG
+#ifndef NDEBUG
+        std::cout<<"task order: "<<getOrder()<<std::endl;
+        auto taskId = getOrder().front();
+        if(17 == taskId) {
+            std::cout<<"special task found"<<std::endl;
+        }
+#endif
+
 
         Timer timer;
 
@@ -1458,17 +1468,17 @@ default:
                 }
 
 
-                // lazy create table
-                if(!_htable->hybrid_hm) {
-                    auto adjusted_key_type = _hash_element_type.isTupleType() && _hash_element_type.parameters().size() == 1 ?
-                                             _hash_element_type.parameters().front() : _hash_element_type;
-
-                    _htable->hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(*_htable,
-                                                                                                adjusted_key_type,
-                                                                                                _hash_bucket_type,
-                                                                                                LookupStorageMode::LISTOFVALUES));
-                    assert(_htable->hm && _htable->hybrid_hm);
-                }
+                // // lazy create table
+                // if(!_htable->hybrid_hm) {
+                //     auto adjusted_key_type = _hash_element_type.isTupleType() && _hash_element_type.parameters().size() == 1 ?
+                //                              _hash_element_type.parameters().front() : _hash_element_type;
+                //
+                //     _htable->hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(*_htable,
+                //                                                                                 adjusted_key_type,
+                //                                                                                 _hash_bucket_type,
+                //                                                                                 LookupStorageMode::VALUE));
+                //     assert(_htable->hm && _htable->hybrid_hm);
+                // }
 
                 assert(_htable->hybrid_hm);
                 int rc =((HybridLookupTable*)_htable->hybrid_hm)->putItem(key, rowObject);

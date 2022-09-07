@@ -178,6 +178,7 @@ namespace tuplex {
         }
 
         HashTableSink* hashTableSink() const { return _htable; } // needs to be freed manually!
+        HashTableSink* moveHashSink() { auto ptr = _htable; _htable = nullptr; return ptr; }
         bool hasHashTableSink() const { return _htableFormat != HashTableFormat::UNKNOWN; }
 
         void execute() override;

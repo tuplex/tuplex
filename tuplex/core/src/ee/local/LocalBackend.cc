@@ -1118,7 +1118,7 @@ namespace tuplex {
                 } else {
 
                     auto py_combine = preparePythonPipeline(tstage->purePythonAggregateCode(), tstage->pythonAggregateFunctionName());
-                    auto hsink = createFinalHashmap({completedTasks.cbegin(), completedTasks.cend()},
+                    auto hsink = createFinalHashmap(completedTasks,
                                                     tstage->hashtableKeyByteWidth(),
                                                     combineOutputHashmaps,
                                                     syms->aggInitFunctor,
@@ -1257,7 +1257,7 @@ namespace tuplex {
             // compile & prep python pipeline for this stage
             auto pip_object = preparePythonPipeline(tstage->purePythonAggregateCode(), tstage->pythonAggregateFunctionName());
 
-            hsink = createFinalHashmap({tasks.cbegin(), tasks.cend()},
+            hsink = createFinalHashmap(tasks,
                                        tstage->hashtableKeyByteWidth(),
                                        combineHashmaps,
                                        init_aggregate,
@@ -1462,6 +1462,9 @@ namespace tuplex {
                                                      hsink->hm,
                                                      hsink->null_bucket);
                         hasNormalHashSink = false;
+
+                        // set hsink to empty
+                        hsink = nullptr;
                     } else {
 
                         // init hash table based on key
@@ -1897,6 +1900,24 @@ namespace tuplex {
         }
     }
 
+    HashTableSink* moveHashSink(IExecutorTask* exec_task) {
+        if(!exec_task)
+            return new HashTableSink();
+
+        switch(exec_task->type()) {
+            case TaskType::UDFTRAFOTASK: {
+                auto task = dynamic_cast<TransformTask*>(exec_task); assert(task);
+                return task->moveHashSink();
+            }
+            case TaskType::RESOLVE: {
+                auto task = dynamic_cast<ResolveTask*>(exec_task); assert(task);
+                return task->moveHashSink();
+            }
+            default:
+                throw std::runtime_error("unknown task type" + FLINESTR);
+        }
+    }
+
     struct apply_context {
         map_t hm;
         codegen::agg_init_f init_aggregate;
@@ -2101,7 +2122,7 @@ namespace tuplex {
         return test;
     }
 
-    HashTableSink* LocalBackend::createFinalHashmap(const std::vector<const IExecutorTask*>& tasks,
+    HashTableSink* LocalBackend::createFinalHashmap(const std::vector<IExecutorTask*>& tasks,
                                                    int hashtableKeyByteWidth,
                                                    bool combine,
                                                    codegen::agg_init_f init_aggregate,
@@ -2121,7 +2142,7 @@ namespace tuplex {
             // no merge necessary, just directly return result
             // fetch hash table from task
             assert(tasks.front()->type() == TaskType::UDFTRAFOTASK || tasks.front()->type() == TaskType::RESOLVE);
-            auto sink = getHashSink(tasks.front());
+            auto sink = moveHashSink(tasks.front());
 
             // aggByKey or aggregate?
             if(init_aggregate && combine_aggregate) {
@@ -2180,8 +2201,9 @@ namespace tuplex {
                 for(unsigned i = 0; i < tasks.size(); ++i) {
                     auto sink = getHashSink(tasks[i]);
 
-                    if(i == 17) {
-                        std::cerr<<"rogue task found..."<<std::endl;
+                    if(!sink) {
+                        cout<<"task "<<i<<": empty sink"<<endl;
+                        continue;
                     }
 
                     // count for both hashmap and hybrid the data...
@@ -2205,7 +2227,7 @@ namespace tuplex {
                     }
 
                     total_rows += num_hm + num_hybrid;
-                    cout<<"task "<<i<<": "<<num_hm<<" in C++, "<<num_hybrid<<" in Python"<<endl;
+                    cout<<tasks[i]->getOrder()<<"  task "<<i<<": "<<num_hm<<" in C++, "<<num_hybrid<<" in Python"<<endl;
                 }
 
                 cout<<"total rows: "<<total_rows<<endl;
@@ -2219,7 +2241,7 @@ namespace tuplex {
 
             // need to merge.
             // => fetch hash table form first
-            auto sink = getHashSink(tasks.front());
+            auto sink = moveHashSink(tasks.front());
 
             // init hashmap
             if(!sink->hm) {
@@ -2229,7 +2251,7 @@ namespace tuplex {
 
             // merge in null bucket + other buckets from other tables (this could be slow...)
             for(int i = 1; i < tasks.size(); ++i) {
-                auto task_sink = getHashSink(tasks[i]);
+                auto task_sink = moveHashSink(tasks[i]);
 
                 // print description of hash sink
 #ifndef NDEBUG

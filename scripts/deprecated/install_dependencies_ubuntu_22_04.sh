@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-09-07 00:49:58.500800
+# auto-generated on 2022-09-05 21:49:52.822628
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -39,8 +39,8 @@ apt-get install -y apt-utils dh-autoreconf libmagic-dev curl libxml2-dev vim bui
     libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git libcurl4-openssl-dev python3-dev python3-pip openjdk-8-jre-headless
   
 ldconfig
-export CC=gcc-7
-export CXX=g++-7
+export CC=gcc-11
+export CXX=g++-11
 
 echo ">> Installing recent cmake"
 # fetch recent cmake & install
@@ -81,7 +81,7 @@ mkdir -p ${WORKDIR}/llvm && cd ${WORKDIR}/llvm && wget https://github.com/llvm/l
     && cd llvm9 && mkdir build && cd build \
 && cmake -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON \
         -DLLVM_ENABLE_PROJECTS="clang" \
-         -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-std=c++11" \
+         -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-std=c++11 -include /usr/include/c++/11/limits" \
          -DCMAKE_INSTALL_PREFIX=/opt/llvm-9.0.1 ../llvm-9.0.1.src \
 && make -j "$(nproc)" && make install
 
@@ -149,3 +149,8 @@ cd ${WORKDIR}/aws \
 && cd build \
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
 && make -j$(nproc) && make install
+
+echo ">> Cleaning/removing workdir /tmp"
+rm -rf ${WORKDIR}
+
+echo "-- Done, all Tuplex requirements installed to /opt --"

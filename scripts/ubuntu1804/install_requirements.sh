@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-09-07 00:49:58.500800
+# auto-generated on 2022-09-07 00:49:58.351520
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -31,12 +31,19 @@ PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE:-python3}
 PYTHON_BASENAME="$(basename -- $PYTHON_EXECUTABLE)"
 PYTHON_VERSION=$(${PYTHON_EXECUTABLE} --version)
 echo ">> Building dependencies for ${PYTHON_VERSION}"
+echo ">> Installing all build dependencies for Tuplex under Ubuntu 18.04"
+
 echo ">> Installing apt dependencies"
 apt update -y
 
-apt-get install -y apt-utils dh-autoreconf libmagic-dev curl libxml2-dev vim build-essential libssl-dev zlib1g-dev libncurses5-dev \
-    libncursesw5-dev libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev \
-    libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git libcurl4-openssl-dev python3-dev python3-pip openjdk-8-jre-headless
+apt-get install -y build-essential wget git dh-autoreconf libxml2-dev \
+ autoconf curl automake libtool software-properties-common wget libedit-dev libz-dev \
+  python3-yaml pkg-config libssl-dev libcurl4-openssl-dev curl \
+  uuid-dev git python3.7 python3.7-dev python3-pip libffi-dev \
+  doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \
+  gcc-7 g++-7 libgflags-dev libncurses-dev \
+  awscli openjdk-8-jdk libyaml-dev libmagic-dev ninja-build
+                    
   
 ldconfig
 export CC=gcc-7
@@ -149,3 +156,8 @@ cd ${WORKDIR}/aws \
 && cd build \
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
 && make -j$(nproc) && make install
+
+echo ">> Cleaning/removing workdir /tmp"
+rm -rf ${WORKDIR}
+
+echo "-- Done, all Tuplex requirements installed to /opt --"

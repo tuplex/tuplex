@@ -411,6 +411,7 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
 
     Context c(opt);
     auto path = "../resources/311_subset.micro.csv";
+
     auto& ds = c.csv(path);
     auto combine_code = "def combine_udf(a, b):\n"
                         "  return a + b\n";
@@ -420,7 +421,7 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
     auto& ds_agg = ds.aggregateByKey(UDF(combine_code), UDF(agg_code),
                       Row(0), std::vector<std::string>{"Complaint Type"});
 
-    // ds_agg.show();
+     ds_agg.show();
 
     // the counts are off...
     // ==> need to fix this!

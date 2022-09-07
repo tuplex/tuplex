@@ -79,6 +79,20 @@ namespace codegen {
 
         void declareVariables(ASTNode* func);
 
+
+        inline SerializableValue deoptimizeValue(llvm::IRBuilder<>& builder,
+                                                 const SerializableValue& v,
+                                                 const python::Type& t) {
+            if(!t.isOptimizedType())
+                return v;
+            else {
+                if(t.isConstantValued()) {
+                    return constantValuedTypeToLLVM(builder, t);
+                } else fatal_error("can not deoptimize " + t.desc());
+            }
+            return {};
+        }
+
         struct Variable {
             llvm::Value *ptr;
             llvm::Value *sizePtr;

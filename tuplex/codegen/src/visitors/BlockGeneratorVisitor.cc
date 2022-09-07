@@ -967,10 +967,15 @@ namespace tuplex {
             assert(!leftType.isOptional());
             assert(!rightType.isOptional());
 
+            assert(!leftType.isOptimizedType());
+            assert(!rightType.isOptimizedType());
+
             assert(L);
             assert(R);
 
             if(tt == TokenType::IS || tt == TokenType::ISNOT) {
+
+                assert(!leftType.isOptimizedType() && !rightType.isOptimizedType());
 
                 // special case: left/right is not boolean
                 // --> Python allows that, it's bad coding style though.
@@ -987,12 +992,31 @@ namespace tuplex {
                         _logger.warn("SyntaxWarning: Emitting code for integer is comparison, i.e. for integers in range [-5, 256] is behaves like ==");
 
                         // result is: L == R && -5 <= L <= 256
+                        // yet, in bitcode this requires L == R & -5 <= L <= 256 & -5 <= R <= 256.
+                        // -> emit here more instructions to make it branch free.
                         assert(L && R);
                         auto equal = builder.CreateICmpEQ(L, R);
                         auto upperBound = builder.CreateICmpSLE(L, _env->i64Const(256));
                         auto lowerBound = builder.CreateICmpSGE(L, _env->i64Const(-5));
-                        // could short-circuit here, but & does fine as well...
-                        auto resValue = builder.CreateAnd(equal, builder.CreateAnd(upperBound, lowerBound));
+                        auto leftBound = builder.CreateAnd(upperBound, lowerBound);
+
+                        upperBound = builder.CreateICmpSLE(R, _env->i64Const(256));
+                        lowerBound = builder.CreateICmpSGE(R, _env->i64Const(-5));
+                        auto rightBound = builder.CreateAnd(upperBound, lowerBound);
+
+                        auto bounds = builder.CreateAnd(leftBound, rightBound);
+
+                        // debug print:
+                        _env->printValue(builder, L, "L=");
+                        _env->printValue(builder, R, "R=");
+                        _env->printValue(builder, bounds, "bounds=");
+                        _env->printValue(builder, equal, "L == R");
+
+                        // could short-circuit here, but & does fine as well albeit with more instructions...
+                        auto resValue = builder.CreateAnd(equal, bounds);
+
+                        _env->printValue(builder, resValue, "L is R");
+
                         return _env->upcastToBoolean(builder, resValue);
                     } else {
                         return _env->boolConst(false);
@@ -3587,12 +3611,15 @@ namespace tuplex {
                 // get element vals from stack
                 // note the reversion of the index due to the stack!
                 std::vector<llvm::Value *> vals;
+                std::vector<llvm::Value*> sizes;
                 std::vector<llvm::Value *> nulls;
                 for (int i = 0; i < cmp->_comps.size() + 1; ++i) {
                     auto val = _blockStack.back().val;
+                    auto size = _blockStack.back().size;
                     auto isnull = _blockStack.back().is_null;
                     _blockStack.pop_back();
                     vals.push_back(val);
+                    sizes.push_back(size);
                     nulls.push_back(isnull);
                 }
                 std::reverse(vals.begin(), vals.end());
@@ -3603,10 +3630,20 @@ namespace tuplex {
                 for (int i = 1; i < vals.size(); ++i) {
                     auto a = vals[i - 1];
                     auto b = vals[i];
+                    auto a_size = sizes[i - 1];
+                    auto b_size = sizes[i];
                     auto a_isnull = nulls[i - 1];
                     auto b_isnull = nulls[i];
                     auto atype = types[i - 1];
                     auto btype = types[i];
+
+                    // deoptimize if necessary
+                    auto a_tmp = deoptimizeValue(builder, SerializableValue(a, a_size, a_isnull), atype);
+                    a = a_tmp.val; a_isnull = a_tmp.is_null; atype = deoptimizedType(atype);
+                    auto b_tmp = deoptimizeValue(builder, SerializableValue(b, b_size, b_isnull), btype);
+                    b = b_tmp.val; b_isnull = b_tmp.is_null; btype = deoptimizedType(btype);
+
+                    assert(!atype.isOptimizedType() && !btype.isOptimizedType());
 
                     // first pair?
                     if (!lastPair)

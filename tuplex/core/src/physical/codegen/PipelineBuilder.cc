@@ -504,13 +504,13 @@ namespace tuplex {
             // hence, if it's not boolean need to add a truth test.
             // for some types, we can statically decide this...
 
-            if(python::Type::BOOLEAN != cf.output_type) {
+            if(python::Type::BOOLEAN != cf.output_python_type) {
                 // check if it's something that's always false
                 // e.g., // empty sequences and collections: '', (), [], {}, set(), range(0)
                 // cf. LLVMEnvironment.cc truthValueTest for this...
-                if(cf.output_type == python::Type::EMPTYTUPLE ||
-                cf.output_type == python::Type::EMPTYLIST ||
-                cf.output_type == python::Type::EMPTYDICT) {
+                if(cf.output_python_type == python::Type::EMPTYTUPLE ||
+                cf.output_python_type == python::Type::EMPTYLIST ||
+                cf.output_python_type == python::Type::EMPTYDICT) {
                     logger.warn("filter operation will filter out all rows and yield therefore an empty dataset.");
 
                     IRBuilder<> builder(_lastBlock);
@@ -550,7 +550,11 @@ namespace tuplex {
                     filterCond = env().i1Const(true);
                 else{
                     auto ret_val = SerializableValue(ft.get(0), ft.getSize(0), ft.getIsNull(0)); // single value?
-                    filterCond = env().truthValueTest(builder, ret_val, ft.getTupleType());
+
+                    // debug:
+                    _env->printValue(builder, ret_val.val, "filter bool value=");
+
+                    filterCond = env().truthValueTest(builder, ret_val, cf.output_python_type);
                 }
             } else {
                 assert(ft.numElements() ==  1);
@@ -567,9 +571,14 @@ namespace tuplex {
             BasicBlock *keepBlock = BasicBlock::Create(env().getContext(),
                                                        "filter_keep", builder.GetInsertBlock()->getParent());
 
+            _env->debugPrint(builder, "filter cond=", filterCond);
+
             // if tuple is filtered away, simply go to destructor block
             builder.CreateCondBr(filterCond, keepBlock, leaveBlock());
             _lastBlock = keepBlock; // update this
+
+            builder.SetInsertPoint(_lastBlock);
+            _env->debugPrint(builder, "in keep block");
 
             _lastOperatorType = LogicalOperatorType::FILTER;
             _lastOperatorColumnIndex = -1;

@@ -85,6 +85,10 @@ namespace tuplex {
          * checks for key existence throughout all structures...
          */
         bool _key_exists(PyObject* key);
+
+        size_t elements_in_bucket(const uint8_t* bucket);
+
+        PyObject* decodeBucket(const uint8_t* bucket, const python::Type& bucketType);
     };
 
     extern PyObject* decodeBucketToPythonList(const uint8_t* bucket, const python::Type& bucketType);

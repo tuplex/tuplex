@@ -385,6 +385,28 @@ default:
         }
     }
 
+    static  int print_hm_key(void* userData, hashmap_element* entry) {
+        auto data = (uint8_t*)entry->data; // bucket data. First is always an int64_t holding how many rows there are.
+
+        using namespace std;
+        if(entry->in_use) {
+            cout<<"key: "<<entry->key;
+
+            if(data) {
+                // other bucket count
+                auto num_entries =  (*(uint64_t*)data >> 32ul);
+                auto x = *(int64_t*)(data + sizeof(int64_t));
+                cout<<" "<<pluralize(num_entries, "value");
+                if(userData)
+                    *(int64_t*)userData += x;
+            }
+
+            cout<<endl;
+        }
+
+        return MAP_OK;
+    }
+
     void ResolveTask::processExceptionRow(int64_t& ecCode, int64_t operatorID, const uint8_t* ebuf, size_t eSize) {
         // inc counter here, hence only count exception rows!
         _numInputRowsRead++;
@@ -551,6 +573,23 @@ default:
                 Py_XINCREF(_htable->hybrid_hm);
                 PyTuple_SET_ITEM(args, num_python_args - 1, _htable->hybrid_hm);
             }
+
+#ifndef NDEBUG
+            if(hasHashTableSink()) {
+                using namespace std;
+                cout<<"hash sink result is: "<<endl;
+                auto hsink = _htable;
+                assert(hsink);
+                if(hsink->hm) {
+                    cout<<"hashmap contains following keys: "<<endl;
+                    int64_t test = 0;
+                    hashmap_iterate(hsink->hm, print_hm_key, &test);
+                    cout<<"total rows: "<<test<<endl;
+                }
+            }
+
+#endif
+
 
             auto kwargs = PyDict_New(); PyDict_SetItemString(kwargs, "parse_cells", python::boolean(parse_cells));
             auto pcr = python::callFunctionEx(_interpreterFunctor, args, kwargs);
@@ -732,7 +771,7 @@ default:
     void ResolveTask::execute() {
 
         // Note: if output is hash-table then order doesn't really matter
-        // --> can simply process things independent from each other.
+        // --> can process things independently from each other.
 
         using namespace std;
 

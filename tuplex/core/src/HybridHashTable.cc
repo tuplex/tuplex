@@ -44,7 +44,7 @@ namespace tuplex {
         // None? => return decoded null-bucket
         if(python::Type::NULLVALUE == key_type) {
             assert(sink);
-            return decodeBucketToPythonList(sink->null_bucket, hmBucketType);
+            return decodeBucket(sink->null_bucket, hmBucketType);
         } else if(hmElementType == key_type) {
             // perform hashmap lookup
             if(python::Type::STRING == key_type) {
@@ -56,7 +56,7 @@ namespace tuplex {
                     // value is a bucket now
                     assert(value);
                     // --> fetch list and return
-                    ret_list = decodeBucketToPythonList(reinterpret_cast<uint8_t *>(value), hmBucketType);
+                    ret_list = decodeBucket(reinterpret_cast<uint8_t *>(value), hmBucketType);
                 } else {
                     // not in regular dict. Is it in backup dict? I.e. when key type coincides but bucket type is different
                     if(!backupDict) {
@@ -84,7 +84,7 @@ namespace tuplex {
                     // value is a bucket now
                     assert(value);
                     // --> fetch list and return
-                    ret_list = decodeBucketToPythonList(reinterpret_cast<uint8_t *>(value), hmBucketType);
+                    ret_list = decodeBucket(reinterpret_cast<uint8_t *>(value), hmBucketType);
                 } else {
                     // not in regular dict. Is it in backup dict? I.e. when key type coincides but bucket type is different
                     if(!backupDict) {
@@ -121,20 +121,47 @@ namespace tuplex {
 
         // need to fetch entry from backup too.
         if(backupDict) {
-            auto backup_list = PyDict_GetItem(backupDict, key);
-            if(backup_list)
-                ret_list = PySequence_Concat(ret_list, backup_list); // concat lists!
+            if(valueMode == LookupStorageMode::LISTOFVALUES) {
+                auto backup_list = PyDict_GetItem(backupDict, key);
+                if(backup_list)
+                    ret_list = PySequence_Concat(ret_list, backup_list); // concat lists!
+            } else {
+                return PyDict_GetItem(backupDict, key);
+            }
         }
 
         // list empty?
         assert(ret_list);
-        if(PyList_Size(ret_list) == 0) {
+        if(valueMode == LookupStorageMode::LISTOFVALUES && PyList_Size(ret_list) == 0) {
             Py_DECREF(ret_list);
             // raise keyerror if not found!
             PyErr_SetString(PyExc_KeyError, ("could not find key " + python::PyString_AsString(key)).c_str());
             return nullptr;
         } else {
             return ret_list;
+        }
+    }
+
+    PyObject *HybridLookupTable::decodeBucket(const uint8_t *bucket, const python::Type &bucketType) {
+        if(!bucket)
+            return nullptr;
+
+        switch(valueMode) {
+            case LookupStorageMode::VALUE: {
+                // value size & decode
+                auto value_size = *(uint64_t*)bucket;
+                auto value_buf = bucket + sizeof(int64_t);
+                Row row = Row::fromMemory(Schema(Schema::MemoryLayout::ROW,
+                                                 python::Type::propagateToTupleType(bucketType)), value_buf, value_size);
+                return python::rowToPython(row, true);
+                break;
+            }
+            case LookupStorageMode::LISTOFVALUES: {
+                return decodeBucketToPythonList(bucket, bucketType);
+                break;
+            }
+            default:
+                return nullptr;
         }
     }
 
@@ -493,10 +520,7 @@ namespace tuplex {
                     uint8_t* bucket = reinterpret_cast<uint8_t*>(value);
                     if(!bucket)
                         return false;
-                    uint64_t info = *(const uint64_t*)bucket;
-                    auto bucket_size = info & 0xFFFFFFFF;
-                    auto num_elements = (info >> 32ul);
-                    return 0 != num_elements;
+                    return elements_in_bucket(bucket) != 0;
                 } else {
                     // not in regular dict
                     if(!backupDict)
@@ -511,10 +535,7 @@ namespace tuplex {
                     uint8_t* bucket = reinterpret_cast<uint8_t*>(value);
                     if(!bucket)
                         return false;
-                    uint64_t info = *(const uint64_t*)bucket;
-                    auto bucket_size = info & 0xFFFFFFFF;
-                    auto num_elements = (info >> 32ul);
-                    return 0 != num_elements;
+                    return elements_in_bucket(bucket) != 0;
                 } else {
                     if(!backupDict)
                         return false;
@@ -530,6 +551,13 @@ namespace tuplex {
 
     PyObject *HybridLookupTable::setDefault(PyObject *key, PyObject *value) {
         assert(valueMode != LookupStorageMode::UNKNOWN);
+
+        // debug
+        {
+            Py_XINCREF(key);
+            auto skey = python::PyString_AsString(key);
+            std::cout<<"setdefault w. key="<<skey<<std::endl;
+        }
 
         // check if item exists, if so return. Else, set to default value!
         Py_XINCREF(key);
@@ -579,6 +607,9 @@ namespace tuplex {
         return L;
     }
 
+
+
+
     // helper function to create the object and associate with a hashmap
     HybridLookupTable* CreatePythonHashMapWrapper(HashTableSink& sink, const python::Type& elementType,
                                                   const python::Type& bucketType, const LookupStorageMode& valueMode) {
@@ -617,6 +648,33 @@ namespace tuplex {
         sink.hybrid_hm = (PyObject*)o;
 
         return o;
+    }
+
+    size_t HybridLookupTable::elements_in_bucket(const uint8_t *bucket) {
+        if(!bucket)
+            return 0;
+
+        // check depending on storage mode (list of value?)
+        switch(valueMode) {
+            case LookupStorageMode::VALUE: {
+                // if size != 0 => then value is stored.
+                uint64_t value_size = *(const uint64_t*)bucket;
+
+                // value_size should be != 0.
+
+                return 1;
+            }
+            case LookupStorageMode::LISTOFVALUES: {
+                uint64_t info = *(const uint64_t*)bucket;
+                auto bucket_size = info & 0xFFFFFFFF;
+                auto num_elements = (info >> 32ul);
+                return num_elements;
+            }
+
+            default: {
+                return 0;
+            }
+        }
     }
 
     PyObject* HybridLookupTable::pythonDict(bool remove) {

@@ -1220,7 +1220,10 @@ namespace tuplex {
             if(data) {
                 // other bucket count
                 auto num_entries =  (*(uint64_t*)data >> 32ul);
+                auto x = *(int64_t*)(data + sizeof(int64_t));
                 cout<<" "<<pluralize(num_entries, "value");
+                if(userData)
+                    *(int64_t*)userData += x;
             }
 
             cout<<endl;
@@ -1265,15 +1268,17 @@ namespace tuplex {
             hasNormalHashSink = true;
 
             // debug: print info on hash sink
+#ifndef NDEBUG
             using namespace std;
             cout<<"hash sink result is: "<<endl;
             assert(hsink);
             if(hsink->hm) {
                 cout<<"hashmap contains following keys: "<<endl;
-                int test = 0;
+                int64_t test = 0;
                 hashmap_iterate(hsink->hm, print_hm_key, &test);
+                cout<<"total rows: "<<test<<endl;
             }
-
+#endif
         }
 
         Timer timer;
@@ -1319,7 +1324,6 @@ namespace tuplex {
 #endif
                 // create hybrid if not existing (could be if previous stage had output hashtable + slow resolve path!)
                 if(input_intermediates.hash_maps[i] && !input_intermediates.hybrids[i]) {
-#warning "fix this code after OSS, it's a memory bug."
                     HashTableSink* hs = new HashTableSink(); // memory leak...
                     hs->hm = input_intermediates.hash_maps[i];
                     hs->null_bucket = input_intermediates.null_buckets[i];

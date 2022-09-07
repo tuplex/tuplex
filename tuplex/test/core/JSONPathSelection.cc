@@ -9,6 +9,20 @@
 
 class JSONPathSelection : public PyTest {};
 
+template<typename T> ::testing::AssertionResult VecContains(const std::vector<T>& v, const T& value) {
+    if (v.empty()) {
+        // If MyObject is streamable, then we probably want to include it
+        // in the error message.
+        return ::testing::AssertionFailure() << v << " is empty";
+    }
+   for(const T& el : v) {
+       if(el == value)
+           return ::testing::AssertionSuccess();
+   }
+
+   return ::testing::AssertionFailure() << value << " not contained in " << v;
+}
+
 TEST_F(JSONPathSelection, BasicPathSelection) {
     using namespace tuplex;
     using namespace std;
@@ -24,17 +38,30 @@ TEST_F(JSONPathSelection, BasicPathSelection) {
 
     auto input_row_type = rows.front().getRowType();
 
-    UDF udf("lambda x: x['repo']['url']");
-    udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, input_row_type));
-    auto output_row_type = udf.getOutputSchema().getRowType();
-    cout<<"output type of UDF: "<<output_row_type.desc()<<endl;
+    // basic tests
+    { // basic UDF
+        UDF udf("lambda x: (x, x['repo'], x['repo']['url'])");
+        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, input_row_type));
+        auto output_row_type = udf.getOutputSchema().getRowType();
+        cout<<"output type of UDF: "<<output_row_type.desc()<<endl;
 
-    // detect paths
-    AccessPathVisitor apv;
-    auto root = udf.getAnnotatedAST().getFunctionAST();
-    root->accept(apv);
-    auto indices = apv.getAccessedIndices();
-    cout<<"visited indices: "<<indices<<endl;
+        AccessPathVisitor apv;
+        auto root = udf.getAnnotatedAST().getFunctionAST();
+        root->accept(apv);
+        auto paths = apv.accessedPaths();
+
+        SelectionPath path1("x", vector<SelectionPathAtom>{});
+        SelectionPath path2("x", vector<SelectionPathAtom>{SelectionPathAtom("repo")});
+        SelectionPath path3("x", vector<SelectionPathAtom>{SelectionPathAtom("repo"), SelectionPathAtom("url")});
+
+        EXPECT_EQ(paths.size(), 3);
+        EXPECT_TRUE(VecContains(paths, path1));
+        EXPECT_TRUE(VecContains(paths, path2));
+        EXPECT_TRUE(VecContains(paths, path3));
+    }
+
+
+
 
     // need to detect path access using identifier (single + multiple columns)
     // e.g.,

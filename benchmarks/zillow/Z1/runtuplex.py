@@ -155,7 +155,7 @@ if __name__ == '__main__':
             "runTimeMemory" : "128MB",
             "useLLVMOptimizer" : True,
             "optimizer.nullValueOptimization" : False,
-            "csv.selectionPushdown" : True}
+            "optimizer.selectionPushdown" : True}
 
     # # conf for r5d.4xlarge (in total: 100GB, same as spark)
     # conf = {"webui.enable" : False,

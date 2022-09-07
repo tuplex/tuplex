@@ -38,6 +38,14 @@ namespace tuplex {
             }
             return escape_to_python_str(_key);
         }
+
+        bool operator == (const SelectionPathAtom& other) const {
+            return _index == other._index && _key == other._key && _is_wildcard == other._is_wildcard;
+        }
+
+        bool operator != (const SelectionPathAtom& other) const {
+            return !(*this == other);
+        }
     private:
         // only int and string keys supported for now
         int _index; // raw value
@@ -58,6 +66,11 @@ namespace tuplex {
         std::vector<SelectionPathAtom> atoms;
         std::string name; // identifier name
 
+        SelectionPath() {}
+
+        SelectionPath(const std::string& name,
+                      const std::vector<SelectionPathAtom>& atoms) : name(name), atoms(atoms) {}
+
         std::string desc() const {
             std::stringstream ss;
             ss<<name;
@@ -72,7 +85,24 @@ namespace tuplex {
         }
 
         bool empty() const { return atoms.empty(); }
+
+        inline bool operator == (const SelectionPath& other) const {
+            if(name != other.name)
+                return false;
+            if(atoms.size() != other.atoms.size())
+                return false;
+            for(unsigned i = 0; i < atoms.size(); ++i)
+                if(atoms[i] != other.atoms[i])
+                    return false;
+            return true;
+        }
+
+        inline bool operator != (const SelectionPath& other) const {
+            return !(*this == other);
+        }
     };
+
+    inline std::ostream& operator << (std::ostream& os, const SelectionPath& path) { return os<<path.desc(); }
 
     // based on LambdaAccessedColumnVisitor
     class AccessPathVisitor : public IPrePostVisitor {
@@ -91,24 +121,28 @@ namespace tuplex {
         std::unordered_map<std::string, std::vector<SelectionPath>> _accessPaths;
 
         // has subscript been already visited?
-        std::unordered_map<NSubscription*, bool> _subscriptVisited;
+        std::unordered_map<ASTNode*, bool> _nodeVisited;
 
         SelectionPath longestAccessPath(NSubscription* sub);
+
+        std::vector<SelectionPath> _accessedPaths; // holds ALL accessed paths
     private:
-        bool subscript_visited(NSubscription* sub) {
-            assert(sub);
-            auto it = _subscriptVisited.find(sub);
-            if(it == _subscriptVisited.end())
+        bool node_visited(ASTNode* n) {
+            assert(n);
+            auto it = _nodeVisited.find(n);
+            if(it == _nodeVisited.end())
                 return false;
             return it->second;
         }
-        void mark_visited(NSubscription* sub) { _subscriptVisited[sub] = true; }
+        void mark_visited(ASTNode* n) { if(!n)return; _nodeVisited[n] = true; }
     public:
         AccessPathVisitor() : _tupleArgument(false),
                                         _numColumns(0), _singleLambda(false) {}
 
 
         std::vector<size_t> getAccessedIndices() const;
+
+        std::vector<SelectionPath> accessedPaths() const { return _accessedPaths; }
     };
 }
 #endif //TUPLEX_ACCESSPATHVISITOR_H

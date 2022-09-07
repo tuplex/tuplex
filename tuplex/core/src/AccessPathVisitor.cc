@@ -140,8 +140,13 @@ namespace tuplex {
 
                 // path:
                 auto path = longestAccessPath(sub);
-                if(!path.empty())
+                if(!path.empty()) {
+                    _accessedPaths.push_back(path);
+#ifndef NDEBUG
                     std::cout<<"found path: "<<path.desc()<<std::endl;
+#endif
+                }
+
 
                 break;
             }
@@ -160,7 +165,7 @@ namespace tuplex {
 
            // has this node been already visited?
            // yes, abort.
-           if(subscript_visited(sub))
+           if(node_visited(sub))
                return {};
            // mark visited
            mark_visited(sub);
@@ -171,6 +176,7 @@ namespace tuplex {
            // update name
            if(value->type() == ASTNodeType::Identifier) {
                p.name = ((NIdentifier*)value)->_name;
+               mark_visited(value); // mark the identifier as visited
            }
 
            // constant valued?
@@ -184,6 +190,7 @@ namespace tuplex {
                   auto index = num->getI64();
                   p.atoms.push_back(SelectionPathAtom(index));
               } else {
+                  std::reverse(p.atoms.begin(), p.atoms.end()); // b.c. of descent, need to reverse order
                   return p; // abort, can't decide for longest.
               }
            } else if(expr->getInferredType().isConstantValued()) {
@@ -194,6 +201,7 @@ namespace tuplex {
              } else if(t == python::Type::I64) {
                  p.atoms.push_back(std::stoi(expr->getInferredType().constant()));
              } else {
+                 std::reverse(p.atoms.begin(), p.atoms.end()); // b.c. of descent, need to reverse order
                  return p; // abort, can't decide for longest.
              }
            }
@@ -201,6 +209,7 @@ namespace tuplex {
            sub = dynamic_cast<NSubscription*>(value);
        }
 
+        std::reverse(p.atoms.begin(), p.atoms.end()); // b.c. of descent, need to reverse order
        return p;
     }
 
@@ -208,6 +217,23 @@ namespace tuplex {
         if(!node)
             return;
         switch(node->type()) {
+            case ASTNodeType::Identifier: {
+                NIdentifier *id = (NIdentifier*)node;
+                // for identifiers that are not path of subscript AND within function body,
+                // add access path if not visited
+                if(parent() && parent()->type() == ASTNodeType::Parameter)
+                    return;
+                if(!node_visited(id)) {
+                    mark_visited(id);
+                    SelectionPath path;
+                    path.name = id->_name; // a path without atoms.
+                    _accessedPaths.push_back(path);
+#ifndef NDEBUG
+                    std::cout<<"Found access path: "<<path.desc()<<std::endl;
+#endif
+                }
+                break;
+            }
             default:
                 break;
         }

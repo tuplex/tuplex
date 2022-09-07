@@ -175,8 +175,8 @@ namespace tuplex {
         return status == VirtualFileSystemStatus::VFS_OK;
     }
 
-    bool ContextOptions::CSV_PARSER_SELECTION_PUSHDOWN() const {
-        return stringToBool(_store.at("tuplex.csv.selectionPushdown"));
+    bool ContextOptions::OPT_SELECTION_PUSHDOWN() const {
+        return stringToBool(_store.at("tuplex.optimizer.selectionPushdown"));
     }
 
     ContextOptions ContextOptions::defaults() {
@@ -215,7 +215,7 @@ namespace tuplex {
                      {"tuplex.csv.comments", "['#', '~']"},
                      {"tuplex.normalcaseThreshold", "0.9"},
                      {"tuplex.optionalThreshold", "0.7"},
-                     {"tuplex.csv.selectionPushdown", "true"},
+                     {"tuplex.optimizer.selectionPushdown", "true"},
                      {"tuplex.webui.enable", "true"},
                      {"tuplex.webui.port", "5000"},
                      {"tuplex.webui.url", "localhost"},
@@ -269,7 +269,7 @@ namespace tuplex {
                      {"tuplex.csv.comments", "['#', '~']"},
                      {"tuplex.normalcaseThreshold", "0.9"},
                      {"tuplex.optionalThreshold", "0.7"},
-                     {"tuplex.csv.selectionPushdown", "true"}, //
+                     {"tuplex.optimizer.selectionPushdown", "true"}, //
                      {"tuplex.webui.enable", "true"},
                      {"tuplex.webui.port", "5000"},
                      {"tuplex.webui.url", "localhost"},

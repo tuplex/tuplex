@@ -656,7 +656,7 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
         opt_ref.set("tuplex.executorCount", "0"); // single-threaded
         opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
         opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-        opt_ref.set("tuplex.csv.selectionPushdown", "false");
+        opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
         opt_ref.set("tuplex.optimizer.generateParser", "false");
 
         Context c_ref(opt_ref);
@@ -671,14 +671,14 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
 
         // with projection pushdown enabled
         auto opt_proj = opt_ref;
-        opt_proj.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj.set("tuplex.optimizer.selectionPushdown", "true");
         Context c_proj(opt_proj);
         auto r_proj = pipelineAsStrs(zillowPipeline(c_proj, zpath, cache));
         compareStrArrays(r_proj, ref, true);
 
         // with projection pushdown + LLVM Optimizers
         auto opt_proj_wLLVMOpt = opt_ref;
-        opt_proj_wLLVMOpt.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj_wLLVMOpt.set("tuplex.optimizer.selectionPushdown", "true");
         opt_proj_wLLVMOpt.set("tuplex.useLLVMOptimizer", "true");
         Context c_proj_wLLVMOpt(opt_proj_wLLVMOpt);
         auto r_proj_wLLVMOpt = pipelineAsStrs(zillowPipeline(c_proj_wLLVMOpt, zpath, cache));
@@ -694,7 +694,7 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
         // with null value + proj
         auto opt_null_proj = opt_ref;
         opt_null_proj.set("tuplex.optimizer.nullValueOptimization", "true");
-        opt_null_proj.set("tuplex.csv.selectionPushdown", "true");
+        opt_null_proj.set("tuplex.optimizer.selectionPushdown", "true");
         Context c_null_proj(opt_null_proj);
         auto r_null_proj = pipelineAsStrs(zillowPipeline(c_null_proj, zpath, cache));
         compareStrArrays(r_null_proj, ref, true);
@@ -702,7 +702,7 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
         // with null value + proj + llvmopt
         auto opt_null_proj_opt = opt_ref;
         opt_null_proj_opt.set("tuplex.optimizer.nullValueOptimization", "true");
-        opt_null_proj_opt.set("tuplex.csv.selectionPushdown", "true");
+        opt_null_proj_opt.set("tuplex.optimizer.selectionPushdown", "true");
         opt_null_proj_opt.set("tuplex.useLLVMOptimizer", "true");
         Context c_null_proj_opt(opt_null_proj_opt);
         auto r_null_proj_opt = pipelineAsStrs(zillowPipeline(c_null_proj_opt, zpath, cache));
@@ -710,7 +710,7 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
 
         // with projection pushdown + LLVM Optimizers + generated parser
         auto opt_proj_wLLVMOpt_parse = opt_ref;
-        opt_proj_wLLVMOpt_parse.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.selectionPushdown", "true");
         opt_proj_wLLVMOpt_parse.set("tuplex.useLLVMOptimizer", "true");
         opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.generateParser", "true");
         Context c_proj_wLLVMOpt_parse(opt_proj_wLLVMOpt_parse);
@@ -720,7 +720,7 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
         // NULL value OPTIMIZATION
         // with projection pushdown + LLVM Optimizers + generated parser + null value opt
         auto opt_proj_wLLVMOpt_parse_null = opt_ref;
-        opt_proj_wLLVMOpt_parse_null.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.selectionPushdown", "true");
         opt_proj_wLLVMOpt_parse_null.set("tuplex.useLLVMOptimizer", "true");
         opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.generateParser", "true");
         opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.nullValueOptimization", "true");
@@ -743,7 +743,7 @@ TEST_F(PipelinesTest, ServiceRequestsConfigHarnessNVOvsNormal) {
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
     opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
 
     auto opt_nvo = opt_ref;
@@ -820,7 +820,7 @@ TEST_F(PipelinesTest, FlightsWithPyResolver) {
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
     opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.csv.operatorReordering", "false");
     // opt_ref.set("tuplex.optimizer.generateParser", "true");
     opt_ref.set("tuplex.optimizer.generateParser", "true");
@@ -873,7 +873,7 @@ TEST_F(PipelinesTest, FlightDevWithColumnPyFallback) {
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
     opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false"); // disable for now, prob errors later...
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false"); // disable for now, prob errors later...
 
     // Note: when null value opt is turned off AND selection pushdown is off,
     // then on 2009 there are 8 rows where errors are produced on columns which actually do not
@@ -923,7 +923,7 @@ TEST_F(PipelinesTest, FlightDevToFixWithPurePythonPipeline) {
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
     opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false"); // disable for now, prob errors later...
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false"); // disable for now, prob errors later...
 
     // Note: when null value opt is turned off AND selection pushdown is off,
     // then on 2009 there are 8 rows where errors are produced on columns which actually do not
@@ -950,7 +950,7 @@ TEST_F(PipelinesTest, TypeErrorFlightPipeline) {
     opt.set("tuplex.executorCount", "15"); // single-threaded
     opt.set("tuplex.useLLVMOptimizer", "true"); // deactivate
     opt.set("tuplex.optimizer.nullValueOptimization", "true");
-    opt.set("tuplex.csv.selectionPushdown", "true"); // disable for now, prob errors later...
+    opt.set("tuplex.optimizer.selectionPushdown", "true"); // disable for now, prob errors later...
     opt.set("tuplex.optimizer.generateParser", "false"); // do not use parser generation
     opt.set("tuplex.inputSplitSize", "128MB"); // probably something wrong with the reader, again??
     opt.set("tuplex.resolveWithInterpreterOnly", "false");
@@ -960,7 +960,7 @@ TEST_F(PipelinesTest, TypeErrorFlightPipeline) {
 
     // Checks:
     // 1.) Is selectionPushdown NOT working with interpreter only resolve??
-    // ---> yup, exactly that is the issue!!! i.e. interpreteronly == true AND csv.selectionPushdown == true
+    // ---> yup, exactly that is the issue!!! i.e. interpreteronly == true AND optimizer.selectionPushdown == true
     // 2.) what is the typeError that occurs??
 
     // check //~ expansion in the future...
@@ -984,7 +984,7 @@ TEST_F(PipelinesTest, FlightNullValueCacheMini) {
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "true"); // deactivate
     opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "true"); // disable for now, prob errors later...
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "true"); // disable for now, prob errors later...
     opt_ref.set("tuplex.optimizer.generateParser", "false"); // do not use par
     opt_ref.set("tuplex.inputSplitSize", "64MB"); // probably something wrong with the reader, again??
     opt_ref.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
@@ -1056,7 +1056,7 @@ TEST_F(PipelinesTest, ZillowDev) {
     //            "inputSplitSize":"64MB",
     //            "useLLVMOptimizer" : True,
     //            "optimizer.nullValueOptimization" : False,
-    //            "csv.selectionPushdown" : True,
+    //            "optimizer.selectionPushdown" : True,
     //            "optimizer.generateParser": False}
 
 
@@ -1068,7 +1068,7 @@ TEST_F(PipelinesTest, ZillowDev) {
     //            "runTimeMemory" : "128MB",
     //            "useLLVMOptimizer" : True,
     //            "optimizer.nullValueOptimization" : False,
-    //            "csv.selectionPushdown" : True}
+    //            "optimizer.selectionPushdown" : True}
     opt_ref.set("tuplex.runTimeMemory", "256MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorMemory", "2GB");
     opt_ref.set("tuplex.driverMemory", "2GB");
@@ -1076,7 +1076,7 @@ TEST_F(PipelinesTest, ZillowDev) {
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "true"); // deactivate
     opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "true"); // disable for now, prob errors later...
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "true"); // disable for now, prob errors later...
     opt_ref.set("tuplex.optimizer.generateParser", "true"); // do not use par => wrong parse for some cell here!
     opt_ref.set("tuplex.inputSplitSize", "64MB"); // probably something wrong with the reader, again??
     //opt_ref.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
@@ -1099,7 +1099,7 @@ TEST_F(PipelinesTest, ApacheDev) {
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
     opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
     opt_ref.set("tuplex.optimizer.filterPushdown", "true");
     opt_ref.set("tuplex.optimizer.sharedObjectPropagation", "true");
@@ -1119,7 +1119,7 @@ TEST_F(PipelinesTest, ApacheDev) {
     // NULL value OPTIMIZATION
     // with projection pushdown + LLVM Optimizers + generated parser + null value opt
     auto opt_proj_wLLVMOpt_parse_null = opt_ref;
-    opt_proj_wLLVMOpt_parse_null.set("tuplex.csv.selectionPushdown", "true");
+    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.selectionPushdown", "true");
     opt_proj_wLLVMOpt_parse_null.set("tuplex.useLLVMOptimizer", "true");
     opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.generateParser", "true");
     opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.nullValueOptimization", "true");
@@ -1142,7 +1142,7 @@ TEST_F(PipelinesTest, NullValueApache) {
     opt_ref.set("tuplex.executorCount", "4"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
     opt_ref.set("tuplex.optimizer.nullValueOptimization", "true");
-    opt_ref.set("tuplex.csv.selectionPushdown", "true");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "true");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
     opt_ref.set("tuplex.optimizer.filterPushdown", "true");
     opt_ref.set("tuplex.optimizer.sharedObjectPropagation", "true");
@@ -1268,12 +1268,12 @@ TEST_F(PipelinesTest, FlightWithIgnore) {
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
     opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
     opt_ref.set("tuplex.optimizer.filterPushdown", "false");
 
     auto opt_proj_wLLVMOpt_parse_null = opt_ref;
-    opt_proj_wLLVMOpt_parse_null.set("tuplex.csv.selectionPushdown", "true");
+    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.selectionPushdown", "true");
 //    opt_proj_wLLVMOpt_parse_null.set("tuplex.useLLVMOptimizer", "true");
 //    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.generateParser", "true");
 //    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.nullValueOptimization", "true");
@@ -1298,7 +1298,7 @@ TEST_F(PipelinesTest, CarriersOnly) {
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
     opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
     opt_ref.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
 
@@ -1344,7 +1344,7 @@ TEST_F(PipelinesTest, FlightConfigHarness) {
         opt_ref.set("tuplex.executorCount", "0"); // single-threaded
         opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
         opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-        opt_ref.set("tuplex.csv.selectionPushdown", "false");
+        opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
         opt_ref.set("tuplex.optimizer.generateParser", "false");
         opt_ref.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
         // Note: all resolve with interpreter work, except for when projection pushdown is used.
@@ -1363,7 +1363,7 @@ TEST_F(PipelinesTest, FlightConfigHarness) {
 
         // with projection pushdown enabled
         auto opt_proj = opt_ref;
-        opt_proj.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj.set("tuplex.optimizer.selectionPushdown", "true");
         Context c_proj(opt_proj);
         auto r_proj = pipelineAsStrs(flightPipeline(c_proj, bts_path, carrier_path, airport_path, cache));
 
@@ -1371,7 +1371,7 @@ TEST_F(PipelinesTest, FlightConfigHarness) {
 
         // with projection pushdown + LLVM Optimizers
         auto opt_proj_wLLVMOpt = opt_ref;
-        opt_proj_wLLVMOpt.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj_wLLVMOpt.set("tuplex.optimizer.selectionPushdown", "true");
         opt_proj_wLLVMOpt.set("tuplex.useLLVMOptimizer", "true");
         Context c_proj_wLLVMOpt(opt_proj_wLLVMOpt);
         auto r_proj_wLLVMOpt = pipelineAsStrs(flightPipeline(c_proj_wLLVMOpt, bts_path, carrier_path, airport_path, cache));
@@ -1379,7 +1379,7 @@ TEST_F(PipelinesTest, FlightConfigHarness) {
 
         // with projection pushdown + LLVM Optimizers + generated parser
         auto opt_proj_wLLVMOpt_parse = opt_ref;
-        opt_proj_wLLVMOpt_parse.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.selectionPushdown", "true");
         opt_proj_wLLVMOpt_parse.set("tuplex.useLLVMOptimizer", "true");
         opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.generateParser", "true");
         Context c_proj_wLLVMOpt_parse(opt_proj_wLLVMOpt_parse);
@@ -1389,7 +1389,7 @@ TEST_F(PipelinesTest, FlightConfigHarness) {
         // NULL value OPTIMIZATION
         // with projection pushdown + LLVM Optimizers + generated parser + null value opt
         auto opt_proj_wLLVMOpt_parse_null = opt_ref;
-        opt_proj_wLLVMOpt_parse_null.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.selectionPushdown", "true");
         opt_proj_wLLVMOpt_parse_null.set("tuplex.useLLVMOptimizer", "true");
         opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.generateParser", "true");
         opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.nullValueOptimization", "true");
@@ -1414,7 +1414,7 @@ TEST_F(PipelinesTest, GoogleTrace) {
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
     opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
 
     Context c_ref(opt_ref);

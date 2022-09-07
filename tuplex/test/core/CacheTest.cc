@@ -118,7 +118,7 @@ TEST_F(CacheTest, SimpleCSVLoad) {
     auto opt = microTestOptions();
 
     // first, deactivate logical optimizations and make caching work as is...
-    opt.set("tuplex.csv.selectionPushdown", "false");
+    opt.set("tuplex.optimizer.selectionPushdown", "false");
     opt.set("tuplex.optimizer.nullValueOptimization", "false");
     opt.set("tuplex.optimizer.filterPushdown", "false");
     opt.set("tuplex.optimizer.sharedObjectPropagation", "false");
@@ -151,7 +151,7 @@ TEST_F(CacheTest, LogicalOptCSVLoad) {
     auto opt = microTestOptions();
 
     // first, deactivate logical optimizations and make caching work as is...
-    opt.set("tuplex.csv.selectionPushdown", "true");
+    opt.set("tuplex.optimizer.selectionPushdown", "true");
     opt.set("tuplex.optimizer.nullValueOptimization", "false");
     opt.set("tuplex.optimizer.filterPushdown", "true");
     opt.set("tuplex.optimizer.sharedObjectPropagation", "false");

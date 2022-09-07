@@ -1519,8 +1519,8 @@ namespace tuplex {
 
         // @TODO: move to optimizer
         PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.csv.selectionPushdown"),
-                       python::boolToPython(co.CSV_PARSER_SELECTION_PUSHDOWN()));
+                       python::PyString_FromString("tuplex.optimizer.selectionPushdown"),
+                       python::boolToPython(co.OPT_SELECTION_PUSHDOWN()));
 
 
         PyDict_SetItem(dictObject,

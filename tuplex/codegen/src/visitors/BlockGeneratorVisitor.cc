@@ -1005,17 +1005,8 @@ namespace tuplex {
                         auto rightBound = builder.CreateAnd(upperBound, lowerBound);
 
                         auto bounds = builder.CreateAnd(leftBound, rightBound);
-
-                        // debug print:
-                        _env->printValue(builder, L, "L=");
-                        _env->printValue(builder, R, "R=");
-                        _env->printValue(builder, bounds, "bounds=");
-                        _env->printValue(builder, equal, "L == R");
-
                         // could short-circuit here, but & does fine as well albeit with more instructions...
                         auto resValue = builder.CreateAnd(equal, bounds);
-
-                        _env->printValue(builder, resValue, "L is R");
 
                         return _env->upcastToBoolean(builder, resValue);
                     } else {

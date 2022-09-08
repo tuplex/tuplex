@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-09-07 00:49:58.351520
+# auto-generated on 2022-09-07 23:11:57.014210
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -36,7 +36,7 @@ echo ">> Installing all build dependencies for Tuplex under Ubuntu 18.04"
 echo ">> Installing apt dependencies"
 apt update -y
 
-apt-get install -y build-essential wget git dh-autoreconf libxml2-dev \
+           apt-get install -y build-essential wget git dh-autoreconf libxml2-dev \
  autoconf curl automake libtool software-properties-common wget libedit-dev libz-dev \
   python3-yaml pkg-config libssl-dev libcurl4-openssl-dev curl \
   uuid-dev git python3.7 python3.7-dev python3-pip libffi-dev \
@@ -44,10 +44,10 @@ apt-get install -y build-essential wget git dh-autoreconf libxml2-dev \
   gcc-7 g++-7 libgflags-dev libncurses-dev \
   awscli openjdk-8-jdk libyaml-dev libmagic-dev ninja-build
                     
-  
-ldconfig
-export CC=gcc-7
-export CXX=g++-7
+           
+           ldconfig
+           export CC=gcc-7
+           export CXX=g++-7
 
 echo ">> Installing recent cmake"
 # fetch recent cmake & install
@@ -72,12 +72,12 @@ cmake --version
 
 echo ">> Installing Boost"
 mkdir -p ${WORKDIR/boost}
-    
+
 # build incl. boost python
 pushd ${WORKDIR/boost} && wget https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79_0.tar.gz && tar xf boost_1_79_0.tar.gz && cd ${WORKDIR/boost}/boost_1_79_0 \
-&& ./bootstrap.sh --with-python=${PYTHON_EXECUTABLE} --prefix=${PREFIX} --with-libraries="thread,iostreams,regex,system,filesystem,python,stacktrace,atomic,chrono,date_time" \
- && ./b2 cxxflags="-fPIC" link=static -j "$(nproc)" \
- && ./b2 cxxflags="-fPIC" link=static install && sed -i 's/#if PTHREAD_STACK_MIN > 0/#ifdef PTHREAD_STACK_MIN/g' /opt/include/boost/thread/pthread/thread_data.hpp
+           && ./bootstrap.sh --with-python=${PYTHON_EXECUTABLE} --prefix=${PREFIX} --with-libraries="thread,iostreams,regex,system,filesystem,python,stacktrace,atomic,chrono,date_time" \
+            && ./b2 cxxflags="-fPIC" link=static -j "$(nproc)" \
+            && ./b2 cxxflags="-fPIC" link=static install && sed -i 's/#if PTHREAD_STACK_MIN > 0/#ifdef PTHREAD_STACK_MIN/g' /opt/include/boost/thread/pthread/thread_data.hpp
 
 echo ">> Installing LLVM"
 mkdir -p ${WORKDIR}/llvm && cd ${WORKDIR}/llvm && wget https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1/llvm-9.0.1.src.tar.xz \

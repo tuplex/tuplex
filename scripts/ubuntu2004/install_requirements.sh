@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-09-08 16:05:58.347648
+# auto-generated on 2022-09-08 18:06:27.747943
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -12,20 +12,7 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
-PREFIX=${PREFIX:-/opt}
-WORKDIR=${WORKDIR:-/tmp}
-
-echo ">> Installing packages into ${PREFIX}"
-mkdir -p $PREFIX && chmod 0755 $PREFIX
-mkdir -p $PREFIX/sbin
-mkdir -p $PREFIX/bin
-mkdir -p $PREFIX/share
-mkdir -p $PREFIX/include
-mkdir -p $PREFIX/lib
-
-echo ">> Files will be downloaded to ${WORKDIR}/tuplex-downloads"
-WORKDIR=$WORKDIR/tuplex-downloads
-mkdir -p $WORKDIR
+""" + workdir_setup() + """
 
 PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE:-python3}
 PYTHON_BASENAME="$(basename -- $PYTHON_EXECUTABLE)"

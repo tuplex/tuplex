@@ -55,6 +55,23 @@ def configure_versions(osname):
 
 
 ### helper functions ###
+
+def workdir_setup():
+    return """PREFIX=${{PREFIX:-{}}}
+WORKDIR=${{WORKDIR:-{}}}
+
+echo ">> Installing packages into ${{PREFIX}}"
+mkdir -p $PREFIX && chmod 0755 $PREFIX
+mkdir -p $PREFIX/sbin
+mkdir -p $PREFIX/bin
+mkdir -p $PREFIX/share
+mkdir -p $PREFIX/include
+mkdir -p $PREFIX/lib
+
+echo ">> Files will be downloaded to ${{WORKDIR}}/tuplex-downloads"
+WORKDIR=$WORKDIR/tuplex-downloads
+mkdir -p $WORKDIR"""
+
 def bash_header(install_prefix='/opt', workdir='/tmp'):
     current_year = datetime.datetime.now().year
     current_date = str(datetime.datetime.now())
@@ -72,20 +89,7 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
-PREFIX=${{PREFIX:-{}}}
-WORKDIR=${{WORKDIR:-{}}}
-
-echo ">> Installing packages into ${{PREFIX}}"
-mkdir -p $PREFIX && chmod 0755 $PREFIX
-mkdir -p $PREFIX/sbin
-mkdir -p $PREFIX/bin
-mkdir -p $PREFIX/share
-mkdir -p $PREFIX/include
-mkdir -p $PREFIX/lib
-
-echo ">> Files will be downloaded to ${{WORKDIR}}/tuplex-downloads"
-WORKDIR=$WORKDIR/tuplex-downloads
-mkdir -p $WORKDIR
+""" + workdir_setup() + """
 
 PYTHON_EXECUTABLE=${{PYTHON_EXECUTABLE:-python3}}
 PYTHON_BASENAME="$(basename -- $PYTHON_EXECUTABLE)"
@@ -111,6 +115,15 @@ def install_mongodb(osname='ubuntu:22.04'):
     && echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/{version} multiverse" | tee /etc/apt/sources.list.d/mongodb-org-{version}.list \\
     && apt update \\
     && apt install -y mongodb-org""".format(version=MONGODB_VERSION)
+    elif osname == 'ubuntu:22.04':
+        # cf. guide at https://wiki.crowncloud.net/?How_to_Install_Latest_MongoDB_on_Ubuntu_22_04
+        # and https://www.mongodb.com/community/forums/t/installing-mongodb-over-ubuntu-22-04/159931/35, there is no mongodb release for 22.04 yet...
+        return "echo 'no support for Ubuntu 22.04 for MongoDB, watch out for future release.'"
+    #     return """apt update && apt install -y curl gnupg dirmngr gnupg apt-transport-https ca-certificates software-properties-common \\
+    # && curl -fsSL https://www.mongodb.org/static/pgp/server-{version}.asc | apt-key add - \\
+    # && echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/{version} multiverse" | tee /etc/apt/sources.list.d/mongodb-org-{version}.list \\
+    # && apt update \\
+    # && apt install -y mongodb-org""".format(version=MONGODB_VERSION)
     else:
         raise Exception('unknown os {}'.format(osname))
    
@@ -156,6 +169,20 @@ def apt_dependencies(osname='ubuntu:22.04'):
            export CC=gcc-{}
            export CXX=g++-{}
            '''.format(packages_dict[osname], GCC_VERSION_MAJOR, GCC_VERSION_MAJOR)
+
+def yum_dependencies():
+    return """yum install -y libedit-devel libzip-devel \
+  pkgconfig openssl-devel libxml2-devel zlib-devel  \
+  uuid libuuid-devel libffi-devel graphviz-devel \
+  gflags-devel ncurses-devel \
+  awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip
+"""
+
+def github_to_known_hosts(home='/root'):
+    return """# add github to known hosts
+mkdir -p {home}/.ssh/ &&
+  touch {home}/.ssh/known_hosts &&
+  ssh-keyscan github.com >> {home}/.ssh/known_hosts""".format(home=home)
 
 
 def install_cmake():
@@ -456,7 +483,6 @@ def generate_ubuntu1804(root_folder):
     # write ubuntu 18.04 files
     osname = 'ubuntu:18.04'
     configure_versions(osname)
-    root_folder = 'ubuntu1804'
     os.makedirs(root_folder, exist_ok=True)
     write_bash_file(os.path.join(root_folder, 'install_mongodb.sh'), install_mongodb(osname))
 
@@ -490,7 +516,6 @@ def generate_ubuntu2004(root_folder):
     # write ubuntu 20.04 files
     osname = 'ubuntu:20.04'
     configure_versions(osname)
-    root_folder = 'ubuntu2004'
     os.makedirs(root_folder, exist_ok=True)
     write_bash_file(os.path.join(root_folder, 'install_mongodb.sh'), install_mongodb(osname))
 
@@ -514,16 +539,119 @@ def generate_ubuntu2004(root_folder):
     # install cloudpickle < 2.0 & numpy
     # python3.6 -m pip install 'cloudpickle<2.0' cython snumpy
     # python3.7 -m pip install 'cloudpickle<2.0' cython numpy
-    docker_content += '\nRUN python3.7 -m pip install "cloudpickle<2.0" cython numpy\n' \
-                      '\nRUN python3.8 -m pip install "cloudpickle<2.0" cython numpy\n'
+    docker_content += '\nRUN python3.8 -m pip install "cloudpickle<2.0" cython numpy\n'
 
     with open(os.path.join(root_folder, "Dockerfile"), 'w') as fp:
         fp.write(docker_content)
 
+def generate_ubuntu2204(root_folder):
+    # write ubuntu 22.04 files
+    osname = 'ubuntu:22.04'
+    configure_versions(osname)
+    os.makedirs(root_folder, exist_ok=True)
+    write_bash_file(os.path.join(root_folder, 'install_mongodb.sh'), install_mongodb(osname))
+
+    # write reqs file
+    make_ubuntu_req_file(os.path.join(root_folder, 'install_requirements.sh'), osname)
+
+    # write corresponding docker file
+    docker_content = '\nFROM ubuntu:22.04\n    \n' \
+                     '# build using docker build -t tuplex/ubuntu:22.04 .\n\n' \
+                     'MAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"\n\n' \
+                     'ENV DEBIAN_FRONTEND=noninteractive\n' \
+                     'RUN mkdir -p /opt/sbin\n\n' \
+                     '\nENV PATH "/opt/bin:$PATH"\n' \
+                     'RUN echo "export PATH=/opt/bin:${PATH}" >> /root/.bashrc\n' \
+                     'RUN apt-get update && apt-get install -y python3\n\n' \
+                     'ADD install_mongodb.sh /opt/sbin/install_mongodb.sh\n' \
+                     'RUN /opt/sbin/install_mongodb.sh\n' \
+                     'ADD install_requirements.sh /opt/sbin/install_requirements.sh\n' \
+                     'RUN /opt/sbin/install_requirements.sh\n'
+
+    # install cloudpickle >2.0 & numpy
+    docker_content += '\nRUN python3 -m pip install "cloudpickle>2.0" cython numpy\n'
+
+    with open(os.path.join(root_folder, "Dockerfile"), 'w') as fp:
+        fp.write(docker_content)
+
+def generate_manylinux_files(root_folder):
+    os.makedirs(root_folder, exist_ok=True)
+    configure_versions('centos')
+
+    # write install_boost.sh script
+    with open(os.path.join(root_folder, 'install_boost.sh'), 'w') as fp:
+        header = tiny_bash_header() + """# this a script to install boost for specific python version to some folder
+PYTHON_EXECUTABLE=$1
+PREFIX=$2
+PYTHON_VERSION="$(basename -- $PYTHON_EXECUTABLE)"
+echo ">>> building boost for ${PYTHON_VERSION}"
+echo " -- boost will be installed to ${PREFIX}"
+
+mkdir -p $DEST_PATH
+
+# fix up for boost python a link
+INCLUDE_DIR=$(echo $PYTHON_EXECUTABLE | sed 's|/bin/.*||')
+INCLUDE_DIR=${INCLUDE_DIR}/include
+cd $INCLUDE_DIR && ln -s ${PYTHON_VERSION}m ${PYTHON_VERSION} && cd - || exit 1
+"""
+        fp.write(header)
+        fp.write('\n')
+        fp.write(install_boost())
+
+    # write install_tuplex_reqs.sh
+    with open(os.path.join(root_folder, 'install_tuplex_reqs.sh'), 'w') as fp:
+        fp.write(tiny_bash_header())
+        fp.write('\n# install all build dependencies for tuplex (CentOS)')
+
+        fp.write(yum_dependencies() + '\n')
+        fp.write(github_to_known_hosts('/root') + '\n')
+
+        # yaml cpp
+        fp.write('\n\necho ">> Installing YAMLCPP"\n')
+        fp.write(install_yaml().strip())
+
+        # celero
+        fp.write('\n\necho ">> Installing Celero"\n')
+        fp.write(install_celero().strip())
+
+        # antlr4 + cpp runtime
+        fp.write('\n\necho ">> Installing ANTLR"\n')
+        fp.write(install_antlr().strip())
+
+        # aws sdk
+        fp.write('\n\necho ">> Installing AWS SDK"\n')
+        fp.write(install_aws_sdk().strip())
+
+        # pcre2
+        fp.write('\n\necho ">> Installing PCRE2"\n')
+        fp.write(install_pcre2().strip())
+
+        # protobuf
+        fp.write('\n\necho ">> Installing protobuf"\n')
+        fp.write(install_protobuf().strip())
+
+    # write install_llvm9.sh yum edition
+    with open(os.path.join(root_folder, 'install_llvm.sh'), 'w') as fp:
+
+        LLVM_VERSION=VERSIONS['LLVM_VERSION']
+        LLVM_MAJMIN_VERSION='{}.{}'.format(LLVM_VERSION.split('.')[0], LLVM_VERSION.split('.')[1])
+
+        fp.write(tiny_bash_header())
+        fp.write('\n# install LLVM {} to use for building wheels\n'.format(LLVM_VERSION))
+        fp.write('\n' + workdir_setup() + '\n')
+        fp.write('\nyum update && yum install -y wget libxml2-devel\n')
+        fp.write(install_llvm())
+        fp.write('\ncd ${{PREFIX}}/llvm-{majmin}/bin && ln -s clang++ clang++-{majmin}'.format(majmin=LLVM_MAJMIN_VERSION))
+
+    # keep the docker file as is there...
 
 # test...
 generate_ubuntu1804('ubuntu1804')
 generate_ubuntu2004('ubuntu2004')
+generate_ubuntu2204('ubuntu2204')
+
+generate_manylinux_files('docker/citest')
+
 exit(0)
 
 

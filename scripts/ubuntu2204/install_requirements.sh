@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-09-08 18:06:27.747536
+# auto-generated on 2022-09-08 18:06:27.748300
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -18,23 +18,18 @@ PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE:-python3}
 PYTHON_BASENAME="$(basename -- $PYTHON_EXECUTABLE)"
 PYTHON_VERSION=$(${PYTHON_EXECUTABLE} --version)
 echo ">> Building dependencies for ${PYTHON_VERSION}"
-echo ">> Installing all build dependencies for Tuplex under Ubuntu 18.04"
+echo ">> Installing all build dependencies for Tuplex under Ubuntu 22.04"
 
 echo ">> Installing apt dependencies"
 apt update -y
 
-           apt-get install -y build-essential apt-utils wget git dh-autoreconf libxml2-dev \
- autoconf curl automake libtool software-properties-common wget libedit-dev libz-dev \
-  python3-yaml pkg-config libssl-dev libcurl4-openssl-dev curl \
-  uuid-dev git python3.7 python3.7-dev python3-pip libffi-dev \
-  doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \
-  gcc-7 g++-7 libgflags-dev libncurses-dev \
-  awscli openjdk-8-jdk libyaml-dev libmagic-dev ninja-build
-                    
+           apt-get install -y apt-utils dh-autoreconf libmagic-dev curl libxml2-dev vim build-essential libssl-dev zlib1g-dev libncurses5-dev \
+    libncursesw5-dev libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev \
+    libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git libcurl4-openssl-dev python3-dev python3-pip openjdk-8-jre-headless
            
            ldconfig
-           export CC=gcc-7
-           export CXX=g++-7
+           export CC=gcc-11
+           export CXX=g++-11
 
 echo ">> Installing recent cmake"
 # fetch recent cmake & install
@@ -75,7 +70,7 @@ mkdir -p ${WORKDIR}/llvm && cd ${WORKDIR}/llvm && wget https://github.com/llvm/l
     && cd llvm9 && mkdir build && cd build \
 && cmake -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON \
         -DLLVM_ENABLE_PROJECTS="clang" \
-         -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-std=c++11" \
+         -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-std=c++11 -include /usr/include/c++/11/limits" \
          -DCMAKE_INSTALL_PREFIX=/opt/llvm-9.0.1 ../llvm-9.0.1.src \
 && make -j "$(nproc)" && make install
 

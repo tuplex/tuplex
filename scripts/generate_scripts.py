@@ -388,21 +388,22 @@ def install_llvm():
     return code
 
 
-def make_ubuntu_1804_req_file(path):
+def make_ubuntu_req_file(path, osname='ubuntu:18.04'):
     
-    configure_versions('ubuntu:18.04')
+    configure_versions(osname)
     
     WORKDIR=VERSIONS['WORKDIR']
     PREFIX=VERSIONS['PREFIX']
-    
-    # create Ubuntu 1804 req file
+
+    os_tag = osname.split(':')[-1]
+    # create Ubuntu req file
     with open(path, 'w') as fp:
         fp.write(bash_header().strip())
         
-        fp.write('\necho ">> Installing all build dependencies for Tuplex under Ubuntu 18.04"\n')
+        fp.write('\necho ">> Installing all build dependencies for Tuplex under Ubuntu {}"\n'.format(os_tag))
 
         fp.write('\necho ">> Installing apt dependencies"\n')
-        fp.write(apt_dependencies('ubuntu:18.04').strip())
+        fp.write(apt_dependencies(osname).strip())
 
         fp.write('\n\necho ">> Installing recent cmake"\n')
         fp.write(install_cmake().strip())
@@ -441,6 +442,7 @@ def make_ubuntu_1804_req_file(path):
     os.chmod(path, 0o700)
 
 
+
 def generate_ubuntu1804(root_folder):
     # write ubuntu 18.04 files
     osname = 'ubuntu:18.04'
@@ -450,19 +452,67 @@ def generate_ubuntu1804(root_folder):
     write_bash_file(os.path.join(root_folder, 'install_mongodb.sh'), install_mongodb(osname))
 
     # write reqs file
-    make_ubuntu_1804_req_file(os.path.join(root_folder, 'install_requirements.sh'))
+    make_ubuntu_req_file(os.path.join(root_folder, 'install_requirements.sh'), osname)
 
     # write corresponding docker file
-    docker_content = '\nFROM ubuntu:18.04\n    \n# build using docker build -t tuplex/ubuntu:1804 .\n\nMAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"\n\nRUN mkdir -p /opt/sbin\n\nRUN apt-get update && apt-get install -y python3\n\nADD install_mongodb.sh /opt/sbin/install_mongodb.sh\nRUN /opt/sbin/install_mongodb.sh\n''\nFROM ubuntu:18.04\n    \n# build using docker build -t tuplex/ubuntu:1804 .\n\nMAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"\n\nRUN mkdir -p /opt/sbin\n\nADD install_mongodb.sh /opt/sbin/install_mongodb.sh\nRUN /opt/sbin/install_mongodb.sh\n\nADD install_requirements.sh /opt/sbin/install_requirements.sh\nRUN /opt/sbin/install_requirements.sh\n'
+    docker_content = '\nFROM ubuntu:18.04\n    \n' \
+                     '# build using docker build -t tuplex/ubuntu:1804 .\n\n' \
+                     'MAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"\n\n' \
+                     'RUN mkdir -p /opt/sbin\n\n' \
+                     '\nENV PATH "/opt/bin:$PATH"\n' \
+                     'RUN echo "export PATH=/opt/bin:${PATH}" >> /root/.bashrc\n' \
+                     'RUN apt-get update && apt-get install -y python3\n\n' \
+                     'ADD install_mongodb.sh /opt/sbin/install_mongodb.sh\n' \
+                     'RUN /opt/sbin/install_mongodb.sh\n' \
+                     'ADD install_requirements.sh /opt/sbin/install_requirements.sh\n' \
+                     'RUN /opt/sbin/install_requirements.sh\n'
+
+    # install cloudpickle < 2.0 & numpy
+    # python3.6 -m pip install 'cloudpickle<2.0' cython snumpy
+    # python3.7 -m pip install 'cloudpickle<2.0' cython numpy
+    docker_content += '\nRUN python3.6 -m pip install "cloudpickle<2.0" cython numpy\n' \
+                      '\nRUN python3.6 -m pip install "cloudpickle<2.0" cython numpy\n'
+
     with open(os.path.join(root_folder, "Dockerfile"), 'w') as fp:
         fp.write(docker_content)
 
-        # now write install routine after file has been generated
-        #TODO
+def generate_ubuntu2004(root_folder):
+    # write ubuntu 20.04 files
+    osname = 'ubuntu:20.04'
+    configure_versions(osname)
+    root_folder = 'ubuntu2004'
+    os.makedirs(root_folder, exist_ok=True)
+    write_bash_file(os.path.join(root_folder, 'install_mongodb.sh'), install_mongodb(osname))
+
+    # write reqs file
+    make_ubuntu_req_file(os.path.join(root_folder, 'install_requirements.sh'), osname)
+
+    # write corresponding docker file
+    docker_content = '\nFROM ubuntu:20.04\n    \n' \
+                     '# build using docker build -t tuplex/ubuntu:1804 .\n\n' \
+                     'MAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"\n\n' \
+                     'RUN mkdir -p /opt/sbin\n\n' \
+                     '\nENV PATH "/opt/bin:$PATH"\n' \
+                     'RUN echo "export PATH=/opt/bin:${PATH}" >> /root/.bashrc\n' \
+                     'RUN apt-get update && apt-get install -y python3\n\n' \
+                     'ADD install_mongodb.sh /opt/sbin/install_mongodb.sh\n' \
+                     'RUN /opt/sbin/install_mongodb.sh\n' \
+                     'ADD install_requirements.sh /opt/sbin/install_requirements.sh\n' \
+                     'RUN /opt/sbin/install_requirements.sh\n'
+
+    # install cloudpickle < 2.0 & numpy
+    # python3.6 -m pip install 'cloudpickle<2.0' cython snumpy
+    # python3.7 -m pip install 'cloudpickle<2.0' cython numpy
+    docker_content += '\nRUN python3.7 -m pip install "cloudpickle<2.0" cython numpy\n' \
+                      '\nRUN python3.8 -m pip install "cloudpickle<2.0" cython numpy\n'
+
+    with open(os.path.join(root_folder, "Dockerfile"), 'w') as fp:
+        fp.write(docker_content)
 
 
 # test...
 generate_ubuntu1804('ubuntu1804')
+generate_ubuntu1804('ubuntu2004')
 exit(0)
 
 

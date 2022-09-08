@@ -302,15 +302,6 @@ namespace tuplex {
 
         assert(valueMode != LookupStorageMode::UNKNOWN);
 
-        // debug
-#ifndef NDEBUG
-        {
-            Py_XINCREF(key);
-            Py_XINCREF(value);
-            std::cout<<"-- putItem: "<<python::PyString_AsString(key)<<" = "<<python::PyString_AsString(value)<<std::endl;
-        }
-#endif
-
         if(!value && key)
             return putKey(key);
 

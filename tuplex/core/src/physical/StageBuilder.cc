@@ -529,6 +529,7 @@ namespace tuplex {
                         // aggregate is currently not part of codegen, i.e. the aggregation happens when writing out the output!
                         // ==> what about aggByKey though?
                         // ==> handled separately above.
+                        break;
                     }
                     default: {
                         std::stringstream ss;

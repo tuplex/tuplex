@@ -512,7 +512,7 @@ def generate_ubuntu2004(root_folder):
 
 # test...
 generate_ubuntu1804('ubuntu1804')
-generate_ubuntu1804('ubuntu2004')
+generate_ubuntu2004('ubuntu2004')
 exit(0)
 
 

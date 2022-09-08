@@ -59,6 +59,7 @@ namespace python {
         static const Type MODULE; //! generic module object, used in symbol table
         static const Type ITERATOR; //! iterator/generator type
         static const Type EMPTYITERATOR; //! special type for empty iterator
+        static const Type TYPEOBJECT; // the type of a type object. -> i.e. generic type.
 
         // define two special types, used in the inference to describe bounds
         // any is a subtype of everything
@@ -113,6 +114,7 @@ namespace python {
         bool isExceptionType() const;
         bool isIteratorType() const;
         bool isConstantValued() const;
+        bool isTypeObjectType() const;
 
         inline bool isGeneric() const {
             if(_hash == python::Type::PYOBJECT._hash ||
@@ -233,6 +235,13 @@ namespace python {
         static Type makeDictionaryType(const python::Type& keyType, const python::Type& valType);
 
         static Type makeListType(const python::Type &elementType);
+
+        /*!
+         * creates a typeobject for underlying type type. I.e. str itself is a type object referring to string.
+         * @param type
+         * @return type object type (weird, isn't it?)
+         */
+        static Type makeTypeObjectType(const python::Type& type);
 
         // optimizing types (delayed parsing, range compression, ...)
         /*!
@@ -362,6 +371,7 @@ namespace python {
             CLASS,
             OPTION, // for nullable
             ITERATOR,
+            TYPE, // for type objects...
             OPTIMIZED_CONSTANT, // constant value
             OPTIMIZED_DELAYEDPARSING, // dummy types to allow for certain optimizations
             OPTIMIZED_RANGECOMPRESSION // range compression
@@ -474,6 +484,7 @@ namespace python {
         Type createOrGetDelayedParsingType(const Type& underlying);
         Type createOrGetRangeCompressedIntegerType(int64_t lower_bound, int64_t upper_bound);
 
+        Type createOrGetTypeObjectType(const Type& underlying);
 
         Type getByName(const std::string& name);
 

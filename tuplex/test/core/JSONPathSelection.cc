@@ -38,9 +38,37 @@ TEST_F(JSONPathSelection, BasicPathSelection) {
 
     auto input_row_type = rows.front().getRowType();
 
-    // basic tests
-    { // basic UDF
-        UDF udf("lambda x: (x, x['repo'], x['repo']['url'])");
+    // works
+//    // basic tests
+//    { // basic UDF
+//        UDF udf("lambda x: (x, x['repo'], x['repo']['url'])");
+//        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, input_row_type));
+//        auto output_row_type = udf.getOutputSchema().getRowType();
+//        cout<<"output type of UDF: "<<output_row_type.desc()<<endl;
+//
+//        AccessPathVisitor apv;
+//        auto root = udf.getAnnotatedAST().getFunctionAST();
+//        root->accept(apv);
+//        auto paths = apv.accessedPaths();
+//
+//        SelectionPath path1("x", vector<SelectionPathAtom>{});
+//        SelectionPath path2("x", vector<SelectionPathAtom>{SelectionPathAtom("repo")});
+//        SelectionPath path3("x", vector<SelectionPathAtom>{SelectionPathAtom("repo"), SelectionPathAtom("url")});
+//
+//        EXPECT_EQ(paths.size(), 3);
+//        EXPECT_TRUE(VecContains(paths, path1));
+//        EXPECT_TRUE(VecContains(paths, path2));
+//        EXPECT_TRUE(VecContains(paths, path3));
+//    }
+
+
+    { // UDF with key supplied via closure
+        ClosureEnvironment ce;
+        ClosureEnvironment::Constant c1{python::Type::STRING, "KEY", Field("repo")};
+        ClosureEnvironment::Constant c2{python::Type::STRING, "ANOTHER_KEY", Field("id")};
+        ce.addConstant(c1);
+        ce.addConstant(c2);
+        UDF udf("lambda x: (x['repo'][ANOTHER_KEY], x[KEY], KEY)", "", ce);
         udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, input_row_type));
         auto output_row_type = udf.getOutputSchema().getRowType();
         cout<<"output type of UDF: "<<output_row_type.desc()<<endl;
@@ -50,16 +78,13 @@ TEST_F(JSONPathSelection, BasicPathSelection) {
         root->accept(apv);
         auto paths = apv.accessedPaths();
 
-        SelectionPath path1("x", vector<SelectionPathAtom>{});
-        SelectionPath path2("x", vector<SelectionPathAtom>{SelectionPathAtom("repo")});
-        SelectionPath path3("x", vector<SelectionPathAtom>{SelectionPathAtom("repo"), SelectionPathAtom("url")});
+        SelectionPath path1("x", vector<SelectionPathAtom>{SelectionPathAtom("repo")});
+        SelectionPath path2("x", vector<SelectionPathAtom>{SelectionPathAtom("repo"), SelectionPathAtom("id")});
 
-        EXPECT_EQ(paths.size(), 3);
+        EXPECT_GE(paths.size(), 2);
         EXPECT_TRUE(VecContains(paths, path1));
         EXPECT_TRUE(VecContains(paths, path2));
-        EXPECT_TRUE(VecContains(paths, path3));
     }
-
 
 
 

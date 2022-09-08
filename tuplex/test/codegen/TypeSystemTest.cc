@@ -295,3 +295,14 @@ TEST(TypeSys, structuredDictType) {
     EXPECT_EQ(decoded_3.desc(), t_3.desc());
 
 }
+
+TEST(TypeSys, TypeObject) {
+    auto types = primitiveTypes();
+
+    for(const auto& t : types) {
+        auto to = python::Type::makeTypeObjectType(t);
+        ASSERT_TRUE(to.isTypeObjectType());
+        EXPECT_EQ(to.desc(), "Type[" + t.desc() + "]");
+        EXPECT_EQ(to.underlying(), t);
+    }
+}

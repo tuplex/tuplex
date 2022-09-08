@@ -1012,5 +1012,22 @@ namespace tuplex {
     void TransformTask::sinkOutputToHashTable(HashTableFormat fmt, int64_t outputDataSetID) {
         _htableFormat = fmt;
         _outputDataSetID = outputDataSetID;
+
+        // intialize hash sink
+        if(!_htable)
+            _htable = new HashTableSink();
+
+        assert(!_htable->hm);
+        assert(!_htable->hybrid_hm); // no hybrid allowed in normal-case processing
+
+        // no hybrid necessary...
+        if(HashTableFormat::UINT64 == fmt) {
+            _htable->hm = int64_hashmap_new();
+        } else if(HashTableFormat::BYTES == fmt) {
+            _htable->hm = hashmap_new();
+        } else {
+            throw std::runtime_error("invalid hashtablefmt given in TransformTask");
+        }
+        assert(_htable->hm);
     }
 }

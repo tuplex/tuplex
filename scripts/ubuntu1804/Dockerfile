@@ -7,6 +7,8 @@ MAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"
 
 RUN mkdir -p /opt/sbin
 
+RUN apt-get update && apt-get install -y python3
+
 ADD install_mongodb.sh /opt/sbin/install_mongodb.sh
 RUN /opt/sbin/install_mongodb.sh
 

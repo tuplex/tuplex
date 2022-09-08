@@ -130,7 +130,7 @@ def apt_dependencies(osname='ubuntu:22.04'):
                    libgflags-dev libncurses-dev \\
                    openjdk-8-jdk libyaml-dev ninja-build gcc-{} g++-{} autoconf libtool m4
                      '''.format(GCC_VERSION_MAJOR, GCC_VERSION_MAJOR),
-                     'ubuntu:18.04': '''build-essential wget git dh-autoreconf libxml2-dev \\
+                     'ubuntu:18.04': '''build-essential apt-utils wget git dh-autoreconf libxml2-dev \\
  autoconf curl automake libtool software-properties-common wget libedit-dev libz-dev \\
   python3-yaml pkg-config libssl-dev libcurl4-openssl-dev curl \\
   uuid-dev git python3.7 python3.7-dev python3-pip libffi-dev \\
@@ -453,7 +453,7 @@ def generate_ubuntu1804(root_folder):
     make_ubuntu_1804_req_file(os.path.join(root_folder, 'install_requirements.sh'))
 
     # write corresponding docker file
-    docker_content = '\nFROM ubuntu:18.04\n    \n# build using docker build -t tuplex/ubuntu:1804 .\n\nMAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"\n\nRUN mkdir -p /opt/sbin\n\nADD install_mongodb.sh /opt/sbin/install_mongodb.sh\nRUN /opt/sbin/install_mongodb.sh\n''\nFROM ubuntu:18.04\n    \n# build using docker build -t tuplex/ubuntu:1804 .\n\nMAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"\n\nRUN mkdir -p /opt/sbin\n\nADD install_mongodb.sh /opt/sbin/install_mongodb.sh\nRUN /opt/sbin/install_mongodb.sh\n\nADD install_requirements.sh /opt/sbin/install_requirements.sh\nRUN /opt/sbin/install_requirements.sh\n'
+    docker_content = '\nFROM ubuntu:18.04\n    \n# build using docker build -t tuplex/ubuntu:1804 .\n\nMAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"\n\nRUN mkdir -p /opt/sbin\n\nRUN apt-get update && apt-get install -y python3\n\nADD install_mongodb.sh /opt/sbin/install_mongodb.sh\nRUN /opt/sbin/install_mongodb.sh\n''\nFROM ubuntu:18.04\n    \n# build using docker build -t tuplex/ubuntu:1804 .\n\nMAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"\n\nRUN mkdir -p /opt/sbin\n\nADD install_mongodb.sh /opt/sbin/install_mongodb.sh\nRUN /opt/sbin/install_mongodb.sh\n\nADD install_requirements.sh /opt/sbin/install_requirements.sh\nRUN /opt/sbin/install_requirements.sh\n'
     with open(os.path.join(root_folder, "Dockerfile"), 'w') as fp:
         fp.write(docker_content)
 

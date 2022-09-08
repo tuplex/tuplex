@@ -95,6 +95,9 @@ echo ">> Building dependencies for ${{PYTHON_VERSION}}"
 '''.format(install_prefix, workdir)
 
 def install_mongodb(osname='ubuntu:22.04'):
+
+    # cf. https://www.mongodb.com/docs/v5.0/tutorial/install-mongodb-on-ubuntu/
+
     MONGODB_VERSION=VERSIONS['MONGODB_VERSION']
     if osname == 'ubuntu:18.04':
         return  """apt-get update && apt-get install -y curl gnupg \\
@@ -102,6 +105,12 @@ def install_mongodb(osname='ubuntu:22.04'):
 && echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/{version} multiverse" | tee /etc/apt/sources.list.d/mongodb-org-{version}.list \\
 && apt update \\
 && apt install -y mongodb-org""".format(version=MONGODB_VERSION)
+    elif osname == 'ubuntu:20.04':
+        return """apt-get update && apt-get install -y curl gnupg \\
+    && curl -fsSL https://www.mongodb.org/static/pgp/server-{version}.asc | apt-key add - \\
+    && echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/{version} multiverse" | tee /etc/apt/sources.list.d/mongodb-org-{version}.list \\
+    && apt update \\
+    && apt install -y mongodb-org""".format(version=MONGODB_VERSION)
     else:
         raise Exception('unknown os {}'.format(osname))
    
@@ -456,8 +465,9 @@ def generate_ubuntu1804(root_folder):
 
     # write corresponding docker file
     docker_content = '\nFROM ubuntu:18.04\n    \n' \
-                     '# build using docker build -t tuplex/ubuntu:1804 .\n\n' \
+                     '# build using docker build -t tuplex/ubuntu:18.04 .\n\n' \
                      'MAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"\n\n' \
+                     'ENV DEBIAN_FRONTEND=noninteractive\n' \
                      'RUN mkdir -p /opt/sbin\n\n' \
                      '\nENV PATH "/opt/bin:$PATH"\n' \
                      'RUN echo "export PATH=/opt/bin:${PATH}" >> /root/.bashrc\n' \
@@ -489,8 +499,9 @@ def generate_ubuntu2004(root_folder):
 
     # write corresponding docker file
     docker_content = '\nFROM ubuntu:20.04\n    \n' \
-                     '# build using docker build -t tuplex/ubuntu:1804 .\n\n' \
+                     '# build using docker build -t tuplex/ubuntu:20.04 .\n\n' \
                      'MAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"\n\n' \
+                     'ENV DEBIAN_FRONTEND=noninteractive\n' \
                      'RUN mkdir -p /opt/sbin\n\n' \
                      '\nENV PATH "/opt/bin:$PATH"\n' \
                      'RUN echo "export PATH=/opt/bin:${PATH}" >> /root/.bashrc\n' \

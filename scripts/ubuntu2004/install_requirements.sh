@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-09-08 16:05:58.347243
+# auto-generated on 2022-09-08 16:05:58.347648
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -31,23 +31,22 @@ PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE:-python3}
 PYTHON_BASENAME="$(basename -- $PYTHON_EXECUTABLE)"
 PYTHON_VERSION=$(${PYTHON_EXECUTABLE} --version)
 echo ">> Building dependencies for ${PYTHON_VERSION}"
-echo ">> Installing all build dependencies for Tuplex under Ubuntu 18.04"
+echo ">> Installing all build dependencies for Tuplex under Ubuntu 20.04"
 
 echo ">> Installing apt dependencies"
 apt update -y
 
-           apt-get install -y build-essential apt-utils wget git dh-autoreconf libxml2-dev \
- autoconf curl automake libtool software-properties-common wget libedit-dev libz-dev \
-  python3-yaml pkg-config libssl-dev libcurl4-openssl-dev curl \
-  uuid-dev git python3.7 python3.7-dev python3-pip libffi-dev \
-  doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \
-  gcc-7 g++-7 libgflags-dev libncurses-dev \
-  awscli openjdk-8-jdk libyaml-dev libmagic-dev ninja-build
-                    
+           apt-get install -y software-properties-common dh-autoreconf curl build-essential wget git libedit-dev libz-dev \
+                   python3-yaml python3-pip pkg-config libssl-dev libcurl4-openssl-dev curl \
+                   uuid-dev libffi-dev libmagic-dev \
+                   doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \
+                   libgflags-dev libncurses-dev \
+                   openjdk-8-jdk libyaml-dev ninja-build gcc-10 g++-10 autoconf libtool m4
+                     
            
            ldconfig
-           export CC=gcc-7
-           export CXX=g++-7
+           export CC=gcc-10
+           export CXX=g++-10
 
 echo ">> Installing recent cmake"
 # fetch recent cmake & install

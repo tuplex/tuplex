@@ -1,7 +1,7 @@
 
-FROM ubuntu:18.04
+FROM ubuntu:20.04
     
-# build using docker build -t tuplex/ubuntu:18.04 .
+# build using docker build -t tuplex/ubuntu:20.04 .
 
 MAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"
 
@@ -18,6 +18,6 @@ RUN /opt/sbin/install_mongodb.sh
 ADD install_requirements.sh /opt/sbin/install_requirements.sh
 RUN /opt/sbin/install_requirements.sh
 
-RUN python3.6 -m pip install "cloudpickle<2.0" cython numpy
+RUN python3.7 -m pip install "cloudpickle<2.0" cython numpy
 
-RUN python3.6 -m pip install "cloudpickle<2.0" cython numpy
+RUN python3.8 -m pip install "cloudpickle<2.0" cython numpy

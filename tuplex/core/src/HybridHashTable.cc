@@ -175,6 +175,9 @@ namespace tuplex {
     }
 
     PyObject* unwrapRow(PyObject *o) {
+        if(!o)
+            return nullptr;
+
         // internal row class?
         if(0 == strcmp(o->ob_type->tp_name, "Row")) {
            // check how many elements, if 1 unwrap!

@@ -406,9 +406,6 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
     // def aggregate_udf(agg, row):
     //  return agg + 1
     // ds.aggregateByKey(combine_udf, aggregate_udf, 0, ["Complaint Type"]).show()
-
-    // TODO: check special case: aggregateByKey and single key column?
-
     Context c(opt);
     auto path = "../resources/311_subset.micro.csv";
 
@@ -423,11 +420,7 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
 
      ds_agg.show();
 
-    // the counts are off...
-    // ==> need to fix this!
-    // i.e., small subset should have 120k rows in total...
-    // micro should have 10k rows in total...
-
+    // call again and check row count.
     auto rows = ds_agg.collectAsVector();
     // sort rows after second entry
     std::sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) {
@@ -440,5 +433,9 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
     }
 
     std::cout<<"====\n"<<pluralize(total_rows, "row")<<std::endl;
-    EXPECT_EQ(total_rows, 2000); // this should work.
+    EXPECT_EQ(total_rows, 2000); // this should work
+    // the counts are off...
+    // ==> need to fix this!
+    // i.e., small subset should have 120k rows in total...
+    // micro should have 10k rows in total....
 }

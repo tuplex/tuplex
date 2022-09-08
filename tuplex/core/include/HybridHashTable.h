@@ -18,19 +18,23 @@
 
 namespace tuplex {
 
-// #error "need to define value storage mode for lookup table. I.e., a list of values or values? For join/groupby use list of values, for aggregateByKey use value."
-
-
+    /*!
+     * helper function to unwrap a Row object to the actual python object stored within.
+     * @param o a potentially wrapped object
+     * @return the object within.
+     */
     extern PyObject* unwrapRow(PyObject *o);
 
+    /*!
+     * binary layout of value mode is value size + value
+     * binary layout of listofvalues is more complex, it's basically a field giving info
+     * on how many entries and then individually sized entries. Confer extend_bucket e.g. for this
+     */
     enum LookupStorageMode {
         UNKNOWN=0,
         VALUE=1,
         LISTOFVALUES=2
     };
-
-    // binary layout of value mode is value size + value
-    // binary layout of listofvalues is more complex.
 
 
     // define hybrid Tuplex/Python hashtable object
@@ -60,6 +64,12 @@ namespace tuplex {
          */
         size_t backupItemCount() const;
 
+        /*!
+         * if key doesn't exist in dictionary sets key=value, else returns the value stored under key.
+         * @param key
+         * @param value
+         * @return value
+         */
         PyObject* setDefault(PyObject* key, PyObject* value);
 
         /*!

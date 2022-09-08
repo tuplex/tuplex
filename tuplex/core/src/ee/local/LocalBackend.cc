@@ -872,13 +872,6 @@ namespace tuplex {
         auto tasks = createLoadAndTransformToMemoryTasks(tstage, _options, syms);
         auto completedTasks = performTasks(tasks);
 
-        // Note: this doesn't work yet because of the globals.
-        // to make this work, need better global mapping...
-//        auto completedTasks = performTasks(tasks, [&syms, &optimizer, &tstage, this]() {
-//            // TODO/Note: could prepare code of parent stage already while current one is running! I.e. do this for the first dependent only to avoid conflicts...
-//            syms = tstage->compile(*_compiler, _options.USE_LLVM_OPTIMIZER() ? &optimizer : nullptr, false);
-//        });
-
         // calc number of input rows and total wall clock time
         size_t numInputRows = 0;
         double totalWallTime = 0.0;
@@ -1209,29 +1202,6 @@ namespace tuplex {
         Logger::instance().defaultLogger().info(ss.str());
     }
 
-
-    int print_hm_key(void* userData, hashmap_element* entry) {
-        auto data = (uint8_t*)entry->data; // bucket data. First is always an int64_t holding how many rows there are.
-
-        using namespace std;
-        if(entry->in_use) {
-            cout<<"key: "<<entry->key;
-
-            if(data) {
-                // other bucket count
-                auto num_entries =  (*(uint64_t*)data >> 32ul);
-                auto x = *(int64_t*)(data + sizeof(int64_t));
-                cout<<" "<<pluralize(num_entries, "value");
-                if(userData)
-                    *(int64_t*)userData += x;
-            }
-
-            cout<<endl;
-        }
-
-        return MAP_OK;
-    }
-
     std::vector<IExecutorTask*> LocalBackend::resolveViaSlowPath(
             std::vector<IExecutorTask*> &tasks,
             bool merge_rows_in_order,
@@ -1266,19 +1236,6 @@ namespace tuplex {
                                        true);
             logger().info("created combined normal-case result in " + std::to_string(timer.time()) + "s");
             hasNormalHashSink = true;
-
-            // debug: print info on hash sink
-#ifndef NDEBUG
-            using namespace std;
-            cout<<"hash sink result is: "<<endl;
-            assert(hsink);
-            if(hsink->hm) {
-                cout<<"hashmap contains following keys: "<<endl;
-                int64_t test = 0;
-                hashmap_iterate(hsink->hm, print_hm_key, &test);
-                cout<<"total rows: "<<test<<endl;
-            }
-#endif
         }
 
         Timer timer;
@@ -2096,32 +2053,6 @@ namespace tuplex {
         }
     }
 
-    static  int count_hm_helper(void* userData, hashmap_element* entry) {
-        auto data = (uint8_t*)entry->data; // bucket data. First is always an int64_t holding how many rows there are.
-
-        using namespace std;
-        if(entry->in_use) {
-            // cout<<"key: "<<entry->key;
-
-            if(data) {
-                // other bucket count
-                auto num_entries =  (*(uint64_t*)data >> 32ul);
-                auto x = *(int64_t*)(data + sizeof(int64_t));
-                // cout<<" "<<pluralize(num_entries, "value");
-                if(userData)
-                    *(int64_t*)userData += x;
-            }
-        }
-
-        return MAP_OK;
-    }
-
-    size_t count_hm_data(map_t hm) {
-        int64_t test = 0;
-        hashmap_iterate(hm, count_hm_helper, &test);
-        return test;
-    }
-
     HashTableSink* LocalBackend::createFinalHashmap(const std::vector<IExecutorTask*>& tasks,
                                                    int hashtableKeyByteWidth,
                                                    bool combine,
@@ -2192,55 +2123,8 @@ namespace tuplex {
 
             return sink;
         } else {
-
-            // debug
-#ifndef NDEBUG
-            {
-                using namespace std;
-                size_t total_rows = 0;
-                for(unsigned i = 0; i < tasks.size(); ++i) {
-                    auto sink = getHashSink(tasks[i]);
-
-                    if(!sink) {
-                        cout<<"task "<<i<<": empty sink"<<endl;
-                        continue;
-                    }
-
-                    // count for both hashmap and hybrid the data...
-                    size_t num_hm = count_hm_data(sink->hm);
-                    size_t num_hybrid = 0;
-                    if(sink->hybrid_hm) {
-                        python::lockGIL();
-                        auto hybrid = ((HybridLookupTable*)sink->hybrid_hm);
-                        auto dict = hybrid->backupDict;
-                        if(dict) {
-                            // iterate over all elements...
-                            PyObject *key = nullptr, *val = nullptr;
-                            Py_ssize_t pos = 0;
-                            while (PyDict_Next(dict, &pos, &key, &val)) {
-                                Py_XINCREF(key);
-                                Py_XINCREF(val);
-                                num_hybrid += PyLong_AsLong(val);
-                            }
-                        }
-                        python::unlockGIL();
-                    }
-
-                    total_rows += num_hm + num_hybrid;
-                    cout<<tasks[i]->getOrder()<<"  task "<<i<<": "<<num_hm<<" in C++, "<<num_hybrid<<" in Python"<<endl;
-                }
-
-                cout<<"total rows: "<<total_rows<<endl;
-            }
-#endif
-
-
-
-            // @TODO: getHashSink should be updated to also work with hybrids. Yet, the merging of normal hashtables
-            //        with resolve hashtables is done by simply setting the merged normal result as input to the first resolve task.
-
             // need to merge.
-            // => fetch hash table form first
+            // => fetch hash table form first, i.e. move it out from task to claim ownership!
             auto sink = moveHashSink(tasks.front());
             if(!sink)
                 sink = new HashTableSink();
@@ -2259,33 +2143,6 @@ namespace tuplex {
                 if(!task_sink)
                     continue;
 
-                // print description of hash sink
-#ifndef NDEBUG
-                {
-                  using namespace std;
-                  stringstream ss;
-                  ss<<"hash sink #"<<i<<": "<<boolalpha<<"null bucket: "<<(bool)task_sink->null_bucket<<" map: "<<(bool)task_sink->hm<<" hybrid: "<<(bool)task_sink->hybrid_hm<<endl;
-                  size_t num_elements = 0;
-                  size_t num_hybrid_elements = 0;
-                  if(task_sink->hm) {
-                      if(hashtableKeyByteWidth == 8)
-                          num_elements = int64_hashmap_length(task_sink->hm);
-                      else
-                          num_elements = hashmap_length(task_sink->hm);
-                      ss<<"hashmap has: "<<pluralize(num_elements, "element")<<endl;
-                  }
-                  if(task_sink->hybrid_hm) {
-                      auto hybrid = (HybridLookupTable*)task_sink->hybrid_hm;
-                      num_hybrid_elements = hybrid->length();
-                      ss<<"hybrid has: "<<pluralize(num_hybrid_elements, "element")<<endl;
-                  }
-
-
-                  cout<<ss.str(); cout.flush();
-                  Logger::instance().defaultLogger().debug(ss.str());
-                }
-#endif
-
                 if(combine) combineBuckets(sink->null_bucket, task_sink->null_bucket);
                 else sink->null_bucket = merge_buckets(sink->null_bucket, task_sink->null_bucket);
 
@@ -2303,15 +2160,7 @@ namespace tuplex {
 
                 // NOTE: following code causes memory corruption, it's a leak but keep it for now to make sure things work.
                 // ==> need to rework whole hashing system at some point.
-                // debug: uncomment
-                //  // also free hybrid???
-                //  // @TODO: error in freeing here?
-                //  if(hashtableKeyByteWidth == 8)
-                //      int64_hashmap_free(task_sink->hm); // remove hashmap (keys and buckets already handled)
-                //  else
-                //      hashmap_free(task_sink->hm); // remove hashmap (keys and buckets already handled)
-                //  task_sink->hm = nullptr;
-                //  task_sink->hybrid_hm = nullptr;
+                // ==> i.e. what's left todo is to free the sinks hashmap itself.
 
                 if(task_sink->hybrid_hm) {
                     // convert

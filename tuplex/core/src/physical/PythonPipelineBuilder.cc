@@ -919,7 +919,6 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         // add hashmap as var
         _optArgs.push_back(hashmap_name);
 
-
         // perform aggregate function on current output row & saved aggregate
         // also yield key...
         // fetch current key
@@ -935,36 +934,18 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         ss<<"if agg_value is None:\n";
         ss<<"\tagg_value = "<<hashmap_name<<".setdefault(agg_key, result_to_row("<<initial_value.toPythonString()<<"))\n";
 
-        // debug
-#ifndef NDEBUG
-        ss<<"print('looked up aggregate value (before UDF) is: {}'.format(agg_value))\n";
-#endif
-        // ss<<"\tprint('aggregate value: {}'.format(agg_value))\n";
-        // ss<<"\tagg_value = agg_value[0]\n";
-        // ss<<"\tprint('aggregate value after unpacking: {}'.format(agg_value))\n";
-
         // add aggregate initialization to header
         _headCode += header.str();
-
 
         // decode function
         ss<<"code = "<<udfToByteCode(aggUDF)<<"\n";
         ss<<"f_agg = cloudpickle.loads(code)\n";
         ss<<"agg_value = "<<"apply_func2(f_agg, result_to_row(agg_value), "<<row()<<")\n";
-        // ss<<"print('agg result: {}'.format(agg_value))\n";
-
-        // debug
-#ifndef NDEBUG
-        ss<<"print('aggregate value (after UDF) is: {}'.format(agg_value))\n";
-#endif
 
         // output aggregate value and key (b.c. special treatment necessary!)
         // update row to be agg value
         ss<<row()<<" = result_to_row(agg_value)\n";
         ss<<"res['key'] = agg_key\n";
-
-        // debug
-        // ss<<"print('agg ret: {}'.format(res))\n";
 
         _header += codegenApplyFuncTwoArg();
 
@@ -972,8 +953,6 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
         // could use yield here as well...
         writeLine(code);
-
-        // throw std::runtime_error("agg by key python code path not yet implemented");
     }
 
     void PythonPipelineBuilder::pythonAggGeneral(int64_t operatorID, const std::string& agg_intermediate_name,
@@ -995,10 +974,6 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         std::stringstream header;
         header<<"agg_value = "<<agg_intermediate_name<<"\n";
 
-        // debug
-#ifndef NDEBUG
-        // ss<<"\tprint('aggregate value: {}'.format(agg_value))\n";
-#endif
         // add aggregate initialization to header
         _headCode += header.str();
 
@@ -1007,17 +982,10 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         ss<<"code = "<<udfToByteCode(aggUDF)<<"\n";
         ss<<"f_agg = cloudpickle.loads(code)\n";
         ss<<"agg_value = "<<"apply_func2(f_agg, result_to_row(agg_value), "<<row()<<")\n";
-#ifndef NDEBUG
-        // ss<<"print('agg result: {}'.format(agg_value))\n";
-#endif
         // output aggregate value and key (b.c. special treatment necessary!)
         // update row to be agg value
         ss<<row()<<" = result_to_row(agg_value)\n";
 
-        // debug
-#ifndef NDEBUG
-        // ss<<"print('agg ret: {}'.format(res))\n";
-#endif
         _header += codegenApplyFuncTwoArg();
 
         auto code = ss.str();
@@ -1088,7 +1056,6 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
             default:
                 throw std::runtime_error("unknown aggregate type " + std::to_string(static_cast<int>(agg_type)) + " encountered.");
         }
-
 
         ss<<"\texcept Exception as e:\n";
         ss<<"\t\tres['input_lhs'] = a\n";

@@ -385,28 +385,6 @@ default:
         }
     }
 
-    static  int print_hm_key(void* userData, hashmap_element* entry) {
-        auto data = (uint8_t*)entry->data; // bucket data. First is always an int64_t holding how many rows there are.
-
-        using namespace std;
-        if(entry->in_use) {
-            // cout<<"key: "<<entry->key;
-
-            if(data) {
-                // other bucket count
-                auto num_entries =  (*(uint64_t*)data >> 32ul);
-                auto x = *(int64_t*)(data + sizeof(int64_t));
-                // cout<<" "<<pluralize(num_entries, "value");
-                if(userData)
-                    *(int64_t*)userData += x;
-            }
-//
-//            cout<<endl;
-        }
-
-        return MAP_OK;
-    }
-
     void ResolveTask::processExceptionRow(int64_t& ecCode, int64_t operatorID, const uint8_t* ebuf, size_t eSize) {
         // inc counter here, hence only count exception rows!
         _numInputRowsRead++;
@@ -573,23 +551,6 @@ default:
                 Py_XINCREF(_htable->hybrid_hm);
                 PyTuple_SET_ITEM(args, num_python_args - 1, _htable->hybrid_hm);
             }
-
-#ifndef NDEBUG
-            if(hasHashTableSink()) {
-                using namespace std;
-                cout<<"hash sink result is: "<<endl;
-                auto hsink = _htable;
-                assert(hsink);
-                if(hsink->hm) {
-                    cout<<"hashmap contains following keys: "<<endl;
-                    int64_t test = 0;
-                    hashmap_iterate(hsink->hm, print_hm_key, &test);
-                    cout<<"total rows: "<<test<<endl;
-                }
-            }
-
-#endif
-
 
             auto kwargs = PyDict_New(); PyDict_SetItemString(kwargs, "parse_cells", python::boolean(parse_cells));
             auto pcr = python::callFunctionEx(_interpreterFunctor, args, kwargs);
@@ -774,16 +735,6 @@ default:
         // --> can simply process things independent of each other.
 
         using namespace std;
-
-        // DEBUG
-#ifndef NDEBUG
-        std::cout<<"task order: "<<getOrder()<<std::endl;
-        auto taskId = getOrder().front();
-        if(17 == taskId) {
-            std::cout<<"special task found"<<std::endl;
-        }
-#endif
-
 
         Timer timer;
 
@@ -1417,20 +1368,6 @@ default:
                     rowObject = PyTuple_GetItem(rowObject, 0);
                 }
 
-                // lazy create table
-                if(!_htable->hybrid_hm) {
-
-                    // adjust element type for single objects
-                    // @TODO: this properly has to be thought through again...
-                    auto adjusted_key_type = _hash_element_type.isTupleType() && _hash_element_type.parameters().size() == 1 ?
-                            _hash_element_type.parameters().front() : _hash_element_type;
-
-                    _htable->hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(*_htable,
-                                                                                                adjusted_key_type,
-                                                                                                _hash_bucket_type,
-                                                                                                LookupStorageMode::VALUE));
-                }
-
                 assert(_htable->hybrid_hm);
                 int rc =((HybridLookupTable*)_htable->hybrid_hm)->putItem(rowObject, nullptr);
                 // could also invoke via PyObject_SetItem(_htable->hybrid_hm, rowObject, python::none());
@@ -1448,37 +1385,6 @@ default:
 
                 // unwrap tuple if necessary to store original value.
                 rowObject = unwrapTuple(rowObject);
-
-                // debug print
-                {
-#ifndef NDEBUG
-                    Py_XINCREF(rowObject);
-                    Py_XINCREF(key);
-
-                    std::stringstream ss;
-                    ss<<"sinking following to hash endpoint:\n";
-                    auto skey = python::PyString_AsString(key);
-                    if(skey == "For Hire Vehicle Complaint") {
-                        std::cout<<"found to debug"<<std::endl;
-                    }
-                    ss<<"key: "<<python::PyString_AsString(key)<<"\n";
-                    ss<<"object: "<<python::PyString_AsString(rowObject)<<"\n";
-                    std::cout<<ss.str()<<std::endl;
-#endif
-                }
-
-
-                // // lazy create table
-                // if(!_htable->hybrid_hm) {
-                //     auto adjusted_key_type = _hash_element_type.isTupleType() && _hash_element_type.parameters().size() == 1 ?
-                //                              _hash_element_type.parameters().front() : _hash_element_type;
-                //
-                //     _htable->hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(*_htable,
-                //                                                                                 adjusted_key_type,
-                //                                                                                 _hash_bucket_type,
-                //                                                                                 LookupStorageMode::VALUE));
-                //     assert(_htable->hm && _htable->hybrid_hm);
-                // }
 
                 assert(_htable->hybrid_hm);
                 int rc =((HybridLookupTable*)_htable->hybrid_hm)->putItem(key, rowObject);

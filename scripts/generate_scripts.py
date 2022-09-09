@@ -224,15 +224,15 @@ def install_boost():
     # should be replaced with
     # #ifdef PTHREAD_STACK_MIN
 
-    boost_fix = " && sed -i 's/#if PTHREAD_STACK_MIN > 0/#ifdef PTHREAD_STACK_MIN/g' /opt/include/boost/thread/pthread/thread_data.hpp"
+    boost_fix = " && sed -i 's/#if PTHREAD_STACK_MIN > 0/#ifdef PTHREAD_STACK_MIN/g' ${PREFIX}/include/boost/thread/pthread/thread_data.hpp"
     return '''    
-mkdir -p ${WORKDIR/boost}
+mkdir -p ${WORKDIR}/boost
 
 # build incl. boost python
-pushd ${WORKDIR/boost} && ''' + \
+pushd ${WORKDIR}/boost && ''' + \
            'wget https://boostorg.jfrog.io/artifactory/main/release/{}/source/boost_{}.tar.gz && tar xf boost_{}.tar.gz'.format(
                BOOST_VERSION, boost_reformatted, boost_reformatted, boost_reformatted) + \
-           ' && cd ${{WORKDIR/boost}}/boost_{}'.format(boost_reformatted) + \
+           ' && cd ${{WORKDIR}}/boost/boost_{}'.format(boost_reformatted) + \
            ''' \\
            && ./bootstrap.sh --with-python=${PYTHON_EXECUTABLE} --prefix=${PREFIX} --with-libraries="thread,iostreams,regex,system,filesystem,python,stacktrace,atomic,chrono,date_time" \\
             && ./b2 cxxflags="-fPIC" link=static -j "$(nproc)" \\

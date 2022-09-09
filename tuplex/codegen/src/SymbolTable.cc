@@ -16,6 +16,26 @@
 using namespace std;
 
 namespace tuplex {
+
+    static  bool is_classinfo(const python::Type& t) {
+        if(t.isTypeObjectType())
+            return true;
+        if(t.isTupleType()) {
+            auto params = t.parameters();
+            for(auto p : params) {
+                if(!is_classinfo(p))
+                    return false;
+            }
+            return true;
+        }
+
+        // this is a bit weird b.c. list is homogenous...
+        if(t.isListType())
+            return is_classinfo(t.elementType());
+
+        return false;
+    }
+
     std::shared_ptr<SymbolTable> SymbolTable::createFromEnvironment(const tuplex::ClosureEnvironment *globals) {
         // Note: refactored functionality from SymbolTableVisitor.{h,cc}
         auto table = new SymbolTable();
@@ -368,6 +388,28 @@ namespace tuplex {
             return python::Type::makeFunctionType(parameterType, python::Type::makeTypeObjectType(obj_type));
         };
         addSymbol(make_shared<Symbol>("type", typeTyper));
+
+        auto isinstanceTyper = [this](const python::Type& parameterType) {
+            assert(parameterType.isTupleType());
+
+            // there should be two parameters
+            if(parameterType.parameters().size() != 2) {
+                throw std::runtime_error("invalid number of parameters (2 expected, "
+                + std::to_string(parameterType.parameters().size()) + " found)");
+            }
+
+            auto type_to_check = parameterType.parameters()[0];
+            auto _classinfo = parameterType.parameters()[1];
+
+            // if classinfo is not a type object or a tuple/list of types -> TypeError
+            auto type_error = python::TypeFactory::instance().getByName("TypeError");
+            assert(type_error != python::Type::UNKNOWN);
+            if(!is_classinfo(_classinfo))
+                return python::Type::makeFunctionType(parameterType, type_error);
+
+            return python::Type::makeFunctionType(parameterType, python::Type::BOOLEAN);
+        };
+        addSymbol(make_shared<Symbol>("isinstance", isinstanceTyper));
 
         // TODO: other parameters? i.e. step size and Co?
         // also, boolean, float? etc.?

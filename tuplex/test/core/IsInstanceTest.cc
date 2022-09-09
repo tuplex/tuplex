@@ -45,4 +45,33 @@ TEST_F(IsInstance, BasicTyping) {
     //
     //Changed in version 3.10: classinfo can be a Union Type.
 
+    // start now with isinstance typing
+    {
+        UDF udf("lambda x: (str)");//, bool, int, float, ");
+        auto input_type = python::Type::I64;
+        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(input_type)));
+        auto ret_type = udf.getAnnotatedAST().getReturnType();
+        EXPECT_EQ(ret_type, python::Type::BOOLEAN);
+    }
+
+    // start now with isinstance typing
+    {
+        UDF udf("lambda x: x if isinstance(x, str) else str(x)");
+        auto input_type = python::Type::I64;
+        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(input_type)));
+        auto ret_type = udf.getAnnotatedAST().getReturnType();
+        EXPECT_EQ(ret_type, python::Type::BOOLEAN);
+    }
+
+    {
+        UDF udf("lambda x: isinstance(x, 42)");
+        auto input_type = python::Type::I64;
+        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(input_type)));
+        auto ret_type = udf.getAnnotatedAST().getReturnType();
+        EXPECT_EQ(ret_type, python::TypeFactory::instance().getByName("TypeError"));
+    }
+
+    // todo: could also allow use of something like typing.Optional[...] or typing.Tuple[...] and so on...
+    // further, could allow for callable[...]
+    // and also operators like | for type unions etc.
 }

@@ -45,7 +45,7 @@ namespace tuplex {
             Scope* parent;
 
             // names associated with certain objects & types
-            std::unordered_map<std::string, std::shared_ptr<Symbol>> symbols;
+            std::unordered_map<std::string, std::vector<std::shared_ptr<Symbol>>> symbols;
 
             Scope() : parent(nullptr)   {}
 
@@ -262,6 +262,11 @@ namespace tuplex {
          * add all the exception types to both the table and the TypeSystem.cc
          */
         void addBuiltinExceptionHierarchy();
+
+        /*!
+         * add all the builtin type objects (e.g., str, int, float, bool, ...)
+         */
+        void addBuiltinTypes();
     };
 }
 

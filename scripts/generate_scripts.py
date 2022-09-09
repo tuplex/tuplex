@@ -725,7 +725,7 @@ python3.7 -m pip install --upgrade pip\n"""
 
         fp.write("pip3 install 'cloudpickle<2.0.0' cython numpy\n")
 
-        fp.write('echo ">>> installing reqs done.\n')
+        fp.write('echo ">>> installing reqs done."\n')
 
 
 def main():

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-09-09 09:58:56.109696
+# auto-generated on 2022-09-09 10:41:06.647183
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -125,4 +125,4 @@ mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf \
 && ./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" \
 && make -j$(nproc) && make install && ldconfig
 pip3 install 'cloudpickle<2.0.0' cython numpy
-echo ">>> installing reqs done.
+echo ">>> installing reqs done."

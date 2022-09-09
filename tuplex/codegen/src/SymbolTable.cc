@@ -346,6 +346,29 @@ namespace tuplex {
         addSymbol(make_shared<Symbol>("enumerate", enumerateFunctionTyper));
         addSymbol(make_shared<Symbol>("next", nextFunctionTyper));
 
+        // type(...), isinstance(...) and issubclass(...) functions
+
+
+        // language reference:
+        // class type(name, bases, dict, **kwds)
+        //With one argument, return the type of an object. The return value is a type object and generally the same object as returned by object.__class__.
+        //
+        //The isinstance() built-in function is recommended for testing the type of an object, because it takes subclasses into account.
+        //
+        //With three arguments, return a new type object. This is essentially a dynamic form of the class statement. The name string is the class name and becomes the __name__ attribute. The bases tuple contains the base classes and becomes the __bases__ attribute; if empty, object, the ultimate base of all classes, is added. The dict dictionary contains attribute and method definitions for the class body; it may be copied or wrapped before becoming the __dict__ attribute. The following two statements create identical type objects:
+        // -> only support 1 param version
+        auto typeTyper = [this](const python::Type& parameterType) {
+            assert(parameterType.isTupleType());
+            if(parameterType.parameters().size() != 1) {
+                throw std::runtime_error("number of parameters for type not yet supported");
+                return python::Type::UNKNOWN;
+            }
+
+            auto obj_type = parameterType.parameters().front();
+            return python::Type::makeFunctionType(parameterType, python::Type::makeTypeObjectType(obj_type));
+        };
+        addSymbol(make_shared<Symbol>("type", typeTyper));
+
         // TODO: other parameters? i.e. step size and Co?
         // also, boolean, float? etc.?
         addSymbol("range", python::Type::makeFunctionType(python::Type::I64, python::Type::RANGE));

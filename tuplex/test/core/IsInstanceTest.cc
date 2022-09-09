@@ -9,6 +9,13 @@
 
 class IsInstance : public PyTest {};
 
+// for type objects, support something like
+// x = type(16)
+// x()
+// y = type(3.141)
+// y(10)
+
+
 TEST_F(IsInstance, BasicTyping) {
     // this is a basic test for isinstance covering the correct type deduction
 
@@ -45,31 +52,39 @@ TEST_F(IsInstance, BasicTyping) {
     //
     //Changed in version 3.10: classinfo can be a Union Type.
 
-    // basic check for type objects
-    {
-        UDF udf("lambda x: (str, bool, int)");
-        auto input_type = python::Type::I64;
-        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(input_type)));
-        auto ret_type = udf.getAnnotatedAST().getReturnType();
-        auto output_type = python::Type::makeTupleType({python::Type::makeTypeObjectType(python::Type::STRING),
-                                                        python::Type::makeTypeObjectType(python::Type::BOOLEAN),
-                                                        python::Type::makeTypeObjectType(python::Type::I64),});
-        EXPECT_EQ(ret_type.desc(), output_type.desc());
-    }
+//    // basic check for type objects
+//    {
+//        UDF udf("lambda x: (str, bool, int)");
+//        auto input_type = python::Type::I64;
+//        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(input_type)));
+//        auto ret_type = udf.getAnnotatedAST().getReturnType();
+//        auto output_type = python::Type::makeTupleType({python::Type::makeTypeObjectType(python::Type::STRING),
+//                                                        python::Type::makeTypeObjectType(python::Type::BOOLEAN),
+//                                                        python::Type::makeTypeObjectType(python::Type::I64),});
+//        EXPECT_EQ(ret_type.desc(), output_type.desc());
+//    }
+//
+//    // basic check for type objects
+//    {
+//        UDF udf("lambda str: (str, bool, int)");
+//        auto input_type = python::Type::I64;
+//        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(input_type)));
+//        auto ret_type = udf.getAnnotatedAST().getReturnType();
+//        auto output_type = python::Type::makeTupleType({python::Type::I64,
+//                                                        python::Type::makeTypeObjectType(python::Type::BOOLEAN),
+//                                                        python::Type::makeTypeObjectType(python::Type::I64),});
+//        EXPECT_EQ(ret_type.desc(), output_type.desc());
+//    }
 
-    // basic check for type objects
-    {
-        UDF udf("lambda str: (str, bool, int)");
-        auto input_type = python::Type::I64;
-        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(input_type)));
-        auto ret_type = udf.getAnnotatedAST().getReturnType();
-        auto output_type = python::Type::makeTupleType({python::Type::I64,
-                                                        python::Type::makeTypeObjectType(python::Type::BOOLEAN),
-                                                        python::Type::makeTypeObjectType(python::Type::I64),});
-        EXPECT_EQ(ret_type.desc(), output_type.desc());
-    }
+//    // start now with isinstance typing
+//    {
+//        UDF udf("lambda x: type(x)");
+//        auto input_type = python::Type::I64;
+//        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(input_type)));
+//        auto ret_type = udf.getAnnotatedAST().getReturnType();
+//        EXPECT_EQ(ret_type, python::Type::makeTypeObjectType(python::Type::I64));
+//    }
 
-    return;
 
     // start now with isinstance typing
     {
@@ -79,6 +94,8 @@ TEST_F(IsInstance, BasicTyping) {
         auto ret_type = udf.getAnnotatedAST().getReturnType();
         EXPECT_EQ(ret_type, python::Type::BOOLEAN);
     }
+
+    return;
 
     {
         UDF udf("lambda x: isinstance(x, 42)");

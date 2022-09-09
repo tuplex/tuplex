@@ -645,113 +645,102 @@ cd $INCLUDE_DIR && ln -s ${PYTHON_VERSION}m ${PYTHON_VERSION} && cd - || exit 1
 
     # keep the docker file as is there...
 
-# test...
-generate_ubuntu1804('ubuntu1804')
-generate_ubuntu2004('ubuntu2004')
-generate_ubuntu2204('ubuntu2204')
-
-generate_manylinux_files('docker/ci')
-
-exit(0)
-
-
-# create Ubuntu 22.04 req file
-
-with open('install_dependencies_ubuntu_22_04.sh', 'w') as fp:
-    fp.write(bash_header().strip())
-    
-    fp.write('\necho ">> Installing apt dependencies"\n')
-    fp.write(apt_dependencies().strip())
-    
-    fp.write('\n\necho ">> Installing recent cmake"\n')
-    fp.write(install_cmake().strip())
-    
-    # use for following commands, newly installed cmake!
-    fp.write('\n\nexport PATH=$PREFIX/bin:$PATH\ncmake --version\n')
-    
-    fp.write('\n\necho ">> Installing Boost"\n')
-    fp.write(install_boost().strip())
-    
-    fp.write('\n\necho ">> Installing LLVM"\n')
-    fp.write(install_llvm().strip())
-    
-    fp.write('\n\necho ">> Installing PCRE2"\n')
-    fp.write(install_pcre2().strip())
-    
-    fp.write('\n\necho ">> Installing Celero"\n')
-    fp.write(install_celero().strip())
-    
-    fp.write('\n\necho ">> Installing YAMLCPP"\n')
-    fp.write(install_yaml().strip())
-    
-    fp.write('\n\necho ">> Installing ANTLR"\n')
-    fp.write(install_antlr().strip())
-    
-    fp.write('\n\necho ">> Installing protobuf"\n')
-    fp.write(install_protobuf().strip())
-    
-    fp.write('\n\necho ">> Installing AWS SDK"\n')
-    fp.write(install_aws_sdk().strip())
-    
-    fp.write('\n\necho ">> Cleaning/removing workdir {}"'.format(WORKDIR))
-    fp.write('\nrm -rf ${WORKDIR}\n')
-    fp.write('\necho "-- Done, all Tuplex requirements installed to {} --"\n'.format(PREFIX))
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
 
 # create Ubunti 22.04 req file
+def create_llvm14_file(path, llvm_version='14.0.6'):
+    configure_versions('ubuntu:22.04')
+    WORKDIR=VERSIONS['WORKDIR']
+    PREFIX=VERSIONS['PREFIX']
+    with open(path, 'w') as fp:
+        fp.write(bash_header().strip())
 
-with open('install_llvm14_ubuntu_22_04.sh', 'w') as fp:
-    fp.write(bash_header().strip())
-    
-    LLVM_VERSION='14.0.6'
-    
-    fp.write('\n\necho ">> Installing LLVM"\n')
-    fp.write(install_llvm().strip())
+        LLVM_VERSION=llvm_version
 
-    
-    fp.write('\n\necho ">> Cleaning/removing workdir {}"'.format(WORKDIR))
-    fp.write('\nrm -rf ${WORKDIR}\n')
-    fp.write('\necho "-- Done, all Tuplex requirements installed to {} --"\n'.format(PREFIX))
+        fp.write('\n\necho ">> Installing LLVM"\n')
+        fp.write(install_llvm().strip())
 
-
-# In[ ]:
-
-
-get_ipython().system('cat install_dependencies_ubuntu_22_04.sh')
+        fp.write('\n\necho ">> Cleaning/removing workdir {}"'.format(WORKDIR))
+        fp.write('\nrm -rf ${WORKDIR}\n')
+        fp.write('\necho "-- Done, all Tuplex requirements installed to {} --"\n'.format(PREFIX))
 
 
-# In[ ]:
+def generate_yaml_req_file(path, osname='ubuntu:18.04'):
+    configure_versions(osname)
+
+    with open(path, 'w') as fp:
+        fp.write(bash_header() + '\n')
+
+        fp.write('\nexport DEBIAN_FRONTEND=noninteractive\n')
+
+        # use python3.7 from deadsnakes for yaml
+        py37_install = """# add recent python3.7 package, confer https://linuxize.com/post/how-to-install-python-3-7-on-ubuntu-18-04/
+apt install -y software-properties-common \\
+&& add-apt-repository -y ppa:deadsnakes/ppa \\
+&& apt-get update\n"""
+        fp.write(py37_install)
+
+        # apt install
+        apt_install = """apt-get install -y build-essential autoconf automake libtool software-properties-common wget libedit-dev libz-dev \\
+  python3-yaml pkg-config libssl-dev libcurl4-openssl-dev curl \\
+  uuid-dev git python3.7 python3.7-dev python3-pip libffi-dev \\
+  doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \\
+  gcc-7 g++-7 libgflags-dev libncurses-dev \\
+  awscli openjdk-8-jdk libyaml-dev libmagic-dev ninja-build"""
+
+        fp.write(apt_install + '\n')
+
+        # faster llvm get
+        llvm_install = """# LLVM 9 packages (prob not all of them needed, but here for complete install)
+wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh \\
+&& ./llvm.sh 9 && rm -rf llvm.sh"""
+
+        fp.write(llvm_install + '\n')
+
+        link_update = """# set gcc-7 as default
+update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 70 --slave /usr/bin/g++ g++ /usr/bin/g++-7
+# set python3.7 as default
+update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 70 --slave /usr/bin/python3m python3m /usr/bin/python3.7m
+# upgrade pip
+python3.7 -m pip install --upgrade pip\n"""
+        fp.write(link_update + '\n')
+
+        fp.write(install_cmake() + '\n')
+
+        fp.write(github_to_known_hosts('/root') + '\n')
+
+        # can we do this quicker?
+        fp.write(install_boost() + '\n')
+
+        fp.write(install_yaml() + '\n')
+
+        fp.write(install_celero() + '\n')
+
+        fp.write(install_antlr() + '\n')
+
+        fp.write(install_aws_sdk() + '\n')
+
+        fp.write(install_pcre2() + '\n')
+
+        fp.write(install_protobuf() + '\n')
+
+        fp.write("pip3 install 'cloudpickle<2.0.0' cython numpy\n")
+
+        fp.write('echo ">>> installing reqs done.\n')
 
 
+def main():
+    """generates all scripts"""
+    generate_ubuntu1804('ubuntu1804')
+    generate_ubuntu2004('ubuntu2004')
+    generate_ubuntu2204('ubuntu2204')
+
+    generate_manylinux_files('docker/ci')
+    generate_yaml_req_file('install_azure_ci_reqs.sh')
 
 
+if __name__ == '__main__':
+    main()
 
-# In[ ]:
-
-
-# create docker containers to build tuplex for ubuntu 18.04, 20.04, 22.04
-# => this is to test the versions
-# @TODO.
-
-# TODO: need to update azure pipelines to use ubuntu 22.04 for CI.
-
-
-# In[ ]:
-
-
-get_ipython().system('pip3 install docker')
-
-
-# In[ ]:
 
 
 

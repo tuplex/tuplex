@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-09-09 09:58:56.107175
+# auto-generated on 2022-09-09 09:58:56.109696
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -18,24 +18,31 @@ PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE:-python3}
 PYTHON_BASENAME="$(basename -- $PYTHON_EXECUTABLE)"
 PYTHON_VERSION=$(${PYTHON_EXECUTABLE} --version)
 echo ">> Building dependencies for ${PYTHON_VERSION}"
-echo ">> Installing all build dependencies for Tuplex under Ubuntu 20.04"
 
-echo ">> Installing apt dependencies"
-apt update -y
 
-           apt-get install -y software-properties-common dh-autoreconf curl build-essential wget git libedit-dev libz-dev \
-                   python3-yaml python3-pip pkg-config libssl-dev libcurl4-openssl-dev curl \
-                   uuid-dev libffi-dev libmagic-dev \
-                   doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \
-                   libgflags-dev libncurses-dev \
-                   openjdk-8-jdk libyaml-dev ninja-build gcc-10 g++-10 autoconf libtool m4
-                     
-           
-           ldconfig
-           export CC=gcc-10
-           export CXX=g++-10
 
-echo ">> Installing recent cmake"
+export DEBIAN_FRONTEND=noninteractive
+# add recent python3.7 package, confer https://linuxize.com/post/how-to-install-python-3-7-on-ubuntu-18-04/
+apt install -y software-properties-common \
+&& add-apt-repository -y ppa:deadsnakes/ppa \
+&& apt-get update
+apt-get install -y build-essential autoconf automake libtool software-properties-common wget libedit-dev libz-dev \
+  python3-yaml pkg-config libssl-dev libcurl4-openssl-dev curl \
+  uuid-dev git python3.7 python3.7-dev python3-pip libffi-dev \
+  doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \
+  gcc-7 g++-7 libgflags-dev libncurses-dev \
+  awscli openjdk-8-jdk libyaml-dev libmagic-dev ninja-build
+# LLVM 9 packages (prob not all of them needed, but here for complete install)
+wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh \
+&& ./llvm.sh 9 && rm -rf llvm.sh
+# set gcc-7 as default
+update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 70 --slave /usr/bin/g++ g++ /usr/bin/g++-7
+# set python3.7 as default
+update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 70 --slave /usr/bin/python3m python3m /usr/bin/python3.7m
+# upgrade pip
+python3.7 -m pip install --upgrade pip
+
+
 # fetch recent cmake & install
 CMAKE_VER_MAJOR=3
 CMAKE_VER_MINOR=23
@@ -51,12 +58,12 @@ mkdir -p ${WORKDIR}/cmake && cd ${WORKDIR}/cmake &&
   cp -rp bin/* ${PREFIX}/bin/ &&
   cp -rp share/* ${PREFIX}/share/ &&
   cd / && rm -rf ${WORKDIR}/cmake
-
-export PATH=$PREFIX/bin:$PATH
-cmake --version
-
-
-echo ">> Installing Boost"
+    
+# add github to known hosts
+mkdir -p /root/.ssh/ &&
+  touch /root/.ssh/known_hosts &&
+  ssh-keyscan github.com >> /root/.ssh/known_hosts
+    
 mkdir -p ${WORKDIR/boost}
 
 # build incl. boost python
@@ -64,38 +71,6 @@ pushd ${WORKDIR/boost} && wget https://boostorg.jfrog.io/artifactory/main/releas
            && ./bootstrap.sh --with-python=${PYTHON_EXECUTABLE} --prefix=${PREFIX} --with-libraries="thread,iostreams,regex,system,filesystem,python,stacktrace,atomic,chrono,date_time" \
             && ./b2 cxxflags="-fPIC" link=static -j "$(nproc)" \
             && ./b2 cxxflags="-fPIC" link=static install && sed -i 's/#if PTHREAD_STACK_MIN > 0/#ifdef PTHREAD_STACK_MIN/g' /opt/include/boost/thread/pthread/thread_data.hpp
-
-echo ">> Installing LLVM"
-mkdir -p ${WORKDIR}/llvm && cd ${WORKDIR}/llvm && wget https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1/llvm-9.0.1.src.tar.xz \
-&& wget https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1/clang-9.0.1.src.tar.xz \
-&& tar xf llvm-9.0.1.src.tar.xz && tar xf clang-9.0.1.src.tar.xz \
-&& mkdir llvm9 && mv clang-9.0.1.src llvm9/clang \
-    && mv llvm-9.0.1.src llvm9/llvm-9.0.1.src \
-    && cd llvm9 && mkdir build && cd build \
-&& cmake -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON \
-        -DLLVM_ENABLE_PROJECTS="clang" \
-         -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-std=c++11" \
-         -DCMAKE_INSTALL_PREFIX=/opt/llvm-9.0.1 ../llvm-9.0.1.src \
-&& make -j "$(nproc)" && make install
-
-echo ">> Installing PCRE2"
-mkdir -p ${WORKDIR}/pcre2 && cd ${WORKDIR}/pcre2 \
-&& curl -LO https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.39/pcre2-10.39.zip \
-&& unzip pcre2-10.39.zip \
-&& rm pcre2-10.39.zip \
-&& cd pcre2-10.39 \
-&& ./configure CFLAGS="-O2 -fPIC" --prefix=${PREFIX} --enable-jit=auto --disable-shared \
-&& make -j$(nproc) && make install
-
-echo ">> Installing Celero"
-mkdir -p ${WORKDIR}/celero && cd ${WORKDIR}/celero \
-&&  git clone https://github.com/DigitalInBlue/Celero.git celero && cd celero \
-&& git checkout tags/v2.8.3 \
-&& mkdir build && cd build \
-&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC -std=c++11" .. \
-&& make -j$(nproc) && make install
-
-echo ">> Installing YAMLCPP"
 mkdir -p ${WORKDIR}/yamlcpp && cd ${WORKDIR}/yamlcpp \
 && git clone https://github.com/jbeder/yaml-cpp.git yaml-cpp \
 && cd yaml-cpp \
@@ -103,8 +78,12 @@ mkdir -p ${WORKDIR}/yamlcpp && cd ${WORKDIR}/yamlcpp \
 && mkdir build && cd build \
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${prefix} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \
 && make -j$(nproc) && make install
-
-echo ">> Installing ANTLR"
+mkdir -p ${WORKDIR}/celero && cd ${WORKDIR}/celero \
+&&  git clone https://github.com/DigitalInBlue/Celero.git celero && cd celero \
+&& git checkout tags/v2.8.3 \
+&& mkdir build && cd build \
+&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC -std=c++11" .. \
+&& make -j$(nproc) && make install
 mkdir -p ${WORKDIR}/antlr && cd ${WORKDIR}/antlr \
 && curl -O https://www.antlr.org/download/antlr-4.8-complete.jar \
 && cp antlr-4.8-complete.jar ${PREFIX}/lib/ \
@@ -114,16 +93,6 @@ mkdir -p ${WORKDIR}/antlr && cd ${WORKDIR}/antlr \
 && cd antlr4-cpp-runtime \
 && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
 && make -j$(nproc) && make install
-
-echo ">> Installing protobuf"
-mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf \
-&& curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v21.5/protobuf-cpp-3.21.5.tar.gz \
-&& tar xf protobuf-cpp-3.21.5.tar.gz \
-&& cd protobuf-3.21.5 \
-&& ./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" \
-&& make -j$(nproc) && make install && ldconfig
-
-echo ">> Installing AWS SDK"
 mkdir -p ${WORKDIR}/aws && cd ${WORKDIR}/aws \
 &&  git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git \
 && cd aws-sdk-cpp && git checkout tags/1.9.320 && mkdir build && cd build \
@@ -142,8 +111,18 @@ cd ${WORKDIR}/aws \
 && cd build \
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
 && make -j$(nproc) && make install
-
-echo ">> Cleaning/removing workdir /tmp"
-rm -rf ${WORKDIR}
-
-echo "-- Done, all Tuplex requirements installed to /opt --"
+mkdir -p ${WORKDIR}/pcre2 && cd ${WORKDIR}/pcre2 \
+&& curl -LO https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.39/pcre2-10.39.zip \
+&& unzip pcre2-10.39.zip \
+&& rm pcre2-10.39.zip \
+&& cd pcre2-10.39 \
+&& ./configure CFLAGS="-O2 -fPIC" --prefix=${PREFIX} --enable-jit=auto --disable-shared \
+&& make -j$(nproc) && make install
+mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf \
+&& curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v21.5/protobuf-cpp-3.21.5.tar.gz \
+&& tar xf protobuf-cpp-3.21.5.tar.gz \
+&& cd protobuf-3.21.5 \
+&& ./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" \
+&& make -j$(nproc) && make install && ldconfig
+pip3 install 'cloudpickle<2.0.0' cython numpy
+echo ">>> installing reqs done.

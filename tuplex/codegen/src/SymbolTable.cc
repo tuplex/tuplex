@@ -506,10 +506,22 @@ namespace tuplex {
         // str, bool, int, float, list, tuple, dict, set, range
         // -> maybe more, and also then there's the builtin typing module.
         // skip implementing that for now.
+        _builtinTypeObjects.clear();
+        _builtinTypeObjects["str"] = python::Type::makeTypeObjectType(python::Type::STRING);
+        _builtinTypeObjects["bool"] = python::Type::makeTypeObjectType(python::Type::BOOLEAN);
+        _builtinTypeObjects["int"] = python::Type::makeTypeObjectType(python::Type::I64);
+        _builtinTypeObjects["float"] = python::Type::makeTypeObjectType(python::Type::F64);
 
-        addSymbol("str", python::Type::makeTypeObjectType(python::Type::STRING));
+        _builtinTypeObjects["tuple"] = python::Type::makeTypeObjectType(python::Type::GENERICTUPLE);
+        _builtinTypeObjects["list"] = python::Type::makeTypeObjectType(python::Type::GENERICLIST);
+//        _builtinTypeObjects["set"] = python::Type::makeTypeObjectType(python::Type::GENERICSET);
+        _builtinTypeObjects["range"] = python::Type::makeTypeObjectType(python::Type::RANGE);
+        _builtinTypeObjects["iterator"] = python::Type::makeTypeObjectType(python::Type::ITERATOR);
+    }
 
-        //throw std::runtime_error("not yet implemented");
+    python::Type SymbolTable::findBuiltinType(const std::string &name) const {
+        auto it = _builtinTypeObjects.find(name);
+        return it == _builtinTypeObjects.end() ? python::Type::UNKNOWN : it->second;
     }
 
     void SymbolTable::addBuiltinExceptionHierarchy() {
@@ -643,27 +655,17 @@ namespace tuplex {
         auto name = sym->name;
 
         auto it = scope->symbols.find(name);
-        if(it == scope->symbols.end()) {
-            scope->symbols[name] = std::vector<std::shared_ptr<Symbol>>{sym};
-            it = scope->symbols.find(name);
-            return it->second.front().get();
-        } else {
-
-            // how many symbols do exist?
-            for(auto& stored_sym : it->second) {
-                if(stored_sym->symbolType == sym->symbolType) {
-                    assert(stored_sym->qualifiedName == sym->qualifiedName);
-                    // check if type is contained in types
-                    for(const auto& type : sym->types)
-                        stored_sym->addTypeIfNotExists(type);
-                    return stored_sym.get();
-                }
-            }
-
-            // symbol not found, add to list
-            scope->symbols[name].push_back(sym);
-            return sym.get();
+        if(it == scope->symbols.end())
+            scope->symbols[name] = sym;
+        else {
+            assert(it->second->qualifiedName == sym->qualifiedName);
+            assert(it->second->symbolType == sym->symbolType);
+            // check if type is contained in types
+            for(const auto& type : sym->types)
+                it->second->addTypeIfNotExists(type);
         }
+        it = scope->symbols.find(name);
+        return it->second.get();
     }
 
     Symbol* SymbolTable::addSymbol(const std::string &name, const python::Type &type) {
@@ -677,8 +679,7 @@ namespace tuplex {
         auto scope = currentScope();
         auto it = scope->symbols.find(builtinType.desc());
         if(it == scope->symbols.end()) {
-            // add symbol
-            addSymbol(make_shared<Symbol>(builtinType.desc(), builtinType.desc(), type, SymbolType::TYPE));
+            scope->symbols[builtinType.desc()] = make_shared<Symbol>(builtinType.desc(), builtinType.desc(), type, SymbolType::TYPE);
             it = scope->symbols.find(builtinType.desc());
             assert(it != scope->symbols.end());
         }

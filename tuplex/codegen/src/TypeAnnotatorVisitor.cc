@@ -356,6 +356,14 @@ namespace tuplex {
 
         // check if identifier is in symbol table, if not it's a missing identifier!
         if(python::Type::UNKNOWN == lookupType(id->_name)) {
+
+            // special case: is it a builtin type object? => least likely...
+            auto t = _symbolTable.findBuiltinType(id->_name);
+            if(t != python::Type::UNKNOWN) {
+                id->setInferredType(t);
+                return;
+            }
+
             // do not add identifier if it has function as parent (this means basically it is the function name)
             if(   parent()->type() != ASTNodeType::Function
                   && parent()->type() != ASTNodeType::Lambda

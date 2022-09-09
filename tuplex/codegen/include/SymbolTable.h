@@ -45,7 +45,7 @@ namespace tuplex {
             Scope* parent;
 
             // names associated with certain objects & types
-            std::unordered_map<std::string, std::vector<std::shared_ptr<Symbol>>> symbols;
+            std::unordered_map<std::string, std::shared_ptr<Symbol>> symbols;
 
             Scope() : parent(nullptr)   {}
 
@@ -233,12 +233,16 @@ namespace tuplex {
          */
         std::shared_ptr<Symbol> findFullyQualifiedSymbol(const std::string& fullyQualifiedName);
 
+        python::Type findBuiltinType(const std::string& name) const;
     private:
         std::vector<Scope*> _scopeStack;
         std::vector<Scope*> _scopes;
         size_t _visitIndex;
 
         Scope* _lastScope = nullptr;
+
+        // this is a bit of hack, however due to the weird nature of builtin symbols in python that can be used for many different things.
+        std::unordered_map<std::string, python::Type> _builtinTypeObjects;
 
         Scope* currentScope() {
             assert(!_scopeStack.empty());

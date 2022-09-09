@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+ #!/usr/bin/env bash
 # (c) L.Spiegelberg 2020
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt

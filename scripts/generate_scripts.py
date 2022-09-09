@@ -650,7 +650,7 @@ generate_ubuntu1804('ubuntu1804')
 generate_ubuntu2004('ubuntu2004')
 generate_ubuntu2204('ubuntu2204')
 
-generate_manylinux_files('docker/citest')
+generate_manylinux_files('docker/ci')
 
 exit(0)
 

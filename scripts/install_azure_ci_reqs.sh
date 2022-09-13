@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-09-09 11:25:40.439989
+# auto-generated on 2022-09-13 11:53:43.864188
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -20,6 +20,20 @@ PYTHON_VERSION=$(${PYTHON_EXECUTABLE} --version)
 echo ">> Building dependencies for ${PYTHON_VERSION}"
 
 
+PREFIX=${PREFIX:-/opt}
+WORKDIR=${WORKDIR:-/tmp}
+
+echo ">> Installing packages into ${PREFIX}"
+mkdir -p $PREFIX && chmod 0755 $PREFIX
+mkdir -p $PREFIX/sbin
+mkdir -p $PREFIX/bin
+mkdir -p $PREFIX/share
+mkdir -p $PREFIX/include
+mkdir -p $PREFIX/lib
+
+echo ">> Files will be downloaded to ${WORKDIR}/tuplex-downloads"
+WORKDIR=$WORKDIR/tuplex-downloads
+mkdir -p $WORKDIR
 
 export DEBIAN_FRONTEND=noninteractive
 # add recent python3.7 package, confer https://linuxize.com/post/how-to-install-python-3-7-on-ubuntu-18-04/

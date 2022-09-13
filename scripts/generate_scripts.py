@@ -57,6 +57,8 @@ def configure_versions(osname):
 ### helper functions ###
 
 def workdir_setup():
+    WORKDIR=VERSIONS['WORKDIR']
+    PREFIX=VERSIONS['PREFIX']
     return """PREFIX=${{PREFIX:-{}}}
 WORKDIR=${{WORKDIR:-{}}}
 
@@ -70,7 +72,7 @@ mkdir -p $PREFIX/lib
 
 echo ">> Files will be downloaded to ${{WORKDIR}}/tuplex-downloads"
 WORKDIR=$WORKDIR/tuplex-downloads
-mkdir -p $WORKDIR"""
+mkdir -p $WORKDIR""".format(PREFIX, WORKDIR)
 
 def bash_header(install_prefix='/opt', workdir='/tmp'):
     current_year = datetime.datetime.now().year
@@ -669,6 +671,8 @@ def generate_yaml_req_file(path, osname='ubuntu:18.04'):
 
     with open(path, 'w') as fp:
         fp.write(bash_header() + '\n')
+
+        fp.write(workdir_setup() + '\n')
 
         fp.write('\nexport DEBIAN_FRONTEND=noninteractive\n')
 

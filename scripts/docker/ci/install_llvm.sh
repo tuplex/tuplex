@@ -4,10 +4,10 @@
 
 # install LLVM 9.0.1 to use for building wheels
 
-PREFIX=${{PREFIX:-{}}}
-WORKDIR=${{WORKDIR:-{}}}
+PREFIX=${PREFIX:-/opt}
+WORKDIR=${WORKDIR:-/tmp}
 
-echo ">> Installing packages into ${{PREFIX}}"
+echo ">> Installing packages into ${PREFIX}"
 mkdir -p $PREFIX && chmod 0755 $PREFIX
 mkdir -p $PREFIX/sbin
 mkdir -p $PREFIX/bin
@@ -15,7 +15,7 @@ mkdir -p $PREFIX/share
 mkdir -p $PREFIX/include
 mkdir -p $PREFIX/lib
 
-echo ">> Files will be downloaded to ${{WORKDIR}}/tuplex-downloads"
+echo ">> Files will be downloaded to ${WORKDIR}/tuplex-downloads"
 WORKDIR=$WORKDIR/tuplex-downloads
 mkdir -p $WORKDIR
 

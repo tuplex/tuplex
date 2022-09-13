@@ -71,8 +71,8 @@ namespace tuplex {
         return parent()->getSample(num);
     }
 
-    std::shared_ptr<LogicalOperator> FilterOperator::clone() {
-        auto copy = new FilterOperator(parent()->clone(), _udf,
+    std::shared_ptr<LogicalOperator> FilterOperator::clone(bool cloneParents) {
+        auto copy = new FilterOperator(cloneParents ? parent()->clone() : nullptr, _udf,
                                        UDFOperator::columns());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);

@@ -74,7 +74,7 @@ namespace tuplex {
         std::vector<std::string> columns() const override { return _columns; }
 
         void setResult(const std::shared_ptr<ResultSet>& rs);
-        std::shared_ptr<LogicalOperator> clone() override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
         std::shared_ptr<CacheOperator> cloneWithoutParents() const;
 
         /*!

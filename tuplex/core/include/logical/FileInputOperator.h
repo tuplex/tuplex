@@ -404,7 +404,7 @@ namespace tuplex {
         std::unordered_map<int, int> projectionMap() const;
 
         FileFormat fileFormat() const { return _fmt; }
-        std::shared_ptr<LogicalOperator> clone() override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
 
         void setProjectionDefaults();
 

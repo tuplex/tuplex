@@ -34,8 +34,8 @@ namespace tuplex {
             return parent->getID();
         }
 
-        std::shared_ptr<LogicalOperator> clone() override {
-            auto copy =  new IgnoreOperator(parent()->clone(), ecCode());
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override {
+            auto copy =  new IgnoreOperator(cloneParents ? parent()->clone() : nullptr, ecCode());
             copy->copyMembers(this);
             return std::shared_ptr<LogicalOperator>(copy);
         }

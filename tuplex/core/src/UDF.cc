@@ -1440,4 +1440,24 @@ namespace tuplex {
         // run reduce expressions visitor to fold whatever is possible...
         _ast.reduceConstantTypes();
     }
+
+    bool UDF::hasWellDefinedTypes() const {
+        // input schema ok?
+        if(_inputSchema == Schema::UNKNOWN)
+            return false;
+        if(_outputSchema == Schema::UNKNOWN)
+            return false;
+        if(_ast.getFunctionAST()) {
+            // check AST
+            // is there any node?
+            bool unknown_found = false;
+            ApplyVisitor av([](const ASTNode* node) { return true; }, [&unknown_found](ASTNode& node) {
+                if(node.getInferredType() == python::Type::UNKNOWN)
+                    unknown_found = true;
+            });
+            _ast.getFunctionAST()->accept(av);
+            return !unknown_found;
+        }
+        return true;
+    }
 }

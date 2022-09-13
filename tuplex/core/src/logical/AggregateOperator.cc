@@ -25,9 +25,9 @@ namespace tuplex {
 
     }
 
-    std::shared_ptr<LogicalOperator> AggregateOperator::clone() {
+    std::shared_ptr<LogicalOperator> AggregateOperator::clone(bool cloneParents) {
         // important to use here input column names, i.e. stored in base class UDFOperator!
-        auto copy = new AggregateOperator(parent()->clone(), aggType(),
+        auto copy = new AggregateOperator(cloneParents ? parent()->clone() : nullptr, aggType(),
                                           _combiner, _aggregator, _initialValue, _keys);
 
         copy->setDataSet(getDataSet());

@@ -165,7 +165,7 @@ TEST_F(CSVDataFrameTest, ReadHeaderLessFile) {
 
     auto v = c.csv(testName + ".tsv", vector<string>{"a", "b"}).map(UDF("lambda x: x['a']")).collectAsVector();
 
-    for(auto r : v)
+    for(const auto& r : v)
         std::cout<<r.toPythonString()<<std::endl;
 
     ASSERT_EQ(v.size(), 2);

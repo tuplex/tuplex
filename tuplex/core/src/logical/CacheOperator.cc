@@ -37,7 +37,10 @@ namespace tuplex {
         _storeSpecialized = cop->_storeSpecialized;
     }
 
-    std::shared_ptr<LogicalOperator> CacheOperator::clone() {
+    std::shared_ptr<LogicalOperator> CacheOperator::clone(bool cloneParents) {
+        if(!cloneParents)
+            return cloneWithoutParents();
+
         auto copy = new CacheOperator(parent()->clone(), _storeSpecialized, _memoryLayout);
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);

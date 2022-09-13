@@ -25,7 +25,7 @@ namespace tuplex {
 
         void initSample(); // helper to fill sample with a certain amount of rows.
     public:
-        std::shared_ptr<LogicalOperator> clone() override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
 
         // required by cereal
         ParallelizeOperator() = default;

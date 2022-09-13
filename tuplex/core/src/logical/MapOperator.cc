@@ -20,36 +20,43 @@ namespace tuplex {
 
         assert(parent);
 
-        // is it an empty UDF? I.e. a rename operation?
-        if(udf.empty()) {
-            // nothing todo, simply set schema as same. this is the same as supplying an identity function
-            // lambda x: x!
-            setSchema(parent->getOutputSchema());
+        bool udf_well_defined = udf.hasWellDefinedTypes();
+        std::cout<<"UDF welldefined: "<<std::boolalpha<<udf_well_defined<<std::endl;
 
-            // also overwrite schema in udf b.c. this allows setters/getters to work
-            _udf.setInputSchema(parent->getOutputSchema());
-            _udf.setOutputSchema(parent->getOutputSchema());
-            _outputColumns = columnNames; // set output columns to the given ones AND retrieve UDF Operator columns from parent
-            UDFOperator::setColumns(parent->columns());
-        } else {
-            // rewrite output if it is a dictionary
-            if (_udf.isCompiled()) {
-                 // fetch column names if dictionary is returned...
-                 auto root = _udf.getAnnotatedAST().getFunctionAST();
-                 ColumnReturnRewriteVisitor rv;
-                 root->accept(rv);
-                 if (rv.foundColumnNames()) {
-                     auto outputColumnNames = rv.columnNames;
-                     // type annotator hasn't run yet , so we don't need to reset outputschema
-                     _outputColumns = outputColumnNames;
-                 }
+        bool typeUDF = !udf_well_defined || (parent && parent->getOutputSchema() != _udf.getInputSchema());
 
-                 // remove types
-                 _udf.removeTypes();
+        if(typeUDF) {
+            // is it an empty UDF? I.e. a rename operation?
+            if(udf.empty()) {
+                // nothing todo, simply set schema as same. this is the same as supplying an identity function
+                // lambda x: x!
+                setSchema(parent->getOutputSchema());
+
+                // also overwrite schema in udf b.c. this allows setters/getters to work
+                _udf.setInputSchema(parent->getOutputSchema());
+                _udf.setOutputSchema(parent->getOutputSchema());
+                _outputColumns = columnNames; // set output columns to the given ones AND retrieve UDF Operator columns from parent
+                UDFOperator::setColumns(parent->columns());
+            } else {
+                // rewrite output if it is a dictionary
+                if (_udf.isCompiled()) {
+                    // fetch column names if dictionary is returned...
+                    auto root = _udf.getAnnotatedAST().getFunctionAST();
+                    ColumnReturnRewriteVisitor rv;
+                    root->accept(rv);
+                    if (rv.foundColumnNames()) {
+                        auto outputColumnNames = rv.columnNames;
+                        // type annotator hasn't run yet , so we don't need to reset outputschema
+                        _outputColumns = outputColumnNames;
+                    }
+
+                    // remove types
+                    _udf.removeTypes();
+                }
+
+                // infer schema (may throw exception!) after applying UDF
+                setSchema(this->inferSchema(parent->getOutputSchema()));
             }
-
-            // infer schema (may throw exception!) after applying UDF
-            setSchema(this->inferSchema(parent->getOutputSchema()));
         }
 
 #ifndef NDEBUG
@@ -135,10 +142,10 @@ namespace tuplex {
         return vRes;
     }
 
-    std::shared_ptr<LogicalOperator> MapOperator::clone() {
+    std::shared_ptr<LogicalOperator> MapOperator::clone(bool cloneParents) {
         // important to use here input column names, i.e. stored in base class UDFOperator!
         // @TODO: avoid here the costly retyping but making a faster, better clone.
-        auto copy = new MapOperator(parent()->clone(),
+        auto copy = new MapOperator(cloneParents ? parent()->clone() : nullptr,
                                     _udf,
                                     UDFOperator::columns());
         copy->setOutputColumns(_outputColumns); // account for the rewrite visitor

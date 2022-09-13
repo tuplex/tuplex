@@ -241,7 +241,7 @@ namespace tuplex {
          * make a deep copy of the operator tree (needed because optimizers may rewrite UDFs.)
          * @return copy of this operator.
          */
-        virtual std::shared_ptr<LogicalOperator> clone() = 0;
+        virtual std::shared_ptr<LogicalOperator> clone(bool cloneParents=true) = 0;
 
         /*!
          * used for cost based analysis (very dumb so far)

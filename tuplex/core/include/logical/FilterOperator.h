@@ -34,7 +34,7 @@ namespace tuplex {
 
         std::vector<Row> getSample(const size_t num) const override;
 
-        std::shared_ptr<LogicalOperator> clone() override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
 
         /*!
          * projection pushdown, update UDF and schema...

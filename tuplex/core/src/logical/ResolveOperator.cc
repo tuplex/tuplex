@@ -144,8 +144,8 @@ namespace tuplex {
         }
     }
 
-    std::shared_ptr<LogicalOperator> ResolveOperator::clone() {
-        auto copy = new ResolveOperator(parent()->clone(), ecCode(), _udf,
+    std::shared_ptr<LogicalOperator> ResolveOperator::clone(bool cloneParents) {
+        auto copy = new ResolveOperator(cloneParents ? parent()->clone() : nullptr, ecCode(), _udf,
                                         UDFOperator::columns());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);

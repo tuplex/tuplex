@@ -133,9 +133,15 @@ namespace tuplex {
 
                 // memcpy --> is this correct for Tuple e.g.?
                 _size = other._size;
-                _ptrValue = new uint8_t[_size];
-                assert(other._ptrValue);
-                std::memcpy(_ptrValue, other._ptrValue, _size);
+
+                // special case option type
+                if(_size != 0) {
+                    _ptrValue = new uint8_t[_size];
+                    assert(other._ptrValue);
+                    std::memcpy(_ptrValue, other._ptrValue, _size);
+                } else {
+                    _ptrValue = nullptr;
+                }
             }
         } else {
             _iValue = other._iValue;
@@ -150,9 +156,15 @@ namespace tuplex {
         // special handling:
         // ptr type?
         if(other.hasPtrData()) {
-            assert(other._ptrValue);
             releaseMemory();
-            deep_copy_from_other(other);
+            _ptrValue = nullptr;
+
+            // only invoke deepcopy if size != 0
+            if(other._size != 0) {
+                assert(other._ptrValue);
+                deep_copy_from_other(other);
+            }
+
         } else {
             // primitive val copy (doesn't matter which)
             _iValue = other._iValue;

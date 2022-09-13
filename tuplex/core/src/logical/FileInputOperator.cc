@@ -1155,7 +1155,18 @@ namespace tuplex {
         return v;
     }
 
-    static std::vector<Row> parseTextRows(const aligned_string& sample) {
+    static Row lineToRow(const aligned_string& line, const std::set<std::string>& null_values, bool includes_newline) {
+        // process line
+        auto line_without_newline = (includes_newline && line.back() == '\n') ? line.substr(0, line.size() -1) : line;
+        assert(line_without_newline.back() != '\n' || line_without_newline.size() < line.size());
+        auto it = null_values.find(line_without_newline.c_str());
+        if(it != null_values.end())
+            return Row(Field::null());
+        else
+            return Row(line.c_str());
+    }
+
+    static std::vector<Row> parseTextRows(const aligned_string& sample, const std::set<std::string>& null_values) {
         std::vector<Row> v;
         // parse lines (ignore \r\n line endings?)
         unsigned markbegin = 0;
@@ -1169,9 +1180,10 @@ namespace tuplex {
             if(sample[i] == '\n' || weol) {
                 markend = i;
                 auto line = sample.substr(markbegin, markend - markbegin);
-                v.push_back(Row(line.c_str()));
                 if(weol)
                     line[line.size() - 1] = '\n'; // convert line feed.
+
+                v.push_back(lineToRow(line, null_values, true));
                 markbegin = (i + 1);
             }
         }
@@ -1179,7 +1191,7 @@ namespace tuplex {
         // end of line?
         if(markbegin != markend) {
             auto line = sample.substr(markbegin, markend - markbegin);
-            v.push_back(Row(line.c_str()));
+            v.push_back(lineToRow(line, null_values, true));
         }
         return v;
     }
@@ -1196,6 +1208,8 @@ namespace tuplex {
 
         SamplingMode m = mode;
 
+        std::set<std::string> null_values(_null_values.begin(), _null_values.end());
+
         // if uri_size < file_size -> first rows only
         if(uri_size <= _samplingSize)
             m = SamplingMode::FIRST_ROWS;
@@ -1203,7 +1217,7 @@ namespace tuplex {
         // check file sampling modes & then load the samples accordingly
         if(m & SamplingMode::FIRST_ROWS) {
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::FIRST_ROWS, true);
-            v = parseTextRows(sample);
+            v = parseTextRows(sample, null_values);
         }
 
         if(m & SamplingMode::LAST_ROWS) {
@@ -1216,7 +1230,7 @@ namespace tuplex {
                     offset = _samplingSize - (uri_size - _samplingSize);
                     assert(offset <= _samplingSize);
                 }
-                auto rows = parseTextRows(sample);
+                auto rows = parseTextRows(sample, null_values);
                 // offset != 0? =? remove first row b.c. it may be partial row
                 if(file_offset != 0) {
                     // header? ignore first row!
@@ -1227,7 +1241,7 @@ namespace tuplex {
                 std::copy(rows.begin(), rows.end(), std::back_inserter(v));
 
             } else {
-                v = parseTextRows(sample);
+                v = parseTextRows(sample, null_values);
 
                 // offset = 0?
                 if(file_offset != 0) {
@@ -1244,7 +1258,7 @@ namespace tuplex {
             size_t file_offset = 0;
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::RANDOM_ROWS, true, &file_offset);
             // parse as rows using the settings detected.
-            auto rows = parseTextRows(sample);
+            auto rows = parseTextRows(sample, null_values);
 
             // offset = 0?
             if(file_offset != 0) {

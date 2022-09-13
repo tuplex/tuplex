@@ -15,6 +15,8 @@
 #include <ExceptionCodes.h>
 #include <nmmintrin.h>
 
+#include <Row.h>
+
 namespace tuplex {
 
     class BufferedFileReader {
@@ -165,8 +167,24 @@ namespace tuplex {
                 if(ExceptionCode::OUTPUT_LIMIT_REACHED == resCode)
                     break;
 
-                // this should not happen in text-reader...
-                std::cerr<<"TextReader failure (should not happen), Row "<<rowNumber<<" exception: "<<exceptionCodeToString(resCode)<<std::endl;
+                // serialize exception for processing...
+                if((ExceptionCode::NULLERROR == resCode || ExceptionCode::BADPARSE_STRING_INPUT == resCode) && _exceptionHandler) {
+                    // very simple calling of exception format
+                    // it's basically 16 bytes (first bitmap, then first value)
+                    // -> call with NULL
+                    int64_t values[2] = {0x1, 0x0};
+
+                    Row row(Field::null());
+                    row = row.upcastedRow(python::Type::makeTupleType({python::Type::makeOptionType(python::Type::STRING)}));
+
+                    auto serialized_size = row.serializedLength();
+
+                    _exceptionHandler(_userData, ecToI64(resCode), _operatorID, rowNumber, reinterpret_cast<uint8_t*>(&values), sizeof(int64_t) * 2);
+                } else {
+                    // could be propagated to badparse string input, but there should be a general case existing...
+                    // this should not happen in text-reader...
+                    std::cerr<<"TextReader failure (should not happen), Row "<<rowNumber<<" exception: "<<exceptionCodeToString(resCode)<<std::endl;
+                }
             }
 
             // fetch contents

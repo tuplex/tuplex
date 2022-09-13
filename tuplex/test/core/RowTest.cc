@@ -163,3 +163,15 @@ TEST(Row, OptionField) {
     f = f.makeOptional();
     EXPECT_EQ(f.getType().desc(), python::Type::makeOptionType(python::Type::STRING).desc());
 }
+
+TEST(Row, UpcastNullToAny) {
+    Row row(Field::null());
+    row = row.upcastedRow(python::Type::makeTupleType({python::Type::makeOptionType(python::Type::STRING)}));
+    EXPECT_EQ(row.toPythonString(), "(None,)");
+}
+
+TEST(Row, UpcastNullToOption) {
+    Row row(Field("hello world"));
+    row = row.upcastedRow(python::Type::makeTupleType({python::Type::makeOptionType(python::Type::STRING)}));
+    EXPECT_EQ(row.toPythonString(), "('hello world',)");
+}

@@ -926,8 +926,8 @@ namespace tuplex {
                     break;
                 }
                 case FileFormat::OUTFMT_TEXT: {
-                    auto text = new TextReader(this, reinterpret_cast<codegen::cells_row_f>(_functor));
-                    text->setRange(rangeStart, rangeStart+rangeSize);
+                    auto text = new TextReader(this, reinterpret_cast<codegen::cells_row_f>(_functor), operatorID, exceptionCallback());
+                    text->setRange(rangeStart, rangeStart + rangeSize);
                     _reader.reset(text);
                     break;
                 }

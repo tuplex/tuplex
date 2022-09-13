@@ -25,8 +25,12 @@ namespace tuplex {
         size_t inputRowCount() const override { return _numRowsRead; }
 
         TextReader(void *userData,
-                   codegen::cells_row_f rowFunctor) : _userData(userData), _rowFunctor(rowFunctor), _rangeStart(0),
-                                                      _rangeEnd(0), _numRowsRead(0) {}
+                   codegen::cells_row_f rowFunctor,
+                   int64_t textOperatorID,
+                   codegen::exception_handler_f exceptionHandler) : _userData(userData), _rowFunctor(rowFunctor),
+                   _operatorID(textOperatorID),
+                                                                    _exceptionHandler(exceptionHandler), _rangeStart(0),
+                                                                    _rangeEnd(0), _numRowsRead(0) {}
 
         void setRange(size_t start, size_t end) {
             assert(start <= end); // 0,0 is allowed
@@ -41,6 +45,8 @@ namespace tuplex {
     private:
         void*   _userData;
         codegen::cells_row_f _rowFunctor;
+        int64_t _operatorID;
+        codegen::exception_handler_f _exceptionHandler;
         size_t _rangeStart;
         size_t _rangeEnd;
         size_t _numRowsRead;

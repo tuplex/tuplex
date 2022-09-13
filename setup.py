@@ -38,7 +38,7 @@ def in_google_colab():
 
     shell_name_matching = False
     try:
-        shell_name_matching =  'google.colab' in str(get_ipython())
+        shell_name_matching = 'google.colab' in str(get_ipython())
     except:
         pass
 

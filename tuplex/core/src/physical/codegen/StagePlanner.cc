@@ -559,11 +559,11 @@ namespace tuplex {
             // --> important first step!
             std::unordered_map<std::string, size_t> counts;
             std::unordered_map<python::Type, size_t> t_counts;
-            for(auto row : sample) {
+            for(const auto& row : sample) {
                 counts[row.getRowType().desc()]++;
                 t_counts[row.getRowType()]++;
             }
-            for(auto keyval : counts) {
+            for(const auto& keyval : counts) {
                 std::cout<<keyval.second<<": "<<keyval.first<<std::endl;
             }
 
@@ -579,7 +579,6 @@ namespace tuplex {
                     case LogicalOperatorType::FILEINPUT: {
                         auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
                         auto columns = fop->inputColumns();
-
                         projectedMajType = fop->projectRowType(majType);
                         break;
                     }
@@ -590,22 +589,26 @@ namespace tuplex {
                 }
             }
 
+            assert(majType.isTupleType());
+            assert(projectedMajType.isTupleType());
+            size_t num_columns_before_pushdown = majType.parameters().size();
+            size_t num_columns_after_pushdown = projectedMajType.parameters().size();
+
             // the detected majority type here is BEFORE projection pushdown.
             // --> therefore restrict it to the type of the input operator.
             std::cout<<"Majority detected row type is: "<<projectedMajType.desc()<<std::endl;
 
-            // if majType of sample is different than input node type input sample -> retype!
+            // if majType of sample is different from input node type input sample -> retype!
             // also need to restrict type first!
-            if(true) {
-                logger.info("performing Retyping");
-                optimized_operators = retypeUsingOptimizedInputSchema(majType);
+            logger.debug("performing Retyping");
+            optimized_operators = retypeUsingOptimizedInputSchema(majType);
 
-                // overwrite internal operators to apply subsequent optimizations
-                _inputNode = _inputNode ? optimized_operators.front() : nullptr;
-                _operators = _inputNode ? vector<shared_ptr<LogicalOperator>>{optimized_operators.begin() + 1,
-                                                                              optimized_operators.end()}
-                                        : optimized_operators;
-            }
+            // overwrite internal operators to apply subsequent optimizations
+            _inputNode = _inputNode ? optimized_operators.front() : nullptr;
+            _operators = _inputNode ? vector<shared_ptr<LogicalOperator>>{optimized_operators.begin() + 1,
+                                                                          optimized_operators.end()}
+                                    : optimized_operators;
+
 
             // run validation after forcing majority sample based type
             validation_rc = validatePipeline();
@@ -792,6 +795,8 @@ namespace tuplex {
                     case LogicalOperatorType::MAPCOLUMN:
                     case LogicalOperatorType::WITHCOLUMN:
                     case LogicalOperatorType::IGNORE: {
+                        assert(node->getInputSchema() != Schema::UNKNOWN);
+
                         auto op = node->clone();
                         auto oldInputType = op->getInputSchema().getRowType();
                         auto oldOutputType = op->getInputSchema().getRowType();

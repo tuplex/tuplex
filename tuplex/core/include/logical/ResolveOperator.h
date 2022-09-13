@@ -23,7 +23,7 @@ namespace tuplex {
         bool schemasMatch() const;
 
     public:
-        std::shared_ptr<LogicalOperator> clone() override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
 
     private:
 

@@ -112,7 +112,7 @@ namespace tuplex {
             return std::vector<std::string>();
         }
 
-        std::shared_ptr<LogicalOperator> clone() override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
 
         const UDF& aggregatorUDF() const { return _aggregator; }
         const UDF& combinerUDF() const { return _combiner; }

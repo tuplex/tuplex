@@ -185,8 +185,8 @@ namespace tuplex {
         setSchema(inferSchema(parent()->getOutputSchema()));
     }
 
-    std::shared_ptr<LogicalOperator> WithColumnOperator::clone() {
-        auto copy = new WithColumnOperator(parent()->clone(), UDFOperator::columns(),
+    std::shared_ptr<LogicalOperator> WithColumnOperator::clone(bool cloneParents) {
+        auto copy = new WithColumnOperator(cloneParents ? parent()->clone() : nullptr, UDFOperator::columns(),
                                            _newColumn, _udf);
         copy->setDataSet(getDataSet());
         // clone id

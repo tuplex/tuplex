@@ -19,7 +19,7 @@ namespace tuplex {
     private:
         int64_t _limit;
     public:
-        std::shared_ptr<LogicalOperator> clone() override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
 
     public:
 

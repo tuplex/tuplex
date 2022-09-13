@@ -31,9 +31,9 @@ namespace tuplex {
         return parent()->columns();
     }
 
-    std::shared_ptr<LogicalOperator> TakeOperator::clone() {
+    std::shared_ptr<LogicalOperator> TakeOperator::clone(bool cloneParents) {
         // create clone of this operator
-        auto copy = new TakeOperator(parent()->clone(), _limit);
+        auto copy = new TakeOperator(cloneParents ? parent()->clone() : nullptr, _limit);
 
         copy->setDataSet(getDataSet()); // weak ptr to old dataset...
         copy->copyMembers(this);

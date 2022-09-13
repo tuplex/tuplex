@@ -238,8 +238,8 @@ namespace tuplex {
         inferSchema();
     }
 
-    std::shared_ptr<LogicalOperator> JoinOperator::clone() {
-        auto copy = new JoinOperator(left()->clone(), right()->clone(),
+    std::shared_ptr<LogicalOperator> JoinOperator::clone(bool cloneParents) {
+        auto copy = new JoinOperator(cloneParents ? left()->clone() : nullptr, cloneParents ? right()->clone() : nullptr,
                 _leftColumn, _rightColumn, _joinType, _leftPrefix, _leftSuffix, _rightPrefix, _rightSuffix);
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);

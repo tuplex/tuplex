@@ -53,10 +53,21 @@ namespace tuplex {
         virtual Schema getInputSchema() const override {
             // @TODO: fix this
             // => should return row schema! not what the udf needs... (because of nesting...)
-            assert(_udf.getInputSchema().getRowType() != python::Type::UNKNOWN); return _udf.getInputSchema();
+
+            // // this gets triggered when retyping/reoptimization through clone...
+            // assert(_udf.getInputSchema().getRowType() != python::Type::UNKNOWN);
+
+
+            return _udf.getInputSchema();
         }
 
         virtual std::vector<std::string> columns() const override { return _columnNames; }
+
+        /*!
+         * indicates whether stored UDF has well defined types or not.
+         * @return
+         */
+        bool hasWellDefinedTypes() const { return _udf.hasWellDefinedTypes(); }
 
         void setColumns(const std::vector<std::string>& columns) { assert(_columnNames.empty() || _columnNames.size() == columns.size()); _columnNames = columns; }
 

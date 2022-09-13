@@ -36,8 +36,8 @@ namespace tuplex {
         }
     }
 
-    std::shared_ptr<LogicalOperator> FileOutputOperator::clone() {
-        auto copy = new FileOutputOperator(parent()->clone(), _uri, _outputPathUDF,
+    std::shared_ptr<LogicalOperator> FileOutputOperator::clone(bool cloneParents) {
+        auto copy = new FileOutputOperator(cloneParents ? parent()->clone() : nullptr, _uri, _outputPathUDF,
                 _name, _fmt, _options, _numParts, _splitSize, _limit);
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);

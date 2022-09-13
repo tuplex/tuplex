@@ -83,6 +83,7 @@ namespace tuplex {
                                 _pickledCode(other._pickledCode),
                                 _outputSchema(other._outputSchema),
                                 _inputSchema(other._inputSchema),
+                                _hintedInputSchema(other._hintedInputSchema),
                                 _dictAccessFound(other._dictAccessFound),
                                 _rewriteDictExecuted(other._rewriteDictExecuted),
                                 _policy(other._policy) {}
@@ -95,6 +96,7 @@ namespace tuplex {
             _pickledCode = other._pickledCode;
             _outputSchema = other._outputSchema;
             _inputSchema = other._inputSchema;
+            _hintedInputSchema = other._hintedInputSchema;
             _dictAccessFound = other._dictAccessFound;
             _rewriteDictExecuted = other._rewriteDictExecuted;
             const_cast<codegen::CompilePolicy&>(this->_policy) = other._policy;
@@ -147,6 +149,12 @@ namespace tuplex {
         bool hintSchemaWithSample(const std::vector<PyObject*>& sample,
                                   const python::Type& inputRowType=python::Type::UNKNOWN,
                                   bool acquireGIL=false);
+
+        /*!
+         * whether UDF has a valid typing or not.
+         * @return
+         */
+        bool hasWellDefinedTypes() const;
 
         /*!
          * HACK: this function optimizes constants -

@@ -97,3 +97,6 @@ fixed_wheels/
 
 tuplex/.vscode/
 .vscode/
+
+venv/
+Tuplex.egg-info/

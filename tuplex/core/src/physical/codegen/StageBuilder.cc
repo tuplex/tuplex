@@ -1604,6 +1604,7 @@ namespace tuplex {
                 if(_generateNormalCaseCodePath)
                     codeGenerationContext.fastPathContext = specializePipeline(codeGenerationContext.slowPathContext,
                                                                                codeGenerationContext.normalToGeneralMapping,
+                                                                               _policy.normalCaseThreshold,
                                                                                _nullValueOptimization,
                                                                                _constantFoldingOptimization);
                 else

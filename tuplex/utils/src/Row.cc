@@ -438,8 +438,13 @@ namespace tuplex {
                            assert(it->second == python::Type::NULLVALUE.hash());
                            // check counts, in case of non-nvo always use Option type
                            auto nv_count = it->first;
-                           if(1.0 * (nv_count + most_freq) / (1.0 * total_freq) >= threshold || !use_nvo)
+
+                           // when most freq count >= threshold, use that. else use option type.
+                           if(most_freq >= threshold * total_freq && use_nvo) {
+                               // nothing
+                           } else {
                                col_types[i] = python::Type::makeOptionType(most_common_type);
+                           }
                        }
                    }
                }

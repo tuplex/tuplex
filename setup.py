@@ -67,7 +67,7 @@ test_dependencies = [
 
 # Also requires to install MongoDB
 webui_dependencies = [
-    'Flask==2.0.2',
+    'Flask>=2.0.2,<2.2.0',
     'Werkzeug<2.2.0',
     'gunicorn',
     'eventlet==0.30.0', # newer versions of eventlet have a bug under MacOS
@@ -80,6 +80,7 @@ webui_dependencies = [
 # boto is broken currently...
 aws_lambda_dependencies = []
 
+# check python version, e.g., cloudpickle is specific
 
 # manual fix for google colab
 if in_google_colab():
@@ -108,7 +109,7 @@ if in_google_colab():
 else:
     logging.debug('Building dependencies for non Colab environment')
 
-    install_dependencies = [
+    install_dependencies = webui_dependencies + [
         'attrs>=19.2.0',
         'dill>=0.2.7.1',
         'pluggy',
@@ -124,7 +125,7 @@ else:
         'psutil',
         'pymongo',
         'iso8601'
-    ] + webui_dependencies + aws_lambda_dependencies
+    ] + aws_lambda_dependencies
 
 def ninja_installed():
     # check whether ninja is on the path

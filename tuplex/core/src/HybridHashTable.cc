@@ -555,13 +555,6 @@ namespace tuplex {
     PyObject *HybridLookupTable::setDefault(PyObject *key, PyObject *value) {
         assert(valueMode != LookupStorageMode::UNKNOWN);
 
-        // debug
-        {
-            Py_XINCREF(key);
-            auto skey = python::PyString_AsString(key);
-            std::cout<<"setdefault w. key="<<skey<<std::endl;
-        }
-
         // check if item exists, if so return. Else, set to default value!
         Py_XINCREF(key);
         Py_XINCREF(value);
@@ -574,7 +567,6 @@ namespace tuplex {
             return getItem(key);
         }
     }
-
 
     PyObject* decodeBucketToPythonList(const uint8_t* bucket, const python::Type& bucketType) {
         using namespace tuplex;

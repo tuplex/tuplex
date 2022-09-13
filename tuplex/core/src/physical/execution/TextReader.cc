@@ -132,6 +132,19 @@ namespace tuplex {
         if (!_rowFunctor)
             throw std::runtime_error("functor not initialized");
 
+        // prepare exception buffer for null-values (cached)
+        uint8_t null_value_buf[24];
+        {
+            Row row(Field::null());
+            row = row.upcastedRow(python::Type::makeTupleType({python::Type::makeOptionType(python::Type::STRING)}));
+            auto serialized_size = row.serializedLength();
+            if(serialized_size > 24) {
+                throw std::runtime_error("INTERNAL ERROR: serialization format changed. please fix");
+            }
+            row.serializeToMemory(null_value_buf, 24);
+        }
+
+
         // open up file and read in pieces
         BufferedFileReader bufFile(inputFilePath, _rangeStart);
 
@@ -168,18 +181,13 @@ namespace tuplex {
                     break;
 
                 // serialize exception for processing...
-                if((ExceptionCode::NULLERROR == resCode || ExceptionCode::BADPARSE_STRING_INPUT == resCode) && _exceptionHandler) {
+                if((ExceptionCode::NULLERROR == resCode || ExceptionCode::BADPARSE_STRING_INPUT == resCode || ExceptionCode::NORMALCASEVIOLATION == resCode)
+                   && _exceptionHandler) {
                     // very simple calling of exception format
-                    // it's basically 16 bytes (first bitmap, then first value)
+                    // it's basically 24 bytes (first bitmap, then first value & varlength field)
                     // -> call with NULL
-                    int64_t values[2] = {0x1, 0x0};
-
-                    Row row(Field::null());
-                    row = row.upcastedRow(python::Type::makeTupleType({python::Type::makeOptionType(python::Type::STRING)}));
-
-                    auto serialized_size = row.serializedLength();
-
-                    _exceptionHandler(_userData, ecToI64(resCode), _operatorID, rowNumber, reinterpret_cast<uint8_t*>(&values), sizeof(int64_t) * 2);
+                    resCode = ExceptionCode::NORMALCASEVIOLATION; // this is a bit of a hack, but makes sense
+                    _exceptionHandler(_userData, ecToI64(resCode), _operatorID, rowNumber, null_value_buf, 24);
                 } else {
                     // could be propagated to badparse string input, but there should be a general case existing...
                     // this should not happen in text-reader...

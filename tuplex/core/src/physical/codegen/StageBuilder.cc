@@ -1021,7 +1021,7 @@ namespace tuplex {
             // when there are no operators present, there is no way to generate a resolve path
             // => skip
             if(pathContext.operators.empty() &&
-               !ctx.nullValueOptimization) // when null value optimization is done, need to always generate resolve path.
+               !requireSlowPath) // when null value optimization is done, need to always generate resolve path.
                 return ret;
 
             // @TODO: one needs to add here somewhere an option where bad input rows/data get resolved when they do not fit the initial schema!
@@ -1503,7 +1503,9 @@ namespace tuplex {
          */
         CodeGenerationContext::CodePathContext specializePipeline(const CodeGenerationContext::CodePathContext& general_path_ctx,
                                                                   std::map<int, int>& normalToGeneralMapping,
-                                                                  bool enableNVO=true, bool enableCF=true) {
+                                                                  double nc_threshold,
+                                                                  bool enableNVO=true,
+                                                                  bool enableCF=true) {
 
             using namespace std;
             auto& logger = Logger::instance().logger("physical planner");
@@ -1525,7 +1527,7 @@ namespace tuplex {
             // }
 
             // node need to find some smart way to QUICKLY detect whether the optimization can be applied or should be rather skipped...
-            codegen::StagePlanner planner(inputNode, operators);
+            codegen::StagePlanner planner(inputNode, operators, nc_threshold);
             planner.disableAll();
             if(enableNVO)
                 planner.enableNullValueOptimization();

@@ -83,7 +83,7 @@ namespace tuplex {
         ~TransformStage() override = default;
 
         friend class ::tuplex::codegen::StageBuilder;
-        friend void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size);
+        friend void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size, double nc_threshold);
 
         std::vector<Partition*> inputPartitions() const { return _inputPartitions; }
 

@@ -187,11 +187,9 @@ namespace tuplex {
             const ContextOptions& co,
             const std::vector<std::string>& null_values,
             const SamplingMode& sampling_mode) : _null_values(null_values), _estimatedRowCount(0), _sampling_time_s(0.0), _samplingMode(sampling_mode), _samplingSize(co.SAMPLE_SIZE()), _cachePopulated(false) {
+
         auto &logger = Logger::instance().logger("fileinputoperator");
         _fmt = FileFormat::OUTFMT_TEXT;
-
-        _indexBasedHints[0] = python::Type::STRING;
-
         _quotechar = '\0';
         _delimiter = '\0';
         _header = false;

@@ -127,8 +127,9 @@ namespace tuplex {
              * @param operators operators following the input node.
              */
             StagePlanner(const std::shared_ptr<LogicalOperator>& inputNode,
-                         const std::vector<std::shared_ptr<LogicalOperator>>& operators) : _inputNode(inputNode),
-                         _operators(operators), _useNVO(false), _useConstantFolding(false), _useDelayedParsing(false) {
+                         const std::vector<std::shared_ptr<LogicalOperator>>& operators,
+                         double nc_threshold) : _inputNode(inputNode),
+                         _operators(operators), _nc_threshold(nc_threshold), _useNVO(false), _useConstantFolding(false), _useDelayedParsing(false) {
                 assert(inputNode);
                 for(auto op : operators)
                     assert(op);
@@ -243,6 +244,7 @@ namespace tuplex {
 
             python::Type _unprojected_unoptimized_row_type;
 
+            double _nc_threshold;
             bool _useNVO;
             bool _useConstantFolding;
             bool _useDelayedParsing;
@@ -302,7 +304,7 @@ namespace tuplex {
     }
 
     // HACK!
-    extern void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size);
+    extern void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size, double nc_threshold);
 }
 
 #endif

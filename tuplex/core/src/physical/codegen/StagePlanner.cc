@@ -569,8 +569,7 @@ namespace tuplex {
 
             // detect majority type
             // detectMajorityRowType(const std::vector<Row>& rows, double threshold, bool independent_columns)
-            auto nc_threshold = .9;
-            auto majType = detectMajorityRowType(sample, nc_threshold, true, _useNVO);
+            auto majType = detectMajorityRowType(sample, _nc_threshold, true, _useNVO);
             python::Type projectedMajType = majType;
 
             // list details using columns:
@@ -750,7 +749,7 @@ namespace tuplex {
                 if(opt_input_rowtype != original_input_rowtype)
                     ss<<"NVO can specialize input schema from\n"<<original_input_rowtype.desc()<<"\n- to - \n"<<opt_input_rowtype.desc();
                 else
-                    ss<<"no specialization using NVO possible";
+                    ss<<"no specialization using NVO, because types are identical.";
                 logger.debug(ss.str());
             }
 
@@ -964,7 +963,7 @@ namespace tuplex {
 
     // HACK: magical experiment function!!!
     // HACK!
-    void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size) {
+    void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size, double nc_threshold) {
         auto& logger = Logger::instance().logger("hyper specializer");
         // run hyperspecialization using planner, yay!
         assert(stage);
@@ -1023,7 +1022,7 @@ namespace tuplex {
         logger.info("sampling (setInputFiles) took " + std::to_string(samplingTimer.time()) + "s");
 
         // node need to find some smart way to QUICKLY detect whether the optimization can be applied or should be rather skipped...
-        codegen::StagePlanner planner(inputNode, operators);
+        codegen::StagePlanner planner(inputNode, operators, nc_threshold);
         planner.enableAll();
         planner.optimize();
         path_ctx.inputNode = planner.input_node();

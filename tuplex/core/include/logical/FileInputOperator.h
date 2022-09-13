@@ -67,6 +67,9 @@ namespace tuplex {
         // row cache (i.e. parse samples utilizing file cache)
         void fillRowCache(SamplingMode mode);
 
+
+        size_t estimateTextFileRowCount(size_t sample_size, const SamplingMode& mode);
+
         // for CSV, have here a global csv stat (that can get reset)
         // ??
 
@@ -199,6 +202,7 @@ namespace tuplex {
             }
             return {};
         }
+
     public:
 
         // required by cereal

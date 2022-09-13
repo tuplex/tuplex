@@ -162,6 +162,27 @@ namespace tuplex {
         return new FileInputOperator(pattern, co, null_values, sampling_mode);
     }
 
+
+    size_t FileInputOperator::estimateTextFileRowCount(size_t sample_size, const SamplingMode& mode) {
+        if(_fileURIs.empty())
+            return 0;
+
+        // take a single sample and then scale over all available text files...
+        auto sample = loadSample(sample_size, _fileURIs.front(), _sizes.front(), SamplingMode::FIRST_ROWS);
+
+        // estimate row count
+        // split into lines, compute average length & scale row estimate up
+        auto lines = splitToLines(sample.c_str());
+        size_t accLineLength = 0;
+        for(auto line : lines)
+            accLineLength += line.length();
+        double avgLineLength = lines.empty() ? 1.0 : accLineLength / (double)lines.size();
+        double estimatedRowCount = 0.0;
+        for(auto s : _sizes)
+            estimatedRowCount += (double)s / (double)avgLineLength;
+        return static_cast<size_t>(std::ceil(estimatedRowCount));
+    }
+
     FileInputOperator::FileInputOperator(const std::string& pattern,
             const ContextOptions& co,
             const std::vector<std::string>& null_values,
@@ -179,36 +200,16 @@ namespace tuplex {
         Timer timer;
         detectFiles(pattern);
 
-        // estimate row count
-        // sample using first rows from first file. @TODO: sample across files to provoke better result for general case!
-        // auto uri = _fileURIs.front();
-        // size_t size = _sizes.front();
-
-        aligned_string sample;
+        // fill sample cache
         if(!_fileURIs.empty()) {
-            sample = loadSample(co.CSV_MAX_DETECTION_MEMORY(), _fileURIs.front(), _sizes.front(),
-                                SamplingMode::FIRST_ROWS);
+            // fill sampling cache
+            fillFileCache(sampling_mode);
+
+            // run estimation
+            _estimatedRowCount = estimateTextFileRowCount(co.CSV_MAX_DETECTION_MEMORY(), sampling_mode);
+        } else {
+            _estimatedRowCount = 0;
         }
-
-        // split into lines, compute average length & scale row estimate up
-        auto lines = splitToLines(sample.c_str());
-        size_t accLineLength = 0;
-        for(auto line : lines)
-            accLineLength += line.length();
-        double avgLineLength = lines.empty() ? 1.0 : accLineLength / (double)lines.size();
-        double estimatedRowCount = 0.0;
-        for(auto s : _sizes)
-            estimatedRowCount += (double)s / (double)avgLineLength;
-        _estimatedRowCount = static_cast<size_t>(std::ceil(estimatedRowCount));
-
-        throw std::runtime_error("NOT YET SUPPORTED< NEED TO FIX text again");
-//        // store as internal sample
-//        _firstRowsSample.clear();
-//        for(auto line : lines) {
-//            _firstRowsSample.push_back(Row(line));
-//        }
-//        if(_header && !_firstRowsSample.empty())
-//            _firstRowsSample.erase(_firstRowsSample.begin());
 
         // when no null-values are given, simply set to string always
         // else, it's an option type...
@@ -453,7 +454,7 @@ namespace tuplex {
             // fill sampling cache
             fillFileCache(sampling_mode);
 
-            // need to load first rows in order to perform header/csv detection. @TODO: could optimize this.
+            // need to load FIRST rows in order to perform header/csv detection.
             aligned_string sample;
             if(!_fileURIs.empty()) {
                 sample = loadSample(co.SAMPLE_SIZE(), _fileURIs.front(), _sizes.front(),
@@ -1154,9 +1155,112 @@ namespace tuplex {
         return v;
     }
 
+    static std::vector<Row> parseTextRows(const aligned_string& sample) {
+        std::vector<Row> v;
+        // parse lines (ignore \r\n line endings?)
+        unsigned markbegin = 0;
+        unsigned markend = 0;
+        for (int i = 0; i < sample.length(); ++i) {
+            if(sample[i] == '\0')
+                return v;
+
+            // Windows End of Line (EOL) characters – Carriage Return (CR) & Line Feed (LF)
+            bool weol = (i + 1 < sample.length() && sample[i] == '\r' && sample[i+1] == '\n');
+            if(sample[i] == '\n' || weol) {
+                markend = i;
+                auto line = sample.substr(markbegin, markend - markbegin);
+                v.push_back(Row(line.c_str()));
+                if(weol)
+                    line[line.size() - 1] = '\n'; // convert line feed.
+                markbegin = (i + 1);
+            }
+        }
+
+        // end of line?
+        if(markbegin != markend) {
+            auto line = sample.substr(markbegin, markend - markbegin);
+            v.push_back(Row(line.c_str()));
+        }
+        return v;
+    }
+
     std::vector<Row> FileInputOperator::sampleTextFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
-        throw std::runtime_error("not yet implemented");
-        return {};
+        auto& logger = Logger::instance().logger("logical");
+        std::vector<Row> v;
+        assert(mode & SamplingMode::FIRST_ROWS || mode & SamplingMode::LAST_ROWS || mode & SamplingMode::RANDOM_ROWS);
+
+        if(0 == uri_size || uri == URI::INVALID) {
+            logger.debug("empty file, can't obtain sample from it");
+            return {};
+        }
+
+        SamplingMode m = mode;
+
+        // if uri_size < file_size -> first rows only
+        if(uri_size <= _samplingSize)
+            m = SamplingMode::FIRST_ROWS;
+
+        // check file sampling modes & then load the samples accordingly
+        if(m & SamplingMode::FIRST_ROWS) {
+            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::FIRST_ROWS, true);
+            v = parseTextRows(sample);
+        }
+
+        if(m & SamplingMode::LAST_ROWS) {
+            // the smaller of remaining and sample size!
+            size_t file_offset = 0;
+            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::LAST_ROWS, true, &file_offset);
+            size_t offset = 0;
+            if(!v.empty()) {
+                if(uri_size < 2 * _samplingSize) {
+                    offset = _samplingSize - (uri_size - _samplingSize);
+                    assert(offset <= _samplingSize);
+                }
+                auto rows = parseTextRows(sample);
+                // offset != 0? =? remove first row b.c. it may be partial row
+                if(file_offset != 0) {
+                    // header? ignore first row!
+                    if(!rows.empty())
+                        rows.erase(rows.begin());
+                }
+
+                std::copy(rows.begin(), rows.end(), std::back_inserter(v));
+
+            } else {
+                v = parseTextRows(sample);
+
+                // offset = 0?
+                if(file_offset != 0) {
+                    // ignore first row b.c. may be partial row...
+                    if(!v.empty())
+                        v.erase(v.begin());
+                }
+            }
+        }
+
+        // most complicated: random -> make sure no overlap with first/last rows
+        if(m & SamplingMode::RANDOM_ROWS) {
+            // @TODO: there could be overlap with first/last rows.
+            size_t file_offset = 0;
+            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::RANDOM_ROWS, true, &file_offset);
+            // parse as rows using the settings detected.
+            auto rows = parseTextRows(sample);
+
+            // offset = 0?
+            if(file_offset != 0) {
+                // ignore first row b.c. partial
+                if(!rows.empty())
+                    rows.erase(rows.begin());
+            }
+
+            // erase last row, b.c. partial
+            if(!rows.empty())
+                rows.erase(rows.end() - 1);
+
+            std::copy(rows.begin(), rows.end(), std::back_inserter(v));
+        }
+
+        return v;
     }
 
     std::vector<Row> FileInputOperator::sampleORCFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {

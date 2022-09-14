@@ -8,7 +8,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-20.04, macos-10.15 ]
+        os: [ ubuntu-20.04, macos-10.15, macos-11, macos-12 ]
 
     steps:
       - uses: actions/checkout@v2
@@ -55,7 +55,7 @@ jobs:
           CIBW_ENVIRONMENT_MACOS: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13' MACOSX_DEPLOYMENT_TARGET=10.13"
 
       - name: reorganize files
-        run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./scripts/test_pypi.sh ./wheelhouse
+        run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./.github/scripts/test_pypi.sh ./wheelhouse
 
       - uses: actions/upload-artifact@v2
         with:
@@ -101,7 +101,7 @@ jobs:
           path: dist
 
       - name: reorganize
-        run: mkdir -p scripts && mv dist/*.sh ./scripts/ && mv dist/*.version ./scripts/ && chmod +x ./scripts/test_pypi.sh
+        run: mkdir -p scripts && mv dist/*.sh ./scripts/ && mv dist/*.version ./scripts/ && cp ./.github/scripts/test_pypi.sh ./scripts/ && chmod +x ./scripts/test_pypi.sh
 
       - uses: pypa/gh-action-pypi-publish@v1.4.2
         with:

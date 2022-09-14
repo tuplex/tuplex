@@ -101,6 +101,19 @@ namespace tuplex {
             return python::Type::makeTupleType(col_types);
         }
     private:
+
+        inline size_t reverseProjectToReadIndex(size_t projected_index) {
+            assert(projected_index < outputColumnCount());
+
+            auto map = projectionMap();
+            // map is read index -> projected index, i.e. this here is a reverse lookup
+            for(auto kv : map) {
+                if(kv.second == projected_index)
+                    return kv.first;
+            }
+            throw std::runtime_error("could not reverse project index");
+        }
+
         inline std::vector<std::string> projectColumns(const std::vector<std::string>& columns) const {
             if(_columnsToSerialize.empty() || _columnNames.empty())
                 return {};

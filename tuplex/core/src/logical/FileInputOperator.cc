@@ -968,16 +968,28 @@ namespace tuplex {
         auto old_col_types = normalCaseSchema().getRowType().parameters();
         auto old_general_col_types = schema().getRowType().parameters();
 
+        size_t num_projected_columns = getOptimizedOutputSchema().getRowType().parameters().size();
+
         assert(old_col_types.size() <= old_general_col_types.size());
         auto& logger = Logger::instance().logger("codegen");
 
         // check whether number of columns are compatible
-        if(col_types.size() != old_col_types.size()) {
-            logger.error("Provided incompatible rowtype to retype " + name() +
-                         ", provided type has " + pluralize(col_types.size(), "column") + " but optimized schema in operator has "
-                         + pluralize(old_col_types.size(), "column"));
-            return false;
+        if(is_projected_row_type) {
+            if(col_types.size() != num_projected_columns) {
+                logger.error("Provided incompatible (projected) rowtype to retype " + name() +
+                             ", provided type has " + pluralize(col_types.size(), "column") + " but optimized schema in operator has "
+                             + pluralize(old_col_types.size(), "column"));
+                return false;
+            }
+        } else {
+            if(col_types.size() != old_col_types.size()) {
+                logger.error("Provided incompatible rowtype to retype " + name() +
+                             ", provided type has " + pluralize(col_types.size(), "column") + " but optimized schema in operator has "
+                             + pluralize(old_col_types.size(), "column"));
+                return false;
+            }
         }
+
 
         auto str_opt_type = python::Type::makeOptionType(python::Type::STRING);
 
@@ -986,27 +998,53 @@ namespace tuplex {
             auto t = col_types[i];
             if(col_types[i].isConstantValued())
                 t = t.underlying();
-            if(!python::canUpcastType(t, old_general_col_types[i])) {
 
-                if(!(ignore_check_for_str_option && old_general_col_types[i] == str_opt_type)) {
+            // old type
+            unsigned lookup_index = i;
+
+            if(is_projected_row_type) {
+                lookup_index = reverseProjectToReadIndex(i);
+            }
+
+            if(!python::canUpcastType(t, old_general_col_types[lookup_index])) {
+
+                if(!(ignore_check_for_str_option && old_general_col_types[lookup_index] == str_opt_type)) {
                     logger.warn("provided specialized type " + col_types[i].desc() + " can't be upcast to "
-                                + old_general_col_types[i].desc() + ", ignoring in retype.");
-                    col_types[i] = old_col_types[i];
+                                + old_general_col_types[lookup_index].desc() + ", ignoring in retype.");
+                    col_types[i] = old_col_types[lookup_index];
                 }
             }
         }
 
         // type hints have precedence over sampling! I.e., include them here!
         for(const auto& kv : typeHints()) {
-            if(kv.first < col_types.size())
-                col_types[kv.first] = kv.second;
-            else
+            auto idx = kv.first;
+            // are we having a projected type? then lookup in projection map!
+            auto m = projectionMap();
+            assert(!m.empty());
+            if(is_projected_row_type)
+                idx = m[idx]; // get projected index...
+
+            if(idx < col_types.size()) {
+                col_types[idx] = kv.second;
+            } else
                 logger.error("internal error, invalid type hint (with wrong index?)");
         }
 
         // retype optimized schema!
-        _normalCaseRowType = python::Type::makeTupleType(col_types);
-
+        // -> this requires reprojection if possible!
+        if(is_projected_row_type) {
+            // set normal-case type with updated projected fields
+            auto nc_col_types = _normalCaseRowType.parameters();
+            auto m = projectionMap();
+            for(auto kv : m) {
+                assert(kv.second < col_types.size());
+                nc_col_types[kv.first] = col_types[kv.second];
+            }
+            _normalCaseRowType = python::Type::makeTupleType(nc_col_types);
+        } else {
+            _normalCaseRowType = python::Type::makeTupleType(col_types);
+        }
         return true;
     }
 

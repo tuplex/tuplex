@@ -98,6 +98,7 @@ message WorkerSettings {
     optional uint32 runTimeMemoryPerThreadBlockSize = 7;
     optional bool allowNumericTypeUnification = 8;
     optional bool useInterpreterOnly = 9;
+    optional float normalCaseThreshold = 10;
 }
 
 message WarmupMessage {

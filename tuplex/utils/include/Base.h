@@ -24,7 +24,6 @@
 #include <set>
 #include <vector>
 
-
 // to detect platform, use here boost predef
 #include <boost/predef.h>
 #if BOOST_OS_WINDOWS
@@ -233,6 +232,18 @@ typedef int32_t* ptr_t;
 #else
 #include <cJSON.h>
 #endif
+
+// double and float equality
+#define DOUBLE_EPSILON 0.0000000001
+#define FLOAT_EPSILON 0.000000001f
+
+inline bool float_eq(float a, float b) {
+    return std::abs(a - b) < FLOAT_EPSILON;
+}
+
+inline bool double_eq(double a, double b) {
+    return std::abs(a - b) < DOUBLE_EPSILON;
+}
 
 
 // some basic helper to throw for possible bad code in debug mode an error (should never occur in release mode!)

@@ -87,6 +87,8 @@ namespace tuplex {
                                            size_t numThreads = 1, const std::string& spillURI="spill_folder", bool verboseLogging=false) {
         messages::InvocationRequest req;
 
+        double nc_threshold = 0.9;
+
         size_t buf_spill_size = 512 * 1024; // for testing, set spill size to 512KB!
 
         // use higher buf, to avoid spilling
@@ -115,6 +117,7 @@ namespace tuplex {
         ws->set_exceptionbuffersize(buf_spill_size);
         ws->set_spillrooturi(spillURI);
         ws->set_useinterpreteronly(interpreterOnly);
+        ws->set_normalcasethreshold(nc_threshold);
         req.set_allocated_settings(ws.release());
 
         // transfrom to json

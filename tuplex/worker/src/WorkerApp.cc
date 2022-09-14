@@ -274,7 +274,7 @@ namespace tuplex {
             // check if specialized normal-case type is different from current normal case type
             _normalCaseRowType = tstage->normalCaseInputSchema().getRowType(); // needed when fastcode path is missing?
             auto normalCaseCols = tstage->normalCaseInputColumnsToKeep();
-            hyperspecialize(tstage, uri, file_size);
+            hyperspecialize(tstage, uri, file_size, _settings.normalCaseThreshold);
             _hyperspecializedNormalCaseRowType = tstage->normalCaseInputSchema().getRowType(); // refactor?
             auto hyperspecializedNormalCaseCols = tstage->normalCaseInputColumnsToKeep();
 
@@ -1101,7 +1101,10 @@ namespace tuplex {
                         reader.reset(csv);
                     } else if(tstage->inputFormat() == FileFormat::OUTFMT_TEXT) {
                         ctx.numInputColumns = 1;
-                        auto text = new TextReader(userData, reinterpret_cast<codegen::cells_row_f>(pythonCellFunctor));
+                        auto text = new TextReader(userData,
+                                                   reinterpret_cast<codegen::cells_row_f>(pythonCellFunctor),
+                                                   inputNodeID,
+                                                   reinterpret_cast<codegen::exception_handler_f>(exceptRowCallback));
                         // fetch full range for now, later make this optional!
                         // text->setRange(rangeStart, rangeStart + rangeSize);
                         text->setRange(part.rangeStart, part.rangeEnd);
@@ -1259,7 +1262,10 @@ namespace tuplex {
                     csv->setRange(part.rangeStart, part.rangeEnd);
                     reader.reset(csv);
                 } else if(tstage->inputFormat() == FileFormat::OUTFMT_TEXT) {
-                    auto text = new TextReader(userData, reinterpret_cast<codegen::cells_row_f>(syms->functor));
+                    auto text = new TextReader(userData,
+                                               reinterpret_cast<codegen::cells_row_f>(syms->functor),
+                                               inputNodeID,
+                                               reinterpret_cast<codegen::exception_handler_f>(exceptRowCallback));
                     // fetch full range for now, later make this optional!
                     // text->setRange(rangeStart, rangeStart + rangeSize);
                     text->setRange(part.rangeStart, part.rangeEnd);
@@ -1410,6 +1416,8 @@ namespace tuplex {
             ws.allowNumericTypeUnification = req.settings().allownumerictypeunification();
         if(req.settings().has_useinterpreteronly())
             ws.useInterpreterOnly = req.settings().useinterpreteronly();
+        if(req.settings().has_normalcasethreshold())
+            ws.normalCaseThreshold = req.settings().normalcasethreshold();
         ws.numThreads = std::max(1ul, ws.numThreads);
         return ws;
     }

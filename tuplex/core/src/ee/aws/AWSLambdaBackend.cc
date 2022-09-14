@@ -900,6 +900,7 @@ namespace tuplex {
         ws->set_spillrooturi(spillURI);
         throw std::runtime_error("ERROR: need unique spill URIS");
         ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
+        ws->set_normalcasethreshold(_options.NORMALCASE_THRESHOLD());
         req.set_allocated_settings(ws.release());
 
         // partNo offset
@@ -962,6 +963,7 @@ namespace tuplex {
             ws->set_exceptionbuffersize(buf_spill_size);
             ws->set_spillrooturi(spillURI + "/lam" + fixedPoint(i, num_digits) + "/");
             ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
+            ws->set_normalcasethreshold(_options.NORMALCASE_THRESHOLD());
             req.set_allocated_settings(ws.release());
 
             req.set_verboselogging(_options.AWS_VERBOSE_LOGGING());

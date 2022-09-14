@@ -124,6 +124,8 @@ namespace tuplex {
         bool allowNumericTypeUnification;
         bool useInterpreterOnly;
 
+        double normalCaseThreshold; ///! used for hyperspecialziation
+
         // use some defaults...
         WorkerSettings() : numThreads(1), normalBufferSize(WORKER_DEFAULT_BUFFER_SIZE),
         exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE), useInterpreterOnly(false) {
@@ -133,6 +135,7 @@ namespace tuplex {
             runTimeMemory = opt.RUNTIME_MEMORY();
             runTimeMemoryDefaultBlockSize = opt.RUNTIME_MEMORY_DEFAULT_BLOCK_SIZE();
             allowNumericTypeUnification = opt.AUTO_UPCAST_NUMBERS();
+            normalCaseThreshold = opt.NORMALCASE_THRESHOLD();
         }
 
         inline bool operator == (const WorkerSettings& other) const {
@@ -155,6 +158,8 @@ namespace tuplex {
             if(allowNumericTypeUnification != other.allowNumericTypeUnification)
                 return false;
             if(useInterpreterOnly != other.useInterpreterOnly)
+                return false;
+            if(!double_eq(normalCaseThreshold, other.normalCaseThreshold))
                 return false;
             return true;
         }

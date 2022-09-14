@@ -106,6 +106,11 @@ namespace tuplex {
             assert(projected_index < outputColumnCount());
 
             auto map = projectionMap();
+
+            // empty map? no mapping here. return same index
+            if(map.empty())
+                return projected_index;
+
             // map is read index -> projected index, i.e. this here is a reverse lookup
             for(auto kv : map) {
                 if(kv.second == projected_index)

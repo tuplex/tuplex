@@ -30,7 +30,8 @@ namespace tuplex {
     }
 
     UDFOperator::UDFOperator(const std::shared_ptr<LogicalOperator>& parent, const UDF& udf,
-    const std::vector<std::string>& columnNames) : LogicalOperator::LogicalOperator(parent), _udf(udf), _columnNames(columnNames) {
+    const std::vector<std::string>& columnNames,
+    const std::unordered_map<size_t, size_t>& rewriteMap) : LogicalOperator::LogicalOperator(parent), _udf(udf), _columnNames(columnNames), _rewriteMap(rewriteMap) {
         assert(parent);
     }
 
@@ -52,6 +53,9 @@ namespace tuplex {
             // schema already defined within udf? => use output schema!
             if(_udf.getInputSchema() != Schema::UNKNOWN && _udf.getOutputSchema() != Schema::UNKNOWN)
                 return _udf.getOutputSchema();
+
+            // reset udf for rewrite (schema etc. may have changed)
+            _udf.resetAST();
 
             // if column names exist, attempt rewrite
             if(!_udf.rewriteDictAccessInAST(_columnNames))
@@ -213,11 +217,8 @@ namespace tuplex {
     }
 
     void UDFOperator::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
-
+       _rewriteMap = rewriteMap;
        projectColumns(rewriteMap);
         _udf.rewriteParametersInAST(rewriteMap);
-
-        // update schema
-        //_schema = inferSchema();
     }
 }

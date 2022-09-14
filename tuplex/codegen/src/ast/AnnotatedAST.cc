@@ -186,6 +186,7 @@ namespace tuplex {
 
         bool AnnotatedAST::parseString(const std::string &s) {
            // unique ptr get's override, so old one should get released.
+           _root.reset(nullptr);
 
             // using ANTLR4 parser
             assert(!_root);

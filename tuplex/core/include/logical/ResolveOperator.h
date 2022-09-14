@@ -38,7 +38,8 @@ namespace tuplex {
         ResolveOperator(const std::shared_ptr<LogicalOperator>& parent,
                 const ExceptionCode& ecToResolve,
                 const UDF& udf,
-                const std::vector<std::string>& columnNames);
+                const std::vector<std::string>& columnNames,
+                const std::unordered_map<size_t, size_t>& rewriteMap={});
 
         std::string name() override { return "resolve"; }
         LogicalOperatorType type() const override { return LogicalOperatorType::RESOLVE; }

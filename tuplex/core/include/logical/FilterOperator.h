@@ -21,7 +21,10 @@ namespace tuplex {
         // required by cereal
         FilterOperator() = default;
 
-        FilterOperator(const std::shared_ptr<LogicalOperator>& parent, const UDF& udf, const std::vector<std::string>& columnNames);
+        FilterOperator(const std::shared_ptr<LogicalOperator>& parent,
+                       const UDF& udf,
+                       const std::vector<std::string>& columnNames,
+                       const std::unordered_map<size_t, size_t>& rewriteMap={});
 
         std::string name() override { return "filter"; }
         LogicalOperatorType type() const override { return LogicalOperatorType::FILTER; }

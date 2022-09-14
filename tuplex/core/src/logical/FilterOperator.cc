@@ -16,7 +16,8 @@ namespace tuplex {
     // check that return type of UDF is bool!
     FilterOperator::FilterOperator(const std::shared_ptr<LogicalOperator>& parent,
             const UDF &udf,
-            const std::vector<std::string>& columnNames) : UDFOperator::UDFOperator(parent, udf, columnNames), _good(true) {
+            const std::vector<std::string>& columnNames,
+            const std::unordered_map<size_t, size_t>& rewriteMap) : UDFOperator::UDFOperator(parent, udf, columnNames, rewriteMap), _good(true) {
 
         //// infer schema (may throw exception!) after applying UDF
         //setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::UNKNOWN));
@@ -73,7 +74,8 @@ namespace tuplex {
 
     std::shared_ptr<LogicalOperator> FilterOperator::clone(bool cloneParents) {
         auto copy = new FilterOperator(cloneParents ? parent()->clone() : nullptr, _udf,
-                                       UDFOperator::columns());
+                                       UDFOperator::columns(),
+                                       UDFOperator::rewriteMap());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());

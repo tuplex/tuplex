@@ -183,6 +183,7 @@ namespace tuplex {
 
     Schema UDF::getInputSchema() const {
         // assert(_generalCaseInputSchema.getRowType() != python::Type::UNKNOWN);
+        assert(_inputSchema == Schema::UNKNOWN || _inputSchema.getRowType().isTupleType());
         return _inputSchema;
     }
 
@@ -1161,11 +1162,26 @@ namespace tuplex {
         return node;
     }
 
-    void UDF::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
+    void UDF::resetAST() {
+        this->_rewriteDictExecuted = false;
+
+        // only parse of code length > 0
+        if(_code.length() > 0 && _compilationEnabled)
+            // attempt to parse code
+            // if it fails, make sure a backup solution in the form of pickled code is existing
+            _ast.parseString(_code);
+
+    }
+
+    bool UDF::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
+
+        // no rewrite map, skip.
+        if(rewriteMap.empty())
+            return true;
 
         // is UDF compilable? if not, can't rewrite (fallback)
         if(!isCompiled() && !empty())
-            return;
+            return true;
 
         using namespace std;
         auto root = getAnnotatedAST().getFunctionAST();
@@ -1199,7 +1215,7 @@ namespace tuplex {
             setInputSchema(new_schema);
             setOutputSchema(new_schema);
 
-            return;
+            return true;
         }
 
         // call the replace visitor
@@ -1225,6 +1241,7 @@ namespace tuplex {
         Logger::instance().defaultLogger().debug("saving rewritten Python AST to PDF skipped.");
 #endif
 #endif
+        return true;
     }
 
     bool UDF::rewriteDictAccessInAST(const std::vector<std::string> &columnNames, const std::string& parameterName) {

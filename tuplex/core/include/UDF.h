@@ -219,7 +219,12 @@ namespace tuplex {
         /*! rewrites UDF to use less params with the given mapping.
          * @param rewriteMap
          */
-        void rewriteParametersInAST(const std::unordered_map<size_t, size_t>& rewriteMap);
+        bool rewriteParametersInAST(const std::unordered_map<size_t, size_t>& rewriteMap);
+
+        /*!
+         * resets AST and all meta information (i.e., whatever has been rewritten).
+         */
+        void resetAST();
 
         /*!
          * same as in AnnotatesAST.h

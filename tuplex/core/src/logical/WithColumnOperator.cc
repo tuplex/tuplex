@@ -12,7 +12,7 @@
 
 namespace tuplex {
     WithColumnOperator::WithColumnOperator(const std::shared_ptr<LogicalOperator>& parent, const std::vector <std::string>& columnNames,
-                                           const std::string &columnName, const UDF &udf): UDFOperator::UDFOperator(parent, udf, columnNames), _newColumn(columnName) {
+                                           const std::string &columnName, const UDF &udf, const std::unordered_map<size_t, size_t>& rewriteMap): UDFOperator::UDFOperator(parent, udf, columnNames, rewriteMap), _newColumn(columnName) {
 
         // define index
         _columnToMapIndex = calcColumnToMapIndex(columnNames, columnName);
@@ -187,7 +187,7 @@ namespace tuplex {
 
     std::shared_ptr<LogicalOperator> WithColumnOperator::clone(bool cloneParents) {
         auto copy = new WithColumnOperator(cloneParents ? parent()->clone() : nullptr, UDFOperator::columns(),
-                                           _newColumn, _udf);
+                                           _newColumn, _udf, UDFOperator::rewriteMap());
         copy->setDataSet(getDataSet());
         // clone id
         copy->copyMembers(this);

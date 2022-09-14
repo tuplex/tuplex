@@ -95,6 +95,13 @@ namespace tuplex {
     }
 
     void LogicalOperator::setParents(const std::vector<std::shared_ptr<LogicalOperator>> &parents) {
+        // special case: parents empty?
+        if(_parents.empty()) {
+            _parents = parents;
+            addThisToParents();
+            return;
+        }
+
         _parents.clear(); // this removes all the smart pointers owned by this tree.
         _parents = parents; // now own all the parents!
 
@@ -117,12 +124,12 @@ namespace tuplex {
         // each child gets owned by this
 
         // remove this from children parents
-        for(auto child : _children) {
+        for(auto& child : _children) {
             child->_parents.erase(std::find(child->_parents.begin(), child->_parents.end(), shared_from_this()));
         }
         _children.clear();
 
-        for(auto child : children) {
+        for(auto& child : children) {
             child->setParent(shared_from_this()); // this becomes parent, thus child becomes owner of this
         }
     }

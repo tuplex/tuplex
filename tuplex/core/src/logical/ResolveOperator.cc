@@ -18,7 +18,8 @@ namespace tuplex {
     ResolveOperator::ResolveOperator(const std::shared_ptr<LogicalOperator>& parent,
             const ExceptionCode &ecToResolve,
             const UDF &udf,
-            const std::vector<std::string>& columnNames) : UDFOperator::UDFOperator(parent, udf, columnNames) {
+            const std::vector<std::string>& columnNames,
+            const std::unordered_map<size_t, size_t>& rewriteMap) : UDFOperator::UDFOperator(parent, udf, columnNames, rewriteMap) {
 
         // infer schema. Make sure it fits parents schema!
         setSchema(inferSchema(parent->getOutputSchema()));
@@ -146,7 +147,7 @@ namespace tuplex {
 
     std::shared_ptr<LogicalOperator> ResolveOperator::clone(bool cloneParents) {
         auto copy = new ResolveOperator(cloneParents ? parent()->clone() : nullptr, ecCode(), _udf,
-                                        UDFOperator::columns());
+                                        UDFOperator::columns(), UDFOperator::rewriteMap());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());

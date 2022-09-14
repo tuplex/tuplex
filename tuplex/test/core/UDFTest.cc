@@ -265,6 +265,26 @@ TEST(UDF, Rewrite) {
     ASSERT_EQ(v.size(), 2);
 }
 
+TEST(UDF, RewriteSpecialCases) {
+    // rewrite for projection pushdown, look into weird edge cases here
+    using namespace tuplex;
+    using namespace std;
+
+    UDF udf("lambda x: x['a']");
+    udf.rewriteDictAccessInAST({"c", "b", "a"}); // convert dict access...
+    // hint schema ( tuple of 3!)
+    auto type = python::Type::makeTupleType({python::Type::I64, python::Type::NULLVALUE, python::Type::F64});
+    udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, type));
+    EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "f64");
+    EXPECT_EQ(udf.getOutputSchema().getRowType().desc(), "(f64)");
+
+    // now perform projection pushdown, i.e. rewrite 2->0
+    udf.rewriteParametersInAST({{2, 0}});
+    EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "f64");
+    EXPECT_EQ(udf.getOutputSchema().getRowType().desc(), "(f64)");
+
+}
+
 TEST(UDF, SymbolTableIfLogic) {
 
     // check here symbol table can handle type reassignments properly

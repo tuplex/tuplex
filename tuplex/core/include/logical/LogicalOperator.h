@@ -83,9 +83,16 @@ namespace tuplex {
         explicit LogicalOperator(const std::vector<std::shared_ptr<LogicalOperator>>& parents) : _id(logicalOperatorIDGenerator++), _parents(parents.begin(), parents.end()), _dataSet(nullptr) { addThisToParents(); }
         explicit LogicalOperator(const std::shared_ptr<LogicalOperator>& parent) : _id(logicalOperatorIDGenerator++),
         _parents({parent}), _dataSet(nullptr) {
-            if(!parent)
-                throw std::runtime_error(name() + " can't have nullptr as parent");
-            addThisToParents();
+            // old:
+            // if(!parent)
+            //     throw std::runtime_error(name() + " can't have nullptr as parent");
+            // addThisToParents();
+            if(parent) {
+                addThisToParents();
+            } else {
+                // no parents
+                _parents.clear();
+            }
         }
 
         LogicalOperator() : _id(logicalOperatorIDGenerator++), _dataSet(nullptr) { addThisToParents(); }
@@ -118,7 +125,16 @@ namespace tuplex {
         void setParents(const std::vector<std::shared_ptr<LogicalOperator>>& parents);
         void setChildren(const std::vector<std::shared_ptr<LogicalOperator>>& children);
 
-        void setParent(const std::shared_ptr<LogicalOperator>& parent) { setParents({parent}); }
+        void setParent(const std::shared_ptr<LogicalOperator>& parent) {
+            // special case: nullptr
+            if(!parent) {
+                _parents.clear();
+                return;
+            }
+
+            // regular.
+            setParents({parent});
+        }
         void setChild(const std::shared_ptr<LogicalOperator>& child) { setChildren({child}); }
 
         /*!

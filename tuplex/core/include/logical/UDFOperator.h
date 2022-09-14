@@ -40,10 +40,13 @@ namespace tuplex {
 
     private:
         std::vector<std::string> _columnNames;
+        // need to store rewrite map as well so when cloning AST can be properly rewritten
+        std::unordered_map<size_t, size_t> _rewriteMap;
     public:
         UDFOperator() = default; // required by cereal
         UDFOperator(const std::shared_ptr<LogicalOperator> &parent, const UDF& udf,
-                const std::vector<std::string>& columnNames=std::vector<std::string>());
+                const std::vector<std::string>& columnNames=std::vector<std::string>(),
+                        const std::unordered_map<size_t, size_t>& rewriteMap=std::unordered_map<size_t, size_t>());
 
         UDF& getUDF() { return _udf; }
         const UDF& getUDF() const { return _udf; }
@@ -63,6 +66,8 @@ namespace tuplex {
 
         virtual std::vector<std::string> columns() const override { return _columnNames; }
 
+        virtual std::unordered_map<size_t, size_t> rewriteMap() const { return _rewriteMap; }
+
         /*!
          * indicates whether stored UDF has well defined types or not.
          * @return
@@ -74,10 +79,10 @@ namespace tuplex {
 #ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
-            ar(::cereal::base_class<LogicalOperator>(this), _udf, _columnNames);
+            ar(::cereal::base_class<LogicalOperator>(this), _udf, _columnNames, _rewriteMap);
         }
         template<class Archive> void load(Archive &ar) {
-            ar(::cereal::base_class<LogicalOperator>(this), _udf, _columnNames);
+            ar(::cereal::base_class<LogicalOperator>(this), _udf, _columnNames, _rewriteMap);
         }
 #endif
     };

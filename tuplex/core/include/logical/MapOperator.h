@@ -27,7 +27,8 @@ namespace tuplex {
 
         MapOperator(const std::shared_ptr<LogicalOperator>& parent,
                     const UDF& udf,
-                    const std::vector<std::string>& columnNames);
+                    const std::vector<std::string>& columnNames,
+                    const std::unordered_map<size_t, size_t>& rewriteMap={});
         // needs a parent
 
         inline nlohmann::json to_json() const {

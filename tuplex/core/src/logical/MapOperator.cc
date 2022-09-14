@@ -15,8 +15,8 @@
 #include <visitors/ColumnReturnRewriteVisitor.h>
 
 namespace tuplex {
-    MapOperator::MapOperator(const std::shared_ptr<LogicalOperator>& parent, const UDF &udf, const std::vector<std::string> &columnNames)
-            : UDFOperator::UDFOperator(parent, udf, columnNames), _name("map") {
+    MapOperator::MapOperator(const std::shared_ptr<LogicalOperator>& parent, const UDF &udf, const std::vector<std::string> &columnNames, const std::unordered_map<size_t, size_t>& rewriteMap)
+            : UDFOperator::UDFOperator(parent, udf, columnNames, rewriteMap), _name("map") {
 
         assert(parent);
 
@@ -147,7 +147,8 @@ namespace tuplex {
         // @TODO: avoid here the costly retyping but making a faster, better clone.
         auto copy = new MapOperator(cloneParents ? parent()->clone() : nullptr,
                                     _udf,
-                                    UDFOperator::columns());
+                                    UDFOperator::columns(),
+                                    UDFOperator::rewriteMap());
         copy->setOutputColumns(_outputColumns); // account for the rewrite visitor
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
@@ -188,10 +189,24 @@ namespace tuplex {
         auto colTypes = input_row_type.parameters();
 
         // check that number of parameters are identical, else can't rewrite (need to project first!)
-        size_t num_params_before_retype = UDFOperator::getInputSchema().getRowType().parameters().size();
-        size_t num_params_after_retype = colTypes.size();
-        if(num_params_before_retype != num_params_after_retype) {
-            throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");
+        auto input_t = UDFOperator::getInputSchema().getRowType().desc();
+
+        // could be unknown => then retype always! If not, check correct type is given.
+        if(UDFOperator::getInputSchema() != Schema::UNKNOWN) {
+            size_t num_params_before_retype = UDFOperator::getInputSchema().getRowType().parameters().size();
+            size_t num_params_after_retype = colTypes.size();
+            if(num_params_before_retype != num_params_after_retype) {
+                throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");
+            }
+        } else {
+            // check parent
+            if(parent() && parent()->getOutputSchema() != Schema::UNKNOWN) {
+                size_t num_params_before_retype = parent()->getOutputSchema().getRowType().parameters().size();
+                size_t num_params_after_retype = colTypes.size();
+                if(num_params_before_retype != num_params_after_retype) {
+                    throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");
+                }
+            }
         }
 
         auto schema = Schema(getOutputSchema().getMemoryLayout(), input_row_type);

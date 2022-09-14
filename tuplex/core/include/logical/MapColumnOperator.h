@@ -41,7 +41,8 @@ namespace tuplex {
         MapColumnOperator(const std::shared_ptr<LogicalOperator>& parent,
                           const std::string& columnName,
                           const std::vector<std::string>& columns,
-                          const UDF& udf);
+                          const UDF& udf,
+                          const std::unordered_map<size_t, size_t>& rewriteMap={});
         // needs a parent
 
         std::string name() override { return "mapColumn"; }

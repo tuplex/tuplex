@@ -962,8 +962,9 @@ namespace tuplex {
         }
     }
 
-    bool FileInputOperator::retype(const python::Type& rowType, bool ignore_check_for_str_option) {
-        auto col_types = rowType.parameters();
+    bool FileInputOperator::retype(const python::Type& input_row_type, bool is_projected_row_type, bool ignore_check_for_str_option) {
+        assert(input_row_type.isTupleType());
+        auto col_types = input_row_type.parameters();
         auto old_col_types = normalCaseSchema().getRowType().parameters();
         auto old_general_col_types = schema().getRowType().parameters();
 
@@ -1009,12 +1010,9 @@ namespace tuplex {
         return true;
     }
 
-    bool FileInputOperator::retype(const std::vector<python::Type>& rowTypes) {
-        assert(rowTypes.size() == 1);
-        assert(rowTypes.front().isTupleType());
-        auto desired_type = rowTypes.front();
-        assert(desired_type.isTupleType());
-        return retype(desired_type, false);
+    bool FileInputOperator::retype(const python::Type& input_row_type, bool is_projected_row_type) {
+        assert(input_row_type.isTupleType());
+        return retype(input_row_type, is_projected_row_type, false);
     }
 
     std::vector<Row> FileInputOperator::sample(const SamplingMode& mode) {

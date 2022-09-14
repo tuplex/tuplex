@@ -182,20 +182,19 @@ namespace tuplex {
         }
     }
 
-    bool MapOperator::retype(const std::vector<python::Type> &rowTypes) {
-
-        // make sure no unknown in it!
-#ifndef NDEBUG
-    assert(!rowTypes.empty());
-    assert(rowTypes.front().isTupleType());
-    for(auto t : rowTypes.front().parameters())
-        assert(t != python::Type::UNKNOWN);
-#endif
-
+    bool MapOperator::retype(const python::Type& input_row_type, bool is_projected_row_type) {
         assert(good());
-        assert(rowTypes.size() == 1);
-        assert(rowTypes.front().isTupleType());
-        auto schema = Schema(getOutputSchema().getMemoryLayout(), rowTypes.front());
+        assert(input_row_type.isTupleType());
+        auto colTypes = input_row_type.parameters();
+
+        // check that number of parameters are identical, else can't rewrite (need to project first!)
+        size_t num_params_before_retype = UDFOperator::getInputSchema().getRowType().parameters().size();
+        size_t num_params_after_retype = colTypes.size();
+        if(num_params_before_retype != num_params_after_retype) {
+            throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");
+        }
+
+        auto schema = Schema(getOutputSchema().getMemoryLayout(), input_row_type);
 
         // is it an empty UDF? I.e. a rename operation?
         if(_udf.empty()) {

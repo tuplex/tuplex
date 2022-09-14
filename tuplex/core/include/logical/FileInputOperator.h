@@ -365,10 +365,8 @@ namespace tuplex {
          * @param rowTypes
          * @return true if successful, false else.
          */
-        bool retype(const std::vector<python::Type>& rowTypes=std::vector<python::Type>()) override;
-
-
-        bool retype(const python::Type& rowType, bool ignore_check_for_str_option=true);
+        bool retype(const python::Type& input_row_type, bool is_projected_row_type) override;
+        bool retype(const python::Type& input_row_type, bool is_projected_row_type, bool ignore_check_for_str_option=true);
 
         std::vector<std::string> columns() const override { return projectColumns(_columnNames); } //{ return _optimizedColumnNames; }
         std::vector<std::string> inputColumns() const override { return _columnNames; }

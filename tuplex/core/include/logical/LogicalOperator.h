@@ -210,10 +210,11 @@ namespace tuplex {
 
         /*!
          * retype the operator by providing an optional rowType
-         * @param rowTypes vector of row types to use to retype the operator
+         * @param input_row_type the new input type used for this operator.
+         * @param is_projected_row_type whether the new input row type is projected or not. Important, so the case lambda x: x[0] cam be resolved.
          * @return true if retyping was successful.
          */
-        virtual bool retype(const std::vector<python::Type>& rowTypes=std::vector<python::Type>()) { return false; }
+        virtual bool retype(const python::Type& input_row_type, bool is_projected_row_type) { return false; }
 
         /*!
          * overwrite internal ID. Should be only used in LogicalOptimizer

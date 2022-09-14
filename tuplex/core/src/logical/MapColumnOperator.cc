@@ -159,7 +159,7 @@ namespace tuplex {
         return std::shared_ptr<LogicalOperator>(copy);
     }
 
-    bool MapColumnOperator::retype(const std::vector<python::Type> &rowTypes) {
+    bool MapColumnOperator::retype(const python::Type& input_row_type, bool is_projected_row_type) {
         assert(good());
 
         // save old schema
@@ -167,9 +167,16 @@ namespace tuplex {
         auto oldOut = getOutputSchema();
 
         // infer new schema using one row type
-        assert(rowTypes.size() == 1);
-        assert(rowTypes[0].isTupleType());
-        auto colTypes = rowTypes.front().parameters();
+        assert(input_row_type.isTupleType());
+        auto colTypes = input_row_type.parameters();
+
+        // check that number of parameters are identical, else can't rewrite (need to project first!)
+        auto old_input_type = oldIn.getRowType().parameters().at(_columnToMapIndex);
+        size_t num_params_before_retype = oldIn.getRowType().parameters().size();
+        size_t num_params_after_retype = colTypes.size();
+        if(num_params_before_retype != num_params_after_retype) {
+            throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");
+        }
 
         python::Type udfResType = python::Type::UNKNOWN;
         auto memLayout = oldOut.getMemoryLayout();

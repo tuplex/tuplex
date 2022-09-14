@@ -195,7 +195,7 @@ namespace tuplex {
         return std::shared_ptr<LogicalOperator>(copy);
     }
 
-    bool WithColumnOperator::retype(const std::vector<python::Type> &rowTypes) {
+    bool WithColumnOperator::retype(const python::Type& input_row_type, bool is_projected_row_type) {
 
         assert(good());
 
@@ -203,15 +203,21 @@ namespace tuplex {
         auto oldIn = getInputSchema();
         auto oldOut = getOutputSchema();
 
-        // infer new schema using one row type
-        assert(rowTypes.size() == 1);
-        assert(rowTypes[0].isTupleType());
+        assert(input_row_type.isTupleType());
+        auto colTypes = input_row_type.parameters();
 
-        // reset udf
+        // check that number of parameters are identical, else can't rewrite (need to project first!)
+        size_t num_params_before_retype = oldIn.getRowType().parameters().size();
+        size_t num_params_after_retype = colTypes.size();
+        if(num_params_before_retype != num_params_after_retype) {
+            throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");
+        }
+
+       // reset udf
         _udf.removeTypes(false);
 
         // infer schema with given type
-        auto schema = inferSchema(Schema(oldOut.getMemoryLayout(), rowTypes.front()));
+        auto schema = inferSchema(Schema(oldOut.getMemoryLayout(), input_row_type));
         if(schema == Schema::UNKNOWN) {
             return false;
         } else {

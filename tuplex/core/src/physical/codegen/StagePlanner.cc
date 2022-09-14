@@ -231,7 +231,7 @@ namespace tuplex {
             // set input type for input node
             auto input_type_before = inputNode->getOutputSchema().getRowType();
             logger.debug("retyping stage with type " + projected_specialized_row_type.desc());
-            inputNode->retype({projected_specialized_row_type});
+            inputNode->retype(projected_specialized_row_type, true);
             if(inputNode->type() == LogicalOperatorType::FILEINPUT)
                 ((FileInputOperator*)inputNode.get())->useNormalCase();
             auto lastParent = inputNode;
@@ -252,7 +252,7 @@ namespace tuplex {
                 ss<<op->name()<<" (before): "<<op->getInputSchema().getRowType().desc()<<" -> "<<op->getOutputSchema().getRowType().desc()<<endl;
                 // retype
                 ss<<"retyping with parent's output schema: "<<lastParent->getOutputSchema().getRowType().desc()<<endl;
-                opt_op->retype({lastParent->getOutputSchema().getRowType()});
+                opt_op->retype(lastParent->getOutputSchema().getRowType(), true);
                 // after retype
                 ss<<op->name()<<" (after): "<<op->getInputSchema().getRowType().desc()<<" -> "<<op->getOutputSchema().getRowType().desc();
                 logger.debug(ss.str());
@@ -600,7 +600,7 @@ namespace tuplex {
             // if majType of sample is different from input node type input sample -> retype!
             // also need to restrict type first!
             logger.debug("performing Retyping");
-            optimized_operators = retypeUsingOptimizedInputSchema(majType);
+            optimized_operators = retypeUsingOptimizedInputSchema(projectedMajType);
 
             // overwrite internal operators to apply subsequent optimizations
             _inputNode = _inputNode ? optimized_operators.front() : nullptr;
@@ -763,7 +763,8 @@ namespace tuplex {
             std::shared_ptr<LogicalOperator> lastNode = nullptr;
             auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode->clone());
             // need to restrict potentially?
-            fop->retype(input_row_type, true); // for input operator, ignore Option[str] compatibility which is set per default
+            if(!fop->retype(input_row_type, true, true))
+                throw std::runtime_error("failed to retype " + fop->name() + " operator."); // for input operator, ignore Option[str] compatibility which is set per default
             fop->useNormalCase(); // this forces output schema to be normalcase (i.e. overwrite internally output schema to be normal case schema)
             opt_ops.push_back(fop);
 
@@ -796,15 +797,15 @@ namespace tuplex {
                     case LogicalOperatorType::IGNORE: {
                         assert(node->getInputSchema() != Schema::UNKNOWN);
 
-                        auto op = node->clone();
+                        auto op = node->clone(false); // no need to clone with parents, b.c. assigned below.
                         auto oldInputType = op->getInputSchema().getRowType();
                         auto oldOutputType = op->getInputSchema().getRowType();
 
                         checkRowType(last_rowtype);
                         // set FIRST the parent. Why? because operators like ignore depend on parent schema
                         // therefore, this needs to get updated first.
-                        op->setParent(lastParent);
-                        if(!op->retype({last_rowtype}))
+                        op->setParent(lastParent); // need to call this before retype, so that columns etc. can be utilized.
+                        if(!op->retype(last_rowtype, true))
                             throw std::runtime_error("could not retype operator " + op->name());
                         opt_ops.push_back(op);
                         opt_ops.back()->setID(node->getID());

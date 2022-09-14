@@ -49,7 +49,7 @@ namespace tuplex {
 
         Schema getInputSchema() const override { return getOutputSchema(); }
         void updateSchema() { setSchema(parent()->getOutputSchema()); }
-        bool retype(const std::vector<python::Type>& rowTypes) override {
+        bool retype(const python::Type& input_row_type, bool is_projected_row_type) override {
             updateSchema();
             return true;
         }

@@ -11,5 +11,4 @@ brew install coreutils protobuf zstd zlib libmagic llvm@9 pcre2 gflags yaml-cpp 
 #brew tap-new tuplex/brew
 #brew extract --version='4.9.3' antlr4-cpp-runtime tuplex/brew
 #brew install antlr4-cpp-runtime@4.9.3
-
-brew install antlr4-cpp-runtime
+# brew install antlr4-cpp-runtime

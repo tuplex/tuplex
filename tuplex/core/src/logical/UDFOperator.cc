@@ -36,7 +36,7 @@ namespace tuplex {
     }
 
 
-    Schema UDFOperator::inferSchema(Schema parentSchema) {
+    Schema UDFOperator::inferSchema(Schema parentSchema, bool is_projected_schema) {
 
         auto& logger = Logger::instance().defaultLogger();
 

@@ -35,15 +35,11 @@
 namespace tuplex {
     class UDF : public IFailable {
     private:
-        codegen::AnnotatedAST _ast;    //! annotated abstract syntax tree for this UDF
+        codegen::AnnotatedAST _ast;    //! annotated abstract syntax tree for this UDF --> this is a potentially modified AST
         bool _isCompiled; //! indicate whether the UDF could be compiled or not
         bool _failed; //! UDF not usable?
         std::string _code;  //! actual python code
         std::string _pickledCode; //! fallback mechanism when UDF can't be compiled
-        UDF &hintInputParameterType(const std::string &param, const python::Type &type);
-
-        bool hintParams(std::vector<python::Type> hints, std::vector<std::tuple<std::string, python::Type> > params,
-                        bool silent = false, bool removeBranches=false);
 
         Schema _hintedInputSchema; // the schema which was assigned via hintInputSchema
         Schema _inputSchema; // the schema the UDF actually expects, deduced from hintInputSchema
@@ -51,6 +47,19 @@ namespace tuplex {
 
         bool _dictAccessFound;
         bool _rewriteDictExecuted;
+
+        // for easier access, rewriting using column names (input column names)
+        // and a rewrite map is possible
+        size_t _numInputColumns; // original number of input columns assigned/detected for UDF
+        std::vector<std::string> _columnNames;
+        std::unordered_map<size_t, size_t> _rewriteMap; // original indices to
+
+        UDF &hintInputParameterType(const std::string &param, const python::Type &type);
+
+        bool hintParams(std::vector<python::Type> hints, std::vector<std::tuple<std::string, python::Type> > params,
+                        bool silent = false, bool removeBranches=false);
+
+
 
         python::Type codegenTypeToRowType(const python::Type& type) const;
 
@@ -86,7 +95,10 @@ namespace tuplex {
                                 _hintedInputSchema(other._hintedInputSchema),
                                 _dictAccessFound(other._dictAccessFound),
                                 _rewriteDictExecuted(other._rewriteDictExecuted),
-                                _policy(other._policy) {}
+                                _policy(other._policy),
+                                _numInputColumns(other._numInputColumns),
+                                _columnNames(other._columnNames),
+                                _rewriteMap(other._rewriteMap) {}
 
         UDF& operator = (const UDF& other) {
             _ast = other._ast;
@@ -99,6 +111,9 @@ namespace tuplex {
             _hintedInputSchema = other._hintedInputSchema;
             _dictAccessFound = other._dictAccessFound;
             _rewriteDictExecuted = other._rewriteDictExecuted;
+            _numInputColumns = other._numInputColumns;
+            _columnNames = other._columnNames;
+            _rewriteMap = other._rewriteMap;
             const_cast<codegen::CompilePolicy&>(this->_policy) = other._policy;
             return *this;
         }
@@ -190,6 +205,12 @@ namespace tuplex {
          */
         void setInputSchema(const Schema& schema) {
             _inputSchema = schema;
+            if(_inputSchema.getRowType() != python::Type::UNKNOWN) {
+                assert(_inputSchema.getRowType().isTupleType());
+                _numInputColumns = _inputSchema.getRowType().parameters().size();
+            } else {
+                _numInputColumns = 0;
+            }
         }
 
         const codegen::CompilePolicy& compilePolicy() const { return _policy; }
@@ -289,7 +310,8 @@ namespace tuplex {
 #ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void serialize(Archive &ar) {
-            ar(_ast, _isCompiled, _failed, _code, _pickledCode, _outputSchema, _inputSchema, _dictAccessFound, _rewriteDictExecuted);
+            ar(_ast, _isCompiled, _failed, _code, _pickledCode, _outputSchema, _inputSchema,
+               _dictAccessFound, _rewriteDictExecuted, _numInputColumns, _columnNames, _rewriteMap);
         }
 #endif
     };

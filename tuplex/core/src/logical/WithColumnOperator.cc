@@ -18,7 +18,7 @@ namespace tuplex {
         _columnToMapIndex = calcColumnToMapIndex(columnNames, columnName);
 
         // infer schema, this is slightly more involved...
-        setSchema(inferSchema(parent->getOutputSchema()));
+        setSchema(inferSchema(parent->getOutputSchema(), false));
     }
 
     int WithColumnOperator::calcColumnToMapIndex(const std::vector<std::string> &columnNames,
@@ -42,7 +42,10 @@ namespace tuplex {
         return columnToMapIndex;
     }
 
-    Schema WithColumnOperator::inferSchema(Schema parentSchema) {
+    Schema WithColumnOperator::inferSchema(Schema parentSchema, bool is_projected_row_type) {
+
+        if(is_projected_row_type)
+            throw std::runtime_error("nyimpl");
 
         if(parentSchema == Schema::UNKNOWN)
             parentSchema = getInputSchema();
@@ -50,7 +53,7 @@ namespace tuplex {
         auto inputColumnNames = UDFOperator::inputColumns();
 
         // detect schema of UDF
-        auto udfSchema = UDFOperator::inferSchema(parentSchema);
+        auto udfSchema = UDFOperator::inferSchema(parentSchema, is_projected_row_type);
 
         // now it's time to unpack or not
         auto udfRetRowType = udfSchema.getRowType();
@@ -179,10 +182,14 @@ namespace tuplex {
     }
 
     void WithColumnOperator::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
+        throw std::runtime_error("something is wrong here...");
+        // get current input schema before rewrite
+        auto input_schema = getInputSchema(); // this is the unrewritten one.
+
         // rewrite UDF & update schema
         UDFOperator::rewriteParametersInAST(rewriteMap);
         _columnToMapIndex = calcColumnToMapIndex(UDFOperator::columns(), _newColumn);
-        setSchema(inferSchema(parent()->getOutputSchema()));
+        setSchema(inferSchema(input_schema, false)); // input schema is not rewritten, but parameters in AST are?
     }
 
     std::shared_ptr<LogicalOperator> WithColumnOperator::clone(bool cloneParents) {
@@ -217,7 +224,7 @@ namespace tuplex {
         _udf.removeTypes(false);
 
         // infer schema with given type
-        auto schema = inferSchema(Schema(oldOut.getMemoryLayout(), input_row_type));
+        auto schema = inferSchema(Schema(oldOut.getMemoryLayout(), input_row_type), is_projected_row_type);
         if(schema == Schema::UNKNOWN) {
             return false;
         } else {

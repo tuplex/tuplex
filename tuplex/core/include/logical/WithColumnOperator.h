@@ -28,7 +28,7 @@ namespace tuplex {
         std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
 
     protected:
-        Schema inferSchema(Schema parentSchema) override;
+        Schema inferSchema(Schema parentSchema, bool is_projected_row_type) override;
     public:
         // required by cereal
         WithColumnOperator() = default;

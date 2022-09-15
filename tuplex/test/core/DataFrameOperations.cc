@@ -85,6 +85,23 @@ TEST_F(DataFrameTest, PrefixNullTest) {
     }
 }
 
+TEST_F(DataFrameTest, PushdownWithSpecialization) {
+    // use all basic operators in one query to make sure the specialization (rewriting works)
+    // create test file containing 0s
+    using namespace tuplex;
+    using namespace std;
+
+    URI uri(testName + ".txt");
+    stringToFile(uri, "A,B,C\n0,a,c\n000,a,c\n0000,a,c\n00,a,c\nN/A,a,c");
+    auto conf = microTestOptions();
+//    conf.set("tuplex.optimizer.projectionPushdown", "true");
+    conf.set("tuplex.csv.selectionPushdown", "true");
+    conf.set("tuplex.optimizer.nullValueOptimization", "true");
+
+    Context c(conf);
+    auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")}).map(UDF("lambda x: {'A': x['A'], 'B': x['B']}")).collectAsVector();
+}
+
 TEST_F(CSVDataFrameTest, SimpleMapColumnI) {
     using namespace tuplex;
 

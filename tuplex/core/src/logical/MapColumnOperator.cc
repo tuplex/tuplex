@@ -18,7 +18,7 @@ namespace tuplex {
         _columnToMapIndex = indexInVector(columnName, columns);
         assert(_columnToMapIndex >= 0);
 
-        setSchema(inferSchema(parent->getOutputSchema()));
+        setSchema(inferSchema(parent->getOutputSchema(), false));
 
 //#ifndef NDEBUG
 //        Logger::instance().defaultLogger().info("detected output type for " + name() + " operator is " + schema().getRowType().desc());
@@ -28,7 +28,7 @@ namespace tuplex {
 
 #warning "make sure that that mapColumn function is compatible!!!!"
 
-    Schema MapColumnOperator::inferSchema(Schema parentSchema) {
+    Schema MapColumnOperator::inferSchema(Schema parentSchema, bool is_projected_row_type) {
         // ATTENTION!!!
         // in map column operator NO column rewrite will be undertaken
         // in withColumn it will be though...
@@ -139,6 +139,7 @@ namespace tuplex {
 
 
     void MapColumnOperator::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
+        throw std::runtime_error("not sure what's going on here...");
         if(rewriteMap.find(_columnToMapIndex) != rewriteMap.end())
             _columnToMapIndex = rewriteMap.at(_columnToMapIndex);
         else
@@ -148,7 +149,7 @@ namespace tuplex {
         projectColumns(rewriteMap);
 
         // update schema
-        setSchema(inferSchema(parent()->getOutputSchema()));
+        setSchema(inferSchema(parent()->getOutputSchema(), false));
     }
 
     std::shared_ptr<LogicalOperator> MapColumnOperator::clone(bool cloneParents) {

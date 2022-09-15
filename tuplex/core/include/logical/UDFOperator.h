@@ -28,9 +28,11 @@ namespace tuplex {
 
         /*!
          * detects schema of operator using sample if necessary.
-         * @return
+         * @param parentSchema the (output) schema of the parent operator. If unknown, a sample will beused
+         * @param is_projected_schema whether parentSchema is a projected schema or not. If it is, the projection map will be utilized.
+         * @return the inferred output schema that the UDF would return.
          */
-        virtual Schema inferSchema(Schema parentSchema=Schema::UNKNOWN);
+        virtual Schema inferSchema(Schema parentSchema=Schema::UNKNOWN, bool is_projected_schema=false);
 
         /*!
          * update internal column names with a rewrite map from projection pushdown

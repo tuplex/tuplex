@@ -1021,8 +1021,7 @@ namespace tuplex {
             auto idx = kv.first;
             // are we having a projected type? then lookup in projection map!
             auto m = projectionMap();
-            assert(!m.empty());
-            if(is_projected_row_type)
+            if(is_projected_row_type && !m.empty())
                 idx = m[idx]; // get projected index...
 
             if(idx < col_types.size()) {

@@ -223,7 +223,7 @@ namespace tuplex {
         } else {
             try {
                 _udf.removeTypes(false);
-                setSchema(this->inferSchema(schema));
+                setSchema(this->inferSchema(schema, is_projected_row_type));
                 return true;
             } catch(...) {
                 return false;

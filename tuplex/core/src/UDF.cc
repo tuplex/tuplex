@@ -35,7 +35,7 @@ namespace tuplex {
              _code(pythonLambdaStr), _pickledCode(pickledCode),
              _outputSchema(Schema::UNKNOWN), _inputSchema(Schema::UNKNOWN),
              _dictAccessFound(false), _rewriteDictExecuted(false),
-             _policy(policy) {
+             _policy(policy), _numInputColumns(0) {
 
         // empty UDF.
         if(pythonLambdaStr.empty())
@@ -1164,6 +1164,8 @@ namespace tuplex {
 
     void UDF::resetAST() {
         this->_rewriteDictExecuted = false;
+        _columnNames.clear();
+        _rewriteMap.clear();
 
         // only parse of code length > 0
         if(_code.length() > 0 && _compilationEnabled)
@@ -1174,6 +1176,7 @@ namespace tuplex {
     }
 
     bool UDF::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
+        _rewriteMap = rewriteMap;
 
         // no rewrite map, skip.
         if(rewriteMap.empty())
@@ -1245,6 +1248,7 @@ namespace tuplex {
     }
 
     bool UDF::rewriteDictAccessInAST(const std::vector<std::string> &columnNames, const std::string& parameterName) {
+        _columnNames = columnNames;
 
         // UDF compiled? if not, nothing to be done
         if(!isCompiled())

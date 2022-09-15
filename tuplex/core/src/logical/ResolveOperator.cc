@@ -22,7 +22,7 @@ namespace tuplex {
             const std::unordered_map<size_t, size_t>& rewriteMap) : UDFOperator::UDFOperator(parent, udf, columnNames, rewriteMap) {
 
         // infer schema. Make sure it fits parents schema!
-        setSchema(inferSchema(parent->getOutputSchema()));
+        setSchema(inferSchema(parent->getOutputSchema(), false));
         setCode(ecToResolve);
     }
 
@@ -63,7 +63,7 @@ namespace tuplex {
         return parent()->getSample(num);
     }
 
-    Schema ResolveOperator::inferSchema(Schema parentSchema) {
+    Schema ResolveOperator::inferSchema(Schema parentSchema, bool is_projected_row_type) {
         assert(getNormalParent());
 
         auto inputSchema = getNormalParent()->getInputSchema();

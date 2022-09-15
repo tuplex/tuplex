@@ -29,7 +29,7 @@ namespace tuplex {
 
         // resolve operator is special when it comes to inferring the schema
         // instead of taking the output of the parent, it takes its input!
-        Schema inferSchema(Schema parentSchema) override;
+        Schema inferSchema(Schema parentSchema, bool is_projected_row_type) override;
     public:
 
         // required by cereal

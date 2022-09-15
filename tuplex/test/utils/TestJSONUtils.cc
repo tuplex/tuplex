@@ -632,6 +632,40 @@ TEST(JSONUtils, CheckFiles) {
     }
 }
 
+TEST(JSONUtils, CheckPushEventFiles) {
+    using namespace tuplex;
+    using namespace std;
+
+//    // for each file, run sampling stats
+//    string pattern = "../resources/*.json.gz";
+//
+//    // bbsn00 test
+//    //pattern = "/disk/download/data/*2021*.json.gz";
+//
+//    // test file /disk/download/data/2021-01-05-11.json.gz
+//    //pattern = "/Users/leonhards/Downloads/2021-01-05-11.json.gz";
+//
+//    // where to output stats...
+//    string output_path = "stats";
+//    cout<<"Saving detailed stats in "<<"./"<<output_path<<endl;
+//
+//    size_t num_files_found = 0;
+//    auto paths = glob(pattern);
+//    std::sort(paths.begin(), paths.end());
+//    num_files_found = paths.size();
+//    cout<<"Found "<<pluralize(num_files_found, "file")<<" to analyze schema for."<<endl;
+//
+//    for(const auto& path : paths) {
+//        auto json_string = process_path(path);
+//        auto fname = base_file_name(path.c_str());
+//        auto save_path = output_path + "/" + fname + "_stats.json";
+//        cout<<"saving stats data to "<<save_path<<endl;
+//        stringToFile(json_string, save_path);
+//        break;
+//    }
+}
+
+
 TEST(JSONUtils, SIMDJSONFieldParse) {
     using namespace tuplex;
 

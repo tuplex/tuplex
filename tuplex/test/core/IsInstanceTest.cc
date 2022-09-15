@@ -19,6 +19,13 @@ class IsInstance : public PyTest {};
 TEST_F(IsInstance, BasicTyping) {
     // this is a basic test for isinstance covering the correct type deduction
 
+
+    // if isisntance(x, int):
+    // return [x]
+    // elif isinstance(x, list):
+    // return x
+
+
     using namespace tuplex;
 
     // this also requires to implement/add type objects.

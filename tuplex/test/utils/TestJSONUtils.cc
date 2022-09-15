@@ -324,13 +324,17 @@ namespace tuplex {
     }
 
 
-    std::string process_path(const std::string& path, size_t max_samples_per_path=100) {
+    std::string process_path(const std::string& path, std::string event_type="", size_t max_samples_per_path=100) {
         using namespace std;
+
+        auto& logger = Logger::instance().defaultLogger();
+        std::stringstream ss;
 
         // step 1: decode file
         Timer timer;
 
-        cout<<"start processing "<<path<<"::"<<endl;
+        ss<<"start processing "<<path<<"::"<<endl;
+        logger.info(ss.str()); ss.str("");
         auto raw_data = fileToString(path);
 
         const char * pointer = raw_data.data();
@@ -338,13 +342,23 @@ namespace tuplex {
 
         // gzip::is_compressed(pointer, size); // can use this to check for gzip file...
         std::string decompressed_data = gzip::decompress(pointer, size);
-        cout<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "<<"loaded "<<path<<" "<<sizeToMemString(raw_data.size())<<" -> "<<sizeToMemString(decompressed_data.size())<<" (decompressed)"<<endl;
+        ss<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "<<"loaded "<<path<<" "<<sizeToMemString(raw_data.size())<<" -> "<<sizeToMemString(decompressed_data.size())<<" (decompressed)"<<endl;
+        logger.info(ss.str()); ss.str("");
 
         // step 2: load json from decompressed data
         std::vector<std::vector<std::string>> column_names;
         timer.reset();
         auto rows = parseRowsFromJSON(decompressed_data, &column_names);
-        cout<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "<<"parsed "<<pluralize(rows.size(), "row")<<" from "<<path<<" ("<<(rows.size() / timer.time())<<" rows/s)"<<endl;
+        ss<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "<<"parsed "<<pluralize(rows.size(), "row")<<" from "<<path<<" ("<<(rows.size() / timer.time())<<" rows/s)"<<endl;
+        logger.info(ss.str()); ss.str("");
+
+        if(!event_type.empty()) {
+            // parse rows by event type
+            std::vector<Row> filtered_rows;
+            for(auto row : rows) {
+
+            }
+        }
 
         // step 3: info about column names
         // fetch stat about column names, i.e. which ones occur how often?
@@ -361,13 +375,15 @@ namespace tuplex {
             max_column_name_count = std::max(max_column_name_count, names.size());
         }
 
-        cout<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "
-            <<"sample contains "<<min_column_name_count<<" - "<<max_column_name_count<<" columns"<<std::endl;
+        ss<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "
+          <<"sample contains "<<min_column_name_count<<" - "<<max_column_name_count<<" columns"<<std::endl;
+        logger.info(ss.str()); ss.str("");
 
         // step 4: determine type counts & majority types
         std::vector<std::string> column_names_ordered;
-        cout<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "
+        ss<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "
             <<"column adhering to same order within file: "<<std::boolalpha<<columnsAdheringAllToSameOrder(column_names, &column_names_ordered)<<std::endl;
+        logger.info(ss.str()); ss.str("");
         // if not same column order -> need to resort rows!!!
         bool same_column_order = columnsAdheringAllToSameOrder(column_names, &column_names_ordered);
 
@@ -400,14 +416,16 @@ namespace tuplex {
             // fix up columns and add them to sample
             throw std::runtime_error("nyimpl");
         } else {
-            std::cout<<"   -- detecting majority case column count and names"<<std::endl;
+            ss<<"   -- detecting majority case column count and names"<<std::endl;
+            logger.info(ss.str()); ss.str("");
             std::unordered_map<std::vector<std::string>, size_t> column_count_counts;
             for(auto names : column_names) {
                 column_count_counts[names]++;
             }
 
             // majority case
-            std::cout<<"   -- found "<<pluralize(column_count_counts.size(), "unique column name constellation")<<std::endl;
+            ss<<"   -- found "<<pluralize(column_count_counts.size(), "unique column name constellation")<<std::endl;
+            logger.info(ss.str()); ss.str("");
 
             auto most_frequent_count = 0;
             std::vector<std::string> most_frequent_names;
@@ -416,9 +434,10 @@ namespace tuplex {
                     most_frequent_count = el.second;
                     most_frequent_names = el.first;
                 }
-            std::cout<<"   -- most common column names are: "<<most_frequent_names<<" ("
-                     <<pluralize(most_frequent_names.size(), "column")<<", "
-                     <<(100.0 * most_frequent_count / (1.0 * column_names.size()))<<"%)"<<std::endl;
+            ss<<"   -- most common column names are: "<<most_frequent_names<<" ("
+              <<pluralize(most_frequent_names.size(), "column")<<", "
+              <<(100.0 * most_frequent_count / (1.0 * column_names.size()))<<"%)"<<std::endl;
+            logger.info(ss.str()); ss.str("");
 
             // now compute majority row type by first filtering on the columns adhering to that column count
             detected_column_count = most_frequent_names.size();
@@ -473,8 +492,9 @@ namespace tuplex {
             type_counts[s_type]++;
         }
 
-        cout<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "
-            <<"found "<<pluralize(type_counts.size(), "different type")<<" in "<<path<<endl;
+        ss<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "
+          <<"found "<<pluralize(type_counts.size(), "different type")<<" in "<<path<<endl;
+        logger.info(ss.str()); ss.str("");
 
         // what's the most common type?
         // order pairs!
@@ -487,8 +507,9 @@ namespace tuplex {
 
         double most_likely_pct = 100.0 * (type_count_pairs.front().second / (1.0 * rows.size()));
         double least_likely_pct = 100.0 * (type_count_pairs.back().second / (1.0 * rows.size()));
-        cout<<"   -- most likely type is ("<<most_likely_pct<<"%, "<<type_count_pairs.front().second<<"x): "<<type_count_pairs.front().first.desc()<<endl;
-        cout<<"   -- least likely type is ("<<least_likely_pct<<"%, "<<type_count_pairs.back().second<<"x): "<<type_count_pairs.back().first.desc()<<endl;
+        ss<<"   -- most likely type is ("<<most_likely_pct<<"%, "<<type_count_pairs.front().second<<"x): "<<type_count_pairs.front().first.desc()<<endl;
+        ss<<"   -- least likely type is ("<<least_likely_pct<<"%, "<<type_count_pairs.back().second<<"x): "<<type_count_pairs.back().first.desc()<<endl;
+        logger.info(ss.str()); ss.str("");
 
         auto general_case_max_type = maximizeTypeCover(type_count_pairs, conf_nc_threshold, true, conf_general_case_type_policy);
         auto normal_case_max_type = maximizeTypeCover(type_count_pairs, conf_nc_threshold, true, TypeUnificationPolicy::defaultPolicy());
@@ -496,14 +517,16 @@ namespace tuplex {
         double num_rows_d = column_names.size() * 1.0;
         double normal_pct = normal_case_max_type.second / num_rows_d * 100.0;
         double general_pct = general_case_max_type.second / num_rows_d * 100.0;
-        cout<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "
+        ss<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "
             <<"maximizing type cover results in:"<<path<<endl;
-        std::cout<<"   -- normal  case max type ("<<normal_pct<<"%, "<<normal_case_max_type.second<<"x): "<<normal_case_max_type.first.desc()<<std::endl;
-        std::cout<<"   -- general case max type ("<<general_pct<<"%, "<<general_case_max_type.second<<"x): "<<general_case_max_type.first.desc()<<std::endl;
+        ss<<"   -- normal  case max type ("<<normal_pct<<"%, "<<normal_case_max_type.second<<"x): "<<normal_case_max_type.first.desc()<<std::endl;
+        ss<<"   -- general case max type ("<<general_pct<<"%, "<<general_case_max_type.second<<"x): "<<general_case_max_type.first.desc()<<std::endl;
+        logger.info(ss.str()); ss.str("");
 
         // pretty print
-        std::cout<<"normal  case max type: "<<prettyPrintStructType(normal_case_max_type.first)<<std::endl;
-        std::cout<<"general case max type: "<<prettyPrintStructType(general_case_max_type.first)<<std::endl;
+        ss<<"normal  case max type: "<<prettyPrintStructType(normal_case_max_type.first)<<std::endl;
+        ss<<"general case max type: "<<prettyPrintStructType(general_case_max_type.first)<<std::endl;
+        logger.info(ss.str()); ss.str("");
 
         // check how many rows would be on each path (normal, general, fallback)
         // check how many (of the original) rows adhere to this detected normal-case type
@@ -543,11 +566,12 @@ namespace tuplex {
 
 
         }
-        cout<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "
+        ss<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "
             <<"execution would result in the following paths taken:"<<path<<endl;
-        cout<<"   -- "<<nc_count<<" / "<<row_types.size()<<" normal path ("<<(nc_count / (0.01 * row_types.size()))<<"%)"<<endl;
-        cout<<"   -- "<<gc_count<<" / "<<row_types.size()<<" general path ("<<(gc_count / (0.01 * row_types.size()))<<"%)"<<endl;
-        cout<<"   -- "<<fb_count<<" / "<<row_types.size()<<" fallback path ("<<(fb_count / (0.01 * row_types.size()))<<"%)"<<endl;
+        ss<<"   -- "<<nc_count<<" / "<<row_types.size()<<" normal path ("<<(nc_count / (0.01 * row_types.size()))<<"%)"<<endl;
+        ss<<"   -- "<<gc_count<<" / "<<row_types.size()<<" general path ("<<(gc_count / (0.01 * row_types.size()))<<"%)"<<endl;
+        ss<<"   -- "<<fb_count<<" / "<<row_types.size()<<" fallback path ("<<(fb_count / (0.01 * row_types.size()))<<"%)"<<endl;
+        logger.info(ss.str()); ss.str("");
 
         // create json string with all the data so nothing is wasted.
         std::string json_string;
@@ -598,6 +622,8 @@ TEST(JSONUtils, CheckFiles) {
     using namespace tuplex;
     using namespace std;
 
+    auto& logger = Logger::instance().defaultLogger();
+
     // for each file, run sampling stats
     string root_path = "/hot/data/flights_all/";
     string pattern = root_path + "flights_on_time_performance_*.csv";
@@ -622,12 +648,19 @@ TEST(JSONUtils, CheckFiles) {
     num_files_found = paths.size();
     cout<<"Found "<<pluralize(num_files_found, "file")<<" to analyze schema for."<<endl;
 
+
+    auto concurrency = std::thread::hardware_concurrency();
+    cout<<"Detected hardware concurrency: "<<concurrency<<endl;
+
+    // process in parallel...
+
     for(const auto& path : paths) {
         auto json_string = process_path(path);
         auto fname = base_file_name(path.c_str());
         auto save_path = output_path + "/" + fname + "_stats.json";
-        cout<<"saving stats data to "<<save_path<<endl;
+        //cout<<"saving stats data to "<<save_path<<endl;
         stringToFile(json_string, save_path);
+        logger.info("processed file " + fname);
         break;
     }
 }

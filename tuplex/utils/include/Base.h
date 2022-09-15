@@ -355,6 +355,14 @@ namespace core {
      */
     extern std::string withLineNumbers(const std::string& s);
 
+    /*!
+     * prefix all lines (determined by '\n') with another string
+     * @param s string to split into lines
+     * @param prefix what to prefix
+     * @return prefixed string.
+     */
+    extern std::string prefixLines(const std::string& s, const std::string& prefix);
+
 
     /*!
      * remove duplicates in a std::vector

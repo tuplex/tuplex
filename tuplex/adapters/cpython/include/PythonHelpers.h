@@ -393,6 +393,13 @@ namespace python {
     extern tuplex::ExceptionCode translatePythonExceptionType(PyObject* type);
 
     extern std::string platformExtensionSuffix();
+
+    /*!
+     * check cloudpickle version compatibility.
+     * @param os optional error stream to output
+     * @return true if ok, false else.
+     */
+    extern bool cloudpickleCompatibility(std::ostream* os=nullptr);
 }
 
 

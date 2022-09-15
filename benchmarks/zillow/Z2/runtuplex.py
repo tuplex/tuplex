@@ -158,7 +158,7 @@ if __name__ == '__main__':
             "useLLVMOptimizer" : True,
             "optimizer.nullValueOptimization" : False,
             "tuplex.allowUndefinedBehavior" : False,
-            "csv.selectionPushdown" : True,
+            "optimizer.selectionPushdown" : True,
             "optimizer.filterPushdown" : True,
             "optimizer.generateParser": False}
 

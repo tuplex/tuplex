@@ -48,10 +48,12 @@ message TransformStage {
     uint32 stageNumber = 29;
     uint32 numColumns = 30;
     string pycode = 31;
+    string pyaggcode = 32;
+    string pyaggname = 33;
 
     // file input + output params as dict
-    map<string, string> inputParameters = 32;
-    map<string, string> outputParameters = 33;
+    map<string, string> inputParameters = 34;
+    map<string, string> outputParameters = 35;
 }
 
 message InvocationRequest {

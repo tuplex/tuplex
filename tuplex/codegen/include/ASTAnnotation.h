@@ -58,6 +58,10 @@ public:
      * @return unique type of this symbol. Works i.e. for variables or types.
      */
     inline python::Type type() const {
+        // special case: if function symbol or not unique, return UNKNOWN.
+        if(symbolType == SymbolType::FUNCTION || types.size() != 1)
+            return python::Type::UNKNOWN;
+
         assert(symbolType != SymbolType::FUNCTION); // better not use it on functions...
         assert(types.size() == 1);
         return types.front();

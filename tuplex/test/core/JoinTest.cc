@@ -467,7 +467,7 @@ TEST_F(JoinTest, SimpleIntJoins) {
 //    // @TODO: activate filter pushdown as option...
 //    // @TODO: ignore/resolve operators following a filter should be pushed with it down!
 //    auto co = microTestOptions();
-//    co.set("tuplex.csv.selectionPushdown", "true");
+//    co.set("tuplex.optimizer.selectionPushdown", "true");
 //    Context c(co);
 //
 //    auto& ds1 = c.parallelize({Row(1, 2, 3), Row(1, 2, 4), Row(2, 1, 1)}, vector<string>{"a", "b", "c"});

@@ -276,8 +276,66 @@ namespace tuplex {
         return best_pair;
     }
 
+    /*!
+     * prints json struct type neatly out
+     * @param type
+     * @param spaces_per_level
+     * @return string
+     */
+    std::string prettyPrintStructType(const python::Type& type, const size_t spaces_per_level=2) {
+        std::stringstream ss;
 
-    std::string process_path(const std::string& path) {
+        std::string indent;
+        for(unsigned i = 0; i < spaces_per_level; ++i) {
+            indent += " ";
+        }
+
+        // is it struct type?
+        if(!type.isStructuredDictionaryType())
+            return type.desc();
+        else {
+            // go through pairs, and create JSON structure
+            ss<<"{\n";
+            for(unsigned i = 0; i < type.get_struct_pairs().size(); ++i) {
+                auto kv  = type.get_struct_pairs()[i];
+                if(kv.keyType == python::Type::STRING) {
+                    auto unescaped_key = str_value_from_python_raw_value(kv.key);
+                    auto json_key = simdjson::internal::escape_json_string(unescaped_key);
+
+                    ss<<indent<<"\""<<json_key<<"\": ";
+                } else {
+                    ss<<indent<<kv.key<<": ";
+                }
+
+                // check what type the other stuff is
+                auto subtype = prettyPrintStructType(kv.valueType);
+                trim(subtype);
+                subtype = core::prefixLines(subtype, indent);
+                trim(subtype);
+
+                // prefix lines with indent (except first one?)
+                auto comma = i != type.get_struct_pairs().size() - 1 ? "," : "";
+                ss<<subtype<<comma<<"\n";
+            }
+            ss<<"}";
+        }
+        return ss.str();
+    }
+
+    nlohmann::json sampleToJSON(const std::vector<Row>& rows) {
+        nlohmann::json j = nlohmann::json::array();
+
+        for(auto row : rows) {
+            nlohmann::json jrow;
+            jrow = row.toPythonString();
+            j.push_back(jrow);
+        }
+
+        return j;
+    }
+
+
+    std::string process_path(const std::string& path, size_t max_samples_per_path=100) {
         using namespace std;
 
         // step 1: decode file
@@ -454,19 +512,46 @@ namespace tuplex {
         std::cout<<"   -- normal  case max type ("<<normal_pct<<"%, "<<normal_case_max_type.second<<"x): "<<normal_case_max_type.first.desc()<<std::endl;
         std::cout<<"   -- general case max type ("<<general_pct<<"%, "<<general_case_max_type.second<<"x): "<<general_case_max_type.first.desc()<<std::endl;
 
+        // pretty print
+        std::cout<<"normal  case max type: "<<prettyPrintStructType(normal_case_max_type.first)<<std::endl;
+        std::cout<<"general case max type: "<<prettyPrintStructType(general_case_max_type.first)<<std::endl;
+
         // check how many rows would be on each path (normal, general, fallback)
         // check how many (of the original) rows adhere to this detected normal-case type
         // this also requires column name checking!
         size_t nc_count = 0;
         size_t gc_count = 0;
         size_t fb_count = 0;
+
+        std::vector<Row> normal_case_sample;
+        std::vector<Row> general_case_sample;
+        std::vector<Row> fallback_case_sample;
         for(unsigned i = 0; i < row_types.size(); ++i) {
-            if(python::canUpcastType(row_types[i], normal_case_max_type.first))
+            if(python::canUpcastType(row_types[i], normal_case_max_type.first)) {
                 nc_count++;
-            else if(python::canUpcastType(row_types[i], general_case_max_type.first))
+
+                if(normal_case_sample.size() < max_samples_per_path) {
+                    assert(rows.size() >= max_samples_per_path);
+                    normal_case_sample.push_back(rows[i]);
+                }
+
+            } else if(python::canUpcastType(row_types[i], general_case_max_type.first)) {
+
+                if(general_case_sample.size() < max_samples_per_path) {
+                    assert(rows.size() >= max_samples_per_path);
+                    general_case_sample.push_back(rows[i]);
+                }
+
                 gc_count++;
-            else
+            } else {
+                if(fallback_case_sample.size() < max_samples_per_path) {
+                    assert(rows.size() >= max_samples_per_path);
+                    fallback_case_sample.push_back(rows[i]);
+                }
+
                 fb_count++;
+            }
+
 
         }
         cout<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "
@@ -490,9 +575,13 @@ namespace tuplex {
             j["general_case_path_count"] = gc_count;
             j["fallback_case_path_count"] = fb_count;
 
+            // pretty print types
+            j["normal_case_type_pretty"] = prettyPrintStructType(normal_case_max_type.first);
+            j["general_case_type_pretty"] = prettyPrintStructType(general_case_max_type.first);
+
             // type counts (detailed)
             auto j_counts = nlohmann::json::array();
-            for(auto kv : type_counts) {
+            for(const auto& kv : type_counts) {
                 nlohmann::json tmp;
                 tmp["type"] = kv.first.desc();
                 tmp["count"] = kv.second;
@@ -500,14 +589,21 @@ namespace tuplex {
             }
             j["type_counts"] = j_counts;
 
+            // add sample of detected paths
+            j["normal_sample"] = sampleToJSON(normal_case_sample);
+            j["general_sample"] = sampleToJSON(general_case_sample);
+            j["fallback_sample"] = sampleToJSON(fallback_case_sample);
+
             // to string
             json_string = j.dump();
         }
 
         return json_string;
     }
-
 }
+
+
+
 
 TEST(JSONUtils, CheckFiles) {
     using namespace tuplex;
@@ -522,10 +618,9 @@ TEST(JSONUtils, CheckFiles) {
     pattern = "../resources/*.json.gz";
 
     // bbsn00 test
-    pattern = "/disk/download/data/*2021*.json.gz";
+    //pattern = "/disk/download/data/*2021*.json.gz";
 
     // test file /disk/download/data/2021-01-05-11.json.gz
-    // pattern = "/Users/leonhards/Downloads/2021-01-05-11.json.gz";
 
     // where to output stats...
     string output_path = "./stats";
@@ -547,8 +642,43 @@ TEST(JSONUtils, CheckFiles) {
         auto save_path = output_path + "/" + fname + "_stats.json";
         cout<<"saving stats data to "<<save_path<<endl;
         stringToFile(json_string, save_path);
+        break;
     }
 }
+
+TEST(JSONUtils, CheckPushEventFiles) {
+    using namespace tuplex;
+    using namespace std;
+
+//    // for each file, run sampling stats
+//    string pattern = "../resources/*.json.gz";
+//
+//    // bbsn00 test
+//    //pattern = "/disk/download/data/*2021*.json.gz";
+//
+//    // test file /disk/download/data/2021-01-05-11.json.gz
+//    //pattern = "/Users/leonhards/Downloads/2021-01-05-11.json.gz";
+//
+//    // where to output stats...
+//    string output_path = "stats";
+//    cout<<"Saving detailed stats in "<<"./"<<output_path<<endl;
+//
+//    size_t num_files_found = 0;
+//    auto paths = glob(pattern);
+//    std::sort(paths.begin(), paths.end());
+//    num_files_found = paths.size();
+//    cout<<"Found "<<pluralize(num_files_found, "file")<<" to analyze schema for."<<endl;
+//
+//    for(const auto& path : paths) {
+//        auto json_string = process_path(path);
+//        auto fname = base_file_name(path.c_str());
+//        auto save_path = output_path + "/" + fname + "_stats.json";
+//        cout<<"saving stats data to "<<save_path<<endl;
+//        stringToFile(json_string, save_path);
+//        break;
+//    }
+}
+
 
 TEST(JSONUtils, SIMDJSONFieldParse) {
     using namespace tuplex;

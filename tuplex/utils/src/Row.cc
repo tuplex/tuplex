@@ -89,7 +89,7 @@ namespace tuplex {
     std::string Row::toPythonString() const {
         std::string s = "(";
         for(int i = 0; i < getNumColumns(); ++i) {
-            s += _values[i].desc();
+            s += _values[i].toPythonString();
 
             if(i != getNumColumns() - 1)
                 s += ",";

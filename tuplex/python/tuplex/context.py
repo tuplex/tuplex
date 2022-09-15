@@ -73,7 +73,7 @@ class Context:
             csv.quotechar (str): single character denoting the character that is used as quote char according to RFC-4180 standard. E.g.  ``'"'``
             csv.comments (str): list of single character string which indicate start of a comment line, e.g. ``['#', '~']``
             csv.generateParser (str) or (bool): Whether to use C++ parser or a LLVM code generated parser
-            csv.selectionPushdown (str) or (bool): When enabled, then the physical planner will generate a parser that \
+            optimizer.selectionPushdown (str) or (bool): When enabled, then the physical planner will generate a parser that \
                                                    only serializes data that is required within the pipeline.
 
         """

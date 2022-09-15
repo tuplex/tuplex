@@ -249,7 +249,10 @@ namespace tuplex {
         return "";
     }
 
-    std::vector<Row> parseRowsFromJSON(const char* buf, size_t buf_size, std::vector<std::vector<std::string>>* outColumnNames) {
+    std::vector<Row> parseRowsFromJSON(const char* buf,
+                                       size_t buf_size,
+                                       std::vector<std::vector<std::string>>* outColumnNames,
+                                       bool unwrap_rows) {
         using namespace std;
 
         assert(buf[buf_size - 1] == '\0');
@@ -289,6 +292,16 @@ namespace tuplex {
         // anonymous row? I.e., simple value?
         for(auto it = stream.begin(); it != stream.end(); ++it) {
             auto doc = (*it);
+
+            // the full json string of a row can be obtained via
+            // std::cout << it.source() << std::endl;
+            string full_row;
+            {
+                 stringstream ss;
+                 ss<<it.source()<<std::endl;
+                 full_row = ss.str();
+            }
+
 
             // error? stop parse, return partial results
             if(doc.type().error())
@@ -368,7 +381,25 @@ namespace tuplex {
                         }
 
                     }
-                    rows.push_back(Row::from_vector(fields));
+
+                    if(unwrap_rows)
+                        rows.push_back(Row::from_vector(fields));
+                    else {
+                        // push back as struct type
+                        std::string json_line = full_row;
+                        std::vector<python::StructEntry> kv_pairs;
+                        assert(fields.size() == row_column_names.size());
+                        for(unsigned i = 0; i < fields.size(); ++i) {
+                            python::StructEntry entry;
+                            entry.key = escape_to_python_str(row_column_names[i]);
+                            entry.keyType = python::Type::STRING;
+                            entry.valueType = fields[i].getType();
+                            kv_pairs.push_back(entry);
+                        }
+                        python::Type struct_type = python::Type::makeStructuredDictType(kv_pairs);
+                        Row struct_row({Field::from_str_data(json_line, struct_type)});
+                        rows.push_back(struct_row);
+                    }
 
                     break;
                 }
@@ -377,6 +408,7 @@ namespace tuplex {
                     // header? -> first line?
 
                     // @TODO: not yet fully implemented!!!
+                    throw std::runtime_error("not yet fully implemented...");
 
                     if(first_row) {
                         bool all_elements_strings = true;
@@ -407,14 +439,6 @@ namespace tuplex {
                 }
             }
             first_row = true;
-
-            // the full json string of a row can be obtained via
-            // std::cout << it.source() << std::endl;
-            // {
-            //     stringstream ss;
-            //     ss<<it.source()<<std::endl;
-            //     string full_row = ss.str();
-            // }
         }
 
         return rows;

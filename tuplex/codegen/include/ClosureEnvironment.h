@@ -22,6 +22,7 @@ namespace tuplex {
 
     class ClosureEnvironment {
     public:
+
         // e.g. import matplotlib as mpl
         // => identifier = mpl
         //    original_identifier = matplotlib
@@ -35,6 +36,12 @@ namespace tuplex {
             std::string original_identifier; // original name of module
             std::string package; // to which package it belongs to
             std::string location; // file location
+
+            Module() {}
+            Module(const Module& other) = default;
+            Module(Module&& other) = default;
+
+            Module& operator = (const Module& other) = default;
         };
 
         struct Constant {
@@ -42,6 +49,12 @@ namespace tuplex {
             std::string identifier;             // which name
             //std::string json_value;          // value (pickled)
             Field value;
+
+            Constant() {}
+            Constant(const Constant& other) = default;
+            Constant(Constant&& other) = default;
+            Constant(const python::Type& type, const std::string& identifier, const Field& value) : type(type), identifier(identifier), value(value) {}
+            Constant& operator = (const Constant& other) = default;
         };
 
         struct Function {
@@ -49,6 +62,12 @@ namespace tuplex {
             std::string package; // which module does this function belong to?
             std::string location; // file location
             std::string qualified_name; // full path, i.e. re.search
+
+            Function() {}
+            Function(const Function& other) = default;
+            Function(Function&& other) = default;
+
+            Function& operator = (const Function& other) = default;
         };
 
         void addConstant(const Constant& c) { _globals.push_back(c); }
@@ -126,6 +145,18 @@ namespace tuplex {
         std::vector<Module> _imported_modules;
         std::vector<Constant> _globals;
         std::vector<Function> _functions;
+
+    public:
+        ClosureEnvironment() {}
+        ClosureEnvironment(const ClosureEnvironment& other) : _imported_modules(other._imported_modules), _globals(other._globals), _functions(other._functions) {}
+        ClosureEnvironment(ClosureEnvironment&& other) : _imported_modules(other._imported_modules), _globals(other._globals), _functions(other._functions) {}
+
+        ClosureEnvironment& operator = (const ClosureEnvironment& other) {
+            _imported_modules = other._imported_modules;
+            _globals = other._globals;
+            _functions = other._functions;
+            return *this;
+        }
     };
 }
 

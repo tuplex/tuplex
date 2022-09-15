@@ -49,6 +49,7 @@ namespace python {
     const Type Type::MODULE = python::TypeFactory::instance().createOrGetPrimitiveType("module");
     const Type Type::ITERATOR = python::TypeFactory::instance().createOrGetPrimitiveType("iterator");
     const Type Type::EMPTYITERATOR = python::TypeFactory::instance().createOrGetPrimitiveType("emptyiterator");
+    const Type Type::TYPEOBJECT = python::TypeFactory::instance().registerOrGetType("type", python::TypeFactory::AbstractType::TYPE, std::vector<Type>{}, python::Type::VOID);
 
     // builtin exception types
     // --> class system
@@ -124,6 +125,18 @@ namespace python {
         // create new option type!
         std::string name = "Option[" + TypeFactory::instance().getDesc(type._hash) + "]";
         return registerOrGetType(name, AbstractType::OPTION, {}, type);
+    }
+
+    Type TypeFactory::createOrGetTypeObjectType(const Type &type) {
+        // special case: type object of type object?
+        // e.g., type(type('hello'))
+        // --> <class 'type'>
+        if(type.isTypeObjectType())
+            return Type::TYPEOBJECT; // type object itself is a type object...
+
+        // create new option type!
+        std::string name = "Type[" + TypeFactory::instance().getDesc(type._hash) + "]";
+        return registerOrGetType(name, AbstractType::TYPE, {type}, type);
     }
 
     Type TypeFactory::createOrGetFunctionType(const Type &param, const Type &ret) {
@@ -585,7 +598,8 @@ namespace python {
     }
 
     Type Type::underlying() const {
-        // should be optimizing type...
+        // should be optimizing type or typeobject...
+        assert(isOptimizedType() || isTypeObjectType());
 
         auto& factory = TypeFactory::instance();
         auto it = factory._typeMap.find(_hash);
@@ -695,6 +709,11 @@ namespace python {
         }
     }
 
+    bool Type::isTypeObjectType() const {
+        const auto& entry = TypeFactory::instance()._typeMap.at(_hash);
+        return entry._type == TypeFactory::AbstractType::TYPE;
+    }
+
     bool Type::isSingleValued() const {
         return *this == Type::NULLVALUE || *this == Type::EMPTYTUPLE || *this == Type::EMPTYDICT || *this == Type::EMPTYLIST;
     }
@@ -755,6 +774,10 @@ namespace python {
 
     Type Type::makeTupleType(std::vector<Type> v) {
         return TypeFactory::instance().createOrGetTupleType(v);
+    }
+
+    Type Type::makeTypeObjectType(const python::Type &type) {
+        return TypeFactory::instance().createOrGetTypeObjectType(type);
     }
 
     Type Type::makeFunctionType(const python::Type &argsType, const python::Type &retType) {
@@ -1616,6 +1639,8 @@ namespace python {
                     t = TypeFactory::instance().createOrGetFunctionType(topVec[0], topVec[1]); // order?? --> might need reversion?
                 } else if("Dict" == compound_type) {
                     t = TypeFactory::instance().createOrGetDictionaryType(topVec[0], topVec[1]); // order?? --> might need reversion?
+                } else if ("Type" == compound_type) {
+                    t = TypeFactory::instance().createOrGetTypeObjectType(topVec[0]);
                 } else if("Struct" == compound_type) {
                     auto kv_pairs = kvStack.top();
                     kvStack.pop();

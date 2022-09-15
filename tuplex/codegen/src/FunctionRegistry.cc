@@ -967,8 +967,8 @@ namespace tuplex {
         }
 
         codegen::SerializableValue FunctionRegistry::createMathIsNanCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
-                                                     const python::Type &retType,
-                                                     const std::vector<tuplex::codegen::SerializableValue> &args) {
+                                                                         const python::Type &retType,
+                                                                         const std::vector<tuplex::codegen::SerializableValue> &args) {
             using namespace llvm;
             auto& context = builder.GetInsertBlock()->getContext();
             assert(args.size() >= 1);
@@ -977,23 +977,21 @@ namespace tuplex {
 
             if (python::Type::F64 == type) {
                 /* Note that there are multiple possible ways to represent NAN
-                   
+
                    A NAN must be a float/double, where the sign bit is 0 or 1, all exponent bits are set to 1,
                    and the mantissa is anything except all 0 bits (because that's how infinity is defined)
-
                    According to this: https://www.geeksforgeeks.org/floating-point-representation-basics/
                    a quiet NAN (QNAN) is represented with only the most significant bit of the mantissa set to 1.
                    a signaling NAN (SNAN) has only the two most significant bits of the mantissa set to 1.
                    (all other bits are set to 0)
-
                    QNAN = 0x7FF8000000000000
                    SNAN = 0x7FFC000000000000
                 */
                 llvm::Value* i64Val = builder.CreateBitCast(val.val, llvm::Type::getInt64Ty(context));
                 /* The below instructions shift the bits of the input value right by 32 bits,
-                   and then compute the result & (bitwise AND) 0x7fffffff = 2147483647. 
+                   and then compute the result & (bitwise AND) 0x7fffffff = 2147483647.
                    Effectively: (x >> 32) & 0x7fffffff
-                   
+
                    Note that 0x7fffffff has the 31 least significant bits set to 1, and the
                    most significant bit set to 0.
                    If the input value was QNAN, the result would be 0x7FF80000.
@@ -1007,12 +1005,12 @@ namespace tuplex {
                    Finally, this sum is compared to 0x7ff00000 = 2146435072; if the sum is greater than
                    0x7ff00000, isnan returns true, otherwise, false.
                 */
-                auto i32Val = builder.CreateTrunc(i64Val, llvm::Type::getInt32Ty(context));   
+                auto i32Val = builder.CreateTrunc(i64Val, llvm::Type::getInt32Ty(context));
                 auto cmpRes = builder.CreateICmpNE(i32Val, ConstantInt::get(i32Val->getType(), 0));
                 auto i32cmp = builder.CreateZExt(cmpRes, llvm::Type::getInt32Ty(context));
                 auto added = builder.CreateNUWAdd(andRes, i32cmp);
                 auto addCmp = builder.CreateICmpUGT(added, ConstantInt::get(i32Val->getType(), 2146435072));
-            
+
                 auto resVal = _env.upcastToBoolean(builder, addCmp);
                 auto resSize = _env.i64Const(sizeof(int64_t));
 
@@ -1020,14 +1018,14 @@ namespace tuplex {
             } else {
                 // only other valid input types are integer and boolean
                 assert(python::Type::BOOLEAN == type || python::Type::I64 == type);
-                
+
                 return SerializableValue(_env.boolConst(false), _env.i64Const(sizeof(int64_t)));
             }
         }
 
         codegen::SerializableValue FunctionRegistry::createMathIsInfCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
-                                                     const python::Type &retType,
-                                                     const std::vector<tuplex::codegen::SerializableValue> &args) {
+                                                                         const python::Type &retType,
+                                                                         const std::vector<tuplex::codegen::SerializableValue> &args) {
             using namespace llvm;
             auto& context = builder.GetInsertBlock()->getContext();
             assert(args.size() >= 1);
@@ -1055,8 +1053,8 @@ namespace tuplex {
         }
 
         codegen::SerializableValue FunctionRegistry::createMathIsCloseCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
-                                                                            llvm::IRBuilder<>& builder, const python::Type &argsType,
-                                                                            const std::vector<tuplex::codegen::SerializableValue> &args) {
+                                                                           llvm::IRBuilder<>& builder, const python::Type &argsType,
+                                                                           const std::vector<tuplex::codegen::SerializableValue> &args) {
             assert(argsType.isTupleType());
             assert(args.size() == argsType.parameters().size());
             assert(args.size() >= 2);
@@ -1112,7 +1110,7 @@ namespace tuplex {
                 assert(abs_ty == python::Type::F64);
                 abs_tol_check = builder.CreateFCmpOLT(abs_tol_val, _env.f64Const(0));
             }
-            
+
             // if either rel_tol or abs_tol are < 0, throw exception
             auto below_zero = builder.CreateOr(rel_tol_check, abs_tol_check);
             lfb.addException(builder, ExceptionCode::VALUEERROR, below_zero);
@@ -1138,7 +1136,7 @@ namespace tuplex {
                     assert(abs_ty == python::Type::F64);
                     abs_cmp = builder.CreateFCmpOGE(abs_tol_val, _env.f64Const(1));
                 }
-                
+
                 auto rel_or_abs = builder.CreateOr(rel_cmp, abs_cmp);
                 auto eq_check = builder.CreateXor(xor_xy, _env.boolConst(true));
                 auto bool_val = _env.upcastToBoolean(builder, rel_or_abs);
@@ -1202,21 +1200,21 @@ namespace tuplex {
                 builder.SetInsertPoint(bb_standard);
                 auto diff = builder.CreateFSub(x_d, y_d);
                 auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
-                
+
                 llvm::Value* d_abs_tol = abs_tol;
                 if (abs_ty == python::Type::BOOLEAN || abs_ty == python::Type::I64) {
                     d_abs_tol = _env.upCast(builder, abs_tol, _env.doubleType());
                 } else {
                     assert(abs_ty == python::Type::F64);
                 }
-                
+
                 auto RHS_cmp = builder.CreateFCmpOLT(relxmax, d_abs_tol);
                 auto RHS = builder.CreateSelect(RHS_cmp, d_abs_tol, relxmax);
                 auto standard_cmp = builder.CreateFCmpOLE(LHS, RHS);
                 auto standard_res = _env.upcastToBoolean(builder, standard_cmp);
                 builder.CreateStore(standard_res, val); // should overwrite value from bb_below_one
                 builder.CreateBr(bb_done);
-                
+
                 // return value stored in val
                 builder.SetInsertPoint(bb_done);
                 lfb.setLastBlock(bb_done);
@@ -1529,7 +1527,6 @@ namespace tuplex {
                 return createMathCosHCall(builder, argsType, retType, args);
             if (symbol == "math.acosh")
                 return createMathArcCosHCall(builder, argsType, retType, args);
-
             if (symbol == "math.sinh")
                 return createMathSinHCall(builder, argsType, retType, args);
             if (symbol == "math.asinh")
@@ -1540,13 +1537,13 @@ namespace tuplex {
 
             if (symbol == "math.degrees")
                 return createMathToDegreesCall(builder, argsType, retType, args);
-            
+
             if (symbol == "math.isnan")
                 return createMathIsNanCall(builder, argsType, retType, args);
-            
+
             if (symbol == "math.isinf")
                 return createMathIsInfCall(builder, argsType, retType, args);
-                
+
             if (symbol == "math.isclose") {
                 if (args.size() != 2 && args.size() != 3 && args.size() != 4) {
                     std::string err = "math.isclose needs 2, 3, or 4 args; got " + std::to_string(args.size()) + " args\n";

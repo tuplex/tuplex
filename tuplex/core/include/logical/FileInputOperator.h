@@ -74,6 +74,9 @@ namespace tuplex {
                           const ContextOptions& co,
                           const std::vector<std::string>& null_values);
 
+        //// JSON Constructor
+        //FileInputOperator(const std::string &pattern, const ContextOptions &co);
+
         // Orc Constructor
         FileInputOperator(const std::string& pattern,
                           const ContextOptions& co);
@@ -119,9 +122,19 @@ namespace tuplex {
         * create a new orc File Input operator.
         * @param pattern files to search for
         * @param co ContextOptions, pipeline will take configuration for planning from there
+        * return input operator
         */
         static FileInputOperator *fromOrc(const std::string& pattern,
                                          const ContextOptions& co);
+
+        /*!
+         * create new file input operator reading JSON (newline delimited) files.
+         * @param pattern pattern to look for files
+         * @param co context options
+         * @return input operator
+         */
+        static FileInputOperator *fromJSON(const std::string& pattern, const ContextOptions& co);
+
 
         std::string name() override {
             switch (_fmt) {

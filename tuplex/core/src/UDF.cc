@@ -294,6 +294,10 @@ namespace tuplex {
 
         _ast.setUnpacking(false);
         python::Type hintType = schema.getRowType();
+
+        // if it's not a tuple type, go directly to the special case...
+        if(!hintType.isTupleType())
+            hintType = codegenTypeToRowType(hintType);
         assert(hintType.isTupleType());
 
         // there are two cases now:
@@ -336,6 +340,7 @@ namespace tuplex {
 
                     if(hasPythonObjectTyping())
                         markAsNonCompilable();
+                    _numInputColumns = 1;
                     return true;
                 } else {
                     // hint with first element as tuple unpacked
@@ -349,6 +354,7 @@ namespace tuplex {
                     _outputSchema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(_ast.getReturnType()));
                     if(hasPythonObjectTyping())
                         markAsNonCompilable();
+                    _numInputColumns = hintType.parameters().front().parameters().size();
                     return true;
                 }
             } else {
@@ -380,6 +386,7 @@ namespace tuplex {
                 _outputSchema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(_ast.getReturnType()));
                 if(hasPythonObjectTyping())
                     markAsNonCompilable();
+                _numInputColumns = hintType.parameters().size();
                 return true;
             }
         } else {
@@ -417,8 +424,10 @@ namespace tuplex {
             _outputSchema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(_ast.getReturnType()));
             if(hasPythonObjectTyping())
                 markAsNonCompilable();
+            _numInputColumns = _inputSchema.getRowType().parameters().size();
             return true;
         }
+        _numInputColumns = 0;
         return false;
     }
 

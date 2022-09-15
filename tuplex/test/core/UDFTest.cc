@@ -316,6 +316,41 @@ TEST(UDF, RetypeTest) {
 
 }
 
+TEST(UDF, InputColumnCount) {
+    using namespace tuplex;
+    using namespace std;
+
+    // single param
+    {
+        UDF udf("lambda x: x");
+        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::I64));
+        EXPECT_EQ(udf.inputColumnCount(), 1);
+        EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "i64");
+        udf.removeTypes();
+        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType({python::Type::I64})));
+        EXPECT_EQ(udf.inputColumnCount(), 1);
+        EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "i64");
+
+        udf.removeTypes();
+        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType({python::Type::makeTupleType({python::Type::I64})})));
+        EXPECT_EQ(udf.inputColumnCount(), 1);
+        EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "(i64)");
+    }
+
+    // multi param
+    {
+        auto tuple_type = python::Type::makeTupleType({python::Type::I64, python::Type::BOOLEAN, python::Type::F64, python::Type::STRING});
+        UDF udf("lambda x: (x[0], x[2])");
+        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, tuple_type));
+        EXPECT_EQ(udf.inputColumnCount(), 4);
+        EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "(i64,f64)");
+        udf = UDF("lambda a, b, c, d: (a, c)");
+        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, tuple_type));
+        EXPECT_EQ(udf.inputColumnCount(), 4);
+        EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "(i64,f64)");
+    }
+}
+
 TEST(UDF, SymbolTableIfLogic) {
 
     // check here symbol table can handle type reassignments properly

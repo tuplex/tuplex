@@ -211,6 +211,7 @@ namespace tuplex {
         }
 
         void AnnotatedAST::cloneFrom(const AnnotatedAST &other) {
+            _root.reset(nullptr);
             // as of now, deep copy only the relevant parts.
             assert(!_root);
             _root = other._root ? std::unique_ptr<ASTNode>(other._root->clone()) : nullptr;

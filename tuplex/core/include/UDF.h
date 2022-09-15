@@ -213,6 +213,12 @@ namespace tuplex {
             }
         }
 
+        /*!
+         * number of input columns (not corresponding to form, for this check input schema)
+         * @return number of input columns.
+         */
+        size_t inputColumnCount() const { return _numInputColumns; }
+
         const codegen::CompilePolicy& compilePolicy() const { return _policy; }
 
         /*!

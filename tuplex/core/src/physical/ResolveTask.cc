@@ -98,7 +98,7 @@ namespace tuplex {
         // from TransformTask
         // @TODO: refactor more nicely using traits?
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // put into hashmap or null bucket
@@ -106,14 +106,14 @@ namespace tuplex {
             // put into hashmap!
             uint8_t *bucket = nullptr;
             if(bucketize) {
-                hashmap_get(_htable.hm, key, key_size, (void **) (&bucket));
+                hashmap_get(_htable->hm, key, key_size, (void **) (&bucket));
                 // update or new entry
                 bucket = extend_bucket(bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
             }
-            hashmap_put(_htable.hm, key, key_size, bucket);
+            hashmap_put(_htable->hm, key, key_size, bucket);
         } else {
             // goes into null bucket, no hash
-            _htable.null_bucket = extend_bucket(_htable.null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
+            _htable->null_bucket = extend_bucket(_htable->null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
         }
     }
 
@@ -121,17 +121,17 @@ namespace tuplex {
         // from TransformTask
         // @TODO: refactor more nicely using traits?
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // get the bucket
         uint8_t *bucket = nullptr;
         if(key != nullptr && key_len > 0) {
             // get current bucket
-            hashmap_get(_htable.hm, key, key_len, (void **) (&bucket));
+            hashmap_get(_htable->hm, key, key_len, (void **) (&bucket));
         } else {
             // goes into null bucket, no hash
-            bucket = _htable.null_bucket;
+            bucket = _htable->null_bucket;
         }
 
         // aggregate in the new value
@@ -139,9 +139,9 @@ namespace tuplex {
 
         // write back the bucket
         if(key != nullptr && key_len > 0) {
-            hashmap_put(_htable.hm, key, key_len, bucket);
+            hashmap_put(_htable->hm, key, key_len, bucket);
         } else {
-            _htable.null_bucket = bucket;
+            _htable->null_bucket = bucket;
         }
     }
 
@@ -149,7 +149,7 @@ namespace tuplex {
         // from TransformTask
         // @TODO: refactor more nicely using traits?
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // put into hashmap or null bucket
@@ -157,14 +157,14 @@ namespace tuplex {
             // put into hashmap!
             uint8_t *bucket = nullptr;
             if(bucketize) {
-                int64_hashmap_get(_htable.hm, key, (void **) (&bucket));
+                int64_hashmap_get(_htable->hm, key, (void **) (&bucket));
                 // update or new entry
                 bucket = extend_bucket(bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
             }
-            int64_hashmap_put(_htable.hm, key, bucket);
+            int64_hashmap_put(_htable->hm, key, bucket);
         } else {
             // goes into null bucket, no hash
-            _htable.null_bucket = extend_bucket(_htable.null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
+            _htable->null_bucket = extend_bucket(_htable->null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
         }
     }
 
@@ -172,25 +172,25 @@ namespace tuplex {
         // from TransformTask
         // @TODO: refactor more nicely using traits?
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // get the bucket
         uint8_t *bucket = nullptr;
         if(!key_null) {
             // get current bucket
-            int64_hashmap_get(_htable.hm, key, (void **) (&bucket));
+            int64_hashmap_get(_htable->hm, key, (void **) (&bucket));
         } else {
-            bucket = _htable.null_bucket;
+            bucket = _htable->null_bucket;
         }
         // aggregate in the new value
         aggregateValues(&bucket, buf, buf_size);
         if(!key_null) {
             // get current bucket
-            int64_hashmap_put(_htable.hm, key, bucket);
+            int64_hashmap_put(_htable->hm, key, bucket);
         } else {
             // goes into null bucket, no hash
-            _htable.null_bucket = bucket;
+            _htable->null_bucket = bucket;
         }
     }
 
@@ -533,11 +533,23 @@ default:
 #endif
 
             // call pipFunctor
-            PyObject* args = PyTuple_New(1 + _py_intermediates.size());
+            size_t num_python_args = 1 + _py_intermediates.size() + hasHashTableSink();
+
+            // special case unique, no arg required (done via output)
+            if(hasHashTableSink() && _hash_agg_type == AggregateType::AGG_UNIQUE)
+                num_python_args -= 1;
+
+            PyObject* args = PyTuple_New(num_python_args);
             PyTuple_SET_ITEM(args, 0, tuple);
             for(unsigned i = 0; i < _py_intermediates.size(); ++i) {
                 Py_XINCREF(_py_intermediates[i]);
                 PyTuple_SET_ITEM(args, i + 1, _py_intermediates[i]);
+            }
+            // set hash table sink
+            if(hasHashTableSink() && _hash_agg_type != AggregateType::AGG_UNIQUE) { // special case: unique -> note: unify handling this with the other cases...
+                assert(_htable->hybrid_hm);
+                Py_XINCREF(_htable->hybrid_hm);
+                PyTuple_SET_ITEM(args, num_python_args - 1, _htable->hybrid_hm);
             }
 
             auto kwargs = PyDict_New(); PyDict_SetItemString(kwargs, "parse_cells", python::boolean(parse_cells));
@@ -546,8 +558,10 @@ default:
             if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
                 // this should not happen, bad internal error. codegen'ed python should capture everything.
                 owner()->error("bad internal python error: " + pcr.exceptionMessage);
+                python::unlockGIL();
+                return;
             } else {
-                // all good, row is fine. exception occured?
+                // all good, row is fine. exception occurred?
                 assert(pcr.res);
 
                 // type check: save to regular rows OR save to python row collection
@@ -585,12 +599,28 @@ default:
                     } else {
                         // normal, check type and either merge to normal set back OR onto python set together with row number?
                         auto resultRows = PyDict_GetItemString(pcr.res, "outputRows");
+
+                        // no output rows? continue.
+                        if(!resultRows) {
+                            python::unlockGIL();
+                            return;
+                        }
+
                         assert(PyList_Check(resultRows));
 
                         auto listSize = PyList_Size(resultRows);
                         // No rows were created, meaning the row was filtered out
                         if (0 == listSize) {
                             _numUnresolved++;
+                        }
+
+
+                        {
+#ifndef NDEBUG
+                            // // debug
+                            // Py_XINCREF(resultRows);
+                            // PyObject_Print(resultRows, stdout, 0); std::cout<<std::endl;
+#endif
                         }
 
                         for(int i = 0; i < listSize; ++i) {
@@ -603,7 +633,8 @@ default:
                             // because we have the logic to separate types etc. in the hashtable, for hash table output we can use
                             // simplified output schema here!
                             if(hasHashTableSink()) {
-                                sinkRowToHashTable(rowObj);
+                                auto key = PyDict_GetItemString(pcr.res, "key");
+                                sinkRowToHashTable(rowObj, key);
                                 continue;
                             }
 
@@ -701,7 +732,7 @@ default:
     void ResolveTask::execute() {
 
         // Note: if output is hash-table then order doesn't really matter
-        // --> can simply process things independent from each other.
+        // --> can simply process things independent of each other.
 
         using namespace std;
 
@@ -711,8 +742,8 @@ default:
 
         // alloc hashmap if required
         if(hasHashTableSink()) {
-            if(!_htable.hm)
-                _htable.hm = hashmap_new();
+            if(!_htable->hm)
+                _htable->hm = hashmap_new();
 
             python::lockGIL();
             // init hybrid
@@ -723,8 +754,26 @@ default:
             if(adjusted_key_type.isOptionType())
                 adjusted_key_type = adjusted_key_type.elementType();
 
-            _htable.hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(_htable, adjusted_key_type,
-                                                                                        _hash_bucket_type));
+            // unique adjustment, unknown bucket type -> None
+            if(_hash_bucket_type == python::Type::UNKNOWN && _hash_agg_type == AggregateType::AGG_UNIQUE)
+                _hash_bucket_type = python::Type::NULLVALUE;
+
+#ifndef NDEBUG
+            assert(owner());
+            owner()->info("initializing hybrid hash table with keytype=" + adjusted_key_type.desc() + ", valuetype=" + _hash_bucket_type.desc());
+#endif
+            // value mode
+            LookupStorageMode valueMode;
+            if(_hash_agg_type == AggregateType::AGG_BYKEY || _hash_agg_type == AggregateType::AGG_GENERAL) {
+                valueMode = LookupStorageMode::VALUE;
+            } else {
+                // list of values (i.e. for a join)
+                valueMode = LookupStorageMode::LISTOFVALUES;
+            }
+            auto hybrid = CreatePythonHashMapWrapper(*_htable, adjusted_key_type,
+                                                                                        _hash_bucket_type, valueMode);
+            assert(_htable->hybrid_hm);
+            assert(reinterpret_cast<uintptr_t>(hybrid) == reinterpret_cast<uintptr_t>(_htable->hybrid_hm)); // objects are the same pointer!
             python::unlockGIL();
         }
 
@@ -1294,7 +1343,16 @@ default:
         rowToMemorySink(owner(), _mergedRowsSink, commonCaseOutputSchema(), 0, contextID(), buf, bufSize);
     }
 
-    void ResolveTask::sinkRowToHashTable(PyObject *rowObject) {
+    PyObject* unwrapTuple(PyObject* o) {
+        if(PyTuple_Check(o) && PyTuple_Size(o) == 1) {
+            auto item = PyTuple_GetItem(o, 0);
+            Py_XINCREF(item);
+            return item;
+        }
+        return o;
+    }
+
+    void ResolveTask::sinkRowToHashTable(PyObject *rowObject, PyObject* key) {
         using namespace std;
 
         // sink rowObject to hash table
@@ -1310,22 +1368,26 @@ default:
                     rowObject = PyTuple_GetItem(rowObject, 0);
                 }
 
-                // lazy create table
-                if(!_htable.hybrid_hm) {
-
-                    // adjust element type for single objects
-                    // @TODO: this properly has to be thought through again...
-                    auto adjusted_key_type = _hash_element_type.isTupleType() && _hash_element_type.parameters().size() == 1 ?
-                            _hash_element_type.parameters().front() : _hash_element_type;
-
-                    _htable.hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(_htable,
-                                                                                                adjusted_key_type,
-                                                                                                _hash_bucket_type));
+                assert(_htable->hybrid_hm);
+                int rc =((HybridLookupTable*)_htable->hybrid_hm)->putItem(rowObject, nullptr);
+                // could also invoke via PyObject_SetItem(_htable->hybrid_hm, rowObject, python::none());
+                if(PyErr_Occurred()) {
+                    PyErr_Print();
+                    cout<<endl;
+                    PyErr_Clear();
                 }
+                break;
+            }
 
-                assert(_htable.hybrid_hm);
-                int rc =((HybridLookupTable*)_htable.hybrid_hm)->putItem(rowObject, nullptr);
-                // could also invoke via PyObject_SetItem(_htable.hybrid_hm, rowObject, python::none());
+            case AggregateType::AGG_BYKEY: {
+                // get key from result.
+                assert(key);
+
+                // unwrap tuple if necessary to store original value.
+                rowObject = unwrapTuple(rowObject);
+
+                assert(_htable->hybrid_hm);
+                int rc =((HybridLookupTable*)_htable->hybrid_hm)->putItem(key, rowObject);
                 if(PyErr_Occurred()) {
                     PyErr_Print();
                     cout<<endl;
@@ -1335,7 +1397,12 @@ default:
             }
 
             default: {
-                string err_msg = "unsupported aggregate fallback encountered, key type: " + _hash_element_type.desc() + ", bucket type: " + _hash_element_type.desc();
+                string agg_mode_str = "unknown";
+                if(_hash_agg_type == AggregateType::AGG_GENERAL)
+                    agg_mode_str = "general";
+                if(_hash_agg_type == AggregateType::AGG_BYKEY)
+                    agg_mode_str = "bykey";
+                string err_msg = "unsupported aggregate fallback for mode=" + agg_mode_str + " encountered, key type: " + _hash_element_type.desc() + ", bucket type: " + _hash_element_type.desc();
                 owner()->error(err_msg);
                 break;
             }

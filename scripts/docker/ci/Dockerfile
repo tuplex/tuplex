@@ -2,15 +2,18 @@
 # this is the x86_64 version
 # build this image via  docker build -t tuplex/ci .
 # and upload
+# (c) 2017-2022 Tuplex team
 FROM quay.io/pypa/manylinux2014_x86_64
+
+
 MAINTAINER "Tuplex project@Brown"
 
-
-# add script files
+# add script files from local dir
 RUN mkdir -p /opt/sbin
 ADD install_boost.sh /opt/sbin/install_boost.sh
 ADD install_tuplex_reqs.sh /opt/sbin/install_tuplex_reqs.sh
-ADD install_llvm9.sh /opt/sbin/install_llvm9.sh
+ADD install_llvm.sh /opt/sbin/install_llvm.sh
+
 # cmake not required to be installed, because recent image has cmake 3.20
 # it uses gcc 9.3.1
 
@@ -18,18 +21,13 @@ ADD install_llvm9.sh /opt/sbin/install_llvm9.sh
 ADD install_curl.sh /opt/sbin/install_curl.sh
 
 # image is centos based, so use yum as package manager
-# --> install_llvm9 uses most recent 9 release.
-# yet, can also use yum?
-
-# llvm9.0 can be then found in  /usr/lib64/llvm9.0/
-# note that static libs areq required too!
-#RUN yum install -y llvm9.0-devel llvm9.0-static wget
+# --> install_llvm uses most recent 9 release.
 
 RUN yum update -y
 RUN yum install -y wget
 
 # llvm-9 on yum repo might be broken, use manually built llvm
-RUN bash /opt/sbin/install_llvm9.sh
+RUN bash /opt/sbin/install_llvm.sh
 
 # install curl now
 RUN bash /opt/sbin/install_curl.sh
@@ -48,11 +46,10 @@ RUN python3.9 -m pip install --upgrade pip setuptools wheel
 RUN python3.10 -m pip install --upgrade pip setuptools wheel
 
 # matrix?
-RUN python3.7 -m pip install cloudpickle numpy pandas
-RUN python3.8 -m pip install cloudpickle numpy pandas
-RUN python3.9 -m pip install cloudpickle numpy pandas
-# this an alpha release, pandas not yet supported...
-RUN python3.10 -m pip install cloudpickle # numpy # pandas
+RUN python3.7 -m pip install 'cloudpickle<2.0' cython numpy pandas
+RUN python3.8 -m pip install 'cloudpickle<2.0' cython numpy pandas
+RUN python3.9 -m pip install 'cloudpickle<2.0' numpy pandas
+RUN python3.10 -m pip install 'cloudpickle>2.0' numpy pandas
 
 # tuplex requirements
 RUN bash /opt/sbin/install_tuplex_reqs.sh
@@ -70,7 +67,6 @@ RUN bash /opt/sbin/install_curl.sh
 
 # remove all the tmp stuff
 RUN rm -rf /tmp/*
-
 
 # remove temp stuff based on https://www.getpagespeed.com/server-setup/clear-disk-space-centos
 RUN curl -Ls http://bit.ly/clean-centos-disk-space | bash

@@ -38,7 +38,7 @@ def in_google_colab():
 
     shell_name_matching = False
     try:
-        shell_name_matching =  'google.colab' in str(get_ipython())
+        shell_name_matching = 'google.colab' in str(get_ipython())
     except:
         pass
 
@@ -67,7 +67,7 @@ test_dependencies = [
 
 # Also requires to install MongoDB
 webui_dependencies = [
-    'Flask>=2.0.2',
+    'Flask>=2.0.2,<2.2.0',
     'Werkzeug<2.2.0',
     'gunicorn',
     'eventlet==0.30.0', # newer versions of eventlet have a bug under MacOS
@@ -80,6 +80,7 @@ webui_dependencies = [
 # boto is broken currently...
 aws_lambda_dependencies = []
 
+# check python version, e.g., cloudpickle is specific
 
 # manual fix for google colab
 if in_google_colab():
@@ -108,7 +109,7 @@ if in_google_colab():
 else:
     logging.debug('Building dependencies for non Colab environment')
 
-    install_dependencies = [
+    install_dependencies = webui_dependencies + [
         'attrs>=19.2.0',
         'dill>=0.2.7.1',
         'pluggy',
@@ -124,7 +125,7 @@ else:
         'psutil',
         'pymongo',
         'iso8601'
-    ] + webui_dependencies + aws_lambda_dependencies
+    ] + aws_lambda_dependencies
 
 def ninja_installed():
     # check whether ninja is on the path
@@ -204,6 +205,8 @@ class CMakeExtension(Extension):
 class CMakeBuild(build_ext):
 
     def build_extension(self, ext):
+
+        macos_build_target = ''
 
         ext_filename = str(ext.name)
         ext_filename = ext_filename[ext_filename.rfind('.') + 1:]  # i.e. this is "tuplex"
@@ -318,6 +321,21 @@ class CMakeBuild(build_ext):
             "-DCMAKE_BUILD_TYPE={}".format(cfg),  # not used on MSVC, but no harm
             "-DPYTHON3_VERSION={}".format(py_maj_min),
         ]
+
+        # set correct mac os target
+        if platform.system().lower() == 'darwin':
+            macos_build_target = '10.13'
+            try:
+                macos_version = platform.mac_ver()[0]
+                macos_major_version = int(macos_version.split()[0])
+                if macos_major_version >= 11:
+                    macos_build_target = '{}.0'.format(macos_major_version)
+                logging.info("Found macOS {}, using build target {}".format(macos_version, macos_build_target))
+            except:
+                logging.error('Could not detect macos version, defaulting to macos 10.13 as build target')
+
+            # get mac OS version
+            cmake_args.append('-DCMAKE_OSX_DEPLOYMENT_TARGET={}'.format(macos_build_target))
 
         # add version info if not dev
         version_cmake = "-DVERSION_INFO={}".format(self.distribution.get_version())
@@ -445,6 +463,10 @@ class CMakeBuild(build_ext):
 
         build_env = dict(os.environ)
         logging.info('LD_LIBRARY_PATH is: {}'.format(build_env.get('LD_LIBRARY_PATH', '')))
+
+        # on mac os, set  MACOSX_DEPLOYMENT_TARGET
+        if 'MACOSX_DEPLOYMENT_TARGET' not in build_env.keys() and platform.system().lower() == 'darwin':
+            build_env['MACOSX_DEPLOYMENT_TARGET'] = macos_build_target
 
         subprocess.check_call(
             ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp, env=build_env

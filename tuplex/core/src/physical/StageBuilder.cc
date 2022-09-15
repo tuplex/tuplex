@@ -149,8 +149,31 @@ namespace tuplex {
                     }
                     case LogicalOperatorType::AGGREGATE: {
                         assert(op == _operators.back()); // make sure it's the last one
-                        // usually it's a hash aggregate, so python output.
-                        ppb.pythonOutput();
+                        // generate according to mode
+                        auto aop = static_cast<AggregateOperator*>(op);
+                        switch(aop->aggType()) {
+                            case AggregateType::AGG_UNIQUE: {
+                                // usually it's a hash aggregate, so python output.
+                                // this is trivial, b.c. no function needs to be called/performed...
+                                 ppb.pythonOutput();
+                                break;
+                            }
+                            case AggregateType::AGG_BYKEY: {
+                                ppb.pythonAggByKey(aop->getID(),
+                                                   next_hashmap_name(),
+                                                   aop->aggregatorUDF(),
+                                                   aop->keyColsInParent(),
+                                                   aop->initialValue());
+                                break;
+                            }
+                            case AggregateType::AGG_GENERAL: {
+                                ppb.pythonAggGeneral(aop->getID(), "agg_intermediate", aop->aggregatorUDF(), aop->initialValue());
+                                break;
+                            }
+                            default:
+                                throw std::runtime_error("unsupported aggregate type encountered for fallback codegen");
+                        }
+
                         break;
                     }
                     case LogicalOperatorType::TAKE: {
@@ -197,6 +220,19 @@ namespace tuplex {
                 // hashing& Co has to be done with the intermediate object.
                 // no code injected here. Do it whenever the python codepath is called.
                 ppb.pythonOutput();
+            }
+
+            // special case: if output mode is hashstage and aggregate -> need to generate a combine aggregate function
+            _pyAggregateCode = "";
+            _pyAggregateFunctionName = "";
+            if(_outputMode == EndPointMode::HASHTABLE && _operators.size() > 0
+            && _operators.back()->type() == LogicalOperatorType::AGGREGATE) {
+                auto aop = static_cast<AggregateOperator*>(_operators.back());
+                auto combine_udf = aop->combinerUDF();
+                _pyAggregateFunctionName = "combine_py_aggregates";
+                _pyAggregateCode = codegenPythonCombineAggregateFunction(_pyAggregateFunctionName, aop->getID(),
+                                                                         aop->aggType(), aop->initialValue(),
+                                                                         combine_udf);
             }
 
             _pyCode = ppb.getCode();
@@ -371,13 +407,6 @@ namespace tuplex {
                         auto oldInputType = op->getInputSchema().getRowType();
                         auto oldOutputType = op->getInputSchema().getRowType();
 
-                        if(node->type() == LogicalOperatorType::WITHCOLUMN) {
-                            auto wop = (WithColumnOperator*)node;
-                            if(wop->columnToMap() == "ActualElapsedTime") {
-                                std::cout<<"start checking retyping here!!!"<<std::endl;
-                            }
-                        }
-
                         checkRowType(last_rowtype);
                         // set FIRST the parent. Why? because operators like ingore depend on parent schema
                         // therefore, this needs to get updated first.
@@ -434,8 +463,6 @@ namespace tuplex {
                                                 jop->joinType(), jop->leftPrefix(), jop->leftSuffix(), jop->rightPrefix(),
                                                 jop->rightSuffix()));
                         opt_ops.back()->setID(node->getID()); // so lookup map works!
-
-//#error "need a retype operator for the join operation..."
 #ifdef VERBOSE_BUILD
                         {
                             jop = (JoinOperator*)opt_ops.back();
@@ -501,6 +528,7 @@ namespace tuplex {
                     case LogicalOperatorType::AGGREGATE: {
                         // aggregate is currently not part of codegen, i.e. the aggregation happens when writing out the output!
                         // ==> what about aggByKey though?
+                        // ==> handled separately above.
                         break;
                     }
                     default: {
@@ -881,24 +909,10 @@ namespace tuplex {
                 }
             }
 
-            //// opt: i.e. for outer stage this is not required
-            //// type upgrade because of nullvalue opt?
-            //if (_nullValueOptimization && !_isRootStage
-            //    && outSchema != operators.back()->getOutputSchema().getRowType()) {
-            //
-            //    if (!pip->addTypeUpgrade(outSchema))
-            //        throw std::runtime_error(
-            //                "type upgrade from " + operators.back()->getOutputSchema().getRowType().desc() + " to " +
-            //                outSchema.desc() + "failed.");
-            //}
-
-
             // only fast
             switch(_outputMode) {
                 case EndPointMode::FILE: {
                     // for file mode, can directly merge output rows
-                    //pip->buildWithTuplexWriter(_funcMemoryWriteCallbackName, _outputNodeID); //output node id
-
                     switch (_outputFileFormat) {
                         case FileFormat::OUTFMT_CSV: {
                             // i.e. write to memory writer!
@@ -916,12 +930,6 @@ namespace tuplex {
                         default:
                             throw std::runtime_error("unsupported output fmt encountered, can't codegen!");
                     }
-
-                    // old way used to be to generate additional file writer code with csv conversion
-                    // ==> speed it up by normal case specialization
-                    //                // generate separate function to write from main memory to file
-//                generateFileWriterCode(env, _funcFileWriteCallbackName, _funcExceptionCallback, _outputNodeID,
-//                                       _outputFileFormat, _fileOutputParameters["null_value"], _allowUndefinedBehavior);
                     break;
                 }
                 case EndPointMode::HASHTABLE: {
@@ -1382,15 +1390,6 @@ namespace tuplex {
             _outputDataSetID = 0;
 
             // leave others b.c. it's an intermediate stage...
-
-            // assert key type
-            // TODO(rahuly): do something about this assertion - it's false for AggregateByKey because the output schema doesn't match the parent's
-//            python::Type kt;
-//            if(colKey.has_value()) {
-//                kt = schema.getRowType().parameters().at(colKey.value());
-//                std::cout << "kt: " << kt.desc() << std::endl;
-//                assert(canUpcastType(kt, keyType));
-//            }
             _hashKeyType = keyType;
             _hashBucketType = bucketType;
         }
@@ -1444,11 +1443,11 @@ namespace tuplex {
             // copy code
             // llvm ir as string is super wasteful, use bitcode instead. Can be faster parsed.
             // => https://llvm.org/doxygen/BitcodeWriter_8cpp_source.html#l04457
-            // stage->_irCode = _irCode;
-            // stage->_irResolveCode = _irResolveCode;
             stage->_irBitCode = _irBitCode;
             stage->_pyCode = _pyCode;
             stage->_pyPipelineName = _pyPipelineName;
+            stage->_pyAggregateCode = _pyAggregateCode;
+            stage->_pyAggregateFunctionName = _pyAggregateFunctionName;
             stage->_updateInputExceptions = _updateInputExceptions;
 
             // if last op is CacheOperator, check whether normal/exceptional case should get cached separately

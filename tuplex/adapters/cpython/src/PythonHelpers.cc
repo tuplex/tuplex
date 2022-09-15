@@ -1198,20 +1198,36 @@ namespace python {
         //     cout<<"tb frame"<<python::PyString_AsString(PyObject_Str(PyObject_GetAttrString(tbnext, "tb_frame")))<<endl;
         //     tbnext = PyObject_GetAttrString(tbnext, "tb_next");
         // }
+        // could use
+        // try:
+        //    ...
+        //except:
+        //    exc_type, exc_value, exc_traceback = sys.exc_info()
+        //    t = traceback.extract_tb(exc_traceback)
 
         Py_XDECREF(type);
         Py_XDECREF(value);
         Py_XDECREF(traceback);
         PyErr_Clear();
 
-
         // fetch potential offset
         if(func) {
             auto dict = PyObject_GetAttrString(func, "__dict__");
             auto offset = PyDict_GetItemString(dict, "line_offset");
+
             if(offset) {
-                pcr.exceptionLineNo += PyLong_AsLong(offset);
-                pcr.functionFirstLineNo += PyLong_AsLong(offset);
+
+              // special case: func name is lambda
+              if(pcr.functionName == "<lambda>" && pcr.exceptionLineNo < 0)
+                pcr.exceptionLineNo = 0;
+
+              // Python 3.10+ changed exception counting. I.e., it's relative to start, 1 indexed now.
+              int i_offset = PyLong_AsLong(offset);
+              // want to yield exception number relative to full file!
+              // -> i.e., let's say exceptionLineNo is 1 and i_offset is 2.
+              // then pcr.exceptionLineNo should be 1 + 2 = 3
+              pcr.exceptionLineNo += i_offset;
+              pcr.functionFirstLineNo += i_offset;
             }
         }
     }
@@ -1766,5 +1782,70 @@ namespace python {
             std::cerr<<"calling platformExtensionSuffix - but interpreter is not running. Internal error?"<<std::endl;
         }
         return "";
+    }
+
+    // maj.min.patch
+    static std::tuple<int, int, int> extract_version(const std::string& s) {
+      using namespace std;
+      vector<string> v;
+      tuplex::splitString(s, '.', [&v](const std::string& part) { v.push_back(part); });
+      assert(v.size() == 3);
+      return make_tuple(std::stoi(v[0]), std::stoi(v[1]), std::stoi(v[2]));
+    }
+
+    bool cloudpickleCompatibility(std::ostream *os) {
+      std::stringstream err;
+      assert(python::holdsGIL());
+      PyObject *mainModule = PyImport_AddModule("__main__");
+
+#if (PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 10)
+      // should be 2.1.0+
+      std::string desired_version = ">=2.1.0";
+#else
+      std::string desired_version = "<2.0.0";
+#endif
+
+      // check for error
+      if(PyErr_Occurred()) {
+        PyErr_Print();
+        std::cout<<std::endl;
+        return false;
+      }
+
+      // import cloudpickle for serialized functions
+      PyObject *cloudpickleModule = PyImport_ImportModule("cloudpickle");
+      if(!cloudpickleModule) {
+          err<<"could not find cloudpickle module, please install via `pip3 install \""<<desired_version<<"\"`.";
+          if(os)
+            *os<<err.str();
+          return false;
+      }
+
+      PyModule_AddObject(mainModule, "cloudpickle", cloudpickleModule);
+      auto versionObj =  PyObject_GetAttr(cloudpickleModule, PyString_FromString("__version__"));
+      if(!versionObj)
+        return false;
+
+      auto version_string = PyString_AsString(versionObj);
+
+      auto version = extract_version(version_string);
+#if (PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 10)
+      // should be 2.1.0+
+      if(std::get<0>(version) < 2 || std::get<1>(version) < 1) {
+        err<<"minimum required cloudpickle version to use with "<<PY_VERSION<<" is 2.1.0";
+        if(os)
+          *os<<err.str();
+        return false;
+      }
+#else
+      // should be <2.0.0
+      if(std::get<0>(version) >= 2) {
+        err<<"cloudpickle version to use with "<<PY_VERSION<<" has to be less than 2.0.0";
+        if(os)
+          *os<<err.str();
+        return false;
+      }
+#endif
+      return true;
     }
 }

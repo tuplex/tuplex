@@ -101,14 +101,14 @@ namespace tuplex {
 
             _aggregateOutputType = aggregateType;
             hintTwoParamUDF(_combiner, aggregateType, aggregateType);
-            logger.info("combiner output-schema is: " + _combiner.getOutputSchema().getRowType().desc());
+            logger.debug("combiner output-schema is: " + _combiner.getOutputSchema().getRowType().desc());
 
             // how hint the aggregator function. It too has to have two input params.
             auto rowtype = parent()->getOutputSchema().getRowType();
             if(rowtype.parameters().size() == 1) // unpack one level
                 rowtype = rowtype.parameters().front();
             hintTwoParamUDF(_aggregator, aggregateType, rowtype);
-            logger.info("aggregator output-schema is: " + _aggregator.getOutputSchema().getRowType().desc());
+            logger.debug("aggregator output-schema is: " + _aggregator.getOutputSchema().getRowType().desc());
 
 
             // check whether everything is compatible.
@@ -133,7 +133,7 @@ namespace tuplex {
                 final_type = python::Type::makeTupleType(final_row_type);
             }
 
-            logger.info("aggregate operator yields: " + final_type.desc());
+            logger.debug("aggregate operator yields: " + final_type.desc());
             setSchema(Schema(Schema::MemoryLayout::ROW, final_type));
             return true;
         } catch(std::exception& e) {

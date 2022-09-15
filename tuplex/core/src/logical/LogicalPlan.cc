@@ -922,6 +922,7 @@ namespace tuplex {
             root->accept(fbv);
 
             auto tmp = fop->getUDF().getAccessedColumns();
+            auto fop_closure = fop->getUDF().globals();
             std::set<size_t> accessed_columns(tmp.begin(), tmp.end());
             if(fbv.succeeded() && (accessed_columns.size() > 1)) { // don't break the filter if only one column is accessed
                 auto ranges = fbv.getRanges();
@@ -948,7 +949,7 @@ namespace tuplex {
                         // children -> fop -> new_filter -> parent
                         assert(fop->parents().size() == 1);
                         auto parent = fop->parent();
-                        auto new_filter = new FilterOperator(parent, UDF(condition), parent->columns());
+                        auto new_filter = new FilterOperator(parent, UDF(condition, "", fop_closure), parent->columns());
                         parent->setChild(new_filter);
                         new_filter->setParent(parent);
                         fop->setParent(new_filter);
@@ -994,7 +995,9 @@ namespace tuplex {
                     // create copy of filter ==> need to reparse UDF & Co because of column access!
                     auto code = dynamic_cast<FilterOperator*>(op)->getUDF().getCode();
                     auto pickled_code = dynamic_cast<FilterOperator*>(op)->getUDF().getPickledCode();
-                    auto fop = new FilterOperator(grandparent, UDF(code, pickled_code), grandparent->columns());
+                    auto fop_closure = dynamic_cast<FilterOperator*>(op)->getUDF().globals();
+                    auto new_udf = UDF(code, pickled_code, fop_closure);
+                    auto fop = new FilterOperator(grandparent, new_udf, grandparent->columns());
                     fop->setID(op->getID()); // clone with ID, important for exception tracking!
 #ifdef TRACE_LOGICAL_OPTIMIZATION
                     // debug:

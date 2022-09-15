@@ -852,7 +852,7 @@ namespace tuplex {
             std::reverse(v.begin(), v.end());
 
             // push back to suite
-            auto suite = new NSuite();
+            auto suite = new NSuite(); // TODO lost.
             for (auto stmt : v)
                 suite->addStatement(stmt);
 

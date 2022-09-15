@@ -330,12 +330,12 @@ class CMakeBuild(build_ext):
                 macos_major_version = int(macos_version.split()[0])
                 if macos_major_version >= 11:
                     macos_build_target = '{}.0'.format(macos_major_version)
-                logging.info("Foudn macOS {}, using build target {}".format(macos_version, macos_build_target))
+                logging.info("Found macOS {}, using build target {}".format(macos_version, macos_build_target))
             except:
                 logging.error('Could not detect macos version, defaulting to macos 10.13 as build target')
 
             # get mac OS version
-            cmake_args.append('-DCMACOSX_DEPLOYMENT_TARGET={}'.format(macos_build_target))
+            cmake_args.append('-DCMAKE_OSX_DEPLOYMENT_TARGET={}'.format(macos_build_target))
 
         # add version info if not dev
         version_cmake = "-DVERSION_INFO={}".format(self.distribution.get_version())

@@ -320,6 +320,21 @@ class CMakeBuild(build_ext):
             "-DPYTHON3_VERSION={}".format(py_maj_min),
         ]
 
+        # set correct mac os target
+        if platform.system().lower() == 'darwin':
+            macos_build_target = '10.13'
+            try:
+                macos_version = platform.mac_ver()[0]
+                macos_major_version = int(macos_version.split()[0])
+                if macos_major_version >= 11:
+                    macos_build_target = '{}.0'.format(macos_major_version)
+                logging.info("Foudn macOS {}, using build target {}".format(macos_version, macos_build_target))
+            except:
+                logging.error('Could not detect macos version, defaulting to macos 10.13 as build target')
+
+            # get mac OS version
+            cmake_args.append('-DCMACOSX_DEPLOYMENT_TARGET={}'.format(macos_build_target))
+
         # add version info if not dev
         version_cmake = "-DVERSION_INFO={}".format(self.distribution.get_version())
         if re.match(r'\d+.\d+.\d+', version_cmake):

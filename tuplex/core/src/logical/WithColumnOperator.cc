@@ -44,8 +44,8 @@ namespace tuplex {
 
     Schema WithColumnOperator::inferSchema(Schema parentSchema, bool is_projected_row_type) {
 
-        if(is_projected_row_type)
-            throw std::runtime_error("nyimpl");
+        // if(is_projected_row_type)
+        //    throw std::runtime_error("nyimpl");
 
         if(parentSchema == Schema::UNKNOWN)
             parentSchema = getInputSchema();
@@ -182,7 +182,7 @@ namespace tuplex {
     }
 
     void WithColumnOperator::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
-        throw std::runtime_error("something is wrong here...");
+       //  throw std::runtime_error("something is wrong here...");
         // get current input schema before rewrite
         auto input_schema = getInputSchema(); // this is the unrewritten one.
 

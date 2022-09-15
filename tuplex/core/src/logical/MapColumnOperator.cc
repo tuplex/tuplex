@@ -139,7 +139,7 @@ namespace tuplex {
 
 
     void MapColumnOperator::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
-        throw std::runtime_error("not sure what's going on here...");
+        // throw std::runtime_error("not sure what's going on here...");
         if(rewriteMap.find(_columnToMapIndex) != rewriteMap.end())
             _columnToMapIndex = rewriteMap.at(_columnToMapIndex);
         else

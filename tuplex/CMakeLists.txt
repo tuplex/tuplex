@@ -145,18 +145,6 @@ if(BREW_FOUND)
 endif()
 enable_testing()
 
-# detect MacOS Version because at least 10.13 is required when building with AWS SDK
-if(APPLE)
-  execute_process(COMMAND bash -c "sw_vers | grep -Eo '([0-9]{1,}\.)+[0-9]{1,}' | head -1" OUTPUT_VARIABLE MACOSX_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-  if(NOT CMAKE_OSX_DEPLOYMENT_TARGET OR "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
-      # use high sierra target per default
-      set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)
-  endif()
-
-  message(STATUS "Detected macOS ${MACOSX_VERSION_STRING} host platform, building for deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}. To use a different deployment target either set CMAKE_OSX_DEPLOYMENT_TARGET or the environment variable MACOSX_DEPLOYMENT_TARGET to the desired version.")
-endif()
-
 # mainly from https://github.com/AdaCore/z3/blob/master/CMakeLists.txt
 message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
 set(available_build_types Debug Release RelWithDebInfo MinSizeRel tsan asan)

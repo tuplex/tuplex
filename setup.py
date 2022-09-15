@@ -206,6 +206,8 @@ class CMakeBuild(build_ext):
 
     def build_extension(self, ext):
 
+        macos_build_target = ''
+
         ext_filename = str(ext.name)
         ext_filename = ext_filename[ext_filename.rfind('.') + 1:]  # i.e. this is "tuplex"
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
@@ -461,6 +463,10 @@ class CMakeBuild(build_ext):
 
         build_env = dict(os.environ)
         logging.info('LD_LIBRARY_PATH is: {}'.format(build_env.get('LD_LIBRARY_PATH', '')))
+
+        # on mac os, set  MACOSX_DEPLOYMENT_TARGET
+        if 'MACOSX_DEPLOYMENT_TARGET' not in build_env.keys() and platform.system().lower() == 'darwin':
+            build_env['MACOSX_DEPLOYMENT_TARGET'] = macos_build_target
 
         subprocess.check_call(
             ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp, env=build_env

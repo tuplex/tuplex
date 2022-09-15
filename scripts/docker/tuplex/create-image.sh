@@ -14,10 +14,10 @@ done
 # build benchmark docker image
 # copy from scripts to current dir because docker doesn't understand files
 # outside the build context
-docker build -t tuplex/tuplex . || exit 1
+docker build -t tuplex/tuplex:v0.3.3 -f Dockerfile . || exit 1
 
 # is upload set?
 if [[ "${UPLOAD}" == 'SET' ]]; then
   docker login
-  docker push tuplex/tuplex
+  docker push tuplex/tuplex:v0.3.3
 fi

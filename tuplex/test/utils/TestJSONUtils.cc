@@ -44,9 +44,20 @@ static std::string fileToString(const std::string& path) {
     return buffer.str();
 }
 static bool stringToFile(const std::string& data, const std::string& path) {
-    std::ofstream ofs(path);
-    ofs << data;
-    ofs.close();
+    //std::ofstream ofs(path);
+    //ofs << data;
+    //ofs.flush();
+    //ofs.close();
+    //
+    FILE *f = fopen(path.c_str(), "w");
+    if(!f) { 
+	    std::cerr<<"failed to open file "<<path<<"for write"<<std::endl;
+	    return false;
+    }
+    //fprintf(f, "%s", data.c_str()); 
+    fwrite(data.c_str(), data.size(), 1, f);
+    fclose(f);
+    std::cout<<"wrote "<<data.size()<<" bytes to "<<path<<std::endl;
     return true;
 }
 
@@ -636,15 +647,18 @@ TEST(JSONUtils, CheckFiles) {
     //pattern = "/disk/download/data/*2021*.json.gz";
 
     // test file /disk/download/data/2021-01-05-11.json.gz
-    //pattern = "/Users/leonhards/Downloads/2021-01-05-11.json.gz";
 
     // where to output stats...
-    string output_path = "stats";
-    cout<<"Saving detailed stats in "<<"./"<<output_path<<endl;
+    string output_path = "./stats";
+    output_path = "/home/lspiegel/tuplex-public/tuplex/build/stats";
+    cout<<"Saving detailed stats in "<<output_path<<endl;
+
+    create_dir(output_path); 
 
     size_t num_files_found = 0;
     auto paths = glob(pattern);
     std::sort(paths.begin(), paths.end());
+    std::reverse(paths.begin(), paths.end());
     num_files_found = paths.size();
     cout<<"Found "<<pluralize(num_files_found, "file")<<" to analyze schema for."<<endl;
 

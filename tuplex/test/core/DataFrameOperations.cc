@@ -99,8 +99,16 @@ TEST_F(DataFrameTest, PushdownWithSpecialization) {
     conf.set("tuplex.optimizer.nullValueOptimization", "true");
 
     Context c(conf);
+
+    // variation of pipeline
+    //     auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
+    //                             .withColumn("C", UDF("lambda x: x['A'] + 1")) // this is tricky, because it overrides the column C but doesn't mean this column needs to get parsed!
+    //                             .collectAsVector();
+
     auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
-                             .map(UDF("lambda x: {'A': x['A'], 'B': x['B']}")).collectAsVector();
+                             .map(UDF("lambda x: {'A': x['A'], 'B': x['B']}"))
+                             .withColumn("C", UDF("lambda x: x['A'] + 1")) // this is tricky, because it overrides the column C but doesn't mean this column needs to get parsed!
+                             .collectAsVector();
 }
 
 TEST_F(CSVDataFrameTest, SimpleMapColumnI) {

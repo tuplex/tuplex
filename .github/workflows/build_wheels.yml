@@ -8,7 +8,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-20.04, macos-10.15 ]
+        os: [ ubuntu-20.04, macos-10.15, macos-11, macos-12 ]
 
     steps:
       - uses: actions/checkout@v2
@@ -41,7 +41,8 @@ jobs:
           CIBW_BUILD: "cp3{7,8,9}-*"
           CIBW_SKIP: "cp3{5,6}-macosx* pp* *-musllinux_*"
 
-          CIBW_BEFORE_BUILD_MACOS: bash ./scripts/macos/brew_dependencies.sh && bash ./scripts/macos/install_aws-sdk-cpp.sh
+          # do not use build, b.c. it will fail on subsequent. setup once.
+          CIBW_BEFORE_ALL_MACOS: bash ./scripts/macos/install_antlr4_cpp_runtime.sh && bash ./scripts/macos/brew_dependencies.sh && bash ./scripts/macos/install_aws-sdk-cpp.sh
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
 
           # set this environment variable to include the Lambda zip from the previous build step
@@ -52,10 +53,10 @@ jobs:
           # yet, because PyPi limit hasn't been increased yet, do not bundle runner.
           CIBW_ENVIRONMENT_LINUX: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
           # requires 10.13 at least for macos!
-          CIBW_ENVIRONMENT_MACOS: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13' MACOSX_DEPLOYMENT_TARGET=10.13"
+          CIBW_ENVIRONMENT_MACOS: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON'"
 
       - name: reorganize files
-        run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./scripts/test_pypi.sh ./wheelhouse
+        run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./.github/scripts/test_pypi.sh ./wheelhouse
 
       - uses: actions/upload-artifact@v2
         with:
@@ -101,7 +102,7 @@ jobs:
           path: dist
 
       - name: reorganize
-        run: mkdir -p scripts && mv dist/*.sh ./scripts/ && mv dist/*.version ./scripts/ && chmod +x ./scripts/test_pypi.sh
+        run: mkdir -p scripts && mv dist/*.sh ./scripts/ && mv dist/*.version ./scripts/ && cp ./.github/scripts/test_pypi.sh ./scripts/ && chmod +x ./scripts/test_pypi.sh
 
       - uses: pypa/gh-action-pypi-publish@v1.4.2
         with:

@@ -352,7 +352,8 @@ TEST(PythonPipeline, BasicJoin) {
     HashTableSink hsink;
     hsink.null_bucket = nullptr;
     hsink.hm = hashmap_new();
-    auto hm_wrapped = CreatePythonHashMapWrapper(hsink, python::Type::STRING, python::Type::I64);
+    auto hm_wrapped = CreatePythonHashMapWrapper(hsink, python::Type::STRING,
+                                                 python::Type::I64, LookupStorageMode::LISTOFVALUES);
 
     // add some data to the hashmap (can use any key/val combo)
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), python::PyString_FromString("i64"), PyLong_FromLong(1));
@@ -458,7 +459,7 @@ TEST(PythonPipeline, BasicIntJoin) {
     HashTableSink hsink;
     hsink.null_bucket = nullptr;
     hsink.hm = hashmap_new();
-    auto hm_wrapped = CreatePythonHashMapWrapper(hsink, python::Type::I64, python::Type::I64);
+    auto hm_wrapped = CreatePythonHashMapWrapper(hsink, python::Type::I64, python::Type::I64, LookupStorageMode::LISTOFVALUES);
 
     // add some data to the hashmap (can use any key/val combo)
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrapped), PyLong_FromLong(1), PyLong_FromLong(1));
@@ -565,7 +566,7 @@ TEST(PythonPipeline, LeftJoin) {
     hsink.null_bucket = nullptr;
     hsink.hm = hashmap_new();
 
-    auto hm_wrapped = CreatePythonHashMapWrapper(hsink, python::Type::STRING, python::Type::I64);
+    auto hm_wrapped = CreatePythonHashMapWrapper(hsink, python::Type::STRING, python::Type::I64, LookupStorageMode::LISTOFVALUES);
 
     // put some conforming/non-conforming data into the buckets
     PyObject_SetItem(reinterpret_cast<PyObject *>(hm_wrapped), python::PyString_FromString("abc"),
@@ -625,7 +626,7 @@ TEST(PythonPipeline, LeftIntJoin) {
     hsink.null_bucket = nullptr;
     hsink.hm = hashmap_new();
 
-    auto hm_wrapped = CreatePythonHashMapWrapper(hsink, python::Type::I64, python::Type::I64);
+    auto hm_wrapped = CreatePythonHashMapWrapper(hsink, python::Type::I64, python::Type::I64, LookupStorageMode::LISTOFVALUES);
 
     // put some conforming/non-conforming data into the buckets
     PyObject_SetItem(reinterpret_cast<PyObject *>(hm_wrapped), PyLong_FromLong(10),
@@ -693,8 +694,8 @@ TEST(PythonPipeline, MultiJoin) {
     hsinkB.null_bucket = nullptr;
     hsinkB.hm = hashmap_new();
 
-    auto hm_wrappedA = CreatePythonHashMapWrapper(hsinkA, python::Type::STRING, python::Type::I64);
-    auto hm_wrappedB = CreatePythonHashMapWrapper(hsinkB, python::Type::STRING, python::Type::I64);
+    auto hm_wrappedA = CreatePythonHashMapWrapper(hsinkA, python::Type::STRING, python::Type::I64, LookupStorageMode::LISTOFVALUES);
+    auto hm_wrappedB = CreatePythonHashMapWrapper(hsinkB, python::Type::STRING, python::Type::I64, LookupStorageMode::LISTOFVALUES);
 
     // put some conforming/non-conforming data into the buckets
     PyObject_SetItem(reinterpret_cast<PyObject*>(hm_wrappedA), python::PyString_FromString("abc"), PyLong_FromLong(200)); // regular data, as specified in normal case

@@ -44,6 +44,13 @@ map_t hashmap_new() {
     m->table_size = INITIAL_SIZE;
     m->size = 0;
 
+    // debug check
+#ifndef NDEBUG
+    for(unsigned i = 0; i < m->table_size; ++i) {
+        assert(m->data[i].in_use == 0);
+    }
+#endif
+
     return m;
     err:
     if (m)
@@ -212,13 +219,23 @@ unsigned long hashmap_crc32(const unsigned char *s, unsigned int len) {
 
 // new: use city hash or murmurhash + no mixins to make it faster...
 #include <third_party/hash/city.h>
+#include <iostream>
+
 /*
  * Hashing function for a string
  */
 static inline uint32_t hashmap_hash_int(hashmap_map *m, const char *keystring, uint64_t keylen) {
 
+#ifndef NDEBUG
+    if(!keystring) {
+        std::cerr<<"invalid keystring?"<<std::endl;
+    }
+
+#endif
+
     assert(m); // sanity check!
     assert(keystring); // null bucket for that case!
+
 
     uint32_t key = CityHash32(reinterpret_cast<const char *>(keystring), keylen);
 
@@ -392,7 +409,7 @@ int hashmap_iterate(map_t in, PFany f, any_t item) {
     hashmap_map *m = (hashmap_map *) in;
 
     /* On empty hashmap, return immediately */
-    if (hashmap_length(m) <= 0)
+    if (!m || hashmap_length(m) <= 0)
         return MAP_MISSING;
 
     /* Linear probing */
@@ -473,16 +490,23 @@ int hashmap_remove(map_t in, char *key, uint64_t keylen) {
 void hashmap_free(map_t in) {
     hashmap_map *m = (hashmap_map *) in;
 
+    if(!m)
+        return;
+
     // free all keys
     for(unsigned i = 0; i < m->table_size; ++i) {
-        if(m->data[i].key) {
+        if(m->data[i].in_use != 0 && m->data[i].key) {
             free(m->data[i].key);
             m->data[i].key = nullptr;
         }
+        m->data[i].key = nullptr;
+        m->data[i].in_use = 0;
     }
 
     free(m->data);
+    m->data = nullptr;
     free(m);
+    m = nullptr;
 }
 
 /* Return the length of the hashmap */

@@ -67,7 +67,7 @@ TEST_F(WrapperTest, LambdaBackend) {
 //     PyTuple_SET_ITEM(tupleObj1, 1, python::PyString_FromString("a"));
 
 //     PyList_SetItem(listObj, 0, tupleObj1);
-    
+
 //     { // need to keep curly braces (for weird memory errors)
 //         auto list = py::reinterpret_borrow<py::list>(listObj);
 //         // add parallelize-map-collect
@@ -126,13 +126,13 @@ TEST_F(WrapperTest, MathIsInf) {
 
     // list object contains all rows in test (in this test, only one row)
     PyObject *listObj = PyList_New(1);
-    
+
     // initialize listObj
     // note that using runAndGet on each individual value, and then setting
     // them as an element of the list is buggy (doesn't always return the right value)
     listObj = python::runAndGet(
-        "import math; x = [0, -1, 5, math.inf * 0, math.inf, 97]",
-        "x");
+            "import math; x = [0, -1, 5, math.inf * 0, math.inf, 97]",
+            "x");
 
     Py_XINCREF(listObj);
     PyObject_Print(listObj, stdout, 0);
@@ -2854,6 +2854,115 @@ TEST_F(WrapperTest, DoubleCollect) {
         EXPECT_EQ(PyList_Size(resObj), 2);
     }
 }
+
+TEST_F(WrapperTest, Subset311) {
+    using namespace tuplex;
+
+    // ds = c.csv('311_subset.small.csv')
+    //
+    //year_to_investigate = 2019
+    //
+    //def extract_month(row):
+    //  date = row['Created Date']
+    //  date = date[:date.find(' ')]
+    //  return int(date.split('/')[0])
+    //
+    //def extract_year(row):
+    //  date = row['Created Date']
+    //  date = date[:date.find(' ')]
+    //  return int(date.split('/')[-1])
+    //
+    //ds.withColumn('Month', extract_month) \
+    //  .withColumn('Year', extract_year) \
+    //  .filter(lambda row: 'Mosquito' in row['Complaint Type']) \
+    //  .filter(lambda row: row['Year'] == year_to_investigate) \
+    //  .selectColumns(['Month', 'Year', 'Complaint Type']) \
+    //  .show(5)
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+    std::string udf_code_1 = "def extract_month(row):\n"
+                      "  date = row['Created Date']\n"
+                      "  date = date[:date.find(' ')]\n"
+                      "  return int(date.split('/')[0])";
+
+    std::string udf_code_2 = "def extract_year(row):\n"
+                      "  date = row['Created Date']\n"
+                      "  date = date[:date.find(' ')]\n"
+                      "  return int(date.split('/')[-1])";
+    auto udf_closure = PyDict_New();
+    PyDict_SetItemString(udf_closure, "year_to_investigate", PyLong_FromLong(2011));
+    auto closure = py::reinterpret_borrow<py::dict>(udf_closure);
+
+    auto list = PyList_New(3);
+    PyList_SetItem(list, 0, python::PyString_FromString("Month"));
+    PyList_SetItem(list, 1, python::PyString_FromString("Year"));
+    PyList_SetItem(list, 2, python::PyString_FromString("Complaint Type"));
+    auto cols_to_select = py::reinterpret_borrow<py::list>(list);
+
+    PythonContext ctx("", "", ctx_opts);
+    {
+        ctx.csv("../resources/311_subset.small.csv")
+           .withColumn("Month", udf_code_1, "")
+           .withColumn("Year", udf_code_2, "")
+           .filter("lambda row: 'Street Sign' in row['Complaint Type']", "")
+           .filter("lambda row: row['Year'] == year_to_investigate", "", closure)
+           .selectColumns(cols_to_select).show();
+
+        std::cout<<std::endl; // flush
+    }
+}
+
+TEST_F(WrapperTest, Subset311Aggregate) {
+    using namespace tuplex;
+
+    // ds = c.csv('311_subset.small.csv')
+    // def combine_udf(a, b):
+    //  return a + b
+    //
+    // def aggregate_udf(agg, row):
+    //  return agg + 1
+    // ds.aggregateByKey(combine_udf, aggregate_udf, 0, ["Complaint Type"]).show()
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+    std::string udf_combine = "def combine_udf(a, b):\n"
+                              "  return a + b";
+    std::string udf_aggregate = "def aggregate_udf(agg, row):\n"
+                                "  return agg + 1";
+
+    auto initial_pickled = python::pickleObject(python::getMainModule(), PyLong_FromLong(0));
+
+    auto list = PyList_New(1);
+    PyList_SetItem(list, 0, python::PyString_FromString("Complaint Type"));
+    auto cols_to_select = py::reinterpret_borrow<py::list>(list);
+
+    auto list2 = PyList_New(1);
+    PyList_SetItem(list2, 0, python::PyString_FromString("Complaint Type"));
+    auto cols_to_agg = py::reinterpret_borrow<py::list>(list2);
+
+    PythonContext ctx("", "", ctx_opts);
+    {
+        ctx.csv("../resources/311_subset.small.csv")
+                .aggregateByKey(udf_combine, "", udf_aggregate, "", initial_pickled, cols_to_agg)
+                .selectColumns(cols_to_select).show();
+
+        std::cout<<std::endl; // flush
+    }
+}
+
+
+
 
 //// debug any python module...
 ///** Takes a path and adds it to sys.paths by calling PyRun_SimpleString.

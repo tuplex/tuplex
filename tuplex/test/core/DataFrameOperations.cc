@@ -99,7 +99,8 @@ TEST_F(DataFrameTest, PushdownWithSpecialization) {
     conf.set("tuplex.optimizer.nullValueOptimization", "true");
 
     Context c(conf);
-    auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")}).map(UDF("lambda x: {'A': x['A'], 'B': x['B']}")).collectAsVector();
+    auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
+                             .map(UDF("lambda x: {'A': x['A'], 'B': x['B']}")).collectAsVector();
 }
 
 TEST_F(CSVDataFrameTest, SimpleMapColumnI) {

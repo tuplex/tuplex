@@ -45,6 +45,7 @@ namespace tuplex {
                     ColumnReturnRewriteVisitor rv;
                     root->accept(rv);
                     if (rv.foundColumnNames()) {
+                        Logger::instance().defaultLogger().warn("StructDict type will help make this easier.");
                         auto outputColumnNames = rv.columnNames;
                         // type annotator hasn't run yet , so we don't need to reset outputschema
                         _outputColumns = outputColumnNames;
@@ -193,7 +194,7 @@ namespace tuplex {
 
         // could be unknown => then retype always! If not, check correct type is given.
         if(UDFOperator::getInputSchema() != Schema::UNKNOWN) {
-            size_t num_params_before_retype = UDFOperator::getInputSchema().getRowType().parameters().size();
+            size_t num_params_before_retype = rewriteMap().size(); //UDFOperator::getInputSchema().getRowType().parameters().size();
             size_t num_params_after_retype = colTypes.size();
             if(num_params_before_retype != num_params_after_retype) {
                 throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");

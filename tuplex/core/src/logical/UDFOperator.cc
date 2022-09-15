@@ -54,8 +54,8 @@ namespace tuplex {
             if(_udf.getInputSchema() != Schema::UNKNOWN && _udf.getOutputSchema() != Schema::UNKNOWN)
                 return _udf.getOutputSchema();
 
-            // reset udf for rewrite (schema etc. may have changed)
-            _udf.resetAST();
+            // // reset udf for rewrite (schema etc. may have changed)
+            // _udf.resetAST();
 
             // if column names exist, attempt rewrite
             if(!_udf.rewriteDictAccessInAST(_columnNames))

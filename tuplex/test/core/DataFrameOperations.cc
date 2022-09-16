@@ -106,46 +106,57 @@ TEST_F(DataFrameTest, PushdownWithSpecialization) {
     //                             .collectAsVector();
 
 
-//    // pipeline I to test
-//    {
-//        auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
-//                .withColumn("C", UDF("lambda x: x['C'] + '1'")) // this is tricky, because it overrides the column C but doesn't mean this column needs to get parsed!
-//                .map(UDF("lambda x: {'A': x['A'], 'B': x['B']}"))
-//                .collectAsVector();
-//        EXPECT_EQ(rows.size(), 5);
-//    }
-//
-//     // pipeline II to test
-//    {
-//        auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
-//                .map(UDF("lambda x: {'A': x['A'], 'B': x['B']}"))
-//                .withColumn("C", UDF("lambda x: x['A'] + 1")) // this is tricky, because it overrides the column C but doesn't mean this column needs to get parsed!
-//                .collectAsVector();
-//        EXPECT_EQ(rows.size(), 4); // -> type error on the null row.
-//    }
+    // pipeline I to test
+    {
+        auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
+                .withColumn("C", UDF("lambda x: x['C'] + '1'")) // this is tricky, because it overrides the column C but doesn't mean this column needs to get parsed!
+                .map(UDF("lambda x: {'A': x['A'], 'B': x['B']}"))
+                .collectAsVector();
+        EXPECT_EQ(rows.size(), 5);
+    }
 
-//    // pipeline III to test
-//    {
-//         auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
-//                                 .withColumn("C", UDF("lambda x: x['A'] + 1")) // this is tricky, because it overrides the column C but doesn't mean this column needs to get parsed!
-//                                 .selectColumns({"C"})
-//                                 .collectAsVector();
-//        EXPECT_EQ(rows.size(), 4); // -> type error on the null row.
-//    }
+     // pipeline II to test
+    {
+        auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
+                .map(UDF("lambda x: {'A': x['A'], 'B': x['B']}"))
+                .withColumn("C", UDF("lambda x: x['A'] + 1")) // this is tricky, because it overrides the column C but doesn't mean this column needs to get parsed!
+                .collectAsVector();
+        EXPECT_EQ(rows.size(), 4); // -> type error on the null row.
+    }
 
-//    // pipeline IV to test
-//    {
-//        auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
-//                .mapColumn("A", UDF("lambda x: x + 1"))
-//                .selectColumns(std::vector<std::string>{"A", "C"})
-//                .collectAsVector();
-//        EXPECT_EQ(rows.size(), 4); // -> type error on the null row.
-//    }
+    // pipeline III to test
+    {
+         auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
+                                 .withColumn("C", UDF("lambda x: x['A'] + 1")) // this is tricky, because it overrides the column C but doesn't mean this column needs to get parsed!
+                                 .selectColumns({"C"})
+                                 .collectAsVector();
+        EXPECT_EQ(rows.size(), 4); // -> type error on the null row.
+    }
+
+    // pipeline IV to test
+    {
+        auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
+                .mapColumn("A", UDF("lambda x: x + 1"))
+                .selectColumns(std::vector<std::string>{"A", "C"})
+                .collectAsVector();
+        EXPECT_EQ(rows.size(), 4); // -> type error on the null row.
+    }
 
     // pipeline V to test
     {
         auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
                 .mapColumn("A", UDF("lambda x: x + 1"))
+                .filter(UDF("lambda r: r['A'] >= 1"))
+                .selectColumns(std::vector<std::string>{"A", "C"})
+                .collectAsVector();
+        EXPECT_EQ(rows.size(), 4); // -> type error on the null row.
+    }
+
+    // pipeline VI to test
+    {
+        auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
+                .mapColumn("A", UDF("lambda x: x + 1"))
+                .resolve(ExceptionCode::TYPEERROR, UDF("lambda x: 0"))
                 .filter(UDF("lambda r: r['A'] >= 1"))
                 .selectColumns(std::vector<std::string>{"A", "C"})
                 .collectAsVector();

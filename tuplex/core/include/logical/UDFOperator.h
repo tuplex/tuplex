@@ -40,6 +40,7 @@ namespace tuplex {
          */
         void projectColumns(const std::unordered_map<size_t, size_t>& rewriteMap);
 
+        bool performRetypeCheck(const python::Type& input_row_type, bool is_projceted_row_type);
     private:
         std::vector<std::string> _columnNames;
         // need to store rewrite map as well so when cloning AST can be properly rewritten

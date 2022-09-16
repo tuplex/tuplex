@@ -96,12 +96,7 @@ namespace tuplex {
     bool FilterOperator::retype(const python::Type& input_row_type, bool is_projected_row_type) {
         assert(input_row_type.isTupleType());
 
-        // check that number of parameters are identical, else can't rewrite (need to project first!)
-        size_t num_params_before_retype = UDFOperator::getInputSchema().getRowType().parameters().size();
-        size_t num_params_after_retype = input_row_type.parameters().size();
-        if(num_params_before_retype != num_params_after_retype) {
-            throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");
-        }
+        performRetypeCheck(input_row_type, is_projected_row_type);
 
         auto schema = Schema(getOutputSchema().getMemoryLayout(), input_row_type);
 

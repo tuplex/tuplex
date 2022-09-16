@@ -217,38 +217,37 @@ TEST(BasicInvocation, PurePythonMode) {
     // test config here:
     // local csv test file!
     auto test_path = URI("file://../resources/flights_on_time_performance_2019_01.sample.csv");
+    // local for quicker dev
+    test_path = URI("../../../resources/pipelines/flights/flights_on_time_performance_2009_01.sample.csv");
     auto test_output_path = URI("file://output.txt");
     auto spillURI = std::string("spill_folder");
-
-    // local for quicker dev
-    test_path = URI("file:///Users/leonhards/data/flights/flights_on_time_performance_2009_01.csv");
 
     size_t num_threads = 4;
 
     // invoke helper with --help
     std::string work_dir = cur_dir;
 
-//    // Step 1: create ref pipeline using direct Tuplex invocation
-//    auto test_ref_path = testName + "_ref.csv";
-//    createRefPipeline(test_path.toString(), test_ref_path, scratchDir);
-//
-//    // load ref file from parts!
-//    auto ref_files = glob(current_working_directory() + "/" + testName + "_ref*part*csv");
-//    std::sort(ref_files.begin(), ref_files.end());
-//
-//    // merge into single large string
+    // Step 1: create ref pipeline using direct Tuplex invocation
+    auto test_ref_path = testName + "_ref.csv";
+    createRefPipeline(test_path.toString(), test_ref_path, scratchDir);
+
+    // load ref file from parts!
+    auto ref_files = glob(current_working_directory() + "/" + testName + "_ref*part*csv");
+    std::sort(ref_files.begin(), ref_files.end());
+
+    // merge into single large string
     std::string ref_content = "";
-//    for(unsigned i = 0; i < ref_files.size(); ++i) {
-//        if(i > 0) {
-//            auto file_content = fileToString(ref_files[i]);
-//            // skip header for these parts
-//            auto idx = file_content.find("\n");
-//            ref_content += file_content.substr(idx + 1);
-//        } else {
-//            ref_content = fileToString(ref_files[0]);
-//        }
-//    }
-//    stringToFile("ref_content.txt", ref_content);
+    for(unsigned i = 0; i < ref_files.size(); ++i) {
+        if(i > 0) {
+            auto file_content = fileToString(ref_files[i]);
+            // skip header for these parts
+            auto idx = file_content.find("\n");
+            ref_content += file_content.substr(idx + 1);
+        } else {
+            ref_content = fileToString(ref_files[0]);
+        }
+    }
+    stringToFile("ref_content.txt", ref_content);
     ref_content = fileToString("ref_content.txt");
 
     // create a simple TransformStage reading in a file & saving it. Then, execute via Worker!

@@ -658,7 +658,7 @@ cd $INCLUDE_DIR && ln -s ${PYTHON_VERSION}m ${PYTHON_VERSION} && cd - || exit 1
     # write install_tuplex_reqs.sh
     with open(os.path.join(root_folder, 'install_tuplex_reqs.sh'), 'w') as fp:
         fp.write(tiny_bash_header())
-        fp.write('\n# install all build dependencies for tuplex (CentOS)')
+        fp.write('\n# install all build dependencies for tuplex (CentOS)\n')
         
         fp.write(workdir_setup() + '\n')
 

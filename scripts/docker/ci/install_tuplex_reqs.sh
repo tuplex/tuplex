@@ -2,7 +2,8 @@
 #(c) 2017-2022 Tuplex team
 
 
-# install all build dependencies for tuplex (CentOS)PREFIX=${PREFIX:-/opt}
+# install all build dependencies for tuplex (CentOS)
+PREFIX=${PREFIX:-/opt}
 WORKDIR=${WORKDIR:-/tmp}
 
 echo ">> Installing packages into ${PREFIX}"

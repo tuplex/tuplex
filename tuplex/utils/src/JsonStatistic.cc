@@ -9,6 +9,8 @@
 #include <cJSON.h>
 #endif
 
+#include <JSONUtils.h>
+
 namespace tuplex {
 
     // non-recursive mapping
@@ -378,7 +380,7 @@ namespace tuplex {
                             throw std::runtime_error("field type list not yet implemented, todo");
                         } else {
                             // convert primitive string to field
-                            fields.push_back(stringToField(row_json_strings[i], row_field_types[i]));
+                            fields.push_back(stringToField(unescape_json_string(row_json_strings[i]), row_field_types[i]));
                         }
 
                     }

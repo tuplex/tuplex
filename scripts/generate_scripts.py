@@ -578,6 +578,55 @@ def generate_ubuntu2204(root_folder):
     with open(os.path.join(root_folder, "Dockerfile"), 'w') as fp:
         fp.write(docker_content)
 
+def create_lambda_python(PYTHON_VERSION):
+    # currently it is 3.9.13 -> could change anytime, AWS updates it.
+
+    code = '''#!/usr/bin/env bash
+# to build the lambda executor need to embed python, therefore create full version below
+
+export CFLAGS=-I/usr/include/openssl
+
+# use Python 3.9 runtime
+PYTHON3_VERSION={version}
+PYTHON3_MAJMIN=${{PYTHON3_VERSION%.*}}'''.format(version=PYTHON_VERSION) + \
+'''
+# from https://bugs.python.org/issue36044
+# change tasks, because hangs at test_faulthandler...
+export PROFILE_TASK=-m test.regrtest --pgo \
+        test_collections \
+        test_dataclasses \
+        test_difflib \
+        test_embed \
+        test_float \
+        test_functools \
+        test_generators \
+        test_int \
+        test_itertools \
+        test_json \
+        test_logging \
+        test_long \
+        test_ordered_dict \
+        test_pickle \
+        test_pprint \
+        test_re \
+        test_set \
+        test_statistics \
+        test_struct \
+        test_tabnanny \
+        test_xml_etree
+
+set -ex && cd /tmp && wget https://www.python.org/ftp/python/${PYTHON3_VERSION}/Python-${PYTHON3_VERSION}.tgz && tar xf Python-${PYTHON3_VERSION}.tgz \
+    && cd Python-${PYTHON3_VERSION} && ./configure --with-lto --prefix=/opt/lambda-python --enable-optimizations --enable-shared \
+    && make -j $(( 1 * $( egrep '^processor[[:space:]]+:' /proc/cpuinfo | wc -l ) )) \
+    && make altinstall
+
+# install cloudpickle numpy for Lambda python
+export LD_LIBRARY_PATH=/opt/lambda-python/lib:$LD_LIBRARY_PATH
+/opt/lambda-python/bin/python${PYTHON3_MAJMIN} -m pip install 'cloudpickle<2.0.0' numpy tqdm'''
+
+    return code
+
+
 def generate_manylinux_files(root_folder):
     os.makedirs(root_folder, exist_ok=True)
     configure_versions('centos')
@@ -601,6 +650,10 @@ cd $INCLUDE_DIR && ln -s ${PYTHON_VERSION}m ${PYTHON_VERSION} && cd - || exit 1
         fp.write(header)
         fp.write('\n')
         fp.write(install_boost())
+
+    # write install_lambda_python.sh
+    with open(os.path.join(root_folder, 'install_lambda_python.sh'), 'w') as fp:
+        fp.write(create_lambda_python('3.9.13'))
 
     # write install_tuplex_reqs.sh
     with open(os.path.join(root_folder, 'install_tuplex_reqs.sh'), 'w') as fp:

@@ -167,7 +167,7 @@ import setuptools.command.install
 import setuptools.command.develop
 
 build_config = {'BUILD_TYPE' : 'Release'}
-build_config['BUILD_TYPE']='Debug'
+build_config['BUILD_TYPE']='tsan'
 class DevelopCommand(setuptools.command.develop.develop):
 
     user_options = setuptools.command.develop.develop.user_options + [

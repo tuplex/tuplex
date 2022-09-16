@@ -737,7 +737,7 @@ TEST_F(PipelinesTest, ServiceRequestsConfigHarnessNVOvsNormal) {
     using namespace tuplex;
     using namespace std;
 
-    // for reference deactivate all options!
+    // for reference - deactivate all options!
     auto opt_ref = testOptions();
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
@@ -756,6 +756,7 @@ TEST_F(PipelinesTest, ServiceRequestsConfigHarnessNVOvsNormal) {
     // now with NVO
     Context c_nvo(opt_nvo);
     auto res_nvo = pipelineAsStrs(serviceRequestsPipeline(c_nvo));
+    std::cout<<"NVO result has "<<pluralize(res_nvo.size(), "row")<<std::endl;
 
     Context c_ref(opt_ref);
     auto ref = pipelineAsStrs(serviceRequestsPipeline(c_ref));
@@ -813,7 +814,7 @@ TEST_F(PipelinesTest, FlightsWithPyResolver) {
     // => need to resolve via interpreter b.c. no fast code path can do that!
     using namespace tuplex;
 
-    // for reference deactivate all options!
+    // for reference - deactivate all options!
     auto opt_ref = testOptions();
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.driverMemory", "4GB");

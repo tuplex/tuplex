@@ -389,3 +389,55 @@ TEST_F(AggregateTest, UniqueMixedTypesWithInterpreterFallback) {
 
     // @TODO: other types??
 }
+
+TEST_F(AggregateTest, ComplaintTypeAgg) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opt = ContextOptions::defaults();
+    // c = tuplex.Context({'tuplex.redirectToPythonLogging':True, 'tuplex.executorMemory':'2G', 'tuplex.driverMemory':'2G'})
+    opt.set("tuplex.redirectToPythonLogging", "True");
+    opt.set("tuplex.executorMemory", "2G");
+    opt.set("tuplex.driverMemory", "2G");
+    opt.set("tuplex.executorCount", "0");
+
+    // ds = c.csv('311_subset.csv')
+    // def combine_udf(a, b):
+    //  return a + b
+    //
+    // def aggregate_udf(agg, row):
+    //  return agg + 1
+    // ds.aggregateByKey(combine_udf, aggregate_udf, 0, ["Complaint Type"]).show()
+    Context c(opt);
+    auto path = "../resources/311_subset.micro.csv";
+
+    auto& ds = c.csv(path);
+    auto combine_code = "def combine_udf(a, b):\n"
+                        "  return a + b\n";
+
+    auto agg_code =     "def aggregate_udf(agg, row):\n"
+                        "  return agg + 1";
+    auto& ds_agg = ds.aggregateByKey(UDF(combine_code), UDF(agg_code),
+                      Row(0), std::vector<std::string>{"Complaint Type"});
+
+     ds_agg.show();
+
+    // call again and check row count.
+    auto rows = ds_agg.collectAsVector();
+    // sort rows after second entry
+    std::sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) {
+       return a.getInt(1) < b.getInt(1);
+    });
+    size_t total_rows = 0;
+    for(unsigned i = 0; i < rows.size(); ++i) {
+        std::cout<<i<<": "<<rows[i].toPythonString()<<std::endl;
+        total_rows += rows[i].getInt(1);
+    }
+
+    std::cout<<"====\n"<<pluralize(total_rows, "row")<<std::endl;
+    EXPECT_EQ(total_rows, 2000); // this should work
+    // the counts are off...
+    // ==> need to fix this!
+    // i.e., small subset should have 120k rows in total...
+    // micro should have 10k rows in total....
+}

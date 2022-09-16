@@ -1312,7 +1312,7 @@ namespace tuplex {
 
                 // log
                 for(const auto& r : task.resources()) {
-                    if(r.type() == ResourceType::LOG) {
+                    if(r.type() == static_cast<uint32_t>(ResourceType::LOG)) {
                         auto log = decompress_string(r.payload());
                         ss<<",\"log\":\""<<escape_for_json(log)<<"\"";
                         break;

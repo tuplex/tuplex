@@ -96,6 +96,7 @@ namespace tuplex {
                                                             _deserializerGeneralCaseOutput(new Deserializer(targetGeneralCaseOutputSchema)),
                                                             _deserializerNormalOutputCase(new Deserializer(_targetOutputSchema)),
                                                             _interpreterFunctor(interpreterFunctor),
+                                                            _htable(nullptr),
                                                             _htableFormat(HashTableFormat::UNKNOWN),
                                                             _outputRowNumber(0),
                                                             _wallTime(0.0),
@@ -157,7 +158,10 @@ namespace tuplex {
          * @param hashKeyType the type of the key to hash for
          * @param hashBucketType the type of the rows to store in the table
          */
-        void sinkOutputToHashTable(HashTableFormat fmt, const AggregateType& aggType, const python::Type& hashKeyType, const python::Type& hashBucketType, map_t hm=nullptr,
+        void sinkOutputToHashTable(HashTableFormat fmt,
+                                   const AggregateType& aggType,
+                                   const python::Type& hashKeyType,
+                                   const python::Type& hashBucketType, map_t hm=nullptr,
                                    uint8_t* null_bucket=nullptr) {
             _htableFormat = fmt;
             _hash_element_type = hashKeyType;
@@ -165,11 +169,24 @@ namespace tuplex {
             _hash_agg_type = aggType;
 
             // init sink if data is given
-            _htable.hm = hm;
-            _htable.null_bucket = null_bucket;
+            assert(!_htable);
+            _htable = new HashTableSink();
+            _htable->hm = hm;
+            _htable->null_bucket = null_bucket;
+
+            // null bucket can stay nullptr, however hashmap needs to be initialized
+            if(!_htable->hm)
+                throw std::runtime_error("internal error: need to have valid hashmap assigned.");
+
+            python::lockGIL();
+            auto valueMode = aggType == AggregateType::AGG_BYKEY ? LookupStorageMode::LISTOFVALUES : LookupStorageMode::VALUE;
+            auto hybrid = CreatePythonHashMapWrapper(*_htable, hashKeyType.withoutOptions(), hashBucketType, valueMode);
+            assert(reinterpret_cast<uintptr_t>(hybrid) == reinterpret_cast<uintptr_t>(_htable->hybrid_hm)); // same object
+            python::unlockGIL();
         }
 
-        HashTableSink hashTableSink() const { return _htable; } // needs to be freed manually!
+        HashTableSink* hashTableSink() const { return _htable; } // needs to be freed manually!
+        HashTableSink* moveHashSink() { auto ptr = _htable; _htable = nullptr; return ptr; }
         bool hasHashTableSink() const { return _htableFormat != HashTableFormat::UNKNOWN; }
 
         void execute() override;
@@ -273,7 +290,7 @@ namespace tuplex {
 
         // hash table sink
         // -> hash to be a hybrid because sometimes incompatible python objects have to be hashed here.
-        HashTableSink _htable;
+        HashTableSink* _htable;
         HashTableFormat _htableFormat;
         python::Type _hash_element_type;
         python::Type _hash_bucket_type;
@@ -360,7 +377,7 @@ namespace tuplex {
             return 0;
         }
 
-        void sinkRowToHashTable(PyObject *rowObject);
+        void sinkRowToHashTable(PyObject *rowObject, PyObject* key=nullptr);
     };
 
     /*!

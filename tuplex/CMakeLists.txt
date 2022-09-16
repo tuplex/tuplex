@@ -221,8 +221,26 @@ endif()
 if(BUILD_WITH_AWS)
     # requires at least High Sierra (10.13)
     if(APPLE)
-      if(CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS 10.13)
-        message(FATAL_ERROR "Building Tuplex with AWS SDK support on Darwin requires at least macOS 10.13 (High Sierra). Detected ${CMAKE_OSX_DEPLOYMENT_TARGET}")
+
+      # mac os version detection here
+      execute_process(COMMAND bash -c "sw_vers | grep -Eo '([0-9]{1,}\\.)+[0-9]{1,}' | head -1" OUTPUT_VARIABLE MACOSX_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
+      if(NOT CMAKE_OSX_DEPLOYMENT_TARGET OR "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
+
+          # check what the major OS X version is, if 10 -> build for 10.13 (lowest supported)
+          string(REPLACE "." ";" VERSION_LIST ${MACOSX_VERSION_STRING})
+          list(GET VERSION_LIST 0 MACOSX_VERSION_MAJOR)
+          if(MACOSX_VERSION_MAJOR LESS_EQUAL 10)
+              # use high sierra target per default
+              set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)
+          else()
+              # use maj.0 as default
+              set(CMAKE_OSX_DEPLOYMENT_TARGET ${MACOSX_VERSION_MAJOR}.0)
+          endif()
+      endif()
+
+      message(STATUS "Using macOS target ${CMAKE_OSX_DEPLOYMENT_TARGET} to build with AWS SDK component")
+      if("${CMAKE_OSX_DEPLOYMENT_TARGET}" VERSION_LESS "10.13")
+        message(FATAL_ERROR "Building Tuplex with AWS SDK support on Darwin requires at least macOS 10.13 (High Sierra)")
       endif()
     endif()
 
@@ -914,3 +932,8 @@ endif()
 
 # print flags
 ucm_print_flags()
+
+
+# TODO: check cloudpickle versions
+# should be < 2.0.0 for python3.9 and >= 2.1.0 for python3.10
+# ython3 -c 'import cloudpickle; print(cloudpickle.__version__)'

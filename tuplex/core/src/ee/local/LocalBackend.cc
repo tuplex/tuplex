@@ -896,13 +896,6 @@ namespace tuplex {
         auto tasks = createLoadAndTransformToMemoryTasks(tstage, _options, syms);
         auto completedTasks = performTasks(tasks);
 
-        // Note: this doesn't work yet because of the globals.
-        // to make this work, need better global mapping...
-//        auto completedTasks = performTasks(tasks, [&syms, &optimizer, &tstage, this]() {
-//            // TODO/Note: could prepare code of parent stage already while current one is running! I.e. do this for the first dependent only to avoid conflicts...
-//            syms = tstage->compile(*_compiler, _options.USE_LLVM_OPTIMIZER() ? &optimizer : nullptr, false);
-//        });
-
         // calc number of input rows and total wall clock time
         size_t numInputRows = 0;
         double totalWallTime = 0.0;
@@ -921,8 +914,9 @@ namespace tuplex {
             std::stringstream ss;
             double time_per_fast_path_row_in_ms = totalWallTime / numInputRows * 1000.0;
             ss<<"[Transform Stage] Stage "<<tstage->number()<<" total wall clock time: "
-              <<totalWallTime<<"s, "<<pluralize(numInputRows, "input row")
-              <<", time to process 1 row via fast path: "<<time_per_fast_path_row_in_ms<<"ms";
+              <<totalWallTime<<"s, "<<pluralize(numInputRows, "input row");
+            if(numInputRows != 0)
+              ss<<", time to process 1 row via fast path: "<<time_per_fast_path_row_in_ms<<"ms";
             Logger::instance().defaultLogger().info(ss.str());
 
             // fast path
@@ -1070,8 +1064,9 @@ namespace tuplex {
 
                 // print timing info for slow path
                 ss.str("");
-                ss<<"slow path for Stage "<<tstage->number()<<": total wall clock time: "<<totalWallTime<<"s, "
-                  <<"time to process 1 row via slow path: "<<time_per_row_slow_path_ms<<"ms";
+                ss<<"slow path for Stage "<<tstage->number()<<": total wall clock time: "<<totalWallTime<<"s, ";
+                if(slowPathNumInputRows != 0)
+                  ss<<"time to process 1 row via slow path: "<<time_per_row_slow_path_ms<<"ms";
                 logger().info(ss.str());
                 metrics.setSlowPathTimes(tstage->number(), totalWallTime, slow_path_total_time,
                                          time_per_row_slow_path_ms * 1000000.0);
@@ -1152,12 +1147,17 @@ namespace tuplex {
                 if(completedTasks.empty()) {
                     tstage->setHashResult(nullptr, nullptr);
                 } else {
-                    auto hsink = createFinalHashmap({completedTasks.cbegin(), completedTasks.cend()},
+
+                    auto py_combine = preparePythonPipeline(tstage->purePythonAggregateCode(), tstage->pythonAggregateFunctionName());
+                    auto hsink = createFinalHashmap(completedTasks,
                                                     tstage->hashtableKeyByteWidth(),
                                                     combineOutputHashmaps,
                                                     syms->aggInitFunctor,
-                                                    syms->aggCombineFunctor);
-                    tstage->setHashResult(hsink.hm, hsink.null_bucket);
+                                                    syms->aggCombineFunctor,
+                                                    py_combine,
+                                                    true);
+                    assert(hsink);
+                    tstage->setHashResult(hsink->hm, hsink->null_bucket, hsink->hybrid_hm);
                 }
                 break;
             }
@@ -1189,6 +1189,8 @@ namespace tuplex {
 
             free(aggResult);
             // set resultset!
+
+            // @TODO: add here python based data...
 
             tstage->setMemoryResult(vector<Partition*>{p}); // @TODO: what about exceptions??
         }
@@ -1253,7 +1255,7 @@ namespace tuplex {
         using namespace std;
         assert(tstage);
 
-        HashTableSink hsink;
+        HashTableSink* hsink = nullptr;
         bool hasNormalHashSink = false;
 
         // the schema in which exceptions are stored for this stage
@@ -1284,11 +1286,16 @@ namespace tuplex {
 
             // special case: create a global hash output result and put it into the FIRST resolve task.
             Timer timer;
-            hsink = createFinalHashmap({tasks.cbegin(), tasks.cend()},
+            // compile & prep python pipeline for this stage
+            auto pip_object = preparePythonPipeline(tstage->purePythonAggregateCode(), tstage->pythonAggregateFunctionName());
+
+            hsink = createFinalHashmap(tasks,
                                        tstage->hashtableKeyByteWidth(),
                                        combineHashmaps,
                                        init_aggregate,
-                                       combine_aggregate);
+                                       combine_aggregate,
+                                       pip_object,
+                                       true);
             logger().info("created combined normal-case result in " + std::to_string(timer.time()) + "s");
             hasNormalHashSink = true;
         }
@@ -1314,7 +1321,7 @@ namespace tuplex {
         // lazy init hybrids
         if(!input_intermediates.hybrids) {
             auto num_predecessors = tstage->predecessors().size();
-            input_intermediates.hybrids = new PyObject*[num_predecessors];
+            input_intermediates.hybrids = new PyObject*[num_predecessors]; // @TODO: free these intermediates. Where is this done?
             for(int i = 0; i < num_predecessors; ++i)
                 input_intermediates.hybrids[i] = nullptr;
         }
@@ -1336,13 +1343,13 @@ namespace tuplex {
 #endif
                 // create hybrid if not existing (could be if previous stage had output hashtable + slow resolve path!)
                 if(input_intermediates.hash_maps[i] && !input_intermediates.hybrids[i]) {
-#warning "fix this code after OSS, it's a memory bug."
                     HashTableSink* hs = new HashTableSink(); // memory leak...
                     hs->hm = input_intermediates.hash_maps[i];
                     hs->null_bucket = input_intermediates.null_buckets[i];
                     input_intermediates.hybrids[i] = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(*hs,
                                                                                                              ts->hashResult().keyType.withoutOptions(),
-                                                                                                             ts->hashResult().bucketType));
+                                                                                                             ts->hashResult().bucketType,
+                                                                                                             LookupStorageMode::LISTOFVALUES)); // this is for joins, i.e. list of values...
                 }
             }
         }
@@ -1466,10 +1473,27 @@ namespace tuplex {
 
                     // is it the first task? If so, set the current combined result!
                     if(hasNormalHashSink) {
-                        rtask->sinkOutputToHashTable(tt->hashTableFormat(), tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType(), hsink.hm, hsink.null_bucket);
+                        rtask->sinkOutputToHashTable(tt->hashTableFormat(),
+                                                     tstage->dataAggregationMode(),
+                                                     tstage->hashOutputKeyType().withoutOptions(),
+                                                     tstage->hashOutputBucketType(),
+                                                     hsink->hm,
+                                                     hsink->null_bucket);
                         hasNormalHashSink = false;
+
+                        // set hsink to empty
+                        hsink = nullptr;
                     } else {
-                        rtask->sinkOutputToHashTable(tt->hashTableFormat(), tstage->dataAggregationMode(), tstage->hashOutputKeyType().withoutOptions(), tstage->hashOutputBucketType());
+
+                        // init hash table based on key
+                        auto hm = tstage->hashtableKeyByteWidth() == 8 ? int64_hashmap_new() : hashmap_new();
+                        assert(hm);
+                        rtask->sinkOutputToHashTable(tt->hashTableFormat(),
+                                                     tstage->dataAggregationMode(),
+                                                     tstage->hashOutputKeyType().withoutOptions(),
+                                                     tstage->hashOutputBucketType(),
+                                                     hm,
+                                                     nullptr);
                     }
                 }
 #ifndef NDEBUG
@@ -1878,9 +1902,9 @@ namespace tuplex {
     }
 
 
-    HashTableSink getHashSink(const IExecutorTask* exec_task) {
+    HashTableSink* getHashSink(const IExecutorTask* exec_task) {
         if(!exec_task)
-            return HashTableSink();
+            return new HashTableSink();
 
         switch(exec_task->type()) {
             case TaskType::UDFTRAFOTASK: {
@@ -1890,6 +1914,24 @@ namespace tuplex {
             case TaskType::RESOLVE: {
                 auto task = dynamic_cast<const ResolveTask*>(exec_task); assert(task);
                 return task->hashTableSink();
+            }
+            default:
+                throw std::runtime_error("unknown task type" + FLINESTR);
+        }
+    }
+
+    HashTableSink* moveHashSink(IExecutorTask* exec_task) {
+        if(!exec_task)
+            return new HashTableSink();
+
+        switch(exec_task->type()) {
+            case TaskType::UDFTRAFOTASK: {
+                auto task = dynamic_cast<TransformTask*>(exec_task); assert(task);
+                return task->moveHashSink();
+            }
+            case TaskType::RESOLVE: {
+                auto task = dynamic_cast<ResolveTask*>(exec_task); assert(task);
+                return task->moveHashSink();
             }
             default:
                 throw std::runtime_error("unknown task type" + FLINESTR);
@@ -2072,81 +2114,133 @@ namespace tuplex {
             ctx.combine_aggregate = combine_aggregate;
             hashmap_iterate(sink.hm, reinterpret_cast<PFany>(apply_to_bucket), &ctx);
         }
-
-        // TODO: missing is, need to apply UDFs to hybrid hashmap as well in case...
-        // --> should be a trivial function (?)
-        // @TODO.
     }
 
-    HashTableSink LocalBackend::createFinalHashmap(const std::vector<const IExecutorTask*>& tasks,
+    HashTableSink* LocalBackend::createFinalHashmap(const std::vector<IExecutorTask*>& tasks,
                                                    int hashtableKeyByteWidth,
                                                    bool combine,
                                                    codegen::agg_init_f init_aggregate,
-                                                   codegen::agg_combine_f combine_aggregate) {
-
-        // note: in order to preserve semantics on each group at least once the combine function has to be run.
+                                                   codegen::agg_combine_f combine_aggregate,
+                                                   PyObject* py_combine_aggregate,
+                                                   bool acquireGIL) {
+        // note: in order to preserve semantics on each group at least ONCE the combine function has to be run.
         // this can be achieved by running combine with the initial value
 
         if(tasks.empty()) {
-            HashTableSink sink;
-            if(hashtableKeyByteWidth == 8) sink.hm = int64_hashmap_new();
-            else sink.hm = hashmap_new();
-            sink.null_bucket = nullptr;
+            HashTableSink* sink = new HashTableSink();
+            if(hashtableKeyByteWidth == 8) sink->hm = int64_hashmap_new();
+            else sink->hm = hashmap_new();
+            sink->null_bucket = nullptr;
             return sink;
         } else if(1 == tasks.size()) {
             // no merge necessary, just directly return result
             // fetch hash table from task
             assert(tasks.front()->type() == TaskType::UDFTRAFOTASK || tasks.front()->type() == TaskType::RESOLVE);
-            auto sink = getHashSink(tasks.front());
+            auto sink = moveHashSink(tasks.front());
 
             // aggByKey or aggregate?
             if(init_aggregate && combine_aggregate) {
-                applyCombinePerGroup(sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
+                applyCombinePerGroup(*sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
+            }
+
+            // check if hybrid exists, if so run python function on top
+            if(sink->hybrid_hm && py_combine_aggregate) {
+                if(acquireGIL)
+                    python::lockGIL();
+
+                // perform combine func for hash aggregate
+                auto hybrid = (HybridLookupTable*)sink->hybrid_hm;
+                auto pure_python_dict = hybrid->pythonDict(true);
+
+                if(pure_python_dict) {
+                    // debug
+                    Py_XINCREF(pure_python_dict);
+                    PyObject_Print(pure_python_dict, stdout, 0);
+                    std::cout<<std::endl;
+
+                    // call on top
+                    PyObject* args = PyTuple_New(1);
+                    PyTuple_SET_ITEM(args, 0, pure_python_dict);
+                    auto pcr = python::callFunctionEx(py_combine_aggregate, args);
+
+                    if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
+                        logger().error("calling python function on hash table failed.");
+                    } else {
+                        auto resObj = pcr.res; assert(resObj);
+                        auto aggObj = PyDict_GetItemString(resObj, "aggregate");
+                        if(!aggObj) {
+                            PyObject_Print(resObj, stdout, 0);
+                            std::cout<<std::endl;
+                        }
+                        assert(aggObj);
+
+                        // update hybrid
+                        hybrid->update(aggObj);
+                        Py_XDECREF(aggObj);
+                    }
+                }
+
+                if(acquireGIL)
+                    python::unlockGIL();
             }
 
             return sink;
         } else {
-
-            // @TODO: getHashSink should be updated to also work with hybrids. Yet, the merging of normal hashtables
-            //        with resolve hashtables is done by simply setting the merged normal result as input to the first resolve task.
-
             // need to merge.
-            // => fetch hash table form first
-            auto sink = getHashSink(tasks.front());
+            // => fetch hash table form first, i.e. move it out from task to claim ownership!
+            auto sink = moveHashSink(tasks.front());
+            if(!sink)
+                sink = new HashTableSink();
 
             // init hashmap
-            if(!sink.hm) {
-                if (hashtableKeyByteWidth == 8) sink.hm = int64_hashmap_new();
-                else sink.hm = hashmap_new();
+            if(!sink->hm) {
+                if (hashtableKeyByteWidth == 8) sink->hm = int64_hashmap_new();
+                else sink->hm = hashmap_new();
             }
 
             // merge in null bucket + other buckets from other tables (this could be slow...)
             for(int i = 1; i < tasks.size(); ++i) {
-                auto task_sink = getHashSink(tasks[i]);
-                if(combine) combineBuckets(sink.null_bucket, task_sink.null_bucket);
-                else sink.null_bucket = merge_buckets(sink.null_bucket, task_sink.null_bucket);
+                auto task_sink = moveHashSink(tasks[i]);
+
+                // can skip this task sink, b.c. it's empty
+                if(!task_sink)
+                    continue;
+
+                if(combine) combineBuckets(sink->null_bucket, task_sink->null_bucket);
+                else sink->null_bucket = merge_buckets(sink->null_bucket, task_sink->null_bucket);
 
                 // fetch all buckets in hashmap & place into new hashmap
-                if(task_sink.hm) {
+                if(task_sink->hm) {
                     if(combine) {
-                        if(hashtableKeyByteWidth == 8) int64_hashmap_iterate(task_sink.hm, int64_combine_bucket, sink.hm);
-                        else hashmap_iterate(task_sink.hm, combine_bucket, sink.hm);
+                        if(hashtableKeyByteWidth == 8) int64_hashmap_iterate(task_sink->hm, int64_combine_bucket, sink->hm);
+                        else hashmap_iterate(task_sink->hm, combine_bucket, sink->hm);
                     }
                     else {
-                        if(hashtableKeyByteWidth == 8) int64_hashmap_iterate(task_sink.hm, int64_rehash_bucket, sink.hm);
-                        else hashmap_iterate(task_sink.hm, rehash_bucket, sink.hm);
+                        if(hashtableKeyByteWidth == 8) int64_hashmap_iterate(task_sink->hm, int64_rehash_bucket, sink->hm);
+                        else hashmap_iterate(task_sink->hm, rehash_bucket, sink->hm);
                     }
                 }
 
-                if(hashtableKeyByteWidth == 8)
-                    int64_hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
-                else
-                    hashmap_free(task_sink.hm); // remove hashmap (keys and buckets already handled)
+                // NOTE: following code causes memory corruption, it's a leak but keep it for now to make sure things work.
+                // ==> need to rework whole hashing system at some point.
+                // ==> i.e. what's left todo is to free the sinks hashmap itself.
+
+                if(task_sink->hybrid_hm) {
+                    // convert
+                    auto hybrid = (HybridLookupTable*)task_sink->hybrid_hm;
+
+                    // check that hybrid and sink are connected
+                    assert(hybrid->sink == task_sink);
+
+                    hybrid->free();
+
+                    assert(task_sink->hm == nullptr && task_sink->hybrid_hm == nullptr);
+                }
             }
 
             // aggByKey or aggregate?
             if(init_aggregate && combine_aggregate) {
-                applyCombinePerGroup(sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
+                applyCombinePerGroup(*sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
             }
             return sink;
         }

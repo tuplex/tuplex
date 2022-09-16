@@ -205,8 +205,30 @@ namespace tuplex {
                     }
                     case LogicalOperatorType::AGGREGATE: {
                         assert(op == ctx.slowPathContext.operators.back()); // make sure it's the last one
-                        // usually it's a hash aggregate, so python output.
-                        ppb.pythonOutput();
+                        // generate according to mode
+                        auto aop = static_cast<AggregateOperator*>(op);
+                        switch(aop->aggType()) {
+                            case AggregateType::AGG_UNIQUE: {
+                                // usually it's a hash aggregate, so python output.
+                                // this is trivial, b.c. no function needs to be called/performed...
+                                ppb.pythonOutput();
+                                break;
+                            }
+                            case AggregateType::AGG_BYKEY: {
+                                ppb.pythonAggByKey(aop->getID(),
+                                                   next_hashmap_name(),
+                                                   aop->aggregatorUDF(),
+                                                   aop->keyColsInParent(),
+                                                   aop->initialValue());
+                                break;
+                            }
+                            case AggregateType::AGG_GENERAL: {
+                                ppb.pythonAggGeneral(aop->getID(), "agg_intermediate", aop->aggregatorUDF(), aop->initialValue());
+                                break;
+                            }
+                            default:
+                                throw std::runtime_error("unsupported aggregate type encountered for fallback codegen");
+                        }
                         break;
                     }
                     case LogicalOperatorType::TAKE: {
@@ -253,6 +275,19 @@ namespace tuplex {
                 // hashing& Co has to be done with the intermediate object.
                 // no code injected here. Do it whenever the python codepath is called.
                 ppb.pythonOutput();
+            }
+
+            // special case: if output mode is hashstage and aggregate -> need to generate a combine aggregate function
+            _pyAggregateCode = "";
+            _pyAggregateFunctionName = "";
+            if(_outputMode == EndPointMode::HASHTABLE && _operators.size() > 0
+               && _operators.back()->type() == LogicalOperatorType::AGGREGATE) {
+                auto aop = static_cast<AggregateOperator*>(_operators.back());
+                auto combine_udf = aop->combinerUDF();
+                _pyAggregateFunctionName = "combine_py_aggregates";
+                _pyAggregateCode = codegenPythonCombineAggregateFunction(_pyAggregateFunctionName, aop->getID(),
+                                                                         aop->aggType(), aop->initialValue(),
+                                                                         combine_udf);
             }
 
             path.pyCode = ppb.getCode();
@@ -702,6 +737,13 @@ namespace tuplex {
                         } else if(aop->aggType() == AggregateType::AGG_UNIQUE) {
                             // nothing to do...
                             // => here aggregate is directly written to output table!
+
+//                            // do not bucketize but simply use all hash keys!
+//                            std::vector<size_t> v;
+//                            auto num_columns = aop->getOutputSchema().getRowType().parameters().size();
+//                            for(size_t i = 0; i < num_columns; ++i)
+//                                v.push_back(i);
+//                            ctx.hashColKeys = v;
                         } else {
                             throw std::runtime_error("unsupported aggregate type");
                         }
@@ -1155,6 +1197,9 @@ namespace tuplex {
                         auto hash_map_global = env->createNullInitializedGlobal(hashmap_global_name, env->i8ptrType());
                         auto null_bucket_global = env->createNullInitializedGlobal(null_bucket_global_name,
                                                                                    env->i8ptrType());
+
+                        // add to lookup map for slow case
+                        _hashmap_vars[jop->getID()] = make_tuple(hash_map_global, null_bucket_global);
 
                         isBuilder.CreateStore(isBuilder.CreateLoad(
                                 isBuilder.CreateGEP(isArgs["hashmaps"], env->i32Const(global_var_cnt))),

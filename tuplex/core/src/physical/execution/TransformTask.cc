@@ -387,9 +387,10 @@ namespace tuplex {
         }
 
         // alloc hashmap if required
-        if(hasHashTableSink()) {
-            _htable.hm = hashmap_new();
-            _htable.null_bucket = nullptr;
+        if(hasHashTableSink() && !_htable) {
+            _htable = new HashTableSink();
+            _htable->hm = hashmap_new();
+            _htable->null_bucket = nullptr;
         }
 
         // free runtime memory
@@ -460,12 +461,13 @@ namespace tuplex {
             size_t numOutputRows = 0;
 
             // count from hashmap
-            if(_htableFormat == HashTableFormat::BYTES) hashmap_info(_htable.hm, &numOutputRows, &numBuckets);
+            assert(_htable);
+            if(_htableFormat == HashTableFormat::BYTES) hashmap_info(_htable->hm, &numOutputRows, &numBuckets);
             else if(_htableFormat == HashTableFormat::UINT64)
-                int64_hashmap_info(_htable.hm, &numOutputRows, &numBuckets);
+                int64_hashmap_info(_htable->hm, &numOutputRows, &numBuckets);
             else throw std::runtime_error("Unknown hashtable format!");
             // add +1 if null bucket exists!
-            if(_htable.null_bucket)
+            if(_htable->null_bucket)
                 numBuckets++;
 
             // count rows from input & output buckets
@@ -526,7 +528,12 @@ namespace tuplex {
         _exceptions.reset();
 
         // reset htable (TODO: free if necessary?)
-        _htable = HashTableSink();
+        if(_htable) {
+#ifndef NDEBUG
+            std::cerr<<"INTERNAL ERROR: need to properly free hash table"<<std::endl;
+#endif
+        }
+        _htable = new HashTableSink();
 
         // reset output row counter...
         _outputRowCounter = 0;
@@ -735,7 +742,7 @@ namespace tuplex {
     // note: could also use a int64_t, int64_t hashmap for string when string key is stored in bucket...
     void TransformTask::writeRowToHashTable(char* key, size_t key_len, bool bucketize, char *buf, size_t buf_size) {
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // @TODO: is there a memory bug here when it comes to storing the key???
@@ -744,20 +751,25 @@ namespace tuplex {
             // put into hashmap!
             uint8_t *bucket = nullptr;
             if(bucketize) { //@TODO: maybe get rid off this if by specializing pipeline better for unique case...
-                hashmap_get(_htable.hm, key, key_len, (void **) (&bucket));
+                hashmap_get(_htable->hm, key, key_len, (void **) (&bucket));
                 // update or new entry
                 bucket = extend_bucket(bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
             }
-            hashmap_put(_htable.hm, key, key_len, bucket);
+            hashmap_put(_htable->hm, key, key_len, bucket);
         } else {
             // goes into null bucket, no hash
-            _htable.null_bucket = extend_bucket(_htable.null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
+            _htable->null_bucket = extend_bucket(_htable->null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
         }
     }
 
     void TransformTask::writeRowToHashTableAggregate(char* key, size_t key_len, bool bucketize, char *buf, size_t buf_size) {
+
+        // lazy initialize hash table
+        if(!_htable->hm)
+            _htable->hm = hashmap_new();
+
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // @TODO: is there a memory bug here when it comes to storing the key???
@@ -765,10 +777,10 @@ namespace tuplex {
         uint8_t *bucket = nullptr;
         if(key != nullptr && key_len > 0) {
             // get current bucket
-            hashmap_get(_htable.hm, key, key_len, (void **) (&bucket));
+            hashmap_get(_htable->hm, key, key_len, (void **) (&bucket));
         } else {
             // goes into null bucket, no hash
-            bucket = _htable.null_bucket;
+            bucket = _htable->null_bucket;
         }
 
         // aggregate in the new value
@@ -776,15 +788,15 @@ namespace tuplex {
 
         // write back the bucket
         if(key != nullptr && key_len > 0) {
-            hashmap_put(_htable.hm, key, key_len, bucket);
+            hashmap_put(_htable->hm, key, key_len, bucket);
         } else {
-            _htable.null_bucket = bucket;
+            _htable->null_bucket = bucket;
         }
     }
 
     void TransformTask::writeRowToHashTable(uint64_t key, bool key_null, bool bucketize, char *buf, size_t buf_size) {
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // put into hashmap or null bucket
@@ -792,38 +804,38 @@ namespace tuplex {
             // put into hashmap!
             uint8_t *bucket = nullptr;
             if(bucketize) { //@TODO: maybe get rid off this if by specializing pipeline better for unique case...
-                int64_hashmap_get(_htable.hm, key, (void **) (&bucket));
+                int64_hashmap_get(_htable->hm, key, (void **) (&bucket));
                 // update or new entry
                 bucket = extend_bucket(bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
             }
-            int64_hashmap_put(_htable.hm, key, bucket);
+            int64_hashmap_put(_htable->hm, key, bucket);
         } else {
             // goes into null bucket, no hash
-            _htable.null_bucket = extend_bucket(_htable.null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
+            _htable->null_bucket = extend_bucket(_htable->null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
         }
     }
 
     void TransformTask::writeRowToHashTableAggregate(uint64_t key, bool key_null, bool bucketize, char *buf, size_t buf_size) {
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // get the bucket
         uint8_t *bucket = nullptr;
         if(!key_null) {
             // get current bucket
-            int64_hashmap_get(_htable.hm, key, (void **) (&bucket));
+            int64_hashmap_get(_htable->hm, key, (void **) (&bucket));
         } else {
-            bucket = _htable.null_bucket;
+            bucket = _htable->null_bucket;
         }
         // aggregate in the new value
         aggregateValues(&bucket, buf, buf_size);
         if(!key_null) {
             // get current bucket
-            int64_hashmap_put(_htable.hm, key, bucket);
+            int64_hashmap_put(_htable->hm, key, bucket);
         } else {
             // goes into null bucket, no hash
-            _htable.null_bucket = bucket;
+            _htable->null_bucket = bucket;
         }
     }
 
@@ -1001,5 +1013,22 @@ namespace tuplex {
     void TransformTask::sinkOutputToHashTable(HashTableFormat fmt, int64_t outputDataSetID) {
         _htableFormat = fmt;
         _outputDataSetID = outputDataSetID;
+
+        // intialize hash sink
+        if(!_htable)
+            _htable = new HashTableSink();
+
+        assert(!_htable->hm);
+        assert(!_htable->hybrid_hm); // no hybrid allowed in normal-case processing
+
+        // no hybrid necessary...
+        if(HashTableFormat::UINT64 == fmt) {
+            _htable->hm = int64_hashmap_new();
+        } else if(HashTableFormat::BYTES == fmt) {
+            _htable->hm = hashmap_new();
+        } else {
+            throw std::runtime_error("invalid hashtablefmt given in TransformTask");
+        }
+        assert(_htable->hm);
     }
 }

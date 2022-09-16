@@ -13,8 +13,8 @@
 #include <PythonHelpers.h>
 
 namespace tuplex {
-    PythonPipelineBuilder::PythonPipelineBuilder(const std::string &funcName) : _funcName(funcName), _indentLevel(0), _lastInputRowName(inputRowName()), _lastRowName("row"), _envCounter(0), _parseCells(false), _pipelineDone(false) {
 
+    static std::string codegenRowClassCode() {
         // code for the row class, which allows to conveniently pass data to functions
         // written in either dict or tuple syntax
         auto rowClassCode = "# helper row object to allow fancy integer and column based string access within UDFs!\n"
@@ -48,11 +48,10 @@ namespace tuplex {
                             "            return '(' + ','.join(['{}={}'.format(c, d) for c, d in zip(self.columns, self.data)]) + ')'\n"
                             "        else:\n"
                             "            return '(' + ','.join(['{}'.format(d) for d in self.data]) + ')'\n";
+        return rowClassCode;
+    }
 
-        // need to add ALL the python operators for overloading...
-        // or do special fallback testing when calling python func...
-        _header += rowClassCode;
-
+    static std::string codegenRowConversionCode() {
         auto propagateCode = "# recursive expansion of Row objects potentially present in data.\n"
                              "def expand_row(x):\n"
                              "    # Note: need to use here type construction, because isinstance fails for dict input when checking for list\n"
@@ -91,17 +90,17 @@ namespace tuplex {
                              "            r = ((),) # special case, empty tuple\n"
                              "    \n"
                              "    return Row(r, columns)\n\n";
+        return propagateCode;
+    }
 
-        _header += propagateCode;
-
-
+    static std::string codegenApplyFuncSingleArg() {
         // special apply func code (gets special case, single element done!)
         auto applyCode = "def apply_func(f, row):\n"
                          "    if len(row.data) != 1:\n"
-#ifndef NDEBUG
+                         #ifndef NDEBUG
                          "        # check how many positional arguments function has.\n"
                          "        # if not one, expand row into multi args!\n"
-#endif
+                         #endif
                          "        nargs = f.__code__.co_argcount\n"
                          "        if nargs != 1:\n"
                          "            return f(*tuple([row[i] for i in range(nargs)]))\n"
@@ -110,6 +109,40 @@ namespace tuplex {
                          "    else:\n"
                          "        # unwrap single element tuples.\n"
                          "        return f(row.data[0])\n";
+        return applyCode;
+    }
+
+    static std::string codegenApplyFuncTwoArg() {
+        // special apply func code (gets special case, single element done!)
+        auto applyCode = "def apply_func2(f, row_lhs, row_rhs):\n"
+                         "    arg_lhs = row_lhs\n"
+                         "    arg_rhs = row_rhs\n"
+                         "    if len(row_lhs.data) == 1:\n"
+                         "        # unwrap single element tuples.\n"
+                         "        arg_lhs = row_lhs.data[0]\n"
+                         "    if len(row_rhs.data) == 1:\n"
+                         "        # unwrap single element tuples.\n"
+                         "        arg_rhs = row_rhs.data[0]\n"
+                         "    return f(arg_lhs, arg_rhs)\n";
+        return applyCode;
+    }
+
+
+    PythonPipelineBuilder::PythonPipelineBuilder(const std::string &funcName) : _funcName(funcName), _indentLevel(0), _lastInputRowName(inputRowName()), _lastRowName("row"), _envCounter(0), _parseCells(false), _pipelineDone(false) {
+
+        auto rowClassCode = codegenRowClassCode();
+
+        // need to add ALL the python operators for overloading...
+        // or do special fallback testing when calling python func...
+        _header += rowClassCode;
+
+        auto propagateCode = codegenRowConversionCode();
+
+        _header += propagateCode;
+
+
+        // special apply func code (gets special case, single element done!)
+        auto applyCode = codegenApplyFuncSingleArg();
         _header += applyCode;
 
         // some standard packages to import so stuff works...
@@ -129,7 +162,7 @@ namespace tuplex {
         indent(); // indent now everything
     }
 
-    std::string PythonPipelineBuilder::replaceTabs(const std::string &s) {
+    std::string PythonPipelineBuilder::replaceTabs(const std::string &s) const {
         std::string res;
         res = "";
         for(auto c : s) {
@@ -144,7 +177,7 @@ namespace tuplex {
         return res;
     }
 
-    std::string PythonPipelineBuilder::indentLines(int indentLevel, const std::string &s) {
+    std::string PythonPipelineBuilder::indentLines(int indentLevel, const std::string &s) const {
         std::stringstream ss;
 
         indentLevel = std::max(indentLevel, 0);
@@ -170,6 +203,14 @@ namespace tuplex {
         std::string list = "[";
         for(const auto& c : columns)
         list += "'" + c + "',";
+        return list + "]";
+    }
+
+    std::string vecToList(const std::vector<size_t> &column_indices) {
+        // convert to list of strings object as source code!
+        std::string list = "[";
+        for(const auto& c : column_indices)
+            list += std::to_string(c) + ",";
         return list + "]";
     }
 
@@ -895,4 +936,164 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         return ss.str();
     }
 
+
+    void PythonPipelineBuilder::pythonAggByKey(int64_t operatorID,
+                                               const std::string& hashmap_name,
+                                               const tuplex::UDF &aggUDF,
+                                               const std::vector<size_t> &aggColumns,
+                                               const Row& initial_value) {
+
+        flushLastFunction();
+
+        // add hashmap as var
+        _optArgs.push_back(hashmap_name);
+
+        // perform aggregate function on current output row & saved aggregate
+        // also yield key...
+        // fetch current key
+        std::stringstream ss;
+
+        // create at beginning of pipeline function lookup into aggregate value
+        std::stringstream header;
+        header<<"agg_value = None\n";
+
+        // check if key exists in hashmap, if not create! Else, call aggregate function on top!
+        ss<<"agg_key = ["<<row()<<"[key] for key in "<<vecToList(aggColumns)<<"]\n";
+        ss<<"agg_key = tuple(agg_key) if len(agg_key) != 1 else agg_key[0]\n";
+        ss<<"if agg_value is None:\n";
+        ss<<"\tagg_value = "<<hashmap_name<<".setdefault(agg_key, result_to_row("<<initial_value.toPythonString()<<"))\n";
+
+        // add aggregate initialization to header
+        _headCode += header.str();
+
+        // decode function
+        ss<<"code = "<<udfToByteCode(aggUDF)<<"\n";
+        ss<<"f_agg = cloudpickle.loads(code)\n";
+        ss<<"agg_value = "<<"apply_func2(f_agg, result_to_row(agg_value), "<<row()<<")\n";
+
+        // output aggregate value and key (b.c. special treatment necessary!)
+        // update row to be agg value
+        ss<<row()<<" = result_to_row(agg_value)\n";
+        ss<<"res['key'] = agg_key\n";
+
+        _header += codegenApplyFuncTwoArg();
+
+        auto code = ss.str();
+
+        // could use yield here as well...
+        writeLine(code);
+    }
+
+    void PythonPipelineBuilder::pythonAggGeneral(int64_t operatorID, const std::string& agg_intermediate_name,
+                                                 const tuplex::UDF &aggUDF, const Row& initial_value) {
+
+        // there's no key, but just a global aggregate. Hence, update the intermediate being passed down!
+        flushLastFunction();
+
+        // add hashmap as var
+        _optArgs.push_back(agg_intermediate_name);
+
+
+        // perform aggregate function on current output row & saved aggregate
+        // also yield key...
+        // fetch current key
+        std::stringstream ss;
+
+        // create at beginning of pipeline function lookup into aggregate value
+        std::stringstream header;
+        header<<"agg_value = "<<agg_intermediate_name<<"\n";
+
+        // add aggregate initialization to header
+        _headCode += header.str();
+
+
+        // decode function
+        ss<<"code = "<<udfToByteCode(aggUDF)<<"\n";
+        ss<<"f_agg = cloudpickle.loads(code)\n";
+        ss<<"agg_value = "<<"apply_func2(f_agg, result_to_row(agg_value), "<<row()<<")\n";
+        // output aggregate value and key (b.c. special treatment necessary!)
+        // update row to be agg value
+        ss<<row()<<" = result_to_row(agg_value)\n";
+
+        _header += codegenApplyFuncTwoArg();
+
+        auto code = ss.str();
+
+        // could use yield here as well...
+        writeLine(code);
+    }
+
+    std::string codegenPythonCombineAggregateFunction(const std::string& function_name,
+                                                      int64_t operatorID,
+                                                      const AggregateType& agg_type,
+                                                      const Row& initial_value,
+                                                      const UDF& combine_udf) {
+
+        std::stringstream ss;
+
+        auto py_initial_value = initial_value.toPythonString();
+
+        ss<<"import cloudpickle\n\n";
+        ss<<codegenRowClassCode()<<"\n";
+        ss<<codegenRowConversionCode()<<"\n";
+        ss<<codegenApplyFuncTwoArg()<<"\n";
+        ss<<"def "<<function_name<<"(a, b=None):\n";
+        ss<<"\tres = {'exceptionOperatorID': "<<operatorID<<"}\n";
+        ss<<"\ttry:\n";
+        ss<<"\t\tcode = "<<PythonPipelineBuilder::udfToByteCode(combine_udf)<<"\n";
+        ss<<"\t\tf = cloudpickle.loads(code)\n";
+        // emit code to combine aggregates depending on agg type
+        switch(agg_type) {
+            case AggregateType::AGG_UNIQUE: {
+                // this a simple combine (only keys really matter)
+                ss<<"\t\tcombined_agg = a.copy()\n";
+                ss<<"\t\tcombined_agg.update(b)\n";
+                break;
+            }
+            case AggregateType::AGG_BYKEY: {
+                // iterate over all keys and combine
+                // in order to preserve semantics, combine has to be run for each group at least once (i.e. with initial value).
+
+                // special case: b is None
+                // this means we have to call combine over each key of a
+                ss<<"\t\tagg0 = result_to_row("<<py_initial_value<<")\n";
+                ss<<"\t\tif b is None:\n";
+                ss<<"\t\t\tcombined_agg = a.copy()\n";
+                ss<<"\t\t\tfor k in a.keys():\n";
+                ss<<"\t\t\t\tcombined_agg[k] = apply_func2(f, result_to_row(a[k]), agg0)\n";
+
+                // regular case => combine for all keys
+                ss<<"\t\telse:\n";
+                ss<<"\t\t\tcombined_agg = {}\n";
+                ss<<"\t\t\tfor k in b.keys() & a.keys():\n";
+                ss<<"\t\t\t\tcombined_agg[k] = apply_func2(f, result_to_row(a[k]), result_to_row(b[k]))\n";
+                ss<<"\t\t\tfor k in b.keys():\n";
+                ss<<"\t\t\t\tif k not in combined_agg.keys():\n";
+                ss<<"\t\t\t\t\tcombined_agg[k] = apply_func2(f, agg0, result_to_row(b[k]))\n";
+                ss<<"\t\t\tfor k in a.keys():\n";
+                ss<<"\t\t\t\tif k not in combined_agg.keys():\n";
+                ss<<"\t\t\t\t\tcombined_agg[k] = apply_func2(f, result_to_row(a[k]), agg0)\n";
+                break;
+            }
+            case AggregateType::AGG_GENERAL: {
+                // simply call combine once
+                // special case: if b is None (so not a dict), run per group default combine.
+                //ss<<"\t\tcombined_agg = f(a, b)\n";
+                throw std::runtime_error("not yet supported");
+                break;
+            }
+            default:
+                throw std::runtime_error("unknown aggregate type " + std::to_string(static_cast<int>(agg_type)) + " encountered.");
+        }
+
+        ss<<"\texcept Exception as e:\n";
+        ss<<"\t\tres['input_lhs'] = a\n";
+        ss<<"\t\tres['input_rhs'] = b\n";
+        ss<<"\t\tres['exception'] = e\n";
+        ss<<"\t\treturn res\n";
+        ss<<"\tres['aggregate'] = combined_agg\n";
+        ss<<"\treturn res\n";
+
+        return ss.str();
+    }
 }

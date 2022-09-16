@@ -48,7 +48,7 @@ def tplx_package_data():
 
 setup(
     name="Tuplex",
-    version="0.3.3rc0",
+    version="0.3.4dev",
     packages=find_packages(),
     package_data=tplx_package_data(),
     include_package_data=True,
@@ -62,7 +62,7 @@ setup(
         'jupyter<7.0',
         'nbconvert<7.0',
         'nbformat<7.0',
-        'Werkzeug<2.0.0',
+        'Werkzeug<2.2.0',
         'attrs>=19.2.0',
         'dill>=0.2.7.1',
         'pluggy>=0.6.0, <1.0.0',

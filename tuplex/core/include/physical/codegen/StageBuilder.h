@@ -164,6 +164,9 @@ namespace tuplex {
             std::string _pyPipelineName;
             std::string _pyCode;            // python backup code
 
+            std::string _pyAggregateCode;
+            std::string _pyAggregateFunctionName;
+
             std::string _writerFuncName; // name of the function where to write stuff to.
 
             std::unordered_map<std::string, std::string> _fileInputParameters; // parameters specific for a file input format

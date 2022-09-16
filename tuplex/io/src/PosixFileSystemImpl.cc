@@ -12,8 +12,11 @@
 #include <cassert>
 #include <MessageHandler.h>
 #include <Logger.h>
+
+#include <boost/filesystem.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/filesystem/operations.hpp>
+
 #include <Utils.h>
 #include <sys/mman.h>
 #include <glob.h>

@@ -49,6 +49,12 @@ namespace tuplex {
             std::string package; // to which package it belongs to
             std::string location; // file location
 
+            Module() {}
+            Module(const Module& other) = default;
+            Module(Module&& other) = default;
+
+            Module& operator = (const Module& other) = default;
+
 #ifdef BUILD_WITH_CEREAL
             template<class Archive> void serialize(Archive &ar) {
                 ar(identifier, original_identifier, package, location);
@@ -62,6 +68,12 @@ namespace tuplex {
             //std::string json_value;          // value (pickled)
             Field value;
 
+            Constant() {}
+            Constant(const Constant& other) = default;
+            Constant(Constant&& other) = default;
+
+            Constant& operator = (const Constant& other) = default;
+
 #ifdef BUILD_WITH_CEREAL
             template<class Archive> void serialize(Archive &ar) {
                 ar(type, identifier, value);
@@ -74,6 +86,12 @@ namespace tuplex {
             std::string package; // which module does this function belong to?
             std::string location; // file location
             std::string qualified_name; // full path, i.e. re.search
+
+            Function() {}
+            Function(const Function& other) = default;
+            Function(Function&& other) = default;
+
+            Function& operator = (const Function& other) = default;
 
 #ifdef BUILD_WITH_CEREAL
             template<class Archive> void serialize(Archive &ar) {
@@ -164,6 +182,18 @@ namespace tuplex {
         std::vector<Module> _imported_modules;
         std::vector<Constant> _globals;
         std::vector<Function> _functions;
+
+    public:
+        ClosureEnvironment() {}
+        ClosureEnvironment(const ClosureEnvironment& other) : _imported_modules(other._imported_modules), _globals(other._globals), _functions(other._functions) {}
+        ClosureEnvironment(ClosureEnvironment&& other) : _imported_modules(other._imported_modules), _globals(other._globals), _functions(other._functions) {}
+
+        ClosureEnvironment& operator = (const ClosureEnvironment& other) {
+            _imported_modules = other._imported_modules;
+            _globals = other._globals;
+            _functions = other._functions;
+            return *this;
+        }
     };
 }
 

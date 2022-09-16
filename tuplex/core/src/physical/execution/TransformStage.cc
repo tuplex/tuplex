@@ -998,6 +998,8 @@ namespace tuplex {
 
         stage->_pyCode = msg.pycode();
         stage->_pyPipelineName = msg.pypipelinename();
+        stage->_pyAggregateCode = msg.pyaggcode();
+        stage->_pyAggregateFunctionName = msg.pyaggname();
 
         stage->_persistSeparateCases = msg.persistseparatecases();
         stage->_updateInputExceptions = msg.updateinputexceptions();
@@ -1052,6 +1054,8 @@ namespace tuplex {
         auto msg = std::make_unique<messages::TransformStage>();
 
         msg->set_pycode(_pyCode);
+        msg->set_pyaggcode(_pyAggregateCode);
+        msg->set_pyaggname(_pyAggregateFunctionName);
         msg->set_pypipelinename(_pyPipelineName);
 
         msg->set_serializedstage(_encodedData);

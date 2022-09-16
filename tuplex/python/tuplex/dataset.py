@@ -544,10 +544,16 @@ class DataSet:
             combine: a UDF to combine two aggregates (results of the aggregate function or the initial_value). E.g., cobmine = lambda agg1, agg2: agg1 + agg2. The initial value should be the neutral element.
             aggregate: a UDF which produces a result by combining a value with the aggregate initialized by initial_value. E.g., aggreagte = lambda agg, value: agg + value sums up values.
             initial_value: a neutral initial value.
-            key_columns: the columns to group the aggregate by
+            key_columns: the columns to group the aggregate by, a sequence of a mix of strings or integers. If specified as a single string or number, aggregation is over a single column.
         Returns:
             Dataset
         """
+
+        # if key columns
+        if isinstance(key_columns, str):
+            key_columns = [key_columns]
+        if isinstance(key_columns, int):
+            key_columns = [key_columns]
 
         comb_code, comb_code_pickled = '', ''
         agg_code, agg_code_pickled = '', ''

@@ -76,16 +76,18 @@ message TransformStage {
 
     uint32 stageNumber = 24;
     uint32 numColumns = 25;
-    string pyCode = 26;
+    string pycode = 26;
     string pyPipelineName = 27;
+    string pyaggcode = 28;
+    string pyaggname = 29;
 
     // file input + output params as dict
-    map<string, string> inputParameters = 28;
-    map<string, string> outputParameters = 29;
+    map<string, string> inputParameters = 30;
+    map<string, string> outputParameters = 31;
 
     // how many lambdas should each Lambda invoke? Recursive, i.e. {1, 1, 1} means the first Lambda invokes another
     // lambda, that again another etc. The total wait time thereby is baseDelay * depth
-    repeated uint32 invocationCount = 30;
+    repeated uint32 invocationCount = 32;
 }
 
 message WorkerSettings {

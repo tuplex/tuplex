@@ -299,10 +299,16 @@ namespace tuplex {
     }
 
     uint8_t* combineBuckets(uint8_t* bucketA, uint8_t* bucketB) {
-	if(bucketA == bucketB) {
-	   std::cerr<<"internal error: merging the same bucket together"<<std::endl;
-	   return bucketA;
-	}
+
+        // both nullptr is fine, else error
+        if(nullptr == bucketA && bucketA == bucketB)
+            return nullptr;
+
+        if(bucketA == bucketB) {
+           std::cerr<<"internal error: merging the same bucket together"<<std::endl;
+           return bucketA;
+        }
+        
         // if one is null, just return the other
         if (!bucketA && !bucketB)
             return nullptr;

@@ -206,7 +206,7 @@ namespace tuplex {
                     case LogicalOperatorType::AGGREGATE: {
                         assert(op == ctx.slowPathContext.operators.back()); // make sure it's the last one
                         // generate according to mode
-                        auto aop = static_cast<AggregateOperator*>(op);
+                        auto aop = std::dynamic_pointer_cast<AggregateOperator>(op);
                         switch(aop->aggType()) {
                             case AggregateType::AGG_UNIQUE: {
                                 // usually it's a hash aggregate, so python output.

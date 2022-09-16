@@ -16,7 +16,7 @@
 
 namespace tuplex {
 
-    enum class AggregateType {
+    enum class AggregateType : uint32_t {
         AGG_NONE=0,
         AGG_UNIQUE=10, // aggregate is unique(distinct) operation over whole schema.
         AGG_GENERAL=20, // the aggregate is simply one global object that gets updated via init, update, combine.

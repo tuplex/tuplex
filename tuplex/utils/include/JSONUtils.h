@@ -92,6 +92,19 @@ namespace tuplex {
         return m;
     }
 
+    /*!
+     * decodes the string value of a JSON escaped string
+     * @param json_string JSON escaped string (must start with ")
+     * @return decoded string
+     */
+    extern std::string unescape_json_string(const std::string& json_string);
+
+    /*!
+     * encodes a string as JSON escaped string
+     * @param string
+     * @return JSON escaped string.
+     */
+    extern std::string escape_json_string(const std::string& string);
 }
 
 #endif //TUPLEX_JSONUTILS_H

@@ -351,6 +351,7 @@ namespace tuplex {
 
                         // fetch data for field (i.e., raw string)
                         auto sv_value = simdjson::to_json_string(obj[key]).value();
+
                         std::string str_value(sv_value.begin(), sv_value.end());
 
                         row_json_strings.push_back(str_value);

@@ -230,6 +230,36 @@ TEST(JSONUtils, ReorderRow) {
     EXPECT_EQ(r.toPythonString(), "(20,30,10)");
 }
 
+TEST(JSONUtils, Escaping) {
+    // test helper functions for escaping/unescaping strings using full ASCII set
+    using namespace std;
+    using namespace tuplex;
+
+    // UTF-8 not supported yet...
+
+    string test(128, '\0');
+    for(int i = 0; i < 128; ++i)
+        test[i] = 128 - i - 1;
+
+    auto escaped = escape_json_string(test);
+    auto unescaped = unescape_json_string(escaped);
+
+    cout<<"escaped:   "<<escaped<<endl;
+    cout<<"unescaped: "<<unescaped<<endl;
+
+    EXPECT_GE(escaped.size(), test.size());
+    EXPECT_EQ(unescaped, test);
+
+    // use nlohmann to check as well
+    nlohmann::json j;
+    j["test"] = test;
+    auto dump = j.dump();
+    dump = dump.substr(8, dump.length() - 9);
+    auto unescaped_test = unescape_json_string(dump);
+    EXPECT_EQ(dump, escaped);
+    EXPECT_EQ(unescaped_test, test);
+}
+
 namespace tuplex {
     /*!
      * maximizeTypeCover computes the most likely type by potentially fusing types together.
@@ -352,7 +382,7 @@ namespace tuplex {
         std::size_t size = raw_data.size();
 
         // gzip::is_compressed(pointer, size); // can use this to check for gzip file...
-        std::string decompressed_data = gzip::decompress(pointer, size);
+        std::string decompressed_data = strEndsWith(path, ".gz") ? gzip::decompress(pointer, size) : raw_data;
         ss<<"  "<<fixed<<setprecision(2)<<timer.time()<<"s: "<<"loaded "<<path<<" "<<sizeToMemString(raw_data.size())<<" -> "<<sizeToMemString(decompressed_data.size())<<" (decompressed)"<<endl;
         logger.info(ss.str()); ss.str("");
 
@@ -366,9 +396,29 @@ namespace tuplex {
         if(!event_type.empty()) {
             // parse rows by event type
             std::vector<Row> filtered_rows;
-            for(auto row : rows) {
-
+            std::vector<std::vector<std::string>> filtered_names;
+            for(unsigned i = 0; i < rows.size(); ++i) {
+                // find type field
+                // "type"
+                auto idx = indexInVector(std::string("type"), column_names[i]);
+                if(idx < 0)
+                    continue;
+                auto value = rows[i].getString(idx);
+                if(value == event_type)  {
+                    filtered_rows.push_back(rows[i]);
+                    filtered_names.push_back(column_names[i]);
+                }
             }
+            ss<<"filtered down to "<<pluralize(filtered_rows.size(), "row")<<" of type "<<event_type<<" from "<<pluralize(rows.size(), "row")<<endl;
+            logger.info(ss.str()); ss.str("");
+            rows = filtered_rows;
+            column_names = filtered_names;
+
+            if(filtered_rows.empty()) {
+                logger.error("no rows");
+                return "";
+            }
+
         }
 
         // step 3: info about column names
@@ -651,6 +701,9 @@ TEST(JSONUtils, CheckFiles) {
     // where to output stats...
     string output_path = "./stats";
     output_path = "/home/lspiegel/tuplex-public/tuplex/build/stats";
+
+    pattern = "../resources/ndjson/github-hyper/*.json";
+
     cout<<"Saving detailed stats in "<<output_path<<endl;
 
     create_dir(output_path); 
@@ -667,14 +720,13 @@ TEST(JSONUtils, CheckFiles) {
     cout<<"Detected hardware concurrency: "<<concurrency<<endl;
 
     // process in parallel...
-
     for(const auto& path : paths) {
-        auto json_string = process_path(path);
+        auto json_string = process_path(path, "PushEvent");
         auto fname = base_file_name(path.c_str());
         auto save_path = output_path + "/" + fname + "_stats.json";
         //cout<<"saving stats data to "<<save_path<<endl;
         stringToFile(json_string, save_path);
-        logger.info("processed file " + fname);
+        logger.info("processed file " + std::string(fname));
         break;
     }
 }

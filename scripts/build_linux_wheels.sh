@@ -22,6 +22,9 @@ export TUPLEX_BUILD_ALL=0
 export CIBW_ARCHS_LINUX=x86_64
 export CIBW_MANYLINUX_X86_64_IMAGE='registry-1.docker.io/tuplex/ci:latest'
 
+# when building locally, prefer local image
+export CIBW_MANYLINUX_X86_64_IMAGE='tuplex/ci'
+
 
 # check whether lambda zip was build and stored in build-lambda
 TUPLEX_LAMBDA_ZIP=${TUPLEX_LAMBDA_ZIP:-build-lambda/tplxlam.zip}

@@ -177,7 +177,7 @@ def yum_dependencies():
   pkgconfig openssl-devel libxml2-devel zlib-devel  \
   uuid libuuid-devel libffi-devel graphviz-devel \
   gflags-devel ncurses-devel \
-  awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip
+  awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip libasan libtsan libasan-static libtsan-static
 """
 
 def github_to_known_hosts(home='/root'):
@@ -606,6 +606,8 @@ cd $INCLUDE_DIR && ln -s ${PYTHON_VERSION}m ${PYTHON_VERSION} && cd - || exit 1
     with open(os.path.join(root_folder, 'install_tuplex_reqs.sh'), 'w') as fp:
         fp.write(tiny_bash_header())
         fp.write('\n# install all build dependencies for tuplex (CentOS)')
+        
+        fp.write(workdir_setup() + '\n')
 
         fp.write(yum_dependencies() + '\n')
         fp.write(github_to_known_hosts('/root') + '\n')

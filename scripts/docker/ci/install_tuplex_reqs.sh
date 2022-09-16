@@ -2,7 +2,21 @@
 #(c) 2017-2022 Tuplex team
 
 
-# install all build dependencies for tuplex (CentOS)yum install -y libedit-devel libzip-devel   pkgconfig openssl-devel libxml2-devel zlib-devel    uuid libuuid-devel libffi-devel graphviz-devel   gflags-devel ncurses-devel   awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip
+# install all build dependencies for tuplex (CentOS)PREFIX=${PREFIX:-/opt}
+WORKDIR=${WORKDIR:-/tmp}
+
+echo ">> Installing packages into ${PREFIX}"
+mkdir -p $PREFIX && chmod 0755 $PREFIX
+mkdir -p $PREFIX/sbin
+mkdir -p $PREFIX/bin
+mkdir -p $PREFIX/share
+mkdir -p $PREFIX/include
+mkdir -p $PREFIX/lib
+
+echo ">> Files will be downloaded to ${WORKDIR}/tuplex-downloads"
+WORKDIR=$WORKDIR/tuplex-downloads
+mkdir -p $WORKDIR
+yum install -y libedit-devel libzip-devel   pkgconfig openssl-devel libxml2-devel zlib-devel    uuid libuuid-devel libffi-devel graphviz-devel   gflags-devel ncurses-devel   awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip libasan libtsan libasan-static libtsan-static
 
 # add github to known hosts
 mkdir -p /root/.ssh/ &&

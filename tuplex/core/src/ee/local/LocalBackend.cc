@@ -1462,6 +1462,27 @@ namespace tuplex {
         logger().info(std::to_string(resolveTasks.size()) + "/" + pluralize(tasks.size(), "task") + " require executing the slow path.");
         timer.reset();
 
+
+        // check that each task has its own hashtable/sink
+        if(hashOutput) {
+            std::set<uintptr_t> S_hm_ptrs;
+            size_t num_tasks = resolveTasks.size() + tasks_result.size();
+
+            for(auto& t : resolveTasks) {
+                auto rtask = (ResolveTask*)t;
+                assert(rtask->hashTableSink());
+                S_hm_ptrs.insert(reinterpret_cast<uintptr_t>(rtask->hashTableSink()->hm));
+            }
+
+            for(auto& t : tasks_result) {
+                auto task = (TransformTask*)t;
+                assert(task->hashTableSink());
+                S_hm_ptrs.insert(reinterpret_cast<uintptr_t>(task->hashTableSink()->hm));
+            }
+
+            assert(S_hm_ptrs.size() == num_tasks);
+        }
+
         // add all resolved tasks to the result
         // cout<<"*** need to compute "<<resolveTasks.size()<<" resolve tasks ***"<<endl;
         auto resolvedTasks = performTasks(resolveTasks);

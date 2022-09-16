@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 # (c) 2017 - 2022 Tuplex team
 # this is a helper script to generate all the install scripts for various OSs but with the same versions.
@@ -390,6 +390,8 @@ def install_llvm():
     
     
     LLVM_VERSION_MAJOR=LLVM_VERSION.split('.')[0]
+    LLVM_VERSION_MINOR=LLVM_VERSION.split('.')[1]
+    LLVM_MAJMIN = '{}.{}'.format(LLVM_VERSION_MAJOR, LLVM_VERSION_MINOR)
     workdir='${WORKDIR}/llvm'
     code = 'mkdir -p {} && cd {} && '.format(workdir, workdir)  + \
 '''wget https://github.com/llvm/llvm-project/releases/download/llvmorg-{version}/llvm-{version}.src.tar.xz \\
@@ -420,8 +422,8 @@ def install_llvm():
         
     code += ''' && mkdir build && cd build \\
 && cmake {cmake_flags} -DCMAKE_CXX_FLAGS="{cxx_flags}" \\
-         -DCMAKE_INSTALL_PREFIX=/opt/llvm-{version} ../llvm-{version}.src \\
-&& make -j "$(nproc)" && make install'''.format(cmake_flags=cmake_flags, version=LLVM_VERSION, cxx_flags=cxx_flags)
+         -DCMAKE_INSTALL_PREFIX=/opt/llvm-{majmin} ../llvm-{version}.src \\
+         && make -j "$(nproc)" && make install'''.format(cmake_flags=cmake_flags, majmin=LLVM_MAJMIN, version=LLVM_VERSION, cxx_flags=cxx_flags)
     
     return code
 

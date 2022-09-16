@@ -258,6 +258,8 @@ namespace tuplex {
             struct PythonCodePath {
                 std::string pyCode;
                 std::string pyPipelineName;
+                std::string pyAggregateCode;
+                std::string pyAggregateFunctionName;
             };
 
             static PythonCodePath generatePythonCode(const CodeGenerationContext& ctx, int stageNo); //! generates fallback pipeline in pure python. => i.e. special case here...

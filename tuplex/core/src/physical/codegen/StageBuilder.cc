@@ -278,14 +278,15 @@ namespace tuplex {
             }
 
             // special case: if output mode is hashstage and aggregate -> need to generate a combine aggregate function
-            _pyAggregateCode = "";
-            _pyAggregateFunctionName = "";
-            if(_outputMode == EndPointMode::HASHTABLE && _operators.size() > 0
-               && _operators.back()->type() == LogicalOperatorType::AGGREGATE) {
-                auto aop = static_cast<AggregateOperator*>(_operators.back());
+            path.pyAggregateCode = "";
+            path.pyAggregateFunctionName = "";
+            const auto& operators = ctx.slowPathContext.operators;
+            if(ctx.outputMode == EndPointMode::HASHTABLE && operators.size() > 0
+               && operators.back()->type() == LogicalOperatorType::AGGREGATE) {
+                auto aop = std::dynamic_pointer_cast<AggregateOperator>(operators.back());
                 auto combine_udf = aop->combinerUDF();
-                _pyAggregateFunctionName = "combine_py_aggregates";
-                _pyAggregateCode = codegenPythonCombineAggregateFunction(_pyAggregateFunctionName, aop->getID(),
+                path.pyAggregateFunctionName = "combine_py_aggregates";
+                path.pyAggregateCode = codegenPythonCombineAggregateFunction(path.pyAggregateFunctionName, aop->getID(),
                                                                          aop->aggType(), aop->initialValue(),
                                                                          combine_udf);
             }
@@ -1197,9 +1198,6 @@ namespace tuplex {
                         auto hash_map_global = env->createNullInitializedGlobal(hashmap_global_name, env->i8ptrType());
                         auto null_bucket_global = env->createNullInitializedGlobal(null_bucket_global_name,
                                                                                    env->i8ptrType());
-
-                        // add to lookup map for slow case
-                        _hashmap_vars[jop->getID()] = make_tuple(hash_map_global, null_bucket_global);
 
                         isBuilder.CreateStore(isBuilder.CreateLoad(
                                 isBuilder.CreateGEP(isArgs["hashmaps"], env->i32Const(global_var_cnt))),

@@ -177,7 +177,7 @@ def yum_dependencies():
   pkgconfig openssl-devel libxml2-devel zlib-devel  \
   uuid libuuid-devel libffi-devel graphviz-devel \
   gflags-devel ncurses-devel \
-  awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip libasan libtsan libasan-static libtsan-static
+  awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip libasan libtsan --skip-broken
 """
 
 def github_to_known_hosts(home='/root'):

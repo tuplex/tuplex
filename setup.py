@@ -166,8 +166,30 @@ from setuptools import Command
 import setuptools.command.install
 import setuptools.command.develop
 
-build_config = {'BUILD_TYPE' : 'Release'}
-build_config['BUILD_TYPE']='tsan'
+
+# check environment variables and print
+build_type = None
+if os.environ.get('TUPLEX_BUILD_TYPE', None):
+    build_type = os.environ['TUPLEX_BUILD_TYPE']
+    logging.info('Found TUPLEX_BUILD_TYPE environment variable, setting C extension build type to {}'.format(build_type))
+elif os.environ.get('CMAKE_BUILD_TYPE', None):
+    build_type = os.environ['CMAKE_BUILD_TYPE']
+    logging.info('Found CMAKE_BUILD_TYPEenvironment variable, setting C extension build type to {}'.format(build_type))
+else:
+    build_type = 'Release' # per default
+
+supported_modes = ['Debug', 'Release', 'RelWithDebInfo', 'MinSizeRel', 'tsan', 'asan']
+if build_type.lower() not in [t.lower() for t in supported_modes]:
+    logging.error('Unsupported build type {} found, aborting build.'.format(build_type))
+    sys.exit(1)
+else:
+    # lookup spelling
+    d = dict(zip([t.lower() for t in supported_modes], supported_modes))
+    build_type = d[build_type.lower()]
+
+build_config = {'BUILD_TYPE' : build_type}
+logging.info('Building Tuplex with build type {}'.format(build_type))
+
 class DevelopCommand(setuptools.command.develop.develop):
 
     user_options = setuptools.command.develop.develop.user_options + [

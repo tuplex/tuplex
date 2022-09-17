@@ -71,4 +71,4 @@ RUN rm -rf /tmp/*
 # remove temp stuff based on https://www.getpagespeed.com/server-setup/clear-disk-space-centos
 RUN curl -Ls http://bit.ly/clean-centos-disk-space | bash
 
-RUN yum install -y centos-release-scl-rh devtoolset-11-libtsan-devel
+RUN yum install -y centos-release-scl-rh devtoolset-11-libtsan-devel devtoolset-10-libtsan-devel

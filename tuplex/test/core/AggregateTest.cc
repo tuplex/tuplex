@@ -398,6 +398,7 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
     opt.set("tuplex.executorMemory", "2G");
     opt.set("tuplex.driverMemory", "2G");
     opt.set("tuplex.executorCount", "0");
+    opt.set("tuplex.executorCount", "16");
 
     // ds = c.csv('311_subset.csv')
     // def combine_udf(a, b):

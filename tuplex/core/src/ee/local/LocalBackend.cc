@@ -1411,6 +1411,7 @@ namespace tuplex {
                     //       aggregateByKey version.
 
                     // is it the first task? If so, set the current combined result!
+                    hasNormalHashSink = false;
                     if(hasNormalHashSink) {
                         rtask->sinkOutputToHashTable(tt->hashTableFormat(),
                                                      tstage->dataAggregationMode(),
@@ -1827,8 +1828,18 @@ namespace tuplex {
         auto data = (uint8_t*)entry->data;
         // data is a bucket. Check in combined hashmap hm
         uint8_t* bucket = nullptr;
-        hashmap_get(hm, key, keylen, reinterpret_cast<any_t*>(&bucket));
-        bucket = combineBuckets(bucket, data);
+        int rc = hashmap_get(hm, key, keylen, reinterpret_cast<any_t*>(&bucket));
+        if(rc != MAP_OK) {
+            std::cerr<<"internal error, did not find bucket"<<std::endl;
+        }
+
+        if(!bucket) {
+            std::cerr<<"internal: bucket is empty?"<<std::endl;
+        }
+        // this here is an issue and screws something up
+
+        // bucket = combineBuckets(bucket, data);
+
         hashmap_put(hm, key, keylen, bucket);
         // @TODO: there might be a memory leak for the keys...
         // => anyways need to rewrite this slow hashmap...
@@ -1937,12 +1948,23 @@ namespace tuplex {
         memcpy(new_data + 8, new_val, new_size);
 
         // free original aggregate (must come after data copy!)
-        free(init_val);
+        if(init_val == new_val) {
+            //std::cerr<<"error"<<std::endl;
+        } else {
+            //free(init_val);
+            init_val = nullptr;
+        }
+
         auto old_ptr = data;
 
         // assign to hashmap
         entry->data = new_data;
-        free(old_ptr);
+        if(old_ptr != new_data) {
+            //free(old_ptr);
+        } else {
+            std::cerr<<"internal error"<<std::endl;
+        }
+
         runtime::rtfree_all(); // combine aggregate allocates via runtime
 
         // // check
@@ -2193,12 +2215,18 @@ namespace tuplex {
                     hybrid->free();
 
                     assert(task_sink->hm == nullptr && task_sink->hybrid_hm == nullptr);
+                } else if(task_sink->hm) {
+                    hashmap_free_key_and_data(task_sink->hm);
+                    task_sink->hm = nullptr;
                 }
+                task_sink->hm = nullptr;
+                task_sink->hybrid_hm = nullptr;
+                task_sink->null_bucket = nullptr; // ?
             }
 
             // aggByKey or aggregate?
             if(init_aggregate && combine_aggregate) {
-                applyCombinePerGroup(*sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
+                // applyCombinePerGroup(*sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
             }
             return sink;
         }

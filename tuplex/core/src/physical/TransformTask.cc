@@ -335,7 +335,7 @@ namespace tuplex {
         auto ret = static_cast<uint8_t*>(malloc(sizeA + 8));
         *(int64_t*)ret = sizeA;
         memcpy(ret + 8, valA, sizeA);
-        free(valA); free(bucketA);
+        //free(valA); free(bucketA);
         return ret;
     }
 

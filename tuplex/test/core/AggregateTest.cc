@@ -410,9 +410,6 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
     Context c(opt);
     auto path = "../resources/311_subset.micro.csv";
 
-    // test path:
-     path = "/home/leonhard/projects/playground/sample_data/311_subset.csv";
-
     auto& ds = c.csv(path);
     auto combine_code = "def combine_udf(a, b):\n"
                         "  return a + b\n";

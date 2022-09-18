@@ -80,6 +80,27 @@ namespace tuplex {
         initExecutors(_options);
     }
 
+    static int count_rows(int64_t* counter, hashmap_element* entry) {
+
+        if(entry->in_use) {
+            auto data = (uint8_t*)entry->data; // bucket data. First is always an int64_t holding how many rows there are.
+            if(!data) {
+                std::cerr<<"encountered nullptr as bucket"<<std::endl;
+                return MAP_OK;
+            }
+            *counter += *((uint64_t*)(data + 8));
+        }
+
+        return MAP_OK;
+    }
+
+    void print_hashmap(map_t hm) {
+        auto& logger = Logger::instance().defaultLogger();
+        int64_t counter = 0;
+        hashmap_iterate(hm, reinterpret_cast<PFany>(count_rows), &counter);
+        logger.info("In total " + std::to_string(counter) + " rows stored (" + std::to_string(hashmap_length(hm)) + ")");
+    }
+
     LocalBackend::~LocalBackend() {
 
         // remove partitions belonging to context of backend...
@@ -1236,6 +1257,12 @@ namespace tuplex {
                                        true);
             logger().info("created combined normal-case result in " + std::to_string(timer.time()) + "s");
             hasNormalHashSink = true;
+
+            // // debug: count rows
+            // if(hsink->hm) {
+            //     print_hashmap(hsink->hm);
+            // }
+
         }
 
         Timer timer;
@@ -1834,7 +1861,7 @@ namespace tuplex {
             std::cerr<<"internal error, something weird happened..."<<std::endl;
         }
 
-        if(!bucket && rc != MAP_MISSING) {
+        if(!bucket && (rc != MAP_MISSING && rc != MAP_OK)) {
             std::cerr<<"internal: bucket is empty?"<<std::endl;
         }
         // this here is an issue and screws something up
@@ -1844,7 +1871,7 @@ namespace tuplex {
         uint64_t data_size = data ? *(uint64_t*)data : 0;
         uint8_t *data_copy = nullptr;
         if(data_size > 0) {
-            uint8_t* data_copy = (uint8_t*)malloc(data_size + sizeof(uint64_t));
+            data_copy = (uint8_t*)malloc(data_size + sizeof(uint64_t));
             if(!data_copy)
                 return MAP_OMEM;
             memcpy(data_copy, data, data_size + sizeof(uint64_t));
@@ -2204,9 +2231,15 @@ namespace tuplex {
                 else sink->hm = hashmap_new();
             }
 
+            // logger().info("moved first tasks sink, info:");
+            // print_hashmap(sink->hm);
+
             // merge in null bucket + other buckets from other tables (this could be slow...)
             for(int i = 1; i < tasks.size(); ++i) {
                 auto task_sink = moveHashSink(tasks[i]);
+
+                // logger().info("merging task sink " + std::to_string(i) + ", info:");
+                // print_hashmap(task_sink->hm);
 
                 // can skip this task sink, b.c. it's empty
                 if(!task_sink)
@@ -2226,6 +2259,9 @@ namespace tuplex {
                         else hashmap_iterate(task_sink->hm, rehash_bucket, sink->hm);
                     }
                 }
+
+                // logger().info("post merge, hashmap info is:");
+                // print_hashmap(sink->hm);
 
                 // NOTE: following code causes memory corruption, it's a leak but keep it for now to make sure things work.
                 // ==> need to rework whole hashing system at some point.

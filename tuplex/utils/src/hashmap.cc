@@ -397,6 +397,51 @@ int hashmap_get(map_t in, const char *key, uint64_t keylen, any_t *arg) {
     return MAP_MISSING;
 }
 
+int hashmap_get_and_move(map_t in, const char *key, uint64_t keylen, any_t *arg) {
+    int curr;
+    int i;
+    hashmap_map *m;
+
+    /* Cast the hashmap */
+    m = (hashmap_map *) in;
+
+    /* Find data location */
+    curr = hashmap_hash_int(m, key, keylen);
+
+    /* Linear probing, if necessary */
+    for (i = 0; i < MAX_CHAIN_LENGTH; i++) {
+
+        int in_use = m->data[curr].in_use;
+        if (in_use == 1) {
+            if ((m->data[curr].keylen == keylen) && (memcmp(m->data[curr].key, key, keylen) == 0)) {
+                // put to arg, then remove... (but do not free!)
+                *arg = (m->data[curr].data);
+
+                /* Blank out the fields */
+                m->data[curr].in_use = 0;
+                m->data[curr].data = nullptr; // data is moved
+
+                // key is always owned by hashmap, so free it
+                free(m->data[curr].key);
+
+                m->data[curr].key = nullptr;
+                m->data[curr].keylen = 0;
+
+                /* Reduce the size */
+                m->size--;
+                return MAP_OK;
+            }
+        }
+
+        curr = (curr + 1) % m->table_size;
+    }
+
+    *arg = NULL;
+
+    /* Not found */
+    return MAP_MISSING;
+}
+
 /*
  * Iterate the function parameter over each element in the hashmap.  The
  * additional any_t argument is passed to the function as its first

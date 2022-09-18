@@ -411,7 +411,7 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
     auto path = "../resources/311_subset.micro.csv";
 
     // test path:
-    path = "/home/leonhard/projects/playground/sample_data/311_subset.csv";
+     path = "/home/leonhard/projects/playground/sample_data/311_subset.csv";
 
     auto& ds = c.csv(path);
     auto combine_code = "def combine_udf(a, b):\n"
@@ -437,7 +437,8 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
     }
 
     std::cout<<"====\n"<<pluralize(total_rows, "row")<<std::endl;
-    EXPECT_EQ(total_rows, 2000); // this should work
+//    EXPECT_EQ(total_rows, 2000); // this should work
+    EXPECT_EQ(total_rows, 150000); // this should work
     // the counts are off...
     // ==> need to fix this!
     // i.e., small subset should have 120k rows in total...

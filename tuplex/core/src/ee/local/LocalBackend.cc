@@ -1411,7 +1411,6 @@ namespace tuplex {
                     //       aggregateByKey version.
 
                     // is it the first task? If so, set the current combined result!
-                    hasNormalHashSink = false;
                     if(hasNormalHashSink) {
                         rtask->sinkOutputToHashTable(tt->hashTableFormat(),
                                                      tstage->dataAggregationMode(),
@@ -1821,6 +1820,7 @@ namespace tuplex {
         return MAP_OK;
     }
 
+    // hm is the write-to hashmap, but entry is read-only.
     static int combine_bucket(map_t hm, hashmap_element* entry) {
         assert(hm);
         auto key = entry->key;
@@ -1828,21 +1828,47 @@ namespace tuplex {
         auto data = (uint8_t*)entry->data;
         // data is a bucket. Check in combined hashmap hm
         uint8_t* bucket = nullptr;
-        int rc = hashmap_get(hm, key, keylen, reinterpret_cast<any_t*>(&bucket));
-        if(rc != MAP_OK) {
-            std::cerr<<"internal error, did not find bucket"<<std::endl;
+        //int rc = hashmap_get(hm, key, keylen, reinterpret_cast<any_t*>(&bucket));
+        int rc = hashmap_get_and_move(hm, key, keylen, reinterpret_cast<any_t*>(&bucket));
+        if(rc != MAP_OK && rc != MAP_MISSING) {
+            std::cerr<<"internal error, something weird happened..."<<std::endl;
         }
 
-        if(!bucket) {
+        if(!bucket && rc != MAP_MISSING) {
             std::cerr<<"internal: bucket is empty?"<<std::endl;
         }
         // this here is an issue and screws something up
 
-        // bucket = combineBuckets(bucket, data);
+        // now let's screw it up, using data will cause a double free!
+        // no issue though if bucket is copied (malloc copy)
+        uint64_t data_size = data ? *(uint64_t*)data : 0;
+        uint8_t *data_copy = nullptr;
+        if(data_size > 0) {
+            uint8_t* data_copy = (uint8_t*)malloc(data_size + sizeof(uint64_t));
+            if(!data_copy)
+                return MAP_OMEM;
+            memcpy(data_copy, data, data_size + sizeof(uint64_t));
+        }
 
-        hashmap_put(hm, key, keylen, bucket);
-        // @TODO: there might be a memory leak for the keys...
-        // => anyways need to rewrite this slow hashmap...
+        // in theory, bucketB and bucketA are both read only. Yet, let's play it safe...
+
+        auto new_bucket = combineBuckets(bucket, data_copy);
+
+        // so bucket can be freed now.
+        if(bucket && new_bucket != bucket) {
+            free(bucket);
+            bucket = nullptr;
+        }
+
+        // if data copy is not new bucket, can free data copy
+        if(data_copy && new_bucket != data_copy) {
+            free(data_copy);
+            data_copy = nullptr;
+        }
+
+        // put the new bucket in.
+        hashmap_put(hm, key, keylen, new_bucket);
+
         return MAP_OK;
     }
 
@@ -2226,7 +2252,7 @@ namespace tuplex {
 
             // aggByKey or aggregate?
             if(init_aggregate && combine_aggregate) {
-                // applyCombinePerGroup(*sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
+                applyCombinePerGroup(*sink, hashtableKeyByteWidth, init_aggregate, combine_aggregate);
             }
             return sink;
         }

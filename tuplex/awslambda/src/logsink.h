@@ -29,7 +29,7 @@ namespace tuplex {
             auto r = response.add_resources();
             if(!r)
                 return;
-            r->set_type(ResourceType::LOG);
+            r->set_type(static_cast<uint32_t>(ResourceType::LOG));
             r->set_payload(compressed_messages);
             r->set_id(id);
         }

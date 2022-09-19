@@ -9,7 +9,7 @@
 #include <Lambda.pb.h>
 
 namespace tuplex {
-    enum class ResourceType {
+    enum class ResourceType : uint32_t {
         UNKNOWN = 0,
         LOG = 1
     };

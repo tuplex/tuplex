@@ -11,6 +11,12 @@ while :; do
     shift
 done
 
+# copy data from examples folder and include it in docker image
+cp ../../../examples/*.ipynb .
+cp ../../../examples/*.py .
+cp -R ../../../examples/sample_data .
+
+
 # build benchmark docker image
 # copy from scripts to current dir because docker doesn't understand files
 # outside the build context

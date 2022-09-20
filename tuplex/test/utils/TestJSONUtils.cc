@@ -199,29 +199,16 @@ TEST(JSONUtils, CParse) {
     auto buf = decompressed_data.data();
     auto buf_size = decompressed_data.size();
 
-    // // test itself ?
-    // {
-    //     simdjson::dom::parser parser;
-    //     simdjson::dom::document_stream stream;
-    //     auto error = parser.parse_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).get(stream);
-    //     if( error ) { /* do something */ }
-    //     auto i = stream.begin();
-    //     size_t count{0};
-    //     for(; i != stream.end(); ++i) {
-    //         auto doc = *i;
-    //         if(!doc.error()) {
-    //             std::cout << "got full document at " << i.current_index() << std::endl;
-    //             //std::cout << i.source() << std::endl;
-    //             count++;
-    //         } else {
-    //             std::cout << "got broken document at " << i.current_index() << std::endl;
-    //             break;
-    //             //return false;
-    //         }
-    //     }
-    // }
 
-
+    // detect (general-case) type here:
+//    ContextOptions co = ContextOptions::defaults();
+//    auto sample_size = co.CSV_MAX_DETECTION_MEMORY();
+//    auto nc_th = co.NORMALCASE_THRESHOLD();
+    auto sample_size = 256 * 1024ul; // 256kb
+    auto nc_th = 0.9;
+    auto rows = parseRowsFromJSON(buf, std::min(buf_size, sample_size));
+    auto row_type = detectMajorityRowType(rows, nc_th);
+    std::cout<<"detected: "<<row_type.desc()<<std::endl;
 
     // C-version of parsing
     uint64_t row_number = 0;
@@ -231,7 +218,16 @@ TEST(JSONUtils, CParse) {
         throw std::runtime_error("failed to initialize parser");
     JsonParser_open(j, buf, buf_size);
     while(JsonParser_hasNextRow(j)) {
-        //if(JsonParser)
+        if(JsonParser_getDocType(j) != JsonParser_objectDocType()) {
+            // BADPARSE_STRINGINPUT
+            auto line = JsonParser_getMallocedRow(j);
+            free(line);
+        }
+
+        // line ok, now extract something from the object!
+        // => basically need to traverse...
+
+
         row_number++;
         JsonParser_moveToNextRow(j);
     }

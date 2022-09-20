@@ -288,12 +288,58 @@ namespace tuplex {
             void moveToNextRow(llvm::IRBuilder<>& builder, llvm::Value* j);
 
 
+            void emitBadParseInputAndMoveToNextRow(llvm::IRBuilder<>& builder, llvm::Value* j, llvm::Value* condition, llvm::BasicBlock* loop_start);
+
             inline llvm::Value* rowNumber(llvm::IRBuilder<>& builder) {
                 assert(_rowNumberVar);
                 assert(_rowNumberVar->getType() == _env.i64ptrType());
                 return builder.CreateLoad(_rowNumberVar);
             }
+
+            llvm::Value* isDocumentOfObjectType(llvm::IRBuilder<>& builder, llvm::Value* j);
+
         };
+
+        llvm::Value *JSONSourceTaskBuilder::isDocumentOfObjectType(llvm::IRBuilder<> &builder, llvm::Value *j) {
+            using namespace llvm;
+            auto& ctx = _env.getContext();
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_getDocType", _env.i64Type(), _env.i64Type());
+            auto call_res = builder.CreateCall(F, j);
+            auto cond = builder.CreateICmpEQ(call_res, _env.i64Const(JsonParser_objectDocType()));
+            return cond;
+        }
+
+        void JSONSourceTaskBuilder::emitBadParseInputAndMoveToNextRow(llvm::IRBuilder<> &builder, llvm::Value *j,
+                                                                      llvm::Value *condition,
+                                                                      llvm::BasicBlock *loop_start) {
+            using namespace llvm;
+            auto& ctx = _env.getContext();
+
+            auto F = builder.GetInsertBlock()->getParent();
+            BasicBlock* bbOK = BasicBlock::Create(ctx, "ok", F);
+            BasicBlock* bbEmitBadParse = BasicBlock::Create(ctx, "bad_parse", F);
+            builder.CreateCondBr(condition, bbEmitBadParse, bbOK);
+
+            // ---- bad parse blocks ----
+            //            auto line = JsonParser_getMallocedRow(j);
+            //            free(line);
+            // --> i.e. call exception handler from here...
+            builder.SetInsertPoint(bbEmitBadParse);
+            auto Frow = getOrInsertFunction(_env.getModule().get(), "JsonParser_getMallocedRow", _env.i8ptrType(), _env.i8ptrType());
+            auto line = builder.CreateCall(Frow, j);
+
+            // simply print (later call with error)
+            _env.printValue(builder, rowNumber(builder), "row number: ");
+            _env.printValue(builder, line, "bad-parse for row: ");
+
+            _env.cfree(builder, line);
+
+            moveToNextRow(builder, j);
+            builder.CreateBr(loop_start);
+
+            // ok block
+            builder.SetInsertPoint(bbOK);
+        }
 
         llvm::Value *JSONSourceTaskBuilder::hasNextRow(llvm::IRBuilder<> &builder, llvm::Value *j) {
             auto& ctx = _env.getContext();
@@ -403,6 +449,10 @@ namespace tuplex {
             // generate here...
            // _env.debugPrint(builder, "parsed row");
 
+            // check whether it's of object type -> parse then as object (only supported type so far!)
+            cond = isDocumentOfObjectType(builder, parser);
+            emitBadParseInputAndMoveToNextRow(builder, parser, _env.i1neg(builder, cond), bLoopHeader);
+
             // go to next row
             moveToNextRow(builder, parser);
 
@@ -495,6 +545,8 @@ TEST_F(HyperTest, BasicStructLoad) {
     jit.registerSymbol("JsonParser_moveToNextRow", JsonParser_moveToNextRow);
     jit.registerSymbol("JsonParser_hasNextRow", JsonParser_hasNextRow);
     jit.registerSymbol("JsonParser_open", JsonParser_open);
+    jit.registerSymbol("JsonParser_getDocType", JsonParser_getDocType);
+    jit.registerSymbol("JsonParser_getMallocedRow", JsonParser_getMallocedRow);
 
 
     // compile func

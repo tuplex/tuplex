@@ -44,12 +44,12 @@ namespace tuplex {
 
     // C-APIs to use in codegen
 
-    JsonParser* JsonParser_init() {
+    extern "C" JsonParser* JsonParser_init() {
         // can't malloc, or can malloc but then need to call inplace C++ constructors!
         return new JsonParser();
     }
 
-    void JsonParser_free(JsonParser *parser) {
+    extern "C" void JsonParser_free(JsonParser *parser) {
         if(parser)
             delete parser;
     }
@@ -256,6 +256,117 @@ namespace tuplex {
 
 }
 
+
+namespace tuplex {
+    namespace codegen {
+        class JSONSourceTaskBuilder {
+        public:
+            JSONSourceTaskBuilder(LLVMEnvironment& env, const python::Type& rowType, const std::string& functionName="parseJSON", bool unwrap_first_level=true) : _env(env), _rowType(rowType), _functionName(functionName), _unwrap_first_level(unwrap_first_level) {}
+
+            void build();
+        private:
+            LLVMEnvironment& _env;
+            python::Type _rowType;
+            std::string _functionName;
+            bool _unwrap_first_level;
+
+            void generateParseLoop(llvm::IRBuilder<> &builder, llvm::Value* bufPtr, llvm::Value* bufSize);
+
+            llvm::Value* initJsonParser(llvm::IRBuilder<>& builder);
+            void freeJsonParse(llvm::IRBuilder<>& builder, llvm::Value* j);
+
+            void exitMainFunctionWithError(llvm::IRBuilder<>& builder, llvm::Value* exitCondition, llvm::Value* exitCode);
+
+        };
+
+        void JSONSourceTaskBuilder::exitMainFunctionWithError(llvm::IRBuilder<> &builder, llvm::Value *exitCondition,
+                                                              llvm::Value *exitCode) {
+            using namespace llvm;
+            auto& ctx = _env.getContext();
+            auto F = builder.GetInsertBlock()->getParent();
+
+            assert(exitCondition->getType() == _env.i1Type());
+            assert(exitCode->getType() == _env.i64Type());
+
+            // branch and exit
+            BasicBlock* bbExit = BasicBlock::Create(ctx, "exit_with_error", F);
+            BasicBlock* bbContinue = BasicBlock::Create(ctx, "no_error", F);
+            builder.CreateCondBr(exitCondition, bbExit, bbContinue);
+            builder.SetInsertPoint(bbExit);
+            builder.CreateRet(exitCode);
+            builder.SetInsertPoint(bbContinue);
+        }
+
+        llvm::Value *JSONSourceTaskBuilder::initJsonParser(llvm::IRBuilder<> &builder) {
+
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_Init", _env.i8Type());
+
+            auto j = builder.CreateCall(F, {});
+            auto is_null = builder.CreateICmpEQ(j, _env.i8nullptr());
+            exitMainFunctionWithError(builder, is_null, _env.i64Const(ecToI64(ExceptionCode::NULLERROR)));
+            return j;
+        }
+
+        void JSONSourceTaskBuilder::generateParseLoop(llvm::IRBuilder<> &builder, llvm::Value* bufPtr, llvm::Value* bufSize) {
+            using namespace llvm;
+            auto& ctx = _env.getContext();
+
+            // this will be a loop
+            auto F = builder.GetInsertBlock()->getParent();
+            BasicBlock* bLoopHeader = BasicBlock::Create(ctx, "loop_header", F);
+            BasicBlock* bLoopBody = BasicBlock::Create(ctx, "loop_body", F);
+            BasicBlock* bLoopExit = BasicBlock::Create(ctx, "loop_exit", F);
+
+            // init json parse
+            // auto j = JsonParser_init();
+            // if(!j)
+            //     throw std::runtime_error("failed to initialize parser");
+            // JsonParser_open(j, buf, buf_size);
+            // while(JsonParser_hasNextRow(j)) {
+            //     if(JsonParser_getDocType(j) != JsonParser_objectDocType()) {
+
+            auto parser = initJsonParser(builder);
+
+            // go from current block to header
+            builder.CreateBr(bLoopHeader);
+            // condition (i.e. hasNextDoc)
+            auto cond = nullptr;
+            builder.CreateCondBr(cond, bLoopBody, bLoopExit);
+
+            // body
+            builder.SetInsertPoint(bLoopBody);
+            // generate here...
+
+            // continue in loop exit.
+            builder.SetInsertPoint(bLoopExit);
+
+            // free JSON parse
+            freeJsonParse(builder, parser);
+
+        }
+
+        void JSONSourceTaskBuilder::build() {
+            using namespace llvm;
+            auto& ctx = _env.getContext();
+
+            // create main function (takes buffer and buf_size, later take the other tuplex stuff)
+            FunctionType* FT = FunctionType::get(ctypeToLLVM<int64_t>(ctx), {ctypeToLLVM<char*>(ctx), ctypeToLLVM<int64_t>(ctx)}, false);
+
+            Function *F = Function::Create(FT, llvm::GlobalValue::ExternalLinkage, _functionName, *_env.getModule().get());
+            auto m = mapLLVMFunctionArgs(F, {"buf", "buf_size"});
+
+            auto bbEntry = BasicBlock::Create(ctx, "entry", F);
+            IRBuilder<> builder(bbEntry);
+
+            // dummy parse, simply print type and value with type checking.
+            generateParseLoop(builder, m["buf"], m["buf_size"]);
+
+            builder.CreateRet(_env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+        }
+    }
+}
+
+
 // notes: type of line can be
 
 TEST_F(HyperTest, BasicStructLoad) {
@@ -292,6 +403,13 @@ TEST_F(HyperTest, BasicStructLoad) {
     auto rows = parseRowsFromJSON(buf, std::min(buf_size, sample_size), nullptr, false);
     auto row_type = detectMajorityRowType(rows, nc_th);
     std::cout<<"detected: "<<row_type.desc()<<std::endl;
+
+
+    // codegen here
+    codegen::LLVMEnvironment env;
+    codegen::JSONSourceTaskBuilder jtb(env, row_type);
+    jtb.build();
+    std::cout<<"generated code:\n"<<codegen::moduleToString(*env.getModule())<<std::endl;
 
     // runtime init
     ContextOptions co = ContextOptions::defaults();

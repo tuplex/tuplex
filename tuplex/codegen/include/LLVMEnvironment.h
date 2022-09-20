@@ -50,10 +50,96 @@
 
 namespace tuplex {
     namespace codegen {
-        /*!
- * helper class to generate LLVM Code into one module. Captures all globals necessary for LLVM based
- * code generation. Also provides helper functions to create individual LLVM code pieces.
- */
+
+            // helper functions to enable llvm6 and llvm9 comaptibility // --> force onto llvm9+ for now.
+            inline llvm::CallInst *createCallHelper(llvm::Function *Callee, llvm::ArrayRef<llvm::Value*> Ops,
+                                              llvm::IRBuilder<>& builder,
+                                              const llvm::Twine &Name = "",
+                                                    llvm::Instruction *FMFSource = nullptr) {
+                llvm::CallInst *CI = llvm::CallInst::Create(Callee, Ops, Name);
+                if (FMFSource)
+                    CI->copyFastMathFlags(FMFSource);
+                builder.GetInsertBlock()->getInstList().insert(builder.GetInsertPoint(), CI);
+                builder.SetInstDebugLocation(CI);
+                return CI;
+            }
+
+            inline llvm::CallInst* createBinaryIntrinsic(llvm::IRBuilder<>& builder,
+                                                         llvm::Intrinsic::ID ID,
+                                                         llvm::Value *LHS, llvm::Value* RHS,
+                                                   const llvm::Twine& Name="",
+                                                         llvm::Instruction *FMFSource = nullptr) {
+                llvm::Module *M = builder.GetInsertBlock()->getModule();
+                assert(M);
+                llvm::Function *Fn = llvm::Intrinsic::getDeclaration(M, ID, {LHS->getType()});
+                assert(Fn);
+                return createCallHelper(Fn, {LHS, RHS}, builder, Name, FMFSource);
+            }
+
+            inline llvm::CallInst* createUnaryIntrinsic(llvm::IRBuilder<>& builder,
+                                                        llvm::Intrinsic::ID ID,
+                                                        llvm::Value *V,
+                                                  const llvm::Twine& Name="",
+                                                        llvm::Instruction *FMFSource = nullptr) {
+                llvm::Module *M = builder.GetInsertBlock()->getModule();
+                llvm::Function *Fn = llvm::Intrinsic::getDeclaration(M, ID, {V->getType()});
+                return createCallHelper(Fn, {V}, builder, Name, FMFSource);
+            }
+
+            inline llvm::Value* CreateStructGEP(llvm::IRBuilder<>& builder, llvm::Value* ptr, unsigned int idx, const llvm::Twine& Name="") {
+#if LLVM_VERSION_MAJOR < 9
+                // compatibility
+        return builder.CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
+#else
+                return builder.CreateStructGEP(ptr, idx);
+#endif
+            }
+
+            inline llvm::Value* getOrInsertCallable(llvm::Module& mod, const std::string& name, llvm::FunctionType* FT) {
+#if LLVM_VERSION_MAJOR < 9
+                return mod.getOrInsertFunction(name, FT);
+#else
+                return mod.getOrInsertFunction(name, FT).getCallee();
+#endif
+            }
+
+            inline llvm::Value* getOrInsertCallable(llvm::Module* mod, const std::string& name, llvm::FunctionType* FT) {
+                assert(mod);
+                if(!mod)
+                    return nullptr;
+                return getOrInsertCallable(*mod, name, FT);
+            }
+
+
+            inline llvm::Function* getOrInsertFunction(llvm::Module& mod, const std::string& name, llvm::FunctionType* FT) {
+#if LLVM_VERSION_MAJOR < 9
+                llvm::Function* func = llvm::cast<llvm::Function>(mod.getOrInsertFunction(name, FT));
+#else
+                llvm::Function *func = llvm::cast<llvm::Function>(mod.getOrInsertFunction(name, FT).getCallee());
+#endif
+                return func;
+            }
+
+            inline llvm::Function* getOrInsertFunction(llvm::Module* mod, const std::string& name, llvm::FunctionType* FT) {
+                if(!mod)
+                    return nullptr;
+
+#if LLVM_VERSION_MAJOR < 9
+                llvm::Function* func = cast<Function>(mod->getOrInsertFunction(name, FT));
+#else
+                llvm::Function *func = llvm::cast<llvm::Function>(mod->getOrInsertFunction(name, FT).getCallee());
+#endif
+                return func;
+            }
+
+            template <typename... ArgsTy>
+            llvm::Function* getOrInsertFunction(llvm::Module* mod, const std::string& Name, llvm::Type *RetTy,
+                                          ArgsTy... Args) {
+                if(!mod)
+                    return nullptr;
+                llvm::SmallVector<llvm::Type*, sizeof...(ArgsTy)> ArgTys{Args...};
+                return getOrInsertFunction(mod, Name, llvm::FunctionType::get(RetTy, ArgTys, false));
+            }
 
         /*!
          * get index for value, size and bitmapPosition
@@ -70,6 +156,10 @@ namespace tuplex {
          */
         extern size_t calcBitmapElementCount(const python::Type& tupleType);
 
+        /*!
+         * helper class to generate LLVM Code into one module. Captures all globals necessary for LLVM based
+         * code generation. Also provides helper functions to create individual LLVM code pieces.
+         */
         class LLVMEnvironment {
         private:
             llvm::LLVMContext _context;

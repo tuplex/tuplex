@@ -482,8 +482,11 @@ int hashmap_free_key_and_data(map_t in) {
     /* Linear probing */
     for (i = 0; i < m->table_size; i++)
         if (m->data[i].in_use != 0) {
-            free(m->data[i].key);
-            free(m->data[i].data);
+            assert(m->data[i].key);
+            if(m->data[i].key)
+                free(m->data[i].key);
+            if(m->data[i].data)
+                free(m->data[i].data);
             m->data[i].key = NULL;
             m->data[i].keylen = 0;
             m->data[i].data = NULL;

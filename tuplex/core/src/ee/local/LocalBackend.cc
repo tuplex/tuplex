@@ -1760,20 +1760,78 @@ namespace tuplex {
         astage->setResultSet(std::make_shared<ResultSet>(rs->schema(), pw.getOutputPartitions(true)));
     }
 
-    // merge buckets and delete them then...
-    uint8_t* merge_buckets(uint8_t* bucketA, uint8_t* bucketB) {
+//    // merge buckets and delete them then...
+//    uint8_t* merge_buckets(uint8_t* bucketA, uint8_t* bucketB) {
+//        // if one is null, just return the other
+//        if(!bucketA && !bucketB)
+//            return nullptr;
+//        if(bucketA && !bucketB)
+//            return bucketA;
+//        if(!bucketA && bucketB)
+//            return bucketB;
+//
+//        // both are valid
+//        assert(bucketA && bucketB);
+//        assert(bucketA != bucketB);
+//
+//
+//        // extract size, num rows etc. and merge
+//        uint64_t infoA = *(uint64_t*)bucketA;
+//        auto bucket_size_A = infoA & 0xFFFFFFFF;
+//        auto num_elements_A = (infoA >> 32ul);
+//        uint64_t infoB = *(uint64_t*)bucketB;
+//        auto bucket_size_B = infoB & 0xFFFFFFFF;
+//        auto num_elements_B = (infoB >> 32ul);
+//
+//        // -8 bytes to not double count info
+//        auto bucket_size = bucket_size_A + bucket_size_B - sizeof(int64_t);
+//        auto num_elements = num_elements_A + num_elements_B;
+//        uint64_t info = (num_elements << 32ul) | bucket_size;
+//
+//        // realloc and copy contents to end of bucket...
+//        auto bucket = (uint8_t*)malloc(bucket_size);
+//        *(uint64_t*)bucket = info;
+//
+//        // copy bucketA contents
+//        memcpy(bucket + sizeof(int64_t), bucketA + sizeof(int64_t), bucket_size_A - sizeof(int64_t));
+//        // copy bucketB contents
+//        memcpy(bucket + sizeof(int64_t) + bucket_size_A - sizeof(int64_t), bucketB + sizeof(int64_t), bucket_size_B - sizeof(int64_t));
+//        free(bucketA);
+//        free(bucketB);
+//        bucketA = nullptr;
+//        bucketB = nullptr;
+//        return bucket;
+//    }
+
+    // merge to first bucket (realloc, free). Second bucket is read-only.
+    uint8_t* merge_buckets(uint8_t** bucketA_ptr, const uint8_t* bucketB) {
+        assert(bucketA_ptr);
+        auto bucketA = *bucketA_ptr;
+
+        if(bucketA == bucketB)
+            return bucketA;
+
         // if one is null, just return the other
         if(!bucketA && !bucketB)
             return nullptr;
         if(bucketA && !bucketB)
             return bucketA;
-        if(!bucketA && bucketB)
-            return bucketB;
+        if(!bucketA && bucketB) {
+            // make a copy of bucketB
+            uint64_t infoB = *(uint64_t*)bucketB;
+            auto bucket_size_B = infoB & 0xFFFFFFFF;
+            auto num_elements_B = (infoB >> 32ul);
 
-        // both are valid
+            auto bucket = (uint8_t*)malloc(bucket_size_B + sizeof(int64_t));
+            *(uint64_t*)bucket = infoB;
+            // copy bucketB contents
+            memcpy(bucket + sizeof(int64_t), bucketB + sizeof(int64_t), bucket_size_B);
+            return bucket;
+        }
+
+        // both are valid -> this means bucketA gets freed and replaced with both contents!
         assert(bucketA && bucketB);
         assert(bucketA != bucketB);
-
 
         // extract size, num rows etc. and merge
         uint64_t infoA = *(uint64_t*)bucketA;
@@ -1797,11 +1855,12 @@ namespace tuplex {
         // copy bucketB contents
         memcpy(bucket + sizeof(int64_t) + bucket_size_A - sizeof(int64_t), bucketB + sizeof(int64_t), bucket_size_B - sizeof(int64_t));
         free(bucketA);
-        free(bucketB);
         bucketA = nullptr;
-        bucketB = nullptr;
+
+        *bucketA_ptr = bucket;
         return bucket;
     }
+
 
     // /*
     // * Iterate the function parameter over each element in the hashmap.  The
@@ -1840,7 +1899,7 @@ namespace tuplex {
         // data is a bucket. Check in combined hashmap hm
         uint8_t* bucket = nullptr;
         hashmap_get(hm, key, keylen, reinterpret_cast<any_t*>(&bucket));
-        bucket = merge_buckets(bucket, data);
+        bucket = merge_buckets(&bucket, data);
         hashmap_put(hm, key, keylen, bucket);
         // @TODO: there might be a memory leak for the keys...
         // => anyways need to rewrite this slow hashmap...
@@ -1906,7 +1965,7 @@ namespace tuplex {
         // data is a bucket. Check in combined hashmap hm
         uint8_t* bucket = nullptr;
         int64_hashmap_get(hm, key, reinterpret_cast<any_t*>(&bucket));
-        bucket = merge_buckets(bucket, data);
+        bucket = merge_buckets(&bucket, data);
         int64_hashmap_put(hm, key, bucket);
         return MAP_OK;
     }
@@ -2245,8 +2304,9 @@ namespace tuplex {
                 if(!task_sink)
                     continue;
 
+
                 if(combine) combineBuckets(sink->null_bucket, task_sink->null_bucket);
-                else sink->null_bucket = merge_buckets(sink->null_bucket, task_sink->null_bucket);
+                else sink->null_bucket = merge_buckets(&sink->null_bucket, task_sink->null_bucket);
 
                 // fetch all buckets in hashmap & place into new hashmap
                 if(task_sink->hm) {
@@ -2279,8 +2339,15 @@ namespace tuplex {
                     assert(task_sink->hm == nullptr && task_sink->hybrid_hm == nullptr);
                 } else if(task_sink->hm) {
                     hashmap_free_key_and_data(task_sink->hm);
+                    hashmap_free(task_sink->hm);
                     task_sink->hm = nullptr;
                 }
+
+                if(task_sink->null_bucket) {
+                    free(task_sink->null_bucket);
+                    task_sink->null_bucket = nullptr;
+                }
+
                 task_sink->hm = nullptr;
                 task_sink->hybrid_hm = nullptr;
                 task_sink->null_bucket = nullptr; // ?

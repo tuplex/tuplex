@@ -554,7 +554,7 @@ namespace tuplex {
         _exceptions.reset();
 
         // reset htable (TODO: free if necessary?)
-        if(_htable) {
+        if(_htable && (_htable->hm || _htable->null_bucket || _htable->hybrid_hm)) {
 #ifndef NDEBUG
             std::cerr<<"INTERNAL ERROR: need to properly free hash table"<<std::endl;
 #endif

@@ -71,36 +71,31 @@ namespace tuplex {
 
     // helper C-struct holding simdjson parser
     struct JsonParser {
+         // use simdjson as parser b.c. cJSON has issues with integers/floats.
+         // https://simdjson.org/api/2.0.0/md_doc_iterate_many.html
+         simdjson::ondemand::parser parser;
+         simdjson::ondemand::document_stream stream;
 
-        // ondemand seems broken, use instead DOM parser...
+         // iterators
+         simdjson::ondemand::document_stream::iterator it;
 
-        // // use simdjson as parser b.c. cJSON has issues with integers/floats.
-        // // https://simdjson.org/api/2.0.0/md_doc_iterate_many.html
-        // simdjson::ondemand::parser parser;
-        // simdjson::ondemand::document_stream stream;
-        //
-        // // iterators
-        // simdjson::ondemand::document_stream::iterator it;
-
-        simdjson::dom::parser parser;
-        simdjson::dom::document_stream stream;
-        simdjson::dom::document_stream::iterator it;
+        // simdjson::dom::parser parser;
+        // simdjson::dom::document_stream stream;
+        // simdjson::dom::document_stream::iterator it;
 
         std::string lastError;
-
     };
 
     // C-APIs to use in codegen
 
     JsonParser* JsonParser_init() {
-        auto parser = (JsonParser*)malloc(sizeof(JsonParser));
-        return parser;
+        // can't malloc, or can malloc but then need to call inplace C++ constructors!
+        return new JsonParser();
     }
 
     void JsonParser_free(JsonParser *parser) {
-
         if(parser)
-            free(parser);
+            delete parser;
     }
 
     uint64_t JsonParser_open(JsonParser* j, const char* buf, size_t buf_size) {
@@ -108,36 +103,15 @@ namespace tuplex {
 
         simdjson::error_code error;
         // ondemand
-        // j->parser.iterate_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).tie(j->stream, error);
-        j->parser.parse_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).tie(j->stream, error);
+        j->parser.iterate_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).tie(j->stream, error);
+
+        // dom
+        // j->parser.parse_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).tie(j->stream, error);
         if(error) {
             std::stringstream err_stream; err_stream<<error;
             j->lastError = err_stream.str();
             return ecToI64(ExceptionCode::JSONPARSER_ERROR);
         }
-        auto i = j->stream.begin();
-        size_t count{0};
-        for(; i != j->stream.end(); ++i) {
-            auto doc = *i;
-            if(!doc.error()) {
-                std::cout << "got full document at " << i.current_index() << std::endl;
-                std::cout << i.source() << std::endl;
-                count++;
-            } else {
-                std::cout << "got broken document at " << i.current_index() << std::endl;
-                return false;
-            }
-        }
-
-
-        return ecToI64(ExceptionCode::SUCCESS);
-
-        // dummy
-        size_t num = 0;
-        for(auto it = j->stream.begin(); it != j->stream.end(); ++it) {
-            num++;
-        }
-        std::cout<<"found: "<<num<<std::endl;
 
         // set internal iterator
         j->it = j->stream.begin();

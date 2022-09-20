@@ -257,7 +257,7 @@ namespace tuplex {
                                        bool unwrap_rows) {
         using namespace std;
 
-        assert(buf[buf_size - 1] == '\0');
+        // assert(buf[buf_size - 1] == '\0');
 
         auto SIMDJSON_BATCH_SIZE=simdjson::dom::DEFAULT_BATCH_SIZE;
 

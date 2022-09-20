@@ -34,15 +34,13 @@ bool create_dir(const std::string& path) {
     return false;
 }
 
-
-
-
 static std::string fileToString(const std::string& path) {
     std::ifstream t(path);
     std::stringstream buffer;
     buffer << t.rdbuf();
     return buffer.str();
 }
+
 static bool stringToFile(const std::string& data, const std::string& path) {
     //std::ofstream ofs(path);
     //ofs << data;
@@ -51,7 +49,7 @@ static bool stringToFile(const std::string& data, const std::string& path) {
     //
     FILE *f = fopen(path.c_str(), "w");
     if(!f) { 
-	    std::cerr<<"failed to open file "<<path<<"for write"<<std::endl;
+	    std::cerr<<"failed to open file "<<path<<" for writing"<<std::endl;
 	    return false;
     }
     //fprintf(f, "%s", data.c_str()); 
@@ -59,6 +57,214 @@ static bool stringToFile(const std::string& data, const std::string& path) {
     fclose(f);
     std::cout<<"wrote "<<data.size()<<" bytes to "<<path<<std::endl;
     return true;
+}
+
+// NOTES:
+// for concrete parser implementation with pushdown etc., use
+// https://github.com/simdjson/simdjson/blob/master/doc/basics.md#json-pointer
+// => this will allow to extract field...
+
+namespace tuplex {
+
+    // parse using simdjson
+    static const auto SIMDJSON_BATCH_SIZE=simdjson::dom::DEFAULT_BATCH_SIZE;
+
+    // helper C-struct holding simdjson parser
+    struct JsonParser {
+
+        // ondemand seems broken, use instead DOM parser...
+
+        // // use simdjson as parser b.c. cJSON has issues with integers/floats.
+        // // https://simdjson.org/api/2.0.0/md_doc_iterate_many.html
+        // simdjson::ondemand::parser parser;
+        // simdjson::ondemand::document_stream stream;
+        //
+        // // iterators
+        // simdjson::ondemand::document_stream::iterator it;
+
+        simdjson::dom::parser parser;
+        simdjson::dom::document_stream stream;
+        simdjson::dom::document_stream::iterator it;
+
+        std::string lastError;
+
+    };
+
+    // C-APIs to use in codegen
+
+    JsonParser* JsonParser_init() {
+        auto parser = (JsonParser*)malloc(sizeof(JsonParser));
+        return parser;
+    }
+
+    void JsonParser_free(JsonParser *parser) {
+
+        if(parser)
+            free(parser);
+    }
+
+    uint64_t JsonParser_open(JsonParser* j, const char* buf, size_t buf_size) {
+        assert(j);
+
+        simdjson::error_code error;
+        // ondemand
+        // j->parser.iterate_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).tie(j->stream, error);
+        j->parser.parse_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).tie(j->stream, error);
+        if(error) {
+            std::stringstream err_stream; err_stream<<error;
+            j->lastError = err_stream.str();
+            return ecToI64(ExceptionCode::JSONPARSER_ERROR);
+        }
+        auto i = j->stream.begin();
+        size_t count{0};
+        for(; i != j->stream.end(); ++i) {
+            auto doc = *i;
+            if(!doc.error()) {
+                std::cout << "got full document at " << i.current_index() << std::endl;
+                std::cout << i.source() << std::endl;
+                count++;
+            } else {
+                std::cout << "got broken document at " << i.current_index() << std::endl;
+                return false;
+            }
+        }
+
+
+        return ecToI64(ExceptionCode::SUCCESS);
+
+        // dummy
+        size_t num = 0;
+        for(auto it = j->stream.begin(); it != j->stream.end(); ++it) {
+            num++;
+        }
+        std::cout<<"found: "<<num<<std::endl;
+
+        // set internal iterator
+        j->it = j->stream.begin();
+
+        return ecToI64(ExceptionCode::SUCCESS);
+    }
+
+    uint64_t JsonParser_close(JsonParser* j) {
+        assert(j);
+
+        j->it = j->stream.end();
+
+        return ecToI64(ExceptionCode::SUCCESS);
+    }
+
+    bool JsonParser_hasNextRow(JsonParser* j) {
+        assert(j);
+        return j->stream.end() != j->it;
+    }
+
+    bool JsonParser_moveToNextRow(JsonParser* j) {
+        assert(j);
+        ++j->it;
+        return j->stream.end() != j->it;
+    }
+
+    /*!
+     * get current row (malloc copy) (could also have rtmalloc copy).
+     * Whoever requests this row, has to free it then. --> this function is required for badparsestringinput.
+     */
+    char* JsonParser_getMallocedRow(JsonParser* j) {
+        using namespace std;
+
+        assert(j);
+        string full_row;
+        stringstream ss;
+        ss<<j->it.source()<<std::endl;
+        full_row = ss.str();
+        char* buf = (char*)malloc(full_row.size());
+        if(buf)
+            memcpy(buf, full_row.c_str(), full_row.size());
+        return buf;
+    }
+
+    uint64_t JsonParser_getDocType(JsonParser* j) {
+        assert(j);
+        // i.e. simdjson::ondemand::json_type::object:
+        // or simdjson::ondemand::json_type::array:
+        // => if it doesn't conform, simply use badparse string input?
+        if(!(j->it != j->stream.end()))
+            return 0xFFFFFFFF;
+
+        auto doc = *j->it;
+        auto line_type = doc.type().value();
+        return static_cast<uint64_t>(line_type);
+    }
+
+    inline uint64_t JsonParser_objectDocType() { return static_cast<uint64_t>(simdjson::ondemand::json_type::object); }
+}
+
+// notes: type of line can be
+
+
+TEST(JSONUtils, CParse) {
+    using namespace tuplex;
+    using namespace std;
+
+    string sample_path = "/Users/leonhards/Downloads/github_sample";
+    string sample_file = sample_path + "/2011-11-26-13.json.gz";
+
+    auto path = sample_file;
+
+    path = "../resources/2011-11-26-13.json.gz";
+
+    auto raw_data = fileToString(path);
+
+    const char * pointer = raw_data.data();
+    std::size_t size = raw_data.size();
+
+    // gzip::is_compressed(pointer, size); // can use this to check for gzip file...
+    std::string decompressed_data = strEndsWith(path, ".gz") ? gzip::decompress(pointer, size) : raw_data;
+
+
+    // parse code starts here...
+    auto buf = decompressed_data.data();
+    auto buf_size = decompressed_data.size();
+
+    // // test itself ?
+    // {
+    //     simdjson::dom::parser parser;
+    //     simdjson::dom::document_stream stream;
+    //     auto error = parser.parse_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).get(stream);
+    //     if( error ) { /* do something */ }
+    //     auto i = stream.begin();
+    //     size_t count{0};
+    //     for(; i != stream.end(); ++i) {
+    //         auto doc = *i;
+    //         if(!doc.error()) {
+    //             std::cout << "got full document at " << i.current_index() << std::endl;
+    //             //std::cout << i.source() << std::endl;
+    //             count++;
+    //         } else {
+    //             std::cout << "got broken document at " << i.current_index() << std::endl;
+    //             break;
+    //             //return false;
+    //         }
+    //     }
+    // }
+
+
+
+    // C-version of parsing
+    uint64_t row_number = 0;
+
+    auto j = JsonParser_init();
+    if(!j)
+        throw std::runtime_error("failed to initialize parser");
+    JsonParser_open(j, buf, buf_size);
+    while(JsonParser_hasNextRow(j)) {
+        //if(JsonParser)
+        row_number++;
+        JsonParser_moveToNextRow(j);
+    }
+    JsonParser_close(j);
+    JsonParser_free(j);
+
+    std::cout<<"Parsed "<<pluralize(row_number, "row")<<std::endl;
 }
 
 TEST(JSONUtils, Chunker) {
@@ -677,8 +883,6 @@ namespace tuplex {
 }
 
 
-
-
 TEST(JSONUtils, CheckFiles) {
     using namespace tuplex;
     using namespace std;
@@ -714,7 +918,6 @@ TEST(JSONUtils, CheckFiles) {
     std::reverse(paths.begin(), paths.end());
     num_files_found = paths.size();
     cout<<"Found "<<pluralize(num_files_found, "file")<<" to analyze schema for."<<endl;
-
 
     auto concurrency = std::thread::hardware_concurrency();
     cout<<"Detected hardware concurrency: "<<concurrency<<endl;

@@ -195,7 +195,7 @@ namespace tuplex {
                 throw std::runtime_error("double parse error for field " + s);
         }
         if(type == python::Type::STRING)
-            return Field(s);
+            return Field(unescape_json_string(s));
 
         if(type.isDictionaryType())
             return Field::from_str_data(s, type);
@@ -380,7 +380,7 @@ namespace tuplex {
                             throw std::runtime_error("field type list not yet implemented, todo");
                         } else {
                             // convert primitive string to field
-                            fields.push_back(stringToField(unescape_json_string(row_json_strings[i]), row_field_types[i]));
+                            fields.push_back(stringToField(row_json_strings[i], row_field_types[i]));
                         }
 
                     }

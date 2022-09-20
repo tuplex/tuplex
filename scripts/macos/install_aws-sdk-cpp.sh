@@ -12,8 +12,10 @@ function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d
 ", $1,$2,$3,$4); }'; }
 
 if [ $(version $VAR) -ge $(version "11.0.0") ]; then
-    echo "Newer MacOS detected, all good."
-    MINIMUM_TARGET=""
+    echo "-- Newer MacOS detected, all good."
+    MACOS_VERSION_MAJOR=${MACOS_VERSION%.*}
+    echo "-- Using minimum target ${MACOS_VERSION_MAJOR}"
+    MINIMUM_TARGET="${MACOS_VERSION_MAJOR}.0"
 else
     # keep as is
     echo "defaulting build to use as minimum target ${MINIMUM_TARGET}"

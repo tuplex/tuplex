@@ -44,12 +44,12 @@ namespace tuplex {
 
     // C-APIs to use in codegen
 
-    extern "C" JsonParser* JsonParser_init() {
+    JsonParser* JsonParser_init() {
         // can't malloc, or can malloc but then need to call inplace C++ constructors!
         return new JsonParser();
     }
 
-    extern "C" void JsonParser_free(JsonParser *parser) {
+    void JsonParser_free(JsonParser *parser) {
         if(parser)
             delete parser;
     }
@@ -261,7 +261,7 @@ namespace tuplex {
     namespace codegen {
         class JSONSourceTaskBuilder {
         public:
-            JSONSourceTaskBuilder(LLVMEnvironment& env, const python::Type& rowType, const std::string& functionName="parseJSON", bool unwrap_first_level=true) : _env(env), _rowType(rowType), _functionName(functionName), _unwrap_first_level(unwrap_first_level) {}
+            JSONSourceTaskBuilder(LLVMEnvironment& env, const python::Type& rowType, const std::string& functionName="parseJSON", bool unwrap_first_level=true) : _env(env), _rowType(rowType), _functionName(functionName), _unwrap_first_level(unwrap_first_level), _rowNumberVar(nullptr) {}
 
             void build();
         private:
@@ -270,14 +270,52 @@ namespace tuplex {
             std::string _functionName;
             bool _unwrap_first_level;
 
+            // helper values
+            llvm::Value* _rowNumberVar;
+
+
             void generateParseLoop(llvm::IRBuilder<> &builder, llvm::Value* bufPtr, llvm::Value* bufSize);
 
             llvm::Value* initJsonParser(llvm::IRBuilder<>& builder);
             void freeJsonParse(llvm::IRBuilder<>& builder, llvm::Value* j);
 
+            llvm::Value* openJsonBuf(llvm::IRBuilder<> &builder, llvm::Value *j, llvm::Value* buf, llvm::Value* buf_size);
+
             void exitMainFunctionWithError(llvm::IRBuilder<>& builder, llvm::Value* exitCondition, llvm::Value* exitCode);
 
+            llvm::Value* hasNextRow(llvm::IRBuilder<>& builder, llvm::Value* j);
+
+            void moveToNextRow(llvm::IRBuilder<>& builder, llvm::Value* j);
+
+
+            inline llvm::Value* rowNumber(llvm::IRBuilder<>& builder) {
+                assert(_rowNumberVar);
+                assert(_rowNumberVar->getType() == _env.i64ptrType());
+                return builder.CreateLoad(_rowNumberVar);
+            }
         };
+
+        llvm::Value *JSONSourceTaskBuilder::hasNextRow(llvm::IRBuilder<> &builder, llvm::Value *j) {
+            auto& ctx = _env.getContext();
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_hasNextRow", ctypeToLLVM<bool>(ctx), _env.i8ptrType());
+
+            auto v = builder.CreateCall(F, {j});
+            return builder.CreateICmpEQ(v, llvm::ConstantInt::get(llvm::Type::getIntNTy(ctx, ctypeToLLVM<bool>(ctx)->getIntegerBitWidth()), 1));
+        }
+
+        void JSONSourceTaskBuilder::moveToNextRow(llvm::IRBuilder<> &builder, llvm::Value *j) {
+            // move
+            using namespace llvm;
+            auto& ctx = _env.getContext();
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_moveToNextRow", ctypeToLLVM<bool>(ctx), _env.i8ptrType());
+            builder.CreateCall(F, {j});
+
+            // update row number (inc +1)
+            auto row_no = rowNumber(builder);
+            builder.CreateStore(builder.CreateAdd(row_no, _env.i64Const(1)), _rowNumberVar);
+
+            // @TODO: free everything so far??
+        }
 
         void JSONSourceTaskBuilder::exitMainFunctionWithError(llvm::IRBuilder<> &builder, llvm::Value *exitCondition,
                                                               llvm::Value *exitCode) {
@@ -299,12 +337,24 @@ namespace tuplex {
 
         llvm::Value *JSONSourceTaskBuilder::initJsonParser(llvm::IRBuilder<> &builder) {
 
-            auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_Init", _env.i8Type());
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_Init", _env.i8ptrType());
 
             auto j = builder.CreateCall(F, {});
             auto is_null = builder.CreateICmpEQ(j, _env.i8nullptr());
             exitMainFunctionWithError(builder, is_null, _env.i64Const(ecToI64(ExceptionCode::NULLERROR)));
             return j;
+        }
+
+        llvm::Value* JSONSourceTaskBuilder::openJsonBuf(llvm::IRBuilder<> &builder, llvm::Value *j, llvm::Value* buf, llvm::Value* buf_size) {
+            assert(j);
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_open", _env.i64Type(), _env.i8ptrType(), _env.i8ptrType(), _env.i64Type());
+            return builder.CreateCall(F, {j, buf, buf_size});
+        }
+
+        void JSONSourceTaskBuilder::freeJsonParse(llvm::IRBuilder<> &builder, llvm::Value *j) {
+            auto& ctx = _env.getContext();
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_Free", llvm::Type::getVoidTy(ctx), _env.i8ptrType());
+            builder.CreateCall(F, j);
         }
 
         void JSONSourceTaskBuilder::generateParseLoop(llvm::IRBuilder<> &builder, llvm::Value* bufPtr, llvm::Value* bufSize) {
@@ -327,21 +377,46 @@ namespace tuplex {
 
             auto parser = initJsonParser(builder);
 
-            // go from current block to header
+            // init row number
+            _rowNumberVar = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "row_no");
+
+            llvm::Value* rc = openJsonBuf(builder, parser, bufPtr, bufSize);
+            llvm::Value* rc_cond = _env.i1neg(builder,builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS))));
+            exitMainFunctionWithError(builder, rc_cond, rc);
             builder.CreateBr(bLoopHeader);
+
+
+
+            // ---- loop condition ---
+            // go from current block to header
+            builder.SetInsertPoint(bLoopHeader);
             // condition (i.e. hasNextDoc)
-            auto cond = nullptr;
+            auto cond = hasNextRow(builder, parser);
             builder.CreateCondBr(cond, bLoopBody, bLoopExit);
 
+
+
+
+            // ---- loop body ----
             // body
             builder.SetInsertPoint(bLoopBody);
             // generate here...
+           // _env.debugPrint(builder, "parsed row");
 
+            // go to next row
+            moveToNextRow(builder, parser);
+
+            // link back to header
+            builder.CreateBr(bLoopHeader);
+
+            // ---- post loop block ----
             // continue in loop exit.
             builder.SetInsertPoint(bLoopExit);
 
             // free JSON parse
             freeJsonParse(builder, parser);
+
+            _env.printValue(builder, rowNumber(builder), "parsed rows: ");
 
         }
 
@@ -407,74 +482,99 @@ TEST_F(HyperTest, BasicStructLoad) {
 
     // codegen here
     codegen::LLVMEnvironment env;
-    codegen::JSONSourceTaskBuilder jtb(env, row_type);
+    auto parseFuncName = "parseJSONCodegen";
+    codegen::JSONSourceTaskBuilder jtb(env, row_type, parseFuncName);
     jtb.build();
-    std::cout<<"generated code:\n"<<codegen::moduleToString(*env.getModule())<<std::endl;
+    std::cout<<"generated code:\n"<<core::withLineNumbers(codegen::moduleToString(*env.getModule()))<<std::endl;
+
+    // init JITCompiler
+    JITCompiler jit;
+    // register symbols
+    jit.registerSymbol("JsonParser_Init", JsonParser_init);
+    jit.registerSymbol("JsonParser_Free", JsonParser_free);
+    jit.registerSymbol("JsonParser_moveToNextRow", JsonParser_moveToNextRow);
+    jit.registerSymbol("JsonParser_hasNextRow", JsonParser_hasNextRow);
+    jit.registerSymbol("JsonParser_open", JsonParser_open);
+
+
+    // compile func
+    auto rc_compile = jit.compile(std::move(env.getModule()));
+    ASSERT_TRUE(rc_compile);
+
+    // get func
+    auto func = reinterpret_cast<int64_t(*)(const char*, size_t)>(jit.getAddrOfSymbol(parseFuncName));
 
     // runtime init
     ContextOptions co = ContextOptions::defaults();
     runtime::init(co.RUNTIME_LIBRARY(false).toPath());
 
-    // C-version of parsing
-    uint64_t row_number = 0;
+    // call code generated function!
+    auto rc = func(buf, buf_size);
+    return;
 
-    auto j = JsonParser_init();
-    if(!j)
-        throw std::runtime_error("failed to initialize parser");
-    JsonParser_open(j, buf, buf_size);
-    while(JsonParser_hasNextRow(j)) {
-        if(JsonParser_getDocType(j) != JsonParser_objectDocType()) {
-            // BADPARSE_STRINGINPUT
-            auto line = JsonParser_getMallocedRow(j);
-            free(line);
-        }
 
-        // line ok, now extract something from the object!
-        // => basically need to traverse...
-        auto doc = *j->it;
 
-//        auto obj = doc.get_object().take_value();
 
-        // get type
-        JsonItem *obj = nullptr;
-        uint64_t rc = JsonParser_getObject(j, &obj);
-        if(rc != 0)
-            break; // --> don't forget to release stuff here!
-        char* type_str = nullptr;
-        rc = JsonItem_getString(obj, "type", &type_str);
-        if(rc != 0)
-            continue; // --> don't forget to release stuff here
-        JsonItem *sub_obj = nullptr;
-        rc = JsonItem_getObject(obj, "repo", &sub_obj);
-        if(rc != 0)
-            continue; // --> don't forget to release stuff here!
-
-        // check wroong type
-        int64_t val_i = 0;
-        rc = JsonItem_getInt(obj, "repo", &val_i);
-        EXPECT_EQ(rc, ecToI64(ExceptionCode::TYPEERROR));
-        if(rc != 0) {
-            row_number++;
-            JsonParser_moveToNextRow(j);
-            continue; // --> next
-        }
-
-        char* url_str = nullptr;
-        rc = JsonItem_getString(sub_obj, "url", &url_str);
-
-        // error handling: KeyError?
-        rc = JsonItem_getString(sub_obj, "key that doesn't exist", &type_str);
-        EXPECT_EQ(rc, ecToI64(ExceptionCode::KEYERROR));
-
-        // release all allocated things
-        JsonItem_Free(obj);
-        JsonItem_Free(sub_obj);
-
-        row_number++;
-        JsonParser_moveToNextRow(j);
-    }
-    JsonParser_close(j);
-    JsonParser_free(j);
-
-    std::cout<<"Parsed "<<pluralize(row_number, "row")<<std::endl;
+//    // C-version of parsing
+//    uint64_t row_number = 0;
+//
+//    auto j = JsonParser_init();
+//    if(!j)
+//        throw std::runtime_error("failed to initialize parser");
+//    JsonParser_open(j, buf, buf_size);
+//    while(JsonParser_hasNextRow(j)) {
+//        if(JsonParser_getDocType(j) != JsonParser_objectDocType()) {
+//            // BADPARSE_STRINGINPUT
+//            auto line = JsonParser_getMallocedRow(j);
+//            free(line);
+//        }
+//
+//        // line ok, now extract something from the object!
+//        // => basically need to traverse...
+//        auto doc = *j->it;
+//
+////        auto obj = doc.get_object().take_value();
+//
+//        // get type
+//        JsonItem *obj = nullptr;
+//        uint64_t rc = JsonParser_getObject(j, &obj);
+//        if(rc != 0)
+//            break; // --> don't forget to release stuff here!
+//        char* type_str = nullptr;
+//        rc = JsonItem_getString(obj, "type", &type_str);
+//        if(rc != 0)
+//            continue; // --> don't forget to release stuff here
+//        JsonItem *sub_obj = nullptr;
+//        rc = JsonItem_getObject(obj, "repo", &sub_obj);
+//        if(rc != 0)
+//            continue; // --> don't forget to release stuff here!
+//
+//        // check wroong type
+//        int64_t val_i = 0;
+//        rc = JsonItem_getInt(obj, "repo", &val_i);
+//        EXPECT_EQ(rc, ecToI64(ExceptionCode::TYPEERROR));
+//        if(rc != 0) {
+//            row_number++;
+//            JsonParser_moveToNextRow(j);
+//            continue; // --> next
+//        }
+//
+//        char* url_str = nullptr;
+//        rc = JsonItem_getString(sub_obj, "url", &url_str);
+//
+//        // error handling: KeyError?
+//        rc = JsonItem_getString(sub_obj, "key that doesn't exist", &type_str);
+//        EXPECT_EQ(rc, ecToI64(ExceptionCode::KEYERROR));
+//
+//        // release all allocated things
+//        JsonItem_Free(obj);
+//        JsonItem_Free(sub_obj);
+//
+//        row_number++;
+//        JsonParser_moveToNextRow(j);
+//    }
+//    JsonParser_close(j);
+//    JsonParser_free(j);
+//
+//    std::cout<<"Parsed "<<pluralize(row_number, "row")<<std::endl;
 }

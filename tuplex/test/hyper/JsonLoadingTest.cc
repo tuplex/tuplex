@@ -162,6 +162,15 @@ namespace tuplex {
         return ecToI64(ExceptionCode::SUCCESS);
     }
 
+    inline uint64_t translate_simdjson_error(const simdjson::error_code& error) {
+        if(simdjson::NO_SUCH_FIELD == error)
+            return ecToI64(ExceptionCode::KEYERROR);
+        if(simdjson::INCORRECT_TYPE == error)
+            return ecToI64(ExceptionCode::TYPEERROR);
+        //if(simdjson::N)
+        return ecToI64(ExceptionCode::JSONPARSER_ERROR);
+    }
+
     // get string item and save to rtmalloced string!
     uint64_t JsonItem_getString(JsonItem *item, const char* key, char **out) {
         assert(item);
@@ -171,11 +180,8 @@ namespace tuplex {
         simdjson::error_code error;
         std::string_view sv_value;
         item->o[key].get_string().tie(sv_value, error);
-        if(error) {
-            if(simdjson::NO_SUCH_FIELD == error)
-                return ecToI64(ExceptionCode::KEYERROR);
-            return ecToI64(ExceptionCode::JSONPARSER_ERROR);
-        }
+        if(error)
+           return translate_simdjson_error(error);
 
         auto str_size = 1 + sv_value.size();
         char* buf = (char*)runtime::rtmalloc(str_size);
@@ -194,15 +200,57 @@ namespace tuplex {
         simdjson::error_code error;
         simdjson::ondemand::object o;
         item->o[key].get_object().tie(o, error);
-        if(error) {
-            if(simdjson::NO_SUCH_FIELD == error)
-                return ecToI64(ExceptionCode::KEYERROR);
-            return ecToI64(ExceptionCode::JSONPARSER_ERROR);
-        }
+        if(error)
+            return translate_simdjson_error(error);
 
         auto obj = new JsonItem();
         obj->o = std::move(o);
         *out = obj;
+        return ecToI64(ExceptionCode::SUCCESS);
+    }
+
+    uint64_t JsonItem_getDouble(JsonItem *item, const char* key, double *out) {
+        assert(item);
+        assert(key);
+        assert(out);
+
+        simdjson::error_code error;
+        double value;
+        item->o[key].get_double().tie(value, error);
+        if(error)
+            return translate_simdjson_error(error);
+
+        *out = value;
+        return ecToI64(ExceptionCode::SUCCESS);
+    }
+
+    uint64_t JsonItem_getInt(JsonItem *item, const char* key, int64_t *out) {
+        assert(item);
+        assert(key);
+        assert(out);
+
+        simdjson::error_code error;
+        int64_t value;
+        item->o[key].get_int64().tie(value, error);
+        if(error)
+            return translate_simdjson_error(error);
+
+        *out = value;
+        return ecToI64(ExceptionCode::SUCCESS);
+    }
+
+    uint64_t JsonItem_getBoolean(JsonItem *item, const char* key, bool *out) {
+        assert(item);
+        assert(key);
+        assert(out);
+
+        simdjson::error_code error;
+        bool value;
+        item->o[key].get_bool().tie(value, error);
+        if(error)
+            return translate_simdjson_error(error);
+
+        *out = value;
         return ecToI64(ExceptionCode::SUCCESS);
     }
 
@@ -277,11 +325,21 @@ TEST_F(HyperTest, BasicStructLoad) {
         char* type_str = nullptr;
         rc = JsonItem_getString(obj, "type", &type_str);
         if(rc != 0)
-            break; // --> don't forget to release stuff here
+            continue; // --> don't forget to release stuff here
         JsonItem *sub_obj = nullptr;
         rc = JsonItem_getObject(obj, "repo", &sub_obj);
         if(rc != 0)
-            break; // --> don't forget to release stuff here!
+            continue; // --> don't forget to release stuff here!
+
+        // check wroong type
+        int64_t val_i = 0;
+        rc = JsonItem_getInt(obj, "repo", &val_i);
+        EXPECT_EQ(rc, ecToI64(ExceptionCode::TYPEERROR));
+        if(rc != 0) {
+            row_number++;
+            JsonParser_moveToNextRow(j);
+            continue; // --> next
+        }
 
         char* url_str = nullptr;
         rc = JsonItem_getString(sub_obj, "url", &url_str);
@@ -293,7 +351,6 @@ TEST_F(HyperTest, BasicStructLoad) {
         // release all allocated things
         JsonItem_Free(obj);
         JsonItem_Free(sub_obj);
-
 
         row_number++;
         JsonParser_moveToNextRow(j);

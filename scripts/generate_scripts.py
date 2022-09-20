@@ -297,6 +297,43 @@ def install_aws_sdk():
     
     return code
 
+
+def install_aws_sdk_macos():
+
+    AWSSDK_VERSION=VERSIONS['AWSSDK_VERSION']
+    AWSLAMBDACPP_VERSION=VERSIONS['AWSLAMBDACPP_VERSION']
+
+    code = '''#!/usr/bin/env bash
+
+echo ">> installing AWS SDK from source"
+CPU_CORES=$(sysctl -n hw.physicalcpu)
+
+# if macOS is 10.x -> use this as minimum
+MINIMUM_TARGET="-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"
+
+MACOS_VERSION=$(sw_vers -productVersion)
+echo "-- processing on MacOS ${MACOS_VERSION}"
+function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
+
+if [ $(version $VAR) -ge $(version "11.0.0") ]; then
+    echo "Newer MacOS detected, all good."
+    MINIMUM_TARGET=""
+else
+    # keep as is
+    echo "defaulting build to use as minimum target ${MINIMUM_TARGET}"
+fi
+
+cd /tmp &&
+  git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git &&
+  cd aws-sdk-cpp && git checkout tags/''' + AWSSDK_VERSION + ''' && mkdir build && pushd build &&
+  cmake ${MINIMUM_TARGET} -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=14 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" .. &&
+  make -j${CPU_CORES} &&
+  make install &&
+  popd &&
+  cd - || echo ">> error: AWS SDK failed"
+'''
+    return code
+
 def install_antlr():
     # install both ANTLR tool and C++ runtime
     ANTLR_VERSION=VERSIONS['ANTLR_VERSION']
@@ -788,6 +825,9 @@ python3.7 -m pip install --upgrade pip\n"""
 
         fp.write('echo ">>> installing reqs done."\n')
 
+def generate_macos_awssdk_file(path):
+    with open(path, 'w') as fp:
+        fp.write(install_aws_sdk_macos() + '\n')
 
 def main():
     """generates all scripts"""
@@ -797,6 +837,8 @@ def main():
 
     generate_manylinux_files('docker/ci')
     generate_yaml_req_file('install_azure_ci_reqs.sh')
+
+    generate_macos_awssdk_file('macos/install_aws-sdk-cpp.sh')
 
 
 if __name__ == '__main__':

@@ -258,6 +258,14 @@ namespace tuplex {
         }
 
         /*!
+         * verifies module and then each function itself
+         * @param mod
+         * @param out
+         * @return whether module is ok or not.
+         */
+        extern bool verifyModule(llvm::Module& mod, std::string* out=nullptr);
+
+        /*!
          * verifies function and optionally yields error message
          * @param func
          * @param out

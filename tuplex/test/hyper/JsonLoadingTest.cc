@@ -1171,7 +1171,7 @@ namespace tuplex {
         // flatten struct dict.
         using flattened_struct_dict_entry_list_t=std::vector<std::tuple<std::vector<std::pair<std::string, python::Type>>, python::Type, bool>>;
         void flatten_recursive_helper(flattened_struct_dict_entry_list_t& entries,
-                                      const python::Type& dict_type, std::vector<std::pair<std::string, python::Type>> prefix={}) {
+                                      const python::Type& dict_type, std::vector<std::pair<std::string, python::Type>> prefix={}, bool include_maybe_structs=true) {
             using namespace std;
 
             assert(dict_type.isStructuredDictionaryType());
@@ -1181,8 +1181,13 @@ namespace tuplex {
                 access_path.push_back(make_pair(kv_pair.key, kv_pair.keyType));
 
                 if(kv_pair.valueType.isStructuredDictionaryType()) {
+
+                    // special case: if include maybe structs as well, add entry. (should not get serialized)
+                    if(include_maybe_structs && !kv_pair.alwaysPresent)
+                        entries.push_back(make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
+
                     // recurse using new prefix
-                    flatten_recursive_helper(entries, kv_pair.valueType, access_path);
+                    flatten_recursive_helper(entries, kv_pair.valueType, access_path, include_maybe_structs);
                 } else {
                     entries.push_back(make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
                 }
@@ -1204,8 +1209,10 @@ namespace tuplex {
                 for(auto atom : std::get<0>(entry)) {
                     ss<<atom.first<<" ("<<atom.second.desc()<<") -> ";
                 }
-                auto presence = !std::get<2>(entry) ? "(maybe)" : "";
-                ss<<std::get<1>(entry).desc()<<presence<<endl;
+                auto presence = !std::get<2>(entry) ? "  (maybe)" : "";
+                auto v_type = std::get<1>(entry);
+                auto value_desc = v_type.isStructuredDictionaryType() ? "Struct[...]" : v_type.desc();
+                ss<<value_desc<<presence<<endl;
             }
 
             cout<<ss.str()<<endl;
@@ -1237,7 +1244,17 @@ namespace tuplex {
 
             // retrieve counts => i.e. how many fields are options? how many are maybe present?
             size_t field_count=0, option_count=0, maybe_count=0;
-            calculate_field_counts(dict_type, field_count, option_count, maybe_count);
+
+            for(auto entry : entries) {
+                bool is_always_present = std::get<2>(entry);
+                maybe_count += !is_always_present;
+                bool is_value_optional = std::get<1>(entry).isOptionType();
+                option_count += is_value_optional;
+
+                bool is_struct_type = std::get<1>(entry).isStructuredDictionaryType();
+                field_count += !is_struct_type; // only count non-struct dict fields. -> yet the nested struct types may change the maybe count for the bitmap!
+            }
+
             std::stringstream ss;
             ss<<"computed following counts for structured dict type: "<<pluralize(field_count, "field")
             <<" "<<pluralize(option_count, "option")<<" "<<pluralize(maybe_count, "maybe");
@@ -1255,41 +1272,38 @@ namespace tuplex {
             std::vector<llvm::Type*> member_types;
             auto i64Type = llvm::Type::getInt64Ty(ctx);
 
-            // add bitmap elements
-            member_types.push_back(llvm::ArrayType::get(i64Type, num_option_bitmap_elements));
-            member_types.push_back(llvm::ArrayType::get(i64Type, num_maybe_bitmap_elements));
+            // adding bitmap fails type creation - super weird.
+            // add bitmap elements (if needed)
+            //if(num_option_bitmap_elements > 0)
+            //    member_types.push_back(llvm::ArrayType::get(i64Type, num_option_bitmap_elements));
+            //if(num_maybe_bitmap_elements > 0)
+            //    member_types.push_back(llvm::ArrayType::get(i64Type, num_maybe_bitmap_elements));
 
-            // now add all the elements from the struct type (skip lists and other struct entries, i.e. only primitives so far)
-            auto kv_pairs = dict_type.get_struct_pairs();
-            std::unordered_map<std::string, size_t> key_to_offset_map;
-            unsigned offset = 0;
-            unsigned bitmap_idx = 0;
-            for(auto kv_pair : kv_pairs) {
-                // => key is always known, so it's easy to do a quick lookup!
-                key_to_offset_map[kv_pair.key] = offset;
-                offset++;
+            // auto a = ArrayType::get(Type::getInt1Ty(ctx), num_option_bitmap_bits);
+            // if(num_option_bitmap_bits > 0)
+            //    member_types.emplace_back(a);
 
-                auto t = kv_pair.valueType;
-                if(t.isOptionType()) {
-                    // bitmap index!
-                    bitmap_idx++;
 
-                    // add
+            // now add all the elements from the (flattened) struct type (skip lists and other struct entries, i.e. only primitives so far)
+            // --> could use a different structure as well! --> which to use?
+            for(const auto& entry : entries) {
+               // value type
+               python::Type t = std::get<1>(entry);
 
-                } else {
-                    // directly add ?
-                    // primitive field or size field as well required?
-                    if(t.isSingleValued() || t.isConstantValued()) {
-                        // we can skip storing/serializing this. It can be directly read!
-                    }
-                }
+               // is it a struct type? => skip.
+               if(t.isStructuredDictionaryType())
+                   continue;
+
+               // skip list
+               if(t.isListType())
+                   continue;
 
                 // we do not save the key (because it's statically known), but simply lay out the data
                 auto element_type = t;
                 if(t.isOptionType())
                     element_type = element_type.getReturnType(); // option is handled above
-                // single valued type?
-                // => skip!
+                // do we actually need to serialize the value?
+                // if not, no problem.
                 if(noNeedToSerializeType(t))
                     continue;
 
@@ -1299,12 +1313,33 @@ namespace tuplex {
                     throw std::runtime_error("could not map type " + t.desc());
                 member_types.push_back(mapped_type);
                 if(!t.isFixedSizeType()) {
+                    // not fixes size but var length?
+                    // add a size field!
                     member_types.push_back(i64Type);
                 }
             }
 
-            auto stype = llvm::StructType::create(ctx, member_types, name, is_packed);
-            return stype;
+            // convert to C++ to check if godbolt works -.-
+            
+
+            // finally, create type
+            // Note: these types can get super large!
+            // -> therefore identify using identified struct (not opaque one!)
+
+            // // this would create a literal struct
+            // return llvm::StructType::get(ctx, members, is_packed);
+
+//            // this creates an identified one (identifier!)
+//            auto stype = llvm::StructType::create(ctx, name);
+//
+//            // do not set body (too large)
+//            llvm::ArrayRef<llvm::Type *> members(member_types); // !!! important !!!
+//            stype->setBody(members, is_packed); // for info
+
+            llvm::ArrayRef<llvm::Type *> members(member_types);
+            llvm::Type *structType = llvm::StructType::create(ctx, members, name, false);
+
+            return structType;
         }
 
 
@@ -1531,6 +1566,18 @@ TEST_F(HyperTest, StructLLVMType) {
     auto stype = codegen::create_structured_dict_type(env, "struct_dict", row_type);
     // create new func with this
     create_dummy_function(env, stype);
+
+    std::string err;
+    EXPECT_TRUE(codegen::verifyModule(*env.getModule(), &err));
+    std::cerr<<err<<std::endl;
+    //env.getModule()->dump();
+//    llvm::TypeFinder type_finder;
+//    type_finder.run(*env.getModule(), true);
+//    for (auto t : type_finder) {
+//        std::cout << t->getName().str() << std::endl;
+//    }
+    // bitcode --> also fails.
+    // codegen::moduleToBitCodeString(*env.getModule());
 
     auto ir_code = codegen::moduleToString(*env.getModule());
     std::cout<<"generated code:\n"<<core::withLineNumbers(ir_code)<<std::endl;

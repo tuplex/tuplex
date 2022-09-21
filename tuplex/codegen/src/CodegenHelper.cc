@@ -357,6 +357,26 @@ namespace tuplex {
             return true;
         }
 
+        bool verifyModule(llvm::Module& mod, std::string* out) {
+            std::string modErrors = "";
+            llvm::raw_string_ostream os(modErrors);
+
+            if(llvm::verifyModule(mod, &os)) {
+                os.flush();
+
+                if(out)
+                    *out = modErrors;
+                return false;
+            }
+
+            for(auto& f : mod.functions()) {
+                if(!verifyFunction(&f, out))
+                    return false;
+            }
+
+            return true;
+        }
+
         size_t successorBlockCount(llvm::BasicBlock* block) {
             if(!block)
                 return 0;

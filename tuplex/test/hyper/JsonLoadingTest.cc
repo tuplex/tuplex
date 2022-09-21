@@ -796,6 +796,9 @@ namespace tuplex {
                     SerializableValue value;
                     auto key_value = str_value_from_python_raw_value(kv_pair.key); // it's an encoded value, but query here for the real key.
                     _env.debugPrint(builder, "decoding now key=" + key_value + " of path " + debug_path);
+                    if(key_value == "payload") {
+                        std::cout<<"debug"<<std::endl;
+                    }
                     auto rc = decodeFieldFromObject(builder, obj, debug_path + "." + key_value, &value, kv_pair.alwaysPresent, key_value, kv_pair.keyType, kv_pair.valueType, check_that_all_keys_are_present, bbSchemaMismatch);
                     auto successful_lookup = rc ? builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS))) : _env.i1Const(false);
 
@@ -804,6 +807,10 @@ namespace tuplex {
                         // needs to be present, i.e. key error is fatal error!
                         // --> add check, and jump to mismatch else
                         BasicBlock* bbOK = BasicBlock::Create(ctx, "key_present", builder.GetInsertBlock()->getParent());
+
+                        if(key_value == "payload") {
+                            _env.printValue(builder, rc, "rc for payload is: ");
+                        }
                         builder.CreateCondBr(successful_lookup, bbOK, bbSchemaMismatch);
                         builder.SetInsertPoint(bbOK);
                     } else {

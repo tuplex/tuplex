@@ -319,6 +319,10 @@ namespace tuplex {
         return buf;
     }
 
+    inline std::string view_to_string(const std::string_view& v) {
+        return std::string{v.begin(), v.end()};
+    }
+
     // use a helper function for this and specially encoded buffers
     uint64_t JsonItem_keySetMatch(JsonItem *item, uint8_t* always_keys_buf, uint8_t* maybe_keys_buf) {
 
@@ -332,25 +336,19 @@ namespace tuplex {
         uint64_t num_maybe_keys = *(uint64_t*)maybe_keys_buf;
 
         // fetch all keys and check then off.
-        std::vector<std::string_view> fields;
-        unsigned i = 0;
+        size_t num_fields = 0;
         // note: looking up string views does work for C++20+
-        std::unordered_map<std::string_view, unsigned> lookup;
+        std::unordered_map<std::string, unsigned> lookup;
         for(auto field : item->o) {
-            fields.emplace_back(field.unescaped_key().take_value());
-            lookup[fields.back()] = i++;
-        }
-
-        // debug check to understand what's in there
-        for(auto kv : lookup) {
-            std::cout<<kv.first<<"  "<<kv.second<<std::endl;
+            auto key = field.unescaped_key().take_value();
+            lookup[view_to_string(key)] = num_fields++;
         }
 
         // quick check
-        if(fields.size() < num_always_keys)
+        if(num_fields < num_always_keys)
             return ecToI64(ExceptionCode::TYPEERROR); // not enough fields
 
-        std::vector<bool> field_seen(fields.size(), false);
+        std::vector<bool> field_seen(num_fields, false);
 
         // go through the two buffers and mark whatever has been seen
         auto ptr = always_keys_buf + sizeof(int64_t);
@@ -358,8 +356,8 @@ namespace tuplex {
         for(unsigned i = 0; i < num_always_keys; ++i) {
             auto str_size = *(uint32_t*)ptr;
             ptr += sizeof(uint32_t);
-            std::string_view key((char*)ptr, str_size);
-            if(simdjson::NO_SUCH_FIELD != item->o.find_field_unordered(key).error()) {
+            std::string key = (char*)ptr;
+            if(lookup.end() != lookup.find(key)) {
                 field_seen[lookup[key]] = true; // mark as seen
                 num_always_fields_seen++; // must be there, i.e. count
             }
@@ -370,6 +368,10 @@ namespace tuplex {
         if(num_always_fields_seen != num_always_keys)
              return ecToI64(ExceptionCode::TYPEERROR); // not all always fields are there
 
+         // another shortcut: if number of keys is num_always_keys, it's ok - all keys have been seen
+         if(num_always_keys == num_fields)
+             return ecToI64(ExceptionCode::SUCCESS);
+
          // are there maybe fields?
          if(num_maybe_keys > 0) {
              // expensive check.
@@ -379,17 +381,19 @@ namespace tuplex {
              for(unsigned i = 0; i < num_maybe_keys; ++i) {
                  auto str_size = *(uint32_t*)ptr;
                  ptr += sizeof(uint32_t);
-                 std::string_view key((char*)ptr, str_size);
-                 if(simdjson::NO_SUCH_FIELD != item->o.find_field_unordered(key).error())
-                    field_seen[lookup[key]] = true; // set to "seen" because it can be there or not.
+                 std::string key = (char*)ptr;
+                 if(lookup.end() != lookup.find(key))
+                     field_seen[lookup[key]] = true; // mark as seen
                  ptr += str_size;
              }
 
              // now go through bool array. if there is a single false => failure!
+             auto num_seen = 0; // usually faster to sum everythin up...
             for(auto seen : field_seen) {
-                if(!seen)
-                    return ecToI64(ExceptionCode::TYPEERROR);
+               num_seen += seen;
             }
+            if(num_seen != field_seen.size())
+               return ecToI64(ExceptionCode::TYPEERROR);
          }
 
         return ecToI64(ExceptionCode::SUCCESS); // ok.

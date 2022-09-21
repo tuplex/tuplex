@@ -447,7 +447,7 @@ namespace tuplex {
             JSONSourceTaskBuilder(LLVMEnvironment& env,
                                   const python::Type& rowType,
                                   const std::string& functionName="parseJSON", bool unwrap_first_level=true) : _env(env), _rowType(rowType),
-            _functionName(functionName), _unwrap_first_level(unwrap_first_level), _rowNumberVar(nullptr), _badParseCountVar(nullptr) {}
+            _functionName(functionName), _unwrap_first_level(unwrap_first_level), _rowNumberVar(nullptr), _badParseCountVar(nullptr), _freeStart(nullptr), _freeEnd(_freeStart) {}
 
             void build();
         private:
@@ -460,6 +460,12 @@ namespace tuplex {
             llvm::Value* _rowNumberVar;
             llvm::Value* _badParseCountVar; // stores count of bad parse emits.
 
+            // blocks to hold start/end of frees --> called before going to next row.
+            llvm::BasicBlock* _freeStart;
+            llvm::BasicBlock* _freeEnd;
+
+
+            // helper functions
 
             void generateParseLoop(llvm::IRBuilder<> &builder, llvm::Value* bufPtr, llvm::Value* bufSize);
 
@@ -475,7 +481,7 @@ namespace tuplex {
             void moveToNextRow(llvm::IRBuilder<>& builder, llvm::Value* j);
 
 
-            llvm::BasicBlock* emitBadParseInputAndMoveToNextRow(llvm::IRBuilder<>& builder, llvm::Value* j, llvm::Value* condition, llvm::BasicBlock* loop_start);
+            llvm::BasicBlock* emitBadParseInputAndMoveToNextRow(llvm::IRBuilder<>& builder, llvm::Value* j, llvm::Value* condition);
 
             inline llvm::Value* rowNumber(llvm::IRBuilder<>& builder) {
                 assert(_rowNumberVar);
@@ -488,6 +494,7 @@ namespace tuplex {
             void parseAndPrintStructuredDictFromObject(llvm::IRBuilder<>& builder, llvm::Value* j, llvm::BasicBlock* bbSchemaMismatch);
 
             void freeObject(llvm::IRBuilder<>& builder, llvm::Value* obj);
+            void freeObject(llvm::Value* obj);
 
             llvm::Value* numberOfKeysInObject(llvm::IRBuilder<>& builder, llvm::Value* j);
 
@@ -677,8 +684,8 @@ namespace tuplex {
                     parseAndPrint(builder, sub_obj, debug_path + ".", alwaysPresent, v_type, true, bbSchemaMismatch);
                 }
 
-                // free! @TODO: add to free list... -> yet should be ok?
-                freeObject(builder, builder.CreateLoad(obj_var));
+                // free in free block.
+                freeObject(obj_var);
             } else if(v_type.isListType()) {
                 std::cerr<<"skipping for now type: "<<v_type.desc()<<std::endl;
                 rc =_env.i64Const(0); // ok.
@@ -706,8 +713,8 @@ namespace tuplex {
                 auto num_keys = numberOfKeysInObject(builder, sub_obj);
                 auto is_empty = builder.CreateICmpEQ(num_keys, _env.i64Const(0));
 
-                // free! @TODO: add to free list... -> yet should be ok?
-                freeObject(builder, builder.CreateLoad(obj_var));
+                //// free! @TODO: add to free list... -> yet should be ok?
+                freeObject(obj_var);
 
                 rc = builder.CreateSelect(is_empty, _env.i64Const(
                         ecToI64(ExceptionCode::SUCCESS)),
@@ -841,6 +848,34 @@ namespace tuplex {
             }
         }
 
+        void JSONSourceTaskBuilder::freeObject(llvm::Value *obj) {
+            assert(obj);
+            using namespace llvm;
+            auto& ctx = _env.getContext();
+
+            auto ptr_to_free = obj;
+
+            // free in free block (last block!)
+            assert(_freeEnd);
+            IRBuilder<> b(_freeEnd);
+
+            // what type is it?
+            if(obj->getType() == _env.i8ptrType()->getPointerTo()) {
+                ptr_to_free = b.CreateLoad(obj);
+            }
+
+            freeObject(b, ptr_to_free);
+
+            if(obj->getType() == _env.i8ptrType()->getPointerTo()) {
+                // store nullptr in debug mode
+#ifndef NDEBUG
+                b.CreateStore(_env.i8nullptr(), obj);
+#endif
+            }
+            _freeEnd = b.GetInsertBlock();
+            assert(_freeEnd);
+        }
+
         void JSONSourceTaskBuilder::freeObject(llvm::IRBuilder<> &builder, llvm::Value *obj) {
             using namespace llvm;
             auto& ctx = _env.getContext();
@@ -866,7 +901,6 @@ namespace tuplex {
             // => call with row type
             parseAndPrint(builder, builder.CreateLoad(obj_var), "", true, _rowType, true, bbSchemaMismatch);
 
-
             // free obj_var...
             freeObject(builder, builder.CreateLoad(obj_var));
 #ifndef NDEBUG
@@ -888,12 +922,12 @@ namespace tuplex {
         }
 
         llvm::BasicBlock* JSONSourceTaskBuilder::emitBadParseInputAndMoveToNextRow(llvm::IRBuilder<> &builder, llvm::Value *j,
-                                                                      llvm::Value *condition,
-                                                                      llvm::BasicBlock *loop_start) {
+                                                                      llvm::Value *condition) {
             using namespace llvm;
             auto& ctx = _env.getContext();
 
             auto F = builder.GetInsertBlock()->getParent();
+
             BasicBlock* bbOK = BasicBlock::Create(ctx, "ok", F);
             BasicBlock* bbEmitBadParse = BasicBlock::Create(ctx, "bad_parse", F);
             builder.CreateCondBr(condition, bbEmitBadParse, bbOK);
@@ -914,15 +948,14 @@ namespace tuplex {
             builder.CreateStore(builder.CreateAdd(count, _env.i64Const(1)), _badParseCountVar);
 
             //_env.printValue(builder, line, "bad-parse for row: ");
-
+            // this is ok here, b.c. it's local.
             _env.cfree(builder, line);
 
-            moveToNextRow(builder, j);
-            builder.CreateBr(loop_start);
+            // go to free block -> that will then take care of moving back to header.
+            builder.CreateBr(_freeStart);
 
             // ok block
             builder.SetInsertPoint(bbOK);
-
             return bbEmitBadParse;
         }
 
@@ -1012,7 +1045,16 @@ namespace tuplex {
             _rowNumberVar = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "row_no");
             _badParseCountVar = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "badparse_count");
 
+            // create single free block
+            _freeStart = _freeEnd = BasicBlock::Create(ctx, "free_row_objects", F);
 
+#ifndef NDEBUG
+            {
+                // debug: create an info statement for free block
+                llvm::IRBuilder<> b(_freeStart);
+                _env.printValue(b, rowNumber(b), "entered free row objects for row no=");
+            }
+#endif
             llvm::Value* rc = openJsonBuf(builder, parser, bufPtr, bufSize);
             llvm::Value* rc_cond = _env.i1neg(builder,builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS))));
             exitMainFunctionWithError(builder, rc_cond, rc);
@@ -1038,11 +1080,20 @@ namespace tuplex {
 
             // check whether it's of object type -> parse then as object (only supported type so far!)
             cond = isDocumentOfObjectType(builder, parser);
-            auto bbSchemaMismatch = emitBadParseInputAndMoveToNextRow(builder, parser, _env.i1neg(builder, cond), bLoopHeader);
+            auto bbSchemaMismatch = emitBadParseInputAndMoveToNextRow(builder, parser, _env.i1neg(builder, cond));
 
             // print out structure -> this is the parse
             parseAndPrintStructuredDictFromObject(builder, parser, bbSchemaMismatch);
 
+
+            // go to free start
+            builder.CreateBr(_freeStart);
+
+            // free data..
+            // --> parsing will generate there free statements per row
+
+
+            builder.SetInsertPoint(_freeEnd); // free is done -> now move onto next row.
 
             // go to next row
             moveToNextRow(builder, parser);
@@ -1054,12 +1105,11 @@ namespace tuplex {
             // continue in loop exit.
             builder.SetInsertPoint(bLoopExit);
 
-            // free JSON parse
+            // free JSON parse (global object)
             freeJsonParse(builder, parser);
 
             _env.printValue(builder, rowNumber(builder), "parsed rows: ");
             _env.printValue(builder, builder.CreateLoad(_badParseCountVar), "thereof bad parse rows (schema mismatch): ");
-
         }
 
         void JSONSourceTaskBuilder::build() {
@@ -1095,15 +1145,18 @@ TEST_F(HyperTest, BasicStructLoad) {
 
     auto path = sample_file;
 
+    //
+
+
     path = "../resources/2011-11-26-13.json.gz";
 
-    // smaller sample
-     path = "../resources/2011-11-26-13.sample.json";
+    // // smaller sample
+    // path = "../resources/2011-11-26-13.sample.json";
 
-     // payload removed, b.c. it's so hard to debug... // there should be one org => one exception row.
-    path = "../resources/2011-11-26-13.sample2.json"; // -> so this works.
+  //   // payload removed, b.c. it's so hard to debug... // there should be one org => one exception row.
+  //  path = "../resources/2011-11-26-13.sample2.json"; // -> so this works.
 
-    path = "../resources/2011-11-26-13.sample3.json"; // -> single row, the parse should trivially work.
+  //  path = "../resources/2011-11-26-13.sample3.json"; // -> single row, the parse should trivially work.
 
 
     auto raw_data = fileToString(path);

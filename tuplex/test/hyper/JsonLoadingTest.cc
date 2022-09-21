@@ -906,7 +906,7 @@ namespace tuplex {
             auto line = builder.CreateCall(Frow, j);
 
             // simply print (later call with error)
-            _env.printValue(builder, rowNumber(builder), "bade parse encountered for row number: ");
+            _env.printValue(builder, rowNumber(builder), "bad parse encountered for row number: ");
 
             // inc value
             auto count = builder.CreateLoad(_badParseCountVar);
@@ -1100,7 +1100,7 @@ TEST_F(HyperTest, BasicStructLoad) {
      path = "../resources/2011-11-26-13.sample.json";
 
      // payload removed, b.c. it's so hard to debug... // there should be one org => one exception row.
-    path = "../resources/2011-11-26-13.sample.json";
+    path = "../resources/2011-11-26-13.sample2.json";
 
 
     auto raw_data = fileToString(path);

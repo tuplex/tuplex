@@ -275,6 +275,22 @@ namespace tuplex {
         return ecToI64(ExceptionCode::SUCCESS);
     }
 
+    // returns 0 if it is null!
+    uint64_t JsonItem_IsNull(JsonItem *item, const char* key) {
+        assert(item);
+        simdjson::error_code error;
+        error = item->o[key].error();
+        if(error == simdjson::NO_SUCH_FIELD)
+            return ecToI64(ExceptionCode::KEYERROR);
+        return item->o[key].is_null() ? ecToI64(ExceptionCode::SUCCESS) : ecToI64(ExceptionCode::TYPEERROR);
+    }
+
+    bool JsonItem_hasKey(JsonItem *item, const char* key) {
+        assert(item);
+        auto error = item->o[key].error();
+        return (error != simdjson::NO_SUCH_FIELD);
+    }
+    
     uint64_t JsonItem_numberOfKeys(JsonItem *item) {
         assert(item);
         size_t value;
@@ -512,7 +528,8 @@ namespace tuplex {
 
             builder.SetInsertPoint(bbNotNull);
             if(value.val && !valueType.isStructuredDictionaryType())
-                _env.printValue(builder, value.val, "decoded " + valueType.desc());
+                _env.printValue(builder, value.val, "decoded key=" + key + " as " + valueType.desc());
+            builder.CreateBr(bbNext);
 
             builder.SetInsertPoint(bbNext);
         }
@@ -570,7 +587,7 @@ namespace tuplex {
                                              _env.i64ptrType());
                 auto i_var = _env.CreateFirstBlockVariable(builder, _env.i64Const(0));
                 rc = builder.CreateCall(F, {obj, key, i_var});
-                v.val = _env.upcastToBoolean(builder, builder.CreateLoad(i_var));
+                v.val = builder.CreateLoad(i_var);
                 v.size = _env.i64Const(sizeof(int64_t));
                 v.is_null = _env.i1Const(false);
             } else if(v_type == python::Type::F64) {
@@ -578,7 +595,7 @@ namespace tuplex {
                                              _env.doublePointerType());
                 auto f_var = _env.CreateFirstBlockVariable(builder, _env.f64Const(0));
                 rc = builder.CreateCall(F, {obj, key, f_var});
-                v.val = _env.upcastToBoolean(builder, builder.CreateLoad(f_var));
+                v.val =  builder.CreateLoad(f_var);
                 v.size = _env.i64Const(sizeof(int64_t));
                 v.is_null = _env.i1Const(false);
             } else if(v_type.isStructuredDictionaryType()) {
@@ -593,15 +610,46 @@ namespace tuplex {
                 builder.CreateCondBr(is_object, bbOK, bbSchemaMismatch);
                 builder.SetInsertPoint(bbOK);
 
-                auto obj = builder.CreateLoad(obj_var);
+                auto sub_obj = builder.CreateLoad(obj_var);
 
                 // recurse...
-                parseAndPrint(builder, obj, v_type, true, bbSchemaMismatch);
+                parseAndPrint(builder, sub_obj, v_type, true, bbSchemaMismatch);
 
                 // free! @TODO: add to free list... -> yet should be ok?
                 freeObject(builder, builder.CreateLoad(obj_var));
             } else if(v_type.isListType()) {
                 std::cerr<<"skipping for now type: "<<v_type.desc()<<std::endl;
+            } else if(v_type == python::Type::NULLVALUE) {
+                // special case!
+                auto F = getOrInsertFunction(mod, "JsonItem_IsNull", _env.i64Type(), _env.i8ptrType(), _env.i8ptrType());
+                rc = builder.CreateCall(F, {obj, key});
+                v.is_null =  builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            } else if(v_type == python::Type::EMPTYDICT) {
+                // special case!
+                // query subobject and call count keys!
+                auto F = getOrInsertFunction(mod, "JsonItem_getObject", _env.i64Type(), _env.i8ptrType(), _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
+                auto obj_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+                // create call, recurse only if ok!
+                BasicBlock* bbOK = BasicBlock::Create(ctx, "is_object", builder.GetInsertBlock()->getParent());
+
+                rc = builder.CreateCall(F, {obj, key, obj_var});
+                auto is_object = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                builder.CreateCondBr(is_object, bbOK, bbSchemaMismatch);
+                builder.SetInsertPoint(bbOK);
+
+                auto sub_obj = builder.CreateLoad(obj_var);
+
+                // check how many entries
+                auto num_keys = numberOfKeysInObject(builder, sub_obj);
+                auto is_empty = builder.CreateICmpEQ(num_keys, _env.i64Const(0));
+
+                // free! @TODO: add to free list... -> yet should be ok?
+                freeObject(builder, builder.CreateLoad(obj_var));
+
+                rc = builder.CreateSelect(is_empty, _env.i64Const(
+                        ecToI64(ExceptionCode::SUCCESS)),
+                                          _env.i64Const(
+                        ecToI64(ExceptionCode::TYPEERROR)));
             } else {
 
 
@@ -690,7 +738,7 @@ namespace tuplex {
                     SerializableValue value;
                     auto key_value = str_value_from_python_raw_value(kv_pair.key); // it's an encoded value, but query here for the real key.
                     auto rc = decodeFieldFromObject(builder, obj, &value, key_value, kv_pair.keyType, kv_pair.valueType, check_that_all_keys_are_present, bbSchemaMismatch);
-                    auto successful_lookup = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                    auto successful_lookup = rc ? builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS))) : _env.i1Const(false);
 
                     // optional? or always there?
                     if(kv_pair.alwaysPresent) {
@@ -784,7 +832,7 @@ namespace tuplex {
             auto line = builder.CreateCall(Frow, j);
 
             // simply print (later call with error)
-            _env.printValue(builder, rowNumber(builder), "row number: ");
+            _env.printValue(builder, rowNumber(builder), "bade parse encountered for row number: ");
             //_env.printValue(builder, line, "bad-parse for row: ");
 
             _env.cfree(builder, line);
@@ -1039,8 +1087,10 @@ TEST_F(HyperTest, BasicStructLoad) {
     jit.registerSymbol("JsonItem_getDouble", JsonItem_getDouble);
     jit.registerSymbol("JsonItem_getInt", JsonItem_getInt);
     jit.registerSymbol("JsonItem_getBoolean", JsonItem_getBoolean);
+    jit.registerSymbol("JsonItem_IsNull", JsonItem_IsNull);
     jit.registerSymbol("JsonItem_numberOfKeys", JsonItem_numberOfKeys);
     jit.registerSymbol("JsonItem_keySetMatch", JsonItem_keySetMatch);
+    jit.registerSymbol("JsonItem_hasKey", JsonItem_hasKey);
 
     // compile func
     auto rc_compile = jit.compile(ir_code);

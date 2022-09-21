@@ -1169,8 +1169,8 @@ namespace tuplex {
         }
 
         // flatten struct dict.
-
-        void flatten_recursive_helper(std::vector<std::pair<std::vector<std::pair<std::string, python::Type>>, python::Type>>& entries,
+        using flattened_struct_dict_entry_list_t=std::vector<std::tuple<std::vector<std::pair<std::string, python::Type>>, python::Type, bool>>;
+        void flatten_recursive_helper(flattened_struct_dict_entry_list_t& entries,
                                       const python::Type& dict_type, std::vector<std::pair<std::string, python::Type>> prefix={}) {
             using namespace std;
 
@@ -1184,28 +1184,28 @@ namespace tuplex {
                     // recurse using new prefix
                     flatten_recursive_helper(entries, kv_pair.valueType, access_path);
                 } else {
-                    entries.push_back(make_pair(access_path, kv_pair.valueType));
+                    entries.push_back(make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
                 }
             }
         }
 
-        void flatten_structured_dict_type(const python::Type& dict_type) {
+        void print_flatten_structured_dict_type(const python::Type& dict_type) {
             using namespace std;
 
-
-            // each entry is {(key, key_type), ..., (key, key_type)}, value_type
+            // each entry is {(key, key_type), ..., (key, key_type)}, value_type, alwaysPresent
             // only nested dicts are flattened. Tuples etc. are untouched. (would be too cumbersome)
-            vector<std::pair<vector<std::pair<std::string, python::Type>>, python::Type>> entries;
+            flattened_struct_dict_entry_list_t entries;
             flatten_recursive_helper(entries, dict_type, {});
 
             // now print out everything...
             std::stringstream  ss;
             for(auto entry : entries) {
                 // first the path:
-                for(auto atom : entry.first) {
+                for(auto atom : std::get<0>(entry)) {
                     ss<<atom.first<<" ("<<atom.second.desc()<<") -> ";
                 }
-                ss<<entry.second.desc()<<endl;
+                auto presence = !std::get<2>(entry) ? "(maybe)" : "";
+                ss<<std::get<1>(entry).desc()<<presence<<endl;
             }
 
             cout<<ss.str()<<endl;
@@ -1224,7 +1224,15 @@ namespace tuplex {
                 return nullptr;
             }
 
-            flatten_structured_dict_type(dict_type);
+            print_flatten_structured_dict_type(dict_type);
+
+            // --> flattening the dict like this will guarantee that each level is local to itself, simplifying access.
+            // (could also organize in fixed_size fields or not, but this here works as well)
+
+            // each entry is {(key, key_type), ..., (key, key_type)}, value_type, alwaysPresent
+            // only nested dicts are flattened. Tuples etc. are untouched. (would be too cumbersome)
+            flattened_struct_dict_entry_list_t entries;
+            flatten_recursive_helper(entries, dict_type, {});
 
 
             // retrieve counts => i.e. how many fields are options? how many are maybe present?

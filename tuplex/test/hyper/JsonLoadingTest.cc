@@ -1156,10 +1156,20 @@ namespace tuplex {
             }
         }
 
+        inline bool noNeedToSerializeType(const python::Type& t) {
+            // some types do not need to get serialized. This function specifies this
+            if(t.isConstantValued())
+                return true; // no need to serialize constants!
+            if(t.isSingleValued())
+                return true; // no need to serialize special constant values (like null, empty dict, empty list, empty tuple, ...)
+            return false;
+        }
+
         // creating struct type based on structured dictionary type
-        llvm::Type* create_structured_dict_type(llvm::LLVMContext& ctx, const std::string& name, const python::Type& dict_type) {
+        llvm::Type* create_structured_dict_type(LLVMEnvironment& env, const std::string& name, const python::Type& dict_type) {
             using namespace llvm;
             auto& logger = Logger::instance().logger("codegen");
+            llvm::LLVMContext& ctx = env.getContext();
 
             if(!dict_type.isStructuredDictionaryType()) {
                 logger.error("provided type is not a structured dict type but " + dict_type.desc());
@@ -1215,6 +1225,23 @@ namespace tuplex {
                     }
                 }
 
+                // we do not save the key (because it's statically known), but simply lay out the data
+                auto element_type = t;
+                if(t.isOptionType())
+                    element_type = element_type.getReturnType(); // option is handled above
+                // single valued type?
+                // => skip!
+                if(noNeedToSerializeType(t))
+                    continue;
+
+                // serialize. Check if it is a fixed size type -> no size field required, else add an i64 field to store the var_length size!
+                auto mapped_type = env.pythonToLLVMType(t);
+                if(!mapped_type)
+                    throw std::runtime_error("could not map type " + t.desc());
+                member_types.push_back(mapped_type);
+                if(!t.isFixedSizeType()) {
+                    member_types.push_back(i64Type);
+                }
             }
 
             auto stype = llvm::StructType::create(ctx, member_types, name, is_packed);
@@ -1441,7 +1468,7 @@ TEST_F(HyperTest, StructLLVMType) {
     // codegen now here...
     codegen::LLVMEnvironment env;
 
-    auto stype = codegen::create_structured_dict_type(env.getContext(), "struct_dict", row_type);
+    auto stype = codegen::create_structured_dict_type(env, "struct_dict", row_type);
     // create new func with this
     create_dummy_function(env, stype);
 

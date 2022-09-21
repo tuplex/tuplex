@@ -495,16 +495,44 @@ namespace tuplex {
              * @param check_that_all_keys_are_present if true, then row must contain exact keys for struct dict. Else, it's parsed whatever is specified in the schema.
              * @param bbSchemaMismatch
              */
-            void parseAndPrint(llvm::IRBuilder<>& builder, llvm::Value* obj, const python::Type& t, bool check_that_all_keys_are_present, llvm::BasicBlock* bbSchemaMismatch);
+            void parseAndPrint(llvm::IRBuilder<>& builder, llvm::Value* obj, const std::string& debug_path, bool alwaysPresent, const python::Type& t, bool check_that_all_keys_are_present, llvm::BasicBlock* bbSchemaMismatch);
 
-            llvm::Value* decodeFieldFromObject(llvm::IRBuilder<>& builder, llvm::Value* obj, SerializableValue* out, llvm::Value* key, const python::Type& keyType, const python::Type& valueType, bool check_that_all_keys_are_present, llvm::BasicBlock* bbSchemaMismatch);
-            llvm::Value* decodeFieldFromObject(llvm::IRBuilder<>& builder, llvm::Value* obj, SerializableValue* out, const std::string& key, const python::Type& keyType, const python::Type& valueType, bool check_that_all_keys_are_present, llvm::BasicBlock* bbSchemaMismatch) {
-                return decodeFieldFromObject(builder, obj, out, _env.strConst(builder, key), keyType, valueType, check_that_all_keys_are_present, bbSchemaMismatch);
+            llvm::Value* decodeFieldFromObject(llvm::IRBuilder<>& builder,
+                                               llvm::Value* obj,
+                                               const std::string& debug_path,
+                                               SerializableValue* out,
+                                               bool alwaysPresent,
+                                               llvm::Value* key,
+                                               const python::Type& keyType,
+                                               const python::Type& valueType,
+                                               bool check_that_all_keys_are_present,
+                                               llvm::BasicBlock* bbSchemaMismatch);
+            llvm::Value* decodeFieldFromObject(llvm::IRBuilder<>& builder, llvm::Value* obj, const std::string& debug_path, SerializableValue* out, bool alwaysPresent, const std::string& key, const python::Type& keyType, const python::Type& valueType, bool check_that_all_keys_are_present, llvm::BasicBlock* bbSchemaMismatch) {
+                return decodeFieldFromObject(builder, obj, debug_path, out, alwaysPresent, _env.strConst(builder, key), keyType, valueType, check_that_all_keys_are_present, bbSchemaMismatch);
             }
 
             void printValueInfo(llvm::IRBuilder<>& builder, const std::string& key, const python::Type& valueType, llvm::Value* keyPresent, const SerializableValue& value);
+            void checkRC(llvm::IRBuilder<>& builder, const std::string& key, llvm::Value* rc);
         };
 
+        void JSONSourceTaskBuilder::checkRC(llvm::IRBuilder<> &builder, const std::string &key, llvm::Value *rc) {
+            using namespace llvm;
+            auto& ctx = _env.getContext();
+            auto F = builder.GetInsertBlock()->getParent();
+
+            BasicBlock* bbPrint = BasicBlock::Create(ctx, key + "_present", F);
+            BasicBlock* bbNext = BasicBlock::Create(ctx, key + "_done", F);
+
+            // check what the rc values are
+            auto bad_value = builder.CreateICmpNE(rc, _env.i64Const(0));
+            builder.CreateCondBr(bad_value, bbPrint, bbNext);
+            builder.SetInsertPoint(bbPrint);
+
+            _env.printValue(builder, rc, "rc for key=" + key + " is: ");
+
+            builder.CreateBr(bbNext);
+            builder.SetInsertPoint(bbNext);
+        }
 
         void JSONSourceTaskBuilder::printValueInfo(llvm::IRBuilder<> &builder,
                                                    const std::string &key,
@@ -542,13 +570,14 @@ namespace tuplex {
             return builder.CreateCall(F, j);
         }
 
-        llvm::Value *JSONSourceTaskBuilder::decodeFieldFromObject(llvm::IRBuilder<> &builder,
-                                                                  llvm::Value* obj,
+        llvm::Value *JSONSourceTaskBuilder::decodeFieldFromObject(llvm::IRBuilder<> &builder, llvm::Value *obj,
+                                                                  const std::string &debug_path,
                                                                   tuplex::codegen::SerializableValue *out,
-                                                                  llvm::Value *key, const python::Type &keyType,
+                                                                  bool alwaysPresent, llvm::Value *key,
+                                                                  const python::Type &keyType,
                                                                   const python::Type &valueType,
                                                                   bool check_that_all_keys_are_present,
-                                                                  llvm::BasicBlock* bbSchemaMismatch) {
+                                                                  llvm::BasicBlock *bbSchemaMismatch) {
             using namespace llvm;
 
             if(keyType != python::Type::STRING)
@@ -606,14 +635,41 @@ namespace tuplex {
 
 
                 rc = builder.CreateCall(F, {obj, key, obj_var});
-                auto is_object = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
-                builder.CreateCondBr(is_object, bbOK, bbSchemaMismatch);
-                builder.SetInsertPoint(bbOK);
+                auto is_object = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS))); // <-- indicates successful parse
 
-                auto sub_obj = builder.CreateLoad(obj_var);
+                // if the object is maybe present, then key-error is not a problem.
+                // correct condition therefore
+                if(!alwaysPresent) {
+                    BasicBlock* bbParseSub = BasicBlock::Create(ctx, "parse_object", builder.GetInsertBlock()->getParent());
+                    BasicBlock* bbContinue = BasicBlock::Create(ctx, "continue_parse", builder.GetInsertBlock()->getParent());
 
-                // recurse...
-                parseAndPrint(builder, sub_obj, v_type, true, bbSchemaMismatch);
+                    // ok, when either success OR keyerror => can continue to OK.
+                    // continue parse of subobject, if it was success. If it was key error, directly go to bbOK
+                    auto is_keyerror = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::KEYERROR)));
+                    auto is_ok = builder.CreateOr(is_keyerror, is_object);
+                    builder.CreateCondBr(is_ok, bbContinue, bbSchemaMismatch);
+                    builder.SetInsertPoint(bbContinue);
+
+                    builder.CreateCondBr(is_keyerror, bbOK, bbParseSub);
+                    builder.SetInsertPoint(bbParseSub);
+
+                    // continue parse if present
+                    auto sub_obj = builder.CreateLoad(obj_var);
+                    // recurse...
+                    parseAndPrint(builder, sub_obj, debug_path + ".", alwaysPresent, v_type, true, bbSchemaMismatch);
+                    builder.CreateBr(bbOK);
+
+                    // continue on ok block.
+                    builder.SetInsertPoint(bbOK);
+                } else {
+                    builder.CreateCondBr(is_object, bbOK, bbSchemaMismatch);
+                    builder.SetInsertPoint(bbOK);
+
+                    auto sub_obj = builder.CreateLoad(obj_var);
+
+                    // recurse...
+                    parseAndPrint(builder, sub_obj, debug_path + ".", alwaysPresent, v_type, true, bbSchemaMismatch);
+                }
 
                 // free! @TODO: add to free list... -> yet should be ok?
                 freeObject(builder, builder.CreateLoad(obj_var));
@@ -664,7 +720,10 @@ namespace tuplex {
         }
 
 
-        void JSONSourceTaskBuilder::parseAndPrint(llvm::IRBuilder<> &builder, llvm::Value *obj, const python::Type &t, bool check_that_all_keys_are_present, llvm::BasicBlock* bbSchemaMismatch) {
+        void JSONSourceTaskBuilder::parseAndPrint(llvm::IRBuilder<> &builder, llvm::Value *obj,
+                                                  const std::string &debug_path, bool alwaysPresent,
+                                                  const python::Type &t, bool check_that_all_keys_are_present,
+                                                  llvm::BasicBlock *bbSchemaMismatch) {
             using namespace llvm;
             auto& ctx = _env.getContext();
             auto F = builder.GetInsertBlock()->getParent();
@@ -732,12 +791,12 @@ namespace tuplex {
                 }
 
                 for(const auto& kv_pair : kv_pairs) {
-
                     llvm::Value *keyPresent = _env.i1Const(true); // default to always present
 
                     SerializableValue value;
                     auto key_value = str_value_from_python_raw_value(kv_pair.key); // it's an encoded value, but query here for the real key.
-                    auto rc = decodeFieldFromObject(builder, obj, &value, key_value, kv_pair.keyType, kv_pair.valueType, check_that_all_keys_are_present, bbSchemaMismatch);
+                    _env.debugPrint(builder, "decoding now key=" + key_value + " of path " + debug_path);
+                    auto rc = decodeFieldFromObject(builder, obj, debug_path + "." + key_value, &value, kv_pair.alwaysPresent, key_value, kv_pair.keyType, kv_pair.valueType, check_that_all_keys_are_present, bbSchemaMismatch);
                     auto successful_lookup = rc ? builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS))) : _env.i1Const(false);
 
                     // optional? or always there?
@@ -757,6 +816,8 @@ namespace tuplex {
                     // can now print the 4 values if need be or store them away.
                     // note: should be done by checking! --> this here is a debug function.
                     printValueInfo(builder, key_value, kv_pair.valueType, keyPresent, value);
+                    if(rc)
+                        checkRC(builder, key_value, rc);
                 }
 
 
@@ -789,7 +850,7 @@ namespace tuplex {
             // don't forget to free everything...
 
             // => call with row type
-            parseAndPrint(builder, builder.CreateLoad(obj_var), _rowType, true, bbSchemaMismatch);
+            parseAndPrint(builder, builder.CreateLoad(obj_var), "", true, _rowType, true, bbSchemaMismatch);
 
 
             // free obj_var...
@@ -956,7 +1017,7 @@ namespace tuplex {
 
             // check whether it's of object type -> parse then as object (only supported type so far!)
             cond = isDocumentOfObjectType(builder, parser);
-            auto bbSchemaMismatch = emitBadParseInputAndMoveToNextRow(builder, parser, _env.i1neg(builder, cond), bLoopHeader);
+            auto bbSchemaMismatch = emitBadParseInputAndMoveToNextRow(builder, parser, _env.i1neg(builder, cond), bLoopExit);//bLoopHeader);
 
             // print out structure -> this is the parse
             parseAndPrintStructuredDictFromObject(builder, parser, bbSchemaMismatch);

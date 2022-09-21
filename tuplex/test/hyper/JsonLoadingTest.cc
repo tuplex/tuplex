@@ -1100,7 +1100,9 @@ TEST_F(HyperTest, BasicStructLoad) {
      path = "../resources/2011-11-26-13.sample.json";
 
      // payload removed, b.c. it's so hard to debug... // there should be one org => one exception row.
-    path = "../resources/2011-11-26-13.sample2.json";
+    path = "../resources/2011-11-26-13.sample2.json"; // -> so this works.
+
+    path = "../resources/2011-11-26-13.sample3.json"; // -> single row, the parse should trivially work.
 
 
     auto raw_data = fileToString(path);
@@ -1148,7 +1150,7 @@ TEST_F(HyperTest, BasicStructLoad) {
     std::cout<<"general case:  "<<general_case_type.desc()<<std::endl;
 
     auto row_type = normal_case_type;//general_case_type;
-    // row_type = general_case_type; // <-- this should match MOST of the rows...
+     row_type = general_case_type; // <-- this should match MOST of the rows...
 
     for(auto kv : row_type.get_struct_pairs()) {
         if(kv.key == "'payload'") {

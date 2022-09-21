@@ -223,7 +223,7 @@ namespace tuplex {
         item->o[key].get_object().tie(o, error);
         if(error)
             return translate_simdjson_error(error);
-
+        // ONLY allocate if ok. else, leave how it is.
         auto obj = new JsonItem();
         obj->o = std::move(o);
         *out = obj;
@@ -350,9 +350,9 @@ namespace tuplex {
              */
             void parseAndPrint(llvm::IRBuilder<>& builder, llvm::Value* obj, const python::Type& t, bool check_for_keys, llvm::BasicBlock* bbSchemaMismatch);
 
-            llvm::Value* decodeFieldFromObject(llvm::IRBuilder<>& builder, llvm::Value* obj, SerializableValue* out, llvm::Value* key, const python::Type& keyType, const python::Type& valueType);
-            llvm::Value* decodeFieldFromObject(llvm::IRBuilder<>& builder, llvm::Value* obj, SerializableValue* out, const std::string& key, const python::Type& keyType, const python::Type& valueType) {
-                return decodeFieldFromObject(builder, obj, out, _env.strConst(builder, key), keyType, valueType);
+            llvm::Value* decodeFieldFromObject(llvm::IRBuilder<>& builder, llvm::Value* obj, SerializableValue* out, llvm::Value* key, const python::Type& keyType, const python::Type& valueType, llvm::BasicBlock* bbSchemaMismatch);
+            llvm::Value* decodeFieldFromObject(llvm::IRBuilder<>& builder, llvm::Value* obj, SerializableValue* out, const std::string& key, const python::Type& keyType, const python::Type& valueType, llvm::BasicBlock* bbSchemaMismatch) {
+                return decodeFieldFromObject(builder, obj, out, _env.strConst(builder, key), keyType, valueType, bbSchemaMismatch);
             }
         };
 
@@ -368,7 +368,9 @@ namespace tuplex {
                                                                   llvm::Value* obj,
                                                                   tuplex::codegen::SerializableValue *out,
                                                                   llvm::Value *key, const python::Type &keyType,
-                                                                  const python::Type &valueType) {
+                                                                  const python::Type &valueType,
+                                                                  llvm::BasicBlock* bbSchemaMismatch) {
+            using namespace llvm;
 
             if(keyType != python::Type::STRING)
                 throw std::runtime_error("so far only string type supported for decoding");
@@ -417,9 +419,32 @@ namespace tuplex {
                 v.val = _env.upcastToBoolean(builder, builder.CreateLoad(f_var));
                 v.size = _env.i64Const(sizeof(int64_t));
                 v.is_null = _env.i1Const(false);
+            } else if(v_type.isStructuredDictionaryType()) {
+                auto F = getOrInsertFunction(mod, "JsonItem_getObject", _env.i64Type(), _env.i8ptrType(), _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
+                auto obj_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+                // create call, recurse only if ok!
+                BasicBlock* bbOK = BasicBlock::Create(ctx, "is_object", builder.GetInsertBlock()->getParent());
+
+
+                rc = builder.CreateCall(F, {obj, key, obj_var});
+                auto is_object = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                builder.CreateCondBr(is_object, bbOK, bbSchemaMismatch);
+                builder.SetInsertPoint(bbOK);
+
+                auto obj = builder.CreateLoad(obj_var);
+
+                // recurse...
+                parseAndPrint(builder, obj, v_type, true, bbSchemaMismatch);
+
+                // free! @TODO: add to free list... -> yet should be ok?
+                freeObject(builder, builder.CreateLoad(obj_var));
+            } else if(v_type.isListType()) {
+                std::cerr<<"skipping for now type: "<<v_type.desc()<<std::endl;
             } else {
 
-                // for another nested object, utilize: auto F = getOrInsertFunction(mod, "JsonItem_getObject", _env.i64Type(), _env.i8ptrType(), _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
+
+
+                // for another nested object, utilize:
 
                 throw std::runtime_error("encountered unsupported value type " + valueType.desc());
             }
@@ -451,6 +476,18 @@ namespace tuplex {
                     BasicBlock* bbOK = BasicBlock::Create(ctx, "all_keys_present_passed", F);
                     auto num_keys = numberOfKeysInObject(builder, obj);
                     auto cond = builder.CreateICmpNE(num_keys, _env.i64Const(kv_pairs.size()));
+#ifndef NDEBUG
+                    {
+                        // print out expected vs. found
+                        BasicBlock* bb = BasicBlock::Create(ctx, "debug", F);
+                        BasicBlock* bbn = BasicBlock::Create(ctx, "debug_ct", F);
+                        builder.CreateCondBr(cond, bb, bbn);
+                        builder.SetInsertPoint(bb);
+                        _env.printValue(builder, num_keys, "struct type expected  " + std::to_string(kv_pairs.size()) + " elements, got: ");
+                        builder.CreateBr(bbn);
+                        builder.SetInsertPoint(bbn);
+                    }
+#endif
                     builder.CreateCondBr(cond, bbSchemaMismatch, bbOK);
                     builder.SetInsertPoint(bbOK);
                 }
@@ -460,9 +497,13 @@ namespace tuplex {
                     if(kv_pair.alwaysPresent) {
                         // needs to be present, i.e. key error is fatal error!
                         SerializableValue value;
-                        auto rc = decodeFieldFromObject(builder, obj, &value, kv_pair.key, kv_pair.keyType, kv_pair.valueType);
-
-                        _env.printValue(builder, value.val, "decoded " + kv_pair.valueType.desc());
+                        //auto rc = decodeFieldFromObject(builder, obj, &value, kv_pair.key, kv_pair.keyType, kv_pair.valueType, bbSchemaMismatch);
+                        // assert(rc);
+                        if(value.val)
+                            _env.printValue(builder, value.val, "decoded " + kv_pair.valueType.desc());
+                        else if(kv_pair.valueType.isStructuredDictionaryType()) {
+                            // _env.debugPrint(builder, "decoded object");
+                        }
                     } else {
                         // can or can not be present.
                     }
@@ -471,6 +512,7 @@ namespace tuplex {
 
             } else {
                 // other types, parse with type check!
+                throw std::runtime_error("unsupported type");
             }
         }
 
@@ -514,7 +556,7 @@ namespace tuplex {
         llvm::Value *JSONSourceTaskBuilder::isDocumentOfObjectType(llvm::IRBuilder<> &builder, llvm::Value *j) {
             using namespace llvm;
             auto& ctx = _env.getContext();
-            auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_getDocType", _env.i64Type(), _env.i64Type());
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_getDocType", _env.i64Type(), _env.i8ptrType());
             auto call_res = builder.CreateCall(F, j);
             auto cond = builder.CreateICmpEQ(call_res, _env.i64Const(JsonParser_objectDocType()));
             return cond;
@@ -541,7 +583,7 @@ namespace tuplex {
 
             // simply print (later call with error)
             _env.printValue(builder, rowNumber(builder), "row number: ");
-            _env.printValue(builder, line, "bad-parse for row: ");
+            //_env.printValue(builder, line, "bad-parse for row: ");
 
             _env.cfree(builder, line);
 
@@ -744,6 +786,7 @@ TEST_F(HyperTest, BasicStructLoad) {
     auto nc_th = 0.9;
     auto rows = parseRowsFromJSON(buf, std::min(buf_size, sample_size), nullptr, false);
     auto row_type = detectMajorityRowType(rows, nc_th);
+    row_type = row_type.parameters().front();
     std::cout<<"detected: "<<row_type.desc()<<std::endl;
 
 
@@ -752,7 +795,8 @@ TEST_F(HyperTest, BasicStructLoad) {
     auto parseFuncName = "parseJSONCodegen";
     codegen::JSONSourceTaskBuilder jtb(env, row_type, parseFuncName);
     jtb.build();
-    std::cout<<"generated code:\n"<<core::withLineNumbers(codegen::moduleToString(*env.getModule()))<<std::endl;
+    auto ir_code = codegen::moduleToString(*env.getModule());
+    std::cout<<"generated code:\n"<<core::withLineNumbers(ir_code)<<std::endl;
 
     // init JITCompiler
     JITCompiler jit;
@@ -766,10 +810,15 @@ TEST_F(HyperTest, BasicStructLoad) {
     jit.registerSymbol("JsonParser_getMallocedRow", JsonParser_getMallocedRow);
     jit.registerSymbol("JsonParser_getObject", JsonParser_getObject);
     jit.registerSymbol("JsonItem_Free", JsonItem_Free);
-
+    jit.registerSymbol("JsonItem_getStringAndSize", JsonItem_getStringAndSize);
+    jit.registerSymbol("JsonItem_getObject", JsonItem_getObject);
+    jit.registerSymbol("JsonItem_getDouble", JsonItem_getDouble);
+    jit.registerSymbol("JsonItem_getInt", JsonItem_getInt);
+    jit.registerSymbol("JsonItem_getBoolean", JsonItem_getBoolean);
+    jit.registerSymbol("JsonItem_numberOfKeys", JsonItem_numberOfKeys);
 
     // compile func
-    auto rc_compile = jit.compile(std::move(env.getModule()));
+    auto rc_compile = jit.compile(ir_code);
     ASSERT_TRUE(rc_compile);
 
     // get func
@@ -783,7 +832,8 @@ TEST_F(HyperTest, BasicStructLoad) {
     Timer timer;
     auto rc = func(buf, buf_size);
     std::cout<<"parsed rows in "<<timer.time()<<" seconds, ("<<sizeToMemString(buf_size)<<")"<<std::endl;
-    return;
+    std::cout<<"done"<<std::endl;
+    //return;
 
 
 

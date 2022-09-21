@@ -120,6 +120,15 @@ namespace tuplex {
         // fallback - deoptimize
         return python::Type::superType(deoptimizedType(A), deoptimizedType(B));
     }
+
+    /*!
+     * compares semantic equality of two values stored as python strings
+     * @param type which type to use to interpret the strings.
+     * @param rhs string representation of type for a value
+     * @param lhs string representation of type for a value
+     * @return whether they're equal or not
+     */
+    extern bool semantic_python_value_eq(const python::Type& type, const std::string& rhs, const std::string& lhs);
 }
 
 #endif

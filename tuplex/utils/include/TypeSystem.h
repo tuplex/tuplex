@@ -737,6 +737,12 @@ namespace python {
 
         return python::Type::UNKNOWN;
     }
+
+    /*!
+     * returns a core vector of types to support. Mainly used to write tests.
+     * @return vector of types
+     */
+    extern std::vector<python::Type> primitiveTypes(bool return_options_as_well=false);
 }
 
 

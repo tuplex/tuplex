@@ -4,6 +4,7 @@
 
 #include <TypeHelper.h>
 #include <set>
+#include "StringUtils.h"
 
 namespace tuplex {
 
@@ -315,5 +316,41 @@ namespace tuplex {
 
         // other non-supported types
         return python::Type::UNKNOWN;
+    }
+
+    bool semantic_python_value_eq(const python::Type& type, const std::string& rhs, const std::string& lhs) {
+
+        if(type.isOptionType()) {
+            // are both null?
+            if(rhs == "null" && lhs == "null")
+                return true;
+            if(rhs == "null")
+                return false;
+            if(lhs == "null")
+                return false;
+            return semantic_python_value_eq(type.getReturnType(), rhs, lhs);
+        }
+
+        // depending on type, compare semantically...
+        if(type == python::Type::STRING) {
+            auto e_value = str_value_from_python_raw_value(rhs);
+            auto k_value = str_value_from_python_raw_value(lhs);
+            return e_value == k_value;
+        } else if(type == python::Type::BOOLEAN) {
+            auto e_value = parseBoolString(rhs);
+            auto k_value = parseBoolString(lhs);
+            return e_value == k_value;
+        } else if(type == python::Type::I64) {
+            auto e_value = parseI64String(rhs);
+            auto k_value = parseI64String(lhs);
+            return e_value == k_value;
+        } else if(type == python::Type::F64) {
+            auto e_value = parseF64String(rhs);
+            auto k_value = parseF64String(lhs);
+            return double_eq(e_value, k_value);
+        }
+
+        // else, simple compare.
+        return rhs == lhs;
     }
 }

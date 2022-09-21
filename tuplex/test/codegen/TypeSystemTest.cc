@@ -13,31 +13,6 @@
 #include <TupleTree.h>
 #include <vector>
 #include <TypeHelper.h>
-/*!
- * returns a core vector of types to support
- * @return vector of types
- */
-std::vector<python::Type> primitiveTypes(bool return_options_as_well=false) {
-    std::vector<python::Type> v{python::Type::BOOLEAN, python::Type::I64, python::Type::F64,
-                                python::Type::STRING, python::Type::NULLVALUE, python::Type::EMPTYTUPLE,
-                                python::Type::EMPTYLIST, python::Type::EMPTYDICT};
-                                //python::Type::PYOBJECT};
-
-    if(return_options_as_well) {
-        // make everything optional
-        auto num = v.size();
-        for(unsigned i = 0; i < num; ++i) {
-            v.push_back(python::Type::makeOptionType(v[i]));
-        }
-    }
-
-    // create set to remove duplicates
-    std::set<python::Type> S{v.begin(), v.end()};
-    v = std::vector<python::Type>{S.begin(), S.end()};
-    // sort
-    std::sort(v.begin(), v.end());
-    return v;
-}
 
 boost::any get_representative_value(const python::Type& type) {
     using namespace tuplex;

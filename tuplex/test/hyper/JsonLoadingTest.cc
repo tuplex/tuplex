@@ -1130,7 +1130,323 @@ namespace tuplex {
 
             builder.CreateRet(_env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
         }
+
+
+        void calculate_field_counts(const python::Type& type, size_t& field_count, size_t& option_count, size_t& maybe_count) {
+            if(type.isStructuredDictionaryType()) {
+                // recurse
+                auto kv_pairs = type.get_struct_pairs();
+                for(const auto& kv_pair : kv_pairs) {
+                    maybe_count += !kv_pair.alwaysPresent;
+
+                    // count optional key as well
+                    if(kv_pair.keyType.isOptionType())
+                        throw std::runtime_error("unsupported now");
+
+                    calculate_field_counts(kv_pair.valueType, field_count, option_count, maybe_count);
+                }
+            } else {
+                if(type.isOptionType()) {
+                    option_count++;
+                    calculate_field_counts(type.getReturnType(), field_count, option_count, maybe_count);
+                } else {
+                    // count as one field (true even for lists etc.) -> only unnest { { ...}, ... }
+                    field_count++;
+                }
+            }
+        }
+
+        // creating struct type based on structured dictionary type
+        llvm::Type* create_structured_dict_type(llvm::LLVMContext& ctx, const std::string& name, const python::Type& dict_type) {
+            using namespace llvm;
+            auto& logger = Logger::instance().logger("codegen");
+
+            if(!dict_type.isStructuredDictionaryType()) {
+                logger.error("provided type is not a structured dict type but " + dict_type.desc());
+                return nullptr;
+            }
+
+            // retrieve counts => i.e. how many fields are options? how many are maybe present?
+            size_t field_count=0, option_count=0, maybe_count=0;
+            calculate_field_counts(dict_type, field_count, option_count, maybe_count);
+            std::stringstream ss;
+            ss<<"computed following counts for structured dict type: "<<pluralize(field_count, "field")
+            <<" "<<pluralize(option_count, "option")<<" "<<pluralize(maybe_count, "maybe");
+            logger.info(ss.str());
+
+
+            // let's start by allocating bitmaps for optional AND maybe types
+            size_t num_option_bitmap_bits = core::ceilToMultiple(option_count, 64ul); // multiples of 64bit
+            size_t num_maybe_bitmap_bits = core::ceilToMultiple(maybe_count, 64ul);
+            size_t num_option_bitmap_elements = num_option_bitmap_bits / 64;
+            size_t num_maybe_bitmap_elements = num_maybe_bitmap_bits / 64;
+
+
+            bool is_packed = false;
+            std::vector<llvm::Type*> member_types;
+            auto i64Type = llvm::Type::getInt64Ty(ctx);
+
+            // add bitmap elements
+            member_types.push_back(llvm::ArrayType::get(i64Type, num_option_bitmap_elements));
+            member_types.push_back(llvm::ArrayType::get(i64Type, num_maybe_bitmap_elements));
+
+            // now add all the elements from the struct type (skip lists and other struct entries, i.e. only primitives so far)
+            auto kv_pairs = dict_type.get_struct_pairs();
+            std::unordered_map<std::string, size_t> key_to_offset_map;
+            unsigned offset = 0;
+            unsigned bitmap_idx = 0;
+            for(auto kv_pair : kv_pairs) {
+                // => key is always known, so it's easy to do a quick lookup!
+                key_to_offset_map[kv_pair.key] = offset;
+                offset++;
+
+                auto t = kv_pair.valueType;
+                if(t.isOptionType()) {
+                    // bitmap index!
+                    bitmap_idx++;
+
+                    // add
+
+                } else {
+                    // directly add ?
+                    // primitive field or size field as well required?
+                    if(t.isSingleValued() || t.isConstantValued()) {
+                        // we can skip storing/serializing this. It can be directly read!
+                    }
+                }
+
+            }
+
+            auto stype = llvm::StructType::create(ctx, member_types, name, is_packed);
+            return stype;
+        }
+
+
+        SerializableValue struct_dict_get_item(LLVMEnvironment& env, llvm::Value* obj, const python::Type& dict_type, const SerializableValue& key, const python::Type& key_type);
+
+        void struct_dict_set_item(LLVMEnvironment& env, llvm::Value* obj, const python::Type& dict_type, const SerializableValue& key, const python::Type& key_type);
+
+
+        std::vector<python::StructEntry>::iterator find_by_key(const python::Type& dict_type, const std::string& key_value, const python::Type& key_type) {
+            // perform value compare of key depending on key_type
+            auto kv_pairs = dict_type.get_struct_pairs();
+            return std::find_if(kv_pairs.begin(), kv_pairs.end(), [&](const python::StructEntry& entry) {
+                auto k_type = deoptimizedType(key_type);
+                auto e_type = deoptimizedType(entry.keyType);
+                if(k_type != e_type) {
+                    // special case: option types ->
+                    if(k_type.isOptionType() && (python::Type::makeOptionType(e_type) == k_type || e_type == python::Type::NULLVALUE)) {
+                        // ok... => decide
+                        return semantic_python_value_eq(k_type, entry.key, key_value);
+                    }
+
+                    // other way round
+                    if(e_type.isOptionType() && (python::Type::makeOptionType(k_type) == e_type || k_type == python::Type::NULLVALUE)) {
+                        // ok... => decide
+                        return semantic_python_value_eq(e_type, entry.key, key_value);
+                    }
+
+                    return false;
+                } else {
+                    // is key_value the same as what is stored in the entry?
+                    return semantic_python_value_eq(k_type, entry.key, key_value);
+                }
+                return false;
+            });
+        }
+
+        llvm::Value* struct_dict_contains_key(LLVMEnvironment& env, llvm::Value* obj, const python::Type& dict_type, const SerializableValue& key, const python::Type& key_type) {
+            assert(dict_type.isStructuredDictionaryType());
+
+            auto& logger = Logger::instance().logger("codegen");
+
+            // quick check
+            // is key-type at all contained?
+            auto kv_pairs = dict_type.get_struct_pairs();
+            auto it = std::find_if(kv_pairs.begin(), kv_pairs.end(), [&key_type](const python::StructEntry& entry) { return entry.keyType == key_type; } );
+            if(it == kv_pairs.end())
+                return env.i1Const(false);
+
+            // is it a constant key? => can decide during compile time as well!
+            if(key_type.isConstantValued()) {
+                auto it = find_by_key(dict_type, key_type.constant(), key_type.underlying());
+                return env.i1Const(it != dict_type.get_struct_pairs().end());
+            }
+
+            // is the value a llvm constant? => can optimize as well!
+            if(key.val && llvm::isa<llvm::Constant>(key.val)) {
+                // there are only a couple cases where this works...
+                // -> string, bool, i64, f64...
+                // if(key_type == python::Type::STRING && llvm::isa<llvm::Constant)
+                // @TODO: skip for now
+                logger.debug("optimization potential here... can decide this at compile time!");
+            }
+
+            // can't decide statically, use here LLVM IR code to decide whether the struct type contains the key or not!
+            // => i.e. want to do semantic comparison.
+            // only need to compare against all keys with key_type (or that are compatible to it (e.g. options))
+            std::vector<python::StructEntry> pairs_to_compare_against;
+            for(auto kv_pair : kv_pairs) {
+
+            }
+
+            return nullptr;
+        }
+
     }
+}
+
+namespace tuplex {
+    void create_dummy_function(codegen::LLVMEnvironment& env, llvm::Type *stype) {
+        using namespace llvm;
+        assert(stype);
+        assert(stype->isStructTy());
+
+        auto FT = FunctionType::get(env.i64Type(), {stype->getPointerTo()}, false);
+        auto F = Function::Create(FT, llvm::GlobalValue::ExternalLinkage, "dummy", *env.getModule().get());
+
+        auto bb = BasicBlock::Create(env.getContext(), "entry", F);
+        IRBuilder<> b(bb);
+        b.CreateRet(env.i64Const(0));
+
+    }
+}
+
+// let's start with some simple tests for a basic dict struct type
+namespace tuplex {
+    Field get_representative_value(const python::Type &type) {
+        using namespace tuplex;
+        std::unordered_map<python::Type, Field> m{{python::Type::BOOLEAN,    Field(false)},
+                                                  {python::Type::I64,        Field((int64_t) 42)},
+                                                  {python::Type::F64,        Field(5.3)},
+                                                  {python::Type::STRING,     Field("hello world!")},
+                                                  {python::Type::NULLVALUE,  Field::null()},
+                                                  {python::Type::EMPTYTUPLE, Field::empty_tuple()},
+                                                  {python::Type::EMPTYLIST,  Field::empty_list()},
+                                                  {python::Type::EMPTYDICT,  Field::empty_dict()}};
+
+        if(type.isOptionType()) {
+            // randomize:
+            if(rand() % 1000 > 500)
+                return Field::null();
+            else
+                return m.at(type.getReturnType());
+        }
+
+        return m.at(type);
+    }
+}
+TEST_F(HyperTest, StructLLVMTypeContains) {
+    using namespace tuplex;
+    using namespace std;
+
+    // create a struct type with everything in it.
+    auto types = python::primitiveTypes(true);
+
+    cout<<"got "<<pluralize(types.size(), "primitive type")<<endl;
+
+    // create a big struct type!
+    std::vector<python::StructEntry> pairs;
+    for(auto kt : types)
+        for(auto vt : types) {
+            auto key = escape_to_python_str(kt.desc());
+            python::StructEntry entry;
+            entry.key = key;
+            entry.keyType = kt;
+            entry.valueType = vt;
+            pairs.push_back(entry);
+        }
+
+    // key type and value have to be unique!
+    // -> i.e. remove any duplicates...
+
+    auto stype = python::Type::makeStructuredDictType(pairs);
+
+    cout<<"created type: "<<prettyPrintStructType(stype)<<endl;
+    cout<<"type: "<<stype.desc()<<endl;
+}
+
+
+// test to generate a struct type
+TEST_F(HyperTest, StructLLVMType) {
+    using namespace tuplex;
+    using namespace std;
+
+    string sample_path = "/Users/leonhards/Downloads/github_sample";
+    string sample_file = sample_path + "/2011-11-26-13.json.gz";
+
+    auto path = sample_file;
+
+    Logger::init();
+
+
+    path = "../resources/2011-11-26-13.json.gz";
+
+    // // smaller sample
+    // path = "../resources/2011-11-26-13.sample.json";
+
+    //   // payload removed, b.c. it's so hard to debug... // there should be one org => one exception row.
+    //  path = "../resources/2011-11-26-13.sample2.json"; // -> so this works.
+
+    //  path = "../resources/2011-11-26-13.sample3.json"; // -> single row, the parse should trivially work.
+
+
+    auto raw_data = fileToString(path);
+
+    const char * pointer = raw_data.data();
+    std::size_t size = raw_data.size();
+
+    // gzip::is_compressed(pointer, size); // can use this to check for gzip file...
+    std::string decompressed_data = strEndsWith(path, ".gz") ? gzip::decompress(pointer, size) : raw_data;
+
+
+    // parse code starts here...
+    auto buf = decompressed_data.data();
+    auto buf_size = decompressed_data.size();
+
+
+    // detect (general-case) type here:
+//    ContextOptions co = ContextOptions::defaults();
+//    auto sample_size = co.CSV_MAX_DETECTION_MEMORY();
+//    auto nc_th = co.NORMALCASE_THRESHOLD();
+    auto sample_size = 256 * 1024ul; // 256kb
+    auto nc_th = 0.9;
+    auto rows = parseRowsFromJSON(buf, std::min(buf_size, sample_size), nullptr, false);
+
+    // general case version
+    auto conf_general_case_type_policy = TypeUnificationPolicy::defaultPolicy();
+    conf_general_case_type_policy.unifyMissingDictKeys = true;
+    conf_general_case_type_policy.allowUnifyWithPyObject = true;
+
+    double conf_nc_threshold = 0.;
+    // type cover maximization
+    std::vector<std::pair<python::Type, size_t>> type_counts;
+    for(unsigned i = 0; i < rows.size(); ++i) {
+        // row check:
+        //std::cout<<"row: "<<rows[i].toPythonString()<<" type: "<<rows[i].getRowType().desc()<<std::endl;
+        type_counts.emplace_back(std::make_pair(rows[i].getRowType(), 1));
+    }
+
+    auto general_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
+    auto normal_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true, TypeUnificationPolicy::defaultPolicy());
+
+    auto normal_case_type = normal_case_max_type.first.parameters().front();
+    auto general_case_type = general_case_max_type.first.parameters().front();
+    std::cout<<"normal  case:  "<<normal_case_type.desc()<<std::endl;
+    std::cout<<"general case:  "<<general_case_type.desc()<<std::endl;
+
+    auto row_type = normal_case_type;//general_case_type;
+    row_type = general_case_type; // <-- this should match MOST of the rows...
+
+    // codegen now here...
+    codegen::LLVMEnvironment env;
+
+    auto stype = codegen::create_structured_dict_type(env.getContext(), "struct_dict", row_type);
+    // create new func with this
+    create_dummy_function(env, stype);
+
+    auto ir_code = codegen::moduleToString(*env.getModule());
+    std::cout<<"generated code:\n"<<core::withLineNumbers(ir_code)<<std::endl;
 }
 
 

@@ -234,6 +234,18 @@ typedef int32_t* ptr_t;
 #include <cJSON.h>
 #endif
 
+// double and float equality
+#define DOUBLE_EPSILON 0.0000000001
+#define FLOAT_EPSILON 0.000000001f
+
+inline bool float_eq(float a, float b) {
+    return std::abs(a - b) < FLOAT_EPSILON;
+}
+
+inline bool double_eq(double a, double b) {
+    return std::abs(a - b) < DOUBLE_EPSILON;
+}
+
 
 // some basic helper to throw for possible bad code in debug mode an error (should never occur in release mode!)
 void debug_error_message(const char* message, const char* file, const int ine);

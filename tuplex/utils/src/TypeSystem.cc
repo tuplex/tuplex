@@ -21,6 +21,7 @@
 #include <Field.h>
 
 #include <TypeHelper.h>
+#include "TypeHelper.h"
 // types should be like form mypy https://mypy.readthedocs.io/en/latest/cheat_sheet_py3.html
 
 
@@ -216,6 +217,42 @@ namespace python {
         }
         return createOrGetStructuredDictType(kv_pairs);
     }
+
+    static std::vector<StructEntry> remove_bad_pairs(const std::vector<StructEntry>& kv_pairs) {
+        // keytype and value have to be unique
+        // -> for now ok.
+        std::unordered_map<Type, std::vector<StructEntry>> m;
+        for(auto kv_pair : kv_pairs) {
+            auto it = m.find(kv_pair.keyType);
+            if(it == m.end()) {
+                m[kv_pair.keyType] = {kv_pair};
+            } else {
+                // is there a semantically equivalent in there?
+                auto jt = std::find_if(it->second.begin(), it->second.end(), [&](const StructEntry& entry) {
+                    return tuplex::semantic_python_value_eq(entry.keyType, entry.key, kv_pair.key);
+                });
+                if(jt == it->second.end()) {
+                    // append
+                    it->second.push_back(kv_pair);
+                } else {
+                    // debug
+#ifndef NDEBUG
+            std::cout<<"found conflicting pair"<<std::endl;
+#endif
+                }
+            }
+
+        }
+
+        // construct pairs from hashmap
+        std::vector<StructEntry> pairs;
+        for(const auto& kv : m) {
+            for(auto p : kv.second)
+            pairs.push_back(p);
+        }
+        return pairs;
+    }
+
 
     Type TypeFactory::createOrGetStructuredDictType(const std::vector<StructEntry> &kv_pairs) {
 
@@ -1798,5 +1835,27 @@ namespace python {
             return "unknown";
         else
             return "uninitialized";
+    }
+
+    std::vector<python::Type> primitiveTypes(bool return_options_as_well) {
+        std::vector<python::Type> v{python::Type::BOOLEAN, python::Type::I64, python::Type::F64,
+                                    python::Type::STRING, python::Type::NULLVALUE, python::Type::EMPTYTUPLE,
+                                    python::Type::EMPTYLIST, python::Type::EMPTYDICT};
+        //python::Type::PYOBJECT};
+
+        if(return_options_as_well) {
+            // make everything optional
+            auto num = v.size();
+            for(unsigned i = 0; i < num; ++i) {
+                v.push_back(python::Type::makeOptionType(v[i]));
+            }
+        }
+
+        // create set to remove duplicates
+        std::set<python::Type> S{v.begin(), v.end()};
+        v = std::vector<python::Type>{S.begin(), S.end()};
+        // sort
+        std::sort(v.begin(), v.end());
+        return v;
     }
 }

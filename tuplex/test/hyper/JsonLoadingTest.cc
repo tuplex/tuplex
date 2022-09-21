@@ -15,6 +15,9 @@
 #include <compression.h>
 #include <RuntimeInterface.h>
 
+#include <AccessPathVisitor.h>
+
+
 // NOTES:
 // for concrete parser implementation with pushdown etc., use
 // https://github.com/simdjson/simdjson/blob/master/doc/basics.md#json-pointer
@@ -1165,6 +1168,51 @@ namespace tuplex {
             return false;
         }
 
+        // flatten struct dict.
+
+        void flatten_recursive_helper(std::vector<std::pair<std::vector<std::pair<std::string, python::Type>>, python::Type>>& entries,
+                                      const python::Type& dict_type, std::vector<std::pair<std::string, python::Type>> prefix={}) {
+            using namespace std;
+
+            assert(dict_type.isStructuredDictionaryType());
+
+            for(auto kv_pair : dict_type.get_struct_pairs()) {
+                vector<pair<string, python::Type>> access_path = prefix; // = prefix
+                access_path.push_back(make_pair(kv_pair.key, kv_pair.keyType));
+
+                if(kv_pair.valueType.isStructuredDictionaryType()) {
+                    // recurse using new prefix
+                    flatten_recursive_helper(entries, kv_pair.valueType, access_path);
+                } else {
+                    entries.push_back(make_pair(access_path, kv_pair.valueType));
+                }
+            }
+        }
+
+        void flatten_structured_dict_type(const python::Type& dict_type) {
+            using namespace std;
+
+
+            // each entry is {(key, key_type), ..., (key, key_type)}, value_type
+            // only nested dicts are flattened. Tuples etc. are untouched. (would be too cumbersome)
+            vector<std::pair<vector<std::pair<std::string, python::Type>>, python::Type>> entries;
+            flatten_recursive_helper(entries, dict_type, {});
+
+            // now print out everything...
+            std::stringstream  ss;
+            for(auto entry : entries) {
+                // first the path:
+                for(auto atom : entry.first) {
+                    ss<<atom.first<<" ("<<atom.second.desc()<<") -> ";
+                }
+                ss<<entry.second.desc()<<endl;
+            }
+
+            cout<<ss.str()<<endl;
+        }
+
+
+
         // creating struct type based on structured dictionary type
         llvm::Type* create_structured_dict_type(LLVMEnvironment& env, const std::string& name, const python::Type& dict_type) {
             using namespace llvm;
@@ -1175,6 +1223,9 @@ namespace tuplex {
                 logger.error("provided type is not a structured dict type but " + dict_type.desc());
                 return nullptr;
             }
+
+            flatten_structured_dict_type(dict_type);
+
 
             // retrieve counts => i.e. how many fields are options? how many are maybe present?
             size_t field_count=0, option_count=0, maybe_count=0;
@@ -1363,6 +1414,7 @@ namespace tuplex {
         return m.at(type);
     }
 }
+
 TEST_F(HyperTest, StructLLVMTypeContains) {
     using namespace tuplex;
     using namespace std;

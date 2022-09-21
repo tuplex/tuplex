@@ -481,9 +481,9 @@ namespace tuplex {
              */
             void parseAndPrint(llvm::IRBuilder<>& builder, llvm::Value* obj, const python::Type& t, bool check_that_all_keys_are_present, llvm::BasicBlock* bbSchemaMismatch);
 
-            llvm::Value* decodeFieldFromObject(llvm::IRBuilder<>& builder, llvm::Value* obj, SerializableValue* out, llvm::Value* key, const python::Type& keyType, const python::Type& valueType, llvm::BasicBlock* bbSchemaMismatch);
-            llvm::Value* decodeFieldFromObject(llvm::IRBuilder<>& builder, llvm::Value* obj, SerializableValue* out, const std::string& key, const python::Type& keyType, const python::Type& valueType, llvm::BasicBlock* bbSchemaMismatch) {
-                return decodeFieldFromObject(builder, obj, out, _env.strConst(builder, key), keyType, valueType, bbSchemaMismatch);
+            llvm::Value* decodeFieldFromObject(llvm::IRBuilder<>& builder, llvm::Value* obj, SerializableValue* out, llvm::Value* key, const python::Type& keyType, const python::Type& valueType, bool check_that_all_keys_are_present, llvm::BasicBlock* bbSchemaMismatch);
+            llvm::Value* decodeFieldFromObject(llvm::IRBuilder<>& builder, llvm::Value* obj, SerializableValue* out, const std::string& key, const python::Type& keyType, const python::Type& valueType, bool check_that_all_keys_are_present, llvm::BasicBlock* bbSchemaMismatch) {
+                return decodeFieldFromObject(builder, obj, out, _env.strConst(builder, key), keyType, valueType, check_that_all_keys_are_present, bbSchemaMismatch);
             }
         };
 
@@ -500,6 +500,7 @@ namespace tuplex {
                                                                   tuplex::codegen::SerializableValue *out,
                                                                   llvm::Value *key, const python::Type &keyType,
                                                                   const python::Type &valueType,
+                                                                  bool check_that_all_keys_are_present,
                                                                   llvm::BasicBlock* bbSchemaMismatch) {
             using namespace llvm;
 
@@ -604,6 +605,8 @@ namespace tuplex {
 
                 if(all_keys_always_present && check_that_all_keys_are_present) {
                     // quick key check
+                    // note that the expensive check has to be only performed when maybe keys are present.
+                    // else, querying each field automatically will perform a presence check.
                     BasicBlock* bbOK = BasicBlock::Create(ctx, "all_keys_present_passed", F);
                     auto num_keys = numberOfKeysInObject(builder, obj);
                     auto cond = builder.CreateICmpNE(num_keys, _env.i64Const(kv_pairs.size()));
@@ -623,7 +626,8 @@ namespace tuplex {
                     builder.SetInsertPoint(bbOK);
                 } else if(check_that_all_keys_are_present) {
                     // perform check by generating appropriate constants
-
+                    // this is the expensive key check.
+                    // -> i.e. should be used to match only against general-case.
                     // generate constants
                     std::vector<std::string> alwaysKeys;
                     std::vector<std::string> maybeKeys;
@@ -650,11 +654,14 @@ namespace tuplex {
                 }
 
                 for(const auto& kv_pair : kv_pairs) {
+
+                    llvm::Value *keyPresent = _env.i1Const(true); // default to always present
                     // optional? or always there?
                     if(kv_pair.alwaysPresent) {
                         // needs to be present, i.e. key error is fatal error!
                         SerializableValue value;
-                        //auto rc = decodeFieldFromObject(builder, obj, &value, kv_pair.key, kv_pair.keyType, kv_pair.valueType, bool check_that_all_keys_are_present, bbSchemaMismatch);
+                        auto key_value = str_value_from_python_raw_value(kv_pair.key); // it's an encoded value, but query here for the real key.
+                        auto rc = decodeFieldFromObject(builder, obj, &value, key_value, kv_pair.keyType, kv_pair.valueType, check_that_all_keys_are_present, bbSchemaMismatch);
                         // assert(rc);
                         if(value.val)
                             _env.printValue(builder, value.val, "decoded " + kv_pair.valueType.desc());

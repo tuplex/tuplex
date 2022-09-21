@@ -485,7 +485,37 @@ namespace tuplex {
             llvm::Value* decodeFieldFromObject(llvm::IRBuilder<>& builder, llvm::Value* obj, SerializableValue* out, const std::string& key, const python::Type& keyType, const python::Type& valueType, bool check_that_all_keys_are_present, llvm::BasicBlock* bbSchemaMismatch) {
                 return decodeFieldFromObject(builder, obj, out, _env.strConst(builder, key), keyType, valueType, check_that_all_keys_are_present, bbSchemaMismatch);
             }
+
+            void printValueInfo(llvm::IRBuilder<>& builder, const std::string& key, const python::Type& valueType, llvm::Value* keyPresent, const SerializableValue& value);
         };
+
+
+        void JSONSourceTaskBuilder::printValueInfo(llvm::IRBuilder<> &builder,
+                                                   const std::string &key,
+                                                   const python::Type& valueType,
+                                                   llvm::Value *keyPresent,
+                                                   const tuplex::codegen::SerializableValue &value) {
+
+            using namespace llvm;
+            auto& ctx = _env.getContext();
+            auto F = builder.GetInsertBlock()->getParent();
+
+            BasicBlock* bbPresent = BasicBlock::Create(ctx, key + "_present", F);
+            BasicBlock* bbNotNull = BasicBlock::Create(ctx, key + "_notnull", F);
+            BasicBlock* bbNext = BasicBlock::Create(ctx, key + "_done", F);
+
+            builder.CreateCondBr(keyPresent, bbPresent, bbNext);
+
+            builder.SetInsertPoint(bbPresent);
+            auto is_null = value.is_null ? value.is_null : _env.i1Const(false);
+            builder.CreateCondBr(is_null, bbNext, bbNotNull);
+
+            builder.SetInsertPoint(bbNotNull);
+            if(value.val && !valueType.isStructuredDictionaryType())
+                _env.printValue(builder, value.val, "decoded " + valueType.desc());
+
+            builder.SetInsertPoint(bbNext);
+        }
 
 
         llvm::Value *JSONSourceTaskBuilder::numberOfKeysInObject(llvm::IRBuilder<> &builder, llvm::Value *j) {
@@ -656,21 +686,29 @@ namespace tuplex {
                 for(const auto& kv_pair : kv_pairs) {
 
                     llvm::Value *keyPresent = _env.i1Const(true); // default to always present
+
+                    SerializableValue value;
+                    auto key_value = str_value_from_python_raw_value(kv_pair.key); // it's an encoded value, but query here for the real key.
+                    auto rc = decodeFieldFromObject(builder, obj, &value, key_value, kv_pair.keyType, kv_pair.valueType, check_that_all_keys_are_present, bbSchemaMismatch);
+                    auto successful_lookup = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+
                     // optional? or always there?
                     if(kv_pair.alwaysPresent) {
                         // needs to be present, i.e. key error is fatal error!
-                        SerializableValue value;
-                        auto key_value = str_value_from_python_raw_value(kv_pair.key); // it's an encoded value, but query here for the real key.
-                        auto rc = decodeFieldFromObject(builder, obj, &value, key_value, kv_pair.keyType, kv_pair.valueType, check_that_all_keys_are_present, bbSchemaMismatch);
-                        // assert(rc);
-                        if(value.val)
-                            _env.printValue(builder, value.val, "decoded " + kv_pair.valueType.desc());
-                        else if(kv_pair.valueType.isStructuredDictionaryType()) {
-                            // _env.debugPrint(builder, "decoded object");
-                        }
+                        // --> add check, and jump to mismatch else
+                        BasicBlock* bbOK = BasicBlock::Create(ctx, "key_present", builder.GetInsertBlock()->getParent());
+                        builder.CreateCondBr(successful_lookup, bbOK, bbSchemaMismatch);
+                        builder.SetInsertPoint(bbOK);
                     } else {
                         // can or can not be present.
+                        // => change variable meaning
+                        keyPresent = successful_lookup;
+                        successful_lookup = _env.i1Const(true);
                     }
+
+                    // can now print the 4 values if need be or store them away.
+                    // note: should be done by checking! --> this here is a debug function.
+                    printValueInfo(builder, key_value, kv_pair.valueType, keyPresent, value);
                 }
 
 

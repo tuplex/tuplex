@@ -828,7 +828,7 @@ namespace tuplex {
 
                     // can now print the 4 values if need be or store them away.
                     // note: should be done by checking! --> this here is a debug function.
-                    printValueInfo(builder, key_value, kv_pair.valueType, keyPresent, value);
+                    //printValueInfo(builder, key_value, kv_pair.valueType, keyPresent, value);
                     if(rc)
                         checkRC(builder, key_value, rc);
                 }
@@ -1097,7 +1097,10 @@ TEST_F(HyperTest, BasicStructLoad) {
     path = "../resources/2011-11-26-13.json.gz";
 
     // smaller sample
-    // path = "../resources/2011-11-26-13.sample.json";
+     path = "../resources/2011-11-26-13.sample.json";
+
+     // payload removed, b.c. it's so hard to debug... // there should be one org => one exception row.
+    path = "../resources/2011-11-26-13.sample.json";
 
 
     auto raw_data = fileToString(path);

@@ -284,6 +284,133 @@ namespace tuplex {
         return value;
     }
 
+
+    // need an algorithm to verify schema match against set of keys
+    // -> there's must have keys and optional keys.
+    // all must have keys must be contained.
+    // maybe keys may be contained, but can't be the other way round.
+    // basically iterate over all keys present, check all must have keys are in there
+    // and THEN check that remaining keys are not present.
+    // basically check
+    // keys n must_have_keys = must_have_keys
+    // keys \ (must_have_keys u maybe_keys) = emptyset
+
+    // helper function to perform a set of keys to a buffer
+    std::string makeKeySetBuffer(const std::vector<std::string>& keys) {
+        size_t total_size = sizeof(uint64_t) + sizeof(uint32_t) * keys.size();
+        for(const auto& key : keys)
+            total_size += key.size() + 1;
+        std::string buf(total_size, '\0');
+
+        // internal format is basically
+        // | count (i64) | str_size (i32) | str_content ...| str_size(i32) | str_content ...| ... |
+
+        // write to buffer
+        auto ptr = (uint8_t*)&buf[0];
+        *(uint64_t*)ptr = keys.size(); // maybe save size as well?
+        ptr += sizeof(int64_t);
+        for(const auto& key : keys) {
+            *(uint32_t*)ptr = key.size() + 1;
+            ptr += sizeof(uint32_t);
+            memcpy(ptr, key.data(), key.size() + 1);
+            ptr += key.size() + 1;
+        }
+
+        return buf;
+    }
+
+    // use a helper function for this and specially encoded buffers
+    uint64_t JsonItem_keySetMatch(JsonItem *item, uint8_t* always_keys_buf, uint8_t* maybe_keys_buf) {
+
+        assert(item);
+        assert(always_keys_buf);
+        assert(maybe_keys_buf);
+
+        // check always_keys_buf
+        // => they all need to be there!
+        uint64_t num_always_keys = *(uint64_t*)always_keys_buf;
+        uint64_t num_maybe_keys = *(uint64_t*)maybe_keys_buf;
+
+        // fetch all keys and check then off.
+        std::vector<std::string_view> fields;
+        unsigned i = 0;
+        // note: looking up string views does work for C++20+
+        std::unordered_map<std::string_view, unsigned> lookup;
+        for(auto field : item->o) {
+            fields.emplace_back(field.unescaped_key().take_value());
+            lookup[fields.back()] = i++;
+        }
+
+        // debug check to understand what's in there
+        for(auto kv : lookup) {
+            std::cout<<kv.first<<"  "<<kv.second<<std::endl;
+        }
+
+        // quick check
+        if(fields.size() < num_always_keys)
+            return ecToI64(ExceptionCode::TYPEERROR); // not enough fields
+
+        std::vector<bool> field_seen(fields.size(), false);
+
+        // go through the two buffers and mark whatever has been seen
+        auto ptr = always_keys_buf + sizeof(int64_t);
+        unsigned num_always_fields_seen = 0;
+        for(unsigned i = 0; i < num_always_keys; ++i) {
+            auto str_size = *(uint32_t*)ptr;
+            ptr += sizeof(uint32_t);
+            std::string_view key((char*)ptr, str_size);
+            if(simdjson::NO_SUCH_FIELD != item->o.find_field_unordered(key).error()) {
+                field_seen[lookup[key]] = true; // mark as seen
+                num_always_fields_seen++; // must be there, i.e. count
+            }
+            ptr += str_size;
+        }
+
+        // check always fields quick check
+        if(num_always_fields_seen != num_always_keys)
+             return ecToI64(ExceptionCode::TYPEERROR); // not all always fields are there
+
+         // are there maybe fields?
+         if(num_maybe_keys > 0) {
+             // expensive check.
+
+             // go through the two buffers and mark whatever has been seen
+             ptr = maybe_keys_buf + sizeof(int64_t);
+             for(unsigned i = 0; i < num_maybe_keys; ++i) {
+                 auto str_size = *(uint32_t*)ptr;
+                 ptr += sizeof(uint32_t);
+                 std::string_view key((char*)ptr, str_size);
+                 if(simdjson::NO_SUCH_FIELD != item->o.find_field_unordered(key).error())
+                    field_seen[lookup[key]] = true; // set to "seen" because it can be there or not.
+                 ptr += str_size;
+             }
+
+             // now go through bool array. if there is a single false => failure!
+            for(auto seen : field_seen) {
+                if(!seen)
+                    return ecToI64(ExceptionCode::TYPEERROR);
+            }
+         }
+
+        return ecToI64(ExceptionCode::SUCCESS); // ok.
+    }
+
+
+//    struct JsonKeyView
+//
+//    uint64_t JsonItem_keysToStringList(JsonItem *item, uint8_t** out_buf, int64_t *out_buf_size) {
+//        assert(item);
+//
+//        // iterates keys and writes them to rtmalloced array in Tuplex list struct (for strings?)
+//        simdjson::error_code error;
+//        std::vector<std::string_view> keys;
+//        for(auto field : item->o) {
+//            auto sv_key = field.unescaped_key().value();
+//            keys.pu
+//        }
+//
+//    }
+
 }
 
 
@@ -345,10 +472,10 @@ namespace tuplex {
              * @param builder
              * @param obj
              * @param t
-             * @param check_for_keys if true, then row must contain exact keys for struct dict. Else, it's parsed whatever is specified in the schema.
+             * @param check_that_all_keys_are_present if true, then row must contain exact keys for struct dict. Else, it's parsed whatever is specified in the schema.
              * @param bbSchemaMismatch
              */
-            void parseAndPrint(llvm::IRBuilder<>& builder, llvm::Value* obj, const python::Type& t, bool check_for_keys, llvm::BasicBlock* bbSchemaMismatch);
+            void parseAndPrint(llvm::IRBuilder<>& builder, llvm::Value* obj, const python::Type& t, bool check_that_all_keys_are_present, llvm::BasicBlock* bbSchemaMismatch);
 
             llvm::Value* decodeFieldFromObject(llvm::IRBuilder<>& builder, llvm::Value* obj, SerializableValue* out, llvm::Value* key, const python::Type& keyType, const python::Type& valueType, llvm::BasicBlock* bbSchemaMismatch);
             llvm::Value* decodeFieldFromObject(llvm::IRBuilder<>& builder, llvm::Value* obj, SerializableValue* out, const std::string& key, const python::Type& keyType, const python::Type& valueType, llvm::BasicBlock* bbSchemaMismatch) {
@@ -454,7 +581,7 @@ namespace tuplex {
         }
 
 
-        void JSONSourceTaskBuilder::parseAndPrint(llvm::IRBuilder<> &builder, llvm::Value *obj, const python::Type &t, bool check_for_keys, llvm::BasicBlock* bbSchemaMismatch) {
+        void JSONSourceTaskBuilder::parseAndPrint(llvm::IRBuilder<> &builder, llvm::Value *obj, const python::Type &t, bool check_that_all_keys_are_present, llvm::BasicBlock* bbSchemaMismatch) {
             using namespace llvm;
             auto& ctx = _env.getContext();
             auto F = builder.GetInsertBlock()->getParent();
@@ -471,7 +598,7 @@ namespace tuplex {
                         break;
                     }
 
-                if(all_keys_always_present && check_for_keys) {
+                if(all_keys_always_present && check_that_all_keys_are_present) {
                     // quick key check
                     BasicBlock* bbOK = BasicBlock::Create(ctx, "all_keys_present_passed", F);
                     auto num_keys = numberOfKeysInObject(builder, obj);
@@ -490,14 +617,40 @@ namespace tuplex {
 #endif
                     builder.CreateCondBr(cond, bbSchemaMismatch, bbOK);
                     builder.SetInsertPoint(bbOK);
+                } else if(check_that_all_keys_are_present) {
+                    // perform check by generating appropriate constants
+
+                    // generate constants
+                    std::vector<std::string> alwaysKeys;
+                    std::vector<std::string> maybeKeys;
+                    for(const auto& kv_pair : kv_pairs) {
+                        // for JSON should be always keyType == string!
+                        assert(kv_pair.keyType == python::Type::STRING);
+                        if(kv_pair.alwaysPresent)
+                            alwaysKeys.push_back(str_value_from_python_raw_value(kv_pair.key));
+                        else
+                            maybeKeys.push_back(str_value_from_python_raw_value(kv_pair.key));
+                    }
+
+                    auto sconst_always_keys = _env.strConst(builder, makeKeySetBuffer(alwaysKeys));
+                    auto sconst_maybe_keys = _env.strConst(builder, makeKeySetBuffer(maybeKeys));
+
+                    // perform check using helper function on item.
+                    BasicBlock* bbOK = BasicBlock::Create(ctx, "keycheck_passed", F);
+                    // call uint64_t JsonItem_keySetMatch(JsonItem *item, uint8_t* always_keys_buf, uint8_t* maybe_keys_buf)
+                    auto Fcheck = getOrInsertFunction(_env.getModule().get(), "JsonItem_keySetMatch", _env.i64Type(), _env.i8ptrType(), _env.i8ptrType(), _env.i8ptrType());
+                    auto rc = builder.CreateCall(Fcheck, {obj, sconst_always_keys, sconst_maybe_keys});
+                    auto cond = builder.CreateICmpNE(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                    builder.CreateCondBr(cond, bbSchemaMismatch, bbOK);
+                    builder.SetInsertPoint(bbOK);
                 }
 
-                for(auto kv_pair : kv_pairs) {
+                for(const auto& kv_pair : kv_pairs) {
                     // optional? or always there?
                     if(kv_pair.alwaysPresent) {
                         // needs to be present, i.e. key error is fatal error!
                         SerializableValue value;
-                        //auto rc = decodeFieldFromObject(builder, obj, &value, kv_pair.key, kv_pair.keyType, kv_pair.valueType, bbSchemaMismatch);
+                        //auto rc = decodeFieldFromObject(builder, obj, &value, kv_pair.key, kv_pair.keyType, kv_pair.valueType, bool check_that_all_keys_are_present, bbSchemaMismatch);
                         // assert(rc);
                         if(value.val)
                             _env.printValue(builder, value.val, "decoded " + kv_pair.valueType.desc());
@@ -785,10 +938,32 @@ TEST_F(HyperTest, BasicStructLoad) {
     auto sample_size = 256 * 1024ul; // 256kb
     auto nc_th = 0.9;
     auto rows = parseRowsFromJSON(buf, std::min(buf_size, sample_size), nullptr, false);
-    auto row_type = detectMajorityRowType(rows, nc_th);
-    row_type = row_type.parameters().front();
-    std::cout<<"detected: "<<row_type.desc()<<std::endl;
 
+    // general case version
+    auto conf_general_case_type_policy = TypeUnificationPolicy::defaultPolicy();
+    conf_general_case_type_policy.unifyMissingDictKeys = true;
+    conf_general_case_type_policy.allowUnifyWithPyObject = true;
+
+    double conf_nc_threshold = 0.;
+    // type cover maximization
+    std::vector<std::pair<python::Type, size_t>> type_counts;
+    for(unsigned i = 0; i < rows.size(); ++i) {
+        // row check:
+        //std::cout<<"row: "<<rows[i].toPythonString()<<" type: "<<rows[i].getRowType().desc()<<std::endl;
+        type_counts.emplace_back(std::make_pair(rows[i].getRowType(), 1));
+    }
+
+    auto general_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
+    auto normal_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true, TypeUnificationPolicy::defaultPolicy());
+
+    auto normal_case_type = normal_case_max_type.first.parameters().front();
+    auto general_case_type = general_case_max_type.first.parameters().front();
+    std::cout<<"normal  case:  "<<normal_case_type.desc()<<std::endl;
+    std::cout<<"general case:  "<<general_case_type.desc()<<std::endl;
+
+    auto row_type = general_case_type;
+
+    // row_type = normal_case_type;
 
     // codegen here
     codegen::LLVMEnvironment env;
@@ -816,6 +991,7 @@ TEST_F(HyperTest, BasicStructLoad) {
     jit.registerSymbol("JsonItem_getInt", JsonItem_getInt);
     jit.registerSymbol("JsonItem_getBoolean", JsonItem_getBoolean);
     jit.registerSymbol("JsonItem_numberOfKeys", JsonItem_numberOfKeys);
+    jit.registerSymbol("JsonItem_keySetMatch", JsonItem_keySetMatch);
 
     // compile func
     auto rc_compile = jit.compile(ir_code);
@@ -833,71 +1009,94 @@ TEST_F(HyperTest, BasicStructLoad) {
     auto rc = func(buf, buf_size);
     std::cout<<"parsed rows in "<<timer.time()<<" seconds, ("<<sizeToMemString(buf_size)<<")"<<std::endl;
     std::cout<<"done"<<std::endl;
-    //return;
+}
+
+TEST_F(HyperTest, CParse) {
+    using namespace tuplex;
+    using namespace std;
+
+    string sample_path = "/Users/leonhards/Downloads/github_sample";
+    string sample_file = sample_path + "/2011-11-26-13.json.gz";
+
+    auto path = sample_file;
+
+    path = "../resources/2011-11-26-13.json.gz";
+
+    auto raw_data = fileToString(path);
+
+    const char * pointer = raw_data.data();
+    std::size_t size = raw_data.size();
+
+    // gzip::is_compressed(pointer, size); // can use this to check for gzip file...
+    std::string decompressed_data = strEndsWith(path, ".gz") ? gzip::decompress(pointer, size) : raw_data;
+
+
+    // parse code starts here...
+    auto buf = decompressed_data.data();
+    auto buf_size = decompressed_data.size();
 
 
 
+    // C-version of parsing
+    uint64_t row_number = 0;
 
-//    // C-version of parsing
-//    uint64_t row_number = 0;
-//
-//    auto j = JsonParser_init();
-//    if(!j)
-//        throw std::runtime_error("failed to initialize parser");
-//    JsonParser_open(j, buf, buf_size);
-//    while(JsonParser_hasNextRow(j)) {
-//        if(JsonParser_getDocType(j) != JsonParser_objectDocType()) {
-//            // BADPARSE_STRINGINPUT
-//            auto line = JsonParser_getMallocedRow(j);
-//            free(line);
-//        }
-//
-//        // line ok, now extract something from the object!
-//        // => basically need to traverse...
-//        auto doc = *j->it;
-//
-////        auto obj = doc.get_object().take_value();
-//
-//        // get type
-//        JsonItem *obj = nullptr;
-//        uint64_t rc = JsonParser_getObject(j, &obj);
-//        if(rc != 0)
-//            break; // --> don't forget to release stuff here!
-//        char* type_str = nullptr;
-//        rc = JsonItem_getString(obj, "type", &type_str);
-//        if(rc != 0)
-//            continue; // --> don't forget to release stuff here
-//        JsonItem *sub_obj = nullptr;
-//        rc = JsonItem_getObject(obj, "repo", &sub_obj);
-//        if(rc != 0)
-//            continue; // --> don't forget to release stuff here!
-//
-//        // check wroong type
-//        int64_t val_i = 0;
-//        rc = JsonItem_getInt(obj, "repo", &val_i);
-//        EXPECT_EQ(rc, ecToI64(ExceptionCode::TYPEERROR));
-//        if(rc != 0) {
-//            row_number++;
-//            JsonParser_moveToNextRow(j);
-//            continue; // --> next
-//        }
-//
-//        char* url_str = nullptr;
-//        rc = JsonItem_getString(sub_obj, "url", &url_str);
-//
-//        // error handling: KeyError?
-//        rc = JsonItem_getString(sub_obj, "key that doesn't exist", &type_str);
-//        EXPECT_EQ(rc, ecToI64(ExceptionCode::KEYERROR));
-//
-//        // release all allocated things
-//        JsonItem_Free(obj);
-//        JsonItem_Free(sub_obj);
-//
-//        row_number++;
-//        JsonParser_moveToNextRow(j);
-//    }
-//    JsonParser_close(j);
-//    JsonParser_free(j);
-//
-//    std::cout<<"Parsed "<<pluralize(row_number, "row")<<std::endl;
+    auto j = JsonParser_init();
+    if(!j)
+        throw std::runtime_error("failed to initialize parser");
+    JsonParser_open(j, buf, buf_size);
+    while(JsonParser_hasNextRow(j)) {
+        if(JsonParser_getDocType(j) != JsonParser_objectDocType()) {
+            // BADPARSE_STRINGINPUT
+            auto line = JsonParser_getMallocedRow(j);
+            free(line);
+        }
+
+        // line ok, now extract something from the object!
+        // => basically need to traverse...
+        auto doc = *j->it;
+
+//        auto obj = doc.get_object().take_value();
+
+        // get type
+        JsonItem *obj = nullptr;
+        uint64_t rc = JsonParser_getObject(j, &obj);
+        if(rc != 0)
+            break; // --> don't forget to release stuff here!
+        char* type_str = nullptr;
+        rc = JsonItem_getString(obj, "type", &type_str);
+        if(rc != 0)
+            continue; // --> don't forget to release stuff here
+        JsonItem *sub_obj = nullptr;
+        rc = JsonItem_getObject(obj, "repo", &sub_obj);
+        if(rc != 0)
+            continue; // --> don't forget to release stuff here!
+
+        // check wroong type
+        int64_t val_i = 0;
+        rc = JsonItem_getInt(obj, "repo", &val_i);
+        EXPECT_EQ(rc, ecToI64(ExceptionCode::TYPEERROR));
+        if(rc != 0) {
+            row_number++;
+            JsonParser_moveToNextRow(j);
+            continue; // --> next
+        }
+
+        char* url_str = nullptr;
+        rc = JsonItem_getString(sub_obj, "url", &url_str);
+
+        // error handling: KeyError?
+        rc = JsonItem_getString(sub_obj, "key that doesn't exist", &type_str);
+        EXPECT_EQ(rc, ecToI64(ExceptionCode::KEYERROR));
+
+        // release all allocated things
+        JsonItem_Free(obj);
+        JsonItem_Free(sub_obj);
+
+        row_number++;
+        JsonParser_moveToNextRow(j);
+    }
+    JsonParser_close(j);
+    JsonParser_free(j);
+
+    std::cout<<"Parsed "<<pluralize(row_number, "row")<<std::endl;
 }

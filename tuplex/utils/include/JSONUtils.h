@@ -182,10 +182,13 @@ namespace tuplex {
                     auto unescaped_key = str_value_from_python_raw_value(kv.key);
                     auto json_key = escape_json_string(unescaped_key);
 
-                    ss<<indent<<"\""<<json_key<<"\": ";
+                    ss<<indent<<json_key<<":";
                 } else {
                     ss<<indent<<kv.key<<": ";
                 }
+
+                if(!kv.alwaysPresent)
+                    ss<<" (maybe) ";
 
                 // check what type the other stuff is
                 auto subtype = prettyPrintStructType(kv.valueType);

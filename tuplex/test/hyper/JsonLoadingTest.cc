@@ -138,7 +138,7 @@ namespace tuplex {
 
     // C API
     void JsonItem_Free(JsonItem* i) {
-        delete i;
+        // delete i; //--> bad: error here!
         i = nullptr;
     }
 
@@ -444,7 +444,10 @@ namespace tuplex {
 
         class JSONSourceTaskBuilder {
         public:
-            JSONSourceTaskBuilder(LLVMEnvironment& env, const python::Type& rowType, const std::string& functionName="parseJSON", bool unwrap_first_level=true) : _env(env), _rowType(rowType), _functionName(functionName), _unwrap_first_level(unwrap_first_level), _rowNumberVar(nullptr) {}
+            JSONSourceTaskBuilder(LLVMEnvironment& env,
+                                  const python::Type& rowType,
+                                  const std::string& functionName="parseJSON", bool unwrap_first_level=true) : _env(env), _rowType(rowType),
+            _functionName(functionName), _unwrap_first_level(unwrap_first_level), _rowNumberVar(nullptr), _badParseCountVar(nullptr) {}
 
             void build();
         private:
@@ -455,6 +458,7 @@ namespace tuplex {
 
             // helper values
             llvm::Value* _rowNumberVar;
+            llvm::Value* _badParseCountVar; // stores count of bad parse emits.
 
 
             void generateParseLoop(llvm::IRBuilder<> &builder, llvm::Value* bufPtr, llvm::Value* bufSize);
@@ -528,7 +532,7 @@ namespace tuplex {
             builder.CreateCondBr(bad_value, bbPrint, bbNext);
             builder.SetInsertPoint(bbPrint);
 
-            _env.printValue(builder, rc, "rc for key=" + key + " is: ");
+            // _env.printValue(builder, rc, "rc for key=" + key + " is: ");
 
             builder.CreateBr(bbNext);
             builder.SetInsertPoint(bbNext);
@@ -555,8 +559,8 @@ namespace tuplex {
             builder.CreateCondBr(is_null, bbNext, bbNotNull);
 
             builder.SetInsertPoint(bbNotNull);
-            if(value.val && !valueType.isStructuredDictionaryType())
-                _env.printValue(builder, value.val, "decoded key=" + key + " as " + valueType.desc());
+            // if(value.val && !valueType.isStructuredDictionaryType())
+            //    _env.printValue(builder, value.val, "decoded key=" + key + " as " + valueType.desc());
             builder.CreateBr(bbNext);
 
             builder.SetInsertPoint(bbNext);
@@ -570,10 +574,12 @@ namespace tuplex {
             return builder.CreateCall(F, j);
         }
 
-        llvm::Value *JSONSourceTaskBuilder::decodeFieldFromObject(llvm::IRBuilder<> &builder, llvm::Value *obj,
+        llvm::Value *JSONSourceTaskBuilder::decodeFieldFromObject(llvm::IRBuilder<> &builder,
+                                                                  llvm::Value *obj,
                                                                   const std::string &debug_path,
                                                                   tuplex::codegen::SerializableValue *out,
-                                                                  bool alwaysPresent, llvm::Value *key,
+                                                                  bool alwaysPresent,
+                                                                  llvm::Value *key,
                                                                   const python::Type &keyType,
                                                                   const python::Type &valueType,
                                                                   bool check_that_all_keys_are_present,
@@ -754,7 +760,7 @@ namespace tuplex {
                         BasicBlock* bbn = BasicBlock::Create(ctx, "debug_ct", F);
                         builder.CreateCondBr(cond, bb, bbn);
                         builder.SetInsertPoint(bb);
-                        _env.printValue(builder, num_keys, "struct type expected  " + std::to_string(kv_pairs.size()) + " elements, got: ");
+                        // _env.printValue(builder, num_keys, "struct type expected  " + std::to_string(kv_pairs.size()) + " elements, got: ");
                         builder.CreateBr(bbn);
                         builder.SetInsertPoint(bbn);
                     }
@@ -795,7 +801,7 @@ namespace tuplex {
 
                     SerializableValue value;
                     auto key_value = str_value_from_python_raw_value(kv_pair.key); // it's an encoded value, but query here for the real key.
-                    _env.debugPrint(builder, "decoding now key=" + key_value + " of path " + debug_path);
+                    // _env.debugPrint(builder, "decoding now key=" + key_value + " of path " + debug_path);
                     if(key_value == "payload") {
                         std::cout<<"debug"<<std::endl;
                     }
@@ -808,9 +814,9 @@ namespace tuplex {
                         // --> add check, and jump to mismatch else
                         BasicBlock* bbOK = BasicBlock::Create(ctx, "key_present", builder.GetInsertBlock()->getParent());
 
-                        if(key_value == "payload") {
-                            _env.printValue(builder, rc, "rc for payload is: ");
-                        }
+                        // if(key_value == "payload") {
+                        //    _env.printValue(builder, rc, "rc for payload is: ");
+                        // }
                         builder.CreateCondBr(successful_lookup, bbOK, bbSchemaMismatch);
                         builder.SetInsertPoint(bbOK);
                     } else {
@@ -901,6 +907,11 @@ namespace tuplex {
 
             // simply print (later call with error)
             _env.printValue(builder, rowNumber(builder), "bade parse encountered for row number: ");
+
+            // inc value
+            auto count = builder.CreateLoad(_badParseCountVar);
+            builder.CreateStore(builder.CreateAdd(count, _env.i64Const(1)), _badParseCountVar);
+
             //_env.printValue(builder, line, "bad-parse for row: ");
 
             _env.cfree(builder, line);
@@ -998,6 +1009,8 @@ namespace tuplex {
 
             // init row number
             _rowNumberVar = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "row_no");
+            _badParseCountVar = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "badparse_count");
+
 
             llvm::Value* rc = openJsonBuf(builder, parser, bufPtr, bufSize);
             llvm::Value* rc_cond = _env.i1neg(builder,builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS))));
@@ -1024,7 +1037,7 @@ namespace tuplex {
 
             // check whether it's of object type -> parse then as object (only supported type so far!)
             cond = isDocumentOfObjectType(builder, parser);
-            auto bbSchemaMismatch = emitBadParseInputAndMoveToNextRow(builder, parser, _env.i1neg(builder, cond), bLoopExit);//bLoopHeader);
+            auto bbSchemaMismatch = emitBadParseInputAndMoveToNextRow(builder, parser, _env.i1neg(builder, cond), bLoopHeader);
 
             // print out structure -> this is the parse
             parseAndPrintStructuredDictFromObject(builder, parser, bbSchemaMismatch);
@@ -1044,6 +1057,7 @@ namespace tuplex {
             freeJsonParse(builder, parser);
 
             _env.printValue(builder, rowNumber(builder), "parsed rows: ");
+            _env.printValue(builder, builder.CreateLoad(_badParseCountVar), "thereof bad parse rows (schema mismatch): ");
 
         }
 
@@ -1081,6 +1095,10 @@ TEST_F(HyperTest, BasicStructLoad) {
     auto path = sample_file;
 
     path = "../resources/2011-11-26-13.json.gz";
+
+    // smaller sample
+    // path = "../resources/2011-11-26-13.sample.json";
+
 
     auto raw_data = fileToString(path);
 
@@ -1126,7 +1144,24 @@ TEST_F(HyperTest, BasicStructLoad) {
     std::cout<<"normal  case:  "<<normal_case_type.desc()<<std::endl;
     std::cout<<"general case:  "<<general_case_type.desc()<<std::endl;
 
-    auto row_type = general_case_type;
+    auto row_type = normal_case_type;//general_case_type;
+    // row_type = general_case_type; // <-- this should match MOST of the rows...
+
+    for(auto kv : row_type.get_struct_pairs()) {
+        if(kv.key == "'payload'") {
+            std::cout<<"general case payload: "<<kv.valueType.desc()<<std::endl;
+
+            // check pairs in payload => should be all maybe
+            for(auto xy : kv.valueType.get_struct_pairs()) {
+                std::cout<<xy.key<<": "<<std::boolalpha<<xy.alwaysPresent<<std::endl;
+            }
+        }
+    }
+
+    // @TODO: single row parse to make this work...
+
+    // pretty print
+    std::cout<<prettyPrintStructType(row_type)<<std::endl;
 
     // row_type = normal_case_type;
 

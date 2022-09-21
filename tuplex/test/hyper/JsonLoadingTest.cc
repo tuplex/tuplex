@@ -681,6 +681,7 @@ namespace tuplex {
                 freeObject(builder, builder.CreateLoad(obj_var));
             } else if(v_type.isListType()) {
                 std::cerr<<"skipping for now type: "<<v_type.desc()<<std::endl;
+                rc =_env.i64Const(0); // ok.
             } else if(v_type == python::Type::NULLVALUE) {
                 // special case!
                 auto F = getOrInsertFunction(mod, "JsonItem_IsNull", _env.i64Type(), _env.i8ptrType(), _env.i8ptrType());

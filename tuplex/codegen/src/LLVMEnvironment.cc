@@ -1214,33 +1214,49 @@ namespace tuplex {
                 bool packed = false;
 
                 if (rt == python::Type::BOOLEAN) {
-                    llvm::ArrayRef<llvm::Type *> members(
-                            std::vector<llvm::Type *>{Type::getInt64Ty(_context), Type::getInt1Ty(_context)});
+                    std::vector<llvm::Type*> member_types;
+                    member_types.push_back(Type::getInt64Ty(_context));
+                    member_types.push_back(Type::getInt1Ty(_context));
+                    llvm::ArrayRef<llvm::Type *> members(member_types);
                     return llvm::StructType::create(_context, members, "bool_opt", packed);
                 }
 
                 if (rt == python::Type::I64) {
-                    llvm::ArrayRef<llvm::Type *> members(
-                            std::vector<llvm::Type *>{Type::getInt64Ty(_context), Type::getInt1Ty(_context)});
+                    std::vector<llvm::Type*> member_types;
+                    member_types.push_back(Type::getInt64Ty(_context));
+                    member_types.push_back(Type::getInt1Ty(_context));
+                    llvm::ArrayRef<llvm::Type *> members(member_types);
                     return llvm::StructType::create(_context, members, "i64_opt", packed);
                 }
 
                 if (rt == python::Type::F64) {
-                    llvm::ArrayRef<llvm::Type *> members(
-                            std::vector<llvm::Type *>{Type::getDoubleTy(_context), Type::getInt1Ty(_context)});
+                    std::vector<llvm::Type*> member_types;
+                    member_types.push_back(Type::getDoubleTy(_context));
+                    member_types.push_back(Type::getInt1Ty(_context));
+                    llvm::ArrayRef<llvm::Type *> members(member_types);
                     return llvm::StructType::create(_context, members, "f64_opt", packed);
                 }
 
                 if (rt == python::Type::STRING || rt == python::Type::GENERICDICT || rt.isDictionaryType()) {
+
+                    // this here results in an error.
+                    // => fix this!
+                    std::vector<llvm::Type*> member_types;
+                    member_types.push_back(Type::getInt8PtrTy(_context));
+                    member_types.push_back(Type::getInt1Ty(_context));
+                    llvm::ArrayRef<llvm::Type *> members(member_types);
+
                     // could theoretically also use nullptr?
-                    llvm::ArrayRef<llvm::Type *> members(
-                            std::vector<llvm::Type *>{Type::getInt8PtrTy(_context), Type::getInt1Ty(_context)});
                     return llvm::StructType::create(_context, members, "str_opt", packed);
                 }
 
                 if (rt.isListType()) {
-                    llvm::ArrayRef<llvm::Type *> members(
-                            std::vector<llvm::Type *>{getListType(rt), Type::getInt1Ty(_context)});
+
+                    // same issue here
+                    std::vector<llvm::Type*> member_types;
+                    member_types.push_back(getListType(rt));
+                    member_types.push_back(Type::getInt1Ty(_context));
+                    llvm::ArrayRef<llvm::Type *> members(member_types);
                     return llvm::StructType::create(_context, members, "list_opt", packed);
                 }
             }

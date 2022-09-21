@@ -17,6 +17,7 @@
 
 #include <AccessPathVisitor.h>
 
+#include <llvm/IR/TypeFinder.h>
 
 // NOTES:
 // for concrete parser implementation with pushdown etc., use
@@ -1274,10 +1275,10 @@ namespace tuplex {
 
             // adding bitmap fails type creation - super weird.
             // add bitmap elements (if needed)
-            //if(num_option_bitmap_elements > 0)
-            //    member_types.push_back(llvm::ArrayType::get(i64Type, num_option_bitmap_elements));
-            //if(num_maybe_bitmap_elements > 0)
-            //    member_types.push_back(llvm::ArrayType::get(i64Type, num_maybe_bitmap_elements));
+            if(num_option_bitmap_elements > 0)
+                member_types.push_back(llvm::ArrayType::get(i64Type, num_option_bitmap_elements));
+            if(num_maybe_bitmap_elements > 0)
+                member_types.push_back(llvm::ArrayType::get(i64Type, num_maybe_bitmap_elements));
 
             // auto a = ArrayType::get(Type::getInt1Ty(ctx), num_option_bitmap_bits);
             // if(num_option_bitmap_bits > 0)
@@ -1319,8 +1320,24 @@ namespace tuplex {
                 }
             }
 
-            // convert to C++ to check if godbolt works -.-
-            
+//            // convert to C++ to check if godbolt works -.-
+//            std::stringstream cc_code;
+//            cc_code<<"struct LargeStruct {\n";
+//            int pos = 0;
+//            for(auto t : member_types) {
+//                if(t->isIntegerTy()) {
+//                    cc_code<<"   int"<<t->getIntegerBitWidth()<<"_t x"<<pos<<";\n";
+//                }
+//                if(t->isPointerTy()) {
+//                    cc_code<<"   uint8_t* x"<<pos<<";\n";
+//                }
+//                if(t->isArrayTy()) {
+//                    cc_code<<"   int64_t x"<<pos<<"["<<t->getArrayNumElements()<<"];\n";
+//                }
+//                pos++;
+//            }
+//            cc_code<<"};\n";
+//            std::cout<<"C++ code:\n\n"<<cc_code.str()<<std::endl;
 
             // finally, create type
             // Note: these types can get super large!
@@ -1336,9 +1353,14 @@ namespace tuplex {
 //            llvm::ArrayRef<llvm::Type *> members(member_types); // !!! important !!!
 //            stype->setBody(members, is_packed); // for info
 
-            llvm::ArrayRef<llvm::Type *> members(member_types);
-            llvm::Type *structType = llvm::StructType::create(ctx, members, name, false);
+            llvm::Type** type_array = new llvm::Type*[member_types.size()];
+            for(unsigned i = 0; i < member_types.size(); ++i) {
+                type_array[i] = member_types[i];
+            }
+            llvm::ArrayRef<llvm::Type *> members(type_array, member_types.size());
 
+            llvm::Type *structType = llvm::StructType::create(ctx, members, name, false);
+            llvm::StructType *STy = dyn_cast<StructType>(structType);
             return structType;
         }
 
@@ -1423,11 +1445,12 @@ namespace tuplex {
         assert(stype);
         assert(stype->isStructTy());
 
-        auto FT = FunctionType::get(env.i64Type(), {stype->getPointerTo()}, false);
+        auto FT = FunctionType::get(env.i64Type(), {env.i64Type()}, false);
         auto F = Function::Create(FT, llvm::GlobalValue::ExternalLinkage, "dummy", *env.getModule().get());
 
         auto bb = BasicBlock::Create(env.getContext(), "entry", F);
         IRBuilder<> b(bb);
+        b.CreateAlloca(stype);
         b.CreateRet(env.i64Const(0));
 
     }
@@ -1488,6 +1511,8 @@ TEST_F(HyperTest, StructLLVMTypeContains) {
     cout<<"type: "<<stype.desc()<<endl;
 }
 
+
+#include "DebugTypeFinder.h"
 
 // test to generate a struct type
 TEST_F(HyperTest, StructLLVMType) {
@@ -1567,15 +1592,25 @@ TEST_F(HyperTest, StructLLVMType) {
     // create new func with this
     create_dummy_function(env, stype);
 
-    std::string err;
-    EXPECT_TRUE(codegen::verifyModule(*env.getModule(), &err));
-    std::cerr<<err<<std::endl;
+//    std::string err;
+//    EXPECT_TRUE(codegen::verifyModule(*env.getModule(), &err));
+//    std::cerr<<err<<std::endl;
+
+   // TypeFinderDebug.run(*env.getModule());
+
+   std::cout<<"running manual typefinder"<<std::endl;
+   llvm::DebugTypeFinder tf;
+   tf.run(*env.getModule(), true);
+
+    std::cout<<"running typefinder"<<std::endl;
     //env.getModule()->dump();
-//    llvm::TypeFinder type_finder;
-//    type_finder.run(*env.getModule(), true);
-//    for (auto t : type_finder) {
-//        std::cout << t->getName().str() << std::endl;
-//    }
+    llvm::TypeFinder type_finder;
+    type_finder.run(*env.getModule(), true);
+    for (auto t : type_finder) {
+        std::cout << t->getName().str() << std::endl;
+    }
+
+    std::cout<<"type finder done, dumping module"<<std::endl;
     // bitcode --> also fails.
     // codegen::moduleToBitCodeString(*env.getModule());
 

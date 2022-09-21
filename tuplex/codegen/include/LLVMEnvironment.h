@@ -73,7 +73,8 @@ namespace tuplex {
                 assert(M);
                 llvm::Function *Fn = llvm::Intrinsic::getDeclaration(M, ID, {LHS->getType()});
                 assert(Fn);
-                return createCallHelper(Fn, {LHS, RHS}, builder, Name, FMFSource);
+                // warning: initializing ‘llvm::ArrayRef<llvm::Value*>::Data’ from ‘std::initializer_list<llvm::Value*>::begin’ does not extend the lifetime of the underlying array [-Winit-list-lifetime]
+                return createCallHelper(Fn, std::vector<llvm::Value*>({LHS, RHS}), builder, Name, FMFSource);
             }
 
             inline llvm::CallInst* createUnaryIntrinsic(llvm::IRBuilder<>& builder,

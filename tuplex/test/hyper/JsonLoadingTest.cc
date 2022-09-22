@@ -618,10 +618,10 @@ namespace tuplex {
 
             void decode(llvm::IRBuilder<>& builder,
                         llvm::Value* dict_ptr,
-                        const python::Type& dict_ptr_type,
+                        const python::Type& dict_ptr_type, // <- the type of the top-level project where to store stuff
                         llvm::Value* object,
                         llvm::BasicBlock* bbSchemaMismatch,
-                        const python::Type &dict_type,
+                        const python::Type &dict_type, // <-- the type of object (which must be a structured dict)
                         std::vector<std::pair<std::string, python::Type>> prefix = {},
                         bool include_maybe_structs = true,
                         const DecodeOptions& options={});
@@ -1164,6 +1164,7 @@ namespace tuplex {
                     struct_dict_store_value(_env, builder, dict_ptr, dict_ptr_type, access_path, decoded_value.val);
                     struct_dict_store_size(_env, builder, dict_ptr, dict_ptr_type, access_path, decoded_value.size);
                     struct_dict_store_isnull(_env, builder, dict_ptr, dict_ptr_type, access_path, decoded_value.is_null);
+                    struct_dict_store_present(_env, builder, dict_ptr, dict_ptr_type, access_path, value_is_present);
                     // entries.push_back(make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent, decoded_value, value_is_present));
                 }
             }
@@ -1619,28 +1620,7 @@ namespace tuplex {
             auto row_var = _env.CreateFirstBlockAlloca(builder, struct_dict_type);
 
             // decode everything -> entries can be then used to store to a struct!
-            flattened_struct_dict_decoded_entry_list_t entries; // may be runtime allcoated
             decode(builder, row_var, _rowType, builder.CreateLoad(obj_var), bbSchemaMismatch, _rowType, {}, true);
-
-
-            BasicBlock* bbLoad = BasicBlock::Create(ctx, "print_now", builder.GetInsertBlock()->getParent());
-            builder.CreateBr(bbLoad);
-            builder.SetInsertPoint(bbLoad);
-            // go over first entry and print it
-            auto& entry = entries.front();
-            _env.debugPrint(builder, "hello");
-//            {
-//                access_path_t access_path;
-//                python::Type value_type;
-//                bool always_present;
-//                SerializableValue el;
-//                llvm::Value* present = nullptr;
-//                std::tie(access_path, value_type, always_present, el, present) = entry;
-//                auto key = json_access_path_to_string(access_path, value_type, always_present);
-//                _env.printValue(builder, el.val, "value");
-//                // printValueInfo(builder, key, value_type, present, el);
-//            }
-
 
             // now, load entries to struct type in LLVM
             // then calculate serialized size and print it.
@@ -1845,25 +1825,26 @@ namespace tuplex {
             // print out structure -> this is the parse
             parseAndPrintStructuredDictFromObject(builder, parser, bbSchemaMismatch);
 
-
             // go to free start
             builder.CreateBr(_freeStart);
 
             // free data..
             // --> parsing will generate there free statements per row
 
-
             builder.SetInsertPoint(_freeEnd); // free is done -> now move onto next row.
-
             // go to next row
             moveToNextRow(builder, parser);
 
             // this will only work when allocating everything local!
             // -> maybe better craft a separate process row function?
 
-            // // link back to header
-            // builder.CreateBr(bLoopHeader);
-            builder.CreateBr(bLoopExit);
+            // link back to header
+            _env.debugPrint(builder, "back to header");
+            builder.CreateBr(bLoopHeader);
+
+            // this works...
+            // builder.CreateBr(bLoopExit);
+
 
             // ---- post loop block ----
             // continue in loop exit.
@@ -2434,6 +2415,8 @@ namespace tuplex {
 
         // --- store functions ---
         void struct_dict_store_present(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* is_present) {
+           // return;
+
             auto indices = struct_dict_load_indices(dict_type);
             // fetch indices
             // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
@@ -2455,7 +2438,7 @@ namespace tuplex {
                 builder.CreateStore(is_present, bitmapIdx);
             }
         }
-        // --- store functions ---
+
         void struct_dict_store_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* value) {
             auto indices = struct_dict_load_indices(dict_type);
             // fetch indices
@@ -2489,7 +2472,7 @@ namespace tuplex {
                 assert(b_idx >= 0);
                 assert(is_null && is_null->getType() == env.i1Type());
                 // i1 store logic
-                auto bitmapPos = present_idx;
+                auto bitmapPos = bitmap_idx;
                 auto structBitmapIdx = CreateStructGEP(builder, ptr, (size_t)b_idx); // bitmap comes first!
                 auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
                 builder.CreateStore(is_null, bitmapIdx);
@@ -2832,9 +2815,9 @@ TEST_F(HyperTest, BasicStructLoad) {
 
     // mini example in order to analyze code
     path = "test.json";
-    auto content = "{\"column1\": {\"a\": 10}}\n"
-                   "{\"column1\": {\"a\": 10}}\n"
-                   "{\"column1\": {\"a\": 10}}";
+    auto content = "{\"column1\": {\"a\": 10, \"b\": 20, \"c\": 30}}\n"
+                   "{\"column1\": {\"a\": 10, \"b\": 20, \"c\": null}}\n"
+                   "{\"column1\": {\"a\": 10,  \"c\": null}}";
     stringToFile(path, content);
 
     // now, regular routine...

@@ -143,7 +143,7 @@ namespace tuplex {
 
     // C API
     void JsonItem_Free(JsonItem *i) {
-        // delete i; //--> bad: error here!
+        delete i; //--> bad: error here!
         i = nullptr;
     }
 
@@ -234,6 +234,10 @@ namespace tuplex {
         *out = obj;
         return ecToI64(ExceptionCode::SUCCESS);
     }
+
+//    uint64_t JsonItem_getList(JsonItem *item, const char *key, JsonArray **out) {
+//
+//    }
 
     uint64_t JsonItem_getDouble(JsonItem *item, const char *key, double *out) {
         assert(item);
@@ -735,6 +739,8 @@ namespace tuplex {
                                               ecToI64(ExceptionCode::TYPEERROR)));
             // add object to free list...
             freeObject(sub_obj_var);
+            // go to done block.
+            builder.CreateBr(bbNext);
 
             builder.SetInsertPoint(bbNext);
             // use phi instruction. I.e., if found_object => call count keys
@@ -791,13 +797,16 @@ namespace tuplex {
 
             // special case: option => i.e. perform null check first. If it fails, decode element.
             if(value_type.isOptionType()) {
+
+                BasicBlock* bbCurrent = builder.GetInsertBlock();
+                BasicBlock* bbDecodeNonNull = BasicBlock::Create(ctx, "decode_option_non_null", bbCurrent->getParent());
+                BasicBlock* bbDecoded = BasicBlock::Create(ctx, "decoded_option", bbCurrent->getParent());
+
                 // check if it is null
                 llvm::Value* rcA = nullptr;
                 std::tie(rcA, value) = decodeNull(builder, obj, key);
                 auto is_null_cond = builder.CreateICmpEQ(rcA, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
-                BasicBlock* bbCurrent = builder.GetInsertBlock();
-                BasicBlock* bbDecodeNonNull = BasicBlock::Create(ctx, "decode_option_non_null", bbCurrent->getParent());
-                BasicBlock* bbDecoded = BasicBlock::Create(ctx, "decoded_option", bbCurrent->getParent());
+                BasicBlock* bbValueIsNull = nullptr, *bbValueIsNotNull = nullptr;
 
                 builder.SetInsertPoint(bbDecodeNonNull);
                 llvm::Value* rcB = nullptr;
@@ -806,10 +815,12 @@ namespace tuplex {
                 python::StructEntry entryB = entry;
                 entryB.valueType = entry.valueType.getReturnType(); // remove option
                 std::tie(rcB, presentB, valueB) = decodePrimitiveFieldFromObject(builder, obj, key, entryB, options, bbSchemaMismatch);
+                bbValueIsNotNull = builder.GetInsertBlock(); // <-- this is the block from where to jump to bbDecoded (phi entry block)
                 builder.CreateBr(bbDecoded);
 
 
                 builder.SetInsertPoint(bbCurrent);
+                bbValueIsNull = bbCurrent; // <-- jumping from this block indicates null.
                 builder.CreateCondBr(is_null_cond, bbDecoded, bbDecodeNonNull);
 
                 // fetch rc and value depending on block (phi node!)
@@ -823,25 +834,26 @@ namespace tuplex {
                     valueA.size = _env.nullConstant(valueB.size->getType());
 
                 builder.SetInsertPoint(bbDecoded);
+                assert(bbValueIsNotNull && bbValueIsNull);
                 value = SerializableValue();
                 if(valueB.val) {
                     auto phi = builder.CreatePHI(valueB.val->getType(), 2);
-                    phi->addIncoming(valueA.val, bbCurrent);
-                    phi->addIncoming(valueB.val, bbDecodeNonNull);
+                    phi->addIncoming(valueA.val, bbValueIsNull);
+                    phi->addIncoming(valueB.val, bbValueIsNotNull);
                     value.val = phi;
                 }
                 if(valueB.size) {
                     auto phi = builder.CreatePHI(valueB.size->getType(), 2);
-                    phi->addIncoming(valueA.size, bbCurrent);
-                    phi->addIncoming(valueB.size, bbDecodeNonNull);
+                    phi->addIncoming(valueA.size, bbValueIsNull);
+                    phi->addIncoming(valueB.size, bbValueIsNotNull);
                     value.val = phi;
                 }
                 value.is_null = is_null_cond; // trivial, no phi needed.
 
                 // however, for rc a phi is needed.
                 auto phi = builder.CreatePHI(_env.i64Type(), 2);
-                phi->addIncoming(rcA, bbCurrent);
-                phi->addIncoming(rcB, bbDecodeNonNull);
+                phi->addIncoming(rcA, bbValueIsNull);
+                phi->addIncoming(rcB, bbValueIsNotNull);
                 rc = phi;
             } else {
                 // decode non-option types
@@ -965,6 +977,13 @@ namespace tuplex {
                     builder.CreateBr(bbDecodeDone); // whererver builder is, continue to decode done for this item.
                     builder.SetInsertPoint(bbDecodeDone); // continue from here...
                 } else {
+
+                    // debug: skip list for now (more complex)
+                    if(kv_pair.valueType.isListType()) {
+                        std::cerr<<"skipping array decode with type="<<kv_pair.valueType.desc()<<" for now."<<std::endl;
+                        continue;
+                    }
+
                     // basically get the entry for the kv_pair.
                     logger.debug("generating code to decode " + json_access_path_to_string(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
                     SerializableValue decoded_value;

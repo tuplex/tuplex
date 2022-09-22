@@ -235,9 +235,38 @@ namespace tuplex {
         return ecToI64(ExceptionCode::SUCCESS);
     }
 
-//    uint64_t JsonItem_getList(JsonItem *item, const char *key, JsonArray **out) {
-//
-//    }
+    struct JsonArray {
+        simdjson::ondemand::array a;
+    };
+
+    uint64_t JsonItem_getArray(JsonItem *item, const char *key, JsonArray **out) {
+        assert(item);
+        assert(key);
+        assert(out);
+
+        simdjson::error_code error;
+        simdjson::ondemand::array a;
+        item->o[key].get_array().tie(a, error);
+        if (error)
+            return translate_simdjson_error(error);
+
+        // ONLY allocate if ok. else, leave how it is.
+        auto arr = new JsonArray();
+        arr->a = std::move(a);
+        *out = arr;
+        return ecToI64(ExceptionCode::SUCCESS);
+    }
+
+    void JsonArray_Free(JsonArray* arr) {
+        if(arr)
+            delete arr;
+        arr = nullptr;
+    }
+
+    uint64_t JsonArray_Size(JsonArray* arr) {
+        assert(arr);
+        return arr->a.count_elements().value(); // this should NOT yield any errors.
+    }
 
     uint64_t JsonItem_getDouble(JsonItem *item, const char *key, double *out) {
         assert(item);
@@ -527,8 +556,10 @@ namespace tuplex {
                                                        llvm::BasicBlock *bbSchemaMismatch);
 
             void freeObject(llvm::IRBuilder<> &builder, llvm::Value *obj);
-
             void freeObject(llvm::Value *obj);
+            void freeArray(llvm::IRBuilder<> &builder, llvm::Value *arr);
+            void freeArray(llvm::Value *arr);
+            llvm::Value* arraySize(llvm::IRBuilder<>& builder, llvm::Value* arr);
 
             llvm::Value *numberOfKeysInObject(llvm::IRBuilder<> &builder, llvm::Value *j);
 
@@ -598,6 +629,10 @@ namespace tuplex {
             std::tuple<llvm::Value*, SerializableValue> decodeF64(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
             std::tuple<llvm::Value*, SerializableValue> decodeEmptyDict(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
             std::tuple<llvm::Value*, SerializableValue> decodeNull(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key);
+
+            // complex compound types
+            std::tuple<llvm::Value*, SerializableValue> decodeEmptyList(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
+            std::tuple<llvm::Value*, SerializableValue> decodeList(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value *key, const python::Type& listType);
         };
 
         std::string json_access_path_to_string(const std::vector<std::pair<std::string, python::Type>>& path,
@@ -772,6 +807,120 @@ namespace tuplex {
             return make_tuple(rc, v);
         }
 
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONSourceTaskBuilder::decodeEmptyList(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key) {
+            // similar to empty dict
+
+            using namespace std;
+            using namespace llvm;
+
+            assert(obj && key);
+            assert(obj->getType() == _env.i8ptrType());
+            assert(key->getType() == _env.i8ptrType());
+
+            // query for array and determine array size, if 0 => match!
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getArray", _env.i64Type(), _env.i8ptrType(),
+                                         _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
+            auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+
+            // create call, recurse only if ok!
+            BasicBlock *bbCurrent = builder.GetInsertBlock();
+            BasicBlock *bbObjectFound = BasicBlock::Create(_env.getContext(), "found_array", builder.GetInsertBlock()->getParent());
+            BasicBlock *bbNext = BasicBlock::Create(_env.getContext(), "empty_check_done", builder.GetInsertBlock()->getParent());
+            llvm::Value* rc_A = builder.CreateCall(F, {obj, key, item_var});
+            auto found_array = builder.CreateICmpEQ(rc_A, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+
+            builder.CreateCondBr(found_array, bbObjectFound, bbNext);
+
+            // --- object found ---
+            builder.SetInsertPoint(bbObjectFound);
+            auto item = builder.CreateLoad(item_var);
+
+            // check how many entries
+            auto num_elements = arraySize(builder, item);
+            auto is_empty = builder.CreateICmpEQ(num_elements, _env.i64Const(0));
+            llvm::Value* rc_B = builder.CreateSelect(is_empty, _env.i64Const(
+                                                             ecToI64(ExceptionCode::SUCCESS)),
+                                                     _env.i64Const(
+                                                             ecToI64(ExceptionCode::TYPEERROR)));
+            // add object to free list...
+            freeObject(item_var);
+            // go to done block.
+            builder.CreateBr(bbNext);
+
+            builder.SetInsertPoint(bbNext);
+            // use phi instruction. I.e., if found_array => call count keys
+            // if it's not an object keep rc and
+            auto phi = builder.CreatePHI(_env.i64Type(), 2);
+            phi->addIncoming(rc_A, bbCurrent);
+            phi->addIncoming(rc_B, bbObjectFound);
+            llvm::Value* rc = phi;
+
+            SerializableValue v; // dummy value for empty list.
+            return make_tuple(rc, v);
+        }
+
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONSourceTaskBuilder::decodeList(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key,
+                                          const python::Type &listType) {
+            using namespace std;
+            using namespace llvm;
+
+            assert(obj && key);
+            assert(obj->getType() == _env.i8ptrType());
+            assert(key->getType() == _env.i8ptrType());
+
+            if(python::Type::EMPTYLIST == listType)
+                return decodeEmptyList(builder, obj, key);
+
+            // decode happens in two steps:
+            // step 1: check if there's actually an array in the JSON data -> if not, type error!
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getArray", _env.i64Type(), _env.i8ptrType(),
+                                         _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
+            auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+            // add array free to step after parse row
+            freeArray(item_var);
+
+            // create call, recurse only if ok!
+            BasicBlock *bbCurrent = builder.GetInsertBlock();
+            BasicBlock *bbArrayFound = BasicBlock::Create(_env.getContext(), "found_array", builder.GetInsertBlock()->getParent());
+            BasicBlock *bbDecodeDone = BasicBlock::Create(_env.getContext(), "array_decode_done", builder.GetInsertBlock()->getParent());
+            llvm::Value* rc_A = builder.CreateCall(F, {obj, key, item_var});
+            auto found_array = builder.CreateICmpEQ(rc_A, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            builder.CreateCondBr(found_array, bbArrayFound, bbDecodeDone);
+
+
+            // -----------------------------------------------------------
+            // step 2: check that it is a homogenous list...
+            auto elementType = listType.elementType();
+            builder.SetInsertPoint(bbArrayFound);
+            auto array = builder.CreateLoad(item_var);
+            auto num_elements = arraySize(builder, array);
+
+            // for now dummy...
+            _env.printValue(builder, num_elements, "found for type " + listType.desc() + " elements: ");
+
+            // // is it a list again? or a structured dict?
+            // if(elementType.isListType()) {
+            //     throw std::runtime_error("not yet supported");
+            // } else if(elementType.isStructuredDictionaryType()) {
+            //     // TODO...
+            //     throw std::runtime_error("not yet supported");
+            // } else {
+            //     // regular list of entries...
+            //     throw std::runtime_error("not yet supported");
+            // }
+
+            // step 3: decode into memory... -> heap allocated.
+
+            builder.CreateBr(bbDecodeDone);
+
+
+            builder.SetInsertPoint(bbDecodeDone);
+            llvm::Value* rc = rc_A;
+            SerializableValue value; // dummy value => should hold list!
+            return make_tuple(rc, value);
+        }
 
         std::tuple<llvm::Value*, llvm::Value*, SerializableValue> JSONSourceTaskBuilder::decodePrimitiveFieldFromObject(llvm::IRBuilder<>& builder,
                                                                                                  llvm::Value* obj,
@@ -872,6 +1021,8 @@ namespace tuplex {
                     std::tie(rc, value) = decodeNull(builder, obj, key);
                 } else if (v_type == python::Type::EMPTYDICT) {
                     std::tie(rc, value) = decodeEmptyDict(builder, obj, key);
+                } else if(v_type.isListType() || v_type == python::Type::EMPTYLIST) {
+                    std::tie(rc, value) = decodeList(builder, obj, key, v_type);
                 } else {
                     // for another nested object, utilize:
                     throw std::runtime_error("encountered unsupported value type " + value_type.desc());
@@ -978,11 +1129,11 @@ namespace tuplex {
                     builder.SetInsertPoint(bbDecodeDone); // continue from here...
                 } else {
 
-                    // debug: skip list for now (more complex)
-                    if(kv_pair.valueType.isListType()) {
-                        std::cerr<<"skipping array decode with type="<<kv_pair.valueType.desc()<<" for now."<<std::endl;
-                        continue;
-                    }
+                    // // debug: skip list for now (more complex)
+                    // if(kv_pair.valueType.isListType()) {
+                    //     std::cerr<<"skipping array decode with type="<<kv_pair.valueType.desc()<<" for now."<<std::endl;
+                    //     continue;
+                    // }
 
                     // basically get the entry for the kv_pair.
                     logger.debug("generating code to decode " + json_access_path_to_string(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
@@ -994,6 +1145,20 @@ namespace tuplex {
                 }
             }
         }
+
+        llvm::Value *JSONSourceTaskBuilder::arraySize(llvm::IRBuilder<> &builder, llvm::Value *arr) {
+            assert(arr);
+            assert(arr->getType() == _env.i8ptrType());
+
+            // call func
+            using namespace llvm;
+            auto &ctx = _env.getContext();
+
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonArray_Size", _env.i64Type(),
+                                                _env.i8ptrType());
+            return builder.CreateCall(F, arr);
+        }
+
 
         void JSONSourceTaskBuilder::checkRC(llvm::IRBuilder<> &builder, const std::string &key, llvm::Value *rc) {
             using namespace llvm;
@@ -1335,6 +1500,34 @@ namespace tuplex {
             }
         }
 
+        void JSONSourceTaskBuilder::freeArray(llvm::Value *arr) {
+            assert(arr);
+            using namespace llvm;
+            auto &ctx = _env.getContext();
+
+            auto ptr_to_free = arr;
+
+            // free in free block (last block!)
+            assert(_freeEnd);
+            IRBuilder<> b(_freeEnd);
+
+            // what type is it?
+            if (arr->getType() == _env.i8ptrType()->getPointerTo()) {
+                ptr_to_free = b.CreateLoad(arr);
+            }
+
+            freeArray(b, ptr_to_free);
+
+            if (arr->getType() == _env.i8ptrType()->getPointerTo()) {
+                // store nullptr in debug mode
+#ifndef NDEBUG
+                b.CreateStore(_env.i8nullptr(), arr);
+#endif
+            }
+            _freeEnd = b.GetInsertBlock();
+            assert(_freeEnd);
+        }
+
         void JSONSourceTaskBuilder::freeObject(llvm::Value *obj) {
             assert(obj);
             using namespace llvm;
@@ -1370,6 +1563,15 @@ namespace tuplex {
             auto Ffreeobj = getOrInsertFunction(_env.getModule().get(), "JsonItem_Free", llvm::Type::getVoidTy(ctx),
                                                 _env.i8ptrType());
             builder.CreateCall(Ffreeobj, obj);
+        }
+
+        void JSONSourceTaskBuilder::freeArray(llvm::IRBuilder<> &builder, llvm::Value *arr) {
+            using namespace llvm;
+            auto &ctx = _env.getContext();
+
+            auto Ffreeobj = getOrInsertFunction(_env.getModule().get(), "JsonArray_Free", llvm::Type::getVoidTy(ctx),
+                                                _env.i8ptrType());
+            builder.CreateCall(Ffreeobj, arr);
         }
 
         void JSONSourceTaskBuilder::parseAndPrintStructuredDictFromObject(llvm::IRBuilder<> &builder, llvm::Value *j,
@@ -2239,6 +2441,9 @@ TEST_F(HyperTest, BasicStructLoad) {
     jit.registerSymbol("JsonItem_numberOfKeys", JsonItem_numberOfKeys);
     jit.registerSymbol("JsonItem_keySetMatch", JsonItem_keySetMatch);
     jit.registerSymbol("JsonItem_hasKey", JsonItem_hasKey);
+    jit.registerSymbol("JsonItem_getArray", JsonItem_getArray);
+    jit.registerSymbol("JsonArray_Free", JsonArray_Free);
+    jit.registerSymbol("JsonArray_Size", JsonArray_Size);
 
     // compile func
     auto rc_compile = jit.compile(ir_code);

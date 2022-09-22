@@ -1165,6 +1165,9 @@ namespace tuplex {
                     struct_dict_store_size(_env, builder, dict_ptr, dict_ptr_type, access_path, decoded_value.size);
                     struct_dict_store_isnull(_env, builder, dict_ptr, dict_ptr_type, access_path, decoded_value.is_null);
                     struct_dict_store_present(_env, builder, dict_ptr, dict_ptr_type, access_path, value_is_present);
+
+                    // optimized store using if logic... --> beneficial?
+
                     // entries.push_back(make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent, decoded_value, value_is_present));
                 }
             }
@@ -2076,6 +2079,11 @@ namespace tuplex {
                 if (!mapped_type)
                     throw std::runtime_error("could not map type " + t.desc());
                 member_types.push_back(mapped_type);
+
+                // special case: list -> skip size!
+                if(t.isListType())
+                    continue;
+
                 if (!t.isFixedSizeType()) {
                     // not fixes size but var length?
                     // add a size field!
@@ -2224,6 +2232,14 @@ namespace tuplex {
                 if(value_type.isStructuredDictionaryType()) {
                     indices[access_path] = std::make_tuple(bitmap_idx, maybe_idx, field_idx, size_idx);
                     continue; // --> skip, need to store only presence/bitmap info.
+                }
+
+                // special case: list
+                if(value_type != python::Type::EMPTYLIST && value_type.isListType()) {
+                    // embed type -> no size field.
+                    field_idx = current_idx++;
+                    indices[access_path] = std::make_tuple(bitmap_idx, maybe_idx, field_idx, -1);
+                    continue;
                 }
 
                 // check what kind of value_type is
@@ -2382,6 +2398,47 @@ namespace tuplex {
             return SerializableValue(ptr, nullptr, nullptr);
         }
 
+        std::string struct_dict_lookup_llvm(LLVMEnvironment& env, llvm::Type *stype, int i) {
+            if(i < 0 || i > stype->getStructNumElements())
+                return "[invalid index]";
+            return "[" + env.getLLVMTypeName(stype->getStructElementType(i)) + "]";
+        }
+
+        void struct_dict_verify_storage(LLVMEnvironment& env, const python::Type& dict_type, std::ostream& os) {
+            auto stype = create_structured_dict_type(env, "struct_dict", dict_type);
+            auto indices = struct_dict_load_indices(dict_type);
+            flattened_struct_dict_entry_list_t entries;
+            flatten_recursive_helper(entries, dict_type);
+
+            for(const auto& entry : entries) {
+                access_path_t access_path = std::get<0>(entry);
+                python::Type value_type = std::get<1>(entry);
+                bool always_present = std::get<2>(entry);
+                auto key = json_access_path_to_string(access_path, value_type, always_present);
+
+                // fetch indices
+                // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
+                int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
+                std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(access_path);
+
+                // generate new line
+                std::stringstream ss;
+                ss<<key<<" :: ";
+                if(bitmap_idx >= 0)
+                    ss<<" bitmap: "<<bitmap_idx;
+                if(present_idx >= 0)
+                    ss<<" presence: "<<present_idx;
+                if(field_idx >= 0)
+                    ss<<" value: "<<field_idx<<" "<<struct_dict_lookup_llvm(env, stype, field_idx);
+                if(size_idx >= 0)
+                    ss<<" size: "<<size_idx<<" "<<struct_dict_lookup_llvm(env, stype, size_idx);
+                os<<ss.str()<<std::endl;
+
+            }
+
+        }
+
+
         // helper function re type
         int bitmap_field_idx(const python::Type& dict_type) {
             // if has bitmap then
@@ -2492,7 +2549,7 @@ namespace tuplex {
                 env.printValue(builder, size, "storing away size at index " + std::to_string(size_idx));
 
                 // store
-                auto llvm_idx = CreateStructGEP(builder, ptr, field_idx);
+                auto llvm_idx = CreateStructGEP(builder, ptr, size_idx);
                 builder.CreateStore(size, llvm_idx);
             }
         }
@@ -2806,19 +2863,19 @@ TEST_F(HyperTest, BasicStructLoad) {
     //   // payload removed, b.c. it's so hard to debug... // there should be one org => one exception row.
     //  path = "../resources/2011-11-26-13.sample2.json"; // -> so this works.
 
-    //  path = "../resources/2011-11-26-13.sample3.json"; // -> single row, the parse should trivially work.
+    path = "../resources/2011-11-26-13.sample3.json"; // -> single row, the parse should trivially work.
 
 
-    // tiny json example to simplify things
-    path = "../resources/ndjson/example1.json";
+    // // tiny json example to simplify things
+    // path = "../resources/ndjson/example1.json";
 
 
-    // mini example in order to analyze code
-    path = "test.json";
-    auto content = "{\"column1\": {\"a\": 10, \"b\": 20, \"c\": 30}}\n"
-                   "{\"column1\": {\"a\": 10, \"b\": 20, \"c\": null}}\n"
-                   "{\"column1\": {\"a\": 10,  \"c\": null}}";
-    stringToFile(path, content);
+    // // mini example in order to analyze code
+    // path = "test.json";
+    // auto content = "{\"column1\": {\"a\": 10, \"b\": 20, \"c\": 30}}\n"
+    //                "{\"column1\": {\"a\": 10, \"b\": 20, \"c\": null}}\n"
+    //                "{\"column1\": {\"a\": 10,  \"c\": null}}";
+    // stringToFile(path, content);
 
     // now, regular routine...
     auto raw_data = fileToString(path);
@@ -2873,6 +2930,10 @@ TEST_F(HyperTest, BasicStructLoad) {
     // codegen here
     codegen::LLVMEnvironment env;
     auto parseFuncName = "parseJSONCodegen";
+
+    // verify storage architecture/layout
+    codegen::struct_dict_verify_storage(env, row_type, std::cout);
+
     codegen::JSONSourceTaskBuilder jtb(env, row_type, parseFuncName);
     jtb.build();
     auto ir_code = codegen::moduleToString(*env.getModule());

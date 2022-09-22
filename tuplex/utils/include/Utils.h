@@ -173,6 +173,15 @@ namespace std
             return seed;
         }
     };
+
+    template<typename T1, typename T2> struct hash<std::pair<T1,T2>> {
+        size_t operator()(std::pair<T1,T2> const& v) const {
+            size_t seed = 0;
+            hash_combine(seed, v.first);
+            hash_combine(seed, v.second);
+            return seed;
+        }
+    };
 }
 
 // llvm has competing debug macro -.-

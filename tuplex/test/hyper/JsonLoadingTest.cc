@@ -475,16 +475,20 @@ namespace tuplex {
 namespace tuplex {
     namespace codegen {
 
+        // recursive function to decode data, similar to flattening the type below
+        // each item should be access_path | value_type | alwaysPresent |  value : SerializableValue | present : i1
+        using access_path_t = std::vector<std::pair<std::string, python::Type>>;
+        using flattened_struct_dict_decoded_entry_t = std::tuple<std::vector<std::pair<std::string, python::Type>>, python::Type, bool, SerializableValue, llvm::Value*>;
+        using flattened_struct_dict_decoded_entry_list_t = std::vector<flattened_struct_dict_decoded_entry_t>;
+
+        // forward declaration
+        SerializableValue struct_dict_load_from_values(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& dict_type, flattened_struct_dict_decoded_entry_list_t entries, llvm::Value* value=nullptr);
+        SerializableValue struct_dict_type_serialized_memory_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* value, const python::Type& dict_type);
+
         inline llvm::Constant *cbool_const(llvm::LLVMContext &ctx, bool b) {
             auto type = ctypeToLLVM<bool>(ctx);
             return llvm::ConstantInt::get(llvm::Type::getIntNTy(ctx, type->getIntegerBitWidth()), b);
         }
-
-
-        // recursive function to decode data, similar to flattening the type below
-        // each item should be access_path | value_type | alwaysPresent |  value : SerializableValue | present : i1
-        using flattened_struct_dict_decoded_entry_t = std::tuple<std::vector<std::pair<std::string, python::Type>>, python::Type, bool, SerializableValue, llvm::Value*>;
-        using flattened_struct_dict_decided_entry_list_t = std::vector<flattened_struct_dict_decoded_entry_t>;
 
         class JSONSourceTaskBuilder {
         public:
@@ -605,7 +609,7 @@ namespace tuplex {
             };
 
             void decode(llvm::IRBuilder<>& builder,
-                        flattened_struct_dict_decided_entry_list_t& entries,
+                        flattened_struct_dict_decoded_entry_list_t& entries,
                         llvm::Value* object,
                         llvm::BasicBlock* bbSchemaMismatch,
                         const python::Type &dict_type,
@@ -1069,7 +1073,7 @@ namespace tuplex {
         }
 
         void JSONSourceTaskBuilder::decode(llvm::IRBuilder<> &builder,
-                                           tuplex::codegen::flattened_struct_dict_decided_entry_list_t &entries,
+                                           tuplex::codegen::flattened_struct_dict_decoded_entry_list_t &entries,
                                            llvm::Value *object,
                                            llvm::BasicBlock* bbSchemaMismatch,
                                            const python::Type &dict_type,
@@ -1128,12 +1132,12 @@ namespace tuplex {
                     builder.CreateBr(bbDecodeDone); // whererver builder is, continue to decode done for this item.
                     builder.SetInsertPoint(bbDecodeDone); // continue from here...
                 } else {
-
-                    // // debug: skip list for now (more complex)
-                    // if(kv_pair.valueType.isListType()) {
-                    //     std::cerr<<"skipping array decode with type="<<kv_pair.valueType.desc()<<" for now."<<std::endl;
-                    //     continue;
-                    // }
+                     // comment this, in order to invoke the list decoding (not completed yet...) -> requires serialization!
+                     // debug: skip list for now (more complex)
+                     if(kv_pair.valueType.isListType()) {
+                         std::cerr<<"skipping array decode with type="<<kv_pair.valueType.desc()<<" for now."<<std::endl;
+                         continue;
+                     }
 
                     // basically get the entry for the kv_pair.
                     logger.debug("generating code to decode " + json_access_path_to_string(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
@@ -1591,9 +1595,14 @@ namespace tuplex {
             // don't forget to free everything...
 
             // decode everything -> entries can be then used to store to a struct!
-            flattened_struct_dict_decided_entry_list_t entries; // may be runtime allcoated
+            flattened_struct_dict_decoded_entry_list_t entries; // may be runtime allcoated
             decode(builder, entries, builder.CreateLoad(obj_var), bbSchemaMismatch, _rowType, {}, true);
 
+            // now, load entries to struct type in LLVM
+            // then calculate serialized size and print it.
+            auto v = struct_dict_load_from_values(_env, builder, _rowType, entries);
+            auto s = struct_dict_type_serialized_memory_size(_env, builder, v.val, _rowType);
+            _env.printValue(builder, s.val, "size of row materialized in bytes is: ");
 
             //// => call with row type
             //parseAndPrint(builder, builder.CreateLoad(obj_var), "", true, _rowType, true, bbSchemaMismatch);
@@ -1931,6 +1940,8 @@ namespace tuplex {
         }
 
 
+        static std::unordered_map<python::Type, llvm::Type*> m;
+
         // creating struct type based on structured dictionary type
         llvm::Type *
         create_structured_dict_type(LLVMEnvironment &env, const std::string &name, const python::Type &dict_type) {
@@ -1942,6 +1953,11 @@ namespace tuplex {
                 logger.error("provided type is not a structured dict type but " + dict_type.desc());
                 return nullptr;
             }
+
+            // need a hashmap for this
+            if(m.find(dict_type) != m.end())
+                return m[dict_type];
+
 
             print_flatten_structured_dict_type(dict_type);
 
@@ -1986,10 +2002,18 @@ namespace tuplex {
 
             // adding bitmap fails type creation - super weird.
             // add bitmap elements (if needed)
+
+            // 64 bit logic
+            // if (num_option_bitmap_elements > 0)
+            //      member_types.push_back(llvm::ArrayType::get(i64Type, num_option_bitmap_elements));
+            // if (num_maybe_bitmap_elements > 0)
+            //      member_types.push_back(llvm::ArrayType::get(i64Type, num_maybe_bitmap_elements));
+
+            // i1 logic (similar to flattened tuple)
             if (num_option_bitmap_elements > 0)
-                member_types.push_back(llvm::ArrayType::get(i64Type, num_option_bitmap_elements));
+                member_types.push_back(llvm::ArrayType::get(Type::getInt1Ty(ctx), num_option_bitmap_bits));
             if (num_maybe_bitmap_elements > 0)
-                member_types.push_back(llvm::ArrayType::get(i64Type, num_maybe_bitmap_elements));
+                member_types.push_back(llvm::ArrayType::get(Type::getInt1Ty(ctx), num_maybe_bitmap_bits));
 
             // auto a = ArrayType::get(Type::getInt1Ty(ctx), num_option_bitmap_bits);
             // if(num_option_bitmap_bits > 0)
@@ -2072,8 +2096,279 @@ namespace tuplex {
 
             llvm::Type *structType = llvm::StructType::create(ctx, members, name, false);
             llvm::StructType *STy = dyn_cast<StructType>(structType);
+
+            // store in hashmap
+            m[dict_type] = structType;
+
             return structType;
         }
+
+        void retrieve_bitmap_counts(const flattened_struct_dict_entry_list_t& entries, size_t& bitmap_element_count, size_t& presence_map_element_count) {
+            // retrieve counts => i.e. how many fields are options? how many are maybe present?
+            size_t field_count = 0, option_count = 0, maybe_count = 0;
+
+            for (const auto& entry: entries) {
+                bool is_always_present = std::get<2>(entry);
+                maybe_count += !is_always_present;
+                bool is_value_optional = std::get<1>(entry).isOptionType();
+                option_count += is_value_optional;
+
+                bool is_struct_type = std::get<1>(entry).isStructuredDictionaryType();
+                field_count += !is_struct_type; // only count non-struct dict fields. -> yet the nested struct types may change the maybe count for the bitmap!
+            }
+
+
+            // let's start by allocating bitmaps for optional AND maybe types
+            size_t num_option_bitmap_bits = core::ceilToMultiple(option_count, 64ul); // multiples of 64bit
+            size_t num_maybe_bitmap_bits = core::ceilToMultiple(maybe_count, 64ul);
+            size_t num_option_bitmap_elements = num_option_bitmap_bits / 64;
+            size_t num_maybe_bitmap_elements = num_maybe_bitmap_bits / 64;
+
+            bitmap_element_count = num_option_bitmap_elements;
+            presence_map_element_count = num_maybe_bitmap_elements;
+        }
+
+        // create 64bit bitmap from 1bit vector (ceil!)
+        std::vector<llvm::Value*> create_bitmap(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const std::vector<llvm::Value*>& v) {
+            using namespace std;
+
+            auto numBitmapElements = core::ceilToMultiple(v.size(), 64ul) / 64ul; // make 64bit bitmaps
+
+            // construct bitmap using or operations
+            vector<llvm::Value*> bitmapArray;
+            for(int i = 0; i < numBitmapElements; ++i)
+                bitmapArray.emplace_back(env.i64Const(0));
+
+            // go through values and add to respective bitmap
+            for(int i = 0; i < v.size(); ++i) {
+                // get index within bitmap
+                auto bitmapPos = i;
+                assert(v[i]->getType() == env.i1Type());
+                bitmapArray[bitmapPos / 64] = builder.CreateOr(bitmapArray[bitmapPos / 64], builder.CreateShl(
+                        builder.CreateZExt(v[i], env.i64Type()),
+                        env.i64Const(bitmapPos % 64)));
+
+            }
+
+            return bitmapArray;
+        }
+
+        // generates a map mapping from access path to indices: 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
+        // if index is not need/present it's -1
+        std::unordered_map<access_path_t, std::tuple<int, int, int, int>> struct_dict_load_indices(const python::Type& dict_type) {
+            std::unordered_map<access_path_t, std::tuple<int, int, int, int>> indices;
+
+            flattened_struct_dict_entry_list_t entries;
+            flatten_recursive_helper(entries, dict_type);
+
+            size_t num_bitmap = 0, num_presence_map = 0;
+
+            retrieve_bitmap_counts(entries, num_bitmap, num_presence_map);
+            bool has_bitmap = num_bitmap > 0;
+            bool has_presence_map = num_presence_map > 0;
+
+            int current_always_present_idx = 0;
+            int current_idx = has_bitmap + has_presence_map; // potentially offset, -> bitmap is realized as i1s.
+            int current_bitmap_idx = 0;
+
+            for(auto& entry : entries) {
+                auto access_path = std::get<0>(entry);
+                auto value_type = std::get<1>(entry);
+                auto always_present = std::get<2>(entry);
+
+                int bitmap_idx = -1;
+                int maybe_idx = -1;
+                int field_idx = -1;
+                int size_idx = -1;
+
+                // manipulate indices accordingly
+                if(!always_present) {
+                    // not always present
+                    maybe_idx = current_always_present_idx++; // save cur always index, and then inc (post inc!)
+                }
+
+                if(value_type.isOptionType()) {
+                    bitmap_idx = current_bitmap_idx++;
+                    value_type = value_type.getReturnType();
+                }
+
+                // check what kind of value_type is
+                if(!noNeedToSerializeType(value_type)) {
+                    // need to serialize, so check
+                    if(value_type.isFixedSizeType()) {
+                        // only value field necessary.
+                        field_idx = current_idx++;
+                    } else {
+                        // both value and size necessary.
+                        field_idx = current_idx++;
+                        size_idx = current_idx++;
+                    }
+                }
+
+                indices[access_path] = std::make_tuple(bitmap_idx, maybe_idx, field_idx, size_idx);
+            }
+
+            return indices;
+        }
+
+        // load entries to structure
+        SerializableValue struct_dict_load_from_values(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& dict_type, flattened_struct_dict_decoded_entry_list_t entries, llvm::Value* value) {
+            using namespace llvm;
+
+            auto& ctx = env.getContext();
+            auto F = builder.GetInsertBlock()->getParent();
+
+
+            // get the corresponding type
+            auto stype = create_structured_dict_type(env, "dict_struct", dict_type);
+
+            if(!value)
+                value = env.CreateFirstBlockAlloca(builder, stype);
+
+            assert(value);
+
+            auto ptr = value;
+
+
+            // get indices for faster storage access (note: not all entries need to be present!)
+            auto indices = struct_dict_load_indices(dict_type);
+
+            std::vector<std::pair<int, llvm::Value*>> bitmap_entries;
+            std::vector<std::pair<int, llvm::Value*>> presence_entries;
+
+            size_t num_bitmap = 0, num_presence_map = 0;
+            flattened_struct_dict_entry_list_t type_entries;
+            flatten_recursive_helper(type_entries, dict_type);
+            retrieve_bitmap_counts(type_entries, num_bitmap, num_presence_map);
+            bool has_bitmap = num_bitmap > 0;
+            bool has_presence_map = num_presence_map > 0;
+
+            // go over entries and generate code to load them!
+            for(auto entry : entries) {
+                // each item should be access_path | value_type | alwaysPresent |  value : SerializableValue | present : i1
+                access_path_t access_path;
+                python::Type value_type;
+                bool always_present;
+                SerializableValue el;
+                llvm::Value* present = nullptr;
+                std::tie(access_path, value_type, always_present, el, present) = entry;
+
+
+                // fetch indices
+                // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
+                int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
+                std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(access_path);
+
+                // is it an always present element?
+                // => yes! then load it directly to the type.
+
+                llvm::BasicBlock* bbPresenceDone = nullptr, *bbPresenceStore = nullptr;
+                llvm::BasicBlock* bbStoreDone = nullptr, *bbStoreValue = nullptr;
+
+                // presence check! store only if present
+                if(present_idx >= 0) {
+                    assert(present);
+                    assert(!always_present);
+
+                    // create blocks
+                    bbPresenceDone = BasicBlock::Create(ctx, "present_check_done", F);
+                    bbPresenceStore = BasicBlock::Create(ctx, "present_store", F);
+                    builder.CreateCondBr(present, bbPresenceDone, bbPresenceStore);
+                    builder.SetInsertPoint(bbPresenceStore);
+                }
+
+                // bitmap check! store only if NOT null...
+                if(bitmap_idx >= 0) {
+                    assert(el.is_null);
+                    // create blocks
+                    bbStoreDone = BasicBlock::Create(ctx, "store_done", F);
+                    bbStoreValue = BasicBlock::Create(ctx, "store", F);
+                    builder.CreateCondBr(el.is_null, bbStoreDone, bbStoreValue);
+                    builder.SetInsertPoint(bbStoreValue);
+                }
+
+                // some checks
+                if(field_idx >= 0) {
+                    assert(el.val);
+                    auto llvm_idx = CreateStructGEP(builder, ptr, field_idx);
+                    builder.CreateStore(el.val, llvm_idx);
+                }
+
+                if(size_idx >= 0) {
+                    assert(el.size);
+                    auto llvm_idx = CreateStructGEP(builder, ptr, size_idx);
+                    builder.CreateStore(el.size, llvm_idx);
+                }
+
+                if(bitmap_idx >= 0) {
+                    builder.CreateBr(bbStoreDone);
+                    builder.SetInsertPoint(bbStoreDone);
+                    bitmap_entries.push_back(std::make_pair(bitmap_idx, el.is_null));
+                }
+
+                if(present_idx >= 0) {
+                    builder.CreateBr(bbPresenceDone);
+                    builder.SetInsertPoint(bbPresenceDone);
+                    presence_entries.push_back(std::make_pair(bitmap_idx, present));
+                }
+            }
+
+            // create bitmaps and store them away...
+            // auto bitmap = create_bitmap(env, builder, bitmap_entries);
+            // auto presence_map = create_bitmap(env, builder, presence_entries);
+
+            //  // // 64 bit bitmap logic
+            //                // // extract bit (pos)
+            //                // auto structBitmapIdx = builder.CreateStructGEP(tuplePtr, 0); // bitmap comes first!
+            //                // auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0, bitmapPos / 64);
+            //
+            //                // i1 array logic
+            //                // auto structBitmapIdx = builder.CreateStructGEP(tuplePtr, 0); // bitmap comes first!
+            //                auto structBitmapIdx = CreateStructGEP(builder, tuplePtr, 0ull); // bitmap comes first!
+            //                auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
+            //                builder.CreateStore(value.is_null, bitmapIdx);
+
+            // first comes bitmap, then presence map
+            if(has_bitmap) {
+                for(unsigned i = 0; i < bitmap_entries.size(); ++i) {
+                    auto bitmapPos = bitmap_entries[i].first;
+                    auto structBitmapIdx = CreateStructGEP(builder, ptr, 0ull); // bitmap comes first!
+                    auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
+                    builder.CreateStore(bitmap_entries[i].second, bitmapIdx);
+                }
+            }
+
+            if(has_bitmap) {
+                for(unsigned i = 0; i < presence_entries.size(); ++i) {
+                    auto bitmapPos = presence_entries[i].first;
+                    auto structBitmapIdx = CreateStructGEP(builder, ptr, 1ull); // bitmap comes first!
+                    auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
+                    builder.CreateStore(presence_entries[i].second, bitmapIdx);
+                }
+            }
+
+            return SerializableValue(ptr, nullptr, nullptr);
+        }
+
+        SerializableValue struct_dict_type_serialized_memory_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* value, const python::Type& dict_type) {
+            // get the corresponding type
+            auto stype = create_structured_dict_type(env, "dict_struct", dict_type);
+
+            if(value->getType() != stype && value->getType() != stype->getPointerTo())
+                throw std::runtime_error("value has not correct type!");
+
+            auto is_ptr = value->getType() == stype->getPointerTo();
+
+            // get flattened structure!
+            flattened_struct_dict_entry_list_t entries;
+            flatten_recursive_helper(entries, dict_type);
+
+            // go over entries & fetch from pointer data to encode!
+            return {};
+        }
+
+        SerializableValue struct_dict_type_to_memory(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* value, const python::Type& dict_type);
+
 
 
         SerializableValue struct_dict_get_item(LLVMEnvironment &env, llvm::Value *obj, const python::Type &dict_type,

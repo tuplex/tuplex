@@ -2961,7 +2961,44 @@ TEST_F(WrapperTest, Subset311Aggregate) {
     }
 }
 
+TEST_F(WrapperTest, NonConformingResolve) {
+    using namespace tuplex;
 
+    // use here a resolve operator that doesn't trigger
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+    std::string udf_throwing = "def f(a, b):\n"
+                              "  return (a, a / b)";
+    std::string udf_resolve = "def h(a, b):\n"
+                                "  return 'some string'";
+
+    auto initial_pickled = python::pickleObject(python::getMainModule(), PyLong_FromLong(0));
+
+    auto list = PyList_New(2);
+    auto tuple1 = PyTuple_New(2);
+    PyTuple_SetItem(tuple1, 0, PyLong_FromLong(1));
+    PyTuple_SetItem(tuple1, 1, PyLong_FromLong(0));
+    auto tuple2 = PyTuple_New(2);
+    PyTuple_SetItem(tuple2, 0, PyLong_FromLong(1));
+    PyTuple_SetItem(tuple2, 1, PyLong_FromLong(1));
+    PyList_SetItem(list, 0, tuple1);
+    PyList_SetItem(list, 1, tuple2);
+    auto data_list = py::reinterpret_borrow<py::list>(list);
+    PythonContext ctx("", "", ctx_opts);
+    {
+        ctx.parallelize(data_list)
+        .map(udf_throwing, "")
+        .resolve(ecToI64(ExceptionCode::ZERODIVISIONERROR), udf_resolve, "").show();
+
+        std::cout<<std::endl; // flush
+    }
+}
 
 
 //// debug any python module...

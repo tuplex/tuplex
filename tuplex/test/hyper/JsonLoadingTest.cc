@@ -2920,6 +2920,12 @@ TEST_F(HyperTest, BasicStructLoad) {
 
     auto row_type = normal_case_type;//general_case_type;
     row_type = general_case_type; // <-- this should match MOST of the rows...
+
+    // could do here a counter experiment: I.e., how many general case rows? how many normal case rows? how many fallback rows?
+    // => then also measure how much memory is required!
+
+    // => can perform example experiments for the 10 different files and plot it out.
+
     row_type = normal_case_type;
 
     // codegen here

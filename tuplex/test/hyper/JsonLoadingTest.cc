@@ -485,6 +485,14 @@ namespace tuplex {
         SerializableValue struct_dict_load_from_values(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& dict_type, flattened_struct_dict_decoded_entry_list_t entries, llvm::Value* value=nullptr);
         SerializableValue struct_dict_type_serialized_memory_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* value, const python::Type& dict_type);
 
+        llvm::Type* create_structured_dict_type(LLVMEnvironment &env, const std::string &name, const python::Type &dict_type);
+
+        // store functions
+        void struct_dict_store_present(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* is_present);
+        void struct_dict_store_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* value);
+        void struct_dict_store_isnull(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* is_null);
+        void struct_dict_store_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* size);
+
         inline llvm::Constant *cbool_const(llvm::LLVMContext &ctx, bool b) {
             auto type = ctypeToLLVM<bool>(ctx);
             return llvm::ConstantInt::get(llvm::Type::getIntNTy(ctx, type->getIntegerBitWidth()), b);
@@ -609,7 +617,8 @@ namespace tuplex {
             };
 
             void decode(llvm::IRBuilder<>& builder,
-                        flattened_struct_dict_decoded_entry_list_t& entries,
+                        llvm::Value* dict_ptr,
+                        const python::Type& dict_ptr_type,
                         llvm::Value* object,
                         llvm::BasicBlock* bbSchemaMismatch,
                         const python::Type &dict_type,
@@ -1073,7 +1082,8 @@ namespace tuplex {
         }
 
         void JSONSourceTaskBuilder::decode(llvm::IRBuilder<> &builder,
-                                           tuplex::codegen::flattened_struct_dict_decoded_entry_list_t &entries,
+                                           llvm::Value* dict_ptr,
+                                           const python::Type& dict_ptr_type,
                                            llvm::Value *object,
                                            llvm::BasicBlock* bbSchemaMismatch,
                                            const python::Type &dict_type,
@@ -1086,6 +1096,7 @@ namespace tuplex {
             auto& logger = Logger::instance().logger("codegen");
             auto& ctx = _env.getContext();
             assert(dict_type.isStructuredDictionaryType());
+            assert(dict_ptr && dict_ptr->getType()->isPointerTy());
 
             for (const auto& kv_pair: dict_type.get_struct_pairs()) {
                 vector <pair<string, python::Type>> access_path = prefix; // = prefix
@@ -1111,11 +1122,14 @@ namespace tuplex {
 
                     // special case: if include maybe structs as well, add entry. (should not get serialized)
                     if (include_maybe_structs && !kv_pair.alwaysPresent) {
+
+                        // store presence into struct dict ptr
+                        struct_dict_store_present(_env, builder, dict_ptr, dict_ptr_type, access_path, is_object);
                         // present if is_object == true
                         // --> as for value, use a dummy.
-                        entries.push_back(
-                                make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent, SerializableValue(),
-                                           is_object));
+                        // entries.push_back(
+                        //        make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent, SerializableValue(),
+                        //                   is_object));
                     }
 
                     // create now some basic blocks to decode ON demand.
@@ -1128,7 +1142,7 @@ namespace tuplex {
                     auto item = builder.CreateLoad(item_var);
                     // recurse using new prefix
                     // --> similar to flatten_recursive_helper(entries, kv_pair.valueType, access_path, include_maybe_structs);
-                    decode(builder, entries, item, bbSchemaMismatch, kv_pair.valueType, access_path, include_maybe_structs, options);
+                    decode(builder, dict_ptr, dict_ptr_type, item, bbSchemaMismatch, kv_pair.valueType, access_path, include_maybe_structs, options);
                     builder.CreateBr(bbDecodeDone); // whererver builder is, continue to decode done for this item.
                     builder.SetInsertPoint(bbDecodeDone); // continue from here...
                 } else {
@@ -1145,7 +1159,12 @@ namespace tuplex {
                     llvm::Value* value_is_present = nullptr;
                     llvm::Value* rc = nullptr; // can ignore rc -> parse escapes to mismatch...
                     std::tie(rc, value_is_present, decoded_value) = decodePrimitiveFieldFromObject(builder, object, key, kv_pair, options, bbSchemaMismatch);
-                    entries.push_back(make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent, decoded_value, value_is_present));
+
+                    // store!
+                    struct_dict_store_value(_env, builder, dict_ptr, dict_ptr_type, access_path, decoded_value.val);
+                    struct_dict_store_size(_env, builder, dict_ptr, dict_ptr_type, access_path, decoded_value.size);
+                    struct_dict_store_isnull(_env, builder, dict_ptr, dict_ptr_type, access_path, decoded_value.is_null);
+                    // entries.push_back(make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent, decoded_value, value_is_present));
                 }
             }
         }
@@ -1200,12 +1219,13 @@ namespace tuplex {
             builder.CreateCondBr(keyPresent, bbPresent, bbNext);
 
             builder.SetInsertPoint(bbPresent);
+            _env.debugPrint(builder, "key " + key + " is present");
             auto is_null = value.is_null ? value.is_null : _env.i1Const(false);
             builder.CreateCondBr(is_null, bbNext, bbNotNull);
 
             builder.SetInsertPoint(bbNotNull);
-            // if(value.val && !valueType.isStructuredDictionaryType())
-            //    _env.printValue(builder, value.val, "decoded key=" + key + " as " + valueType.desc());
+             if(value.val && !valueType.isStructuredDictionaryType())
+                _env.printValue(builder, value.val, "decoded key=" + key + " as " + valueType.desc());
             builder.CreateBr(bbNext);
 
             builder.SetInsertPoint(bbNext);
@@ -1594,15 +1614,39 @@ namespace tuplex {
 
             // don't forget to free everything...
 
+            // alloc variable
+            auto struct_dict_type = create_structured_dict_type(_env, "dict_struct", _rowType);
+            auto row_var = _env.CreateFirstBlockAlloca(builder, struct_dict_type);
+
             // decode everything -> entries can be then used to store to a struct!
             flattened_struct_dict_decoded_entry_list_t entries; // may be runtime allcoated
-            decode(builder, entries, builder.CreateLoad(obj_var), bbSchemaMismatch, _rowType, {}, true);
+            decode(builder, row_var, _rowType, builder.CreateLoad(obj_var), bbSchemaMismatch, _rowType, {}, true);
+
+
+            BasicBlock* bbLoad = BasicBlock::Create(ctx, "print_now", builder.GetInsertBlock()->getParent());
+            builder.CreateBr(bbLoad);
+            builder.SetInsertPoint(bbLoad);
+            // go over first entry and print it
+            auto& entry = entries.front();
+            _env.debugPrint(builder, "hello");
+//            {
+//                access_path_t access_path;
+//                python::Type value_type;
+//                bool always_present;
+//                SerializableValue el;
+//                llvm::Value* present = nullptr;
+//                std::tie(access_path, value_type, always_present, el, present) = entry;
+//                auto key = json_access_path_to_string(access_path, value_type, always_present);
+//                _env.printValue(builder, el.val, "value");
+//                // printValueInfo(builder, key, value_type, present, el);
+//            }
+
 
             // now, load entries to struct type in LLVM
             // then calculate serialized size and print it.
-            auto v = struct_dict_load_from_values(_env, builder, _rowType, entries);
-            auto s = struct_dict_type_serialized_memory_size(_env, builder, v.val, _rowType);
-            _env.printValue(builder, s.val, "size of row materialized in bytes is: ");
+            //auto v = struct_dict_load_from_values(_env, builder, _rowType, entries);
+            //auto s = struct_dict_type_serialized_memory_size(_env, builder, v.val, _rowType);
+            // _env.printValue(builder, s.val, "size of row materialized in bytes is: ");
 
             //// => call with row type
             //parseAndPrint(builder, builder.CreateLoad(obj_var), "", true, _rowType, true, bbSchemaMismatch);
@@ -1778,7 +1822,6 @@ namespace tuplex {
             builder.CreateBr(bLoopHeader);
 
 
-
             // ---- loop condition ---
             // go from current block to header
             builder.SetInsertPoint(bLoopHeader);
@@ -1815,8 +1858,12 @@ namespace tuplex {
             // go to next row
             moveToNextRow(builder, parser);
 
-            // link back to header
-            builder.CreateBr(bLoopHeader);
+            // this will only work when allocating everything local!
+            // -> maybe better craft a separate process row function?
+
+            // // link back to header
+            // builder.CreateBr(bLoopHeader);
+            builder.CreateBr(bLoopExit);
 
             // ---- post loop block ----
             // continue in loop exit.
@@ -2218,23 +2265,15 @@ namespace tuplex {
         }
 
         // load entries to structure
-        SerializableValue struct_dict_load_from_values(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& dict_type, flattened_struct_dict_decoded_entry_list_t entries, llvm::Value* value) {
+        SerializableValue struct_dict_load_from_values(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& dict_type, flattened_struct_dict_decoded_entry_list_t entries, llvm::Value* ptr) {
             using namespace llvm;
 
             auto& ctx = env.getContext();
             auto F = builder.GetInsertBlock()->getParent();
 
-
             // get the corresponding type
             auto stype = create_structured_dict_type(env, "dict_struct", dict_type);
-
-            if(!value)
-                value = env.CreateFirstBlockAlloca(builder, stype);
-
-            assert(value);
-
-            auto ptr = value;
-
+            assert(ptr);
 
             // get indices for faster storage access (note: not all entries need to be present!)
             auto indices = struct_dict_load_indices(dict_type);
@@ -2362,6 +2401,119 @@ namespace tuplex {
             return SerializableValue(ptr, nullptr, nullptr);
         }
 
+        // helper function re type
+        int bitmap_field_idx(const python::Type& dict_type) {
+            // if has bitmap then
+            flattened_struct_dict_entry_list_t entries;
+            flatten_recursive_helper(entries, dict_type);
+            for(auto& entry : entries)
+                if(std::get<1>(entry).isOptionType())
+                    return 0;
+            return -1;
+        }
+
+        int presence_map_field_idx(const python::Type& dict_type) {
+            // if has bitmap then
+            flattened_struct_dict_entry_list_t entries;
+            flatten_recursive_helper(entries, dict_type);
+
+            bool has_bitmap = false;
+            bool has_presence = false;
+            for(auto& entry : entries) {
+                if(std::get<1>(entry).isOptionType())
+                   has_bitmap = true;
+                if(!std::get<2>(entry))
+                    has_presence = true;
+            }
+            if(has_bitmap && has_presence)
+                return 1;
+            if(has_presence)
+                return 0;
+            return -1;
+        }
+
+        // --- store functions ---
+        void struct_dict_store_present(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* is_present) {
+            auto indices = struct_dict_load_indices(dict_type);
+            // fetch indices
+            // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
+            int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
+            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
+
+            // store only if valid present_idx
+            if(present_idx >= 0) {
+                env.printValue(builder, is_present, "storing away is_present at index " + std::to_string(present_idx));
+
+                // make sure type has presence map index
+                auto p_idx = presence_map_field_idx(dict_type);
+                assert(p_idx >= 0);
+                assert(is_present && is_present->getType() == env.i1Type());
+                // i1 store logic
+                auto bitmapPos = present_idx;
+                auto structBitmapIdx = CreateStructGEP(builder, ptr, (size_t)p_idx); // bitmap comes first!
+                auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
+                builder.CreateStore(is_present, bitmapIdx);
+            }
+        }
+        // --- store functions ---
+        void struct_dict_store_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* value) {
+            auto indices = struct_dict_load_indices(dict_type);
+            // fetch indices
+            // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
+            int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
+            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
+
+            // store only if valid present_idx
+            if(field_idx >= 0) {
+                env.printValue(builder, value, "storing away value at index " + std::to_string(field_idx));
+
+                // store
+                auto llvm_idx = CreateStructGEP(builder, ptr, field_idx);
+                builder.CreateStore(value, llvm_idx);
+            }
+        }
+
+        void struct_dict_store_isnull(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* is_null) {
+            auto indices = struct_dict_load_indices(dict_type);
+            // fetch indices
+            // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
+            int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
+            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
+
+            // store only if valid present_idx
+            if(bitmap_idx >= 0) {
+                env.printValue(builder, is_null, "storing away is_null at index " + std::to_string(bitmap_idx));
+
+                // make sure type has presence map index
+                auto b_idx = bitmap_field_idx(dict_type);
+                assert(b_idx >= 0);
+                assert(is_null && is_null->getType() == env.i1Type());
+                // i1 store logic
+                auto bitmapPos = present_idx;
+                auto structBitmapIdx = CreateStructGEP(builder, ptr, (size_t)b_idx); // bitmap comes first!
+                auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
+                builder.CreateStore(is_null, bitmapIdx);
+            }
+        }
+
+        void struct_dict_store_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* size) {
+            auto indices = struct_dict_load_indices(dict_type);
+
+            // fetch indices
+            // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
+            int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
+            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
+
+            // store only if valid present_idx
+            if(size_idx >= 0) {
+                env.printValue(builder, size, "storing away size at index " + std::to_string(size_idx));
+
+                // store
+                auto llvm_idx = CreateStructGEP(builder, ptr, field_idx);
+                builder.CreateStore(size, llvm_idx);
+            }
+        }
+
         SerializableValue struct_dict_type_serialized_memory_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* value, const python::Type& dict_type) {
             // get the corresponding type
             auto stype = create_structured_dict_type(env, "dict_struct", dict_type);
@@ -2376,7 +2528,8 @@ namespace tuplex {
             flatten_recursive_helper(entries, dict_type);
 
             // go over entries & fetch from pointer data to encode!
-            return {};
+            env.debugPrint(builder, "not yet implemented");
+            return SerializableValue(env.i64Const(-1), nullptr, nullptr);
         }
 
         SerializableValue struct_dict_type_to_memory(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* value, const python::Type& dict_type);
@@ -2562,6 +2715,9 @@ TEST_F(HyperTest, StructLLVMType) {
 
     //  path = "../resources/2011-11-26-13.sample3.json"; // -> single row, the parse should trivially work.
 
+    // tiny json example to simplify things
+    path = "../resources/ndjson/example1.json";
+
 
     auto raw_data = fileToString(path);
 
@@ -2670,6 +2826,18 @@ TEST_F(HyperTest, BasicStructLoad) {
     //  path = "../resources/2011-11-26-13.sample3.json"; // -> single row, the parse should trivially work.
 
 
+    // tiny json example to simplify things
+    path = "../resources/ndjson/example1.json";
+
+
+    // mini example in order to analyze code
+    path = "test.json";
+    auto content = "{\"column1\": {\"a\": 10}}\n"
+                   "{\"column1\": {\"a\": 10}}\n"
+                   "{\"column1\": {\"a\": 10}}";
+    stringToFile(path, content);
+
+    // now, regular routine...
     auto raw_data = fileToString(path);
 
     const char *pointer = raw_data.data();

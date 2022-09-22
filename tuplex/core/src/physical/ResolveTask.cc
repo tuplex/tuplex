@@ -379,6 +379,7 @@ default:
             case ExceptionCode::BADPARSE_STRING_INPUT:
             case ExceptionCode::NORMALCASEVIOLATION:
             case ExceptionCode::PYTHON_PARALLELIZE:
+            case ExceptionCode::GENERALCASEVIOLATION:
                 return true;
             default:
                 return false;

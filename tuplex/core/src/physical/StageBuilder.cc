@@ -1162,8 +1162,17 @@ namespace tuplex {
                     case LogicalOperatorType::RESOLVE: {
                         // ==> this means slow code path needs to be generated as well!
                         auto rop = dynamic_cast<ResolveOperator *>(node);
-                        slowPip->addResolver(rop->ecCode(), rop->getID(), rop->getUDF(), _normalCaseThreshold, _allowUndefinedBehavior,
-                                             _sharedObjectPropagation);
+
+                        // special case: resolver schema not compatible
+                        if(!rop->isCompatibleWithThrowingOperator()) {
+                            // always deoptimize here
+                            logger.warn("found resolve operator whose schema " + rop->resolverSchema().getRowType().desc() + " is not compatible with general case schema of operator to resolve.");
+                            slowPip->addNonSchemaConformingResolver(rop->ecCode(), rop->getID());
+                        } else {
+                            // regular resolver add
+                            slowPip->addResolver(rop->ecCode(), rop->getID(), rop->getUDF(), _normalCaseThreshold, _allowUndefinedBehavior,
+                                                 _sharedObjectPropagation);
+                        }
                         break;
                     }
                     case LogicalOperatorType::IGNORE: {

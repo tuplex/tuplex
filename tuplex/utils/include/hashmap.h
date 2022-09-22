@@ -88,6 +88,9 @@ extern int hashmap_fastput(map_t in, char* key, int key_length, any_t value) __a
  */
 extern int hashmap_get(map_t in, const char* key, uint64_t keylen, any_t *arg)  __attribute__((used));
 
+//! get element and remove if available, else MAP_MISSING.
+extern int hashmap_get_and_move(map_t in, const char* key, uint64_t keylen, any_t *arg);
+
 /*
  * Remove an element from the hashmap. Return MAP_OK or MAP_MISSING.
  */

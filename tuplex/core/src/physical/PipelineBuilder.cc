@@ -34,6 +34,7 @@ namespace tuplex {
         }
 
         // reusable function b.c. needs to be done in resolver too.
+        // @TODO: fix this function, it's not doing proper upcasting...
         FlattenedTuple castRow(llvm::IRBuilder<>& builder, const FlattenedTuple& row, const python::Type& target_type) {
 
             auto env = row.getEnv();
@@ -213,6 +214,119 @@ namespace tuplex {
             return true;
         }
 
+        bool PipelineBuilder::addNonSchemaConformingResolver(const ExceptionCode &ec, const int64_t operatorID) {
+            // special case here:
+            using namespace std;
+            using namespace llvm;
+            auto& logger = Logger::instance().logger("PipelineBuilder");
+            auto& context = env().getContext();
+
+            //             assignToVariable(builder, "exceptionOperatorID", env().i64Const(operatorID));
+            //            assignToVariable(builder, "exceptionCode", env().i64Const(ecToI64(ExceptionCode::NORMALCASEVIOLATION)));
+
+            assert(!_exceptionBlocks.empty());
+
+            BasicBlock* lastNormalBlock = _lastBlock; // last block might be modified by filter & Co.
+
+            // create new tupleVal
+            IRBuilder<> variableBuilder(_constructorBlock);
+
+            // current exception block
+            IRBuilder<> builder(_exceptionBlocks.back());
+
+            // remove block from the ones to be connected with the end!
+            _exceptionBlocks.erase(_exceptionBlocks.end() - 1);
+
+            // compare last exception code
+            Value* lastExceptionCode = getVariable(builder, "exceptionCode");
+            Value* lastOperatorID = getVariable(builder, "exceptionOperatorID");
+            // check that the hierarchy is observed.
+            Value* resolveCond = _env->matchExceptionHierarchy(builder, lastExceptionCode, ec);
+
+            // create two blocks:
+            // 1) block where to resolve exception
+            // 2) new except block
+            auto func = _constructorBlock->getParent(); assert(func);
+            BasicBlock* bbResolverMatch = BasicBlock::Create(context, "resolver_match", func);
+            BasicBlock* bbException = createExceptionBlock();
+            // create continuation block (i.e. when exception was successfully resolved)
+            BasicBlock* bbNextBlock = BasicBlock::Create(context, "resolved_block", func);
+
+            // branch according to resolver...
+            builder.CreateCondBr(resolveCond, bbResolverMatch, bbException);
+
+
+            // --- apply to resolver
+            builder.SetInsertPoint(bbResolverMatch);
+
+            // call function, if fails => go to new exception block
+            // if succeeds, go to continuation block
+            // ==> call depends on operation...
+
+
+//            // compile dependent on udf
+//            auto cf = udf.isCompiled() ? const_cast<UDF&>(udf).compile(env()) :
+//                      const_cast<UDF&>(udf).compileFallback(env(), _constructorBlock, _destructorBlock);
+
+//            // stop if compilation didn't succeed
+//            if(!cf.good())
+//                return false;
+
+            switch(_lastOperatorType) {
+                case LogicalOperatorType::MAP: {
+
+                    // _env->debugPrint(builder, "resolving exception for MAP operator");
+
+                    // store operatorID (i.e., resolver can also throw exceptions!)
+                    assignToVariable(builder, "exceptionOperatorID", env().i64Const(operatorID));
+                    assignToVariable(builder, "exceptionCode", env().i64Const(ecToI64(ExceptionCode::GENERALCASEVIOLATION)));
+
+                    // perform cond br
+                    BasicBlock* bbContinue = BasicBlock::Create(env().getContext(), "ok", builder.GetInsertBlock()->getParent());
+                    builder.CreateCondBr(env().i1Const(true), bbException, bbContinue);
+                    builder.SetInsertPoint(bbContinue);
+                    env().debugPrint(builder, "this message should NEVER appear");
+                    //// simply call function
+                    //auto resVal = _lastTupleResultVar; // i.e. the output of the last tuple (just overwrite it)
+                    //FlattenedTuple resultRow = _lastRowInput;// cf.callWithExceptionHandler(builder, _lastRowInput, resVal, bbException, getPointerToVariable(builder, "exceptionCode"));
+                    // FlattenedTuple castRow(llvm::IRBuilder<>& builder, const FlattenedTuple& row, const python::Type& target_type)
+                    //resultRow = castRow(builder, resultRow, _lastSchemaType);
+                    // check that the output type is the same as the expected one!
+                    //if(resultRow.getTupleType() != _lastRowResult.getTupleType())
+                    //    throw std::runtime_error("result type " + resultRow.getTupleType().desc() + "of resolver does not match type of previous operator " + _lastRowResult.getTupleType().desc());
+
+                    //// store result into var
+                    //resultRow.storeTo(builder, _lastTupleResultVar);
+
+                    // branch to continuation block
+                    builder.CreateBr(bbNextBlock);
+                    break;
+                }
+                default: {
+                    logger.error("unknown operator type " + to_string((int)_lastOperatorType) + " found before resolver, can't generate code for it.");
+                    throw std::runtime_error("unknown operator in addResolver");
+                }
+            }
+
+            // ----
+
+            // link last (normal) block to continuation block
+            builder.SetInsertPoint(lastNormalBlock);
+            builder.CreateBr(bbNextBlock);
+
+            // fetch last row in next block
+            builder.SetInsertPoint(bbNextBlock);
+            // update wrapper (through variable load)
+            _lastRowResult = FlattenedTuple::fromLLVMStructVal(&env(), builder,
+                                                               _lastTupleResultVar,
+                                                               _lastRowResult.getTupleType());
+
+            // last block is continuation block!
+            _lastBlock = bbNextBlock;
+
+            return true;
+        }
+
         bool PipelineBuilder::addResolver(const tuplex::ExceptionCode &ec, const int64_t operatorID,
                                           const tuplex::UDF &udf, double normalCaseThreshold, bool allowUndefinedBehavior, bool sharedObjectPropagation) {
             using namespace std;
@@ -236,9 +350,7 @@ namespace tuplex {
             // compare last exception code
             Value* lastExceptionCode = getVariable(builder, "exceptionCode");
             Value* lastOperatorID = getVariable(builder, "exceptionOperatorID");
-            // old:
-            // Value* resolveCond = builder.CreateICmpEQ(lastExceptionCode, env().i64Const(ecToI32(ec)));
-            // new:
+            // check that the hierarchy is observed.
             Value* resolveCond = _env->matchExceptionHierarchy(builder, lastExceptionCode, ec);
 
             // create two blocks:

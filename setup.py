@@ -166,7 +166,29 @@ from setuptools import Command
 import setuptools.command.install
 import setuptools.command.develop
 
-build_config = {'BUILD_TYPE' : 'Release'}
+
+# check environment variables and print
+build_type = None
+if os.environ.get('TUPLEX_BUILD_TYPE', None):
+    build_type = os.environ['TUPLEX_BUILD_TYPE']
+    logging.info('Found TUPLEX_BUILD_TYPE environment variable, setting C extension build type to {}'.format(build_type))
+elif os.environ.get('CMAKE_BUILD_TYPE', None):
+    build_type = os.environ['CMAKE_BUILD_TYPE']
+    logging.info('Found CMAKE_BUILD_TYPEenvironment variable, setting C extension build type to {}'.format(build_type))
+else:
+    build_type = 'Release' # per default
+
+supported_modes = ['Debug', 'Release', 'RelWithDebInfo', 'MinSizeRel', 'tsan', 'asan']
+if build_type.lower() not in [t.lower() for t in supported_modes]:
+    logging.error('Unsupported build type {} found, aborting build.'.format(build_type))
+    sys.exit(1)
+else:
+    # lookup spelling
+    d = dict(zip([t.lower() for t in supported_modes], supported_modes))
+    build_type = d[build_type.lower()]
+
+build_config = {'BUILD_TYPE' : build_type}
+logging.info('Building Tuplex with build type {}'.format(build_type))
 
 class DevelopCommand(setuptools.command.develop.develop):
 
@@ -327,12 +349,23 @@ class CMakeBuild(build_ext):
             macos_build_target = '10.13'
             try:
                 macos_version = platform.mac_ver()[0]
-                macos_major_version = int(macos_version.split()[0])
+                macos_major_version = int(macos_version.split('.')[0])
                 if macos_major_version >= 11:
                     macos_build_target = '{}.0'.format(macos_major_version)
                 logging.info("Found macOS {}, using build target {}".format(macos_version, macos_build_target))
-            except:
-                logging.error('Could not detect macos version, defaulting to macos 10.13 as build target')
+            except Exception as e:
+                logging.error('Could not detect macos version via python, details: {}', e)
+
+                try:
+                    # use process MACOS_VERSION=$(sw_vers -productVersion)
+                    process_output = subprocess.Popen("sw_vers -productVersion", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8').communicate()
+                    out = process_output[0].strip()
+                    logging.info('Detected MacOS version {}'.format(out))
+                    macos_major_version = int(out.split('.')[0])
+                    if macos_major_version >= 11:
+                        macos_build_target = '{}.0'.format(macos_major_version)
+                except:
+                    logging.error('Could not detect macos version, defaulting to macos 10.13 as build target')
 
             # get mac OS version
             cmake_args.append('-DCMAKE_OSX_DEPLOYMENT_TARGET={}'.format(macos_build_target))

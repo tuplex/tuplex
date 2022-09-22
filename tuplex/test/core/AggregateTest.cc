@@ -398,6 +398,7 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
     opt.set("tuplex.executorMemory", "2G");
     opt.set("tuplex.driverMemory", "2G");
     opt.set("tuplex.executorCount", "0");
+    opt.set("tuplex.executorCount", "16");
 
     // ds = c.csv('311_subset.csv')
     // def combine_udf(a, b):
@@ -434,8 +435,4 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
 
     std::cout<<"====\n"<<pluralize(total_rows, "row")<<std::endl;
     EXPECT_EQ(total_rows, 2000); // this should work
-    // the counts are off...
-    // ==> need to fix this!
-    // i.e., small subset should have 120k rows in total...
-    // micro should have 10k rows in total....
 }

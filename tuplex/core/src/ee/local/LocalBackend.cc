@@ -80,6 +80,27 @@ namespace tuplex {
         initExecutors(_options);
     }
 
+    static int count_rows(int64_t* counter, hashmap_element* entry) {
+
+        if(entry->in_use) {
+            auto data = (uint8_t*)entry->data; // bucket data. First is always an int64_t holding how many rows there are.
+            if(!data) {
+                std::cerr<<"encountered nullptr as bucket"<<std::endl;
+                return MAP_OK;
+            }
+            *counter += *((uint64_t*)(data + 8));
+        }
+
+        return MAP_OK;
+    }
+
+    void print_hashmap(map_t hm) {
+        auto& logger = Logger::instance().defaultLogger();
+        int64_t counter = 0;
+        hashmap_iterate(hm, reinterpret_cast<PFany>(count_rows), &counter);
+        logger.info("In total " + std::to_string(counter) + " rows stored (" + std::to_string(hashmap_length(hm)) + ")");
+    }
+
     LocalBackend::~LocalBackend() {
 
         // remove partitions belonging to context of backend...
@@ -1236,6 +1257,12 @@ namespace tuplex {
                                        true);
             logger().info("created combined normal-case result in " + std::to_string(timer.time()) + "s");
             hasNormalHashSink = true;
+
+            // // debug: count rows
+            // if(hsink->hm) {
+            //     print_hashmap(hsink->hm);
+            // }
+
         }
 
         Timer timer;
@@ -1461,6 +1488,27 @@ namespace tuplex {
         logger().info("Created " + pluralize(resolveTasks.size(), "resolve task") + " in " + std::to_string(timer.time()) + "s");
         logger().info(std::to_string(resolveTasks.size()) + "/" + pluralize(tasks.size(), "task") + " require executing the slow path.");
         timer.reset();
+
+
+        // check that each task has its own hashtable/sink
+        if(hashOutput) {
+            std::set<uintptr_t> S_hm_ptrs;
+            size_t num_tasks = resolveTasks.size() + tasks_result.size();
+
+            for(auto& t : resolveTasks) {
+                auto rtask = (ResolveTask*)t;
+                assert(rtask->hashTableSink());
+                S_hm_ptrs.insert(reinterpret_cast<uintptr_t>(rtask->hashTableSink()->hm));
+            }
+
+            for(auto& t : tasks_result) {
+                auto task = (TransformTask*)t;
+                assert(task->hashTableSink());
+                S_hm_ptrs.insert(reinterpret_cast<uintptr_t>(task->hashTableSink()->hm));
+            }
+
+            assert(S_hm_ptrs.size() == num_tasks);
+        }
 
         // add all resolved tasks to the result
         // cout<<"*** need to compute "<<resolveTasks.size()<<" resolve tasks ***"<<endl;
@@ -1712,20 +1760,78 @@ namespace tuplex {
         astage->setResultSet(std::make_shared<ResultSet>(rs->schema(), pw.getOutputPartitions(true)));
     }
 
-    // merge buckets and delete them then...
-    uint8_t* merge_buckets(uint8_t* bucketA, uint8_t* bucketB) {
+//    // merge buckets and delete them then...
+//    uint8_t* merge_buckets(uint8_t* bucketA, uint8_t* bucketB) {
+//        // if one is null, just return the other
+//        if(!bucketA && !bucketB)
+//            return nullptr;
+//        if(bucketA && !bucketB)
+//            return bucketA;
+//        if(!bucketA && bucketB)
+//            return bucketB;
+//
+//        // both are valid
+//        assert(bucketA && bucketB);
+//        assert(bucketA != bucketB);
+//
+//
+//        // extract size, num rows etc. and merge
+//        uint64_t infoA = *(uint64_t*)bucketA;
+//        auto bucket_size_A = infoA & 0xFFFFFFFF;
+//        auto num_elements_A = (infoA >> 32ul);
+//        uint64_t infoB = *(uint64_t*)bucketB;
+//        auto bucket_size_B = infoB & 0xFFFFFFFF;
+//        auto num_elements_B = (infoB >> 32ul);
+//
+//        // -8 bytes to not double count info
+//        auto bucket_size = bucket_size_A + bucket_size_B - sizeof(int64_t);
+//        auto num_elements = num_elements_A + num_elements_B;
+//        uint64_t info = (num_elements << 32ul) | bucket_size;
+//
+//        // realloc and copy contents to end of bucket...
+//        auto bucket = (uint8_t*)malloc(bucket_size);
+//        *(uint64_t*)bucket = info;
+//
+//        // copy bucketA contents
+//        memcpy(bucket + sizeof(int64_t), bucketA + sizeof(int64_t), bucket_size_A - sizeof(int64_t));
+//        // copy bucketB contents
+//        memcpy(bucket + sizeof(int64_t) + bucket_size_A - sizeof(int64_t), bucketB + sizeof(int64_t), bucket_size_B - sizeof(int64_t));
+//        free(bucketA);
+//        free(bucketB);
+//        bucketA = nullptr;
+//        bucketB = nullptr;
+//        return bucket;
+//    }
+
+    // merge to first bucket (realloc, free). Second bucket is read-only.
+    uint8_t* merge_buckets(uint8_t** bucketA_ptr, const uint8_t* bucketB) {
+        assert(bucketA_ptr);
+        auto bucketA = *bucketA_ptr;
+
+        if(bucketA == bucketB)
+            return bucketA;
+
         // if one is null, just return the other
         if(!bucketA && !bucketB)
             return nullptr;
         if(bucketA && !bucketB)
             return bucketA;
-        if(!bucketA && bucketB)
-            return bucketB;
+        if(!bucketA && bucketB) {
+            // make a copy of bucketB
+            uint64_t infoB = *(uint64_t*)bucketB;
+            auto bucket_size_B = infoB & 0xFFFFFFFF;
+            auto num_elements_B = (infoB >> 32ul);
 
-        // both are valid
+            auto bucket = (uint8_t*)malloc(bucket_size_B + sizeof(int64_t));
+            *(uint64_t*)bucket = infoB;
+            // copy bucketB contents
+            memcpy(bucket + sizeof(int64_t), bucketB + sizeof(int64_t), bucket_size_B);
+            return bucket;
+        }
+
+        // both are valid -> this means bucketA gets freed and replaced with both contents!
         assert(bucketA && bucketB);
         assert(bucketA != bucketB);
-
 
         // extract size, num rows etc. and merge
         uint64_t infoA = *(uint64_t*)bucketA;
@@ -1749,11 +1855,12 @@ namespace tuplex {
         // copy bucketB contents
         memcpy(bucket + sizeof(int64_t) + bucket_size_A - sizeof(int64_t), bucketB + sizeof(int64_t), bucket_size_B - sizeof(int64_t));
         free(bucketA);
-        free(bucketB);
         bucketA = nullptr;
-        bucketB = nullptr;
+
+        *bucketA_ptr = bucket;
         return bucket;
     }
+
 
     // /*
     // * Iterate the function parameter over each element in the hashmap.  The
@@ -1792,13 +1899,14 @@ namespace tuplex {
         // data is a bucket. Check in combined hashmap hm
         uint8_t* bucket = nullptr;
         hashmap_get(hm, key, keylen, reinterpret_cast<any_t*>(&bucket));
-        bucket = merge_buckets(bucket, data);
+        bucket = merge_buckets(&bucket, data);
         hashmap_put(hm, key, keylen, bucket);
         // @TODO: there might be a memory leak for the keys...
         // => anyways need to rewrite this slow hashmap...
         return MAP_OK;
     }
 
+    // hm is the write-to hashmap, but entry is read-only.
     static int combine_bucket(map_t hm, hashmap_element* entry) {
         assert(hm);
         auto key = entry->key;
@@ -1806,11 +1914,47 @@ namespace tuplex {
         auto data = (uint8_t*)entry->data;
         // data is a bucket. Check in combined hashmap hm
         uint8_t* bucket = nullptr;
-        hashmap_get(hm, key, keylen, reinterpret_cast<any_t*>(&bucket));
-        bucket = combineBuckets(bucket, data);
-        hashmap_put(hm, key, keylen, bucket);
-        // @TODO: there might be a memory leak for the keys...
-        // => anyways need to rewrite this slow hashmap...
+        //int rc = hashmap_get(hm, key, keylen, reinterpret_cast<any_t*>(&bucket));
+        int rc = hashmap_get_and_move(hm, key, keylen, reinterpret_cast<any_t*>(&bucket));
+        if(rc != MAP_OK && rc != MAP_MISSING) {
+            std::cerr<<"internal error, something weird happened..."<<std::endl;
+        }
+
+        if(!bucket && (rc != MAP_MISSING && rc != MAP_OK)) {
+            std::cerr<<"internal: bucket is empty?"<<std::endl;
+        }
+        // this here is an issue and screws something up
+
+        // now let's screw it up, using data will cause a double free!
+        // no issue though if bucket is copied (malloc copy)
+        uint64_t data_size = data ? *(uint64_t*)data : 0;
+        uint8_t *data_copy = nullptr;
+        if(data_size > 0) {
+            data_copy = (uint8_t*)malloc(data_size + sizeof(uint64_t));
+            if(!data_copy)
+                return MAP_OMEM;
+            memcpy(data_copy, data, data_size + sizeof(uint64_t));
+        }
+
+        // in theory, bucketB and bucketA are both read only. Yet, let's play it safe...
+
+        auto new_bucket = combineBuckets(bucket, data_copy);
+
+        // so bucket can be freed now.
+        if(bucket && new_bucket != bucket) {
+            free(bucket);
+            bucket = nullptr;
+        }
+
+        // if data copy is not new bucket, can free data copy
+        if(data_copy && new_bucket != data_copy) {
+            free(data_copy);
+            data_copy = nullptr;
+        }
+
+        // put the new bucket in.
+        hashmap_put(hm, key, keylen, new_bucket);
+
         return MAP_OK;
     }
 
@@ -1821,7 +1965,7 @@ namespace tuplex {
         // data is a bucket. Check in combined hashmap hm
         uint8_t* bucket = nullptr;
         int64_hashmap_get(hm, key, reinterpret_cast<any_t*>(&bucket));
-        bucket = merge_buckets(bucket, data);
+        bucket = merge_buckets(&bucket, data);
         int64_hashmap_put(hm, key, bucket);
         return MAP_OK;
     }
@@ -1916,12 +2060,23 @@ namespace tuplex {
         memcpy(new_data + 8, new_val, new_size);
 
         // free original aggregate (must come after data copy!)
-        free(init_val);
+        if(init_val == new_val) {
+            //std::cerr<<"error"<<std::endl;
+        } else {
+            //free(init_val);
+            init_val = nullptr;
+        }
+
         auto old_ptr = data;
 
         // assign to hashmap
         entry->data = new_data;
-        free(old_ptr);
+        if(old_ptr != new_data) {
+            //free(old_ptr);
+        } else {
+            std::cerr<<"internal error"<<std::endl;
+        }
+
         runtime::rtfree_all(); // combine aggregate allocates via runtime
 
         // // check
@@ -2135,16 +2290,23 @@ namespace tuplex {
                 else sink->hm = hashmap_new();
             }
 
+            // logger().info("moved first tasks sink, info:");
+            // print_hashmap(sink->hm);
+
             // merge in null bucket + other buckets from other tables (this could be slow...)
             for(int i = 1; i < tasks.size(); ++i) {
                 auto task_sink = moveHashSink(tasks[i]);
+
+                // logger().info("merging task sink " + std::to_string(i) + ", info:");
+                // print_hashmap(task_sink->hm);
 
                 // can skip this task sink, b.c. it's empty
                 if(!task_sink)
                     continue;
 
+
                 if(combine) combineBuckets(sink->null_bucket, task_sink->null_bucket);
-                else sink->null_bucket = merge_buckets(sink->null_bucket, task_sink->null_bucket);
+                else sink->null_bucket = merge_buckets(&sink->null_bucket, task_sink->null_bucket);
 
                 // fetch all buckets in hashmap & place into new hashmap
                 if(task_sink->hm) {
@@ -2157,6 +2319,9 @@ namespace tuplex {
                         else hashmap_iterate(task_sink->hm, rehash_bucket, sink->hm);
                     }
                 }
+
+                // logger().info("post merge, hashmap info is:");
+                // print_hashmap(sink->hm);
 
                 // NOTE: following code causes memory corruption, it's a leak but keep it for now to make sure things work.
                 // ==> need to rework whole hashing system at some point.
@@ -2172,7 +2337,20 @@ namespace tuplex {
                     hybrid->free();
 
                     assert(task_sink->hm == nullptr && task_sink->hybrid_hm == nullptr);
+                } else if(task_sink->hm) {
+                    hashmap_free_key_and_data(task_sink->hm);
+                    hashmap_free(task_sink->hm);
+                    task_sink->hm = nullptr;
                 }
+
+                if(task_sink->null_bucket) {
+                    free(task_sink->null_bucket);
+                    task_sink->null_bucket = nullptr;
+                }
+
+                task_sink->hm = nullptr;
+                task_sink->hybrid_hm = nullptr;
+                task_sink->null_bucket = nullptr; // ?
             }
 
             // aggByKey or aggregate?

@@ -258,7 +258,7 @@ namespace tuplex {
 
             // @ Todo: what about line breaks?
 
-            for (int i = 0; i< columnWidths.size(); ++i) {
+            for (int i = 0; i< std::min(columnWidths.size(), columnStrs.size()); ++i) {
                 auto el = replaceLineBreaks(columnStrs[i]);
                 os << "| " << el;
                 for (int j = 0; j < columnWidths[i] - el.length(); ++j) {
@@ -266,6 +266,16 @@ namespace tuplex {
                 }
                 os << " ";
             }
+
+            // for any missing fields
+            for (int i = std::min(columnWidths.size(), columnStrs.size()); i < std::max(columnWidths.size(), columnStrs.size()); ++i) {
+                os << "| ";
+                for (int j = 0; j < columnWidths[i]; ++j) {
+                    os << " ";
+                }
+                os << " ";
+            }
+
             os << "|" << std::endl;
         }
     }

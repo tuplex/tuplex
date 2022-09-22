@@ -580,7 +580,11 @@ namespace tuplex {
                     // the offset is computed using how many varlen fields have been already serialized
                     Value *offset = builder.CreateAdd(_env->i64Const((numSerializedElements + 1 - serialized_idx) * sizeof(int64_t)), varlenSize);
                     // len | size
-                    Value *info = builder.CreateOr(builder.CreateZExt(offset, Type::getInt64Ty(context)), builder.CreateShl(builder.CreateZExt(size, Type::getInt64Ty(context)), 32));
+
+                    // new:
+                    auto info = pack_offset_and_size(builder, offset, size);
+                    // old:
+                    // Value *info = builder.CreateOr(builder.CreateZExt(offset, Type::getInt64Ty(context)), builder.CreateShl(builder.CreateZExt(size, Type::getInt64Ty(context)), 32));
                     builder.CreateStore(info, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), false);
 
                     // get pointer to output space
@@ -697,9 +701,11 @@ namespace tuplex {
 
                     // store offset + length
                     // len | size
-                    Value *info = builder.CreateOr(builder.CreateZExt(offset, Type::getInt64Ty(context)), builder.CreateShl(
-                            builder.CreateZExt(size, Type::getInt64Ty(context)), 32)
-                    );
+                    auto info = pack_offset_and_size(builder, offset, size);
+                    // old:
+                    //Value *info = builder.CreateOr(builder.CreateZExt(offset, Type::getInt64Ty(context)), builder.CreateShl(
+                    //        builder.CreateZExt(size, Type::getInt64Ty(context)), 32)
+                    //);
 
                     builder.CreateStore(info, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), false);
 

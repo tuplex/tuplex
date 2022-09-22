@@ -2699,6 +2699,8 @@ namespace tuplex {
         }
 
         SerializableValue struct_dict_serialize_to_memory(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, llvm::Value* dest_ptr) {
+            auto& logger = Logger::instance().logger("codegen");
+
             llvm::Value* original_dest_ptr = dest_ptr;
 
             // get the corresponding type
@@ -2734,42 +2736,99 @@ namespace tuplex {
                 dest_ptr = serializeBitmap(env, builder, presence_map, dest_ptr);
             }
 
-//            // get indices to properly decode
-//            for(auto entry : entries) {
-//                auto access_path = std::get<0>(entry);
-//                auto value_type = std::get<1>(entry);
-//                auto t_indices = indices.at(access_path);
-//
-//                // special case list: --> needs extra care
-//                if(value_type.isOptionType())
-//                    value_type = value_type.getReturnType();
-//                if(value_type.isListType()) {
-//                    // special care:
-//                    std::cerr<<"skipping serializing list for now..."<<std::endl;
-//                    continue;
-//                }
-//
-//                // depending on field, add size!
-//                auto value_idx = std::get<2>(t_indices);
-//                auto size_idx = std::get<3>(t_indices);
-//
-//                // what kind of data is it that needs to be serialized?
-//
-//                // how to serialize everything?
-//                // -> use again the offset trick!
-//                // may serialize a good amount of empty fields... but so be it.
-//                if(value_idx >= 0) { // <-- value_idx >= 0 indicates it's a field that may/may not be serialized
-//                    // always add 8 bytes per field
-//                    size = builder.CreateAdd(size, bytes8);
-//                    if(size_idx >= 0) { // <-- size_idx >= 0 indicates a variable length field!
-//                        // add size field + data
-//                        auto llvm_idx = CreateStructGEP(builder, ptr, size_idx);
-//                        auto value_size = builder.CreateLoad(llvm_idx);
-//                        size = builder.CreateAdd(size, value_size);
-//                    }
-//                }
-//            }
+            // count how many fields there are => important to compute offsets!
+            size_t num_fields = 0;
+            for(auto entry : entries) {
+                auto access_path = std::get<0>(entry);
+                auto t_indices = indices.at(access_path);
+                auto value_idx = std::get<2>(t_indices);
+                if(value_idx < 0)
+                    continue; // can skip field, not necessary to serialize
+                    num_fields++;
+            }
 
+            logger.debug("found " + pluralize(num_fields, "field") + " to serialize.");
+
+            size_t field_index = 0; // used in order to compute offsets!
+            llvm::Value* varLengthOffset = env.i64Const(0); // current offset from varfieldsstart ptr
+            llvm::Value* varFieldsStartPtr = builder.CreateGEP(dest_ptr, env.i64Const(sizeof(int64_t) * num_fields)); // where in memory the variable field storage starts!
+
+            // get indices to properly decode
+            for(auto entry : entries) {
+                auto access_path = std::get<0>(entry);
+                auto value_type = std::get<1>(entry);
+                auto t_indices = indices.at(access_path);
+
+                // special case list: --> needs extra care
+                if(value_type.isOptionType())
+                    value_type = value_type.getReturnType();
+                if(value_type.isListType()) {
+                    // special care:
+                    std::cerr<<"skipping serializing list for now..."<<std::endl;
+                    continue;
+                }
+
+                // depending on field, add size!
+                auto value_idx = std::get<2>(t_indices);
+                auto size_idx = std::get<3>(t_indices);
+
+                if(value_idx < 0)
+                    continue; // can skip field, not necessary to serialize
+
+                // what kind of data is it that needs to be serialized?
+                bool is_varlength_field = size_idx >= 0;
+                assert(value_idx >= 0);
+
+                // load value
+                auto llvm_value_idx = CreateStructGEP(builder, ptr, value_idx);
+                llvm::Value* value = builder.CreateLoad(llvm_value_idx);
+
+                if(!is_varlength_field) {
+                    // simple: just load data and copy!
+                    // make sure it's bool/i64/64 -> these are the only fixed size fields!
+
+                    assert(value_type == python::Type::BOOLEAN || value_type == python::Type::I64 || value_type == python::Type::F64);
+
+                    if(value_type == python::Type::BOOLEAN)
+                        value = builder.CreateZExt(value, env.i64Type());
+
+                    // store with casting
+                    auto casted_dest_ptr = builder.CreateBitOrPointerCast(dest_ptr, value->getType()->getPointerTo());
+                    builder.CreateStore(value, casted_dest_ptr);
+                    dest_ptr = builder.CreateGEP(dest_ptr, env.i64Const(sizeof(int64_t)));
+                } else {
+                    // more complex:
+                    // for now, only string supported... => load and fix!
+                    if(value_type != python::Type::STRING)
+                        throw std::runtime_error("unsupported type " + value_type.desc() + " encountered! ");
+
+                    // add size field + data
+                    auto llvm_size_idx = CreateStructGEP(builder, ptr, size_idx);
+                    auto value_size = builder.CreateLoad(llvm_size_idx); // <-- serialized size.
+
+                    // compute offset
+                    // from current field -> varStart + varoffset
+                    size_t cur_to_var_start_offset = (num_fields - field_index + 1) * sizeof(int64_t);
+                    auto offset = builder.CreateAdd(env.i64Const(cur_to_var_start_offset), varLengthOffset);
+
+                    auto varDest = builder.CreateGEP(varFieldsStartPtr, varLengthOffset);
+                    builder.CreateMemCpy(varDest, 0, value, 0, value_size); // for string, simple value copy!
+
+                    // pack offset and size into 64bit!
+                    auto info = pack_offset_and_size(builder, offset, value_size);
+
+                    // store info away
+                    auto casted_dest_ptr = builder.CreateBitOrPointerCast(dest_ptr, env.i64ptrType());
+                    builder.CreateStore(info, casted_dest_ptr);
+
+                    dest_ptr = builder.CreateGEP(dest_ptr, env.i64Const(sizeof(int64_t)));
+
+                    varLengthOffset = builder.CreateAdd(varLengthOffset, value_size);
+                }
+
+                // serialized field -> inc index!
+                field_index++;
+            }
 
             llvm::Value* serialized_size = builder.CreatePtrDiff(dest_ptr, original_dest_ptr);
             return SerializableValue(original_dest_ptr, serialized_size, nullptr);
@@ -3075,9 +3134,9 @@ TEST_F(HyperTest, BasicStructLoad) {
 
      // mini example in order to analyze code
      path = "test.json";
-     auto content = "{\"column1\": {\"a\": 10, \"b\": 20, \"c\": 30}}\n"
-                    "{\"column1\": {\"a\": 10, \"b\": 20, \"c\": null}}\n"
-                    "{\"column1\": {\"a\": 10,  \"c\": null}}";
+     auto content = "{\"column1\": {\"a\": \"hello\", \"b\": 20, \"c\": 30}}\n"
+                    "{\"column1\": {\"a\": \"test\", \"b\": 20, \"c\": null}}\n"
+                    "{\"column1\": {\"a\": \"cat\",  \"c\": null}}";
      stringToFile(path, content);
 
     // now, regular routine...

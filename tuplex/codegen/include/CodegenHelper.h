@@ -158,6 +158,19 @@ namespace tuplex {
             }
         };
 
+
+        // for variable length fields => offset and size packing!
+        inline llvm::Value* pack_offset_and_size(llvm::IRBuilder<>& builder, llvm::Value* offset, llvm::Value* size) {
+            auto& ctx = builder.GetInsertBlock()->getContext();
+
+            // truncate or ext both offset and size to 32bit
+            offset = builder.CreateZExtOrTrunc(offset, llvm::Type::getInt32Ty(ctx));
+            size = builder.CreateZExtOrTrunc(size, llvm::Type::getInt32Ty(ctx));
+
+            llvm::Value *info = builder.CreateOr(builder.CreateZExt(offset, llvm::Type::getInt64Ty(ctx)), builder.CreateShl(builder.CreateZExt(size, llvm::Type::getInt64Ty(ctx)), 32));
+            return info;
+        }
+
         /*!
          * retrieves IR stored in LLVM module as string
          * @param mod llvm Module

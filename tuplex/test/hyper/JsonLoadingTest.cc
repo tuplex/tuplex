@@ -483,7 +483,8 @@ namespace tuplex {
 
         // forward declaration
         SerializableValue struct_dict_load_from_values(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& dict_type, flattened_struct_dict_decoded_entry_list_t entries, llvm::Value* value=nullptr);
-        SerializableValue struct_dict_type_serialized_memory_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* value, const python::Type& dict_type);
+        SerializableValue struct_dict_type_serialized_memory_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type);
+        SerializableValue struct_dict_serialize_to_memory(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, llvm::Value* dest_ptr);
 
         llvm::Type* create_structured_dict_type(LLVMEnvironment &env, const std::string &name, const python::Type &dict_type);
 
@@ -961,16 +962,29 @@ namespace tuplex {
             if(value_type.isOptionType()) {
 
                 BasicBlock* bbCurrent = builder.GetInsertBlock();
+                BasicBlock* bbDecodeIsNull = BasicBlock::Create(ctx, "decode_option_null", bbCurrent->getParent());
                 BasicBlock* bbDecodeNonNull = BasicBlock::Create(ctx, "decode_option_non_null", bbCurrent->getParent());
                 BasicBlock* bbDecoded = BasicBlock::Create(ctx, "decoded_option", bbCurrent->getParent());
 
                 // check if it is null
                 llvm::Value* rcA = nullptr;
                 std::tie(rcA, value) = decodeNull(builder, obj, key);
-                auto is_null_cond = builder.CreateICmpEQ(rcA, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
-                BasicBlock* bbValueIsNull = nullptr, *bbValueIsNotNull = nullptr;
+                auto successful_decode_cond = builder.CreateICmpEQ(rcA, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                auto is_null_cond = builder.CreateAnd(successful_decode_cond, value.is_null);
 
+                // branch: if null -> got to bbDecodeIsNull, else decode value.
+                BasicBlock* bbValueIsNull = nullptr, *bbValueIsNotNull = nullptr;
+                builder.CreateCondBr(is_null_cond, bbDecodeIsNull, bbDecodeNonNull);
+
+                // --- decode null ---
+                builder.SetInsertPoint(bbDecodeIsNull);
+                _env.debugPrint(builder, "found null value for key=" + entry.key);
+                bbValueIsNull = builder.GetInsertBlock();
+                builder.CreateBr(bbDecoded);
+
+                // --- decode value ---
                 builder.SetInsertPoint(bbDecodeNonNull);
+                _env.debugPrint(builder, "found " + entry.valueType.getReturnType().desc() + " value for key=" + entry.key);
                 llvm::Value* rcB = nullptr;
                 llvm::Value* presentB = nullptr;
                 SerializableValue valueB;
@@ -980,11 +994,9 @@ namespace tuplex {
                 bbValueIsNotNull = builder.GetInsertBlock(); // <-- this is the block from where to jump to bbDecoded (phi entry block)
                 builder.CreateBr(bbDecoded);
 
-
-                builder.SetInsertPoint(bbCurrent);
-                bbValueIsNull = bbCurrent; // <-- jumping from this block indicates null.
-                builder.CreateCondBr(is_null_cond, bbDecoded, bbDecodeNonNull);
-
+                // --- decode done ----
+                builder.SetInsertPoint(bbDecoded);
+                // finish decode by jumping into bbDecoded block.
                 // fetch rc and value depending on block (phi node!)
                 // => for null, create dummy values so phi works!
                 assert(rcB && presentB);
@@ -1625,11 +1637,18 @@ namespace tuplex {
             // decode everything -> entries can be then used to store to a struct!
             decode(builder, row_var, _rowType, builder.CreateLoad(obj_var), bbSchemaMismatch, _rowType, {}, true);
 
+            auto s = struct_dict_type_serialized_memory_size(_env, builder, row_var, _rowType);
+             _env.printValue(builder, s.val, "size of row materialized in bytes is: ");
+
+             // rtmalloc and serialize!
+             auto mem_ptr = _env.malloc(builder, s.val);
+             auto serialization_res = struct_dict_serialize_to_memory(_env, builder, row_var, _rowType, mem_ptr);
+             _env.printValue(builder, serialization_res.size, "realized serialization size is: ");
+
             // now, load entries to struct type in LLVM
             // then calculate serialized size and print it.
             //auto v = struct_dict_load_from_values(_env, builder, _rowType, entries);
-            //auto s = struct_dict_type_serialized_memory_size(_env, builder, v.val, _rowType);
-            // _env.printValue(builder, s.val, "size of row materialized in bytes is: ");
+
 
             //// => call with row type
             //parseAndPrint(builder, builder.CreateLoad(obj_var), "", true, _rowType, true, bbSchemaMismatch);
@@ -2549,22 +2568,130 @@ namespace tuplex {
             }
         }
 
-        SerializableValue struct_dict_type_serialized_memory_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* value, const python::Type& dict_type) {
+        size_t struct_dict_bitmap_size_in_bytes(const python::Type& dict_type) {
+            size_t num_bitmap = 0, num_presence_map = 0;
+            flattened_struct_dict_entry_list_t type_entries;
+            flatten_recursive_helper(type_entries, dict_type);
+            retrieve_bitmap_counts(type_entries, num_bitmap, num_presence_map);
+
+            return sizeof(int64_t) * num_bitmap + sizeof(int64_t) * num_presence_map;
+        }
+
+        SerializableValue struct_dict_type_serialized_memory_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type) {
             // get the corresponding type
             auto stype = create_structured_dict_type(env, "dict_struct", dict_type);
 
-            if(value->getType() != stype && value->getType() != stype->getPointerTo())
-                throw std::runtime_error("value has not correct type!");
-
-            auto is_ptr = value->getType() == stype->getPointerTo();
+            if(ptr->getType() != stype->getPointerTo())
+                throw std::runtime_error("ptr has not correct type, must be pointer to " + stype->getStructName().str());
 
             // get flattened structure!
             flattened_struct_dict_entry_list_t entries;
             flatten_recursive_helper(entries, dict_type);
 
-            // go over entries & fetch from pointer data to encode!
-            env.debugPrint(builder, "not yet implemented");
-            return SerializableValue(env.i64Const(-1), nullptr, nullptr);
+            auto indices = struct_dict_load_indices(dict_type);
+
+            // check bitmap size (i.e. multiples of 64bit)
+            auto bitmap_size = struct_dict_bitmap_size_in_bytes(dict_type);
+
+            llvm::Value* size = env.i64Const(bitmap_size);
+
+            auto bytes8 = env.i64Const(sizeof(int64_t));
+
+            // get indices to properly decode
+            for(auto entry : entries) {
+                auto access_path = std::get<0>(entry);
+                auto value_type = std::get<1>(entry);
+                auto t_indices = indices.at(access_path);
+
+                // special case list: --> needs extra care
+                if(value_type.isOptionType())
+                    value_type = value_type.getReturnType();
+                if(value_type.isListType()) {
+                    // special care:
+                    std::cerr<<"skipping serializing list for now..."<<std::endl;
+                    continue;
+                }
+
+                // depending on field, add size!
+                auto value_idx = std::get<2>(t_indices);
+                auto size_idx = std::get<3>(t_indices);
+                // how to serialize everything?
+                // -> use again the offset trick!
+                // may serialize a good amount of empty fields... but so be it.
+                if(value_idx >= 0) { // <-- value_idx >= 0 indicates it's a field that may/may not be serialized
+                    // always add 8 bytes per field
+                    size = builder.CreateAdd(size, bytes8);
+                    if(size_idx >= 0) { // <-- size_idx >= 0 indicates a variable length field!
+                        // add size field + data
+                        auto llvm_idx = CreateStructGEP(builder, ptr, size_idx);
+                        auto value_size = builder.CreateLoad(llvm_idx);
+                        size = builder.CreateAdd(size, value_size);
+                    }
+                }
+            }
+
+            return SerializableValue(size, bytes8, nullptr);
+        }
+
+
+        SerializableValue struct_dict_serialize_to_memory(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, llvm::Value* dest_ptr) {
+            llvm::Value* original_dest_ptr = dest_ptr;
+
+            // get the corresponding type
+            auto stype = create_structured_dict_type(env, "dict_struct", dict_type);
+
+            if(ptr->getType() != stype->getPointerTo())
+                throw std::runtime_error("ptr has not correct type, must be pointer to " + stype->getStructName().str());
+
+            // get flattened structure!
+            flattened_struct_dict_entry_list_t entries;
+            flatten_recursive_helper(entries, dict_type);
+
+            auto indices = struct_dict_load_indices(dict_type);
+
+            // check bitmap size (i.e. multiples of 64bit)
+            auto bitmap_size = struct_dict_bitmap_size_in_bytes(dict_type);
+
+            llvm::Value* size = env.i64Const(bitmap_size);
+
+            auto bytes8 = env.i64Const(sizeof(int64_t));
+
+            // get indices to properly decode
+            for(auto entry : entries) {
+                auto access_path = std::get<0>(entry);
+                auto value_type = std::get<1>(entry);
+                auto t_indices = indices.at(access_path);
+
+                // special case list: --> needs extra care
+                if(value_type.isOptionType())
+                    value_type = value_type.getReturnType();
+                if(value_type.isListType()) {
+                    // special care:
+                    std::cerr<<"skipping serializing list for now..."<<std::endl;
+                    continue;
+                }
+
+                // depending on field, add size!
+                auto value_idx = std::get<2>(t_indices);
+                auto size_idx = std::get<3>(t_indices);
+                // how to serialize everything?
+                // -> use again the offset trick!
+                // may serialize a good amount of empty fields... but so be it.
+                if(value_idx >= 0) { // <-- value_idx >= 0 indicates it's a field that may/may not be serialized
+                    // always add 8 bytes per field
+                    size = builder.CreateAdd(size, bytes8);
+                    if(size_idx >= 0) { // <-- size_idx >= 0 indicates a variable length field!
+                        // add size field + data
+                        auto llvm_idx = CreateStructGEP(builder, ptr, size_idx);
+                        auto value_size = builder.CreateLoad(llvm_idx);
+                        size = builder.CreateAdd(size, value_size);
+                    }
+                }
+            }
+
+
+            llvm::Value* serialized_size = builder.CreatePtrDiff(dest_ptr, original_dest_ptr);
+            return SerializableValue(original_dest_ptr, serialized_size, nullptr);
         }
 
         SerializableValue struct_dict_type_to_memory(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* value, const python::Type& dict_type);
@@ -2862,15 +2989,15 @@ TEST_F(HyperTest, BasicStructLoad) {
 
 
     // // tiny json example to simplify things
-    // path = "../resources/ndjson/example1.json";
+     // path = "../resources/ndjson/example1.json";
 
 
-    // // mini example in order to analyze code
-    // path = "test.json";
-    // auto content = "{\"column1\": {\"a\": 10, \"b\": 20, \"c\": 30}}\n"
-    //                "{\"column1\": {\"a\": 10, \"b\": 20, \"c\": null}}\n"
-    //                "{\"column1\": {\"a\": 10,  \"c\": null}}";
-    // stringToFile(path, content);
+     // mini example in order to analyze code
+     path = "test.json";
+     auto content = "{\"column1\": {\"a\": 10, \"b\": 20, \"c\": 30}}\n"
+                    "{\"column1\": {\"a\": 10, \"b\": 20, \"c\": null}}\n"
+                    "{\"column1\": {\"a\": 10,  \"c\": null}}";
+     stringToFile(path, content);
 
     // now, regular routine...
     auto raw_data = fileToString(path);
@@ -2918,15 +3045,15 @@ TEST_F(HyperTest, BasicStructLoad) {
     std::cout << "normal  case:  " << normal_case_type.desc() << std::endl;
     std::cout << "general case:  " << general_case_type.desc() << std::endl;
 
+    // modify here which type to use for the parsing...
     auto row_type = normal_case_type;//general_case_type;
     row_type = general_case_type; // <-- this should match MOST of the rows...
+    // row_type = normal_case_type;
 
     // could do here a counter experiment: I.e., how many general case rows? how many normal case rows? how many fallback rows?
     // => then also measure how much memory is required!
-
     // => can perform example experiments for the 10 different files and plot it out.
 
-    row_type = normal_case_type;
 
     // codegen here
     codegen::LLVMEnvironment env;

@@ -999,7 +999,7 @@ namespace tuplex {
                     auto phi = builder.CreatePHI(valueB.size->getType(), 2);
                     phi->addIncoming(valueA.size, bbValueIsNull);
                     phi->addIncoming(valueB.size, bbValueIsNotNull);
-                    value.val = phi;
+                    value.size = phi;
                 }
                 value.is_null = is_null_cond; // trivial, no phi needed.
 
@@ -2192,6 +2192,12 @@ namespace tuplex {
                     value_type = value_type.getReturnType();
                 }
 
+                // special case: nested struct type!
+                if(value_type.isStructuredDictionaryType()) {
+                    indices[access_path] = std::make_tuple(bitmap_idx, maybe_idx, field_idx, size_idx);
+                    continue; // --> skip, need to store only presence/bitmap info.
+                }
+
                 // check what kind of value_type is
                 if(!noNeedToSerializeType(value_type)) {
                     // need to serialize, so check
@@ -2244,7 +2250,7 @@ namespace tuplex {
             bool has_presence_map = num_presence_map > 0;
 
             // go over entries and generate code to load them!
-            for(auto entry : entries) {
+            for(const auto& entry : entries) {
                 // each item should be access_path | value_type | alwaysPresent |  value : SerializableValue | present : i1
                 access_path_t access_path;
                 python::Type value_type;
@@ -2258,6 +2264,12 @@ namespace tuplex {
                 // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
                 int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
                 std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(access_path);
+
+                // special case: list not supported yet, skip entries
+                if(value_type.isListType()) {
+                    field_idx = -1;
+                    size_idx = -1;
+                }
 
                 // is it an always present element?
                 // => yes! then load it directly to the type.

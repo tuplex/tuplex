@@ -1795,7 +1795,7 @@ namespace tuplex {
             {
                 // debug: create an info statement for free block
                 llvm::IRBuilder<> b(_freeStart);
-                _env.printValue(b, rowNumber(b), "entered free row objects for row no=");
+                // _env.printValue(b, rowNumber(b), "entered free row objects for row no=");
             }
 #endif
             llvm::Value *rc = openJsonBuf(builder, parser, bufPtr, bufSize);
@@ -1842,12 +1842,7 @@ namespace tuplex {
             // -> maybe better craft a separate process row function?
 
             // link back to header
-            _env.debugPrint(builder, "back to header");
             builder.CreateBr(bLoopHeader);
-
-            // this works...
-            // builder.CreateBr(bLoopExit);
-
 
             // ---- post loop block ----
             // continue in loop exit.
@@ -2482,7 +2477,7 @@ namespace tuplex {
 
             // store only if valid present_idx
             if(present_idx >= 0) {
-                env.printValue(builder, is_present, "storing away is_present at index " + std::to_string(present_idx));
+                // env.printValue(builder, is_present, "storing away is_present at index " + std::to_string(present_idx));
 
                 // make sure type has presence map index
                 auto p_idx = presence_map_field_idx(dict_type);
@@ -2505,7 +2500,7 @@ namespace tuplex {
 
             // store only if valid present_idx
             if(field_idx >= 0) {
-                env.printValue(builder, value, "storing away value at index " + std::to_string(field_idx));
+                // env.printValue(builder, value, "storing away value at index " + std::to_string(field_idx));
 
                 // store
                 auto llvm_idx = CreateStructGEP(builder, ptr, field_idx);
@@ -2522,7 +2517,7 @@ namespace tuplex {
 
             // store only if valid present_idx
             if(bitmap_idx >= 0) {
-                env.printValue(builder, is_null, "storing away is_null at index " + std::to_string(bitmap_idx));
+                // env.printValue(builder, is_null, "storing away is_null at index " + std::to_string(bitmap_idx));
 
                 // make sure type has presence map index
                 auto b_idx = bitmap_field_idx(dict_type);
@@ -2546,7 +2541,7 @@ namespace tuplex {
 
             // store only if valid present_idx
             if(size_idx >= 0) {
-                env.printValue(builder, size, "storing away size at index " + std::to_string(size_idx));
+                // env.printValue(builder, size, "storing away size at index " + std::to_string(size_idx));
 
                 // store
                 auto llvm_idx = CreateStructGEP(builder, ptr, size_idx);
@@ -2863,7 +2858,7 @@ TEST_F(HyperTest, BasicStructLoad) {
     //   // payload removed, b.c. it's so hard to debug... // there should be one org => one exception row.
     //  path = "../resources/2011-11-26-13.sample2.json"; // -> so this works.
 
-    path = "../resources/2011-11-26-13.sample3.json"; // -> single row, the parse should trivially work.
+    // path = "../resources/2011-11-26-13.sample3.json"; // -> single row, the parse should trivially work.
 
 
     // // tiny json example to simplify things
@@ -2925,7 +2920,7 @@ TEST_F(HyperTest, BasicStructLoad) {
 
     auto row_type = normal_case_type;//general_case_type;
     row_type = general_case_type; // <-- this should match MOST of the rows...
-    // row_type = normal_case_type;
+    row_type = normal_case_type;
 
     // codegen here
     codegen::LLVMEnvironment env;

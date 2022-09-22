@@ -914,36 +914,65 @@ namespace tuplex {
                                            bool include_maybe_structs,
                                            const DecodeOptions& options) {
             using namespace std;
+            using namespace llvm;
 
             auto& logger = Logger::instance().logger("codegen");
+            auto& ctx = _env.getContext();
             assert(dict_type.isStructuredDictionaryType());
 
-            for (auto kv_pair: dict_type.get_struct_pairs()) {
+            for (const auto& kv_pair: dict_type.get_struct_pairs()) {
                 vector <pair<string, python::Type>> access_path = prefix; // = prefix
                 access_path.push_back(make_pair(kv_pair.key, kv_pair.keyType));
 
-                if(kv_pair.valueType.isStructuredDictionaryType()) {
-                    // TODO: -> recurse
+                auto key_value = str_value_from_python_raw_value(kv_pair.key); // it's an encoded value, but query here for the real key.
+                auto key = _env.strConst(builder, key_value);
 
-                    logger.debug("skipping for now " + json_access_path_to_string(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
+                if (kv_pair.valueType.isStructuredDictionaryType()) {
+                    logger.debug("parsing nested dict: " +
+                                 json_access_path_to_string(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
 
-                    // // special case: if include maybe structs as well, add entry. (should not get serialized)
-                    // if (include_maybe_structs && !kv_pair.alwaysPresent)
-                    //    entries.push_back(make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
+                    // check if an object exists under the given key.
+                    auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getObject", _env.i64Type(),
+                                                 _env.i8ptrType(),
+                                                 _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
+                    auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+                    // create call, recurse only if ok!
+                    llvm::Value *rc = builder.CreateCall(F, {object, key, item_var});
 
-                    // // recurse using new prefix
-                    // flatten_recursive_helper(entries, kv_pair.valueType, access_path, include_maybe_structs);
+                    auto is_object = builder.CreateICmpEQ(rc, _env.i64Const(
+                            ecToI64(ExceptionCode::SUCCESS))); // <-- indicates successful parse
 
+                    // special case: if include maybe structs as well, add entry. (should not get serialized)
+                    if (include_maybe_structs && !kv_pair.alwaysPresent) {
+                        // present if is_object == true
+                        // --> as for value, use a dummy.
+                        entries.push_back(
+                                make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent, SerializableValue(),
+                                           is_object));
+                    }
+
+                    // create now some basic blocks to decode ON demand.
+                    BasicBlock *bbDecodeItem = BasicBlock::Create(ctx, "decode_object", builder.GetInsertBlock()->getParent());
+                    BasicBlock *bbDecodeDone = BasicBlock::Create(ctx, "next_item", builder.GetInsertBlock()->getParent());
+                    builder.CreateCondBr(is_object, bbDecodeItem, bbDecodeDone);
+
+                    builder.SetInsertPoint(bbDecodeItem);
+                    // load item!
+                    auto item = builder.CreateLoad(item_var);
+                    // recurse using new prefix
+                    // --> similar to flatten_recursive_helper(entries, kv_pair.valueType, access_path, include_maybe_structs);
+                    decode(builder, entries, item, bbSchemaMismatch, kv_pair.valueType, access_path, include_maybe_structs, options);
+                    builder.CreateBr(bbDecodeDone); // whererver builder is, continue to decode done for this item.
+                    builder.SetInsertPoint(bbDecodeDone); // continue from here...
                 } else {
-
                     // basically get the entry for the kv_pair.
                     logger.debug("generating code to decode " + json_access_path_to_string(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
-                    auto key_value = str_value_from_python_raw_value(kv_pair.key); // it's an encoded value, but query here for the real key.
-                    auto key = _env.strConst(builder, key_value);
-                    auto t = decodePrimitiveFieldFromObject(builder, object, key, kv_pair, options, bbSchemaMismatch);
-                    //entries.push_back(make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
+                    SerializableValue decoded_value;
+                    llvm::Value* value_is_present = nullptr;
+                    llvm::Value* rc = nullptr; // can ignore rc -> parse escapes to mismatch...
+                    std::tie(rc, value_is_present, decoded_value) = decodePrimitiveFieldFromObject(builder, object, key, kv_pair, options, bbSchemaMismatch);
+                    entries.push_back(make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent, decoded_value, value_is_present));
                 }
-
             }
         }
 

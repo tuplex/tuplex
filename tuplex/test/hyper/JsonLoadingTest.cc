@@ -447,6 +447,12 @@ namespace tuplex {
             return llvm::ConstantInt::get(llvm::Type::getIntNTy(ctx, type->getIntegerBitWidth()), b);
         }
 
+
+        // recursive function to decode data, similar to flattening the type below
+        // each item should be access_path | value_type | alwaysPresent |  value : SerializableValue | present : i1
+        using flattened_struct_dict_decoded_entry_t = std::tuple<std::vector<std::pair<std::string, python::Type>>, python::Type, bool, SerializableValue, llvm::Value*>;
+        using flattened_struct_dict_decided_entry_list_t = std::vector<flattened_struct_dict_decoded_entry_t>;
+
         class JSONSourceTaskBuilder {
         public:
             JSONSourceTaskBuilder(LLVMEnvironment &env,
@@ -558,7 +564,388 @@ namespace tuplex {
                                 llvm::Value *keyPresent, const SerializableValue &value);
 
             void checkRC(llvm::IRBuilder<> &builder, const std::string &key, llvm::Value *rc);
+
+            struct DecodeOptions {
+                bool verifyExactKeySetMatch;
+            };
+
+            void decode(llvm::IRBuilder<>& builder,
+                        flattened_struct_dict_decided_entry_list_t& entries,
+                        llvm::Value* object,
+                        llvm::BasicBlock* bbSchemaMismatch,
+                        const python::Type &dict_type,
+                        std::vector<std::pair<std::string, python::Type>> prefix = {},
+                        bool include_maybe_structs = true,
+                        const DecodeOptions& options={});
+
+
+            std::tuple<llvm::Value*, llvm::Value*, SerializableValue> decodePrimitiveFieldFromObject(llvm::IRBuilder<>& builder,
+                                                                                                     llvm::Value* obj,
+                                                                                                     llvm::Value* key,
+                                                                                                     const python::StructEntry& entry,
+                                                                                                     const DecodeOptions& options,
+                                                                                                     llvm::BasicBlock *bbSchemaMismatch);
+
+
+            // various decoding functions
+            std::tuple<llvm::Value*, SerializableValue> decodeString(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
+            std::tuple<llvm::Value*, SerializableValue> decodeBoolean(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
+            std::tuple<llvm::Value*, SerializableValue> decodeI64(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
+            std::tuple<llvm::Value*, SerializableValue> decodeF64(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
+            std::tuple<llvm::Value*, SerializableValue> decodeEmptyDict(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
+            std::tuple<llvm::Value*, SerializableValue> decodeNull(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key);
         };
+
+        std::string json_access_path_to_string(const std::vector<std::pair<std::string, python::Type>>& path,
+                                               const python::Type& value_type,
+                                               bool always_present) {
+            std::stringstream ss;
+            // first the path:
+            for (auto atom: path) {
+                ss << atom.first << " (" << atom.second.desc() << ") -> ";
+            }
+            auto presence = !always_present ? "  (maybe)" : "";
+            auto v_type = value_type;
+            auto value_desc = v_type.isStructuredDictionaryType() ? "Struct[...]" : v_type.desc();
+            ss << value_desc << presence;
+            return ss.str();
+        }
+
+
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONSourceTaskBuilder::decodeString(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key) {
+            using namespace std;
+            using namespace llvm;
+
+            assert(obj && key);
+            assert(obj->getType() == _env.i8ptrType());
+            assert(key->getType() == _env.i8ptrType());
+
+            // decode using string
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getStringAndSize", _env.i64Type(), _env.i8ptrType(),
+                                         _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0), _env.i64ptrType());
+            auto str_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr(), "s");
+            auto str_size_var = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "s_size");
+            llvm::Value* rc = builder.CreateCall(F, {obj, key, str_var, str_size_var});
+            SerializableValue v;
+            v.val = builder.CreateLoad(str_var);
+            v.size = builder.CreateLoad(str_size_var);
+            v.is_null = _env.i1Const(false);
+            return make_tuple(rc, v);
+        }
+
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONSourceTaskBuilder::decodeBoolean(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key) {
+            using namespace std;
+            using namespace llvm;
+
+            assert(obj && key);
+            assert(obj->getType() == _env.i8ptrType());
+            assert(key->getType() == _env.i8ptrType());
+
+            // decode using string
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getBoolean", _env.i64Type(), _env.i8ptrType(),
+                                         _env.i8ptrType(),
+                                         ctypeToLLVM<bool>(_env.getContext())->getPointerTo());
+            auto b_var = _env.CreateFirstBlockVariable(builder, cbool_const(_env.getContext(), false));
+            llvm::Value* rc = builder.CreateCall(F, {obj, key, b_var});
+            SerializableValue v;
+            v.val = _env.upcastToBoolean(builder, builder.CreateLoad(b_var));
+            v.size = _env.i64Const(sizeof(int64_t));
+            v.is_null = _env.i1Const(false);
+            return make_tuple(rc, v);
+        }
+
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONSourceTaskBuilder::decodeI64(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key) {
+            using namespace std;
+            using namespace llvm;
+
+            assert(obj && key);
+            assert(obj->getType() == _env.i8ptrType());
+            assert(key->getType() == _env.i8ptrType());
+
+            // decode using string
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getInt", _env.i64Type(), _env.i8ptrType(), _env.i8ptrType(),
+                                         _env.i64ptrType());
+            auto i_var = _env.CreateFirstBlockVariable(builder, _env.i64Const(0));
+            llvm::Value* rc = builder.CreateCall(F, {obj, key, i_var});
+            SerializableValue v;
+            v.val = builder.CreateLoad(i_var);
+            v.size = _env.i64Const(sizeof(int64_t));
+            v.is_null = _env.i1Const(false);
+            return make_tuple(rc, v);
+        }
+
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONSourceTaskBuilder::decodeF64(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key) {
+            using namespace std;
+            using namespace llvm;
+
+            assert(obj && key);
+            assert(obj->getType() == _env.i8ptrType());
+            assert(key->getType() == _env.i8ptrType());
+
+            // decode using string
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getDouble", _env.i64Type(), _env.i8ptrType(),
+                                         _env.i8ptrType(),
+                                         _env.doublePointerType());
+            auto f_var = _env.CreateFirstBlockVariable(builder, _env.f64Const(0));
+            llvm::Value* rc = builder.CreateCall(F, {obj, key, f_var});
+            SerializableValue v;
+            v.val = builder.CreateLoad(f_var);
+            v.size = _env.i64Const(sizeof(int64_t));
+            v.is_null = _env.i1Const(false);
+            return make_tuple(rc, v);
+        }
+
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONSourceTaskBuilder::decodeEmptyDict(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key) {
+            using namespace std;
+            using namespace llvm;
+
+            assert(obj && key);
+            assert(obj->getType() == _env.i8ptrType());
+            assert(key->getType() == _env.i8ptrType());
+
+            // query sub-object and call count keys!
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getObject", _env.i64Type(), _env.i8ptrType(),
+                                         _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
+            auto sub_obj_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+
+            // create call, recurse only if ok!
+            BasicBlock *bbCurrent = builder.GetInsertBlock();
+            BasicBlock *bbObjectFound = BasicBlock::Create(_env.getContext(), "found_object", builder.GetInsertBlock()->getParent());
+            BasicBlock *bbNext = BasicBlock::Create(_env.getContext(), "empty_check_done", builder.GetInsertBlock()->getParent());
+            llvm::Value* rc_A = builder.CreateCall(F, {obj, key, sub_obj_var});
+            auto found_object = builder.CreateICmpEQ(rc_A, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+
+            builder.CreateCondBr(found_object, bbObjectFound, bbNext);
+
+            // --- object found ---
+            builder.SetInsertPoint(bbObjectFound);
+            auto sub_obj = builder.CreateLoad(sub_obj_var);
+
+            // check how many entries
+            auto num_keys = numberOfKeysInObject(builder, sub_obj);
+            auto is_empty = builder.CreateICmpEQ(num_keys, _env.i64Const(0));
+            llvm::Value* rc_B = builder.CreateSelect(is_empty, _env.i64Const(
+                                              ecToI64(ExceptionCode::SUCCESS)),
+                                      _env.i64Const(
+                                              ecToI64(ExceptionCode::TYPEERROR)));
+            // add object to free list...
+            freeObject(sub_obj_var);
+
+            builder.SetInsertPoint(bbNext);
+            // use phi instruction. I.e., if found_object => call count keys
+            // if it's not an object keep rc and
+            auto phi = builder.CreatePHI(_env.i64Type(), 2);
+            phi->addIncoming(rc_A, bbCurrent);
+            phi->addIncoming(rc_B, bbObjectFound);
+            llvm::Value* rc = phi;
+
+            SerializableValue v; // dummy value for empty dict.
+            return make_tuple(rc, v);
+        }
+
+        std::tuple<llvm::Value*, SerializableValue>
+        JSONSourceTaskBuilder::decodeNull(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key) {
+            using namespace std;
+            using namespace llvm;
+
+            assert(obj && key);
+            assert(obj->getType() == _env.i8ptrType());
+            assert(key->getType() == _env.i8ptrType());
+
+            // special case!
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_IsNull", _env.i64Type(), _env.i8ptrType(),
+                                         _env.i8ptrType());
+            llvm::Value* rc = builder.CreateCall(F, {obj, key});
+            SerializableValue v;
+            v.is_null = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            return make_tuple(rc, v);
+        }
+
+
+        std::tuple<llvm::Value*, llvm::Value*, SerializableValue> JSONSourceTaskBuilder::decodePrimitiveFieldFromObject(llvm::IRBuilder<>& builder,
+                                                                                                 llvm::Value* obj,
+                                                                                                 llvm::Value* key,
+                                                                                                 const python::StructEntry& entry,
+                                                                                                 const DecodeOptions& options,
+                                                                                                 llvm::BasicBlock *bbSchemaMismatch) {
+            using namespace std;
+            using namespace llvm;
+
+            llvm::Value* rc = nullptr;
+            llvm::Value* is_present = nullptr;
+            SerializableValue value;
+
+            // checks
+            assert(obj);
+            assert(key);
+            assert(!entry.valueType.isStructuredDictionaryType()); // --> this function doesn't support nested decode.
+            assert(entry.keyType == python::Type::STRING); // --> JSON decode ONLY supports string keys.
+
+            auto value_type = entry.valueType;
+            auto& ctx = _env.getContext();
+
+            // special case: option => i.e. perform null check first. If it fails, decode element.
+            if(value_type.isOptionType()) {
+                // check if it is null
+                llvm::Value* rcA = nullptr;
+                std::tie(rcA, value) = decodeNull(builder, obj, key);
+                auto is_null_cond = builder.CreateICmpEQ(rcA, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                BasicBlock* bbCurrent = builder.GetInsertBlock();
+                BasicBlock* bbDecodeNonNull = BasicBlock::Create(ctx, "decode_option_non_null", bbCurrent->getParent());
+                BasicBlock* bbDecoded = BasicBlock::Create(ctx, "decoded_option", bbCurrent->getParent());
+
+                builder.SetInsertPoint(bbDecodeNonNull);
+                llvm::Value* rcB = nullptr;
+                llvm::Value* presentB = nullptr;
+                SerializableValue valueB;
+                python::StructEntry entryB = entry;
+                entryB.valueType = entry.valueType.getReturnType(); // remove option
+                std::tie(rcB, presentB, valueB) = decodePrimitiveFieldFromObject(builder, obj, key, entryB, options, bbSchemaMismatch);
+                builder.CreateBr(bbDecoded);
+
+
+                builder.SetInsertPoint(bbCurrent);
+                builder.CreateCondBr(is_null_cond, bbDecoded, bbDecodeNonNull);
+
+                // fetch rc and value depending on block (phi node!)
+                // => for null, create dummy values so phi works!
+                assert(rcB && presentB);
+                SerializableValue valueA;
+                valueA.is_null = _env.i1Const(true); // valueA is null
+                if(valueB.val)
+                    valueA.val = _env.nullConstant(valueB.val->getType());
+                if(valueB.size)
+                    valueA.size = _env.nullConstant(valueB.size->getType());
+
+                builder.SetInsertPoint(bbDecoded);
+                value = SerializableValue();
+                if(valueB.val) {
+                    auto phi = builder.CreatePHI(valueB.val->getType(), 2);
+                    phi->addIncoming(valueA.val, bbCurrent);
+                    phi->addIncoming(valueB.val, bbDecodeNonNull);
+                    value.val = phi;
+                }
+                if(valueB.size) {
+                    auto phi = builder.CreatePHI(valueB.size->getType(), 2);
+                    phi->addIncoming(valueA.size, bbCurrent);
+                    phi->addIncoming(valueB.size, bbDecodeNonNull);
+                    value.val = phi;
+                }
+                value.is_null = is_null_cond; // trivial, no phi needed.
+
+                // however, for rc a phi is needed.
+                auto phi = builder.CreatePHI(_env.i64Type(), 2);
+                phi->addIncoming(rcA, bbCurrent);
+                phi->addIncoming(rcB, bbDecodeNonNull);
+                rc = phi;
+            } else {
+                // decode non-option types
+                auto v_type = value_type;
+                assert(!v_type.isOptionType());
+
+                if (v_type == python::Type::STRING) {
+                    std::tie(rc, value) = decodeString(builder, obj, key);
+                } else if (v_type == python::Type::BOOLEAN) {
+                    std::tie(rc, value) = decodeBoolean(builder, obj, key);
+                } else if (v_type == python::Type::I64) {
+                    std::tie(rc, value) = decodeI64(builder, obj, key);
+                } else if (v_type == python::Type::F64) {
+                    std::tie(rc, value) = decodeF64(builder, obj, key);
+                } else if (v_type == python::Type::NULLVALUE) {
+                    std::tie(rc, value) = decodeNull(builder, obj, key);
+                } else if (v_type == python::Type::EMPTYDICT) {
+                    std::tie(rc, value) = decodeEmptyDict(builder, obj, key);
+                } else {
+                    // for another nested object, utilize:
+                    throw std::runtime_error("encountered unsupported value type " + value_type.desc());
+                }
+
+                // else if (v_type.isListType()) {
+                //
+                //                // this is a more complex decode...
+                //                std::cerr << "skipping for now type: " << v_type.desc() << std::endl;
+                //                rc = _env.i64Const(0); // ok.
+                //
+                //            }
+
+            }
+
+            // perform now here depending on policy the present check etc.
+            // basically if element should be always present - then a key error indicates it's missing
+            // if it's a key error, change rc to success and return is_present as false
+            if(entry.alwaysPresent) {
+                // anything else than success? => go to schema mismatch
+                auto is_not_ok = builder.CreateICmpNE(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                BasicBlock* bbOK = BasicBlock::Create(ctx, "extract_ok", builder.GetInsertBlock()->getParent());
+                builder.CreateCondBr(is_not_ok, bbSchemaMismatch, bbOK);
+                builder.SetInsertPoint(bbOK);
+                is_present = _env.i1Const(true); // it's present, else there'd have been an error reported.
+            } else {
+                // is it a key error? => that's ok, element is simply not present.
+                // is it a different error => issue!
+                auto is_key_error = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::KEYERROR)));
+                auto is_ok = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                auto is_not_ok = _env.i1neg(builder, builder.CreateOr(is_key_error, is_ok));
+                BasicBlock* bbOK = BasicBlock::Create(ctx, "extract_ok", builder.GetInsertBlock()->getParent());
+                builder.CreateCondBr(is_not_ok, bbSchemaMismatch, bbOK);
+                builder.SetInsertPoint(bbOK);
+                is_present = _env.i1neg(builder, is_key_error); // it's present if there is no key error.
+            }
+
+            // return rc (i.e., success or keyerror or whatever other error there is)
+            // return is_present (indicates whether field was found or not)
+            // return value => valid if rc == success AND is_present is true
+            assert(rc->getType() == _env.i64Type());
+            assert(is_present->getType() == _env.i1Type());
+            return make_tuple(rc, is_present, value);
+        }
+
+        void JSONSourceTaskBuilder::decode(llvm::IRBuilder<> &builder,
+                                           tuplex::codegen::flattened_struct_dict_decided_entry_list_t &entries,
+                                           llvm::Value *object,
+                                           llvm::BasicBlock* bbSchemaMismatch,
+                                           const python::Type &dict_type,
+                                           std::vector<std::pair<std::string, python::Type>> prefix,
+                                           bool include_maybe_structs,
+                                           const DecodeOptions& options) {
+            using namespace std;
+
+            auto& logger = Logger::instance().logger("codegen");
+            assert(dict_type.isStructuredDictionaryType());
+
+            for (auto kv_pair: dict_type.get_struct_pairs()) {
+                vector <pair<string, python::Type>> access_path = prefix; // = prefix
+                access_path.push_back(make_pair(kv_pair.key, kv_pair.keyType));
+
+                if(kv_pair.valueType.isStructuredDictionaryType()) {
+                    // TODO: -> recurse
+
+                    logger.debug("skipping for now " + json_access_path_to_string(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
+
+                    // // special case: if include maybe structs as well, add entry. (should not get serialized)
+                    // if (include_maybe_structs && !kv_pair.alwaysPresent)
+                    //    entries.push_back(make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
+
+                    // // recurse using new prefix
+                    // flatten_recursive_helper(entries, kv_pair.valueType, access_path, include_maybe_structs);
+
+                } else {
+
+                    // basically get the entry for the kv_pair.
+                    logger.debug("generating code to decode " + json_access_path_to_string(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
+                    auto key_value = str_value_from_python_raw_value(kv_pair.key); // it's an encoded value, but query here for the real key.
+                    auto key = _env.strConst(builder, key_value);
+                    auto t = decodePrimitiveFieldFromObject(builder, object, key, kv_pair, options, bbSchemaMismatch);
+                    //entries.push_back(make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
+                }
+
+            }
+        }
 
         void JSONSourceTaskBuilder::checkRC(llvm::IRBuilder<> &builder, const std::string &key, llvm::Value *rc) {
             using namespace llvm;
@@ -953,8 +1340,13 @@ namespace tuplex {
 
             // don't forget to free everything...
 
-            // => call with row type
-            parseAndPrint(builder, builder.CreateLoad(obj_var), "", true, _rowType, true, bbSchemaMismatch);
+            // decode everything -> entries can be then used to store to a struct!
+            flattened_struct_dict_decided_entry_list_t entries; // may be runtime allcoated
+            decode(builder, entries, builder.CreateLoad(obj_var), bbSchemaMismatch, _rowType, {}, true);
+
+
+            //// => call with row type
+            //parseAndPrint(builder, builder.CreateLoad(obj_var), "", true, _rowType, true, bbSchemaMismatch);
 
             // free obj_var...
             freeObject(builder, builder.CreateLoad(obj_var));
@@ -1768,23 +2160,6 @@ TEST_F(HyperTest, BasicStructLoad) {
 
     auto row_type = normal_case_type;//general_case_type;
     row_type = general_case_type; // <-- this should match MOST of the rows...
-
-    for (auto kv: row_type.get_struct_pairs()) {
-        if (kv.key == "'payload'") {
-            std::cout << "general case payload: " << kv.valueType.desc() << std::endl;
-
-            // check pairs in payload => should be all maybe
-            for (auto xy: kv.valueType.get_struct_pairs()) {
-                std::cout << xy.key << ": " << std::boolalpha << xy.alwaysPresent << std::endl;
-            }
-        }
-    }
-
-    // @TODO: single row parse to make this work...
-
-    // pretty print
-    std::cout << prettyPrintStructType(row_type) << std::endl;
-
     // row_type = normal_case_type;
 
     // codegen here

@@ -978,13 +978,13 @@ namespace tuplex {
 
                 // --- decode null ---
                 builder.SetInsertPoint(bbDecodeIsNull);
-                _env.debugPrint(builder, "found null value for key=" + entry.key);
+                // _env.debugPrint(builder, "found null value for key=" + entry.key);
                 bbValueIsNull = builder.GetInsertBlock();
                 builder.CreateBr(bbDecoded);
 
                 // --- decode value ---
                 builder.SetInsertPoint(bbDecodeNonNull);
-                _env.debugPrint(builder, "found " + entry.valueType.getReturnType().desc() + " value for key=" + entry.key);
+                // _env.debugPrint(builder, "found " + entry.valueType.getReturnType().desc() + " value for key=" + entry.key);
                 llvm::Value* rcB = nullptr;
                 llvm::Value* presentB = nullptr;
                 SerializableValue valueB;
@@ -2634,6 +2634,70 @@ namespace tuplex {
         }
 
 
+        llvm::Value* serializeBitmap(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* bitmap, llvm::Value* dest_ptr) {
+            assert(bitmap && dest_ptr);
+            assert(bitmap->getType()->isArrayTy());
+            auto element_type = bitmap->getType()->getArrayElementType();
+            assert(element_type == env.i1Type());
+            assert(dest_ptr->getType() == env.i8ptrType());
+
+            auto num_bitmap_bits = bitmap->getType()->getArrayNumElements();
+            auto num_elements = core::ceilToMultiple(num_bitmap_bits, 64ul) / 64ul;
+
+
+            // need to create a temp variable
+            auto arr_ptr = env.CreateFirstBlockAlloca(builder, bitmap->getType());
+//            env.lifetimeStart(builder, arr_ptr);
+            builder.CreateStore(bitmap, arr_ptr);
+
+            llvm::Value* bitmap_ptr = builder.CreateBitOrPointerCast(arr_ptr, env.i64ptrType());
+            dest_ptr = builder.CreateBitOrPointerCast(dest_ptr, env.i64ptrType());
+
+            // store now
+            for(unsigned i = 0; i < num_elements; ++i) {
+                auto element_value = builder.CreateLoad(bitmap_ptr);
+                builder.CreateStore(element_value, dest_ptr);
+                bitmap_ptr = builder.CreateGEP(bitmap_ptr, env.i64Const(1));
+                dest_ptr = builder.CreateGEP(dest_ptr, env.i64Const(1));
+            }
+
+            // end lifetime of arr_ptr
+//            env.lifetimeEnd(builder, arr_ptr);
+
+            // cast back to i8 ptr
+            dest_ptr = builder.CreateBitOrPointerCast(dest_ptr, env.i8ptrType());
+
+            return dest_ptr;
+        }
+
+        bool struct_dict_has_bitmap(const python::Type& dict_type) {
+            assert(dict_type.isStructuredDictionaryType());
+
+            flattened_struct_dict_entry_list_t entries;
+            flatten_recursive_helper(entries, dict_type);
+
+            size_t num_bitmap = 0, num_presence_map = 0;
+
+            retrieve_bitmap_counts(entries, num_bitmap, num_presence_map);
+            bool has_bitmap = num_bitmap > 0;
+            bool has_presence_map = num_presence_map > 0;
+            return has_bitmap;
+        }
+
+        bool struct_dict_has_presence_map(const python::Type& dict_type) {
+            assert(dict_type.isStructuredDictionaryType());
+
+            flattened_struct_dict_entry_list_t entries;
+            flatten_recursive_helper(entries, dict_type);
+
+            size_t num_bitmap = 0, num_presence_map = 0;
+
+            retrieve_bitmap_counts(entries, num_bitmap, num_presence_map);
+            bool has_bitmap = num_bitmap > 0;
+            bool has_presence_map = num_presence_map > 0;
+            return has_presence_map;
+        }
+
         SerializableValue struct_dict_serialize_to_memory(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, llvm::Value* dest_ptr) {
             llvm::Value* original_dest_ptr = dest_ptr;
 
@@ -2656,38 +2720,55 @@ namespace tuplex {
 
             auto bytes8 = env.i64Const(sizeof(int64_t));
 
-            // get indices to properly decode
-            for(auto entry : entries) {
-                auto access_path = std::get<0>(entry);
-                auto value_type = std::get<1>(entry);
-                auto t_indices = indices.at(access_path);
-
-                // special case list: --> needs extra care
-                if(value_type.isOptionType())
-                    value_type = value_type.getReturnType();
-                if(value_type.isListType()) {
-                    // special care:
-                    std::cerr<<"skipping serializing list for now..."<<std::endl;
-                    continue;
-                }
-
-                // depending on field, add size!
-                auto value_idx = std::get<2>(t_indices);
-                auto size_idx = std::get<3>(t_indices);
-                // how to serialize everything?
-                // -> use again the offset trick!
-                // may serialize a good amount of empty fields... but so be it.
-                if(value_idx >= 0) { // <-- value_idx >= 0 indicates it's a field that may/may not be serialized
-                    // always add 8 bytes per field
-                    size = builder.CreateAdd(size, bytes8);
-                    if(size_idx >= 0) { // <-- size_idx >= 0 indicates a variable length field!
-                        // add size field + data
-                        auto llvm_idx = CreateStructGEP(builder, ptr, size_idx);
-                        auto value_size = builder.CreateLoad(llvm_idx);
-                        size = builder.CreateAdd(size, value_size);
-                    }
-                }
+            // start: serialize bitmaps
+            // 1. null-bitmap
+            if(struct_dict_has_bitmap(dict_type)) {
+                auto bitmap_idx = CreateStructGEP(builder, ptr, 0);
+                auto bitmap = builder.CreateLoad(bitmap_idx);
+                dest_ptr = serializeBitmap(env, builder, bitmap, dest_ptr);
             }
+            // 2. presence-bitmap
+            if(struct_dict_has_presence_map(dict_type)) {
+                auto presence_map_idx = CreateStructGEP(builder, ptr, 1);
+                auto presence_map = builder.CreateLoad(presence_map_idx);
+                dest_ptr = serializeBitmap(env, builder, presence_map, dest_ptr);
+            }
+
+//            // get indices to properly decode
+//            for(auto entry : entries) {
+//                auto access_path = std::get<0>(entry);
+//                auto value_type = std::get<1>(entry);
+//                auto t_indices = indices.at(access_path);
+//
+//                // special case list: --> needs extra care
+//                if(value_type.isOptionType())
+//                    value_type = value_type.getReturnType();
+//                if(value_type.isListType()) {
+//                    // special care:
+//                    std::cerr<<"skipping serializing list for now..."<<std::endl;
+//                    continue;
+//                }
+//
+//                // depending on field, add size!
+//                auto value_idx = std::get<2>(t_indices);
+//                auto size_idx = std::get<3>(t_indices);
+//
+//                // what kind of data is it that needs to be serialized?
+//
+//                // how to serialize everything?
+//                // -> use again the offset trick!
+//                // may serialize a good amount of empty fields... but so be it.
+//                if(value_idx >= 0) { // <-- value_idx >= 0 indicates it's a field that may/may not be serialized
+//                    // always add 8 bytes per field
+//                    size = builder.CreateAdd(size, bytes8);
+//                    if(size_idx >= 0) { // <-- size_idx >= 0 indicates a variable length field!
+//                        // add size field + data
+//                        auto llvm_idx = CreateStructGEP(builder, ptr, size_idx);
+//                        auto value_size = builder.CreateLoad(llvm_idx);
+//                        size = builder.CreateAdd(size, value_size);
+//                    }
+//                }
+//            }
 
 
             llvm::Value* serialized_size = builder.CreatePtrDiff(dest_ptr, original_dest_ptr);
@@ -3067,6 +3148,9 @@ TEST_F(HyperTest, BasicStructLoad) {
     auto ir_code = codegen::moduleToString(*env.getModule());
     std::cout << "generated code:\n" << core::withLineNumbers(ir_code) << std::endl;
 
+    // load runtime lib
+    runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
+
     // init JITCompiler
     JITCompiler jit;
     // register symbols
@@ -3091,6 +3175,8 @@ TEST_F(HyperTest, BasicStructLoad) {
     jit.registerSymbol("JsonItem_getArray", JsonItem_getArray);
     jit.registerSymbol("JsonArray_Free", JsonArray_Free);
     jit.registerSymbol("JsonArray_Size", JsonArray_Size);
+
+    jit.registerSymbol("rtmalloc", runtime::rtmalloc);
 
     // compile func
     auto rc_compile = jit.compile(ir_code);

@@ -445,6 +445,27 @@ namespace tuplex {
                 return llvm::StructType::get(_context, {i64Type(), i64Type(), i64Type()});
             }
 
+            // lifetime intrinsics -1 means variable sized.
+            // cf. https://llvm.org/docs/LangRef.html#llvm-lifetime-start-intrinsic
+            inline llvm::Value* lifetimeStart(llvm::IRBuilder<>& builder, llvm::Value* ptr, llvm::Value* size) {
+                assert(size->getType()->isIntegerTy() && llvm::isa<llvm::Constant>(size));
+                return createBinaryIntrinsic(builder, llvm::Intrinsic::ID::lifetime_start, size, ptr);
+            }
+
+            inline llvm::Value* lifetimeEnd(llvm::IRBuilder<>& builder, llvm::Value* ptr, llvm::Value* size) {
+                assert(size->getType()->isIntegerTy() && llvm::isa<llvm::Constant>(size));
+                return createBinaryIntrinsic(builder, llvm::Intrinsic::ID::lifetime_end, size, ptr);
+            }
+
+            inline llvm::Value* lifetimeStart(llvm::IRBuilder<>& builder, llvm::Value* ptr) {
+                return lifetimeStart(builder, ptr, i64Const(-1));
+            }
+
+            inline llvm::Value* lifetimeEnd(llvm::IRBuilder<>& builder, llvm::Value* ptr) {
+                return lifetimeEnd(builder, ptr, i64Const(-1));
+            }
+
+
             /*!
              * internally cmp returns an llvm i1 object. want to upcast to boolean type
              * @param val

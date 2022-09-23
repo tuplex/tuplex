@@ -2063,6 +2063,9 @@ TEST_F(HyperTest, PushEventPaperExample) {
 
     std::cout<<"before filter promo:: normal: "<<normal.desc()<<"  general: "<<general.desc()<<endl;
 
+    EXPECT_TRUE(normal != python::Type::UNKNOWN);
+
+    throw std::runtime_error("");
 }
 
 // test to generate a struct type

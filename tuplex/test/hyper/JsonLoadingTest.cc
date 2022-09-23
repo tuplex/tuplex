@@ -136,7 +136,14 @@ namespace tuplex {
         return static_cast<uint64_t>(line_type);
     }
 
-    inline uint64_t JsonParser_objectDocType() { return static_cast<uint64_t>(simdjson::ondemand::json_type::object); }
+    inline uint64_t JsonParser_objectDocType() {
+
+        // on demand
+        // return static_cast<uint64_t>(simdjson::ondemand::json_type::object);
+
+        // dom
+        return static_cast<uint64_t>(simdjson::dom::element_type::OBJECT);
+    }
 
     struct JsonItem {
         // on demand
@@ -166,7 +173,7 @@ namespace tuplex {
         // assert(doc.value().type().take_value() == simdjson::ondemand::json_type::object);
 
         //dom
-        doc.value().type() == simdjson::dom::element_type::OBJECT;
+        assert(doc.value().type() == simdjson::dom::element_type::OBJECT);
 
         o->o = doc.get_object().take_value(); // no error check here (for speed reasons).
 

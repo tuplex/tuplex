@@ -1988,7 +1988,7 @@ TEST_F(HyperTest, StructLLVMTypeContains) {
 
 
 namespace tuplex {
-    std::tuple<python::Type, python::Type> detectTypes(const std::string& sample) {
+    std::tuple<python::Type, python::Type, size_t, size_t> detectTypes(const std::string& sample) {
         auto buf = sample.data();
         auto buf_size = sample.size();
 
@@ -2024,7 +2024,12 @@ namespace tuplex {
         std::cout << "normal  case:  " << normal_case_type.desc() << std::endl;
         std::cout << "general case:  " << general_case_type.desc() << std::endl;
 
-        return std::make_tuple(normal_case_type, general_case_type);
+        // check data layout
+        codegen::LLVMEnvironment env;
+        auto n_size = codegen::struct_dict_heap_size(env, normal_case_type);
+        auto g_size = codegen::struct_dict_heap_size(env, general_case_type);
+
+        return std::make_tuple(normal_case_type, general_case_type, n_size, g_size);
     }
 }
 
@@ -2062,8 +2067,18 @@ TEST_F(HyperTest, PushEventPaperExample) {
     normal = std::get<0>(t_before); general = std::get<1>(t_before);
 
     std::cout<<"before filter promo:: normal: "<<normal.desc()<<"  general: "<<general.desc()<<endl;
+    std::cout<<"              size :: normal: "<<std::get<2>(t_before)<<"  general: "<<std::get<3>(t_before)<<endl;
 
+    auto t_after = detectTypes(content_after_filter_promote);
+    normal = std::get<0>(t_after); general = std::get<1>(t_after);
+
+    std::cout<<"after filter promo:: normal: "<<normal.desc()<<"  general: "<<general.desc()<<endl;
+    std::cout<<"              size :: normal: "<<std::get<2>(t_after)<<"  general: "<<std::get<3>(t_after)<<endl;
     EXPECT_TRUE(normal != python::Type::UNKNOWN);
+
+    // --- manual --- post filter pushdown + constant folding
+    // Struct[type -> _Constant["PushEvent"], A -> Struct[B -> i64]]
+
 
     throw std::runtime_error("");
 }

@@ -9,7 +9,7 @@ file(GLOB SRCS *.cc)
 
 include(GoogleTest)
 
-add_executable(testhyper ${SRCS} DebugTypeFinder.h DebugTypeFinder.cpp)
+add_executable(testhyper ${SRCS} DebugTypeFinder.h DebugTypeFinder.cpp ListHelper.h ListHelper.cpp)
 target_link_libraries(testhyper
         libutils
         libio

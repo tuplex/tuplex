@@ -302,7 +302,7 @@ namespace tuplex {
              * @param twine an identifier for the codegen
              * @return llvm Type to be used as the given listType
              */
-            llvm::Type *getListType(const python::Type &listType, const std::string &twine = "list");
+            llvm::Type *getOrCreateListType(const python::Type &listType, const std::string &twine = "list");
 
             /*!
              * return LLVM type that is used to represent a iterator internally

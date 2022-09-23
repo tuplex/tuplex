@@ -364,7 +364,7 @@ namespace tuplex {
             auto iterableAllocPtr = builder.CreateGEP(iteratorContextType, iterator, {_env->i32Const(0), _env->i32Const(2)});
             auto iterableAlloc = builder.CreateLoad(iterableAllocPtr);
             if(iterablesType.isListType()) {
-                auto valArrayPtr = builder.CreateGEP(_env->getListType(iterablesType), iterableAlloc, {_env->i32Const(0), _env->i32Const(2)});
+                auto valArrayPtr = builder.CreateGEP(_env->getOrCreateListType(iterablesType), iterableAlloc, {_env->i32Const(0), _env->i32Const(2)});
                 auto valArray = builder.CreateLoad(valArrayPtr);
                 auto currValPtr = builder.CreateGEP(valArray, index);
                 retVal = builder.CreateLoad(currValPtr);
@@ -372,7 +372,7 @@ namespace tuplex {
                     // note: list internal representation currently uses 1 byte for bool (although this field is never used)
                     retSize = _env->i64Const(8);
                 } else if(yieldType == python::Type::STRING || yieldType.isDictionaryType()) {
-                    auto sizeArrayPtr = builder.CreateGEP(_env->getListType(iterablesType), iterableAlloc, {_env->i32Const(0), _env->i32Const(3)});
+                    auto sizeArrayPtr = builder.CreateGEP(_env->getOrCreateListType(iterablesType), iterableAlloc, {_env->i32Const(0), _env->i32Const(3)});
                     auto sizeArray = builder.CreateLoad(sizeArrayPtr);
                     auto currSizePtr = builder.CreateGEP(sizeArray, index);
                     retSize = builder.CreateLoad(currSizePtr);

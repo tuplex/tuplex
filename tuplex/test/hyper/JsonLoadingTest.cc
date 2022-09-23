@@ -19,6 +19,8 @@
 
 #include <llvm/IR/TypeFinder.h>
 
+#include "ListHelper.h"
+
 // NOTES:
 // for concrete parser implementation with pushdown etc., use
 // https://github.com/simdjson/simdjson/blob/master/doc/basics.md#json-pointer
@@ -2753,8 +2755,12 @@ namespace tuplex {
 
                 // skip list
                 if(value_type.isListType()) {
-                    std::cerr<<"skipping list zero for now"<<std::endl;
-                    continue;
+                    // special case: use list zero function!
+                    assert(value_idx >= 0);
+
+                    auto list_ptr = CreateStructGEP(builder, ptr, value_idx);
+                    list_init_empty(env, builder, list_ptr, value_type);
+                    continue; // --> done, go to next one.
                 }
 
                 // skip nested struct dicts!
@@ -3227,6 +3233,19 @@ TEST_F(HyperTest, BasicStructLoad) {
 //                    "{\"column1\": {\"a\": \"test\", \"b\": 20, \"c\": null}}\n"
 //                    "{\"column1\": {\"a\": \"cat\",  \"c\": null}}";
 //     stringToFile(path, content);
+
+     // mini example in order to analyze code
+     path = "test.json";
+
+     // this here is a simple example of a list decode
+     auto content = "{\"column1\": {\"a\": [1, 2, 3, 4]}}\n"
+                    "{\"column1\": {\"a\": [1, 4]}}\n"
+                    "{\"column1\": {\"a\": []}}";
+     stringToFile(path, content);
+
+     // steps: 1.) integer list decode
+     //        2.) struct dict list decode (this is MORE involved)
+
 
     // now, regular routine...
     auto raw_data = fileToString(path);

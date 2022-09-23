@@ -135,7 +135,7 @@ namespace tuplex {
                 return env.i8ptrType();
 
             if(type.isListType()) {
-                return env.getListType(type);
+                return env.getOrCreateListType(type);
             }
 
             if(python::Type::PYOBJECT == type)
@@ -269,7 +269,7 @@ namespace tuplex {
                         _tree.set(i, codegen::SerializableValue(dictPtr, size, isnull));
                     } else if(type.isListType()) {
                         assert(type != python::Type::EMPTYLIST);
-                        auto llvmType = _env->getListType(type);
+                        auto llvmType = _env->getOrCreateListType(type);
                         llvm::Value *listAlloc = _env->CreateFirstBlockAlloca(builder, llvmType, "listAlloc");
 
                         // get number of elements
@@ -590,7 +590,7 @@ namespace tuplex {
                     // get pointer to output space
                     Value *outptr = builder.CreateGEP(lastPtr, offset, "list_varoff");
 
-                    auto llvmType = _env->getListType(fieldType);
+                    auto llvmType = _env->getOrCreateListType(fieldType);
 
                     // serialize the number of elements
                     auto listLen = builder.CreateExtractValue(field,  {1});

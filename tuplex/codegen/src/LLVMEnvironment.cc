@@ -278,7 +278,7 @@ namespace tuplex {
                 } else if (t.isSingleValued()) {
                     // leave out. Not necessary to represent it in memory.
                 } else if(t.isListType()) {
-                    memberTypes.push_back(getListType(t));
+                    memberTypes.push_back(getOrCreateListType(t));
                     if(!t.elementType().isSingleValued()) numVarlenFields++;
                 } else {
                     // nested tuple?
@@ -311,7 +311,9 @@ namespace tuplex {
             return structType;
         }
 
-        llvm::Type *LLVMEnvironment::getListType(const python::Type &listType, const std::string &twine) {
+        llvm::Type *LLVMEnvironment::getOrCreateListType(const python::Type &listType, const std::string &twine) {
+            assert(listType == python::Type::EMPTYLIST || listType.isListType());
+
             if(listType == python::Type::EMPTYLIST) return i8ptrType(); // dummy type
             auto it = _generatedListTypes.find(listType);
             if(_generatedListTypes.end() != it) {
@@ -323,7 +325,7 @@ namespace tuplex {
             auto elementType = listType.elementType();
             llvm::Type *retType;
             if(elementType.isSingleValued()) {
-                retType = i64Type();
+                retType = i64Type(); // just need to figure out number of fields stored!
             } else if(elementType == python::Type::I64 || elementType == python::Type::F64 || elementType == python::Type::BOOLEAN || elementType.isTupleType()) {
                 std::vector<llvm::Type*> memberTypes;
                 memberTypes.push_back(i64Type()); // array capacity
@@ -347,12 +349,25 @@ namespace tuplex {
                 }
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
-            } else if(elementType == python::Type::STRING || elementType.isDictionaryType()) {
+            } else if(elementType == python::Type::STRING
+                      || elementType == python::Type::PYOBJECT
+                      || (elementType.isDictionaryType() && !elementType.isStructuredDictionaryType())) {
                 std::vector<llvm::Type*> memberTypes;
                 memberTypes.push_back(i64Type()); // array capacity
                 memberTypes.push_back(i64Type()); // size
-                memberTypes.push_back(llvm::PointerType::get(i8ptrType(), 0)); // str array
+                memberTypes.push_back(llvm::PointerType::get(i8ptrType(), 0)); // str array (or i8* pointer array)
                 memberTypes.push_back(i64ptrType()); // strlen array (with the +1 for \0)
+                llvm::ArrayRef<llvm::Type *> members(memberTypes);
+                retType = llvm::StructType::create(_context, members, "struct." + twine, false);
+            } else if(elementType.isStructuredDictionaryType()) {
+                // pointer to the structured dict type!
+                throw std::runtime_error("merge struct dict type into LLVMEnvironment type system...");
+            } else if(elementType.isListType()) {
+                // pointers to the list type!
+                std::vector<llvm::Type*> memberTypes;
+                memberTypes.push_back(i64Type()); // array capacity
+                memberTypes.push_back(i64Type()); // size
+                memberTypes.push_back(llvm::PointerType::get(llvm::PointerType::get(getOrCreateListType(elementType), 0), 0));
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
             } else {
@@ -408,7 +423,7 @@ namespace tuplex {
                 memberTypes.push_back(llvm::Type::getInt32Ty(_context));
                 if(iterableType.isListType()) {
                     iteratorName = "list_";
-                    memberTypes.push_back(llvm::PointerType::get(getListType(iterableType), 0));
+                    memberTypes.push_back(llvm::PointerType::get(getOrCreateListType(iterableType), 0));
                 } else if(iterableType == python::Type::STRING) {
                     iteratorName = "str_";
                     memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
@@ -453,7 +468,7 @@ namespace tuplex {
             memberTypes.push_back(llvm::Type::getInt32Ty(_context));
             if(argType.isListType()) {
                 iteratorName = "list_";
-                memberTypes.push_back(llvm::PointerType::get(getListType(argType), 0));
+                memberTypes.push_back(llvm::PointerType::get(getOrCreateListType(argType), 0));
             } else if(argType == python::Type::STRING) {
                 iteratorName = "str_";
                 memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
@@ -1197,7 +1212,7 @@ namespace tuplex {
             }
 
             if(t.isListType())
-                return getListType(t);
+                return getOrCreateListType(t);
 
             if(t.isIteratorType()) {
                 // python iteratorType to LLVM iterator type is a one-to-many mapping, so not able to return LLVM type given only python type t
@@ -1254,7 +1269,7 @@ namespace tuplex {
 
                     // same issue here
                     std::vector<llvm::Type*> member_types;
-                    member_types.push_back(getListType(rt));
+                    member_types.push_back(getOrCreateListType(rt));
                     member_types.push_back(Type::getInt1Ty(_context));
                     llvm::ArrayRef<llvm::Type *> members(member_types);
                     return llvm::StructType::create(_context, members, "list_opt", packed);

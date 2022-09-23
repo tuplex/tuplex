@@ -2454,6 +2454,7 @@ TEST_F(HyperTest, StructLLVMType) {
     // codegen::moduleToBitCodeString(*env.getModule());
 
     auto ir_code = codegen::moduleToString(*env.getModule());
+
     std::cout << "generated code:\n" << core::withLineNumbers(ir_code) << std::endl;
 }
 
@@ -2605,6 +2606,11 @@ TEST_F(HyperTest, BasicStructLoad) {
     jit.registerSymbol("JsonArray_getInt", JsonArray_getInt);
     jit.registerSymbol("JsonArray_getObject", JsonArray_getObject);
     jit.registerSymbol("rtmalloc", runtime::rtmalloc);
+
+
+    // // optimize code (note: is in debug mode super slow)
+    // LLVMOptimizer opt;
+    // ir_code = opt.optimizeIR(ir_code);
 
     // compile func
     auto rc_compile = jit.compile(ir_code);

@@ -978,8 +978,8 @@ namespace tuplex {
             {
                 // --- loop body ---
                 builder.SetInsertPoint(bLoopBody);
-                // debug
-                _env.printValue(builder, builder.CreateLoad(loop_i), "decoding element ");
+                // // debug
+                // _env.printValue(builder, builder.CreateLoad(loop_i), "decoding element ");
 
                 llvm::Value* item_rc = nullptr;
                 SerializableValue item;
@@ -1011,8 +1011,8 @@ namespace tuplex {
                     // ok block:
                     builder.SetInsertPoint(bDecodeOK);
 
-                    // next: store in list
-                    _env.printValue(builder, item.val, "decoded value: ");
+                    // // next: store in list
+                    // _env.printValue(builder, item.val, "decoded value: ");
 
                     auto loop_i_val = builder.CreateLoad(loop_i);
                     list_store_value(_env, builder, list_ptr, list_type, loop_i_val, item);
@@ -2784,18 +2784,15 @@ namespace tuplex {
                     continue;
 
                 if(value_type.isListType()) {
-                    // special care:
-                    //std::cerr<<"skipping serializing list for now..."<<std::endl;
-
-                    // call lis tlen for fun
+                    // call list specific function to determine length.
                     auto value_idx = std::get<2>(t_indices);
                     assert(value_idx >= 0);
                     auto list_ptr = CreateStructGEP(builder, ptr, value_idx);
-                    auto len = list_length(env, builder, list_ptr, value_type);
-                    env.printValue(builder, len, "Found stored list with length=");
                     auto s = list_serialized_size(env, builder, list_ptr, value_type);
-                    env.printValue(builder, s, "serialized list would require bytes=");
-                    std::cerr<<"list not complete yet..."<<std::endl;
+
+                    // add 8 bytes for storing the info
+                    s = builder.CreateAdd(s, env.i64Const(8));
+                    size = builder.CreateAdd(size, s);
                     continue;
                 }
 
@@ -3024,8 +3021,34 @@ namespace tuplex {
                 if(value_type.isOptionType())
                     value_type = value_type.getReturnType();
                 if(value_type.isListType()) {
-                    // special care:
-                    std::cerr<<"skipping serializing list for now..."<<std::endl;
+                    // special case, perform it here, then skip:
+                    // call list specific function to determine length.
+                    auto value_idx = std::get<2>(t_indices);
+                    assert(value_idx >= 0);
+                    auto list_type = value_type;
+                    auto list_ptr = CreateStructGEP(builder, ptr, value_idx);
+                    auto list_size_in_bytes = list_serialized_size(env, builder, list_ptr, list_type);
+
+                    // => list is ALWAYS a var length field, serialize like that.
+                    // compute offset
+                    // from current field -> varStart + varoffset
+                    size_t cur_to_var_start_offset = (num_fields - field_index + 1) * sizeof(int64_t);
+                    auto offset = builder.CreateAdd(env.i64Const(cur_to_var_start_offset), varLengthOffset);
+
+                    auto varDest = builder.CreateGEP(varFieldsStartPtr, varLengthOffset);
+                    // call list function
+                    list_serialize_to(env, builder, list_ptr, list_type, varDest);
+
+                    // pack offset and size into 64bit!
+                    auto info = pack_offset_and_size(builder, offset, list_size_in_bytes);
+
+                    // store info away
+                    auto casted_dest_ptr = builder.CreateBitOrPointerCast(dest_ptr, env.i64ptrType());
+                    builder.CreateStore(info, casted_dest_ptr);
+
+                    dest_ptr = builder.CreateGEP(dest_ptr, env.i64Const(sizeof(int64_t)));
+                    varLengthOffset = builder.CreateAdd(varLengthOffset, list_size_in_bytes);
+                    field_index++;
                     continue;
                 }
 

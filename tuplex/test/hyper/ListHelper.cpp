@@ -409,5 +409,124 @@ namespace tuplex {
             }
         }
 
+        static llvm::Value* list_serialize_fixed_sized_to(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* dest_ptr) {
+            auto elementType = list_type.elementType();
+            assert(elementType == python::Type::I64
+                   || elementType == python::Type::F64
+                   || elementType == python::Type::BOOLEAN);
+
+            // note that size if basically 8 bytes for size + 8 * len
+            // need to write in a loop -> yet can speed it up using memcpy!
+
+            // it's the size field + the size * sizeof(int64_t)
+            auto len = list_length(env, builder, list_ptr, list_type);
+            auto casted_dest_ptr = builder.CreateBitOrPointerCast(dest_ptr, env.i64ptrType());
+            builder.CreateStore(len, casted_dest_ptr);
+            dest_ptr = builder.CreateGEP(dest_ptr, env.i64Const(8));
+
+            // memcpy data_ptr
+            auto idx_values = CreateStructGEP(builder, list_ptr, 2);
+            auto ptr_values = builder.CreatePointerCast(builder.CreateLoad(idx_values), env.i8ptrType());
+            auto data_size = builder.CreateMul(env.i64Const(8), len); // size in bytes!
+            builder.CreateMemCpy(dest_ptr, 0, ptr_values, 0, data_size);
+            auto size = builder.CreateAdd(env.i64Const(8), data_size);
+            return size;
+        }
+
+
+        llvm::Value* list_serialize_to(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* dest_ptr) {
+
+            using namespace llvm;
+            using namespace std;
+
+            assert(list_ptr);
+            assert(list_type.isListType());
+
+            assert(dest_ptr && dest_ptr->getType() == env.i8ptrType());
+
+            if(python::Type::EMPTYLIST == list_type)
+                return env.i64Const(0); // nothing to do
+
+            // cf. now getOrCreateListType(...) ==> different layouts depending on element type.
+            // init accordingly.
+            auto elementType = list_type.elementType();
+            if(elementType.isSingleValued()) {
+                // store length of list to dest_ptr!
+                auto len = list_length(env, builder, list_ptr, list_type);
+                auto casted_dest_ptr = builder.CreateBitOrPointerCast(dest_ptr, env.i64ptrType());
+                builder.CreateStore(len, casted_dest_ptr);
+                return env.i64Const(8);
+            } else if(elementType == python::Type::I64
+                      || elementType == python::Type::F64
+                      || elementType == python::Type::BOOLEAN) {
+                return list_serialize_fixed_sized_to(env, builder, list_ptr, list_type, dest_ptr);
+            } else if(elementType == python::Type::STRING
+                      || elementType == python::Type::PYOBJECT) {
+                throw std::runtime_error("serializing string data not yet supported");
+//                // this requires a loop (maybe generate instead function?)
+//                auto size_var = env.CreateFirstBlockAlloca(builder, env.i64Type());
+//                // size field requires 8 bytes
+//                llvm::Value* size = env.i64Const(8);
+//
+//                // fetch length
+//                auto len = list_length(env, builder, list_ptr, list_type);
+//                // now store len x 8 bytes for the individual length of entries.
+//                // then store len x 8 bytes for the offsets.
+//                // --> pretty inefficient storage. can get optimized, but no time...
+//
+//                auto len4 = builder.CreateMul(env.i64Const(8 * 2), len);
+//
+//                size = builder.CreateAdd(len4, size);
+//                builder.CreateStore(size, size_var);
+//
+//                auto loop_i = env.CreateFirstBlockAlloca(builder, env.i64Type());
+//                builder.CreateStore(env.i64Const(0), loop_i);
+//
+//                // start loop going over the size entries (--> this could be vectorized!)
+//                auto& ctx = env.getContext(); auto F = builder.GetInsertBlock()->getParent();
+//                BasicBlock *bLoopHeader = BasicBlock::Create(ctx, "var_size_loop_header", F);
+//                BasicBlock *bLoopBody = BasicBlock::Create(ctx, "var_size_loop_body", F);
+//                BasicBlock *bLoopExit = BasicBlock::Create(ctx, "var_size_loop_done", F);
+//
+//                auto idx_sizes = CreateStructGEP(builder, list_ptr, 3);
+//                auto ptr_sizes = builder.CreateLoad(idx_sizes);
+//
+//                builder.CreateBr(bLoopHeader);
+//
+//                {
+//                    // --- header ---
+//                    builder.SetInsertPoint(bLoopHeader);
+//                    // if i < len:
+//                    auto loop_i_val = builder.CreateLoad(loop_i);
+//                    auto loop_cond = builder.CreateICmpULT(loop_i_val, len);
+//                    builder.CreateCondBr(loop_cond, bLoopBody, bLoopExit);
+//                }
+//
+//
+//                {
+//                    // --- body ---
+//                    builder.SetInsertPoint(bLoopBody);
+//                    auto loop_i_val = builder.CreateLoad(loop_i);
+//
+//                    // fetch size
+//                    auto idx_size = builder.CreateGEP(ptr_sizes, loop_i_val);
+//                    auto item_size = builder.CreateLoad(idx_size);
+//                    size = builder.CreateAdd(item_size, builder.CreateLoad(size_var));
+//                    builder.CreateStore(size, size_var);
+//
+//                    // inc.
+//                    builder.CreateStore(builder.CreateAdd(env.i64Const(1), loop_i_val), loop_i);
+//                    builder.CreateBr(bLoopHeader);
+//                }
+//
+//                builder.SetInsertPoint(bLoopExit);
+//                return builder.CreateLoad(size_var);
+            } else {
+                throw std::runtime_error("Unsupported list to serialize: " + list_type.desc());
+            }
+
+            return nullptr;
+        }
+
     }
 }

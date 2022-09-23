@@ -1758,7 +1758,7 @@ namespace tuplex {
             BasicBlock *bDone = BasicBlock::Create(ctx, "output_done", builder.GetInsertBlock()->getParent());
             BasicBlock *bWrite = BasicBlock::Create(ctx, "output_write", builder.GetInsertBlock()->getParent());
 
-            auto cond = builder.CreateICmpEQ(var, _env.nullConstant(var->getType()));
+            auto cond = builder.CreateICmpNE(var, _env.nullConstant(var->getType()));
             builder.CreateCondBr(cond, bWrite, bDone);
 
             builder.SetInsertPoint(bWrite);

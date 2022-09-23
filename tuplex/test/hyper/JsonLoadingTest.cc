@@ -34,17 +34,19 @@ namespace tuplex {
 
     // helper C-struct holding simdjson parser
     struct JsonParser {
-        // use simdjson as parser b.c. cJSON has issues with integers/floats.
-        // https://simdjson.org/api/2.0.0/md_doc_iterate_many.html
-        simdjson::ondemand::parser parser;
-        simdjson::ondemand::document_stream stream;
 
-        // iterators
-        simdjson::ondemand::document_stream::iterator it;
+        // this will have issues with out of order access (happening when arrays are present...) -> more complex to implement.
+        //// use simdjson as parser b.c. cJSON has issues with integers/floats.
+        //// https://simdjson.org/api/2.0.0/md_doc_iterate_many.html
+        //simdjson::ondemand::parser parser;
+        //simdjson::ondemand::document_stream stream;
+        //
+        //// iterators
+        //simdjson::ondemand::document_stream::iterator it;
 
-        // simdjson::dom::parser parser;
-        // simdjson::dom::document_stream stream;
-        // simdjson::dom::document_stream::iterator it;
+         simdjson::dom::parser parser;
+         simdjson::dom::document_stream stream;
+         simdjson::dom::document_stream::iterator it;
 
         std::string lastError;
     };
@@ -65,11 +67,12 @@ namespace tuplex {
         assert(j);
 
         simdjson::error_code error;
-        // ondemand
-        j->parser.iterate_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).tie(j->stream, error);
+        // // ondemand
+        // j->parser.iterate_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).tie(j->stream, error);
 
         // dom
-        // j->parser.parse_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).tie(j->stream, error);
+        j->parser.parse_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).tie(j->stream, error);
+
         if (error) {
             std::stringstream err_stream;
             err_stream << error;
@@ -135,13 +138,11 @@ namespace tuplex {
 
     inline uint64_t JsonParser_objectDocType() { return static_cast<uint64_t>(simdjson::ondemand::json_type::object); }
 
-//    struct JsonItem {
-//        simdjson::ondemand::
-//    };
-
     struct JsonItem {
-        simdjson::ondemand::object o;
+        // on demand
+        // simdjson::ondemand::object o;
 
+        simdjson::dom::object o;
     };
 
     // C API
@@ -161,7 +162,11 @@ namespace tuplex {
 
         auto doc = *j->it;
 
-        assert(doc.value().type().take_value() == simdjson::ondemand::json_type::object);
+        // on demand
+        // assert(doc.value().type().take_value() == simdjson::ondemand::json_type::object);
+
+        //dom
+        doc.value().type() == simdjson::dom::element_type::OBJECT;
 
         o->o = doc.get_object().take_value(); // no error check here (for speed reasons).
 
@@ -227,7 +232,11 @@ namespace tuplex {
         assert(out);
 
         simdjson::error_code error;
-        simdjson::ondemand::object o;
+        // on demand
+        // simdjson::ondemand::object o;
+        // dom
+        simdjson::dom::object o;
+
         item->o[key].get_object().tie(o, error);
         if (error)
             return translate_simdjson_error(error);
@@ -240,7 +249,8 @@ namespace tuplex {
 
     struct JsonArray {
         // require decoding of full array always b.c. simdjson has some issues with the array
-        std::vector<simdjson::simdjson_result<simdjson::ondemand::value>> elements;
+        // std::vector<simdjson::simdjson_result<simdjson::ondemand::value>> elements;
+        std::vector<simdjson::dom::element> elements;
     };
 
     uint64_t JsonItem_getArray(JsonItem *item, const char *key, JsonArray **out) {
@@ -249,7 +259,11 @@ namespace tuplex {
         assert(out);
 
         simdjson::error_code error;
-        simdjson::ondemand::array a;
+        // on demand -> out of order execution unless objects are then directly traversed!
+        // simdjson::ondemand::array a;
+
+        // dom
+        simdjson::dom::array a;
         item->o[key].get_array().tie(a, error);
         if (error)
             return translate_simdjson_error(error);
@@ -258,8 +272,9 @@ namespace tuplex {
         auto arr = new JsonArray();
 
         // decode array
-        for(auto item : a) {
-            arr->elements.emplace_back(item);
+        for(auto element : a) {
+            // arr->elements.emplace_back(item);
+            arr->elements.emplace_back(element);
         }
         *out = arr;
         return ecToI64(ExceptionCode::SUCCESS);
@@ -304,7 +319,11 @@ namespace tuplex {
         // this is slow -> maybe better to replace complex iteration with custom decode routines!
         assert(i < arr->elements.size());
 
-        simdjson::ondemand::object o;
+        // on demand
+        // simdjson::ondemand::object o;
+        // dom
+        simdjson::dom::object o;
+
         arr->elements[i].get_object().tie(o, error);
         if (error)
             return translate_simdjson_error(error);
@@ -381,7 +400,13 @@ namespace tuplex {
         assert(item);
         size_t value;
         simdjson::error_code error;
-        item->o.count_fields().tie(value, error);
+
+        // on demand
+        // item->o.count_fields().tie(value, error);
+
+        // dom
+        return item->o.size();
+
         assert(!error);
         return value;
     }
@@ -442,7 +467,13 @@ namespace tuplex {
         // note: looking up string views does work for C++20+
         std::unordered_map<std::string, unsigned> lookup;
         for (auto field: item->o) {
-            auto key = field.unescaped_key().take_value();
+
+            // ondemand
+            // auto key = field.unescaped_key().take_value();
+
+            // dom
+            auto key = field.key;
+
             lookup[view_to_string(key)] = num_fields++;
         }
 

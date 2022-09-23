@@ -136,36 +136,43 @@ namespace tuplex {
             // --> could use a different structure as well! --> which to use?
             for (const auto &entry: entries) {
                 // value type
-                python::Type t = std::get<1>(entry);
+                auto access_path = std::get<0>(entry);
+                python::Type value_type = std::get<1>(entry);
+                bool always_present = std::get<2>(entry);
+
+                // helpful for debugging.
+                auto path = json_access_path_to_string(access_path, value_type, always_present);
+
+                // we do not save the key (because it's statically known), but simply lay out the data
+                if (value_type.isOptionType())
+                    value_type = value_type.getReturnType(); // option is handled above
 
                 // is it a struct type? => skip.
-                if (t.isStructuredDictionaryType())
+                if (value_type.isStructuredDictionaryType())
                     continue;
 
                 // // skip list
-                // if (t.isListType())
+                // if (value_type.isListType())
                 //     continue;
 
-                // we do not save the key (because it's statically known), but simply lay out the data
-                if (t.isOptionType())
-                    t = t.getReturnType(); // option is handled above
+
 
                 // do we actually need to serialize the value?
                 // if not, no problem.
-                if (noNeedToSerializeType(t))
+                if(noNeedToSerializeType(value_type))
                     continue;
 
                 // serialize. Check if it is a fixed size type -> no size field required, else add an i64 field to store the var_length size!
-                auto mapped_type = env.pythonToLLVMType(t);
+                auto mapped_type = env.pythonToLLVMType(value_type);
                 if (!mapped_type)
-                    throw std::runtime_error("could not map type " + t.desc());
+                    throw std::runtime_error("could not map type " + value_type.desc());
                 member_types.push_back(mapped_type);
 
                 // special case: list -> skip size!
-                if(t.isListType())
+                if(value_type.isListType())
                     continue;
 
-                if (!t.isFixedSizeType()) {
+                if (!value_type.isFixedSizeType()) {
                     // not fixes size but var length?
                     // add a size field!
                     member_types.push_back(i64Type);
@@ -290,6 +297,9 @@ namespace tuplex {
                 auto access_path = std::get<0>(entry);
                 auto value_type = std::get<1>(entry);
                 auto always_present = std::get<2>(entry);
+
+                // helpful for debugging.
+                auto path = json_access_path_to_string(access_path, value_type, always_present);
 
                 int bitmap_idx = -1;
                 int maybe_idx = -1;

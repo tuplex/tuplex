@@ -12,6 +12,27 @@
 namespace tuplex {
     namespace codegen {
         extern void list_init_empty(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type);
+
+        /*!
+         * note that this doesn't perform any size vs. capacity check etc. It's a dumb function to simply change the capacity and (runtime) allocate a new array.
+         * @param env
+         * @param builder
+         * @param list_ptr
+         * @param list_type
+         * @param capacity
+         * @param initialize
+         */
+        extern void list_reserve_capacity(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* capacity, bool initialize=false);
+
+        /*!
+         * returns length / size of list in elements. I.e. for [1, 2, 3, 4] this is the same as len([1, 2, 3, 4])
+         * @param env
+         * @param builder
+         * @param list_ptr
+         * @param list_type
+         * @return i64 holding the list length.
+         */
+        llvm::Value* list_length(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type);
     }
 }
 

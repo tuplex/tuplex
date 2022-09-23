@@ -326,32 +326,22 @@ namespace tuplex {
             llvm::Type *retType;
             if(elementType.isSingleValued()) {
                 retType = i64Type(); // just need to figure out number of fields stored!
-            } else if(elementType == python::Type::I64 || elementType == python::Type::F64 || elementType == python::Type::BOOLEAN || elementType.isTupleType()) {
+            } else if(elementType == python::Type::I64 || elementType == python::Type::F64 || elementType == python::Type::BOOLEAN) {
                 std::vector<llvm::Type*> memberTypes;
                 memberTypes.push_back(i64Type()); // array capacity
                 memberTypes.push_back(i64Type()); // size
                 // array
-                // TODO: probably can replace with just llvm::PointerType::get(pythonToLLVMType(elementType), 0)
                 if(elementType == python::Type::I64) {
                     memberTypes.push_back(i64ptrType());
                 } else if(elementType == python::Type::F64) {
                     memberTypes.push_back(doublePointerType());
                 } else if(elementType == python::Type::BOOLEAN) {
                     memberTypes.push_back(getBooleanPointerType());
-                } else if(elementType.isTupleType()) {
-                    if(elementType.isFixedSizeType()) {
-                        // list stores the actual tuple structs
-                        memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(flattenedType(elementType)), 0));
-                    } else {
-                        // list stores pointers to tuple structs
-                        memberTypes.push_back(llvm::PointerType::get(llvm::PointerType::get(getOrCreateTupleType(flattenedType(elementType)), 0), 0));
-                    }
                 }
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
             } else if(elementType == python::Type::STRING
-                      || elementType == python::Type::PYOBJECT
-                      || (elementType.isDictionaryType() && !elementType.isStructuredDictionaryType())) {
+                      || elementType == python::Type::PYOBJECT) {
                 std::vector<llvm::Type*> memberTypes;
                 memberTypes.push_back(i64Type()); // array capacity
                 memberTypes.push_back(i64Type()); // size
@@ -1834,6 +1824,9 @@ namespace tuplex {
 
         llvm::Value * LLVMEnvironment::getListSize(llvm::IRBuilder<> &builder, llvm::Value *val,
                                                    const python::Type &listType) {
+
+            throw std::runtime_error("deprecated! replace!");
+
             // what list type do we have?
             if(listType == python::Type::EMPTYLIST)
                 return i64Const(0);

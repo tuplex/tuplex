@@ -2044,6 +2044,57 @@ TEST_F(HyperTest, StructLLVMType) {
 
 // notes: type of line can be
 
+
+namespace tuplex {
+    void runCodegen(const python::Type& row_type, const uint8_t* buf, size_t buf_size) {
+        using namespace tuplex;
+        using namespace std;
+
+        // codegen here
+        codegen::LLVMEnvironment env;
+        auto parseFuncName = "parseJSONCodegen";
+
+        // verify storage architecture/layout
+        codegen::struct_dict_verify_storage(env, row_type, std::cout);
+
+        codegen::JSONSourceTaskBuilder jtb(env, row_type, parseFuncName);
+        jtb.build();
+        auto ir_code = codegen::moduleToString(*env.getModule());
+        std::cout << "generated code:\n" << core::withLineNumbers(ir_code) << std::endl;
+
+        // load runtime lib
+        runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
+
+        // init JITCompiler
+        JITCompiler jit;
+        codegen::addJsonSymbolsToJIT(jit);
+        jit.registerSymbol("rtmalloc", runtime::rtmalloc);
+
+
+        // // optimize code (note: is in debug mode super slow)
+        // LLVMOptimizer opt;
+        // ir_code = opt.optimizeIR(ir_code);
+
+        // compile func
+        auto rc_compile = jit.compile(ir_code);
+        ASSERT_TRUE(rc_compile);
+
+        // get func
+        auto func = reinterpret_cast<int64_t(*)(const char *, size_t)>(jit.getAddrOfSymbol(parseFuncName));
+
+        // runtime init
+        ContextOptions co = ContextOptions::defaults();
+        runtime::init(co.RUNTIME_LIBRARY(false).toPath());
+
+        // call code generated function!
+        Timer timer;
+        auto rc = func(reinterpret_cast<const char*>(buf), buf_size);
+        std::cout << "parsed rows in " << timer.time() << " seconds, (" << sizeToMemString(buf_size) << ")" << std::endl;
+        std::cout << "done" << std::endl;
+    }
+}
+
+
 TEST_F(HyperTest, BasicStructLoad) {
     using namespace tuplex;
     using namespace std;
@@ -2149,55 +2200,16 @@ TEST_F(HyperTest, BasicStructLoad) {
 
     // modify here which type to use for the parsing...
     auto row_type = normal_case_type;//general_case_type;
-    row_type = general_case_type; // <-- this should match MOST of the rows...
+    //row_type = general_case_type; // <-- this should match MOST of the rows...
     // row_type = normal_case_type;
 
     // could do here a counter experiment: I.e., how many general case rows? how many normal case rows? how many fallback rows?
     // => then also measure how much memory is required!
     // => can perform example experiments for the 10 different files and plot it out.
-
-
-    // codegen here
-    codegen::LLVMEnvironment env;
-    auto parseFuncName = "parseJSONCodegen";
-
-    // verify storage architecture/layout
-    codegen::struct_dict_verify_storage(env, row_type, std::cout);
-
-    codegen::JSONSourceTaskBuilder jtb(env, row_type, parseFuncName);
-    jtb.build();
-    auto ir_code = codegen::moduleToString(*env.getModule());
-    std::cout << "generated code:\n" << core::withLineNumbers(ir_code) << std::endl;
-
-    // load runtime lib
-    runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
-
-    // init JITCompiler
-    JITCompiler jit;
-    codegen::addJsonSymbolsToJIT(jit);
-    jit.registerSymbol("rtmalloc", runtime::rtmalloc);
-
-
-    // // optimize code (note: is in debug mode super slow)
-    // LLVMOptimizer opt;
-    // ir_code = opt.optimizeIR(ir_code);
-
-    // compile func
-    auto rc_compile = jit.compile(ir_code);
-    ASSERT_TRUE(rc_compile);
-
-    // get func
-    auto func = reinterpret_cast<int64_t(*)(const char *, size_t)>(jit.getAddrOfSymbol(parseFuncName));
-
-    // runtime init
-    ContextOptions co = ContextOptions::defaults();
-    runtime::init(co.RUNTIME_LIBRARY(false).toPath());
-
-    // call code generated function!
-    Timer timer;
-    auto rc = func(buf, buf_size);
-    std::cout << "parsed rows in " << timer.time() << " seconds, (" << sizeToMemString(buf_size) << ")" << std::endl;
-    std::cout << "done" << std::endl;
+    std::cout<<"-----\nrunning using general case:\n-----\n"<<std::endl;
+    runCodegen(normal_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
+    std::cout<<"-----\nrunning using normal case:\n-----\n"<<std::endl;
+    runCodegen(general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
 }
 
 TEST_F(HyperTest, CParse) {

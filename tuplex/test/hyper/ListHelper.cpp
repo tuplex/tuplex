@@ -114,11 +114,11 @@ namespace tuplex {
 
                 // allocate new memory of size sizeof(int64_t) * capacity
                 auto data_size = builder.CreateMul(env.i64Const(sizeof(int64_t)), capacity);
-                auto data_ptr = env.malloc(builder, data_size);
+                auto data_ptr = builder.CreatePointerCast(env.malloc(builder, data_size), llvm_element_type->getPointerTo());
 
                 if(initialize) {
                     // call memset
-                    builder.CreateMemSet(data_ptr, env.nullConstant(llvm_element_type), capacity, 0);
+                    builder.CreateMemSet(data_ptr, env.i8Const(0), data_size, 0);
                 }
 
                 builder.CreateStore(data_ptr, idx_values);
@@ -134,13 +134,13 @@ namespace tuplex {
 
                 // allocate new memory of size sizeof(int64_t) * capacity
                 auto data_size = builder.CreateMul(env.i64Const(sizeof(int64_t)), capacity);
-                auto data_ptr = env.malloc(builder, data_size);
-                auto data_sizes_ptr = env.malloc(builder, data_size);
+                auto data_ptr = env.malloc(builder, data_size); // is already i8 pointer...
+                auto data_sizes_ptr = builder.CreatePointerCast(env.malloc(builder, data_size), env.i64ptrType());
 
                 if(initialize) {
                     // call memset
-                    builder.CreateMemSet(data_ptr, env.i8nullptr(), capacity, 0);
-                    builder.CreateMemSet(data_sizes_ptr, env.i64Const(0), capacity, 0);
+                    builder.CreateMemSet(data_ptr, env.i8Const(0), data_size, 0);
+                    builder.CreateMemSet(data_sizes_ptr, env.i8Const(0), data_size, 0);
                 }
 
                 builder.CreateStore(data_ptr, idx_values);
@@ -160,13 +160,13 @@ namespace tuplex {
 
                 // allocate new memory of size sizeof(int64_t) * capacity
                 auto data_size = builder.CreateMul(env.i64Const(sizeof(int64_t)), capacity);
-                auto data_ptr = env.malloc(builder, data_size);
+                auto data_ptr = builder.CreatePointerCast(env.malloc(builder, data_size), llvm_element_type->getPointerTo());
 
                 if(initialize) {
                     // call memset
-                    builder.CreateMemSet(data_ptr, env.nullConstant(llvm_element_type), capacity, 0);
+                    builder.CreateMemSet(data_ptr, env.i8Const(0), data_size, 0);
                 }
-                builder.CreateStore(env.nullConstant(llvm_element_type->getPointerTo()), idx_values);
+                builder.CreateStore(data_ptr, idx_values);
             } else {
                 throw std::runtime_error("Unsupported list element type: " + list_type.desc());
             }

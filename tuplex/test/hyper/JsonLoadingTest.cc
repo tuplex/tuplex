@@ -892,6 +892,11 @@ namespace tuplex {
             if(python::Type::EMPTYLIST == listType)
                 return decodeEmptyList(builder, obj, key);
 
+            // create list ptr (in any case!)
+            auto list_llvm_type = _env.getOrCreateListType(listType);
+            auto list_ptr = _env.CreateFirstBlockAlloca(builder, list_llvm_type);
+            list_init_empty(_env, builder, list_ptr, listType);
+
             // decode happens in two steps:
             // step 1: check if there's actually an array in the JSON data -> if not, type error!
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getArray", _env.i64Type(), _env.i8ptrType(),
@@ -919,6 +924,10 @@ namespace tuplex {
             // for now dummy...
             _env.printValue(builder, num_elements, "found for type " + listType.desc() + " elements: ");
 
+            // reserve capacity for elements
+            bool initialize_elements_as_null = true; //false;
+            list_reserve_capacity(_env, builder, list_ptr, listType, num_elements, initialize_elements_as_null);
+
             // // is it a list again? or a structured dict?
             // if(elementType.isListType()) {
             //     throw std::runtime_error("not yet supported");
@@ -937,7 +946,8 @@ namespace tuplex {
 
             builder.SetInsertPoint(bbDecodeDone);
             llvm::Value* rc = rc_A;
-            SerializableValue value; // dummy value => should hold list!
+            SerializableValue value;
+            value.val = list_ptr; // retrieve the ptr representing the list
             return make_tuple(rc, value);
         }
 
@@ -1057,15 +1067,6 @@ namespace tuplex {
                     // for another nested object, utilize:
                     throw std::runtime_error("encountered unsupported value type " + value_type.desc());
                 }
-
-                // else if (v_type.isListType()) {
-                //
-                //                // this is a more complex decode...
-                //                std::cerr << "skipping for now type: " << v_type.desc() << std::endl;
-                //                rc = _env.i64Const(0); // ok.
-                //
-                //            }
-
             }
 
             // perform now here depending on policy the present check etc.
@@ -1163,12 +1164,13 @@ namespace tuplex {
                     builder.CreateBr(bbDecodeDone); // whererver builder is, continue to decode done for this item.
                     builder.SetInsertPoint(bbDecodeDone); // continue from here...
                 } else {
-                     // comment this, in order to invoke the list decoding (not completed yet...) -> requires serialization!
-                     // debug: skip list for now (more complex)
-                     if(kv_pair.valueType.isListType()) {
-                         std::cerr<<"skipping array decode with type="<<kv_pair.valueType.desc()<<" for now."<<std::endl;
-                         continue;
-                     }
+
+                     // // comment this, in order to invoke the list decoding (not completed yet...) -> requires serialization!
+                     // // debug: skip list for now (more complex)
+                     // if(kv_pair.valueType.isListType()) {
+                     //     std::cerr<<"skipping array decode with type="<<kv_pair.valueType.desc()<<" for now."<<std::endl;
+                     //     continue;
+                     // }
 
                     // basically get the entry for the kv_pair.
                     logger.debug("generating code to decode " + json_access_path_to_string(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
@@ -1176,6 +1178,12 @@ namespace tuplex {
                     llvm::Value* value_is_present = nullptr;
                     llvm::Value* rc = nullptr; // can ignore rc -> parse escapes to mismatch...
                     std::tie(rc, value_is_present, decoded_value) = decodePrimitiveFieldFromObject(builder, object, key, kv_pair, options, bbSchemaMismatch);
+
+                     // comment this, in order to invoke the list decoding (not completed yet...) -> requires serialization!
+                     if(kv_pair.valueType.isListType()) {
+                         std::cerr<<"skipping array store in final struct with type="<<kv_pair.valueType.desc()<<" for now."<<std::endl;
+                         continue;
+                     }
 
                     // store!
                     struct_dict_store_value(_env, builder, dict_ptr, dict_ptr_type, access_path, decoded_value.val);

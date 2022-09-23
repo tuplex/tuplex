@@ -382,6 +382,7 @@ namespace tuplex {
 
                 // special case: list not supported yet, skip entries
                 if(value_type.isListType()) {
+                    throw std::runtime_error("update this!");
                     field_idx = -1;
                     size_idx = -1;
                 }
@@ -677,7 +678,7 @@ namespace tuplex {
                 if(value_type.isStructuredDictionaryType())
                     continue;
 
-                if(value_type.isListType()) {
+                if(python::Type::EMPTYLIST != value_type && value_type.isListType()) {
                     // call list specific function to determine length.
                     auto value_idx = std::get<2>(t_indices);
                     assert(value_idx >= 0);
@@ -818,7 +819,7 @@ namespace tuplex {
                     value_type = value_type.getReturnType();
 
                 // skip list
-                if(value_type.isListType()) {
+                if(python::Type::EMPTYLIST != value_type && value_type.isListType()) {
                     // special case: use list zero function!
                     assert(value_idx >= 0);
 
@@ -916,7 +917,7 @@ namespace tuplex {
                 // special case list: --> needs extra care
                 if(value_type.isOptionType())
                     value_type = value_type.getReturnType();
-                if(value_type.isListType()) {
+                if(python::Type::EMPTYLIST != value_type && value_type.isListType()) {
                     // special case, perform it here, then skip:
                     // call list specific function to determine length.
                     auto value_idx = std::get<2>(t_indices);

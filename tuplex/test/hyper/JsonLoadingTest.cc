@@ -1173,8 +1173,8 @@ namespace tuplex {
             auto array = builder.CreateLoad(item_var);
             auto num_elements = arraySize(builder, array);
 
-            // for now dummy...
-            _env.printValue(builder, num_elements, "found for type " + listType.desc() + " elements: ");
+            // debug print here number of elements...
+            // _env.printValue(builder, num_elements, "found for type " + listType.desc() + " elements: ");
 
             // reserve capacity for elements
             bool initialize_elements_as_null = true; //false;
@@ -2478,7 +2478,7 @@ TEST_F(HyperTest, BasicStructLoad) {
     // path = "../resources/2011-11-26-13.sample.json";
 
     //   // payload removed, b.c. it's so hard to debug... // there should be one org => one exception row.
-      path = "../resources/2011-11-26-13.sample2.json"; // -> so this works.
+      //path = "../resources/2011-11-26-13.sample2.json"; // -> so this works.
 
      // path = "../resources/2011-11-26-13.sample3.json"; // -> single row, the parse should trivially work.
 

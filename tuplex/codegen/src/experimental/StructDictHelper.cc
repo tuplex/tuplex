@@ -867,16 +867,19 @@ namespace tuplex {
 
             // start: serialize bitmaps
             // 1. null-bitmap
+            size_t bitmap_offset = 0;
             if(struct_dict_has_bitmap(dict_type)) {
-                auto bitmap_idx = CreateStructGEP(builder, ptr, 0);
+                auto bitmap_idx = CreateStructGEP(builder, ptr, bitmap_offset);
                 auto bitmap = builder.CreateLoad(bitmap_idx);
                 dest_ptr = serializeBitmap(env, builder, bitmap, dest_ptr);
+                bitmap_offset++;
             }
             // 2. presence-bitmap
             if(struct_dict_has_presence_map(dict_type)) {
-                auto presence_map_idx = CreateStructGEP(builder, ptr, 1);
+                auto presence_map_idx = CreateStructGEP(builder, ptr, bitmap_offset);
                 auto presence_map = builder.CreateLoad(presence_map_idx);
                 dest_ptr = serializeBitmap(env, builder, presence_map, dest_ptr);
+                bitmap_offset++;
             }
 
             // count how many fields there are => important to compute offsets!

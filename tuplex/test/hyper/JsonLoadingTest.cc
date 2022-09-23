@@ -1023,10 +1023,6 @@ namespace tuplex {
 
 
             builder.SetInsertPoint(bbDecodeDone); // continue from here...
-
-            // TODO decode
-            _env.debugPrint(builder, "need to add object decode from array here!");
-
             llvm::Value* rc = builder.CreateLoad(rc_var); // <-- error
             SerializableValue v;
             v.val = builder.CreateLoad(dict_ptr);
@@ -1188,7 +1184,8 @@ namespace tuplex {
             // -> basically get the data!
             auto list_rc = generateDecodeListItemsLoop(builder, array, list_ptr, listType, num_elements);
             builder.CreateStore(list_rc, rc_var);
-            _env.printValue(builder, list_rc, "decode result is: ");
+            // debug print, checking what the list decode gives back...
+            // _env.printValue(builder, list_rc, "decode result is: ");
 
             // only if decode is ok, store list size!
             auto list_decode_ok = builder.CreateICmpEQ(list_rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
@@ -2481,9 +2478,9 @@ TEST_F(HyperTest, BasicStructLoad) {
     // path = "../resources/2011-11-26-13.sample.json";
 
     //   // payload removed, b.c. it's so hard to debug... // there should be one org => one exception row.
-    //  path = "../resources/2011-11-26-13.sample2.json"; // -> so this works.
+      path = "../resources/2011-11-26-13.sample2.json"; // -> so this works.
 
-     path = "../resources/2011-11-26-13.sample3.json"; // -> single row, the parse should trivially work.
+     // path = "../resources/2011-11-26-13.sample3.json"; // -> single row, the parse should trivially work.
 
 
     // // tiny json example to simplify things

@@ -2088,14 +2088,14 @@ TEST_F(HyperTest, BasicStructLoad) {
 //     stringToFile(path, content);
 
 
-     // mini example in order with optional struct type!
-     path = "test.json";
-
-     // this here is a simple example of a list decode
-     auto content = "{\"column1\": {\"a\": [1, 2, 3, 4]}}\n"
-                    "{\"column1\": null}\n"
-                    "{\"column1\": null}";
-     stringToFile(path, content);
+//     // mini example in order with optional struct type!
+//     path = "test.json";
+//
+//     // this here is a simple example of a list decode
+//     auto content = "{\"column1\": {\"a\": [1, 2, 3, 4]}}\n"
+//                    "{\"column1\": null}\n"
+//                    "{\"column1\": null}";
+//     stringToFile(path, content);
 
      // steps: 1.) integer list decode
      //        2.) struct dict list decode (this is MORE involved)

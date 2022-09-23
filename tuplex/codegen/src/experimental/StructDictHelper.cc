@@ -29,7 +29,7 @@ namespace tuplex {
 
                     // recurse using new prefix
                     flatten_recursive_helper(entries, kv_pair.valueType, access_path, include_maybe_structs);
-                } else if(kv_pair.valueType.isOptionType()) {
+                } else if(kv_pair.valueType.isOptionType() && kv_pair.valueType.getReturnType().isStructuredDictionaryType()) {
                     entries.push_back(make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
 
                     // recurse element field!

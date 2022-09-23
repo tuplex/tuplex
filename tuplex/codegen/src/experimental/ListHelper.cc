@@ -60,7 +60,20 @@ namespace tuplex {
                 builder.CreateStore(env.i8nullptr(), idx_sizes);
             } else if(elementType.isStructuredDictionaryType()) {
                 // pointer to the structured dict type!
-                throw std::runtime_error("merge struct dict type into LLVMEnvironment type system...");
+
+                // pointers to the list type!
+                // similar to above - yet, keep it here extra for more control...
+                // a list consists of 3 fields: capacity, size and a pointer to the members
+                auto idx_capacity = CreateStructGEP(builder, list_ptr, 0); assert(idx_capacity->getType() == env.i64ptrType());
+                builder.CreateStore(env.i64Const(0), idx_capacity);
+                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
+                builder.CreateStore(env.i64Const(0), idx_size);
+
+                auto llvm_element_type = env.getOrCreateStructuredDictType(elementType);
+
+                auto idx_values = CreateStructGEP(builder, list_ptr, 2);
+                builder.CreateStore(env.nullConstant(llvm_element_type->getPointerTo()), idx_values);
+
             } else if(elementType.isListType()) {
                 // pointers to the list type!
                 // similar to above - yet, keep it here extra for more control...
@@ -146,8 +159,26 @@ namespace tuplex {
                 builder.CreateStore(data_ptr, idx_values);
                 builder.CreateStore(data_sizes_ptr, idx_sizes);
             } else if(elementType.isStructuredDictionaryType()) {
+
                 // pointer to the structured dict type!
-                throw std::runtime_error("merge struct dict type into LLVMEnvironment type system...");
+                // similar to above - yet, keep it here extra for more control...
+                // a list consists of 3 fields: capacity, size and a pointer to the members
+                auto idx_capacity = CreateStructGEP(builder, list_ptr, 0); assert(idx_capacity->getType() == env.i64ptrType());
+                builder.CreateStore(env.i64Const(0), idx_capacity);
+
+                auto llvm_element_type = env.getOrCreateStructuredDictType(elementType);
+                auto idx_values = CreateStructGEP(builder, list_ptr, 2);
+
+                // allocate new memory of size sizeof(int64_t) * capacity
+                auto data_size = builder.CreateMul(env.i64Const(sizeof(int64_t)), capacity);
+                auto data_ptr = builder.CreatePointerCast(env.malloc(builder, data_size), llvm_element_type->getPointerTo());
+
+                if(initialize) {
+                    // call memset
+                    builder.CreateMemSet(data_ptr, env.i8Const(0), data_size, 0);
+                }
+                builder.CreateStore(data_ptr, idx_values);
+
             } else if(elementType.isListType()) {
                 // pointers to the list type!
                 // similar to above - yet, keep it here extra for more control...

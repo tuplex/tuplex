@@ -353,8 +353,15 @@ namespace tuplex {
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
             } else if(elementType.isStructuredDictionaryType()) {
+                auto llvm_element_type = getOrCreateStructuredDictType(elementType);
+
                 // pointer to the structured dict type!
-                throw std::runtime_error("merge struct dict type into LLVMEnvironment type system...");
+                std::vector<llvm::Type*> memberTypes;
+                memberTypes.push_back(i64Type()); // array capacity
+                memberTypes.push_back(i64Type()); // size
+                memberTypes.push_back(llvm::PointerType::get(llvm::PointerType::get(llvm_element_type, 0), 0));
+                llvm::ArrayRef<llvm::Type *> members(memberTypes);
+                retType = llvm::StructType::create(_context, members, "struct." + twine, false);
             } else if(elementType.isListType()) {
                 // pointers to the list type!
                 std::vector<llvm::Type*> memberTypes;

@@ -731,6 +731,12 @@ namespace tuplex {
                 is_present = builder.CreateICmpNE(rc, _env.i64Const(
                         ecToI64(ExceptionCode::KEYERROR))); // element is present iff not key error
 
+                // debug print:
+                _env.printValue(builder, rc, "rc for getObject: ");
+                _env.printValue(builder, is_object, "is object for key=" + entry.key);
+                _env.printValue(builder, is_present, "object present for key=" + entry.key);
+
+
                  // --> only decode IFF is_ok (i.e., present and no type error (it's not an array or so)).
                 builder.CreateCondBr(is_object, bbDecodeItem, bbDecodeDone);
             }

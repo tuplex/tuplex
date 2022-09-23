@@ -652,6 +652,9 @@ namespace tuplex {
             // complex compound types
             std::tuple<llvm::Value*, SerializableValue> decodeEmptyList(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
             std::tuple<llvm::Value*, SerializableValue> decodeList(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value *key, const python::Type& listType);
+
+            // helper function to create the loop for the array
+            llvm::Value* generateDecodeListItemsLoop(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* num_elements);
         };
 
         std::string json_access_path_to_string(const std::vector<std::pair<std::string, python::Type>>& path,
@@ -879,6 +882,64 @@ namespace tuplex {
             return make_tuple(rc, v);
         }
 
+        llvm::Value* JSONSourceTaskBuilder::generateDecodeListItemsLoop(llvm::IRBuilder<> &builder, llvm::Value *array,
+                                                                llvm::Value *list_ptr, const python::Type &list_type,
+                                                                llvm::Value *num_elements) {
+            using namespace llvm;
+
+            auto& ctx = _env.getContext();
+            assert(list_type.isListType());
+            auto element_type = list_type.elementType();
+
+            assert(array && array->getType() == _env.i8ptrType());
+            assert(list_ptr && list_ptr->getType() == _env.getOrCreateListType(list_type)->getPointerTo());
+            assert(num_elements && num_elements->getType() == _env.i64Type());
+
+            // loop is basically:
+            // for i = 0, ..., num_elements -1:
+            //   v = decode(array, i)
+            //   if err(v)
+            //     break
+            //   list_store(i, v)
+
+            llvm::Value* rcVar = _env.CreateFirstBlockVariable(builder, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+
+            auto F = builder.GetInsertBlock()->getParent(); assert(F);
+            BasicBlock* bLoopHeader = BasicBlock::Create(ctx, "array_loop_header", F);
+            BasicBlock* bLoopBody = BasicBlock::Create(ctx, "array_loop_body", F);
+            BasicBlock* bLoopDone = BasicBlock::Create(ctx, "array_loop_done", F);
+            auto loop_i = _env.CreateFirstBlockVariable(builder, _env.i64Const(0));
+
+            builder.CreateStore(_env.i64Const(0), loop_i);
+            builder.CreateBr(bLoopHeader);
+
+            {
+                // --- loop header ---
+                // if i < num_elements:
+                builder.SetInsertPoint(bLoopHeader);
+                auto loop_i_val = builder.CreateLoad(loop_i);
+                auto loop_cond = builder.CreateICmpULT(loop_i_val, num_elements);
+                builder.CreateCondBr(loop_cond, bLoopBody, bLoopDone);
+            }
+
+            {
+                // --- loop body ---
+                builder.SetInsertPoint(bLoopBody);
+                // debug
+                _env.printValue(builder, builder.CreateLoad(loop_i), "decoding element ");
+
+                // inc.
+                auto loop_i_val = builder.CreateLoad(loop_i);
+                builder.CreateStore(builder.CreateAdd(_env.i64Const(1), loop_i_val), loop_i);
+                builder.CreateBr(bLoopHeader);
+            }
+
+
+
+            builder.SetInsertPoint(bLoopDone);
+            return builder.CreateLoad(rcVar);
+        }
+
         std::tuple<llvm::Value *, SerializableValue>
         JSONSourceTaskBuilder::decodeList(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key,
                                           const python::Type &listType) {
@@ -927,6 +988,11 @@ namespace tuplex {
             // reserve capacity for elements
             bool initialize_elements_as_null = true; //false;
             list_reserve_capacity(_env, builder, list_ptr, listType, num_elements, initialize_elements_as_null);
+
+            // decoding happens in a loop...
+            // -> basically get the data!
+            auto list_rc = generateDecodeListItemsLoop(builder, array, list_ptr, listType, num_elements);
+            _env.printValue(builder, list_rc, "decode result is: ");
 
             // // is it a list again? or a structured dict?
             // if(elementType.isListType()) {

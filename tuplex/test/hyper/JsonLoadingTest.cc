@@ -62,6 +62,14 @@ namespace tuplex {
             llvm::Value *_rowNumberVar;
             llvm::Value *_badParseCountVar; // stores count of bad parse emits.
 
+            // output vars
+            llvm::Value *_outTotalRowsVar;
+            llvm::Value *_outTotalBadRowsVar;
+            llvm::Value *_outTotalSerializationSize;
+
+            void writeOutput(llvm::IRBuilder<>& builder, llvm::Value* var, llvm::Value* val);
+
+
             // blocks to hold start/end of frees --> called before going to next row.
             llvm::BasicBlock *_freeStart;
             llvm::BasicBlock *_freeEnd;
@@ -1498,6 +1506,11 @@ namespace tuplex {
              auto serialization_res = struct_dict_serialize_to_memory(_env, builder, row_var, _rowType, mem_ptr);
              _env.printValue(builder, serialization_res.size, "realized serialization size is: ");
 
+             // inc total size with serialization size!
+             auto cur_total = builder.CreateLoad(_outTotalSerializationSize);
+             auto new_total = builder.CreateAdd(cur_total, serialization_res.size);
+             builder.CreateStore(new_total, _outTotalSerializationSize);
+
             // now, load entries to struct type in LLVM
             // then calculate serialized size and print it.
             //auto v = struct_dict_load_from_values(_env, builder, _rowType, entries);
@@ -1726,6 +1739,33 @@ namespace tuplex {
             _env.printValue(builder, rowNumber(builder), "parsed rows: ");
             _env.printValue(builder, builder.CreateLoad(_badParseCountVar),
                             "thereof bad parse rows (schema mismatch): ");
+
+            // store in vars
+            builder.CreateStore(rowNumber(builder), _outTotalRowsVar);
+            builder.CreateStore(builder.CreateLoad(_badParseCountVar), _outTotalBadRowsVar);
+        }
+
+
+        void JSONSourceTaskBuilder::writeOutput(llvm::IRBuilder<> &builder, llvm::Value *var, llvm::Value *val) {
+            using namespace llvm;
+
+            assert(var && val);
+            assert(var->getType() == val->getType()->getPointerTo());
+
+            // if var != nullptr:
+            // *var = val
+            auto& ctx = _env.getContext();
+            BasicBlock *bDone = BasicBlock::Create(ctx, "output_done", builder.GetInsertBlock()->getParent());
+            BasicBlock *bWrite = BasicBlock::Create(ctx, "output_write", builder.GetInsertBlock()->getParent());
+
+            auto cond = builder.CreateICmpEQ(var, _env.nullConstant(var->getType()));
+            builder.CreateCondBr(cond, bWrite, bDone);
+
+            builder.SetInsertPoint(bWrite);
+            builder.CreateStore(val, var);
+            builder.CreateBr(bDone);
+
+            builder.SetInsertPoint(bDone);
         }
 
         void JSONSourceTaskBuilder::build() {
@@ -1734,17 +1774,30 @@ namespace tuplex {
 
             // create main function (takes buffer and buf_size, later take the other tuplex stuff)
             FunctionType *FT = FunctionType::get(ctypeToLLVM<int64_t>(ctx),
-                                                 {ctypeToLLVM<char *>(ctx), ctypeToLLVM<int64_t>(ctx)}, false);
+                                                 {ctypeToLLVM<char *>(ctx),
+                                                         ctypeToLLVM<int64_t>(ctx),
+                                                  ctypeToLLVM<int64_t*>(ctx),
+                                                  ctypeToLLVM<int64_t*>(ctx),
+                                                  ctypeToLLVM<int64_t*>(ctx),}, false);
 
             Function *F = Function::Create(FT, llvm::GlobalValue::ExternalLinkage, _functionName,
                                            *_env.getModule().get());
-            auto m = mapLLVMFunctionArgs(F, {"buf", "buf_size"});
+            auto m = mapLLVMFunctionArgs(F, {"buf", "buf_size", "out_total_rows", "out_bad_parse_rows", "out_total_size"});
 
             auto bbEntry = BasicBlock::Create(ctx, "entry", F);
             IRBuilder<> builder(bbEntry);
 
+            // allocate variables
+            _outTotalRowsVar = _env.CreateFirstBlockVariable(builder, _env.i64Const(0));
+            _outTotalBadRowsVar = _env.CreateFirstBlockVariable(builder, _env.i64Const(0));
+            _outTotalSerializationSize = _env.CreateFirstBlockVariable(builder, _env.i64Const(0));
+
             // dummy parse, simply print type and value with type checking.
             generateParseLoop(builder, m["buf"], m["buf_size"]);
+
+            writeOutput(builder, m["out_total_rows"], builder.CreateLoad(_outTotalRowsVar));
+            writeOutput(builder, m["out_bad_parse_rows"], builder.CreateLoad(_outTotalBadRowsVar));
+            writeOutput(builder, m["out_total_size"], builder.CreateLoad(_outTotalSerializationSize));
 
             builder.CreateRet(_env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
         }
@@ -2046,7 +2099,7 @@ TEST_F(HyperTest, StructLLVMType) {
 
 
 namespace tuplex {
-    void runCodegen(const python::Type& row_type, const uint8_t* buf, size_t buf_size) {
+    std::tuple<size_t, size_t, size_t> runCodegen(const python::Type& row_type, const uint8_t* buf, size_t buf_size) {
         using namespace tuplex;
         using namespace std;
 
@@ -2077,10 +2130,10 @@ namespace tuplex {
 
         // compile func
         auto rc_compile = jit.compile(ir_code);
-        ASSERT_TRUE(rc_compile);
+        //ASSERT_TRUE(rc_compile);
 
         // get func
-        auto func = reinterpret_cast<int64_t(*)(const char *, size_t)>(jit.getAddrOfSymbol(parseFuncName));
+        auto func = reinterpret_cast<int64_t(*)(const char *, size_t, size_t*, size_t*, size_t*)>(jit.getAddrOfSymbol(parseFuncName));
 
         // runtime init
         ContextOptions co = ContextOptions::defaults();
@@ -2088,9 +2141,14 @@ namespace tuplex {
 
         // call code generated function!
         Timer timer;
-        auto rc = func(reinterpret_cast<const char*>(buf), buf_size);
+        size_t total_rows = 0;
+        size_t bad_rows = 0;
+        size_t total_size = 0;
+        auto rc = func(reinterpret_cast<const char*>(buf), buf_size, &total_rows, &bad_rows, &total_size);
         std::cout << "parsed rows in " << timer.time() << " seconds, (" << sizeToMemString(buf_size) << ")" << std::endl;
         std::cout << "done" << std::endl;
+
+        return make_tuple(total_rows, bad_rows, total_size);
     }
 }
 
@@ -2207,9 +2265,11 @@ TEST_F(HyperTest, BasicStructLoad) {
     // => then also measure how much memory is required!
     // => can perform example experiments for the 10 different files and plot it out.
     std::cout<<"-----\nrunning using general case:\n-----\n"<<std::endl;
-    runCodegen(normal_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
+    auto normal_rc = runCodegen(normal_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
     std::cout<<"-----\nrunning using normal case:\n-----\n"<<std::endl;
-    runCodegen(general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
+    auto general_rc = runCodegen(general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
+
+
 }
 
 TEST_F(HyperTest, CParse) {

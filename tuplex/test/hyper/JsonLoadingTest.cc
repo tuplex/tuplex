@@ -295,6 +295,27 @@ namespace tuplex {
         return ecToI64(ExceptionCode::SUCCESS);
     }
 
+    uint64_t JsonArray_getObject(JsonArray *arr, size_t i, JsonItem **out) {
+        assert(arr);
+        assert(out);
+
+        simdjson::error_code error = simdjson::NO_SUCH_FIELD;
+
+        // this is slow -> maybe better to replace complex iteration with custom decode routines!
+        assert(i < arr->elements.size());
+
+        simdjson::ondemand::object o;
+        arr->elements[i].get_object().tie(o, error);
+        if (error)
+            return translate_simdjson_error(error);
+
+        // ONLY allocate if ok. else, leave how it is.
+        auto obj = new JsonItem();
+        obj->o = std::move(o);
+        *out = obj;
+        return ecToI64(ExceptionCode::SUCCESS);
+    }
+
     uint64_t JsonItem_getDouble(JsonItem *item, const char *key, double *out) {
         assert(item);
         assert(key);
@@ -896,17 +917,22 @@ namespace tuplex {
         }
 
         std::tuple<llvm::Value *, SerializableValue>
-        JSONSourceTaskBuilder::decodeObjectFromArray(llvm::IRBuilder<> &builder, llvm::Value *array, llvm::Value *index,
+        JSONSourceTaskBuilder::decodeObjectFromArray(llvm::IRBuilder<> &builder,
+                                                     llvm::Value *array,
+                                                     llvm::Value *index,
                                                      const python::Type &dict_type) {
             // this is quite complex.
             using namespace std;
             using namespace llvm;
 
+            auto& ctx = builder.getContext();
 
             assert(array && index);
             assert(index->getType() == _env.i64Type());
 
             assert(dict_type.isStructuredDictionaryType());
+
+            auto rc_var = _env.CreateFirstBlockAlloca(builder, _env.i64Type());
 
             // alloc new struct dict value (heap-allocated!)
             auto llvm_dict_type = _env.getOrCreateStructuredDictType(dict_type);
@@ -916,10 +942,54 @@ namespace tuplex {
             struct_dict_mem_zero(_env, builder, dict_ptr, dict_type);
 
             // check whether object exists, if so get the pointer. Then alloc, and store everything in it.
+            // TODO: what about option types? ==> not handled yet!
+
+            // create now some basic blocks to decode ON demand.
+            BasicBlock *bbDecodeItem = BasicBlock::Create(ctx, "within_array_decode_object", builder.GetInsertBlock()->getParent());
+            BasicBlock *bbDecodeDone = BasicBlock::Create(ctx, "array_next_element", builder.GetInsertBlock()->getParent());
+            BasicBlock *bbSchemaMismatch = BasicBlock::Create(ctx, "within_array_schema_mismatch", builder.GetInsertBlock()->getParent());
+
+            {
+                auto F = getOrInsertFunction(_env.getModule().get(), "JsonArray_getObject", _env.i64Type(),
+                                             _env.i8ptrType(),
+                                             _env.i64Type(), _env.i8ptrType()->getPointerTo(0));
+                auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+
+                // start decode
+                // create call, recurse only if ok!
+                llvm::Value *rc = builder.CreateCall(F, {array, index, item_var});
+                builder.CreateStore(rc, rc_var);
+                auto is_object = builder.CreateICmpEQ(rc, _env.i64Const(
+                        ecToI64(ExceptionCode::SUCCESS))); // <-- indicates successful parse
+
+                builder.CreateCondBr(is_object, bbDecodeItem, bbDecodeDone);
+
+                builder.SetInsertPoint(bbDecodeItem);
+                // load item!
+                auto item = builder.CreateLoad(item_var);
+                // recurse using new prefix
+                // --> similar to flatten_recursive_helper(entries, kv_pair.valueType, access_path, include_maybe_structs);
+                decode(builder,
+                       dict_ptr,
+                       dict_type,
+                       item, bbSchemaMismatch, dict_type, {}, true);
+                builder.CreateBr(bbDecodeDone); // whererver builder is, continue to decode done for this item.
+            }
+
+            {
+                builder.SetInsertPoint(bbSchemaMismatch);
+                builder.CreateStore(_env.i64Const(ecToI64(ExceptionCode::TYPEERROR)), rc_var);
+                _env.debugPrint(builder, "element did not conform to struct schema " + dict_type.desc());
+                builder.CreateBr(bbDecodeDone);
+            }
+
+
+            builder.SetInsertPoint(bbDecodeDone); // continue from here...
+
             // TODO decode
             _env.debugPrint(builder, "need to add object decode from array here!");
 
-            llvm::Value* rc = _env.i64Const(ecToI64(ExceptionCode::KEYERROR)); // <-- error
+            llvm::Value* rc = builder.CreateLoad(rc_var); // <-- error
             SerializableValue v;
             v.val = builder.CreateLoad(dict_ptr);
             return make_tuple(rc, v);
@@ -2498,6 +2568,7 @@ TEST_F(HyperTest, BasicStructLoad) {
     jit.registerSymbol("JsonArray_Free", JsonArray_Free);
     jit.registerSymbol("JsonArray_Size", JsonArray_Size);
     jit.registerSymbol("JsonArray_getInt", JsonArray_getInt);
+    jit.registerSymbol("JsonArray_getObject", JsonArray_getObject);
     jit.registerSymbol("rtmalloc", runtime::rtmalloc);
 
     // compile func

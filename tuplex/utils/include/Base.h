@@ -335,6 +335,10 @@ namespace core {
             return (k + 1) * base;
     }
 
+    template<typename T, typename U> inline T ceilToMultiple(const T& x, const U& base) {
+        return ceilToMultiple(x, static_cast<T>(base));
+    }
+
     // Note: GCC demands template<...> tokens to come first
     template<typename T> inline void swap(T& a, T& b) {
         T h = a;

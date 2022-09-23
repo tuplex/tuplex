@@ -238,7 +238,8 @@ namespace tuplex {
     }
 
     struct JsonArray {
-        simdjson::ondemand::array a;
+        // require decoding of full array always b.c. simdjson has some issues with the array
+        std::vector<simdjson::simdjson_result<simdjson::ondemand::value>> elements;
     };
 
     uint64_t JsonItem_getArray(JsonItem *item, const char *key, JsonArray **out) {
@@ -254,7 +255,11 @@ namespace tuplex {
 
         // ONLY allocate if ok. else, leave how it is.
         auto arr = new JsonArray();
-        arr->a = std::move(a);
+
+        // decode array
+        for(auto item : a) {
+            arr->elements.emplace_back(item);
+        }
         *out = arr;
         return ecToI64(ExceptionCode::SUCCESS);
     }
@@ -267,7 +272,26 @@ namespace tuplex {
 
     uint64_t JsonArray_Size(JsonArray* arr) {
         assert(arr);
-        return arr->a.count_elements().value(); // this should NOT yield any errors.
+        return arr->elements.size(); // this should NOT yield any errors.
+    }
+
+    uint64_t JsonArray_getInt(JsonArray *arr, size_t i, int64_t *out) {
+        assert(arr);
+        assert(out);
+
+        simdjson::error_code error = simdjson::NO_SUCH_FIELD;
+        int64_t value;
+
+        // this is slow -> maybe better to replace complex iteration with custom decode routines!
+        assert(i < arr->elements.size());
+
+        arr->elements[i].get_int64().tie(value, error);
+
+        if (error)
+            return translate_simdjson_error(error);
+
+        *out = value;
+        return ecToI64(ExceptionCode::SUCCESS);
     }
 
     uint64_t JsonItem_getDouble(JsonItem *item, const char *key, double *out) {
@@ -641,7 +665,7 @@ namespace tuplex {
                                                                                                      llvm::BasicBlock *bbSchemaMismatch);
 
 
-            // various decoding functions
+            // various decoding functions (object)
             std::tuple<llvm::Value*, SerializableValue> decodeString(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
             std::tuple<llvm::Value*, SerializableValue> decodeBoolean(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
             std::tuple<llvm::Value*, SerializableValue> decodeI64(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
@@ -649,12 +673,20 @@ namespace tuplex {
             std::tuple<llvm::Value*, SerializableValue> decodeEmptyDict(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
             std::tuple<llvm::Value*, SerializableValue> decodeNull(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key);
 
+            // similarly, decoding functions (array)
+            std::tuple<llvm::Value*, SerializableValue> decodeI64FromArray(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* index);
+
             // complex compound types
             std::tuple<llvm::Value*, SerializableValue> decodeEmptyList(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
             std::tuple<llvm::Value*, SerializableValue> decodeList(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value *key, const python::Type& listType);
 
             // helper function to create the loop for the array
             llvm::Value* generateDecodeListItemsLoop(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* num_elements);
+
+
+            inline void badParseCause(const std::string& cause) {
+                // helper function, called to describe cause. probably useful later...
+            }
         };
 
         std::string json_access_path_to_string(const std::vector<std::pair<std::string, python::Type>>& path,
@@ -882,6 +914,27 @@ namespace tuplex {
             return make_tuple(rc, v);
         }
 
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONSourceTaskBuilder::decodeI64FromArray(llvm::IRBuilder<> &builder, llvm::Value *array, llvm::Value *index) {
+            using namespace std;
+            using namespace llvm;
+
+
+            assert(array && index);
+            assert(index->getType() == _env.i64Type());
+
+            // decode using string
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonArray_getInt", _env.i64Type(), _env.i8ptrType(), _env.i64Type(),
+                                         _env.i64ptrType());
+            auto i_var = _env.CreateFirstBlockVariable(builder, _env.i64Const(0));
+            llvm::Value* rc = builder.CreateCall(F, {array, index, i_var});
+            SerializableValue v;
+            v.val = builder.CreateLoad(i_var);
+            v.size = _env.i64Const(sizeof(int64_t));
+            v.is_null = _env.i1Const(false);
+            return make_tuple(rc, v);
+        }
+
         llvm::Value* JSONSourceTaskBuilder::generateDecodeListItemsLoop(llvm::IRBuilder<> &builder, llvm::Value *array,
                                                                 llvm::Value *list_ptr, const python::Type &list_type,
                                                                 llvm::Value *num_elements) {
@@ -928,13 +981,45 @@ namespace tuplex {
                 // debug
                 _env.printValue(builder, builder.CreateLoad(loop_i), "decoding element ");
 
-                // inc.
-                auto loop_i_val = builder.CreateLoad(loop_i);
-                builder.CreateStore(builder.CreateAdd(_env.i64Const(1), loop_i_val), loop_i);
-                builder.CreateBr(bLoopHeader);
+                llvm::Value* item_rc = nullptr;
+                SerializableValue item;
+
+                auto index = builder.CreateLoad(loop_i);
+
+                // decode now element from array
+                if(element_type == python::Type::I64) {
+                    std::tie(item_rc, item) = decodeI64FromArray(builder, array, index);
+                } else {
+                    throw std::runtime_error("Decode of element type " + element_type.desc() + " in list not yet supported");
+                }
+
+                // check what the result is of item_rc -> can be combined with rc!
+                BasicBlock* bDecodeOK = BasicBlock::Create(ctx, "array_item_decode_ok", F);
+                BasicBlock* bDecodeFail = BasicBlock::Create(ctx, "array)_item_decode_failed", F);
+
+                auto is_item_decode_ok = builder.CreateICmpEQ(item_rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                builder.CreateCondBr(is_item_decode_ok, bDecodeOK, bDecodeFail);
+
+                {
+                    // fail block:
+                    builder.SetInsertPoint(bDecodeFail);
+                    builder.CreateStore(item_rc, rcVar);
+                    builder.CreateBr(bLoopDone);
+                }
+
+                {
+                    // ok block:
+                    builder.SetInsertPoint(bDecodeOK);
+
+                    // next: store in list
+                    _env.printValue(builder, item.val, "decoded value: ");
+
+                    // inc.
+                    auto loop_i_val = builder.CreateLoad(loop_i);
+                    builder.CreateStore(builder.CreateAdd(_env.i64Const(1), loop_i_val), loop_i);
+                    builder.CreateBr(bLoopHeader);
+                }
             }
-
-
 
             builder.SetInsertPoint(bLoopDone);
             return builder.CreateLoad(rcVar);
@@ -3416,7 +3501,7 @@ TEST_F(HyperTest, BasicStructLoad) {
     jit.registerSymbol("JsonItem_getArray", JsonItem_getArray);
     jit.registerSymbol("JsonArray_Free", JsonArray_Free);
     jit.registerSymbol("JsonArray_Size", JsonArray_Size);
-
+    jit.registerSymbol("JsonArray_getInt", JsonArray_getInt);
     jit.registerSymbol("rtmalloc", runtime::rtmalloc);
 
     // compile func

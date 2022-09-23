@@ -1987,7 +1987,83 @@ TEST_F(HyperTest, StructLLVMTypeContains) {
 }
 
 
-#include "DebugTypeFinder.h"
+namespace tuplex {
+    std::tuple<python::Type, python::Type> detectTypes(const std::string& sample) {
+        auto buf = sample.data();
+        auto buf_size = sample.size();
+
+
+        // detect (general-case) type here:
+//    ContextOptions co = ContextOptions::defaults();
+//    auto sample_size = co.CSV_MAX_DETECTION_MEMORY();
+//    auto nc_th = co.NORMALCASE_THRESHOLD();
+        auto sample_size = 256 * 1024ul; // 256kb
+        auto nc_th = 0.9;
+        auto rows = parseRowsFromJSON(buf, std::min(buf_size, sample_size), nullptr, false);
+
+        // general case version
+        auto conf_general_case_type_policy = TypeUnificationPolicy::defaultPolicy();
+        conf_general_case_type_policy.unifyMissingDictKeys = true;
+        conf_general_case_type_policy.allowUnifyWithPyObject = true;
+
+        double conf_nc_threshold = 0.;
+        // type cover maximization
+        std::vector<std::pair<python::Type, size_t>> type_counts;
+        for (unsigned i = 0; i < rows.size(); ++i) {
+            // row check:
+            //std::cout<<"row: "<<rows[i].toPythonString()<<" type: "<<rows[i].getRowType().desc()<<std::endl;
+            type_counts.emplace_back(std::make_pair(rows[i].getRowType(), 1));
+        }
+
+        auto general_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
+        auto normal_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true,
+                                                      TypeUnificationPolicy::defaultPolicy());
+
+        auto normal_case_type = normal_case_max_type.first.parameters().front();
+        auto general_case_type = general_case_max_type.first.parameters().front();
+        std::cout << "normal  case:  " << normal_case_type.desc() << std::endl;
+        std::cout << "general case:  " << general_case_type.desc() << std::endl;
+
+        return std::make_tuple(normal_case_type, general_case_type);
+    }
+}
+
+TEST_F(HyperTest, PushEventPaperExample) {
+    using namespace tuplex;
+    using namespace std;
+
+
+    auto content_before_filter_promote = "{\"type\" : \"PushEvent\", \"A\" : {\"B\" : 20, \"C\" : null}}\n"
+                                         "{\"type\" : \"PushEvent\", \"A\" : {\"B\" : 20}}\n"
+                                         "{\"type\" : \"PushEvent\", \"A\" : {\"B\" : 42}}\n"
+                                         "{\"type\" : \"PushEvent\", \"A\" : {\"B\" : 39}}\n"
+                                         "{\"type\" : \"PushEvent\", \"A\" : {\"B\" : 2}}\n"
+                                         "{\"type\" : \"PushEvent\", \"A\" : {\"B\" : 0}}\n"
+                                         "{\"type\" : \"PushEvent\", \"A\" : {\"B\" : 20, \"C\" : null, \"D\" : 32}}\n"
+                                         "{\"type\" : \"ForkEvent\", \"A\" : {\"B\" : 20, \"C\" : null}}\n"
+                                         "{\"type\" : \"ForkEvent\", \"A\" : {\"B\" : 20, \"C\" : null}}\n"
+                                         "{\"type\" : \"ForkEvent\", \"A\" : {\"B\" : 20, \"C\" : null}}\n"
+                                         "{\"type\" : \"ForkEvent\", \"A\" : {\"B\" : 20, \"C\" : 0}}\n"
+                                         "{\"type\" : \"ForkEvent\", \"A\" : {\"B\" : 20, \"C\" : null}}\n"
+                                         "{\"type\" : \"ForkEvent\", \"A\" : {\"B\" : 20, \"C\" : null}}\n"
+                                         "{\"type\" : \"ForkEvent\", \"A\" : {\"B\" : 20, \"C\" : null}}\n"
+                                         "{\"type\" : \"ForkEvent\", \"A\" : {\"B\" : 20, \"C\" : null}}\n"
+                                         "{\"type\" : \"ForkEvent\", \"A\" : {\"B\" : 20, \"C\" : null}}";
+    auto content_after_filter_promote = "{\"type\" : \"PushEvent\", \"A\" : {\"B\" : 20, \"C\" : null}}\n"
+                                        "{\"type\" : \"PushEvent\", \"A\" : {\"B\" : 20}}\n"
+                                        "{\"type\" : \"PushEvent\", \"A\" : {\"B\" : 42}}\n"
+                                        "{\"type\" : \"PushEvent\", \"A\" : {\"B\" : 39}}\n"
+                                        "{\"type\" : \"PushEvent\", \"A\" : {\"B\" : 2}}\n"
+                                        "{\"type\" : \"PushEvent\", \"A\" : {\"B\" : 0}}\n"
+                                        "{\"type\" : \"PushEvent\", \"A\" : {\"B\" : 20, \"C\" : null, \"D\" : 32}}";
+
+    python::Type normal, general;
+    auto t_before = detectTypes(content_before_filter_promote);
+    normal = std::get<0>(t_before); general = std::get<1>(t_before);
+
+    std::cout<<"before filter promo:: normal: "<<normal.desc()<<"  general: "<<general.desc()<<endl;
+
+}
 
 // test to generate a struct type
 TEST_F(HyperTest, StructLLVMType) {
@@ -2269,7 +2345,13 @@ TEST_F(HyperTest, BasicStructLoad) {
     std::cout<<"-----\nrunning using normal case:\n-----\n"<<std::endl;
     auto general_rc = runCodegen(general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
 
-
+    {
+        std::vector<std::tuple<size_t, size_t, size_t>> rows({normal_rc, general_rc});
+        std::vector<std::string> headers({"normal", "general"});
+        for(int i = 0; i < 2; ++i) {
+        std::cout<<headers[i]<<":  "<<"#rows"<<std::get<0>(rows[i])<<"#bad-rows"<<std::get<1>(rows[i])<<"size(bytes):"<<std::get<2>(rows[i])<<std::endl;
+        }
+    }
 }
 
 TEST_F(HyperTest, CParse) {

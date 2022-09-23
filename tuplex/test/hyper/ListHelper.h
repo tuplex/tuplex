@@ -32,7 +32,19 @@ namespace tuplex {
          * @param list_type
          * @return i64 holding the list length.
          */
-        llvm::Value* list_length(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type);
+        extern llvm::Value* list_length(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type);
+
+        /*!
+         * stores value (WITHOUT ANY CHECKS for mem safety) at index idx in the list.
+         * @param env
+         * @param builder
+         * @param list_ptr
+         * @param list_type
+         * @param value
+         */
+        extern void list_store_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* idx, const SerializableValue& value);
+
+        extern void list_store_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* size);
     }
 }
 

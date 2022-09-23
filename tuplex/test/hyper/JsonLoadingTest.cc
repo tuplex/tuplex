@@ -1014,14 +1014,17 @@ namespace tuplex {
                     // next: store in list
                     _env.printValue(builder, item.val, "decoded value: ");
 
-                    // inc.
                     auto loop_i_val = builder.CreateLoad(loop_i);
+                    list_store_value(_env, builder, list_ptr, list_type, loop_i_val, item);
+
+                    // inc.
                     builder.CreateStore(builder.CreateAdd(_env.i64Const(1), loop_i_val), loop_i);
                     builder.CreateBr(bLoopHeader);
                 }
             }
 
             builder.SetInsertPoint(bLoopDone);
+
             return builder.CreateLoad(rcVar);
         }
 
@@ -1043,6 +1046,10 @@ namespace tuplex {
             auto list_ptr = _env.CreateFirstBlockAlloca(builder, list_llvm_type);
             list_init_empty(_env, builder, list_ptr, listType);
 
+
+            auto rc_var = _env.CreateFirstBlockAlloca(builder, _env.i64Type());
+            builder.CreateStore(_env.i64Const(ecToI64(ExceptionCode::SUCCESS)), rc_var);
+
             // decode happens in two steps:
             // step 1: check if there's actually an array in the JSON data -> if not, type error!
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getArray", _env.i64Type(), _env.i8ptrType(),
@@ -1056,6 +1063,7 @@ namespace tuplex {
             BasicBlock *bbArrayFound = BasicBlock::Create(_env.getContext(), "found_array", builder.GetInsertBlock()->getParent());
             BasicBlock *bbDecodeDone = BasicBlock::Create(_env.getContext(), "array_decode_done", builder.GetInsertBlock()->getParent());
             llvm::Value* rc_A = builder.CreateCall(F, {obj, key, item_var});
+            builder.CreateStore(rc_A, rc_var);
             auto found_array = builder.CreateICmpEQ(rc_A, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
             builder.CreateCondBr(found_array, bbArrayFound, bbDecodeDone);
 
@@ -1077,26 +1085,23 @@ namespace tuplex {
             // decoding happens in a loop...
             // -> basically get the data!
             auto list_rc = generateDecodeListItemsLoop(builder, array, list_ptr, listType, num_elements);
+            builder.CreateStore(list_rc, rc_var);
             _env.printValue(builder, list_rc, "decode result is: ");
 
-            // // is it a list again? or a structured dict?
-            // if(elementType.isListType()) {
-            //     throw std::runtime_error("not yet supported");
-            // } else if(elementType.isStructuredDictionaryType()) {
-            //     // TODO...
-            //     throw std::runtime_error("not yet supported");
-            // } else {
-            //     // regular list of entries...
-            //     throw std::runtime_error("not yet supported");
-            // }
+            // only if decode is ok, store list size!
+            auto list_decode_ok = builder.CreateICmpEQ(list_rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            BasicBlock* bbListOK = BasicBlock::Create(_env.getContext(), "array_decode_ok", builder.GetInsertBlock()->getParent());
+            builder.CreateCondBr(list_decode_ok, bbListOK, bbDecodeDone);
 
-            // step 3: decode into memory... -> heap allocated.
-
-            builder.CreateBr(bbDecodeDone);
-
+            {
+                // --- set list size hwen ok ---
+                builder.SetInsertPoint(bbListOK);
+                list_store_size(_env, builder, list_ptr, listType, num_elements); // <-- now list is ok!
+                builder.CreateBr(bbDecodeDone);
+            }
 
             builder.SetInsertPoint(bbDecodeDone);
-            llvm::Value* rc = rc_A;
+            llvm::Value* rc = builder.CreateLoad(rc_var);
             SerializableValue value;
             value.val = list_ptr; // retrieve the ptr representing the list
             return make_tuple(rc, value);

@@ -486,6 +486,9 @@ namespace tuplex {
         SerializableValue struct_dict_type_serialized_memory_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type);
         SerializableValue struct_dict_serialize_to_memory(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, llvm::Value* dest_ptr);
 
+        // zero all size fields. Important! especially for maybe elements.
+        void struct_dict_mem_zero(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type);
+
         llvm::Type* create_structured_dict_type(LLVMEnvironment &env, const std::string &name, const python::Type &dict_type);
 
         // store functions
@@ -1633,6 +1636,8 @@ namespace tuplex {
             // alloc variable
             auto struct_dict_type = create_structured_dict_type(_env, "dict_struct", _rowType);
             auto row_var = _env.CreateFirstBlockAlloca(builder, struct_dict_type);
+            struct_dict_mem_zero(_env, builder, row_var, _rowType); // !!! important !!!
+
 
             // decode everything -> entries can be then used to store to a struct!
             decode(builder, row_var, _rowType, builder.CreateLoad(obj_var), bbSchemaMismatch, _rowType, {}, true);
@@ -2601,11 +2606,17 @@ namespace tuplex {
             for(auto entry : entries) {
                 auto access_path = std::get<0>(entry);
                 auto value_type = std::get<1>(entry);
+                bool always_present = std::get<2>(entry);
                 auto t_indices = indices.at(access_path);
 
                 // special case list: --> needs extra care
                 if(value_type.isOptionType())
                     value_type = value_type.getReturnType();
+
+                // skip nested struct dicts!
+                if(value_type.isStructuredDictionaryType())
+                    continue;
+
                 if(value_type.isListType()) {
                     // special care:
                     std::cerr<<"skipping serializing list for now..."<<std::endl;
@@ -2628,6 +2639,10 @@ namespace tuplex {
                         size = builder.CreateAdd(size, value_size);
                     }
                 }
+
+                // // debug print
+                // auto path_desc = json_access_path_to_string(access_path, value_type, always_present);
+                // env.printValue(builder, size, "size after serializing " + path_desc + ": ");
             }
 
             return SerializableValue(size, bytes8, nullptr);
@@ -2698,6 +2713,64 @@ namespace tuplex {
             return has_presence_map;
         }
 
+        void struct_dict_mem_zero(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type) {
+            auto& logger = Logger::instance().logger("codegen");
+
+            // get the corresponding type
+            auto stype = create_structured_dict_type(env, "dict_struct", dict_type);
+
+            if(ptr->getType() != stype->getPointerTo())
+                throw std::runtime_error("ptr has not correct type, must be pointer to " + stype->getStructName().str());
+
+            // get flattened structure!
+            flattened_struct_dict_entry_list_t entries;
+            flatten_recursive_helper(entries, dict_type);
+
+            auto indices = struct_dict_load_indices(dict_type);
+
+            // also zero bitmaps? i.e. everything should be null and not present?
+
+            if(struct_dict_has_bitmap(dict_type)) {
+//                auto bitmap_idx = CreateStructGEP(builder, ptr, 0);
+//                auto bitmap = builder.CreateLoad(bitmap_idx);
+//                dest_ptr = serializeBitmap(env, builder, bitmap, dest_ptr);
+            }
+            // 2. presence-bitmap
+            if(struct_dict_has_presence_map(dict_type)) {
+//                auto presence_map_idx = CreateStructGEP(builder, ptr, 1);
+//                auto presence_map = builder.CreateLoad(presence_map_idx);
+//                dest_ptr = serializeBitmap(env, builder, presence_map, dest_ptr);
+            }
+            for(auto entry : entries) {
+                auto access_path = std::get<0>(entry);
+                auto t_indices = indices.at(access_path);
+                auto value_idx = std::get<2>(t_indices);
+                auto size_idx = std::get<3>(t_indices);
+                auto value_type = std::get<1>(entry);
+
+                if (value_type.isOptionType())
+                    value_type = value_type.getReturnType();
+
+                // skip list
+                if(value_type.isListType()) {
+                    std::cerr<<"skipping list zero for now"<<std::endl;
+                    continue;
+                }
+
+                // skip nested struct dicts!
+                if (value_type.isStructuredDictionaryType())
+                    continue;
+
+                if(size_idx >= 0) {
+                    auto llvm_size_idx = CreateStructGEP(builder, ptr, size_idx);
+
+                    assert(llvm_size_idx->getType() == env.i64ptrType());
+                    // store 0!
+                    builder.CreateStore(env.i64Const(0), llvm_size_idx);
+                }
+            }
+        }
+
         SerializableValue struct_dict_serialize_to_memory(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, llvm::Value* dest_ptr) {
             auto& logger = Logger::instance().logger("codegen");
 
@@ -2742,6 +2815,14 @@ namespace tuplex {
                 auto access_path = std::get<0>(entry);
                 auto t_indices = indices.at(access_path);
                 auto value_idx = std::get<2>(t_indices);
+                auto value_type = std::get<1>(entry);
+
+                if(value_type.isOptionType())
+                    value_type = value_type.getReturnType();
+                // skip nested struct dicts!
+                if(value_type.isStructuredDictionaryType())
+                    continue;
+
                 if(value_idx < 0)
                     continue; // can skip field, not necessary to serialize
                     num_fields++;
@@ -2767,6 +2848,10 @@ namespace tuplex {
                     std::cerr<<"skipping serializing list for now..."<<std::endl;
                     continue;
                 }
+
+                // skip nested struct dicts! --> they're taken care of.
+                if(value_type.isStructuredDictionaryType())
+                    continue;
 
                 // depending on field, add size!
                 auto value_idx = std::get<2>(t_indices);
@@ -2829,6 +2914,10 @@ namespace tuplex {
                 // serialized field -> inc index!
                 field_index++;
             }
+
+            // move dest ptr to end!
+            dest_ptr = builder.CreateGEP(dest_ptr, varLengthOffset);
+
 
             llvm::Value* serialized_size = builder.CreatePtrDiff(dest_ptr, original_dest_ptr);
             return SerializableValue(original_dest_ptr, serialized_size, nullptr);
@@ -3132,12 +3221,12 @@ TEST_F(HyperTest, BasicStructLoad) {
      // path = "../resources/ndjson/example1.json";
 
 
-     // mini example in order to analyze code
-     path = "test.json";
-     auto content = "{\"column1\": {\"a\": \"hello\", \"b\": 20, \"c\": 30}}\n"
-                    "{\"column1\": {\"a\": \"test\", \"b\": 20, \"c\": null}}\n"
-                    "{\"column1\": {\"a\": \"cat\",  \"c\": null}}";
-     stringToFile(path, content);
+//     // mini example in order to analyze code
+//     path = "test.json";
+//     auto content = "{\"column1\": {\"a\": \"hello\", \"b\": 20, \"c\": 30}}\n"
+//                    "{\"column1\": {\"a\": \"test\", \"b\": 20, \"c\": null}}\n"
+//                    "{\"column1\": {\"a\": \"cat\",  \"c\": null}}";
+//     stringToFile(path, content);
 
     // now, regular routine...
     auto raw_data = fileToString(path);

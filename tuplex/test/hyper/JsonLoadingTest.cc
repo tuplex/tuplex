@@ -167,6 +167,13 @@ namespace tuplex {
                                                                                                      const DecodeOptions& options,
                                                                                                      llvm::BasicBlock *bbSchemaMismatch);
 
+            std::tuple<llvm::Value*, llvm::Value*, SerializableValue> decodeStructDictFieldFromObject(llvm::IRBuilder<>& builder,
+                                                                                                      llvm::Value* obj,
+                                                                                                      llvm::Value* key,
+                                                                                                      const python::StructEntry& entry,
+                                                                                                      const DecodeOptions& options,
+                                                                                                      llvm::BasicBlock *bbSchemaMismatch);
+
 
             // various decoding functions (object)
             std::tuple<llvm::Value*, SerializableValue> decodeString(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
@@ -676,6 +683,79 @@ namespace tuplex {
             return make_tuple(rc, value);
         }
 
+        std::tuple<llvm::Value *, llvm::Value *, SerializableValue>
+        JSONSourceTaskBuilder::decodeStructDictFieldFromObject(llvm::IRBuilder<> &builder, llvm::Value *obj,
+                                                               llvm::Value* key, const python::StructEntry &entry,
+                                                               const tuplex::codegen::JSONSourceTaskBuilder::DecodeOptions &options,
+                                                               llvm::BasicBlock *bbSchemaMismatch) {
+            using namespace std;
+            using namespace llvm;
+
+            llvm::Value* rc = nullptr;
+            llvm::Value* is_present = nullptr;
+            SerializableValue value;
+
+            // checks
+            assert(obj);
+            assert(key);
+            assert(entry.valueType.isStructuredDictionaryType()); // --> this function doesn't support nested decode.
+            assert(entry.keyType == python::Type::STRING); // --> JSON decode ONLY supports string keys.
+
+            auto value_type = entry.valueType;
+            auto& ctx = _env.getContext();
+
+            BasicBlock *bbDecodeItem = BasicBlock::Create(ctx, "decode_object", builder.GetInsertBlock()->getParent());
+            BasicBlock *bbDecodeDone = BasicBlock::Create(ctx, "decode_done", builder.GetInsertBlock()->getParent());
+            auto stype = _env.getOrCreateStructuredDictType(entry.valueType);
+            auto item_var = _env.CreateFirstBlockAlloca(builder, stype);
+            auto sub_object_var = _env.CreateFirstBlockAlloca(builder, _env.i8ptrType()); // <-- stores JsonObject*
+
+
+            {
+                auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getObject", _env.i64Type(),
+                                             _env.i8ptrType(),
+                                             _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
+
+                // zero dict (for safety)
+                struct_dict_mem_zero(_env, builder, item_var, entry.valueType);
+
+                auto rc_var = _env.CreateFirstBlockAlloca(builder, _env.i64Type());
+
+                // start decode
+                // create call, recurse only if ok!
+                rc = builder.CreateCall(F, {obj, key, sub_object_var});
+                builder.CreateStore(rc, rc_var);
+                auto is_object = builder.CreateICmpEQ(rc, _env.i64Const(
+                        ecToI64(ExceptionCode::SUCCESS))); // <-- indicates successful parse and that the item is present.
+
+                is_present = builder.CreateICmpNE(rc, _env.i64Const(
+                        ecToI64(ExceptionCode::KEYERROR))); // element is present iff not key error
+
+                 // --> only decode IFF is_ok (i.e., present and no type error (it's not an array or so)).
+                builder.CreateCondBr(is_object, bbDecodeItem, bbDecodeDone);
+            }
+
+            {
+                builder.SetInsertPoint(bbDecodeItem);
+                // load json obj
+                auto sub_object = builder.CreateLoad(sub_object_var);
+                // recurse using new prefix
+                // --> similar to flatten_recursive_helper(entries, kv_pair.valueType, access_path, include_maybe_structs);
+                decode(builder,
+                       item_var,
+                       entry.valueType,
+                       sub_object, bbSchemaMismatch, entry.valueType, {}, true);
+                builder.CreateBr(bbDecodeDone); // whererver builder is, continue to decode done for this item.
+            }
+
+            builder.SetInsertPoint(bbDecodeDone);
+
+            assert(is_present);
+            assert(rc);
+            value.val = builder.CreateLoad(item_var); // <-- loads struct!
+            return make_tuple(rc, is_present, value);
+        }
+
         std::tuple<llvm::Value*, llvm::Value*, SerializableValue> JSONSourceTaskBuilder::decodePrimitiveFieldFromObject(llvm::IRBuilder<>& builder,
                                                                                                  llvm::Value* obj,
                                                                                                  llvm::Value* key,
@@ -706,6 +786,18 @@ namespace tuplex {
                 BasicBlock* bbDecodeNonNull = BasicBlock::Create(ctx, "decode_option_non_null", bbCurrent->getParent());
                 BasicBlock* bbDecoded = BasicBlock::Create(ctx, "decoded_option", bbCurrent->getParent());
 
+                auto element_type = value_type.getReturnType();
+
+                // special case: element to decode is struct type
+                llvm::Value* null_struct = nullptr;
+                if(element_type.isStructuredDictionaryType()) {
+                    auto llvm_element_type = _env.getOrCreateStructuredDictType(element_type);
+                    auto null_struct_var = _env.CreateFirstBlockAlloca(builder, llvm_element_type);
+                    struct_dict_mem_zero(_env, builder, null_struct_var, element_type);
+                    null_struct = builder.CreateLoad(null_struct_var);
+                }
+
+
                 // check if it is null
                 llvm::Value* rcA = nullptr;
                 std::tie(rcA, value) = decodeNull(builder, obj, key);
@@ -730,7 +822,16 @@ namespace tuplex {
                 SerializableValue valueB;
                 python::StructEntry entryB = entry;
                 entryB.valueType = entry.valueType.getReturnType(); // remove option
-                std::tie(rcB, presentB, valueB) = decodePrimitiveFieldFromObject(builder, obj, key, entryB, options, bbSchemaMismatch);
+
+                // two cases: primitive field -> i.e., not a struct type
+                if(!entryB.valueType.isStructuredDictionaryType())
+                    std::tie(rcB, presentB, valueB) = decodePrimitiveFieldFromObject(builder, obj, key, entryB, options, bbSchemaMismatch);
+                else {
+                    // or struct type
+                    std::tie(rcB, presentB, valueB) = decodeStructDictFieldFromObject(builder, obj, key, entryB, options, bbSchemaMismatch);
+                }
+
+
                 bbValueIsNotNull = builder.GetInsertBlock(); // <-- this is the block from where to jump to bbDecoded (phi entry block)
                 builder.CreateBr(bbDecoded);
 
@@ -742,8 +843,15 @@ namespace tuplex {
                 assert(rcB && presentB);
                 SerializableValue valueA;
                 valueA.is_null = _env.i1Const(true); // valueA is null
-                if(valueB.val)
-                    valueA.val = _env.nullConstant(valueB.val->getType());
+                if(valueB.val) {
+
+                    if(!entryB.valueType.isStructuredDictionaryType())
+                        valueA.val = _env.nullConstant(valueB.val->getType());
+                    else {
+                        assert(null_struct);
+                        valueA.val = null_struct;
+                    }
+                }
                 if(valueB.size)
                     valueA.size = _env.nullConstant(valueB.size->getType());
 
@@ -1973,6 +2081,16 @@ TEST_F(HyperTest, BasicStructLoad) {
 //                    "{\"column1\": {\"a\": [1, 4]}}\n"
 //                    "{\"column1\": {\"a\": []}}";
 //     stringToFile(path, content);
+
+
+     // mini example in order with optional struct type!
+     path = "test.json";
+
+     // this here is a simple example of a list decode
+     auto content = "{\"column1\": {\"a\": [1, 2, 3, 4]}}\n"
+                    "{\"column1\": null}\n"
+                    "{\"column1\": null}";
+     stringToFile(path, content);
 
      // steps: 1.) integer list decode
      //        2.) struct dict list decode (this is MORE involved)

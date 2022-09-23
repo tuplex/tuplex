@@ -921,7 +921,7 @@ namespace tuplex {
 
             llvm::Value* rc = _env.i64Const(ecToI64(ExceptionCode::KEYERROR)); // <-- error
             SerializableValue v;
-            v.val = dict_ptr;
+            v.val = builder.CreateLoad(dict_ptr);
             return make_tuple(rc, v);
         }
 

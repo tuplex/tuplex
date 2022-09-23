@@ -416,8 +416,7 @@ namespace tuplex {
 
                 // fetch size by calling struct_size on each retrieved pointer! (they should be ALL valid)
                 // --> no check here!
-                auto idx_struct_ptr = builder.CreateGEP(ptr_values, loop_i_val);
-                auto item = builder.CreateLoad(idx_struct_ptr);
+                auto item = builder.CreateGEP(ptr_values, loop_i_val);
 
                 // call function! (or better said: emit the necessary code...)
                 auto item_size = struct_dict_type_serialized_memory_size(env, builder, item, element_type).val;
@@ -553,6 +552,14 @@ namespace tuplex {
             return size;
         }
 
+        llvm::Value* list_of_structs_serialize_to(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* dest_ptr) {
+            // quite complex, basically write like strings/pyobjects incl. offset array!
+
+            // skipped for now...
+
+            return env.i64Const(0);
+        }
+
 
         llvm::Value* list_serialize_to(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* dest_ptr) {
 
@@ -641,6 +648,8 @@ namespace tuplex {
 //
 //                builder.SetInsertPoint(bLoopExit);
 //                return builder.CreateLoad(size_var);
+            } else if(elementType.isStructuredDictionaryType()) {
+                return list_of_structs_serialize_to(env, builder, list_ptr, list_type, dest_ptr);
             } else {
                 throw std::runtime_error("Unsupported list to serialize: " + list_type.desc());
             }

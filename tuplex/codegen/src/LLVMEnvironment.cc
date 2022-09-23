@@ -359,7 +359,7 @@ namespace tuplex {
                 std::vector<llvm::Type*> memberTypes;
                 memberTypes.push_back(i64Type()); // array capacity
                 memberTypes.push_back(i64Type()); // size
-                memberTypes.push_back(llvm::PointerType::get(llvm::PointerType::get(llvm_element_type, 0), 0));
+                memberTypes.push_back(llvm::PointerType::get(llvm_element_type, 0));
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
             } else if(elementType.isListType()) {
@@ -367,7 +367,7 @@ namespace tuplex {
                 std::vector<llvm::Type*> memberTypes;
                 memberTypes.push_back(i64Type()); // array capacity
                 memberTypes.push_back(i64Type()); // size
-                memberTypes.push_back(llvm::PointerType::get(llvm::PointerType::get(getOrCreateListType(elementType), 0), 0));
+                memberTypes.push_back(llvm::PointerType::get(getOrCreateListType(elementType), 0));
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
             } else {

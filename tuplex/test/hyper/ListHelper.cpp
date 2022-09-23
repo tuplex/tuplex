@@ -217,7 +217,7 @@ namespace tuplex {
                 auto idx_size = builder.CreateGEP(ptr_sizes, idx);
 
                 builder.CreateStore(value.val, idx_value);
-                builder.CreateStore(value.size, idx_sizes);
+                builder.CreateStore(value.size, idx_size);
             } else if(elementType.isStructuredDictionaryType()) {
                 // pointer to the structured dict type!
                 throw std::runtime_error("merge struct dict type into LLVMEnvironment type system...");
@@ -310,6 +310,100 @@ namespace tuplex {
             } else if(elementType.isListType()) {
                 auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
                 return builder.CreateLoad(idx_size);
+            } else {
+                throw std::runtime_error("Unsupported list element type: " + list_type.desc());
+            }
+        }
+
+        llvm::Value* list_serialized_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type) {
+            using namespace llvm;
+            using namespace std;
+
+            assert(list_ptr);
+
+            assert(list_type.isListType());
+            if(python::Type::EMPTYLIST == list_type)
+                return env.i64Const(0); // nothing to do
+
+            // cf. now getOrCreateListType(...) ==> different layouts depending on element type.
+            // init accordingly.
+            auto elementType = list_type.elementType();
+            if(elementType.isSingleValued()) {
+                // nothing gets stored, ignore.
+                return env.i64Const(8); // just store the size field.
+            } else if(elementType == python::Type::I64
+                      || elementType == python::Type::F64
+                      || elementType == python::Type::BOOLEAN) {
+                // it's the size field + the size * sizeof(int64_t)
+                auto len = list_length(env, builder, list_ptr, list_type);
+                auto size = builder.CreateAdd(env.i64Const(8), builder.CreateMul(env.i64Const(8), len));
+                return size;
+            } else if(elementType == python::Type::STRING
+                      || elementType == python::Type::PYOBJECT) {
+
+                // this requires a loop (maybe generate instead function?)
+                auto size_var = env.CreateFirstBlockAlloca(builder, env.i64Type());
+                // size field requires 8 bytes
+                llvm::Value* size = env.i64Const(8);
+
+                // fetch length
+                auto len = list_length(env, builder, list_ptr, list_type);
+                // now store len x 8 bytes for the individual length of entries.
+                // then store len x 8 bytes for the offsets.
+                // --> pretty inefficient storage. can get optimized, but no time...
+
+                auto len4 = builder.CreateMul(env.i64Const(8 * 2), len);
+
+                size = builder.CreateAdd(len4, size);
+                builder.CreateStore(size, size_var);
+
+                auto loop_i = env.CreateFirstBlockAlloca(builder, env.i64Type());
+                builder.CreateStore(env.i64Const(0), loop_i);
+
+                // start loop going over the size entries (--> this could be vectorized!)
+                auto& ctx = env.getContext(); auto F = builder.GetInsertBlock()->getParent();
+                BasicBlock *bLoopHeader = BasicBlock::Create(ctx, "var_size_loop_header", F);
+                BasicBlock *bLoopBody = BasicBlock::Create(ctx, "var_size_loop_body", F);
+                BasicBlock *bLoopExit = BasicBlock::Create(ctx, "var_size_loop_done", F);
+
+                auto idx_sizes = CreateStructGEP(builder, list_ptr, 3);
+                auto ptr_sizes = builder.CreateLoad(idx_sizes);
+
+                builder.CreateBr(bLoopHeader);
+
+                {
+                    // --- header ---
+                    builder.SetInsertPoint(bLoopHeader);
+                    // if i < len:
+                    auto loop_i_val = builder.CreateLoad(loop_i);
+                    auto loop_cond = builder.CreateICmpULT(loop_i_val, len);
+                    builder.CreateCondBr(loop_cond, bLoopBody, bLoopExit);
+                }
+
+
+                {
+                    // --- body ---
+                    builder.SetInsertPoint(bLoopBody);
+                    auto loop_i_val = builder.CreateLoad(loop_i);
+
+                    // fetch size
+                    auto idx_size = builder.CreateGEP(ptr_sizes, loop_i_val);
+                    auto item_size = builder.CreateLoad(idx_size);
+                    size = builder.CreateAdd(item_size, builder.CreateLoad(size_var));
+                    builder.CreateStore(size, size_var);
+
+                    // inc.
+                    builder.CreateStore(builder.CreateAdd(env.i64Const(1), loop_i_val), loop_i);
+                    builder.CreateBr(bLoopHeader);
+                }
+
+                builder.SetInsertPoint(bLoopExit);
+                return builder.CreateLoad(size_var);
+            } else if(elementType.isStructuredDictionaryType()) {
+                // pointer to the structured dict type!
+                throw std::runtime_error("merge struct dict type into LLVMEnvironment type system...");
+            } else if(elementType.isListType()) {
+                throw std::runtime_error("list of list size not yet supported");
             } else {
                 throw std::runtime_error("Unsupported list element type: " + list_type.desc());
             }

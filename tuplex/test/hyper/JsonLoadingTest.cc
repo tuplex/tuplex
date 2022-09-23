@@ -995,7 +995,7 @@ namespace tuplex {
 
                 // check what the result is of item_rc -> can be combined with rc!
                 BasicBlock* bDecodeOK = BasicBlock::Create(ctx, "array_item_decode_ok", F);
-                BasicBlock* bDecodeFail = BasicBlock::Create(ctx, "array)_item_decode_failed", F);
+                BasicBlock* bDecodeFail = BasicBlock::Create(ctx, "array_item_decode_failed", F);
 
                 auto is_item_decode_ok = builder.CreateICmpEQ(item_rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
                 builder.CreateCondBr(is_item_decode_ok, bDecodeOK, bDecodeFail);
@@ -2793,6 +2793,8 @@ namespace tuplex {
                     auto list_ptr = CreateStructGEP(builder, ptr, value_idx);
                     auto len = list_length(env, builder, list_ptr, value_type);
                     env.printValue(builder, len, "Found stored list with length=");
+                    auto s = list_serialized_size(env, builder, list_ptr, value_type);
+                    env.printValue(builder, s, "serialized list would require bytes=");
                     std::cerr<<"list not complete yet..."<<std::endl;
                     continue;
                 }

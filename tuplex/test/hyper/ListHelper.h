@@ -45,6 +45,16 @@ namespace tuplex {
         extern void list_store_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* idx, const SerializableValue& value);
 
         extern void list_store_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* size);
+
+        /*!
+         * return the serialized bytes the list would require in bytes.
+         * @param env
+         * @param builder
+         * @param list_ptr
+         * @param list_type
+         * @return
+         */
+        extern llvm::Value* list_serialized_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type);
     }
 }
 

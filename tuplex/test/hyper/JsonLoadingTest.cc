@@ -19,8 +19,8 @@
 
 #include <llvm/IR/TypeFinder.h>
 
-#include "ListHelper.h"
-#include "StructDictHelper.h"
+#include <experimental/ListHelper.h>
+#include <experimental/StructDictHelper.h>
 
 // NOTES:
 // for concrete parser implementation with pushdown etc., use
@@ -2300,10 +2300,6 @@ TEST_F(HyperTest, StructLLVMType) {
 //    std::cerr<<err<<std::endl;
 
     // TypeFinderDebug.run(*env.getModule());
-
-    std::cout << "running manual typefinder" << std::endl;
-    llvm::DebugTypeFinder tf;
-    tf.run(*env.getModule(), true);
 
     std::cout << "running typefinder" << std::endl;
     //env.getModule()->dump();

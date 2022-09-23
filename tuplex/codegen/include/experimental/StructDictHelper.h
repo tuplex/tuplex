@@ -55,8 +55,11 @@ namespace tuplex {
 
         extern void print_flatten_structured_dict_type(const python::Type &dict_type);
 
-        extern llvm::Type *
-        create_structured_dict_type(LLVMEnvironment &env, const std::string &name, const python::Type &dict_type);
+        extern llvm::Type *generate_structured_dict_type(LLVMEnvironment &env, const std::string &name, const python::Type &dict_type);
+
+        inline llvm::Type *create_structured_dict_type(LLVMEnvironment &env, const python::Type &dict_type) {
+            return env.getOrCreateStructuredDictType(dict_type);
+        }
 
         extern std::vector<llvm::Value*> create_bitmap(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const std::vector<llvm::Value*>& v);
 

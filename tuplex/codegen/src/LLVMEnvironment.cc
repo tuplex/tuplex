@@ -19,6 +19,9 @@
 #include <pcre2.h>
 #include <TupleTree.h>
 
+#include <experimental/StructDictHelper.h>
+#include <experimental/ListHelper.h>
+
 using namespace llvm;
 
 // helper functions for debugging.
@@ -2149,6 +2152,19 @@ namespace tuplex {
             auto retAddr = llvm::BlockAddress::get(func, updateIndexBB);
             _generatedIteratorUpdateIndexFunctions[funcName] = retAddr;
             return retAddr;
+        }
+
+        llvm::Type *
+        LLVMEnvironment::getOrCreateStructuredDictType(const python::Type &structType, const std::string &twine) {
+            assert(structType.isStructuredDictionaryType());
+
+            // call helper function from StructDictHelper.h
+            auto it = _generatedStructDictTypes.find(structType);
+            if(it != _generatedStructDictTypes.end())
+                return it->second;
+            auto type = generate_structured_dict_type(*this, twine, structType);
+            _generatedStructDictTypes[structType] = type;
+            return type;
         }
     }
 }

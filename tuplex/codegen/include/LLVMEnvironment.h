@@ -167,6 +167,7 @@ namespace tuplex {
             std::unique_ptr<llvm::Module> _module;
             std::map<python::Type, llvm::Type *> _generatedTupleTypes;
             std::map<python::Type, llvm::Type *> _generatedListTypes;
+            std::map<python::Type, llvm::Type*> _generatedStructDictTypes;
             // use llvm struct member types for map key since iterators with the same yieldType may have different llvm structs
             std::map<std::vector<llvm::Type *>, llvm::Type *> _generatedIteratorTypes;
             // string: function name; BlockAddress*: BlockAddress* to be filled in an iterator struct
@@ -303,6 +304,14 @@ namespace tuplex {
              * @return llvm Type to be used as the given listType
              */
             llvm::Type *getOrCreateListType(const python::Type &listType, const std::string &twine = "list");
+
+            /*!
+             * return (or create) the type that is used to represent an optimized, structured dictionary internally.
+             * @param structType
+             * @param twine
+             * @return llvm Type.
+             */
+            llvm::Type *getOrCreateStructuredDictType(const python::Type& structType, const std::string& twine="struct_dict");
 
             /*!
              * return LLVM type that is used to represent a iterator internally

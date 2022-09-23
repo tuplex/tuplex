@@ -61,7 +61,7 @@ namespace tuplex {
 
         // creating struct type based on structured dictionary type
         llvm::Type *
-        create_structured_dict_type(LLVMEnvironment &env, const std::string &name, const python::Type &dict_type) {
+        generate_structured_dict_type(LLVMEnvironment &env, const std::string &name, const python::Type &dict_type) {
             using namespace llvm;
             auto &logger = Logger::instance().logger("codegen");
             llvm::LLVMContext &ctx = env.getContext();
@@ -348,7 +348,7 @@ namespace tuplex {
             auto F = builder.GetInsertBlock()->getParent();
 
             // get the corresponding type
-            auto stype = create_structured_dict_type(env, "dict_struct", dict_type);
+            auto stype = create_structured_dict_type(env, dict_type);
             assert(ptr);
 
             // get indices for faster storage access (note: not all entries need to be present!)
@@ -484,7 +484,7 @@ namespace tuplex {
         }
 
         void struct_dict_verify_storage(LLVMEnvironment& env, const python::Type& dict_type, std::ostream& os) {
-            auto stype = create_structured_dict_type(env, "struct_dict", dict_type);
+            auto stype = create_structured_dict_type(env, dict_type);
             auto indices = struct_dict_load_indices(dict_type);
             flattened_struct_dict_entry_list_t entries;
             flatten_recursive_helper(entries, dict_type);
@@ -644,7 +644,7 @@ namespace tuplex {
 
         SerializableValue struct_dict_type_serialized_memory_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type) {
             // get the corresponding type
-            auto stype = create_structured_dict_type(env, "dict_struct", dict_type);
+            auto stype = create_structured_dict_type(env, dict_type);
 
             if(ptr->getType() != stype->getPointerTo())
                 throw std::runtime_error("ptr has not correct type, must be pointer to " + stype->getStructName().str());
@@ -783,7 +783,7 @@ namespace tuplex {
             auto& logger = Logger::instance().logger("codegen");
 
             // get the corresponding type
-            auto stype = create_structured_dict_type(env, "dict_struct", dict_type);
+            auto stype = create_structured_dict_type(env, dict_type);
 
             if(ptr->getType() != stype->getPointerTo())
                 throw std::runtime_error("ptr has not correct type, must be pointer to " + stype->getStructName().str());
@@ -847,7 +847,7 @@ namespace tuplex {
             llvm::Value* original_dest_ptr = dest_ptr;
 
             // get the corresponding type
-            auto stype = create_structured_dict_type(env, "dict_struct", dict_type);
+            auto stype = create_structured_dict_type(env, dict_type);
 
             if(ptr->getType() != stype->getPointerTo())
                 throw std::runtime_error("ptr has not correct type, must be pointer to " + stype->getStructName().str());

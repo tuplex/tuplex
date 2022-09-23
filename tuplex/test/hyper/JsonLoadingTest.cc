@@ -1759,7 +1759,7 @@ namespace tuplex {
             // don't forget to free everything...
 
             // alloc variable
-            auto struct_dict_type = create_structured_dict_type(_env, "dict_struct", _rowType);
+            auto struct_dict_type = create_structured_dict_type(_env, _rowType);
             auto row_var = _env.CreateFirstBlockAlloca(builder, struct_dict_type);
             struct_dict_mem_zero(_env, builder, row_var, _rowType); // !!! important !!!
 
@@ -2291,7 +2291,7 @@ TEST_F(HyperTest, StructLLVMType) {
     // codegen now here...
     codegen::LLVMEnvironment env;
 
-    auto stype = codegen::create_structured_dict_type(env, "struct_dict", row_type);
+    auto stype = codegen::create_structured_dict_type(env, row_type);
     // create new func with this
     create_dummy_function(env, stype);
 

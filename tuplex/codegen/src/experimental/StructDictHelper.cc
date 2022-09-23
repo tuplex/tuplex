@@ -1019,5 +1019,16 @@ namespace tuplex {
             return SerializableValue(original_dest_ptr, serialized_size, nullptr);
         }
 
+        size_t struct_dict_heap_size(LLVMEnvironment& env, const python::Type& dict_type) {
+            using namespace llvm;
+
+            assert(dict_type.isStructuredDictionaryType());
+            assert(env.getModule());
+            auto& DL = env.getModule()->getDataLayout();
+            auto llvm_type = env.getOrCreateStructuredDictType(dict_type);
+
+            return DL.getTypeAllocSize(llvm_type);
+        }
+
     }
 }

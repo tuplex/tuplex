@@ -649,6 +649,7 @@ namespace tuplex {
 
             // similarly, decoding functions (array)
             std::tuple<llvm::Value*, SerializableValue> decodeI64FromArray(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* index);
+            std::tuple<llvm::Value*, SerializableValue> decodeObjectFromArray(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* index, const python::Type& dict_type);
 
             // complex compound types
             std::tuple<llvm::Value*, SerializableValue> decodeEmptyList(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
@@ -894,6 +895,37 @@ namespace tuplex {
             return make_tuple(rc, v);
         }
 
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONSourceTaskBuilder::decodeObjectFromArray(llvm::IRBuilder<> &builder, llvm::Value *array, llvm::Value *index,
+                                                     const python::Type &dict_type) {
+            // this is quite complex.
+            using namespace std;
+            using namespace llvm;
+
+
+            assert(array && index);
+            assert(index->getType() == _env.i64Type());
+
+            assert(dict_type.isStructuredDictionaryType());
+
+            // alloc new struct dict value (heap-allocated!)
+            auto llvm_dict_type = _env.getOrCreateStructuredDictType(dict_type);
+            // calculate size of dictionary!
+            auto dict_size = struct_dict_heap_size(_env, dict_type); // make sure this is correct! else, big issues.
+            auto dict_ptr = builder.CreatePointerCast(_env.malloc(builder, dict_size), llvm_dict_type->getPointerTo());
+            struct_dict_mem_zero(_env, builder, dict_ptr, dict_type);
+
+            // check whether object exists, if so get the pointer. Then alloc, and store everything in it.
+            // TODO decode
+            _env.debugPrint(builder, "need to add object decode from array here!");
+
+            llvm::Value* rc = _env.i64Const(ecToI64(ExceptionCode::KEYERROR)); // <-- error
+            SerializableValue v;
+            v.val = dict_ptr;
+            return make_tuple(rc, v);
+        }
+
+
         llvm::Value* JSONSourceTaskBuilder::generateDecodeListItemsLoop(llvm::IRBuilder<> &builder, llvm::Value *array,
                                                                 llvm::Value *list_ptr, const python::Type &list_type,
                                                                 llvm::Value *num_elements) {
@@ -948,6 +980,9 @@ namespace tuplex {
                 // decode now element from array
                 if(element_type == python::Type::I64) {
                     std::tie(item_rc, item) = decodeI64FromArray(builder, array, index);
+                } else if(element_type.isStructuredDictionaryType()) {
+                    // special case: decode nested object from array
+                    std::tie(item_rc, item) = decodeObjectFromArray(builder, array, index, element_type);
                 } else {
                     throw std::runtime_error("Decode of element type " + element_type.desc() + " in list not yet supported");
                 }

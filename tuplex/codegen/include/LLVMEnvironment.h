@@ -593,6 +593,8 @@ namespace tuplex {
              */
             llvm::Value *malloc(llvm::IRBuilder<> &builder, llvm::Value *size);
 
+            inline llvm::Value* malloc(llvm::IRBuilder<>& builder, size_t size) { return malloc(builder, i64Const(size)); }
+
             /*!
              * call C's malloc function (need to generate free code as well!)
              * @param builder

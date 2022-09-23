@@ -81,6 +81,8 @@ namespace tuplex {
         SerializableValue struct_dict_serialize_to_memory(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, llvm::Value* dest_ptr);
 
         extern void struct_dict_verify_storage(LLVMEnvironment& env, const python::Type& dict_type, std::ostream& os);
+
+        extern size_t struct_dict_heap_size(LLVMEnvironment& env, const python::Type& dict_type);
     }
 }
 

@@ -1103,7 +1103,7 @@ namespace tuplex {
             builder.SetInsertPoint(bbDecodeDone);
             llvm::Value* rc = builder.CreateLoad(rc_var);
             SerializableValue value;
-            value.val = list_ptr; // retrieve the ptr representing the list
+            value.val = builder.CreateLoad(list_ptr); // retrieve the ptr representing the list
             return make_tuple(rc, value);
         }
 
@@ -1335,11 +1335,11 @@ namespace tuplex {
                     llvm::Value* rc = nullptr; // can ignore rc -> parse escapes to mismatch...
                     std::tie(rc, value_is_present, decoded_value) = decodePrimitiveFieldFromObject(builder, object, key, kv_pair, options, bbSchemaMismatch);
 
-                     // comment this, in order to invoke the list decoding (not completed yet...) -> requires serialization!
-                     if(kv_pair.valueType.isListType()) {
-                         std::cerr<<"skipping array store in final struct with type="<<kv_pair.valueType.desc()<<" for now."<<std::endl;
-                         continue;
-                     }
+                     // // comment this, in order to invoke the list decoding (not completed yet...) -> requires serialization!
+                     // if(kv_pair.valueType.isListType()) {
+                     //     std::cerr<<"skipping array store in final struct with type="<<kv_pair.valueType.desc()<<" for now."<<std::endl;
+                     //     continue;
+                     // }
 
                     // store!
                     struct_dict_store_value(_env, builder, dict_ptr, dict_ptr_type, access_path, decoded_value.val);
@@ -2785,7 +2785,15 @@ namespace tuplex {
 
                 if(value_type.isListType()) {
                     // special care:
-                    std::cerr<<"skipping serializing list for now..."<<std::endl;
+                    //std::cerr<<"skipping serializing list for now..."<<std::endl;
+
+                    // call lis tlen for fun
+                    auto value_idx = std::get<2>(t_indices);
+                    assert(value_idx >= 0);
+                    auto list_ptr = CreateStructGEP(builder, ptr, value_idx);
+                    auto len = list_length(env, builder, list_ptr, value_type);
+                    env.printValue(builder, len, "Found stored list with length=");
+                    std::cerr<<"list not complete yet..."<<std::endl;
                     continue;
                 }
 

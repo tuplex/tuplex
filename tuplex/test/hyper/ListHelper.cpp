@@ -279,5 +279,41 @@ namespace tuplex {
             }
         }
 
+        llvm::Value* list_length(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type) {
+            assert(list_type.isListType());
+            if(python::Type::EMPTYLIST == list_type)
+                return env.i64Const(0); // empty list is well,... guess (drum roll) -> empty.
+
+            // check ptr has correct type
+            auto llvm_list_type = env.getOrCreateListType(list_type);
+            if(list_ptr->getType() != llvm_list_type->getPointerTo())
+                throw std::runtime_error("expected pointer of " + env.getLLVMTypeName(llvm_list_type->getPointerTo()) + " but list_ptr has " + env.getLLVMTypeName(list_ptr->getType()));
+
+            // cf. now getOrCreateListType(...) ==> different layouts depending on element type.
+            // init accordingly.
+            auto elementType = list_type.elementType();
+            if(elementType.isSingleValued()) {
+                // the list is represented as single i64
+                return builder.CreateLoad(list_ptr);
+            } else if(elementType == python::Type::I64
+                      || elementType == python::Type::F64
+                      || elementType == python::Type::BOOLEAN) {
+                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
+                return builder.CreateLoad(idx_size);
+            } else if(elementType == python::Type::STRING
+                      || elementType == python::Type::PYOBJECT) {
+                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
+                return builder.CreateLoad(idx_size);
+            } else if(elementType.isStructuredDictionaryType()) {
+                // pointer to the structured dict type!
+                throw std::runtime_error("merge struct dict type into LLVMEnvironment type system...");
+            } else if(elementType.isListType()) {
+                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
+                return builder.CreateLoad(idx_size);
+            } else {
+                throw std::runtime_error("Unsupported list element type: " + list_type.desc());
+            }
+        }
+
     }
 }

@@ -29,7 +29,6 @@
 #include <third_party/i64toa_sse2.h>
 #include <third_party/ryu/ryu.h>
 
-
 namespace tuplex {
 
 #if LLVM_VERSION_MAJOR > 8
@@ -454,4 +453,5 @@ namespace tuplex {
         }
     }
 #endif
+
 }

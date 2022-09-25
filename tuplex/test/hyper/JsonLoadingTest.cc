@@ -1069,7 +1069,7 @@ TEST_F(HyperTest, BasicStructLoad) {
         std::vector<std::tuple<size_t, size_t, size_t>> rows({normal_rc, general_rc});
         std::vector<std::string> headers({"normal", "general"});
         for(int i = 0; i < 2; ++i) {
-        std::cout<<headers[i]<<":  "<<"#rows"<<std::get<0>(rows[i])<<"  #bad-rows"<<std::get<1>(rows[i])<<"  size(bytes):"<<std::get<2>(rows[i])<<std::endl;
+        std::cout<<headers[i]<<":  "<<"#rows: "<<std::get<0>(rows[i])<<"  #bad-rows: "<<std::get<1>(rows[i])<<"  size(bytes): "<<std::get<2>(rows[i])<<std::endl;
         }
     }
 }

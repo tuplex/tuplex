@@ -37,9 +37,11 @@ namespace tuplex {
      * recursively maps a json field to a python type value, recurses on arrays and objects. Arrays are
      * mapped to List[PyObject] if they're not homogenous (i.e. all elements have the same type)
      * @param obj
+     * @param interpret_heterogenous_lists_as_tuples if a heterogenous list is encountered, interpret it as tuple.
      * @return python type
      */
-    extern python::Type jsonTypeToPythonTypeRecursive(simdjson::simdjson_result<simdjson::fallback::ondemand::value> obj);
+    extern python::Type jsonTypeToPythonTypeRecursive(simdjson::simdjson_result<simdjson::fallback::ondemand::value> obj,
+                                                      bool interpret_heterogenous_lists_as_tuples);
 
     /*!
      * parses rows from buf (newline delimited json) as tuplex rows,
@@ -51,17 +53,20 @@ namespace tuplex {
      *                       given as [...] takes either the first rows names or empty string.
      * @param unwrap_rows    if true, then rows are unwrapped (and if outColumnNames are given) and column names stored.
      *                       Else, each row is represented as struct type.
+     * @param interpret_heterogenous_lists_as_tuples if a heterogenous list is encountered, interpret it as tuple.
      * @return vector of Rows with types assigned.
      */
     extern std::vector<Row> parseRowsFromJSON(const char* buf,
                                               size_t buf_size,
                                               std::vector<std::vector<std::string>>* outColumnNames=nullptr,
-                                              bool unwrap_rows=true);
+                                              bool unwrap_rows=true,
+                                              bool interpret_heterogenous_lists_as_tuples=true);
 
     inline std::vector<Row> parseRowsFromJSON(const std::string& s,
                                               std::vector<std::vector<std::string>>* outColumnNames=nullptr,
-                                              bool unwrap_rows=true) {
-        return parseRowsFromJSON(s.c_str(), s.size() + 1, outColumnNames, unwrap_rows);
+                                              bool unwrap_rows=true,
+                                              bool interpret_heterogenous_lists_as_tuples=true) {
+        return parseRowsFromJSON(s.c_str(), s.size() + 1, outColumnNames, unwrap_rows, interpret_heterogenous_lists_as_tuples);
     }
 
     // --> put implementation of this into JsonStatistic.cc file in utils/src/JsonStatistic.cc

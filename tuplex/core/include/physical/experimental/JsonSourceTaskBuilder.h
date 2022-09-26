@@ -82,7 +82,10 @@ namespace tuplex {
         extern uint64_t JsonItem_getArray(JsonItem *item, const char *key, JsonArray **out);
         extern void JsonArray_Free(JsonArray* arr);
         extern uint64_t JsonArray_Size(JsonArray* arr);
+        extern uint64_t JsonArray_getBoolean(JsonArray *arr, size_t i, int64_t *out);
         extern uint64_t JsonArray_getInt(JsonArray *arr, size_t i, int64_t *out);
+        extern uint64_t JsonArray_getDouble(JsonArray *arr, size_t i, double *out);
+        extern uint64_t JsonArray_getStringAndSize(JsonArray *arr, size_t i, char **out, int64_t *size);
         extern uint64_t JsonArray_getObject(JsonArray *arr, size_t i, JsonItem **out);
         extern uint64_t JsonItem_getDouble(JsonItem *item, const char *key, double *out);
         extern uint64_t JsonItem_getInt(JsonItem *item, const char *key, int64_t *out);

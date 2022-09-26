@@ -993,7 +993,7 @@ TEST_F(HyperTest, LoadAllFiles) {
             // general case version
             auto conf_general_case_type_policy = TypeUnificationPolicy::defaultPolicy();
             conf_general_case_type_policy.unifyMissingDictKeys = true;
-            conf_general_case_type_policy.allowUnifyWithPyObject = true;
+            conf_general_case_type_policy.allowUnifyWithPyObject = false; // <-- do NOT allow this. => can't compile... --> this could be helped with DelayedParse[...]
 
             double conf_nc_threshold = 0.;
             // type cover maximization
@@ -1021,9 +1021,9 @@ TEST_F(HyperTest, LoadAllFiles) {
             // could do here a counter experiment: I.e., how many general case rows? how many normal case rows? how many fallback rows?
             // => then also measure how much memory is required!
             // => can perform example experiments for the 10 different files and plot it out.
-            std::cout<<"-----\nrunning using general case:\n-----\n"<<std::endl;
-            auto normal_rc = runCodegen(normal_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
             std::cout<<"-----\nrunning using normal case:\n-----\n"<<std::endl;
+            auto normal_rc = runCodegen(normal_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
+            std::cout<<"-----\nrunning using general case:\n-----\n"<<std::endl;
             auto general_rc = runCodegen(general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
 
             {
@@ -1059,6 +1059,13 @@ TEST_F(HyperTest, BasicStructLoad) {
 
 
     path = "../resources/2011-11-26-13.json.gz";
+
+    // this 3 files here failed processing:
+    // [2022-09-26 12:57:02.183] [experiment] [error] failed to process: /data/github_sample/2012-11-08-17.json.gz
+    // [2022-09-26 12:57:02.183] [experiment] [error] failed to process: /data/github_sample/2013-07-27-3.json.gz
+    // [2022-09-26 12:57:02.183] [experiment] [error] failed to process: /data/github_sample/2014-04-09-12.json.gz
+
+    path = "/data/github_sample/2012-11-08-17.json.gz";
 
     // // smaller sample
     // path = "../resources/2011-11-26-13.sample.json";
@@ -1129,14 +1136,14 @@ TEST_F(HyperTest, BasicStructLoad) {
     // general case version
     auto conf_general_case_type_policy = TypeUnificationPolicy::defaultPolicy();
     conf_general_case_type_policy.unifyMissingDictKeys = true;
-    conf_general_case_type_policy.allowUnifyWithPyObject = true;
+    conf_general_case_type_policy.allowUnifyWithPyObject = false; // <-- do NOT allow this. => can't compile...
 
     double conf_nc_threshold = 0.;
     // type cover maximization
     std::vector<std::pair<python::Type, size_t>> type_counts;
     for (unsigned i = 0; i < rows.size(); ++i) {
         // row check:
-        //std::cout<<"row: "<<rows[i].toPythonString()<<" type: "<<rows[i].getRowType().desc()<<std::endl;
+        // std::cout<<"row: "<<rows[i].toPythonString()<<" type: "<<rows[i].getRowType().desc()<<std::endl; // <-- this fails for pyobject!
         type_counts.emplace_back(std::make_pair(rows[i].getRowType(), 1));
     }
 
@@ -1153,6 +1160,7 @@ TEST_F(HyperTest, BasicStructLoad) {
     auto row_type = normal_case_type;//general_case_type;
     //row_type = general_case_type; // <-- this should match MOST of the rows...
     // row_type = normal_case_type;
+
 
     // could do here a counter experiment: I.e., how many general case rows? how many normal case rows? how many fallback rows?
     // => then also measure how much memory is required!

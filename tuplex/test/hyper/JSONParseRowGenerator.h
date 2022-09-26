@@ -88,12 +88,17 @@ namespace tuplex {
             std::tuple<llvm::Value*, SerializableValue> decodeNull(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key);
 
             // similarly, decoding functions (array)
+            std::tuple<llvm::Value*, SerializableValue> decodeFromArray(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* index, const python::Type& element_type);
+            std::tuple<llvm::Value*, SerializableValue> decodeBooleanFromArray(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* index);
             std::tuple<llvm::Value*, SerializableValue> decodeI64FromArray(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* index);
+            std::tuple<llvm::Value*, SerializableValue> decodeF64FromArray(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* index);
+            std::tuple<llvm::Value*, SerializableValue> decodeStringFromArray(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* index);
             std::tuple<llvm::Value*, SerializableValue> decodeObjectFromArray(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* index, const python::Type& dict_type);
 
             // complex compound types
             std::tuple<llvm::Value*, SerializableValue> decodeEmptyList(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);
             std::tuple<llvm::Value*, SerializableValue> decodeList(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value *key, const python::Type& listType);
+            std::tuple<llvm::Value*, SerializableValue> decodeTuple(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value *key, const python::Type& tupleType);
 
             // helper function to create the loop for the array
             llvm::Value* generateDecodeListItemsLoop(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* num_elements);

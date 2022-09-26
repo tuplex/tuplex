@@ -3,6 +3,7 @@
 //
 
 #include "JSONParseRowGenerator.h"
+#include <FlattenedTuple.h>
 
 namespace tuplex {
     namespace codegen {
@@ -216,6 +217,28 @@ namespace tuplex {
         }
 
         std::tuple<llvm::Value *, SerializableValue>
+        JSONParseRowGenerator::decodeBooleanFromArray(llvm::IRBuilder<> &builder, llvm::Value *array,
+                                                      llvm::Value *index) {
+            using namespace std;
+            using namespace llvm;
+
+
+            assert(array && index);
+            assert(index->getType() == _env.i64Type());
+
+            // decode using string
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonArray_getBoolean", _env.i64Type(), _env.i8ptrType(), _env.i64Type(),
+                                         _env.i64ptrType());
+            auto i_var = _env.CreateFirstBlockVariable(builder, _env.i64Const(0));
+            llvm::Value* rc = builder.CreateCall(F, {array, index, i_var});
+            SerializableValue v;
+            v.val = builder.CreateLoad(i_var);
+            v.size = _env.i64Const(sizeof(int64_t));
+            v.is_null = _env.i1Const(false);
+            return make_tuple(rc, v);
+        }
+
+        std::tuple<llvm::Value *, SerializableValue>
         JSONParseRowGenerator::decodeI64FromArray(llvm::IRBuilder<> &builder, llvm::Value *array, llvm::Value *index) {
             using namespace std;
             using namespace llvm;
@@ -232,6 +255,49 @@ namespace tuplex {
             SerializableValue v;
             v.val = builder.CreateLoad(i_var);
             v.size = _env.i64Const(sizeof(int64_t));
+            v.is_null = _env.i1Const(false);
+            return make_tuple(rc, v);
+        }
+
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONParseRowGenerator::decodeF64FromArray(llvm::IRBuilder<> &builder, llvm::Value *array, llvm::Value *index) {
+            using namespace std;
+            using namespace llvm;
+
+
+            assert(array && index);
+            assert(index->getType() == _env.i64Type());
+
+            // decode using string
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonArray_getDouble", _env.i64Type(), _env.i8ptrType(), _env.i64Type(),
+                                         _env.doublePointerType());
+            auto f_var = _env.CreateFirstBlockVariable(builder, _env.f64Const(0));
+            llvm::Value* rc = builder.CreateCall(F, {array, index, f_var});
+            SerializableValue v;
+            v.val = builder.CreateLoad(f_var);
+            v.size = _env.i64Const(sizeof(int64_t));
+            v.is_null = _env.i1Const(false);
+            return make_tuple(rc, v);
+        }
+
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONParseRowGenerator::decodeStringFromArray(llvm::IRBuilder<> &builder, llvm::Value *array,
+                                                     llvm::Value *index) {
+            using namespace std;
+            using namespace llvm;
+
+            assert(array && index);
+            assert(index->getType() == _env.i64Type());
+
+            // decode using string
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonArray_getStringAndSize", _env.i64Type(), _env.i8ptrType(),
+                                         _env.i64Type(), _env.i8ptrType()->getPointerTo(0), _env.i64ptrType());
+            auto str_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr(), "s");
+            auto str_size_var = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "s_size");
+            llvm::Value* rc = builder.CreateCall(F, {array, index, str_var, str_size_var});
+            SerializableValue v;
+            v.val = builder.CreateLoad(str_var);
+            v.size = builder.CreateLoad(str_size_var);
             v.is_null = _env.i1Const(false);
             return make_tuple(rc, v);
         }
@@ -364,14 +430,7 @@ namespace tuplex {
                 auto index = builder.CreateLoad(loop_i);
 
                 // decode now element from array
-                if(element_type == python::Type::I64) {
-                    std::tie(item_rc, item) = decodeI64FromArray(builder, array, index);
-                } else if(element_type.isStructuredDictionaryType()) {
-                    // special case: decode nested object from array
-                    std::tie(item_rc, item) = decodeObjectFromArray(builder, array, index, element_type);
-                } else {
-                    throw std::runtime_error("Decode of element type " + element_type.desc() + " in list not yet supported");
-                }
+                std::tie(item_rc, item) = decodeFromArray(builder, array, index, element_type);
 
                 // check what the result is of item_rc -> can be combined with rc!
                 BasicBlock* bDecodeOK = BasicBlock::Create(ctx, "array_item_decode_ok", F);
@@ -406,6 +465,120 @@ namespace tuplex {
             builder.SetInsertPoint(bLoopDone);
 
             return builder.CreateLoad(rcVar);
+        }
+
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONParseRowGenerator::decodeFromArray(llvm::IRBuilder<> &builder, llvm::Value *array, llvm::Value *index,
+                                               const python::Type &element_type) {
+            llvm::Value* item_rc = nullptr;
+            SerializableValue item;
+            // decode based on type
+            if(element_type == python::Type::BOOLEAN) {
+                return decodeBooleanFromArray(builder, array, index);
+            } else if(element_type == python::Type::I64) {
+                return decodeI64FromArray(builder, array, index);
+            } else if(element_type == python::Type::F64) {
+                return decodeF64FromArray(builder, array, index);
+            } else if(element_type == python::Type::STRING) {
+                return decodeStringFromArray(builder, array, index);
+            } else if(element_type.isStructuredDictionaryType()) {
+                // special case: decode nested object from array
+                return decodeObjectFromArray(builder, array, index, element_type);
+            } else {
+                throw std::runtime_error("can not decode type " + element_type.desc() + " from array.");
+            }
+
+            return std::make_tuple(item_rc, item);
+        }
+
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONParseRowGenerator::decodeTuple(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key,
+                                           const python::Type &tupleType) {
+            assert(tupleType.isTupleType() || tupleType == python::Type::EMPTYTUPLE);
+            using namespace std;
+            using namespace llvm;
+
+            assert(obj && key);
+            assert(obj->getType() == _env.i8ptrType());
+            assert(key->getType() == _env.i8ptrType());
+
+            auto& ctx = _env.getContext();
+
+            // special case: () => i.e. same as empty list! just need to check for correct number of elements
+
+            if(python::Type::EMPTYTUPLE == tupleType)
+                return decodeEmptyList(builder, obj, key);
+
+            // create flattened tuple
+            FlattenedTuple ft(&_env);
+            ft.init(tupleType);
+
+            auto rc_var = _env.CreateFirstBlockAlloca(builder, _env.i64Type());
+            builder.CreateStore(_env.i64Const(ecToI64(ExceptionCode::SUCCESS)), rc_var);
+
+            // decode happens in two steps:
+            // step 1: check if there's actually an array in the JSON data -> if not, type error!
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getArray", _env.i64Type(), _env.i8ptrType(),
+                                         _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
+            auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+            // add array free to step after parse row
+            freeArray(item_var);
+
+            // create call, recurse only if ok!
+            BasicBlock *bbCurrent = builder.GetInsertBlock();
+            BasicBlock *bbArrayFound = BasicBlock::Create(_env.getContext(), "found_array", builder.GetInsertBlock()->getParent());
+            BasicBlock *bbDecodeDone = BasicBlock::Create(_env.getContext(), "array_decode_done", builder.GetInsertBlock()->getParent());
+            llvm::Value* rc_A = builder.CreateCall(F, {obj, key, item_var});
+            builder.CreateStore(rc_A, rc_var);
+            auto found_array = builder.CreateICmpEQ(rc_A, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            builder.CreateCondBr(found_array, bbArrayFound, bbDecodeDone);
+
+
+            // -----------------------------------------------------------
+            // step 2: check that the array has the same size as the tuple! if not -> schema mismatch...
+            builder.SetInsertPoint(bbArrayFound);
+            auto array = builder.CreateLoad(item_var);
+            auto num_elements = arraySize(builder, array);
+
+            // debug print here number of elements...
+            // _env.printValue(builder, num_elements, "found for type " + tupleType.desc() + " elements: ");
+            auto num_tuple_elements = tupleType.parameters().size();
+
+            BasicBlock* bbMatchingSize = BasicBlock::Create(_env.getContext(), "array_element_count_matches", builder.GetInsertBlock()->getParent());
+            auto match_cond = builder.CreateICmpEQ(num_elements, _env.i64Const(num_tuple_elements));
+            builder.CreateCondBr(match_cond, bbMatchingSize, _badParseBlock);
+
+            builder.SetInsertPoint(bbMatchingSize);
+            for(unsigned i = 0; i < num_tuple_elements; ++i) {
+                // check type
+                auto element_type = tupleType.parameters()[i];
+                llvm::Value* index = _env.i64Const(i);
+
+                llvm::Value* item_rc = nullptr;
+                SerializableValue item;
+
+                // check what the result is of item_rc -> can be combined with rc!
+                BasicBlock* bDecodeOK = BasicBlock::Create(ctx, "item_" + std::to_string(i) + "_decode_ok", F);
+                BasicBlock* bDecodeFail = BasicBlock::Create(ctx, "item_" + std::to_string(i) + "_decode_failed", F);
+
+                std::tie(item_rc, item) = decodeFromArray(builder, array, index, element_type);
+
+                auto is_item_decode_ok = builder.CreateICmpEQ(item_rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                builder.CreateCondBr(is_item_decode_ok, bDecodeOK, bDecodeFail);
+
+                builder.SetInsertPoint(bDecodeFail);
+                badParseCause("failed to decode tuple element " + std::to_string(i) + " (" + element_type.desc() + ")");
+                builder.CreateBr(_badParseBlock);
+
+                builder.SetInsertPoint(bDecodeOK);
+                // add to tuple
+                ft.set(builder, {(int)i}, item.val, item.size, item.is_null);
+            }
+
+            llvm::Value* rc = builder.CreateLoad(rc_var);
+            SerializableValue value;
+            value.val = ft.loadToPtr(builder);
+            return make_tuple(rc, value);
         }
 
         std::tuple<llvm::Value *, SerializableValue>
@@ -704,8 +877,10 @@ namespace tuplex {
                     std::tie(rc, value) = decodeEmptyDict(builder, obj, key);
                 } else if(v_type.isListType() || v_type == python::Type::EMPTYLIST) {
                     std::tie(rc, value) = decodeList(builder, obj, key, v_type);
-                } else {
+                } else if(v_type.isTupleType() || v_type == python::Type::EMPTYTUPLE) {
                     // for another nested object, utilize:
+                    std::tie(rc, value) = decodeTuple(builder, obj, key, v_type);
+                } else {
                     throw std::runtime_error("encountered unsupported value type " + value_type.desc());
                 }
             }

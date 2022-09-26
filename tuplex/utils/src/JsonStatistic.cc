@@ -44,7 +44,8 @@ namespace tuplex {
         }
     }
 
-    python::Type jsonTypeToPythonTypeRecursive(simdjson::simdjson_result<simdjson::fallback::ondemand::value> obj) {
+    python::Type jsonTypeToPythonTypeRecursive(simdjson::simdjson_result<simdjson::fallback::ondemand::value> obj,
+                                               bool interpret_heterogenous_lists_as_tuples) {
         using namespace std;
 
         // is a nested field?
@@ -60,7 +61,7 @@ namespace tuplex {
                 python::StructEntry entry;
                 entry.key = escape_to_python_str(key);
                 entry.keyType = python::Type::STRING;
-                entry.valueType = jsonTypeToPythonTypeRecursive(field.value()); // recurse if necessary!
+                entry.valueType = jsonTypeToPythonTypeRecursive(field.value(), interpret_heterogenous_lists_as_tuples); // recurse if necessary!
                 kv_pairs.push_back(entry);
             }
 
@@ -77,15 +78,21 @@ namespace tuplex {
             // go through array and check that types are the same
             python::Type element_type;
             bool first = true;
+            std::vector<python::Type> element_types;
             for(auto el : arr) {
-                auto next_type = jsonTypeToPythonTypeRecursive(el);
+                auto next_type = jsonTypeToPythonTypeRecursive(el, interpret_heterogenous_lists_as_tuples);
+                element_types.push_back(next_type);
                 if(first) {
                     element_type = next_type;
                     first = false;
                 }
                 auto uni_type = unifyTypes(element_type, next_type);
-                if(uni_type == python::Type::UNKNOWN)
-                    return python::Type::makeListType(python::Type::PYOBJECT); // non-homogenous list
+                if(uni_type == python::Type::UNKNOWN) {
+                    // special case: tuple?
+                    if(!interpret_heterogenous_lists_as_tuples)
+                        return python::Type::makeListType(python::Type::PYOBJECT); // non-homogenous list
+                }
+
                 element_type = uni_type;
                 arr_size++;
             }
@@ -93,7 +100,13 @@ namespace tuplex {
             if(arr_size == 0)
                 return python::Type::EMPTYLIST;
 
-            return python::Type::makeListType(element_type);
+            // solve special case tuple for heterogenous list
+            if(interpret_heterogenous_lists_as_tuples && element_type == python::Type::UNKNOWN) {
+                return python::Type::makeTupleType(element_types);
+            } else {
+                assert(element_type != python::Type::UNKNOWN);
+                return python::Type::makeListType(element_type);
+            }
         }
 
         return jsonTypeToPythonTypeNonRecursive(obj.type(), obj.raw_json_token());
@@ -254,7 +267,8 @@ namespace tuplex {
     std::vector<Row> parseRowsFromJSON(const char* buf,
                                        size_t buf_size,
                                        std::vector<std::vector<std::string>>* outColumnNames,
-                                       bool unwrap_rows) {
+                                       bool unwrap_rows,
+                                       bool interpret_heterogenous_lists_as_tuples) {
         using namespace std;
 
         // assert(buf[buf_size - 1] == '\0');
@@ -342,7 +356,7 @@ namespace tuplex {
 
                         // generic types? -> recurse!
                         if(py_type == python::Type::GENERICDICT || py_type == python::Type::GENERICLIST) {
-                            py_type = jsonTypeToPythonTypeRecursive(field.value());
+                            py_type = jsonTypeToPythonTypeRecursive(field.value(), interpret_heterogenous_lists_as_tuples);
                         }
 
                         // add to count array

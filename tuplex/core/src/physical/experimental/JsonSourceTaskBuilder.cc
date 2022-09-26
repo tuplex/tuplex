@@ -255,6 +255,68 @@ namespace tuplex {
             return ecToI64(ExceptionCode::SUCCESS);
         }
 
+        uint64_t JsonArray_getDouble(JsonArray *arr, size_t i, double *out) {
+            assert(arr);
+            assert(out);
+
+            simdjson::error_code error = simdjson::NO_SUCH_FIELD;
+            double value;
+
+            // this is slow -> maybe better to replace complex iteration with custom decode routines!
+            assert(i < arr->elements.size());
+
+            arr->elements[i].get_double().tie(value, error);
+
+            if (error)
+                return translate_simdjson_error(error);
+
+            *out = value;
+            return ecToI64(ExceptionCode::SUCCESS);
+        }
+
+        uint64_t JsonArray_getBoolean(JsonArray *arr, size_t i, int64_t *out) {
+            assert(arr);
+            assert(out);
+
+            simdjson::error_code error = simdjson::NO_SUCH_FIELD;
+            bool value;
+
+            // this is slow -> maybe better to replace complex iteration with custom decode routines!
+            assert(i < arr->elements.size());
+
+            arr->elements[i].get_bool().tie(value, error);
+
+            if (error)
+                return translate_simdjson_error(error);
+
+            *out = value;
+            return ecToI64(ExceptionCode::SUCCESS);
+        }
+
+        uint64_t JsonArray_getStringAndSize(JsonArray *arr, size_t i, char **out, int64_t *size) {
+            assert(arr);
+            assert(out);
+
+            simdjson::error_code error = simdjson::NO_SUCH_FIELD;
+
+            // this is slow -> maybe better to replace complex iteration with custom decode routines!
+            assert(i < arr->elements.size());
+
+            std::string_view sv_value;
+            arr->elements[i].get_string().tie(sv_value, error);
+            if (error)
+                return translate_simdjson_error(error);
+
+            auto str_size = 1 + sv_value.size();
+            char *buf = (char *) runtime::rtmalloc(str_size);
+            for (unsigned i = 0; i < sv_value.size(); ++i)
+                buf[i] = sv_value.at(i);
+            buf[sv_value.size()] = '\0';
+            *out = buf;
+            *size = sv_value.size() + 1;
+            return ecToI64(ExceptionCode::SUCCESS);
+        }
+
         uint64_t JsonArray_getObject(JsonArray *arr, size_t i, JsonItem **out) {
             assert(arr);
             assert(out);
@@ -498,7 +560,10 @@ namespace tuplex {
             jit.registerSymbol("JsonItem_getArray", JsonItem_getArray);
             jit.registerSymbol("JsonArray_Free", JsonArray_Free);
             jit.registerSymbol("JsonArray_Size", JsonArray_Size);
+            jit.registerSymbol("JsonArray_getBoolean", JsonArray_getBoolean);
             jit.registerSymbol("JsonArray_getInt", JsonArray_getInt);
+            jit.registerSymbol("JsonArray_getDouble", JsonArray_getDouble);
+            jit.registerSymbol("JsonArray_getStringAndSize", JsonArray_getStringAndSize);
             jit.registerSymbol("JsonArray_getObject", JsonArray_getObject);
         }
     }

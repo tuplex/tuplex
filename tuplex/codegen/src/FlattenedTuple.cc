@@ -1125,5 +1125,15 @@ namespace tuplex {
             }
             return ft;
         }
+
+        llvm::Value *FlattenedTuple::loadToHeapPtr(llvm::IRBuilder<> &builder) const {
+            auto llvm_type = getLLVMType(); assert(llvm_type);
+
+            const auto& DL = _env->getModule()->getDataLayout();
+            auto tuple_size = DL.getTypeAllocSize(llvm_type);
+            auto ptr = builder.CreatePointerCast(_env->malloc(builder, tuple_size), llvm_type->getPointerTo());
+            storeTo(builder, ptr);
+            return ptr;
+        }
     }
 }

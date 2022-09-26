@@ -342,6 +342,35 @@ namespace tuplex {
             return ecToI64(ExceptionCode::SUCCESS);
         }
 
+        uint64_t JsonArray_getArray(JsonArray *arr, size_t i, JsonArray **out) {
+            assert(arr);
+            assert(out);
+
+            simdjson::error_code error = simdjson::NO_SUCH_FIELD;
+
+            // this is slow -> maybe better to replace complex iteration with custom decode routines!
+            assert(i < arr->elements.size());
+
+            // on demand
+            // simdjson::ondemand::array a;
+            // dom
+            simdjson::dom::array a;
+
+            arr->elements[i].get_array().tie(a, error);
+            if (error)
+                return translate_simdjson_error(error);
+
+            // ONLY allocate if ok. else, leave how it is.
+            auto sub_arr = new JsonArray();
+            // decode subarray!
+            for(auto element : a) {
+                // sub_arr->elements.emplace_back(item);
+                sub_arr->elements.emplace_back(element);
+            }
+            *out = sub_arr;
+            return ecToI64(ExceptionCode::SUCCESS);
+        }
+
         uint64_t JsonItem_getDouble(JsonItem *item, const char *key, double *out) {
             assert(item);
             assert(key);
@@ -565,6 +594,7 @@ namespace tuplex {
             jit.registerSymbol("JsonArray_getDouble", JsonArray_getDouble);
             jit.registerSymbol("JsonArray_getStringAndSize", JsonArray_getStringAndSize);
             jit.registerSymbol("JsonArray_getObject", JsonArray_getObject);
+            jit.registerSymbol("JsonArray_getArray", JsonArray_getArray);
         }
     }
 }

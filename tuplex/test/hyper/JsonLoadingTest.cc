@@ -26,6 +26,8 @@
 #include "JSONParseRowGenerator.h"
 #include "JSONSourceTaskBuilder.h"
 
+#include "TuplexMatchBuilder.h"
+
 // NOTES:
 // for concrete parser implementation with pushdown etc., use
 // https://github.com/simdjson/simdjson/blob/master/doc/basics.md#json-pointer
@@ -488,6 +490,71 @@ namespace tuplex {
 
         return make_tuple(total_rows, bad_rows, total_size);
     }
+
+    struct MatchResult {
+        size_t totalRows;
+        size_t normalRows;
+        size_t generalRows;
+        size_t fallbackRows;
+        size_t normalMemorySize;
+        size_t generalMemorySize;
+        size_t fallbackMemorySize;
+    };
+
+    MatchResult runMatchCodegen(const python::Type& normal_row_type,
+                                                       const python::Type& general_row_type,
+                                                       const uint8_t* buf, size_t buf_size) {
+        using namespace tuplex;
+        using namespace std;
+
+        // codegen here
+        codegen::LLVMEnvironment env;
+        auto parseFuncName = "parseJSONMatchCodegen";
+
+        codegen::TuplexMatchBuilder jtb(env, normal_row_type, general_row_type, parseFuncName);
+        jtb.build();
+        auto ir_code = codegen::moduleToString(*env.getModule());
+        // std::cout << "generated code:\n" << core::withLineNumbers(ir_code) << std::endl;
+
+        // load runtime lib
+        runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
+
+        // init JITCompiler
+        JITCompiler jit;
+        codegen::addJsonSymbolsToJIT(jit);
+        jit.registerSymbol("rtmalloc", runtime::rtmalloc);
+
+
+        // // optimize code (note: is in debug mode super slow)
+        // LLVMOptimizer opt;
+        // ir_code = opt.optimizeIR(ir_code);
+
+        // compile func
+        auto rc_compile = jit.compile(ir_code);
+        //ASSERT_TRUE(rc_compile);
+
+        // get func
+        auto func = reinterpret_cast<int64_t(*)(const char *, size_t,
+                                                size_t*,
+                                                size_t*, size_t*, size_t*,
+                                                size_t*, size_t*, size_t*)>(jit.getAddrOfSymbol(parseFuncName));
+
+        // runtime init
+        ContextOptions co = ContextOptions::defaults();
+        runtime::init(co.RUNTIME_LIBRARY(false).toPath());
+
+        // call code generated function!
+        Timer timer;
+        MatchResult m;
+        auto rc = func(reinterpret_cast<const char*>(buf), buf_size,
+                       &m.totalRows,
+                       &m.normalRows, &m.generalRows, &m.fallbackRows,
+                       &m.normalMemorySize, &m.generalMemorySize, &m.fallbackMemorySize);
+        std::cout << "parsed rows in " << timer.time() << " seconds, (" << sizeToMemString(buf_size) << ")" << std::endl;
+        std::cout << "done" << std::endl;
+
+        return m;
+    }
 }
 
 TEST_F(HyperTest, LoadAllFiles) {
@@ -554,26 +621,10 @@ TEST_F(HyperTest, LoadAllFiles) {
             std::cout << "normal  case:  " << normal_case_type.desc() << std::endl;
             std::cout << "general case:  " << general_case_type.desc() << std::endl;
 
-            // modify here which type to use for the parsing...
-            auto row_type = normal_case_type;//general_case_type;
-            //row_type = general_case_type; // <-- this should match MOST of the rows...
-            // row_type = normal_case_type;
+            // parse and check
+            runMatchCodegen(normal_case_type, general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
+            // output result
 
-            // could do here a counter experiment: I.e., how many general case rows? how many normal case rows? how many fallback rows?
-            // => then also measure how much memory is required!
-            // => can perform example experiments for the 10 different files and plot it out.
-            std::cout<<"-----\nrunning using normal case:\n-----\n"<<std::endl;
-            auto normal_rc = runCodegen(normal_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
-            std::cout<<"-----\nrunning using general case:\n-----\n"<<std::endl;
-            auto general_rc = runCodegen(general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
-
-            {
-                std::vector<std::tuple<size_t, size_t, size_t>> rows({normal_rc, general_rc});
-                std::vector<std::string> headers({"normal", "general"});
-                for(int i = 0; i < 2; ++i) {
-                    std::cout<<headers[i]<<":  "<<"#rows: "<<std::get<0>(rows[i])<<"  #bad-rows: "<<std::get<1>(rows[i])<<"  size(bytes): "<<std::get<2>(rows[i])<<std::endl;
-                }
-            }
         } catch (std::exception& e) {
             logger.error("path " + path + " failed processing with: " + e.what());
             bad_paths.push_back(path);

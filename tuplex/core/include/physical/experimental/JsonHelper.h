@@ -2,8 +2,8 @@
 // Created by leonhard on 9/23/22.
 //
 
-#ifndef TUPLEX_JSONSOURCETASKBUILDER_H
-#define TUPLEX_JSONSOURCETASKBUILDER_H
+#ifndef TUPLEX_JSONHELPER_H
+#define TUPLEX_JSONHELPER_H
 
 #include <StringUtils.h>
 #include <JSONUtils.h>

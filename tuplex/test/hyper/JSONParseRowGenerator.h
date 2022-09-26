@@ -10,7 +10,7 @@
 
 #include <experimental/ListHelper.h>
 #include <experimental/StructDictHelper.h>
-#include <physical/experimental/JsonSourceTaskBuilder.h>
+#include <physical/experimental/JsonHelper.h>
 
 namespace tuplex {
     namespace codegen {

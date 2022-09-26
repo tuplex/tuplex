@@ -232,7 +232,7 @@ namespace tuplex {
             auto i_var = _env.CreateFirstBlockVariable(builder, _env.i64Const(0));
             llvm::Value* rc = builder.CreateCall(F, {array, index, i_var});
             SerializableValue v;
-            v.val = builder.CreateLoad(i_var);
+            v.val = builder.CreateZExtOrTrunc(builder.CreateLoad(i_var), _env.getBooleanType());
             v.size = _env.i64Const(sizeof(int64_t));
             v.is_null = _env.i1Const(false);
             return make_tuple(rc, v);

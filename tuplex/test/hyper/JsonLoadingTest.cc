@@ -1110,6 +1110,14 @@ TEST_F(HyperTest, BasicStructLoad) {
      //        2.) struct dict list decode (this is MORE involved)
 
 
+     // mini example in order with list of tuples
+     path = "test.json";
+
+     // this here is a simple example of a list decode
+     auto content = "{\"column1\": [[\"a\", 20], [\"b\", 10]]}\n"
+                    "{\"column1\": [[\"c\", 0], [\"d\", 0]]}\n";
+     stringToFile(path, content);
+
     // now, regular routine...
     auto raw_data = fileToString(path);
 

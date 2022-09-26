@@ -391,7 +391,9 @@ namespace tuplex {
                         } else if(row_field_types[i].isListType()) {
                             // list field?
                             // TODO
-                            throw std::runtime_error("field type list not yet implemented, todo");
+                            fields.push_back(Field::from_str_data(row_json_strings[i], row_field_types[i]));
+                            Logger::instance().defaultLogger().warn("hacky list here added, fix.");
+                            //throw std::runtime_error("field type list not yet implemented, todo");
                         } else {
                             // convert primitive string to field
                             fields.push_back(stringToField(row_json_strings[i], row_field_types[i]));

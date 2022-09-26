@@ -520,8 +520,8 @@ namespace tuplex {
 
             // decode happens in two steps:
             // step 1: check if there's actually an array in the JSON data -> if not, type error!
-            auto F = getOrInsertFunction(_env.getModule().get(), "JsonArray_getArray", _env.i64Type(), _env.i8ptrType(),
-                                         _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
+            auto Fgetarray = getOrInsertFunction(_env.getModule().get(), "JsonArray_getArray", _env.i64Type(), _env.i8ptrType(),
+                                         _env.i64Type(), _env.i8ptrType()->getPointerTo(0));
             auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
             // add array free to step after parse row
             freeArray(item_var);
@@ -529,11 +529,15 @@ namespace tuplex {
             // create call, recurse only if ok!
             BasicBlock *bbCurrent = builder.GetInsertBlock();
             BasicBlock *bbArrayFound = BasicBlock::Create(_env.getContext(), "found_array", builder.GetInsertBlock()->getParent());
-            BasicBlock *bbDecodeDone = BasicBlock::Create(_env.getContext(), "array_decode_done", builder.GetInsertBlock()->getParent());
-            llvm::Value* rc_A = builder.CreateCall(F, {array, index, item_var});
+            BasicBlock *bbDecodeFailed = BasicBlock::Create(_env.getContext(), "array_decode_failed", builder.GetInsertBlock()->getParent());
+            llvm::Value* rc_A = builder.CreateCall(Fgetarray, {array, index, item_var});
             builder.CreateStore(rc_A, rc_var);
             auto found_array = builder.CreateICmpEQ(rc_A, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
-            builder.CreateCondBr(found_array, bbArrayFound, bbDecodeDone);
+            builder.CreateCondBr(found_array, bbArrayFound, bbDecodeFailed);
+
+            builder.SetInsertPoint(bbDecodeFailed);
+            badParseCause("no array found or array is object");
+            builder.CreateBr(_badParseBlock);
 
 
             // -----------------------------------------------------------
@@ -560,8 +564,8 @@ namespace tuplex {
                 SerializableValue item;
 
                 // check what the result is of item_rc -> can be combined with rc!
-                BasicBlock* bDecodeOK = BasicBlock::Create(ctx, "item_" + std::to_string(i) + "_decode_ok", F);
-                BasicBlock* bDecodeFail = BasicBlock::Create(ctx, "item_" + std::to_string(i) + "_decode_failed", F);
+                BasicBlock* bDecodeOK = BasicBlock::Create(ctx, "item_" + std::to_string(i) + "_decode_ok", builder.GetInsertBlock()->getParent());
+                BasicBlock* bDecodeFail = BasicBlock::Create(ctx, "item_" + std::to_string(i) + "_decode_failed", builder.GetInsertBlock()->getParent());
 
                 std::tie(item_rc, item) = decodeFromArray(builder, sub_array, sub_index, element_type);
 

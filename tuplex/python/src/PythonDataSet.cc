@@ -65,6 +65,9 @@ namespace tuplex {
             // reqacquire GIL
             python::lockGIL();
 
+            // perform collect run
+            python::runGC();
+
             // error? then return list of error string
             if(!rs || !err_message.empty()) {
                 // Logger::instance().flushAll();
@@ -148,6 +151,9 @@ namespace tuplex {
 
             // reqacquire GIL
             python::lockGIL();
+
+            // perform collect run
+            python::runGC();
 
             // error? then return list of error string
             if(!rs || !err_message.empty()) {

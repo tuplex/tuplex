@@ -3012,6 +3012,8 @@ TEST_F(WrapperTest, NonConformingResolve) {
         ASSERT_TRUE(PyList_Check(res_obj));
         EXPECT_EQ(PyList_Size(res_obj), 2);
 
+        python::runGC();
+
         std::cout<<std::endl; // flush
     }
 }

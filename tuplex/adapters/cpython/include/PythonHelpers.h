@@ -315,6 +315,11 @@ namespace python {
     extern void initInterpreter();
 
     /*!
+     * force run a gc pass in python. Helps when returning python objects.
+     */
+    extern void runGC();
+
+    /*!
      * check whether Python interpreter is running in/available to this process
      * @return bool when is running else false
      */

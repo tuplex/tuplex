@@ -94,6 +94,7 @@ namespace tuplex {
             std::tuple<llvm::Value*, SerializableValue> decodeF64FromArray(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* index);
             std::tuple<llvm::Value*, SerializableValue> decodeStringFromArray(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* index);
             std::tuple<llvm::Value*, SerializableValue> decodeObjectFromArray(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* index, const python::Type& dict_type);
+            std::tuple<llvm::Value*, SerializableValue> decodeTupleFromArray(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* index, const python::Type& tuple_type, bool store_as_heap_ptr);
 
             // complex compound types
             std::tuple<llvm::Value*, SerializableValue> decodeEmptyList(llvm::IRBuilder<>& builder, llvm::Value* obj, llvm::Value* key);

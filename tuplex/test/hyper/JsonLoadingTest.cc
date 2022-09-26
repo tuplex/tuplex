@@ -1165,18 +1165,18 @@ TEST_F(HyperTest, BasicStructLoad) {
     // could do here a counter experiment: I.e., how many general case rows? how many normal case rows? how many fallback rows?
     // => then also measure how much memory is required!
     // => can perform example experiments for the 10 different files and plot it out.
+    //std::cout<<"-----\nrunning using normal case:\n-----\n"<<std::endl;
+    //auto normal_rc = runCodegen(normal_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
     std::cout<<"-----\nrunning using general case:\n-----\n"<<std::endl;
-    auto normal_rc = runCodegen(normal_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
-    std::cout<<"-----\nrunning using normal case:\n-----\n"<<std::endl;
     auto general_rc = runCodegen(general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
 
-    {
-        std::vector<std::tuple<size_t, size_t, size_t>> rows({normal_rc, general_rc});
-        std::vector<std::string> headers({"normal", "general"});
-        for(int i = 0; i < 2; ++i) {
-        std::cout<<headers[i]<<":  "<<"#rows: "<<std::get<0>(rows[i])<<"  #bad-rows: "<<std::get<1>(rows[i])<<"  size(bytes): "<<std::get<2>(rows[i])<<std::endl;
-        }
-    }
+//    {
+//        std::vector<std::tuple<size_t, size_t, size_t>> rows({normal_rc, general_rc});
+//        std::vector<std::string> headers({"normal", "general"});
+//        for(int i = 0; i < 2; ++i) {
+//        std::cout<<headers[i]<<":  "<<"#rows: "<<std::get<0>(rows[i])<<"  #bad-rows: "<<std::get<1>(rows[i])<<"  size(bytes): "<<std::get<2>(rows[i])<<std::endl;
+//        }
+//    }
 }
 
 TEST_F(HyperTest, CParse) {

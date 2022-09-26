@@ -484,6 +484,8 @@ namespace tuplex {
             } else if(element_type.isStructuredDictionaryType()) {
                 // special case: decode nested object from array
                 return decodeObjectFromArray(builder, array, index, element_type);
+            } else if(element_type.isTupleType()) {
+                return decodeTupleFromArray(builder, array, index, element_type, true);
             } else {
                 throw std::runtime_error("can not decode type " + element_type.desc() + " from array.");
             }

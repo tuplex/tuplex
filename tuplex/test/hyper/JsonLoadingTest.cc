@@ -201,12 +201,12 @@ namespace tuplex {
             gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
 
             auto s = struct_dict_type_serialized_memory_size(_env, builder, row_var, _rowType);
-             _env.printValue(builder, s.val, "size of row materialized in bytes is: ");
+             // _env.printValue(builder, s.val, "size of row materialized in bytes is: ");
 
              // rtmalloc and serialize!
              auto mem_ptr = _env.malloc(builder, s.val);
              auto serialization_res = struct_dict_serialize_to_memory(_env, builder, row_var, _rowType, mem_ptr);
-             _env.printValue(builder, serialization_res.size, "realized serialization size is: ");
+             // _env.printValue(builder, serialization_res.size, "realized serialization size is: ");
 
              // inc total size with serialization size!
              auto cur_total = builder.CreateLoad(_outTotalSerializationSize);
@@ -263,8 +263,8 @@ namespace tuplex {
                                             _env.i8ptrType());
             auto line = builder.CreateCall(Frow, j);
 
-            // simply print (later call with error)
-            _env.printValue(builder, rowNumber(builder), "bad parse encountered for row number: ");
+            // // simply print (later call with error)
+            // _env.printValue(builder, rowNumber(builder), "bad parse encountered for row number: ");
 
             // inc value
             auto count = builder.CreateLoad(_badParseCountVar);

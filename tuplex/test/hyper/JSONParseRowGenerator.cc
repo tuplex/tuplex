@@ -365,7 +365,8 @@ namespace tuplex {
             {
                 builder.SetInsertPoint(bbSchemaMismatch);
                 builder.CreateStore(_env.i64Const(ecToI64(ExceptionCode::TYPEERROR)), rc_var);
-                _env.debugPrint(builder, "element did not conform to struct schema " + dict_type.desc());
+                // _env.debugPrint(builder, "element did not conform to struct schema " + dict_type.desc());
+                badParseCause("element did not conform to struct schema " + dict_type.desc());
                 builder.CreateBr(bbDecodeDone);
             }
 

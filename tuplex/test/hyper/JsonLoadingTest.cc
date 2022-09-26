@@ -305,6 +305,7 @@ namespace tuplex {
             builder.CreateStore(builder.CreateAdd(row_no, _env.i64Const(1)), _rowNumberVar);
 
             // @TODO: free everything so far??
+            _env.freeAll(builder); // -> call rtfree!
         }
 
         void JSONSourceTaskBuilder::exitMainFunctionWithError(llvm::IRBuilder<> &builder, llvm::Value *exitCondition,
@@ -948,6 +949,102 @@ namespace tuplex {
     }
 }
 
+TEST_F(HyperTest, LoadAllFiles) {
+    using namespace tuplex;
+    using namespace std;
+
+    Logger::instance().init();
+    auto& logger = Logger::instance().logger("experiment");
+
+    string root_path = "/data/github_sample/*.json.gz";
+    auto paths = glob(root_path);
+    logger.info("Found " + pluralize(paths.size(), "path") + " under " + root_path);
+
+    std::vector<std::string> bad_paths;
+
+    // now perform detection & parse for EACH file.
+    for(const auto& path : paths) {
+        logger.info("Processing " + path);
+
+        try {
+            // now, regular routine...
+            auto raw_data = fileToString(path);
+
+            const char *pointer = raw_data.data();
+            std::size_t size = raw_data.size();
+
+            // gzip::is_compressed(pointer, size); // can use this to check for gzip file...
+            std::string decompressed_data = strEndsWith(path, ".gz") ? gzip::decompress(pointer, size) : raw_data;
+
+
+            // parse code starts here...
+            auto buf = decompressed_data.data();
+            auto buf_size = decompressed_data.size();
+
+
+            // detect (general-case) type here:
+//    ContextOptions co = ContextOptions::defaults();
+//    auto sample_size = co.CSV_MAX_DETECTION_MEMORY();
+//    auto nc_th = co.NORMALCASE_THRESHOLD();
+            auto sample_size = 256 * 1024ul; // 256kb
+            auto nc_th = 0.9;
+            auto rows = parseRowsFromJSON(buf, std::min(buf_size, sample_size), nullptr, false);
+
+            // general case version
+            auto conf_general_case_type_policy = TypeUnificationPolicy::defaultPolicy();
+            conf_general_case_type_policy.unifyMissingDictKeys = true;
+            conf_general_case_type_policy.allowUnifyWithPyObject = true;
+
+            double conf_nc_threshold = 0.;
+            // type cover maximization
+            std::vector<std::pair<python::Type, size_t>> type_counts;
+            for (unsigned i = 0; i < rows.size(); ++i) {
+                // row check:
+                //std::cout<<"row: "<<rows[i].toPythonString()<<" type: "<<rows[i].getRowType().desc()<<std::endl;
+                type_counts.emplace_back(std::make_pair(rows[i].getRowType(), 1));
+            }
+
+            auto general_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
+            auto normal_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true,
+                                                          TypeUnificationPolicy::defaultPolicy());
+
+            auto normal_case_type = normal_case_max_type.first.parameters().front();
+            auto general_case_type = general_case_max_type.first.parameters().front();
+            std::cout << "normal  case:  " << normal_case_type.desc() << std::endl;
+            std::cout << "general case:  " << general_case_type.desc() << std::endl;
+
+            // modify here which type to use for the parsing...
+            auto row_type = normal_case_type;//general_case_type;
+            //row_type = general_case_type; // <-- this should match MOST of the rows...
+            // row_type = normal_case_type;
+
+            // could do here a counter experiment: I.e., how many general case rows? how many normal case rows? how many fallback rows?
+            // => then also measure how much memory is required!
+            // => can perform example experiments for the 10 different files and plot it out.
+            std::cout<<"-----\nrunning using general case:\n-----\n"<<std::endl;
+            auto normal_rc = runCodegen(normal_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
+            std::cout<<"-----\nrunning using normal case:\n-----\n"<<std::endl;
+            auto general_rc = runCodegen(general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
+
+            {
+                std::vector<std::tuple<size_t, size_t, size_t>> rows({normal_rc, general_rc});
+                std::vector<std::string> headers({"normal", "general"});
+                for(int i = 0; i < 2; ++i) {
+                    std::cout<<headers[i]<<":  "<<"#rows: "<<std::get<0>(rows[i])<<"  #bad-rows: "<<std::get<1>(rows[i])<<"  size(bytes): "<<std::get<2>(rows[i])<<std::endl;
+                }
+            }
+        } catch (std::exception& e) {
+            logger.error("path " + path + " failed processing with: " + e.what());
+            bad_paths.push_back(path);
+        }
+    }
+
+    if(!bad_paths.empty()) {
+        for(const auto& path : bad_paths) {
+            logger.error("failed to process: " + path);
+        }
+    }
+}
 
 TEST_F(HyperTest, BasicStructLoad) {
     using namespace tuplex;

@@ -95,6 +95,19 @@ namespace tuplex {
                                    const python::Type& b,
                                    const TypeUnificationPolicy& policy=TypeUnificationPolicy::defaultPolicy());
 
+    /*!
+     * return unified type for both a and b
+     * @param a
+     * @param b
+     * @param policy
+     * @param os prints cause if unification fails
+     * @return compatible type to which both a and b can be upcasted given unification policy or unknown. os provides failure reason.
+     */
+    extern python::Type unifyTypesEx(const python::Type& a,
+                                   const python::Type& b,
+                                   const TypeUnificationPolicy& policy,
+                                   std::ostream& os);
+
 
     inline python::Type unifyTypes(const python::Type& a,
                                    const python::Type& b,

@@ -606,8 +606,89 @@ namespace tuplex {
         std::vector<std::pair<python::Type, size_t>> v(m.begin(), m.end());
         return v;
     }
-}
 
+    bool findTypeCoverSolution(unsigned cur_search_start,
+                               size_t count_threshold,
+                               const std::vector<std::pair<python::Type, size_t>>& t_counts,
+                               const TypeUnificationPolicy& t_policy,
+                               std::pair<python::Type, size_t>* best_solution) {
+        auto cur_pair = t_counts[cur_search_start];
+        for(unsigned i = cur_search_start + 1; i < t_counts.size(); ++i) {
+            auto uni_type = unifyTypes(cur_pair.first, t_counts[i].first, t_policy);
+            if(uni_type != python::Type::UNKNOWN) {
+                cur_pair.first = uni_type;
+                cur_pair.second += t_counts[i].second;
+            }
+            // valid solution?
+            if(cur_pair.second >= count_threshold) {
+                if(best_solution) {
+                    *best_solution = cur_pair;
+                }
+                return true;
+            }
+        }
+
+        if(best_solution) {
+            *best_solution = cur_pair;
+        }
+
+        return false;
+    }
+
+    std::pair<python::Type, size_t> maximizeTypeCoverNew(const std::vector<std::pair<python::Type, size_t>>& counts,
+                                                         double threshold,
+                                                         bool use_nvo,
+                                                         const TypeUnificationPolicy& t_policy) {
+        using namespace std;
+
+        if(counts.empty()) {
+            return make_pair(python::Type::UNKNOWN, 0);
+        }
+
+        // @TODO: implement this here! incl. recursive null checking for structured dict types...
+
+        // sort desc after count pairs. Note: goal is to have maximum type cover!
+        auto t_counts = counts;
+        std::sort(t_counts.begin(), t_counts.end(), [](const pair<python::Type, size_t>& lhs,
+                                                       const pair<python::Type, size_t>& rhs) { return lhs.second > rhs.second; });
+
+//        for(auto& e : t_counts)
+//            // equal weight on all
+//            e.second = 1;
+
+        // cumulative counts (reverse)
+        std::vector<size_t> cum_counts(t_counts.size(), 0);
+        cum_counts[0] = t_counts[0].second;
+        size_t total_count = t_counts[0].second;
+        for(unsigned i = 1; i < t_counts.size(); ++i) {
+            cum_counts[i] = cum_counts[i - 1] + t_counts[i].second;
+            total_count += t_counts[i].second;
+        }
+
+        // solution via backtracking
+        vector<bool> initial_solution(t_counts.size(), false);
+        size_t count_threshold = floor(threshold * total_count); // anything there indicates a valid solution!
+
+        unsigned cur_search_start = 0; // <-- this is still not a perfect solution
+
+        // find solution from current search start (and check if better than current one)
+        std::pair<python::Type, size_t> best_pair = make_pair(python::Type::UNKNOWN, 0);
+        for(unsigned i = 0; i < std::min(5ul, t_counts.size()); ++i) {
+            std::pair<python::Type, size_t> cur_pair;
+            if(findTypeCoverSolution(i, count_threshold, t_counts, t_policy, &cur_pair)) {
+                std::cout<<"solution found"<<std::endl;
+                return cur_pair;
+            }
+
+            // update
+            if(cur_pair.second >= best_pair.second)
+                best_pair = cur_pair;
+        }
+
+        std::cout<<"no solution found, but best pair..."<<std::endl;
+        return best_pair;
+    }
+}
 
 TEST_F(HyperTest, LoadAllFiles) {
     using namespace tuplex;
@@ -618,8 +699,13 @@ TEST_F(HyperTest, LoadAllFiles) {
 
     // settings are here
     string root_path = "/data/github_sample/*.json.gz";
-//    auto sample_size = 8 * 1024 * 1024ul;// 8MB ////256 * 1024ul; // 256kb
-    auto sample_size = 256 * 1024ul; // 256kb
+
+#ifdef MACOS
+    root_path = "/Users/leonhards/Downloads/github_sample/*.json.gz";
+#endif
+
+    auto sample_size = 2 * 1024 * 1024ul;// 8MB ////256 * 1024ul; // 256kb
+//    auto sample_size = 256 * 1024ul; // 256kb
     bool perfect_sample = false;//true; // if true, sample the whole file (slow, but perfect representation)
     auto nc_th = 0.9;
     // general case version
@@ -670,8 +756,8 @@ TEST_F(HyperTest, LoadAllFiles) {
             auto rows = parseRowsFromJSON(buf, std::min(buf_size, sample_size), nullptr, false);
             std::vector<std::pair<python::Type, size_t>> type_counts = counts_from_rows(rows);
             global_type_counts = combine_type_counts(global_type_counts, type_counts);
-            auto general_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
-            auto normal_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true, TypeUnificationPolicy::defaultPolicy());
+            auto general_case_max_type = maximizeTypeCoverNew(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
+            auto normal_case_max_type = maximizeTypeCoverNew(type_counts, conf_nc_threshold, true, TypeUnificationPolicy::defaultPolicy());
 
             auto normal_case_type = normal_case_max_type.first.parameters().front();
             auto general_case_type = general_case_max_type.first.parameters().front();
@@ -721,8 +807,8 @@ TEST_F(HyperTest, LoadAllFiles) {
     // global specialized processing
     // now perform global optimization and parse!
     {
-        auto general_case_max_type = maximizeTypeCover(global_type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
-        auto normal_case_max_type = maximizeTypeCover(global_type_counts, conf_nc_threshold, true,
+        auto general_case_max_type = maximizeTypeCoverNew(global_type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
+        auto normal_case_max_type = maximizeTypeCoverNew(global_type_counts, conf_nc_threshold, true,
                                                       TypeUnificationPolicy::defaultPolicy());
 
         auto global_normal_case_type = normal_case_max_type.first.parameters().front();
@@ -790,158 +876,6 @@ TEST_F(HyperTest, LoadAllFiles) {
 
 }
 
-
-namespace tuplex {
-
-//    bool is_valid_solution(const std::vector<std::pair<python::Type, size_t>>& counts,
-//                           std::vector<bool>& solution,
-//                           size_t threshold,
-//                           const TypeUnificationPolicy& t_policy) {
-//        assert(counts.size() == solution.size());
-//
-//        // all types must be unifiable under the policy and hit the threshold
-//        int index = 0;
-//        while(index < solution.size() && !solution[index])
-//            index++;
-//        if(index >= solution.size())
-//            return false;
-//        auto type = counts[index].first;
-//        auto count = counts[index].second;
-//        if(count >= threshold)
-//            return true;
-//        for(unsigned i = index + 1; i < counts.size(); ++i) {
-//            if(solution[i]) {
-//                auto uni_type = unifyTypes(type, counts[i].first, t_policy);
-//                if(uni_type != python::Type::UNKNOWN) {
-//                    type = uni_type;
-//                    count += counts[i].second;
-//                }
-//            }
-//        }
-//        return count >= threshold;
-//    }
-//
-//    // solve via backtracking and under time constraints?
-//    bool solveTypeCover(const std::vector<std::pair<python::Type, size_t>>& counts,
-//                        int col,
-//                        std::vector<bool> solution,
-//                        size_t threshold,
-//                        const TypeUnificationPolicy& t_policy) {
-//        // check if current solution is ok
-//        if(is_valid_solution(counts, solution, threshold, t_policy))
-//            return true;
-//        // not a solution, check to include current count pair
-//        for(unsigned i = 0; i < counts.size(); ++i) {
-//           // terrible algorithm here: compeltely exhaustive...
-//           solution[i] = true;
-//           if(is_valid_solution(counts, solution, threshold, t_policy)) {
-//               return true;
-//           }
-//        }
-//        return false;
-//    }
-
-
-    bool findTypeCoverSolution(unsigned cur_search_start,
-                               size_t count_threshold,
-                               const std::vector<std::pair<python::Type, size_t>>& t_counts,
-                               const TypeUnificationPolicy& t_policy,
-                               std::pair<python::Type, size_t>* best_solution) {
-        auto cur_pair = t_counts[cur_search_start];
-        for(unsigned i = cur_search_start + 1; i < t_counts.size(); ++i) {
-            auto uni_type = unifyTypes(cur_pair.first, t_counts[i].first, t_policy);
-            if(uni_type != python::Type::UNKNOWN) {
-                cur_pair.first = uni_type;
-                cur_pair.second += t_counts[i].second;
-            }
-            // valid solution?
-            if(cur_pair.second >= count_threshold) {
-                if(best_solution) {
-                    *best_solution = cur_pair;
-                }
-                return true;
-            }
-        }
-
-        if(best_solution) {
-            *best_solution = cur_pair;
-        }
-
-        return false;
-    }
-
-    std::pair<python::Type, size_t> maximizeTypeCoverNew(const std::vector<std::pair<python::Type, size_t>>& counts,
-                                                      double threshold,
-                                                      bool use_nvo,
-                                                      const TypeUnificationPolicy& t_policy) {
-        using namespace std;
-
-        if(counts.empty()) {
-            return make_pair(python::Type::UNKNOWN, 0);
-        }
-
-        // @TODO: implement this here! incl. recursive null checking for structured dict types...
-
-        // sort desc after count pairs. Note: goal is to have maximum type cover!
-        auto t_counts = counts;
-        std::sort(t_counts.begin(), t_counts.end(), [](const pair<python::Type, size_t>& lhs,
-                                                       const pair<python::Type, size_t>& rhs) { return lhs.second > rhs.second; });
-
-//        for(auto& e : t_counts)
-//            // equal weight on all
-//            e.second = 1;
-
-        // cumulative counts (reverse)
-        std::vector<size_t> cum_counts(t_counts.size(), 0);
-        cum_counts[0] = t_counts[0].second;
-        size_t total_count = t_counts[0].second;
-        for(unsigned i = 1; i < t_counts.size(); ++i) {
-            cum_counts[i] = cum_counts[i - 1] + t_counts[i].second;
-            total_count += t_counts[i].second;
-        }
-
-        // solution via backtracking
-        vector<bool> initial_solution(t_counts.size(), false);
-        size_t count_threshold = floor(threshold * total_count); // anything there indicates a valid solution!
-
-        unsigned cur_search_start = 0; // <-- this is still not a perfect solution
-
-        // find solution from current search start (and check if better than current one)
-        std::pair<python::Type, size_t> best_pair = make_pair(python::Type::UNKNOWN, 0);
-        for(unsigned i = 0; i < t_counts.size(); ++i) {
-            std::pair<python::Type, size_t> cur_pair;
-            if(findTypeCoverSolution(i, count_threshold, t_counts, t_policy, &cur_pair)) {
-                std::cout<<"solution found"<<std::endl;
-                return cur_pair;
-            }
-
-            // update
-            if(cur_pair.second >= best_pair.second)
-                best_pair = cur_pair;
-        }
-
-        std::cout<<"no solution found, but best pair..."<<std::endl;
-
-//        // for now, use a super simple solution. I.e., combine till combination doesn't work anymore.
-//        std::pair<python::Type, size_t> best_pair = t_counts.front();
-//        for(unsigned i = 1; i < t_counts.size(); ++i) {
-//            auto combined_type = unifyTypes(best_pair.first, t_counts[i].first, t_policy);
-//            if(combined_type != python::Type::UNKNOWN) {
-//                best_pair.first = combined_type;
-//                best_pair.second += t_counts[i].second;
-//            } else {
-//
-//                // starting from the second, how many are left? I.e., is it worth to search from there for a better type?
-//                auto counts_left = cum_counts
-//
-//                // std::cout<<"can't unify:\n"<<best_pair.first.desc()<<"\nwith\n"<<t_counts[i].first.desc()<<std::endl;
-//                return best_pair;
-//            }
-//        }
-        return best_pair;
-    }
-}
-
 TEST_F(HyperTest, TypeMaximization) {
     // use from data  stringToFile("experiment_result.json", out.str());
     using namespace tuplex;
@@ -954,9 +888,10 @@ TEST_F(HyperTest, TypeMaximization) {
     auto lines = splitToLines(data);
 
     // first file:
-    auto j = nlohmann::json::parse(lines.front());
+    auto j = nlohmann::json::parse(lines.back());
     auto j_arr = j["type_counts"];
     std::vector<std::pair<python::Type, size_t>> type_counts;
+    std::cout<<"loading for mode: "<<j["mode"].get<std::string>()<<std::endl;
     for(auto el : j_arr) {
         type_counts.push_back(make_pair(python::Type::decode(el["type"].get<std::string>()),el["count"].get<size_t>()));
     }
@@ -973,6 +908,7 @@ TEST_F(HyperTest, TypeMaximization) {
     auto conf_nc_policy = TypeUnificationPolicy::defaultPolicy();
 
     auto best_pair = maximizeTypeCoverNew(type_counts, 0.9, true, conf_general_case_type_policy);
+    logger.debug("best pair type: " + best_pair.first.desc());
     logger.debug("best pair covers " + std::to_string(best_pair.second) + "/" + std::to_string(total_count));
 }
 

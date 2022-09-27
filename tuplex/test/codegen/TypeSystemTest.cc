@@ -231,7 +231,7 @@ TEST(TypeSys, structuredDictType) {
 
     // test 1: string keys (this is probably the most common scenario)
     vector<pair<boost::any, python::Type>> pairs;
-    for(const auto& p : primitiveTypes(true)) {
+    for(const auto& p : python::primitiveTypes(true)) {
         pairs.push_back(make_pair(p.desc(), p));
     }
     auto t = python::Type::makeStructuredDictType(pairs);
@@ -272,7 +272,7 @@ TEST(TypeSys, structuredDictType) {
 }
 
 TEST(TypeSys, TypeObject) {
-    auto types = primitiveTypes();
+    auto types = python::primitiveTypes();
 
     for(const auto& t : types) {
         auto to = python::Type::makeTypeObjectType(t);

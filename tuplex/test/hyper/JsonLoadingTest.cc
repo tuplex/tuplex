@@ -616,7 +616,18 @@ TEST_F(HyperTest, LoadAllFiles) {
     Logger::instance().init();
     auto& logger = Logger::instance().logger("experiment");
 
+    // settings are here
     string root_path = "/data/github_sample/*.json.gz";
+    auto sample_size = 256 * 1024ul; // 256kb
+    auto nc_th = 0.9;
+    // general case version
+    auto conf_general_case_type_policy = TypeUnificationPolicy::defaultPolicy();
+    conf_general_case_type_policy.unifyMissingDictKeys = true;
+    conf_general_case_type_policy.allowUnifyWithPyObject = false; // <-- do NOT allow this. => can't compile... --> this could be helped with DelayedParse[...]
+
+    double conf_nc_threshold = 0.9;
+
+
     auto paths = glob(root_path);
     logger.info("Found " + pluralize(paths.size(), "path") + " under " + root_path);
 
@@ -627,6 +638,8 @@ TEST_F(HyperTest, LoadAllFiles) {
 
     std::vector<std::pair<python::Type, size_t>> global_type_counts; // holds type counts across ALL files.
 
+    // ----------------------------------------------------------------------------------------------------------------
+    // hyperspecialized processing
     // now perform detection & parse for EACH file.
     for(const auto& path : paths) {
         logger.info("Processing " + path);
@@ -646,30 +659,10 @@ TEST_F(HyperTest, LoadAllFiles) {
             auto buf = decompressed_data.data();
             auto buf_size = decompressed_data.size();
 
-
-            // detect (general-case) type here:
-//    ContextOptions co = ContextOptions::defaults();
-//    auto sample_size = co.CSV_MAX_DETECTION_MEMORY();
-//    auto nc_th = co.NORMALCASE_THRESHOLD();
-            auto sample_size = 256 * 1024ul; // 256kb
-            auto nc_th = 0.9;
+            // detect types here:
             auto rows = parseRowsFromJSON(buf, std::min(buf_size, sample_size), nullptr, false);
-
-            // general case version
-            auto conf_general_case_type_policy = TypeUnificationPolicy::defaultPolicy();
-            conf_general_case_type_policy.unifyMissingDictKeys = true;
-            conf_general_case_type_policy.allowUnifyWithPyObject = false; // <-- do NOT allow this. => can't compile... --> this could be helped with DelayedParse[...]
-
-            double conf_nc_threshold = 0.;
-            // type cover maximization
-//            std::vector<std::pair<python::Type, size_t>> type_counts;
-//            for (unsigned i = 0; i < rows.size(); ++i) {
-//                // row check:
-//                //std::cout<<"row: "<<rows[i].toPythonString()<<" type: "<<rows[i].getRowType().desc()<<std::endl;
-//                type_counts.emplace_back(std::make_pair(rows[i].getRowType(), 1));
-//            }
-
             std::vector<std::pair<python::Type, size_t>> type_counts = counts_from_rows(rows);
+            global_type_counts = combine_type_counts(global_type_counts, type_counts);
             auto general_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
             auto normal_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true,
                                                           TypeUnificationPolicy::defaultPolicy());
@@ -681,9 +674,18 @@ TEST_F(HyperTest, LoadAllFiles) {
 
             // parse and check
             auto m = runMatchCodegen(normal_case_type, general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
+
+            auto j = m.to_json();
+            j["mode"] = "hyper";
+            j["path"] = path;
+            j["normal_case"] = normal_case_type.desc();
+            j["general_case"] = general_case_type.desc();
+            j["buf_size_compressed"] = raw_data.size();
+            j["buf_size_uncompressed"] = decompressed_data.size();
+
             // output result
-            results.push_back(m.to_json());
-            ss<<m.to_json().dump()<<endl;
+            results.push_back(j);
+            ss<<j.dump()<<endl;
         } catch (std::exception& e) {
             logger.error("path " + path + " failed processing with: " + e.what());
             bad_paths.push_back(path);
@@ -696,6 +698,60 @@ TEST_F(HyperTest, LoadAllFiles) {
             logger.error("failed to process: " + path);
         }
     }
+
+    // ----------------------------------------------------------------------------------------------------------------
+    // global specialized processing
+    // now perform global optimization and parse!
+    {
+        auto general_case_max_type = maximizeTypeCover(global_type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
+        auto normal_case_max_type = maximizeTypeCover(global_type_counts, conf_nc_threshold, true,
+                                                      TypeUnificationPolicy::defaultPolicy());
+
+        auto global_normal_case_type = normal_case_max_type.first.parameters().front();
+        auto global_general_case_type = general_case_max_type.first.parameters().front();
+        std::cout << "global normal  case:  " << global_normal_case_type.desc() << std::endl;
+        std::cout << "global general case:  " << global_general_case_type.desc() << std::endl;
+
+
+        for(const auto& path : paths) {
+            logger.info("Processing " + path);
+
+            try {
+                // now, regular routine...
+                auto raw_data = fileToString(path);
+
+                const char *pointer = raw_data.data();
+                std::size_t size = raw_data.size();
+
+                // gzip::is_compressed(pointer, size); // can use this to check for gzip file...
+                std::string decompressed_data = strEndsWith(path, ".gz") ? gzip::decompress(pointer, size) : raw_data;
+
+                // parse code starts here...
+                auto buf = decompressed_data.data();
+                auto buf_size = decompressed_data.size();
+
+                // parse and check
+                auto m = runMatchCodegen(global_normal_case_type, global_general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
+
+                auto j = m.to_json();
+                j["mode"] = "global";
+                j["path"] = path;
+                j["normal_case"] = global_normal_case_type.desc();
+                j["general_case"] = global_general_case_type.desc();
+                j["buf_size_compressed"] = raw_data.size();
+                j["buf_size_uncompressed"] = decompressed_data.size();
+
+                // output result
+                results.push_back(j);
+                ss<<j.dump()<<endl;
+            } catch (std::exception& e) {
+                logger.error("path " + path + " failed processing with: " + e.what());
+                bad_paths.push_back(path);
+                break;
+            }
+        }
+    }
+
 
     std::cout<<ss.str()<<std::endl;
 }

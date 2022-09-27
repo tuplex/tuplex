@@ -7,8 +7,8 @@
 namespace tuplex {
     namespace codegen {
 
-        void TuplexMatchBuilder::parseAndPrintStructuredDictFromObject(llvm::IRBuilder<> &builder, llvm::Value *j,
-                                                                          llvm::BasicBlock *bbSchemaMismatch) {
+        llvm::Value* TuplexMatchBuilder::parseRowAsStructuredDict(llvm::IRBuilder<> &builder, const python::Type& row_type, llvm::Value *j,
+                                                          llvm::BasicBlock *bbSchemaMismatch) {
             assert(j);
             using namespace llvm;
             auto &ctx = _env.getContext();
@@ -22,47 +22,22 @@ namespace tuplex {
             builder.CreateCall(Fgetobj, {j, obj_var});
 
             // don't forget to free everything...
-//
-//                // alloc variable
-//                auto struct_dict_type = create_structured_dict_type(_env, _rowType);
-//                auto row_var = _env.CreateFirstBlockAlloca(builder, struct_dict_type);
-//                struct_dict_mem_zero(_env, builder, row_var, _rowType); // !!! important !!!
-//
-//
-//                // create dict parser and store to row_var
-//                JSONParseRowGenerator gen(_env, _rowType,  _freeEnd, bbSchemaMismatch);
-//                gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
-//
-//                auto s = struct_dict_type_serialized_memory_size(_env, builder, row_var, _rowType);
-//                // _env.printValue(builder, s.val, "size of row materialized in bytes is: ");
-//
-//                // rtmalloc and serialize!
-//                auto mem_ptr = _env.malloc(builder, s.val);
-//                auto serialization_res = struct_dict_serialize_to_memory(_env, builder, row_var, _rowType, mem_ptr);
-//                // _env.printValue(builder, serialization_res.size, "realized serialization size is: ");
-//
-//                // inc total size with serialization size!
-//                auto cur_total = builder.CreateLoad(_outTotalSerializationSize);
-//                auto new_total = builder.CreateAdd(cur_total, serialization_res.size);
-//                builder.CreateStore(new_total, _outTotalSerializationSize);
-
-            // now, load entries to struct type in LLVM
-            // then calculate serialized size and print it.
-            //auto v = struct_dict_load_from_values(_env, builder, _rowType, entries);
+            // alloc variable
+            auto struct_dict_type = create_structured_dict_type(_env, row_type);
+            auto row_var = _env.CreateFirstBlockAlloca(builder, struct_dict_type);
+            struct_dict_mem_zero(_env, builder, row_var, row_type); // !!! important !!!
 
 
-            //// => call with row type
-            //parseAndPrint(builder, builder.CreateLoad(obj_var), "", true, _rowType, true, bbSchemaMismatch);
+            // create dict parser and store to row_var
+            JSONParseRowGenerator gen(_env, row_type,  _freeEnd, bbSchemaMismatch);
+            gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
 
             // free obj_var...
             json_freeObject(_env, builder, builder.CreateLoad(obj_var));
 #ifndef NDEBUG
             builder.CreateStore(_env.i8nullptr(), obj_var);
 #endif
-
-            // build schema mismatch block.
-
-
+            return row_var;
         }
 
         llvm::Value *TuplexMatchBuilder::isDocumentOfObjectType(llvm::IRBuilder<> &builder, llvm::Value *j) {
@@ -244,13 +219,62 @@ namespace tuplex {
 
             // check whether it's of object type -> parse then as object (only supported type so far!)
             cond = isDocumentOfObjectType(builder, parser);
-            auto bbSchemaMismatch = emitBadParseInputAndMoveToNextRow(builder, parser, _env.i1neg(builder, cond));
 
+            BasicBlock* bbParseAsGeneralCaseRow = BasicBlock::Create(_env.getContext(), "parse_as_general_row", builder.GetInsertBlock()->getParent());
+            BasicBlock* bbNormalCaseSuccess = BasicBlock::Create(_env.getContext(), "normal_row_found", builder.GetInsertBlock()->getParent());
+            BasicBlock* bbGeneralCaseSuccess = BasicBlock::Create(_env.getContext(), "general_row_found", builder.GetInsertBlock()->getParent());
+            BasicBlock* bbFallback = BasicBlock::Create(_env.getContext(), "fallback_row_found", builder.GetInsertBlock()->getParent());
             // print out structure -> this is the parse
-            parseAndPrintStructuredDictFromObject(builder, parser, bbSchemaMismatch);
+            auto normal_case_row = parseRowAsStructuredDict(builder, _normalCaseRowType, parser, bbParseAsGeneralCaseRow);
+            builder.CreateBr(bbNormalCaseSuccess);
+
+            builder.SetInsertPoint(bbParseAsGeneralCaseRow);
+            auto general_case_row = parseRowAsStructuredDict(builder, _generalCaseRowType, parser, bbFallback);
+            builder.CreateBr(bbGeneralCaseSuccess);
+
+            // now create the blocks for each scenario
+
+            // 1. normal case
+            builder.SetInsertPoint(bbNormalCaseSuccess);
+
+
+            // inc by one
+            incVar(builder, _normalRowCountVar);
+            builder.CreateBr(_freeStart);
+
+            // 2. general case
+            builder.SetInsertPoint(bbGeneralCaseSuccess);
+            incVar(builder, _generalRowCountVar);
+            builder.CreateBr(_freeStart);
+
+            // 3. fallback case
+            builder.SetInsertPoint(bbFallback);
+            incVar(builder, _fallbackRowCountVar);
+            builder.CreateBr(_freeStart);
+
+            {
+//                auto s = struct_dict_type_serialized_memory_size(_env, builder, row_var, row_type);
+//                // _env.printValue(builder, s.val, "size of row materialized in bytes is: ");
+//
+//                // rtmalloc and serialize!
+//                auto mem_ptr = _env.malloc(builder, s.val);
+//                auto serialization_res = struct_dict_serialize_to_memory(_env, builder, row_var, row_type, mem_ptr);
+//                // _env.printValue(builder, serialization_res.size, "realized serialization size is: ");
+//
+//                // inc total size with serialization size!
+//                auto cur_total = builder.CreateLoad(_outTotalSerializationSize);
+//                auto new_total = builder.CreateAdd(cur_total, serialization_res.size);
+//                builder.CreateStore(new_total, _outTotalSerializationSize);
+//
+//                // now, load entries to struct type in LLVM
+//                // then calculate serialized size and print it.
+//                //auto v = struct_dict_load_from_values(_env, builder, row_type, entries);
+            }
+
+//            auto bbSchemaMismatch = emitBadParseInputAndMoveToNextRow(builder, parser, _env.i1neg(builder, cond));
 
             // go to free start
-            builder.CreateBr(_freeStart);
+            //builder.CreateBr(_freeStart);
 
             // free data..
             // --> parsing will generate there free statements per row
@@ -344,8 +368,10 @@ namespace tuplex {
 
             _rowNumberVar = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "row_no");
 
-            // // dummy parse, simply print type and value with type checking.
-            // generateParseLoop(builder, m["buf"], m["buf_size"]);
+             // dummy parse, simply print type and value with type checking.
+             generateParseLoop(builder, m["buf"], m["buf_size"]);
+
+            // i.e. parse first as normal row -> fail, try to parse as general row -> fail, fallback.
 
             writeOutput(builder, m["out_total_rows"], rowNumber(builder));
             writeOutput(builder, m["out_normal_rows"], builder.CreateLoad(_normalRowCountVar));

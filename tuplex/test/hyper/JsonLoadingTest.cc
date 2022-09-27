@@ -499,6 +499,18 @@ namespace tuplex {
         size_t normalMemorySize;
         size_t generalMemorySize;
         size_t fallbackMemorySize;
+
+        nlohmann::json to_json() const {
+            nlohmann::json j;
+            j["total_rows"] = totalRows;
+            j["normal_rows"] = normalRows;
+            j["general_rows"] = generalRows;
+            j["fallback_rows"] = fallbackRows;
+            j["normal_mem"] = normalMemorySize;
+            j["general_mem"] = generalMemorySize;
+            j["fallback_mem"] = fallbackMemorySize;
+            return j;
+        }
     };
 
     MatchResult runMatchCodegen(const python::Type& normal_row_type,
@@ -570,6 +582,9 @@ TEST_F(HyperTest, LoadAllFiles) {
 
     std::vector<std::string> bad_paths;
 
+    std::stringstream ss;
+    std::vector<nlohmann::json> results;
+
     // now perform detection & parse for EACH file.
     for(const auto& path : paths) {
         logger.info("Processing " + path);
@@ -622,12 +637,14 @@ TEST_F(HyperTest, LoadAllFiles) {
             std::cout << "general case:  " << general_case_type.desc() << std::endl;
 
             // parse and check
-            runMatchCodegen(normal_case_type, general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
+            auto m = runMatchCodegen(normal_case_type, general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
             // output result
-
+            results.push_back(m.to_json());
+            ss<<m.to_json().dump()<<endl;
         } catch (std::exception& e) {
             logger.error("path " + path + " failed processing with: " + e.what());
             bad_paths.push_back(path);
+            break;
         }
     }
 
@@ -636,6 +653,8 @@ TEST_F(HyperTest, LoadAllFiles) {
             logger.error("failed to process: " + path);
         }
     }
+
+    std::cout<<ss.str()<<std::endl;
 }
 
 TEST_F(HyperTest, BasicStructLoad) {

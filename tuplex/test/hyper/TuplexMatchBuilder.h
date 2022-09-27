@@ -106,8 +106,15 @@ namespace tuplex {
 
             llvm::Value *isDocumentOfObjectType(llvm::IRBuilder<> &builder, llvm::Value *j);
 
-            void parseAndPrintStructuredDictFromObject(llvm::IRBuilder<> &builder, llvm::Value *j,
-                                                       llvm::BasicBlock *bbSchemaMismatch);
+            llvm::Value* parseRowAsStructuredDict(llvm::IRBuilder<> &builder, const python::Type& row_type, llvm::Value *j,
+                                          llvm::BasicBlock *bbSchemaMismatch);
+
+            inline llvm::Value* incVar(llvm::IRBuilder<>& builder, llvm::Value* var) {
+                llvm::Value* val = builder.CreateLoad(var);
+                val = builder.CreateAdd(val, _env.i64Const(1));
+                builder.CreateStore(val, var);
+                return val;
+            }
         };
     }
 }

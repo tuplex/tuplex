@@ -619,6 +619,7 @@ TEST_F(HyperTest, LoadAllFiles) {
     // settings are here
     string root_path = "/data/github_sample/*.json.gz";
     auto sample_size = 256 * 1024ul; // 256kb
+    bool perfect_sample = true; // if true, sample the whole file (slow, but perfect representation)
     auto nc_th = 0.9;
     // general case version
     auto conf_general_case_type_policy = TypeUnificationPolicy::defaultPolicy();
@@ -658,6 +659,10 @@ TEST_F(HyperTest, LoadAllFiles) {
             // parse code starts here...
             auto buf = decompressed_data.data();
             auto buf_size = decompressed_data.size();
+
+            // sample full file
+            if(perfect_sample)
+                sample_size = buf_size;
 
             // detect types here:
             auto rows = parseRowsFromJSON(buf, std::min(buf_size, sample_size), nullptr, false);

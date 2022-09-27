@@ -689,6 +689,8 @@ TEST_F(HyperTest, LoadAllFiles) {
             j["buf_size_compressed"] = raw_data.size();
             j["buf_size_uncompressed"] = decompressed_data.size();
 
+            ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!
+
             // add type counts (good idea for later investigation on what could be done to improve sampling => maybe separate experiment?
             auto j_arr = nlohmann::json::array();
             for(auto p : type_counts) {
@@ -701,7 +703,7 @@ TEST_F(HyperTest, LoadAllFiles) {
 
             // output result
             results.push_back(j);
-            ss<<j.dump()<<endl;
+
         } catch (std::exception& e) {
             logger.error("path " + path + " failed processing with: " + e.what());
             bad_paths.push_back(path);
@@ -756,6 +758,8 @@ TEST_F(HyperTest, LoadAllFiles) {
                 j["buf_size_compressed"] = raw_data.size();
                 j["buf_size_uncompressed"] = decompressed_data.size();
 
+                ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!
+
                 // add global type counts (good idea for later investigation on what could be done to improve sampling => maybe separate experiment?
                 auto j_arr = nlohmann::json::array();
                 for(auto p : global_type_counts) {
@@ -768,7 +772,6 @@ TEST_F(HyperTest, LoadAllFiles) {
 
                 // output result
                 results.push_back(j);
-                ss<<j.dump()<<endl;
             } catch (std::exception& e) {
                 logger.error("path " + path + " failed processing with: " + e.what());
                 bad_paths.push_back(path);
@@ -777,10 +780,14 @@ TEST_F(HyperTest, LoadAllFiles) {
         }
     }
 
-    auto data_str = ss.str();
+    std::cout<<ss.str()<<std::endl;
+    {
+        std::stringstream out;
+        for(auto j : results)
+            out<<j.dump()<<endl;
+        stringToFile("experiment_result.json", out.str());
+    }
 
-    std::cout<<data_str<<std::endl;
-    stringToFile("experiment_result.json", data_str);
 }
 
 TEST_F(HyperTest, BasicStructLoad) {

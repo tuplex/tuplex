@@ -618,7 +618,8 @@ TEST_F(HyperTest, LoadAllFiles) {
 
     // settings are here
     string root_path = "/data/github_sample/*.json.gz";
-    auto sample_size = 8 * 1024 * 1024ul;// 8MB ////256 * 1024ul; // 256kb
+//    auto sample_size = 8 * 1024 * 1024ul;// 8MB ////256 * 1024ul; // 256kb
+    auto sample_size = 256 * 1024ul; // 256kb
     bool perfect_sample = false;//true; // if true, sample the whole file (slow, but perfect representation)
     auto nc_th = 0.9;
     // general case version
@@ -642,6 +643,7 @@ TEST_F(HyperTest, LoadAllFiles) {
     // ----------------------------------------------------------------------------------------------------------------
     // hyperspecialized processing
     // now perform detection & parse for EACH file.
+    std::reverse(paths.begin(), paths.end());
     for(const auto& path : paths) {
         logger.info("Processing " + path);
 
@@ -669,8 +671,7 @@ TEST_F(HyperTest, LoadAllFiles) {
             std::vector<std::pair<python::Type, size_t>> type_counts = counts_from_rows(rows);
             global_type_counts = combine_type_counts(global_type_counts, type_counts);
             auto general_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
-            auto normal_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true,
-                                                          TypeUnificationPolicy::defaultPolicy());
+            auto normal_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true, TypeUnificationPolicy::defaultPolicy());
 
             auto normal_case_type = normal_case_max_type.first.parameters().front();
             auto general_case_type = general_case_max_type.first.parameters().front();
@@ -687,6 +688,16 @@ TEST_F(HyperTest, LoadAllFiles) {
             j["general_case"] = general_case_type.desc();
             j["buf_size_compressed"] = raw_data.size();
             j["buf_size_uncompressed"] = decompressed_data.size();
+
+            // add type counts (good idea for later investigation on what could be done to improve sampling => maybe separate experiment?
+            auto j_arr = nlohmann::json::array();
+            for(auto p : type_counts) {
+                auto j_obj = nlohmann::json::object();
+                j_obj["type"] = p.first.desc();
+                j_obj["count"] = p.second;
+                j_arr.push_back(j_obj);
+            }
+            j["type_counts"] = j_arr;
 
             // output result
             results.push_back(j);
@@ -717,7 +728,6 @@ TEST_F(HyperTest, LoadAllFiles) {
         std::cout << "global normal  case:  " << global_normal_case_type.desc() << std::endl;
         std::cout << "global general case:  " << global_general_case_type.desc() << std::endl;
 
-
         for(const auto& path : paths) {
             logger.info("Processing " + path);
 
@@ -746,6 +756,16 @@ TEST_F(HyperTest, LoadAllFiles) {
                 j["buf_size_compressed"] = raw_data.size();
                 j["buf_size_uncompressed"] = decompressed_data.size();
 
+                // add global type counts (good idea for later investigation on what could be done to improve sampling => maybe separate experiment?
+                auto j_arr = nlohmann::json::array();
+                for(auto p : global_type_counts) {
+                    auto j_obj = nlohmann::json::object();
+                    j_obj["type"] = p.first.desc();
+                    j_obj["count"] = p.second;
+                    j_arr.push_back(j_obj);
+                }
+                j["type_counts"] = j_arr;
+
                 // output result
                 results.push_back(j);
                 ss<<j.dump()<<endl;
@@ -757,8 +777,10 @@ TEST_F(HyperTest, LoadAllFiles) {
         }
     }
 
+    auto data_str = ss.str();
 
-    std::cout<<ss.str()<<std::endl;
+    std::cout<<data_str<<std::endl;
+    stringToFile("experiment_result.json", data_str);
 }
 
 TEST_F(HyperTest, BasicStructLoad) {

@@ -569,6 +569,46 @@ namespace tuplex {
     }
 }
 
+namespace tuplex {
+    std::vector<std::pair<python::Type, size_t>> counts_from_rows(const std::vector<Row>& rows) {
+        std::unordered_map<python::Type, size_t> m;
+        for(const auto& row : rows) {
+            auto key = row.getRowType();
+            auto it = m.find(key);
+            if(it == m.end())
+                m[key] = 1;
+            else
+                m[key]++;
+        }
+
+        std::vector<std::pair<python::Type, size_t>> v(m.begin(), m.end()); // maybe sort asc?
+        return v;
+    }
+
+    std::vector<std::pair<python::Type, size_t>> combine_type_counts(const std::vector<std::pair<python::Type, size_t>>& rhs, const std::vector<std::pair<python::Type, size_t>>& lhs) {
+        std::unordered_map<python::Type, size_t> m;
+        for(auto p : rhs) {
+            auto it = m.find(p.first);
+            if(it == m.end())
+                m[p.first] = p.second;
+            else
+                m[p.first] += p.second;
+        }
+
+        for(auto p : lhs) {
+            auto it = m.find(p.first);
+            if(it == m.end())
+                m[p.first] = p.second;
+            else
+                m[p.first] += p.second;
+        }
+
+        std::vector<std::pair<python::Type, size_t>> v(m.begin(), m.end());
+        return v;
+    }
+}
+
+
 TEST_F(HyperTest, LoadAllFiles) {
     using namespace tuplex;
     using namespace std;
@@ -584,6 +624,8 @@ TEST_F(HyperTest, LoadAllFiles) {
 
     std::stringstream ss;
     std::vector<nlohmann::json> results;
+
+    std::vector<std::pair<python::Type, size_t>> global_type_counts; // holds type counts across ALL files.
 
     // now perform detection & parse for EACH file.
     for(const auto& path : paths) {
@@ -620,13 +662,14 @@ TEST_F(HyperTest, LoadAllFiles) {
 
             double conf_nc_threshold = 0.;
             // type cover maximization
-            std::vector<std::pair<python::Type, size_t>> type_counts;
-            for (unsigned i = 0; i < rows.size(); ++i) {
-                // row check:
-                //std::cout<<"row: "<<rows[i].toPythonString()<<" type: "<<rows[i].getRowType().desc()<<std::endl;
-                type_counts.emplace_back(std::make_pair(rows[i].getRowType(), 1));
-            }
+//            std::vector<std::pair<python::Type, size_t>> type_counts;
+//            for (unsigned i = 0; i < rows.size(); ++i) {
+//                // row check:
+//                //std::cout<<"row: "<<rows[i].toPythonString()<<" type: "<<rows[i].getRowType().desc()<<std::endl;
+//                type_counts.emplace_back(std::make_pair(rows[i].getRowType(), 1));
+//            }
 
+            std::vector<std::pair<python::Type, size_t>> type_counts = counts_from_rows(rows);
             auto general_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
             auto normal_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true,
                                                           TypeUnificationPolicy::defaultPolicy());
@@ -759,12 +802,7 @@ TEST_F(HyperTest, BasicStructLoad) {
 
     double conf_nc_threshold = 0.;
     // type cover maximization
-    std::vector<std::pair<python::Type, size_t>> type_counts;
-    for (unsigned i = 0; i < rows.size(); ++i) {
-        // row check:
-        // std::cout<<"row: "<<rows[i].toPythonString()<<" type: "<<rows[i].getRowType().desc()<<std::endl; // <-- this fails for pyobject!
-        type_counts.emplace_back(std::make_pair(rows[i].getRowType(), 1));
-    }
+    std::vector<std::pair<python::Type, size_t>> type_counts = counts_from_rows(rows);
 
     auto general_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
     auto normal_case_max_type = maximizeTypeCover(type_counts, conf_nc_threshold, true,

@@ -82,6 +82,22 @@ namespace tuplex {
             return buf;
         }
 
+        char *JsonParser_getMallocedRowAndSize(JsonParser *j, int64_t* size) {
+            using namespace std;
+
+            assert(j);
+            string full_row;
+            stringstream ss;
+            ss << j->it.source() << std::endl;
+            full_row = ss.str();
+            char *buf = (char *) malloc(full_row.size());
+            if (buf)
+                memcpy(buf, full_row.c_str(), full_row.size());
+            if(size && buf)
+                *size = full_row.size();
+            return buf;
+        }
+
         uint64_t JsonParser_getDocType(JsonParser *j) {
             assert(j);
             // i.e. simdjson::ondemand::json_type::object:
@@ -575,6 +591,7 @@ namespace tuplex {
             jit.registerSymbol("JsonParser_open", JsonParser_open);
             jit.registerSymbol("JsonParser_getDocType", JsonParser_getDocType);
             jit.registerSymbol("JsonParser_getMallocedRow", JsonParser_getMallocedRow);
+            jit.registerSymbol("JsonParser_getMallocedRowAndSize", JsonParser_getMallocedRowAndSize);
             jit.registerSymbol("JsonParser_getObject", JsonParser_getObject);
             jit.registerSymbol("JsonItem_Free", JsonItem_Free);
             jit.registerSymbol("JsonItem_getStringAndSize", JsonItem_getStringAndSize);

@@ -233,24 +233,56 @@ namespace tuplex {
             builder.CreateBr(bbGeneralCaseSuccess);
 
             // now create the blocks for each scenario
+            {
+                // 1. normal case
+                builder.SetInsertPoint(bbNormalCaseSuccess);
 
-            // 1. normal case
-            builder.SetInsertPoint(bbNormalCaseSuccess);
+                // serialized size (as is)
+                auto s = struct_dict_type_serialized_memory_size(_env, builder, normal_case_row, _normalCaseRowType);
+                incVar(builder, _normalMemorySizeVar, s.val);
 
+                // inc by one
+                incVar(builder, _normalRowCountVar);
+                builder.CreateBr(_freeStart);
+            }
 
-            // inc by one
-            incVar(builder, _normalRowCountVar);
-            builder.CreateBr(_freeStart);
+            {
+                // 2. general case
+                builder.SetInsertPoint(bbGeneralCaseSuccess);
 
-            // 2. general case
-            builder.SetInsertPoint(bbGeneralCaseSuccess);
-            incVar(builder, _generalRowCountVar);
-            builder.CreateBr(_freeStart);
+                // serialized size (as is)
+                auto s = struct_dict_type_serialized_memory_size(_env, builder, general_case_row, _generalCaseRowType);
+                auto general_size = s.val;
 
-            // 3. fallback case
-            builder.SetInsertPoint(bbFallback);
-            incVar(builder, _fallbackRowCountVar);
-            builder.CreateBr(_freeStart);
+                // in order to store an exception, need 8 bytes for each: rowNumber, ecCode, opID, eSize + the size of the row
+                general_size = builder.CreateAdd(general_size, _env.i64Const(4 * sizeof(int64_t)));
+                incVar(builder, _generalMemorySizeVar, general_size);
+
+                incVar(builder, _generalRowCountVar);
+                builder.CreateBr(_freeStart);
+            }
+
+            {
+                // 3. fallback case
+                builder.SetInsertPoint(bbFallback);
+
+                // same like in general case, i.e. stored as badStringParse exception
+                // -> store here the raw json
+                auto Frow = getOrInsertFunction(_env.getModule().get(), "JsonParser_getMallocedRowAndSize", _env.i8ptrType(),
+                                                _env.i8ptrType(), _env.i64ptrType());
+                auto size_var = _env.CreateFirstBlockAlloca(builder, _env.i64Type());
+                auto line = builder.CreateCall(Frow, {parser, size_var});
+
+                // copy here...
+
+                // this is ok here, b.c. it's local.
+                _env.cfree(builder, line);
+                incVar(builder, _fallbackMemorySizeVar, builder.CreateLoad(size_var));
+
+                incVar(builder, _fallbackRowCountVar);
+                builder.CreateBr(_freeStart);
+            }
+
 
             {
 //                auto s = struct_dict_type_serialized_memory_size(_env, builder, row_var, row_type);

@@ -74,6 +74,7 @@ namespace tuplex {
         extern bool JsonParser_hasNextRow(JsonParser *j);
         extern bool JsonParser_moveToNextRow(JsonParser *j);
         extern char *JsonParser_getMallocedRow(JsonParser *j);
+        extern char *JsonParser_getMallocedRowAndSize(JsonParser *j, int64_t *size);
         extern uint64_t JsonParser_getDocType(JsonParser *j);
         extern uint64_t JsonParser_getObject(JsonParser *j, JsonItem **out);
         extern uint64_t JsonItem_getString(JsonItem *item, const char *key, char **out);

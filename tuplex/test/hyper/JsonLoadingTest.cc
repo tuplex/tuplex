@@ -555,6 +555,26 @@ namespace tuplex {
         ContextOptions co = ContextOptions::defaults();
         runtime::init(co.RUNTIME_LIBRARY(false).toPath());
 
+
+        // chunk data
+        if(buf_size > 128 * 1024 * 1024) {
+            // chunk data...
+            std::vector<size_t> offsets = {0};
+            size_t chunk_size = 128 * 1024 * 1024; // 128MB chunks?
+            size_t cur = chunk_size;
+            while(cur <= buf_size) {
+                // find start
+                auto start = findNLJsonStart(reinterpret_cast<const char*>(buf), buf_size - cur);
+                std::cout<<"found NL start at "<<start<<cur + start<<std::endl;
+                offsets.push_back(cur + start);
+
+                cur += chunk_size;
+            }
+           std::cout<<"done"<<std::endl;
+        }
+
+        assert(buf[buf_size - 1] == '\0');
+
         // call code generated function!
         Timer timer;
         MatchResult m;
@@ -713,6 +733,178 @@ namespace tuplex {
         // simple type, return 1
         return 1;
     }
+
+    nlohmann::json json_paths_to_json_array(const python::Type& type) {
+        assert(type.isStructuredDictionaryType());
+        codegen::flattened_struct_dict_entry_list_t entries;
+        codegen::flatten_recursive_helper(entries, type);
+
+        auto j = nlohmann::json::array();
+        for(auto entry : entries) {
+            auto access_path = std::get<0>(entry);
+            auto value_type = std::get<1>(entry);
+            auto always_present = std::get<2>(entry);
+
+            auto str = codegen::json_access_path_to_string(access_path, value_type, always_present);
+            j.push_back(str);
+        }
+
+        return j;
+    }
+}
+
+TEST_F(HyperTest, SimdJSONFailure) {
+    using namespace tuplex;
+    using namespace tuplex::codegen;
+    using namespace std;
+    auto path = "/home/leonhard/Downloads/testsingle.json";
+
+    auto test = tuplex::fileToString(URI(path));
+
+//    simdjson::ondemand::parser parser;
+//    auto json = simdjson::padded_string::load(path); // load JSON file 'twitter.json'.
+//    simdjson::ondemand::document doc = parser.iterate(json);
+//    auto t = doc.type().value();
+//    std::cout<<"type is: "<<t<<std::endl;
+
+    auto json = simdjson::padded_string::load(path).take_value(); // load JSON file 'twitter.json'.
+    auto buf = json.data();
+    auto buf_size = json.size();
+
+    // dom parser failing?
+    simdjson::dom::parser parser;
+    simdjson::dom::document_stream stream;
+    auto SIMDJSON_BATCH_SIZE = simdjson::dom::DEFAULT_BATCH_SIZE;
+    stream = parser.parse_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).take_value();
+    auto it = stream.begin();
+    while(stream.end() != it) {
+        auto doc = *it;
+        auto t = doc.type().value();
+        std::cout<<"type is: "<<t<<std::endl;
+        ++it;
+    }
+
+//    unsigned row_number = 0;
+//    auto j = JsonParser_init();
+//    if (!j)
+//        throw std::runtime_error("failed to initialize parser");
+//    JsonParser_open(j, buf, buf_size);
+//    while (JsonParser_hasNextRow(j)) {
+//        auto line = JsonParser_getMallocedRow(j);
+//        free(line);
+//
+////        if (JsonParser_getDocType(j) != JsonParser_objectDocType()) {
+////            // BADPARSE_STRINGINPUT
+////            auto line = JsonParser_getMallocedRow(j);
+////            free(line);
+////        }
+//
+//        // line ok, now extract something from the object!
+//        // => basically need to traverse...
+//        auto doc = *j->it;
+//
+//        row_number++;
+//        JsonParser_moveToNextRow(j);
+//    }
+//    JsonParser_close(j);
+//    JsonParser_free(j);
+
+//    std::cout << "Parsed " << pluralize(row_number, "row") << std::endl;
+}
+
+TEST_F(HyperTest, LargeFileParse) {
+    // check parsing on a file > 4GB
+    using namespace tuplex;
+    using namespace tuplex::codegen;
+    using namespace std;
+
+    Logger::instance().init();
+    auto& logger = Logger::instance().logger("experiment");
+
+    string path = "/data/github_sample_daily/2012-10-15.json.gz";
+    path = "/home/leonhard/Downloads/testsingle.json";
+
+    auto sample_size = 2 * 1024 * 1024ul;// 8MB ////256 * 1024ul; // 256kb
+//    auto sample_size = 256 * 1024ul; // 256kb
+    bool perfect_sample = false;//true; // if true, sample the whole file (slow, but perfect representation)
+    bool pushdown_pushevent = true;
+    auto nc_th = 0.9;
+    // general case version
+    auto conf_general_case_type_policy = TypeUnificationPolicy::defaultPolicy();
+    conf_general_case_type_policy.unifyMissingDictKeys = true;
+    conf_general_case_type_policy.allowUnifyWithPyObject = false; // <-- do NOT allow this. => can't compile... --> this could be helped with DelayedParse[...]
+
+    double conf_nc_threshold = 0.9;
+
+    // now, regular routine...
+    auto raw_data = fileToString(path);
+
+    const char *pointer = raw_data.data();
+    std::size_t size = raw_data.size();
+
+    // gzip::is_compressed(pointer, size); // can use this to check for gzip file...
+    std::string decompressed_data = strEndsWith(path, ".gz") ? gzip::decompress(pointer, size) : raw_data;
+    for(unsigned i = 0; i < simdjson::SIMDJSON_PADDING; ++i)
+        decompressed_data.push_back('\0');
+
+    // make sure capacity exceeds string!
+    decompressed_data.reserve(decompressed_data.size() + simdjson::SIMDJSON_PADDING);
+
+    // parse code starts here...
+    auto buf = decompressed_data.data();
+    auto buf_size = decompressed_data.size();
+
+    // sample full file
+    if(perfect_sample)
+        sample_size = buf_size;
+
+    // detect types here:
+    auto actual_sample_size = std::min(buf_size, sample_size);
+    auto rows = parseRowsFromJSON(buf, actual_sample_size, nullptr, false);
+    std::vector<std::pair<python::Type, size_t>> type_counts = counts_from_rows(rows);
+    auto general_case_max_type = maximizeTypeCoverNew(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
+    auto normal_case_max_type = maximizeTypeCoverNew(type_counts, conf_nc_threshold, true, TypeUnificationPolicy::defaultPolicy());
+
+    auto normal_case_type = normal_case_max_type.first.parameters().front();
+    auto general_case_type = general_case_max_type.first.parameters().front();
+    std::cout << "normal  case:  " << normal_case_type.desc() << std::endl;
+    std::cout << "general case:  " << general_case_type.desc() << std::endl;
+
+    bool is_ok = simdjson::validate_utf8((const char*)buf, buf_size);
+    std::cout<<"is string UTF-8? "<<is_ok<<std::endl;
+
+    // C-version of parsing
+    uint64_t row_number = 0;
+
+    auto j = JsonParser_init();
+    if (!j)
+        throw std::runtime_error("failed to initialize parser");
+    JsonParser_open(j, buf, buf_size);
+    while (JsonParser_hasNextRow(j)) {
+        auto line = JsonParser_getMallocedRow(j);
+        free(line);
+
+//        if (JsonParser_getDocType(j) != JsonParser_objectDocType()) {
+//            // BADPARSE_STRINGINPUT
+//            auto line = JsonParser_getMallocedRow(j);
+//            free(line);
+//        }
+
+        // line ok, now extract something from the object!
+        // => basically need to traverse...
+        auto doc = *j->it;
+
+        row_number++;
+        JsonParser_moveToNextRow(j);
+    }
+    JsonParser_close(j);
+    JsonParser_free(j);
+
+    std::cout << "Parsed " << pluralize(row_number, "row") << std::endl;
+
+
+    // parse and check
+    //auto m = runMatchCodegen(normal_case_type, general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
 }
 
 TEST_F(HyperTest, LoadAllFiles) {
@@ -724,6 +916,8 @@ TEST_F(HyperTest, LoadAllFiles) {
 
     // settings are here
     string root_path = "/data/github_sample/*.json.gz";
+    // daily sample
+    root_path = "/data/github_sample_daily/*.json.gz";
 
 #ifdef MACOS
     root_path = "/Users/leonhards/Downloads/github_sample/*.json.gz";
@@ -744,8 +938,8 @@ TEST_F(HyperTest, LoadAllFiles) {
 
     auto paths = glob(root_path);
 
-    // debug
-    paths = std::vector<std::string>(paths.begin(), paths.begin() + 1);
+//    // debug
+//    paths = std::vector<std::string>(paths.begin(), paths.begin() + 1);
 
     logger.info("Found " + pluralize(paths.size(), "path") + " under " + root_path);
 
@@ -807,6 +1001,8 @@ TEST_F(HyperTest, LoadAllFiles) {
             j["general_case"] = general_case_type.desc();
             j["normal_case_field_count"] = number_of_fields(normal_case_type);
             j["general_case_field_count"] = number_of_fields(general_case_type);
+            j["normal_json_paths"] = json_paths_to_json_array(normal_case_type);
+            j["general_json_paths"] = json_paths_to_json_array(general_case_type);
             j["buf_size_compressed"] = raw_data.size();
             j["buf_size_uncompressed"] = decompressed_data.size();
             j["sample_size"] = actual_sample_size;
@@ -937,7 +1133,7 @@ TEST_F(HyperTest, LoadAllFiles) {
         }
     }
 
-    std::cout<<"overall result: "<<std::endl;
+    std::cout<<"overall result ("<<pluralize(results.size(), "file")<<"): "<<std::endl;
     std::cout<<"hyper:\n-------"<<std::endl;
     std::cout<<"  "<<m_hyper.to_json().dump()<<std::endl;
     std::cout<<"global:\n-------"<<std::endl;

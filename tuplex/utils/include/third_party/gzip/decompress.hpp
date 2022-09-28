@@ -16,7 +16,7 @@ class Decompressor
     std::size_t max_;
 
   public:
-    Decompressor(std::size_t max_bytes = 10000000000) // by default refuse operation if compressed data is > 10GB
+    Decompressor(std::size_t max_bytes = 16000000000) // by default refuse operation if compressed data is > 16GB
         : max_(max_bytes)
     {
     }

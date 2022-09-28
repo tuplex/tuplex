@@ -688,6 +688,31 @@ namespace tuplex {
         std::cout<<"no solution found, but best pair..."<<std::endl;
         return best_pair;
     }
+
+    size_t number_of_fields(python::Type type) {
+        if(type.isOptimizedType())
+            type = deoptimizedType(type);
+
+        if(type.isStructuredDictionaryType()) {
+            // recurse
+            size_t total = 0;
+            for(const auto& kv_pair : type.get_struct_pairs())
+                total += number_of_fields(kv_pair.valueType);
+        } else if(type.isTupleType()) {
+            size_t total = 0;
+            for(const auto& t : type.parameters())
+                total += number_of_fields(t);
+            return total;
+        } else if(type.isOptionType()) {
+            return number_of_fields(type.getReturnType());
+        } else if(type.isListType() && type != python::Type::EMPTYLIST) {
+            return number_of_fields(type.elementType());
+        } else if(type.isDictionaryType()) {
+            return number_of_fields(type.valueType());
+        }
+        // simple type, return 1
+        return 1;
+    }
 }
 
 TEST_F(HyperTest, LoadAllFiles) {
@@ -729,6 +754,7 @@ TEST_F(HyperTest, LoadAllFiles) {
     // ----------------------------------------------------------------------------------------------------------------
     // hyperspecialized processing
     // now perform detection & parse for EACH file.
+    size_t total_actual_sample_size = 0;
     std::reverse(paths.begin(), paths.end());
     for(const auto& path : paths) {
         logger.info("Processing " + path);
@@ -753,7 +779,9 @@ TEST_F(HyperTest, LoadAllFiles) {
                 sample_size = buf_size;
 
             // detect types here:
-            auto rows = parseRowsFromJSON(buf, std::min(buf_size, sample_size), nullptr, false);
+            auto actual_sample_size = std::min(buf_size, sample_size);
+            total_actual_sample_size += actual_sample_size;
+            auto rows = parseRowsFromJSON(buf, actual_sample_size, nullptr, false);
             std::vector<std::pair<python::Type, size_t>> type_counts = counts_from_rows(rows);
             global_type_counts = combine_type_counts(global_type_counts, type_counts);
             auto general_case_max_type = maximizeTypeCoverNew(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
@@ -772,8 +800,13 @@ TEST_F(HyperTest, LoadAllFiles) {
             j["path"] = path;
             j["normal_case"] = normal_case_type.desc();
             j["general_case"] = general_case_type.desc();
+            j["normal_case_field_count"] = number_of_fields(normal_case_type);
+            j["general_case_field_count"] = number_of_fields(general_case_type);
             j["buf_size_compressed"] = raw_data.size();
             j["buf_size_uncompressed"] = decompressed_data.size();
+            j["sample_size"] = actual_sample_size;
+            j["perfect_sample"] = perfect_sample;
+            j["sample_row_count"] = rows.size();
 
             ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!
 
@@ -816,6 +849,11 @@ TEST_F(HyperTest, LoadAllFiles) {
         std::cout << "global normal  case:  " << global_normal_case_type.desc() << std::endl;
         std::cout << "global general case:  " << global_general_case_type.desc() << std::endl;
 
+        size_t global_actual_sample_size = total_actual_sample_size;
+        size_t global_sample_count = 0;
+        for(auto kv : global_type_counts)
+            global_sample_count += kv.second;
+
         for(const auto& path : paths) {
             logger.info("Processing " + path);
 
@@ -841,8 +879,13 @@ TEST_F(HyperTest, LoadAllFiles) {
                 j["path"] = path;
                 j["normal_case"] = global_normal_case_type.desc();
                 j["general_case"] = global_general_case_type.desc();
+                j["normal_case_field_count"] = number_of_fields(global_normal_case_type);
+                j["general_case_field_count"] = number_of_fields(global_general_case_type);
                 j["buf_size_compressed"] = raw_data.size();
                 j["buf_size_uncompressed"] = decompressed_data.size();
+                j["sample_size"] = global_actual_sample_size;
+                j["perfect_sample"] = perfect_sample;
+                j["sample_row_count"] = global_sample_count;
 
                 ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!
 
@@ -874,6 +917,26 @@ TEST_F(HyperTest, LoadAllFiles) {
         stringToFile("experiment_result.json", out.str());
     }
 
+    // perform some quick analysis (summing up values) to print out.
+    MatchResult m_hyper; memset(&m_hyper, 0, sizeof(m_hyper));
+    MatchResult m_global; memset(&m_global, 0, sizeof(m_global));
+    for(auto j : results) {
+        if(j["mode"].get<std::string>() == "global") {
+            m_global.normalRows += j["normal_rows"].get<size_t>();
+            m_global.generalRows += j["general_rows"].get<size_t>();
+            m_global.fallbackRows += j["fallback_rows"].get<size_t>();
+        } else {
+            m_hyper.normalRows += j["normal_rows"].get<size_t>();
+            m_hyper.generalRows += j["general_rows"].get<size_t>();
+            m_hyper.fallbackRows += j["fallback_rows"].get<size_t>();
+        }
+    }
+
+    std::cout<<"overall result: "<<std::endl;
+    std::cout<<"hyper:\n-------"<<std::endl;
+    std::cout<<"  "<<m_hyper.to_json().dump()<<std::endl;
+    std::cout<<"global:\n-------"<<std::endl;
+    std::cout<<"  "<<m_global.to_json().dump()<<std::endl;
 }
 
 TEST_F(HyperTest, TypeMaximization) {

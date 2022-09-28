@@ -479,6 +479,12 @@ namespace tuplex {
             return python::Type::makeListType(newElementType);
         }
 
+        // empty list can be unified with any list!
+        if(aUnderlyingType.isListType() && bUnderlyingType == python::Type::EMPTYLIST)
+            return aUnderlyingType;
+        if(aUnderlyingType == python::Type::EMPTYLIST && bUnderlyingType.isListType())
+            return bUnderlyingType;
+
         // tuple type? check if every parameter type compatible
         if(aUnderlyingType.isTupleType() && bUnderlyingType.isTupleType()) {
             if (aUnderlyingType.parameters().size() != bUnderlyingType.parameters().size()) {
@@ -623,6 +629,12 @@ namespace tuplex {
             }
             return python::Type::makeListType(newElementType);
         }
+
+        // empty list can be unified with any list!
+        if(aUnderlyingType.isListType() && bUnderlyingType == python::Type::EMPTYLIST)
+            return aUnderlyingType;
+        if(aUnderlyingType == python::Type::EMPTYLIST && bUnderlyingType.isListType())
+            return bUnderlyingType;
 
         // tuple type? check if every parameter type compatible
         if(aUnderlyingType.isTupleType() && bUnderlyingType.isTupleType()) {

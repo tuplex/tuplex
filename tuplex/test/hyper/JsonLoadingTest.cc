@@ -556,24 +556,24 @@ namespace tuplex {
         runtime::init(co.RUNTIME_LIBRARY(false).toPath());
 
 
-        // chunk data
-        if(buf_size > 128 * 1024 * 1024) {
-            // chunk data...
-            std::vector<size_t> offsets = {0};
-            size_t chunk_size = 128 * 1024 * 1024; // 128MB chunks?
-            size_t cur = chunk_size;
-            while(cur <= buf_size) {
-                // find start
-                auto start = findNLJsonStart(reinterpret_cast<const char*>(buf), buf_size - cur);
-                std::cout<<"found NL start at "<<start<<cur + start<<std::endl;
-                offsets.push_back(cur + start);
+//        // chunk data
+//        if(buf_size > 128 * 1024 * 1024) {
+//            // chunk data...
+//            std::vector<size_t> offsets = {0};
+//            size_t chunk_size = 128 * 1024 * 1024; // 128MB chunks?
+//            size_t cur = chunk_size;
+//            while(cur <= buf_size) {
+//                // find start
+//                auto start = findNLJsonStart(reinterpret_cast<const char*>(buf), buf_size - cur);
+//                std::cout<<"found NL start at "<<start<<cur + start<<std::endl;
+//                offsets.push_back(cur + start);
+//
+//                cur += chunk_size;
+//            }
+//           std::cout<<"done"<<std::endl;
+//        }
 
-                cur += chunk_size;
-            }
-           std::cout<<"done"<<std::endl;
-        }
-
-        assert(buf[buf_size - 1] == '\0');
+        // assert(buf[buf_size - 1] == '\0');
 
         // call code generated function!
         Timer timer;
@@ -1289,6 +1289,15 @@ TEST_F(HyperTest, BasicStructLoad) {
 //     auto content = "{\"column1\": [[\"a\", 20], [\"b\", 10]]}\n"
 //                    "{\"column1\": [[\"c\", 0], [\"d\", 0]]}\n";
 //     stringToFile(path, content);
+
+
+     // mini example in order with list of options
+     path = "test.json";
+
+     // this here is a simple example of a list decode
+     auto content = "{\"column1\": [[0, 1, null], [0, 1, null]]}\n"
+                    "{\"column1\": [[null], []]}\n";
+     stringToFile(path, content);
 
     // now, regular routine...
     auto raw_data = fileToString(path);

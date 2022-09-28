@@ -233,28 +233,40 @@ namespace tuplex {
                 auto size_var = _env.CreateFirstBlockAlloca(builder, _env.i64Type());
                 auto line = builder.CreateCall(Frow, {parser, size_var});
 
-                // copy here...
+                // should whitespace lines be skipped?
+                bool skip_whitespace_lines = true;
 
-                // note: line could be empty line -> check whether to skip or not!
-                auto Fws = getOrInsertFunction(_env.getModule().get(), "Json_is_whitespace", ctypeToLLVM<bool>(_env.getContext()),
-                                               _env.i8ptrType(), _env.i64Type());
-                auto ws_rc = builder.CreateCall(Fws, {line, builder.CreateLoad(size_var)});
-                auto is_ws = builder.CreateICmpEQ(ws_rc, cbool_const(_env.getContext(), true));
-
-                // skip whitespace?
-                BasicBlock* bIsNotWhitespace = BasicBlock::Create(ctx, "not_whitespace", builder.GetInsertBlock()->getParent());
-                BasicBlock* bFallbackDone = BasicBlock::Create(ctx, "fallback_done", builder.GetInsertBlock()->getParent());
-
-                builder.CreateCondBr(is_ws, bFallbackDone, bIsNotWhitespace);
-
-                // only inc for non whitespace (would serialize here!)
-                builder.SetInsertPoint(bIsNotWhitespace);
-                incVar(builder, _fallbackMemorySizeVar, builder.CreateLoad(size_var));
-                incVar(builder, _fallbackRowCountVar);
-                builder.CreateBr(bFallbackDone);
+                if(skip_whitespace_lines) {
+                    // note: line could be empty line -> check whether to skip or not!
+                    auto Fws = getOrInsertFunction(_env.getModule().get(), "Json_is_whitespace", ctypeToLLVM<bool>(_env.getContext()),
+                                                   _env.i8ptrType(), _env.i64Type());
+                    auto ws_rc = builder.CreateCall(Fws, {line, builder.CreateLoad(size_var)});
+                    auto is_ws = builder.CreateICmpEQ(ws_rc, cbool_const(_env.getContext(), true));
 
 
-                builder.SetInsertPoint(bFallbackDone);
+                    // skip whitespace?
+                    BasicBlock* bIsNotWhitespace = BasicBlock::Create(ctx, "not_whitespace", builder.GetInsertBlock()->getParent());
+                    BasicBlock* bFallbackDone = BasicBlock::Create(ctx, "fallback_done", builder.GetInsertBlock()->getParent());
+
+                    // decrease row count
+                    incVar(builder, _rowNumberVar, -1);
+
+                    builder.CreateCondBr(is_ws, bFallbackDone, bIsNotWhitespace);
+
+                    // only inc for non whitespace (would serialize here!)
+                    builder.SetInsertPoint(bIsNotWhitespace);
+                    incVar(builder, _fallbackMemorySizeVar, builder.CreateLoad(size_var));
+                    incVar(builder, _fallbackRowCountVar);
+                    incVar(builder, _rowNumberVar); // --> trick, else the white line is counted as row!
+                    builder.CreateBr(bFallbackDone);
+                    builder.SetInsertPoint(bFallbackDone);
+                }
+                else {
+                    incVar(builder, _fallbackMemorySizeVar, builder.CreateLoad(size_var));
+                    incVar(builder, _fallbackRowCountVar);
+                }
+
+
                 // this is ok here, b.c. it's local.
                 _env.cfree(builder, line);
                 builder.CreateBr(_freeStart);

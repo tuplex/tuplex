@@ -50,46 +50,6 @@ namespace tuplex {
             return cond;
         }
 
-        llvm::BasicBlock *
-        TuplexMatchBuilder::emitBadParseInputAndMoveToNextRow(llvm::IRBuilder<> &builder, llvm::Value *j,
-                                                                 llvm::Value *condition) {
-            using namespace llvm;
-            auto &ctx = _env.getContext();
-
-            auto F = builder.GetInsertBlock()->getParent();
-
-            BasicBlock *bbOK = BasicBlock::Create(ctx, "ok", F);
-            BasicBlock *bbEmitBadParse = BasicBlock::Create(ctx, "bad_parse", F);
-            builder.CreateCondBr(condition, bbEmitBadParse, bbOK);
-
-            // ---- bad parse blocks ----
-            //            auto line = JsonParser_getMallocedRow(j);
-            //            free(line);
-            // --> i.e. call exception handler from here...
-            builder.SetInsertPoint(bbEmitBadParse);
-            auto Frow = getOrInsertFunction(_env.getModule().get(), "JsonParser_getMallocedRow", _env.i8ptrType(),
-                                            _env.i8ptrType());
-            auto line = builder.CreateCall(Frow, j);
-
-            // // simply print (later call with error)
-            // _env.printValue(builder, rowNumber(builder), "bad parse encountered for row number: ");
-
-            // // inc value
-            // auto count = builder.CreateLoad(_badParseCountVar);
-            // builder.CreateStore(builder.CreateAdd(count, _env.i64Const(1)), _badParseCountVar);
-
-            //_env.printValue(builder, line, "bad-parse for row: ");
-            // this is ok here, b.c. it's local.
-            _env.cfree(builder, line);
-
-            // go to free block -> that will then take care of moving back to header.
-            builder.CreateBr(_freeStart);
-
-            // ok block
-            builder.SetInsertPoint(bbOK);
-            return bbEmitBadParse;
-        }
-
         llvm::Value *TuplexMatchBuilder::hasNextRow(llvm::IRBuilder<> &builder, llvm::Value *j) {
             auto &ctx = _env.getContext();
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_hasNextRow", ctypeToLLVM<bool>(ctx),
@@ -275,11 +235,28 @@ namespace tuplex {
 
                 // copy here...
 
+                // note: line could be empty line -> check whether to skip or not!
+                auto Fws = getOrInsertFunction(_env.getModule().get(), "Json_is_whitespace", ctypeToLLVM<bool>(_env.getContext()),
+                                               _env.i8ptrType(), _env.i64Type());
+                auto ws_rc = builder.CreateCall(Fws, {line, builder.CreateLoad(size_var)});
+                auto is_ws = builder.CreateICmpEQ(ws_rc, cbool_const(_env.getContext(), true));
+
+                // skip whitespace?
+                BasicBlock* bIsNotWhitespace = BasicBlock::Create(ctx, "not_whitespace", builder.GetInsertBlock()->getParent());
+                BasicBlock* bFallbackDone = BasicBlock::Create(ctx, "fallback_done", builder.GetInsertBlock()->getParent());
+
+                builder.CreateCondBr(is_ws, bFallbackDone, bIsNotWhitespace);
+
+                // only inc for non whitespace (would serialize here!)
+                builder.SetInsertPoint(bIsNotWhitespace);
+                incVar(builder, _fallbackMemorySizeVar, builder.CreateLoad(size_var));
+                incVar(builder, _fallbackRowCountVar);
+                builder.CreateBr(bFallbackDone);
+
+
+                builder.SetInsertPoint(bFallbackDone);
                 // this is ok here, b.c. it's local.
                 _env.cfree(builder, line);
-                incVar(builder, _fallbackMemorySizeVar, builder.CreateLoad(size_var));
-
-                incVar(builder, _fallbackRowCountVar);
                 builder.CreateBr(_freeStart);
             }
 

@@ -14,9 +14,10 @@
 
 namespace tuplex {
 
-    //@March implement: finding Json Offset
-    //@March + write tests.
-    // we need this function to chunk JSON files later.
+    // parse using simdjson
+    // use 4MB for Github data!
+    static const auto SIMDJSON_BATCH_SIZE = 4 * 1024 * 1024ul; //simdjson::dom::DEFAULT_BATCH_SIZE;
+
     /*!
      * finds the start of a valid newline-delimited JSON entry.
      * @param buf buffer

@@ -7,11 +7,7 @@
 
 namespace tuplex {
     namespace codegen {
-        // parse using simdjson
-        static const auto SIMDJSON_BATCH_SIZE = simdjson::dom::DEFAULT_BATCH_SIZE;
-
         // C-APIs to use in codegen
-
         JsonParser *JsonParser_init() {
             // can't malloc, or can malloc but then need to call inplace C++ constructors!
             return new JsonParser();
@@ -20,6 +16,7 @@ namespace tuplex {
         void JsonParser_free(JsonParser *parser) {
             if (parser)
                 delete parser;
+            parser = nullptr;
         }
 
         uint64_t JsonParser_open(JsonParser *j, const char *buf, size_t buf_size) {
@@ -106,8 +103,38 @@ namespace tuplex {
             if (!(j->it != j->stream.end()))
                 return 0xFFFFFFFF;
 
+            // some weird error may happen IFF batch size is too small.
+            // -> out of capacity. Could be detected here and then by manually hacking the iterator
+            // @TODO.
+
+            simdjson::error_code error;
+
             auto doc = *j->it;
-            auto line_type = doc.type().value();
+            simdjson::dom::element_type line_type;
+            doc.type().tie(line_type, error);
+            if(error) {
+
+                // special case: empty line
+                if(simdjson::error_code::TAPE_ERROR == error) {
+                    // can line be retrieved?
+                    // -> do so.
+                    // make sure 0 is not used...
+                    return 0;
+                }
+
+                std::stringstream ss;
+                ss<<error; // <-- can get error description like this
+
+                // // can line retrieved?
+                // std::string full_row;
+                // {
+                //     std::stringstream ss;
+                //     ss << j->it.source() << std::endl;
+                //     full_row = ss.str();
+                // }
+                throw std::runtime_error(ss.str());
+            }
+
             return static_cast<uint64_t>(line_type);
         }
 
@@ -122,20 +149,29 @@ namespace tuplex {
             assert(j);
             assert(out);
 
-            auto o = new JsonItem();
-
-            // debug checks:
-            assert(j->it != j->stream.end());
-
             auto doc = *j->it;
 
             // on demand
             // assert(doc.value().type().take_value() == simdjson::ondemand::json_type::object);
 
+            // check type
+            simdjson::error_code error;
+            simdjson::dom::element_type t;
+            simdjson::dom::object object;
+            doc.get_object().tie(object, error); // no error check here (for speed reasons).
+            if(error) {
+                return ecToI64(ExceptionCode::BADPARSE_STRING_INPUT);
+            }
+
+            auto o = new JsonItem();
+
+            // debug checks:
+            assert(j->it != j->stream.end());
+
             //dom
             assert(doc.value().type() == simdjson::dom::element_type::OBJECT);
 
-            o->o = doc.get_object().take_value(); // no error check here (for speed reasons).
+            o->o = std::move(object);
 
             *out = o;
 
@@ -582,6 +618,25 @@ namespace tuplex {
             return ecToI64(ExceptionCode::SUCCESS); // ok.
         }
 
+        bool Json_is_whitespace(const char* str, size_t size) {
+
+            //assert(strlen(str) <= size); // won't hold, because string can be a string view!
+
+            for(unsigned i = 0; i < size; ++i) {
+                auto c = str[i];
+                switch(c) {
+                    case ' ':
+                    case '\t':
+                    case '\n':
+                    case '\r':
+                        continue;
+                    default:
+                        return false;
+                }
+            }
+            return true;
+        }
+
         void addJsonSymbolsToJIT(JITCompiler& jit) {
             // register symbols
             jit.registerSymbol("JsonParser_Init", JsonParser_init);
@@ -612,6 +667,7 @@ namespace tuplex {
             jit.registerSymbol("JsonArray_getStringAndSize", JsonArray_getStringAndSize);
             jit.registerSymbol("JsonArray_getObject", JsonArray_getObject);
             jit.registerSymbol("JsonArray_getArray", JsonArray_getArray);
+            jit.registerSymbol("Json_is_whitespace", Json_is_whitespace);
         }
     }
 }

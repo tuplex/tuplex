@@ -94,6 +94,8 @@ namespace tuplex {
         extern uint64_t JsonItem_IsNull(JsonItem *item, const char *key);
         extern bool JsonItem_hasKey(JsonItem *item, const char *key);
         extern uint64_t JsonItem_numberOfKeys(JsonItem *item);
+
+        extern bool Json_is_whitespace(const char* str, size_t size);
     }
 }
 

@@ -758,7 +758,7 @@ TEST_F(HyperTest, SimdJSONFailure) {
     using namespace tuplex::codegen;
     using namespace std;
     auto path = "/home/leonhard/Downloads/testsingle.json";
-
+    path = "../resources/ndjson/example1_with_empty_lines.json";
     auto test = tuplex::fileToString(URI(path));
 
 //    simdjson::ondemand::parser parser;
@@ -767,49 +767,82 @@ TEST_F(HyperTest, SimdJSONFailure) {
 //    auto t = doc.type().value();
 //    std::cout<<"type is: "<<t<<std::endl;
 
-    auto json = simdjson::padded_string::load(path).take_value(); // load JSON file 'twitter.json'.
-    auto buf = json.data();
-    auto buf_size = json.size();
+//    auto json = simdjson::padded_string::load(path).take_value(); // load JSON file 'twitter.json'.
+//    auto buf = json.data();
+//    auto buf_size = json.size();
 
-    // dom parser failing?
-    simdjson::dom::parser parser;
-    simdjson::dom::document_stream stream;
-    auto SIMDJSON_BATCH_SIZE = simdjson::dom::DEFAULT_BATCH_SIZE;
-    stream = parser.parse_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).take_value();
-    auto it = stream.begin();
-    while(stream.end() != it) {
-        auto doc = *it;
-        auto t = doc.type().value();
-        std::cout<<"type is: "<<t<<std::endl;
-        ++it;
-    }
 
-//    unsigned row_number = 0;
-//    auto j = JsonParser_init();
-//    if (!j)
-//        throw std::runtime_error("failed to initialize parser");
-//    JsonParser_open(j, buf, buf_size);
-//    while (JsonParser_hasNextRow(j)) {
-//        auto line = JsonParser_getMallocedRow(j);
-//        free(line);
-//
-////        if (JsonParser_getDocType(j) != JsonParser_objectDocType()) {
-////            // BADPARSE_STRINGINPUT
-////            auto line = JsonParser_getMallocedRow(j);
-////            free(line);
-////        }
-//
-//        // line ok, now extract something from the object!
-//        // => basically need to traverse...
-//        auto doc = *j->it;
-//
-//        row_number++;
-//        JsonParser_moveToNextRow(j);
+
+//    // dom parser failing?
+//    simdjson::dom::parser parser;
+//    simdjson::dom::document_stream stream;
+//    auto SIMDJSON_BATCH_SIZE = simdjson::dom::DEFAULT_BATCH_SIZE;
+//    stream = parser.parse_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).take_value();
+//    auto it = stream.begin();
+//    while(stream.end() != it) {
+//        auto doc = *it;
+//        auto t = doc.type().value();
+//        std::cout<<"type is: "<<t<<std::endl;
+//        ++it;
 //    }
-//    JsonParser_close(j);
-//    JsonParser_free(j);
+//
+//    // on-demand parser failing?
+//    simdjson::ondemand::parser parser;
+//    simdjson::ondemand::document_stream stream;
+//    auto SIMDJSON_BATCH_SIZE = simdjson::dom::DEFAULT_BATCH_SIZE;
+//    auto batch_size = std::min(buf_size, SIMDJSON_BATCH_SIZE);
+//    stream = parser.iterate_many(buf, buf_size, batch_size).take_value();
+//    auto it = stream.begin();
+//    while(stream.end() != it) {
+//        auto doc = *it;
+//        auto t = doc.type().value();
+//        std::cout<<"type is: "<<t<<std::endl;
+//        ++it;
+//    }
 
-//    std::cout << "Parsed " << pluralize(row_number, "row") << std::endl;
+    // now, regular routine...
+    auto raw_data = fileToString(URI(path));
+
+    const char *pointer = raw_data.data();
+    std::size_t size = raw_data.size();
+
+    // gzip::is_compressed(pointer, size); // can use this to check for gzip file...
+    std::string decompressed_data = strEndsWith(path, ".gz") ? gzip::decompress(pointer, size) : raw_data;
+    for(unsigned i = 0; i < simdjson::SIMDJSON_PADDING; ++i)
+        decompressed_data.push_back('\0');
+
+    // make sure capacity exceeds string!
+    decompressed_data.reserve(decompressed_data.size() + simdjson::SIMDJSON_PADDING);
+
+    // parse code starts here...
+    auto buf = decompressed_data.data();
+    auto buf_size = decompressed_data.size();
+
+
+    // this here fails b.c. batch size < document size.
+    unsigned row_number = 0;
+    auto j = JsonParser_init();
+    if (!j)
+        throw std::runtime_error("failed to initialize parser");
+    JsonParser_open(j, buf, buf_size);
+    while (JsonParser_hasNextRow(j)) {
+        if (JsonParser_getDocType(j) != JsonParser_objectDocType()) {
+            // BADPARSE_STRINGINPUT
+            auto line = JsonParser_getMallocedRow(j);
+            free(line);
+        }
+
+        // line ok, now extract something from the object!
+        // => basically need to traverse...
+        auto doc = *j->it;
+
+        row_number++;
+        JsonParser_moveToNextRow(j);
+    }
+    JsonParser_close(j);
+    JsonParser_free(j);
+
+    std::cout << "Parsed " << pluralize(row_number, "row") << std::endl;
 }
 
 TEST_F(HyperTest, LargeFileParse) {
@@ -860,7 +893,16 @@ TEST_F(HyperTest, LargeFileParse) {
 
     // detect types here:
     auto actual_sample_size = std::min(buf_size, sample_size);
-    auto rows = parseRowsFromJSON(buf, actual_sample_size, nullptr, false);
+
+    // create sample buffer & parse
+    char *sample_buffer = new char[actual_sample_size + simdjson::SIMDJSON_PADDING];
+    memcpy(sample_buffer, buf, actual_sample_size);
+    memset(sample_buffer + actual_sample_size, 0, simdjson::SIMDJSON_PADDING);
+
+    auto rows = parseRowsFromJSON(sample_buffer, actual_sample_size, nullptr, false);
+
+    delete [] sample_buffer; sample_buffer = nullptr;
+
     std::vector<std::pair<python::Type, size_t>> type_counts = counts_from_rows(rows);
     auto general_case_max_type = maximizeTypeCoverNew(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
     auto normal_case_max_type = maximizeTypeCoverNew(type_counts, conf_nc_threshold, true, TypeUnificationPolicy::defaultPolicy());
@@ -873,38 +915,38 @@ TEST_F(HyperTest, LargeFileParse) {
     bool is_ok = simdjson::validate_utf8((const char*)buf, buf_size);
     std::cout<<"is string UTF-8? "<<is_ok<<std::endl;
 
-    // C-version of parsing
-    uint64_t row_number = 0;
-
-    auto j = JsonParser_init();
-    if (!j)
-        throw std::runtime_error("failed to initialize parser");
-    JsonParser_open(j, buf, buf_size);
-    while (JsonParser_hasNextRow(j)) {
-        auto line = JsonParser_getMallocedRow(j);
-        free(line);
-
+//    // C-version of parsing
+//    uint64_t row_number = 0;
+//
+//    auto j = JsonParser_init();
+//    if (!j)
+//        throw std::runtime_error("failed to initialize parser");
+//    JsonParser_open(j, buf, buf_size);
+//    while (JsonParser_hasNextRow(j)) {
+//
 //        if (JsonParser_getDocType(j) != JsonParser_objectDocType()) {
 //            // BADPARSE_STRINGINPUT
 //            auto line = JsonParser_getMallocedRow(j);
 //            free(line);
 //        }
-
-        // line ok, now extract something from the object!
-        // => basically need to traverse...
-        auto doc = *j->it;
-
-        row_number++;
-        JsonParser_moveToNextRow(j);
-    }
-    JsonParser_close(j);
-    JsonParser_free(j);
-
-    std::cout << "Parsed " << pluralize(row_number, "row") << std::endl;
+//
+//        // line ok, now extract something from the object!
+//        // => basically need to traverse...
+//        auto doc = *j->it;
+//
+//        row_number++;
+//        JsonParser_moveToNextRow(j);
+//    }
+//    JsonParser_close(j);
+//    JsonParser_free(j);
+//
+//    std::cout << "Parsed " << pluralize(row_number, "row") << std::endl;
 
 
     // parse and check
-    //auto m = runMatchCodegen(normal_case_type, general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
+    auto m = runMatchCodegen(normal_case_type, general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
+
+    std::cout<<"parsed "<<pluralize(m.totalRows, "row")<<std::endl;
 }
 
 TEST_F(HyperTest, LoadAllFiles) {

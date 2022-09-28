@@ -273,8 +273,6 @@ namespace tuplex {
 
         // assert(buf[buf_size - 1] == '\0');
 
-        auto SIMDJSON_BATCH_SIZE=simdjson::dom::DEFAULT_BATCH_SIZE;
-
         // use simdjson as parser b.c. cJSON has issues with integers/floats.
         // https://simdjson.org/api/2.0.0/md_doc_iterate_many.html
         simdjson::ondemand::parser parser;

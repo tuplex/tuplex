@@ -732,6 +732,7 @@ TEST_F(HyperTest, LoadAllFiles) {
     auto sample_size = 2 * 1024 * 1024ul;// 8MB ////256 * 1024ul; // 256kb
 //    auto sample_size = 256 * 1024ul; // 256kb
     bool perfect_sample = false;//true; // if true, sample the whole file (slow, but perfect representation)
+    bool pushdown_pushevent = true;
     auto nc_th = 0.9;
     // general case version
     auto conf_general_case_type_policy = TypeUnificationPolicy::defaultPolicy();
@@ -742,6 +743,10 @@ TEST_F(HyperTest, LoadAllFiles) {
 
 
     auto paths = glob(root_path);
+
+    // debug
+    paths = std::vector<std::string>(paths.begin(), paths.begin() + 1);
+
     logger.info("Found " + pluralize(paths.size(), "path") + " under " + root_path);
 
     std::vector<std::string> bad_paths;

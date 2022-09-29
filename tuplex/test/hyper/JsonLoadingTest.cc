@@ -961,7 +961,7 @@ TEST_F(HyperTest, LoadAllFiles) {
     // daily sample
     root_path = "/data/github_sample_daily/*.json.gz";
 
-    root_path = "/data/github_sample_daily/2011-10-15.json.gz";
+    //root_path = "/data/github_sample_daily/2011-10-15.json.gz";
 
 #ifdef MACOS
     root_path = "/Users/leonhards/Downloads/github_sample/*.json.gz";
@@ -1323,7 +1323,7 @@ TEST_F(HyperTest, BasicStructLoad) {
 //    ContextOptions co = ContextOptions::defaults();
 //    auto sample_size = co.CSV_MAX_DETECTION_MEMORY();
 //    auto nc_th = co.NORMALCASE_THRESHOLD();
-    auto sample_size = 256 * 1024ul; // 256kb
+    auto sample_size = 512 * 1024ul; // 512KB //256 * 1024ul; // 256kb
     auto nc_th = 0.9;
     auto rows = parseRowsFromJSON(buf, std::min(buf_size, sample_size), nullptr, false);
 

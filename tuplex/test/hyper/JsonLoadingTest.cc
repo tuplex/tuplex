@@ -718,6 +718,7 @@ namespace tuplex {
             size_t total = 0;
             for(const auto& kv_pair : type.get_struct_pairs())
                 total += number_of_fields(kv_pair.valueType);
+            return total;
         } else if(type.isTupleType()) {
             size_t total = 0;
             for(const auto& t : type.parameters())
@@ -961,7 +962,7 @@ TEST_F(HyperTest, LoadAllFiles) {
     // daily sample
     root_path = "/data/github_sample_daily/*.json.gz";
 
-    //root_path = "/data/github_sample_daily/2011-10-15.json.gz";
+    root_path = "/data/github_sample_daily/2011-10-15.json.gz";
 
 #ifdef MACOS
     root_path = "/Users/leonhards/Downloads/github_sample/*.json.gz";

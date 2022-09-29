@@ -125,7 +125,68 @@ namespace tuplex {
             // get directly type field from parser -> item.
             // compare against hackyEVentName
             // -> return eq
-            return _env.i1Const(true); // keep all rows -> i.e. parse.
+
+            using namespace llvm;
+            auto &ctx = _env.getContext();
+
+            // get initial object
+            // => this is from parser
+            auto Fgetobj = getOrInsertFunction(_env.getModule().get(), "JsonParser_getObject", _env.i64Type(),
+                                               _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
+
+            auto obj_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr(), "row_object");
+            builder.CreateCall(Fgetobj, {parser, obj_var});
+
+            auto obj = builder.CreateLoad(obj_var);
+            auto key = _env.strConst(builder, "type");
+
+            // now get type and check!
+            // decode using string
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getStringAndSize", _env.i64Type(), _env.i8ptrType(),
+                                         _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0), _env.i64ptrType());
+            auto str_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr(), "s");
+            auto str_size_var = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "s_size");
+            llvm::Value* rc = builder.CreateCall(F, {obj, key, str_var, str_size_var});
+            SerializableValue v;
+            v.val = builder.CreateLoad(str_var);
+            v.size = builder.CreateLoad(str_size_var);
+            v.is_null = _env.i1Const(false);
+
+
+            // rc ok?
+            BasicBlock *bItemFound = BasicBlock::Create(ctx, "item_found", builder.GetInsertBlock()->getParent());
+            BasicBlock *bItemNotFound = BasicBlock::Create(ctx, "item_not_found", builder.GetInsertBlock()->getParent());
+            BasicBlock *bContinue = BasicBlock::Create(ctx, "continue", builder.GetInsertBlock()->getParent());
+            auto cond_item_found = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            // free obj_var...
+            json_freeObject(_env, builder, builder.CreateLoad(obj_var));
+#ifndef NDEBUG
+            builder.CreateStore(_env.i8nullptr(), obj_var);
+#endif
+
+            builder.CreateCondBr(cond_item_found, bItemFound, bItemNotFound);
+
+            auto check_var = _env.CreateFirstBlockAlloca(builder, _env.i1Type());
+
+            {
+                // perform check
+                builder.SetInsertPoint(bItemFound);
+
+                auto str_identical = _env.fixedSizeStringCompare(builder, v.val, hackyEventName);
+                builder.CreateStore(str_identical, check_var);
+                builder.CreateBr(bContinue);
+            }
+
+            {
+                // item not found, i.e. error -> continue normal chain..
+                builder.SetInsertPoint(bItemNotFound);
+                builder.CreateStore(_env.i1Const(false), check_var);
+                builder.CreateBr(bbFailure);
+            }
+
+            builder.SetInsertPoint(bContinue);
+            // _env.printValue(builder, builder.CreateLoad(check_var), "check passed: ");
+            return builder.CreateLoad(check_var); // keep all rows -> i.e. parse.
         }
 
         void TuplexMatchBuilder::generateParseLoop(llvm::IRBuilder<> &builder,
@@ -421,7 +482,7 @@ namespace tuplex {
             _rowNumberVar = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "row_no");
 
              // dummy parse, simply print type and value with type checking.
-             generateParseLoop(builder, m["buf"], m["buf_size"], hackyPromoteFilter, hackyEventName);
+             generateParseLoop(builder, m["buf"], m["buf_size"], hackyPromoteEventFilter, hackyEventName);
 
             // i.e. parse first as normal row -> fail, try to parse as general row -> fail, fallback.
 

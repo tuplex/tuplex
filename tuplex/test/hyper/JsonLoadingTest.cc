@@ -515,7 +515,8 @@ namespace tuplex {
 
     MatchResult runMatchCodegen(const python::Type& normal_row_type,
                                                        const python::Type& general_row_type,
-                                                       const uint8_t* buf, size_t buf_size) {
+                                                       const uint8_t* buf, size_t buf_size,
+                                                       bool useEventFilter=false, const std::string& eventName="") {
         using namespace tuplex;
         using namespace std;
 
@@ -524,7 +525,7 @@ namespace tuplex {
         auto parseFuncName = "parseJSONMatchCodegen";
 
         codegen::TuplexMatchBuilder jtb(env, normal_row_type, general_row_type, parseFuncName);
-        jtb.build();
+        jtb.build(useEventFilter, eventName);
         auto ir_code = codegen::moduleToString(*env.getModule());
         // std::cout << "generated code:\n" << core::withLineNumbers(ir_code) << std::endl;
 
@@ -966,6 +967,7 @@ TEST_F(HyperTest, LoadAllFiles) {
 
 #ifdef MACOS
     root_path = "/Users/leonhards/Downloads/github_sample/*.json.gz";
+    root_path = "/Users/leonhards/Downloads/github_sample/2011-11-26-13.json.gz";
 #endif
 
     auto sample_size = 2 * 1024 * 1024ul;// 8MB ////256 * 1024ul; // 256kb
@@ -1083,7 +1085,9 @@ TEST_F(HyperTest, LoadAllFiles) {
             // parse and check
             auto m = runMatchCodegen(normal_case_type,
                                      general_case_type,
-                                      reinterpret_cast<const uint8_t*>(buf), buf_size);
+                                      reinterpret_cast<const uint8_t*>(buf), buf_size,
+                                      filter_sample_after_event,
+                                      event_name);
 
             auto j = m.to_json();
             j["mode"] = "hyper";
@@ -1139,6 +1143,9 @@ TEST_F(HyperTest, LoadAllFiles) {
         auto normal_case_max_type = maximizeTypeCoverNew(global_type_counts, conf_nc_threshold, true,
                                                       TypeUnificationPolicy::defaultPolicy());
 
+        if(general_case_max_type.first == python::Type::UNKNOWN || normal_case_max_type.first == python::Type::UNKNOWN)
+            throw std::runtime_error("unknown type found");
+
         auto global_normal_case_type = normal_case_max_type.first.parameters().front();
         auto global_general_case_type = general_case_max_type.first.parameters().front();
         std::cout << "global normal  case:  " << global_normal_case_type.desc() << std::endl;
@@ -1167,7 +1174,10 @@ TEST_F(HyperTest, LoadAllFiles) {
                 auto buf_size = decompressed_data.size();
 
                 // parse and check
-                auto m = runMatchCodegen(global_normal_case_type, global_general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
+                auto m = runMatchCodegen(global_normal_case_type, global_general_case_type,
+                                         reinterpret_cast<const uint8_t*>(buf), buf_size,
+                                         filter_sample_after_event,
+                                         event_name);
 
                 auto j = m.to_json();
                 j["mode"] = "global";

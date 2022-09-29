@@ -961,6 +961,8 @@ TEST_F(HyperTest, LoadAllFiles) {
     // daily sample
     root_path = "/data/github_sample_daily/*.json.gz";
 
+    root_path = "/data/github_sample_daily/2011-10-15.json.gz";
+
 #ifdef MACOS
     root_path = "/Users/leonhards/Downloads/github_sample/*.json.gz";
 #endif
@@ -1069,7 +1071,7 @@ TEST_F(HyperTest, LoadAllFiles) {
         } catch (std::exception& e) {
             logger.error("path " + path + " failed processing with: " + e.what());
             bad_paths.push_back(path);
-            break;
+            continue;
         }
     }
 
@@ -1077,6 +1079,7 @@ TEST_F(HyperTest, LoadAllFiles) {
         for(const auto& path : bad_paths) {
             logger.error("failed to process: " + path);
         }
+        return;
     }
 
     // ----------------------------------------------------------------------------------------------------------------
@@ -1295,8 +1298,10 @@ TEST_F(HyperTest, BasicStructLoad) {
      path = "test.json";
 
      // this here is a simple example of a list decode
-     auto content = "{\"column1\": [[0, 1, null], [0, 1, null]]}\n"
-                    "{\"column1\": [[null], []]}\n";
+//     auto content = "{\"column1\": [[0, 1, null], [0, 1, null]]}\n"
+//                    "{\"column1\": [[null], []]}\n";
+    auto content = "{\"column1\": [[\"test\", null], [null, \"hello\"], []]}\n"
+                   "{\"column1\": [[]]}\n";
      stringToFile(path, content);
 
     // now, regular routine...

@@ -74,10 +74,10 @@ namespace tuplex {
                 builder.CreateStore(env.i64Const(0), idx_size);
 
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
-                builder.CreateStore(env.i8nullptr(), idx_values);
+                builder.CreateStore(env.nullConstant(env.i8ptrType()->getPointerTo()), idx_values);
 
                 auto idx_sizes = CreateStructGEP(builder, list_ptr, 3);
-                builder.CreateStore(env.i8nullptr(), idx_sizes);
+                builder.CreateStore(env.nullConstant(env.i64ptrType()), idx_sizes);
 
                 if(elements_optional) {
                     auto idx_opt_values = CreateStructGEP(builder, list_ptr, 4);
@@ -114,7 +114,6 @@ namespace tuplex {
                 builder.CreateStore(env.i64Const(0), idx_size);
 
                 auto llvm_element_type = env.getOrCreateListType(elementType);
-
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
                 builder.CreateStore(env.nullConstant(llvm_element_type->getPointerTo()), idx_values);
 
@@ -155,7 +154,10 @@ namespace tuplex {
             auto idx_values = CreateStructGEP(builder, list_ptr, struct_index);
             assert(idx_values && idx_values->getType()->isPointerTy());
 
-            llvm::Type* llvm_element_type = idx_values->getType()->getPointerElementType()->getPointerElementType();
+            auto struct_type = list_ptr->getType()->getPointerElementType();
+            assert(struct_type->isStructTy());
+            assert(struct_index < struct_type->getStructNumElements());
+            llvm::Type* llvm_element_type = struct_type->getStructElementType(struct_index)->getPointerElementType();
 
             const auto& DL = env.getModule()->getDataLayout();
             // debug

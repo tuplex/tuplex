@@ -951,19 +951,320 @@ TEST_F(HyperTest, LargeFileParse) {
     std::cout<<"parsed "<<pluralize(m.totalRows, "row")<<std::endl;
 }
 
+namespace tuplex {
+
+    struct ExperimentSetting {
+        std::string result_path;
+        std::string input_pattern;
+        size_t sample_size;
+        bool filter_for_event;
+        std::string event_name;
+    };
+
+    void runExperiment(const ExperimentSetting& setting) {
+        using namespace tuplex;
+        using namespace std;
+
+        auto& logger = Logger::instance().logger("experiment");
+
+        auto root_path = setting.input_pattern;
+        bool perfect_sample = false;//true; // if true, sample the whole file (slow, but perfect representation)
+
+
+        auto nc_th = 0.9;
+        // general case version
+        auto conf_general_case_type_policy = TypeUnificationPolicy::defaultPolicy();
+        conf_general_case_type_policy.unifyMissingDictKeys = true;
+        conf_general_case_type_policy.allowUnifyWithPyObject = false; // <-- do NOT allow this. => can't compile... --> this could be helped with DelayedParse[...]
+
+        double conf_nc_threshold = 0.9;
+
+
+        auto paths = glob(root_path);
+
+        logger.info("Found " + pluralize(paths.size(), "path") + " under " + root_path);
+        std::vector<std::string> bad_paths;
+
+        std::stringstream ss;
+        std::vector<nlohmann::json> results;
+
+        std::vector<std::pair<python::Type, size_t>> global_type_counts; // holds type counts across ALL files.
+        std::vector<Row> global_sample;
+
+        // ----------------------------------------------------------------------------------------------------------------
+        // hyperspecialized processing
+        // now perform detection & parse for EACH file.
+        size_t total_actual_sample_size = 0;
+        std::reverse(paths.begin(), paths.end());
+        for(const auto& path : paths) {
+            logger.info("Processing " + path);
+
+            try {
+                // now, regular routine...
+                auto raw_data = fileToString(path);
+
+                const char *pointer = raw_data.data();
+                std::size_t size = raw_data.size();
+
+                // gzip::is_compressed(pointer, size); // can use this to check for gzip file...
+                std::string decompressed_data = strEndsWith(path, ".gz") ? gzip::decompress(pointer, size) : raw_data;
+
+
+                // parse code starts here...
+                auto buf = decompressed_data.data();
+                auto buf_size = decompressed_data.size();
+
+//                // sample full file
+//                if(perfect_sample)
+//                    sample_size = buf_size;
+
+                std::vector<Row> rows;
+                // detect types here:
+                auto actual_sample_size = std::min(buf_size, setting.sample_size);
+                total_actual_sample_size += actual_sample_size;
+
+                // filtering sample?
+                if(setting.filter_for_event) {
+                    // this is a hack: Simply load data and then filter directly after sample...
+                    auto sample = new char[actual_sample_size + 1];
+                    memcpy(sample, buf, actual_sample_size);
+                    sample[actual_sample_size] = '\0';
+
+                    // parse the data using nlohmann (ignore faulty rows)
+                    auto lines = splitToLines(sample);
+                    logger.info("found " + pluralize(lines.size(), "json line") + " to perform filter promotion on");
+                    std::stringstream ss;
+                    unsigned rows_kept = 0;
+                    for(const auto& line : lines) {
+                        try {
+                            auto j = nlohmann::json::parse(line);
+                            if(j["type"] == setting.event_name) {
+                                ss<<line<<"\n";
+                                rows_kept++;
+                            }
+
+                        } catch(...) {
+                            // ignore
+
+                        }
+                    }
+
+                    // new sample done!
+                    // => make sure there are rows in there!
+                    if(0 == rows_kept) {
+                        logger.info("found no lines avail to filter promo, consider changing sample size. Defaulting to original sample.");
+                        ss<<sample;
+                    }
+                    logger.info("after filter promotion, sample has now " + std::to_string(rows_kept) + "/" + pluralize(lines.size(), "row"));
+                    delete [] sample;
+                    rows = parseRowsFromJSON(ss.str(), nullptr, false);
+                    logger.info("Parsed " + pluralize(rows.size(), "row") + " from sample");
+
+                    if(0 != rows_kept) {
+                        // add only to global sample if pushdown was successful...
+                        for(auto row : rows)
+                            global_sample.push_back(row);
+                    }
+
+                } else {
+                    rows = parseRowsFromJSON(buf, actual_sample_size, nullptr, false);
+                    // add all to global sample
+                    for(auto row : rows)
+                        global_sample.push_back(row);
+                }
+
+                std::vector<std::pair<python::Type, size_t>> type_counts = counts_from_rows(rows);
+                global_type_counts = combine_type_counts(global_type_counts, type_counts);
+                auto general_case_max_type = maximizeTypeCoverNew(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
+                auto normal_case_max_type = maximizeTypeCoverNew(type_counts, conf_nc_threshold, true, TypeUnificationPolicy::defaultPolicy());
+
+                auto normal_case_type = normal_case_max_type.first.parameters().front();
+                auto general_case_type = general_case_max_type.first.parameters().front();
+                std::cout << "normal  case:  " << normal_case_type.desc() << std::endl;
+                std::cout << "general case:  " << general_case_type.desc() << std::endl;
+
+                // parse and check
+                auto m = runMatchCodegen(normal_case_type,
+                                         general_case_type,
+                                         reinterpret_cast<const uint8_t*>(buf), buf_size,
+                                         setting.filter_for_event,
+                                         setting.event_name);
+
+                auto j = m.to_json();
+                j["mode"] = "hyper";
+                j["path"] = path;
+                j["normal_case"] = normal_case_type.desc();
+                j["general_case"] = general_case_type.desc();
+                j["normal_case_field_count"] = number_of_fields(normal_case_type);
+                j["general_case_field_count"] = number_of_fields(general_case_type);
+                j["normal_json_paths"] = json_paths_to_json_array(normal_case_type);
+                j["general_json_paths"] = json_paths_to_json_array(general_case_type);
+                j["buf_size_compressed"] = raw_data.size();
+                j["buf_size_uncompressed"] = decompressed_data.size();
+                j["sample_size"] = actual_sample_size;
+                j["perfect_sample"] = perfect_sample;
+                j["sample_row_count"] = rows.size();
+                j["filter_promotion"] =  setting.filter_for_event;
+                j["event_to_filter_for"] = setting.event_name;
+
+                ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!
+
+                // add type counts (good idea for later investigation on what could be done to improve sampling => maybe separate experiment?
+                auto j_arr = nlohmann::json::array();
+                for(auto p : type_counts) {
+                    auto j_obj = nlohmann::json::object();
+                    j_obj["type"] = p.first.desc();
+                    j_obj["count"] = p.second;
+                    j_arr.push_back(j_obj);
+                }
+                j["type_counts"] = j_arr;
+
+                // output result
+                results.push_back(j);
+
+            } catch (std::exception& e) {
+                logger.error("path " + path + " failed processing with: " + e.what());
+                bad_paths.push_back(path);
+                continue;
+            }
+        }
+
+        if(!bad_paths.empty()) {
+            for(const auto& path : bad_paths) {
+                logger.error("failed to process: " + path);
+            }
+            return;
+        }
+
+        // ----------------------------------------------------------------------------------------------------------------
+        // global specialized processing
+        // now perform global optimization and parse!
+        {
+
+            // new: proper global type counts...
+            assert(global_sample.size() > 0);
+            std::cout<<"global sample has "<<pluralize(global_sample.size(), "row")<<std::endl;
+            global_type_counts = counts_from_rows(global_sample);
+
+            auto general_case_max_type = maximizeTypeCoverNew(global_type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
+            auto normal_case_max_type = maximizeTypeCoverNew(global_type_counts, conf_nc_threshold, true,
+                                                             TypeUnificationPolicy::defaultPolicy());
+
+            if(general_case_max_type.first == python::Type::UNKNOWN || normal_case_max_type.first == python::Type::UNKNOWN)
+                throw std::runtime_error("unknown type found");
+
+            auto global_normal_case_type = normal_case_max_type.first.parameters().front();
+            auto global_general_case_type = general_case_max_type.first.parameters().front();
+            std::cout << "global normal  case:  " << global_normal_case_type.desc() << std::endl;
+            std::cout << "global general case:  " << global_general_case_type.desc() << std::endl;
+
+            size_t global_actual_sample_size = total_actual_sample_size;
+            size_t global_sample_count = 0;
+            for(auto kv : global_type_counts)
+                global_sample_count += kv.second;
+
+            for(const auto& path : paths) {
+                logger.info("Processing " + path);
+
+                try {
+                    // now, regular routine...
+                    auto raw_data = fileToString(path);
+
+                    const char *pointer = raw_data.data();
+                    std::size_t size = raw_data.size();
+
+                    // gzip::is_compressed(pointer, size); // can use this to check for gzip file...
+                    std::string decompressed_data = strEndsWith(path, ".gz") ? gzip::decompress(pointer, size) : raw_data;
+
+                    // parse code starts here...
+                    auto buf = decompressed_data.data();
+                    auto buf_size = decompressed_data.size();
+
+                    // parse and check
+                    auto m = runMatchCodegen(global_normal_case_type, global_general_case_type,
+                                             reinterpret_cast<const uint8_t*>(buf), buf_size,
+                                             setting.filter_for_event,
+                                             setting.event_name);
+
+                    auto j = m.to_json();
+                    j["mode"] = "global";
+                    j["path"] = path;
+                    j["normal_case"] = global_normal_case_type.desc();
+                    j["general_case"] = global_general_case_type.desc();
+                    j["normal_case_field_count"] = number_of_fields(global_normal_case_type);
+                    j["general_case_field_count"] = number_of_fields(global_general_case_type);
+                    j["buf_size_compressed"] = raw_data.size();
+                    j["buf_size_uncompressed"] = decompressed_data.size();
+                    j["sample_size"] = global_actual_sample_size;
+                    j["perfect_sample"] = perfect_sample;
+                    j["sample_row_count"] = global_sample_count;
+
+                    ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!
+
+                    // add global type counts (good idea for later investigation on what could be done to improve sampling => maybe separate experiment?
+                    auto j_arr = nlohmann::json::array();
+                    for(auto p : global_type_counts) {
+                        auto j_obj = nlohmann::json::object();
+                        j_obj["type"] = p.first.desc();
+                        j_obj["count"] = p.second;
+                        j_arr.push_back(j_obj);
+                    }
+                    j["type_counts"] = j_arr;
+
+                    // output result
+                    results.push_back(j);
+                } catch (std::exception& e) {
+                    logger.error("path " + path + " failed processing with: " + e.what());
+                    bad_paths.push_back(path);
+                    break;
+                }
+            }
+        }
+
+        std::cout<<ss.str()<<std::endl;
+        {
+            std::stringstream out;
+            for(auto j : results)
+                out<<j.dump()<<endl;
+            stringToFile(setting.result_path, out.str());
+        }
+
+        // perform some quick analysis (summing up values) to print out.
+        MatchResult m_hyper; memset(&m_hyper, 0, sizeof(m_hyper));
+        MatchResult m_global; memset(&m_global, 0, sizeof(m_global));
+        for(auto j : results) {
+            if(j["mode"].get<std::string>() == "global") {
+                m_global.normalRows += j["normal_rows"].get<size_t>();
+                m_global.generalRows += j["general_rows"].get<size_t>();
+                m_global.fallbackRows += j["fallback_rows"].get<size_t>();
+            } else {
+                m_hyper.normalRows += j["normal_rows"].get<size_t>();
+                m_hyper.generalRows += j["general_rows"].get<size_t>();
+                m_hyper.fallbackRows += j["fallback_rows"].get<size_t>();
+            }
+        }
+
+        std::cout<<"overall result ("<<pluralize(results.size(), "file")<<"): "<<std::endl;
+        std::cout<<"hyper:\n-------"<<std::endl;
+        std::cout<<"  "<<m_hyper.to_json().dump()<<std::endl;
+        std::cout<<"global:\n-------"<<std::endl;
+        std::cout<<"  "<<m_global.to_json().dump()<<std::endl;
+    }
+}
+
+
 TEST_F(HyperTest, LoadAllFiles) {
     using namespace tuplex;
     using namespace std;
 
     Logger::instance().init();
-    auto& logger = Logger::instance().logger("experiment");
 
     // settings are here
     string root_path = "/data/github_sample/*.json.gz";
     // daily sample
     root_path = "/data/github_sample_daily/*.json.gz";
 
-     root_path = "/data/github_sample_daily/2011-10-15.json.gz";
+    root_path = "/data/github_sample_daily/2011-10-15.json.gz";
 
 #ifdef MACOS
     root_path = "/Users/leonhards/Downloads/github_sample/*.json.gz";
@@ -978,288 +1279,38 @@ TEST_F(HyperTest, LoadAllFiles) {
 //    std::string event_name = "PushEvent"; // <-- most dominant, but specialization only within the lower years possible...
     std::string event_name = "ForkEvent"; // <-- more edits there...
 
-    auto nc_th = 0.9;
-    // general case version
-    auto conf_general_case_type_policy = TypeUnificationPolicy::defaultPolicy();
-    conf_general_case_type_policy.unifyMissingDictKeys = true;
-    conf_general_case_type_policy.allowUnifyWithPyObject = false; // <-- do NOT allow this. => can't compile... --> this could be helped with DelayedParse[...]
 
-    double conf_nc_threshold = 0.9;
+    // Experimental settings
+    std::vector<ExperimentSetting> settings;
 
+    ExperimentSetting s1;
+    s1.input_pattern = root_path;
+    s1.result_path = "experiment_result_fullschema.json";
+    s1.sample_size = sample_size;
+    s1.filter_for_event = false;
+    s1.event_name = "";
+    settings.push_back(s1);
 
-    auto paths = glob(root_path);
+    ExperimentSetting s2;
+    s2.input_pattern = root_path;
+    s2.result_path = "experiment_result_pushevent_filterpromo.json";
+    s2.sample_size = sample_size;
+    s2.filter_for_event = true;
+    s2.event_name = "PushEvent";
+    settings.push_back(s2);
 
-//    // debug
-//    paths = std::vector<std::string>(paths.begin(), paths.begin() + 1);
-
-    logger.info("Found " + pluralize(paths.size(), "path") + " under " + root_path);
-
-    std::vector<std::string> bad_paths;
-
-    std::stringstream ss;
-    std::vector<nlohmann::json> results;
-
-    std::vector<std::pair<python::Type, size_t>> global_type_counts; // holds type counts across ALL files.
-    std::vector<Row> global_sample;
-
-    // ----------------------------------------------------------------------------------------------------------------
-    // hyperspecialized processing
-    // now perform detection & parse for EACH file.
-    size_t total_actual_sample_size = 0;
-    std::reverse(paths.begin(), paths.end());
-    for(const auto& path : paths) {
-        logger.info("Processing " + path);
-
-        try {
-            // now, regular routine...
-            auto raw_data = fileToString(path);
-
-            const char *pointer = raw_data.data();
-            std::size_t size = raw_data.size();
-
-            // gzip::is_compressed(pointer, size); // can use this to check for gzip file...
-            std::string decompressed_data = strEndsWith(path, ".gz") ? gzip::decompress(pointer, size) : raw_data;
+    ExperimentSetting s3;
+    s3.input_pattern = root_path;
+    s3.result_path = "experiment_result_forkevent_filterpromo.json";
+    s3.sample_size = sample_size;
+    s3.filter_for_event = true;
+    s3.event_name = "ForkEvent";
+    settings.push_back(s3);
 
 
-            // parse code starts here...
-            auto buf = decompressed_data.data();
-            auto buf_size = decompressed_data.size();
-
-            // sample full file
-            if(perfect_sample)
-                sample_size = buf_size;
-
-            std::vector<Row> rows;
-            // detect types here:
-            auto actual_sample_size = std::min(buf_size, sample_size);
-            total_actual_sample_size += actual_sample_size;
-
-            // filtering sample?
-            if(filter_sample_after_event) {
-                // this is a hack: Simply load data and then filter directly after sample...
-                auto sample = new char[actual_sample_size + 1];
-                memcpy(sample, buf, actual_sample_size);
-                sample[actual_sample_size] = '\0';
-
-                // parse the data using nlohmann (ignore faulty rows)
-                auto lines = splitToLines(sample);
-                logger.info("found " + pluralize(lines.size(), "json line") + " to perform filter promotion on");
-                std::stringstream ss;
-                unsigned rows_kept = 0;
-                for(const auto& line : lines) {
-                    try {
-                        auto j = nlohmann::json::parse(line);
-                        if(j["type"] == event_name) {
-                            ss<<line<<"\n";
-                            rows_kept++;
-                        }
-
-                    } catch(...) {
-                        // ignore
-
-                    }
-                }
-
-                // new sample done!
-                // => make sure there are rows in there!
-                if(0 == rows_kept) {
-                    logger.info("found no lines avail to filter promo, consider changing sample size. Defaulting to original sample.");
-                    ss<<sample;
-                }
-                logger.info("after filter promotion, sample has now " + std::to_string(rows_kept) + "/" + pluralize(lines.size(), "row"));
-                delete [] sample;
-                rows = parseRowsFromJSON(ss.str(), nullptr, false);
-                logger.info("Parsed " + pluralize(rows.size(), "row") + " from sample");
-
-                if(0 != rows_kept) {
-                    // add only to global sample if pushdown was successful...
-                    for(auto row : rows)
-                        global_sample.push_back(row);
-                }
-
-            } else {
-                rows = parseRowsFromJSON(buf, actual_sample_size, nullptr, false);
-                // add all to global sample
-                for(auto row : rows)
-                    global_sample.push_back(row);
-            }
-
-            std::vector<std::pair<python::Type, size_t>> type_counts = counts_from_rows(rows);
-            global_type_counts = combine_type_counts(global_type_counts, type_counts);
-            auto general_case_max_type = maximizeTypeCoverNew(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
-            auto normal_case_max_type = maximizeTypeCoverNew(type_counts, conf_nc_threshold, true, TypeUnificationPolicy::defaultPolicy());
-
-            auto normal_case_type = normal_case_max_type.first.parameters().front();
-            auto general_case_type = general_case_max_type.first.parameters().front();
-            std::cout << "normal  case:  " << normal_case_type.desc() << std::endl;
-            std::cout << "general case:  " << general_case_type.desc() << std::endl;
-
-            // parse and check
-            auto m = runMatchCodegen(normal_case_type,
-                                     general_case_type,
-                                      reinterpret_cast<const uint8_t*>(buf), buf_size,
-                                      filter_sample_after_event,
-                                      event_name);
-
-            auto j = m.to_json();
-            j["mode"] = "hyper";
-            j["path"] = path;
-            j["normal_case"] = normal_case_type.desc();
-            j["general_case"] = general_case_type.desc();
-            j["normal_case_field_count"] = number_of_fields(normal_case_type);
-            j["general_case_field_count"] = number_of_fields(general_case_type);
-            j["normal_json_paths"] = json_paths_to_json_array(normal_case_type);
-            j["general_json_paths"] = json_paths_to_json_array(general_case_type);
-            j["buf_size_compressed"] = raw_data.size();
-            j["buf_size_uncompressed"] = decompressed_data.size();
-            j["sample_size"] = actual_sample_size;
-            j["perfect_sample"] = perfect_sample;
-            j["sample_row_count"] = rows.size();
-            j["filter_promotion"] = filter_sample_after_event;
-            j["event_to_filter_for"] = event_name;
-
-            ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!
-
-            // add type counts (good idea for later investigation on what could be done to improve sampling => maybe separate experiment?
-            auto j_arr = nlohmann::json::array();
-            for(auto p : type_counts) {
-                auto j_obj = nlohmann::json::object();
-                j_obj["type"] = p.first.desc();
-                j_obj["count"] = p.second;
-                j_arr.push_back(j_obj);
-            }
-            j["type_counts"] = j_arr;
-
-            // output result
-            results.push_back(j);
-
-        } catch (std::exception& e) {
-            logger.error("path " + path + " failed processing with: " + e.what());
-            bad_paths.push_back(path);
-            continue;
-        }
-    }
-
-    if(!bad_paths.empty()) {
-        for(const auto& path : bad_paths) {
-            logger.error("failed to process: " + path);
-        }
-        return;
-    }
-
-    // ----------------------------------------------------------------------------------------------------------------
-    // global specialized processing
-    // now perform global optimization and parse!
-    {
-
-        // new: proper global type counts...
-        assert(global_sample.size() > 0);
-        std::cout<<"global sample has "<<pluralize(global_sample.size(), "row")<<std::endl;
-        global_type_counts = counts_from_rows(global_sample);
-
-        auto general_case_max_type = maximizeTypeCoverNew(global_type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
-        auto normal_case_max_type = maximizeTypeCoverNew(global_type_counts, conf_nc_threshold, true,
-                                                      TypeUnificationPolicy::defaultPolicy());
-
-        if(general_case_max_type.first == python::Type::UNKNOWN || normal_case_max_type.first == python::Type::UNKNOWN)
-            throw std::runtime_error("unknown type found");
-
-        auto global_normal_case_type = normal_case_max_type.first.parameters().front();
-        auto global_general_case_type = general_case_max_type.first.parameters().front();
-        std::cout << "global normal  case:  " << global_normal_case_type.desc() << std::endl;
-        std::cout << "global general case:  " << global_general_case_type.desc() << std::endl;
-
-        size_t global_actual_sample_size = total_actual_sample_size;
-        size_t global_sample_count = 0;
-        for(auto kv : global_type_counts)
-            global_sample_count += kv.second;
-
-        for(const auto& path : paths) {
-            logger.info("Processing " + path);
-
-            try {
-                // now, regular routine...
-                auto raw_data = fileToString(path);
-
-                const char *pointer = raw_data.data();
-                std::size_t size = raw_data.size();
-
-                // gzip::is_compressed(pointer, size); // can use this to check for gzip file...
-                std::string decompressed_data = strEndsWith(path, ".gz") ? gzip::decompress(pointer, size) : raw_data;
-
-                // parse code starts here...
-                auto buf = decompressed_data.data();
-                auto buf_size = decompressed_data.size();
-
-                // parse and check
-                auto m = runMatchCodegen(global_normal_case_type, global_general_case_type,
-                                         reinterpret_cast<const uint8_t*>(buf), buf_size,
-                                         filter_sample_after_event,
-                                         event_name);
-
-                auto j = m.to_json();
-                j["mode"] = "global";
-                j["path"] = path;
-                j["normal_case"] = global_normal_case_type.desc();
-                j["general_case"] = global_general_case_type.desc();
-                j["normal_case_field_count"] = number_of_fields(global_normal_case_type);
-                j["general_case_field_count"] = number_of_fields(global_general_case_type);
-                j["buf_size_compressed"] = raw_data.size();
-                j["buf_size_uncompressed"] = decompressed_data.size();
-                j["sample_size"] = global_actual_sample_size;
-                j["perfect_sample"] = perfect_sample;
-                j["sample_row_count"] = global_sample_count;
-
-                ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!
-
-                // add global type counts (good idea for later investigation on what could be done to improve sampling => maybe separate experiment?
-                auto j_arr = nlohmann::json::array();
-                for(auto p : global_type_counts) {
-                    auto j_obj = nlohmann::json::object();
-                    j_obj["type"] = p.first.desc();
-                    j_obj["count"] = p.second;
-                    j_arr.push_back(j_obj);
-                }
-                j["type_counts"] = j_arr;
-
-                // output result
-                results.push_back(j);
-            } catch (std::exception& e) {
-                logger.error("path " + path + " failed processing with: " + e.what());
-                bad_paths.push_back(path);
-                break;
-            }
-        }
-    }
-
-    std::cout<<ss.str()<<std::endl;
-    {
-        std::stringstream out;
-        for(auto j : results)
-            out<<j.dump()<<endl;
-        stringToFile("experiment_result.json", out.str());
-    }
-
-    // perform some quick analysis (summing up values) to print out.
-    MatchResult m_hyper; memset(&m_hyper, 0, sizeof(m_hyper));
-    MatchResult m_global; memset(&m_global, 0, sizeof(m_global));
-    for(auto j : results) {
-        if(j["mode"].get<std::string>() == "global") {
-            m_global.normalRows += j["normal_rows"].get<size_t>();
-            m_global.generalRows += j["general_rows"].get<size_t>();
-            m_global.fallbackRows += j["fallback_rows"].get<size_t>();
-        } else {
-            m_hyper.normalRows += j["normal_rows"].get<size_t>();
-            m_hyper.generalRows += j["general_rows"].get<size_t>();
-            m_hyper.fallbackRows += j["fallback_rows"].get<size_t>();
-        }
-    }
-
-    std::cout<<"overall result ("<<pluralize(results.size(), "file")<<"): "<<std::endl;
-    std::cout<<"hyper:\n-------"<<std::endl;
-    std::cout<<"  "<<m_hyper.to_json().dump()<<std::endl;
-    std::cout<<"global:\n-------"<<std::endl;
-    std::cout<<"  "<<m_global.to_json().dump()<<std::endl;
+    // RUN
+    for(const auto& s : settings)
+        runExperiment(s);
 }
 
 TEST_F(HyperTest, TypeMaximization) {

@@ -967,7 +967,8 @@ TEST_F(HyperTest, LoadAllFiles) {
 
 #ifdef MACOS
     root_path = "/Users/leonhards/Downloads/github_sample/*.json.gz";
-    root_path = "/Users/leonhards/Downloads/github_sample/2011-11-26-13.json.gz";
+//    root_path = "/Users/leonhards/Downloads/github_sample/2011-11-26-13.json.gz";
+    root_path = "/Users/leonhards/Downloads/github_daily_sample/*.json.gz";
 #endif
 
     auto sample_size = 2 * 1024 * 1024ul;// 8MB ////256 * 1024ul; // 256kb
@@ -1040,7 +1041,7 @@ TEST_F(HyperTest, LoadAllFiles) {
 
                 // parse the data using nlohmann (ignore faulty rows)
                 auto lines = splitToLines(sample);
-                logger.info("found " + pluralize(lines.size(), "json line") + "to perform filter promotion on");
+                logger.info("found " + pluralize(lines.size(), "json line") + " to perform filter promotion on");
                 std::stringstream ss;
                 unsigned rows_kept = 0;
                 for(const auto& line : lines) {

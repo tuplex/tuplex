@@ -119,8 +119,20 @@ namespace tuplex {
             builder.CreateCall(F, j);
         }
 
-        void TuplexMatchBuilder::generateParseLoop(llvm::IRBuilder<> &builder, llvm::Value *bufPtr,
-                                                      llvm::Value *bufSize) {
+        llvm::Value *TuplexMatchBuilder::emitHackyFilterPromo(llvm::IRBuilder<> &builder, llvm::Value *parser,
+                                                              const std::string &hackyEventName,
+                                                              llvm::BasicBlock *bbFailure) {
+            // get directly type field from parser -> item.
+            // compare against hackyEVentName
+            // -> return eq
+            return _env.i1Const(true); // keep all rows -> i.e. parse.
+        }
+
+        void TuplexMatchBuilder::generateParseLoop(llvm::IRBuilder<> &builder,
+                                                   llvm::Value *bufPtr,
+                                                   llvm::Value *bufSize,
+                                                   bool hackyPromoteEventFilter,
+                                                   const std::string& hackyEventName) {
             using namespace llvm;
             auto &ctx = _env.getContext();
 
@@ -184,7 +196,25 @@ namespace tuplex {
             BasicBlock* bbNormalCaseSuccess = BasicBlock::Create(_env.getContext(), "normal_row_found", builder.GetInsertBlock()->getParent());
             BasicBlock* bbGeneralCaseSuccess = BasicBlock::Create(_env.getContext(), "general_row_found", builder.GetInsertBlock()->getParent());
             BasicBlock* bbFallback = BasicBlock::Create(_env.getContext(), "fallback_row_found", builder.GetInsertBlock()->getParent());
-            // print out structure -> this is the parse
+
+            // filter promotion? -> happens here.
+            if(hackyPromoteEventFilter) {
+                BasicBlock* bbKeep = BasicBlock::Create(_env.getContext(), "keep_row_after_promo", builder.GetInsertBlock()->getParent());
+                BasicBlock* bbSkip = BasicBlock::Create(_env.getContext(), "skip_row_after_promo", builder.GetInsertBlock()->getParent());
+
+                auto keep_row = emitHackyFilterPromo(builder, parser, hackyEventName, bbKeep);
+                builder.CreateCondBr(keep_row, bbKeep, bbSkip);
+
+                // create skip part -> count as normal row.
+                builder.SetInsertPoint(bbSkip);
+                incVar(builder, _normalRowCountVar);
+                builder.CreateBr(_freeStart);
+
+                builder.SetInsertPoint(bbKeep);
+            }
+
+
+            // parse here as normal row
             auto normal_case_row = parseRowAsStructuredDict(builder, _normalCaseRowType, parser, bbParseAsGeneralCaseRow);
             builder.CreateBr(bbNormalCaseSuccess);
 
@@ -349,7 +379,8 @@ namespace tuplex {
             builder.SetInsertPoint(bDone);
         }
 
-        void TuplexMatchBuilder::build() {
+        void TuplexMatchBuilder::build(bool hackyPromoteEventFilter,
+                                       const std::string& hackyEventName) {
             using namespace llvm;
             auto &ctx = _env.getContext();
 
@@ -390,7 +421,7 @@ namespace tuplex {
             _rowNumberVar = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "row_no");
 
              // dummy parse, simply print type and value with type checking.
-             generateParseLoop(builder, m["buf"], m["buf_size"]);
+             generateParseLoop(builder, m["buf"], m["buf_size"], hackyPromoteFilter, hackyEventName);
 
             // i.e. parse first as normal row -> fail, try to parse as general row -> fail, fallback.
 

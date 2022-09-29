@@ -54,7 +54,8 @@ namespace tuplex {
                 _fallbackMemorySizeVar = nullptr;
             }
 
-            void build();
+            void build(bool hackyPromoteEventFilter=false,
+                       const std::string& hackyEventName="");
         private:
             LLVMEnvironment &_env;
             python::Type _normalCaseRowType;
@@ -78,7 +79,11 @@ namespace tuplex {
             llvm::BasicBlock *_freeEnd;
 
             // helper functions
-            void generateParseLoop(llvm::IRBuilder<> &builder, llvm::Value *bufPtr, llvm::Value *bufSize);
+            void generateParseLoop(llvm::IRBuilder<> &builder,
+                                   llvm::Value *bufPtr,
+                                   llvm::Value *bufSize,
+                                   bool hackyPromoteEventFilter,
+                                   const std::string& hackyEventName);
 
             llvm::Value *initJsonParser(llvm::IRBuilder<> &builder);
 
@@ -94,6 +99,7 @@ namespace tuplex {
 
             void moveToNextRow(llvm::IRBuilder<> &builder, llvm::Value *j);
 
+            llvm::Value* emitHackyFilterPromo(llvm::IRBuilder<>& builder, llvm::Value* parser, const std::string& hackyEventName, llvm::BasicBlock* bbFailure);
 
             llvm::BasicBlock *
             emitBadParseInputAndMoveToNextRow(llvm::IRBuilder<> &builder, llvm::Value *j, llvm::Value *condition);

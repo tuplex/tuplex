@@ -656,7 +656,7 @@ namespace tuplex {
             auto list_element_type = list_type.elementType();
             builder.SetInsertPoint(bbArrayFound);
             auto sub_array = builder.CreateLoad(item_var);
-            auto num_elements = arraySize(builder, array);
+            auto num_elements = arraySize(builder, sub_array);
 
             // debug print here number of elements...
             // _env.printValue(builder, num_elements, "found for type " + listType.desc() + " elements: ");

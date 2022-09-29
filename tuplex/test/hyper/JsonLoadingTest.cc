@@ -962,7 +962,7 @@ TEST_F(HyperTest, LoadAllFiles) {
     // daily sample
     root_path = "/data/github_sample_daily/*.json.gz";
 
-    // root_path = "/data/github_sample_daily/2011-10-15.json.gz";
+     root_path = "/data/github_sample_daily/2011-10-15.json.gz";
 
 #ifdef MACOS
     root_path = "/Users/leonhards/Downloads/github_sample/*.json.gz";
@@ -971,6 +971,8 @@ TEST_F(HyperTest, LoadAllFiles) {
     auto sample_size = 2 * 1024 * 1024ul;// 8MB ////256 * 1024ul; // 256kb
 //    auto sample_size = 256 * 1024ul; // 256kb
     bool perfect_sample = false;//true; // if true, sample the whole file (slow, but perfect representation)
+    bool filter_sample_after_event = true;
+    std::string event_name = "PushEvent";
     bool pushdown_pushevent = true;
     auto nc_th = 0.9;
     // general case version
@@ -1022,10 +1024,52 @@ TEST_F(HyperTest, LoadAllFiles) {
             if(perfect_sample)
                 sample_size = buf_size;
 
+            std::vector<Row> rows;
             // detect types here:
             auto actual_sample_size = std::min(buf_size, sample_size);
             total_actual_sample_size += actual_sample_size;
-            auto rows = parseRowsFromJSON(buf, actual_sample_size, nullptr, false);
+
+            // filtering sample?
+            if(filter_sample_after_event) {
+                // this is a hack: Simply load data and then filter directly after sample...
+                auto sample = new char[actual_sample_size + 1];
+                memcpy(sample, buf, actual_sample_size);
+                sample[actual_sample_size] = '\0';
+
+                // parse the data using nlohmann (ignore faulty rows)
+                auto lines = splitToLines(sample);
+                logger.info("found " + pluralize(lines.size(), "json line") + "to perform filter promotion on");
+                std::stringstream ss;
+                unsigned rows_kept = 0;
+                for(const auto& line : lines) {
+                    try {
+                        auto j = nlohmann::json::parse(line);
+                        if(j["type"] == event_name) {
+                            ss<<line<<"\n";
+                            rows_kept++;
+                        }
+
+                    } catch(...) {
+                        // ignore
+
+                    }
+                }
+
+                // new sample done!
+                // => make sure there are rows in there!
+                if(0 == rows_kept) {
+                    logger.info("found no lines avail to filter promo, consider changing sample size. Defaulting to original sample.");
+                    ss<<sample;
+                }
+                logger.info("after filter promotion, sample has now " + std::to_string(rows_kept) + "/" + pluralize(lines.size(), "row"));
+                delete [] sample;
+                rows = parseRowsFromJSON(ss.str(), nullptr, false);
+                logger.info("Parsed " + pluralize(rows.size(), "row") + " from sample");
+            } else {
+                rows = parseRowsFromJSON(buf, actual_sample_size, nullptr, false);
+            }
+
+
             std::vector<std::pair<python::Type, size_t>> type_counts = counts_from_rows(rows);
             global_type_counts = combine_type_counts(global_type_counts, type_counts);
             auto general_case_max_type = maximizeTypeCoverNew(type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
@@ -1037,7 +1081,9 @@ TEST_F(HyperTest, LoadAllFiles) {
             std::cout << "general case:  " << general_case_type.desc() << std::endl;
 
             // parse and check
-            auto m = runMatchCodegen(normal_case_type, general_case_type, reinterpret_cast<const uint8_t*>(buf), buf_size);
+            auto m = runMatchCodegen(normal_case_type,
+                                     general_case_type,
+                                      reinterpret_cast<const uint8_t*>(buf), buf_size);
 
             auto j = m.to_json();
             j["mode"] = "hyper";
@@ -1053,6 +1099,8 @@ TEST_F(HyperTest, LoadAllFiles) {
             j["sample_size"] = actual_sample_size;
             j["perfect_sample"] = perfect_sample;
             j["sample_row_count"] = rows.size();
+            j["filter_promotion"] = filter_sample_after_event;
+            j["event_to_filter_for"] = event_name;
 
             ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!
 

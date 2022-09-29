@@ -974,7 +974,7 @@ TEST_F(HyperTest, LoadAllFiles) {
     auto sample_size = 2 * 1024 * 1024ul;// 8MB ////256 * 1024ul; // 256kb
 //    auto sample_size = 256 * 1024ul; // 256kb
     bool perfect_sample = false;//true; // if true, sample the whole file (slow, but perfect representation)
-    bool filter_sample_after_event = false;//true;
+    bool filter_sample_after_event = true;
 //    std::string event_name = "PushEvent"; // <-- most dominant, but specialization only within the lower years possible...
     std::string event_name = "ForkEvent"; // <-- more edits there...
 
@@ -1000,6 +1000,7 @@ TEST_F(HyperTest, LoadAllFiles) {
     std::vector<nlohmann::json> results;
 
     std::vector<std::pair<python::Type, size_t>> global_type_counts; // holds type counts across ALL files.
+    std::vector<Row> global_sample;
 
     // ----------------------------------------------------------------------------------------------------------------
     // hyperspecialized processing
@@ -1069,10 +1070,19 @@ TEST_F(HyperTest, LoadAllFiles) {
                 delete [] sample;
                 rows = parseRowsFromJSON(ss.str(), nullptr, false);
                 logger.info("Parsed " + pluralize(rows.size(), "row") + " from sample");
+
+                if(0 != rows_kept) {
+                    // add only to global sample if pushdown was successful...
+                    for(auto row : rows)
+                        global_sample.push_back(row);
+                }
+
             } else {
                 rows = parseRowsFromJSON(buf, actual_sample_size, nullptr, false);
+                // add all to global sample
+                for(auto row : rows)
+                    global_sample.push_back(row);
             }
-
 
             std::vector<std::pair<python::Type, size_t>> type_counts = counts_from_rows(rows);
             global_type_counts = combine_type_counts(global_type_counts, type_counts);
@@ -1141,6 +1151,12 @@ TEST_F(HyperTest, LoadAllFiles) {
     // global specialized processing
     // now perform global optimization and parse!
     {
+
+        // new: proper global type counts...
+        assert(global_sample.size() > 0);
+        std::cout<<"global sample has "<<pluralize(global_sample.size(), "row")<<std::endl;
+        global_type_counts = counts_from_rows(global_sample);
+
         auto general_case_max_type = maximizeTypeCoverNew(global_type_counts, conf_nc_threshold, true, conf_general_case_type_policy);
         auto normal_case_max_type = maximizeTypeCoverNew(global_type_counts, conf_nc_threshold, true,
                                                       TypeUnificationPolicy::defaultPolicy());

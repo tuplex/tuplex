@@ -974,9 +974,10 @@ TEST_F(HyperTest, LoadAllFiles) {
     auto sample_size = 2 * 1024 * 1024ul;// 8MB ////256 * 1024ul; // 256kb
 //    auto sample_size = 256 * 1024ul; // 256kb
     bool perfect_sample = false;//true; // if true, sample the whole file (slow, but perfect representation)
-    bool filter_sample_after_event = true;
-    std::string event_name = "PushEvent";
-    bool pushdown_pushevent = true;
+    bool filter_sample_after_event = false;//true;
+//    std::string event_name = "PushEvent"; // <-- most dominant, but specialization only within the lower years possible...
+    std::string event_name = "ForkEvent"; // <-- more edits there...
+
     auto nc_th = 0.9;
     // general case version
     auto conf_general_case_type_policy = TypeUnificationPolicy::defaultPolicy();

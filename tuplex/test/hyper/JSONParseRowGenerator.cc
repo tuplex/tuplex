@@ -535,7 +535,6 @@ namespace tuplex {
             builder.SetInsertPoint(bbDecodeNonNull);
             // _env.debugPrint(builder, "found " + entry.valueType.getReturnType().desc() + " value for key=" + entry.key);
             llvm::Value* rcB = nullptr;
-            llvm::Value* presentB = nullptr;
             SerializableValue valueB;
             std::tie(rcB, valueB) = decodeFromArray(builder, array, index, element_type);
             bbValueIsNotNull = builder.GetInsertBlock(); // <-- this is the block from where to jump to bbDecoded (phi entry block)
@@ -546,7 +545,7 @@ namespace tuplex {
             // finish decode by jumping into bbDecoded block.
             // fetch rc and value depending on block (phi node!)
             // => for null, create dummy values so phi works!
-            assert(rcB && presentB);
+            assert(rcB);
             SerializableValue valueA;
             valueA.is_null = _env.i1Const(true); // valueA is null
             if(valueB.val) {

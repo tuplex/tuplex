@@ -326,9 +326,25 @@ namespace tuplex {
             assert(listType.isListType() && listType != python::Type::EMPTYLIST);
 
             auto elementType = listType.elementType();
+
+            bool elements_optional = elementType.isOptionType();
+            if(elements_optional)
+                elementType = elementType.getReturnType();
+            assert(elementType != python::Type::UNKNOWN);
+
             llvm::Type *retType;
             if(elementType.isSingleValued()) {
-                retType = i64Type(); // just need to figure out number of fields stored!
+                if(elements_optional) {
+                    std::vector<llvm::Type*> memberTypes;
+                    memberTypes.push_back(i64Type()); // array capacity
+                    memberTypes.push_back(i64Type()); // size
+                    memberTypes.push_back(i8ptrType()); // bool-array
+                    llvm::ArrayRef<llvm::Type *> members(memberTypes);
+                    retType = llvm::StructType::create(_context, members, "struct." + twine, false);
+                } else {
+                    // simple counter will do
+                    retType = i64Type(); // just need to figure out number of fields stored!
+                }
             } else if(elementType == python::Type::I64 || elementType == python::Type::F64 || elementType == python::Type::BOOLEAN) {
                 std::vector<llvm::Type*> memberTypes;
                 memberTypes.push_back(i64Type()); // array capacity
@@ -341,6 +357,8 @@ namespace tuplex {
                 } else if(elementType == python::Type::BOOLEAN) {
                     memberTypes.push_back(getBooleanPointerType());
                 }
+                if(elements_optional)
+                    memberTypes.push_back(i8ptrType()); // bool-array
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
             } else if(elementType == python::Type::STRING
@@ -350,6 +368,8 @@ namespace tuplex {
                 memberTypes.push_back(i64Type()); // size
                 memberTypes.push_back(llvm::PointerType::get(i8ptrType(), 0)); // str array (or i8* pointer array)
                 memberTypes.push_back(i64ptrType()); // strlen array (with the +1 for \0)
+                if(elements_optional)
+                    memberTypes.push_back(i8ptrType()); // bool-array
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
             } else if(elementType.isStructuredDictionaryType()) {
@@ -360,6 +380,8 @@ namespace tuplex {
                 memberTypes.push_back(i64Type()); // array capacity
                 memberTypes.push_back(i64Type()); // size
                 memberTypes.push_back(llvm::PointerType::get(llvm_element_type, 0));
+                if(elements_optional)
+                    memberTypes.push_back(i8ptrType()); // bool-array
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
             } else if(elementType.isListType()) {
@@ -368,6 +390,8 @@ namespace tuplex {
                 memberTypes.push_back(i64Type()); // array capacity
                 memberTypes.push_back(i64Type()); // size
                 memberTypes.push_back(llvm::PointerType::get(getOrCreateListType(elementType), 0));
+                if(elements_optional)
+                    memberTypes.push_back(i8ptrType()); // bool-array
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
             } else if(elementType.isTupleType()) {
@@ -376,6 +400,8 @@ namespace tuplex {
                 memberTypes.push_back(i64Type()); // array capacity
                 memberTypes.push_back(i64Type()); // size
                 memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(elementType), 0));
+                if(elements_optional)
+                    memberTypes.push_back(i8ptrType()); // bool-array
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
             } else {

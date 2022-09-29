@@ -469,8 +469,234 @@ namespace tuplex {
         }
 
         std::tuple<llvm::Value *, SerializableValue>
+        JSONParseRowGenerator::decodeNullFromArray(llvm::IRBuilder<> &builder, llvm::Value *array, llvm::Value *index) {
+
+            using namespace std;
+            using namespace llvm;
+
+            assert(array && index);
+            assert(array->getType() == _env.i8ptrType());
+            assert(index->getType() == _env.i64Type());
+
+            // special case!
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonArray_IsNull", _env.i64Type(), _env.i8ptrType(), _env.i64Type());
+            llvm::Value* rc = builder.CreateCall(F, {array, index});
+            SerializableValue v;
+            v.is_null = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            return make_tuple(rc, v);
+        }
+
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONParseRowGenerator::decodeOptionFromArray(llvm::IRBuilder<> &builder, const python::Type &option_type,
+                                                     llvm::Value *array, llvm::Value *index) {
+            using namespace llvm;
+
+            assert(option_type.isOptionType());
+
+            auto& ctx = builder.getContext();
+
+            llvm::Value* rc = nullptr;
+            SerializableValue value;
+
+            BasicBlock* bbCurrent = builder.GetInsertBlock();
+            BasicBlock* bbDecodeIsNull = BasicBlock::Create(ctx, "array_decode_option_null", bbCurrent->getParent());
+            BasicBlock* bbDecodeNonNull = BasicBlock::Create(ctx, "array_decode_option_non_null", bbCurrent->getParent());
+            BasicBlock* bbDecoded = BasicBlock::Create(ctx, "array_decoded_option", bbCurrent->getParent());
+
+            auto element_type = option_type.getReturnType();
+            assert(!element_type.isOptionType()); // there can't be option of option...
+
+            // special case: element to decode is struct type
+            llvm::Value* null_struct = nullptr;
+            if(element_type.isStructuredDictionaryType()) {
+                auto llvm_element_type = _env.getOrCreateStructuredDictType(element_type);
+                auto null_struct_var = _env.CreateFirstBlockAlloca(builder, llvm_element_type);
+                struct_dict_mem_zero(_env, builder, null_struct_var, element_type);
+                null_struct = builder.CreateLoad(null_struct_var);
+            }
+
+            // check if it is null
+            llvm::Value* rcA = nullptr;
+            std::tie(rcA, value) = decodeNullFromArray(builder, array, index);
+            auto successful_decode_cond = builder.CreateICmpEQ(rcA, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            auto is_null_cond = builder.CreateAnd(successful_decode_cond, value.is_null);
+
+            // branch: if null -> got to bbDecodeIsNull, else decode value.
+            BasicBlock* bbValueIsNull = nullptr, *bbValueIsNotNull = nullptr;
+            builder.CreateCondBr(is_null_cond, bbDecodeIsNull, bbDecodeNonNull);
+
+            // --- decode null ---
+            builder.SetInsertPoint(bbDecodeIsNull);
+            // _env.debugPrint(builder, "found null value for key=" + entry.key);
+            bbValueIsNull = builder.GetInsertBlock();
+            builder.CreateBr(bbDecoded);
+
+            // --- decode value ---
+            builder.SetInsertPoint(bbDecodeNonNull);
+            // _env.debugPrint(builder, "found " + entry.valueType.getReturnType().desc() + " value for key=" + entry.key);
+            llvm::Value* rcB = nullptr;
+            llvm::Value* presentB = nullptr;
+            SerializableValue valueB;
+            std::tie(rcB, valueB) = decodeFromArray(builder, array, index, element_type);
+            bbValueIsNotNull = builder.GetInsertBlock(); // <-- this is the block from where to jump to bbDecoded (phi entry block)
+            builder.CreateBr(bbDecoded);
+
+            // --- decode done ----
+            builder.SetInsertPoint(bbDecoded);
+            // finish decode by jumping into bbDecoded block.
+            // fetch rc and value depending on block (phi node!)
+            // => for null, create dummy values so phi works!
+            assert(rcB && presentB);
+            SerializableValue valueA;
+            valueA.is_null = _env.i1Const(true); // valueA is null
+            if(valueB.val) {
+                if(!element_type.isStructuredDictionaryType())
+                    valueA.val = _env.nullConstant(valueB.val->getType());
+                else {
+                    assert(null_struct);
+                    valueA.val = null_struct;
+                }
+            }
+            if(valueB.size)
+                valueA.size = _env.nullConstant(valueB.size->getType());
+
+            builder.SetInsertPoint(bbDecoded);
+            assert(bbValueIsNotNull && bbValueIsNull);
+            value = SerializableValue();
+            if(valueB.val) {
+                auto phi = builder.CreatePHI(valueB.val->getType(), 2);
+                phi->addIncoming(valueA.val, bbValueIsNull);
+                phi->addIncoming(valueB.val, bbValueIsNotNull);
+                value.val = phi;
+            }
+            if(valueB.size) {
+                auto phi = builder.CreatePHI(valueB.size->getType(), 2);
+                phi->addIncoming(valueA.size, bbValueIsNull);
+                phi->addIncoming(valueB.size, bbValueIsNotNull);
+                value.size = phi;
+            }
+            value.is_null = is_null_cond; // trivial, no phi needed.
+
+            // however, for rc a phi is needed.
+            auto phi = builder.CreatePHI(_env.i64Type(), 2);
+            phi->addIncoming(rcA, bbValueIsNull);
+            phi->addIncoming(rcB, bbValueIsNotNull);
+            rc = phi;
+
+            return std::make_tuple(rc, value);
+        }
+
+
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONParseRowGenerator::decodeEmptyListFromArray(llvm::IRBuilder<> &builder, llvm::Value *array,
+                                                        llvm::Value *index) {
+            using namespace std;
+            using namespace llvm;
+
+            assert(array && index);
+            assert(array->getType() == _env.i8ptrType());
+            assert(index->getType() == _env.i64Type());
+
+            // special case!
+            auto F = getOrInsertFunction(_env.getModule().get(), "JsonArray_getEmptyArray", _env.i64Type(), _env.i8ptrType(), _env.i64Type());
+            llvm::Value* rc = builder.CreateCall(F, {array, index});
+            SerializableValue v;
+            v.is_null = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            return make_tuple(rc, v);
+        }
+
+        std::tuple<llvm::Value *, SerializableValue>
+        JSONParseRowGenerator::decodeListFromArray(llvm::IRBuilder<> &builder, const python::Type &list_type,
+                                                   llvm::Value *array, llvm::Value *index) {
+            using namespace llvm;
+            using namespace std;
+
+            assert(list_type.isListType());
+
+            // special case: empty list?
+            if(list_type == python::Type::EMPTYLIST) {
+                return decodeEmptyListFromArray(builder, array, index);
+            }
+
+            auto element_type = list_type.elementType();
+
+            // create list ptr (in any case!)
+            auto list_llvm_type = _env.getOrCreateListType(list_type);
+            auto list_ptr = _env.CreateFirstBlockAlloca(builder, list_llvm_type);
+            list_init_empty(_env, builder, list_ptr, list_type);
+
+
+            auto rc_var = _env.CreateFirstBlockAlloca(builder, _env.i64Type());
+            builder.CreateStore(_env.i64Const(ecToI64(ExceptionCode::SUCCESS)), rc_var);
+
+            // decode happens in two steps:
+            // step 1: check if there's actually an array in the JSON data -> if not, type error!
+            auto Fgetarray = getOrInsertFunction(_env.getModule().get(), "JsonArray_getArray", _env.i64Type(), _env.i8ptrType(),
+                                                 _env.i64Type(), _env.i8ptrType()->getPointerTo(0));
+            auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+            // add array free to step after parse row
+            freeArray(item_var);
+
+            // create call, recurse only if ok!
+            BasicBlock *bbCurrent = builder.GetInsertBlock();
+            BasicBlock *bbArrayFound = BasicBlock::Create(_env.getContext(), "found_array", builder.GetInsertBlock()->getParent());
+            BasicBlock *bbDecodeFailed = BasicBlock::Create(_env.getContext(), "array_decode_failed", builder.GetInsertBlock()->getParent());
+            BasicBlock *bbDecodeDone = BasicBlock::Create(_env.getContext(), "array_decode_done", builder.GetInsertBlock()->getParent());
+            llvm::Value* rc_A = builder.CreateCall(Fgetarray, {array, index, item_var});
+            builder.CreateStore(rc_A, rc_var);
+            auto found_array = builder.CreateICmpEQ(rc_A, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            builder.CreateCondBr(found_array, bbArrayFound, bbDecodeFailed);
+
+
+            builder.SetInsertPoint(bbDecodeFailed);
+            badParseCause("no array found or array is object");
+            builder.CreateBr(_badParseBlock);
+
+            // -----------------------------------------------------------
+            // step 2: check that it is a homogenous list...
+            auto list_element_type = list_type.elementType();
+            builder.SetInsertPoint(bbArrayFound);
+            auto sub_array = builder.CreateLoad(item_var);
+            auto num_elements = arraySize(builder, array);
+
+            // debug print here number of elements...
+            // _env.printValue(builder, num_elements, "found for type " + listType.desc() + " elements: ");
+
+            // reserve capacity for elements
+            bool initialize_elements_as_null = true; //false;
+            list_reserve_capacity(_env, builder, list_ptr, list_type, num_elements, initialize_elements_as_null);
+
+            // decoding happens in a loop...
+            // -> basically get the data!
+            auto list_rc = generateDecodeListItemsLoop(builder, sub_array, list_ptr, list_type, num_elements);
+            builder.CreateStore(list_rc, rc_var);
+            // debug print, checking what the list decode gives back...
+            // _env.printValue(builder, list_rc, "decode result is: ");
+
+            // only if decode is ok, store list size!
+            auto list_decode_ok = builder.CreateICmpEQ(list_rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            BasicBlock* bbListOK = BasicBlock::Create(_env.getContext(), "sub_array_decode_ok", builder.GetInsertBlock()->getParent());
+            builder.CreateCondBr(list_decode_ok, bbListOK, bbDecodeDone);
+
+            {
+                // --- set list size when ok ---
+                builder.SetInsertPoint(bbListOK);
+                list_store_size(_env, builder, list_ptr, list_type, num_elements); // <-- now list is ok!
+                builder.CreateBr(bbDecodeDone);
+            }
+
+            builder.SetInsertPoint(bbDecodeDone);
+            llvm::Value* rc = builder.CreateLoad(rc_var);
+            SerializableValue value;
+            value.val = builder.CreateLoad(list_ptr); // retrieve the ptr representing the list
+            return make_tuple(rc, value);
+        }
+
+        std::tuple<llvm::Value *, SerializableValue>
         JSONParseRowGenerator::decodeFromArray(llvm::IRBuilder<> &builder, llvm::Value *array, llvm::Value *index,
                                                const python::Type &element_type) {
+            using namespace llvm;
+
             llvm::Value* item_rc = nullptr;
             SerializableValue item;
             // decode based on type
@@ -487,6 +713,14 @@ namespace tuplex {
                 return decodeObjectFromArray(builder, array, index, element_type);
             } else if(element_type.isTupleType()) {
                 return decodeTupleFromArray(builder, array, index, element_type, true);
+            } else if(element_type == python::Type::NULLVALUE) {
+                return decodeNullFromArray(builder, array, index);
+            } else if(element_type.isOptionType()) {
+                // check if it's a null value -> if not decode value
+                return decodeOptionFromArray(builder, element_type, array, index);
+            } else if(element_type.isListType()) {
+                // recursive decode...
+                return decodeListFromArray(builder, element_type, array, index);
             } else {
                 throw std::runtime_error("can not decode type " + element_type.desc() + " from array.");
             }
@@ -509,8 +743,7 @@ namespace tuplex {
 
             // special case: () => i.e. same as empty list! just need to check for correct number of elements
             if(python::Type::EMPTYTUPLE == tuple_type)
-                throw std::runtime_error("decode empty list from array not yet supported!");
-                //return decodeEmptyList(builder, obj, key);
+                return decodeEmptyListFromArray(builder, array, index);
 
             // create flattened tuple
             FlattenedTuple ft(&_env);
@@ -745,7 +978,7 @@ namespace tuplex {
             builder.CreateCondBr(list_decode_ok, bbListOK, bbDecodeDone);
 
             {
-                // --- set list size hwen ok ---
+                // --- set list size when ok ---
                 builder.SetInsertPoint(bbListOK);
                 list_store_size(_env, builder, list_ptr, listType, num_elements); // <-- now list is ok!
                 builder.CreateBr(bbDecodeDone);
@@ -835,6 +1068,122 @@ namespace tuplex {
             return make_tuple(rc, is_present, value);
         }
 
+
+        std::tuple<llvm::Value*, SerializableValue> JSONParseRowGenerator::decodeOption(llvm::IRBuilder<>& builder,
+                                                                 const python::Type& option_type,
+                                                                 const python::StructEntry& entry,
+                                                                 llvm::Value* obj,
+                                                                 llvm::Value* key,
+                                                                 llvm::BasicBlock* bbSchemaMismatch) {
+            using namespace llvm;
+
+            assert(option_type.isOptionType());
+
+            auto& ctx = builder.getContext();
+
+            llvm::Value* rc = nullptr;
+            SerializableValue value;
+
+            BasicBlock* bbCurrent = builder.GetInsertBlock();
+            BasicBlock* bbDecodeIsNull = BasicBlock::Create(ctx, "decode_option_null", bbCurrent->getParent());
+            BasicBlock* bbDecodeNonNull = BasicBlock::Create(ctx, "decode_option_non_null", bbCurrent->getParent());
+            BasicBlock* bbDecoded = BasicBlock::Create(ctx, "decoded_option", bbCurrent->getParent());
+
+            auto element_type = option_type.getReturnType();
+            assert(!element_type.isOptionType()); // there can't be option of option...
+
+            // special case: element to decode is struct type
+            llvm::Value* null_struct = nullptr;
+            if(element_type.isStructuredDictionaryType()) {
+                auto llvm_element_type = _env.getOrCreateStructuredDictType(element_type);
+                auto null_struct_var = _env.CreateFirstBlockAlloca(builder, llvm_element_type);
+                struct_dict_mem_zero(_env, builder, null_struct_var, element_type);
+                null_struct = builder.CreateLoad(null_struct_var);
+            }
+
+            // check if it is null
+            llvm::Value* rcA = nullptr;
+            std::tie(rcA, value) = decodeNull(builder, obj, key);
+            auto successful_decode_cond = builder.CreateICmpEQ(rcA, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            auto is_null_cond = builder.CreateAnd(successful_decode_cond, value.is_null);
+
+            // branch: if null -> got to bbDecodeIsNull, else decode value.
+            BasicBlock* bbValueIsNull = nullptr, *bbValueIsNotNull = nullptr;
+            builder.CreateCondBr(is_null_cond, bbDecodeIsNull, bbDecodeNonNull);
+
+            // --- decode null ---
+            builder.SetInsertPoint(bbDecodeIsNull);
+            // _env.debugPrint(builder, "found null value for key=" + entry.key);
+            bbValueIsNull = builder.GetInsertBlock();
+            builder.CreateBr(bbDecoded);
+
+            // --- decode value ---
+            builder.SetInsertPoint(bbDecodeNonNull);
+            // _env.debugPrint(builder, "found " + entry.valueType.getReturnType().desc() + " value for key=" + entry.key);
+            llvm::Value* rcB = nullptr;
+            llvm::Value* presentB = nullptr;
+            SerializableValue valueB;
+            python::StructEntry entryB = entry;
+            entryB.valueType = entry.valueType.getReturnType(); // remove option
+
+            // two cases: primitive field -> i.e., not a struct type
+            if(!entryB.valueType.isStructuredDictionaryType())
+                std::tie(rcB, presentB, valueB) = decodePrimitiveFieldFromObject(builder, obj, key, entryB, bbSchemaMismatch);
+            else {
+                // or struct type
+                std::tie(rcB, presentB, valueB) = decodeStructDictFieldFromObject(builder, obj, key, entryB, bbSchemaMismatch);
+            }
+
+
+            bbValueIsNotNull = builder.GetInsertBlock(); // <-- this is the block from where to jump to bbDecoded (phi entry block)
+            builder.CreateBr(bbDecoded);
+
+            // --- decode done ----
+            builder.SetInsertPoint(bbDecoded);
+            // finish decode by jumping into bbDecoded block.
+            // fetch rc and value depending on block (phi node!)
+            // => for null, create dummy values so phi works!
+            assert(rcB && presentB);
+            SerializableValue valueA;
+            valueA.is_null = _env.i1Const(true); // valueA is null
+            if(valueB.val) {
+
+                if(!entryB.valueType.isStructuredDictionaryType())
+                    valueA.val = _env.nullConstant(valueB.val->getType());
+                else {
+                    assert(null_struct);
+                    valueA.val = null_struct;
+                }
+            }
+            if(valueB.size)
+                valueA.size = _env.nullConstant(valueB.size->getType());
+
+            builder.SetInsertPoint(bbDecoded);
+            assert(bbValueIsNotNull && bbValueIsNull);
+            value = SerializableValue();
+            if(valueB.val) {
+                auto phi = builder.CreatePHI(valueB.val->getType(), 2);
+                phi->addIncoming(valueA.val, bbValueIsNull);
+                phi->addIncoming(valueB.val, bbValueIsNotNull);
+                value.val = phi;
+            }
+            if(valueB.size) {
+                auto phi = builder.CreatePHI(valueB.size->getType(), 2);
+                phi->addIncoming(valueA.size, bbValueIsNull);
+                phi->addIncoming(valueB.size, bbValueIsNotNull);
+                value.size = phi;
+            }
+            value.is_null = is_null_cond; // trivial, no phi needed.
+
+            // however, for rc a phi is needed.
+            auto phi = builder.CreatePHI(_env.i64Type(), 2);
+            phi->addIncoming(rcA, bbValueIsNull);
+            phi->addIncoming(rcB, bbValueIsNotNull);
+            rc = phi;
+
+            return std::make_tuple(rc, value);
+        }
+
         std::tuple<llvm::Value*, llvm::Value*, SerializableValue> JSONParseRowGenerator::decodePrimitiveFieldFromObject(llvm::IRBuilder<>& builder,
                                                                                                                         llvm::Value* obj,
                                                                                                                         llvm::Value* key,
@@ -858,103 +1207,7 @@ namespace tuplex {
 
             // special case: option => i.e. perform null check first. If it fails, decode element.
             if(value_type.isOptionType()) {
-
-                BasicBlock* bbCurrent = builder.GetInsertBlock();
-                BasicBlock* bbDecodeIsNull = BasicBlock::Create(ctx, "decode_option_null", bbCurrent->getParent());
-                BasicBlock* bbDecodeNonNull = BasicBlock::Create(ctx, "decode_option_non_null", bbCurrent->getParent());
-                BasicBlock* bbDecoded = BasicBlock::Create(ctx, "decoded_option", bbCurrent->getParent());
-
-                auto element_type = value_type.getReturnType();
-
-                // special case: element to decode is struct type
-                llvm::Value* null_struct = nullptr;
-                if(element_type.isStructuredDictionaryType()) {
-                    auto llvm_element_type = _env.getOrCreateStructuredDictType(element_type);
-                    auto null_struct_var = _env.CreateFirstBlockAlloca(builder, llvm_element_type);
-                    struct_dict_mem_zero(_env, builder, null_struct_var, element_type);
-                    null_struct = builder.CreateLoad(null_struct_var);
-                }
-
-
-                // check if it is null
-                llvm::Value* rcA = nullptr;
-                std::tie(rcA, value) = decodeNull(builder, obj, key);
-                auto successful_decode_cond = builder.CreateICmpEQ(rcA, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
-                auto is_null_cond = builder.CreateAnd(successful_decode_cond, value.is_null);
-
-                // branch: if null -> got to bbDecodeIsNull, else decode value.
-                BasicBlock* bbValueIsNull = nullptr, *bbValueIsNotNull = nullptr;
-                builder.CreateCondBr(is_null_cond, bbDecodeIsNull, bbDecodeNonNull);
-
-                // --- decode null ---
-                builder.SetInsertPoint(bbDecodeIsNull);
-                // _env.debugPrint(builder, "found null value for key=" + entry.key);
-                bbValueIsNull = builder.GetInsertBlock();
-                builder.CreateBr(bbDecoded);
-
-                // --- decode value ---
-                builder.SetInsertPoint(bbDecodeNonNull);
-                // _env.debugPrint(builder, "found " + entry.valueType.getReturnType().desc() + " value for key=" + entry.key);
-                llvm::Value* rcB = nullptr;
-                llvm::Value* presentB = nullptr;
-                SerializableValue valueB;
-                python::StructEntry entryB = entry;
-                entryB.valueType = entry.valueType.getReturnType(); // remove option
-
-                // two cases: primitive field -> i.e., not a struct type
-                if(!entryB.valueType.isStructuredDictionaryType())
-                    std::tie(rcB, presentB, valueB) = decodePrimitiveFieldFromObject(builder, obj, key, entryB, bbSchemaMismatch);
-                else {
-                    // or struct type
-                    std::tie(rcB, presentB, valueB) = decodeStructDictFieldFromObject(builder, obj, key, entryB, bbSchemaMismatch);
-                }
-
-
-                bbValueIsNotNull = builder.GetInsertBlock(); // <-- this is the block from where to jump to bbDecoded (phi entry block)
-                builder.CreateBr(bbDecoded);
-
-                // --- decode done ----
-                builder.SetInsertPoint(bbDecoded);
-                // finish decode by jumping into bbDecoded block.
-                // fetch rc and value depending on block (phi node!)
-                // => for null, create dummy values so phi works!
-                assert(rcB && presentB);
-                SerializableValue valueA;
-                valueA.is_null = _env.i1Const(true); // valueA is null
-                if(valueB.val) {
-
-                    if(!entryB.valueType.isStructuredDictionaryType())
-                        valueA.val = _env.nullConstant(valueB.val->getType());
-                    else {
-                        assert(null_struct);
-                        valueA.val = null_struct;
-                    }
-                }
-                if(valueB.size)
-                    valueA.size = _env.nullConstant(valueB.size->getType());
-
-                builder.SetInsertPoint(bbDecoded);
-                assert(bbValueIsNotNull && bbValueIsNull);
-                value = SerializableValue();
-                if(valueB.val) {
-                    auto phi = builder.CreatePHI(valueB.val->getType(), 2);
-                    phi->addIncoming(valueA.val, bbValueIsNull);
-                    phi->addIncoming(valueB.val, bbValueIsNotNull);
-                    value.val = phi;
-                }
-                if(valueB.size) {
-                    auto phi = builder.CreatePHI(valueB.size->getType(), 2);
-                    phi->addIncoming(valueA.size, bbValueIsNull);
-                    phi->addIncoming(valueB.size, bbValueIsNotNull);
-                    value.size = phi;
-                }
-                value.is_null = is_null_cond; // trivial, no phi needed.
-
-                // however, for rc a phi is needed.
-                auto phi = builder.CreatePHI(_env.i64Type(), 2);
-                phi->addIncoming(rcA, bbValueIsNull);
-                phi->addIncoming(rcB, bbValueIsNotNull);
-                rc = phi;
+                std::tie(rc, value) = decodeOption(builder, value_type, entry, obj, key, bbSchemaMismatch);
             } else {
                 // decode non-option types
                 auto v_type = value_type;

@@ -29,9 +29,23 @@ namespace tuplex {
             // cf. now getOrCreateListType(...) ==> different layouts depending on element type.
             // init accordingly.
             auto elementType = list_type.elementType();
+            auto elements_optional = elementType.isOptionType();
+            if(elements_optional)
+                elementType = elementType.getReturnType();
+
+
             if(elementType.isSingleValued()) {
-                // the list is represented as single i64
-                builder.CreateStore(env.i64Const(0), list_ptr);
+                if(elements_optional) {
+                    auto idx_capacity = CreateStructGEP(builder, list_ptr, 0); assert(idx_capacity->getType() == env.i64ptrType());
+                    builder.CreateStore(env.i64Const(0), idx_capacity);
+                    auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
+                    builder.CreateStore(env.i64Const(0), idx_size);
+                    auto idx_opt_values = CreateStructGEP(builder, list_ptr, 2);
+                    builder.CreateStore(env.nullConstant(env.i8ptrType()), idx_opt_values);
+                } else {
+                    // the list is represented as single i64
+                    builder.CreateStore(env.i64Const(0), list_ptr);
+                }
             } else if(elementType == python::Type::I64
                       || elementType == python::Type::F64
                       || elementType == python::Type::BOOLEAN) {
@@ -45,6 +59,12 @@ namespace tuplex {
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
                 llvm::Type* llvm_element_type = env.pythonToLLVMType(elementType);
                 builder.CreateStore(env.nullConstant(llvm_element_type->getPointerTo()), idx_values);
+
+                if(elements_optional) {
+                    auto idx_opt_values = CreateStructGEP(builder, list_ptr, 3);
+                    builder.CreateStore(env.nullConstant(env.i8ptrType()), idx_opt_values);
+                }
+
             } else if(elementType == python::Type::STRING
                       || elementType == python::Type::PYOBJECT) {
 
@@ -59,6 +79,11 @@ namespace tuplex {
 
                 auto idx_sizes = CreateStructGEP(builder, list_ptr, 3);
                 builder.CreateStore(env.i8nullptr(), idx_sizes);
+
+                if(elements_optional) {
+                    auto idx_opt_values = CreateStructGEP(builder, list_ptr, 4);
+                    builder.CreateStore(env.nullConstant(env.i8ptrType()), idx_opt_values);
+                }
             } else if(elementType.isStructuredDictionaryType()) {
                 // pointer to the structured dict type!
 
@@ -75,6 +100,11 @@ namespace tuplex {
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
                 builder.CreateStore(env.nullConstant(llvm_element_type->getPointerTo()), idx_values);
 
+                if(elements_optional) {
+                    auto idx_opt_values = CreateStructGEP(builder, list_ptr, 3);
+                    builder.CreateStore(env.nullConstant(env.i8ptrType()), idx_opt_values);
+                }
+
             } else if(elementType.isListType()) {
                 // pointers to the list type!
                 // similar to above - yet, keep it here extra for more control...
@@ -88,6 +118,11 @@ namespace tuplex {
 
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
                 builder.CreateStore(env.nullConstant(llvm_element_type->getPointerTo()), idx_values);
+
+                if(elements_optional) {
+                    auto idx_opt_values = CreateStructGEP(builder, list_ptr, 3);
+                    builder.CreateStore(env.nullConstant(env.i8ptrType()), idx_opt_values);
+                }
             } else if(elementType.isTupleType()) {
                 // pointers to the list type!
                 // similar to above - yet, keep it here extra for more control...
@@ -101,6 +136,11 @@ namespace tuplex {
 
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
                 builder.CreateStore(env.nullConstant(llvm_element_type->getPointerTo()), idx_values);
+
+                if(elements_optional) {
+                    auto idx_opt_values = CreateStructGEP(builder, list_ptr, 3);
+                    builder.CreateStore(env.nullConstant(env.i8ptrType()), idx_opt_values);
+                }
             } else {
                 throw std::runtime_error("Unsupported list element type: " + list_type.desc());
             }

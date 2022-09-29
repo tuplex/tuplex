@@ -288,6 +288,13 @@ namespace tuplex {
             return arr->elements.size(); // this should NOT yield any errors.
         }
 
+        uint64_t JsonArray_IsNull(JsonArray* arr, size_t i) {
+            assert(arr);
+            simdjson::error_code error = simdjson::NO_SUCH_FIELD;
+            assert(i < arr->elements.size()); // this should hold...
+            return arr->elements[i].is_null() ? ecToI64(ExceptionCode::SUCCESS) : ecToI64(ExceptionCode::TYPEERROR);
+        }
+
         uint64_t JsonArray_getInt(JsonArray *arr, size_t i, int64_t *out) {
             assert(arr);
             assert(out);
@@ -421,6 +428,34 @@ namespace tuplex {
             }
             *out = sub_arr;
             return ecToI64(ExceptionCode::SUCCESS);
+        }
+
+        uint64_t JsonArray_getEmptyArray(JsonArray *arr, size_t i) {
+            assert(arr);
+
+            simdjson::error_code error = simdjson::NO_SUCH_FIELD;
+
+            // this is slow -> maybe better to replace complex iteration with custom decode routines!
+            assert(i < arr->elements.size());
+
+            // on demand
+            // simdjson::ondemand::array a;
+            // dom
+            simdjson::dom::array a;
+
+            arr->elements[i].get_array().tie(a, error);
+            if (error)
+                return translate_simdjson_error(error);
+
+            return 0 == a.size() ? ecToI64(ExceptionCode::SUCCESS) : ecToI64(ExceptionCode::TYPEERROR);
+            // for ondemand this is prob important
+            // // ONLY allocate if ok. else, leave how it is.
+            // // decode subarray!
+            // for(auto element : a) {
+            //     return ecToI64(ExceptionCode::TYPEERROR); // not an empty list!
+            // }
+            // // ok, no element found but array found!
+            // return ecToI64(ExceptionCode::SUCCESS);
         }
 
         uint64_t JsonItem_getDouble(JsonItem *item, const char *key, double *out) {
@@ -667,6 +702,8 @@ namespace tuplex {
             jit.registerSymbol("JsonArray_getStringAndSize", JsonArray_getStringAndSize);
             jit.registerSymbol("JsonArray_getObject", JsonArray_getObject);
             jit.registerSymbol("JsonArray_getArray", JsonArray_getArray);
+            jit.registerSymbol("JsonArray_IsNull", JsonArray_IsNull);
+            jit.registerSymbol("JsonArray_getEmptyArray", JsonArray_getEmptyArray);
             jit.registerSymbol("Json_is_whitespace", Json_is_whitespace);
         }
     }

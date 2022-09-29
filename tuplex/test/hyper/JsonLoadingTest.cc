@@ -962,7 +962,7 @@ TEST_F(HyperTest, LoadAllFiles) {
     // daily sample
     root_path = "/data/github_sample_daily/*.json.gz";
 
-    root_path = "/data/github_sample_daily/2011-10-15.json.gz";
+    // root_path = "/data/github_sample_daily/2011-10-15.json.gz";
 
 #ifdef MACOS
     root_path = "/Users/leonhards/Downloads/github_sample/*.json.gz";

@@ -16,6 +16,9 @@
 #include <algorithm>
 #include <orc/OrcTypes.h>
 
+#include <JSONUtils.h>
+#include <JsonStatistic.h>
+
 namespace tuplex {
 
     std::vector<tuplex::Partition*> FileInputOperator::getPartitions() {
@@ -166,6 +169,112 @@ namespace tuplex {
                                                    const std::unordered_map<size_t, python::Type>& index_based_type_hints,
                                                    const std::unordered_map<std::string, python::Type>& column_based_type_hints) {
         return new FileInputOperator(pattern, co, hasHeader, delimiter, quotechar, null_values, column_name_hints, index_based_type_hints, column_based_type_hints);
+    }
+
+    FileInputOperator* FileInputOperator::fromJSON(const std::string &pattern,
+                                                   bool unwrap_first_level,
+                                                   bool treat_heterogenous_lists_as_tuples, const ContextOptions &co) {
+        auto &logger = Logger::instance().logger("fileinputoperator");
+
+
+        auto f = new FileInputOperator();
+        f->_fmt = FileFormat::OUTFMT_JSON;
+
+       Timer timer;
+       f->detectFiles(pattern);
+
+        // infer schema using first file only
+        if (!f->_fileURIs.empty()) {
+
+            auto sample = f->loadSample(co.CSV_MAX_DETECTION_MEMORY());
+
+            // parse Rows from JSON
+            std::vector<std::vector<std::string>> columnNamesCollection;
+            auto rows = parseRowsFromJSON(sample.c_str(),
+                                          sample.size(),
+                                          unwrap_first_level ? &columnNamesCollection : nullptr,
+                                          unwrap_first_level,
+                                          treat_heterogenous_lists_as_tuples);
+
+            // estimator for #rows across all CSV files
+            double estimatedRowCount = 0.0;
+            for(auto s : f->_sizes) {
+                estimatedRowCount += (double)s / (double)sample.size() * (double)f->_sample.size();
+            }
+            f->_estimatedRowCount = static_cast<size_t>(std::ceil(estimatedRowCount));
+
+            // set column names to empty. if unwrap, detection should happen here
+            f->_columnNames = std::vector<std::string>();
+
+            // check mode: is it unwrapping? => find dominating number of columns! And most likely combo of column names
+            std::unordered_map<python::Type, size_t> typeCountMap;
+            // simply calc all row counts
+            for(const auto& row : rows)
+                typeCountMap[row.getRowType()]++;
+
+            // transform to vector for cover
+            auto type_counts = std::vector<std::pair<python::Type, size_t>>(typeCountMap.begin(), typeCountMap.end());
+
+            TypeUnificationPolicy normal_policy;
+            normal_policy.allowAutoUpcastOfNumbers = co.AUTO_UPCAST_NUMBERS();
+            normal_policy.allowUnifyWithPyObject = false;
+            normal_policy.treatMissingDictKeysAsNone = false; // maybe as option?
+            normal_policy.unifyMissingDictKeys = false; // could be potentially allowed for subschemas etc.?
+
+            TypeUnificationPolicy general_policy;
+            normal_policy.allowAutoUpcastOfNumbers = co.AUTO_UPCAST_NUMBERS();
+            normal_policy.allowUnifyWithPyObject = false;
+            normal_policy.treatMissingDictKeysAsNone = false; // maybe as option?
+            normal_policy.unifyMissingDictKeys = true; // this sets it apart from normal policy...
+
+            // execute cover
+            auto normal_case_max_type = maximizeStructuredDictTypeCover(type_counts, co.NORMALCASE_THRESHOLD(), co.OPT_NULLVALUE_OPTIMIZATION(), normal_policy);
+            auto general_case_max_type = maximizeStructuredDictTypeCover(type_counts, co.NORMALCASE_THRESHOLD(), co.OPT_NULLVALUE_OPTIMIZATION(), general_policy);
+
+            // either invalid?
+            if(python::Type::UNKNOWN == normal_case_max_type.first || python::Type::UNKNOWN == general_case_max_type.first) {
+                logger.warn("could not detect schema for JSON input");
+                f->setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
+                return f;
+            }
+
+            // set ALL column names (as they appear)
+            // -> pushdown for JSON is special case...
+            if(unwrap_first_level) {
+                std::vector<std::string> ordered_names;
+                std::set<std::string> set_names;
+                for(const auto& names : columnNamesCollection) {
+                    for(auto name : names) {
+                        auto it = set_names.find(name);
+                        if(it != set_names.end()) {
+                            set_names.insert(name);
+                            ordered_names.push_back(name);
+                        }
+                    }
+                }
+                f->setColumns(ordered_names);
+            }
+
+            f->_sample = rows;
+
+            // normalcase and exception case types
+            // -> use type cover for this from sample!
+            auto normalcasetype = !unwrap_first_level ? normal_case_max_type.first.parameters().front() : normal_case_max_type.first;
+            auto generalcasetype = !unwrap_first_level ? general_case_max_type.first.parameters().front() : general_case_max_type.first;
+
+            // get type & assign schema
+            f->_normalCaseRowType = normalcasetype;
+            f->setSchema(Schema(Schema::MemoryLayout::ROW, generalcasetype));
+
+            // set defaults for possible projection pushdown...
+            f->setProjectionDefaults();
+        } else {
+            logger.warn("no input files found, can't infer type from given path: " + pattern);
+            f->setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
+        }
+        f->_sampling_time_s += timer.time();
+
+        return f;
     }
 
     FileInputOperator::FileInputOperator(const std::string &pattern, const ContextOptions &co,

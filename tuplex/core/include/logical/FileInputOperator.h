@@ -130,10 +130,15 @@ namespace tuplex {
         /*!
          * create new file input operator reading JSON (newline delimited) files.
          * @param pattern pattern to look for files
+         * @param unwrap_first_level if true, then the first level is unwrapped. Else, dataset is treated to have a single column.
+         * @param treat_heterogenous_lists_as_tuples set to true to lower footprint.
          * @param co context options
          * @return input operator
          */
-        static FileInputOperator *fromJSON(const std::string& pattern, const ContextOptions& co);
+        static FileInputOperator *fromJSON(const std::string& pattern,
+                                           bool unwrap_first_level,
+                                           bool treat_heterogenous_lists_as_tuples,
+                                           const ContextOptions& co);
 
 
         std::string name() override {
@@ -144,6 +149,8 @@ namespace tuplex {
                     return "txt";
                 case FileFormat::OUTFMT_ORC:
                     return "orc";
+                case FileFormat::OUTFMT_JSON:
+                    return "json";
                 default:
                     auto &logger = Logger::instance().logger("fileinputoperator");
                     std::stringstream ss;
@@ -261,6 +268,8 @@ namespace tuplex {
          * @return true or false
          */
         bool isEmpty() const;
+
+        FileInputOperator() : _fmt(FileFormat::OUTFMT_UNKNOWN) {}
     };
 }
 

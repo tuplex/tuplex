@@ -142,6 +142,11 @@ namespace tuplex {
      * @return whether they're equal or not
      */
     extern bool semantic_python_value_eq(const python::Type& type, const std::string& rhs, const std::string& lhs);
+
+    extern std::pair<python::Type, size_t> maximizeStructuredDictTypeCover(const std::vector<std::pair<python::Type, size_t>>& counts,
+                                                                           double threshold,
+                                                                           bool use_nvo,
+                                                                           const TypeUnificationPolicy& t_policy);
 }
 
 #endif

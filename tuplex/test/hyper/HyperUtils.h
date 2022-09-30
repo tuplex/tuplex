@@ -70,4 +70,71 @@ protected:
     }
 };
 
+class HyperPyTest : public HyperTest {
+protected:
+    PyThreadState *saveState;
+    std::stringstream logStream;
+
+    void SetUp() override {
+        HyperTest::SetUp();
+        // reset global static variables, i.e. whether to use UDF compilation or not!
+        tuplex::UDF::enableCompilation();
+
+        // init logger to write to both stream as well as stdout
+        // ==> searching the stream can be used to validate err Messages
+        Logger::init({std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>(),
+                      std::make_shared<spdlog::sinks::ostream_sink_mt>(logStream)});
+
+        python::initInterpreter();
+        // release GIL
+        python::unlockGIL();
+    }
+
+    void TearDown() override {
+        python::lockGIL();
+        // important to get GIL for this
+        python::closeInterpreter();
+
+        // release runtime memory
+        tuplex::runtime::releaseRunTimeMemory();
+
+        // remove all loggers ==> note: this crashed because of multiple threads not being done yet...
+        // call only AFTER all threads/threadpool is terminated from Context/LocalBackend/LocalEngine...
+        Logger::instance().reset();
+
+        tuplex::UDF::enableCompilation(); // reset
+
+        // check whether exceptions work, LLVM9 has a bug which screws up C++ exception handling in ORCv2 APIs
+        try {
+            throw std::exception();
+        } catch(...) {
+            std::cout << "test done." << std::endl;
+        }
+    }
+
+    inline tuplex::ContextOptions microTestOptions() {
+        using namespace tuplex;
+        ContextOptions co = ContextOptions::defaults();
+        co.set("tuplex.executorCount", "4");
+        co.set("tuplex.partitionSize", "256B");
+        co.set("tuplex.executorMemory", "4MB");
+        co.set("tuplex.useLLVMOptimizer", "true");
+//    co.set("tuplex.useLLVMOptimizer", "false");
+        co.set("tuplex.allowUndefinedBehavior", "false");
+        co.set("tuplex.webui.enable", "false");
+        co.set("tuplex.optimizer.mergeExceptionsInOrder", "true"); // force exception resolution for single stages to occur in order
+        co.set("tuplex.scratchDir", "file://" + scratchDir);
+
+        // disable schema pushdown
+        co.set("tuplex.optimizer.selectionPushdown", "true");
+
+#ifdef BUILD_FOR_CI
+        co.set("tuplex.aws.httpThreadCount", "0");
+#else
+        co.set("tuplex.aws.httpThreadCount", "1");
+#endif
+        return co;
+    }
+};
+
 #endif //TUPLEX_HYPERUTILS_H

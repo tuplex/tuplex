@@ -6,6 +6,8 @@
 #include <set>
 #include "StringUtils.h"
 
+#include <cmath>
+
 namespace tuplex {
 
     // helper function to deal with struct dict types only
@@ -718,5 +720,84 @@ namespace tuplex {
 
         // else, simple compare.
         return rhs == lhs;
+    }
+
+    static bool findTypeCoverSolution(unsigned cur_search_start,
+                                      size_t count_threshold,
+                                      const std::vector<std::pair<python::Type, size_t>>& t_counts,
+                                      const TypeUnificationPolicy& t_policy,
+                                      std::pair<python::Type, size_t>* best_solution) {
+        auto cur_pair = t_counts[cur_search_start];
+        for(unsigned i = cur_search_start + 1; i < t_counts.size(); ++i) {
+            auto uni_type = unifyTypes(cur_pair.first, t_counts[i].first, t_policy);
+            if(uni_type != python::Type::UNKNOWN) {
+                cur_pair.first = uni_type;
+                cur_pair.second += t_counts[i].second;
+            }
+            // valid solution?
+            if(cur_pair.second >= count_threshold) {
+                if(best_solution) {
+                    *best_solution = cur_pair;
+                }
+                return true;
+            }
+        }
+
+        if(best_solution) {
+            *best_solution = cur_pair;
+        }
+
+        return false;
+    }
+
+
+    std::pair<python::Type, size_t> maximizeStructuredDictTypeCover(const std::vector<std::pair<python::Type, size_t>>& counts,
+                                                         double threshold,
+                                                         bool use_nvo,
+                                                         const TypeUnificationPolicy& t_policy) {
+        using namespace std;
+
+        if(counts.empty()) {
+            return make_pair(python::Type::UNKNOWN, 0);
+        }
+
+        // @TODO: implement this here! incl. recursive null checking for structured dict types...
+
+        // sort desc after count pairs. Note: goal is to have maximum type cover!
+        auto t_counts = counts;
+        std::sort(t_counts.begin(), t_counts.end(), [](const pair<python::Type, size_t>& lhs,
+                                                       const pair<python::Type, size_t>& rhs) { return lhs.second > rhs.second; });
+
+        // cumulative counts (reverse)
+        std::vector<size_t> cum_counts(t_counts.size(), 0);
+        cum_counts[0] = t_counts[0].second;
+        size_t total_count = t_counts[0].second;
+        for(unsigned i = 1; i < t_counts.size(); ++i) {
+            cum_counts[i] = cum_counts[i - 1] + t_counts[i].second;
+            total_count += t_counts[i].second;
+        }
+
+        // solution via backtracking
+        vector<bool> initial_solution(t_counts.size(), false);
+        size_t count_threshold = std::floor(threshold * total_count); // anything there indicates a valid solution!
+
+        unsigned cur_search_start = 0; // <-- this is still not a perfect solution
+
+        // find solution from current search start (and check if better than current one)
+        std::pair<python::Type, size_t> best_pair = make_pair(python::Type::UNKNOWN, 0);
+        for(unsigned i = 0; i < std::min(5ul, t_counts.size()); ++i) {
+            std::pair<python::Type, size_t> cur_pair;
+            if(findTypeCoverSolution(i, count_threshold, t_counts, t_policy, &cur_pair)) {
+               // std::cout<<"solution found"<<std::endl;
+                return cur_pair;
+            }
+
+            // update
+            if(cur_pair.second >= best_pair.second)
+                best_pair = cur_pair;
+        }
+
+       // std::cout<<"no solution found, but best pair..."<<std::endl;
+        return best_pair;
     }
 }

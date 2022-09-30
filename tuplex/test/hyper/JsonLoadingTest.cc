@@ -1224,9 +1224,11 @@ namespace tuplex {
         std::cout<<ss.str()<<std::endl;
         {
             std::stringstream out;
-            for(auto j : results)
+            for(const auto& j : results)
                 out<<j.dump()<<endl;
-            stringToFile(setting.result_path, out.str());
+            auto content = out.str();
+            trim(content);
+            stringToFile(setting.result_path, content);
         }
 
         // perform some quick analysis (summing up values) to print out.
@@ -1264,7 +1266,7 @@ TEST_F(HyperTest, LoadAllFiles) {
     // daily sample
     root_path = "/data/github_sample_daily/*.json.gz";
 
-    root_path = "/data/github_sample_daily/2011-10-15.json.gz";
+//    root_path = "/data/github_sample_daily/2011-10-15.json.gz";
 
 #ifdef MACOS
     root_path = "/Users/leonhards/Downloads/github_sample/*.json.gz";

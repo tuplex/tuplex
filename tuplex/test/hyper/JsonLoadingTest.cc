@@ -24,7 +24,7 @@
 #include <physical/experimental/JsonHelper.h>
 
 #include "JSONParseRowGenerator.h"
-#include "JSONSourceTaskBuilder.h"
+#include "ExperimentalJSONSourceTaskBuilder.h"
 
 #include "TuplexMatchBuilder.h"
 
@@ -450,7 +450,7 @@ namespace tuplex {
         // verify storage architecture/layout
         codegen::struct_dict_verify_storage(env, row_type, std::cout);
 
-        codegen::JSONSourceTaskBuilder jtb(env, row_type, parseFuncName);
+        codegen::ExperimentalJSONSourceTaskBuilder jtb(env, row_type, parseFuncName);
         jtb.build();
         auto ir_code = codegen::moduleToString(*env.getModule());
         std::cout << "generated code:\n" << core::withLineNumbers(ir_code) << std::endl;

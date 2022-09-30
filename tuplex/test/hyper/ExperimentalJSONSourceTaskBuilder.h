@@ -2,8 +2,8 @@
 // Created by leonhard on 9/26/22.
 //
 
-#ifndef TUPLEX_JSONSOURCETASKBUILDER_H
-#define TUPLEX_JSONSOURCETASKBUILDER_H
+#ifndef TUPLEX_EXPERIMENTALJSONSOURCETASKBUILDER_H
+#define TUPLEX_EXPERIMENTALJSONSOURCETASKBUILDER_H
 
 // bindings
 #include <StringUtils.h>
@@ -27,11 +27,11 @@
 
 namespace tuplex {
     namespace codegen {
-        class JSONSourceTaskBuilder {
+        class ExperimentalJSONSourceTaskBuilder {
         public:
-            JSONSourceTaskBuilder(LLVMEnvironment &env,
-                                  const python::Type &rowType,
-                                  const std::string &functionName = "parseJSON", bool unwrap_first_level = true) : _env(
+            ExperimentalJSONSourceTaskBuilder(LLVMEnvironment &env,
+                                              const python::Type &rowType,
+                                              const std::string &functionName = "parseJSON", bool unwrap_first_level = true) : _env(
                     env), _rowType(rowType),
                                                                                                                    _functionName(
                                                                                                                            functionName),
@@ -113,4 +113,4 @@ namespace tuplex {
 }
 
 
-#endif //TUPLEX_JSONSOURCETASKBUILDER_H
+#endif //TUPLEX_EXPERIMENTALJSONSOURCETASKBUILDER_H

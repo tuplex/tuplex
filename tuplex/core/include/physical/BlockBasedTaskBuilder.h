@@ -149,7 +149,7 @@ namespace tuplex {
         };
 
         // @TODO:
-        // later JSONSourceTaskBuilder { ... }
+        // later ExperimentalJSONSourceTaskBuilder { ... }
         // also GeneralSourceTaskBuilder { ... }
         // TuplexSourceTaskBuilder { ... } // <== takes Tuplex's internal memory format as source
 

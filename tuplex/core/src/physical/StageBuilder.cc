@@ -16,6 +16,7 @@
 #include <physical/JITCSVSourceTaskBuilder.h>
 #include <physical/TuplexSourceTaskBuilder.h>
 #include <physical/ExceptionSourceTaskBuilder.h>
+#include <physical/JsonSourceTaskBuilder.h>
 #include <physical/AggregateFunctions.h>
 #include <logical/CacheOperator.h>
 #include <JSONUtils.h>
@@ -1027,6 +1028,10 @@ namespace tuplex {
                     }
                     case FileFormat::OUTFMT_ORC: {
                         tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, inSchema, funcStageName);
+                        break;
+                    }
+                    case FileFormat::OUTFMT_JSON: {
+                        tb = make_shared<codegen::JsonSourceTaskBuilder>(env, inSchema, funcStageName);
                         break;
                     }
                     default:

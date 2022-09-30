@@ -2,11 +2,11 @@
 // Created by leonhard on 9/26/22.
 //
 
-#include "JSONSourceTaskBuilder.h"
+#include "ExperimentalJSONSourceTaskBuilder.h"
 
 namespace tuplex {
     namespace codegen {
-        void JSONSourceTaskBuilder::checkRC(llvm::IRBuilder<> &builder, const std::string &key, llvm::Value *rc) {
+        void ExperimentalJSONSourceTaskBuilder::checkRC(llvm::IRBuilder<> &builder, const std::string &key, llvm::Value *rc) {
             using namespace llvm;
             auto &ctx = _env.getContext();
             auto F = builder.GetInsertBlock()->getParent();
@@ -25,11 +25,11 @@ namespace tuplex {
             builder.SetInsertPoint(bbNext);
         }
 
-        void JSONSourceTaskBuilder::printValueInfo(llvm::IRBuilder<> &builder,
-                                                   const std::string &key,
-                                                   const python::Type &valueType,
-                                                   llvm::Value *keyPresent,
-                                                   const tuplex::codegen::SerializableValue &value) {
+        void ExperimentalJSONSourceTaskBuilder::printValueInfo(llvm::IRBuilder<> &builder,
+                                                               const std::string &key,
+                                                               const python::Type &valueType,
+                                                               llvm::Value *keyPresent,
+                                                               const tuplex::codegen::SerializableValue &value) {
 
             using namespace llvm;
             auto &ctx = _env.getContext();
@@ -56,8 +56,8 @@ namespace tuplex {
 
 
 
-        void JSONSourceTaskBuilder::parseAndPrintStructuredDictFromObject(llvm::IRBuilder<> &builder, llvm::Value *j,
-                                                                          llvm::BasicBlock *bbSchemaMismatch) {
+        void ExperimentalJSONSourceTaskBuilder::parseAndPrintStructuredDictFromObject(llvm::IRBuilder<> &builder, llvm::Value *j,
+                                                                                      llvm::BasicBlock *bbSchemaMismatch) {
             assert(j);
             using namespace llvm;
             auto &ctx = _env.getContext();
@@ -114,7 +114,7 @@ namespace tuplex {
 
         }
 
-        llvm::Value *JSONSourceTaskBuilder::isDocumentOfObjectType(llvm::IRBuilder<> &builder, llvm::Value *j) {
+        llvm::Value *ExperimentalJSONSourceTaskBuilder::isDocumentOfObjectType(llvm::IRBuilder<> &builder, llvm::Value *j) {
             using namespace llvm;
             auto &ctx = _env.getContext();
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_getDocType", _env.i64Type(),
@@ -125,8 +125,8 @@ namespace tuplex {
         }
 
         llvm::BasicBlock *
-        JSONSourceTaskBuilder::emitBadParseInputAndMoveToNextRow(llvm::IRBuilder<> &builder, llvm::Value *j,
-                                                                 llvm::Value *condition) {
+        ExperimentalJSONSourceTaskBuilder::emitBadParseInputAndMoveToNextRow(llvm::IRBuilder<> &builder, llvm::Value *j,
+                                                                             llvm::Value *condition) {
             using namespace llvm;
             auto &ctx = _env.getContext();
 
@@ -164,7 +164,7 @@ namespace tuplex {
             return bbEmitBadParse;
         }
 
-        llvm::Value *JSONSourceTaskBuilder::hasNextRow(llvm::IRBuilder<> &builder, llvm::Value *j) {
+        llvm::Value *ExperimentalJSONSourceTaskBuilder::hasNextRow(llvm::IRBuilder<> &builder, llvm::Value *j) {
             auto &ctx = _env.getContext();
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_hasNextRow", ctypeToLLVM<bool>(ctx),
                                          _env.i8ptrType());
@@ -174,7 +174,7 @@ namespace tuplex {
                     llvm::Type::getIntNTy(ctx, ctypeToLLVM<bool>(ctx)->getIntegerBitWidth()), 1));
         }
 
-        void JSONSourceTaskBuilder::moveToNextRow(llvm::IRBuilder<> &builder, llvm::Value *j) {
+        void ExperimentalJSONSourceTaskBuilder::moveToNextRow(llvm::IRBuilder<> &builder, llvm::Value *j) {
             // move
             using namespace llvm;
             auto &ctx = _env.getContext();
@@ -190,8 +190,8 @@ namespace tuplex {
             _env.freeAll(builder); // -> call rtfree!
         }
 
-        void JSONSourceTaskBuilder::exitMainFunctionWithError(llvm::IRBuilder<> &builder, llvm::Value *exitCondition,
-                                                              llvm::Value *exitCode) {
+        void ExperimentalJSONSourceTaskBuilder::exitMainFunctionWithError(llvm::IRBuilder<> &builder, llvm::Value *exitCondition,
+                                                                          llvm::Value *exitCode) {
             using namespace llvm;
             auto &ctx = _env.getContext();
             auto F = builder.GetInsertBlock()->getParent();
@@ -208,7 +208,7 @@ namespace tuplex {
             builder.SetInsertPoint(bbContinue);
         }
 
-        llvm::Value *JSONSourceTaskBuilder::initJsonParser(llvm::IRBuilder<> &builder) {
+        llvm::Value *ExperimentalJSONSourceTaskBuilder::initJsonParser(llvm::IRBuilder<> &builder) {
 
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_Init", _env.i8ptrType());
 
@@ -218,23 +218,23 @@ namespace tuplex {
             return j;
         }
 
-        llvm::Value *JSONSourceTaskBuilder::openJsonBuf(llvm::IRBuilder<> &builder, llvm::Value *j, llvm::Value *buf,
-                                                        llvm::Value *buf_size) {
+        llvm::Value *ExperimentalJSONSourceTaskBuilder::openJsonBuf(llvm::IRBuilder<> &builder, llvm::Value *j, llvm::Value *buf,
+                                                                    llvm::Value *buf_size) {
             assert(j);
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_open", _env.i64Type(), _env.i8ptrType(),
                                          _env.i8ptrType(), _env.i64Type());
             return builder.CreateCall(F, {j, buf, buf_size});
         }
 
-        void JSONSourceTaskBuilder::freeJsonParse(llvm::IRBuilder<> &builder, llvm::Value *j) {
+        void ExperimentalJSONSourceTaskBuilder::freeJsonParse(llvm::IRBuilder<> &builder, llvm::Value *j) {
             auto &ctx = _env.getContext();
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonParser_Free", llvm::Type::getVoidTy(ctx),
                                          _env.i8ptrType());
             builder.CreateCall(F, j);
         }
 
-        void JSONSourceTaskBuilder::generateParseLoop(llvm::IRBuilder<> &builder, llvm::Value *bufPtr,
-                                                      llvm::Value *bufSize) {
+        void ExperimentalJSONSourceTaskBuilder::generateParseLoop(llvm::IRBuilder<> &builder, llvm::Value *bufPtr,
+                                                                  llvm::Value *bufSize) {
             using namespace llvm;
             auto &ctx = _env.getContext();
 
@@ -331,7 +331,7 @@ namespace tuplex {
         }
 
 
-        void JSONSourceTaskBuilder::writeOutput(llvm::IRBuilder<> &builder, llvm::Value *var, llvm::Value *val) {
+        void ExperimentalJSONSourceTaskBuilder::writeOutput(llvm::IRBuilder<> &builder, llvm::Value *var, llvm::Value *val) {
             using namespace llvm;
 
             assert(var && val);
@@ -353,7 +353,7 @@ namespace tuplex {
             builder.SetInsertPoint(bDone);
         }
 
-        void JSONSourceTaskBuilder::build() {
+        void ExperimentalJSONSourceTaskBuilder::build() {
             using namespace llvm;
             auto &ctx = _env.getContext();
 

@@ -73,14 +73,14 @@ cd ${WORKDIR}/aws \
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
 && make -j$(nproc) && make install
 
-echo ">> Installing PCRE2"
-mkdir -p ${WORKDIR}/pcre2 && cd ${WORKDIR}/pcre2 \
-&& curl -LO https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.39/pcre2-10.39.zip \
-&& unzip pcre2-10.39.zip \
-&& rm pcre2-10.39.zip \
-&& cd pcre2-10.39 \
-&& ./configure CFLAGS="-O2 -fPIC" --prefix=${PREFIX} --enable-jit=auto --disable-shared \
-&& make -j$(nproc) && make install
+# protobuf 3.12
+cd /tmp &&
+curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.12.0/protobuf-cpp-3.12.0.tar.gz &&
+tar xf protobuf-cpp-3.12.0.tar.gz &&
+pushd protobuf-3.12.0 &&
+./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" &&
+make -j4 && make install && ldconfig &&
+pushd
 
 echo ">> Installing protobuf"
 mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf \

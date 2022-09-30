@@ -34,6 +34,11 @@ namespace tuplex {
         List() : _elements(nullptr), _numElements(0)    {}
         ~List();
 
+        List(List&& other) : _numElements(other._numElements), _elements(other._elements) {
+            other._numElements = 0;
+            other._elements = nullptr;
+        }
+
         // new variadic template param ctor
          template<typename... Targs> explicit List(Targs... Fargs) {
             std::vector<Field> elements;
@@ -61,6 +66,8 @@ namespace tuplex {
             l.init_from_vector(elements);
             return l;
         }
+
+        List* allocate_deep_copy() const;
     };
 
 

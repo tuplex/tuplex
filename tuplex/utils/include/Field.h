@@ -24,6 +24,18 @@
 #include <type_traits>
 #include <Utils.h>
 
+#ifdef BUILD_WITH_CEREAL
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
+#include "cereal/archives/binary.hpp"
+#endif
+
 namespace tuplex {
 
     class Field;
@@ -49,18 +61,43 @@ namespace tuplex {
         void releaseMemory();
 
         inline bool hasPtrData() const {
-            return python::Type::STRING == _type ||
-            _type.isTupleType() || _type.isDictionaryType() ||
-            python::Type::GENERICDICT == _type || _type.isListType() || _type == python::Type::PYOBJECT;
+
+            // option type may have data
+            auto type = _type;
+            if(type.isOptionType())
+                type = type.getReturnType();
+
+            return python::Type::STRING == type ||
+            type.isTupleType() || type.isDictionaryType() ||
+            python::Type::GENERICDICT == type || type.isListType() || type == python::Type::PYOBJECT;
         }
 
         std::string extractDesc(const python::Type& type) const; /// helper function to extract data
 
         // helper function to initialize field as tuple field from vector of elements
         void tuple_from_vector(const std::vector<Field>& elements);
+
+        void deep_copy_from_other(const Field& other);
     public:
 
         Field(): _ptrValue(nullptr), _type(python::Type::UNKNOWN), _size(0), _isNull(false) {}
+
+        // copy and move constructor
+        Field(const Field& other) : _type(other._type), _size(other._size), _isNull(other._isNull) {
+            // deep copy...
+            _ptrValue = nullptr;
+            deep_copy_from_other(other);
+        }
+
+        Field(Field&& other) : _iValue(other._iValue), _type(other._type), _size(other._size), _isNull(other._isNull) {
+            other._ptrValue = nullptr; // !!! important !!!
+            other._type = python::Type::UNKNOWN;
+            other._size = 0;
+        }
+
+        ~Field();
+        Field& operator = (const Field& other);
+
         explicit Field(const bool b);
         explicit Field(const int64_t i);
         explicit Field(const double d);
@@ -149,12 +186,6 @@ namespace tuplex {
          */
         static Field upcastTo_unsafe(const Field& f, const python::Type& targetType);
 
-        ~Field();
-
-        Field(const Field& other);
-
-        Field& operator = (const Field& other);
-
         /*!
          * prints formatted field values
          * @return
@@ -173,14 +204,16 @@ namespace tuplex {
          * enforces internal representation to be of option type,
          * sets null indicator
          */
-        inline void makeOptional() {
+        inline Field& makeOptional() {
             if(_type == python::Type::PYOBJECT)
-                return; // do not change type
+                return *this; // do not change type
 
             if(_type.isOptionType())
-                return;
+                return *this;
             _type = python::Type::makeOptionType(_type);
             _isNull = false;
+
+            return *this;
         }
 
         void* getPtr() const { return _ptrValue; }
@@ -194,12 +227,19 @@ namespace tuplex {
            else {
                Field f(*this);
                f._isNull = false;
-               f._type = f._type.getReturnType();
+               // only get rid off top-level option.
+               f._type = f._type.isOptionType() ? f._type.getReturnType() : f._type;
                return f;
            }
         }
 
         friend bool operator == (const Field& lhs, const Field& rhs);
+
+#ifdef BUILD_WITH_CEREAL
+        template<class Archive> void serialize(Archive &ar) {
+            ar(_iValue, _type, _size, _isNull);
+        }
+#endif
     };
 
     extern bool operator == (const Field& lhs, const Field& rhs);
@@ -243,6 +283,13 @@ namespace tuplex {
         v.push_back(Field(value));
         vec_build(v, Fargs...);
     }
+
+    /*!
+     * decode constant valued type to a field
+     * @param type
+     * @return field with value obtained from type
+     */
+    extern Field constantTypeToField(const python::Type& type);
 
 }
 #endif //TUPLEX_FIELD_H

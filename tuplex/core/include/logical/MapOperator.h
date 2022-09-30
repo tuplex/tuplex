@@ -20,12 +20,39 @@ namespace tuplex {
         std::vector<std::string> _outputColumns;
         std::string _name;
     public:
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
 
-        MapOperator(LogicalOperator *parent,
+        // required by cereal
+        MapOperator() = default;
+
+        MapOperator(const std::shared_ptr<LogicalOperator>& parent,
                     const UDF& udf,
-                    const std::vector<std::string>& columnNames);
+                    const std::vector<std::string>& columnNames,
+                    const std::unordered_map<size_t, size_t>& rewriteMap={});
         // needs a parent
+
+        inline nlohmann::json to_json() const {
+            // make it a super simple serialiation!
+            // basically mimick clone
+            nlohmann::json obj;
+            obj["name"] = "map";
+            obj["columnNames"] = UDFOperator::columns();
+            obj["outputColumns"] = _outputColumns;
+            obj["schema"] = LogicalOperator::schema().getRowType().desc();
+            obj["id"] = getID();
+
+            // no closure env etc.
+            nlohmann::json udf;
+            udf["code"] = _udf.getCode();
+
+            // this doesn't work, needs base64 encoding. skip for now HACK
+            //udf["pickledCode"] = _udf.getPickledCode();
+
+            obj["udf"] = udf;
+
+            return obj;
+        }
+
 
         /*!
          * set name of operator. Because map Operator is an umbrella for select/rename, use this here to give it more precise meaning.
@@ -60,7 +87,23 @@ namespace tuplex {
          */
         void rewriteParametersInAST(const std::unordered_map<size_t, size_t>& rewriteMap) override;
 
-        bool retype(const std::vector<python::Type>& rowTypes) override;
+        bool retype(const python::Type& input_row_type, bool is_projected_row_type) override;
+
+#ifdef BUILD_WITH_CEREAL
+        // cereal serialization functions
+        template<class Archive> void save(Archive &ar) const {
+            ar(::cereal::base_class<UDFOperator>(this), _outputColumns, _name);
+        }
+        template<class Archive> void load(Archive &ar) {
+            ar(::cereal::base_class<UDFOperator>(this), _outputColumns, _name);
+        }
+#endif
+
     };
 }
+
+#ifdef BUILD_WITH_CEREAL
+CEREAL_REGISTER_TYPE(tuplex::MapOperator);
+#endif
+
 #endif //TUPLEX_MAPOPERATOR_H

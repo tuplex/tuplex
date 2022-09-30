@@ -29,12 +29,21 @@ endif()
 # Note: AWS SDK is only compatible with curl build against OpenSSL. Check this here!
 # on linux, use ldd -v $(which curl) | grep OPENSSL which should yield a result.
 find_package(CURL REQUIRED)
-if(LINUX)
-    message(STATUS "@TODO: check that curl was build against openssl")
-    # ldd -v /usr/lib64/libcurl.so.4 | grep '(NSS'
-
+if(UNIX AND NOT APPLE)
     message(STATUS "CURL libraries: ${CURL_LIBRARIES}")
     message(STATUS "CURL include dirs: ${CURL_INCLUDE_DIR}")
+    
+    execute_process(COMMAND bash "-c" "ldd -v ${CURL_LIBRARIES} | grep -o -E '\(OPENSSL.*\)'" OUTPUT_VARIABLE SSL_OUT RESULT_VARIABLE SSL_RET OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(SSL_RET AND NOT SSL_RET EQUAL 0)
+	    message(FATAL_ERROR "failed to check that curl was built against openssl")
+    else()
+	    if(SSL_OUT AND SSL_OUT STREQUAL "")
+		    execute_process(COMMAND bash "-c" "ldd -v ${CURL_LIBRARIES} | grep -o -E '\(.*SSL.*\)' | head -n1" OUTPUT_VARIABLE SSL_OUT RESULT_VARIABLE SSL_RET OUTPUT_STRIP_TRAILING_WHITESPACE)
+		    message(FATAL_ERROR "libcurl was not built against OpenSSL, but against ${SSL_OUT}")
+	    else()
+		message(STATUS "Verified that curl was built against OpenSSL")
+	    endif()
+    endif()
 
     # this here should NOT yield any lines...!
     # ldd -v /usr/lib64/libcurl.so.4 | grep '(NSS'
@@ -51,7 +60,8 @@ if(BUILD_WITH_AWS)
     list(APPEND SOURCES ${PROTO_SRCS} ${PROTO_HDRS})
 endif()
 
-add_library(libcore OBJECT
+# can be only static because of llvms
+add_library(libcore ${LIBRARY_MODE}
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES})
 set_target_properties(libcore PROPERTIES PREFIX "")
 
@@ -70,11 +80,27 @@ target_include_directories(libcore PUBLIC
 
 message(STATUS "Boost libraries are: ${Boost_LIBRARIES}")
 
+message(STATUS "${LLVM_INCLUDE_DIRS}")
+message(STATUS "${LLVM_DEFINITIONS}")
+include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
+
+# core has the runtime llvm libraries
+llvm_map_components_to_libnames(core_llvm_libs nativecodegen scalaropts objcarcopts passes orcJIT)
+message(STATUS "llvm lib dirs: ${LLVM_LIBRARY_DIRS}")
+link_directories(${LLVM_LIBRARY_DIRS})
+message(STATUS "${core_llvm_libs}")
+
+#target_include_directories(libcore PRIVATE libcodegen)
+
+#llvm_config(libcore USE_SHARED ${core_llvm_libs})
 # Declare the library
 target_link_libraries(libcore
+        PRIVATE
         libcodegen
         libio
         libcpythonadapter
+        ${core_llvm_libs}
         ${YAMLCPP_LIBRARY}
         ${CURL_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES}
@@ -84,3 +110,11 @@ target_link_libraries(libcore
         Boost::system
         Boost::filesystem
         )
+
+# precompiled headers, mostly to speed up cerealization of operators
+if(USE_PRECOMPILED_HEADERS)
+    # mainly operators but also include codegen context
+    file(GLOB_RECURSE LOGICAL_OPERATORS_HEADER include/logical/*.h)
+    set(CORE_HEADERS ${LOGICAL_OPERATORS_HEADER} include/physical/codegen/CodeGenerationContext.h include/UDF.h)
+    target_precompile_headers(libcore PUBLIC ${CORE_HEADERS})
+endif()

@@ -14,11 +14,11 @@
 #include <memory>
 #include "Schema.h"
 #include "UDF.h"
-#include "Partition.h"
+#include "physical/memory/Partition.h"
 #include "Row.h"
 #include "Context.h"
 #include <ExceptionCodes.h>
-#include "Defs.h"
+#include "logical/Defs.h"
 #include <limits>
 
 namespace tuplex {
@@ -64,7 +64,7 @@ namespace tuplex {
 
         Schema _schema;
         Context *_context;
-        LogicalOperator *_operator;
+        std::shared_ptr<LogicalOperator> _operator;
 
         // one or more (materialized) partitions belong to a dataset
         // they are used to store the data
@@ -337,7 +337,7 @@ namespace tuplex {
 
         Context *getContext() const { return _context; }
 
-        LogicalOperator* getOperator() const { return _operator; }
+        std::shared_ptr<LogicalOperator> getOperator() const { return _operator; }
 
         virtual bool isError() const { return false; }
         virtual bool isEmpty() const;

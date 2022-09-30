@@ -9,8 +9,8 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include "gtest/gtest.h"
-#include <ReducableExpressionsVisitor.h>
-#include <ReduceExpressionsVisitor.h>
+#include <visitors/ReducableExpressionsVisitor.h>
+#include <visitors/ReduceExpressionsVisitor.h>
 #include "Helper.h"
 #include <parser/Parser.h>
 

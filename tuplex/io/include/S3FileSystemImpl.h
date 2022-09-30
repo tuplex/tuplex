@@ -29,7 +29,7 @@ namespace tuplex {
         S3FileSystemImpl(const std::string& access_key, const std::string& secret_key, const std::string& session_token,
                          const std::string& region, const NetworkSettings& ns, bool lambdaMode, bool requesterPay);
 
-        Aws::S3::S3Client const& client() const { return *_client.get(); }
+        Aws::S3::S3Client const& client() const { assert(_client); return *_client.get(); }
 
         // fetch stats
         void resetCounters();
@@ -63,14 +63,14 @@ namespace tuplex {
 
         // to compute pricing, use https://calculator.s3.amazonaws.com/index.html
         // counters, practical for price estimation
-        size_t _putRequests;
-        size_t _initMultiPartUploadRequests;
-        size_t _multiPartPutRequests;
-        size_t _closeMultiPartUploadRequests;
-        size_t _getRequests;
-        size_t _bytesTransferred;
-        size_t _bytesReceived;
-        size_t _lsRequests;
+        std::atomic<size_t> _putRequests;
+         std::atomic<size_t> _initMultiPartUploadRequests;
+         std::atomic<size_t> _multiPartPutRequests;
+         std::atomic<size_t> _closeMultiPartUploadRequests;
+         std::atomic<size_t> _getRequests;
+         std::atomic<size_t> _bytesTransferred;
+         std::atomic<size_t> _bytesReceived;
+         std::atomic<size_t> _lsRequests;
 
         // transfer manager uses a threadpool, simply use here a pool for some additional threads.
         // Note: this design might be not that great together with the executor threadpool!
@@ -94,6 +94,17 @@ namespace tuplex {
         std::vector<URI> glob(const std::string& pattern) override;
     };
 
+    /*!
+     * retrieves meta-data about bucket. Returns empty string if not found or request fails.
+     * @param client on which S3 clien to run request
+     * @param uri uri
+     * @param os_err optional output stream where to log errors.
+     * @return string containing JSON meta-data or empty string for failure
+     */
+    extern std::string s3GetHeadObject(Aws::S3::S3Client const& client, const URI& uri, std::ostream *os_err=nullptr);
+
+
+    extern size_t s3GetContentLength(Aws::S3::S3Client const& client, const URI& uri, std::ostream *os_err=nullptr);
 }
 
 

@@ -28,9 +28,11 @@ namespace tuplex {
 
         /*!
          * detects schema of operator using sample if necessary.
-         * @return
+         * @param parentSchema the (output) schema of the parent operator. If unknown, a sample will beused
+         * @param is_projected_schema whether parentSchema is a projected schema or not. If it is, the projection map will be utilized.
+         * @return the inferred output schema that the UDF would return.
          */
-        virtual Schema inferSchema(Schema parentSchema=Schema::UNKNOWN);
+        virtual Schema inferSchema(Schema parentSchema=Schema::UNKNOWN, bool is_projected_schema=false);
 
         /*!
          * update internal column names with a rewrite map from projection pushdown
@@ -38,12 +40,16 @@ namespace tuplex {
          */
         void projectColumns(const std::unordered_map<size_t, size_t>& rewriteMap);
 
+        bool performRetypeCheck(const python::Type& input_row_type, bool is_projceted_row_type);
     private:
         std::vector<std::string> _columnNames;
+        // need to store rewrite map as well so when cloning AST can be properly rewritten
+        std::unordered_map<size_t, size_t> _rewriteMap;
     public:
-        UDFOperator() = delete;
-        UDFOperator(LogicalOperator* parent, const UDF& udf,
-                const std::vector<std::string>& columnNames=std::vector<std::string>());
+        UDFOperator() = default; // required by cereal
+        UDFOperator(const std::shared_ptr<LogicalOperator> &parent, const UDF& udf,
+                const std::vector<std::string>& columnNames=std::vector<std::string>(),
+                        const std::unordered_map<size_t, size_t>& rewriteMap=std::unordered_map<size_t, size_t>());
 
         UDF& getUDF() { return _udf; }
         const UDF& getUDF() const { return _udf; }
@@ -53,12 +59,35 @@ namespace tuplex {
         virtual Schema getInputSchema() const override {
             // @TODO: fix this
             // => should return row schema! not what the udf needs... (because of nesting...)
-            assert(_udf.getInputSchema().getRowType() != python::Type::UNKNOWN); return _udf.getInputSchema();
+
+            // // this gets triggered when retyping/reoptimization through clone...
+            // assert(_udf.getInputSchema().getRowType() != python::Type::UNKNOWN);
+
+
+            return _udf.getInputSchema();
         }
 
         virtual std::vector<std::string> columns() const override { return _columnNames; }
 
+        virtual std::unordered_map<size_t, size_t> rewriteMap() const { return _rewriteMap; }
+
+        /*!
+         * indicates whether stored UDF has well defined types or not.
+         * @return
+         */
+        bool hasWellDefinedTypes() const { return _udf.hasWellDefinedTypes(); }
+
         void setColumns(const std::vector<std::string>& columns) { assert(_columnNames.empty() || _columnNames.size() == columns.size()); _columnNames = columns; }
+
+#ifdef BUILD_WITH_CEREAL
+        // cereal serialization functions
+        template<class Archive> void save(Archive &ar) const {
+            ar(::cereal::base_class<LogicalOperator>(this), _udf, _columnNames, _rewriteMap);
+        }
+        template<class Archive> void load(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _udf, _columnNames, _rewriteMap);
+        }
+#endif
     };
 
     /*!
@@ -66,7 +95,11 @@ namespace tuplex {
      * @param op
      * @return whether op has a UDF or not.
      */
-    extern bool hasUDF(const LogicalOperator* op);
+    extern bool hasUDF(const LogicalOperator *op);
 }
+
+#ifdef BUILD_WITH_CEREAL
+CEREAL_REGISTER_TYPE(tuplex::UDFOperator);
+#endif
 
 #endif //TUPLEX_UDFOPERATOR_H

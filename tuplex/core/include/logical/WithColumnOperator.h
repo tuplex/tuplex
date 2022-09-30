@@ -25,15 +25,19 @@ namespace tuplex {
         int calcColumnToMapIndex(const std::vector<std::string> &columnNames,
                              const std::string &columnName);
     public:
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
 
     protected:
-        Schema inferSchema(Schema parentSchema) override;
+        Schema inferSchema(Schema parentSchema, bool is_projected_row_type) override;
     public:
-        WithColumnOperator(LogicalOperator *parent,
+        // required by cereal
+        WithColumnOperator() = default;
+
+        WithColumnOperator(const std::shared_ptr<LogicalOperator>& parent,
         const std::vector<std::string>& columnNames,
         const std::string& columnName,
-        const UDF& udf);
+        const UDF& udf,
+        const std::unordered_map<size_t, size_t>& rewriteMap={});
 
         std::string name() override { return "withColumn"; }
         LogicalOperatorType type() const override { return LogicalOperatorType::WITHCOLUMN; }
@@ -61,8 +65,22 @@ namespace tuplex {
             return parent()->getOutputSchema(); // overwrite here, because UDFOperator always returns the UDF's input schema. However, for mapColumn it's not a row but an element!
         }
 
-        bool retype(const std::vector<python::Type>& rowTypes=std::vector<python::Type>()) override;
+        bool retype(const python::Type& input_row_type, bool is_projected_row_type) override;
+
+#ifdef BUILD_WITH_CEREAL
+        template<class Archive> void save(Archive &ar) const {
+            ar(::cereal::base_class<UDFOperator>(this), _newColumn, _columnToMapIndex);
+        }
+        template<class Archive> void load(Archive &ar) {
+            ar(::cereal::base_class<UDFOperator>(this), _newColumn, _columnToMapIndex);
+        }
+#endif
+
     };
 }
+
+#ifdef BUILD_WITH_CEREAL
+CEREAL_REGISTER_TYPE(tuplex::WithColumnOperator);
+#endif
 
 #endif //TUPLEX_WITHCOLUMNOPERATOR_H

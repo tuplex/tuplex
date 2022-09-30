@@ -10,6 +10,7 @@
 
 #include "gtest/gtest.h"
 #include "TypeSystem.h"
+#include "TypeHelper.h"
 #include <TupleTree.h>
 
 TEST(TypeSys, tupleTypes) {
@@ -64,6 +65,13 @@ TEST(TypeSys, StrDecoding) {
              Type::F64,
              Type::makeListType(Type::makeOptionType(Type::STRING))});
     EXPECT_TRUE(even_more_complex == decodeType("([f64], {str, ([i64], bool, [{f64, Option[str]}])}, f64, [Option[str]])"));
+}
+
+TEST(TypeSys, MoreDecoding) {
+    using namespace python;
+
+    auto t = decodeType("(i64,i64,i64,str,i64,i64,i64,i64,f64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])");
+    EXPECT_TRUE(t.isTupleType());
 }
 
 TEST(TypeSys, TupleHaveSameType) {
@@ -163,7 +171,56 @@ TEST(TypeSys, flattenWithPyObject) {
     EXPECT_EQ(num_params, 3);
 }
 
+#ifdef BUILD_WITH_CEREAL
+TEST(TypeSys, Cerealization) {
+    auto row_type = python::Type::makeTupleType({python::Type::I64, python::Type::I64, python::Type::PYOBJECT});
+    std::ostringstream oss; {
+        cereal::BinaryOutputArchive ar(oss);
+        ar(row_type);
+    }
+
+    EXPECT_TRUE(oss.str().size() > 0);
+
+    // @TODO: deserialization test.
+
+    // ==> note: this requires some fancier lookup! b.c. the typemaps of the two systems may be out of sync...
+    // @TODO: correct this...!
+    // => better: semantic encoding of types and decoding from there...?
+}
+#endif
+
+TEST(TypeSys, NewTypEncodeDecode) {
+    using namespace tuplex;
+    auto row_type = python::Type::makeTupleType({python::Type::I64, python::Type::I64, python::Type::PYOBJECT});
+
+    // a couple other test types (mainly compound types)
+    auto encoded_str = row_type.encode();
+    auto t = python::Type::decode(encoded_str);
+    EXPECT_EQ(t.desc(), row_type.desc());
+
+    // check func has the right order
+    auto func_type = python::Type::makeFunctionType(row_type, python::Type::makeOptionType(python::Type::makeTupleType({python::Type::F64, python::Type::STRING})));
+    encoded_str = func_type.encode();
+    t = python::Type::decode(encoded_str);
+    EXPECT_EQ(t.desc(), func_type.desc());
+}
+
+TEST(TypeSys, ReturnTypeUpcasting) {
+    using namespace tuplex;
+    // [2022-04-12 10:45:23.706] [codegen] [debug] Deoptimized func ret type:   (i64,i64,i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+    //[2022-04-12 10:45:23.706] [codegen] [debug] Deoptimized target ret type: (i64,i64,i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64])
+
+    auto func_ret_type = python::Type::decode("Tuple[i64,i64,i64,str,i64,i64,i64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]]");
+    auto target_type = python::Type::decode("Tuple[i64,i64,i64,str,i64,i64,i64,f64,f64,f64,Option[f64],Option[f64],Option[f64],Option[f64],Option[f64]]");
+
+    EXPECT_TRUE(python::canUpcastType(target_type, func_ret_type));
+
+    std::cout<<"ret type: "<<func_ret_type.desc()<<std::endl;
+    std::cout<<"target type: "<<target_type.desc()<<std::endl;
+}
+
 TEST(TypeSys, compatibleType) {
+    using namespace tuplex;
 
     // [Option[[i64]]] and [[Option[i64]]] ==> [Option[[Option[i64]]]]
     auto a1_type = python::Type::makeListType(python::Type::makeOptionType(python::Type::makeListType(python::Type::I64)));
@@ -177,3 +234,4 @@ TEST(TypeSys, compatibleType) {
     auto ab2_compatible_type = unifyTypes(a2_type, b2_type, true);
     EXPECT_EQ(ab2_compatible_type, python::Type::makeOptionType(python::Type::makeListType(python::Type::makeOptionType(python::Type::makeTupleType({python::Type::makeOptionType(python::Type::STRING), python::Type::makeOptionType(python::Type::makeListType(python::Type::makeOptionType(python::Type::F64)))})))));
 }
+

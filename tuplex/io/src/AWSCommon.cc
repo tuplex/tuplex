@@ -20,7 +20,18 @@
 #include <aws/core/utils/logging/DefaultLogSystem.h>
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <aws/core/platform/Environment.h>
+
+#include <aws/core/utils/HashingUtils.h>
+#include <aws/core/utils/threading/Executor.h>
+#include <aws/core/auth/AWSCredentials.h>
+#include <aws/core/utils/json/JsonSerializer.h>
+
+
 #include <Network.h>
+
+#include <regex>
+#include <algorithm>
+#include <memory>
 
 static std::string throw_if_missing_envvar(const std::string &name) {
     auto value = getenv(name.c_str());
@@ -31,6 +42,7 @@ static std::string throw_if_missing_envvar(const std::string &name) {
 }
 
 static bool isAWSInitialized = false;
+static Aws::SDKOptions aws_options;
 
 // for Lambda, check: https://docs.aws.amazon.com/code-samples/latest/catalog/cpp-lambda-lambda_example.cpp.html
 
@@ -54,7 +66,6 @@ namespace tuplex {
 
     bool initAWSSDK() {
         if(!isAWSInitialized) {
-            Aws::SDKOptions options;
 
 //        // hookup to Tuplex logger...
 //        // --> https://docs.aws.amazon.com/sdk-for-cpp/v1/developer-guide/logging.html
@@ -63,8 +74,8 @@ namespace tuplex {
             // @TODO: add tuplex loggers
             // => https://sdk.amazonaws.com/cpp/api/LATEST/class_aws_1_1_utils_1_1_logging_1_1_log_system_interface.html
 
-            // note: AWSSDk uses curl by default, can disable curl init here via https://sdk.amazonaws.com/cpp/api/LATEST/struct_aws_1_1_http_options.html
-            Aws::InitAPI(options);
+        // note: AWSSDk uses curl by default, can disable curl init here via https://sdk.amazonaws.com/cpp/api/LATEST/struct_aws_1_1_http_options.html
+        Aws::InitAPI(aws_options);
 
             // init logging
 //        Aws::Utils::Logging::InitializeAWSLogging(
@@ -73,8 +84,10 @@ namespace tuplex {
 //                    Aws::Utils::Logging::LogLevel::Trace,
 //                    "aws sdk"));
 #ifndef NDEBUG
-            auto log_system = Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>("tuplex", Aws::Utils::Logging::LogLevel::Trace);
-            Aws::Utils::Logging::InitializeAWSLogging(log_system);
+        auto log_level = Aws::Utils::Logging::LogLevel::Trace;
+        log_level = Aws::Utils::Logging::LogLevel::Info;
+        auto log_system = Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>("tuplex", log_level);
+        Aws::Utils::Logging::InitializeAWSLogging(log_system);
 #endif
             isAWSInitialized = true;
         }
@@ -184,6 +197,14 @@ namespace tuplex {
         return true;
     }
 
+    void shutdownAWS() {
+
+        // remove S3 File System
+        VirtualFileSystem::removeS3FileSystem();
+        Aws::ShutdownAPI(aws_options);
+        isAWSInitialized = false;
+    }
+
     bool isValidAWSZone(const std::string& zone) {
         // names from https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html
         static std::set<std::string> valid_names{"us-east-2",
@@ -219,6 +240,7 @@ namespace tuplex {
         config.caPath = ns.caPath.c_str();
         config.verifySSL = ns.verifySSL;
     }
+
 }
 
 #endif

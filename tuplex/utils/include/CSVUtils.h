@@ -102,7 +102,7 @@ namespace tuplex {
         option<bool> startWhitespace; // whitespace in front of content?
         option<bool> endWhitespace; // whitespace at end?
         option <size_t> length; // typical length (0 if not determinable)
-
+        size_t maxDequotedCellSize; // max dequoted cell size in bytes (incl. null terminator!)
         size_t rowCount; // how many rows.
         size_t bufSize; // size of buffer over which estimation occurred
 

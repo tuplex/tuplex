@@ -11,13 +11,14 @@
 #include <logical/MapColumnOperator.h>
 
 namespace tuplex {
-    MapColumnOperator::MapColumnOperator(tuplex::LogicalOperator *parent, const std::string &columnName, const std::vector<std::string>& columns,
-                                         const tuplex::UDF &udf) : UDFOperator::UDFOperator(parent, udf, columns), _columnToMap(columnName) {
+    MapColumnOperator::MapColumnOperator(const std::shared_ptr<LogicalOperator>& parent, const std::string &columnName, const std::vector<std::string>& columns,
+                                         const tuplex::UDF &udf,
+                                         const std::unordered_map<size_t, size_t>& rewriteMap) : UDFOperator::UDFOperator(parent, udf, columns, rewriteMap), _columnToMap(columnName) {
 
         _columnToMapIndex = indexInVector(columnName, columns);
         assert(_columnToMapIndex >= 0);
 
-        setSchema(inferSchema(parent->getOutputSchema()));
+        setSchema(inferSchema(parent->getOutputSchema(), false));
 
 //#ifndef NDEBUG
 //        Logger::instance().defaultLogger().info("detected output type for " + name() + " operator is " + schema().getRowType().desc());
@@ -27,7 +28,7 @@ namespace tuplex {
 
 #warning "make sure that that mapColumn function is compatible!!!!"
 
-    Schema MapColumnOperator::inferSchema(Schema parentSchema) {
+    Schema MapColumnOperator::inferSchema(Schema parentSchema, bool is_projected_row_type) {
         // ATTENTION!!!
         // in map column operator NO column rewrite will be undertaken
         // in withColumn it will be though...
@@ -138,6 +139,7 @@ namespace tuplex {
 
 
     void MapColumnOperator::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
+        // throw std::runtime_error("not sure what's going on here...");
         if(rewriteMap.find(_columnToMapIndex) != rewriteMap.end())
             _columnToMapIndex = rewriteMap.at(_columnToMapIndex);
         else
@@ -147,19 +149,19 @@ namespace tuplex {
         projectColumns(rewriteMap);
 
         // update schema
-        setSchema(inferSchema(parent()->getOutputSchema()));
+        setSchema(inferSchema(parent()->getOutputSchema(), false));
     }
 
-    LogicalOperator *MapColumnOperator::clone() {
-        auto copy = new MapColumnOperator(parent()->clone(), _columnToMap,
-                                          UDFOperator::columns(), _udf);
+    std::shared_ptr<LogicalOperator> MapColumnOperator::clone(bool cloneParents) {
+        auto copy = new MapColumnOperator(cloneParents ? parent()->clone() : nullptr, _columnToMap,
+                                          UDFOperator::columns(), _udf, UDFOperator::rewriteMap());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
-    bool MapColumnOperator::retype(const std::vector<python::Type> &rowTypes) {
+    bool MapColumnOperator::retype(const python::Type& input_row_type, bool is_projected_row_type) {
         assert(good());
 
         // save old schema
@@ -167,9 +169,16 @@ namespace tuplex {
         auto oldOut = getOutputSchema();
 
         // infer new schema using one row type
-        assert(rowTypes.size() == 1);
-        assert(rowTypes[0].isTupleType());
-        auto colTypes = rowTypes.front().parameters();
+        assert(input_row_type.isTupleType());
+        auto colTypes = input_row_type.parameters();
+
+        // check that number of parameters are identical, else can't rewrite (need to project first!)
+        auto old_input_type = oldIn.getRowType().parameters().at(_columnToMapIndex);
+        size_t num_params_before_retype = oldIn.getRowType().parameters().size();
+        size_t num_params_after_retype = colTypes.size();
+        if(num_params_before_retype != num_params_after_retype) {
+            throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");
+        }
 
         python::Type udfResType = python::Type::UNKNOWN;
         auto memLayout = oldOut.getMemoryLayout();

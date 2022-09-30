@@ -1,0 +1,177 @@
+## This is an experiment to spin up automatically an EC2 instnace and run everything
+
+# Invoke via ansible-playbook --connection=local --inventory 127.0.0.1, ec2experiment.yml
+# or specify hosts file
+# you might want to do a dry run first using --check
+
+- hosts: all
+  remote_user: root
+  gather_facts: no
+  vars:
+    region: us-east-1
+    key_name: vitonexp
+    sg_name: vitonsg
+    # this here is Ubuntu Server 20.04 LTS (HVM), SSD Volume Type
+    ami: ami-04505e74c0741db8d
+    instance_type: t2.medium
+    spot_price: 0.20
+  # specify what tasks to execute
+  tasks:
+    # EC2 credentials create for this experiment
+    - name: "Create new EC2 key {{ key_name }}"
+      ec2_key:
+        name: "{{ key_name }}"
+        region: "{{ region }}"
+      register: ec2_key_result
+    - name: "Save private key"
+      copy: content="{{ ec2_key_result.key.private_key }}" dest="./{{ key_name }}.pem" mode=0600
+      when: ec2_key_result.changed
+
+# removed in 2.5
+# - name: "Create new VPC"
+#   ec2_vpc:
+#     state: present
+#     resource_tags: { "Environment" : "Experiment" }
+#     region: "{{ region }}"
+#   register: vpc
+
+    - name: "create new VPC"
+      amazon.aws.ec2_vpc_net:
+        name: "{{ key_name }}"
+        region: "{{ region }}"
+        tags: { "Environment" : "Experiment" }
+      register: vpc
+
+    # cf. https://www.ansible.com/blog/ansible-for-aws-introduction-to-spot-instance-automation
+    # and https://www.infinitypp.com/ansible/create-aws-resources-using-ansible/
+    - name: "Create EC2 security group {{ sg_name }}"
+      ec2_group:
+        name: "{{ sg_name }}"
+        description: "Automatically created security group for Viton experiments"
+        region: "{{ region }}"
+        rules:
+          - proto: tcp
+            ports:
+              - 22
+              - 80
+              - 443
+              - 8080-8099
+            cidr_ip: 0.0.0.0/0
+      register: security_group
+
+# - name: "Requesting spot instance"
+#   amazon.aws.ec2_spot_instance:
+#     launch_specification:
+#       image_id: "{{ ami }}"
+#       key_name: "{{ key_name }}"
+#       instance_type: "{{ instance_type }}"
+#       block_device_mappings:
+#         - device_name: /dev/sdc
+#           ebs:
+#             delete_on_termination: True
+#             volume_type: io2
+#             volume_size: 30
+#             iops: 5000
+#       network_interfaces:
+#         - associate_public_ip_address: True
+#           delete_on_termination: True
+#           device_index: 0
+#     spot_price: "{{ spot_price }}"
+#   register: spot_instance
+
+    - name: "Requesting spot instance"
+      ec2:
+        spot_price: "{{ spot_price }}"
+        spot_wait_timeout: 600
+        image: "{{ ami }}"
+        keypair: "{{ key_name }}"
+        group_id: "{{ security_group.group_id }}"
+        assign_public_ip: yes
+        vpc_subnet_id: ""
+        wait: yes
+          # launch_specification:
+          #
+          #   instance_type: "{{ instance_type }}"
+          #   block_device_mappings:
+          #     - device_name: /dev/sdc
+          #       ebs:
+          #         delete_on_termination: True
+          #         volume_type: io2
+          #         volume_size: 30
+          #         iops: 5000
+          #   network_interfaces:
+          #     - associate_public_ip_address: True
+          #       delete_on_termination: True
+          #       device_index: 0
+
+      register: spot_instance
+
+    - name: "Add new instance to host group"
+      add_host:
+        hostname: "{{ spot_instance.public_ip }}"
+        groupname: launched
+
+    # cf. https://runebook.dev/en/docs/ansible/collections/amazon/aws/ec2_module
+    - name: "Wait for SSH to come up"
+      delegate_to: "{{ spot_instance.public_ip }}"
+      wait_for_connection:
+        delay: 60
+        timeout: 320
+
+    # # configure instance & do whatever is necessary
+    # - name: "Configure instance"
+    #   hosts: launched
+    #   become: True
+    #   gather_facts: True
+
+
+    - name: "Shutdown spot instance"
+      amazon.aws.ec2_spot_instance:
+        spot_instance_request_id: "{{ spot_instance.spot_instance_request_id }}"
+        state: absent
+      when: spot_instance.changed
+
+  #  - name: "Deleting spot instances"
+    # - name: Spot Instance Request Termination
+  # amazon.aws.ec2_spot_instance:
+  #   spot_instance_request_ids: ['sir-12345678', 'sir-abcdefgh']
+  #   state: absent
+
+
+
+
+    # - name: "Removing EC2 security group {{ sg_name }}"
+    #   ec2_group:
+    #     state: absent
+    #     name: "{{ sg_name }}"
+    #     region: "{{ region }}"
+    # # EC2 credentials cleanup
+    # - name: "Removing EC2 key {{ key_name }}"
+    #   ec2_key:
+    #       name: "{{ key_name }}"
+    #       region: "{{ region }}"
+    #       #  absent means delete keypair
+    #       state: absent
+    # - name: "Deleting local key file {{ key_name }}.pem"
+    #   file:
+    #     path: "./{{ key_name }}.pem"
+    #     state: absent
+
+
+
+# hosts: all
+#   # remote_user: root
+#   vars:
+#     # define here user defined vars, change vars here if you want to run in a different region e.g.
+#     region: us-east-1
+#     key_name: vitonexp
+#
+# tasks:
+#   - name: "Create new EC2 key {{ key_name }}"
+#     ec2_key:
+#       name: "{{ key_name }}"
+#       region: "{{ region }}"
+#     register: ec2_key_result
+#   - name: "Save private key"
+#     copy: content="{{ ec2_key_result.key.private_key }}" dest="./{{ key_name }}.pem " mode=0600
+#     when: ec2_key_result.changed

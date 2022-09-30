@@ -11,23 +11,24 @@
 #ifndef TUPLEX_CONTEXT_H
 #define TUPLEX_CONTEXT_H
 
+#include <logical/Defs.h>
 #include <logical/LogicalOperatorType.h>
 #include <logical/LogicalOperator.h>
 #include <DataSet.h>
-#include "Partition.h"
-#include <PartitionGroup.h>
+#include "physical/memory/Partition.h"
+#include "physical/memory/PartitionGroup.h"
 #include "Row.h"
-#include "HistoryServerClasses.h"
+#include "webui/HistoryServerClasses.h"
 #include <initializer_list>
 #include <iostream>
 #include <vector>
 #include <iterator>
 #include <ContextOptions.h>
-#include <JITCompiler.h>
+#include <jit/JITCompiler.h>
 #include <Utils.h>
 #include <graphviz/GraphVizBuilder.h>
 #include <ee/IBackend.h>
-#include "JobMetrics.h"
+#include "utils/JobMetrics.h"
 
 
 namespace tuplex {
@@ -38,6 +39,7 @@ namespace tuplex {
     class Executor;
     class Partition;
     class IBackend;
+    class ExceptionInfo;
     class PartitionGroup;
 
     class Context {
@@ -56,7 +58,7 @@ namespace tuplex {
         // a context is associated with a number of logical operators
         // the context object does the memory management of these operators.
         // a dataset is the result of applying the DAG of operations.
-        std::vector<LogicalOperator*> _operators;
+        std::vector<std::shared_ptr<LogicalOperator>> _operators;
 
         // needed because of C++ template issues
         void addPartition(DataSet* ds, Partition *partition);
@@ -66,8 +68,12 @@ namespace tuplex {
          * @param ds dataset
          * @param fallbackPartitions fallback partitions from python parallelize
          * @param partitionGroups partition mapping information
+         * @param sm sampling mode to use for Parallelize operator.
          */
-        void addParallelizeNode(DataSet *ds, const std::vector<Partition*>& fallbackPartitions=std::vector<Partition*>{}, const std::vector<PartitionGroup>& partitionGroups=std::vector<PartitionGroup>{}); //! adds a paralellize node to the computation graph
+        void addParallelizeNode(DataSet *ds,
+                                const std::vector<Partition*>& fallbackPartitions=std::vector<Partition*>{},
+                                const std::vector<PartitionGroup>& partitionGroups=std::vector<PartitionGroup>{},
+                                const SamplingMode& sm=DEFAULT_SAMPLING_MODE); //! adds a paralellize node to the computation graph
 
         Partition* requestNewPartition(const Schema& schema, const int dataSetID, size_t minBytesRequired);
         uint8_t* partitionLockRaw(Partition *partition);
@@ -85,7 +91,6 @@ namespace tuplex {
         std::shared_ptr<JobMetrics> _lastJobMetrics;
 
         codegen::CompilePolicy _compilePolicy;
-        codegen::CompilePolicy compilePolicyFromOptions(const ContextOptions& options);
 
         inline int getNextContextID() { return _contextIDGenerator++; }
 
@@ -96,7 +101,7 @@ namespace tuplex {
          * copies data from the iterators to a dataset. Data must have a fixed size per row (i.e. no variable size fields like strings, dicts, lists,...)
          * further: currently, no nested tuple types etc. are supported.
         */
-        template<class Iterator> DataSet& parallelizeFixedSizeData(Iterator first, Iterator last, const Schema& schema, const std::vector<std::string>& columnNames=std::vector<std::string>());
+        template<class Iterator> DataSet& parallelizeFixedSizeData(Iterator first, Iterator last, const Schema& schema, const std::vector<std::string>& columnNames=std::vector<std::string>(), const SamplingMode& sampling_mode=DEFAULT_SAMPLING_MODE);
 
     public:
         Context(const ContextOptions& options=ContextOptions::load());
@@ -110,7 +115,7 @@ namespace tuplex {
         int id() const { return _id; }
 
         // create from array
-        DataSet& parallelize(std::initializer_list<int> L, const std::vector<std::string>& columnNames=std::vector<std::string>()) {
+        DataSet& parallelize(std::initializer_list<int> L, const std::vector<std::string>& columnNames=std::vector<std::string>(), const SamplingMode& sampling_mode=DEFAULT_SAMPLING_MODE) {
             if(!columnNames.empty())
                 if(columnNames.size() != 1)
                     return makeError("more than one column name given");
@@ -118,13 +123,17 @@ namespace tuplex {
                                             L.end(),
                                             Schema(Schema::MemoryLayout::ROW,
                                                    python::Type::makeTupleType({python::Type::I64})),
-                                            columnNames);
+                                            columnNames,
+                                            sampling_mode);
         }
 
         DataSet& parallelize(const std::vector<Row>& L,
-                             const std::vector<std::string>& columnNames=std::vector<std::string>());
+                             const std::vector<std::string>& columnNames=std::vector<std::string>(),
+                             const SamplingMode& sampling_mode=DEFAULT_SAMPLING_MODE);
 
-        DataSet& parallelize(std::initializer_list<double> L, const std::vector<std::string>& columnNames=std::vector<std::string>()) {
+        DataSet& parallelize(std::initializer_list<double> L,
+                             const std::vector<std::string>& columnNames=std::vector<std::string>(),
+                             const SamplingMode& sampling_mode=DEFAULT_SAMPLING_MODE) {
             if(!columnNames.empty())
                 if(columnNames.size() != 1)
                     return makeError("more than one column name given");
@@ -132,10 +141,12 @@ namespace tuplex {
                                             L.end(),
                                             Schema(Schema::MemoryLayout::ROW,
                                                    python::Type::makeTupleType({python::Type::F64})),
-                                            columnNames);
+                                            columnNames,
+                                            sampling_mode);
         }
 
-        DataSet& parallelize(std::initializer_list<int64_t > L, const std::vector<std::string>& columnNames=std::vector<std::string>()) {
+        DataSet& parallelize(std::initializer_list<int64_t > L, const std::vector<std::string>& columnNames=std::vector<std::string>(),
+        const SamplingMode& sampling_mode=DEFAULT_SAMPLING_MODE) {
             if(!columnNames.empty())
                 if(columnNames.size() != 1)
                     return makeError("more than one column name given");
@@ -143,10 +154,11 @@ namespace tuplex {
                                             L.end(),
                                             Schema(Schema::MemoryLayout::ROW,
                                                    python::Type::makeTupleType({python::Type::I64})),
-                                            columnNames);
+                                            columnNames,
+                                            sampling_mode);
         }
 
-        DataSet& parallelize(std::initializer_list<bool> L, const std::vector<std::string>& columnNames=std::vector<std::string>()) {
+        DataSet& parallelize(std::initializer_list<bool> L, const std::vector<std::string>& columnNames=std::vector<std::string>(), const SamplingMode& sampling_mode=DEFAULT_SAMPLING_MODE) {
             if(!columnNames.empty())
                 if(columnNames.size() != 1)
                     return makeError("more than one column name given");
@@ -154,12 +166,12 @@ namespace tuplex {
                                             L.end(),
                                             Schema(Schema::MemoryLayout::ROW,
                                                    python::Type::makeTupleType({python::Type::BOOLEAN})),
-                                            columnNames);
+                                            columnNames, sampling_mode);
         }
 
-        template<typename Iterator> DataSet& parallelize(Iterator begin, Iterator end, const std::vector<std::string>& columnNames=std::vector<std::string>()) {
+        template<typename Iterator> DataSet& parallelize(Iterator begin, Iterator end, const std::vector<std::string>& columnNames=std::vector<std::string>(), const SamplingMode& sampling_mode=DEFAULT_SAMPLING_MODE) {
             return parallelizeFixedSizeData(begin, end, Schema(Schema::MemoryLayout::ROW,
-                                                               python::Type::makeTupleType({deductType(*begin)})));
+                                                               python::Type::makeTupleType({deductType(*begin)})), columnNames, sampling_mode);
         }
 
 
@@ -178,6 +190,7 @@ namespace tuplex {
          * @param null_values list of string to interpret as null values.
          * @param index_based_type_hints map of column indices to force type of column to certain value.
          * @param column_based_type_hints map of column names to force type of column to certain value.
+         * @param sampling_mode defines how to sample
          * @return Dataset
          */
         DataSet& csv(const std::string &pattern,
@@ -187,25 +200,28 @@ namespace tuplex {
                      char quotechar='"',
                      const std::vector<std::string>& null_values=std::vector<std::string>{""},
                      const std::unordered_map<size_t, python::Type>& index_based_type_hints=std::unordered_map<size_t, python::Type>(),
-                     const std::unordered_map<std::string, python::Type>& column_based_type_hints=std::unordered_map<std::string, python::Type>());
+                     const std::unordered_map<std::string, python::Type>& column_based_type_hints=std::unordered_map<std::string, python::Type>(),
+                     const SamplingMode& sampling_mode=DEFAULT_SAMPLING_MODE);
 
         /*!
          * reads text files with into memory. Type will be always string or Option[string]. Parsing is done using line delimiters \n and \r
          * Analysis is done when function is called but actual loading is deferred (lazy)
          * @param pattern file pattern to search for
          * @param null_values which string to interpret as null values
+         * @param sampling_mode defines how to sample
          * @return Dataset
          */
-        DataSet& text(const std::string &pattern, const std::vector<std::string>& null_values=std::vector<std::string>{});
+        DataSet& text(const std::string &pattern, const std::vector<std::string>& null_values=std::vector<std::string>{}, const SamplingMode& sampling_mode=DEFAULT_SAMPLING_MODE);
 
         /*!
          * reads orc files with into memory.
          * @param pattern file pattern to search for
          * @param columns optional columns/header preset. Also makes sense for headerless files
+         * @param sampling_mode defines how to sample
          * @return Dataset
          */
         DataSet& orc(const std::string &pattern,
-                     const std::vector<std::string>& columns=std::vector<std::string>());
+                     const std::vector<std::string>& columns=std::vector<std::string>(), const SamplingMode& sampling_mode=DEFAULT_SAMPLING_MODE);
 
         /*!
          * creates an error dataset
@@ -218,7 +234,7 @@ namespace tuplex {
 
         IBackend* backend() const { assert(_ee); return _ee.get(); }
 
-        LogicalOperator* addOperator(LogicalOperator* op);
+        std::shared_ptr<LogicalOperator> addOperator(const std::shared_ptr<LogicalOperator> &op);
 
         void visualizeOperationGraph(GraphVizBuilder& builder);
 
@@ -264,15 +280,21 @@ namespace tuplex {
          * @param fallbackPartitions fallback partitions to assign to dataset
          * @param partitionGroups mapping of partitions to fallback partitions
          * @param columns optional column names
+         * @param sampling_mode how to set sampling mode in parallelize operator
          * @return reference to newly created dataset.
          */
-        DataSet& fromPartitions(const Schema& schema, const std::vector<Partition*>& partitions, const std::vector<Partition*>& fallbackPartitions, const std::vector<PartitionGroup>& partitionGroups, const std::vector<std::string>& columns);
+        DataSet& fromPartitions(const Schema& schema,
+                                const std::vector<Partition*>& partitions,
+                                const std::vector<Partition*>& fallbackPartitions,
+                                const std::vector<PartitionGroup>& partitionGroups,
+                                const std::vector<std::string>& columns,
+                                const SamplingMode& sampling_mode);
     };
     // needed for template mechanism to work
 #include <DataSet.h>
 
     template<class Iterator> DataSet& Context::parallelizeFixedSizeData(Iterator first, Iterator last,
-            const Schema& schema, const std::vector<std::string>& columnNames) {
+            const Schema& schema, const std::vector<std::string>& columnNames, const SamplingMode& sampling_mode) {
         using value_type = typename std::iterator_traits<Iterator>::value_type;
 
         // create new Dataset
@@ -367,9 +389,11 @@ namespace tuplex {
 
         // add parallelize node to operation graph
         setColumnNames(dsptr, columnNames);
-        addParallelizeNode(dsptr);
+        addParallelizeNode(dsptr, {}, {}, sampling_mode);
         return *dsptr;
     }
+
+    extern codegen::CompilePolicy compilePolicyFromOptions(const ContextOptions& options);
 }
 
 

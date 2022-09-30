@@ -40,7 +40,7 @@ namespace tuplex {
             _elements = nullptr;
     }
 
-    Tuple& Tuple::operator=(const Tuple &other) {
+    Tuple& Tuple::operator = (const Tuple &other) {
         // release mem
         if(_elements)
             delete [] _elements;
@@ -62,9 +62,9 @@ namespace tuplex {
         if(_elements) {
             assert(_numElements > 0);
             delete [] _elements;
-            _elements = nullptr;
-            _numElements = 0;
         }
+        _elements = nullptr;
+        _numElements = 0;
     }
 
 
@@ -113,5 +113,16 @@ namespace tuplex {
                 return false;
         }
         return true;
+    }
+
+    Tuple* Tuple::allocate_deep_copy() const {
+        Tuple *t = new Tuple();
+        assert(t->_elements == nullptr);
+        t->_numElements = _numElements;
+        t->_elements = new Field[t->_numElements];
+        for(unsigned i = 0; i < _numElements; ++i) {
+            t->_elements[i] = _elements[i];
+        }
+        return t;
     }
 }

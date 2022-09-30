@@ -4,6 +4,8 @@
 #include "gtest/gtest.h"
 #include <random>
 
+#include <VirtualFileSystem.h>
+
 inline std::string uniqueFileName(const std::string& prefix="") {
     using namespace tuplex;
     auto lookup = "abcdefghijklmnopqrstuvqxyz";

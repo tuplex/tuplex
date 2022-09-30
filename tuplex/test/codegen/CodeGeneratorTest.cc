@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <string>
-#include <AnnotatedAST.h>
+#include <ast/AnnotatedAST.h>
 #include "gtest/gtest.h"
 
 

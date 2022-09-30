@@ -13,22 +13,22 @@
 #ifndef TUPLEX_AWSLAMBDABACKEND_H
 #define TUPLEX_AWSLAMBDABACKEND_H
 
-// this bucket is used for testing (change to personal testing bucket in case)
-// @TODO: make this an AWS option
-#define S3_TEST_BUCKET "tuplex-test"
-
 #include "../IBackend.h"
 #include <vector>
-#include <physical/TransformStage.h>
-#include <physical/HashJoinStage.h>
-#include <physical/AggregateStage.h>
-#include <physical/BlockBasedTaskBuilder.h>
-#include <physical/IExceptionableTask.h>
+#include <physical/execution/TransformStage.h>
+#include <physical/execution/HashJoinStage.h>
+#include <physical/execution/AggregateStage.h>
+#include <physical/codegen/BlockBasedTaskBuilder.h>
+#include <physical/execution/IExceptionableTask.h>
 #include <numeric>
-#include <physical/TransformTask.h>
-#include <physical/ResolveTask.h>
+#include <physical/execution/TransformTask.h>
+#include <physical/execution/ResolveTask.h>
+
+#include <utils/Messages.h>
 
 #include "AWSCommon.h"
+#include "ContainerInfo.h"
+#include "RequestInfo.h"
 #include <aws/core/Aws.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/core/utils/logging/DefaultLogSystem.h>
@@ -39,12 +39,36 @@
 #include <aws/lambda/model/InvokeRequest.h>
 #include <aws/lambda/model/ListFunctionsRequest.h>
 #include <aws/lambda/LambdaClient.h>
+#include <regex>
 
 namespace tuplex {
 
     class LogicalPlan;
     class PhysicalPlan;
     class PhysicalStage;
+
+
+    enum class AwsLambdaExecutionStrategy {
+        UNKNOWN=0,
+        DIRECT,
+        TREE
+    };
+
+    inline AwsLambdaExecutionStrategy stringToAwsExecutionStrategy(const std::string& str) {
+        std::string name = str;
+        trim(name);
+        for(auto& c : name)
+             c = std::tolower(c);
+
+        if("direct" == name)
+            return AwsLambdaExecutionStrategy::DIRECT;
+        if("tree" == name)
+            return AwsLambdaExecutionStrategy::TREE;
+
+        throw std::runtime_error("Unknown Lambda execution strategy " + str);
+
+        return AwsLambdaExecutionStrategy::UNKNOWN;
+    }
 
     class AwsLambdaBackend : public IBackend {
     public:
@@ -63,6 +87,8 @@ namespace tuplex {
         ContextOptions _options;
         std::unique_ptr<Executor> _driver;
 
+        MessageHandler& _logger;
+
         // AWS Lambda interface
         std::string _tag;
         std::shared_ptr<Aws::Lambda::LambdaClient> _client;
@@ -71,19 +97,35 @@ namespace tuplex {
         size_t _lambdaSizeInMB;
         size_t _lambdaTimeOut;
 
-        struct InvokeInfo {
-            std::string requestID;
-            double durationInMs;
-            size_t billedDurationInMs;
-            size_t memorySizeInMb;
-            size_t maxMemoryUsedInMb;
+        uint64_t _startTimestamp;
+        uint64_t _endTimestamp;
 
-            InvokeInfo() : durationInMs(0), billedDurationInMs(100), memorySizeInMb(0), maxMemoryUsedInMb(0) {}
-        };
-
-        InvokeInfo parseFromLog(const std::string& log);
+        // web ui
+        HistoryServerConnection _historyConn;
+        std::shared_ptr<HistoryServerConnector> _historyServer;
 
         void reset();
+
+        void checkAndUpdateFunctionConcurrency(const std::shared_ptr<Aws::Lambda::LambdaClient>& client,
+                                               size_t concurrency,
+                                               const std::string& functionName,
+                                               bool provisioned=false);
+        size_t _functionConcurrency;
+
+        std::vector<messages::InvocationRequest> createSingleFileRequests(const TransformStage* tstage,
+                                                                          const std::string& bitCode,
+                                                                          const size_t numThreads,
+                                                                          const std::vector<std::tuple<
+                                                                          std::string, std::size_t>>& uri_infos,
+                                                                          const std::string& spillURI, const size_t buf_spill_size);
+
+        std::vector<messages::InvocationRequest> createSelfInvokingRequests(const TransformStage* tstage,
+                                                                          const std::string& bitCode,
+                                                                          const size_t numThreads,
+                                                                          const std::vector<std::tuple<
+                                                                                  std::string, std::size_t>>& uri_infos,
+                                                                          const std::string& spillURI, const size_t buf_spill_size);
+
 
         URI _scratchDir;
         bool _deleteScratchDirOnShutdown;
@@ -97,7 +139,7 @@ namespace tuplex {
         // store for tasks done
         std::mutex _mutex;
         std::vector<messages::InvocationResponse> _tasks;
-        std::vector<InvokeInfo> _infos;
+        std::vector<RequestInfo> _infos;
 
         std::shared_ptr<Aws::Lambda::LambdaClient> makeClient();
 
@@ -114,22 +156,34 @@ namespace tuplex {
 
         std::vector<URI> hintsFromTransformStage(const TransformStage* stage);
 
-        inline MessageHandler& logger() const { return Logger::instance().logger("aws-lambda"); }
+        inline MessageHandler logger() const { return _logger; }
 
         void waitForRequests(size_t sleepInterval=100*1000);
 
         static messages::InvocationResponse parsePayload(const Aws::Lambda::Model::InvokeResult &result);
+
+        void abortRequestsAndFailWith(int returnCode, const std::string& errorMessage);
+
+        std::set<std::string> performWarmup(const std::vector<int>& countsToInvoke, size_t timeOutInMs=4000, size_t baseDelayInMs=75);
 
         /*!
          * print extended lambda statistics out
          */
         void printStatistics();
 
+        /*!
+         * outputs all the stats etc. as json file for analysis
+         * @param json_path
+         */
+        void dumpAsJSON(const std::string& json_path);
+
         size_t getMB100Ms();
         size_t getMBMs();
 
         double usedGBSeconds() {
-            return (double)getMBMs() / 10000.0;
+            // 1ms = 0.001s
+            // 1mb = 0.001Gb
+            return (double)getMBMs() / 1000000.0;
 
             // old: Before Dec 2020, now costs changed.
             // return (double)getMB100Ms() / 10000.0;
@@ -150,7 +204,16 @@ namespace tuplex {
             if(_functionArchitecture == "arm64")
                 cost_per_gb_second = cost_per_gb_second_arm;
 
-            return usedGBSeconds() * cost_per_gb_second + numRequests() * cost_per_request;
+            return usedGBSeconds() * cost_per_gb_second + (double)numRequests() * cost_per_request;
+        }
+
+        /*!
+         * generate a baseURI for a temporary file.
+         * @param stageNo
+         * @return URI
+         */
+        inline URI tempStageURI(int stageNo) const {
+            return URI(_options.AWS_SCRATCH_DIR() + "/temporary_stage_output/" + "stage_" + std::to_string(stageNo));
         }
     };
 }

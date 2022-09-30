@@ -13,6 +13,20 @@
 
 #include <stdexcept>
 
+#ifdef BUILD_WITH_CEREAL
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/map.hpp"
+#include "cereal/types/unordered_map.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
+#include "cereal/archives/binary.hpp"
+#endif
+
 namespace tuplex {
     //! class mimicking optional of C++17.
     //! \tparam T
@@ -79,6 +93,13 @@ namespace tuplex {
 
         template<typename S> friend bool operator == (const S& lhs, const option<S>& rhs);
         template<typename S> friend bool operator != (const S& lhs, const option<S>& rhs);
+
+#ifdef BUILD_WITH_CEREAL
+        // cereal serialization functions
+        template<class Archive> void serialize(Archive &ar) {
+            ar(_data, _isNone);
+        }
+#endif
     };
 
     template<typename T> const option<T> option<T>::none=option();

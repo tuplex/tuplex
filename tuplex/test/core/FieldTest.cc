@@ -48,3 +48,13 @@ TEST(Field, List) {
     EXPECT_EQ(List("hello", "world").desc(), std::string("['hello','world']"));
     EXPECT_EQ(List(List(), List()).desc(), std::string("[[],[]]"));
 }
+
+TEST(Field, Constants) {
+    using namespace tuplex;
+    auto f1 = constantTypeToField(python::Type::makeConstantValuedType(python::Type::STRING, "hello world"));
+    EXPECT_EQ(f1.toPythonString(), "'hello world'");
+    auto f2 = constantTypeToField(python::Type::makeConstantValuedType(python::Type::I64, "-1234"));
+    EXPECT_EQ(f2.getInt(), -1234);
+    auto f3 = constantTypeToField(python::Type::makeConstantValuedType(python::Type::F64, "-3.001"));
+    EXPECT_EQ(f3.getDouble(), -3.001);
+}

@@ -23,7 +23,7 @@
 #include <stack>
 
 #include <VirtualFileSystem.h>
-#include <Environment.h>
+#include <utils/Environment.h>
 #include <PythonHelpers.h>
 #include <Utils.h>
 #include <StringUtils.h>
@@ -228,6 +228,7 @@ namespace tuplex {
                      {"tuplex.optimizer.codeStats", "false"},
                      {"tuplex.optimizer.generateParser", "false"},
                      {"tuplex.optimizer.nullValueOptimization", "false"},
+                     {"tuplex.optimizer.constantFoldingOptimization", "false"},
                      {"tuplex.optimizer.filterPushdown", "true"},
                      {"tuplex.optimizer.operatorReordering", "false"},
                      {"tuplex.optimizer.sharedObjectPropagation", "true"},
@@ -241,12 +242,18 @@ namespace tuplex {
                      {"tuplex.aws.region", "us-east-1"},
                      {"tuplex.aws.lambdaMemory", "1536"},
                      {"tuplex.aws.lambdaTimeout", "600"},
+                     {"tuplex.aws.lambdaThreads", "auto"},
+                     {"tuplex.aws.lambdaInvokeOthers", "true"},
+                     {"tuplex.aws.lambdaInvocationStrategy", "direct"},
                      {"tuplex.aws.requesterPay", "false"},
+                     {"tuplex.aws.verboseLogging", "false"},
+                     {"tuplex.useInterpreterOnly", "false"},
                      {"tuplex.resolveWithInterpreterOnly", "false"},
                      {"tuplex.network.caFile", ""},
                      {"tuplex.network.caPath", ""},
                      {"tuplex.network.verifySSL", "false"},  // if default is going to be changed to true, ship cacert.pem from Amazon to avoid issues.
-                     {"tuplex.redirectToPythonLogging", "false"}};
+                     {"tuplex.redirectToPythonLogging", "false"},
+                     {"tuplex.experimental.hyperspecialization", "false"}};
 #else
         // DEBUG options
         co._store = {{"tuplex.useLLVMOptimizer", "false"},
@@ -282,6 +289,7 @@ namespace tuplex {
                      {"tuplex.optimizer.codeStats", "true"},
                      {"tuplex.optimizer.generateParser", "false"},
                      {"tuplex.optimizer.nullValueOptimization", "false"},
+                     {"tuplex.optimizer.constantFoldingOptimization", "false"},
                      {"tuplex.optimizer.filterPushdown", "true"},
                      {"tuplex.optimizer.operatorReordering", "false"},
                      {"tuplex.optimizer.sharedObjectPropagation", "true"},
@@ -295,12 +303,18 @@ namespace tuplex {
                      {"tuplex.aws.region", "us-east-1"},
                      {"tuplex.aws.lambdaMemory", "1536"},
                      {"tuplex.aws.lambdaTimeout", "600"},
+                     {"tuplex.aws.lambdaThreads", "auto"},
+                     {"tuplex.aws.lambdaInvokeOthers", "true"},
+                     {"tuplex.aws.lambdaInvocationStrategy", "direct"},
                      {"tuplex.aws.requesterPay", "false"},
+                     {"tuplex.aws.verboseLogging", "true"},
+                     {"tuplex.useInterpreterOnly", "false"},
                      {"tuplex.resolveWithInterpreterOnly", "true"},
                      {"tuplex.network.caFile", ""},
                      {"tuplex.network.caPath", ""},
                      {"tuplex.network.verifySSL", "false"},
-                     {"tuplex.redirectToPythonLogging", "false"}}; // experimental feature, deactivate for now.
+                     {"tuplex.redirectToPythonLogging", "false"},
+                     {"tuplex.experimental.hyperspecialization", "false"}}; // experimental feature, deactivate for now.
 #endif
 
         // update with tuplex env
@@ -576,8 +590,8 @@ namespace tuplex {
 
         // check first with pathParent, then PATH
         std::vector<std::string> failedPaths;
-        for(auto c : candidates) {
-            URI p = URI(pathParent + "/" + c);
+        for(const auto& c : candidates) {
+            URI p = URI(pathParent.empty() ? c : pathParent + "/" + c);
             if(p.exists() && p.isFile())
                 return p;
             else
@@ -598,7 +612,8 @@ namespace tuplex {
                                         URI("file:///usr/local/lib"),
                                         URI("file:///lib"),
                                         URI("file:///usr/lib"),
-                                        URI("file://" + execPath.parent_path().string())};
+                                        URI("file://" + execPath.parent_path().string()),
+                                        URI("file://" + execPath.parent_path().string() + "/../lib")};
 
         // very generous searching, even wrong extension is tolerated...
         for(auto c : candidates) {

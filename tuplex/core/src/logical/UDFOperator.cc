@@ -14,14 +14,29 @@ namespace tuplex {
 
     static const size_t typeDetectionSampleSize = 5; // use 5 as default for now
 
+    inline bool containsConstantType(const python::Type& type) {
+        if(type.isConstantValued())
+            return true;
+        if(type.isTupleType()) {
+            for(auto param : type.parameters())
+                if(containsConstantType(param))
+                    return true;
+            return false;
+        } else {
+            // unsupported types...
+            // @TODO....
+            return false;
+        }
+    }
 
-    UDFOperator::UDFOperator(LogicalOperator* parent, const UDF& udf,
-    const std::vector<std::string>& columnNames) : LogicalOperator::LogicalOperator(parent), _udf(udf), _columnNames(columnNames) {
+    UDFOperator::UDFOperator(const std::shared_ptr<LogicalOperator>& parent, const UDF& udf,
+    const std::vector<std::string>& columnNames,
+    const std::unordered_map<size_t, size_t>& rewriteMap) : LogicalOperator::LogicalOperator(parent), _udf(udf), _columnNames(columnNames), _rewriteMap(rewriteMap) {
         assert(parent);
     }
 
 
-    Schema UDFOperator::inferSchema(Schema parentSchema) {
+    Schema UDFOperator::inferSchema(Schema parentSchema, bool is_projected_schema) {
 
         auto& logger = Logger::instance().defaultLogger();
 
@@ -39,6 +54,9 @@ namespace tuplex {
             if(_udf.getInputSchema() != Schema::UNKNOWN && _udf.getOutputSchema() != Schema::UNKNOWN)
                 return _udf.getOutputSchema();
 
+            // // reset udf for rewrite (schema etc. may have changed)
+            // _udf.resetAST();
+
             // if column names exist, attempt rewrite
             if(!_udf.rewriteDictAccessInAST(_columnNames))
                 return Schema::UNKNOWN;
@@ -48,7 +66,8 @@ namespace tuplex {
             logger.debug("performing static typing for UDF in operator " + name());
             bool success = _udf.hintInputSchema(parentSchema, false, false);
             if(!success) {
-
+                // in debug, print compile errors.
+                logger.debug("static typing failed because of:\n  -- " + _udf.getCompileErrorsAsStr());
                 _udf.clearCompileErrors();
                 // 2. try by annotating with if-blocks getting ignored statically...
                 logger.debug("performing static typing with partially ignoring branches for UDF in operator " + name());
@@ -58,20 +77,35 @@ namespace tuplex {
                     // => only use rows which match parent type.
                     // => general case rows thus get transferred to interpreter...
                     logger.debug("performing traced typing for UDF in operator " + name());
-                    success = _udf.hintSchemaWithSample(parent()->getPythonicSample(MAX_TYPE_SAMPLING_ROWS),
+                    auto rows_sample = parent()->getPythonicSample(MAX_TYPE_SAMPLING_ROWS);
+                    success = _udf.hintSchemaWithSample(rows_sample,
                                                         parentSchema.getRowType(), true);
 
                     // only exceptions?
                     // => report, abort compilation!
                     if(_udf.getCompileErrors().empty()) {
                         if(!success) {
-                            Logger::instance().defaultLogger().info("was not able to detect type for UDF, statically and via tracing."
-                                                                    " Provided parent row type was " + parentSchema.getRowType().desc() );
-                            // 4. mark as uncompilable UDF, but sample output row type, so at least subsequent operators
-                            //    can get compiled!
-                            _udf.markAsNonCompilable();
-                            throw std::runtime_error("TODO: implement via sampling of Python UDF executed most likely type, so pipeline can still get compiled.");
-                            return Schema::UNKNOWN;
+
+                            // check if output type is exception type -> this means sample produced only errors!
+                            if(_udf.getOutputSchema().getRowType().isExceptionType()) {
+                                std::stringstream ss;
+                                ss<<"Sample of " + pluralize(rows_sample.size(), "row") + " produced only exceptions of type " +_udf.getOutputSchema().getRowType().desc() + ". Either increase sample size so rows producing no exceptions are in the majority, or change user-defined code.\n";
+
+                                // produce a sample traceback for user feedback... -> this should probably go to python API display??
+                                // @TODO
+
+                                logger.error(ss.str());
+                                return Schema::UNKNOWN;
+                            } else {
+                                Logger::instance().defaultLogger().info("was not able to detect type for UDF, statically and via tracing."
+                                                                        " Provided parent row type was " + parentSchema.getRowType().desc() + ". Marking UDF as uncompilable which will require interpreter for execution.");
+                                // 4. mark as uncompilable UDF, but sample output row type, so at least subsequent operators
+                                //    can get compiled!
+                                _udf.markAsNonCompilable();
+
+                                return Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(python::Type::PYOBJECT));
+                                // throw std::runtime_error("TODO: implement via sampling of Python UDF executed most likely type, so pipeline can still get compiled.");
+                            }
                         } else {
                             // check what return type was given
                             auto output_type = _udf.getOutputSchema().getRowType();
@@ -94,6 +128,12 @@ namespace tuplex {
             }
 
             if(_udf.getCompileErrors().empty() || _udf.getReturnError() != CompileError::COMPILE_ERROR_NONE) {
+
+                // @TODO: add the constant folding for the other scenarios as well!
+                if(containsConstantType(parentSchema.getRowType())) {
+                    _udf.optimizeConstants();
+                }
+
                 // if unsupported types presented, use sample to determine type and use fallback mode (except for list return type error, only print error messages for now)
                 return _udf.getOutputSchema();
             }
@@ -128,7 +168,7 @@ namespace tuplex {
         return schema;
     }
 
-    bool hasUDF(const LogicalOperator* op) {
+    bool hasUDF(const LogicalOperator *op) {
         if(!op)
             return false;
 
@@ -177,11 +217,37 @@ namespace tuplex {
     }
 
     void UDFOperator::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
-
+       _rewriteMap = rewriteMap;
        projectColumns(rewriteMap);
         _udf.rewriteParametersInAST(rewriteMap);
+    }
 
-        // update schema
-        //_schema = inferSchema();
+    bool UDFOperator::performRetypeCheck(const python::Type& input_row_type, bool is_projected_row_type) {
+        assert(input_row_type.isTupleType());
+        auto colTypes = input_row_type.parameters();
+
+        // check that number of parameters are identical, else can't rewrite (need to project first!)
+        auto input_t = UDFOperator::getInputSchema().getRowType().desc();
+
+        // could be unknown => then retype always! If not, check correct type is given.
+        if(UDFOperator::getInputSchema() != Schema::UNKNOWN) {
+            size_t num_params_before_retype = rewriteMap().size(); //UDFOperator::getInputSchema().getRowType().parameters().size();
+            size_t num_params_after_retype = colTypes.size();
+            if(num_params_before_retype != num_params_after_retype) {
+                throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");
+                return false;
+            }
+        } else {
+            // check parent
+            if(parent() && parent()->getOutputSchema() != Schema::UNKNOWN) {
+                size_t num_params_before_retype = parent()->getOutputSchema().getRowType().parameters().size();
+                size_t num_params_after_retype = colTypes.size();
+                if(num_params_before_retype != num_params_after_retype) {
+                    throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }

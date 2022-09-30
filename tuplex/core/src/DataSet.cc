@@ -744,7 +744,7 @@ namespace tuplex {
         }
 
         // there could be different number of columns. -> pick max!
-        int numColumns = rows[0].getNumColumns();
+        auto numColumns = rows[0].getNumColumns();
         for(unsigned i = 1; i < rows.size(); ++i)
             numColumns = std::max(numColumns, rows[i].getNumColumns());
 
@@ -774,7 +774,7 @@ namespace tuplex {
 
         // special case: resolve operator and not matching schema!
         if(_operator->type() == LogicalOperatorType::RESOLVE) {
-            auto rop = (ResolveOperator*)_operator;
+            auto rop = std::dynamic_pointer_cast<ResolveOperator>(_operator);
             if(rop->isCompatibleWithThrowingOperator())
                 return _operator->getOutputSchema();
             else

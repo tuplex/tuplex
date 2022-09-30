@@ -100,11 +100,10 @@ namespace tuplex {
                 field_count += !is_struct_type; // only count non-struct dict fields. -> yet the nested struct types may change the maybe count for the bitmap!
             }
 
-            std::stringstream ss;
-            ss << "computed following counts for structured dict type: " << pluralize(field_count, "field")
-               << " " << pluralize(option_count, "option") << " " << pluralize(maybe_count, "maybe");
-            logger.info(ss.str());
-
+            // std::stringstream ss;
+            // ss << "computed following counts for structured dict type: " << pluralize(field_count, "field")
+            //    << " " << pluralize(option_count, "option") << " " << pluralize(maybe_count, "maybe");
+            // logger.info(ss.str());
 
             // let's start by allocating bitmaps for optional AND maybe types
             size_t num_option_bitmap_bits = core::ceilToMultiple(option_count, 64ul); // multiples of 64bit

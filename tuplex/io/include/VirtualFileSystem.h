@@ -35,6 +35,10 @@ namespace tuplex {
     class VirtualFileSystem;
     class IFileSystemImpl;
 
+#ifdef BUILD_WITH_AWS
+    class S3FileSystemImpl;
+#endif
+
     /*!
      * wrapper class around file systems. Provides interface to easily add new file adapters.
      */
@@ -70,6 +74,17 @@ namespace tuplex {
                                                        const NetworkSettings& ns=NetworkSettings(),
                                                        bool lambdaMode=false,
                                                        bool requesterPay=false);
+
+        /*!
+         * removes S3 file system if it exists.
+         */
+        static void removeS3FileSystem();
+
+        /*!
+         * helper function to get the S3 file system impl.
+         * @return nullptr if not registered, else the implementation.
+         */
+        static S3FileSystemImpl* getS3FileSystemImpl();
 
         /*!
          * returns key/value store with transfer statistics for S3 system. Empty if no S3 system was added.

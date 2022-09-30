@@ -19,6 +19,9 @@
 
 #include <Utils.h>
 #include <aws/core/client/ClientConfiguration.h>
+#include <aws/core/utils/json/JsonSerializer.h>
+#include <aws/core/utils/memory/stl/AWSStringStream.h>
+#include <aws/core/utils/HashingUtils.h>
 
 namespace tuplex {
 
@@ -31,6 +34,16 @@ namespace tuplex {
         static AWSCredentials get();
     };
 
+    // use base64 library from https://github.com/ReneNyffenegger/cpp-base64
+
+    inline std::shared_ptr<Aws::IOStream> stringToAWSStream(const std::string &str, const std::string &tag = "tuplex") {
+        auto input = Aws::MakeShared<Aws::StringStream>(tag.c_str());
+
+        *input << str.c_str();
+        input->flush();
+        return input;
+    }
+
     /*!
      * update clientConfig with given Network settings.
      * @param ns network settings
@@ -39,7 +52,7 @@ namespace tuplex {
     extern void applyNetworkSettings(const NetworkSettings& ns, Aws::Client::ClientConfiguration& config);
 
     /*!
-    calls Aws::InitAPI() 
+    calls Aws::InitAPI()
     */
     extern bool initAWSSDK();
 
@@ -47,8 +60,12 @@ namespace tuplex {
      * initializes AWS SDK globally (lazy) and add S3 FileSystem.
      * @return true if initializing, else false
      */
-    extern bool initAWS(const AWSCredentials& credentials, const NetworkSettings& ns=NetworkSettings(), bool requesterPay=false);
+    extern bool initAWS(const AWSCredentials& credentials=AWSCredentials::get(), const NetworkSettings& ns=NetworkSettings(), bool requesterPay=false);
 
+    /*!
+     * shuts down AWS SDK (freeing resourced).
+     */
+    extern void shutdownAWS();
 
     /*!
      * validates zone string.
@@ -56,6 +73,17 @@ namespace tuplex {
      * @return true/false.
      */
     extern bool isValidAWSZone(const std::string& zone);
+
+
+    inline std::string decodeAWSBase64(const std::string& log) {
+        std::stringstream ss;
+        // Decode the result header to see requested log information
+        auto byteLogResult = Aws::Utils::HashingUtils::Base64Decode(log.c_str());
+        for (unsigned i = 0; i < byteLogResult.GetLength(); i++)
+            ss << byteLogResult.GetItem(i);
+        auto logTail =  ss.str();
+        return logTail;
+    }
 }
 
 // Amazon frequently changes the parameters of lambda functions,
@@ -79,6 +107,9 @@ namespace tuplex {
 
 // note(Leonhard): I think the number of available cores/threads is dependent on the memory size
 #define AWS_MAXIMUM_LAMBDA_THREADS 6
+
+// may change, the minimum AWS limit for unreserved concurrency functions. Also a limit how much can get executed...
+#define AWS_MINIMUM_UNRESERVED_CONCURRENCY 100
 
 // the 64MB increase limit seems to have been changed now...
 

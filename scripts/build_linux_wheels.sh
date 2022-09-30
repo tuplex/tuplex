@@ -40,6 +40,7 @@ export CIBW_ENVIRONMENT="TUPLEX_LAMBDA_ZIP='./tuplex/other/tplxlam.zip' CMAKE_AR
 
 # Use the following line to build only python3.7-3.9 wheel
 export CIBW_BUILD="cp3{7,8,9}-*"
+export CIBW_BUILD="cp39-*"
 export CIBW_ARCHS_LINUX="x86_64"
 
 # do not build musllinux yet

@@ -35,6 +35,28 @@ protected:
     }
 };
 
+TEST_F(FileOutputTest, SimpleCSVFileRead) {
+    using namespace tuplex;
+
+    auto opts = microTestOptions();
+    Context c(opts);
+
+    URI file_path(folderName + "/test.csv");
+    auto content = "1\n2\n3\n";
+    stringToFile(file_path, content);
+
+    auto outputRows = c.csv(folderName + "/test.csv").collectAsVector();
+    ASSERT_EQ(3, outputRows.size());
+    std::vector<Row> rows({Row(1), Row(2), Row(3)});
+    for (int i = 0; i < rows.size(); ++i) {
+        EXPECT_EQ(rows.at(i).toPythonString(), outputRows.at(i).toPythonString());
+    }
+
+    for(unsigned i = 0; i < rows.size(); ++i) {
+        std::cout<<"row "<<i<<": "<<outputRows.at(i).getRowType().desc()<<" "<<outputRows.at(i).toPythonString()<<std::endl;
+    }
+}
+
 TEST_F(FileOutputTest, NewFolder) {
     using namespace tuplex;
 
@@ -48,6 +70,17 @@ TEST_F(FileOutputTest, NewFolder) {
 
     auto outputRows = c.csv(newFolder + "/part0.csv").collectAsVector();
     ASSERT_EQ(rows.size(), outputRows.size());
+
+    // debug print
+    std::cout<<"file contents:\n";
+    auto file_content = fileToString(newFolder + "/part0.csv");
+    ASSERT_TRUE(!file_content.empty());
+    std::cout<<file_content;
+    std::cout<<"\n"<<std::endl;
+    for(unsigned i = 0; i < rows.size(); ++i) {
+        std::cout<<"row "<<i<<": "<<outputRows.at(i).getRowType().desc()<<" "<<outputRows.at(i).toPythonString()<<std::endl;
+    }
+
     for (int i = 0; i < rows.size(); ++i) {
         EXPECT_EQ(rows.at(i).toPythonString(), outputRows.at(i).toPythonString());
     }
@@ -92,4 +125,12 @@ TEST_F(FileOutputTest, NonEmptyFolder) {
 
     std::vector<Row> rows({Row(1), Row(2), Row(3)});
     EXPECT_ANY_THROW(c.parallelize(rows).tocsv(nonEmptyFolder));
+}
+
+TEST(FileOutput, AbsoluteAndRelativePaths) {
+    using namespace tuplex;
+
+    // check conversion to local & absolute paths!
+    URI local_rel("test.csv");
+    EXPECT_EQ(local_rel.toPath(), current_working_directory() + "/test.csv");
 }

@@ -11,7 +11,7 @@
 #ifndef TUPLEX_OUTPUTFILEOPERATOR_H
 #define TUPLEX_OUTPUTFILEOPERATOR_H
 
-#include "../Defs.h"
+#include "Defs.h"
 #include "LogicalOperator.h"
 #include "LogicalOperatorType.h"
 #include <limits>
@@ -32,7 +32,11 @@ namespace tuplex {
 
         std::unordered_map<std::string, std::string> _options; // output format specific options
     public:
-        FileOutputOperator(LogicalOperator* parent,
+
+        // required by cereal
+        FileOutputOperator() = default;
+
+        FileOutputOperator(const std::shared_ptr<LogicalOperator> &parent,
                 const URI& uri,
                 const UDF& udf,
                 const std::string& name,
@@ -74,15 +78,17 @@ namespace tuplex {
 
         URI uri() const { return _uri; }
 
-        LogicalOperator *clone() override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
 
         std::vector<std::string> columns() const override {
             // check if parent has columns, if not fail
             auto ds = parent()->getDataSet();
             if(ds)
                 return ds->columns();
-            else
-                return std::vector<std::string>();
+            else if(parent()) {
+                return parent()->columns();
+            } else
+                return {};
         }
 
         size_t limit() const { return _limit; }
@@ -92,7 +98,22 @@ namespace tuplex {
 
         UDF& udf() { return _outputPathUDF; }
         const UDF& udf() const { return _outputPathUDF; }
+
+#ifdef BUILD_WITH_CEREAL
+        // cereal serialization pair
+        template<class Archive> void save(Archive &ar) const {
+            ar(::cereal::base_class<LogicalOperator>(this), _splitSize, _numParts, _limit, _uri, _fmt, _name, _outputPathUDF, _options);
+        }
+
+        template<class Archive> void load(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _splitSize, _numParts, _limit, _uri, _fmt, _name, _outputPathUDF, _options);
+        }
+#endif
     };
 }
+
+#ifdef BUILD_WITH_CEREAL
+CEREAL_REGISTER_TYPE(tuplex::FileOutputOperator);
+#endif
 
 #endif //TUPLEX_OUTPUTFILEOPERATOR_H

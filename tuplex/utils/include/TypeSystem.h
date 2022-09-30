@@ -16,9 +16,27 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <mutex>
 #include <TTuple.h>
+#include <limits>
+#include <unordered_map>
+
+#ifdef BUILD_WITH_CEREAL
+#include "cereal/access.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/polymorphic.hpp"
+#include "cereal/types/base_class.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/utility.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/types/common.hpp"
+#include "cereal/archives/binary.hpp"
+#endif
 
 namespace python {
+
+    class Type;
+    class TypeFactory;
 
     class Type {
         friend class TypeFactory;
@@ -60,11 +78,11 @@ namespace python {
 
         Type():_hash(-1) {}
         Type(const Type& other):_hash(other._hash)  {
-            assert(_hash >= -1);
+            // assert(_hash >= -1);
         }
 
         Type& operator = (const Type& other) {
-            assert(_hash >= -1);
+            // assert(_hash >= -1);
             _hash = other._hash;
             return *this;
         }
@@ -96,10 +114,13 @@ namespace python {
         bool isNumericType() const;
         bool isOptionType() const;
         bool isOptional() const;
+        bool isOptimizedType() const;
         bool isSingleValued() const;
         bool hasVariablePositionalArgs() const;
         bool isExceptionType() const;
         bool isIteratorType() const;
+        bool isConstantValued() const;
+        bool isEmptyType() const;
 
         inline bool isGeneric() const {
             if(_hash == python::Type::PYOBJECT._hash ||
@@ -150,6 +171,8 @@ namespace python {
         Type valueType() const;
         // returns the element type in a list or within an option
         Type elementType() const;
+        Type underlying() const;
+        std::string constant() const; // returns the underlying constant of the type (opt. HACK)
 
         /*!
          * return yield type of an iterator
@@ -216,6 +239,35 @@ namespace python {
 
         static Type makeListType(const python::Type &elementType);
 
+        // optimizing types (delayed parsing, range compression, ...)
+        /*!
+         * create a delayed parsing type, i.e. this helpful for small strings, integers having a small ASCII representation or
+         * @param underlying which type the data actually represents (should be a primitive like bool, int, float, str)
+         * @return the dummy type created.
+         */
+        static Type makeDelayedParsingType(const python::Type& underlying);
+
+        /*!
+         * create a range compressed integer type using lower & upper bound exclusively
+         * @param lower_bound integer lower bound (inclusive!)
+         * @param upper_bound integer upper bound (inclusive!)
+         * @return the dummy type created.
+         */
+        static Type makeRangeCompressedIntegerType(int64_t lower_bound, int64_t upper_bound);
+
+        /*!
+         * create a constant valued type, i.e. this type can get folded via constant folding!
+         * @param underlying what actual type this is representing.
+         * @param value the constant value. Note: this needs to be decodable...
+         * @return the dummy type created.
+         */
+        static Type makeConstantValuedType(const python::Type& underlying, const std::string& value);
+
+        // TODO: could create dict compressed type as well..
+        // static Type makeDictCompressedType()
+
+        // TODO: could create delta-encoded type or so as well...
+
         /*!
          * create iterator type from yieldType.
          * @param yieldType
@@ -246,7 +298,6 @@ namespace python {
          */
         static Type superType(const Type &A, const Type &B);
 
-
         /*!
          * construct type from hash
          * @param hash
@@ -260,9 +311,63 @@ namespace python {
 
         static Type byName(const std::string& name);
 
-    };
+        static Type decode(const std::string& s);
+        std::string encode() const;
 
-    extern bool isLiteralType(const Type& type);
+#ifdef BUILD_WITH_CEREAL
+        // cereal serialization functions
+        template<class Archive>
+        inline void load(Archive &archive) {
+
+            // simply encode/decode type
+            std::string encoded_str = "";
+            archive(encoded_str);
+            auto t = Type::decode(encoded_str);
+            _hash = t._hash; // using hash works...
+
+//            TypeFactory::TypeEntry type_entry;
+//            archive(_hash, type_entry);
+//
+//            // @TODO: this here is dangerous!
+//            // => i.e. leads to TypeSystem out of sync!
+//            // imagine a type system being out of sync with the one on a host machine. Now, any type needs to
+//            // remap etc. -> difficult.
+//            // better idea: simply overwrite map here
+//
+//            // Type registerOrGetType(const std::string& name,
+//            //                               const AbstractType at,
+//            //                               const std::vector<Type>& params = std::vector<Type>(),
+//            //                               const python::Type& retval=python::Type::VOID,
+//            //                               const std::vector<Type>& baseClasses = std::vector<Type>(),
+//            //                               bool isVarLen=false,
+//            //                               int64_t lower_bound=std::numeric_limits<int64_t>::min(),
+//            //                               int64_t upper_bound=std::numeric_limits<int64_t>::max(),
+//            //                               const std::string& constant="");
+//            // !!! warning !!!
+//            TypeFactory::instance()._typeMap[_hash] = TypeFactory::TypeEntry(type_entry._desc, type_entry._type, type_entry._params,
+//                                                                             type_entry._ret, type_entry._baseClasses, type_entry._isVarLen,
+//                                                                             type_entry._lower_bound,
+//                                                                             type_entry._upper_bound,
+//                                                                             type_entry._constant_value);
+//
+////        // register the type again
+////        TypeFactory::instance().registerOrGetType(type_entry._desc, type_entry._type, type_entry._params,
+////                                                  type_entry._ret, type_entry._baseClasses, type_entry._isVarLen,
+////                                                  type_entry._lower_bound,
+////                                                  type_entry._upper_bound,
+////                                                  type_entry._constant_value);
+        }
+
+        template<class Archive>
+        inline void save(Archive &archive) const {
+//            // @TODO: this seems wrong, better: need to encode type as string and THEN decode!
+//            // that would avoid the remapping problem...!
+//            archive(_hash, TypeFactory::instance()._typeMap[_hash]);
+            auto encoded_str = encode();
+            archive(encoded_str);
+        }
+#endif
+    };
 
     inline bool operator < (const Type& lhs, const Type& rhs) { return lhs._hash < rhs._hash; }
     inline bool operator == (const Type& lhs, const Type& rhs) { return lhs._hash == rhs._hash; }
@@ -281,16 +386,24 @@ namespace python {
             LIST,
             CLASS,
             OPTION, // for nullable
-            ITERATOR
+            ITERATOR,
+            OPTIMIZED_CONSTANT, // constant value
+            OPTIMIZED_DELAYEDPARSING, // dummy types to allow for certain optimizations
+            OPTIMIZED_RANGECOMPRESSION // range compression
         };
 
         struct TypeEntry {
             std::string _desc;
             AbstractType _type;
             std::vector<Type> _params; //! parameters, i.e. tuple entries
-            bool _isVarLen; // params.empty && _isVarlen => GENERICTUPLE
             Type _ret; //! return value
             std::vector<Type> _baseClasses; //! base classes from left to right
+            bool _isVarLen; // params.empty && _isVarlen => GENERICTUPLE
+
+            // opt properties
+            int64_t _lower_bound;
+            int64_t _upper_bound;
+            std::string _constant_value; // everything once was a string...
 
             TypeEntry()     {}
             TypeEntry(const std::string& desc,
@@ -298,8 +411,61 @@ namespace python {
                         const std::vector<Type>& params,
                         const Type& ret,
                         const std::vector<Type>& baseClasses=std::vector<Type>{},
-                        bool isVarLen=false) : _desc(desc), _type(at), _params(params), _ret(ret), _baseClasses(baseClasses), _isVarLen(isVarLen) {}
-            TypeEntry(const TypeEntry& other) : _desc(other._desc), _type(other._type), _params(other._params), _ret(other._ret), _baseClasses(other._baseClasses), _isVarLen(other._isVarLen) {}
+                        bool isVarLen=false,
+                        int64_t lower_bound=std::numeric_limits<int64_t>::min(),
+                        int64_t upper_bound=std::numeric_limits<int64_t>::max(),
+                        const std::string& constant="") : _desc(desc), _type(at), _params(params),
+                        _ret(ret), _baseClasses(baseClasses), _isVarLen(isVarLen),
+                        _lower_bound(lower_bound),
+                        _upper_bound(upper_bound),
+                        _constant_value(constant) {}
+            TypeEntry(const TypeEntry& other) : _desc(other._desc), _type(other._type), _params(other._params),
+            _ret(other._ret), _baseClasses(other._baseClasses), _isVarLen(other._isVarLen),
+            _lower_bound(other._lower_bound), _upper_bound(other._upper_bound), _constant_value(other._constant_value) {}
+
+#ifdef BUILD_WITH_CEREAL
+            // use specialized load/save functions here!
+            template<class Archive>
+            void save(Archive & archive) const {
+                using namespace std;
+
+                // need to use for recursive types hash values
+                vector<int> paramHashes;
+                vector<int> baseClassHashes;
+                for(auto t : _params)
+                    paramHashes.emplace_back(t._hash);
+                auto retHash = _ret._hash;
+                for(auto t : _baseClasses)
+                    baseClassHashes.emplace_back(t._hash);
+                archive(_desc, _type, paramHashes, retHash, baseClassHashes, _isVarLen, _lower_bound, _upper_bound, _constant_value);
+            }
+
+            template<class Archive>
+            void load(Archive & archive) {
+                using namespace std;
+
+                // need to use for recursive types hash values
+                vector<int> paramHashes;
+                vector<int> baseClassHashes;
+                int retHash = 0;
+                archive(_desc, _type, paramHashes, retHash, baseClassHashes, _isVarLen, _lower_bound, _upper_bound, _constant_value);
+
+                // fill in Type class
+                for(auto hash : paramHashes) {
+                    Type t;
+                    t._hash = hash;
+                    _params.emplace_back(t);
+                }
+                for(auto hash : baseClassHashes) {
+                    Type t;
+                    t._hash = hash;
+                    _baseClasses.emplace_back(t);
+                }
+                Type t;
+                t._hash = retHash;
+                _ret = t;
+            }
+#endif
 
             std::string desc();
         };
@@ -309,6 +475,7 @@ namespace python {
         // need threadsafe hashmap here...
         // either tbb's or the one from folly...
         std::map<int, TypeEntry> _typeMap;
+        mutable std::mutex _typeMapMutex;
 
         TypeFactory() : _hash_generator(0)  {}
         std::string getDesc(const int _hash) const;
@@ -317,7 +484,10 @@ namespace python {
                                const std::vector<Type>& params = std::vector<Type>(),
                                const python::Type& retval=python::Type::VOID,
                                const std::vector<Type>& baseClasses = std::vector<Type>(),
-                               bool isVarLen=false);
+                               bool isVarLen=false,
+                               int64_t lower_bound=std::numeric_limits<int64_t>::min(),
+                               int64_t upper_bound=std::numeric_limits<int64_t>::max(),
+                               const std::string& constant="");
 
         bool isFunctionType(const Type& t) const;
         bool isDictionaryType(const Type& t) const;
@@ -325,6 +495,7 @@ namespace python {
         bool isOptionType(const Type& t) const;
         bool isListType(const Type& t) const;
         bool isIteratorType(const Type& t) const;
+        bool isConstantValued(const Type& t) const;
 
         std::vector<Type> parameters(const Type& t) const;
         Type returnType(const Type& t) const;
@@ -339,6 +510,12 @@ namespace python {
             return theoneandonly;
         }
 
+        /*!
+         * returns a lookup map of all registered primitive type keywords (they can be created dynamically...)
+         * @return map of keywords -> type.
+         */
+        std::unordered_map<std::string, Type> get_primitive_keywords() const;
+
         Type createOrGetPrimitiveType(const std::string& name, const std::vector<Type>& baseClasses=std::vector<Type>{});
 
         // right now, no tuples or other weird types...
@@ -351,6 +528,10 @@ namespace python {
         Type createOrGetTupleType(const std::vector<Type>& args);
         Type createOrGetOptionType(const Type& type);
         Type createOrGetIteratorType(const Type& yieldType);
+
+        Type createOrGetConstantValuedType(const Type& underlying, const std::string& constant);
+        Type createOrGetDelayedParsingType(const Type& underlying);
+        Type createOrGetRangeCompressedIntegerType(int64_t lower_bound, int64_t upper_bound);
 
 
         Type getByName(const std::string& name);
@@ -371,7 +552,7 @@ namespace python {
      * i64, f64, str, bool supported as primitive types
      * also () for tuples
      * @param s string to be used for type decoding
-     * @return decoded type or unknown if decoding error occured
+     * @return decoded type or unknown if decoding error occurred
      */
     extern Type decodeType(const std::string& s);
 
@@ -398,17 +579,6 @@ namespace python {
      * @return
      */
     extern bool canUpcastToRowType(const python::Type& minor, const python::Type& major);
-
-    /*!
-     * return unified type for both a and b
-     * e.g. a == [Option[[I64]]] and b == [[Option[I64]]] should return [Option[[Option[I64]]]]
-     * return python::Type::UNKNOWN if no compatible type can be found
-     * @param a (optional) primitive or list or tuple type
-     * @param b (optional) primitive or list or tuple type
-     * @param autoUpcast whether to upcast numeric types to a unified type when type conflicts, false by default
-     * @return (optional) compatible type or UNKNOWN
-     */
-    extern Type unifyTypes(const python::Type &a, const python::Type &b, bool autoUpcast=false);
 
     /*!
      * two types may be combined into one nullable type.
@@ -496,6 +666,41 @@ namespace python {
             return ret;
         }
         return 0;
+    }
+
+    /*!
+     * a constant option can be simplified (i.e. remove polymoprhism)
+     * @param underlying
+     * @param constant
+     * @return the simplified underlying type.
+     */
+    inline python::Type simplifyConstantOption(const python::Type& type) {
+        if(!type.isConstantValued())
+            return type;
+
+        auto underlying = type.underlying();
+        auto value = type.constant();
+        if(underlying.isOptionType()) {
+            // is the constant null? None?
+            if(value == "None" || value == "null") {
+                return python::Type::NULLVALUE; // simple, null-value is already a constant!
+            } else
+                return python::Type::makeConstantValuedType(underlying.elementType(), value);
+        }
+        return type;
+    }
+
+    inline python::Type simplifyConstantType(const python::Type& type) {
+        if(!type.isConstantValued())
+            return type;
+
+        auto t = simplifyConstantOption(type);
+
+        // special case: _Constant[null] --> null
+        if(t.isConstantValued() && t.underlying() == python::Type::NULLVALUE)
+            return python::Type::NULLVALUE;
+
+        return t;
     }
 
     /*!

@@ -13,14 +13,14 @@
 
 #include "../IBackend.h"
 #include <vector>
-#include <physical/TransformStage.h>
-#include <physical/HashJoinStage.h>
-#include <physical/AggregateStage.h>
-#include <physical/BlockBasedTaskBuilder.h>
-#include <physical/IExceptionableTask.h>
+#include <physical/execution/TransformStage.h>
+#include <physical/execution/HashJoinStage.h>
+#include <physical/execution/AggregateStage.h>
+#include <physical/codegen/BlockBasedTaskBuilder.h>
+#include <physical/execution/IExceptionableTask.h>
 #include <numeric>
-#include <physical/TransformTask.h>
-#include <physical/ResolveTask.h>
+#include <physical/execution/TransformTask.h>
+#include <physical/execution/ResolveTask.h>
 
 namespace tuplex {
 
@@ -205,6 +205,24 @@ namespace tuplex {
      * @return
      */
     extern URI outputURI(const UDF& udf, const URI& baseURI, int64_t partNo, FileFormat fmt);
+
+    /*!
+     * converts python fallback path into runnable func object
+     * @param py_code python code as string
+     * @param pipeline_name the name of the pipeline function
+     * @return nullptr or PyObject* referring to the function named pipeline_name
+     */
+    extern PyObject* preparePythonPipeline(const std::string& py_code, const std::string& pipeline_name);
+
+    /*!
+     * helper function for debugging which dumps exceptions as python objects to file.
+     * @param local_path local path where to store exceptions
+     * @param exceptions which exceptions
+     */
+    extern void dumpExceptionsForFallback(const std::string& local_path,
+                                          const Schema& exceptionInputSchema,
+                                          const std::vector<Partition*>& exceptions,
+                                          bool invalidate_exceptions=false);
 }
 
 #endif //TUPLEX_LOCALBACKEND_H

@@ -92,6 +92,14 @@ namespace tuplex {
         return m;
     }
 
+
+    /*!
+     * creates an escaped version of a JSON string.
+     * @param str
+     * @return escaped version.
+     */
+    extern std::string escape_for_json(const std::string& str);
+
 }
 
 #endif //TUPLEX_JSONUTILS_H

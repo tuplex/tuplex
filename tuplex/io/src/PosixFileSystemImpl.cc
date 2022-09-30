@@ -36,6 +36,9 @@
 #include <FileUtils.h>
 #include <dirent.h>
 
+// use this define to use non thread-safe POSIX APIs under Linux
+// #define USE_UNLOCKED_POSIX
+
 // Note: could improve performance prob further by
 // just using native POSIX calls. they're faster...
 
@@ -165,7 +168,8 @@ namespace tuplex {
 
         // check whether parent dir exists, if not create dirs!
         auto parent_path = parentPath(uri.toPath());
-        if(!fileExists(parent_path)) {
+        if((VirtualFileMode::VFS_WRITE & vfm || VirtualFileMode::VFS_OVERWRITE & vfm) &&
+        !fileExists(parent_path)) {
             logger.debug("parent dir " + parent_path + " does not exist, creating it.");
             create_dir(parent_path);
             assert(isDirectory(parent_path));
@@ -217,17 +221,22 @@ namespace tuplex {
 
         _fh = fopen(path.c_str(), mode.c_str());
 
-        if(_fh) {
-            // set buf size
-            _buf = (char*)malloc(POSIX_IOBUF_SIZE);
-            if(_buf) {
-                setvbuf(_fh, _buf, _IOFBF, POSIX_IOBUF_SIZE);
-            }
+        // cf. https://en.cppreference.com/w/c/io/setvbuf
 
-#ifdef LINUX
+        if(_fh) {
+//            // set buf size
+//            _buf = (char*)malloc(POSIX_IOBUF_SIZE);
+//            if(_buf) {
+//                setvbuf(_fh, _buf, _IOFBF, POSIX_IOBUF_SIZE);
+//            }
+
+#if defined(LINUX) && defined(USE_UNLOCKED_POSIX)
             // unlock file handle on GNU/Linux
         __fsetlocking (_fh, FSETLOCKING_BYCALLER); // in stdio.h, linux extension. Avoid locking.
 #endif
+        } else {
+            // get errno
+            logger.error("Failed to open file " + path + " with code " + std::to_string(errno) + ". Details: " + strerror(errno));
         }
     }
 
@@ -237,7 +246,7 @@ namespace tuplex {
 
         assert(buffer);
 
-#ifdef LINUX
+#if defined(LINUX) && defined(USE_UNLOCKED_POSIX)
         auto bytesWritten = fwrite_unlocked(buffer, 1, bufferSize, _fh);
 #else
         auto bytesWritten = fwrite(buffer, 1, bufferSize, _fh);
@@ -254,7 +263,7 @@ namespace tuplex {
 
         assert(buffer);
 
-#ifdef LINUX
+#if defined(LINUX) && defined(USE_UNLOCKED_POSIX)
         size_t bytesRead = fread_unlocked(buffer, 1, nbytes, _fh);
 #else
         size_t bytesRead = fread(buffer, 1, nbytes, _fh);
@@ -269,7 +278,7 @@ namespace tuplex {
     }
 
     bool PosixFileSystemImpl::PosixFile::eof() const {
-#ifdef LINUX
+#if defined(LINUX) && defined(USE_UNLOCKED_POSIX)
         return feof_unlocked(_fh);
 #else
         return feof(_fh);

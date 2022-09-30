@@ -19,6 +19,15 @@
 
 namespace tuplex {
 
+    //! describes how exceptions are stored in memory.
+    enum class ExceptionSerializationFormat : uint32_t {
+        UNKNOWN = 0,
+        NORMALCASE = 1,
+        GENERALCASE = 2,
+        PYOBJECT = 3,
+        STRING_CELLS = 4
+    };
+
     //! enum holding the exception codes supported by the framework
     //! make sure these match codes defined in exceptions.py
     enum class ExceptionCode : int32_t {
@@ -384,7 +393,8 @@ namespace tuplex {
             case ExceptionCode::NORMALCASEVIOLATION:
                 return "tuplex.internal.normalCaseViolation";
             default:
-                return "Exception";
+                return "Exception(" + std::to_string(ecToI32(ec)) + ")";
+                //return "Exception";
         }
     }
 }

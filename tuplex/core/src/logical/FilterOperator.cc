@@ -14,9 +14,10 @@ namespace tuplex {
 
     // within constructor
     // check that return type of UDF is bool!
-    FilterOperator::FilterOperator(LogicalOperator *parent,
+    FilterOperator::FilterOperator(const std::shared_ptr<LogicalOperator>& parent,
             const UDF &udf,
-            const std::vector<std::string>& columnNames) : UDFOperator::UDFOperator(parent, udf, columnNames), _good(true) {
+            const std::vector<std::string>& columnNames,
+            const std::unordered_map<size_t, size_t>& rewriteMap) : UDFOperator::UDFOperator(parent, udf, columnNames, rewriteMap), _good(true) {
 
         //// infer schema (may throw exception!) after applying UDF
         //setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::UNKNOWN));
@@ -71,14 +72,15 @@ namespace tuplex {
         return parent()->getSample(num);
     }
 
-    LogicalOperator *FilterOperator::clone() {
-        auto copy = new FilterOperator(parent()->clone(), _udf,
-                                       UDFOperator::columns());
+    std::shared_ptr<LogicalOperator> FilterOperator::clone(bool cloneParents) {
+        auto copy = new FilterOperator(cloneParents ? parent()->clone() : nullptr, _udf,
+                                       UDFOperator::columns(),
+                                       UDFOperator::rewriteMap());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
         copy->_good = _good;
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
     void FilterOperator::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
@@ -91,11 +93,12 @@ namespace tuplex {
         // assert(_udf.getInputSchema() == parent()->getOutputSchema());
     }
 
-    bool FilterOperator::retype(const std::vector<python::Type> &rowTypes) {
-        assert(rowTypes.size() == 1);
-        assert(rowTypes.front().isTupleType());
+    bool FilterOperator::retype(const python::Type& input_row_type, bool is_projected_row_type) {
+        assert(input_row_type.isTupleType());
 
-        auto schema = Schema(getOutputSchema().getMemoryLayout(), rowTypes.front());
+        performRetypeCheck(input_row_type, is_projected_row_type);
+
+        auto schema = Schema(getOutputSchema().getMemoryLayout(), input_row_type);
 
         // is it an empty UDF? I.e. a rename operation?
         try {

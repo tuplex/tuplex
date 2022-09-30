@@ -174,11 +174,11 @@ TEST(ANTLRPParserTest, ParseTestContinue) {
     auto for_node = dynamic_cast<NFor*>(ast.get());
     ASSERT_TRUE(for_node);
     EXPECT_EQ(for_node->type(), ASTNodeType::For);
-    auto suite_node = dynamic_cast<NSuite*>(for_node->suite_body);
+    auto suite_node = dynamic_cast<NSuite*>(for_node->suite_body.get());
     ASSERT_TRUE(suite_node);
-    auto if_node = dynamic_cast<NIfElse*>(suite_node->_statements[0]);
+    auto if_node = dynamic_cast<NIfElse*>(suite_node->_statements[0].get());
     ASSERT_TRUE(if_node);
-    auto then_node = dynamic_cast<NSuite*>(if_node->_then);
+    auto then_node = dynamic_cast<NSuite*>(if_node->_then.get());
     ASSERT_TRUE(then_node);
     EXPECT_EQ(then_node->_statements[0]->type(), ASTNodeType::Continue);
 }
@@ -193,11 +193,11 @@ TEST(ANTLRPParserTest, ParseTestBreak) {
     auto for_node = dynamic_cast<NFor*>(ast.get());
     ASSERT_TRUE(for_node);
     EXPECT_EQ(for_node->type(), ASTNodeType::For);
-    auto suite_node = dynamic_cast<NSuite*>(for_node->suite_body);
+    auto suite_node = dynamic_cast<NSuite*>(for_node->suite_body.get());
     ASSERT_TRUE(suite_node);
-    auto if_node = dynamic_cast<NIfElse*>(suite_node->_statements[0]);
+    auto if_node = dynamic_cast<NIfElse*>(suite_node->_statements[0].get());
     ASSERT_TRUE(if_node);
-    auto then_node = dynamic_cast<NSuite*>(if_node->_then);
+    auto then_node = dynamic_cast<NSuite*>(if_node->_then.get());
     ASSERT_TRUE(then_node);
     EXPECT_EQ(then_node->_statements[0]->type(), ASTNodeType::Break);
 }
@@ -215,12 +215,12 @@ TEST(ANTLRPParserTest, ParseTestWhile1) {
     auto while_node = dynamic_cast<NWhile*>(ast.get());
     ASSERT_TRUE(while_node);
     EXPECT_EQ(while_node->type(), ASTNodeType::While);
-    auto suite_node = dynamic_cast<NSuite*>(while_node->suite_body);
+    auto suite_node = dynamic_cast<NSuite*>(while_node->suite_body.get());
     ASSERT_TRUE(suite_node);
     EXPECT_EQ(suite_node->type(), ASTNodeType::Suite);
-    auto if_node = dynamic_cast<NIfElse*>(suite_node->_statements[0]);
+    auto if_node = dynamic_cast<NIfElse*>(suite_node->_statements[0].get());
     ASSERT_TRUE(if_node);
-    auto then_node = dynamic_cast<NSuite*>(if_node->_then);
+    auto then_node = dynamic_cast<NSuite*>(if_node->_then.get());
     ASSERT_TRUE(then_node);
     EXPECT_EQ(then_node->_statements[0]->type(), ASTNodeType::Break);
     ASSERT_TRUE(while_node->suite_else);
@@ -239,11 +239,11 @@ TEST(ANTLRPParserTest, ParseTestWhile2) {
     auto while_node = dynamic_cast<NWhile*>(ast.get());
     ASSERT_TRUE(while_node);
     EXPECT_EQ(while_node->type(), ASTNodeType::While);
-    auto suite_node = dynamic_cast<NSuite*>(while_node->suite_body);
+    auto suite_node = dynamic_cast<NSuite*>(while_node->suite_body.get());
     ASSERT_TRUE(suite_node);
-    auto if_node = dynamic_cast<NIfElse*>(suite_node->_statements[1]);
+    auto if_node = dynamic_cast<NIfElse*>(suite_node->_statements[1].get());
     ASSERT_TRUE(if_node);
-    auto then_node = dynamic_cast<NSuite*>(if_node->_then);
+    auto then_node = dynamic_cast<NSuite*>(if_node->_then.get());
     ASSERT_TRUE(then_node);
     EXPECT_EQ(then_node->_statements[0]->type(), ASTNodeType::Continue);
     EXPECT_EQ(while_node->suite_else, nullptr);

@@ -11,7 +11,7 @@
 #include <logical/FileOutputOperator.h>
 
 namespace tuplex {
-    FileOutputOperator::FileOutputOperator(tuplex::LogicalOperator *parent, const tuplex::URI &uri,
+    FileOutputOperator::FileOutputOperator(const std::shared_ptr<LogicalOperator> &parent, const tuplex::URI &uri,
                                            const tuplex::UDF &udf, const std::string &name,
                                            const tuplex::FileFormat &fmt,
                                            const std::unordered_map<std::string, std::string> &options, size_t numParts,
@@ -26,14 +26,22 @@ namespace tuplex {
                                                                               _limit(limit) {
         // take schema from parent node
         setSchema(this->parent()->getOutputSchema());
+
+        // depending on output file format, if empty options are given - set default options
+        if(_options.empty() && _fmt == FileFormat::OUTFMT_CSV) {
+            _options = defaultCSVOutputOptions();
+        }
+        if(_options.empty() && _fmt == FileFormat::OUTFMT_ORC) {
+            _options = defaultORCOutputOptions();
+        }
     }
 
-    LogicalOperator *FileOutputOperator::clone() {
-        auto copy = new FileOutputOperator(parent()->clone(), _uri, _outputPathUDF,
+    std::shared_ptr<LogicalOperator> FileOutputOperator::clone(bool cloneParents) {
+        auto copy = new FileOutputOperator(cloneParents ? parent()->clone() : nullptr, _uri, _outputPathUDF,
                 _name, _fmt, _options, _numParts, _splitSize, _limit);
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 }

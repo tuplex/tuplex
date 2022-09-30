@@ -13,8 +13,10 @@
 namespace tuplex {
     ParallelizeOperator::ParallelizeOperator(const Schema& schema,
             const std::vector<Partition*>& normalPartitions,
-            const std::vector<std::string>& columns) : _normalPartitions(normalPartitions),
-                                                       _columnNames(columns) {
+            const std::vector<std::string>& columns,
+            const SamplingMode& sampling_mode) : _normalPartitions(normalPartitions),
+                                                 _columnNames(columns),
+                                                 _samplingMode(sampling_mode) {
 
         setSchema(schema);
 
@@ -77,7 +79,7 @@ namespace tuplex {
         return std::vector<Row>(_sample.begin(), _sample.begin() + std::min(num, _sample.size()));
 
         // // go through partitions and retrieve additional samples if stored sample is not enough.
-        // if(num <= _sample.size()) {
+        // if(num <= _firstRowsSample.size()) {
         //
         // } else {
         //     throw std::runtime_error("not yet implemented, please chose smaller sample size");
@@ -108,14 +110,14 @@ namespace tuplex {
         // return v;
     }
 
-    LogicalOperator *ParallelizeOperator::clone() {
-        auto copy = new ParallelizeOperator(getOutputSchema(), _normalPartitions, columns());
+    std::shared_ptr<LogicalOperator> ParallelizeOperator::clone(bool cloneParents) {
+        auto copy = new ParallelizeOperator(getOutputSchema(), _normalPartitions, columns(), _samplingMode);
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         copy->setFallbackPartitions(_fallbackPartitions);
         copy->setPartitionGroups(_partitionGroups);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
     int64_t ParallelizeOperator::cost() const {

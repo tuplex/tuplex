@@ -655,7 +655,7 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
         opt_ref.set("tuplex.runTimeMemory", "128MB");
         opt_ref.set("tuplex.executorCount", "0"); // single-threaded
         opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-        opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
+        opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
         opt_ref.set("tuplex.csv.selectionPushdown", "false");
         opt_ref.set("tuplex.optimizer.generateParser", "false");
 
@@ -686,14 +686,14 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
 
         // with null value optimization (i.e. getting rid off them!)
         auto opt_null = opt_ref;
-        opt_null.set("tuplex.optimizer.nullValueOptimization", "true");
+        opt_null.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
         Context c_null(opt_null);
         auto r_null = pipelineAsStrs(zillowPipeline(c_null, zpath, cache));
         compareStrArrays(r_null, ref, true);
 
         // with null value + proj
         auto opt_null_proj = opt_ref;
-        opt_null_proj.set("tuplex.optimizer.nullValueOptimization", "true");
+        opt_null_proj.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
         opt_null_proj.set("tuplex.csv.selectionPushdown", "true");
         Context c_null_proj(opt_null_proj);
         auto r_null_proj = pipelineAsStrs(zillowPipeline(c_null_proj, zpath, cache));
@@ -701,7 +701,7 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
 
         // with null value + proj + llvmopt
         auto opt_null_proj_opt = opt_ref;
-        opt_null_proj_opt.set("tuplex.optimizer.nullValueOptimization", "true");
+        opt_null_proj_opt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
         opt_null_proj_opt.set("tuplex.csv.selectionPushdown", "true");
         opt_null_proj_opt.set("tuplex.useLLVMOptimizer", "true");
         Context c_null_proj_opt(opt_null_proj_opt);
@@ -723,7 +723,7 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
         opt_proj_wLLVMOpt_parse_null.set("tuplex.csv.selectionPushdown", "true");
         opt_proj_wLLVMOpt_parse_null.set("tuplex.useLLVMOptimizer", "true");
         opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.generateParser", "true");
-        opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.nullValueOptimization", "true");
+        opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
         Context c_proj_wLLVMOpt_parse_null(opt_proj_wLLVMOpt_parse_null);
         auto r_proj_wLLVMOpt_parse_null = pipelineAsStrs(zillowPipeline(c_proj_wLLVMOpt_parse_null, zpath, cache));
         // b.c. null value opt destroys order, sort both arrays
@@ -742,12 +742,12 @@ TEST_F(PipelinesTest, ServiceRequestsConfigHarnessNVOvsNormal) {
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
     opt_ref.set("tuplex.csv.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
 
     auto opt_nvo = opt_ref;
-    opt_nvo.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt_nvo.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
 
     EXPECT_EQ(opt_ref.OPT_NULLVALUE_OPTIMIZATION(), false);
     EXPECT_EQ(opt_nvo.OPT_NULLVALUE_OPTIMIZATION(), true);
@@ -820,7 +820,7 @@ TEST_F(PipelinesTest, FlightsWithPyResolver) {
     opt_ref.set("tuplex.driverMemory", "4GB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
     opt_ref.set("tuplex.csv.selectionPushdown", "false");
     opt_ref.set("tuplex.csv.operatorReordering", "false");
     // opt_ref.set("tuplex.optimizer.generateParser", "true");
@@ -873,7 +873,7 @@ TEST_F(PipelinesTest, FlightDevWithColumnPyFallback) {
     opt_ref.set("tuplex.driverMemory", "4GB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
     opt_ref.set("tuplex.csv.selectionPushdown", "false"); // disable for now, prob errors later...
 
     // Note: when null value opt is turned off AND selection pushdown is off,
@@ -923,7 +923,7 @@ TEST_F(PipelinesTest, FlightDevToFixWithPurePythonPipeline) {
     opt_ref.set("tuplex.driverMemory", "4GB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
     opt_ref.set("tuplex.csv.selectionPushdown", "false"); // disable for now, prob errors later...
 
     // Note: when null value opt is turned off AND selection pushdown is off,
@@ -950,7 +950,7 @@ TEST_F(PipelinesTest, TypeErrorFlightPipeline) {
     opt.set("tuplex.driverMemory", "4GB");
     opt.set("tuplex.executorCount", "15"); // single-threaded
     opt.set("tuplex.useLLVMOptimizer", "true"); // deactivate
-    opt.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     opt.set("tuplex.csv.selectionPushdown", "true"); // disable for now, prob errors later...
     opt.set("tuplex.optimizer.generateParser", "false"); // do not use parser generation
     opt.set("tuplex.inputSplitSize", "128MB"); // probably something wrong with the reader, again??
@@ -984,7 +984,7 @@ TEST_F(PipelinesTest, FlightNullValueCacheMini) {
     opt_ref.set("tuplex.partitionSize", "32MB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "true"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
     opt_ref.set("tuplex.csv.selectionPushdown", "true"); // disable for now, prob errors later...
     opt_ref.set("tuplex.optimizer.generateParser", "false"); // do not use par
     opt_ref.set("tuplex.inputSplitSize", "64MB"); // probably something wrong with the reader, again??
@@ -996,7 +996,7 @@ TEST_F(PipelinesTest, FlightNullValueCacheMini) {
 
     // create with null-value opt
     auto opt = opt_ref;
-    opt.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     Context c(opt);
     flightPipelineMini(c, bts_path,carrier_path, airport_path, true).tocsv(URI("flight_output/"));
 
@@ -1056,7 +1056,7 @@ TEST_F(PipelinesTest, ZillowDev) {
     //            "runTimeMemory" : "128MB",
     //            "inputSplitSize":"64MB",
     //            "useLLVMOptimizer" : True,
-    //            "optimizer.nullValueOptimization" : False,
+    //            "optimizer.retypeUsingOptimizedInputSchema" : False,
     //            "csv.selectionPushdown" : True,
     //            "optimizer.generateParser": False}
 
@@ -1068,7 +1068,7 @@ TEST_F(PipelinesTest, ZillowDev) {
     //            "partitionSize" : "32MB",
     //            "runTimeMemory" : "128MB",
     //            "useLLVMOptimizer" : True,
-    //            "optimizer.nullValueOptimization" : False,
+    //            "optimizer.retypeUsingOptimizedInputSchema" : False,
     //            "csv.selectionPushdown" : True}
     opt_ref.set("tuplex.runTimeMemory", "256MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorMemory", "2GB");
@@ -1076,7 +1076,7 @@ TEST_F(PipelinesTest, ZillowDev) {
     opt_ref.set("tuplex.partitionSize", "16MB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "true"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
     opt_ref.set("tuplex.csv.selectionPushdown", "true"); // disable for now, prob errors later...
     opt_ref.set("tuplex.optimizer.generateParser", "true"); // do not use par => wrong parse for some cell here!
     opt_ref.set("tuplex.inputSplitSize", "64MB"); // probably something wrong with the reader, again??
@@ -1099,7 +1099,7 @@ TEST_F(PipelinesTest, ApacheDev) {
     auto opt_ref = testOptions();
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
     opt_ref.set("tuplex.csv.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
     opt_ref.set("tuplex.optimizer.filterPushdown", "true");
@@ -1123,7 +1123,7 @@ TEST_F(PipelinesTest, ApacheDev) {
     opt_proj_wLLVMOpt_parse_null.set("tuplex.csv.selectionPushdown", "true");
     opt_proj_wLLVMOpt_parse_null.set("tuplex.useLLVMOptimizer", "true");
     opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.generateParser", "true");
-    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     Context c_proj_wLLVMOpt_parse_null(opt_proj_wLLVMOpt_parse_null);
     auto r_proj_wLLVMOpt_parse_null = pipelineAsStrs(apacheLogsPipeline(c_ref, logs_path));
     // b.c. null value opt destroys order, sort both arrays
@@ -1142,7 +1142,7 @@ TEST_F(PipelinesTest, NullValueApache) {
     auto opt_ref = testOptions();
     opt_ref.set("tuplex.executorCount", "4"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     opt_ref.set("tuplex.csv.selectionPushdown", "true");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
     opt_ref.set("tuplex.optimizer.filterPushdown", "true");
@@ -1268,7 +1268,7 @@ TEST_F(PipelinesTest, FlightWithIgnore) {
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
     opt_ref.set("tuplex.csv.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
     opt_ref.set("tuplex.optimizer.filterPushdown", "false");
@@ -1277,7 +1277,7 @@ TEST_F(PipelinesTest, FlightWithIgnore) {
     opt_proj_wLLVMOpt_parse_null.set("tuplex.csv.selectionPushdown", "true");
 //    opt_proj_wLLVMOpt_parse_null.set("tuplex.useLLVMOptimizer", "true");
 //    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.generateParser", "true");
-//    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.nullValueOptimization", "true");
+//    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     Context c_proj_wLLVMOpt_parse_null(opt_proj_wLLVMOpt_parse_null);
 
     flightPipeline(c_proj_wLLVMOpt_parse_null, bts_path, carrier_path, airport_path, false, true).tocsv(testName + ".csv");
@@ -1298,7 +1298,7 @@ TEST_F(PipelinesTest, CarriersOnly) {
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
     opt_ref.set("tuplex.csv.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
     opt_ref.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
@@ -1344,7 +1344,7 @@ TEST_F(PipelinesTest, FlightConfigHarness) {
         opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
         opt_ref.set("tuplex.executorCount", "0"); // single-threaded
         opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-        opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
+        opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
         opt_ref.set("tuplex.csv.selectionPushdown", "false");
         opt_ref.set("tuplex.optimizer.generateParser", "false");
         opt_ref.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
@@ -1393,7 +1393,7 @@ TEST_F(PipelinesTest, FlightConfigHarness) {
         opt_proj_wLLVMOpt_parse_null.set("tuplex.csv.selectionPushdown", "true");
         opt_proj_wLLVMOpt_parse_null.set("tuplex.useLLVMOptimizer", "true");
         opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.generateParser", "true");
-        opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.nullValueOptimization", "true");
+        opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
         Context c_proj_wLLVMOpt_parse_null(opt_proj_wLLVMOpt_parse_null);
         auto r_proj_wLLVMOpt_parse_null = pipelineAsStrs(flightPipeline(c_proj_wLLVMOpt_parse_null, bts_path, carrier_path, airport_path, cache));
         // b.c. null value opt destroys order, sort both arrays
@@ -1414,7 +1414,7 @@ TEST_F(PipelinesTest, GoogleTrace) {
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
     opt_ref.set("tuplex.csv.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
 

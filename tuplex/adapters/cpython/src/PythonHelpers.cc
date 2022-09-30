@@ -12,6 +12,7 @@
 #include <Utils.h>
 #include <StringUtils.h>
 #include <PythonVersions.h>
+#include <TypeHelper.h>
 
 #ifndef NDEBUG
 #include <boost/stacktrace.hpp>
@@ -54,21 +55,20 @@ namespace python {
 
     void handle_and_throw_py_error() {
         if(PyErr_Occurred()) {
-            PyObject *ptype = NULL, *pvalue = NULL, *ptraceback = NULL;
-            PyErr_Fetch(&ptype,&pvalue,&ptraceback);
-            PyErr_NormalizeException(&ptype,&pvalue,&ptraceback);
+            // PyObject *ptype = NULL, *pvalue = NULL, *ptraceback = NULL;
+            // PyErr_Fetch(&ptype,&pvalue,&ptraceback);
+            // PyErr_NormalizeException(&ptype,&pvalue,&ptraceback);
 
             std::stringstream ss;
-
-            PyObject *extype = nullptr, * value=nullptr, * traceback=nullptr;
+            PyObject *extype = nullptr, *value=nullptr, *traceback=nullptr;
             PyErr_Fetch(&extype, &value, &traceback);
             if (!extype)
                 throw std::runtime_error("could not obtain error");
-            if (!value)
-                throw std::runtime_error("could not obtain value");
-            if (!traceback)
-                throw std::runtime_error("could not obtain traceback");
-            // value and traceback may be nullptr (?)
+//            if (!value)
+//                throw std::runtime_error("could not obtain value");
+//            if (!traceback)
+//                throw std::runtime_error("could not obtain traceback");
+//            // value and traceback may be nullptr (?)
 
             auto mod_traceback = PyImport_ImportModule("traceback");
             if(!mod_traceback) {
@@ -83,6 +83,14 @@ namespace python {
             }
 
             auto format_exception_func = PyObject_GetAttrString(mod_traceback_dict, "format_exception");
+            if(!format_exception_func) {
+#ifndef NDEBUG
+                std::cerr<<"traceback module doesn't contain format_exception function."<<std::endl;
+                std::cerr<<PyString_AsString(mod_traceback_dict)<<std::endl;
+                PyObject_Print(mod_traceback_dict, stderr, 0);
+                std::cerr<<std::endl;
+#endif
+            }
             assert(PyCallable_Check(format_exception_func));
 
             // call function, set all args
@@ -133,6 +141,15 @@ namespace python {
 
     PyObject* PyString_FromString(const char* str) {
        auto unicode_obj = PyUnicode_DecodeUTF8(str, strlen(str), nullptr);
+
+       if(!unicode_obj) {
+           PyErr_Clear();
+
+           // string was not a unicode object. use per default iso_8859_1 (latin-1 supplement) to utf8 conversion
+           auto utf8_str = tuplex::iso_8859_1_to_utf8(std::string(str));
+           assert(tuplex::utf8_check_is_valid);
+           return PyString_FromString(utf8_str.c_str());
+       }
 
 #ifndef NDEBUG
        handle_and_throw_py_error();
@@ -1434,7 +1451,7 @@ namespace python {
                 python::Type currElementType = mapPythonClassToTuplexType(PyList_GetItem(o, j), autoUpcast);
                 if(elementType != currElementType) {
                     // possible to use nullable type as element type?
-                    auto newElementType = unifyTypes(elementType, currElementType, autoUpcast);
+                    auto newElementType = tuplex::unifyTypes(elementType, currElementType, autoUpcast);
                     if (newElementType == python::Type::UNKNOWN) {
                         Logger::instance().defaultLogger().error("list with variable element type " + elementType.desc() + " and " + currElementType.desc() + " not supported.");
                         return python::Type::PYOBJECT;
@@ -1445,6 +1462,14 @@ namespace python {
             return python::Type::makeListType(elementType);
         }
 
+        // match object
+        auto name = typeName(o);
+        if(o->ob_type->tp_name == "re.Match")
+            return python::Type::MATCHOBJECT;
+
+        if("module" ==  name)
+            return python::Type::MODULE;
+
         // check if serializable via cloudpickle, if so map!
 #ifndef NDEBUG
         auto pickled_obj = python::pickleObject(python::getMainModule(), o);
@@ -1453,11 +1478,9 @@ namespace python {
         } else {
             PyErr_Clear();
         }
-#else
-        return python::Type::PYOBJECT;
 #endif
 
-        return python::Type::UNKNOWN;
+        return python::Type::PYOBJECT;
     }
 
     // @TODO: inc type objects??

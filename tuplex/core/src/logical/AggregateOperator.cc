@@ -8,7 +8,7 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <physical/AggregateStage.h>
+#include <physical/execution/AggregateStage.h>
 #include <logical/AggregateOperator.h>
 
 
@@ -25,15 +25,15 @@ namespace tuplex {
 
     }
 
-    LogicalOperator *AggregateOperator::clone() {
+    std::shared_ptr<LogicalOperator> AggregateOperator::clone(bool cloneParents) {
         // important to use here input column names, i.e. stored in base class UDFOperator!
-        auto copy = new AggregateOperator(parent()->clone(), aggType(),
+        auto copy = new AggregateOperator(cloneParents ? parent()->clone() : nullptr, aggType(),
                                           _combiner, _aggregator, _initialValue, _keys);
 
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
     void hintTwoParamUDF(UDF& udf, const python::Type& a, const python::Type& b) {

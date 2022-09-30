@@ -15,6 +15,9 @@
 #include <vector>
 #include "TypeSystem.h"
 
+// a maximum of 7 chars (decoded) should be used for maximum cells.
+#define SMALL_CELL_MAX_SIZE 7
+
 namespace tuplex {
     class CSVStatistic {
     private:
@@ -40,8 +43,8 @@ namespace tuplex {
         python::Type _rowSuperType;
 
         std::vector<std::string> _columnNames;
-
         std::vector<std::string> _null_values;
+        std::vector<size_t> _smallCellIndices;
 
         python::Type mapCSVTypeToPythonType(const CSVType& csvtype);
     public:
@@ -91,6 +94,12 @@ namespace tuplex {
 
         size_t rowCount() const { return _rowCount; }
         size_t estimationBufferSize() const { return _bufSize; }
+
+        /*!
+         * return list of column indices where small cells have been detected.
+         * @return vector of indices (ascending) or empty vector
+         */
+        std::vector<size_t> smallCellCandidates() const { return _smallCellIndices; }
     };
 }
 

@@ -12,7 +12,7 @@
 import logging
 
 from .libexec.tuplex import _Context, _DataSet, getDefaultOptionsAsJSON
-from .dataset import DataSet
+from .dataset import DataSet, SamplingMode
 import os
 import glob
 import sys
@@ -201,7 +201,7 @@ class Context:
         self.metrics = Metrics(python_metrics)
         assert self.metrics
 
-    def parallelize(self, value_list, columns=None, schema=None, auto_unpack=True):
+    def parallelize(self, value_list, columns=None, schema=None, auto_unpack=True, sampling_mode=SamplingMode.FIRST_ROWS):
         """ passes data to the Tuplex framework. Must be a list of primitive objects (e.g. of type bool, int, float, str) or
         a list of (nested) tuples of these types.
 
@@ -211,12 +211,14 @@ class Context:
                             Allows for dict access in functions then.
             schema: a schema defined as tuple of typing types. If None, then most likely schema will be inferred.
             auto_unpack: whether or not to automatically unpack dictionaries with string keys.
+            sampling_mode: specify how Tuplex should sample to infer types from this input node
         Returns:
             Tuplex.dataset.DataSet: A Tuplex Dataset object that allows further ETL operations
         """
 
         assert isinstance(value_list, list), "data must be given as a list of objects"
         assert isinstance(auto_unpack, bool), "auto_unpack must be given as a boolean"
+        assert isinstance(sampling_mode, SamplingMode), 'sampling_mode must be one or a combination of the allowed SamplingMode values'
 
         cols = []
         if not columns:
@@ -233,10 +235,10 @@ class Context:
 
 
         ds = DataSet()
-        ds._dataSet = self._context.parallelize(value_list, columns, schema, auto_unpack)
+        ds._dataSet = self._context.parallelize(value_list, columns, schema, auto_unpack, int(sampling_mode))
         return ds
 
-    def csv(self, pattern, columns=None, header=None, delimiter=None, quotechar='"', null_values=[''], type_hints={}):
+    def csv(self, pattern, columns=None, header=None, delimiter=None, quotechar='"', null_values=[''], type_hints={}, sampling_mode=SamplingMode.FIRST_ROWS | SamplingMode.LAST_ROWS | SamplingMode.FIRST_FILE):
         """ reads csv (comma separated values) files. This function may either be provided with
         parameters that help to determine the delimiter, whether a header present or what kind
         of quote char is used. Overall, CSV parsing is done according to the RFC-4180 standard
@@ -262,6 +264,7 @@ class Context:
 
             type_hints  (dict): dictionary of hints for column types. Columns can be index either using integers or strings.
 
+            sampling_mode (SamplingMode): specify how Tuplex should sample to infer types from this input node
         Returns:
             tuplex.dataset.DataSet: A Tuplex Dataset object that allows further ETL operations
         """
@@ -276,6 +279,7 @@ class Context:
         assert isinstance(quotechar, str), 'quote char must be given as str'
         assert isinstance(null_values, list), 'null_values must be a list of strings representing null values'
         assert isinstance(type_hints, dict), 'type_hints must be a dictionary mapping index to type hint' # TODO: update with other options
+        assert isinstance(sampling_mode, SamplingMode), 'sampling_mode must be one or a combination of the allowed SamplingMode values'
 
         if delimiter:
             assert len(delimiter) == 1, 'delimiter can only exist out of a single character'
@@ -289,10 +293,11 @@ class Context:
                                         '' if delimiter is None else delimiter,
                                         quotechar,
                                         null_values,
-                                        type_hints)
+                                        type_hints,
+                                        int(sampling_mode))
         return ds
 
-    def text(self, pattern, null_values=None):
+    def text(self, pattern, null_values=None, sampling_mode=SamplingMode.FIRST_ROWS|SamplingMode.LAST_ROWS|SamplingMode.FIRST_FILE):
         """reads text files.
         Args:
             pattern     (str): a file glob pattern, e.g. /data/file.csv or /data/\*.csv or /\*/\*csv
@@ -307,12 +312,13 @@ class Context:
 
         assert isinstance(pattern, str), 'file pattern must be given as str'
         assert isinstance(null_values, list), 'null_values must be a list of strings representing null values'
+        assert isinstance(sampling_mode, SamplingMode), 'sampling_mode must be one or a combination of the allowed SamplingMode values'
 
         ds = DataSet()
-        ds._dataSet = self._context.text(pattern, null_values)
+        ds._dataSet = self._context.text(pattern, null_values, sampling_mode)
         return ds
 
-    def orc(self, pattern, columns=None):
+    def orc(self, pattern, columns=None, sampling_mode=SamplingMode.FIRST_ROWS|SamplingMode.LAST_ROWS|SamplingMode.FIRST_FILE):
         """ reads orc files.
         Args:
             pattern (str): a file glob pattern, e.g. /data/file.csv or /data/\*.csv or /\*/\*csv
@@ -323,9 +329,10 @@ class Context:
 
         assert isinstance(pattern, str), 'file pattern must be given as str'
         assert isinstance(columns, list) or columns is None, 'columns must be a list or None'
+        assert isinstance(sampling_mode, SamplingMode), 'sampling_mode must be one or a combination of the allowed SamplingMode values'
 
         ds = DataSet()
-        ds._dataSet = self._context.orc(pattern, columns)
+        ds._dataSet = self._context.orc(pattern, columns, sampling_mode)
         return ds
 
     def options(self, nested=False):

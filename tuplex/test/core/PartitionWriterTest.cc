@@ -10,7 +10,7 @@
 
 #include "gtest/gtest.h"
 #include "TestUtils.h"
-#include <PartitionWriter.h>
+#include <physical/memory/PartitionWriter.h>
 #include <Context.h>
 
 class PartitionWriterTest : public TuplexTest {};

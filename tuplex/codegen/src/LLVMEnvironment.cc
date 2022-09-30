@@ -190,8 +190,15 @@ namespace tuplex {
                         if (i < j && (python::Type::STRING == paramType.withoutOptions() ||
                                       python::Type::GENERICDICT == paramType.withoutOptions() ||
                                       paramType.withoutOptions().isDictionaryType() ||
-                                      (paramType.withoutOptions().isListType() && paramType.withoutOptions() != python::Type::EMPTYLIST && !paramType.withoutOptions().elementType().isSingleValued()))) // TODO: this should probably be generalized to type.isVarLen() or something
-                            sizeOffset++;
+                                      (paramType.withoutOptions().isListType() && paramType.withoutOptions() != python::Type::EMPTYLIST && !paramType.withoutOptions().elementType().isSingleValued()))) {
+                            // does not apply to lists AND struct dicts -> they hold size internally.
+                            if(paramType.withoutOptions().isListType() || paramType.withoutOptions().isStructuredDictionaryType()) {
+                                /// ...
+                            } else {
+                                // TODO: this should probably be generalized to type.isVarLen() or something
+                                sizeOffset++;
+                            }
+                        }
                     }
 
                     _tupleIndexCache[tupleType.hash()][j] = std::make_tuple(valueOffset, sizeOffset, bitmapPos);
@@ -276,13 +283,19 @@ namespace tuplex {
                     memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
                     numVarlenFields++;
                 } else if ((python::Type::GENERICDICT == t || t.isDictionaryType()) && t != python::Type::EMPTYDICT) { // dictionary
-                    memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
-                    numVarlenFields++;
+                    // special case structured dict
+                    if(t.isStructuredDictionaryType()) {
+                        memberTypes.push_back(getOrCreateStructuredDictType(t));
+                        // not classified as var field (var within).
+                    } else {
+                        // general i8* pointer to hold C-struct
+                        memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
+                        numVarlenFields++;
+                    }
                 } else if (t.isSingleValued()) {
                     // leave out. Not necessary to represent it in memory.
                 } else if(t.isListType()) {
-                    memberTypes.push_back(getOrCreateListType(t));
-                    if(!t.elementType().isSingleValued()) numVarlenFields++;
+                    memberTypes.push_back(getOrCreateListType(t)); // internal size field...
                 } else {
                     // nested tuple?
                     // ==> do lookup!
@@ -784,21 +797,22 @@ namespace tuplex {
                 return SerializableValue{ret, size, isnull};
             }
 
-
-
             // extract elements
             // auto structValIdx = builder.CreateStructGEP(tuplePtr, valueOffset);
             auto structValIdx = CreateStructGEP(builder, tuplePtr, valueOffset);
             value = builder.CreateLoad(structValIdx);
 
             // size existing? ==> only for varlen types
-            if (!elementType.isFixedSizeType()) {
+            if (!elementType.isFixedSizeType() && !elementType.isStructuredDictionaryType() && !elementType.isListType()) {
                 //  auto structSizeIdx = builder.CreateStructGEP(tuplePtr, sizeOffset);
                 auto structSizeIdx = CreateStructGEP(builder, tuplePtr, sizeOffset);
                 size = builder.CreateLoad(structSizeIdx);
             } else {
                 // size from type
                 size = i64Size;
+
+                if(elementType.isListType() || elementType.isStructuredDictionaryType())
+                    size = nullptr; // need to explicitly compute (costly)
             }
 
             return SerializableValue(value, size, isnull);
@@ -854,7 +868,9 @@ namespace tuplex {
                 builder.CreateStore(value.val, structValIdx);
 
             // size existing? ==> only for varlen types
-            if (!elementType.isFixedSizeType()) {
+            if (!elementType.isFixedSizeType() &&
+                !elementType.isListType() &&
+                !elementType.isStructuredDictionaryType()) {
                 // auto structSizeIdx = builder.CreateStructGEP(tuplePtr, sizeOffset);
                 auto structSizeIdx = CreateStructGEP(builder, tuplePtr, sizeOffset);
                 if (value.size)

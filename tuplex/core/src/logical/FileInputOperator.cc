@@ -262,6 +262,10 @@ namespace tuplex {
             auto normalcasetype = !unwrap_first_level ? normal_case_max_type.first.parameters().front() : normal_case_max_type.first;
             auto generalcasetype = !unwrap_first_level ? general_case_max_type.first.parameters().front() : general_case_max_type.first;
 
+            // rowtype is always, well a row
+            normalcasetype = python::Type::propagateToTupleType(normalcasetype);
+            generalcasetype = python::Type::propagateToTupleType(generalcasetype);
+
             // get type & assign schema
             f->_normalCaseRowType = normalcasetype;
             f->setSchema(Schema(Schema::MemoryLayout::ROW, generalcasetype));

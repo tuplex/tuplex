@@ -717,6 +717,32 @@ namespace python {
         return false;
     }
 
+    static bool recursive_contains_option(const python::Type& t) {
+        if(t.isOptionType())
+            return true;
+        if(t.isPrimitiveType() || t.isConstantValued())
+            return false;
+
+        // composite types:
+        if(t.isStructuredDictionaryType())
+            return false; // has its own map...
+
+        if(t.isListType())
+            return recursive_contains_option(t.elementType());
+        if(t.isDictionaryType() && !t.isStructuredDictionaryType())
+            return recursive_contains_option(t.keyType()) && recursive_contains_option(t.valueType());
+        if(t.isTupleType()) {
+            for(const auto& p : t.parameters()) {
+                if(recursive_contains_option(p))
+                    return true;
+            }
+            return false;
+        }
+
+        // other types... prob. false
+        return false;
+    }
+
     bool Type::isOptional() const {
         // contains any options?
         if(isOptionType())
@@ -726,7 +752,8 @@ namespace python {
             return false;
 
         // for composite types, search their params / return values
-        return desc().find("Option") != std::string::npos; // @TODO: this is a quick and dirty hack, improve.
+        // return desc().find("Option") != std::string::npos; // @TODO: this is a quick and dirty hack, improve. --> not accurate for constants/struct types etc.
+        return recursive_contains_option(*this);
     }
 
     bool Type::isOptimizedType() const {

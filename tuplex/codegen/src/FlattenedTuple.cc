@@ -12,6 +12,9 @@
 #include <Logger.h>
 #include <sstream>
 
+#include <experimental/ListHelper.h>
+#include <experimental/StructDictHelper.h>
+
 namespace tuplex {
     namespace codegen {
         std::vector<python::Type> FlattenedTuple::getFieldTypes() const {
@@ -874,16 +877,25 @@ namespace tuplex {
             // add varlen sizes
             for(int i = 0; i < _tree.elements().size(); ++i) {
                 auto el = _tree.elements()[i];
-                if(el.val) // i.e. for null elements, don't add a size.
-                    assert(el.size);
-                else continue;
+
+                // i.e. for null elements/constants, don't add a size.
+                if(!el.val)
+                    continue;
+
+                auto type = _tree.fieldType(i);
+                assert(!type.isConstantValued() && !type.isSingleValued());
 
                 if(!_tree.fieldType(i).isFixedSizeType()) {
-                    s = builder.CreateAdd(s, el.size); // 0 for varlen option!
-
-                    // debug
-                    // _env->debugPrint(builder, "element " + std::to_string(i) + ": ", el.val);
-                    // _env->debugPrint(builder, "element " + std::to_string(i) + " size: ", el.size);
+                    // special case list and struct -> need to call function on them!
+                    if(type.isListType()) {
+                        auto l_size = list_serialized_size(*_env, builder, el.val, type);
+                        s = builder.CreateAdd(s, l_size);
+                    } else if(type.isStructuredDictionaryType()) {
+                        auto s_size = struct_dict_type_serialized_memory_size(*_env, builder, el.val, type);
+                        s = builder.CreateAdd(s, s_size.val);
+                    } else {
+                        s = builder.CreateAdd(s, el.size); // 0 for varlen option!
+                    }
                 }
             }
 

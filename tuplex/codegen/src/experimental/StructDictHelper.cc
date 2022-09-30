@@ -661,8 +661,10 @@ namespace tuplex {
             // get the corresponding type
             auto stype = create_structured_dict_type(env, dict_type);
 
-            if(ptr->getType() != stype->getPointerTo())
-                throw std::runtime_error("ptr has not correct type, must be pointer to " + stype->getStructName().str());
+            // TODO: is this check warranted or not? if yes, then getTupleElement for struct/list should return the gep original...
+#warning "is this check here good or not?"
+            //if(ptr->getType() != stype->getPointerTo())
+            //    throw std::runtime_error("ptr has not correct type, must be pointer to " + stype->getStructName().str());
 
             // get flattened structure!
             flattened_struct_dict_entry_list_t entries;

@@ -354,6 +354,17 @@ namespace python {
      */
     extern void unlockGIL();
 
+#ifndef NDEBUG
+    inline void checkPythonIntegrity() {
+        python::lockGIL();
+        if(PyErr_Occurred()) {
+            std::cerr<<"internal python error"<<std::endl;
+            PyErr_Clear();
+        }
+        python::unlockGIL();
+    }
+#endif
+
     /*!
      * check whether this thread holds the GIL or not
      * @return

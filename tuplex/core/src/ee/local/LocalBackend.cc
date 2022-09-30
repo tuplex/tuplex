@@ -1003,6 +1003,9 @@ namespace tuplex {
                 executeSlowPath = true;
 
             if(executeSlowPath) {
+
+                python::checkPythonIntegrity();
+
                 // only if functor or python is available, else there is simply no slow path to resolve!
                 if(syms->resolveFunctor || !tstage->purePythonCode().empty()) {
                     using namespace  std;
@@ -1284,13 +1287,15 @@ namespace tuplex {
         auto input_intermediates = tstage->initData();
 
         // lazy init hybrids
-        if(!input_intermediates.hybrids) {
+        if(!input_intermediates.hybrids && input_intermediates.numArgs > 0) {
             auto num_predecessors = tstage->predecessors().size();
             input_intermediates.hybrids = new PyObject*[num_predecessors]; // @TODO: free these intermediates. Where is this done?
             for(int i = 0; i < num_predecessors; ++i)
                 input_intermediates.hybrids[i] = nullptr;
+        } else {
+            assert(input_intermediates.hybrids == nullptr);
+            input_intermediates.hybrids = nullptr;
         }
-
 
         python::lockGIL();
 
@@ -1321,7 +1326,6 @@ namespace tuplex {
         python::unlockGIL();
 
         // check whether hybrids exist. If not, create them quickly!
-        assert(input_intermediates.hybrids);
         logger().info("creating hybrid intermediates took " + std::to_string(timer.time()) + "s");
         timer.reset();
 

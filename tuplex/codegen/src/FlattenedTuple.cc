@@ -12,8 +12,8 @@
 #include <Logger.h>
 #include <sstream>
 
-#include <experimental/ListHelper.h>
-#include <experimental/StructDictHelper.h>
+#include "experimental/ListHelper.h"
+#include "experimental/StructDictHelper.h"
 
 namespace tuplex {
     namespace codegen {
@@ -877,23 +877,25 @@ namespace tuplex {
             // add varlen sizes
             for(int i = 0; i < _tree.elements().size(); ++i) {
                 auto el = _tree.elements()[i];
-
-                // i.e. for null elements/constants, don't add a size.
-                if(!el.val)
+                if(!el.val) // i.e. for null elements, don't add a size.
                     continue;
 
                 auto type = _tree.fieldType(i);
-                assert(!type.isConstantValued() && !type.isSingleValued());
+                assert(type != python::Type::UNKNOWN);
+                assert(!type.isSingleValued() && !type.isConstantValued());
+
 
                 if(!_tree.fieldType(i).isFixedSizeType()) {
-                    // special case list and struct -> need to call function on them!
-                    if(type.isListType()) {
+
+                    // special cases list and struct
+                    if(type.isStructuredDictionaryType()) {
+                        auto s_size = struct_dict_serialized_memory_size(*_env, builder, el.val, type);
+                        s = builder.CreateAdd(s, s_size.val);
+                    } else if(type.isListType()) {
                         auto l_size = list_serialized_size(*_env, builder, el.val, type);
                         s = builder.CreateAdd(s, l_size);
-                    } else if(type.isStructuredDictionaryType()) {
-                        auto s_size = struct_dict_type_serialized_memory_size(*_env, builder, el.val, type);
-                        s = builder.CreateAdd(s, s_size.val);
                     } else {
+                        // string etc.
                         s = builder.CreateAdd(s, el.size); // 0 for varlen option!
                     }
                 }

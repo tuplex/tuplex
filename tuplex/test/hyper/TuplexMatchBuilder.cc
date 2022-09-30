@@ -289,7 +289,7 @@ namespace tuplex {
                 builder.SetInsertPoint(bbNormalCaseSuccess);
 
                 // serialized size (as is)
-                auto s = struct_dict_type_serialized_memory_size(_env, builder, normal_case_row, _normalCaseRowType);
+                auto s = struct_dict_serialized_memory_size(_env, builder, normal_case_row, _normalCaseRowType);
                 incVar(builder, _normalMemorySizeVar, s.val);
 
                 // inc by one
@@ -302,7 +302,7 @@ namespace tuplex {
                 builder.SetInsertPoint(bbGeneralCaseSuccess);
 
                 // serialized size (as is)
-                auto s = struct_dict_type_serialized_memory_size(_env, builder, general_case_row, _generalCaseRowType);
+                auto s = struct_dict_serialized_memory_size(_env, builder, general_case_row, _generalCaseRowType);
                 auto general_size = s.val;
 
                 // in order to store an exception, need 8 bytes for each: rowNumber, ecCode, opID, eSize + the size of the row
@@ -365,7 +365,7 @@ namespace tuplex {
 
 
             {
-//                auto s = struct_dict_type_serialized_memory_size(_env, builder, row_var, row_type);
+//                auto s = struct_dict_serialized_memory_size(_env, builder, row_var, row_type);
 //                // _env.printValue(builder, s.val, "size of row materialized in bytes is: ");
 //
 //                // rtmalloc and serialize!

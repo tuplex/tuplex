@@ -597,7 +597,7 @@ namespace tuplex {
                 auto item = builder.CreateGEP(ptr_values, loop_i_val);
 
                 // call function! (or better said: emit the necessary code...)
-                auto item_size = struct_dict_type_serialized_memory_size(env, builder, item, element_type).val;
+                auto item_size = struct_dict_serialized_memory_size(env, builder, item, element_type).val;
 
                 size = builder.CreateAdd(item_size, builder.CreateLoad(size_var));
                 builder.CreateStore(size, size_var);

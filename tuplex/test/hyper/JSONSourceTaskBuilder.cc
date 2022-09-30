@@ -82,7 +82,7 @@ namespace tuplex {
             JSONParseRowGenerator gen(_env, _rowType,  _freeEnd, bbSchemaMismatch);
             gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
 
-            auto s = struct_dict_type_serialized_memory_size(_env, builder, row_var, _rowType);
+            auto s = struct_dict_serialized_memory_size(_env, builder, row_var, _rowType);
             // _env.printValue(builder, s.val, "size of row materialized in bytes is: ");
 
             // rtmalloc and serialize!

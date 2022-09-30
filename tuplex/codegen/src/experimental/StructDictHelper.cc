@@ -657,7 +657,7 @@ namespace tuplex {
             return sizeof(int64_t) * num_bitmap + sizeof(int64_t) * num_presence_map;
         }
 
-        SerializableValue struct_dict_type_serialized_memory_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type) {
+        SerializableValue struct_dict_serialized_memory_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type) {
             // get the corresponding type
             auto stype = create_structured_dict_type(env, dict_type);
 

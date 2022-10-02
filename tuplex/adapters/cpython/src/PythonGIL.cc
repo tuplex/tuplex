@@ -74,6 +74,7 @@ namespace python {
     static std::atomic_int64_t interpreterID(-1); // thread which holds the interpreter
     static std::atomic_bool interpreterInitialized(false); // checks whether interpreter is initialized or not
     std::thread::id gil_main_thread_id;
+    std::thread::id gil_id; // id of the thread holding the gil right now.
 
     // vars for python management
     static std::atomic<PyThreadState*> gilState(nullptr);
@@ -93,6 +94,7 @@ namespace python {
             gstate = PyGILState_Ensure();
         }
         assert(PyGILState_Check());
+        gil_id = std::this_thread::get_id();
         gil = true;
         gilState = nullptr;
         gilID = thisThreadID();
@@ -107,13 +109,14 @@ namespace python {
             PyGILState_Release(gstate);
             gstate = PyGILState_UNLOCKED;
         }
+        gil_id = std::thread::id();
         gil = false;
         gilID = thisThreadID();
         gilMutex.unlock();
     }
 
     bool holdsGIL() {
-        return gil;
+        return gil && std::this_thread::get_id() == gil_id;
     }
 
     void acquireGIL() {

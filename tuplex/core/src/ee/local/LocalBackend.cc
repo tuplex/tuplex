@@ -28,6 +28,7 @@
 #include <physical/LLVMOptimizer.h>
 #include <HybridHashTable.h>
 #include <int_hashmap.h>
+#include <PythonHelpers.h>
 
 namespace tuplex {
 

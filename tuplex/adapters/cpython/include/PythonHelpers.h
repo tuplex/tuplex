@@ -363,6 +363,8 @@ namespace python {
         }
         python::unlockGIL();
     }
+#else
+    inline void checkPythonIntegrity() {}
 #endif
 
     /*!

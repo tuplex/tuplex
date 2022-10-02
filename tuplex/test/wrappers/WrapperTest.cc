@@ -569,75 +569,75 @@ TEST_F(WrapperTest, extractPriceExample) {
     }
 }
 
-TEST(Python, FastTupleConstruction) {
-    using namespace tuplex;
-
-    python::initInterpreter();
-    std::cout<<"\n-------------"<<std::endl;
-
-    // Note: Eliminating these additiona if stmts & Co, gives maybe a tiny speedup of
-    // 5-10%. ==> worth it?? prob not really...
-
-    int N = 1001000;
-
-    Timer timer;
-    auto listObj = PyList_New(N);
-    for(int i = 0; i < N; ++i) {
-        auto tupleObj = PyTuple_New(4);
-        PyTuple_SET_ITEM(tupleObj, 0, python::PyString_FromString("hello world"));
-        PyTuple_SET_ITEM(tupleObj, 1, python::PyString_FromString("hello whkljdkhjorld"));
-        PyTuple_SET_ITEM(tupleObj, 2, python::PyString_FromString("dkfjopdjfophjhello world"));
-        PyTuple_SET_ITEM(tupleObj, 3, PyLong_FromLongLong(12345));
-        PyList_SET_ITEM(listObj, i, tupleObj);
-    }
-    std::cout<<"w/o opt took: "<<timer.time()<<"s "<<std::endl;
-    timer.reset();
-    listObj = PyList_New(N);
-    unsigned tupleSize = 4;
-    for(int i = 0; i < N; ++i) {
-
-        // directly call python functions without all the crap
-        auto tp = (PyTupleObject*)PyObject_GC_NewVar(PyTupleObject, &PyTuple_Type, tupleSize);
-        PyObject_GC_Track(tp);
-        if(!tp) // out of mem..
-            break;
-
-        tp->ob_item[0] = python::PyString_FromString("hello world");
-        tp->ob_item[1] = python::PyString_FromString("hello whkljdkhjorld");
-        tp->ob_item[2] = python::PyString_FromString("dkfjopdjfophjhello world");
-        tp->ob_item[3] = PyLong_FromLongLong(12345);
-
-        PyList_SET_ITEM(listObj, i, (PyObject*)tp);
-    }
-    std::cout<<"tuple construction optimized, took: "<<timer.time()<<"s "<<std::endl;
-
-    timer.reset();
-    PyListObject* lo = PyObject_GC_New(PyListObject, &PyList_Type);
-    lo->ob_item = (PyObject**)PyMem_Calloc(N, sizeof(PyObject*));
-    // TODO: mem check...
-    Py_SIZE(lo) = N;
-    lo->allocated = N;
-    PyObject_GC_Track(lo);
-    for(int i = 0; i < N; ++i) {
-
-        // directly call python functions without all the crap
-        auto tp = (PyTupleObject*)PyObject_GC_NewVar(PyTupleObject, &PyTuple_Type, tupleSize);
-        PyObject_GC_Track(tp);
-        if(!tp) // out of mem..
-            break;
-
-        tp->ob_item[0] = python::PyString_FromString("hello world");
-        tp->ob_item[1] = python::PyString_FromString("hello whkljdkhjorld");
-        tp->ob_item[2] = python::PyString_FromString("dkfjopdjfophjhello world");
-        tp->ob_item[3] = PyLong_FromLongLong(12345);
-
-        lo->ob_item[i] = (PyObject*)tp;
-    }
-    std::cout<<"tuple + list construction optimized, took: "<<timer.time()<<"s "<<std::endl;
-
-    std::cout<<"-------------"<<std::endl;
-    python::closeInterpreter();
-}
+//TEST(Python, FastTupleConstruction) {
+//    using namespace tuplex;
+//
+//    python::initInterpreter();
+//    std::cout<<"\n-------------"<<std::endl;
+//
+//    // Note: Eliminating these additiona if stmts & Co, gives maybe a tiny speedup of
+//    // 5-10%. ==> worth it?? prob not really...
+//
+//    int N = 1001000;
+//
+//    Timer timer;
+//    auto listObj = PyList_New(N);
+//    for(int i = 0; i < N; ++i) {
+//        auto tupleObj = PyTuple_New(4);
+//        PyTuple_SET_ITEM(tupleObj, 0, python::PyString_FromString("hello world"));
+//        PyTuple_SET_ITEM(tupleObj, 1, python::PyString_FromString("hello whkljdkhjorld"));
+//        PyTuple_SET_ITEM(tupleObj, 2, python::PyString_FromString("dkfjopdjfophjhello world"));
+//        PyTuple_SET_ITEM(tupleObj, 3, PyLong_FromLongLong(12345));
+//        PyList_SET_ITEM(listObj, i, tupleObj);
+//    }
+//    std::cout<<"w/o opt took: "<<timer.time()<<"s "<<std::endl;
+//    timer.reset();
+//    listObj = PyList_New(N);
+//    unsigned tupleSize = 4;
+//    for(int i = 0; i < N; ++i) {
+//
+//        // directly call python functions without all the crap
+//        auto tp = (PyTupleObject*)PyObject_GC_NewVar(PyTupleObject, &PyTuple_Type, tupleSize);
+//        PyObject_GC_Track(tp);
+//        if(!tp) // out of mem..
+//            break;
+//
+//        tp->ob_item[0] = python::PyString_FromString("hello world");
+//        tp->ob_item[1] = python::PyString_FromString("hello whkljdkhjorld");
+//        tp->ob_item[2] = python::PyString_FromString("dkfjopdjfophjhello world");
+//        tp->ob_item[3] = PyLong_FromLongLong(12345);
+//
+//        PyList_SET_ITEM(listObj, i, (PyObject*)tp);
+//    }
+//    std::cout<<"tuple construction optimized, took: "<<timer.time()<<"s "<<std::endl;
+//
+//    timer.reset();
+//    PyListObject* lo = PyObject_GC_New(PyListObject, &PyList_Type);
+//    lo->ob_item = (PyObject**)PyMem_Calloc(N, sizeof(PyObject*));
+//    // TODO: mem check...
+//    Py_SIZE(lo) = N;
+//    lo->allocated = N;
+//    PyObject_GC_Track(lo);
+//    for(int i = 0; i < N; ++i) {
+//
+//        // directly call python functions without all the crap
+//        auto tp = (PyTupleObject*)PyObject_GC_NewVar(PyTupleObject, &PyTuple_Type, tupleSize);
+//        PyObject_GC_Track(tp);
+//        if(!tp) // out of mem..
+//            break;
+//
+//        tp->ob_item[0] = python::PyString_FromString("hello world");
+//        tp->ob_item[1] = python::PyString_FromString("hello whkljdkhjorld");
+//        tp->ob_item[2] = python::PyString_FromString("dkfjopdjfophjhello world");
+//        tp->ob_item[3] = PyLong_FromLongLong(12345);
+//
+//        lo->ob_item[i] = (PyObject*)tp;
+//    }
+//    std::cout<<"tuple + list construction optimized, took: "<<timer.time()<<"s "<<std::endl;
+//
+//    std::cout<<"-------------"<<std::endl;
+//    python::closeInterpreter();
+//}
 
 
 // @TODO: add test for all the helpers with wrongly formatted input rows...

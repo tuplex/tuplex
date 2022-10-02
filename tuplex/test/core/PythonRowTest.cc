@@ -350,7 +350,9 @@ TEST(PythonFunc, Cloupickle) {
   PyInterpreterGuard g;
   std::stringstream err_stream;
   bool rc = python::cloudpickleCompatibility(&err_stream);
-
+  if(!rc) {
+      std::cerr<<err_stream.str()<<std::endl;
+  }
   ASSERT_TRUE(rc);
   EXPECT_EQ(err_stream.str().size(), 0);
 }

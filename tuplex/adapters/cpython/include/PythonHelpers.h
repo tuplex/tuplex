@@ -354,6 +354,11 @@ namespace python {
      */
     extern void unlockGIL();
 
+    /*!
+     * needs to be called if using as C-extension to setup gil etc. MUST BE CALLED FROM MAIN THREAD
+     */
+    extern void registerWithInterpreter();
+
 #ifndef NDEBUG
     inline void checkPythonIntegrity() {
         python::lockGIL();

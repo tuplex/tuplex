@@ -32,6 +32,7 @@ namespace tuplex {
 
         PythonException(const std::string& message,
                         const std::string& data = "") : _message(message), _data(data) {
+            python::registerWithInterpreter();
         }
 
         const char *what() const throw() {

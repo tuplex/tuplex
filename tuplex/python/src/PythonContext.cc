@@ -1374,6 +1374,9 @@ namespace tuplex {
                                  const std::string &runtimeLibraryPath,
                                  const std::string& options) : _context(nullptr) {
 
+        python::registerWithInterpreter();
+
+
         using namespace std;
 
         TUPLEX_TRACE("entering PythonContext");

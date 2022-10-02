@@ -167,6 +167,7 @@ namespace python {
             gil = true;
             gilID = interpreterID = thisThreadID();
         }
+        gil_id = std::this_thread::get_id();
         gilMutex.lock();
         interpreterInitialized = true;
     }

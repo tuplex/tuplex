@@ -1001,7 +1001,7 @@ namespace tuplex {
                     break;
                 }
                 case FileFormat::OUTFMT_JSON: {
-                    auto j = new JsonReader(this, reinterpret_cast<codegen::read_block_f>(_functor));
+                    auto j = new JsonReader(this, reinterpret_cast<codegen::read_block_f>(_functor), partitionSize);
                     j->setRange(rangeStart, rangeStart + rangeSize);
                     _reader.reset(j);
                     break;

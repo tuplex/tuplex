@@ -8,10 +8,12 @@
 #include <JsonStatistic.h>
 
 namespace tuplex {
-    JsonReader::JsonReader(void *userData, codegen::read_block_f rowFunctor) : _functor(rowFunctor), _userData(userData) {
+    JsonReader::JsonReader(void *userData, codegen::read_block_f rowFunctor, size_t bufferSize) : _functor(rowFunctor), _userData(userData) {
         setRange(0, 0);
 
-        _bufferSize = 0;
+        static const auto SIMDJSON_MINIMUM = 4 * 1024 * 1024ul; // per default, simdjson uses 1MB.
+
+        _bufferSize = std::min(bufferSize, SIMDJSON_MINIMUM); // should be at least whatever simdjson wants
         _inBufferLength = 0;
         _inputBuffer = nullptr;
 

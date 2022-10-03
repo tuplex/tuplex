@@ -329,6 +329,76 @@ TEST_F(HyperTest, PushEventPaperExample) {
     throw std::runtime_error("");
 }
 
+namespace test {
+
+
+    tuplex::aligned_string loadSample(tuplex::URI uri, size_t sampleSize) {
+        using namespace tuplex;
+        auto &logger = Logger::instance().logger("fileinputoperator");
+
+        // load from first file (?)
+
+        // @TODO: estimate across multiple files/different file positions
+        // ==> how to do this better??
+
+        auto vfs = VirtualFileSystem::fromURI(uri);
+        auto read_mode = VirtualFileMode::VFS_READ;
+        auto vf = vfs.open_file(uri, read_mode);
+        if (!vf) {
+            logger.error("could not open file " + uri.toString());
+            return "";
+        }
+
+        // determine sample size
+        sampleSize = core::floorToMultiple(sampleSize, 16ul);
+
+        assert(sampleSize % 16 == 0); // needs to be divisible by 16...
+
+        // memory must be at least 16
+        auto nbytes_sample = sampleSize + 16 + 1;
+        aligned_string sample(nbytes_sample, '\0');
+        assert(sample.capacity() > 16 && sample.size() > 16);
+
+        auto ptr = &sample[0];
+        // memset last 16 bytes to 0
+        assert(ptr + sampleSize - 16ul >= ptr);
+        assert(sampleSize >= 16ul);
+        std::memset(ptr + sampleSize - 16ul, 0, 16ul);
+        // read contents
+        size_t bytesRead = 0;
+        vf->readOnly(ptr, sampleSize, &bytesRead); // use read-only here to speed up sampling
+        auto end = ptr + sampleSize;
+        ptr[sampleSize] = 0; // important!
+
+        Logger::instance().defaultLogger().info(
+                "sampled " + uri.toString() + " on " + sizeToMemString(sampleSize));
+        return sample;
+    }
+}
+
+TEST_F(HyperTest, SampleLoad) {
+    using namespace tuplex;
+    using namespace std;
+    using namespace tuplex::codegen;
+
+    auto sample_size = 256 * 1024; // 256KN
+
+    auto path = "/data/2014-10-15.json";
+    char *buf = new char[sample_size + simdjson::SIMDJSON_PADDING];
+    memset(buf, 0, sample_size + simdjson::SIMDJSON_PADDING);
+//    FILE* fp = fopen(path, "r");
+//    fread(buf, sample_size, 1, fp);
+//    fclose(fp);
+
+    // use posix api
+    URI uri(path);
+    auto sample = test::loadSample(uri, sample_size);
+
+    auto rows = parseRowsFromJSON(sample.c_str(), strlen(sample.c_str()));
+
+    std::cout<<"parsed rows: "<<rows.size()<<std::endl;
+}
+
 // test to generate a struct type
 TEST_F(HyperTest, StructLLVMType) {
     using namespace tuplex;

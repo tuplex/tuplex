@@ -18,6 +18,7 @@
 
 #include <JSONUtils.h>
 #include <JsonStatistic.h>
+#include <physical/experimental/JsonHelper.h>
 
 namespace tuplex {
 
@@ -61,7 +62,8 @@ namespace tuplex {
         auto uri = _fileURIs.front();
         size_t size = _sizes.front();
         auto vfs = VirtualFileSystem::fromURI(uri);
-        auto vf = vfs.open_file(uri, VirtualFileMode::VFS_READ);
+        auto read_mode = VirtualFileMode::VFS_READ;
+        auto vf = vfs.open_file(uri, read_mode);
         if (!vf) {
             logger.error("could not open file " + uri.toString());
             return "";
@@ -81,20 +83,16 @@ namespace tuplex {
         aligned_string sample(nbytes_sample, '\0');
         assert(sample.capacity() > 16 && sample.size() > 16);
 
-        // copy out memory from file for analysis
-        char *start = new char[sampleSize + 16 + 1];
+        auto ptr = &sample[0];
         // memset last 16 bytes to 0
-        assert(start + sampleSize - 16ul >= start);
+        assert(ptr + sampleSize - 16ul >= ptr);
         assert(sampleSize >= 16ul);
-        std::memset(start + sampleSize - 16ul, 0, 16ul);
+        std::memset(ptr + sampleSize - 16ul, 0, 16ul);
         // read contents
         size_t bytesRead = 0;
-        vf->readOnly(start, sampleSize, &bytesRead); // use read-only here to speed up sampling
-        auto end = start + sampleSize;
-        start[sampleSize] = 0; // important!
-
-        sample.assign(start, sampleSize+1);
-        delete [] start;
+        vf->readOnly(ptr, sampleSize, &bytesRead); // use read-only here to speed up sampling
+        auto end = ptr + sampleSize;
+        ptr[sampleSize] = 0; // important!
 
         Logger::instance().defaultLogger().info(
                 "sampled " + uri.toString() + " on " + sizeToMemString(sampleSize));
@@ -185,21 +183,32 @@ namespace tuplex {
 
         // infer schema using first file only
         if (!f->_fileURIs.empty()) {
+            auto aligned_sample = f->loadSample(co.CSV_MAX_DETECTION_MEMORY());
 
-            auto sample = f->loadSample(co.CSV_MAX_DETECTION_MEMORY());
+            // before parsing the JSON, make sure it contains at least one document
+            if(!codegen::JsonContainsAtLeastOneDocument(aligned_sample.c_str(), aligned_sample.size())) {
+                throw std::runtime_error("sample size too small, does not contain at least one JSON document.");
+            }
 
             // parse Rows from JSON
             std::vector<std::vector<std::string>> columnNamesCollection;
-            auto rows = parseRowsFromJSON(sample.c_str(),
-                                          sample.size(),
+            auto aligned_sample_size = std::min(strlen(aligned_sample.c_str()), aligned_sample.size());
+            // parseJSON only works on well-formatted strings, i.e. those that end in '\0'
+            auto rows = parseRowsFromJSON(aligned_sample.c_str(),
+                                          aligned_sample_size,
                                           unwrap_first_level ? &columnNamesCollection : nullptr,
                                           unwrap_first_level,
                                           treat_heterogenous_lists_as_tuples);
 
+            // are there no rows? => too small a sample. increase sample size.
+            if(rows.empty()) {
+                throw std::runtime_error("not a single JSON document was found in the file, can't determine type. Please increase sample size.");
+            }
+
             // estimator for #rows across all CSV files
             double estimatedRowCount = 0.0;
             for(auto s : f->_sizes) {
-                estimatedRowCount += (double)s / (double)sample.size() * (double)f->_sample.size();
+                estimatedRowCount += (double)s / (double)aligned_sample_size * (double)f->_sample.size();
             }
             f->_estimatedRowCount = static_cast<size_t>(std::ceil(estimatedRowCount));
 

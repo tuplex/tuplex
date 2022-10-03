@@ -307,6 +307,12 @@ namespace tuplex {
         for(auto it = stream.begin(); it != stream.end(); ++it) {
             auto doc = (*it);
 
+            // error? stop parse, return partial results
+            simdjson::ondemand::json_type doc_type;
+            doc.type().tie(doc_type, error);
+            if(error)
+                break;
+
             // the full json string of a row can be obtained via
             // std::cout << it.source() << std::endl;
             string full_row;
@@ -315,11 +321,6 @@ namespace tuplex {
                  ss<<it.source()<<std::endl;
                  full_row = ss.str();
             }
-
-
-            // error? stop parse, return partial results
-            if(doc.type().error())
-                break;
 
             auto line_type = doc.type().value();
             line_types[line_type]++;

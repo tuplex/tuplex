@@ -88,11 +88,19 @@ namespace tuplex {
             }
 
             inline llvm::Value* CreateStructGEP(llvm::IRBuilder<>& builder, llvm::Value* ptr, unsigned int idx, const llvm::Twine& Name="") {
+                assert(ptr);
 #if LLVM_VERSION_MAJOR < 9
                 // compatibility
         return builder.CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
 #else
-                return builder.CreateStructGEP(ptr, idx);
+                if(ptr->getType()->isPointerTy())
+                    return builder.CreateStructGEP(ptr, idx);
+                else {
+                    assert(ptr->getType()->isStructTy());
+                    std::vector<unsigned> idx_array(1, idx);
+                    return builder.CreateExtractValue(ptr, idx_array);
+                    //return builder.CreateGEP(ptr, llvm::ConstantInt::get(builder.getContext(), llvm::APInt(64, idx)));
+                }
 #endif
             }
 

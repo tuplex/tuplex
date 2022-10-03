@@ -18,7 +18,7 @@ namespace tuplex {
     class JsonReader : public FileInputReader {
     public:
         JsonReader() = delete;
-        JsonReader(void *userData, codegen::cells_row_f rowFunctor);
+        JsonReader(void *userData, codegen::read_block_f rowFunctor);
 
         // use here VirtualFileSystem when reading files...
         //@March: for testing, just don't call the rowFunctor yet, but rather construct a Row object and then print row.desc();
@@ -28,7 +28,7 @@ namespace tuplex {
 
         // read all valid JSON lines from >= start to the line that just ends after end.
         void setRange(size_t start, size_t end);
-        void setFunctor(codegen::cells_row_f functor);
+        void setFunctor(codegen::read_block_f functor);
     };
 }
 #endif //TUPLEX_JSONREADER_H

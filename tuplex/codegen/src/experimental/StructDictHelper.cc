@@ -866,8 +866,8 @@ namespace tuplex {
             // get the corresponding type
             auto stype = create_structured_dict_type(env, dict_type);
 
-            if(ptr->getType() != stype->getPointerTo())
-                throw std::runtime_error("ptr has not correct type, must be pointer to " + stype->getStructName().str());
+            // if(ptr->getType() != stype->getPointerTo())
+            //    throw std::runtime_error("ptr has not correct type, must be pointer to " + stype->getStructName().str());
 
             // get flattened structure!
             flattened_struct_dict_entry_list_t entries;
@@ -886,8 +886,14 @@ namespace tuplex {
             // 1. null-bitmap
             size_t bitmap_offset = 0;
             if(struct_dict_has_bitmap(dict_type)) {
-                auto bitmap_idx = CreateStructGEP(builder, ptr, bitmap_offset);
-                auto bitmap = builder.CreateLoad(bitmap_idx);
+                llvm::Value* bitmap = nullptr;
+                if(ptr->getType()->isPointerTy()) {
+                    auto bitmap_idx = CreateStructGEP(builder, ptr, bitmap_offset);
+                    bitmap = builder.CreateLoad(bitmap_idx);
+                } else {
+                    bitmap = builder.CreateExtractValue(ptr, std::vector<unsigned>(1, bitmap_offset));
+                }
+
                 dest_ptr = serializeBitmap(env, builder, bitmap, dest_ptr);
                 bitmap_offset++;
             }
@@ -981,8 +987,13 @@ namespace tuplex {
                 assert(value_idx >= 0);
 
                 // load value
-                auto llvm_value_idx = CreateStructGEP(builder, ptr, value_idx);
-                llvm::Value* value = builder.CreateLoad(llvm_value_idx);
+                llvm::Value* value = nullptr;
+                if(ptr->getType()->isPointerTy()) {
+                    auto llvm_value_idx = CreateStructGEP(builder, ptr, value_idx);
+                    value = builder.CreateLoad(llvm_value_idx);
+                } else {
+                    value = builder.CreateExtractValue(ptr, std::vector<unsigned>(1, value_idx));
+                }
 
                 if(!is_varlength_field) {
                     // simple: just load data and copy!

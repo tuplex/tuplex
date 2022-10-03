@@ -563,22 +563,54 @@ namespace tuplex {
                 if(!size)
                     size = _env->i64Const(0);
 
+                // structured dict and regular dictionaries (JSON)
+                if(fieldType.isDictionaryType() && fieldType != python::Type::EMPTYDICT) {
+
+                    // serialize struct dict
+                    if(fieldType.isStructuredDictionaryType()) {
+                        auto dict_type = types[i].isOptionType() ? types[i].getReturnType() : types[i];
+
+                        // struct dicts are a var field (ignore the special case here)
+                        size = struct_dict_serialized_memory_size(*_env, builder, field, dict_type).val;
+
+                        // the offset is computed using how many varlen fields have been already serialized
+                        Value *offset = builder.CreateAdd(_env->i64Const((numSerializedElements + 1 - serialized_idx) * sizeof(int64_t)), varlenSize);
+
+                        // store offset + length
+                        // len | size
+                        auto info = pack_offset_and_size(builder, offset, size);
+                        builder.CreateStore(info, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), false);
+
+                        // write to i8 pointer
+                        Value *outptr = builder.CreateGEP(lastPtr, offset, "varoff");
+
+                        // write actual data to outptr
+                        struct_dict_serialize_to_memory(*_env, builder, field, dict_type, outptr);
+
+                        // also varlensize needs to be output separately, so add
+                        varlenSize = builder.CreateAdd(varlenSize, size);
+                        lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)), "outptr");
+                        continue; // field done.
+                    } else {
+                        field = builder.CreateCall(
+                                cJSONPrintUnformatted_prototype(_env->getContext(), _env->getModule().get()),
+                                {field});
+                        size = builder.CreateAdd(
+                                builder.CreateCall(strlen_prototype(_env->getContext(), _env->getModule().get()), {field}),
+                                _env->i64Const(1));
+                    }
+                }
 
                 assert(field);
                 assert(size);
 
-                if(fieldType.isDictionaryType() && fieldType != python::Type::EMPTYDICT) {
-                    field = builder.CreateCall(
-                            cJSONPrintUnformatted_prototype(_env->getContext(), _env->getModule().get()),
-                            {field});
-                    size = builder.CreateAdd(
-                            builder.CreateCall(strlen_prototype(_env->getContext(), _env->getModule().get()), {field}),
-                            _env->i64Const(1));
-                }
-
                 // special is empty dict, empty list and NULL. I.e. though they in principle are var fields, they are fixed size.
                 // ==> serialize them as 0 (later optimize this away). TODO: this comment is out of date, right? we have optimized the serialization away.
                 if(fieldType.isListType() && !fieldType.elementType().isSingleValued()) {
+
+                    // new version not yet implemented
+                    throw std::runtime_error("new version for list serialize not yet implemented");
+
                     assert(!fieldType.isFixedSizeType());
                     // the offset is computed using how many varlen fields have been already serialized
                     Value *offset = builder.CreateAdd(_env->i64Const((numSerializedElements + 1 - serialized_idx) * sizeof(int64_t)), varlenSize);

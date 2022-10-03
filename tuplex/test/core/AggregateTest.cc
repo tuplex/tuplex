@@ -397,7 +397,8 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
     opt.set("tuplex.redirectToPythonLogging", "True");
     opt.set("tuplex.executorMemory", "2G");
     opt.set("tuplex.driverMemory", "2G");
-    opt.set("tuplex.executorCount", "0");
+    // opt.set("tuplex.executorCount", "0"); // single-threaded setting.
+    opt.set("tuplex.executorCount", "16");
 
     // ds = c.csv('311_subset.csv')
     // def combine_udf(a, b):
@@ -434,35 +435,4 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
 
     std::cout<<"====\n"<<pluralize(total_rows, "row")<<std::endl;
     EXPECT_EQ(total_rows, 2000); // this should work
-    // the counts are off...
-    // ==> need to fix this!
-    // i.e., small subset should have 120k rows in total...
-    // micro should have 10k rows in total....
-
-//    // now, perform combineBucket test
-//    //(gdb) x /8xb bucketA
-//    //0x7ffe9483fac0: 0x40    0x11    0x84    0x94    0xfe    0x7f    0x00    0x00
-//    //(gdb) /project/tuplex/core/src/physical/TransformTask.cc:1: No such file or directory.
-//    //(gdb) x /8xb bucketB
-//    //0x7ffe98847fd0: 0x08    0x00    0x00    0x00    0x00    0x00    0x00    0x00
-//
-//    // (gdb) x /8xg bucketA
-//    //0x555558b73170: 0x0000555558ac3660      0x0000000000002aff
-//    //0x555558b73180: 0x0000000000002380      0x0000000000000030
-//    //0x555558b73190: 0x0000555558b6cc20      0x6120736e6f697461
-//    //0x555558b731a0: 0x696373694420646e      0x492820656e696c70
-//    uint8_t* bucketA = new uint8_t[64];
-//    uint8_t* bucketB = new uint8_t[8];
-//
-//    *(reinterpret_cast<uint64_t*>(bucketB)) = 0x8;
-//    *(reinterpret_cast<uint64_t*>(bucketA + 0 * 8)) = 0x0000555558ac3660;
-//    *(reinterpret_cast<uint64_t*>(bucketA + 1 * 8)) = 0x0000000000002aff;
-//    *(reinterpret_cast<uint64_t*>(bucketA + 2 * 8)) = 0x0000000000002380;
-//    *(reinterpret_cast<uint64_t*>(bucketA + 3 * 8)) = 0x0000000000000030;
-//    *(reinterpret_cast<uint64_t*>(bucketA + 4 * 8)) = 0x0000555558b6cc20;
-//    *(reinterpret_cast<uint64_t*>(bucketA + 5 * 8)) = 0x6120736e6f697461;
-//    *(reinterpret_cast<uint64_t*>(bucketA + 6 * 8)) = 0x696373694420646e;
-//    *(reinterpret_cast<uint64_t*>(bucketA + 7 * 8)) = 0x492820656e696c70;
-//
-//    combineBuckets(bucketA, bucketB);
 }

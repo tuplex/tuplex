@@ -298,14 +298,39 @@ namespace tuplex {
         return true;
     }
 
-    uint8_t* combineBuckets(uint8_t* bucketA, uint8_t* bucketB) {
+    uint8_t* combineBuckets(const uint8_t* bucketA, const uint8_t* bucketB) {
+
+        // both nullptr is fine, else error
+        if(nullptr == bucketA && bucketA == bucketB)
+            return nullptr;
+
+        if(bucketA == bucketB) {
+           std::cerr<<"internal error: merging the same bucket together"<<std::endl;
+           // create copy
+           auto size = *(uint64_t*)bucketA;
+           auto bucketA_copy = (uint8_t*)malloc(size + sizeof(uint64_t));
+           memcpy(bucketA_copy, bucketA, size + sizeof(uint64_t));
+           return bucketA_copy;
+        }
+        
         // if one is null, just return the other
         if (!bucketA && !bucketB)
             return nullptr;
-        if (bucketA && !bucketB)
-            return bucketA;
-        if (!bucketA && bucketB)
-            return bucketB;
+        if (bucketA && !bucketB) {
+            // create copy
+            auto size = *(uint64_t*)bucketA;
+            auto bucketA_copy = (uint8_t*)malloc(size + sizeof(uint64_t));
+            memcpy(bucketA_copy, bucketA, size + sizeof(uint64_t));
+            return bucketA_copy;
+        }
+
+        if (!bucketA && bucketB) {
+            // create copy
+            auto size = *(uint64_t*)bucketB;
+            auto bucketB_copy = (uint8_t*)malloc(size + sizeof(uint64_t));
+            memcpy(bucketB_copy, bucketB, size + sizeof(uint64_t));
+            return bucketB_copy;
+        }
 
         // both are valid
         assert(bucketA && bucketB);
@@ -319,13 +344,14 @@ namespace tuplex {
         auto sizeB = *(uint64_t*)bucketB;
         auto valB = bucketB + 8;
 
-        agg_combine_functor(&valA, &sizeA, valB, sizeB);
+        // assume combine functor DOES NOT override valB
+        agg_combine_functor(&valA, &sizeA, const_cast<uint8_t *>(valB), sizeB);
 
         // allocate the output buffer (should be avoided by the above TODO eventually)
         auto ret = static_cast<uint8_t*>(malloc(sizeA + 8));
         *(int64_t*)ret = sizeA;
         memcpy(ret + 8, valA, sizeA);
-        free(valA); free(bucketA);
+
         return ret;
     }
 
@@ -528,7 +554,7 @@ namespace tuplex {
         _exceptions.reset();
 
         // reset htable (TODO: free if necessary?)
-        if(_htable) {
+        if(_htable && (_htable->hm || _htable->null_bucket || _htable->hybrid_hm)) {
 #ifndef NDEBUG
             std::cerr<<"INTERNAL ERROR: need to properly free hash table"<<std::endl;
 #endif

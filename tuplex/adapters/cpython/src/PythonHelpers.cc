@@ -1851,4 +1851,23 @@ namespace python {
 #endif
       return true;
     }
+
+    void runGC() {
+        // import gc module to access debug garbage collector information
+        //PyObject* gcModule = PyImport_AddModule("gc");
+        // call gc.set_debug(gc.DEBUG_LEAK)
+        // PyRun_SimpleString("import gc");
+        // PyRun_SimpleString("gc.set_debug(gc.DEBUG_LEAK)");
+        // PyRun_SimpleString("gc.disable()");
+
+        PyObject* gcModule = PyImport_ImportModule("gc");
+        assert(gcModule);
+        auto gc_dict = PyModule_GetDict(gcModule);
+        assert(gc_dict);
+        auto gc_collect = PyDict_GetItemString(gc_dict, "collect");
+        assert(gc_collect);
+        auto arg = PyTuple_New(1);
+        PyTuple_SET_ITEM(arg, 0, PyLong_FromLong(2)); // specify here collect level, 2 for full!
+        PyObject_CallObject(gc_collect, arg);
+    }
 }

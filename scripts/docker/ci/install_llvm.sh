@@ -29,6 +29,6 @@ mkdir -p ${WORKDIR}/llvm && cd ${WORKDIR}/llvm && wget https://github.com/llvm/l
 && cmake -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON \
         -DLLVM_ENABLE_PROJECTS="clang" \
          -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-std=c++11" \
-         -DCMAKE_INSTALL_PREFIX=/opt/llvm-9.0.1 ../llvm-9.0.1.src \
-&& make -j "$(nproc)" && make install
+         -DCMAKE_INSTALL_PREFIX=/opt/llvm-9.0 ../llvm-9.0.1.src \
+         && make -j "$(nproc)" && make install
 cd ${PREFIX}/llvm-9.0/bin && ln -s clang++ clang++-9.0

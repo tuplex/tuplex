@@ -103,6 +103,7 @@ namespace tuplex {
 
         // FRAMEWORK specific errors
         NORMALCASEVIOLATION=07, // when the normal case is violated (e.g. in if branches)
+        GENERALCASEVIOLATION=8, // when the general case is violated -> and row requires then fallback processing.
         FILENOTFOUND = 10,
         CSV_UNDERRUN = 20,  //! too few columns
         CSV_OVERRUN = 21, //! too many columns

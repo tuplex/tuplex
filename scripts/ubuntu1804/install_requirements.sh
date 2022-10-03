@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2022
-# auto-generated on 2022-09-13 15:44:15.078747
+# auto-generated on 2022-09-20 14:15:28.010743
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -76,8 +76,8 @@ mkdir -p ${WORKDIR}/llvm && cd ${WORKDIR}/llvm && wget https://github.com/llvm/l
 && cmake -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON \
         -DLLVM_ENABLE_PROJECTS="clang" \
          -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-std=c++11" \
-         -DCMAKE_INSTALL_PREFIX=/opt/llvm-9.0.1 ../llvm-9.0.1.src \
-&& make -j "$(nproc)" && make install
+         -DCMAKE_INSTALL_PREFIX=/opt/llvm-9.0 ../llvm-9.0.1.src \
+         && make -j "$(nproc)" && make install
 
 echo ">> Installing PCRE2"
 mkdir -p ${WORKDIR}/pcre2 && cd ${WORKDIR}/pcre2 \

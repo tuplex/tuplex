@@ -102,7 +102,7 @@ jobs:
           path: dist
 
       - name: reorganize
-        run: mkdir -p scripts && mv dist/*.sh ./scripts/ && mv dist/*.version ./scripts/ && cp ./.github/scripts/test_pypi.sh ./scripts/ && chmod +x ./scripts/test_pypi.sh
+        run: mkdir -p scripts && mv dist/*.sh ./scripts/ && mv dist/*.version ./scripts/ && chmod +x ./scripts/test_pypi.sh
 
       - uses: pypa/gh-action-pypi-publish@v1.4.2
         with:

@@ -346,7 +346,7 @@ namespace tuplex {
     extern bool initThreadLocalAggregateByKey(codegen::agg_init_f init_func, codegen::agg_combine_f combine_func, codegen::agg_agg_f aggregate_func);
     extern bool fetchAggregate(uint8_t** out, int64_t* out_size);
 
-    extern uint8_t* combineBuckets(uint8_t *bucketA, uint8_t* bucketB);
+    extern uint8_t* combineBuckets(const uint8_t *bucketA, const uint8_t* bucketB);
     extern void aggregateValues(uint8_t** bucket, char *buf, size_t buf_size);
 }
 

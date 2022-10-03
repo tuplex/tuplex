@@ -2961,7 +2961,62 @@ TEST_F(WrapperTest, Subset311Aggregate) {
     }
 }
 
+TEST_F(WrapperTest, NonConformingResolve) {
+    using namespace tuplex;
 
+    // use here a resolve operator that doesn't trigger
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+    std::string udf_throwing = "def f(a, b):\n"
+                              "  return (a, a / b)";
+    std::string udf_resolve = "def h(a, b):\n"
+                                "  return 'some string'";
+
+    auto initial_pickled = python::pickleObject(python::getMainModule(), PyLong_FromLong(0));
+
+    auto list = PyList_New(2);
+    auto tuple1 = PyTuple_New(2);
+    PyTuple_SetItem(tuple1, 0, PyLong_FromLong(1));
+    PyTuple_SetItem(tuple1, 1, PyLong_FromLong(0));
+    auto tuple2 = PyTuple_New(2);
+    PyTuple_SetItem(tuple2, 0, PyLong_FromLong(1));
+    PyTuple_SetItem(tuple2, 1, PyLong_FromLong(1));
+    PyList_SetItem(list, 0, tuple1);
+    PyList_SetItem(list, 1, tuple2);
+    auto data_list = py::reinterpret_borrow<py::list>(list);
+    PythonContext ctx("", "", ctx_opts);
+    {
+        auto ds = ctx.parallelize(data_list)
+        .map(udf_throwing, "");
+
+        auto schema_str = python::PyString_AsString(ds.types().ptr());
+        std::cout<<schema_str<<std::endl;
+        EXPECT_EQ(schema_str, "[<class 'int'>, <class 'float'>]");
+        auto ds2 = ds.resolve(ecToI64(ExceptionCode::ZERODIVISIONERROR), udf_resolve, "");
+        schema_str = python::PyString_AsString(ds2.types().ptr());
+        EXPECT_EQ(schema_str, "[<class 'str'>]");
+        std::cout<<schema_str<<std::endl;
+        ds2.show();
+
+
+        // check
+        auto res = ds2.collect();
+        auto res_obj = res.ptr();
+        ASSERT_TRUE(res_obj);
+        ASSERT_TRUE(PyList_Check(res_obj));
+        EXPECT_EQ(PyList_Size(res_obj), 2);
+
+        python::runGC();
+
+        std::cout<<std::endl; // flush
+    }
+}
 
 
 //// debug any python module...

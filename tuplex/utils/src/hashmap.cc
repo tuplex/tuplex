@@ -480,18 +480,20 @@ int hashmap_free_key_and_data(map_t in) {
         return MAP_MISSING;
 
     /* Linear probing */
-    for (i = 0; i < m->table_size; i++)
+    for (i = 0; i < m->table_size; i++) {
         if (m->data[i].in_use != 0) {
             assert(m->data[i].key);
             if(m->data[i].key)
                 free(m->data[i].key);
             if(m->data[i].data)
                 free(m->data[i].data);
-            m->data[i].key = NULL;
-            m->data[i].keylen = 0;
-            m->data[i].data = NULL;
-            m->data[i].in_use = 0;
         }
+        // make sure to null properly.
+        m->data[i].key = nullptr;
+        m->data[i].keylen = 0;
+        m->data[i].data = nullptr;
+        m->data[i].in_use = 0;
+    }
 
     return MAP_OK;
 }
@@ -536,7 +538,7 @@ int hashmap_remove(map_t in, char *key, uint64_t keylen) {
 
 /* Deallocate the hashmap */
 void hashmap_free(map_t in) {
-    hashmap_map *m = (hashmap_map *) in;
+    auto *m = (hashmap_map *) in;
 
     if(!m)
         return;

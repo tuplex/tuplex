@@ -744,7 +744,7 @@ namespace tuplex {
         }
 
         // there could be different number of columns. -> pick max!
-        int numColumns = rows[0].getNumColumns();
+        auto numColumns = rows[0].getNumColumns();
         for(unsigned i = 1; i < rows.size(); ++i)
             numColumns = std::max(numColumns, rows[i].getNumColumns());
 

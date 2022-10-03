@@ -1004,9 +1004,6 @@ namespace tuplex {
                 executeSlowPath = true;
 
             if(executeSlowPath) {
-
-                python::checkPythonIntegrity();
-
                 // only if functor or python is available, else there is simply no slow path to resolve!
                 if(syms->resolveFunctor || !tstage->purePythonCode().empty()) {
                     using namespace  std;

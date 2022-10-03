@@ -359,29 +359,12 @@ namespace python {
      */
     extern void registerWithInterpreter();
 
-#ifndef NDEBUG
-    inline void checkPythonIntegrity() {
-        python::lockGIL();
-        if(PyErr_Occurred()) {
-            std::cerr<<"internal python error"<<std::endl;
-            PyErr_Clear();
-        }
-        python::unlockGIL();
-    }
-#else
-    inline void checkPythonIntegrity() {}
-#endif
-
     /*!
      * check whether this thread holds the GIL or not
      * @return
      */
     extern bool holdsGIL();
 
-    /*!
-     * required in python extension module.
-     */
-    extern void acquireGIL();
 
     /*!
      * runs python code (throws runtime error if err occurred) and retrieves object with name

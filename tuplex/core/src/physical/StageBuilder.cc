@@ -74,6 +74,10 @@ namespace tuplex {
                         ppb.objInput(fop->getID(), fop->inputColumns());
                         break;
                     }
+                    case FileFormat::OUTFMT_JSON: {
+                        ppb.jsonInput(fop->getID(), fop->inputColumns());
+                        break;
+                    }
                     default:
                         throw std::runtime_error("file input format not yet supported!");
                 }

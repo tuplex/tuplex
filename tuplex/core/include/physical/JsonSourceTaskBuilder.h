@@ -16,6 +16,7 @@ namespace tuplex {
 
             llvm::Function* build(bool terminateEarlyOnFailureCode) override;
         private:
+            std::string _functionName; /// name of the LLVM function
         };
     }
 }

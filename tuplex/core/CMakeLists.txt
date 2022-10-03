@@ -83,4 +83,5 @@ target_link_libraries(libcore
         Boost::thread
         Boost::system
         Boost::filesystem
+	util
         )

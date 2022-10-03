@@ -355,15 +355,16 @@ namespace python {
     extern void unlockGIL();
 
     /*!
+     * needs to be called if using as C-extension to setup gil etc. MUST BE CALLED FROM MAIN THREAD
+     */
+    extern void registerWithInterpreter();
+
+    /*!
      * check whether this thread holds the GIL or not
      * @return
      */
     extern bool holdsGIL();
 
-    /*!
-     * required in python extension module.
-     */
-    extern void acquireGIL();
 
     /*!
      * runs python code (throws runtime error if err occurred) and retrieves object with name

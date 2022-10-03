@@ -1363,6 +1363,8 @@ namespace python {
 
     // mapping type to internal types, unknown as default
     python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast) {
+        assert(o);
+
         if(Py_None == o)
             return python::Type::NULLVALUE;
 

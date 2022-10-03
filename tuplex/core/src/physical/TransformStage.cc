@@ -708,8 +708,14 @@ namespace tuplex {
                         free(null_bucket);
 
                     if(hm) {
-                        hashmap_free_key_and_data(hm);
-                        hashmap_free(hm);
+
+                        if(8 == hashtableKeyByteWidth()) {
+                            int64_hashmap_free_key_and_data(hm);
+                            int64_hashmap_free(hm);
+                        } else {
+                            hashmap_free_key_and_data(hm);
+                            hashmap_free(hm);
+                        }
                         hm = nullptr;
                     }
                 }

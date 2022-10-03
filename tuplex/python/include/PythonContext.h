@@ -150,7 +150,7 @@ namespace tuplex {
                       const std::string& options);
 
         explicit PythonContext(const std::string &runtimeLibraryPath) : PythonContext("", runtimeLibraryPath,
-                                                                             "") {}
+                                                                             "") { python::registerWithInterpreter(); }
 
         ~PythonContext();
 

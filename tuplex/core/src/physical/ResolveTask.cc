@@ -459,271 +459,279 @@ default:
         // fallback 2: interpreter path
         // --> only go there if a non-true exception was recorded. Else, it will be dealt with above
         if(resCode == -1 && _interpreterFunctor) {
+            assert(!python::holdsGIL());
 
             // acquire GIL
             python::lockGIL();
-            PyCallable_Check(_interpreterFunctor);
 
-            // holds the pythonized data
-            PyObject* tuple = nullptr;
+            // catch any exceptions here
+            try {
+                PyCallable_Check(_interpreterFunctor);
 
-            bool parse_cells = false;
+                // holds the pythonized data
+                PyObject* tuple = nullptr;
+                bool parse_cells = false;
 
-            // there are different data reps for certain error codes.
-            // => decode the correct object from memory & then feed it into the pipeline...
-            if(ecCode == ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)) {
-                // it's a string!
-                tuple = tupleFromParseException(ebuf, eSize);
-                parse_cells = true; // need to parse cells in python mode.
-            } else if(ecCode == ecToI64(ExceptionCode::NORMALCASEVIOLATION)) {
-                // changed, why are these names so random here? makes no sense...
-                auto row = Row::fromMemory(exceptionsInputSchema(), ebuf, eSize);
+                // there are different data reps for certain error codes.
+                // => decode the correct object from memory & then feed it into the pipeline...
+                if(ecCode == ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)) {
+                    // it's a string!
+                    tuple = tupleFromParseException(ebuf, eSize);
+                    parse_cells = true; // need to parse cells in python mode.
+                } else if(ecCode == ecToI64(ExceptionCode::NORMALCASEVIOLATION)) {
+                    // changed, why are these names so random here? makes no sense...
+                    auto row = Row::fromMemory(exceptionsInputSchema(), ebuf, eSize);
 
-                tuple = python::rowToPython(row, true);
-                parse_cells = false;
-                // called below...
-            } else if (ecCode == ecToI64(ExceptionCode::PYTHON_PARALLELIZE)) {
-                auto pyObj = python::deserializePickledObject(python::getMainModule(), (char *) ebuf, eSize);
-                tuple = pyObj;
-                parse_cells = false;
-            } else {
-                // normal case, i.e. an exception occurred somewhere.
-                // --> this means if pipeline is using string as input, we should convert
-                auto row = Row::fromMemory(exceptionsInputSchema(), ebuf, eSize);
+                    tuple = python::rowToPython(row, true);
+                    parse_cells = false;
+                    // called below...
+                } else if (ecCode == ecToI64(ExceptionCode::PYTHON_PARALLELIZE)) {
+                    auto pyObj = python::deserializePickledObject(python::getMainModule(), (char *) ebuf, eSize);
+                    tuple = pyObj;
+                    parse_cells = false;
+                } else {
+                    // normal case, i.e. an exception occurred somewhere.
+                    // --> this means if pipeline is using string as input, we should convert
+                    auto row = Row::fromMemory(exceptionsInputSchema(), ebuf, eSize);
 
-                // cell source automatically takes input, i.e. no need to convert. simply get tuple from row object
-                tuple = python::rowToPython(row, true);
+                    // cell source automatically takes input, i.e. no need to convert. simply get tuple from row object
+                    tuple = python::rowToPython(row, true);
 
 #ifndef NDEBUG
-                if(PyTuple_Check(tuple)) {
-                    // make sure tuple is valid...
-                    for(unsigned i = 0; i < PyTuple_Size(tuple); ++i) {
-                        auto elemObj = PyTuple_GET_ITEM(tuple, i);
-                        assert(elemObj);
+                    if(PyTuple_Check(tuple)) {
+                        // make sure tuple is valid...
+                        for(unsigned i = 0; i < PyTuple_Size(tuple); ++i) {
+                            auto elemObj = PyTuple_GET_ITEM(tuple, i);
+                            assert(elemObj);
+                        }
                     }
+#endif
+                    parse_cells = false;
+                }
+
+                // compute
+                // @TODO: we need to encode the hashmaps as these hybrid objects!
+                // ==> for more efficiency we prob should store one per executor!
+                //     the same goes for any hashmap...
+
+                assert(tuple);
+#ifndef NDEBUG
+                if(!tuple) {
+                    owner()->error("bad decode, using () as dummy...");
+                    tuple = PyTuple_New(0); // empty tuple.
                 }
 #endif
-                parse_cells = false;
-            }
 
-            // compute
-            // @TODO: we need to encode the hashmaps as these hybrid objects!
-            // ==> for more efficiency we prob should store one per executor!
-            //     the same goes for any hashmap...
-
-            assert(tuple);
-#ifndef NDEBUG
-            if(!tuple) {
-                owner()->error("bad decode, using () as dummy...");
-                tuple = PyTuple_New(0); // empty tuple.
-            }
-#endif
-
-            // note: current python pipeline always expects a tuple arg. hence pack current element.
-            if(PyTuple_Check(tuple) && PyTuple_Size(tuple) > 1) {
-                // nothing todo...
-            } else {
-                auto tmp_tuple = PyTuple_New(1);
-                PyTuple_SET_ITEM(tmp_tuple, 0, tuple);
-                tuple = tmp_tuple;
-            }
-
-#ifndef NDEBUG
-            // // to print python object
-            // Py_XINCREF(tuple);
-            // PyObject_Print(tuple, stdout, 0);
-            // std::cout<<std::endl;
-#endif
-
-            // call pipFunctor
-            size_t num_python_args = 1 + _py_intermediates.size() + hasHashTableSink();
-
-            // special case unique, no arg required (done via output)
-            if(hasHashTableSink() && _hash_agg_type == AggregateType::AGG_UNIQUE)
-                num_python_args -= 1;
-
-            PyObject* args = PyTuple_New(num_python_args);
-            PyTuple_SET_ITEM(args, 0, tuple);
-            for(unsigned i = 0; i < _py_intermediates.size(); ++i) {
-                Py_XINCREF(_py_intermediates[i]);
-                PyTuple_SET_ITEM(args, i + 1, _py_intermediates[i]);
-            }
-            // set hash table sink
-            if(hasHashTableSink() && _hash_agg_type != AggregateType::AGG_UNIQUE) { // special case: unique -> note: unify handling this with the other cases...
-                assert(_htable->hybrid_hm);
-                Py_XINCREF(_htable->hybrid_hm);
-                PyTuple_SET_ITEM(args, num_python_args - 1, _htable->hybrid_hm);
-            }
-
-            auto kwargs = PyDict_New(); PyDict_SetItemString(kwargs, "parse_cells", python::boolean(parse_cells));
-            auto pcr = python::callFunctionEx(_interpreterFunctor, args, kwargs);
-
-            if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
-                // this should not happen, bad internal error. codegen'ed python should capture everything.
-                owner()->error("bad internal python error: " + pcr.exceptionMessage);
-                python::unlockGIL();
-                return;
-            } else {
-                // all good, row is fine. exception occurred?
-                assert(pcr.res);
-
-                // type check: save to regular rows OR save to python row collection
-                if(!pcr.res) {
-                    owner()->error("bad internal python error, NULL object returned");
+                // note: current python pipeline always expects a tuple arg. hence pack current element.
+                if(PyTuple_Check(tuple) && PyTuple_Size(tuple) > 1) {
+                    // nothing todo...
                 } else {
+                    auto tmp_tuple = PyTuple_New(1);
+                    PyTuple_SET_ITEM(tmp_tuple, 0, tuple);
+                    tuple = tmp_tuple;
+                }
 
 #ifndef NDEBUG
-                    // // uncomment to print res obj
-                    // Py_XINCREF(pcr.res);
-                    // PyObject_Print(pcr.res, stdout, 0);
-                    // std::cout<<std::endl;
+                // // to print python object
+                // Py_XINCREF(tuple);
+                // PyObject_Print(tuple, stdout, 0);
+                // std::cout<<std::endl;
 #endif
-                    auto exceptionObject = PyDict_GetItemString(pcr.res, "exception");
-                    if(exceptionObject) {
 
-                        // overwrite operatorID which is throwing.
-                        auto exceptionOperatorID = PyDict_GetItemString(pcr.res, "exceptionOperatorID");
-                        operatorID = PyLong_AsLong(exceptionOperatorID);
-                        auto exceptionType = PyObject_Type(exceptionObject);
-                        // can ignore input row.
-                        ecCode = ecToI64(python::translatePythonExceptionType(exceptionType));
+                // call pipFunctor
+                size_t num_python_args = 1 + _py_intermediates.size() + hasHashTableSink();
+
+                // special case unique, no arg required (done via output)
+                if(hasHashTableSink() && _hash_agg_type == AggregateType::AGG_UNIQUE)
+                    num_python_args -= 1;
+
+                PyObject* args = PyTuple_New(num_python_args);
+                PyTuple_SET_ITEM(args, 0, tuple);
+                for(unsigned i = 0; i < _py_intermediates.size(); ++i) {
+                    Py_XINCREF(_py_intermediates[i]);
+                    PyTuple_SET_ITEM(args, i + 1, _py_intermediates[i]);
+                }
+                // set hash table sink
+                if(hasHashTableSink() && _hash_agg_type != AggregateType::AGG_UNIQUE) { // special case: unique -> note: unify handling this with the other cases...
+                    assert(_htable->hybrid_hm);
+                    Py_XINCREF(_htable->hybrid_hm);
+                    PyTuple_SET_ITEM(args, num_python_args - 1, _htable->hybrid_hm);
+                }
+
+                auto kwargs = PyDict_New();
+                auto py_parse_cells = python::boolean(parse_cells);
+                PyDict_SetItemString(kwargs, "parse_cells", py_parse_cells);
+                auto pcr = python::callFunctionEx(_interpreterFunctor, args, kwargs);
+
+                if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
+                    // this should not happen, bad internal error. codegen'ed python should capture everything.
+                    owner()->error("bad internal python error: " + pcr.exceptionMessage);
+                    python::unlockGIL();
+                    return;
+                } else {
+                    // all good, row is fine. exception occurred?
+                    assert(pcr.res);
+
+                    // type check: save to regular rows OR save to python row collection
+                    if(!pcr.res) {
+                        owner()->error("bad internal python error, NULL object returned");
+                    } else {
 
 #ifndef NDEBUG
-                        // // debug printing of exception and what the reason is...
-                        // // print res obj
+                        // // uncomment to print res obj
                         // Py_XINCREF(pcr.res);
-                        // std::cout<<"exception occurred while processing using python: "<<std::endl;
                         // PyObject_Print(pcr.res, stdout, 0);
                         // std::cout<<std::endl;
 #endif
+                        auto exceptionObject = PyDict_GetItemString(pcr.res, "exception");
+                        if(exceptionObject) {
 
-                        // the callback exceptionCallback(ecCode, opID, _rowNumber, ebuf, eSize) gets called below...!
-                        resCode = -1;
-                    } else {
-                        // normal, check type and either merge to normal set back OR onto python set together with row number?
-                        auto resultRows = PyDict_GetItemString(pcr.res, "outputRows");
+                            // overwrite operatorID which is throwing.
+                            auto exceptionOperatorID = PyDict_GetItemString(pcr.res, "exceptionOperatorID");
+                            operatorID = PyLong_AsLong(exceptionOperatorID);
+                            auto exceptionType = PyObject_Type(exceptionObject);
+                            // can ignore input row.
+                            ecCode = ecToI64(python::translatePythonExceptionType(exceptionType));
 
-                        // no output rows? continue.
-                        if(!resultRows) {
-                            python::unlockGIL();
-                            return;
-                        }
-
-                        assert(PyList_Check(resultRows));
-
-                        auto listSize = PyList_Size(resultRows);
-                        // No rows were created, meaning the row was filtered out
-                        if (0 == listSize) {
-                            _numUnresolved++;
-                        }
-
-
-                        {
 #ifndef NDEBUG
-                            // // debug
-                            // Py_XINCREF(resultRows);
-                            // PyObject_Print(resultRows, stdout, 0); std::cout<<std::endl;
+                            // // debug printing of exception and what the reason is...
+                            // // print res obj
+                            // Py_XINCREF(pcr.res);
+                            // std::cout<<"exception occurred while processing using python: "<<std::endl;
+                            // PyObject_Print(pcr.res, stdout, 0);
+                            // std::cout<<std::endl;
 #endif
-                        }
 
-                        for(int i = 0; i < listSize; ++i) {
-                            // type check w. output schema
-                            // cf. https://pythonextensionpatterns.readthedocs.io/en/latest/refcount.html
-                            auto rowObj = PyList_GetItem(resultRows, i);
-                            Py_XINCREF(rowObj);
+                            // the callback exceptionCallback(ecCode, opID, _rowNumber, ebuf, eSize) gets called below...!
+                            resCode = -1;
+                        } else {
+                            // normal, check type and either merge to normal set back OR onto python set together with row number?
+                            auto resultRows = PyDict_GetItemString(pcr.res, "outputRows");
 
-
-                            // because we have the logic to separate types etc. in the hashtable, for hash table output we can use
-                            // simplified output schema here!
-                            if(hasHashTableSink()) {
-                                auto key = PyDict_GetItemString(pcr.res, "key");
-                                sinkRowToHashTable(rowObj, key);
-                                continue;
+                            // no output rows? continue.
+                            if(!resultRows) {
+                                python::unlockGIL();
+                                return;
                             }
 
-                            auto rowType = python::mapPythonClassToTuplexType(rowObj, false);
+                            assert(PyList_Check(resultRows));
 
-                            // special case output schema is str (fileoutput!)
-                            if(rowType == python::Type::STRING) {
-                                // write to file, no further type check necessary b.c.
-                                // if it was the object string it would be within a tuple!
-                                auto cptr = PyUnicode_AsUTF8(rowObj);
-                                Py_XDECREF(rowObj);
-                                mergeRow(reinterpret_cast<const uint8_t *>(cptr), strlen(cptr), BUF_FORMAT_NORMAL_OUTPUT); // don't write '\0'!
-                            } else {
+                            auto listSize = PyList_Size(resultRows);
+                            // No rows were created, meaning the row was filtered out
+                            if (0 == listSize) {
+                                _numUnresolved++;
+                            }
 
-                                // there are three options where to store the result now
+
+                            {
+#ifndef NDEBUG
+                                // // debug
+                                // Py_XINCREF(resultRows);
+                                // PyObject_Print(resultRows, stdout, 0); std::cout<<std::endl;
+#endif
+                            }
+
+                            for(int i = 0; i < listSize; ++i) {
+                                // type check w. output schema
+                                // cf. https://pythonextensionpatterns.readthedocs.io/en/latest/refcount.html
+                                auto rowObj = PyList_GetItem(resultRows, i);
+                                Py_XINCREF(rowObj);
+
+
+                                // because we have the logic to separate types etc. in the hashtable, for hash table output we can use
+                                // simplified output schema here!
+                                if(hasHashTableSink()) {
+                                    auto key = PyDict_GetItemString(pcr.res, "key");
+                                    sinkRowToHashTable(rowObj, key);
+                                    continue;
+                                }
+
+                                auto rowType = python::mapPythonClassToTuplexType(rowObj, false);
+
+                                // special case output schema is str (fileoutput!)
+                                if(rowType == python::Type::STRING) {
+                                    // write to file, no further type check necessary b.c.
+                                    // if it was the object string it would be within a tuple!
+                                    auto cptr = PyUnicode_AsUTF8(rowObj);
+                                    Py_XDECREF(rowObj);
+                                    mergeRow(reinterpret_cast<const uint8_t *>(cptr), strlen(cptr), BUF_FORMAT_NORMAL_OUTPUT); // don't write '\0'!
+                                } else {
+
+                                    // there are three options where to store the result now
                                 TypeUnificationPolicy t_policy; t_policy.allowAutoUpcastOfNumbers = _allowNumericTypeUnification;
 
+                                    // 1. fits targetOutputSchema (i.e. row becomes normalcase row)
+                                    bool outputAsNormalRow = python::Type::UNKNOWN != unifyTypes(rowType, _targetOutputSchema.getRowType(), t_policy)
+                                                             && canUpcastToRowType(rowType, _targetOutputSchema.getRowType());
+                                    // 2. fits generalCaseOutputSchema (i.e. row becomes generalcase row)
+                                    bool outputAsGeneralRow = python::Type::UNKNOWN != unifyTypes(rowType,
+                                                                                                  commonCaseOutputSchema().getRowType(), t_policy)
+                                                              && canUpcastToRowType(rowType, commonCaseOutputSchema().getRowType());
 
-                                // 1. fits targetOutputSchema (i.e. row becomes normalcase row)
-                                bool outputAsNormalRow = python::Type::UNKNOWN != unifyTypes(rowType, _targetOutputSchema.getRowType(), t_policy)
-                                                         && canUpcastToRowType(rowType, _targetOutputSchema.getRowType());
-                                // 2. fits generalCaseOutputSchema (i.e. row becomes generalcase row)
-                                bool outputAsGeneralRow = python::Type::UNKNOWN != unifyTypes(rowType,
-                                                                                              commonCaseOutputSchema().getRowType(), t_policy)
-                                                          && canUpcastToRowType(rowType, commonCaseOutputSchema().getRowType());
+                                    // 3. doesn't fit, store as python object. => we should use block storage for this as well. Then data can be shared.
 
-                                // 3. doesn't fit, store as python object. => we should use block storage for this as well. Then data can be shared.
+                                    // can upcast? => note that the && is necessary because of cases where outputSchema is
+                                    // i64 but the given row type f64. We can cast up i64 to f64 but not the other way round.
+                                    if(outputAsNormalRow) {
+                                        Row resRow = python::pythonToRow(rowObj).upcastedRow(_targetOutputSchema.getRowType());
+                                        assert(resRow.getRowType() == _targetOutputSchema.getRowType());
 
-                                // can upcast? => note that the && is necessary because of cases where outputSchema is
-                                // i64 but the given row type f64. We can cast up i64 to f64 but not the other way round.
-                                if(outputAsNormalRow) {
-                                    Row resRow = python::pythonToRow(rowObj).upcastedRow(_targetOutputSchema.getRowType());
-                                    assert(resRow.getRowType() == _targetOutputSchema.getRowType());
+                                        // write to buffer & perform callback
+                                        auto buf_size = 2 * resRow.serializedLength();
+                                        uint8_t *buf = new uint8_t[buf_size];
+                                        memset(buf, 0, buf_size);
+                                        auto serialized_length = resRow.serializeToMemory(buf, buf_size);
+                                        // call row func!
+                                        // --> merge row distinguishes between those two cases. Distinction has to be done there
+                                        //     because of compiled functor who calls mergeRow in the write function...
+                                        mergeRow(buf, serialized_length, BUF_FORMAT_NORMAL_OUTPUT);
+                                        delete [] buf;
+                                    } else if(outputAsGeneralRow) {
+                                        Row resRow = python::pythonToRow(rowObj).upcastedRow(commonCaseOutputSchema().getRowType());
+                                        assert(resRow.getRowType() == commonCaseOutputSchema().getRowType());
 
-                                    // write to buffer & perform callback
-                                    auto buf_size = 2 * resRow.serializedLength();
-                                    uint8_t *buf = new uint8_t[buf_size];
-                                    memset(buf, 0, buf_size);
-                                    auto serialized_length = resRow.serializeToMemory(buf, buf_size);
-                                    // call row func!
-                                    // --> merge row distinguishes between those two cases. Distinction has to be done there
-                                    //     because of compiled functor who calls mergeRow in the write function...
-                                    mergeRow(buf, serialized_length, BUF_FORMAT_NORMAL_OUTPUT);
-                                    delete [] buf;
-                                } else if(outputAsGeneralRow) {
-                                    Row resRow = python::pythonToRow(rowObj).upcastedRow(commonCaseOutputSchema().getRowType());
-                                    assert(resRow.getRowType() == commonCaseOutputSchema().getRowType());
-
-                                    // write to buffer & perform callback
-                                    auto buf_size = 2 * resRow.serializedLength();
-                                    uint8_t *buf = new uint8_t[buf_size];
-                                    memset(buf, 0, buf_size);
-                                    auto serialized_length = resRow.serializeToMemory(buf, buf_size);
-                                    // call row func!
-                                    // --> merge row distinguishes between those two cases. Distinction has to be done there
-                                    //     because of compiled functor who calls mergeRow in the write function...
-                                    mergeRow(buf, serialized_length, BUF_FORMAT_GENERAL_OUTPUT);
-                                    delete [] buf;
-                                } else {
-                                    // Unwrap single element tuples before writing them to the fallback sink
-                                    if(PyTuple_Check(rowObj) && PyTuple_Size(rowObj) == 1) {
-                                        writePythonObjectToFallbackSink(PyTuple_GetItem(rowObj, 0));
+                                        // write to buffer & perform callback
+                                        auto buf_size = 2 * resRow.serializedLength();
+                                        uint8_t *buf = new uint8_t[buf_size];
+                                        memset(buf, 0, buf_size);
+                                        auto serialized_length = resRow.serializeToMemory(buf, buf_size);
+                                        // call row func!
+                                        // --> merge row distinguishes between those two cases. Distinction has to be done there
+                                        //     because of compiled functor who calls mergeRow in the write function...
+                                        mergeRow(buf, serialized_length, BUF_FORMAT_GENERAL_OUTPUT);
+                                        delete [] buf;
                                     } else {
-                                        writePythonObjectToFallbackSink(rowObj);
+                                        // Unwrap single element tuples before writing them to the fallback sink
+                                        if(PyTuple_Check(rowObj) && PyTuple_Size(rowObj) == 1) {
+                                            writePythonObjectToFallbackSink(PyTuple_GetItem(rowObj, 0));
+                                        } else {
+                                            writePythonObjectToFallbackSink(rowObj);
+                                        }
                                     }
+                                    // Py_XDECREF(rowObj);
                                 }
-                                // Py_XDECREF(rowObj);
                             }
-                        }
 
 #ifndef NDEBUG
-                        if(PyErr_Occurred()) {
-                            // print out the otber objects...
-                            std::cout<<__FILE__<<":"<<__LINE__<<" python error not cleared properly!"<<std::endl;
-                            PyErr_Print();
-                            std::cout<<std::endl;
-                            PyErr_Clear();
-                        }
+                            if(PyErr_Occurred()) {
+                                // print out the otber objects...
+                                std::cout<<__FILE__<<":"<<__LINE__<<" python error not cleared properly!"<<std::endl;
+                                PyErr_Print();
+                                std::cout<<std::endl;
+                                PyErr_Clear();
+                            }
 #endif
 
-                        // everything was successful, change resCode to 0!
-                        resCode = 0;
+                            // everything was successful, change resCode to 0!
+                            resCode = 0;
+                        }
                     }
                 }
+            } catch(const std::exception& e) {
+                std::cout<<"exception during python execution: "<<e.what()<<std::endl;
+            } catch(...) {
+                std::cerr<<"unknown internal exception caught"<<std::endl;
             }
-
             python::unlockGIL();
         }
 

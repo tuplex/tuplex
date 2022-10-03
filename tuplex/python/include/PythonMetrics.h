@@ -25,7 +25,7 @@ namespace tuplex {
             friend class PythonContext;
 
         public:
-            PythonMetrics(): _metrics(nullptr)  {}
+            PythonMetrics(): _metrics(nullptr)  { python::registerWithInterpreter(); }
             /*!
             * wraps JobMetrics object in PythonMetrics object
             * @param metrics pointer to JobMetrics object

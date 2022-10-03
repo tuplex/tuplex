@@ -20,6 +20,7 @@ using namespace std;
 TEST_F(AssertAndRaiseTest, Assert) {
     auto opt = microTestOptions();
     opt.set("optimizer.mergeExceptionsInOrder", "true");
+   // opt.set("executorCount", "0"); // uncomment to force to single-threaded
     Context c(opt);
 
     auto code = "def f(x):\n"

@@ -29,6 +29,24 @@ namespace tuplex {
         // read all valid JSON lines from >= start to the line that just ends after end.
         void setRange(size_t start, size_t end);
         void setFunctor(codegen::read_block_f functor);
+
+    private:
+        codegen::read_block_f _functor;
+        void* _userData;
+        size_t _rangeStart;
+        size_t _rangeEnd;
+
+        // internal read buffer
+        size_t _bufferSize;
+        size_t _inBufferLength;
+        uint8_t* _inputBuffer;
+
+        // row counters, needed for exception handling.
+        int64_t  _num_normal_rows, _num_bad_rows;
+
+        void moveInputBuffer(size_t bytesConsumed, size_t simd_security_bytes);
+
+        size_t consume(bool eof);
     };
 }
 #endif //TUPLEX_JSONREADER_H

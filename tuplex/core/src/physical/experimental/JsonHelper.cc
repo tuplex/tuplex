@@ -706,5 +706,77 @@ namespace tuplex {
             jit.registerSymbol("JsonArray_getEmptyArray", JsonArray_getEmptyArray);
             jit.registerSymbol("Json_is_whitespace", Json_is_whitespace);
         }
+
+        bool JsonContainsAtLeastOneDocument(const char* buf, size_t buf_size) {
+            if(buf_size == 0 || !buf)
+                return true;
+
+            const char* ptr = buf;
+            size_t pos = 0;
+            int64_t brace_counter = 0;
+            int64_t bracket_counter = 0;
+            bool in_escaped_string = false;
+            while(pos < buf_size) {
+                auto c = *ptr;
+                switch(c) {
+                    case '\0': {
+                        if(pos > 0 && 0 == brace_counter && 0 == bracket_counter)
+                            return true;
+                        else
+                            return false;
+                        break;
+                    }
+                    case '\"': {
+                        in_escaped_string = !in_escaped_string;
+                        break;
+                    }
+                    case '\\': {
+                        // are we in escaped string? => then \\\" can be skipped!
+                        if(buf_size - pos - 1 >= 0) {
+                            ptr++;
+                            pos++; // skip, do not change...
+                        } else {
+                            return false; // invalid string
+                        }
+                        break;
+                    }
+                    case '\n':
+                    case '\r': {
+                        // in escaped string? -> doesn't matter, else check if there's a completed doc!
+                        if(!in_escaped_string) {
+                            return pos > 0 && 0 == brace_counter && 0 == bracket_counter;
+                        }
+                        break;
+                    }
+                    case '{': {
+                        if(!in_escaped_string)
+                            brace_counter++;
+                        break;
+                    }
+                    case '}': {
+                        if(!in_escaped_string)
+                            brace_counter--;
+                        break;
+                    }
+                    case '[': {
+                        if(!in_escaped_string)
+                            bracket_counter++;
+                        break;
+                    }
+                    case ']': {
+                        if(!in_escaped_string)
+                            bracket_counter--;
+                        break;
+                    }
+                }
+                // end of document? check!
+                ptr++;
+
+                // when is a document found? when { and } count matches! Or when [ and ] count matches.
+
+                pos++;
+            }
+            return 0 == brace_counter && 0 == bracket_counter;
+        }
     }
 }

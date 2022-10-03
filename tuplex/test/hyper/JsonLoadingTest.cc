@@ -1351,6 +1351,26 @@ TEST_F(HyperTest, TypeMaximization) {
     logger.debug("best pair covers " + std::to_string(best_pair.second) + "/" + std::to_string(total_count));
 }
 
+TEST_F(HyperTest, JsonDocDetect) {
+    using namespace tuplex;
+    using namespace std;
+     auto content = "{\"column1\": {\"a\": \"hel\\\"lo\", \"b\": 20, \"c\": 30}}\n"
+                "{\"column1\": {\"a\": \"test\", \"b\": 20, \"c\": null}}\n"
+                "{\"column1\": {\"a\": \"cat\",  \"c\": null}}";
+
+    EXPECT_TRUE(codegen::JsonContainsAtLeastOneDocument(content, strlen(content) + 1));
+
+     // check detection
+     auto first_valid_len = strlen("{\"column1\": {\"a\": \"hel\\\"lo\", \"b\": 20, \"c\": 30}}");
+     for(unsigned i = 1; i < first_valid_len; ++i) {
+         EXPECT_FALSE(codegen::JsonContainsAtLeastOneDocument(content, i));
+     }
+     for(unsigned i = first_valid_len; i < strlen(content) + 1; ++i) {
+         EXPECT_TRUE(codegen::JsonContainsAtLeastOneDocument(content, i));
+     }
+
+}
+
 TEST_F(HyperTest, BasicStructLoad) {
     using namespace tuplex;
     using namespace std;
@@ -1387,7 +1407,9 @@ TEST_F(HyperTest, BasicStructLoad) {
 
 //     // mini example in order to analyze code
 //     path = "test.json";
-//     auto content = "{\"column1\": {\"a\": \"hello\", \"b\": 20, \"c\": 30}}\n"
+//     auto content = "{\"column1\": {\"a\": \"hello\", \"b\": 2//     auto content = "{\"column1\": {\"a\": \"hello\", \"b\": 20, \"c\": 30}}\n"
+//                    "{\"column1\": {\"a\": \"test\", \"b\": 20, \"c\": null}}\n"
+//                    "{\"column1\": {\"a\": \"cat\",  \"c\": null}}";0, \"c\": 30}}\n"
 //                    "{\"column1\": {\"a\": \"test\", \"b\": 20, \"c\": null}}\n"
 //                    "{\"column1\": {\"a\": \"cat\",  \"c\": null}}";
 //     stringToFile(path, content);

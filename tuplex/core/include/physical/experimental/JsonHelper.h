@@ -96,6 +96,14 @@ namespace tuplex {
         extern uint64_t JsonItem_numberOfKeys(JsonItem *item);
 
         extern bool Json_is_whitespace(const char* str, size_t size);
+
+        /*!
+         * this is a helper function to detect whether there's at least one document in the stream.
+         * @param buf
+         * @param buf_size size in bytes to search for
+         * @return true/false
+         */
+        extern bool JsonContainsAtLeastOneDocument(const char* buf, size_t buf_size);
     }
 }
 

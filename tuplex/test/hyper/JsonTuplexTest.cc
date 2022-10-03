@@ -13,7 +13,10 @@ TEST_F(JsonTuplexTest, BasicLoad) {
 
     Context ctx(microTestOptions());
 
-    ctx.json("../resources/ndjson/example1.json").show();
+//    ctx.json("../resources/ndjson/example1.json").show();
+
+    // large json file (to make sure buffers etc. work
+    ctx.json("/data/2014-10-15.json").show();
 }
 
 TEST_F(JsonTuplexTest, StructAndFT) {

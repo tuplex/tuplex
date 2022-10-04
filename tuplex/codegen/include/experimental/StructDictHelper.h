@@ -46,7 +46,8 @@ namespace tuplex {
         using flattened_struct_dict_decoded_entry_list_t = std::vector<flattened_struct_dict_decoded_entry_t>;
 
         // flatten struct dict.
-        using flattened_struct_dict_entry_list_t = std::vector<std::tuple<std::vector<std::pair<std::string, python::Type>>, python::Type, bool>>;
+        using flattened_struct_dict_entry_t = std::tuple<std::vector<std::pair<std::string, python::Type>>, python::Type, bool>;
+        using flattened_struct_dict_entry_list_t = std::vector<flattened_struct_dict_entry_t>;
 
         extern void flatten_recursive_helper(flattened_struct_dict_entry_list_t &entries,
                                              const python::Type &dict_type,

@@ -348,6 +348,16 @@ namespace python {
         }
 
         StructEntry() : alwaysPresent(true) {}
+
+        StructEntry(const StructEntry& other) : key(other.key), keyType(other.keyType), valueType(other.valueType), alwaysPresent(other.alwaysPresent) {}
+        StructEntry(StructEntry&& other) : key(other.key), keyType(other.keyType), valueType(other.valueType), alwaysPresent(other.alwaysPresent) {}
+        StructEntry& operator = (const StructEntry& other) {
+            key = other.key;
+            keyType = other.keyType;
+            valueType = other.valueType;
+            alwaysPresent = other.alwaysPresent;
+            return *this;
+        }
     };
 
     extern bool isLiteralType(const Type& type);

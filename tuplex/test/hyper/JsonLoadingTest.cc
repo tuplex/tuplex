@@ -85,77 +85,45 @@ namespace tuplex {
         void struct_dict_set_item(LLVMEnvironment &env, llvm::Value *obj, const python::Type &dict_type,
                                   const SerializableValue &key, const python::Type &key_type);
 
-
-        std::vector<python::StructEntry>::iterator
-        find_by_key(const python::Type &dict_type, const std::string &key_value, const python::Type &key_type) {
-            // perform value compare of key depending on key_type
-            auto kv_pairs = dict_type.get_struct_pairs();
-            return std::find_if(kv_pairs.begin(), kv_pairs.end(), [&](const python::StructEntry &entry) {
-                auto k_type = deoptimizedType(key_type);
-                auto e_type = deoptimizedType(entry.keyType);
-                if (k_type != e_type) {
-                    // special case: option types ->
-                    if (k_type.isOptionType() &&
-                        (python::Type::makeOptionType(e_type) == k_type || e_type == python::Type::NULLVALUE)) {
-                        // ok... => decide
-                        return semantic_python_value_eq(k_type, entry.key, key_value);
-                    }
-
-                    // other way round
-                    if (e_type.isOptionType() &&
-                        (python::Type::makeOptionType(k_type) == e_type || k_type == python::Type::NULLVALUE)) {
-                        // ok... => decide
-                        return semantic_python_value_eq(e_type, entry.key, key_value);
-                    }
-
-                    return false;
-                } else {
-                    // is key_value the same as what is stored in the entry?
-                    return semantic_python_value_eq(k_type, entry.key, key_value);
-                }
-                return false;
-            });
-        }
-
-        llvm::Value *struct_dict_contains_key(LLVMEnvironment &env, llvm::Value *obj, const python::Type &dict_type,
-                                              const SerializableValue &key, const python::Type &key_type) {
-            assert(dict_type.isStructuredDictionaryType());
-
-            auto &logger = Logger::instance().logger("codegen");
-
-            // quick check
-            // is key-type at all contained?
-            auto kv_pairs = dict_type.get_struct_pairs();
-            auto it = std::find_if(kv_pairs.begin(), kv_pairs.end(),
-                                   [&key_type](const python::StructEntry &entry) { return entry.keyType == key_type; });
-            if (it == kv_pairs.end())
-                return env.i1Const(false);
-
-            // is it a constant key? => can decide during compile time as well!
-            if (key_type.isConstantValued()) {
-                auto it = find_by_key(dict_type, key_type.constant(), key_type.underlying());
-                return env.i1Const(it != dict_type.get_struct_pairs().end());
-            }
-
-            // is the value a llvm constant? => can optimize as well!
-            if (key.val && llvm::isa<llvm::Constant>(key.val)) {
-                // there are only a couple cases where this works...
-                // -> string, bool, i64, f64...
-                // if(key_type == python::Type::STRING && llvm::isa<llvm::Constant)
-                // @TODO: skip for now
-                logger.debug("optimization potential here... can decide this at compile time!");
-            }
-
-            // can't decide statically, use here LLVM IR code to decide whether the struct type contains the key or not!
-            // => i.e. want to do semantic comparison.
-            // only need to compare against all keys with key_type (or that are compatible to it (e.g. options))
-            std::vector<python::StructEntry> pairs_to_compare_against;
-            for (auto kv_pair: kv_pairs) {
-
-            }
-
-            return nullptr;
-        }
+//        llvm::Value *struct_dict_contains_key(LLVMEnvironment &env, llvm::Value *obj, const python::Type &dict_type,
+//                                              const SerializableValue &key, const python::Type &key_type) {
+//            assert(dict_type.isStructuredDictionaryType());
+//
+//            auto &logger = Logger::instance().logger("codegen");
+//
+//            // quick check
+//            // is key-type at all contained?
+//            auto kv_pairs = dict_type.get_struct_pairs();
+//            auto it = std::find_if(kv_pairs.begin(), kv_pairs.end(),
+//                                   [&key_type](const python::StructEntry &entry) { return entry.keyType == key_type; });
+//            if (it == kv_pairs.end())
+//                return env.i1Const(false);
+//
+//            // is it a constant key? => can decide during compile time as well!
+//            if (key_type.isConstantValued()) {
+//                auto it = find_by_key(dict_type, key_type.constant(), key_type.underlying());
+//                return env.i1Const(it != dict_type.get_struct_pairs().end());
+//            }
+//
+//            // is the value a llvm constant? => can optimize as well!
+//            if (key.val && llvm::isa<llvm::Constant>(key.val)) {
+//                // there are only a couple cases where this works...
+//                // -> string, bool, i64, f64...
+//                // if(key_type == python::Type::STRING && llvm::isa<llvm::Constant)
+//                // @TODO: skip for now
+//                logger.debug("optimization potential here... can decide this at compile time!");
+//            }
+//
+//            // can't decide statically, use here LLVM IR code to decide whether the struct type contains the key or not!
+//            // => i.e. want to do semantic comparison.
+//            // only need to compare against all keys with key_type (or that are compatible to it (e.g. options))
+//            std::vector<python::StructEntry> pairs_to_compare_against;
+//            for (auto kv_pair: kv_pairs) {
+//
+//            }
+//
+//            return nullptr;
+//        }
 
     }
 }

@@ -564,6 +564,81 @@ namespace tuplex {
             return -1;
         }
 
+        // --- load functions ---
+        llvm::Value* struct_dict_load_present(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* is_present) {
+            // return;
+
+            auto indices = struct_dict_load_indices(dict_type);
+            // fetch indices
+            // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
+            int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
+            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
+
+            // load only if valid present_idx
+            if(present_idx >= 0) {
+                // env.printValue(builder, is_present, "storing away is_present at index " + std::to_string(present_idx));
+
+                // make sure type has presence map index
+                auto p_idx = presence_map_field_idx(dict_type);
+                assert(p_idx >= 0);
+                assert(is_present && is_present->getType() == env.i1Type());
+                // i1 store logic
+                auto bitmapPos = present_idx;
+                auto structBitmapIdx = CreateStructGEP(builder, ptr, (size_t)p_idx); // bitmap comes first!
+                auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
+                return builder.CreateLoad(bitmapIdx);
+            } else {
+                // always present
+                return env.i1Const(true);
+            }
+        }
+
+        SerializableValue struct_dict_load_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* value) {
+            auto indices = struct_dict_load_indices(dict_type);
+            // fetch indices
+            // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
+            int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
+            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
+
+            SerializableValue val;
+            val.size = env.i64Const(sizeof(int64_t));
+            val.is_null = env.i1Const(false);
+
+            // load only if valid field_idx
+            if(field_idx >= 0) {
+                // env.printValue(builder, value, "storing away value at index " + std::to_string(field_idx));
+
+                // store
+                auto llvm_idx = CreateStructGEP(builder, ptr, field_idx);
+                val.val = builder.CreateLoad(llvm_idx);
+            }
+
+            // load only if valid size_idx
+            if(size_idx >= 0) {
+                // env.printValue(builder, size, "storing away size at index " + std::to_string(size_idx));
+
+                // store
+                auto llvm_idx = CreateStructGEP(builder, ptr, size_idx);
+                val.size = builder.CreateLoad(llvm_idx);
+            }
+
+            // load only if valid bitmap_idx
+            if(bitmap_idx >= 0) {
+                // env.printValue(builder, is_null, "storing away is_null at index " + std::to_string(bitmap_idx));
+
+                // make sure type has presence map index
+                auto b_idx = bitmap_field_idx(dict_type);
+                assert(b_idx >= 0);
+                // i1 store logic
+                auto bitmapPos = bitmap_idx;
+                auto structBitmapIdx = CreateStructGEP(builder, ptr, (size_t)b_idx); // bitmap comes first!
+                auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
+                val.is_null = builder.CreateLoad(bitmapIdx);
+            }
+
+            return val;
+        }
+
         // --- store functions ---
         void struct_dict_store_present(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* is_present) {
             // return;
@@ -597,7 +672,7 @@ namespace tuplex {
             int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
             std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
 
-            // store only if valid present_idx
+            // store only if valid field_idx
             if(field_idx >= 0) {
                 // env.printValue(builder, value, "storing away value at index " + std::to_string(field_idx));
 
@@ -614,7 +689,7 @@ namespace tuplex {
             int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
             std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
 
-            // store only if valid present_idx
+            // store only if valid bitmap_idx
             if(bitmap_idx >= 0) {
                 // env.printValue(builder, is_null, "storing away is_null at index " + std::to_string(bitmap_idx));
 
@@ -638,7 +713,7 @@ namespace tuplex {
             int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
             std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
 
-            // store only if valid present_idx
+            // store only if valid size_idx
             if(size_idx >= 0) {
                 // env.printValue(builder, size, "storing away size at index " + std::to_string(size_idx));
 
@@ -1066,13 +1141,103 @@ namespace tuplex {
             return DL.getTypeAllocSize(llvm_type);
         }
 
+        std::vector<python::StructEntry>::iterator
+        find_by_key(const python::Type &dict_type, const std::string &key_value, const python::Type &key_type) {
+            // perform value compare of key depending on key_type
+            auto kv_pairs = dict_type.get_struct_pairs();
+            return std::find_if(kv_pairs.begin(), kv_pairs.end(), [&](const python::StructEntry &entry) {
+                auto k_type = deoptimizedType(key_type);
+                auto e_type = deoptimizedType(entry.keyType);
+                if (k_type != e_type) {
+                    // special case: option types ->
+                    if (k_type.isOptionType() &&
+                        (python::Type::makeOptionType(e_type) == k_type || e_type == python::Type::NULLVALUE)) {
+                        // ok... => decide
+                        return semantic_python_value_eq(k_type, entry.key, key_value);
+                    }
+
+                    // other way round
+                    if (e_type.isOptionType() &&
+                        (python::Type::makeOptionType(k_type) == e_type || k_type == python::Type::NULLVALUE)) {
+                        // ok... => decide
+                        return semantic_python_value_eq(e_type, entry.key, key_value);
+                    }
+
+                    return false;
+                } else {
+                    // is key_value the same as what is stored in the entry?
+                    return semantic_python_value_eq(k_type, entry.key, key_value);
+                }
+                return false;
+            });
+        }
+
+        bool access_paths_equal(const access_path_t& rhs, const access_path_t& lhs) {
+            if(rhs.size() != lhs.size())
+                return false;
+            for(unsigned i = 0; i < rhs.size(); ++i) {
+                if(rhs[i].second != lhs[i].second)
+                    return false;
+                if(!semantic_python_value_eq(rhs[i].second, rhs[i].first, lhs[i].first))
+                    return false;
+            }
+            return true;
+        }
+
+        flattened_struct_dict_entry_list_t::const_iterator find_by_access_path(const flattened_struct_dict_entry_list_t& entries, access_path_t path) {
+            // compare path exactly
+            flattened_struct_dict_entry_list_t::const_iterator it = std::find_if(entries.begin(), entries.end(), [&path](const flattened_struct_dict_entry_t& entry) {
+                auto e_path = std::get<0>(entry);
+                return access_paths_equal(e_path, path);
+            });
+            return it;
+        }
+
         SerializableValue struct_dict_get_or_except(LLVMEnvironment& env,
                                                     const python::Type& dict_type,
                                                     const std::string& key,
                                                     const python::Type& key_type,
                                                     llvm::Value* ptr,
                                                     llvm::BasicBlock* bbKeyNotFound) {
-            throw std::runtime_error("to implement");
+
+            // check first that key_type is actually contained within dict type
+            assert(dict_type.isStructuredDictionaryType());
+
+            SerializableValue value;
+            bool element_found = true;
+
+            auto it = find_by_key(dict_type, key, key_type);
+            if(it == dict_type.get_struct_pairs().end()) {
+                // key needs to be known to dict structure!
+                element_found = false;
+                throw std::runtime_error("could not find key " + key + " (" + key_type.desc() + ") in struct type.");
+            }
+
+            // get indices to access element
+            flattened_struct_dict_entry_list_t entries;
+            flatten_recursive_helper(entries, dict_type);
+
+            // find corresponding entry
+            // flat access path
+            access_path_t access_path(1, std::make_pair(it->key, it->keyType));
+            auto jt = find_by_access_path(entries, access_path);
+            if(jt == entries.end()) {
+                element_found = false; // -> not found via access path (?) weird. should not happen.
+            }
+
+            int bitmap_idx = -1, present_idx = -1, field_idx = -1, size_idx = -1;
+            if(element_found) {
+                auto struct_indices = struct_dict_load_indices(dict_type);
+                auto indices = struct_indices.at(access_path);
+                std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices;
+
+                // check if present map indicates something
+                if(present_idx >= 0) {
+                    // need to check bit
+                    auto element_present = nullptr;
+                }
+            }
+
             return {};
         }
 

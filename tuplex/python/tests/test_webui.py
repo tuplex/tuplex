@@ -23,7 +23,7 @@ class TestWebUI(unittest.TestCase):
     def setUpClass(cls):
         logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
         # bug in logging redirect?
-        conf ={'webui.enable': True, "driverMemory": "8MB", "executorMemory" : "1MB",
+        conf ={"webui.enable": True, "driverMemory": "8MB", "executorMemory" : "1MB",
                "partitionSize": "256KB", "tuplex.redirectToPythonLogging": True}
 
         logging.debug('WebUI Test setUpClass called')

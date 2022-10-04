@@ -9,7 +9,10 @@
 #  License: Apache 2.0                                                                                                 #
 #----------------------------------------------------------------------------------------------------------------------#
 import atexit
+import sys
 import collections
+if sys.version_info.major == 3 and sys.version_info.minor >= 10:
+    import collections.abc
 import pathlib
 import signal
 
@@ -197,10 +200,18 @@ def flatten_dict(d, sep='.', parent_key=''):
     items = []
     for key, val in d.items():
         new_key = parent_key + sep + key if parent_key else key
-        if isinstance(val, collections.MutableMapping):
-            items.extend(flatten_dict(val, sep, new_key).items())
+
+        # Python 3.10+ moved MutableMapping to collections.abc.MutableMapping
+        if sys.version_info.major == 3 and sys.version_info.minor >= 10:
+            if isinstance(val, collections.abc.MutableMapping):
+                items.extend(flatten_dict(val, sep, new_key).items())
+            else:
+                items.append((new_key, val))
         else:
-            items.append((new_key, val))
+            if isinstance(val, collections.MutableMapping):
+                items.extend(flatten_dict(val, sep, new_key).items())
+            else:
+                items.append((new_key, val))
     return dict(items)
 
 def unflatten_dict(dictionary, sep='.'):

@@ -20,7 +20,7 @@ jobs:
     steps:
       - script: sudo bash scripts/ubuntu1804/install_mongodb.sh
         displayName: 'Install MongoDB'
-      - script: cd tuplex/python && python3 mongodb_test.py && pkill mongod
+      - script: cd tuplex/python && python3 -m pip install psutil && python3 mongodb_test.py && pkill mongod
         displayName: 'Test MongoDB init'
       - script: sudo bash scripts/install_azure_ci_reqs.sh
         displayName: 'Install required packages'

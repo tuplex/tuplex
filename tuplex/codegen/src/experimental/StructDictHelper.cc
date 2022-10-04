@@ -1066,5 +1066,15 @@ namespace tuplex {
             return DL.getTypeAllocSize(llvm_type);
         }
 
+        SerializableValue struct_dict_get_or_except(LLVMEnvironment& env,
+                                                    const python::Type& dict_type,
+                                                    const std::string& key,
+                                                    const python::Type& key_type,
+                                                    llvm::Value* ptr,
+                                                    llvm::BasicBlock* bbKeyNotFound) {
+            throw std::runtime_error("to implement");
+            return {};
+        }
+
     }
 }

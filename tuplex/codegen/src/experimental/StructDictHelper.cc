@@ -1238,10 +1238,14 @@ namespace tuplex {
                 if(present_idx >= 0) {
                     // need to check bit
                     auto element_present = struct_dict_load_present(env, builder, ptr, dict_type, access_path);
+                    throw std::runtime_error("not yet supported");
                 }
+
+                // load value
+                value = struct_dict_load_value(env, builder, ptr, dict_type, access_path);
             }
 
-            return {};
+            return value;
         }
 
     }

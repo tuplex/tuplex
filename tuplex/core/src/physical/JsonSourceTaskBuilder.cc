@@ -48,6 +48,8 @@ namespace tuplex {
             auto bufPtr = args["inPtr"];
             auto bufSize = args["inSize"];
 
+            initVars(builder);
+
             auto parsed_bytes = generateParseLoop(builder, bufPtr, bufSize, _normal_case_columns, _general_case_columns, _unwrap_first_level);
 
             builder.CreateRet(parsed_bytes);

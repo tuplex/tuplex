@@ -41,10 +41,10 @@ print(res)
 ### Quickstart
 To try out Tuplex, simply try out the following starter notebooks using Google Colab:
 
-| Name                    | Link             | Description                                                         |
-|-------------------------|------------------|---------------------------------------------------------------------|
-| 1. Intro to Tuplex      | [Google Colab](https://colab.research.google.com/drive/1idqCRmvN-9_F2naJ6k1hbslbQT-2bAqa?usp=sharing) | Basic commands to manipulate columns and modify data with user code |
-| 2. Working with Files   | [Google Colab](https://colab.research.google.com/drive/10gOYUpxK_Bjkw11WYupuaflATsBPRgU0?usp=sharing) | Loading and saving files, detecting types.                          |
+| Name                           | Link             | Description                                                |
+|--------------------------------|------------------|------------------------------------------------------------|
+| 1. Intro to Tuplex             | [Google Colab](https://colab.research.google.com/drive/1idqCRmvN-9_F2naJ6k1hbslbQT-2bAqa?usp=sharing) | Basic commands to manipulate columns and modify data with user code. |
+| 2. Working with Files          | [Google Colab](https://colab.research.google.com/drive/10gOYUpxK_Bjkw11WYupuaflATsBPRgU0?usp=sharing) | Loading and saving files, detecting types.                          |
 
 
 More examples can be found [here](https://tuplex.cs.brown.edu/gettingstarted.html).

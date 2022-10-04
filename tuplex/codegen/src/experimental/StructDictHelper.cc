@@ -718,9 +718,14 @@ namespace tuplex {
                     size = builder.CreateAdd(size, bytes8);
                     if(size_idx >= 0) { // <-- size_idx >= 0 indicates a variable length field!
                         // add size field + data
-                        auto llvm_idx = CreateStructGEP(builder, ptr, size_idx);
-                        auto value_size = builder.CreateLoad(llvm_idx);
-                        size = builder.CreateAdd(size, value_size);
+                        if(ptr->getType()->isPointerTy()) {
+                            auto llvm_idx = CreateStructGEP(builder, ptr, size_idx);
+                            auto value_size = builder.CreateLoad(llvm_idx);
+                            size = builder.CreateAdd(size, value_size);
+                        } else {
+                            auto value_size = builder.CreateExtractValue(ptr, std::vector<unsigned>(1, size_idx));
+                            size = builder.CreateAdd(size, value_size);
+                        }
                     }
                 }
 
@@ -1016,7 +1021,7 @@ namespace tuplex {
 
                     // add size field + data
                     auto llvm_size_idx = CreateStructGEP(builder, ptr, size_idx);
-                    auto value_size = builder.CreateLoad(llvm_size_idx); // <-- serialized size.
+                    auto value_size = llvm_size_idx->getType()->isPointerTy() ? builder.CreateLoad(llvm_size_idx) : llvm_size_idx; // <-- serialized size.
 
                     // compute offset
                     // from current field -> varStart + varoffset

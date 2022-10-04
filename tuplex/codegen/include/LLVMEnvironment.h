@@ -104,6 +104,22 @@ namespace tuplex {
 #endif
             }
 
+        inline llvm::Value* CreateStructLoad(llvm::IRBuilder<>& builder, llvm::Value* struct_object, unsigned int idx, const llvm::Twine& Name="") {
+            assert(struct_object);
+#if LLVM_VERSION_MAJOR < 9
+            // compatibility
+        return builder.CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
+#else
+            if(struct_object->getType()->isPointerTy())
+                return builder.CreateLoad(builder.CreateStructGEP(struct_object, idx));
+            else {
+                assert(struct_object->getType()->isStructTy());
+                std::vector<unsigned> idx_array(1, idx);
+                return builder.CreateExtractValue(struct_object, idx_array);
+            }
+#endif
+        }
+
             inline llvm::Value* getOrInsertCallable(llvm::Module& mod, const std::string& name, llvm::FunctionType* FT) {
 #if LLVM_VERSION_MAJOR < 9
                 return mod.getOrInsertFunction(name, FT);

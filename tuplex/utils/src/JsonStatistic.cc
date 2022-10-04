@@ -112,6 +112,34 @@ namespace tuplex {
         return jsonTypeToPythonTypeNonRecursive(obj.type(), obj.raw_json_token());
     }
 
+    int64_t findNLJsonOffsetToNextLine(const char *buf, size_t buf_size) {
+        // we use ndjson, so finding a new line is as simple as searching forr '\n' or '\r\n', yet we can also be at
+        // the beginning of a valid json object. Hence, basically try to parse and see whether it works!
+        int64_t pos = 0;
+
+        char ws[256];
+        memset(ws, 0, sizeof(char) * 256);
+        ws[' '] = 1;
+        ws['\n'] = 1;
+        ws['\t'] = 1;
+        ws['\r'] = 1;
+
+        // skip whitespace?
+        while(ws[buf[pos]] && pos < buf_size)
+            pos++;
+
+        // parse possible from the start?
+        const char *end_ptr = nullptr;
+        auto json_obj = cJSON_ParseWithLengthOpts(buf + pos, buf_size - pos, &end_ptr, false);
+        if (json_obj) {
+            cJSON_free(json_obj);
+
+            // needs to newline (else partial parse to end...)
+            if (*end_ptr == '\n' || *end_ptr == '\r' || *end_ptr == '\0')
+                return end_ptr - buf;
+        }
+        return -1;
+    }
 
     //@March implement: finding Json Offset
     //@March + write tests.

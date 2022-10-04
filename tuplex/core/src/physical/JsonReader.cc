@@ -7,6 +7,7 @@
 #include <JSONUtils.h>
 #include <JsonStatistic.h>
 #include <physical/experimental/JsonHelper.h>
+#include <RuntimeInterface.h>
 
 namespace tuplex {
 
@@ -38,9 +39,13 @@ namespace tuplex {
             // release all allocated things
             JsonItem_Free(obj);
 
+            runtime::rtfree_all();
             row_number++;
             JsonParser_moveToNextRow(j);
         }
+
+        size_t size = j->stream.size_in_bytes();
+        size_t truncated_bytes = j->stream.truncated_bytes();
 
         JsonParser_close(j);
         JsonParser_free(j);
@@ -51,7 +56,7 @@ namespace tuplex {
             *out_bad_rows = 0;
 
         // returns how many bytes are parsed...
-        return 0;
+        return buf_size - truncated_bytes;
     }
 
     JsonReader::JsonReader(void *userData, codegen::read_block_f rowFunctor, size_t bufferSize) : _functor(rowFunctor), _userData(userData) {
@@ -59,7 +64,7 @@ namespace tuplex {
 
         static const auto SIMDJSON_MINIMUM = 4 * 1024 * 1024ul; // per default, simdjson uses 1MB.
 
-        _bufferSize = std::min(bufferSize, SIMDJSON_MINIMUM); // should be at least whatever simdjson wants
+        _bufferSize = std::max(bufferSize, SIMDJSON_MINIMUM); // should be at least whatever simdjson wants
         _inBufferLength = 0;
         _inputBuffer = nullptr;
 
@@ -166,7 +171,7 @@ namespace tuplex {
                     int64_t maxOffset = 0;
                     while(maxOffset < remainingToParse) {
                         // get offset to next line.
-                        auto offset = findNLJsonStart(p, endp - p);
+                        auto offset = findNLJsonOffsetToNextLine(p, endp - p);
                         assert(offset >= 0);
                         // release fix
                         offset = std::max(static_cast<int64_t>(0), std::min(static_cast<int64_t>(endp - p), offset));

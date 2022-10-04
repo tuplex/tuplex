@@ -26,6 +26,8 @@ namespace tuplex {
      */
     int64_t findNLJsonStart(const char* buf, size_t buf_size);
 
+    int64_t findNLJsonOffsetToNextLine(const char *buf, size_t buf_size);
+
     /*!
      * maps a single primitive value to a python type (non-recursing_
      * @param jtype

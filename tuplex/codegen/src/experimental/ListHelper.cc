@@ -497,8 +497,8 @@ namespace tuplex {
 
             // check ptr has correct type
             auto llvm_list_type = env.getOrCreateListType(list_type);
-            if(list_ptr->getType() != llvm_list_type->getPointerTo())
-                throw std::runtime_error("expected pointer of " + env.getLLVMTypeName(llvm_list_type->getPointerTo()) + " but list_ptr has " + env.getLLVMTypeName(list_ptr->getType()));
+            // if(list_ptr->getType() != llvm_list_type->getPointerTo())
+            //    throw std::runtime_error("expected pointer of " + env.getLLVMTypeName(llvm_list_type->getPointerTo()) + " but list_ptr has " + env.getLLVMTypeName(list_ptr->getType()));
 
             // cf. now getOrCreateListType(...) ==> different layouts depending on element type.
             // init accordingly.
@@ -508,35 +508,68 @@ namespace tuplex {
             if(elements_optional)
                 elementType = elementType.getReturnType();
 
-            if(elementType.isSingleValued()) {
-                if(elements_optional) {
-                    auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
-                    return builder.CreateLoad(idx_size);
-                } else {
-                    // the list is represented as single i64
-                    return builder.CreateLoad(list_ptr);
-                }
-            } else if(elementType == python::Type::I64
+            // check that list type is supported
+            if(!(elementType.isSingleValued()
+            || elementType == python::Type::I64
                       || elementType == python::Type::F64
-                      || elementType == python::Type::BOOLEAN) {
-                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
-                return builder.CreateLoad(idx_size);
-            } else if(elementType == python::Type::STRING
-                      || elementType == python::Type::PYOBJECT) {
-                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
-                return builder.CreateLoad(idx_size);
-            } else if(elementType.isStructuredDictionaryType()) {
-                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
-                return builder.CreateLoad(idx_size);
-            } else if(elementType.isListType()) {
-                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
-                return builder.CreateLoad(idx_size);
-            } else if(elementType.isTupleType()) {
-                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
-                return builder.CreateLoad(idx_size);
-            } else {
+                      || elementType == python::Type::BOOLEAN
+                      || elementType == python::Type::STRING
+                      || elementType == python::Type::PYOBJECT
+                      || elementType.isStructuredDictionaryType()
+                      || elementType.isListType()
+                      || elementType.isTupleType())) {
                 throw std::runtime_error("Unsupported list element type: " + list_type.desc());
             }
+
+            // shorten the code below
+            if(elementType.isSingleValued() && !elements_optional) {
+                if(list_ptr->getType()->isPointerTy())
+                    // the list is represented as single i64
+                    return builder.CreateLoad(list_ptr);
+                else {
+                    assert(list_ptr->getType() == env.i64Type());
+                    return list_ptr;
+                }
+            } else {
+                auto size_position = 1;
+
+                if(list_ptr->getType()->isPointerTy()) {
+                    auto idx_size = CreateStructGEP(builder, list_ptr, size_position); assert(idx_size->getType() == env.i64ptrType());
+                    return builder.CreateLoad(idx_size);
+                } else {
+                    return builder.CreateExtractValue(list_ptr, std::vector<unsigned>(1, size_position));
+                }
+            }
+
+//            if(elementType.isSingleValued()) {
+//                if(elements_optional) {
+//                    auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
+//                    return builder.CreateLoad(idx_size);
+//                } else {
+//                    // the list is represented as single i64
+//                    return builder.CreateLoad(list_ptr);
+//                }
+//            } else if(elementType == python::Type::I64
+//                      || elementType == python::Type::F64
+//                      || elementType == python::Type::BOOLEAN) {
+//                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
+//                return builder.CreateLoad(idx_size);
+//            } else if(elementType == python::Type::STRING
+//                      || elementType == python::Type::PYOBJECT) {
+//                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
+//                return builder.CreateLoad(idx_size);
+//            } else if(elementType.isStructuredDictionaryType()) {
+//                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
+//                return builder.CreateLoad(idx_size);
+//            } else if(elementType.isListType()) {
+//                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
+//                return builder.CreateLoad(idx_size);
+//            } else if(elementType.isTupleType()) {
+//                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
+//                return builder.CreateLoad(idx_size);
+//            } else {
+//                throw std::runtime_error("Unsupported list element type: " + list_type.desc());
+//            }
         }
 
         llvm::Value* list_of_structs_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type) {
@@ -738,7 +771,7 @@ namespace tuplex {
 
                 // fetch size by calling struct_size on each retrieved pointer! (they should be ALL valid)
                 // --> no check here!
-                auto item = builder.CreateGEP(ptr_values, loop_i_val);
+               auto item = ptr_values->getType()->isPointerTy() ? builder.CreateGEP(ptr_values, loop_i_val) : ptr_values;
 
                 // call function! (or better said: emit the necessary code...)
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
@@ -825,8 +858,7 @@ namespace tuplex {
                 BasicBlock *bLoopBody = BasicBlock::Create(ctx, "var_size_loop_body", F);
                 BasicBlock *bLoopExit = BasicBlock::Create(ctx, "var_size_loop_done", F);
 
-                auto idx_sizes = CreateStructGEP(builder, list_ptr, 3);
-                auto ptr_sizes = builder.CreateLoad(idx_sizes);
+                auto ptr_sizes = CreateStructLoad(builder, list_ptr, 3);
 
                 builder.CreateBr(bLoopHeader);
 

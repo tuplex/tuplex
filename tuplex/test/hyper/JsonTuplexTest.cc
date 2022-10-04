@@ -11,7 +11,9 @@ TEST_F(JsonTuplexTest, BasicLoad) {
     using namespace tuplex;
     using namespace std;
 
-    Context ctx(microTestOptions());
+    auto opt = microTestOptions();
+    opt.set("tuplex.executorCount", "0"); // start single-threaded
+    Context ctx(opt);
 
 //    ctx.json("../resources/ndjson/example1.json").show();
 

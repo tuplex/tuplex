@@ -850,8 +850,22 @@ namespace tuplex {
 
             } else if(elementType.isPrimitiveType() || elementType.isDictionaryType()
             || elementType == python::Type::GENERICDICT || elementType.isListType() || elementType == python::Type::PYOBJECT) {
+
+                // special case: struct dict
+                if(elementType.isStructuredDictionaryType()) {
+                    // either struct.dict or struct.dict* supported.
+                    assert(val->getType()->isStructTy() ||
+                          (val->getType()->isPointerTy() && val->getType()->getPointerElementType()->isStructTy()));
+                    if(val->getType()->isPointerTy()) {
+                        // perform load!
+                        val = builder.CreateLoad(val);
+                    }
+                    size = nullptr; // needs to be calculated...
+                }
+
                 // just copy over the pointers
                 set(builder, {iElement}, val, size, is_null);
+
             } else if(elementType == python::Type::EMPTYTUPLE) {
                 // empty tuple will result in constants
                 // i.e. set the value to a load of the empty tuple special type and the size to sizeof(int64_t)

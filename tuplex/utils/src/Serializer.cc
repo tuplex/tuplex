@@ -1691,8 +1691,13 @@ namespace tuplex {
                 f = Field::null();
             else if (python::Type::GENERICDICT == type)
                 f = Field::from_str_data(getDictionary(i), python::Type::GENERICDICT);
-            else if (type.isDictionaryType())
-                f = Field::from_str_data(getDictionary(i), type);
+            else if (type.isDictionaryType()) {
+                if(type.isStructuredDictionaryType()) {
+                    f = Field::from_str_data("StructDict[...]", type);
+                } else {
+                    f = Field::from_str_data(getDictionary(i), type);
+                }
+            }
             else if (type == python::Type::EMPTYLIST)
                 f = Field(List());
             else if (type.isListType())
@@ -1720,10 +1725,17 @@ namespace tuplex {
                     f = Field::from_str_data(
                             isNull(i) ? option<std::string>::none : option<std::string>(getDictionary(i)),
                             python::Type::GENERICDICT);
-                else if (rt.isDictionaryType())
-                    f = Field::from_str_data(
-                            isNull(i) ? option<std::string>::none : option<std::string>(getDictionary(i)),
-                            rt);
+                else if (rt.isDictionaryType()) {
+                    if(rt.isStructuredDictionaryType()) {
+                        f = Field::from_str_data(
+                                isNull(i) ? option<std::string>::none : option<std::string>("StructDict[...]"),
+                                rt);
+                    } else {
+                        f = Field::from_str_data(
+                                isNull(i) ? option<std::string>::none : option<std::string>(getDictionary(i)),
+                                rt);
+                    }
+                }
                 else if(rt == python::Type::EMPTYLIST)
                     f = Field(isNull(i) ? option<List>::none : option<List>(List()));
                 else if(rt.isListType())

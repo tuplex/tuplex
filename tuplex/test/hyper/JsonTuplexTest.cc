@@ -15,7 +15,8 @@ TEST_F(JsonTuplexTest, BasicLoad) {
     opt.set("tuplex.executorCount", "0"); // start single-threaded
     Context ctx(opt);
 
-    ctx.json("../resources/ndjson/example2.json").show();
+    bool unwrap_first_level = true;
+    ctx.json("../resources/ndjson/example2.json", unwrap_first_level).show();
 
     // // large json file (to make sure buffers etc. work
     // ctx.json("/data/2014-10-15.json").show();

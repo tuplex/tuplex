@@ -195,7 +195,7 @@ namespace tuplex {
          * @return Dataset
          */
         DataSet& json(const std::string& pattern,
-                      bool unwrap_first_level=false,
+                      bool unwrap_first_level=true,
                       bool treat_heterogenous_lists_as_tuples=true);
 
         /*!

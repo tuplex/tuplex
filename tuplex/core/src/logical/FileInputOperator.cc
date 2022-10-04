@@ -177,6 +177,7 @@ namespace tuplex {
 
         auto f = new FileInputOperator();
         f->_fmt = FileFormat::OUTFMT_JSON;
+        f->_json_unwrap_first_level = unwrap_first_level;
 
        Timer timer;
        f->detectFiles(pattern);
@@ -253,9 +254,9 @@ namespace tuplex {
                 std::vector<std::string> ordered_names;
                 std::set<std::string> set_names;
                 for(const auto& names : columnNamesCollection) {
-                    for(auto name : names) {
+                    for(const auto& name : names) {
                         auto it = set_names.find(name);
-                        if(it != set_names.end()) {
+                        if(it == set_names.end()) {
                             set_names.insert(name);
                             ordered_names.push_back(name);
                         }
@@ -596,8 +597,8 @@ namespace tuplex {
             return;
 
         assert(_columnNames.empty());
-
-        if (columnNames.size() != outputColumnCount())
+        // only perform check, if schema already initialized.
+        if (_optimizedSchema != Schema::UNKNOWN && columnNames.size() != outputColumnCount())
             throw std::runtime_error("number of columns given (" + std::to_string(columnNames.size()) +
                                      ") does not match detected count (" + std::to_string(outputColumnCount()) + ")");
 

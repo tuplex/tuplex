@@ -40,6 +40,9 @@ namespace tuplex {
         bool _header;
         std::vector<std::string> _null_values;
 
+        // JSON
+        bool _json_unwrap_first_level;
+
         Schema _optimizedSchema; // schema after selection pushdown is performed.
 
         std::vector<std::string> _columnNames;
@@ -188,6 +191,8 @@ namespace tuplex {
 
         std::unordered_map<size_t, python::Type> typeHints() const { return _indexBasedHints; }
 
+        bool unwrap_first_level() const { return _json_unwrap_first_level; }
+
         /*!
          * force usage of normal case type for schema & Co.
          */
@@ -269,7 +274,7 @@ namespace tuplex {
          */
         bool isEmpty() const;
 
-        FileInputOperator() : _fmt(FileFormat::OUTFMT_UNKNOWN) {}
+        FileInputOperator() : _fmt(FileFormat::OUTFMT_UNKNOWN), _json_unwrap_first_level(false) {}
     };
 }
 

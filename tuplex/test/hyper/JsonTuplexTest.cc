@@ -15,10 +15,10 @@ TEST_F(JsonTuplexTest, BasicLoad) {
     opt.set("tuplex.executorCount", "0"); // start single-threaded
     Context ctx(opt);
 
-//    ctx.json("../resources/ndjson/example1.json").show();
+    ctx.json("../resources/ndjson/example2.json").show();
 
-    // large json file (to make sure buffers etc. work
-    ctx.json("/data/2014-10-15.json").show();
+    // // large json file (to make sure buffers etc. work
+    // ctx.json("/data/2014-10-15.json").show();
 }
 
 TEST_F(JsonTuplexTest, StructAndFT) {

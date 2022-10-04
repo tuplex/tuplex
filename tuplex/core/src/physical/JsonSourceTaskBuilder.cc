@@ -11,9 +11,16 @@ namespace tuplex {
     namespace codegen {
         JsonSourceTaskBuilder::JsonSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment> &env,
                                                      const python::Type &normalCaseRowType,
-                                                     const python::Type &generalCaseRowType, const std::string &name): BlockBasedTaskBuilder(env, normalCaseRowType, name),
+                                                     const python::Type &generalCaseRowType,
+                                                     const std::vector<std::string>& normal_case_columns,
+                                                     const std::vector<std::string>& general_case_columns,
+                                                     bool unwrap_first_level,
+                                                     const std::string &name): BlockBasedTaskBuilder(env, normalCaseRowType, name),
                                                      _normalCaseRowType(normalCaseRowType),
                                                      _generalCaseRowType(generalCaseRowType),
+                                                     _normal_case_columns(normal_case_columns),
+                                                     _general_case_columns(general_case_columns),
+                                                     _unwrap_first_level(unwrap_first_level),
                                                      _functionName(name) {
 
         }
@@ -41,7 +48,7 @@ namespace tuplex {
             auto bufPtr = args["inPtr"];
             auto bufSize = args["inSize"];
 
-            auto parsed_bytes = generateParseLoop(builder, bufPtr, bufSize);
+            auto parsed_bytes = generateParseLoop(builder, bufPtr, bufSize, _normal_case_columns, _general_case_columns, _unwrap_first_level);
 
             builder.CreateRet(parsed_bytes);
 
@@ -63,7 +70,10 @@ namespace tuplex {
         }
 
         llvm::Value *JsonSourceTaskBuilder::generateParseLoop(llvm::IRBuilder<> &builder, llvm::Value *bufPtr,
-                                                              llvm::Value *bufSize) {
+                                                              llvm::Value *bufSize,
+                                                              const std::vector<std::string>& normal_case_columns,
+                                                              const std::vector<std::string>& general_case_columns,
+                                                              bool unwrap_first_level) {
             using namespace llvm;
             using namespace std;
 
@@ -147,11 +157,11 @@ namespace tuplex {
 
 
             // parse here as normal row
-            auto normal_case_row = parseRowAsStructuredDict(builder, _normalCaseRowType, parser, bbParseAsGeneralCaseRow);
+            auto normal_case_row = parseRow(builder, _normalCaseRowType, normal_case_columns, unwrap_first_level, parser, bbParseAsGeneralCaseRow); //parseRowAsStructuredDict(builder, _normalCaseRowType, parser, bbParseAsGeneralCaseRow);
             builder.CreateBr(bbNormalCaseSuccess);
 
             builder.SetInsertPoint(bbParseAsGeneralCaseRow);
-            auto general_case_row = parseRowAsStructuredDict(builder, _generalCaseRowType, parser, bbFallback);
+            auto general_case_row = parseRow(builder, _generalCaseRowType, general_case_columns, unwrap_first_level, parser, bbFallback);//parseRowAsStructuredDict(builder, _generalCaseRowType, parser, bbFallback);
             builder.CreateBr(bbGeneralCaseSuccess);
 
             // now create the blocks for each scenario
@@ -160,8 +170,8 @@ namespace tuplex {
                 builder.SetInsertPoint(bbNormalCaseSuccess);
 
                 // serialized size (as is)
-                auto s = struct_dict_serialized_memory_size(*_env.get(), builder, normal_case_row, _normalCaseRowType);
-                incVar(builder, _normalMemorySizeVar, s.val);
+                auto normal_size = normal_case_row.getSize(builder);
+                incVar(builder, _normalMemorySizeVar, normal_size);
 
                 // inc by one
                 incVar(builder, _normalRowCountVar);
@@ -173,8 +183,7 @@ namespace tuplex {
                 builder.SetInsertPoint(bbGeneralCaseSuccess);
 
                 // serialized size (as is)
-                auto s = struct_dict_serialized_memory_size(*_env.get(), builder, general_case_row, _generalCaseRowType);
-                auto general_size = s.val;
+                auto general_size = general_case_row.getSize(builder);
 
                 // in order to store an exception, need 8 bytes for each: rowNumber, ecCode, opID, eSize + the size of the row
                 general_size = builder.CreateAdd(general_size, _env->i64Const(4 * sizeof(int64_t)));
@@ -369,7 +378,7 @@ namespace tuplex {
         }
 
         llvm::Value *
-        JsonSourceTaskBuilder::parseRowAsStructuredDict(llvm::IRBuilder<> &builder, const python::Type &row_type,
+        JsonSourceTaskBuilder::parseRowAsStructuredDict(llvm::IRBuilder<> &builder, const python::Type &dict_type,
                                                         llvm::Value *j, llvm::BasicBlock *bbSchemaMismatch) {
             assert(j);
             using namespace llvm;
@@ -385,13 +394,13 @@ namespace tuplex {
 
             // don't forget to free everything...
             // alloc variable
-            auto struct_dict_type = create_structured_dict_type(*_env.get(), row_type);
+            auto struct_dict_type = create_structured_dict_type(*_env.get(), dict_type);
             auto row_var = _env->CreateFirstBlockAlloca(builder, struct_dict_type);
-            struct_dict_mem_zero(*_env.get(), builder, row_var, row_type); // !!! important !!!
+            struct_dict_mem_zero(*_env.get(), builder, row_var, dict_type); // !!! important !!!
 
 
             // create dict parser and store to row_var
-            JSONParseRowGenerator gen(*_env.get(), row_type,  _freeEnd, bbSchemaMismatch);
+            JSONParseRowGenerator gen(*_env.get(), dict_type, _freeEnd, bbSchemaMismatch);
             gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
 
             // free obj_var...
@@ -410,6 +419,68 @@ namespace tuplex {
             auto call_res = builder.CreateCall(F, j);
             auto cond = builder.CreateICmpEQ(call_res, _env->i64Const(JsonParser_objectDocType()));
             return cond;
+        }
+
+        FlattenedTuple JsonSourceTaskBuilder::parseRow(llvm::IRBuilder<> &builder, const python::Type &row_type,
+                                                       const std::vector<std::string>& columns,
+                                                       bool unwrap_first_level, llvm::Value *parser,
+                                                       llvm::BasicBlock *bbSchemaMismatch) {
+            assert(row_type.isTupleType());
+
+            FlattenedTuple ft(_env.get());
+            ft.init(row_type);
+
+            // should first level be unwrapped or not?
+            if(unwrap_first_level) {
+                // -> need to have columns info
+                assert(columns.size() >= row_type.parameters().size());
+
+                if(columns.size() < row_type.parameters().size()) {
+                    builder.CreateBr(bbSchemaMismatch);
+                    // maybe need to initialize with dummies?
+                    return ft;
+                }
+
+                // parse using a struct type composed of columns and the data!
+                std::vector<python::StructEntry> entries;
+                auto num_entries = std::min(columns.size(), row_type.parameters().size());
+                for(unsigned i = 0; i < num_entries; ++i) {
+                    python::StructEntry entry;
+                    entry.keyType = python::Type::STRING;
+                    entry.key = escape_to_python_str(columns[i]);
+                    entry.valueType = row_type.parameters()[i];
+                    entries.push_back(entry);
+                }
+                auto dict_type = python::Type::makeStructuredDictType(entries);
+
+                // parse dictionary
+                auto dict = parseRowAsStructuredDict(builder, dict_type, parser, bbSchemaMismatch);
+
+                // fetch columns from dict and assign to tuple!
+                for(int i = 0; i < num_entries; ++i) {
+                    SerializableValue value;
+
+                    // fetch value from dict!
+                    value = struct_dict_get_or_except(*_env.get(), dict_type, escape_to_python_str(columns[i]),
+                                                      python::Type::STRING, dict, bbSchemaMismatch);
+
+                    ft.set(builder, {i}, value.val, value.size, value.is_null);
+                }
+            } else {
+                assert(row_type.parameters().size() == 1);
+                auto dict_type = row_type.parameters()[0];
+                assert(dict_type.isStructuredDictionaryType()); // <-- this should be true, or an alternative parsing strategy devised...
+                if(!dict_type.isStructuredDictionaryType())
+                    throw std::runtime_error("parsing JSON files with type " + dict_type.desc() + " not yet implemented.");
+
+                // parse struct dict
+                auto s = parseRowAsStructuredDict(builder, dict_type, parser, bbSchemaMismatch);
+
+                // assign to tuple (for further processing)
+                ft.setElement(builder, 0, s, nullptr, nullptr);
+            }
+
+            return ft;
         }
     }
 }

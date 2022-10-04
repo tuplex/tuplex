@@ -14,6 +14,9 @@ namespace tuplex {
             JsonSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment>& env,
                                   const python::Type& normalCaseRowType,
                                   const python::Type& generalCaseRowType,
+                                  const std::vector<std::string>& normal_case_columns,
+                                  const std::vector<std::string>& general_case_columns,
+                                  bool unwrap_first_level,
                                   const std::string& name);
 
             llvm::Function* build(bool terminateEarlyOnFailureCode) override;
@@ -22,6 +25,10 @@ namespace tuplex {
 
             python::Type _normalCaseRowType;
             python::Type _generalCaseRowType;
+
+            std::vector<std::string> _normal_case_columns;
+            std::vector<std::string> _general_case_columns;
+            bool _unwrap_first_level;
 
             // codegen helper variables
             // blocks to hold start/end of frees --> called before going to next row.
@@ -47,7 +54,10 @@ namespace tuplex {
              * @param bufSize
              * @return
              */
-            llvm::Value* generateParseLoop(llvm::IRBuilder<>& builder, llvm::Value* bufPtr, llvm::Value* bufSize);
+            llvm::Value* generateParseLoop(llvm::IRBuilder<>& builder, llvm::Value* bufPtr, llvm::Value* bufSize,
+                                           const std::vector<std::string>& normal_case_columns,
+                                           const std::vector<std::string>& general_case_columns,
+                                           bool unwrap_first_level);
 
             inline llvm::Value* incVar(llvm::IRBuilder<>& builder, llvm::Value* var, llvm::Value* what_to_add) {
                 llvm::Value* val = builder.CreateLoad(var);
@@ -69,8 +79,15 @@ namespace tuplex {
             llvm::Value* parsedBytes(llvm::IRBuilder<>& builder, llvm::Value* parser, llvm::Value* buf_size);
 
             llvm::Value *isDocumentOfObjectType(llvm::IRBuilder<> &builder, llvm::Value *j);
-            llvm::Value* parseRowAsStructuredDict(llvm::IRBuilder<> &builder, const python::Type& row_type, llvm::Value *j,
+            llvm::Value* parseRowAsStructuredDict(llvm::IRBuilder<> &builder, const python::Type& dict_type, llvm::Value *j,
                                                   llvm::BasicBlock *bbSchemaMismatch);
+
+            FlattenedTuple parseRow(llvm::IRBuilder<>& builder, const python::Type& row_type,
+                                    const std::vector<std::string>& columns,
+                                    bool unwrap_first_level,
+                                    llvm::Value* parser,
+                                    llvm::BasicBlock *bbSchemaMismatch);
+
             llvm::Value *initJsonParser(llvm::IRBuilder<> &builder);
             void freeJsonParse(llvm::IRBuilder<> &builder, llvm::Value *j);
             llvm::Value *openJsonBuf(llvm::IRBuilder<> &builder, llvm::Value *j, llvm::Value *buf, llvm::Value *buf_size);

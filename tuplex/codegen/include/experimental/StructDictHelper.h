@@ -83,6 +83,22 @@ namespace tuplex {
         extern void struct_dict_verify_storage(LLVMEnvironment& env, const python::Type& dict_type, std::ostream& os);
 
         extern size_t struct_dict_heap_size(LLVMEnvironment& env, const python::Type& dict_type);
+
+        /*!
+         * retrieve value stored under key from the structured dictionary. If it doesn't exist, go to bbKeyNotFound.
+         * @param env
+         * @param dict_type
+         * @param key
+         * @param ptr
+         * @param bbKeyNotFound
+         * @return the value (or dummies)
+         */
+        extern SerializableValue struct_dict_get_or_except(LLVMEnvironment& env,
+                                                           const python::Type& dict_type,
+                                                           const std::string& key,
+                                                           const python::Type& key_type,
+                                                           llvm::Value* ptr,
+                                                           llvm::BasicBlock* bbKeyNotFound);
     }
 }
 

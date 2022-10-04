@@ -28,7 +28,7 @@ class TestWebUI(unittest.TestCase):
         # bug in logging redirect?
         conf ={"webui.enable": True, "driverMemory": "8MB", "executorMemory" : "1MB",
                "partitionSize": "256KB", "tuplex.redirectToPythonLogging": True,
-               "webui.mongodb.url" : localhost_ip, "webui.url" : localhost_ip}
+               "webui.url" : localhost_ip}
 
         logging.debug('WebUI Test setUpClass called')
         cls.context = Context(conf)

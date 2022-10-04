@@ -19,6 +19,11 @@ namespace tuplex {
             parser = nullptr;
         }
 
+        int64_t JsonParser_TruncatedBytes(JsonParser* parser) {
+            assert(parser);
+            return parser->stream.truncated_bytes();
+        }
+
         uint64_t JsonParser_open(JsonParser *j, const char *buf, size_t buf_size) {
             assert(j);
 
@@ -705,6 +710,7 @@ namespace tuplex {
             jit.registerSymbol("JsonArray_IsNull", JsonArray_IsNull);
             jit.registerSymbol("JsonArray_getEmptyArray", JsonArray_getEmptyArray);
             jit.registerSymbol("Json_is_whitespace", Json_is_whitespace);
+            jit.registerSymbol("JsonParser_TruncatedBytes", JsonParser_TruncatedBytes);
         }
 
         bool JsonContainsAtLeastOneDocument(const char* buf, size_t buf_size) {

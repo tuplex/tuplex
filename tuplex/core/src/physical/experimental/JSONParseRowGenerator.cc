@@ -2,7 +2,7 @@
 // Created by leonhard on 9/25/22.
 //
 
-#include "JSONParseRowGenerator.h"
+#include <physical/experimental/JSONParseRowGenerator.h>
 #include <FlattenedTuple.h>
 
 namespace tuplex {

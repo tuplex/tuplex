@@ -23,7 +23,7 @@
 #include <experimental/StructDictHelper.h>
 #include <physical/experimental/JsonHelper.h>
 
-#include "JSONParseRowGenerator.h"
+#include <physical/experimental/JSONParseRowGenerator.h>
 #include "ExperimentalJSONSourceTaskBuilder.h"
 
 #include "TuplexMatchBuilder.h"

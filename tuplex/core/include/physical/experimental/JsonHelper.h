@@ -104,6 +104,8 @@ namespace tuplex {
          * @return true/false
          */
         extern bool JsonContainsAtLeastOneDocument(const char* buf, size_t buf_size);
+
+        extern int64_t JsonParser_TruncatedBytes(JsonParser* parser);
     }
 }
 

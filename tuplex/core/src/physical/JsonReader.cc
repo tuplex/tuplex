@@ -11,53 +11,53 @@
 
 namespace tuplex {
 
-    // helper func to decvelop parsing
-    int64_t dummy_functor(void* userData, const uint8_t* buf, int64_t buf_size, int64_t* out_normal_rows, int64_t* out_bad_rows, int8_t is_last_part) {
-        using namespace codegen;
-
-        // open up JSON parsing
-        auto j = JsonParser_init();
-        if(!j)
-            return -1;
-
-        int64_t row_number = 0;
-
-        JsonParser_open(j, reinterpret_cast<const char *>(buf), buf_size);
-        while (JsonParser_hasNextRow(j)) {
-            if (JsonParser_getDocType(j) != JsonParser_objectDocType()) {
-                // BADPARSE_STRINGINPUT
-                auto line = JsonParser_getMallocedRow(j);
-                free(line);
-            }
-
-            auto doc = *j->it;
-            JsonItem *obj = nullptr;
-            uint64_t rc = JsonParser_getObject(j, &obj);
-            if (rc != 0)
-                break; // --> don't forget to release stuff here!
-
-            // release all allocated things
-            JsonItem_Free(obj);
-
-            runtime::rtfree_all();
-            row_number++;
-            JsonParser_moveToNextRow(j);
-        }
-
-        size_t size = j->stream.size_in_bytes();
-        size_t truncated_bytes = j->stream.truncated_bytes();
-
-        JsonParser_close(j);
-        JsonParser_free(j);
-
-        if(out_normal_rows)
-            *out_normal_rows = row_number;
-        if(out_bad_rows)
-            *out_bad_rows = 0;
-
-        // returns how many bytes are parsed...
-        return buf_size - truncated_bytes;
-    }
+//    // helper func to decvelop parsing
+//    int64_t dummy_functor(void* userData, const uint8_t* buf, int64_t buf_size, int64_t* out_normal_rows, int64_t* out_bad_rows, int8_t is_last_part) {
+//        using namespace codegen;
+//
+//        // open up JSON parsing
+//        auto j = JsonParser_init();
+//        if(!j)
+//            return -1;
+//
+//        int64_t row_number = 0;
+//
+//        JsonParser_open(j, reinterpret_cast<const char *>(buf), buf_size);
+//        while (JsonParser_hasNextRow(j)) {
+//            if (JsonParser_getDocType(j) != JsonParser_objectDocType()) {
+//                // BADPARSE_STRINGINPUT
+//                auto line = JsonParser_getMallocedRow(j);
+//                free(line);
+//            }
+//
+//            auto doc = *j->it;
+//            JsonItem *obj = nullptr;
+//            uint64_t rc = JsonParser_getObject(j, &obj);
+//            if (rc != 0)
+//                break; // --> don't forget to release stuff here!
+//
+//            // release all allocated things
+//            JsonItem_Free(obj);
+//
+//            runtime::rtfree_all();
+//            row_number++;
+//            JsonParser_moveToNextRow(j);
+//        }
+//
+//        size_t size = j->stream.size_in_bytes();
+//        size_t truncated_bytes = j->stream.truncated_bytes();
+//
+//        JsonParser_close(j);
+//        JsonParser_free(j);
+//
+//        if(out_normal_rows)
+//            *out_normal_rows = row_number;
+//        if(out_bad_rows)
+//            *out_bad_rows = 0;
+//
+//        // returns how many bytes are parsed...
+//        return buf_size - truncated_bytes;
+//    }
 
     JsonReader::JsonReader(void *userData, codegen::read_block_f rowFunctor, size_t bufferSize) : _functor(rowFunctor), _userData(userData) {
         setRange(0, 0);
@@ -71,8 +71,8 @@ namespace tuplex {
         _num_normal_rows = 0;
         _num_bad_rows= 0;
 
-        // dummy for testing
-        _functor = dummy_functor;
+        // // dummy for testing
+        // _functor = dummy_functor;
     }
 
     void JsonReader::setRange(size_t start, size_t end) {
@@ -252,6 +252,11 @@ namespace tuplex {
 
         assert(_inBufferLength > 0);
         auto bytesParsed = _functor(_userData, _inputBuffer, _inBufferLength, &_num_normal_rows, &_num_bad_rows, !eof);
+
+        // if bytes are negative, error!
+        if(bytesParsed < 0) {
+            throw std::runtime_error("Json read failed with code " + std::to_string(-bytesParsed));
+        }
 
         return bytesParsed;
     }

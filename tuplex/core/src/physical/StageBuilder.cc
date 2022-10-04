@@ -1035,7 +1035,9 @@ namespace tuplex {
                         break;
                     }
                     case FileFormat::OUTFMT_JSON: {
-                        tb = make_shared<codegen::JsonSourceTaskBuilder>(env, inSchema, funcStageName);
+                        // @TODO: change this here to general-case as well...
+                        // --> update cellsourcetask builder as well>
+                        tb = make_shared<codegen::JsonSourceTaskBuilder>(env, inSchema, inSchema, funcStageName);
                         break;
                     }
                     default:

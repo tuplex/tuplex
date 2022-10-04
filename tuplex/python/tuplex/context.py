@@ -11,7 +11,11 @@
 
 import logging
 
-from .libexec.tuplex import _Context, _DataSet, getDefaultOptionsAsJSON
+try:
+    from .libexec.tuplex import _Context, _DataSet, getDefaultOptionsAsJSON
+except ModuleNotFoundError as e:
+    logging.error("need to compiled Tuplex first, details: {}".format(e))
+
 from .dataset import DataSet
 import os
 import glob

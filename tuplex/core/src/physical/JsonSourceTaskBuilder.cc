@@ -50,7 +50,8 @@ namespace tuplex {
 
             initVars(builder);
 
-            auto parsed_bytes = generateParseLoop(builder, bufPtr, bufSize, _normal_case_columns, _general_case_columns, _unwrap_first_level);
+            auto parsed_bytes = generateParseLoop(builder, bufPtr, bufSize, args["userData"], _normal_case_columns,
+                                                  _general_case_columns, _unwrap_first_level, terminateEarlyOnFailureCode);
 
             builder.CreateRet(parsed_bytes);
 
@@ -71,11 +72,14 @@ namespace tuplex {
             _parsedBytesVar = _env->CreateFirstBlockVariable(builder, _env->i64Const(0), "truncated_bytes");
         }
 
-        llvm::Value *JsonSourceTaskBuilder::generateParseLoop(llvm::IRBuilder<> &builder, llvm::Value *bufPtr,
+        llvm::Value *JsonSourceTaskBuilder::generateParseLoop(llvm::IRBuilder<> &builder,
+                                                              llvm::Value *bufPtr,
                                                               llvm::Value *bufSize,
+                                                              llvm::Value *userData,
                                                               const std::vector<std::string>& normal_case_columns,
                                                               const std::vector<std::string>& general_case_columns,
-                                                              bool unwrap_first_level) {
+                                                              bool unwrap_first_level,
+                                                              bool terminateEarlyOnLimitCode) {
             using namespace llvm;
             using namespace std;
 
@@ -170,6 +174,23 @@ namespace tuplex {
             {
                 // 1. normal case
                 builder.SetInsertPoint(bbNormalCaseSuccess);
+
+                // if pipeline exists, call pipeline on normal tuple!
+                if(pipeline()) {
+                    auto processRowFunc = pipeline()->getFunction();
+                    if(!processRowFunc)
+                        throw std::runtime_error("invalid function from pipeline builder in JsonSourceTaskBuilder");
+
+                    auto pip_res = PipelineBuilder::call(builder, processRowFunc, normal_case_row, userData, rowNumber(builder), initIntermediate(builder));
+
+                    // create if based on resCode to go into exception block
+                    auto ecCode = builder.CreateZExtOrTrunc(pip_res.resultCode, env().i64Type());
+                    auto ecOpID = builder.CreateZExtOrTrunc(pip_res.exceptionOperatorID, env().i64Type());
+                    auto numRowsCreated = builder.CreateZExtOrTrunc(pip_res.numProducedRows, env().i64Type());
+
+                    if(terminateEarlyOnLimitCode)
+                        generateTerminateEarlyOnCode(builder, ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
+                }
 
                 // serialized size (as is)
                 auto normal_size = normal_case_row.getSize(builder);

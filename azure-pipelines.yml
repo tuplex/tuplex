@@ -28,5 +28,5 @@ jobs:
         displayName: 'Build Tuplex'
       - script: cd build/temp.linux-x86_64-3.7 && ctest --timeout 180 --output-on-failure
         displayName: 'C++ tests'
-      - script: cd build/temp.linux-x86_64-3.7/dist/python && python3.7 -m pytest -x --full-trace -l --log-cli-level debug
+      - script: cd build/temp.linux-x86_64-3.7/dist/python && python3.7 -m pytest -x --full-trace -l --log-cli-level=DEBUG --capture=tee-sys
         displayName: 'Python tests'

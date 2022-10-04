@@ -1184,9 +1184,9 @@ namespace tuplex {
             return true;
         }
 
-        flattened_struct_dict_entry_list_t::const_iterator find_by_access_path(const flattened_struct_dict_entry_list_t& entries, access_path_t path) {
+        flattened_struct_dict_entry_list_t::const_iterator find_by_access_path(const flattened_struct_dict_entry_list_t& entries, const access_path_t& path) {
             // compare path exactly
-            flattened_struct_dict_entry_list_t::const_iterator it = std::find_if(entries.begin(), entries.end(), [&path](const flattened_struct_dict_entry_t& entry) {
+            flattened_struct_dict_entry_list_t::const_iterator it = std::find_if(entries.begin(), entries.end(), [path](const flattened_struct_dict_entry_t& entry) {
                 auto e_path = std::get<0>(entry);
                 return access_paths_equal(e_path, path);
             });
@@ -1219,7 +1219,8 @@ namespace tuplex {
 
             // find corresponding entry
             // flat access path
-            access_path_t access_path(1, std::make_pair(it->key, it->keyType));
+            access_path_t access_path;
+            access_path.push_back(std::make_pair(key, key_type));
             auto jt = find_by_access_path(entries, access_path);
             if(jt == entries.end()) {
                 element_found = false; // -> not found via access path (?) weird. should not happen.

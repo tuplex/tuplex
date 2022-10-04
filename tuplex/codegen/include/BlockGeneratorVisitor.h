@@ -415,8 +415,6 @@ namespace codegen {
 
         // upcast return type
         SerializableValue upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue& val, const python::Type& type, const python::Type& targetType);
-
-        SerializableValue CreateDummyValue(llvm::IRBuilder<>& builder, const python::Type& type);
         SerializableValue popWithNullCheck(llvm::IRBuilder<>& builder, ExceptionCode ec, const std::string& message="");
 
         SerializableValue additionInst(const SerializableValue &L, NBinaryOp *op, const SerializableValue &R);

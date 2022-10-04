@@ -95,6 +95,7 @@ namespace tuplex {
          * @return the value (or dummies)
          */
         extern SerializableValue struct_dict_get_or_except(LLVMEnvironment& env,
+                                                           llvm::IRBuilder<>& builder,
                                                            const python::Type& dict_type,
                                                            const std::string& key,
                                                            const python::Type& key_type,

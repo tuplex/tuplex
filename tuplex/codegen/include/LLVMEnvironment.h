@@ -2027,6 +2027,14 @@ namespace tuplex {
                                           llvm::Value *str, llvm::Value *strSize,
                                           llvm::Value *isnull);
 
+        /*!
+        * creates an empty, zero initialized value (useful for if logic)
+        * @param env
+        * @param builder
+        * @param type
+        * @return dummy value
+        */
+        extern SerializableValue CreateDummyValue(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& type);
 
     }
 }

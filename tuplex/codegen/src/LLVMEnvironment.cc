@@ -2223,5 +2223,33 @@ namespace tuplex {
             _generatedStructDictTypes[structType] = type;
             return type;
         }
+
+        SerializableValue CreateDummyValue(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& type) {
+            using namespace llvm;
+
+            // dummy value needs to be created for llvm to combine stuff.
+            SerializableValue retVal;
+
+            // special case, option type:
+            if(type.isOptionType()) {
+                // recurse
+                retVal = CreateDummyValue(env, builder, type.getReturnType());
+                retVal.is_null = env.i1Const(true);
+            } else if (python::Type::BOOLEAN == type || python::Type::I64 == type) {
+                retVal.val = env.i64Const(0);
+                retVal.size = env.i64Const(sizeof(int64_t));
+            } else if (python::Type::F64 == type) {
+                retVal.val = env.f64Const(0.0);
+                retVal.size = env.i64Const(sizeof(double));
+            } else if (python::Type::STRING == type || type.isDictionaryType()) {
+                retVal.val = env.i8ptrConst(nullptr);
+                retVal.size = env.i64Const(0);
+            } else if(python::Type::NULLVALUE == type) {
+                retVal.is_null = env.i1Const(true);
+            } else {
+                throw std::runtime_error("not support to create dummy value for " + type.desc() + " yet.");
+            }
+            return retVal;
+        }
     }
 }

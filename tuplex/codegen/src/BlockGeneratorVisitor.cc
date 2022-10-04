@@ -3985,48 +3985,6 @@ namespace tuplex {
             }
         }
 
-
-        SerializableValue
-        BlockGeneratorVisitor::CreateDummyValue(llvm::IRBuilder<> &builder, const python::Type &type) {
-            // dummy value needs to be created for llvm to combine stuff.
-            SerializableValue retVal;
-            if (python::Type::BOOLEAN == type || python::Type::I64 == type) {
-                retVal.val = _env->i64Const(0);
-                retVal.size = _env->i64Const(sizeof(int64_t));
-            } else if (python::Type::F64 == type) {
-                retVal.val = _env->f64Const(0.0);
-                retVal.size = _env->i64Const(sizeof(double));
-            } else if (python::Type::STRING == type || type.isDictionaryType()) {
-                retVal.val = _env->i8ptrConst(nullptr);
-                retVal.size = _env->i64Const(0);
-            } else if (type.isListType()) {
-                auto llvmType = _env->getOrCreateListType(type);
-                auto val = _env->CreateFirstBlockAlloca(builder, llvmType);
-                if (type == python::Type::EMPTYLIST) {
-                    builder.CreateStore(_env->i8nullptr(), val);
-                } else {
-                    auto elementType = type.elementType();
-                    if (elementType.isSingleValued()) {
-                        builder.CreateStore(_env->i64Const(0), val);
-                    } else {
-                        builder.CreateStore(_env->i64Const(0), _env->CreateStructGEP(builder, val, 0));
-                        builder.CreateStore(_env->i64Const(0), _env->CreateStructGEP(builder, val, 1));
-                        builder.CreateStore(llvm::ConstantPointerNull::get(
-                                llvm::dyn_cast<PointerType>(llvmType->getStructElementType(2))),
-                                            _env->CreateStructGEP(builder, val, 2));
-                        if (elementType == python::Type::STRING) {
-                            builder.CreateStore(llvm::ConstantPointerNull::get(
-                                    llvm::dyn_cast<PointerType>(llvmType->getStructElementType(3))),
-                                                _env->CreateStructGEP(builder, val, 3));
-                        }
-                    }
-                }
-                retVal.val = builder.CreateLoad(val);
-                retVal.size = _env->i64Const(3 * sizeof(int64_t));
-            }
-            return retVal;
-        }
-
         SerializableValue BlockGeneratorVisitor::upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue &val,
                                                                   const python::Type &type,
                                                                   const python::Type &targetType) {
@@ -4058,7 +4016,7 @@ namespace tuplex {
 
                 // need to create dummy value so LLVM works...
                 auto baseType = targetType.getReturnType();
-                auto tmp = CreateDummyValue(builder, baseType);
+                auto tmp = CreateDummyValue(*_env, builder, baseType);
                 return SerializableValue(tmp.val, tmp.size, _env->i1Const(true));
             }
 

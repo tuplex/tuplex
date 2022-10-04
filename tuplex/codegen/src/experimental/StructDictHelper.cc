@@ -565,7 +565,7 @@ namespace tuplex {
         }
 
         // --- load functions ---
-        llvm::Value* struct_dict_load_present(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* is_present) {
+        llvm::Value* struct_dict_load_present(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path) {
             // return;
 
             auto indices = struct_dict_load_indices(dict_type);
@@ -581,7 +581,6 @@ namespace tuplex {
                 // make sure type has presence map index
                 auto p_idx = presence_map_field_idx(dict_type);
                 assert(p_idx >= 0);
-                assert(is_present && is_present->getType() == env.i1Type());
                 // i1 store logic
                 auto bitmapPos = present_idx;
                 auto structBitmapIdx = CreateStructGEP(builder, ptr, (size_t)p_idx); // bitmap comes first!
@@ -593,7 +592,7 @@ namespace tuplex {
             }
         }
 
-        SerializableValue struct_dict_load_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* value) {
+        SerializableValue struct_dict_load_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path) {
             auto indices = struct_dict_load_indices(dict_type);
             // fetch indices
             // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
@@ -1194,16 +1193,16 @@ namespace tuplex {
         }
 
         SerializableValue struct_dict_get_or_except(LLVMEnvironment& env,
+                                                    llvm::IRBuilder<>& builder,
                                                     const python::Type& dict_type,
                                                     const std::string& key,
                                                     const python::Type& key_type,
                                                     llvm::Value* ptr,
                                                     llvm::BasicBlock* bbKeyNotFound) {
+            using namespace llvm;
 
             // check first that key_type is actually contained within dict type
             assert(dict_type.isStructuredDictionaryType());
-
-            SerializableValue value;
             bool element_found = true;
 
             auto it = find_by_key(dict_type, key, key_type);
@@ -1223,8 +1222,11 @@ namespace tuplex {
             access_path.push_back(std::make_pair(key, key_type));
             auto jt = find_by_access_path(entries, access_path);
             if(jt == entries.end()) {
-                element_found = false; // -> not found via access path (?) weird. should not happen.
+                throw std::runtime_error("could not find entry under key " + key + " (" + key_type.desc() + ") in struct type.");
             }
+
+            auto value_type = std::get<1>(*jt);
+            SerializableValue value = CreateDummyValue(env, builder, value_type);
 
             int bitmap_idx = -1, present_idx = -1, field_idx = -1, size_idx = -1;
             if(element_found) {
@@ -1235,7 +1237,7 @@ namespace tuplex {
                 // check if present map indicates something
                 if(present_idx >= 0) {
                     // need to check bit
-                    auto element_present = nullptr;
+                    auto element_present = struct_dict_load_present(env, builder, ptr, dict_type, access_path);
                 }
             }
 

@@ -461,7 +461,7 @@ namespace tuplex {
                     SerializableValue value;
 
                     // fetch value from dict!
-                    value = struct_dict_get_or_except(*_env.get(), dict_type, escape_to_python_str(columns[i]),
+                    value = struct_dict_get_or_except(*_env.get(), builder, dict_type, escape_to_python_str(columns[i]),
                                                       python::Type::STRING, dict, bbSchemaMismatch);
 
                     ft.set(builder, {i}, value.val, value.size, value.is_null);

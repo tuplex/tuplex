@@ -96,6 +96,9 @@ class Context:
         options = dict()
 
         # put meaningful defaults for special environments...
+
+        # per default disable webui
+        options['tuplex.webui.enable'] = False
         if in_google_colab():
             logging.debug('Detected Google Colab environment, adjusting options...')
 

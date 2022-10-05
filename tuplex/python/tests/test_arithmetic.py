@@ -14,11 +14,13 @@ import functools
 import random
 import numpy as np
 from tuplex import *
-
+from helper import test_options
 
 class TestArithmetic(unittest.TestCase):
     def setUp(self):
-        self.conf = {"webui.enable": False, "driverMemory": "8MB", "partitionSize": "256KB", "tuplex.optimizer.mergeExceptionsInOrder": True}
+        self.conf = test_options()
+        self.conf.update({"webui.enable": False, "driverMemory": "8MB",
+                          "partitionSize": "256KB", "tuplex.optimizer.mergeExceptionsInOrder": True})
 
     def test_add(self):
         c = Context(self.conf)

@@ -18,7 +18,6 @@ from helper import test_options
 from math import pi
 import math
 
-
 class TestMath(unittest.TestCase):
 
     def setUp(self):

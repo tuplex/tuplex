@@ -557,4 +557,71 @@ namespace tuplex {
     python::Type JsonStatistic::superType() const {
         throw std::runtime_error("not yet implemented");
     }
+
+    std::tuple<std::vector<Row>, std::vector<std::string>> sortRowsAndIdentifyColumns(const std::vector<Row> &rows,
+                                                                                      const std::vector<std::vector<std::string>> &columnNames) {
+        if(rows.empty()) {
+            return std::make_tuple(std::vector<Row>(), std::vector<std::string>());
+        }
+
+        std::vector<std::string> ordered_names;
+        std::set<std::string> set_names;
+        std::vector<Row> sorted_rows;
+        for (const auto &names: columnNames) {
+            for (const auto &name: names) {
+                auto it = set_names.find(name);
+                if (it == set_names.end()) {
+                    set_names.insert(name);
+                    ordered_names.push_back(name);
+                }
+            }
+        }
+
+        sorted_rows.reserve(rows.size());
+
+        // go through rows and sort them after the ordered_names array!
+        std::unordered_map<std::string, unsigned> m;
+        for(unsigned i = 0; i < ordered_names.size(); ++i)
+            m[ordered_names[i]] = i;
+
+        std::vector<std::pair<unsigned, Field>> fields_with_prio;
+        std::vector<Field> fields;
+        fields_with_prio.reserve(ordered_names.size());
+        fields.reserve(ordered_names.size());
+        for(unsigned i = 0; i < rows.size(); ++i) {
+            const auto& row = rows[i];
+            assert(row.getNumColumns() == columnNames[i].size());
+
+            // resorted field
+            fields_with_prio.clear(); // reuse mem
+            fields.clear();
+            for(unsigned j = 0; j < row.getNumColumns(); ++j) {
+                auto name = columnNames[i][j];
+                auto idx = m.at(name); // check field idx
+                fields_with_prio.push_back(std::make_pair(idx, row.get(j)));
+            }
+            // sort after prio
+            std::sort(fields_with_prio.begin(), fields_with_prio.end(), [](const std::pair<unsigned, Field>& lhs,
+                    const std::pair<unsigned, Field>& rhs) {
+                return lhs.first < rhs.first;
+            });
+
+            // fill in with Nulls if missing...
+            auto jt = fields_with_prio.begin();
+            for(unsigned j = 0; j < ordered_names.size(); ++j) {
+                if(jt != fields_with_prio.end() && jt->first == j) {
+                    fields.push_back(jt->second);
+                    ++jt;
+                } else {
+                    // push back NULL
+                    fields.push_back(Field::null());
+                }
+            }
+
+            // add to sorted rows
+            sorted_rows.push_back(Row::from_vector(fields));
+        }
+
+        return std::make_tuple(sorted_rows, ordered_names);
+    }
 }

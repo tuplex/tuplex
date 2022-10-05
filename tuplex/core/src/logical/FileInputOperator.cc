@@ -202,6 +202,14 @@ namespace tuplex {
                                           unwrap_first_level,
                                           treat_heterogenous_lists_as_tuples);
 
+            // when unwrapping, need to resort rows after column names
+            std::vector<std::string> ordered_names;
+            if(unwrap_first_level) {
+                auto t = sortRowsAndIdentifyColumns(rows, columnNamesCollection);
+                rows = std::get<0>(t);
+                ordered_names = std::get<1>(t);
+            }
+
             // are there no rows? => too small a sample. increase sample size.
             if(rows.empty()) {
                 throw std::runtime_error("not a single JSON document was found in the file, can't determine type. Please increase sample size.");
@@ -252,20 +260,8 @@ namespace tuplex {
             // set ALL column names (as they appear)
             // -> pushdown for JSON is special case...
             if(unwrap_first_level) {
-                std::vector<std::string> ordered_names;
-                std::set<std::string> set_names;
-                for(const auto& names : columnNamesCollection) {
-                    for(const auto& name : names) {
-                        auto it = set_names.find(name);
-                        if(it == set_names.end()) {
-                            set_names.insert(name);
-                            ordered_names.push_back(name);
-                        }
-                    }
-                }
                 f->setColumns(ordered_names);
             }
-
             f->_sample = rows;
 
             // normalcase and exception case types

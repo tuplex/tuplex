@@ -72,6 +72,16 @@ namespace tuplex {
         return parseRowsFromJSON(s.c_str(), s.size() + 1, outColumnNames, unwrap_rows, interpret_heterogenous_lists_as_tuples);
     }
 
+    /*!
+     * each row is associated with an array of column names. yet, not necessarily are column names in the same order.
+     * this function sorts data (first come, first serve style) for column names.
+     * @param rows
+     * @param columnNames
+     * @return sorted rows and identified column names (max)
+     */
+    extern std::tuple<std::vector<Row>, std::vector<std::string>> sortRowsAndIdentifyColumns(const std::vector<Row>& rows,
+                                                                                      const std::vector<std::vector<std::string>>& columnNames);
+
     // --> put implementation of this into JsonStatistic.cc file in utils/src/JsonStatistic.cc
 
     // for this https://github.com/LeonhardFS/Tuplex/pull/82/files

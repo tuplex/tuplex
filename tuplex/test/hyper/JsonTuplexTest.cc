@@ -36,6 +36,19 @@ TEST_F(JsonTuplexTest, BasicLoad) {
     // ctx.json("/data/2014-10-15.json").show();
 }
 
+TEST_F(JsonTuplexTest, GithubLoad) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opt = microTestOptions();
+    opt.set("tuplex.executorCount", "0"); // start single-threaded
+    Context ctx(opt);
+    bool unwrap_first_level = true;
+
+    unwrap_first_level = true;
+    ctx.json("../resources/ndjson/github.json", unwrap_first_level).show();
+}
+
 TEST_F(JsonTuplexTest, StructAndFT) {
     using namespace tuplex;
     using namespace std;

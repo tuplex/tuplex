@@ -72,3 +72,8 @@ TEST_F(JsonTuplexTest, StructAndFT) {
     EXPECT_TRUE(ir.size() > 0);
 
 }
+
+// some UDF examples that should work:
+// x = {}
+// x['test'] = 10 # <-- type of x is now Struct['test' -> i64]
+// x['blub'] = {'a' : 20, 'b':None} # <-- type of x is now Struct['test' -> i64, 'blub' -> Struct['a' -> i64, 'b' -> null]]

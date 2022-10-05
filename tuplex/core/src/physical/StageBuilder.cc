@@ -704,7 +704,7 @@ namespace tuplex {
             // step 1. build pipeline, i.e. how to process data
             auto pip = std::make_shared<codegen::PipelineBuilder>(env, inSchema, intermediateType(), funcProcessRowName);
 
-            // Note: the pipeline function will return whether an exception occured.
+            // Note: the pipeline function will return whether an exception occurred.
             // if that happens, then call to handler in transform task builder
             // pip->addExceptionHandler(_funcExceptionCallback); // don't add a exception handler here.
 
@@ -1040,7 +1040,7 @@ namespace tuplex {
                     case FileFormat::OUTFMT_JSON: {
                         // @TODO: change this here to general-case as well...
                         // --> update cellsourcetask builder as well>
-                        tb = make_shared<codegen::JsonSourceTaskBuilder>(env, inSchema, inSchema,
+                        tb = make_shared<codegen::JsonSourceTaskBuilder>(env, _inputNodeID, inSchema, inSchema,
                                                                          _inputColumns, _inputColumns,
                                                                          unwrap_first_level, funcStageName);
                         break;

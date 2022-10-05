@@ -16,10 +16,10 @@ TEST_F(JsonTuplexTest, BasicLoad) {
     Context ctx(opt);
 
     bool unwrap_first_level = true;
-//    ctx.json("../resources/ndjson/example2.json", unwrap_first_level).show();
-
-    unwrap_first_level = false;
     ctx.json("../resources/ndjson/example2.json", unwrap_first_level).show();
+
+//    unwrap_first_level = false; // --> requires implementing/adding decoding of struct dict...
+//    ctx.json("../resources/ndjson/example2.json", unwrap_first_level).show();
     // // large json file (to make sure buffers etc. work
     // ctx.json("/data/2014-10-15.json").show();
 }

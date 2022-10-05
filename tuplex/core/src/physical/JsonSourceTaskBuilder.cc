@@ -10,6 +10,7 @@
 namespace tuplex {
     namespace codegen {
         JsonSourceTaskBuilder::JsonSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment> &env,
+                                                     int64_t input_operator_id,
                                                      const python::Type &normalCaseRowType,
                                                      const python::Type &generalCaseRowType,
                                                      const std::vector<std::string>& normal_case_columns,
@@ -21,7 +22,8 @@ namespace tuplex {
                                                      _normal_case_columns(normal_case_columns),
                                                      _general_case_columns(general_case_columns),
                                                      _unwrap_first_level(unwrap_first_level),
-                                                     _functionName(name) {
+                                                     _functionName(name),
+                                                     _inputOperatorID(input_operator_id) {
 
         }
 
@@ -205,6 +207,8 @@ namespace tuplex {
                 // 2. general case
                 builder.SetInsertPoint(bbGeneralCaseSuccess);
 
+                _env->debugPrint(builder, "found general-case row.");
+
                 // serialized size (as is)
                 auto general_size = general_case_row.getSize(builder);
 
@@ -220,12 +224,18 @@ namespace tuplex {
                 // 3. fallback case
                 builder.SetInsertPoint(bbFallback);
 
+                _env->debugPrint(builder, "found fallback-case row.");
+
                 // same like in general case, i.e. stored as badStringParse exception
                 // -> store here the raw json
                 auto Frow = getOrInsertFunction(_env->getModule().get(), "JsonParser_getMallocedRowAndSize", _env->i8ptrType(),
                                                 _env->i8ptrType(), _env->i64ptrType());
                 auto size_var = _env->CreateFirstBlockAlloca(builder, _env->i64Type());
                 auto line = builder.CreateCall(Frow, {parser, size_var});
+
+                // create badParse exception
+                // @TODO: throughput can be improved by using a single C++ function for all of this!
+                serializeBadParseException(builder, userData, _inputOperatorID, rowNumber(builder), line, builder.CreateLoad(size_var));
 
                 // should whitespace lines be skipped?
                 bool skip_whitespace_lines = true;
@@ -504,6 +514,50 @@ namespace tuplex {
             }
 
             return ft;
+        }
+
+        void JsonSourceTaskBuilder::serializeBadParseException(llvm::IRBuilder<> &builder,
+                                                               llvm::Value* userData,
+                                                               int64_t operatorID,
+                                                               llvm::Value *row_no,
+                                                               llvm::Value *str,
+                                                               llvm::Value *str_size) {
+
+            // checks
+            assert(row_no && str && str_size);
+            assert(row_no->getType() == _env->i64Type());
+            assert(str->getType() == _env->i8ptrType());
+            assert(str_size->getType() == _env->i64Type());
+
+            // memory layout for this is like in serializeParseException
+            // yet for JSON there's only a single cell
+            // buf_size = sizeof(int64_t) + numCells * sizeof(int64_t) + SUM_i sizes[i]
+            // --> here:
+            llvm::Value* buf_size = builder.CreateAdd(_env->i64Const(sizeof(int64_t) * 2), str_size);
+
+            llvm::Value* buf = _env->malloc(builder, buf_size);
+            llvm::Value* ptr = buf;
+
+            // write first number of cells to serialize. ( = 1)
+            builder.CreateStore(_env->i64Const(1), builder.CreatePointerCast(ptr, _env->i64ptrType()));
+            ptr = builder.CreateGEP(ptr, _env->i64Const(sizeof(int64_t)));
+            // write str info (size + offset)
+            size_t offset = sizeof(int64_t); // trivial offset
+            auto info = pack_offset_and_size(builder, _env->i64Const(offset), str_size);
+            builder.CreateStore(info, builder.CreatePointerCast(ptr, _env->i64ptrType()));
+            ptr = builder.CreateGEP(ptr, _env->i64Const(sizeof(int64_t)));
+            // memcpy string
+            builder.CreateMemCpy(ptr, 0, str, 0, str_size);
+
+            // buf is now fully serialized. => call exception handler from pipeline.
+            auto handler_name = exception_handler();
+            if(!hasExceptionHandler() || handler_name.empty())
+                throw std::runtime_error("invalid, no handler specified");
+
+            auto eh_func = exception_handler_prototype(_env->getContext(), _env->getModule().get(), handler_name);
+            llvm::Value *ecCode = _env->i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT));
+            llvm::Value *ecOpID = _env->i64Const(operatorID);
+            builder.CreateCall(eh_func, {userData, ecCode, ecOpID, row_no, buf, buf_size});
         }
     }
 }

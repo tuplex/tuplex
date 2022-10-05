@@ -62,7 +62,7 @@ namespace tuplex {
             }
 
             /*!
-             * creates a new exception block. Builder will be set to last block (i.e. where to conitnue logic)
+             * creates a new exception block. Builder will be set to last block (i.e. where to continue logic)
              */
             llvm::BasicBlock *exceptionBlock(llvm::IRBuilder<> &builder,
                                              llvm::Value *userData,
@@ -73,7 +73,7 @@ namespace tuplex {
                                              llvm::Value *badDataLength);
 
             bool hasExceptionHandler() const { return !_exceptionHandlerName.empty(); }
-
+            std::string exception_handler() const { return _exceptionHandlerName; }
             void generateTerminateEarlyOnCode(llvm::IRBuilder<>& builder,
                                               llvm::Value* ecCode,
                                               ExceptionCode code = ExceptionCode::OUTPUT_LIMIT_REACHED);

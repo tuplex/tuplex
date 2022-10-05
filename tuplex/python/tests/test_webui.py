@@ -27,7 +27,7 @@ class TestWebUI(unittest.TestCase):
         localhost_ip = '127.0.0.1'
         conf = test_options()
         # bug in logging redirect?
-        conf.update({"webui.enable": True, "driverMemory": "8MB", "executorMemory" : "1MB",
+        conf.update({"webui.enable": True, "executorCount": 1, "driverMemory": "8MB", "executorMemory" : "1MB",
                "partitionSize": "256KB", "tuplex.redirectToPythonLogging": True,
                "webui.mongodb.url": "localhost", "webui.url" : localhost_ip})
 

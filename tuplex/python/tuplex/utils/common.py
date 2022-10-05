@@ -782,7 +782,7 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
         p_stderr = p_stderr.decode()
 
         if len(p_stderr.strip()) > 0:
-            raise Exception('mongod produced following errors: {}'.format(p_stderr))
+            raise Exception('gunicorn produced following errors: {}'.format(p_stderr))
 
         logging.info('Gunicorn locally started...')
 
@@ -800,9 +800,33 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
             logging.debug('Polling for Gunicorn PID... -- {:.2f}s of poll time left'.format(
                 TIME_LIMIT - (time.time() - start_time)))
 
-        # Read PID file
-        with open(PID_FILE, 'r') as fp:
-            ui_pid = int(fp.read())
+        ui_pid = None
+        try:
+            # Read PID file
+            with open(PID_FILE, 'r') as fp:
+                ui_pid = int(fp.read())
+        except Exception as e:
+            logging.debug("failed to retrieve PID for WebUI, details: {}".format(e))
+
+            non_daemon_log = 'timeout - no log'
+            # something went wrong with starting gunicorn. Try to capture some meaningful output and abort
+            try:
+                cmd = ['gunicorn', '--worker-class', 'eventlet', '--chdir', ui_basedir, '--pid', PID_FILE,
+                       '--log-file', '-', '-b', gunicorn_host, 'thserver:app']
+                process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=ui_env)
+                # set a timeout of 5 seconds to keep everything interactive
+                p_stdout, p_stderr = process.communicate(timeout=5)
+
+                # decode
+                p_stdout = p_stdout.decode()
+                p_stderr = p_stderr.decode()
+
+                non_daemon_log = p_stdout + '\n' + p_stderr
+            except subprocess.TimeoutExpired:
+                pass
+            logging.error('Gunicorn process log:\n' + non_daemon_log)
+            raise Exception("Failed to start gunicorn daemon, non-daemon run yielded:\n{}".format(non_daemon_log))
+
         assert ui_pid is not None, 'Invalid PID for WebUI'
         logging.info('Gunicorn PID={}'.format(ui_pid))
 

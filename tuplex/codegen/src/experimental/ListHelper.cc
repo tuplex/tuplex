@@ -677,8 +677,10 @@ namespace tuplex {
             BasicBlock *bLoopBody = BasicBlock::Create(ctx, "var_size_loop_body", F);
             BasicBlock *bLoopExit = BasicBlock::Create(ctx, "var_size_loop_done", F);
 
-            auto idx_values = CreateStructGEP(builder, list_ptr, 2);
-            auto ptr_values = builder.CreateLoad(idx_values);
+            // auto idx_values = CreateStructGEP(builder, list_ptr, 2);
+            // auto ptr_values = builder.CreateLoad(idx_values);
+            auto ptr_values = CreateStructLoad(builder, list_ptr, 2);
+            assert(ptr_values->getType()->isPointerTy());
 
             builder.CreateBr(bLoopHeader);
 

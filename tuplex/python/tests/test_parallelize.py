@@ -11,13 +11,14 @@
 
 import unittest
 from tuplex import *
-
+from helper import test_options
 
 # all of these below should be executed with faster, optimized serialization code
 class TestFastParallelize(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
-        self.conf = {"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"}
+        self.conf = test_options()
+        self.conf.update({"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"})
         super(TestFastParallelize, self).__init__(*args, **kwargs)
 
     def testI64(self):

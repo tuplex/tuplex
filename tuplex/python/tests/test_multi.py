@@ -11,13 +11,15 @@
 
 import unittest
 from tuplex import *
+from helper import test_options
 
 # this test is addressed on issues with the framework usage. I.e. whether data is kept correctly
 # in memory for parallelize
 class TestMultiStatements(unittest.TestCase):
 
     def setUp(self):
-        self.conf = {"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"}
+        self.conf = test_options()
+        self.conf.update({"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"})
 
     def testParallelize(self):
         c = Context(self.conf)

@@ -593,6 +593,12 @@ namespace tuplex {
         }
 
         SerializableValue struct_dict_load_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path) {
+
+#warning "need to fix this, also need to fix for store! i.e., when storing a structured dict to a structured dict."
+            // some UDF examples that should work:
+            // x = {}
+            // x['test'] = 10 # <-- type of x is now Struct['test' -> i64]
+            // x['blub'] = {'a' : 20, 'b':None} # <-- type of x is now Struct['test' -> i64, 'blub' -> Struct['a' -> i64, 'b' -> null]]
             auto indices = struct_dict_load_indices(dict_type);
             // fetch indices
             // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
@@ -1192,6 +1198,57 @@ namespace tuplex {
             return it;
         }
 
+        bool access_path_prefix_equal(const access_path_t& path, const access_path_t& prefix) {
+            if(prefix.size() > path.size())
+                return false;
+            for(unsigned i = 0; i < prefix.size(); ++i) {
+                if(path[i].second != prefix[i].second)
+                    return false;
+                if(!semantic_python_value_eq(path[i].second, path[i].first, prefix[i].first))
+                    return false;
+            }
+            return true;
+        }
+
+        std::vector<unsigned> find_prefix_indices_by_access_path(const flattened_struct_dict_entry_list_t& entries, const access_path_t& path) {
+            std::vector<unsigned> indices;
+            unsigned idx = 0;
+            for(const auto& entry : entries) {
+                auto e_path = std::get<0>(entry);
+                // compare prefixes
+                if(access_path_prefix_equal(e_path, path))
+                    indices.push_back(idx);
+                idx++;
+            }
+            return indices;
+        }
+
+        python::Type struct_dict_type_get_element_type(const python::Type& dict_type, const access_path_t& path) {
+            // fetch the type
+            assert(dict_type.isStructuredDictionaryType());
+            if(path.empty())
+                return dict_type;
+
+            auto p = path.front();
+            // this is done recursively
+            for(const auto& kv_pair : dict_type.get_struct_pairs()) {
+                // compare
+                if(p.second == kv_pair.keyType
+                   && semantic_python_value_eq(p.second, p.first, kv_pair.key)) {
+                    // match -> recurse!
+                    if(path.size() == 1)
+                        return kv_pair.valueType;
+                    else {
+                        assert(path.size() >= 2);
+                        auto suffix_path = access_path_t(path.begin() + 1, path.end());
+                        return struct_dict_type_get_element_type(kv_pair.valueType, suffix_path);
+                    }
+                }
+            }
+            return python::Type::UNKNOWN; // not found.
+        }
+
+
         SerializableValue struct_dict_get_or_except(LLVMEnvironment& env,
                                                     llvm::IRBuilder<>& builder,
                                                     const python::Type& dict_type,
@@ -1216,23 +1273,36 @@ namespace tuplex {
             flattened_struct_dict_entry_list_t entries;
             flatten_recursive_helper(entries, dict_type);
 
+            // print out paths
+            for(const auto& entry : entries)
+                std::cout<<json_access_path_to_string(std::get<0>(entry), std::get<1>(entry), std::get<2>(entry));
+
             // find corresponding entry
             // flat access path
             access_path_t access_path;
             access_path.push_back(std::make_pair(key, key_type));
-            auto jt = find_by_access_path(entries, access_path);
-            if(jt == entries.end()) {
+
+            // check all elements with that prefix
+            auto prefix_indices = find_prefix_indices_by_access_path(entries, access_path);
+            if(prefix_indices.empty()) {
                 throw std::runtime_error("could not find entry under key " + key + " (" + key_type.desc() + ") in struct type.");
             }
 
-            auto value_type = std::get<1>(*jt);
-            SerializableValue value = CreateDummyValue(env, builder, value_type);
+            auto value_type = struct_dict_type_get_element_type(dict_type, access_path);
+            if(python::Type::UNKNOWN == value_type) {
+                throw std::runtime_error("fatal error, could not find element type for access path");
+            }
 
+            SerializableValue value = CreateDummyValue(env, builder, value_type);
             int bitmap_idx = -1, present_idx = -1, field_idx = -1, size_idx = -1;
             if(element_found) {
                 auto struct_indices = struct_dict_load_indices(dict_type);
-                auto indices = struct_indices.at(access_path);
-                std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices;
+
+                if(prefix_indices.size() == 1) {
+                    // note: following will only work for single element OR a nested struct that is maybe
+                    auto indices = struct_indices.at(access_path);
+                    std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices;
+                }
 
                 // check if present map indicates something
                 if(present_idx >= 0) {

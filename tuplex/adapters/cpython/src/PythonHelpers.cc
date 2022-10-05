@@ -608,6 +608,8 @@ namespace python {
         if(PyDict_Size(dict_obj) == 0)
             return Field::empty_dict();
 
+        // @TODO: could also just write a function in python to decode this complicated structure (i.e. getting the type).
+        // may save dev time.
 
 
         // below is likely some complex code, write later. For now - treat as pyobjects.

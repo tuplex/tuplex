@@ -11,12 +11,14 @@
 
 import unittest
 from tuplex import *
-
+from .helper import test_options
 
 class TestLogical(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
-        self.conf = {"webui.enable": False, "driverMemory": "64MB", "executorMemory": "2MB", "partitionSize": "128KB"}
+        self.conf = test_options()
+        self.conf.update({"webui.enable": False, "driverMemory": "64MB",
+                          "executorMemory": "2MB", "partitionSize": "128KB"})
         super(TestLogical, self).__init__(*args, **kwargs)
 
     def testAnd(self):

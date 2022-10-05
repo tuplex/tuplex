@@ -14,6 +14,7 @@ import tuplex
 
 from tuplex.utils.reflection import get_source, get_globals, supports_lambda_closure
 from notebook_utils import get_jupyter_function_code
+from .helper import test_options
 
 SOME_CONSTANT_TO_EXTRACT=42
 
@@ -21,7 +22,8 @@ SOME_CONSTANT_TO_EXTRACT=42
 class TestSourceExtract(TestCase):
 
     def setUp(self):
-        self.conf = {"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"}
+        self.conf = test_options()
+        self.conf.update({"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"})
         self.c = tuplex.Context(self.conf)
 
     def test_singlelam(self):

@@ -11,11 +11,13 @@
 
 import unittest
 from tuplex import *
+from .helper import test_options
 
 class TestTuples(unittest.TestCase):
 
     def setUp(self):
-        self.conf = {"webui.enable" : False, "driverMemory" : "16MB", "partitionSize" : "256KB"}
+        self.conf = test_options()
+        self.conf.update({"webui.enable" : False, "driverMemory" : "16MB", "partitionSize" : "256KB"})
 
     def testEmptyTupleI(self):
         c = Context(self.conf)

@@ -12,13 +12,14 @@
 import unittest
 from tuplex import *
 import numpy as np
-
+from .helper import test_options
 
 # test fallback functionality, i.e. executing cloudpickled code
 class TestFallback(unittest.TestCase):
 
     def setUp(self):
-        self.conf = {"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"}
+        self.conf = test_options()
+        self.conf.update({"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"})
         self.c = Context(self.conf)
 
     def testArbitaryObjecsts(self):

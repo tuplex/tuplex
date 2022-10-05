@@ -15,9 +15,7 @@ from tuplex import *
 from tuplex.utils.common import *
 
 class TestConfig(unittest.TestCase):
-
-
-
+    # DO NOT USE test_options() here, these tests are designed to actually test options...
     def testNestedDictOptions(self):
 
         c = Context(conf={'executorMemory':'1MB', 'executorCount':3})

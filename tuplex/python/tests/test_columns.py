@@ -12,11 +12,13 @@
 from unittest import TestCase
 
 import tuplex
+from .helper import test_options
 
 class TestColumns(TestCase):
 
     def setUp(self):
-        self.conf = {"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"}
+        self.conf = test_options()
+        self.conf.update({"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"})
         self.c = tuplex.Context(self.conf)
 
     def test_withColumnNew(self):

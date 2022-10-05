@@ -16,10 +16,12 @@ import numpy as np
 from tuplex import *
 import typing
 import os
+from .helper import test_options
 
 class TestAggregates(unittest.TestCase):
     def setUp(self):
-        self.conf = {"webui.enable": False, "driverMemory": "8MB", "partitionSize": "256KB"}
+        self.conf = test_options()
+        self.conf.update({"webui.enable": False, "driverMemory": "8MB", "partitionSize": "256KB"})
 
     def test_simple_count(self):
         c = Context(self.conf)

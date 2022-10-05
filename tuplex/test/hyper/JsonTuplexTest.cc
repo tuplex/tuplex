@@ -73,6 +73,22 @@ TEST_F(JsonTuplexTest, StructAndFT) {
 
 }
 
+TEST_F(JsonTuplexTest, TupleFlattening) {
+    using namespace tuplex;
+    using namespace std;
+    std::string type_str = "(Struct[(str,'id'->i64),(str,'url'->str),(str,'name'->str)],str,Option[Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)]],boolean,str,Struct[(str,'shas'->List[List[str]]),(str,'repo'->str),(str,'actor'->str),(str,'ref'->str),(str,'size'->i64),(str,'head'->str),(str,'actor_gravatar'->str),(str,'push_id'->i64)],Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)],str)";
+
+    auto type = python::Type::decode(type_str);
+
+    // proper flattening needs to be achieved.
+    auto tree = TupleTree<codegen::SerializableValue>(type);
+
+    // make sure no element is of option type?
+    for(unsigned i = 0; i < tree.numElements(); ++i)
+        std::cout<<"field "<<i<<": "<<tree.fieldType(i).desc()<<std::endl;
+    ASSERT_GT(tree.numElements(), 0);
+}
+
 // some UDF examples that should work:
 // x = {}
 // x['test'] = 10 # <-- type of x is now Struct['test' -> i64]

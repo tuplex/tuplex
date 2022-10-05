@@ -409,7 +409,10 @@ namespace tuplex {
             writeLine("row = parsed_row\n");
             writeLine("keys = " + vecToList(columns) + "\n");
             writeLine("left_over_keys = list(set(row.keys()) - set(keys))\n");
-            writeLine("parsed_row = [row[k] for k in keys] + [row[k] for k in left_over_keys]\n");
+            // this is the version where missing keys are not replaced with None. -> need to throw exception then.
+            // for now, replace with None
+            // writeLine("parsed_row = [row[k] for k in keys] + [row[k] for k in left_over_keys]\n");
+            writeLine("parsed_row = [row.get(k, None) for k in keys] + [row.get(k, None) for k in left_over_keys]\n");
         } else {
             // construct via unwrapping
             // -> no columns.

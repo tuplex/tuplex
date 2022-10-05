@@ -864,8 +864,16 @@ namespace tuplex {
             // extract elements
             // auto structValIdx = builder.CreateStructGEP(tuplePtr, valueOffset);
             auto structValIdx = CreateStructGEP(builder, tuplePtr, valueOffset);
-            if (value.val)
-                builder.CreateStore(value.val, structValIdx);
+            if (value.val) {
+                auto v = value.val;
+                // special case isStructDict or isListType b.c. they may be represented through a lazy pointer
+                if(elementType.isListType() || elementType.isStructuredDictionaryType()) {
+                    if(v->getType() == structValIdx->getType())
+                        v = builder.CreateLoad(v); // load in order to store!
+                }
+
+                builder.CreateStore(v, structValIdx);
+            }
 
             // size existing? ==> only for varlen types
             if (!elementType.isFixedSizeType() &&

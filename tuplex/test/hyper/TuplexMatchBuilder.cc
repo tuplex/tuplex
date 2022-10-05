@@ -268,6 +268,7 @@ namespace tuplex {
 
                 // create skip part -> count as normal row.
                 builder.SetInsertPoint(bbSkip);
+                incVar(builder, _filteredOutRowsVar); // inc filterered out rows.
                 incVar(builder, _normalRowCountVar);
                 builder.CreateBr(_freeStart);
 
@@ -455,13 +456,15 @@ namespace tuplex {
                                                   ctypeToLLVM<int64_t*>(ctx),
                                                   ctypeToLLVM<int64_t*>(ctx),
                                                   ctypeToLLVM<int64_t*>(ctx),
-                                                  ctypeToLLVM<int64_t*>(ctx),}, false);
+                                                  ctypeToLLVM<int64_t*>(ctx),
+                                                  ctypeToLLVM<int64_t*>(ctx)}, false);
 
             Function *F = Function::Create(FT, llvm::GlobalValue::ExternalLinkage, _functionName,
                                            *_env.getModule().get());
             auto m = mapLLVMFunctionArgs(F, {"buf", "buf_size", "out_total_rows",
                                              "out_normal_rows", "out_general_rows", "out_fallback_rows",
-                                             "out_normal_size", "out_general_size", "out_fallback_size"});
+                                             "out_normal_size", "out_general_size", "out_fallback_size",
+                                             "out_filtered_rows"});
 
             auto bbEntry = BasicBlock::Create(ctx, "entry", F);
             IRBuilder<> builder(bbEntry);
@@ -481,6 +484,8 @@ namespace tuplex {
 
             _rowNumberVar = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "row_no");
 
+            _filteredOutRowsVar = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "rows_filtered");
+
              // dummy parse, simply print type and value with type checking.
              generateParseLoop(builder, m["buf"], m["buf_size"], hackyPromoteEventFilter, hackyEventName);
 
@@ -494,6 +499,8 @@ namespace tuplex {
             writeOutput(builder, m["out_normal_size"], builder.CreateLoad(_normalMemorySizeVar));
             writeOutput(builder, m["out_general_size"], builder.CreateLoad(_generalMemorySizeVar));
             writeOutput(builder, m["out_fallback_size"], builder.CreateLoad(_fallbackMemorySizeVar));
+
+            writeOutput(builder, m["out_filtered_rows"], builder.CreateLoad(_filteredOutRowsVar));
 
             builder.CreateRet(_env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
         }

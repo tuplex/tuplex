@@ -52,6 +52,7 @@ namespace tuplex {
                 _normalMemorySizeVar = nullptr;
                 _generalMemorySizeVar = nullptr;
                 _fallbackMemorySizeVar = nullptr;
+                _filteredOutRowsVar = nullptr;
             }
 
             void build(bool hackyPromoteEventFilter=false,
@@ -71,6 +72,7 @@ namespace tuplex {
             llvm::Value *_normalMemorySizeVar;
             llvm::Value *_generalMemorySizeVar;
             llvm::Value *_fallbackMemorySizeVar;
+            llvm::Value *_filteredOutRowsVar;
 
             void writeOutput(llvm::IRBuilder<>& builder, llvm::Value* var, llvm::Value* val);
 

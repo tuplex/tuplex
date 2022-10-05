@@ -537,6 +537,7 @@ namespace tuplex {
         size_t normalMemorySize;
         size_t generalMemorySize;
         size_t fallbackMemorySize;
+        size_t filteredRows;
 
         nlohmann::json to_json() const {
             nlohmann::json j;
@@ -547,6 +548,7 @@ namespace tuplex {
             j["normal_mem"] = normalMemorySize;
             j["general_mem"] = generalMemorySize;
             j["fallback_mem"] = fallbackMemorySize;
+            j["filtered_rows"] = filteredRows;
             return j;
         }
     };
@@ -588,7 +590,8 @@ namespace tuplex {
         auto func = reinterpret_cast<int64_t(*)(const char *, size_t,
                                                 size_t*,
                                                 size_t*, size_t*, size_t*,
-                                                size_t*, size_t*, size_t*)>(jit.getAddrOfSymbol(parseFuncName));
+                                                size_t*, size_t*, size_t*,
+                                                size_t*)>(jit.getAddrOfSymbol(parseFuncName));
 
         // runtime init
         ContextOptions co = ContextOptions::defaults();
@@ -620,7 +623,8 @@ namespace tuplex {
         auto rc = func(reinterpret_cast<const char*>(buf), buf_size,
                        &m.totalRows,
                        &m.normalRows, &m.generalRows, &m.fallbackRows,
-                       &m.normalMemorySize, &m.generalMemorySize, &m.fallbackMemorySize);
+                       &m.normalMemorySize, &m.generalMemorySize, &m.fallbackMemorySize,
+                       &m.filteredRows);
         std::cout << "parsed rows in " << timer.time() << " seconds, (" << sizeToMemString(buf_size) << ")" << std::endl;
         std::cout << "done" << std::endl;
 
@@ -1133,6 +1137,9 @@ namespace tuplex {
                 j["path"] = path;
                 j["normal_case"] = normal_case_type.desc();
                 j["general_case"] = general_case_type.desc();
+                // pretty printed cases
+                j["normal_case_pretty"] = prettyPrintStructType(normal_case_type);
+                j["general_case_pretty"] = prettyPrintStructType(general_case_type);
                 j["normal_case_field_count"] = number_of_fields(normal_case_type);
                 j["general_case_field_count"] = number_of_fields(general_case_type);
                 j["normal_json_paths"] = json_paths_to_json_array(normal_case_type);
@@ -1144,6 +1151,8 @@ namespace tuplex {
                 j["sample_row_count"] = rows.size();
                 j["filter_promotion"] =  setting.filter_for_event;
                 j["event_to_filter_for"] = setting.event_name;
+                // add small sample...
+                // ?
 
                 ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!
 
@@ -1200,7 +1209,7 @@ namespace tuplex {
             size_t global_sample_count = 0;
             for(auto kv : global_type_counts)
                 global_sample_count += kv.second;
-
+            bool first_path = true;
             for(const auto& path : paths) {
                 logger.info("Processing " + path);
 
@@ -1227,8 +1236,14 @@ namespace tuplex {
                     auto j = m.to_json();
                     j["mode"] = "global";
                     j["path"] = path;
-                    j["normal_case"] = global_normal_case_type.desc();
-                    j["general_case"] = global_general_case_type.desc();
+                    if(first_path) { // <-- save some space by this.
+                        first_path = true;
+                        j["normal_case"] = global_normal_case_type.desc();
+                        j["general_case"] = global_general_case_type.desc();
+                        // pretty printed cases
+                        j["normal_case_pretty"] = prettyPrintStructType(global_normal_case_type);
+                        j["general_case_pretty"] = prettyPrintStructType(global_general_case_type);
+                    }
                     j["normal_case_field_count"] = number_of_fields(global_normal_case_type);
                     j["general_case_field_count"] = number_of_fields(global_general_case_type);
                     j["buf_size_compressed"] = raw_data.size();
@@ -1236,6 +1251,7 @@ namespace tuplex {
                     j["sample_size"] = global_actual_sample_size;
                     j["perfect_sample"] = perfect_sample;
                     j["sample_row_count"] = global_sample_count;
+
 
                     ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!
 

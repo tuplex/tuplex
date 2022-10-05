@@ -11,13 +11,16 @@
 
 import unittest
 from tuplex import *
+from helper import test_options
 
 # this test is a basic test to make sure that times/exceptions for a project are
 # working correctly
 class TestMetrics(unittest.TestCase):
 
     def testTimes(self):
-        conf = {"tuplex.useLLVMOptimizer" : "true", "webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"}
+        conf = test_options()
+        conf.update({"tuplex.useLLVMOptimizer" : "true", "webui.enable" : False,
+                      "driverMemory" : "8MB", "partitionSize" : "256KB"})
         c = Context(conf)
         c.parallelize([1, 2, 3, 4, 5]).map(lambda x: x + 4).collect()
         metrics = c.metrics

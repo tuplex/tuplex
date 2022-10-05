@@ -13,7 +13,10 @@ import cloudpickle
 import sys
 import logging
 
-from .libexec.tuplex import _Context, _DataSet
+try:
+    from .libexec.tuplex import _Context, _DataSet
+except ModuleNotFoundError as e:
+    logging.error("need to compiled Tuplex first, details: {}".format(e))
 from tuplex.utils.reflection import get_source as get_udf_source
 from tuplex.utils.reflection import get_globals
 from tuplex.utils.framework import UDFCodeExtractionError

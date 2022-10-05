@@ -76,11 +76,14 @@ namespace tuplex {
             assert(j);
             string full_row;
             stringstream ss;
-            ss << j->it.source() << std::endl;
+            ss << j->it.source();
+            ss.flush();
             full_row = ss.str();
-            char *buf = (char *) malloc(full_row.size());
-            if (buf)
-                memcpy(buf, full_row.c_str(), full_row.size());
+            char *buf = (char *) malloc(full_row.length() + 1);
+            if (buf) {
+                memcpy(buf, full_row.c_str(), full_row.length());
+                buf[full_row.length()] = '\0';
+            }
             return buf;
         }
 
@@ -90,13 +93,17 @@ namespace tuplex {
             assert(j);
             string full_row;
             stringstream ss;
-            ss << j->it.source() << std::endl;
+            ss << j->it.source();
+            ss.flush();
             full_row = ss.str();
-            char *buf = (char *) malloc(full_row.size());
-            if (buf)
-                memcpy(buf, full_row.c_str(), full_row.size());
+            char *buf = (char *) malloc(full_row.length() + 1);
+            if (buf) {
+                memcpy(buf, full_row.c_str(), full_row.length());
+                buf[full_row.length()] = '\0';
+            }
+
             if(size && buf)
-                *size = full_row.size();
+                *size = full_row.length() + 1;
             return buf;
         }
 

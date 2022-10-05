@@ -573,6 +573,10 @@ namespace tuplex {
                         // struct dicts are a var field (ignore the special case here)
                         size = struct_dict_serialized_memory_size(*_env, builder, field, dict_type).val;
 
+                        // note: when null, don't serialize anything.
+                        if(types[i].isOptionType())
+                            size = builder.CreateSelect(_tree.get(i).is_null, _env->i64Const(0), size);
+
                         // the offset is computed using how many varlen fields have been already serialized
                         Value *offset = builder.CreateAdd(_env->i64Const((numSerializedElements + 1 - serialized_idx) * sizeof(int64_t)), varlenSize);
 

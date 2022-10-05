@@ -458,6 +458,7 @@ namespace tuplex {
                                                        const std::vector<std::string>& columns,
                                                        bool unwrap_first_level, llvm::Value *parser,
                                                        llvm::BasicBlock *bbSchemaMismatch) {
+            auto& logger = Logger::instance().logger("codegen");
             assert(row_type.isTupleType());
 
             FlattenedTuple ft(_env.get());
@@ -477,6 +478,18 @@ namespace tuplex {
                 // parse using a struct type composed of columns and the data!
                 std::vector<python::StructEntry> entries;
                 auto num_entries = std::min(columns.size(), row_type.parameters().size());
+
+#ifndef NDEBUG
+                // loading entries:
+                {
+                    std::stringstream ss;
+                    for(unsigned i = 0; i < num_entries; ++i) {
+                        ss<<i<<": "<<columns[i]<<" -> "<<row_type.parameters()[i].desc()<<std::endl;
+                    }
+                    logger.debug("columns:\n" + ss.str());
+                }
+#endif
+
                 for(unsigned i = 0; i < num_entries; ++i) {
                     python::StructEntry entry;
                     entry.keyType = python::Type::STRING;

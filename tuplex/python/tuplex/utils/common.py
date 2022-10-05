@@ -35,6 +35,7 @@ import re
 import tempfile
 import time
 import shlex
+import pathlib
 
 try:
     import pwd
@@ -768,6 +769,17 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
         ui_env = os.environ
         ui_env['MONGO_URI'] = mongo_uri
         gunicorn_host = '{}:{}'.format(hostname.replace('http://', '').replace('https://', ''), port)
+
+        # need to convert everything to absolute paths (b.c. gunicorn fails else)
+        web_logfile = os.path.abspath(web_logfile)
+        ui_basedir = os.path.abspath(ui_basedir)
+        # also make sure parent dir of web_logfile exists
+        try:
+            wl_path = pathlib.Path(web_logfile).parent
+            os.makedirs(str(wl_path), exist_ok=True)
+        except Exception as e:
+            logging.error("ensuring parent dir of {} exists, failed with {}".format(web_logfile, e))
+
         cmd = ['gunicorn', '--daemon', '--worker-class', 'eventlet', '--chdir', ui_basedir, '--pid', PID_FILE,
                '--log-file', web_logfile, '-b', gunicorn_host, 'thserver:app']
 
@@ -790,7 +802,7 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
         ui_pid = None
 
         # Writing the PID might require some time for gunicorn, therefore poll the temp file for up to 2s
-        TIME_LIMIT = 2
+        TIME_LIMIT = 3
         start_time = time.time()
         while time.time() - start_time < TIME_LIMIT:
             if not os.path.isfile(PID_FILE) or os.stat(PID_FILE).st_size == 0:

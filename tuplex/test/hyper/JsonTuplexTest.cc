@@ -46,9 +46,21 @@ TEST_F(JsonTuplexTest, GithubLoad) {
     bool unwrap_first_level = true;
 
     unwrap_first_level = true;
-    ctx.json("../resources/ndjson/github.json", unwrap_first_level).show();
-//    ctx.json("../resources/ndjson/github_single_row.json", unwrap_first_level).show();
-    //ctx.json("../resources/ndjson/example3.json", unwrap_first_level).show();
+//    ctx.json("../resources/ndjson/github.json", unwrap_first_level).show();
+
+    // simple func --> this works only with unwrapping!
+    ctx.json("../resources/ndjson/github.json", unwrap_first_level)
+       .filter(UDF("lambda x: x['type'] == 'PushEvent'"))
+       .mapColumn("id", UDF("lambda x: int(x)"))
+       .selectColumns(std::vector<std::string>({"repo", "type", "id"}))
+       .show();
+
+    // @TODO: tests
+    // -> unwrap should be true and the basic show pipeline work as well.
+    // -> a decode of stored struct dict/list into JSON would be cool.
+    // -> a decode of struct dict as python would be cool.
+    // -> assigning to dictionaries, i.e. the example below working would be an improvement.
+    // finally, run the show (with limit!) example on ALL json data for the days to prove it works.
 }
 
 TEST_F(JsonTuplexTest, StructAndFT) {

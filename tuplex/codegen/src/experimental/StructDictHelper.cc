@@ -592,56 +592,80 @@ namespace tuplex {
             }
         }
 
+        std::string access_path_to_str(const access_path_t& path) {
+            std::stringstream ss;
+            if(path.empty())
+                return "*";
+            for(unsigned i = 0; i < path.size(); ++i) {
+                auto atom = path[i];
+                ss << atom.first << " (" << atom.second.desc() << ")";
+                if(i != path.size() -1)
+                    ss<<" -> ";
+            }
+            return ss.str();
+        }
+
         SerializableValue struct_dict_load_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path) {
 
-#warning "need to fix this, also need to fix for store! i.e., when storing a structured dict to a structured dict."
-            // some UDF examples that should work:
-            // x = {}
-            // x['test'] = 10 # <-- type of x is now Struct['test' -> i64]
-            // x['blub'] = {'a' : 20, 'b':None} # <-- type of x is now Struct['test' -> i64, 'blub' -> Struct['a' -> i64, 'b' -> null]]
-            auto indices = struct_dict_load_indices(dict_type);
-            // fetch indices
-            // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
-            int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
-            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
-
-            SerializableValue val;
-            val.size = env.i64Const(sizeof(int64_t));
-            val.is_null = env.i1Const(false);
-
-            // load only if valid field_idx
-            if(field_idx >= 0) {
-                // env.printValue(builder, value, "storing away value at index " + std::to_string(field_idx));
-
-                // store
-                auto llvm_idx = CreateStructGEP(builder, ptr, field_idx);
-                val.val = builder.CreateLoad(llvm_idx);
+            // get element type
+            auto element_type = struct_dict_type_get_element_type(dict_type, path);
+            if(python::Type::UNKNOWN == element_type) {
+                throw std::runtime_error("Could not retrieve element type for access path " + access_path_to_str(path));
             }
 
-            // load only if valid size_idx
-            if(size_idx >= 0) {
-                // env.printValue(builder, size, "storing away size at index " + std::to_string(size_idx));
+            // is it not a struct dict? -> trivial, simple lookup.
+            bool is_struct_dict = element_type.isStructuredDictionaryType() || (element_type.isOptionType() && element_type.getReturnType().isStructuredDictionaryType());
+            if(is_struct_dict) {
+                throw std::runtime_error("nymimpl");
+            } else {
+                // some UDF examples that should work:
+                // x = {}
+                // x['test'] = 10 # <-- type of x is now Struct['test' -> i64]
+                // x['blub'] = {'a' : 20, 'b':None} # <-- type of x is now Struct['test' -> i64, 'blub' -> Struct['a' -> i64, 'b' -> null]]
+                auto indices = struct_dict_load_indices(dict_type);
+                // fetch indices
+                // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
+                int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
+                std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
 
-                // store
-                auto llvm_idx = CreateStructGEP(builder, ptr, size_idx);
-                val.size = builder.CreateLoad(llvm_idx);
+                SerializableValue val;
+                val.size = env.i64Const(sizeof(int64_t));
+                val.is_null = env.i1Const(false);
+
+                // load only if valid field_idx
+                if(field_idx >= 0) {
+                    // env.printValue(builder, value, "storing away value at index " + std::to_string(field_idx));
+
+                    // store
+                    auto llvm_idx = CreateStructGEP(builder, ptr, field_idx);
+                    val.val = builder.CreateLoad(llvm_idx);
+                }
+
+                // load only if valid size_idx
+                if(size_idx >= 0) {
+                    // env.printValue(builder, size, "storing away size at index " + std::to_string(size_idx));
+
+                    // store
+                    auto llvm_idx = CreateStructGEP(builder, ptr, size_idx);
+                    val.size = builder.CreateLoad(llvm_idx);
+                }
+
+                // load only if valid bitmap_idx
+                if(bitmap_idx >= 0) {
+                    // env.printValue(builder, is_null, "storing away is_null at index " + std::to_string(bitmap_idx));
+
+                    // make sure type has presence map index
+                    auto b_idx = bitmap_field_idx(dict_type);
+                    assert(b_idx >= 0);
+                    // i1 store logic
+                    auto bitmapPos = bitmap_idx;
+                    auto structBitmapIdx = CreateStructGEP(builder, ptr, (size_t)b_idx); // bitmap comes first!
+                    auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
+                    val.is_null = builder.CreateLoad(bitmapIdx);
+                }
+
+                return val;
             }
-
-            // load only if valid bitmap_idx
-            if(bitmap_idx >= 0) {
-                // env.printValue(builder, is_null, "storing away is_null at index " + std::to_string(bitmap_idx));
-
-                // make sure type has presence map index
-                auto b_idx = bitmap_field_idx(dict_type);
-                assert(b_idx >= 0);
-                // i1 store logic
-                auto bitmapPos = bitmap_idx;
-                auto structBitmapIdx = CreateStructGEP(builder, ptr, (size_t)b_idx); // bitmap comes first!
-                auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
-                val.is_null = builder.CreateLoad(bitmapIdx);
-            }
-
-            return val;
         }
 
         // --- store functions ---
@@ -1224,6 +1248,10 @@ namespace tuplex {
         }
 
         python::Type struct_dict_type_get_element_type(const python::Type& dict_type, const access_path_t& path) {
+
+            if(!dict_type.isStructuredDictionaryType())
+                return python::Type::UNKNOWN;
+
             // fetch the type
             assert(dict_type.isStructuredDictionaryType());
             if(path.empty())

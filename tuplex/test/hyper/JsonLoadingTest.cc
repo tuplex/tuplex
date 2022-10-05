@@ -1264,7 +1264,7 @@ namespace tuplex {
                     j["sample_row_count"] = global_sample_count;
 
 
-                    ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!
+                    ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!)
 
                     // add global type counts (good idea for later investigation on what could be done to improve sampling => maybe separate experiment?
                     auto j_arr = nlohmann::json::array();

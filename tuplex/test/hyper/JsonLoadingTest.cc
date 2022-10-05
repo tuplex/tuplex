@@ -1003,6 +1003,15 @@ namespace tuplex {
         std::string event_name;
     };
 
+    nlohmann::json rowsToSample(const std::vector<Row>& rows, size_t max_rows=3) {
+        auto j = nlohmann::json::array();
+
+        for(unsigned i = 0; i < std::min(rows.size(), max_rows); ++i)
+            j.push_back(rows[i].toPythonString());
+
+        return j;
+    }
+
     void runExperiment(const ExperimentSetting& setting) {
         using namespace tuplex;
         using namespace std;
@@ -1152,13 +1161,13 @@ namespace tuplex {
                 j["filter_promotion"] =  setting.filter_for_event;
                 j["event_to_filter_for"] = setting.event_name;
                 // add small sample...
-                // ?
+                j["sample"] = rowsToSample(rows);
 
                 ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!
 
                 // add type counts (good idea for later investigation on what could be done to improve sampling => maybe separate experiment?
                 auto j_arr = nlohmann::json::array();
-                for(auto p : type_counts) {
+                for(const auto& p : type_counts) {
                     auto j_obj = nlohmann::json::object();
                     j_obj["type"] = p.first.desc();
                     j_obj["count"] = p.second;
@@ -1207,7 +1216,7 @@ namespace tuplex {
 
             size_t global_actual_sample_size = total_actual_sample_size;
             size_t global_sample_count = 0;
-            for(auto kv : global_type_counts)
+            for(const auto& kv : global_type_counts)
                 global_sample_count += kv.second;
             bool first_path = true;
             for(const auto& path : paths) {
@@ -1243,6 +1252,8 @@ namespace tuplex {
                         // pretty printed cases
                         j["normal_case_pretty"] = prettyPrintStructType(global_normal_case_type);
                         j["general_case_pretty"] = prettyPrintStructType(global_general_case_type);
+
+                        j["sample"] = rowsToSample(global_sample);
                     }
                     j["normal_case_field_count"] = number_of_fields(global_normal_case_type);
                     j["general_case_field_count"] = number_of_fields(global_general_case_type);
@@ -1275,7 +1286,7 @@ namespace tuplex {
             }
         }
 
-        std::cout<<ss.str()<<std::endl;
+        // std::cout<<ss.str()<<std::endl;
         {
             std::stringstream out;
             for(const auto& j : results)

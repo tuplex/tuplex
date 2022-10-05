@@ -11,7 +11,7 @@
 
 import unittest
 from tuplex import *
-from .helper import test_options
+from helper import test_options
 
 # this test is a basic test to make sure that times/exceptions for a project are
 # working correctly

@@ -12,7 +12,7 @@
 import unittest
 from tuplex import *
 from math import isclose
-from .helper import test_options
+from helper import test_options
 
 class TestDictionaries(unittest.TestCase):
 

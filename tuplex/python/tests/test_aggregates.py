@@ -16,7 +16,7 @@ import numpy as np
 from tuplex import *
 import typing
 import os
-from .helper import test_options
+from helper import test_options
 
 class TestAggregates(unittest.TestCase):
     def setUp(self):

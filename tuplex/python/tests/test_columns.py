@@ -12,7 +12,7 @@
 from unittest import TestCase
 
 import tuplex
-from .helper import test_options
+from helper import test_options
 
 class TestColumns(TestCase):
 

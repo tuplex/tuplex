@@ -14,7 +14,7 @@ import functools
 import random
 import numpy as np
 from tuplex import *
-from .helper import test_options
+from helper import test_options
 
 class TestArithmetic(unittest.TestCase):
     def setUp(self):

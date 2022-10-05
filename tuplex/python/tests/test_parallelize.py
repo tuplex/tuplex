@@ -11,7 +11,7 @@
 
 import unittest
 from tuplex import *
-from .helper import test_options
+from helper import test_options
 
 # all of these below should be executed with faster, optimized serialization code
 class TestFastParallelize(unittest.TestCase):

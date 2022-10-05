@@ -11,7 +11,7 @@
 
 import unittest
 from tuplex import *
-from .helper import test_options
+from helper import test_options
 
 # test filter functionality
 class TestFilter(unittest.TestCase):

@@ -16,7 +16,7 @@ from tuplex.utils.common import auto_shutdown_all, get_json
 import logging
 import urllib.request
 
-from .helper import test_options
+from helper import test_options
 
 class TestWebUI(unittest.TestCase):
 

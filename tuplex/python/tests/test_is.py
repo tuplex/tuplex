@@ -1,7 +1,7 @@
 import tuplex
 from unittest import TestCase
 
-from .helper import test_options
+from helper import test_options
 
 """
 Tests functionality for `is` keyword. 

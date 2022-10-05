@@ -11,7 +11,7 @@
 
 import unittest
 from tuplex import *
-from .helper import test_options
+from helper import test_options
 
 # this test is addressed on issues with the framework usage. I.e. whether data is kept correctly
 # in memory for parallelize

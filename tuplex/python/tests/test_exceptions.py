@@ -13,7 +13,7 @@ import unittest
 from tuplex import Context
 from random import randint, sample, shuffle
 from math import floor
-from .helper import test_options
+from helper import test_options
 
 class TestExceptions(unittest.TestCase):
 

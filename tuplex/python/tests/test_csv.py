@@ -12,7 +12,7 @@
 import unittest
 import os
 from tuplex import *
-from .helper import test_options
+from helper import test_options
 
 class TestCSV(unittest.TestCase):
 

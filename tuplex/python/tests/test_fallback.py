@@ -12,7 +12,7 @@
 import unittest
 from tuplex import *
 import numpy as np
-from .helper import test_options
+from helper import test_options
 
 # test fallback functionality, i.e. executing cloudpickled code
 class TestFallback(unittest.TestCase):

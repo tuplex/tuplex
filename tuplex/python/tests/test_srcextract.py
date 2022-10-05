@@ -14,7 +14,7 @@ import tuplex
 
 from tuplex.utils.reflection import get_source, get_globals, supports_lambda_closure
 from notebook_utils import get_jupyter_function_code
-from .helper import test_options
+from helper import test_options
 
 SOME_CONSTANT_TO_EXTRACT=42
 

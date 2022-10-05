@@ -12,7 +12,7 @@
 from unittest import TestCase
 import tuplex
 import time
-from .helper import test_options
+from helper import test_options
 
 class TestClosure(TestCase):
 

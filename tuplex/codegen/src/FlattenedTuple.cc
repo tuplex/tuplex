@@ -580,9 +580,9 @@ namespace tuplex {
                         // the offset is computed using how many varlen fields have been already serialized
                         Value *offset = builder.CreateAdd(_env->i64Const((numSerializedElements + 1 - serialized_idx) * sizeof(int64_t)), varlenSize);
 
-                        // debug print
-                        _env->printValue(builder, size, "serializing dict of size: ");
-                        _env->printValue(builder, offset, "serializing dict to offset: ");
+                        // // debug print
+                        // _env->printValue(builder, size, "serializing dict of size: ");
+                        // _env->printValue(builder, offset, "serializing dict to offset: ");
 
                         // store offset + length
                         // len | size
@@ -595,7 +595,7 @@ namespace tuplex {
                         // write actual data to outptr
                         auto s_info = struct_dict_serialize_to_memory(*_env, builder, field, dict_type, outptr);
 
-                        _env->printValue(builder, s_info.size, "actually serialized size: ");
+                        // _env->printValue(builder, s_info.size, "actually serialized size: ");
 
                         // also varlensize needs to be output separately, so add
                         varlenSize = builder.CreateAdd(varlenSize, size);
@@ -630,9 +630,9 @@ namespace tuplex {
                     // the offset is computed using how many varlen fields have been already serialized
                     Value *offset = builder.CreateAdd(_env->i64Const((numSerializedElements + 1 - serialized_idx) * sizeof(int64_t)), varlenSize);
 
-                    // debug print
-                    _env->printValue(builder, size, "serializing " + fieldType.desc() + " of size: ");
-                    _env->printValue(builder, offset, "serializing " + fieldType.desc() + " to offset: ");
+                    // // debug print
+                    // _env->printValue(builder, size, "serializing " + fieldType.desc() + " of size: ");
+                    // _env->printValue(builder, offset, "serializing " + fieldType.desc() + " to offset: ");
 
                     // store offset + length
                     // len | size

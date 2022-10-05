@@ -46,8 +46,8 @@ TEST_F(JsonTuplexTest, GithubLoad) {
     bool unwrap_first_level = true;
 
     unwrap_first_level = true;
-//    ctx.json("../resources/ndjson/github.json", unwrap_first_level).show();
-    ctx.json("../resources/ndjson/github_single_row.json", unwrap_first_level).show();
+    ctx.json("../resources/ndjson/github.json", unwrap_first_level).show();
+//    ctx.json("../resources/ndjson/github_single_row.json", unwrap_first_level).show();
     //ctx.json("../resources/ndjson/example3.json", unwrap_first_level).show();
 }
 

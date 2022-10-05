@@ -224,7 +224,7 @@ namespace tuplex {
                 // 3. fallback case
                 builder.SetInsertPoint(bbFallback);
 
-                _env->debugPrint(builder, "found fallback-case row.");
+                // _env->debugPrint(builder, "found fallback-case row.");
 
                 // same like in general case, i.e. stored as badStringParse exception
                 // -> store here the raw json

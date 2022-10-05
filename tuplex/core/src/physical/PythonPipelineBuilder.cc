@@ -394,8 +394,9 @@ namespace tuplex {
 
         // data is stored in cell-format, but with a single cell...
         std::stringstream code;
-        // debug
-        code << "print("<<lastInputRowName()<<")\n";
+        // // debug
+        // code << "print("<<lastInputRowName()<<")\n";
+
         code << "if not isinstance(" << lastInputRowName() << "[0], str):\n";
         exceptInnerCode(code, operatorID, "TypeError('json input must be of string type')", "", 1);
         code << "\n"

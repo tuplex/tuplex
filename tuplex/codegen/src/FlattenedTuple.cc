@@ -580,6 +580,10 @@ namespace tuplex {
                         // the offset is computed using how many varlen fields have been already serialized
                         Value *offset = builder.CreateAdd(_env->i64Const((numSerializedElements + 1 - serialized_idx) * sizeof(int64_t)), varlenSize);
 
+                        // debug print
+                        _env->printValue(builder, size, "serializing dict of size: ");
+                        _env->printValue(builder, offset, "serializing dict to offset: ");
+
                         // store offset + length
                         // len | size
                         auto info = pack_offset_and_size(builder, offset, size);
@@ -589,7 +593,9 @@ namespace tuplex {
                         Value *outptr = builder.CreateGEP(lastPtr, offset, "varoff");
 
                         // write actual data to outptr
-                        struct_dict_serialize_to_memory(*_env, builder, field, dict_type, outptr);
+                        auto s_info = struct_dict_serialize_to_memory(*_env, builder, field, dict_type, outptr);
+
+                        _env->printValue(builder, s_info.size, "actually serialized size: ");
 
                         // also varlensize needs to be output separately, so add
                         varlenSize = builder.CreateAdd(varlenSize, size);

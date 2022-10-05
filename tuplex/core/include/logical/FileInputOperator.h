@@ -274,7 +274,8 @@ namespace tuplex {
          */
         bool isEmpty() const;
 
-        FileInputOperator() : _fmt(FileFormat::OUTFMT_UNKNOWN), _json_unwrap_first_level(false) {}
+        FileInputOperator() : _fmt(FileFormat::OUTFMT_UNKNOWN), _json_unwrap_first_level(false), _header(false),
+                              _sampling_time_s(0.0), _quotechar('\0'), _delimiter('\0') {}
     };
 }
 

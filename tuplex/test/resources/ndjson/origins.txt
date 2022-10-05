@@ -1,1 +1,10 @@
 https://raw.githubusercontent.com/simdjson/simdjson/master/jsonexamples/amazon_cellphones.ndjson
+
+0: repo -> Struct[(str,'id'->i64),(str,'url'->str),(str,'name'->str)]
+1: type -> str
+2: org -> Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)]
+3: public -> boolean
+4: created_at -> str
+5: payload -> Struct[(str,'shas'->List[List[str]]),(str,'repo'->str),(str,'actor'->str),(str,'ref'->str),(str,'size'->i64),(str,'head'->str),(str,'actor_gravatar'->str),(str,'push_id'->i64)]
+6: actor -> Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)]
+7: id -> str

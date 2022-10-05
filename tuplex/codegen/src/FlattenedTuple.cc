@@ -887,6 +887,7 @@ namespace tuplex {
 
         llvm::Value* FlattenedTuple::getSize(llvm::IRBuilder<>& builder) const {
             // @TODO: make this more performant by NOT serializing anymore NULL, EMPTYDICT, EMPTYTUPLE, ...
+            using namespace llvm;
 
             llvm::Value* s = _env->i64Const(0);
 
@@ -927,23 +928,56 @@ namespace tuplex {
                     continue;
 
                 auto type = _tree.fieldType(i);
+
+                // special case: option
+                BasicBlock* bNext = nullptr;
+                BasicBlock* lastBlockBeforeNullCheck = nullptr;
+                llvm::Value* size_before_null_check = s;
+                if(type.isOptionType()) {
+                    // only add size IF not null
+                    assert(el.is_null);
+                    auto& ctx = _env->getContext();
+                    BasicBlock* bAddSize = BasicBlock::Create(ctx, "entry_valid", builder.GetInsertBlock()->getParent());
+                    bNext = BasicBlock::Create(ctx, "next", builder.GetInsertBlock()->getParent());
+                    lastBlockBeforeNullCheck = builder.GetInsertBlock();
+                    builder.CreateCondBr(el.is_null, bNext, bAddSize);
+                    builder.SetInsertPoint(bAddSize);
+
+                    // remove option
+                    type = type.getReturnType();
+                }
+
                 assert(type != python::Type::UNKNOWN);
                 assert(!type.isSingleValued() && !type.isConstantValued());
-
-
-                if(!_tree.fieldType(i).isFixedSizeType()) {
+                assert(!type.isOptionType());
+                if(!type.isFixedSizeType()) {
 
                     // special cases list and struct
                     if(type.isStructuredDictionaryType()) {
-                        auto s_size = struct_dict_serialized_memory_size(*_env, builder, el.val, type);
-                        s = builder.CreateAdd(s, s_size.val);
+                        auto s_size = struct_dict_serialized_memory_size(*_env, builder, el.val, type).val;
+                        assert(s_size && s_size->getType() == _env->i64Type());
+                        s = builder.CreateAdd(s, s_size);
                     } else if(type.isListType()) {
                         auto l_size = list_serialized_size(*_env, builder, el.val, type);
+                        assert(l_size && l_size->getType() == _env->i64Type());
                         s = builder.CreateAdd(s, l_size);
                     } else {
                         // string etc.
+                        assert(el.size && el.size->getType() == _env->i64Type());
                         s = builder.CreateAdd(s, el.size); // 0 for varlen option!
                     }
+                }
+
+                // close if-dep size
+                if(bNext) {
+                    auto lastBlock = builder.GetInsertBlock();
+                    builder.CreateBr(bNext);
+                    builder.SetInsertPoint(bNext);
+                    // create phi node
+                    auto phi = builder.CreatePHI(_env->i64Type(), 2);
+                    phi->addIncoming(s, lastBlock);
+                    phi->addIncoming(size_before_null_check, lastBlockBeforeNullCheck);
+                    s = phi;
                 }
             }
 

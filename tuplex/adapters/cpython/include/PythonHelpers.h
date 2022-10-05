@@ -265,6 +265,16 @@ namespace python {
     extern tuplex::Field pythonToField(PyObject *obj, bool autoUpcast=false);
 
     /*!
+     * helper function to map a python dictionary object to a struct dict field.
+     * Note that this function can easily get quite expensive... -> potentially should map
+     * using pyobject?
+     * @param dict_obj
+     * @param autoUpcast
+     * @return struct dict field.
+     */
+    extern tuplex::Field py_dict_to_field(PyObject* dict_obj, bool autoUpcast=false);
+
+    /*!
      * converts python object to Row using row type supplied in type.
      * @param obj
      * @param type specify what type of objects should be serialized, may contain options.

@@ -420,7 +420,7 @@ namespace tuplex {
             writeLine(row() + " = Row(parsed_row, keys + left_over_keys)\n");
             writeLine("res['outputColumns'] = keys + left_over_keys\n");
         } else
-            writeLine(row() + " = Row(parsed_row)");
+            writeLine(row() + " = Row([parsed_row])");
     }
 
     void PythonPipelineBuilder::csvInput(int64_t operatorID,

@@ -423,6 +423,9 @@ namespace tuplex {
                                                _env->i8ptrType(), _env->i8ptrType()->getPointerTo(0));
 
             auto obj_var = _env->CreateFirstBlockVariable(builder, _env->i8nullptr(), "row_object");
+
+            // store nullptr
+            builder.CreateStore(_env->i8nullptr(), obj_var);
             builder.CreateCall(Fgetobj, {j, obj_var});
 
             // don't forget to free everything...
@@ -432,11 +435,25 @@ namespace tuplex {
             struct_dict_mem_zero(*_env.get(), builder, row_var, dict_type); // !!! important !!!
 
 
+            // create new block where all objects allocated for gen are freed.
+            BasicBlock* bParseFree = BasicBlock::Create(ctx, "parse_free", builder.GetInsertBlock()->getParent());
+
             // create dict parser and store to row_var
-            JSONParseRowGenerator gen(*_env.get(), dict_type, _freeEnd, bbSchemaMismatch);
+            JSONParseRowGenerator gen(*_env.get(), dict_type, bParseFree, bbSchemaMismatch);
             gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
             // update free end
-            _freeEnd = gen.freeBlockEnd();
+            bParseFree = gen.freeBlockEnd();
+
+            // jump now to parse free
+            builder.CreateBr(bParseFree);
+            builder.SetInsertPoint(bParseFree);
+
+            // create new block (post - parse)
+            BasicBlock *bPostParse = BasicBlock::Create(ctx, "post_parse", builder.GetInsertBlock()->getParent());
+
+            builder.CreateBr(bPostParse);
+            builder.SetInsertPoint(bPostParse);
+            _env->debugPrint(builder, "free done.");
 
             // free obj_var...
             json_freeObject(*_env.get(), builder, builder.CreateLoad(obj_var));
@@ -521,8 +538,10 @@ namespace tuplex {
                 if(!dict_type.isStructuredDictionaryType())
                     throw std::runtime_error("parsing JSON files with type " + dict_type.desc() + " not yet implemented.");
 
+                _env->debugPrint(builder, "starting to parse row...");
                 // parse struct dict
                 auto s = parseRowAsStructuredDict(builder, dict_type, parser, bbSchemaMismatch);
+                _env->debugPrint(builder, "row parsed.");
 
                 // assign to tuple (for further processing)
                 ft.setElement(builder, 0, s, nullptr, nullptr);

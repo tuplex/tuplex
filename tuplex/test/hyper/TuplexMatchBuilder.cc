@@ -30,7 +30,11 @@ namespace tuplex {
 
             // create dict parser and store to row_var
             JSONParseRowGenerator gen(_env, row_type, _freeEnd, bbSchemaMismatch);
+
+            _env.debugPrint(builder, "starting to parse row...");
             gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
+            _env.debugPrint(builder, "row parsed.");
+
             // update free end block
             _freeEnd = gen.freeBlockEnd();
 

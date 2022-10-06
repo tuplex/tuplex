@@ -53,7 +53,7 @@ More examples can be found [here](https://tuplex.cs.brown.edu/gettingstarted.htm
 To install Tuplex, you can use a PyPi package for Linux or MacOS(Intel), or a Docker container which will launch a jupyter notebook with Tuplex preinstalled.
 #### Docker
 ```
-docker run -p 8888:8888 tuplex/tuplex:v0.3.5
+docker run -p 8888:8888 tuplex/tuplex:v0.3.6dev
 ```
 #### PyPI
 ```

@@ -5,6 +5,12 @@
 #include <physical/experimental/JSONParseRowGenerator.h>
 #include <FlattenedTuple.h>
 
+template<typename T> std::string pointer2hex(T *ptr) {
+    char buf[64];
+    snprintf(buf, 64, "%p", ptr);
+    return std::string(buf);
+}
+
 namespace tuplex {
     namespace codegen {
         std::tuple<llvm::Value *, SerializableValue>
@@ -107,6 +113,8 @@ namespace tuplex {
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getObject", _env.i64Type(), _env.i8ptrType(),
                                          _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
             auto sub_obj_var = addObjectVar(builder);
+            // debug:
+            _env.debugPrint(builder, "Using " + pointer2hex(sub_obj_var) + " in decodeEmptyDict");
 
             // create call, recurse only if ok!
             BasicBlock *bbCurrent = builder.GetInsertBlock();
@@ -337,6 +345,7 @@ namespace tuplex {
                                              _env.i8ptrType(),
                                              _env.i64Type(), _env.i8ptrType()->getPointerTo(0));
                 auto item_var = addObjectVar(builder);
+                _env.debugPrint(builder, "Using " + pointer2hex(item_var) + " in decodeObjectFromArray");
 
                 // start decode
                 // create call, recurse only if ok!
@@ -1004,7 +1013,7 @@ namespace tuplex {
             auto stype = _env.getOrCreateStructuredDictType(entry.valueType);
             auto value_item_var = _env.CreateFirstBlockAlloca(builder, stype); // <-- stored dict
             auto sub_object_var = addObjectVar(builder);  // <-- stores JsonObject*
-
+            _env.debugPrint(builder, "Using " + pointer2hex(sub_object_var) + " in decodeStructFieldFromObject");
             {
                 auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getObject", _env.i64Type(),
                                              _env.i8ptrType(),
@@ -1284,6 +1293,8 @@ namespace tuplex {
                                                  _env.i8ptrType(),
                                                  _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
                     auto item_var = addObjectVar(builder);
+                    _env.debugPrint(builder, "Using " + pointer2hex(item_var) + " in decode");
+
                     // create call, recurse only if ok!
                     llvm::Value *rc = builder.CreateCall(F, {object, key, item_var});
 
@@ -1310,6 +1321,10 @@ namespace tuplex {
                     builder.SetInsertPoint(bbDecodeItem);
                     // load item!
                     auto item = builder.CreateLoad(item_var);
+
+                    // debug:
+                    _env.printValue(builder, item, "associated with " + pointer2hex(item_var) + " in decode is: ");
+
                     // recurse using new prefix
                     // --> similar to flatten_recursive_helper(entries, kv_pair.valueType, access_path, include_maybe_structs);
                     decode(builder, dict_ptr, dict_ptr_type, item, bbSchemaMismatch, kv_pair.valueType, access_path, include_maybe_structs);
@@ -1437,6 +1452,8 @@ namespace tuplex {
                 auto F = getOrInsertFunction(mod, "JsonItem_getObject", _env.i64Type(), _env.i8ptrType(),
                                              _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
                 auto obj_var = addObjectVar(builder);
+                _env.debugPrint(builder, "Using " + pointer2hex(obj_var) + " in decodeFieldFromObject (struct)");
+
                 // create call, recurse only if ok!
                 BasicBlock *bbOK = BasicBlock::Create(ctx, "is_object", builder.GetInsertBlock()->getParent());
 
@@ -1495,6 +1512,8 @@ namespace tuplex {
                 auto F = getOrInsertFunction(mod, "JsonItem_getObject", _env.i64Type(), _env.i8ptrType(),
                                              _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
                 auto obj_var = addObjectVar(builder);
+                _env.debugPrint(builder, "Using " + pointer2hex(obj_var) + " in decodeFieldFromObject (emptydict)");
+
                 // create call, recurse only if ok!
                 BasicBlock *bbOK = BasicBlock::Create(ctx, "is_object", builder.GetInsertBlock()->getParent());
 
@@ -1540,6 +1559,7 @@ namespace tuplex {
 
             _env.printValue(b, ptr_to_free, "freeing array pointer: ");
             freeArray(b, ptr_to_free);
+            _env.printValue(b, ptr_to_free, "--> pointer freed. ");
 
             if (arr->getType() == _env.i8ptrType()->getPointerTo()) {
                 // store nullptr in debug mode

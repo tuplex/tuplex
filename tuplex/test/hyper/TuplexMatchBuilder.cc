@@ -35,8 +35,8 @@ namespace tuplex {
             _freeEnd = gen.freeBlockEnd();
 
             // free obj_var...
-            // _env.debugPrint(builder, "freeing root item object");
-            json_freeObject(_env, builder, builder.CreateLoad(obj_var));
+             _env.debugPrint(builder, "freeing root item object");
+            json_freeObject(_env, builder, obj_var);
 #ifndef NDEBUG
             builder.CreateStore(_env.i8nullptr(), obj_var);
 #endif

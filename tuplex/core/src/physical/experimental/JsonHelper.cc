@@ -153,7 +153,7 @@ namespace tuplex {
 
         // C API
         void JsonItem_Free(JsonItem *i) {
-            // delete i; //--> bad: error here!
+            delete i; //--> bad: error here!
             i = nullptr;
         }
 
@@ -290,8 +290,8 @@ namespace tuplex {
         }
 
         void JsonArray_Free(JsonArray* arr) {
-//            if(arr)
-//                delete arr;
+            if(arr)
+                delete arr;
             arr = nullptr;
         }
 

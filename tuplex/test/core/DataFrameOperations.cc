@@ -89,7 +89,7 @@ TEST_F(CSVDataFrameTest, SimpleMapColumnI) {
     using namespace tuplex;
 
     auto v = csvfile().mapColumn("firstname", UDF("lambda fn: fn[0]"))
-                      .mapColumn("income", UDF("lambda x: x / 1000"))s
+                      .mapColumn("income", UDF("lambda x: x / 1000"))
                       .collectAsVector();
     ASSERT_EQ(v.size(), 2);
     printRows(v);

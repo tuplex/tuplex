@@ -1026,30 +1026,12 @@ namespace tuplex {
 
                 std::string lookup_key;
                 if(isLiteral(sub->_expression)) {
-                    switch(sub->_expression->type()) {
-                        case ASTNodeType::String: {
-                            lookup_key = escape_to_python_str(static_cast<NString*>(sub->_expression)->value());
-                            break;
-                        }
-                        case ASTNodeType::Number: {
-                            lookup_key = static_cast<NNumber*>(sub->_expression)->_value;
-                            break;
-                        }
-                        case ASTNodeType::None: {
-                            lookup_key = "None";
-                            break;
-                        }
-                        case ASTNodeType::Boolean: {
-                            lookup_key = static_cast<NBoolean*>(sub->_expression)->_value;
-                            break;
-                        }
-                            // could also type empty tuple, empty list, empty dict, ... @TODO.
-                        default: {
-                            // key error
-                            sub->setInferredType(keyError_type);
-                            return;
-                            break;
-                        }
+                    auto t_key_and_type = extractKeyFromASTNode(sub->_expression);
+                    lookup_key = std::get<0>(t_key_and_type);
+                    auto t_type = std::get<1>(t_key_and_type);
+                    if(python::Type::UNKNOWN == t_type) {
+                        sub->setInferredType(keyError_type);
+                        return;
                     }
                 } else if(type.valueType().isConstantValued()) {
                     lookup_key = type.valueType().constant();
@@ -1073,7 +1055,6 @@ namespace tuplex {
             }
         }
     }
-
 
     void TypeAnnotatorVisitor::visit(NSubscription *sub) {
         ApatheticVisitor::visit(sub);
@@ -1897,6 +1878,41 @@ namespace tuplex {
         if(t.isTupleType()) {
             for (const auto &tt : t.parameters()) {
                 checkRetType(tt);
+            }
+        }
+    }
+
+    std::tuple<std::string, python::Type> extractKeyFromASTNode(ASTNode* node) {
+        using namespace std;
+        std::string key;
+        if(!node)
+            return make_tuple("", python::Type::UNKNOWN);
+
+        switch(node->type()) {
+            case ASTNodeType::String: {
+                key = escape_to_python_str(static_cast<NString*>(node)->value());
+                return make_tuple(key, python::Type::STRING);
+                break;
+            }
+            case ASTNodeType::Number: {
+                key = static_cast<NNumber*>(node)->_value;
+                // is it float or int?
+                return make_tuple(key, node->getInferredType());
+                break;
+            }
+            case ASTNodeType::None: {
+                key = "None";
+                return make_tuple(key, python::Type::NULLVALUE);
+                break;
+            }
+            case ASTNodeType::Boolean: {
+                key = static_cast<NBoolean*>(node)->_value;
+                return make_tuple(key, python::Type::BOOLEAN);
+                break;
+            }
+                // could also type empty tuple, empty list, empty dict, ... @TODO.
+            default: {
+                return make_tuple("", python::Type::UNKNOWN);
             }
         }
     }

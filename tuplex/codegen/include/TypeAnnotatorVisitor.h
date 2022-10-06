@@ -134,6 +134,13 @@ namespace tuplex {
 
         TSet<std::string> getMissingIdentifiers() { return _missingIdentifiers; }
     };
+
+    /*!
+     * see whether ast node can be turned into a static key usable for structured dictionaries.
+     * @param node the ast node, if nullptr unknown is returned.
+     * @return key and type of key. unknown if not possible.
+     */
+    extern std::tuple<std::string, python::Type> extractKeyFromASTNode(ASTNode* node);
 }
 
 #endif //TUPLEX_TYPEANNOTATORVISITOR_H

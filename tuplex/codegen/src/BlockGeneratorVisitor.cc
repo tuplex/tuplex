@@ -3974,6 +3974,15 @@ namespace tuplex {
                 addInstruction(ret.val, ret.size);
             }
             else {
+                // check if value is of struct dict type
+                if(sub->_value->getInferredType().isStructuredDictionaryType()) {
+                    SerializableValue ret;
+                    if(subscriptStructDict(builder, &ret, sub->_expression->getInferredType(), index, sub->_value->getInferredType(), value, sub->_expression)) {
+                        addInstruction(ret.val, ret.size, ret.is_null);
+                        return;
+                    }
+                }
+
                 // undefined
                 std::stringstream ss;
                 ss << "unsupported type encountered with [] operator.";
@@ -3983,6 +3992,78 @@ namespace tuplex {
                 ss << "\nvalue llvm type: " << _env->getLLVMTypeName(value.val->getType());
                 error(ss.str());
             }
+        }
+
+
+        std::tuple<std::string, python::Type> extractStaticKey(const python::Type& value_type, const SerializableValue& value, ASTNode *value_node) {
+            using namespace std;
+
+            std::string key;
+            python::Type key_type = python::Type::UNKNOWN;
+
+            auto type = value_type;
+
+            // is value a LLVM constant by chance?
+            if(value.is_null && llvm::isa<llvm::ConstantInt>(value.is_null)) {
+                // check what is null says. => i1 => null value!
+                auto is_null = llvm::cast<llvm::ConstantInt>(value.is_null)->getSExtValue();
+                if(is_null) {
+                    // it's zero
+                    assert(value_type.isOptionType() || value_type == python::Type::NULLVALUE);
+                    return make_tuple("None", value_type);
+                } else {
+                    // not null... -> normal decoding with primtive
+                    if(type.isOptionType())
+                        type = type.getReturnType();
+                }
+            }
+
+            // check whether value is constant
+            if(value.val && llvm::isa<llvm::Constant>(value.val)) {
+                // what type could it be?
+                if(type == python::Type::STRING) {
+                    auto str = llvm::cast<ConstantDataArray>(value.val)->getAsString().str();
+                    // escape to py
+                    return make_tuple(escape_to_python_str(str), value_type);
+                }
+                if(type == python::Type::BOOLEAN) {
+                    auto i_val = llvm::cast<ConstantInt>(value.val)->getSExtValue();
+                    return make_tuple(i_val ? "True" : "False", value_type);
+                }
+                if(python::Type::I64 == type) {
+                    auto i_val = llvm::cast<ConstantInt>(value.val)->getSExtValue();
+                    return make_tuple(std::to_string(i_val), value_type);
+                }
+                if(python::Type::F64 == type) {
+                    auto d_val = llvm::cast<ConstantFP>(value.val)->getValueAPF().convertToDouble();
+                    return make_tuple(std::to_string(d_val), value_type);
+                }
+            }
+
+            // try first value, then check value node
+            if(value_node) {
+                return extractKeyFromASTNode(value_node);
+            }
+            return make_tuple("", python::Type::UNKNOWN);
+        }
+
+        bool BlockGeneratorVisitor::subscriptStructDict(llvm::IRBuilder<> &builder,
+                                                        SerializableValue *out_ret,
+                                                        const python::Type &index_type,
+                                                        const SerializableValue &index_value,
+                                                        const python::Type &value_type,
+                                                        const SerializableValue &value,
+                                                        ASTNode *value_node) {
+            // can only subscript if a static key can be extracted (for now)
+            auto t_key_and_type = extractStaticKey(value_type, value, value_node);
+            auto key = std::get<0>(t_key_and_type);
+            auto key_type = std::get<1>(t_key_and_type);
+
+            _logger.debug("extracted static key=" + key + " (" + key_type.desc() + ") from AST.");
+
+            // else can do keyerror etc. if decidable (e.g. on type queried!)
+
+            return false;
         }
 
         SerializableValue BlockGeneratorVisitor::upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue &val,

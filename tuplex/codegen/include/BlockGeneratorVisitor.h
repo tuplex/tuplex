@@ -555,6 +555,25 @@ namespace codegen {
             return false;
         }
 
+        /*!
+         * generate code to index a structured dictionary value.
+         * @param builder
+         * @param ret where to store output
+         * @param index_type the type
+         * @param index_value
+         * @param value_type
+         * @param value
+         * @param value_node
+         * @return true if it worked, false else.
+         */
+        bool subscriptStructDict(llvm::IRBuilder<>& builder,
+                                 SerializableValue *out_ret,
+                                 const python::Type& index_type,
+                                 const SerializableValue& index_value,
+                                 const python::Type& value_type,
+                                 const SerializableValue& value,
+                                 ASTNode* value_node=nullptr);
+
     protected:
 
         // override such it throws

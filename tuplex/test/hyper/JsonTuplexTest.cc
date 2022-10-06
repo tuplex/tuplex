@@ -49,7 +49,14 @@ TEST_F(JsonTuplexTest, GithubLoad) {
     auto& ds = ctx.json("../resources/ndjson/github.json", unwrap_first_level);
     cout<<"columns: \n"<<ds.columns()<<endl; // <-- no columns here...
     // could extract columns via keys() or so? -> no support for this yet.
-    ds.map(UDF("lambda x: (x['type'], int(x['id']))")).show();
+    // ds.map(UDF("lambda x: (x['type'], int(x['id']))")).show();
+    ds.map(UDF("lambda x: x['type']")).unique().show();
+
+    // Next steps: -> should be able to load any github file (start with the small samples)
+    //             -> use maybe show(5) to speed things up (--> sample manipulation?)
+    //             -> add Python API to tuplex for dealing with JSON?
+    //             -> design example counting events across files maybe?
+    //             -> what about pushdown then?
 
 //    // simple func --> this works only with unwrapping!
 // unwrap_first_level = true;

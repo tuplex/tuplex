@@ -107,9 +107,10 @@ namespace tuplex {
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getObject", _env.i64Type(), _env.i8ptrType(),
                                          _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
             auto sub_obj_var = addObjectVar(builder);
+ #ifdef JSON_PARSER_TRACE_MEMORY
             // debug:
             _env.debugPrint(builder, "Using " + pointer2hex(sub_obj_var) + " in decodeEmptyDict");
-
+#endif
             // create call, recurse only if ok!
             BasicBlock *bbCurrent = builder.GetInsertBlock();
             BasicBlock *bbObjectFound = BasicBlock::Create(_env.getContext(), "found_object", builder.GetInsertBlock()->getParent());
@@ -339,8 +340,9 @@ namespace tuplex {
                                              _env.i8ptrType(),
                                              _env.i64Type(), _env.i8ptrType()->getPointerTo(0));
                 auto item_var = addObjectVar(builder);
+                #ifdef JSON_PARSER_TRACE_MEMORY
                 _env.debugPrint(builder, "Using " + pointer2hex(item_var) + " in decodeObjectFromArray");
-
+                #endif
                 // start decode
                 // create call, recurse only if ok!
                 llvm::Value *rc = builder.CreateCall(F, {array, index, item_var});
@@ -1007,7 +1009,9 @@ namespace tuplex {
             auto stype = _env.getOrCreateStructuredDictType(entry.valueType);
             auto value_item_var = _env.CreateFirstBlockAlloca(builder, stype); // <-- stored dict
             auto sub_object_var = addObjectVar(builder);  // <-- stores JsonObject*
+            #ifdef JSON_PARSER_TRACE_MEMORY
             _env.debugPrint(builder, "Using " + pointer2hex(sub_object_var) + " in decodeStructFieldFromObject");
+            #endif
             {
                 auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getObject", _env.i64Type(),
                                              _env.i8ptrType(),
@@ -1287,8 +1291,9 @@ namespace tuplex {
                                                  _env.i8ptrType(),
                                                  _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
                     auto item_var = addObjectVar(builder);
+                    #ifdef JSON_PARSER_TRACE_MEMORY
                     _env.debugPrint(builder, "Using " + pointer2hex(item_var) + " in decode");
-
+                    #endif
                     // create call, recurse only if ok!
                     llvm::Value *rc = builder.CreateCall(F, {object, key, item_var});
 
@@ -1315,10 +1320,10 @@ namespace tuplex {
                     builder.SetInsertPoint(bbDecodeItem);
                     // load item!
                     auto item = builder.CreateLoad(item_var);
-
+#ifdef JSON_PARSER_TRACE_MEMORY
                     // debug:
                     _env.printValue(builder, item, "associated with " + pointer2hex(item_var) + " in decode is: ");
-
+#endif
                     // recurse using new prefix
                     // --> similar to flatten_recursive_helper(entries, kv_pair.valueType, access_path, include_maybe_structs);
                     decode(builder, dict_ptr, dict_ptr_type, item, bbSchemaMismatch, kv_pair.valueType, access_path, include_maybe_structs);
@@ -1446,8 +1451,9 @@ namespace tuplex {
                 auto F = getOrInsertFunction(mod, "JsonItem_getObject", _env.i64Type(), _env.i8ptrType(),
                                              _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
                 auto obj_var = addObjectVar(builder);
+                #ifdef JSON_PARSER_TRACE_MEMORY
                 _env.debugPrint(builder, "Using " + pointer2hex(obj_var) + " in decodeFieldFromObject (struct)");
-
+                #endif
                 // create call, recurse only if ok!
                 BasicBlock *bbOK = BasicBlock::Create(ctx, "is_object", builder.GetInsertBlock()->getParent());
 
@@ -1506,8 +1512,9 @@ namespace tuplex {
                 auto F = getOrInsertFunction(mod, "JsonItem_getObject", _env.i64Type(), _env.i8ptrType(),
                                              _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
                 auto obj_var = addObjectVar(builder);
+                #ifdef JSON_PARSER_TRACE_MEMORY
                 _env.debugPrint(builder, "Using " + pointer2hex(obj_var) + " in decodeFieldFromObject (emptydict)");
-
+                #endif
                 // create call, recurse only if ok!
                 BasicBlock *bbOK = BasicBlock::Create(ctx, "is_object", builder.GetInsertBlock()->getParent());
 
@@ -1550,10 +1557,13 @@ namespace tuplex {
             if (arr->getType() == _env.i8ptrType()->getPointerTo()) {
                 ptr_to_free = b.CreateLoad(arr);
             }
-
+#ifdef JSON_PARSER_TRACE_MEMORY
             _env.printValue(b, ptr_to_free, "freeing array pointer: ");
+#endif
             freeArray(b, ptr_to_free);
+            #ifdef JSON_PARSER_TRACE_MEMORY
             _env.printValue(b, ptr_to_free, "--> pointer freed. ");
+            #endif
 
             if (arr->getType() == _env.i8ptrType()->getPointerTo()) {
                 // store nullptr in debug mode
@@ -1581,9 +1591,9 @@ namespace tuplex {
                 ptr_to_free = b.CreateLoad(obj);
             }
 
-             //_env.printValue(b, obj, "freeing obj: ");
+#ifdef JSON_PARSER_TRACE_MEMORY
              _env.printValue(b, ptr_to_free, "freeing ptr: ");
-
+#endif
             json_freeObject(_env, b, ptr_to_free);
 
             if (obj->getType() == _env.i8ptrType()->getPointerTo()) {

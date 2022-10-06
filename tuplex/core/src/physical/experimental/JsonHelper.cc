@@ -177,6 +177,8 @@ namespace tuplex {
 
             auto o = new JsonItem();
 
+            printf("Allocated object pointer in JsonParser_getObject [%p]\n", o);
+
             // debug checks:
             assert(j->it != j->stream.end());
 
@@ -256,6 +258,9 @@ namespace tuplex {
                 return translate_simdjson_error(error);
             // ONLY allocate if ok. else, leave how it is.
             auto obj = new JsonItem();
+
+            printf("Allocated object pointer in JsonItem_getObject [%p]\n", obj);
+
             obj->o = o;
             *out = obj;
             return ecToI64(ExceptionCode::SUCCESS);
@@ -278,6 +283,7 @@ namespace tuplex {
 
             // ONLY allocate if ok. else, leave how it is.
             auto arr = new JsonArray();
+            printf("Allocated array pointer in JsonItem_getArray [%p]\n", arr);
 
             // decode array
             for(auto element : a) {
@@ -407,6 +413,9 @@ namespace tuplex {
 
             // ONLY allocate if ok. else, leave how it is.
             auto obj = new JsonItem();
+
+            printf("Allocated object pointer in JsonArray_getObject [%p]\n", obj);
+
             obj->o = o;
             *out = obj;
             return ecToI64(ExceptionCode::SUCCESS);
@@ -432,6 +441,8 @@ namespace tuplex {
 
             // ONLY allocate if ok. else, leave how it is.
             auto sub_arr = new JsonArray();
+            printf("Allocated array pointer in JsonArray_getArray [%p]\n", sub_arr);
+
             // decode subarray!
             for(auto element : a) {
                 // sub_arr->elements.emplace_back(item);

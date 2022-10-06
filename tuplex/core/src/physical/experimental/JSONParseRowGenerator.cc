@@ -1538,6 +1538,7 @@ namespace tuplex {
                 ptr_to_free = b.CreateLoad(arr);
             }
 
+            _env.printValue(b, ptr_to_free, "freeing array pointer: ");
             freeArray(b, ptr_to_free);
 
             if (arr->getType() == _env.i8ptrType()->getPointerTo()) {
@@ -1566,8 +1567,8 @@ namespace tuplex {
                 ptr_to_free = b.CreateLoad(obj);
             }
 
-            // _env.printValue(b, obj, "freeing obj: ");
-            // _env.printValue(b, ptr_to_free, "freeing ptr: ");
+             //_env.printValue(b, obj, "freeing obj: ");
+             _env.printValue(b, ptr_to_free, "freeing ptr: ");
 
             json_freeObject(_env, b, ptr_to_free);
 

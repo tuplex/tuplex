@@ -1337,6 +1337,8 @@ TEST_F(HyperTest, LoadAllFiles) {
     root_path = "/Users/leonhards/Downloads/github_sample/*.json.gz";
 //    root_path = "/Users/leonhards/Downloads/github_sample/2011-11-26-13.json.gz";
     root_path = "/Users/leonhards/Downloads/github_daily_sample/*.json.gz";
+
+    root_path = "/Users/leonhards/Downloads/github_daily_sample/2020-10-15.json.gz";
 #endif
 
     auto sample_size = 2 * 1024 * 1024ul;// 8MB ////256 * 1024ul; // 256kb

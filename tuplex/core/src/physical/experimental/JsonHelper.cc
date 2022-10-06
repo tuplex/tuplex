@@ -5,8 +5,16 @@
 #include <RuntimeInterface.h>
 #include <JITCompiler.h>
 
+
 namespace tuplex {
     namespace codegen {
+
+        // trace helpers
+#ifdef JSON_PARSER_TRACE_MEMORY
+        static std::vector<JsonItem*> traced_items;
+        static std::vector<JsonArray*> traced_arrays;
+#endif
+
         // C-APIs to use in codegen
         JsonParser *JsonParser_init() {
             // can't malloc, or can malloc but then need to call inplace C++ constructors!
@@ -153,6 +161,15 @@ namespace tuplex {
 
         // C API
         void JsonItem_Free(JsonItem *i) {
+#ifdef JSON_PARSER_TRACE_MEMORY
+            auto it = std::find(traced_items.begin(), traced_items.end(), i);
+            if(it == traced_items.end()) {
+                std::cerr<<"did not find JSON Item "<<pointer2hex(i)<<" in items"<<std::endl;
+            } else {
+                traced_items.erase(it);
+            }
+#endif
+
             delete i; //--> bad: error here!
             i = nullptr;
         }
@@ -176,9 +193,10 @@ namespace tuplex {
             }
 
             auto o = new JsonItem();
-
+#ifdef JSON_PARSER_TRACE_MEMORY
+            traced_items.push_back(o);
             printf("Allocated object pointer in JsonParser_getObject [%p]\n", o);
-
+#endif
             // debug checks:
             assert(j->it != j->stream.end());
 
@@ -258,9 +276,10 @@ namespace tuplex {
                 return translate_simdjson_error(error);
             // ONLY allocate if ok. else, leave how it is.
             auto obj = new JsonItem();
-
+#ifdef JSON_PARSER_TRACE_MEMORY
+            traced_items.push_back(obj);
             printf("Allocated object pointer in JsonItem_getObject [%p]\n", obj);
-
+#endif
             obj->o = o;
             *out = obj;
             return ecToI64(ExceptionCode::SUCCESS);
@@ -283,8 +302,10 @@ namespace tuplex {
 
             // ONLY allocate if ok. else, leave how it is.
             auto arr = new JsonArray();
+#ifdef JSON_PARSER_TRACE_MEMORY
+            traced_arrays.push_back(arr);
             printf("Allocated array pointer in JsonItem_getArray [%p]\n", arr);
-
+#endif
             // decode array
             for(auto element : a) {
                 // arr->elements.emplace_back(item);
@@ -295,6 +316,15 @@ namespace tuplex {
         }
 
         void JsonArray_Free(JsonArray* arr) {
+#ifdef JSON_PARSER_TRACE_MEMORY
+            auto it = std::find(traced_arrays.begin(), traced_arrays.end(), arr);
+            if(it == traced_arrays.end()) {
+                std::cerr<<"did not find JSON Array "<<pointer2hex(arr)<<" in arrays"<<std::endl;
+            } else {
+                traced_arrays.erase(it);
+            }
+#endif
+
             if(arr)
                 delete arr;
             arr = nullptr;
@@ -413,9 +443,10 @@ namespace tuplex {
 
             // ONLY allocate if ok. else, leave how it is.
             auto obj = new JsonItem();
-
+#ifdef JSON_PARSER_TRACE_MEMORY
+            traced_items.push_back(obj);
             printf("Allocated object pointer in JsonArray_getObject [%p]\n", obj);
-
+#endif
             obj->o = o;
             *out = obj;
             return ecToI64(ExceptionCode::SUCCESS);
@@ -441,8 +472,10 @@ namespace tuplex {
 
             // ONLY allocate if ok. else, leave how it is.
             auto sub_arr = new JsonArray();
+#ifdef JSON_PARSER_TRACE_MEMORY
+            traced_arrays.push_back(sub_arr);
             printf("Allocated array pointer in JsonArray_getArray [%p]\n", sub_arr);
-
+#endif
             // decode subarray!
             for(auto element : a) {
                 // sub_arr->elements.emplace_back(item);

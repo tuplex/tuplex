@@ -27,16 +27,25 @@ namespace tuplex {
             auto row_var = _env.CreateFirstBlockAlloca(builder, struct_dict_type);
             struct_dict_mem_zero(_env, builder, row_var, row_type); // !!! important !!!
 
+            // create new block where all objects allocated for gen are freed.
+            BasicBlock* bParseFree = BasicBlock::Create(ctx, "parse_free", builder.GetInsertBlock()->getParent());
 
             // create dict parser and store to row_var
-            JSONParseRowGenerator gen(_env, row_type, _freeEnd, bbSchemaMismatch);
-
-            _env.debugPrint(builder, "starting to parse row...");
+            JSONParseRowGenerator gen(_env, row_type, bParseFree, bbSchemaMismatch);
             gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
-            _env.debugPrint(builder, "row parsed.");
+            // update free end
+            bParseFree = gen.freeBlockEnd();
 
-            // update free end block
-            _freeEnd = gen.freeBlockEnd();
+            // jump now to parse free
+            builder.CreateBr(bParseFree);
+            builder.SetInsertPoint(bParseFree);
+
+            // create new block (post - parse)
+            BasicBlock *bPostParse = BasicBlock::Create(ctx, "post_parse", builder.GetInsertBlock()->getParent());
+
+            builder.CreateBr(bPostParse);
+            builder.SetInsertPoint(bPostParse);
+            _env.debugPrint(builder, "free done.");
 
             // free obj_var...
              _env.debugPrint(builder, "freeing root item object");

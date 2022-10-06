@@ -246,6 +246,11 @@ inline bool double_eq(double a, double b) {
     return std::abs(a - b) < DOUBLE_EPSILON;
 }
 
+template<typename T> std::string pointer2hex(T *ptr) {
+    char buf[64];
+    snprintf(buf, 64, "%p", ptr);
+    return std::string(buf);
+}
 
 // some basic helper to throw for possible bad code in debug mode an error (should never occur in release mode!)
 void debug_error_message(const char* message, const char* file, const int ine);

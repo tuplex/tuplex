@@ -5,12 +5,6 @@
 #include <physical/experimental/JSONParseRowGenerator.h>
 #include <FlattenedTuple.h>
 
-template<typename T> std::string pointer2hex(T *ptr) {
-    char buf[64];
-    snprintf(buf, 64, "%p", ptr);
-    return std::string(buf);
-}
-
 namespace tuplex {
     namespace codegen {
         std::tuple<llvm::Value *, SerializableValue>

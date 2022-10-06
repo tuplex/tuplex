@@ -45,15 +45,16 @@ TEST_F(JsonTuplexTest, GithubLoad) {
     Context ctx(opt);
     bool unwrap_first_level = true;
 
-    unwrap_first_level = true;
-//    ctx.json("../resources/ndjson/github.json", unwrap_first_level).show();
+    unwrap_first_level = false;
+    ctx.json("../resources/ndjson/github.json", unwrap_first_level).map(UDF("lambda x: x['type']")).show();
 
-    // simple func --> this works only with unwrapping!
-    ctx.json("../resources/ndjson/github.json", unwrap_first_level)
-       .filter(UDF("lambda x: x['type'] == 'PushEvent'"))
-       .mapColumn("id", UDF("lambda x: int(x)"))
-       .selectColumns(std::vector<std::string>({"repo", "type", "id"}))
-       .show();
+//    // simple func --> this works only with unwrapping!
+// unwrap_first_level = true;
+//    ctx.json("../resources/ndjson/github.json", unwrap_first_level)
+//       .filter(UDF("lambda x: x['type'] == 'PushEvent'"))
+//       .mapColumn("id", UDF("lambda x: int(x)"))
+//       .selectColumns(std::vector<std::string>({"repo", "type", "id"}))
+//       .show();
 
     // @TODO: tests
     // -> unwrap should be true and the basic show pipeline work as well.

@@ -1251,8 +1251,16 @@ namespace tuplex {
 
             // string type is a primitive, hence we can return it
             if (t == python::Type::STRING || t == python::Type::GENERICDICT ||
-                t.isDictionaryType() || t == python::Type::PYOBJECT)
+                t == python::Type::PYOBJECT)
                 return Type::getInt8PtrTy(_context);
+
+            if(t.isDictionaryType()) {
+                if(t.isStructuredDictionaryType()) {
+                    return getOrCreateStructuredDictType(t);
+                } else {
+                    return Type::getInt8PtrTy(_context);
+                }
+            }
 
             if(t == python::Type::MATCHOBJECT)
                 return getMatchObjectPtrType();

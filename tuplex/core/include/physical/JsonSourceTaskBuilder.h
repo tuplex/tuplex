@@ -12,6 +12,7 @@ namespace tuplex {
         class JsonSourceTaskBuilder : public BlockBasedTaskBuilder {
         public:
             JsonSourceTaskBuilder(const std::shared_ptr<LLVMEnvironment>& env,
+                                  int64_t input_operator_id,
                                   const python::Type& normalCaseRowType,
                                   const python::Type& generalCaseRowType,
                                   const std::vector<std::string>& normal_case_columns,
@@ -22,6 +23,7 @@ namespace tuplex {
             llvm::Function* build(bool terminateEarlyOnFailureCode) override;
         private:
             std::string _functionName; /// name of the LLVM function
+            int64_t _inputOperatorID; // id of the input operator
 
             python::Type _normalCaseRowType;
             python::Type _generalCaseRowType;
@@ -55,9 +57,11 @@ namespace tuplex {
              * @return
              */
             llvm::Value* generateParseLoop(llvm::IRBuilder<>& builder, llvm::Value* bufPtr, llvm::Value* bufSize,
+                                           llvm::Value *userData,
                                            const std::vector<std::string>& normal_case_columns,
                                            const std::vector<std::string>& general_case_columns,
-                                           bool unwrap_first_level);
+                                           bool unwrap_first_level,
+                                           bool terminateEarlyOnLimitCode);
 
             inline llvm::Value* incVar(llvm::IRBuilder<>& builder, llvm::Value* var, llvm::Value* what_to_add) {
                 llvm::Value* val = builder.CreateLoad(var);
@@ -94,6 +98,14 @@ namespace tuplex {
             void exitMainFunctionWithError(llvm::IRBuilder<> &builder, llvm::Value *exitCondition, llvm::Value *exitCode);
             llvm::Value *hasNextRow(llvm::IRBuilder<> &builder, llvm::Value *j);
             void moveToNextRow(llvm::IRBuilder<> &builder, llvm::Value *j);
+
+            // serialize bad parse exception
+            void serializeBadParseException(llvm::IRBuilder<> &builder,
+                                            llvm::Value* userData,
+                                            int64_t operatorID,
+                                            llvm::Value *row_no,
+                                            llvm::Value *str,
+                                            llvm::Value *str_size);
         };
     }
 }

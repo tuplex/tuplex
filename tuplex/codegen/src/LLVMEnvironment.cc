@@ -864,8 +864,16 @@ namespace tuplex {
             // extract elements
             // auto structValIdx = builder.CreateStructGEP(tuplePtr, valueOffset);
             auto structValIdx = CreateStructGEP(builder, tuplePtr, valueOffset);
-            if (value.val)
-                builder.CreateStore(value.val, structValIdx);
+            if (value.val) {
+                auto v = value.val;
+                // special case isStructDict or isListType b.c. they may be represented through a lazy pointer
+                if(elementType.isListType() || elementType.isStructuredDictionaryType()) {
+                    if(v->getType() == structValIdx->getType())
+                        v = builder.CreateLoad(v); // load in order to store!
+                }
+
+                builder.CreateStore(v, structValIdx);
+            }
 
             // size existing? ==> only for varlen types
             if (!elementType.isFixedSizeType() &&
@@ -1243,8 +1251,16 @@ namespace tuplex {
 
             // string type is a primitive, hence we can return it
             if (t == python::Type::STRING || t == python::Type::GENERICDICT ||
-                t.isDictionaryType() || t == python::Type::PYOBJECT)
+                t == python::Type::PYOBJECT)
                 return Type::getInt8PtrTy(_context);
+
+            if(t.isDictionaryType()) {
+                if(t.isStructuredDictionaryType()) {
+                    return getOrCreateStructuredDictType(t);
+                } else {
+                    return Type::getInt8PtrTy(_context);
+                }
+            }
 
             if(t == python::Type::MATCHOBJECT)
                 return getMatchObjectPtrType();
@@ -2222,6 +2238,34 @@ namespace tuplex {
             auto type = generate_structured_dict_type(*this, twine, structType);
             _generatedStructDictTypes[structType] = type;
             return type;
+        }
+
+        SerializableValue CreateDummyValue(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& type) {
+            using namespace llvm;
+
+            // dummy value needs to be created for llvm to combine stuff.
+            SerializableValue retVal;
+
+            // special case, option type:
+            if(type.isOptionType()) {
+                // recurse
+                retVal = CreateDummyValue(env, builder, type.getReturnType());
+                retVal.is_null = env.i1Const(true);
+            } else if (python::Type::BOOLEAN == type || python::Type::I64 == type) {
+                retVal.val = env.i64Const(0);
+                retVal.size = env.i64Const(sizeof(int64_t));
+            } else if (python::Type::F64 == type) {
+                retVal.val = env.f64Const(0.0);
+                retVal.size = env.i64Const(sizeof(double));
+            } else if (python::Type::STRING == type || type.isDictionaryType()) {
+                retVal.val = env.i8ptrConst(nullptr);
+                retVal.size = env.i64Const(0);
+            } else if(python::Type::NULLVALUE == type) {
+                retVal.is_null = env.i1Const(true);
+            } else {
+                throw std::runtime_error("not support to create dummy value for " + type.desc() + " yet.");
+            }
+            return retVal;
         }
     }
 }

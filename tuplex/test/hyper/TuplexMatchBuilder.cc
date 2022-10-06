@@ -29,10 +29,13 @@ namespace tuplex {
 
 
             // create dict parser and store to row_var
-            JSONParseRowGenerator gen(_env, row_type,  _freeEnd, bbSchemaMismatch);
+            JSONParseRowGenerator gen(_env, row_type, _freeEnd, bbSchemaMismatch);
             gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
+            // update free end block
+            _freeEnd = gen.freeBlockEnd();
 
             // free obj_var...
+            _env.debugPrint(builder, "freeing root item object");
             json_freeObject(_env, builder, builder.CreateLoad(obj_var));
 #ifndef NDEBUG
             builder.CreateStore(_env.i8nullptr(), obj_var);
@@ -71,6 +74,9 @@ namespace tuplex {
             // update row number (inc +1)
             auto row_no = rowNumber(builder);
             builder.CreateStore(builder.CreateAdd(row_no, _env.i64Const(1)), _rowNumberVar);
+
+            // debug print
+            _env.debugPrint(builder, "-> move to next row");
 
             // @TODO: free everything so far??
             _env.freeAll(builder); // -> call rtfree!
@@ -224,7 +230,7 @@ namespace tuplex {
             {
                 // debug: create an info statement for free block
                 llvm::IRBuilder<> b(_freeStart);
-                // _env.printValue(b, rowNumber(b), "entered free row objects for row no=");
+                _env.printValue(b, rowNumber(b), "enter free row objects for row no=");
             }
 #endif
             llvm::Value *rc = openJsonBuf(builder, parser, bufPtr, bufSize);
@@ -268,6 +274,7 @@ namespace tuplex {
 
                 // create skip part -> count as normal row.
                 builder.SetInsertPoint(bbSkip);
+                incVar(builder, _filteredOutRowsVar); // inc filterered out rows.
                 incVar(builder, _normalRowCountVar);
                 builder.CreateBr(_freeStart);
 
@@ -294,6 +301,7 @@ namespace tuplex {
 
                 // inc by one
                 incVar(builder, _normalRowCountVar);
+                _env.debugPrint(builder, "enter free start from normal parse");
                 builder.CreateBr(_freeStart);
             }
 
@@ -310,6 +318,7 @@ namespace tuplex {
                 incVar(builder, _generalMemorySizeVar, general_size);
 
                 incVar(builder, _generalRowCountVar);
+                _env.debugPrint(builder, "enter free start from general parse");
                 builder.CreateBr(_freeStart);
             }
 
@@ -360,6 +369,7 @@ namespace tuplex {
 
                 // this is ok here, b.c. it's local.
                 _env.cfree(builder, line);
+                _env.debugPrint(builder, "enter free start from fallback parse");
                 builder.CreateBr(_freeStart);
             }
 
@@ -455,13 +465,15 @@ namespace tuplex {
                                                   ctypeToLLVM<int64_t*>(ctx),
                                                   ctypeToLLVM<int64_t*>(ctx),
                                                   ctypeToLLVM<int64_t*>(ctx),
-                                                  ctypeToLLVM<int64_t*>(ctx),}, false);
+                                                  ctypeToLLVM<int64_t*>(ctx),
+                                                  ctypeToLLVM<int64_t*>(ctx)}, false);
 
             Function *F = Function::Create(FT, llvm::GlobalValue::ExternalLinkage, _functionName,
                                            *_env.getModule().get());
             auto m = mapLLVMFunctionArgs(F, {"buf", "buf_size", "out_total_rows",
                                              "out_normal_rows", "out_general_rows", "out_fallback_rows",
-                                             "out_normal_size", "out_general_size", "out_fallback_size"});
+                                             "out_normal_size", "out_general_size", "out_fallback_size",
+                                             "out_filtered_rows"});
 
             auto bbEntry = BasicBlock::Create(ctx, "entry", F);
             IRBuilder<> builder(bbEntry);
@@ -481,6 +493,8 @@ namespace tuplex {
 
             _rowNumberVar = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "row_no");
 
+            _filteredOutRowsVar = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "rows_filtered");
+
              // dummy parse, simply print type and value with type checking.
              generateParseLoop(builder, m["buf"], m["buf_size"], hackyPromoteEventFilter, hackyEventName);
 
@@ -494,6 +508,8 @@ namespace tuplex {
             writeOutput(builder, m["out_normal_size"], builder.CreateLoad(_normalMemorySizeVar));
             writeOutput(builder, m["out_general_size"], builder.CreateLoad(_generalMemorySizeVar));
             writeOutput(builder, m["out_fallback_size"], builder.CreateLoad(_fallbackMemorySizeVar));
+
+            writeOutput(builder, m["out_filtered_rows"], builder.CreateLoad(_filteredOutRowsVar));
 
             builder.CreateRet(_env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
         }

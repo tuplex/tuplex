@@ -24,21 +24,6 @@ namespace tuplex {
             return false;
         }
 
-        inline std::string json_access_path_to_string(const std::vector<std::pair<std::string, python::Type>>& path,
-                                                      const python::Type& value_type,
-                                                      bool always_present) {
-            std::stringstream ss;
-            // first the path:
-            for (auto atom: path) {
-                ss << atom.first << " (" << atom.second.desc() << ") -> ";
-            }
-            auto presence = !always_present ? "  (maybe)" : "";
-            auto v_type = value_type;
-            auto value_desc = v_type.isStructuredDictionaryType() ? "Struct[...]" : v_type.desc();
-            ss << value_desc << presence;
-            return ss.str();
-        }
-
         // recursive function to decode data, similar to flattening the type below
         // each item should be access_path | value_type | alwaysPresent |  value : SerializableValue | present : i1
         using access_path_t = std::vector<std::pair<std::string, python::Type>>;
@@ -46,7 +31,23 @@ namespace tuplex {
         using flattened_struct_dict_decoded_entry_list_t = std::vector<flattened_struct_dict_decoded_entry_t>;
 
         // flatten struct dict.
-        using flattened_struct_dict_entry_list_t = std::vector<std::tuple<std::vector<std::pair<std::string, python::Type>>, python::Type, bool>>;
+        using flattened_struct_dict_entry_t = std::tuple<std::vector<std::pair<std::string, python::Type>>, python::Type, bool>;
+        using flattened_struct_dict_entry_list_t = std::vector<flattened_struct_dict_entry_t>;
+
+        extern std::string access_path_to_str(const access_path_t& path);
+
+        inline std::string json_access_path_to_string(const std::vector<std::pair<std::string, python::Type>>& path,
+                                                      const python::Type& value_type,
+                                                      bool always_present) {
+            std::stringstream ss;
+            // first the path:
+            ss<<access_path_to_str(path)<<" -> ";
+            auto presence = !always_present ? "  (maybe)" : "";
+            auto v_type = value_type;
+            auto value_desc = v_type.isStructuredDictionaryType() ? "Struct[...]" : v_type.desc();
+            ss << value_desc << presence;
+            return ss.str();
+        }
 
         extern void flatten_recursive_helper(flattened_struct_dict_entry_list_t &entries,
                                              const python::Type &dict_type,
@@ -94,11 +95,23 @@ namespace tuplex {
          * @return the value (or dummies)
          */
         extern SerializableValue struct_dict_get_or_except(LLVMEnvironment& env,
+                                                           llvm::IRBuilder<>& builder,
                                                            const python::Type& dict_type,
                                                            const std::string& key,
                                                            const python::Type& key_type,
                                                            llvm::Value* ptr,
                                                            llvm::BasicBlock* bbKeyNotFound);
+
+        /*!
+         * retrieve the element type under access path.
+         * @param dict_type
+         * @param path
+         * @return element type or UNKNOWN if access path is not found.
+         */
+        extern python::Type struct_dict_type_get_element_type(const python::Type& dict_type, const access_path_t& path);
+
+        extern llvm::Value* struct_dict_load_present(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path);
+        extern SerializableValue struct_dict_load_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path);
     }
 }
 

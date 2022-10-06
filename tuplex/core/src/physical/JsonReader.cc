@@ -255,6 +255,13 @@ namespace tuplex {
 
         // if bytes are negative, error!
         if(bytesParsed < 0) {
+            auto ecCode = i64ToEC(-bytesParsed);
+
+            // special case: early terminate!
+            if(ExceptionCode::OUTPUT_LIMIT_REACHED == ecCode)
+                // special case!
+                throw std::runtime_error("All ok here, just need to add the necessary logic...");
+
             throw std::runtime_error("Json read failed with code " + std::to_string(-bytesParsed));
         }
 

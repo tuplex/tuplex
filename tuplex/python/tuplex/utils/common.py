@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#----------------------------------------------------------------------------------------------------------------------#
+# ----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
 #                                       Tuplex: Blazing Fast Python Data Science                                       #
 #                                                                                                                      #
@@ -7,9 +7,12 @@
 #  (c) 2017 - 2021, Tuplex team                                                                                        #
 #  Created by Leonhard Spiegelberg first on 1/1/2021                                                                   #
 #  License: Apache 2.0                                                                                                 #
-#----------------------------------------------------------------------------------------------------------------------#
+# ----------------------------------------------------------------------------------------------------------------------#
 import atexit
+import sys
 import collections
+
+import collections.abc
 import pathlib
 import signal
 
@@ -32,17 +35,20 @@ import re
 import tempfile
 import time
 import shlex
+import pathlib
 
 try:
-  import pwd
+    import pwd
 except ImportError:
-  import getpass
-  pwd = None
+    import getpass
+
+    pwd = None
 
 try:
     from tuplex.utils.version import __version__
 except:
     __version__ = 'dev'
+
 
 def cmd_exists(cmd):
     """
@@ -54,6 +60,7 @@ def cmd_exists(cmd):
 
     """
     return shutil.which(cmd) is not None
+
 
 def is_shared_lib(path):
     """
@@ -70,6 +77,7 @@ def is_shared_lib(path):
     mime_type = res.split()[-1].decode()
     return mime_type == 'application/x-sharedlib' or mime_type == 'application/x-application'
 
+
 def current_timestamp():
     """
     get current time as isoformatted string
@@ -77,6 +85,7 @@ def current_timestamp():
 
     """
     return str(datetime.now().isoformat())
+
 
 def current_user():
     """
@@ -89,6 +98,7 @@ def current_user():
     else:
         return getpass.getuser()
 
+
 def host_name():
     """
     retrieve host name to identify machine
@@ -99,6 +109,7 @@ def host_name():
         return socket.gethostname()
     else:
         return socket.gethostbyaddr(socket.gethostname())[0]
+
 
 def post_json(url, data):
     """
@@ -117,6 +128,7 @@ def post_json(url, data):
     response = urllib.request.urlopen(req)
     return json.loads(response.read())
 
+
 def get_json(url, timeout=10):
     """
     perform a GET request to given URL
@@ -130,6 +142,7 @@ def get_json(url, timeout=10):
     req = urllib.request.Request(url, headers={'content-type': 'application/json'})
     response = urllib.request.urlopen(req, timeout=timeout)
     return json.loads(response.read())
+
 
 def in_jupyter_notebook():
     """check whether frameworks runs in jupyter notebook.
@@ -152,6 +165,7 @@ def in_jupyter_notebook():
     except NameError:
         return False  # Probably standard Python interpreter
 
+
 def in_google_colab():
     """
         check whether framework runs in Google Colab environment
@@ -167,7 +181,7 @@ def in_google_colab():
 
     shell_name_matching = False
     try:
-        shell_name_matching =  'google.colab' in str(get_ipython())
+        shell_name_matching = 'google.colab' in str(get_ipython())
     except:
         pass
 
@@ -175,6 +189,7 @@ def in_google_colab():
         return True
     else:
         return False
+
 
 def is_in_interactive_mode():
     """checks whether the module is loaded in an interactive shell session or not
@@ -184,6 +199,7 @@ def is_in_interactive_mode():
     """
 
     return bool(getattr(sys, 'ps1', sys.flags.interactive))
+
 
 def flatten_dict(d, sep='.', parent_key=''):
     """ flattens a nested dictionary into a flat dictionary by concatenating keys with the separator.
@@ -197,11 +213,14 @@ def flatten_dict(d, sep='.', parent_key=''):
     items = []
     for key, val in d.items():
         new_key = parent_key + sep + key if parent_key else key
-        if isinstance(val, collections.MutableMapping):
+
+        # Python 3.10+ moved MutableMapping to collections.abc.MutableMapping permanently
+        if isinstance(val, collections.abc.MutableMapping):
             items.extend(flatten_dict(val, sep, new_key).items())
         else:
             items.append((new_key, val))
     return dict(items)
+
 
 def unflatten_dict(dictionary, sep='.'):
     """
@@ -228,6 +247,7 @@ def unflatten_dict(dictionary, sep='.'):
         d[parts[-1]] = value
     return resultDict
 
+
 def save_conf_yaml(conf, file_path):
     """saves a dictionary holding the configuration options to Tuplex Yaml format. \
     Dict can be either flattened or not.
@@ -236,13 +256,15 @@ def save_conf_yaml(conf, file_path):
         conf: a dictionary holding the configuration.
         file_path:
     """
+
     def beautify_nesting(d):
         # i.e. make lists out of dicts
         if isinstance(d, dict):
             items = d.items()
-            return [{key : beautify_nesting(val)} for key, val in items]
+            return [{key: beautify_nesting(val)} for key, val in items]
         else:
             return d
+
     assert isinstance(file_path, str), 'file_path must be instance of str'
 
     with open(file_path, 'w') as f:
@@ -250,7 +272,7 @@ def save_conf_yaml(conf, file_path):
         f.write('# created {} UTC\n'.format(datetime.utcnow()))
 
         out = yaml.dump(beautify_nesting(unflatten_dict(conf)))
-        #pyyaml prints { } around single item dicts. Remove by hand
+        # pyyaml prints { } around single item dicts. Remove by hand
         out = out.replace('{', '').replace('}', '')
         f.write(out)
 
@@ -300,7 +322,8 @@ def pythonize_options(options):
             pass
         return item
 
-    return {k : parse_string(v) for k, v in options.items()}
+    return {k: parse_string(v) for k, v in options.items()}
+
 
 def load_conf_yaml(file_path):
     """loads yaml file and converts contents to nested dictionary
@@ -347,7 +370,8 @@ def stringify_dict(d):
         dictionary with keys and vals as strs
     """
     assert isinstance(d, dict), 'd must be a dictionary'
-    return {str(key) : str(val) for key, val in d.items()}
+    return {str(key): str(val) for key, val in d.items()}
+
 
 def registerLoggingCallback(callback):
     """
@@ -371,6 +395,7 @@ def registerLoggingCallback(callback):
 
     ccRegister(wrapper)
 
+
 def logging_callback(level, time_info, logger_name, msg):
     """
     this is a callback function which can be used to redirect C++ logging to python logging.
@@ -382,9 +407,9 @@ def logging_callback(level, time_info, logger_name, msg):
     """
 
     # convert level to logging levels
-    if 0 == level: # unsupported level in C++
+    if 0 == level:  # unsupported level in C++
         level = logging.INFO
-    if 1 == level: # trace in C++
+    if 1 == level:  # trace in C++
         level = logging.DEBUG
     if 2 == level:
         level = logging.DEBUG
@@ -424,6 +449,7 @@ def logging_callback(level, time_info, logger_name, msg):
 # tuple of (key, func).
 __exit_handlers__ = []
 
+
 # register at exit function to take care of exit handlers
 def auto_shutdown_all():
     """
@@ -445,9 +471,11 @@ def auto_shutdown_all():
             logging.error('Failed to shutdown {}'.format(name))
     __exit_handlers__ = []
 
+
 def register_auto_shutdown(name, func, args, msg=None):
     global __exit_handlers__
     __exit_handlers__.append((name, func, args, msg))
+
 
 atexit.register(auto_shutdown_all)
 
@@ -471,6 +499,7 @@ def is_process_running(name):
             pass
     return False
 
+
 def mongodb_uri(mongodb_url, mongodb_port, db_name='tuplex-history'):
     """
     constructs a fully qualified MongoDB URI
@@ -483,6 +512,7 @@ def mongodb_uri(mongodb_url, mongodb_port, db_name='tuplex-history'):
         string representing MongoDB URI
     """
     return 'mongodb://{}:{}/{}'.format(mongodb_url, mongodb_port, db_name)
+
 
 def check_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history', timeout=10.0):
     """
@@ -522,13 +552,15 @@ def check_mongodb_connection(mongodb_url, mongodb_port, db_name='tuplex-history'
             break
 
         time.sleep(0.05)  # sleep for 50ms
-        logging.debug('Contacting MongoDB under {}... -- {:.2f}s of poll time left'.format(uri, timeout - (time.time() - start_time)))
+        logging.debug('Contacting MongoDB under {}... -- {:.2f}s of poll time left'.format(uri, timeout - (
+                    time.time() - start_time)))
         connect_try += 1
 
     if connect_successful is False:
         raise Exception('Could not connect to MongoDB, check network connection. (ping must be < 100ms)')
 
     logging.debug('Connection test to MongoDB succeeded')
+
 
 def shutdown_process_via_kill(pid):
     """
@@ -541,6 +573,7 @@ def shutdown_process_via_kill(pid):
     """
     logging.debug('Shutting down process PID={}'.format(pid))
     os.kill(pid, signal.SIGKILL)
+
 
 def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_logpath, db_name='tuplex-history'):
     """
@@ -581,12 +614,23 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_l
 
             # startup via mongod --fork --logpath /var/log/mongodb/mongod.log --port 1234 --dbpath <path>
             try:
-                cmd = ['mongod', '--fork', '--logpath', str(mongodb_logpath), '--port', str(mongodb_port), '--dbpath', str(mongodb_datapath)]
+                cmd = ['mongod', '--fork', '--logpath', str(mongodb_logpath), '--port', str(mongodb_port), '--dbpath',
+                       str(mongodb_datapath)]
 
                 logging.debug('starting MongoDB daemon process via {}'.format(' '.join(cmd)))
                 process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                # set a timeout of 2 seconds to keep everything interactive
-                p_stdout, p_stderr = process.communicate(timeout=2)
+
+                short_timeout = 2.5
+                max_mongodb_timeout = 10  # maximum timeout is 10s
+                try:
+                    # set a timeout of 2 seconds to keep everything interactive
+                    p_stdout, p_stderr = process.communicate(timeout=short_timeout)
+                except subprocess.TimeoutExpired:
+                    # try now with more time (up to max)
+                    logging.info(
+                        "Could not start MongoDB daemon process in {}s, trying with timeout={}s".format(short_timeout,
+                                                                                                        max_mongodb_timeout))
+                    p_stdout, p_stderr = process.communicate(timeout=max_mongodb_timeout)
 
                 # decode
                 p_stdout = p_stdout.decode()
@@ -630,6 +674,7 @@ def find_or_start_mongodb(mongodb_url, mongodb_port, mongodb_datapath, mongodb_l
         logging.debug('Connecting to remote MongoDB instance')
         check_mongodb_connection(mongodb_url, mongodb_port, db_name)
 
+
 def log_gunicorn_errors(logpath):
     """
     uses logging module to print out gunicorn errors if something went wrong
@@ -648,6 +693,7 @@ def log_gunicorn_errors(logpath):
             first_idx = min(indices)
             logging.error('Gunicorn error log:\n {}'.format(''.join(lines[first_idx:])))
 
+
 def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
     """
     tries to connect to Tuplex WebUI. If local uri is specified, autostarts WebUI.
@@ -660,7 +706,7 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
     Returns:
         None, raises exceptions on failure
     """
-    version_endpoint = '/api/version' # use this to connect and trigger WebUI connection
+    version_endpoint = '/api/version'  # use this to connect and trigger WebUI connection
 
     if not hostname.startswith('http://') and not hostname.startswith('https://'):
         hostname = 'http://' + str(hostname)
@@ -679,11 +725,11 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
     else:
         # start WebUI up!
         if not cmd_exists('gunicorn'):
-            raise Exception('Tuplex uses per default gunicorn with eventlet to run the WebUI. Please install via `pip3 install "gunicorn[eventlet]"` or add to PATH')
+            raise Exception(
+                'Tuplex uses per default gunicorn with eventlet to run the WebUI. Please install via `pip3 install "gunicorn[eventlet]"` or add to PATH')
 
         # command for this is:
         # env MONGO_URI=$MONGO_URI gunicorn --daemon --worker-class eventlet --log-file $GUNICORN_LOGFILE -b $HOST:$PORT thserver:app
-
 
         # directory needs to be the one where the history server is located in!
         # ==> from structure of file we can infer that
@@ -707,8 +753,11 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
                 path = path.parent
 
         # check dir historyserver/thserver exists!
-        assert os.path.isdir(os.path.join(tuplex_basedir, 'historyserver', 'thserver')), 'could not find Tuplex WebUI WebApp in {}'.format(tuplex_basedir)
-        assert os.path.isfile(os.path.join(tuplex_basedir, 'historyserver', 'thserver', '__init__.py')), 'could not find Tuplex WebUI __init__.py file in thserver folder'
+        assert os.path.isdir(os.path.join(tuplex_basedir, 'historyserver',
+                                          'thserver')), 'could not find Tuplex WebUI WebApp in {}'.format(
+            tuplex_basedir)
+        assert os.path.isfile(os.path.join(tuplex_basedir, 'historyserver', 'thserver',
+                                           '__init__.py')), 'could not find Tuplex WebUI __init__.py file in thserver folder'
 
         # history server dir to use to start gunicorn
         ui_basedir = os.path.join(tuplex_basedir, 'historyserver')
@@ -719,8 +768,20 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
 
         ui_env = os.environ
         ui_env['MONGO_URI'] = mongo_uri
-        gunicorn_host = '{}:{}'.format(hostname.replace('http://', '').replace('https://',''), port)
-        cmd = ['gunicorn', '--daemon', '--worker-class', 'eventlet', '--chdir', ui_basedir, '--pid', PID_FILE, '--log-file', web_logfile, '-b', gunicorn_host, 'thserver:app']
+        gunicorn_host = '{}:{}'.format(hostname.replace('http://', '').replace('https://', ''), port)
+
+        # need to convert everything to absolute paths (b.c. gunicorn fails else)
+        web_logfile = os.path.abspath(web_logfile)
+        ui_basedir = os.path.abspath(ui_basedir)
+        # also make sure parent dir of web_logfile exists
+        try:
+            wl_path = pathlib.Path(web_logfile).parent
+            os.makedirs(str(wl_path), exist_ok=True)
+        except Exception as e:
+            logging.error("ensuring parent dir of {} exists, failed with {}".format(web_logfile, e))
+
+        cmd = ['gunicorn', '--daemon', '--worker-class', 'eventlet', '--chdir', ui_basedir, '--pid', PID_FILE,
+               '--log-file', web_logfile, '-b', gunicorn_host, 'thserver:app']
 
         logging.debug('Starting gunicorn with command: {}'.format(' '.join(cmd)))
 
@@ -733,7 +794,7 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
         p_stderr = p_stderr.decode()
 
         if len(p_stderr.strip()) > 0:
-            raise Exception('mongod produced following errors: {}'.format(p_stderr))
+            raise Exception('gunicorn produced following errors: {}'.format(p_stderr))
 
         logging.info('Gunicorn locally started...')
 
@@ -741,23 +802,49 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
         ui_pid = None
 
         # Writing the PID might require some time for gunicorn, therefore poll the temp file for up to 2s
-        TIME_LIMIT = 2
+        TIME_LIMIT = 3
         start_time = time.time()
         while time.time() - start_time < TIME_LIMIT:
             if not os.path.isfile(PID_FILE) or os.stat(PID_FILE).st_size == 0:
-                time.sleep(0.05) # sleep for 50ms
+                time.sleep(0.05)  # sleep for 50ms
             else:
                 break
-            logging.debug('Polling for Gunicorn PID... -- {:.2f}s of poll time left'.format(TIME_LIMIT - (time.time() - start_time)))
+            logging.debug('Polling for Gunicorn PID... -- {:.2f}s of poll time left'.format(
+                TIME_LIMIT - (time.time() - start_time)))
 
-        # Read PID file
-        with open(PID_FILE, 'r') as fp:
-            ui_pid = int(fp.read())
+        ui_pid = None
+        try:
+            # Read PID file
+            with open(PID_FILE, 'r') as fp:
+                ui_pid = int(fp.read())
+        except Exception as e:
+            logging.debug("failed to retrieve PID for WebUI, details: {}".format(e))
+
+            non_daemon_log = 'timeout - no log'
+            # something went wrong with starting gunicorn. Try to capture some meaningful output and abort
+            try:
+                cmd = ['gunicorn', '--worker-class', 'eventlet', '--chdir', ui_basedir, '--pid', PID_FILE,
+                       '--log-file', '-', '-b', gunicorn_host, 'thserver:app']
+                process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=ui_env)
+                # set a timeout of 5 seconds to keep everything interactive
+                p_stdout, p_stderr = process.communicate(timeout=5)
+
+                # decode
+                p_stdout = p_stdout.decode()
+                p_stderr = p_stderr.decode()
+
+                non_daemon_log = p_stdout + '\n' + p_stderr
+            except subprocess.TimeoutExpired:
+                pass
+            logging.error('Gunicorn process log:\n' + non_daemon_log)
+            raise Exception("Failed to start gunicorn daemon, non-daemon run yielded:\n{}".format(non_daemon_log))
+
         assert ui_pid is not None, 'Invalid PID for WebUI'
         logging.info('Gunicorn PID={}'.format(ui_pid))
 
         # register daemon shutdown
         logging.debug('Adding auto-shutdown of process with PID={} (WebUI)'.format(ui_pid))
+
         def shutdown_gunicorn(pid):
 
             pids_to_kill = []
@@ -822,7 +909,7 @@ def ensure_webui(options):
     mongodb_logpath = os.path.join(options['tuplex.scratchDir'], 'webui', 'logs', 'mongod.log')
     gunicorn_logpath = os.path.join(options['tuplex.scratchDir'], 'webui', 'logs', 'gunicorn.log')
     webui_url = options['tuplex.webui.url']
-    webui_port =  options['tuplex.webui.port']
+    webui_port = options['tuplex.webui.port']
 
     try:
         logging.debug('finding MongoDB...')
@@ -839,7 +926,8 @@ def ensure_webui(options):
         # check that version of WebUI and Tuplex version match
         # exclude dev versions, i.e. silence warning there.
         if 'dev' not in __version__ and version_info['version'] != __version__:
-            logging.warning('Version of Tuplex WebUI ({}) and Tuplex ({}) do not match.'.format(version_info['version'], __version__))
+            logging.warning('Version of Tuplex WebUI ({}) and Tuplex ({}) do not match.'.format(version_info['version'],
+                                                                                                __version__))
 
         # all good, print out link so user can access WebUI easily
         webui_uri = webui_url + ':' + str(webui_port)

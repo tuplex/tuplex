@@ -18,7 +18,7 @@ namespace tuplex {
                 delete parser;
             parser = nullptr;
         }
-
+        // gdb -ex r --args dist/bin/testhyper --gtest_filter=HyperTest.LoadAllFiles
         int64_t JsonParser_TruncatedBytes(JsonParser* parser) {
             assert(parser);
             return parser->stream.truncated_bytes();
@@ -76,11 +76,14 @@ namespace tuplex {
             assert(j);
             string full_row;
             stringstream ss;
-            ss << j->it.source() << std::endl;
+            ss << j->it.source();
+            ss.flush();
             full_row = ss.str();
-            char *buf = (char *) malloc(full_row.size());
-            if (buf)
-                memcpy(buf, full_row.c_str(), full_row.size());
+            char *buf = (char *) malloc(full_row.length() + 1);
+            if (buf) {
+                memcpy(buf, full_row.c_str(), full_row.length());
+                buf[full_row.length()] = '\0';
+            }
             return buf;
         }
 
@@ -90,13 +93,17 @@ namespace tuplex {
             assert(j);
             string full_row;
             stringstream ss;
-            ss << j->it.source() << std::endl;
+            ss << j->it.source();
+            ss.flush();
             full_row = ss.str();
-            char *buf = (char *) malloc(full_row.size());
-            if (buf)
-                memcpy(buf, full_row.c_str(), full_row.size());
+            char *buf = (char *) malloc(full_row.length() + 1);
+            if (buf) {
+                memcpy(buf, full_row.c_str(), full_row.length());
+                buf[full_row.length()] = '\0';
+            }
+
             if(size && buf)
-                *size = full_row.size();
+                *size = full_row.length() + 1;
             return buf;
         }
 
@@ -146,7 +153,7 @@ namespace tuplex {
 
         // C API
         void JsonItem_Free(JsonItem *i) {
-            // delete i; //--> bad: error here!
+            delete i; //--> bad: error here!
             i = nullptr;
         }
 
@@ -176,8 +183,7 @@ namespace tuplex {
             //dom
             assert(doc.value().type() == simdjson::dom::element_type::OBJECT);
 
-            o->o = std::move(object);
-
+            o->o = object;
             *out = o;
 
             return ecToI64(ExceptionCode::SUCCESS);
@@ -250,7 +256,7 @@ namespace tuplex {
                 return translate_simdjson_error(error);
             // ONLY allocate if ok. else, leave how it is.
             auto obj = new JsonItem();
-            obj->o = std::move(o);
+            obj->o = o;
             *out = obj;
             return ecToI64(ExceptionCode::SUCCESS);
         }
@@ -283,8 +289,8 @@ namespace tuplex {
         }
 
         void JsonArray_Free(JsonArray* arr) {
-//            if(arr)
-//                delete arr;
+            if(arr)
+                delete arr;
             arr = nullptr;
         }
 
@@ -401,7 +407,7 @@ namespace tuplex {
 
             // ONLY allocate if ok. else, leave how it is.
             auto obj = new JsonItem();
-            obj->o = std::move(o);
+            obj->o = o;
             *out = obj;
             return ecToI64(ExceptionCode::SUCCESS);
         }

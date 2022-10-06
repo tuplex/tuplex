@@ -85,77 +85,45 @@ namespace tuplex {
         void struct_dict_set_item(LLVMEnvironment &env, llvm::Value *obj, const python::Type &dict_type,
                                   const SerializableValue &key, const python::Type &key_type);
 
-
-        std::vector<python::StructEntry>::iterator
-        find_by_key(const python::Type &dict_type, const std::string &key_value, const python::Type &key_type) {
-            // perform value compare of key depending on key_type
-            auto kv_pairs = dict_type.get_struct_pairs();
-            return std::find_if(kv_pairs.begin(), kv_pairs.end(), [&](const python::StructEntry &entry) {
-                auto k_type = deoptimizedType(key_type);
-                auto e_type = deoptimizedType(entry.keyType);
-                if (k_type != e_type) {
-                    // special case: option types ->
-                    if (k_type.isOptionType() &&
-                        (python::Type::makeOptionType(e_type) == k_type || e_type == python::Type::NULLVALUE)) {
-                        // ok... => decide
-                        return semantic_python_value_eq(k_type, entry.key, key_value);
-                    }
-
-                    // other way round
-                    if (e_type.isOptionType() &&
-                        (python::Type::makeOptionType(k_type) == e_type || k_type == python::Type::NULLVALUE)) {
-                        // ok... => decide
-                        return semantic_python_value_eq(e_type, entry.key, key_value);
-                    }
-
-                    return false;
-                } else {
-                    // is key_value the same as what is stored in the entry?
-                    return semantic_python_value_eq(k_type, entry.key, key_value);
-                }
-                return false;
-            });
-        }
-
-        llvm::Value *struct_dict_contains_key(LLVMEnvironment &env, llvm::Value *obj, const python::Type &dict_type,
-                                              const SerializableValue &key, const python::Type &key_type) {
-            assert(dict_type.isStructuredDictionaryType());
-
-            auto &logger = Logger::instance().logger("codegen");
-
-            // quick check
-            // is key-type at all contained?
-            auto kv_pairs = dict_type.get_struct_pairs();
-            auto it = std::find_if(kv_pairs.begin(), kv_pairs.end(),
-                                   [&key_type](const python::StructEntry &entry) { return entry.keyType == key_type; });
-            if (it == kv_pairs.end())
-                return env.i1Const(false);
-
-            // is it a constant key? => can decide during compile time as well!
-            if (key_type.isConstantValued()) {
-                auto it = find_by_key(dict_type, key_type.constant(), key_type.underlying());
-                return env.i1Const(it != dict_type.get_struct_pairs().end());
-            }
-
-            // is the value a llvm constant? => can optimize as well!
-            if (key.val && llvm::isa<llvm::Constant>(key.val)) {
-                // there are only a couple cases where this works...
-                // -> string, bool, i64, f64...
-                // if(key_type == python::Type::STRING && llvm::isa<llvm::Constant)
-                // @TODO: skip for now
-                logger.debug("optimization potential here... can decide this at compile time!");
-            }
-
-            // can't decide statically, use here LLVM IR code to decide whether the struct type contains the key or not!
-            // => i.e. want to do semantic comparison.
-            // only need to compare against all keys with key_type (or that are compatible to it (e.g. options))
-            std::vector<python::StructEntry> pairs_to_compare_against;
-            for (auto kv_pair: kv_pairs) {
-
-            }
-
-            return nullptr;
-        }
+//        llvm::Value *struct_dict_contains_key(LLVMEnvironment &env, llvm::Value *obj, const python::Type &dict_type,
+//                                              const SerializableValue &key, const python::Type &key_type) {
+//            assert(dict_type.isStructuredDictionaryType());
+//
+//            auto &logger = Logger::instance().logger("codegen");
+//
+//            // quick check
+//            // is key-type at all contained?
+//            auto kv_pairs = dict_type.get_struct_pairs();
+//            auto it = std::find_if(kv_pairs.begin(), kv_pairs.end(),
+//                                   [&key_type](const python::StructEntry &entry) { return entry.keyType == key_type; });
+//            if (it == kv_pairs.end())
+//                return env.i1Const(false);
+//
+//            // is it a constant key? => can decide during compile time as well!
+//            if (key_type.isConstantValued()) {
+//                auto it = find_by_key(dict_type, key_type.constant(), key_type.underlying());
+//                return env.i1Const(it != dict_type.get_struct_pairs().end());
+//            }
+//
+//            // is the value a llvm constant? => can optimize as well!
+//            if (key.val && llvm::isa<llvm::Constant>(key.val)) {
+//                // there are only a couple cases where this works...
+//                // -> string, bool, i64, f64...
+//                // if(key_type == python::Type::STRING && llvm::isa<llvm::Constant)
+//                // @TODO: skip for now
+//                logger.debug("optimization potential here... can decide this at compile time!");
+//            }
+//
+//            // can't decide statically, use here LLVM IR code to decide whether the struct type contains the key or not!
+//            // => i.e. want to do semantic comparison.
+//            // only need to compare against all keys with key_type (or that are compatible to it (e.g. options))
+//            std::vector<python::StructEntry> pairs_to_compare_against;
+//            for (auto kv_pair: kv_pairs) {
+//
+//            }
+//
+//            return nullptr;
+//        }
 
     }
 }
@@ -569,6 +537,7 @@ namespace tuplex {
         size_t normalMemorySize;
         size_t generalMemorySize;
         size_t fallbackMemorySize;
+        size_t filteredRows;
 
         nlohmann::json to_json() const {
             nlohmann::json j;
@@ -579,6 +548,7 @@ namespace tuplex {
             j["normal_mem"] = normalMemorySize;
             j["general_mem"] = generalMemorySize;
             j["fallback_mem"] = fallbackMemorySize;
+            j["filtered_rows"] = filteredRows;
             return j;
         }
     };
@@ -620,7 +590,8 @@ namespace tuplex {
         auto func = reinterpret_cast<int64_t(*)(const char *, size_t,
                                                 size_t*,
                                                 size_t*, size_t*, size_t*,
-                                                size_t*, size_t*, size_t*)>(jit.getAddrOfSymbol(parseFuncName));
+                                                size_t*, size_t*, size_t*,
+                                                size_t*)>(jit.getAddrOfSymbol(parseFuncName));
 
         // runtime init
         ContextOptions co = ContextOptions::defaults();
@@ -652,7 +623,8 @@ namespace tuplex {
         auto rc = func(reinterpret_cast<const char*>(buf), buf_size,
                        &m.totalRows,
                        &m.normalRows, &m.generalRows, &m.fallbackRows,
-                       &m.normalMemorySize, &m.generalMemorySize, &m.fallbackMemorySize);
+                       &m.normalMemorySize, &m.generalMemorySize, &m.fallbackMemorySize,
+                       &m.filteredRows);
         std::cout << "parsed rows in " << timer.time() << " seconds, (" << sizeToMemString(buf_size) << ")" << std::endl;
         std::cout << "done" << std::endl;
 
@@ -1031,6 +1003,15 @@ namespace tuplex {
         std::string event_name;
     };
 
+    nlohmann::json rowsToSample(const std::vector<Row>& rows, size_t max_rows=3) {
+        auto j = nlohmann::json::array();
+
+        for(unsigned i = 0; i < std::min(rows.size(), max_rows); ++i)
+            j.push_back(rows[i].toPythonString());
+
+        return j;
+    }
+
     void runExperiment(const ExperimentSetting& setting) {
         using namespace tuplex;
         using namespace std;
@@ -1165,6 +1146,9 @@ namespace tuplex {
                 j["path"] = path;
                 j["normal_case"] = normal_case_type.desc();
                 j["general_case"] = general_case_type.desc();
+                // pretty printed cases
+                j["normal_case_pretty"] = prettyPrintStructType(normal_case_type);
+                j["general_case_pretty"] = prettyPrintStructType(general_case_type);
                 j["normal_case_field_count"] = number_of_fields(normal_case_type);
                 j["general_case_field_count"] = number_of_fields(general_case_type);
                 j["normal_json_paths"] = json_paths_to_json_array(normal_case_type);
@@ -1176,12 +1160,14 @@ namespace tuplex {
                 j["sample_row_count"] = rows.size();
                 j["filter_promotion"] =  setting.filter_for_event;
                 j["event_to_filter_for"] = setting.event_name;
+                // add small sample...
+                j["sample"] = rowsToSample(rows);
 
                 ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!
 
                 // add type counts (good idea for later investigation on what could be done to improve sampling => maybe separate experiment?
                 auto j_arr = nlohmann::json::array();
-                for(auto p : type_counts) {
+                for(const auto& p : type_counts) {
                     auto j_obj = nlohmann::json::object();
                     j_obj["type"] = p.first.desc();
                     j_obj["count"] = p.second;
@@ -1230,9 +1216,9 @@ namespace tuplex {
 
             size_t global_actual_sample_size = total_actual_sample_size;
             size_t global_sample_count = 0;
-            for(auto kv : global_type_counts)
+            for(const auto& kv : global_type_counts)
                 global_sample_count += kv.second;
-
+            bool first_path = true;
             for(const auto& path : paths) {
                 logger.info("Processing " + path);
 
@@ -1259,8 +1245,16 @@ namespace tuplex {
                     auto j = m.to_json();
                     j["mode"] = "global";
                     j["path"] = path;
-                    j["normal_case"] = global_normal_case_type.desc();
-                    j["general_case"] = global_general_case_type.desc();
+                    if(first_path) { // <-- save some space by this.
+                        first_path = true;
+                        j["normal_case"] = global_normal_case_type.desc();
+                        j["general_case"] = global_general_case_type.desc();
+                        // pretty printed cases
+                        j["normal_case_pretty"] = prettyPrintStructType(global_normal_case_type);
+                        j["general_case_pretty"] = prettyPrintStructType(global_general_case_type);
+
+                        j["sample"] = rowsToSample(global_sample);
+                    }
                     j["normal_case_field_count"] = number_of_fields(global_normal_case_type);
                     j["general_case_field_count"] = number_of_fields(global_general_case_type);
                     j["buf_size_compressed"] = raw_data.size();
@@ -1269,7 +1263,8 @@ namespace tuplex {
                     j["perfect_sample"] = perfect_sample;
                     j["sample_row_count"] = global_sample_count;
 
-                    ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!
+
+                    ss<<j.dump()<<endl; // dump without type counts (b.c. they're large!)
 
                     // add global type counts (good idea for later investigation on what could be done to improve sampling => maybe separate experiment?
                     auto j_arr = nlohmann::json::array();
@@ -1291,7 +1286,7 @@ namespace tuplex {
             }
         }
 
-        std::cout<<ss.str()<<std::endl;
+        // std::cout<<ss.str()<<std::endl;
         {
             std::stringstream out;
             for(const auto& j : results)
@@ -1334,9 +1329,9 @@ TEST_F(HyperTest, LoadAllFiles) {
     // settings are here
     string root_path = "/data/github_sample/*.json.gz";
     // daily sample
-    root_path = "/data/github_sample_daily/*.json.gz";
+//    root_path = "/data/github_sample_daily/*.json.gz";
 
-//    root_path = "/data/github_sample_daily/2011-10-15.json.gz";
+    root_path = "/data/github_sample_daily/2011-10-15.json.gz";
 
 #ifdef MACOS
     root_path = "/Users/leonhards/Downloads/github_sample/*.json.gz";

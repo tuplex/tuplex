@@ -392,37 +392,39 @@ namespace tuplex {
     void PythonPipelineBuilder::jsonInput(int64_t operatorID, const std::vector<std::string> &columns) {
         _parseCells = true;
 
+        // data is stored in cell-format, but with a single cell...
         std::stringstream code;
-        code << "if not isinstance(" << lastInputRowName() << ", str):\n";
+        // // debug
+        // code << "print("<<lastInputRowName()<<")\n";
+
+        code << "if not isinstance(" << lastInputRowName() << "[0], str):\n";
         exceptInnerCode(code, operatorID, "TypeError('json input must be of string type')", "", 1);
         code << "\n"
-             << "parsed_rows = json.loads(" << lastInputRowName() << ")\n"
-             << "if len(parsed_rows) != 1:\n";
-        exceptInnerCode(code, operatorID, "ValueError('json input yielded more than one row')", "", 1);
-        code << "\n";
-
+             << "parsed_row = json.loads(" << lastInputRowName() << "[0])\n";
         writeLine(code.str());
 
         // auto convert values to types
         // check if columns are set -> then unwrap?
         if(!columns.empty()) {
-            // take as dict object
-            writeLine("parsed_row = [parsed_rows[0]]\n");
+            // need to correct for other "column" order in dict
+            writeLine("row = parsed_row\n");
+            writeLine("keys = " + vecToList(columns) + "\n");
+            writeLine("left_over_keys = list(set(row.keys()) - set(keys))\n");
+            // this is the version where missing keys are not replaced with None. -> need to throw exception then.
+            // for now, replace with None
+            // writeLine("parsed_row = [row[k] for k in keys] + [row[k] for k in left_over_keys]\n");
+            writeLine("parsed_row = [row.get(k, None) for k in keys] + [row.get(k, None) for k in left_over_keys]\n");
         } else {
             // construct via unwrapping
-            writeLine("row = parsed_rows[0]\n");
-            writeLine("keys = " + vecToList(columns) + "\n");
-            writeLine("leftover_keys = list(set(row.keys()) - set(keys))\n");
-            writeLine("parsed_row = [row[k] for k in keys] + [row[k] for k in leftover_keys]\n");
+            // -> no columns.
         }
-
 
         // are there columns present? If so, add to row representation!
         if (!columns.empty()) {
             writeLine(row() + " = Row(parsed_row, keys + left_over_keys)\n");
             writeLine("res['outputColumns'] = keys + left_over_keys\n");
         } else
-            writeLine(row() + " = Row(parsed_row)");
+            writeLine(row() + " = Row([parsed_row])");
     }
 
     void PythonPipelineBuilder::csvInput(int64_t operatorID,

@@ -171,7 +171,8 @@ namespace tuplex {
 
     FileInputOperator* FileInputOperator::fromJSON(const std::string &pattern,
                                                    bool unwrap_first_level,
-                                                   bool treat_heterogenous_lists_as_tuples, const ContextOptions &co) {
+                                                   bool treat_heterogenous_lists_as_tuples,
+                                                   const ContextOptions &co) {
         auto &logger = Logger::instance().logger("fileinputoperator");
 
 
@@ -200,6 +201,14 @@ namespace tuplex {
                                           unwrap_first_level ? &columnNamesCollection : nullptr,
                                           unwrap_first_level,
                                           treat_heterogenous_lists_as_tuples);
+
+            // when unwrapping, need to resort rows after column names
+            std::vector<std::string> ordered_names;
+            if(unwrap_first_level) {
+                auto t = sortRowsAndIdentifyColumns(rows, columnNamesCollection);
+                rows = std::get<0>(t);
+                ordered_names = std::get<1>(t);
+            }
 
             // are there no rows? => too small a sample. increase sample size.
             if(rows.empty()) {
@@ -251,20 +260,8 @@ namespace tuplex {
             // set ALL column names (as they appear)
             // -> pushdown for JSON is special case...
             if(unwrap_first_level) {
-                std::vector<std::string> ordered_names;
-                std::set<std::string> set_names;
-                for(const auto& names : columnNamesCollection) {
-                    for(const auto& name : names) {
-                        auto it = set_names.find(name);
-                        if(it == set_names.end()) {
-                            set_names.insert(name);
-                            ordered_names.push_back(name);
-                        }
-                    }
-                }
                 f->setColumns(ordered_names);
             }
-
             f->_sample = rows;
 
             // normalcase and exception case types
@@ -629,7 +626,8 @@ namespace tuplex {
                                                                              _optimizedNormalCaseRowType(other._optimizedNormalCaseRowType),
                                                                              _sample(other._sample),
                                                                              _sampling_time_s(other._sampling_time_s),
-                                                                             _indexBasedHints(other._indexBasedHints) {
+                                                                             _indexBasedHints(other._indexBasedHints),
+                                                                             _json_unwrap_first_level(other._json_unwrap_first_level) {
         // copy members for logical operator
         LogicalOperator::copyMembers(&other);
 

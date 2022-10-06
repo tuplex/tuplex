@@ -29,6 +29,8 @@
 #include <third_party/i64toa_sse2.h>
 #include <third_party/ryu/ryu.h>
 
+#include <physical/experimental/JsonHelper.h>
+
 namespace tuplex {
 
 #if LLVM_VERSION_MAJOR > 8
@@ -238,6 +240,8 @@ namespace tuplex {
         registerSymbol("cJSON_CreateString", cJSON_CreateString);
 #endif
 
+        // register JSON parsing symbols
+        codegen::addJsonSymbolsToJIT(*this);
     }
 
     JITCompiler::~JITCompiler() {

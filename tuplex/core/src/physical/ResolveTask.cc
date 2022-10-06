@@ -525,7 +525,7 @@ default:
                 // note: current python pipeline always expects a tuple arg. hence pack current element.
                 if(PyTuple_Check(tuple) && PyTuple_Size(tuple) > 1) {
                     // nothing todo...
-                } else {
+                } else if(!parse_cells) {
                     auto tmp_tuple = PyTuple_New(1);
                     PyTuple_SET_ITEM(tmp_tuple, 0, tuple);
                     tuple = tmp_tuple;

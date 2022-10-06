@@ -15,7 +15,10 @@
 #include <Base.h>
 #include <TypeAnnotatorVisitor.h>
 #include <ApplyVisitor.h>
-#include "TypeHelper.h"
+#include <TypeHelper.h>
+
+#include <experimental/StructDictHelper.h>
+#include <experimental/ListHelper.h>
 
 using namespace llvm;
 
@@ -3974,6 +3977,15 @@ namespace tuplex {
                 addInstruction(ret.val, ret.size);
             }
             else {
+                // check if value is of struct dict type
+                if(sub->_value->getInferredType().isStructuredDictionaryType()) {
+                    SerializableValue ret;
+                    if(subscriptStructDict(builder, &ret, sub->_value->getInferredType(), value,  sub->_expression->getInferredType(), index, sub->_expression)) {
+                        addInstruction(ret.val, ret.size, ret.is_null);
+                        return;
+                    }
+                }
+
                 // undefined
                 std::stringstream ss;
                 ss << "unsupported type encountered with [] operator.";
@@ -3986,45 +3998,110 @@ namespace tuplex {
         }
 
 
-        SerializableValue
-        BlockGeneratorVisitor::CreateDummyValue(llvm::IRBuilder<> &builder, const python::Type &type) {
-            // dummy value needs to be created for llvm to combine stuff.
-            SerializableValue retVal;
-            if (python::Type::BOOLEAN == type || python::Type::I64 == type) {
-                retVal.val = _env->i64Const(0);
-                retVal.size = _env->i64Const(sizeof(int64_t));
-            } else if (python::Type::F64 == type) {
-                retVal.val = _env->f64Const(0.0);
-                retVal.size = _env->i64Const(sizeof(double));
-            } else if (python::Type::STRING == type || type.isDictionaryType()) {
-                retVal.val = _env->i8ptrConst(nullptr);
-                retVal.size = _env->i64Const(0);
-            } else if (type.isListType()) {
-                auto llvmType = _env->getOrCreateListType(type);
-                auto val = _env->CreateFirstBlockAlloca(builder, llvmType);
-                if (type == python::Type::EMPTYLIST) {
-                    builder.CreateStore(_env->i8nullptr(), val);
+        std::tuple<std::string, python::Type> extractStaticKey(const python::Type& value_type, const SerializableValue& value, ASTNode *value_node) {
+            using namespace std;
+
+            std::string key;
+            python::Type key_type = python::Type::UNKNOWN;
+
+            auto type = value_type;
+
+            // is value a LLVM constant by chance?
+            if(value.is_null && llvm::isa<llvm::ConstantInt>(value.is_null)) {
+                // check what is null says. => i1 => null value!
+                auto is_null = llvm::cast<llvm::ConstantInt>(value.is_null)->getSExtValue();
+                if(is_null) {
+                    // it's zero
+                    assert(value_type.isOptionType() || value_type == python::Type::NULLVALUE);
+                    return make_tuple("None", value_type);
                 } else {
-                    auto elementType = type.elementType();
-                    if (elementType.isSingleValued()) {
-                        builder.CreateStore(_env->i64Const(0), val);
-                    } else {
-                        builder.CreateStore(_env->i64Const(0), _env->CreateStructGEP(builder, val, 0));
-                        builder.CreateStore(_env->i64Const(0), _env->CreateStructGEP(builder, val, 1));
-                        builder.CreateStore(llvm::ConstantPointerNull::get(
-                                llvm::dyn_cast<PointerType>(llvmType->getStructElementType(2))),
-                                            _env->CreateStructGEP(builder, val, 2));
-                        if (elementType == python::Type::STRING) {
-                            builder.CreateStore(llvm::ConstantPointerNull::get(
-                                    llvm::dyn_cast<PointerType>(llvmType->getStructElementType(3))),
-                                                _env->CreateStructGEP(builder, val, 3));
-                        }
-                    }
+                    // not null... -> normal decoding with primitive
+                    if(type.isOptionType())
+                        type = type.getReturnType();
                 }
-                retVal.val = builder.CreateLoad(val);
-                retVal.size = _env->i64Const(3 * sizeof(int64_t));
             }
-            return retVal;
+
+            // check whether value is constant
+            if(value.val && llvm::isa<llvm::Constant>(value.val)) {
+                // what type could it be?
+                if(type == python::Type::STRING) {
+                    // fetch data...
+                    auto str = globalVariableToString(value.val);
+                    // escape to py
+                    return make_tuple(escape_to_python_str(str), value_type);
+                }
+                if(type == python::Type::BOOLEAN) {
+                    auto i_val = llvm::cast<ConstantInt>(value.val)->getSExtValue();
+                    return make_tuple(i_val ? "True" : "False", value_type);
+                }
+                if(python::Type::I64 == type) {
+                    auto i_val = llvm::cast<ConstantInt>(value.val)->getSExtValue();
+                    return make_tuple(std::to_string(i_val), value_type);
+                }
+                if(python::Type::F64 == type) {
+                    auto d_val = llvm::cast<ConstantFP>(value.val)->getValueAPF().convertToDouble();
+                    return make_tuple(std::to_string(d_val), value_type);
+                }
+            }
+
+            // try first value, then check value node
+            if(value_node) {
+                return extractKeyFromASTNode(value_node);
+            }
+            return make_tuple("", python::Type::UNKNOWN);
+        }
+
+        bool BlockGeneratorVisitor::subscriptStructDict(llvm::IRBuilder<> &builder,
+                                                        SerializableValue *out_ret,
+                                                        const python::Type &value_type,
+                                                        const SerializableValue &value,
+                                                        const python::Type &idx_expr_type,
+                                                        const SerializableValue &idx_expr,
+                                                        ASTNode *idx_expr_node) {
+            using namespace std;
+
+            assert(value_type.isStructuredDictionaryType()); // -> what about the option stuff?
+
+            // can only subscript if a static key can be extracted (for now)
+            auto t_key_and_type = extractStaticKey(idx_expr_type, idx_expr, idx_expr_node);
+            auto key = std::get<0>(t_key_and_type);
+            auto key_type = std::get<1>(t_key_and_type);
+
+            if(key_type == python::Type::UNKNOWN || key.empty())
+                return false;
+
+            _logger.debug("extracted static key=" + key + " (" + key_type.desc() + ") from AST.");
+
+            // check if found in dict index type.
+            access_path_t path;
+            path.push_back(make_pair(key, key_type));
+            auto element_type = struct_dict_type_get_element_type(value_type, path);
+            if(element_type == python::Type::UNKNOWN) {
+                _logger.debug("did not find entry under key=" + key + " in dict.");
+                // generate key error
+                _lfb->exitWithException(ExceptionCode::KEYERROR);
+                return true;
+            }
+
+            // is keytype and elementtype identical (minus opt
+            if(key_type.withoutOptions() == element_type.withoutOptions()) {
+                // ok, can access data -> do so by generating the appropriate instructions
+                // handle option...
+                assert(!value_type.isOptionType());
+
+                // is it a maybe field? => check if present. if not, key error
+                auto field_present = struct_dict_load_present(*_env, builder, value.val, value_type, path);
+                auto field_not_present = _env->i1neg(builder, field_present);
+                _lfb->addException(builder, ExceptionCode::KEYERROR, field_not_present);
+                // load entry
+                if(out_ret)
+                    *out_ret = struct_dict_load_value(*_env, builder, value.val, value_type, path);
+                return true;
+            } else {
+                // key error, b.c. wrong type!
+                _lfb->exitWithException(ExceptionCode::KEYERROR);
+                return true;
+            }
         }
 
         SerializableValue BlockGeneratorVisitor::upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue &val,
@@ -4058,7 +4135,7 @@ namespace tuplex {
 
                 // need to create dummy value so LLVM works...
                 auto baseType = targetType.getReturnType();
-                auto tmp = CreateDummyValue(builder, baseType);
+                auto tmp = CreateDummyValue(*_env, builder, baseType);
                 return SerializableValue(tmp.val, tmp.size, _env->i1Const(true));
             }
 

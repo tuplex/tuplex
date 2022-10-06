@@ -633,6 +633,8 @@ namespace tuplex {
             auto Fgetarray = getOrInsertFunction(_env.getModule().get(), "JsonArray_getArray", _env.i64Type(), _env.i8ptrType(),
                                                  _env.i64Type(), _env.i8ptrType()->getPointerTo(0));
             auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+            // explicitly null array (!!! else memory corruption !!!)
+            builder.CreateStore(_env.i8nullptr(), item_var);
             // add array free to step after parse row
             freeArray(item_var);
 
@@ -756,6 +758,8 @@ namespace tuplex {
             auto Fgetarray = getOrInsertFunction(_env.getModule().get(), "JsonArray_getArray", _env.i64Type(), _env.i8ptrType(),
                                          _env.i64Type(), _env.i8ptrType()->getPointerTo(0));
             auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+            // explicitly null array (!!! else memory corruption !!!)
+            builder.CreateStore(_env.i8nullptr(), item_var);
             // add array free to step after parse row
             freeArray(item_var);
 
@@ -850,6 +854,8 @@ namespace tuplex {
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getArray", _env.i64Type(), _env.i8ptrType(),
                                          _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
             auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+            // explicitly null array (!!! else memory corruption !!!)
+            builder.CreateStore(_env.i8nullptr(), item_var);
             // add array free to step after parse row
             freeArray(item_var);
 
@@ -937,6 +943,8 @@ namespace tuplex {
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getArray", _env.i64Type(), _env.i8ptrType(),
                                          _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
             auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+            // explicitly null array (!!! else memory corruption !!!)
+            builder.CreateStore(_env.i8nullptr(), item_var);
             // add array free to step after parse row
             freeArray(item_var);
 

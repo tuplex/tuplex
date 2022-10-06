@@ -435,6 +435,8 @@ namespace tuplex {
             // create dict parser and store to row_var
             JSONParseRowGenerator gen(*_env.get(), dict_type, _freeEnd, bbSchemaMismatch);
             gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
+            // update free end
+            _freeEnd = gen.freeBlockEnd();
 
             // free obj_var...
             json_freeObject(*_env.get(), builder, builder.CreateLoad(obj_var));

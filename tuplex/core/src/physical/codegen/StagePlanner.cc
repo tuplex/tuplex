@@ -801,6 +801,11 @@ namespace tuplex {
                         auto oldInputType = op->getInputSchema().getRowType();
                         auto oldOutputType = op->getInputSchema().getRowType();
 
+                        // Note: the issue here is, that the AST is lambda x: x[0]. Yet, when typing with (i64) this won't work
+                        // because i64 can't be accessed with 0. -> Need to basically handle the special case
+                        // of properly rewriting for single column.
+#warning "address the note here @TODO"
+
                         checkRowType(last_rowtype);
                         // set FIRST the parent. Why? because operators like ignore depend on parent schema
                         // therefore, this needs to get updated first.
@@ -941,6 +946,8 @@ namespace tuplex {
                     // cout<<"last opt_op output type: "<<opt_ops.back()->getOutputSchema().getRowType().desc()<<endl;
                     if(opt_ops.back()->type() != LogicalOperatorType::CACHE)
                         last_rowtype = opt_ops.back()->getOutputSchema().getRowType();
+                    if(python::Type::UNKNOWN == last_rowtype)
+                        throw std::runtime_error("failed to type operator " + opt_ops.back()->name() + ", aborting code generation.");
                     checkRowType(last_rowtype);
                 }
 

@@ -36,7 +36,6 @@ namespace tuplex {
                                   llvm::BasicBlock* bFreeBlock,
                                   llvm::BasicBlock* bBadParse,
                                   JSONDecodeOptions={}) : _env(env), _rowType(rowType), _freeStartBlock(bFreeBlock), _freeEndBlock(bFreeBlock), _badParseBlock(bBadParse) {
-
             }
 
             llvm::BasicBlock* freeBlockEnd() const { return _freeEndBlock; }

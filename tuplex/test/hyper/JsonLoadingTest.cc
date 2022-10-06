@@ -1329,7 +1329,7 @@ TEST_F(HyperTest, LoadAllFiles) {
     // settings are here
     string root_path = "/data/github_sample/*.json.gz";
     // daily sample
-    root_path = "/data/github_sample_daily/*.json.gz";
+//    root_path = "/data/github_sample_daily/*.json.gz";
 
 //    root_path = "/data/github_sample_daily/2011-10-15.json.gz";
 

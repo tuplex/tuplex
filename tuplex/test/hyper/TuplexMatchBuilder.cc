@@ -29,8 +29,10 @@ namespace tuplex {
 
 
             // create dict parser and store to row_var
-            JSONParseRowGenerator gen(_env, row_type,  _freeEnd, bbSchemaMismatch);
+            JSONParseRowGenerator gen(_env, row_type, _freeEnd, bbSchemaMismatch);
             gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
+            // update free end block
+            _freeEnd = gen.freeBlockEnd();
 
             // free obj_var...
             json_freeObject(_env, builder, builder.CreateLoad(obj_var));
@@ -71,6 +73,9 @@ namespace tuplex {
             // update row number (inc +1)
             auto row_no = rowNumber(builder);
             builder.CreateStore(builder.CreateAdd(row_no, _env.i64Const(1)), _rowNumberVar);
+
+            // debug print
+            _env.debugPrint(builder, "-> move to next row");
 
             // @TODO: free everything so far??
             _env.freeAll(builder); // -> call rtfree!
@@ -224,7 +229,7 @@ namespace tuplex {
             {
                 // debug: create an info statement for free block
                 llvm::IRBuilder<> b(_freeStart);
-                // _env.printValue(b, rowNumber(b), "entered free row objects for row no=");
+                _env.printValue(b, rowNumber(b), "enter free row objects for row no=");
             }
 #endif
             llvm::Value *rc = openJsonBuf(builder, parser, bufPtr, bufSize);
@@ -295,6 +300,7 @@ namespace tuplex {
 
                 // inc by one
                 incVar(builder, _normalRowCountVar);
+                _env.debugPrint(builder, "enter free start from normal parse");
                 builder.CreateBr(_freeStart);
             }
 
@@ -311,6 +317,7 @@ namespace tuplex {
                 incVar(builder, _generalMemorySizeVar, general_size);
 
                 incVar(builder, _generalRowCountVar);
+                _env.debugPrint(builder, "enter free start from general parse");
                 builder.CreateBr(_freeStart);
             }
 
@@ -361,6 +368,7 @@ namespace tuplex {
 
                 // this is ok here, b.c. it's local.
                 _env.cfree(builder, line);
+                _env.debugPrint(builder, "enter free start from fallback parse");
                 builder.CreateBr(_freeStart);
             }
 

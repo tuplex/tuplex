@@ -35,15 +35,36 @@ namespace tuplex {
                                   const python::Type& rowType,
                                   llvm::BasicBlock* bFreeBlock,
                                   llvm::BasicBlock* bBadParse,
-                                  JSONDecodeOptions={}) : _env(env), _rowType(rowType), _freeStartBlock(bFreeBlock), _freeEndBlock(bFreeBlock), _badParseBlock(bBadParse) {
+                                  JSONDecodeOptions={}) : _env(env), _rowType(rowType), _freeStartBlock(bFreeBlock),
+                                  _freeEndBlock(bFreeBlock), _badParseBlock(bBadParse),
+                                  _initBlock(nullptr), _afterInitBlock(nullptr) {
 
             }
 
             llvm::BasicBlock* freeBlockEnd() const { return _freeEndBlock; }
 
             inline void parseToVariable(llvm::IRBuilder<>& builder, llvm::Value* object, llvm::Value* row_var) {
+                using namespace llvm;
+
+                if(_initBlock || _afterInitBlock)
+                    throw std::runtime_error("call function only once!");
+
+                // create init block from builder & then generate everything.
+                auto& ctx = builder.getContext();
+                auto parentF = builder.GetInsertBlock()->getParent();
+                _initBlock = BasicBlock::Create(ctx, "init_json_parse", parentF);
+                _afterInitBlock = BasicBlock::Create(ctx, "start_json_parse", parentF);
+                builder.CreateBr(_initBlock);
+
+                // set insert to after init block
+                builder.SetInsertPoint(_afterInitBlock);
+
                 // decode everything -> entries can be then used to store to a struct!
                 decode(builder, row_var, _rowType, object, _badParseBlock, _rowType, {}, true);
+
+                // connect init to after init block
+                IRBuilder<> b(_initBlock);
+                b.CreateBr(_afterInitBlock);
             }
 
         private:
@@ -54,6 +75,8 @@ namespace tuplex {
             llvm::BasicBlock* _freeEndBlock;
             llvm::BasicBlock* _badParseBlock;
 
+            llvm::BasicBlock* _initBlock; // first block, where to add any init code
+            llvm::BasicBlock* _afterInitBlock; // block after init (needs to be connected!)
 
             // helper functions
             void decode(llvm::IRBuilder<>& builder,
@@ -65,6 +88,25 @@ namespace tuplex {
                         std::vector<std::pair<std::string, python::Type>> prefix = {},
                         bool include_maybe_structs = true);
 
+            // use this instead of CreateFirstBlockAlloca/CreateFirstBlockVariable
+            llvm::Value* addVar(llvm::IRBuilder<>& builder, llvm::Type* type, llvm::Value* initial_value=nullptr, const std::string& twine="");
+//            inline llvm::Value* addI8PtrVar(llvm::IRBuilder<>& builder) {
+//                return addVar(builder, _env.i8ptrType(), _env.i8nullptr());
+//            }
+
+            // array/object vars (incl. free)
+            llvm::Value* addArrayVar(llvm::IRBuilder<>& builder) {
+                auto var = addVar(builder, _env.i8ptrType(), _env.i8nullptr());
+                // add array free to step after parse row
+                freeArray(var);
+                return var;
+            }
+            llvm::Value* addObjectVar(llvm::IRBuilder<>& builder) {
+                auto var = addVar(builder, _env.i8ptrType(), _env.i8nullptr());
+                // add array free to step after parse row
+                freeObject(var);
+                return var;
+            }
 
             std::tuple<llvm::Value*, llvm::Value*, SerializableValue> decodePrimitiveFieldFromObject(llvm::IRBuilder<>& builder,
                                                                                                      llvm::Value* obj,

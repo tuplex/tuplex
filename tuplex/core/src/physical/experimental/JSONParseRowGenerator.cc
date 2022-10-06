@@ -106,7 +106,7 @@ namespace tuplex {
             // query sub-object and call count keys!
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getObject", _env.i64Type(), _env.i8ptrType(),
                                          _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
-            auto sub_obj_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+            auto sub_obj_var = addObjectVar(builder);
 
             // create call, recurse only if ok!
             BasicBlock *bbCurrent = builder.GetInsertBlock();
@@ -128,8 +128,6 @@ namespace tuplex {
                                                              ecToI64(ExceptionCode::SUCCESS)),
                                                      _env.i64Const(
                                                              ecToI64(ExceptionCode::TYPEERROR)));
-            // add object to free list...
-            freeObject(sub_obj_var);
             // go to done block.
             builder.CreateBr(bbNext);
 
@@ -177,7 +175,7 @@ namespace tuplex {
             // query for array and determine array size, if 0 => match!
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getArray", _env.i64Type(), _env.i8ptrType(),
                                          _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
-            auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+            auto item_var = addArrayVar(builder);
 
             // create call, recurse only if ok!
             BasicBlock *bbCurrent = builder.GetInsertBlock();
@@ -199,8 +197,6 @@ namespace tuplex {
                                                              ecToI64(ExceptionCode::SUCCESS)),
                                                      _env.i64Const(
                                                              ecToI64(ExceptionCode::TYPEERROR)));
-            // add object to free list...
-            freeObject(item_var);
             // go to done block.
             builder.CreateBr(bbNext);
 
@@ -294,6 +290,7 @@ namespace tuplex {
                                          _env.i64Type(), _env.i8ptrType()->getPointerTo(0), _env.i64ptrType());
             auto str_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr(), "s");
             auto str_size_var = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "s_size");
+
             llvm::Value* rc = builder.CreateCall(F, {array, index, str_var, str_size_var});
             SerializableValue v;
             v.val = builder.CreateLoad(str_var);
@@ -339,7 +336,7 @@ namespace tuplex {
                 auto F = getOrInsertFunction(_env.getModule().get(), "JsonArray_getObject", _env.i64Type(),
                                              _env.i8ptrType(),
                                              _env.i64Type(), _env.i8ptrType()->getPointerTo(0));
-                auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+                auto item_var = addObjectVar(builder);
 
                 // start decode
                 // create call, recurse only if ok!
@@ -632,9 +629,7 @@ namespace tuplex {
             // step 1: check if there's actually an array in the JSON data -> if not, type error!
             auto Fgetarray = getOrInsertFunction(_env.getModule().get(), "JsonArray_getArray", _env.i64Type(), _env.i8ptrType(),
                                                  _env.i64Type(), _env.i8ptrType()->getPointerTo(0));
-            auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
-            // add array free to step after parse row
-            freeArray(item_var);
+            auto item_var = addArrayVar(builder);
 
             // create call, recurse only if ok!
             BasicBlock *bbCurrent = builder.GetInsertBlock();
@@ -755,9 +750,7 @@ namespace tuplex {
             // step 1: check if there's actually an array in the JSON data -> if not, type error!
             auto Fgetarray = getOrInsertFunction(_env.getModule().get(), "JsonArray_getArray", _env.i64Type(), _env.i8ptrType(),
                                          _env.i64Type(), _env.i8ptrType()->getPointerTo(0));
-            auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
-            // add array free to step after parse row
-            freeArray(item_var);
+            auto item_var = addArrayVar(builder);
 
             // create call, recurse only if ok!
             BasicBlock *bbCurrent = builder.GetInsertBlock();
@@ -849,9 +842,7 @@ namespace tuplex {
             // step 1: check if there's actually an array in the JSON data -> if not, type error!
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getArray", _env.i64Type(), _env.i8ptrType(),
                                          _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
-            auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
-            // add array free to step after parse row
-            freeArray(item_var);
+            auto item_var = addArrayVar(builder);
 
             // create call, recurse only if ok!
             BasicBlock *bbCurrent = builder.GetInsertBlock();
@@ -936,9 +927,7 @@ namespace tuplex {
             // step 1: check if there's actually an array in the JSON data -> if not, type error!
             auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getArray", _env.i64Type(), _env.i8ptrType(),
                                          _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
-            auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
-            // add array free to step after parse row
-            freeArray(item_var);
+            auto item_var = addArrayVar(builder);
 
             // create call, recurse only if ok!
             BasicBlock *bbCurrent = builder.GetInsertBlock();
@@ -1013,9 +1002,8 @@ namespace tuplex {
             BasicBlock *bbDecodeItem = BasicBlock::Create(ctx, "decode_object", builder.GetInsertBlock()->getParent());
             BasicBlock *bbDecodeDone = BasicBlock::Create(ctx, "decode_done", builder.GetInsertBlock()->getParent());
             auto stype = _env.getOrCreateStructuredDictType(entry.valueType);
-            auto item_var = _env.CreateFirstBlockAlloca(builder, stype);
-            auto sub_object_var = _env.CreateFirstBlockAlloca(builder, _env.i8ptrType()); // <-- stores JsonObject*
-
+            auto value_item_var = _env.CreateFirstBlockAlloca(builder, stype); // <-- stored dict
+            auto sub_object_var = addObjectVar(builder);  // <-- stores JsonObject*
 
             {
                 auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getObject", _env.i64Type(),
@@ -1023,7 +1011,7 @@ namespace tuplex {
                                              _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
 
                 // zero dict (for safety)
-                struct_dict_mem_zero(_env, builder, item_var, entry.valueType);
+                struct_dict_mem_zero(_env, builder, value_item_var, entry.valueType);
 
                 auto rc_var = _env.CreateFirstBlockAlloca(builder, _env.i64Type());
 
@@ -1053,7 +1041,7 @@ namespace tuplex {
                 // recurse using new prefix
                 // --> similar to flatten_recursive_helper(entries, kv_pair.valueType, access_path, include_maybe_structs);
                 decode(builder,
-                       item_var,
+                       value_item_var,
                        entry.valueType,
                        sub_object, bbSchemaMismatch, entry.valueType, {}, true);
                 builder.CreateBr(bbDecodeDone); // whererver builder is, continue to decode done for this item.
@@ -1063,7 +1051,7 @@ namespace tuplex {
 
             assert(is_present);
             assert(rc);
-            value.val = builder.CreateLoad(item_var); // <-- loads struct!
+            value.val = builder.CreateLoad(value_item_var); // <-- loads struct!
             return make_tuple(rc, is_present, value);
         }
 
@@ -1295,7 +1283,7 @@ namespace tuplex {
                     auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getObject", _env.i64Type(),
                                                  _env.i8ptrType(),
                                                  _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
-                    auto item_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+                    auto item_var = addObjectVar(builder);
                     // create call, recurse only if ok!
                     llvm::Value *rc = builder.CreateCall(F, {object, key, item_var});
 
@@ -1448,7 +1436,7 @@ namespace tuplex {
             } else if (v_type.isStructuredDictionaryType()) {
                 auto F = getOrInsertFunction(mod, "JsonItem_getObject", _env.i64Type(), _env.i8ptrType(),
                                              _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
-                auto obj_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+                auto obj_var = addObjectVar(builder);
                 // create call, recurse only if ok!
                 BasicBlock *bbOK = BasicBlock::Create(ctx, "is_object", builder.GetInsertBlock()->getParent());
 
@@ -1492,9 +1480,6 @@ namespace tuplex {
                     // recurse...
                     parseDict(builder, sub_obj, debug_path + ".", alwaysPresent, v_type, true, bbSchemaMismatch);
                 }
-
-                // free in free block.
-                freeObject(obj_var);
             } else if (v_type.isListType()) {
                 std::cerr << "skipping for now type: " << v_type.desc() << std::endl;
                 rc = _env.i64Const(0); // ok.
@@ -1509,7 +1494,7 @@ namespace tuplex {
                 // query subobject and call count keys!
                 auto F = getOrInsertFunction(mod, "JsonItem_getObject", _env.i64Type(), _env.i8ptrType(),
                                              _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
-                auto obj_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr());
+                auto obj_var = addObjectVar(builder);
                 // create call, recurse only if ok!
                 BasicBlock *bbOK = BasicBlock::Create(ctx, "is_object", builder.GetInsertBlock()->getParent());
 
@@ -1523,9 +1508,6 @@ namespace tuplex {
                 // check how many entries
                 auto num_keys = numberOfKeysInObject(builder, sub_obj);
                 auto is_empty = builder.CreateICmpEQ(num_keys, _env.i64Const(0));
-
-                //// free! @TODO: add to free list... -> yet should be ok?
-                freeObject(obj_var);
 
                 rc = builder.CreateSelect(is_empty, _env.i64Const(
                                                   ecToI64(ExceptionCode::SUCCESS)),

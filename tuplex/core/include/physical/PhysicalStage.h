@@ -41,6 +41,18 @@ namespace tuplex {
         HASHTABLE = 3
     };
 
+    struct CompileMetrics {
+        double llvm_opt_fast_time; // how long fast path took to optimize
+        double llvm_opt_slow_time; // how long slow path took to optimize
+        double llvm_compile_fast_time; // how long fast path on its own took to compile (excl. optimize)
+        double llvm_compile_slow_time; // how long slow path on its own took to compile (excl. optimize)
+        double end_to_end_time; // end-to-end compile time incl. optimization b.c fast/slow may be parallelized.
+
+        CompileMetrics() : end_to_end_time(0), llvm_opt_fast_time(0),
+                           llvm_compile_fast_time(0), llvm_opt_slow_time(0),
+                           llvm_compile_slow_time(0) {}
+    };
+
     class PhysicalStage {
     private:
         // should have a TaskQueue for Multithreaded execution.

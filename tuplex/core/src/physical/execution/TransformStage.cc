@@ -743,7 +743,8 @@ namespace tuplex {
         return fields;
     }
 
-    void TransformStage::compileSlowPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols) {
+    void TransformStage::compileSlowPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols,
+                                         CompileMetrics *cm) {
         Timer timer;
         // JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
 
@@ -753,17 +754,19 @@ namespace tuplex {
 
         auto& logger = Logger::instance().defaultLogger();
 
-//        _slowCodePath = _slowCodePath_f.get();
-
         llvm::LLVMContext ctx;
         auto slow_path_bit_code = slowPathBitCode();
         auto slow_path_mod = slow_path_bit_code.empty() ? nullptr : codegen::bitCodeToModule(ctx, slow_path_bit_code);
+        if(cm)
+            cm->llvm_opt_slow_time = 0.0;
 
         if(optimizer) {
             if (slow_path_mod) {
                 Timer pathTimer;
                 pathTimer.reset();
-                optimizer->optimizeModule(*slow_path_mod.get());
+                optimizer->optimizeModule(*slow_path_mod);
+                if(cm)
+                    cm->llvm_opt_slow_time = pathTimer.time();
             }
         }
 
@@ -791,27 +794,23 @@ namespace tuplex {
             }
         }
 
+        Timer llvmLowerTimer;
         // compile slow code path if desired
         if(slow_path_mod && !jit.compile(std::move(slow_path_mod)))
             throw std::runtime_error("could not compile slow code for stage " + std::to_string(number()));
-        Timer llvmLowerTimer;
         if(!_syms->resolveFunctor)
             _syms->resolveFunctor = !resolveWriteCallbackName().empty() ? reinterpret_cast<codegen::resolve_f>(jit.getAddrOfSymbol(resolveRowName())) : nullptr;
-
         if(!_syms->_slowCodePath.initStageFunctor)
             _syms->_slowCodePath.initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_slowCodePath.initStageFuncName));
         if(!_syms->_slowCodePath.releaseStageFunctor)
             _syms->_slowCodePath.releaseStageFunctor = reinterpret_cast<codegen::release_stage_f>(jit.getAddrOfSymbol(_slowCodePath.releaseStageFuncName));
+        if(cm)
+            cm->llvm_compile_slow_time = timer.time() - cm->llvm_opt_slow_time;
     }
 
-    void TransformStage::compileFastPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols) {
+    void TransformStage::compileFastPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols, CompileMetrics* cm) {
         Timer timer;
         auto& logger = Logger::instance().defaultLogger();
-
-//        // adding a bunch of logging to debug where the failure happens
-//        logger.info("fetching metrics obj");
-//        // JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
-//        logger.info("metrics obj fetched");
 
         // lazy compile
         if(!_syms) {
@@ -839,17 +838,15 @@ namespace tuplex {
             logger.debug(ss.str());
         }
 #endif
+        if(cm)
+            cm->llvm_opt_fast_time = 0.0;
 
         // step 1: run optimizer if desired
         if(optimizer) {
             Timer pathTimer;
             optimizer->optimizeModule(*fast_path_mod.get());
-
-            double llvm_optimization_time = timer.time();
-            // metrics.setLLVMOptimizationTime(llvm_optimization_time);
-            logger.info("TransformStage - Optimization via LLVM passes took " + std::to_string(llvm_optimization_time) + " ms");
-
-            timer.reset();
+            if(cm)
+                cm->llvm_opt_fast_time = pathTimer.time();
         }
 
         // step 2: register callback functions with compiler
@@ -876,7 +873,7 @@ namespace tuplex {
         if(registerSymbols && !_fastCodePath.aggregateCombineFuncName.empty())
             jit.registerSymbol(aggCombineCallbackName(), TransformTask::aggCombineCallback());
 
-        logger.info("syms registered (or skipped), compile now");
+        logger.debug("syms registered (or skipped), compile now");
 
         // 3. compile code
         // @TODO: use bitcode or llvm Module for more efficiency...
@@ -892,8 +889,6 @@ namespace tuplex {
         if(!_syms->functorWithExp && _updateInputExceptions)
             _syms->functorWithExp = reinterpret_cast<codegen::read_block_exp_f>(jit.getAddrOfSymbol(funcName()));
         logger.info("functor " + funcName() + " retrieved from llvm");
-//        if(_outputMode == EndPointMode::FILE && !_syms->writeFunctor)
-//            _syms->writeFunctor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(writerFuncName()));
         if(!_syms->_fastCodePath.initStageFunctor)
             _syms->_fastCodePath.initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_fastCodePath.initStageFuncName));
         if(!_syms->_fastCodePath.releaseStageFunctor)
@@ -918,12 +913,16 @@ namespace tuplex {
             throw std::runtime_error("invalid pointer address for JIT code returned");
         }
 
+        if(cm)
+            cm->llvm_compile_fast_time = timer.time() - cm->llvm_opt_fast_time;
+
     }
 
     std::shared_ptr<TransformStage::JITSymbols> TransformStage::compile(JITCompiler &jit,
                                                                         LLVMOptimizer *optimizer,
                                                                         bool excludeSlowPath,
-                                                                        bool registerSymbols) {
+                                                                        bool registerSymbols,
+                                                                        CompileMetrics* cm) {
         auto& logger = Logger::instance().defaultLogger();
 
         // lazy compile
@@ -931,22 +930,17 @@ namespace tuplex {
             _syms = std::make_shared<JITSymbols>();
 
         Timer timer;
-        //JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
-        compileFastPath(jit, optimizer, registerSymbols);
+        compileFastPath(jit, optimizer, registerSymbols, cm);
         if (!excludeSlowPath) {
-            compileSlowPath(jit, optimizer, registerSymbols);
+            compileSlowPath(jit, optimizer, registerSymbols, cm);
         }
 
         double compilation_time_via_llvm_this_number = timer.time();
-        double compilation_time_via_llvm_thus_far = compilation_time_via_llvm_this_number;
-      //  double compilation_time_via_llvm_thus_far = compilation_time_via_llvm_this_number +
-//                                                    metrics.getLLVMCompilationTime();
-//        metrics.setLLVMCompilationTime(compilation_time_via_llvm_thus_far);
         std::stringstream ss;
         ss<<"Compiled code paths for stage "<<number()<<" in "<<std::fixed<<std::setprecision(2)<<compilation_time_via_llvm_this_number<<" ms";
-
         logger.info(ss.str());
-
+        if(cm)
+            cm->end_to_end_time = compilation_time_via_llvm_this_number;
         return _syms;
     }
 

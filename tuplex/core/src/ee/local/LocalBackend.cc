@@ -880,12 +880,18 @@ namespace tuplex {
         LLVMOptimizer optimizer;
         // @TODO: do not compile slow path yet, do it later in parallel when other threads are already working!
         // deactivate slow path symbols when using interpreter only for resolve...
+        CompileMetrics cm;
         auto syms = tstage->compile(*_compiler, _options.USE_LLVM_OPTIMIZER() ? &optimizer : nullptr,
-                                    _options.RESOLVE_WITH_INTERPRETER_ONLY());
+                                    _options.RESOLVE_WITH_INTERPRETER_ONLY(), true, &cm);
         bool combineOutputHashmaps = syms->aggInitFunctor && syms->aggCombineFunctor && syms->aggAggregateFunctor;
         JobMetrics& metrics = tstage->PhysicalStage::plan()->getContext().metrics();
-        double total_compilation_time = metrics.getTotalCompilationTime() + timer.time();
-        metrics.setTotalCompilationTime(total_compilation_time);
+        double total_compilation_time = metrics.getTotalCompilationTime() + cm.end_to_end_time;
+        metrics.setTotalCompilationTime(total_compilation_time); // end-to-end time
+        // update individual stats
+        double opt_time = metrics.getLLVMOptimizationTime() + cm.llvm_opt_fast_time + cm.llvm_opt_slow_time;
+        metrics.setLLVMOptimizationTime(opt_time); // accumulated time
+        double compile_time = metrics.getLLVMCompilationTime() + cm.llvm_compile_fast_time + cm.llvm_compile_slow_time;
+        metrics.setLLVMCompilationTime(compile_time); // accumulated time
         {
             std::stringstream ss;
             ss<<"[Transform Stage] Stage "<<tstage->number()<<" compiled to x86 in "<<timer.time()<<"s";

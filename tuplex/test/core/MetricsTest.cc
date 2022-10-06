@@ -37,7 +37,7 @@ TEST_F(MetricsTest, BasicTest) {
     }
 
     auto v = c.parallelize(data).map(UDF("lambda x: x * x"))
-            .takeAsVector(limit);
+              .takeAsVector(limit);
     auto metrics = c.getMetrics();
     auto t1 = metrics->getLLVMCompilationTime();
     auto t2 = metrics->getLLVMOptimizationTime();

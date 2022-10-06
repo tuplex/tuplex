@@ -61,41 +61,44 @@ namespace tuplex {
         }
 
         extern  std::string makeKeySetBuffer(const std::vector<std::string> &keys);
-        extern uint64_t JsonItem_keySetMatch(JsonItem *item, uint8_t *always_keys_buf, uint8_t *maybe_keys_buf);
 
         // symbols
         extern void addJsonSymbolsToJIT(JITCompiler& jit);
 
-        extern JsonParser *JsonParser_init();
-        extern void JsonParser_free(JsonParser *parser);
-        extern void JsonItem_Free(JsonItem *i);
-        extern uint64_t JsonParser_open(JsonParser *j, const char *buf, size_t buf_size);
-        extern uint64_t JsonParser_close(JsonParser *j);
-        extern bool JsonParser_hasNextRow(JsonParser *j);
-        extern bool JsonParser_moveToNextRow(JsonParser *j);
-        extern char *JsonParser_getMallocedRow(JsonParser *j);
-        extern char *JsonParser_getMallocedRowAndSize(JsonParser *j, int64_t *size);
-        extern uint64_t JsonParser_getDocType(JsonParser *j);
-        extern uint64_t JsonParser_getObject(JsonParser *j, JsonItem **out);
-        extern uint64_t JsonItem_getString(JsonItem *item, const char *key, char **out);
-        extern uint64_t JsonItem_getStringAndSize(JsonItem *item, const char *key, char **out, int64_t *size);
-        extern uint64_t JsonItem_getObject(JsonItem *item, const char *key, JsonItem **out);
-        extern uint64_t JsonItem_getArray(JsonItem *item, const char *key, JsonArray **out);
-        extern void JsonArray_Free(JsonArray* arr);
-        extern uint64_t JsonArray_Size(JsonArray* arr);
-        extern uint64_t JsonArray_getBoolean(JsonArray *arr, size_t i, int64_t *out);
-        extern uint64_t JsonArray_getInt(JsonArray *arr, size_t i, int64_t *out);
-        extern uint64_t JsonArray_getDouble(JsonArray *arr, size_t i, double *out);
-        extern uint64_t JsonArray_getStringAndSize(JsonArray *arr, size_t i, char **out, int64_t *size);
-        extern uint64_t JsonArray_getObject(JsonArray *arr, size_t i, JsonItem **out);
-        extern uint64_t JsonItem_getDouble(JsonItem *item, const char *key, double *out);
-        extern uint64_t JsonItem_getInt(JsonItem *item, const char *key, int64_t *out);
-        extern uint64_t JsonItem_getBoolean(JsonItem *item, const char *key, bool *out);
-        extern uint64_t JsonItem_IsNull(JsonItem *item, const char *key);
-        extern bool JsonItem_hasKey(JsonItem *item, const char *key);
-        extern uint64_t JsonItem_numberOfKeys(JsonItem *item);
+        // callable functions from JIT code. Note, extern "C" is super important here - else C++ compiler
+        // will optimize function signatures...!
 
-        extern bool Json_is_whitespace(const char* str, size_t size);
+        extern "C" uint64_t JsonItem_keySetMatch(JsonItem *item, uint8_t *always_keys_buf, uint8_t *maybe_keys_buf);
+        extern "C" JsonParser *JsonParser_init();
+        extern "C" void JsonParser_free(JsonParser *parser);
+        extern "C" void JsonItem_Free(JsonItem *i);
+        extern "C" uint64_t JsonParser_open(JsonParser *j, const char *buf, size_t buf_size);
+        extern "C" uint64_t JsonParser_close(JsonParser *j);
+        extern "C" bool JsonParser_hasNextRow(JsonParser *j);
+        extern "C" bool JsonParser_moveToNextRow(JsonParser *j);
+        extern "C" char *JsonParser_getMallocedRow(JsonParser *j);
+        extern "C" char *JsonParser_getMallocedRowAndSize(JsonParser *j, int64_t *size);
+        extern "C" uint64_t JsonParser_getDocType(JsonParser *j);
+        extern "C" uint64_t JsonParser_getObject(JsonParser *j, JsonItem **out);
+        extern "C" uint64_t JsonItem_getString(JsonItem *item, const char *key, char **out);
+        extern "C" uint64_t JsonItem_getStringAndSize(JsonItem *item, const char *key, char **out, int64_t *size);
+        extern "C" uint64_t JsonItem_getObject(JsonItem *item, const char *key, JsonItem **out);
+        extern "C" uint64_t JsonItem_getArray(JsonItem *item, const char *key, JsonArray **out);
+        extern "C" void JsonArray_Free(JsonArray* arr);
+        extern "C" uint64_t JsonArray_Size(JsonArray* arr);
+        extern "C" uint64_t JsonArray_getBoolean(JsonArray *arr, size_t i, int64_t *out);
+        extern "C" uint64_t JsonArray_getInt(JsonArray *arr, size_t i, int64_t *out);
+        extern "C" uint64_t JsonArray_getDouble(JsonArray *arr, size_t i, double *out);
+        extern "C" uint64_t JsonArray_getStringAndSize(JsonArray *arr, size_t i, char **out, int64_t *size);
+        extern "C" uint64_t JsonArray_getObject(JsonArray *arr, size_t i, JsonItem **out);
+        extern "C" uint64_t JsonItem_getDouble(JsonItem *item, const char *key, double *out);
+        extern "C" uint64_t JsonItem_getInt(JsonItem *item, const char *key, int64_t *out);
+        extern "C" uint64_t JsonItem_getBoolean(JsonItem *item, const char *key, bool *out);
+        extern "C" uint64_t JsonItem_IsNull(JsonItem *item, const char *key);
+        extern "C" bool JsonItem_hasKey(JsonItem *item, const char *key);
+        extern "C" uint64_t JsonItem_numberOfKeys(JsonItem *item);
+
+        extern "C" bool Json_is_whitespace(const char* str, size_t size);
 
         /*!
          * this is a helper function to detect whether there's at least one document in the stream.
@@ -103,9 +106,9 @@ namespace tuplex {
          * @param buf_size size in bytes to search for
          * @return true/false
          */
-        extern bool JsonContainsAtLeastOneDocument(const char* buf, size_t buf_size);
+        extern "C" bool JsonContainsAtLeastOneDocument(const char* buf, size_t buf_size);
 
-        extern int64_t JsonParser_TruncatedBytes(JsonParser* parser);
+        extern "C" int64_t JsonParser_TruncatedBytes(JsonParser* parser);
     }
 }
 

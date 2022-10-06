@@ -18,7 +18,7 @@ namespace tuplex {
                 delete parser;
             parser = nullptr;
         }
-
+        // gdb -ex r --args dist/bin/testhyper --gtest_filter=HyperTest.LoadAllFiles
         int64_t JsonParser_TruncatedBytes(JsonParser* parser) {
             assert(parser);
             return parser->stream.truncated_bytes();

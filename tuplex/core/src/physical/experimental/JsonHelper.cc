@@ -183,8 +183,7 @@ namespace tuplex {
             //dom
             assert(doc.value().type() == simdjson::dom::element_type::OBJECT);
 
-            o->o = std::move(object);
-
+            o->o = object;
             *out = o;
 
             return ecToI64(ExceptionCode::SUCCESS);
@@ -257,7 +256,7 @@ namespace tuplex {
                 return translate_simdjson_error(error);
             // ONLY allocate if ok. else, leave how it is.
             auto obj = new JsonItem();
-            obj->o = std::move(o);
+            obj->o = o;
             *out = obj;
             return ecToI64(ExceptionCode::SUCCESS);
         }
@@ -408,7 +407,7 @@ namespace tuplex {
 
             // ONLY allocate if ok. else, leave how it is.
             auto obj = new JsonItem();
-            obj->o = std::move(o);
+            obj->o = o;
             *out = obj;
             return ecToI64(ExceptionCode::SUCCESS);
         }

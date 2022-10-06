@@ -1583,7 +1583,8 @@ namespace tuplex {
             if (obj->getType() == _env.i8ptrType()->getPointerTo()) {
                 ptr_to_free = b.CreateLoad(obj);
             }
-
+            _env.printValue(b, obj, "freeing obj: ");
+            _env.printValue(b, ptr_to_free, "freeing ptr: ");
             json_freeObject(_env, b, ptr_to_free);
 
             if (obj->getType() == _env.i8ptrType()->getPointerTo()) {

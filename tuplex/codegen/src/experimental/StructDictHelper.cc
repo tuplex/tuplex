@@ -749,18 +749,20 @@ namespace tuplex {
                 if(field_idx >= 0) {
                     // env.printValue(builder, value, "storing away value at index " + std::to_string(field_idx));
 
-                    // store
-                    auto llvm_idx = CreateStructGEP(builder, ptr, field_idx);
-                    val.val = builder.CreateLoad(llvm_idx);
+                    // // load
+                    // auto llvm_idx = CreateStructGEP(builder, ptr, field_idx);
+                    // val.val = builder.CreateLoad(llvm_idx);
+                    val.val = CreateStructLoad(builder, ptr, field_idx);
                 }
 
                 // load only if valid size_idx
                 if(size_idx >= 0) {
                     // env.printValue(builder, size, "storing away size at index " + std::to_string(size_idx));
 
-                    // store
-                    auto llvm_idx = CreateStructGEP(builder, ptr, size_idx);
-                    val.size = builder.CreateLoad(llvm_idx);
+                    // // load
+                    // auto llvm_idx = CreateStructGEP(builder, ptr, size_idx);
+                    // val.size = builder.CreateLoad(llvm_idx);
+                    val.size = CreateStructLoad(builder, ptr, size_idx);
                 }
 
                 // load only if valid bitmap_idx
@@ -770,7 +772,7 @@ namespace tuplex {
                     // make sure type has presence map index
                     auto b_idx = bitmap_field_idx(dict_type);
                     assert(b_idx >= 0);
-                    // i1 store logic
+                    // i1 load logic
                     auto bitmapPos = bitmap_idx;
                     auto structBitmapIdx = CreateStructGEP(builder, ptr, (size_t)b_idx); // bitmap comes first!
                     auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);

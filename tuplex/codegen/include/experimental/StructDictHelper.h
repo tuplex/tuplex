@@ -109,6 +109,9 @@ namespace tuplex {
          * @return element type or UNKNOWN if access path is not found.
          */
         extern python::Type struct_dict_type_get_element_type(const python::Type& dict_type, const access_path_t& path);
+
+        extern llvm::Value* struct_dict_load_present(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path);
+        extern SerializableValue struct_dict_load_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path);
     }
 }
 

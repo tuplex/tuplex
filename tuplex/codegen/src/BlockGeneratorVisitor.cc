@@ -15,7 +15,10 @@
 #include <Base.h>
 #include <TypeAnnotatorVisitor.h>
 #include <ApplyVisitor.h>
-#include "TypeHelper.h"
+#include <TypeHelper.h>
+
+#include <experimental/StructDictHelper.h>
+#include <experimental/ListHelper.h>
 
 using namespace llvm;
 
@@ -3977,7 +3980,7 @@ namespace tuplex {
                 // check if value is of struct dict type
                 if(sub->_value->getInferredType().isStructuredDictionaryType()) {
                     SerializableValue ret;
-                    if(subscriptStructDict(builder, &ret, sub->_expression->getInferredType(), index, sub->_value->getInferredType(), value, sub->_expression)) {
+                    if(subscriptStructDict(builder, &ret, sub->_value->getInferredType(), value,  sub->_expression->getInferredType(), index, sub->_expression)) {
                         addInstruction(ret.val, ret.size, ret.is_null);
                         return;
                     }
@@ -4012,7 +4015,7 @@ namespace tuplex {
                     assert(value_type.isOptionType() || value_type == python::Type::NULLVALUE);
                     return make_tuple("None", value_type);
                 } else {
-                    // not null... -> normal decoding with primtive
+                    // not null... -> normal decoding with primitive
                     if(type.isOptionType())
                         type = type.getReturnType();
                 }
@@ -4022,7 +4025,8 @@ namespace tuplex {
             if(value.val && llvm::isa<llvm::Constant>(value.val)) {
                 // what type could it be?
                 if(type == python::Type::STRING) {
-                    auto str = llvm::cast<ConstantDataArray>(value.val)->getAsString().str();
+                    // fetch data...
+                    auto str = globalVariableToString(value.val);
                     // escape to py
                     return make_tuple(escape_to_python_str(str), value_type);
                 }
@@ -4049,21 +4053,55 @@ namespace tuplex {
 
         bool BlockGeneratorVisitor::subscriptStructDict(llvm::IRBuilder<> &builder,
                                                         SerializableValue *out_ret,
-                                                        const python::Type &index_type,
-                                                        const SerializableValue &index_value,
                                                         const python::Type &value_type,
                                                         const SerializableValue &value,
-                                                        ASTNode *value_node) {
+                                                        const python::Type &idx_expr_type,
+                                                        const SerializableValue &idx_expr,
+                                                        ASTNode *idx_expr_node) {
+            using namespace std;
+
+            assert(value_type.isStructuredDictionaryType()); // -> what about the option stuff?
+
             // can only subscript if a static key can be extracted (for now)
-            auto t_key_and_type = extractStaticKey(value_type, value, value_node);
+            auto t_key_and_type = extractStaticKey(idx_expr_type, idx_expr, idx_expr_node);
             auto key = std::get<0>(t_key_and_type);
             auto key_type = std::get<1>(t_key_and_type);
 
+            if(key_type == python::Type::UNKNOWN || key.empty())
+                return false;
+
             _logger.debug("extracted static key=" + key + " (" + key_type.desc() + ") from AST.");
 
-            // else can do keyerror etc. if decidable (e.g. on type queried!)
+            // check if found in dict index type.
+            access_path_t path;
+            path.push_back(make_pair(key, key_type));
+            auto element_type = struct_dict_type_get_element_type(value_type, path);
+            if(element_type == python::Type::UNKNOWN) {
+                _logger.debug("did not find entry under key=" + key + " in dict.");
+                // generate key error
+                _lfb->exitWithException(ExceptionCode::KEYERROR);
+                return true;
+            }
 
-            return false;
+            // is keytype and elementtype identical (minus opt
+            if(key_type.withoutOptions() == element_type.withoutOptions()) {
+                // ok, can access data -> do so by generating the appropriate instructions
+                // handle option...
+                assert(!value_type.isOptionType());
+
+                // is it a maybe field? => check if present. if not, key error
+                auto field_present = struct_dict_load_present(*_env, builder, value.val, value_type, path);
+                auto field_not_present = _env->i1neg(builder, field_present);
+                _lfb->addException(builder, ExceptionCode::KEYERROR, field_not_present);
+                // load entry
+                if(out_ret)
+                    *out_ret = struct_dict_load_value(*_env, builder, value.val, value_type, path);
+                return true;
+            } else {
+                // key error, b.c. wrong type!
+                _lfb->exitWithException(ExceptionCode::KEYERROR);
+                return true;
+            }
         }
 
         SerializableValue BlockGeneratorVisitor::upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue &val,

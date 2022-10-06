@@ -15,6 +15,19 @@ namespace tuplex {
         static std::vector<JsonArray*> traced_arrays;
 #endif
 
+        std::string JsonMalloc_Report() {
+            using namespace std;
+
+            stringstream ss;
+#ifdef JSON_PARSER_TRACE_MEMORY
+            ss<<"Objects: "<<pluralize(traced_items.size(), " not freed json item")<<endl;
+            ss<<"Arrays:  "<<pluralize(traced_arrays.size(), " not freed json array")<<endl;
+#else
+            ss<<"compile with JSON_PARSER_TRACE_MEMORY defined to get a report."<<endl;
+#endif
+            return ss.str();
+        }
+
         // C-APIs to use in codegen
         JsonParser *JsonParser_init() {
             // can't malloc, or can malloc but then need to call inplace C++ constructors!

@@ -112,6 +112,8 @@ namespace tuplex {
         extern "C" bool JsonContainsAtLeastOneDocument(const char* buf, size_t buf_size);
 
         extern "C" int64_t JsonParser_TruncatedBytes(JsonParser* parser);
+
+        extern std::string JsonMalloc_Report();
     }
 }
 

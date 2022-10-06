@@ -4,6 +4,8 @@
 
 #include "HyperUtils.h"
 
+#include <physical/experimental/JsonHelper.h>
+
 class JsonTuplexTest : public HyperPyTest {};
 
 
@@ -51,6 +53,9 @@ TEST_F(JsonTuplexTest, GithubLoad) {
     // could extract columns via keys() or so? -> no support for this yet.
     // ds.map(UDF("lambda x: (x['type'], int(x['id']))")).show();
     ds.show();
+
+    std::cout<<"json malloc report:\n"<<codegen::JsonMalloc_Report()<<std::endl;
+
     //ds.map(UDF("lambda x: x['type']")).unique().show();
 
     // Next steps: -> should be able to load any github file (start with the small samples)

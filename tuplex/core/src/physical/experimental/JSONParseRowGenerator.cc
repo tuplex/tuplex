@@ -1702,5 +1702,26 @@ namespace tuplex {
             }
         }
 
+        llvm::Value *
+        JSONParseRowGenerator::addVar(llvm::IRBuilder<> &builder, llvm::Type *type, llvm::Value *initial_value,
+                                      const std::string &twine) {
+            assert(type);
+            // the trick here is to initialize in init block always.
+            auto var = _env.CreateFirstBlockAlloca(builder, type, twine);
+
+            if(!initial_value) {
+                initial_value = _env.nullConstant(type);
+            } else {
+                assert(type == initial_value->getType());
+            }
+            assert(initial_value);
+
+            // add storing to init block
+            assert(_initBlock);
+            llvm::IRBuilder<> b(_initBlock);
+            b.CreateStore(initial_value, var);
+            _initBlock = b.GetInsertBlock(); // update if there was complex storing.
+            return var;
+        }
     }
 }

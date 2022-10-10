@@ -88,9 +88,14 @@ namespace tuplex {
             JSONParseRowGenerator(LLVMEnvironment& env,
                                   const python::Type& rowType,
                                   llvm::BasicBlock* bBadParse,
-                                  JSONDecodeOptions={}) : _env(env), _rowType(rowType), _badParseBlock(bBadParse),
-                                  _initBlock(nullptr), _afterInitBlock(nullptr) {
-
+                                  JSONDecodeOptions={}) : _env(env), _rowType(rowType),
+                                  _initBlock(nullptr), _afterInitBlock(nullptr), _badParseTargetBlock(bBadParse) {
+                // generate free before badparse
+                using namespace llvm;
+                auto& ctx = env.getContext();
+                assert(bBadParse);
+                _badParseBlock = BasicBlock::Create(ctx, "free_before_badparse", bBadParse->getParent());
+                // lazy generate (b.c. vars are not known yet!)
             }
 
             inline void parseToVariable(llvm::IRBuilder<>& builder, llvm::Value* object, llvm::Value* row_var) {
@@ -112,9 +117,16 @@ namespace tuplex {
                 // decode everything -> entries can be then used to store to a struct!
                 decode(builder, row_var, _rowType, object, _badParseBlock, _rowType, {}, true);
 
+                // generate free blocks and update builder
+                auto lastFreeBlock = generateFreeAllVars(builder.GetInsertBlock());
+                builder.SetInsertPoint(lastFreeBlock);
+
                 // connect init to after init block
                 IRBuilder<> b(_initBlock);
                 b.CreateBr(_afterInitBlock);
+
+                // call to create free sequence before bad parse is hit.
+                lazyGenFreeAll();
             }
 
             /*!
@@ -122,13 +134,14 @@ namespace tuplex {
              * @param freeStart block onto which to attach free instructions
              * @return last block of the free sequence.
              */
-            inline llvm::BasicBlock* generateFreeAllVars(llvm::BasicBlock* freeStart);
+            llvm::BasicBlock* generateFreeAllVars(llvm::BasicBlock* freeStart);
 
         private:
             LLVMEnvironment& _env;
             python::Type _rowType;
 
             llvm::BasicBlock* _badParseBlock;
+            llvm::BasicBlock* _badParseTargetBlock; // where to end after bad parse happened!
 
             llvm::BasicBlock* _initBlock; // first block, where to add any init code
             llvm::BasicBlock* _afterInitBlock; // block after init (needs to be connected!)
@@ -261,6 +274,14 @@ namespace tuplex {
                            const std::string &debug_path, bool alwaysPresent,
                            const python::Type &t, bool check_that_all_keys_are_present,
                            llvm::BasicBlock *bbSchemaMismatch);
+
+            inline void lazyGenFreeAll() {
+                assert(_badParseBlock && _badParseTargetBlock);
+                llvm::IRBuilder<> builder(_badParseBlock);
+                auto lastBlock = generateFreeAllVars(_badParseBlock);
+                builder.SetInsertPoint(lastBlock);
+                builder.CreateBr(_badParseTargetBlock);
+            }
         };
 
     }

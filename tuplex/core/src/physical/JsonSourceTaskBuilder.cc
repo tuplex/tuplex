@@ -443,20 +443,19 @@ namespace tuplex {
             auto row_var = _env->CreateFirstBlockAlloca(builder, struct_dict_type);
             struct_dict_mem_zero(*_env.get(), builder, row_var, dict_type); // !!! important !!!
 
-
-            // create new block where all objects allocated for gen are freed.
-            BasicBlock* bParseFree = BasicBlock::Create(ctx, "parse_free", builder.GetInsertBlock()->getParent());
+            // // create new block where all objects allocated for gen are freed.
+            // BasicBlock* bParseFree = BasicBlock::Create(ctx, "parse_free", builder.GetInsertBlock()->getParent());
 
             // create dict parser and store to row_var
             JSONParseRowGenerator gen(*_env.get(), dict_type, bbSchemaMismatch);
             gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
-            // update free end
-            auto bParseFreeStart = bParseFree;
-            bParseFree = gen.generateFreeAllVars(bParseFree);
-
-            // jump now to parse free
-            builder.CreateBr(bParseFreeStart);
-            builder.SetInsertPoint(bParseFree);
+//            // update free end
+//            auto bParseFreeStart = bParseFree;
+//            bParseFree = gen.generateFreeAllVars(bParseFree);
+//
+//            // jump now to parse free
+//            builder.CreateBr(bParseFreeStart);
+//            builder.SetInsertPoint(bParseFree);
 
             // create new block (post - parse)
             BasicBlock *bPostParse = BasicBlock::Create(ctx, "post_parse", builder.GetInsertBlock()->getParent());

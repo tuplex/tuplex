@@ -31,10 +31,10 @@ namespace tuplex {
             BasicBlock* bParseFree = BasicBlock::Create(ctx, "parse_free", builder.GetInsertBlock()->getParent());
 
             // create dict parser and store to row_var
-            JSONParseRowGenerator gen(_env, row_type, bParseFree, bbSchemaMismatch);
+            JSONParseRowGenerator gen(_env, row_type, bbSchemaMismatch);
             gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
             // update free end
-            bParseFree = gen.freeBlockEnd();
+            bParseFree = gen.generateFreeAllVars(bParseFree);
 
             // jump now to parse free
             builder.CreateBr(bParseFree);

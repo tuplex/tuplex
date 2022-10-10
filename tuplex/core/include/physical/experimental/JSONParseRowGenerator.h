@@ -61,20 +61,37 @@ namespace tuplex {
             builder.CreateStore(env.i8nullptr(), obj_var);
         }
 
+        inline void json_release_array(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* arr_var) {
+            using namespace llvm;
+            assert(arr_var && arr_var->getType() == env.i8ptrType()->getPointerTo());
+
+            // generate code for the following:
+            // if(obj != nullptr)
+            //    JsonItem_Free(obj)
+            // obj = nullptr
+            auto is_null = builder.CreateICmpEQ(builder.CreateLoad(arr_var), env.i8nullptr());
+            BasicBlock* bFree = BasicBlock::Create(env.getContext(), "free_array", builder.GetInsertBlock()->getParent());
+            BasicBlock* bContinue = BasicBlock::Create(env.getContext(), "null_array", builder.GetInsertBlock()->getParent());
+            builder.CreateCondBr(is_null, bContinue, bFree);
+            builder.SetInsertPoint(bFree);
+
+            // call free func
+            json_freeArray(env, builder, builder.CreateLoad(arr_var));
+
+            builder.CreateBr(bContinue);
+            builder.SetInsertPoint(bContinue);
+            builder.CreateStore(env.i8nullptr(), arr_var);
+        }
 
         class JSONParseRowGenerator {
         public:
             JSONParseRowGenerator(LLVMEnvironment& env,
                                   const python::Type& rowType,
-                                  llvm::BasicBlock* bFreeBlock,
                                   llvm::BasicBlock* bBadParse,
-                                  JSONDecodeOptions={}) : _env(env), _rowType(rowType), _freeStartBlock(bFreeBlock),
-                                  _freeEndBlock(bFreeBlock), _badParseBlock(bBadParse),
+                                  JSONDecodeOptions={}) : _env(env), _rowType(rowType), _badParseBlock(bBadParse),
                                   _initBlock(nullptr), _afterInitBlock(nullptr) {
 
             }
-
-            llvm::BasicBlock* freeBlockEnd() const { return _freeEndBlock; }
 
             inline void parseToVariable(llvm::IRBuilder<>& builder, llvm::Value* object, llvm::Value* row_var) {
                 using namespace llvm;
@@ -100,12 +117,17 @@ namespace tuplex {
                 b.CreateBr(_afterInitBlock);
             }
 
+            /*!
+             * generate code to free all allocated variables during a parse. (should be done after row is successfully parsed AND when it's a bad parse)
+             * @param freeStart block onto which to attach free instructions
+             * @return last block of the free sequence.
+             */
+            inline llvm::BasicBlock* generateFreeAllVars(llvm::BasicBlock* freeStart);
+
         private:
             LLVMEnvironment& _env;
             python::Type _rowType;
 
-            llvm::BasicBlock* _freeStartBlock;
-            llvm::BasicBlock* _freeEndBlock;
             llvm::BasicBlock* _badParseBlock;
 
             llvm::BasicBlock* _initBlock; // first block, where to add any init code
@@ -121,6 +143,11 @@ namespace tuplex {
                         std::vector<std::pair<std::string, python::Type>> prefix = {},
                         bool include_maybe_structs = true);
 
+
+            // used for generating free blocks...
+            std::vector<llvm::Value*> _objectVars;
+            std::vector<llvm::Value*> _arrayVars;
+
             // use this instead of CreateFirstBlockAlloca/CreateFirstBlockVariable
             llvm::Value* addVar(llvm::IRBuilder<>& builder, llvm::Type* type, llvm::Value* initial_value=nullptr, const std::string& twine="");
 //            inline llvm::Value* addI8PtrVar(llvm::IRBuilder<>& builder) {
@@ -130,14 +157,17 @@ namespace tuplex {
             // array/object vars (incl. free)
             llvm::Value* addArrayVar(llvm::IRBuilder<>& builder) {
                 auto var = addVar(builder, _env.i8ptrType(), _env.i8nullptr());
+                _arrayVars.push_back(var);
                 // add array free to step after parse row
-                freeArray(var);
+                //freeArray(var);
                 return var;
             }
+
             llvm::Value* addObjectVar(llvm::IRBuilder<>& builder) {
                 auto var = addVar(builder, _env.i8ptrType(), _env.i8nullptr());
+                _objectVars.push_back(var);
                 // add array free to step after parse row
-                freeObject(var);
+                //freeObject(var);
                 return var;
             }
 
@@ -215,9 +245,9 @@ namespace tuplex {
                                              keyType, valueType, check_that_all_keys_are_present, bbSchemaMismatch);
             }
 
-            void freeObject(llvm::Value *obj);
-            void freeArray(llvm::IRBuilder<> &builder, llvm::Value *arr);
-            void freeArray(llvm::Value *arr);
+//            void freeObject(llvm::Value *obj);
+//            void freeArray(llvm::IRBuilder<> &builder, llvm::Value *arr);
+//            void freeArray(llvm::Value *arr);
             llvm::Value* arraySize(llvm::IRBuilder<>& builder, llvm::Value* arr);
 
             llvm::Value *numberOfKeysInObject(llvm::IRBuilder<> &builder, llvm::Value *j);

@@ -1552,78 +1552,78 @@ namespace tuplex {
             return rc;
         }
 
-        void JSONParseRowGenerator::freeArray(llvm::Value *arr) {
-            assert(arr);
-            using namespace llvm;
-            auto &ctx = _env.getContext();
+//        void JSONParseRowGenerator::freeArray(llvm::Value *arr) {
+//            assert(arr);
+//            using namespace llvm;
+//            auto &ctx = _env.getContext();
+//
+//            auto ptr_to_free = arr;
+//
+//            // free in free block (last block!)
+//            assert(_freeEndBlock);
+//            IRBuilder<> b(_freeEndBlock);
+//
+//            // what type is it?
+//            if (arr->getType() == _env.i8ptrType()->getPointerTo()) {
+//                ptr_to_free = b.CreateLoad(arr);
+//            }
+//#ifdef JSON_PARSER_TRACE_MEMORY
+//            _env.printValue(b, ptr_to_free, "freeing array pointer: ");
+//#endif
+//            freeArray(b, ptr_to_free);
+//            #ifdef JSON_PARSER_TRACE_MEMORY
+//            _env.printValue(b, ptr_to_free, "--> pointer freed. ");
+//            #endif
+//
+//            if (arr->getType() == _env.i8ptrType()->getPointerTo()) {
+//                // store nullptr in debug mode
+//#ifndef NDEBUG
+//                b.CreateStore(_env.i8nullptr(), arr);
+//#endif
+//            }
+//            _freeEndBlock = b.GetInsertBlock();
+//            assert(_freeEndBlock);
+//        }
 
-            auto ptr_to_free = arr;
+//        void JSONParseRowGenerator::freeObject(llvm::Value *obj) {
+//            assert(obj);
+//            using namespace llvm;
+//            auto &ctx = _env.getContext();
+//
+//            auto ptr_to_free = obj;
+//
+//            // free in free block (last block!)
+//            assert(_freeEndBlock);
+//            IRBuilder<> b(_freeEndBlock);
+//
+//            // what type is it?
+//            if (obj->getType() == _env.i8ptrType()->getPointerTo()) {
+//                ptr_to_free = b.CreateLoad(obj);
+//            }
+//
+//#ifdef JSON_PARSER_TRACE_MEMORY
+//             _env.printValue(b, ptr_to_free, "freeing ptr: ");
+//#endif
+//            json_freeObject(_env, b, ptr_to_free);
+//
+//            if (obj->getType() == _env.i8ptrType()->getPointerTo()) {
+//                // store nullptr in debug mode
+//#ifndef NDEBUG
+//                b.CreateStore(_env.i8nullptr(), obj);
+//#endif
+//            }
+//            _freeEndBlock = b.GetInsertBlock();
+//            assert(_freeEndBlock);
+//        }
 
-            // free in free block (last block!)
-            assert(_freeEndBlock);
-            IRBuilder<> b(_freeEndBlock);
-
-            // what type is it?
-            if (arr->getType() == _env.i8ptrType()->getPointerTo()) {
-                ptr_to_free = b.CreateLoad(arr);
-            }
-#ifdef JSON_PARSER_TRACE_MEMORY
-            _env.printValue(b, ptr_to_free, "freeing array pointer: ");
-#endif
-            freeArray(b, ptr_to_free);
-            #ifdef JSON_PARSER_TRACE_MEMORY
-            _env.printValue(b, ptr_to_free, "--> pointer freed. ");
-            #endif
-
-            if (arr->getType() == _env.i8ptrType()->getPointerTo()) {
-                // store nullptr in debug mode
-#ifndef NDEBUG
-                b.CreateStore(_env.i8nullptr(), arr);
-#endif
-            }
-            _freeEndBlock = b.GetInsertBlock();
-            assert(_freeEndBlock);
-        }
-
-        void JSONParseRowGenerator::freeObject(llvm::Value *obj) {
-            assert(obj);
-            using namespace llvm;
-            auto &ctx = _env.getContext();
-
-            auto ptr_to_free = obj;
-
-            // free in free block (last block!)
-            assert(_freeEndBlock);
-            IRBuilder<> b(_freeEndBlock);
-
-            // what type is it?
-            if (obj->getType() == _env.i8ptrType()->getPointerTo()) {
-                ptr_to_free = b.CreateLoad(obj);
-            }
-
-#ifdef JSON_PARSER_TRACE_MEMORY
-             _env.printValue(b, ptr_to_free, "freeing ptr: ");
-#endif
-            json_freeObject(_env, b, ptr_to_free);
-
-            if (obj->getType() == _env.i8ptrType()->getPointerTo()) {
-                // store nullptr in debug mode
-#ifndef NDEBUG
-                b.CreateStore(_env.i8nullptr(), obj);
-#endif
-            }
-            _freeEndBlock = b.GetInsertBlock();
-            assert(_freeEndBlock);
-        }
-
-        void JSONParseRowGenerator::freeArray(llvm::IRBuilder<> &builder, llvm::Value *arr) {
-            using namespace llvm;
-            auto &ctx = _env.getContext();
-
-            auto Ffreeobj = getOrInsertFunction(_env.getModule().get(), "JsonArray_Free", llvm::Type::getVoidTy(ctx),
-                                                _env.i8ptrType());
-            builder.CreateCall(Ffreeobj, arr);
-        }
+//        void JSONParseRowGenerator::freeArray(llvm::IRBuilder<> &builder, llvm::Value *arr) {
+//            using namespace llvm;
+//            auto &ctx = _env.getContext();
+//
+//            auto Ffreeobj = getOrInsertFunction(_env.getModule().get(), "JsonArray_Free", llvm::Type::getVoidTy(ctx),
+//                                                _env.i8ptrType());
+//            builder.CreateCall(Ffreeobj, arr);
+//        }
 
         void JSONParseRowGenerator::parseDict(llvm::IRBuilder<> &builder, llvm::Value *obj,
                                               const std::string &debug_path, bool alwaysPresent,
@@ -1759,6 +1759,23 @@ namespace tuplex {
             b.CreateStore(initial_value, var);
             _initBlock = b.GetInsertBlock(); // update if there was complex storing.
             return var;
+        }
+
+        llvm::BasicBlock *JSONParseRowGenerator::generateFreeAllVars(llvm::BasicBlock *freeStart) {
+            assert(freeStart);
+            llvm::IRBuilder<> builder(freeStart);
+
+            // got through all vars
+#ifdef JSON_PARSER_TRACE_MEMORY
+            _env.debugPrint(builder, "Freeing data of " + pluralize(_objectVars.size(), "object"));
+            _env.debugPrint(builder, "Freeing data of " + pluralize(_arrayVars.size(), "array"));
+#endif
+            for(auto var : _objectVars)
+                json_release_object(_env, builder, var);
+            for(auto var : _arrayVars)
+                json_release_array(_env, builder, var);
+
+            return builder.GetInsertBlock();
         }
     }
 }

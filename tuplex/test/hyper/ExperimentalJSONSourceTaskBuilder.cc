@@ -79,7 +79,7 @@ namespace tuplex {
 
 
             // create dict parser and store to row_var
-            JSONParseRowGenerator gen(_env, _rowType,  _freeEnd, bbSchemaMismatch);
+            JSONParseRowGenerator gen(_env, _rowType, bbSchemaMismatch);
             gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
 
             auto s = struct_dict_serialized_memory_size(_env, builder, row_var, _rowType);

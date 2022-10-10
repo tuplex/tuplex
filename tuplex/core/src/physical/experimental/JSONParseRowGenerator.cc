@@ -641,11 +641,14 @@ namespace tuplex {
             BasicBlock *bbArrayFound = BasicBlock::Create(_env.getContext(), "found_array", builder.GetInsertBlock()->getParent());
             BasicBlock *bbDecodeFailed = BasicBlock::Create(_env.getContext(), "array_decode_failed", builder.GetInsertBlock()->getParent());
             BasicBlock *bbDecodeDone = BasicBlock::Create(_env.getContext(), "array_decode_done", builder.GetInsertBlock()->getParent());
+#ifdef JSON_PARSER_TRACE_MEMORY
+            _env.debugPrint(builder, "calling JsonArray_getArray on line " + std::to_string(__LINE__) + " to decode " + list_type.desc());
+#endif
+
             llvm::Value* rc_A = builder.CreateCall(Fgetarray, {array, index, item_var});
             builder.CreateStore(rc_A, rc_var);
             auto found_array = builder.CreateICmpEQ(rc_A, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
             builder.CreateCondBr(found_array, bbArrayFound, bbDecodeFailed);
-
 
             builder.SetInsertPoint(bbDecodeFailed);
             badParseCause("no array found or array is object");
@@ -761,6 +764,9 @@ namespace tuplex {
             BasicBlock *bbCurrent = builder.GetInsertBlock();
             BasicBlock *bbArrayFound = BasicBlock::Create(_env.getContext(), "found_array", builder.GetInsertBlock()->getParent());
             BasicBlock *bbDecodeFailed = BasicBlock::Create(_env.getContext(), "array_decode_failed", builder.GetInsertBlock()->getParent());
+#ifdef JSON_PARSER_TRACE_MEMORY
+            _env.debugPrint(builder, "calling JsonArray_getArray on line " + std::to_string(__LINE__));
+#endif
             llvm::Value* rc_A = builder.CreateCall(Fgetarray, {array, index, item_var});
             builder.CreateStore(rc_A, rc_var);
             auto found_array = builder.CreateICmpEQ(rc_A, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
@@ -1291,6 +1297,10 @@ namespace tuplex {
                                                  _env.i8ptrType(),
                                                  _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
                     auto item_var = addObjectVar(builder);
+
+                    // do release
+                    json_release_object(_env, builder, item_var);
+
                     #ifdef JSON_PARSER_TRACE_MEMORY
                     _env.debugPrint(builder, "Using " + pointer2hex(item_var) + " in decode");
                     #endif

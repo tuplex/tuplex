@@ -22,6 +22,13 @@ namespace tuplex {
 #ifdef JSON_PARSER_TRACE_MEMORY
             ss<<"Objects: "<<pluralize(traced_items.size(), " not freed json item")<<endl;
             ss<<"Arrays:  "<<pluralize(traced_arrays.size(), " not freed json array")<<endl;
+
+            // print
+            if(!traced_items.empty() && traced_items.size() < 100) {
+                for(unsigned i = 0; i < std::min(100ul, traced_items.size()); ++i) {
+                    ss<<"  -- object ptr "<<pointer2hex(traced_items[i])<<" dangling"<<endl;
+                }
+            }
 #else
             ss<<"compile with JSON_PARSER_TRACE_MEMORY defined to get a report."<<endl;
 #endif
@@ -191,6 +198,15 @@ namespace tuplex {
             assert(j);
             assert(out);
 
+            // free item
+            if(out) {
+                JsonItem* ptr = *out;
+                if(nullptr != ptr) {
+                    JsonItem_Free(ptr);
+                    *out = nullptr;
+                }
+            }
+
             auto doc = *j->it;
 
             // on demand
@@ -278,6 +294,15 @@ namespace tuplex {
             assert(key);
             assert(out);
 
+            // free if set
+            if(out) {
+                JsonItem* ptr = *out;
+                if(nullptr != ptr) {
+                    JsonItem_Free(ptr);
+                    *out = nullptr;
+                }
+            }
+
             simdjson::error_code error;
             // on demand
             // simdjson::ondemand::object o;
@@ -302,6 +327,14 @@ namespace tuplex {
             assert(item);
             assert(key);
             assert(out);
+
+            if(out) {
+                JsonArray* ptr = *out;
+                if(nullptr != ptr) {
+                    JsonArray_Free(ptr);
+                    *out = nullptr;
+                }
+            }
 
             simdjson::error_code error;
             // on demand -> out of order execution unless objects are then directly traversed!
@@ -440,6 +473,15 @@ namespace tuplex {
             assert(arr);
             assert(out);
 
+            // previous valid out? free
+            if(out) {
+                JsonItem* ptr = *out;
+                if(nullptr != ptr) {
+                    JsonItem_Free(ptr);
+                    *out = nullptr;
+                }
+            }
+
             simdjson::error_code error = simdjson::NO_SUCH_FIELD;
 
             // this is slow -> maybe better to replace complex iteration with custom decode routines!
@@ -468,6 +510,14 @@ namespace tuplex {
         uint64_t JsonArray_getArray(JsonArray *arr, size_t i, JsonArray **out) {
             assert(arr);
             assert(out);
+
+            // free if pointer is valid. -> this is hack. Better to do it in the generated code (see above)
+            if(out) {
+                JsonArray* ptr = *out;
+                if(ptr != nullptr)
+                    JsonArray_Free(ptr);
+                *out = nullptr;
+            }
 
             simdjson::error_code error = simdjson::NO_SUCH_FIELD;
 

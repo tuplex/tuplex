@@ -29,6 +29,39 @@ namespace tuplex {
             builder.CreateCall(Ffreeobj, obj);
         }
 
+        inline void json_freeArray(LLVMEnvironment& env, llvm::IRBuilder<> &builder, llvm::Value *obj) {
+            using namespace llvm;
+            auto &ctx = env.getContext();
+
+            auto Ffreearr = getOrInsertFunction(env.getModule().get(), "JsonArray_Free", llvm::Type::getVoidTy(ctx),
+                                                env.i8ptrType());
+            builder.CreateCall(Ffreearr, obj);
+        }
+
+        // free on demand
+        inline void json_release_object(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* obj_var) {
+            using namespace llvm;
+            assert(obj_var && obj_var->getType() == env.i8ptrType()->getPointerTo());
+
+            // generate code for the following:
+            // if(obj != nullptr)
+            //    JsonItem_Free(obj)
+            // obj = nullptr
+            auto is_null = builder.CreateICmpEQ(builder.CreateLoad(obj_var), env.i8nullptr());
+            BasicBlock* bFree = BasicBlock::Create(env.getContext(), "free_object", builder.GetInsertBlock()->getParent());
+            BasicBlock* bContinue = BasicBlock::Create(env.getContext(), "null_object", builder.GetInsertBlock()->getParent());
+            builder.CreateCondBr(is_null, bContinue, bFree);
+            builder.SetInsertPoint(bFree);
+
+            // call free func
+            json_freeObject(env, builder, builder.CreateLoad(obj_var));
+
+            builder.CreateBr(bContinue);
+            builder.SetInsertPoint(bContinue);
+            builder.CreateStore(env.i8nullptr(), obj_var);
+        }
+
+
         class JSONParseRowGenerator {
         public:
             JSONParseRowGenerator(LLVMEnvironment& env,

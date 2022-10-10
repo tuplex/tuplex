@@ -48,7 +48,8 @@ TEST_F(JsonTuplexTest, GithubLoad) {
     bool unwrap_first_level = true;
 
     unwrap_first_level = false;
-    auto& ds = ctx.json("../resources/ndjson/github.json", unwrap_first_level);
+//    auto& ds = ctx.json("../resources/ndjson/github.json", unwrap_first_level);
+    auto& ds = ctx.json("../resources/ndjson/github_two_rows.json", unwrap_first_level);
     cout<<"columns: \n"<<ds.columns()<<endl; // <-- no columns here...
     // could extract columns via keys() or so? -> no support for this yet.
     // ds.map(UDF("lambda x: (x['type'], int(x['id']))")).show();

@@ -169,8 +169,15 @@ namespace tuplex {
             builder.CreateBr(bbNormalCaseSuccess);
 
             builder.SetInsertPoint(bbParseAsGeneralCaseRow);
-            auto general_case_row = parseRow(builder, _generalCaseRowType, general_case_columns, unwrap_first_level, parser, bbFallback);//parseRowAsStructuredDict(builder, _generalCaseRowType, parser, bbFallback);
-            builder.CreateBr(bbGeneralCaseSuccess);
+
+            // short cut: if normal case and general case are identical -> go to fallback from here!
+            FlattenedTuple general_case_row(_env.get());
+            if(_normalCaseRowType == _generalCaseRowType) {
+                builder.CreateBr(bbFallback);
+            } else {
+                general_case_row = parseRow(builder, _generalCaseRowType, general_case_columns, unwrap_first_level, parser, bbFallback);//parseRowAsStructuredDict(builder, _generalCaseRowType, parser, bbFallback);
+                builder.CreateBr(bbGeneralCaseSuccess);
+            }
 
             // now create the blocks for each scenario
             {
@@ -424,8 +431,10 @@ namespace tuplex {
 
             auto obj_var = _env->CreateFirstBlockVariable(builder, _env->i8nullptr(), "row_object");
 
-            // store nullptr
-            builder.CreateStore(_env->i8nullptr(), obj_var);
+            // release and store nullptr
+            //builder.CreateStore(_env->i8nullptr(), obj_var);
+            json_release_object(*_env, builder, obj_var);
+
             builder.CreateCall(Fgetobj, {j, obj_var});
 
             // don't forget to free everything...

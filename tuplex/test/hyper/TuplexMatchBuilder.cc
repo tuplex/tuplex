@@ -47,7 +47,7 @@ namespace tuplex {
             builder.SetInsertPoint(bPostParse);
 
             // free obj_var...
-            json_release_object(_env, builder, obj_var);
+            //json_release_object(_env, builder, obj_var);
 #ifndef NDEBUG
             builder.CreateStore(_env.i8nullptr(), obj_var);
 #endif

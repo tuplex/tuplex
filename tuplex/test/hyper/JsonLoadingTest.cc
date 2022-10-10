@@ -1366,7 +1366,7 @@ TEST_F(HyperTest, LoadAllFiles) {
     s2.sample_size = sample_size;
     s2.filter_for_event = true;
     s2.event_name = "PushEvent";
-    settings.push_back(s2);
+    //settings.push_back(s2);
 
     ExperimentSetting s3;
     s3.input_pattern = root_path;
@@ -1374,7 +1374,7 @@ TEST_F(HyperTest, LoadAllFiles) {
     s3.sample_size = sample_size;
     s3.filter_for_event = true;
     s3.event_name = "ForkEvent";
-    settings.push_back(s3);
+    //settings.push_back(s3);
 
 
     // RUN

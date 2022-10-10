@@ -47,6 +47,8 @@ namespace tuplex {
             llvm::Value *_fallbackMemorySizeVar;
             llvm::Value* _parsedBytesVar;
 
+            llvm::Value* _row_object_var;
+
             void initVars(llvm::IRBuilder<>& builder);
 
             /*!

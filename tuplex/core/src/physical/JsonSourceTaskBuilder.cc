@@ -72,6 +72,9 @@ namespace tuplex {
             _rowNumberVar = _env->CreateFirstBlockVariable(builder, _env->i64Const(0), "row_no");
 
             _parsedBytesVar = _env->CreateFirstBlockVariable(builder, _env->i64Const(0), "truncated_bytes");
+
+            // init JsonItem row object var
+            _row_object_var = _env->CreateFirstBlockVariable(builder, _env->i8nullptr(), "row_object");
         }
 
         llvm::Value *JsonSourceTaskBuilder::generateParseLoop(llvm::IRBuilder<> &builder,
@@ -110,13 +113,16 @@ namespace tuplex {
             // create single free block
             _freeStart = _freeEnd = BasicBlock::Create(ctx, "free_row_objects", F);
 
-#ifndef NDEBUG
             {
-                // debug: create an info statement for free block
+                // create here free obj block.
                 llvm::IRBuilder<> b(_freeStart);
+
                 // _env->printValue(b, rowNumber(b), "entered free row objects for row no=");
+                // release the row var if required
+                json_release_object(*_env, b, _row_object_var);
+                _freeEnd = b.GetInsertBlock();
             }
-#endif
+
             llvm::Value *rc = openJsonBuf(builder, parser, bufPtr, bufSize);
             llvm::Value *rc_cond = _env->i1neg(builder,
                                               builder.CreateICmpEQ(rc, _env->i64Const(ecToI64(ExceptionCode::SUCCESS))));
@@ -429,7 +435,7 @@ namespace tuplex {
             auto Fgetobj = getOrInsertFunction(_env->getModule().get(), "JsonParser_getObject", _env->i64Type(),
                                                _env->i8ptrType(), _env->i8ptrType()->getPointerTo(0));
 
-            auto obj_var = _env->CreateFirstBlockVariable(builder, _env->i8nullptr(), "row_object");
+            auto obj_var = _row_object_var;
 
             // release and store nullptr
             //builder.CreateStore(_env->i8nullptr(), obj_var);
@@ -465,7 +471,8 @@ namespace tuplex {
             _env->debugPrint(builder, "free done.");
 
             // free obj_var...
-            json_freeObject(*_env.get(), builder, builder.CreateLoad(obj_var));
+            //json_freeObject(*_env.get(), builder, builder.CreateLoad(obj_var));
+            json_release_object(*_env, builder, obj_var);
 #ifndef NDEBUG
             builder.CreateStore(_env->i8nullptr(), obj_var);
 #endif

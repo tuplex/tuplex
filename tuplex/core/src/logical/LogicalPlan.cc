@@ -49,7 +49,7 @@ namespace tuplex {
 
         // options which will change UDFs or the tree require a copy of the plan to operate.
         bool copy_required = context.getOptions().OPT_NULLVALUE_OPTIMIZATION() ||
-                             context.getOptions().CSV_PARSER_SELECTION_PUSHDOWN() ||
+                context.getOptions().OPT_SELECTION_PUSHDOWN() ||
                              context.getOptions().OPT_FILTER_PUSHDOWN();
 
         // optimize first if desired (context options object)

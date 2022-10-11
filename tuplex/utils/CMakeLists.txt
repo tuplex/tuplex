@@ -5,7 +5,7 @@ file(GLOB_RECURSE INCLUDES include/*.h)
 
 include_directories("include")
 
-# find zlin
+# find zlib
 find_package(ZLIB REQUIRED)
 
 ### include fmtlib/fmt
@@ -52,7 +52,7 @@ if(NOT BUILD_WITH_AWS)
     set(FETCHCONTENT_BASE_DIR ${CMAKE_BINARY_DIR}/third_party/src)
     FetchContent_Declare(cJSON
         GIT_REPOSITORY https://github.com/DaveGamble/cJSON.git
-        GIT_TAG        v1.7.14
+        GIT_TAG        v1.7.15
         GIT_CONFIG advice.detachedHead=false
     )
     FetchContent_GetProperties(cJSON)
@@ -66,6 +66,17 @@ else()
     message(STATUS "Using cJSON shipped with AWSSDK")
     # Note: alternative is to use CJSON_HIDE_SYMBOLS IWTH AWS SDK.
 endif()
+
+# include simdjson, tutorial here https://github.com/simdjson/cmake_demo_single_file/blob/master/CMakeLists.txt
+include(FetchContent)
+FetchContent_Declare(
+        simdjson
+        GIT_REPOSITORY https://github.com/simdjson/simdjson.git
+        GIT_SHALLOW TRUE
+        GIT_TAG tags/v2.0.4
+)
+
+FetchContent_MakeAvailable(simdjson)
 
 # AWS SDK defines cjson since v1.5, yet if using BUILD_WITH_AWS=OFF make sure to add cJSON symbols...
 if(NOT BUILD_WITH_AWS)

@@ -698,12 +698,13 @@ function(FindPython3Exe NAMES VERSION EXECUTABLE)
             # check version (must match VERSION)
 	    execute_process(COMMAND "${TEMP_EXE}" -c "import platform;print(platform.python_version())" RESULT_VARIABLE _result OUTPUT_VARIABLE TEMP_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
             # check if version matches
-
-	    compare_version_strings(${VERSION} ${TEMP_VERSION} _result)
-	    if(result EQUAL 0)
-	        message(STATUS "Found ${TEMP_EXE} with version ${TEMP_VERSION} matching desired version ${VERSION}")
-		set(${EXECUTABLE} ${TEMP_EXE} PARENT_SCOPE) # write out
-	    endif()
+        if(VERSION AND TEMP_VERSION)
+            compare_version_strings(${VERSION} ${TEMP_VERSION} _result)
+            if(result EQUAL 0)
+                message(STATUS "Found ${TEMP_EXE} with version ${TEMP_VERSION} matching desired version ${VERSION}")
+                set(${EXECUTABLE} ${TEMP_EXE} PARENT_SCOPE) # write out
+            endif()
+        endif()
 	endif()
 
 endfunction()

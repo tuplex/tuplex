@@ -12,6 +12,8 @@
 
 namespace tuplex {
     py::object registerPythonLoggingCallback(py::object callback_functor) {
+        python::registerWithInterpreter();
+
         // get object
         callback_functor.inc_ref();
         auto functor_obj = callback_functor.ptr();

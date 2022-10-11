@@ -113,7 +113,7 @@ namespace tuplex {
             }
 
             bool hasExceptionHandler() const { return !_exceptionHandlerName.empty(); }
-
+            std::string exception_handler() const { return _exceptionHandlerName; }
             void generateTerminateEarlyOnCode(llvm::IRBuilder<>& builder,
                                               llvm::Value* ecCode,
                                               ExceptionCode code = ExceptionCode::OUTPUT_LIMIT_REACHED);
@@ -242,7 +242,7 @@ namespace tuplex {
         };
 
         // @TODO:
-        // later JSONSourceTaskBuilder { ... }
+        // later ExperimentalJSONSourceTaskBuilder { ... }
         // also GeneralSourceTaskBuilder { ... }
         // TuplexSourceTaskBuilder { ... } // <== takes Tuplex's internal memory format as source
 

@@ -292,6 +292,13 @@ namespace tuplex {
             }
 
             /*!
+             * returns a ptr to a tuple structure filled with the values hold by this wrapper, yet the pointer is allocated as a heap ptr via rtmalloc.
+             * @param builder
+             * @return ptr to getLLVMType() filled with data elements.
+             */
+            llvm::Value* loadToHeapPtr(llvm::IRBuilder<>& builder)const;
+
+            /*!
              * creates alloc for llvm struct val representing this tuple
              * @param builder
              * @return alloc tuple

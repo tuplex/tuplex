@@ -180,7 +180,7 @@ if __name__ == "__main__":
         "runTimeMemory": "128MB",
         "useLLVMOptimizer": True,
         "optimizer.nullValueOptimization": False,
-        "csv.selectionPushdown": True,
+        "optimizer.selectionPushdown": True,
     }
 
     # Begin pipeline

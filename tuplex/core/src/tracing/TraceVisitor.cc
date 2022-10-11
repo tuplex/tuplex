@@ -129,6 +129,7 @@ namespace tuplex {
             auto sym = PyDict_GetItemString(mainDict, node->_name.c_str());
 
             if(sym) {
+                Py_XINCREF(sym);
                 addTraceResult(node, TraceItem(sym, node->_name));
             } else {
 
@@ -137,9 +138,10 @@ namespace tuplex {
                 auto builtinDict = PyModule_GetDict(builtins); assert(builtinDict);
 
                 sym = PyDict_GetItemString(builtinDict, node->_name.c_str());
-                if(sym)
+                if(sym) {
+                    Py_XINCREF(sym);
                     addTraceResult(node, TraceItem(sym, node->_name));
-                else {
+                } else {
                     PyErr_SetString(PyExc_NameError, ("could not find identifier " + node->_name).c_str());
 
                     // i.e., could early exit function...

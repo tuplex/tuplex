@@ -32,7 +32,7 @@ find_package(CURL REQUIRED)
 if(UNIX AND NOT APPLE)
     message(STATUS "CURL libraries: ${CURL_LIBRARIES}")
     message(STATUS "CURL include dirs: ${CURL_INCLUDE_DIR}")
-    
+
     execute_process(COMMAND bash "-c" "ldd -v ${CURL_LIBRARIES} | grep -o -E '\(OPENSSL.*\)'" OUTPUT_VARIABLE SSL_OUT RESULT_VARIABLE SSL_RET OUTPUT_STRIP_TRAILING_WHITESPACE)
     if(SSL_RET AND NOT SSL_RET EQUAL 0)
 	    message(FATAL_ERROR "failed to check that curl was built against openssl")
@@ -109,6 +109,7 @@ target_link_libraries(libcore
         Boost::thread
         Boost::system
         Boost::filesystem
+	util
         )
 
 # precompiled headers, mostly to speed up cerealization of operators

@@ -387,6 +387,43 @@ namespace tuplex {
         ds->_operator->setDataSet(ds);
     }
 
+    DataSet &Context::json(const std::string &pattern,
+                           bool unwrap_first_level,
+                           bool treat_heterogenous_lists_as_tuples) {
+        using namespace std;
+
+        Schema schema;
+        int dataSetID = getNextDataSetID();
+        DataSet *dsptr = createDataSet(schema);
+
+        dsptr->_operator = addOperator(FileInputOperator::fromJSON(pattern, unwrap_first_level, treat_heterogenous_lists_as_tuples, _options));
+        auto op = ((FileInputOperator*)dsptr->_operator);
+
+        // check whether files were found, else return empty dataset!
+        if(op->getURIs().empty()) {
+            // note: dataset will be destroyed by context
+            auto& ds = makeEmpty();
+            op->setDataSet(&ds);
+            return ds;
+        }
+
+        auto detectedColumns = ((FileInputOperator*)dsptr->_operator)->columns();
+        dsptr->setColumns(detectedColumns);
+
+        // set dataset to operator
+        dsptr->_operator->setDataSet(dsptr);
+
+        // signal check
+        if(check_and_forward_signals()) {
+#ifndef NDEBUG
+            Logger::instance().defaultLogger().info("received signal handler sig, returning error dataset");
+#endif
+            return makeError("job aborted (signal received)");
+        }
+
+        return *dsptr;
+    }
+
     DataSet& Context::csv(const std::string &pattern,
                           const std::vector<std::string>& columns,
                           option<bool> hasHeader,

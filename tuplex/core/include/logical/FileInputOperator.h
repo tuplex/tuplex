@@ -37,6 +37,9 @@ namespace tuplex {
         char _delimiter;
         bool _header;
 
+                // JSON
+        bool _json_unwrap_first_level;
+
         // general fields for managing both cases & projections
         std::vector<std::string> _null_values;
         std::vector<bool> _columnsToSerialize; // which columns to serialize
@@ -225,7 +228,7 @@ namespace tuplex {
 
         // required by cereal
         // make private
-        FileInputOperator() = default;
+        FileInputOperator();
 
         /*!
          * create a new CSV File Input operator
@@ -236,6 +239,7 @@ namespace tuplex {
          * @param quotechar quote char, i.e. only understood dialect is RFC compliant one
          * @param null_values which strings to interpret as null values
          * @param type_hints an optional mapping of column index to type if a certain type should be enforced for a column
+         * @return input operator
          */
         static FileInputOperator *fromCsv(const std::string& pattern,
                                          const ContextOptions& co,
@@ -253,6 +257,7 @@ namespace tuplex {
          * @param pattern files to search for
          * @param co ContextOptions, pipeline will take configuration for planning from there
          * @param null_values which strings to interpret as null values
+         * @return input operator
          */
         static FileInputOperator *fromText(const std::string& pattern,
                                           const ContextOptions& co,
@@ -263,10 +268,25 @@ namespace tuplex {
         * create a new orc File Input operator.
         * @param pattern files to search for
         * @param co ContextOptions, pipeline will take configuration for planning from there
+        * return input operator
         */
         static FileInputOperator *fromOrc(const std::string& pattern,
                                          const ContextOptions& co,
                                           const SamplingMode& sampling_mode);
+
+        /*!
+         * create new file input operator reading JSON (newline delimited) files.
+         * @param pattern pattern to look for files
+         * @param unwrap_first_level if true, then the first level is unwrapped. Else, dataset is treated to have a single column.
+         * @param treat_heterogenous_lists_as_tuples set to true to lower footprint.
+         * @param co context options
+         * @return input operator
+         */
+        static FileInputOperator *fromJSON(const std::string& pattern,
+                                           bool unwrap_first_level,
+                                           bool treat_heterogenous_lists_as_tuples,
+                                           const ContextOptions& co);
+
 
         std::string name() override {
             switch (_fmt) {
@@ -276,6 +296,8 @@ namespace tuplex {
                     return "txt";
                 case FileFormat::OUTFMT_ORC:
                     return "orc";
+                case FileFormat::OUTFMT_JSON:
+                    return "json";
                 default:
                     auto &logger = Logger::instance().logger("fileinputoperator");
                     std::stringstream ss;
@@ -312,6 +334,8 @@ namespace tuplex {
         std::vector<std::string> null_values() const { return _null_values; }
 
         std::unordered_map<size_t, python::Type> typeHints() const { return _indexBasedHints; }
+
+        bool unwrap_first_level() const { return _json_unwrap_first_level; }
 
         /*!
          * force usage of normal case type for schema & Co.
@@ -515,6 +539,7 @@ namespace tuplex {
                     _delimiter,
                     _header,
                     _null_values,
+                    _json_unwrap_level,
                     _columnNames,
                     _columnsToSerialize,
                     _indexBasedHints,
@@ -534,6 +559,7 @@ namespace tuplex {
                 _delimiter,
                 _header,
                 _null_values,
+                _json_unwrap_level,
                 _columnNames,
                 _columnsToSerialize,
                 _indexBasedHints,

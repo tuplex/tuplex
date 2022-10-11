@@ -569,75 +569,75 @@ TEST_F(WrapperTest, extractPriceExample) {
     }
 }
 
-TEST(Python, FastTupleConstruction) {
-    using namespace tuplex;
-
-    python::initInterpreter();
-    std::cout<<"\n-------------"<<std::endl;
-
-    // Note: Eliminating these additiona if stmts & Co, gives maybe a tiny speedup of
-    // 5-10%. ==> worth it?? prob not really...
-
-    int N = 1001000;
-
-    Timer timer;
-    auto listObj = PyList_New(N);
-    for(int i = 0; i < N; ++i) {
-        auto tupleObj = PyTuple_New(4);
-        PyTuple_SET_ITEM(tupleObj, 0, python::PyString_FromString("hello world"));
-        PyTuple_SET_ITEM(tupleObj, 1, python::PyString_FromString("hello whkljdkhjorld"));
-        PyTuple_SET_ITEM(tupleObj, 2, python::PyString_FromString("dkfjopdjfophjhello world"));
-        PyTuple_SET_ITEM(tupleObj, 3, PyLong_FromLongLong(12345));
-        PyList_SET_ITEM(listObj, i, tupleObj);
-    }
-    std::cout<<"w/o opt took: "<<timer.time()<<"s "<<std::endl;
-    timer.reset();
-    listObj = PyList_New(N);
-    unsigned tupleSize = 4;
-    for(int i = 0; i < N; ++i) {
-
-        // directly call python functions without all the crap
-        auto tp = (PyTupleObject*)PyObject_GC_NewVar(PyTupleObject, &PyTuple_Type, tupleSize);
-        PyObject_GC_Track(tp);
-        if(!tp) // out of mem..
-            break;
-
-        tp->ob_item[0] = python::PyString_FromString("hello world");
-        tp->ob_item[1] = python::PyString_FromString("hello whkljdkhjorld");
-        tp->ob_item[2] = python::PyString_FromString("dkfjopdjfophjhello world");
-        tp->ob_item[3] = PyLong_FromLongLong(12345);
-
-        PyList_SET_ITEM(listObj, i, (PyObject*)tp);
-    }
-    std::cout<<"tuple construction optimized, took: "<<timer.time()<<"s "<<std::endl;
-
-    timer.reset();
-    PyListObject* lo = PyObject_GC_New(PyListObject, &PyList_Type);
-    lo->ob_item = (PyObject**)PyMem_Calloc(N, sizeof(PyObject*));
-    // TODO: mem check...
-    Py_SIZE(lo) = N;
-    lo->allocated = N;
-    PyObject_GC_Track(lo);
-    for(int i = 0; i < N; ++i) {
-
-        // directly call python functions without all the crap
-        auto tp = (PyTupleObject*)PyObject_GC_NewVar(PyTupleObject, &PyTuple_Type, tupleSize);
-        PyObject_GC_Track(tp);
-        if(!tp) // out of mem..
-            break;
-
-        tp->ob_item[0] = python::PyString_FromString("hello world");
-        tp->ob_item[1] = python::PyString_FromString("hello whkljdkhjorld");
-        tp->ob_item[2] = python::PyString_FromString("dkfjopdjfophjhello world");
-        tp->ob_item[3] = PyLong_FromLongLong(12345);
-
-        lo->ob_item[i] = (PyObject*)tp;
-    }
-    std::cout<<"tuple + list construction optimized, took: "<<timer.time()<<"s "<<std::endl;
-
-    std::cout<<"-------------"<<std::endl;
-    python::closeInterpreter();
-}
+//TEST(Python, FastTupleConstruction) {
+//    using namespace tuplex;
+//
+//    python::initInterpreter();
+//    std::cout<<"\n-------------"<<std::endl;
+//
+//    // Note: Eliminating these additiona if stmts & Co, gives maybe a tiny speedup of
+//    // 5-10%. ==> worth it?? prob not really...
+//
+//    int N = 1001000;
+//
+//    Timer timer;
+//    auto listObj = PyList_New(N);
+//    for(int i = 0; i < N; ++i) {
+//        auto tupleObj = PyTuple_New(4);
+//        PyTuple_SET_ITEM(tupleObj, 0, python::PyString_FromString("hello world"));
+//        PyTuple_SET_ITEM(tupleObj, 1, python::PyString_FromString("hello whkljdkhjorld"));
+//        PyTuple_SET_ITEM(tupleObj, 2, python::PyString_FromString("dkfjopdjfophjhello world"));
+//        PyTuple_SET_ITEM(tupleObj, 3, PyLong_FromLongLong(12345));
+//        PyList_SET_ITEM(listObj, i, tupleObj);
+//    }
+//    std::cout<<"w/o opt took: "<<timer.time()<<"s "<<std::endl;
+//    timer.reset();
+//    listObj = PyList_New(N);
+//    unsigned tupleSize = 4;
+//    for(int i = 0; i < N; ++i) {
+//
+//        // directly call python functions without all the crap
+//        auto tp = (PyTupleObject*)PyObject_GC_NewVar(PyTupleObject, &PyTuple_Type, tupleSize);
+//        PyObject_GC_Track(tp);
+//        if(!tp) // out of mem..
+//            break;
+//
+//        tp->ob_item[0] = python::PyString_FromString("hello world");
+//        tp->ob_item[1] = python::PyString_FromString("hello whkljdkhjorld");
+//        tp->ob_item[2] = python::PyString_FromString("dkfjopdjfophjhello world");
+//        tp->ob_item[3] = PyLong_FromLongLong(12345);
+//
+//        PyList_SET_ITEM(listObj, i, (PyObject*)tp);
+//    }
+//    std::cout<<"tuple construction optimized, took: "<<timer.time()<<"s "<<std::endl;
+//
+//    timer.reset();
+//    PyListObject* lo = PyObject_GC_New(PyListObject, &PyList_Type);
+//    lo->ob_item = (PyObject**)PyMem_Calloc(N, sizeof(PyObject*));
+//    // TODO: mem check...
+//    Py_SIZE(lo) = N;
+//    lo->allocated = N;
+//    PyObject_GC_Track(lo);
+//    for(int i = 0; i < N; ++i) {
+//
+//        // directly call python functions without all the crap
+//        auto tp = (PyTupleObject*)PyObject_GC_NewVar(PyTupleObject, &PyTuple_Type, tupleSize);
+//        PyObject_GC_Track(tp);
+//        if(!tp) // out of mem..
+//            break;
+//
+//        tp->ob_item[0] = python::PyString_FromString("hello world");
+//        tp->ob_item[1] = python::PyString_FromString("hello whkljdkhjorld");
+//        tp->ob_item[2] = python::PyString_FromString("dkfjopdjfophjhello world");
+//        tp->ob_item[3] = PyLong_FromLongLong(12345);
+//
+//        lo->ob_item[i] = (PyObject*)tp;
+//    }
+//    std::cout<<"tuple + list construction optimized, took: "<<timer.time()<<"s "<<std::endl;
+//
+//    std::cout<<"-------------"<<std::endl;
+//    python::closeInterpreter();
+//}
 
 
 // @TODO: add test for all the helpers with wrongly formatted input rows...
@@ -1149,14 +1149,14 @@ TEST_F(WrapperTest, FlightSimulateSpark) {
     // "partitionSize": "32MB", "runTimeMemory": "64MB",
     // "inputSplitSize": "64MB", "useLLVMOptimizer": true,
     // "optimizer.retypeUsingOptimizedInputSchema": true,
-    // "csv.selectionPushdown": true,
+    // "optimizer.selectionPushdown": true,
     // "optimizer.generateParser": false,
     // "optimizer.mergeExceptionsInOrder": false,
     // "optimizer.filterPushdown": true}
     PythonContext ctx("python", "",
                     "{\"tuplex.webui.enable\":\"False\", \"tuplex.useLLVMOptimizer\" : \"True\","
                     " \"tuplex.optimizer.retypeUsingOptimizedInputSchema\" : \"True\","
-                    " \"tuplex.optimizer.csv.selectionPushdown\" : \"True\","
+                    " \"tuplex.optimizer.optimizer.selectionPushdown\" : \"True\","
                     " \"tuplex.resolveWithInterpreterOnly\":\"False\","
                     "\"tuplex.executorCount\":0,"
                     "\"tuplex.driverMemory\":\"6G\","
@@ -2207,7 +2207,7 @@ TEST_F(WrapperTest, ZillowDirty) {
                      " \"runTimeMemory\": \"4MB\","
                      " \"useLLVMOptimizer\": true,"
                      " \"optimizer.retypeUsingOptimizedInputSchema\": false,"
-                     " \"csv.selectionPushdown\": false, "
+                     " \"optimizer.selectionPushdown\": false, "
                      "\"optimizer.generateParser\": false,"
                      "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                      "\"optimizer.mergeExceptionsInOrder\": true}";
@@ -2220,7 +2220,7 @@ TEST_F(WrapperTest, ZillowDirty) {
                      " \"runTimeMemory\": \"4MB\","
                      " \"useLLVMOptimizer\": true,"
                      " \"optimizer.retypeUsingOptimizedInputSchema\": false,"
-                     " \"csv.selectionPushdown\": false, "
+                     " \"optimizer.selectionPushdown\": false, "
                      "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                      "\"optimizer.generateParser\": false,"
 
@@ -2961,7 +2961,62 @@ TEST_F(WrapperTest, Subset311Aggregate) {
     }
 }
 
+TEST_F(WrapperTest, NonConformingResolve) {
+    using namespace tuplex;
 
+    // use here a resolve operator that doesn't trigger
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"8MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 0,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+    std::string udf_throwing = "def f(a, b):\n"
+                              "  return (a, a / b)";
+    std::string udf_resolve = "def h(a, b):\n"
+                                "  return 'some string'";
+
+    auto initial_pickled = python::pickleObject(python::getMainModule(), PyLong_FromLong(0));
+
+    auto list = PyList_New(2);
+    auto tuple1 = PyTuple_New(2);
+    PyTuple_SetItem(tuple1, 0, PyLong_FromLong(1));
+    PyTuple_SetItem(tuple1, 1, PyLong_FromLong(0));
+    auto tuple2 = PyTuple_New(2);
+    PyTuple_SetItem(tuple2, 0, PyLong_FromLong(1));
+    PyTuple_SetItem(tuple2, 1, PyLong_FromLong(1));
+    PyList_SetItem(list, 0, tuple1);
+    PyList_SetItem(list, 1, tuple2);
+    auto data_list = py::reinterpret_borrow<py::list>(list);
+    PythonContext ctx("", "", ctx_opts);
+    {
+        auto ds = ctx.parallelize(data_list)
+        .map(udf_throwing, "");
+
+        auto schema_str = python::PyString_AsString(ds.types().ptr());
+        std::cout<<schema_str<<std::endl;
+        EXPECT_EQ(schema_str, "[<class 'int'>, <class 'float'>]");
+        auto ds2 = ds.resolve(ecToI64(ExceptionCode::ZERODIVISIONERROR), udf_resolve, "");
+        schema_str = python::PyString_AsString(ds2.types().ptr());
+        EXPECT_EQ(schema_str, "[<class 'str'>]");
+        std::cout<<schema_str<<std::endl;
+        ds2.show();
+
+
+        // check
+        auto res = ds2.collect();
+        auto res_obj = res.ptr();
+        ASSERT_TRUE(res_obj);
+        ASSERT_TRUE(PyList_Check(res_obj));
+        EXPECT_EQ(PyList_Size(res_obj), 2);
+
+        python::runGC();
+
+        std::cout<<std::endl; // flush
+    }
+}
 
 
 //// debug any python module...

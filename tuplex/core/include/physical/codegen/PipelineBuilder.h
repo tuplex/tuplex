@@ -361,7 +361,6 @@ namespace tuplex {
                                      bool allowUndefinedBehavior,
                                      bool sharedObjectPropagation);
 
-            // @TODO: also add ignore to this
             /*!
              * adds a resolver to the last added operation
              * @param ec
@@ -373,6 +372,14 @@ namespace tuplex {
              */
             bool
             addResolver(const ExceptionCode &ec, const int64_t operatorID, const UDF &udf, double normalCaseThreshold, bool allowUndefinedBehavior, bool sharedObjectPropagation);
+
+            /*!
+             * use this function to trigger fallback row processing of an operator that does not fit into the general case
+             * @param ec the exception code for which this resolver produces rows
+             * @param operatorID ID of the resolver
+             * @return whether it worked or not.
+             */
+            bool addNonSchemaConformingResolver(const ExceptionCode& ec, const int64_t operatorID);
 
             /*!
              * this is a function to add generated code for an ignore operator to be used on the slow path.
@@ -391,6 +398,7 @@ namespace tuplex {
              */
             void addExceptionHandler(const std::string &callbackName) { _exceptionCallbackName = callbackName; }
 
+            std::string exceptionHandler() const { return _exceptionCallbackName; }
 
             bool addHashJoinProbe(int64_t leftKeyIndex, const python::Type &leftRowType,
                                   int64_t rightKeyIndex, const python::Type &rightRowType,

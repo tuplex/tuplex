@@ -24,6 +24,8 @@
 #include <type_traits>
 #include <Utils.h>
 
+#include <boost/any.hpp>
+
 #ifdef BUILD_WITH_CEREAL
 #include "cereal/access.hpp"
 #include "cereal/types/memory.hpp"
@@ -76,6 +78,9 @@ namespace tuplex {
 
         // helper function to initialize field as tuple field from vector of elements
         void tuple_from_vector(const std::vector<Field>& elements);
+
+        // parses JSON and converts it into python syntax (together with type)
+        std::string internalJSONToPythonString() const;
 
         void deep_copy_from_other(const Field& other);
     public:
@@ -193,6 +198,9 @@ namespace tuplex {
         std::string desc() const;
 
         std::string toPythonString() const {
+            // special case: struct type and dict -> they're stored as JSON string/dictionaries
+            if(getType().isDictionaryType())
+                return internalJSONToPythonString();
             return desc();
         }
 
@@ -290,6 +298,47 @@ namespace tuplex {
      * @return field with value obtained from type
      */
     extern Field constantTypeToField(const python::Type& type);
+
+
+    inline Field any_to_field(const boost::any& value, const Field& default_value = Field::null()) {
+        auto f = default_value;
+
+        // cast from a couple of basic C++ types
+        if(value.type() == typeid(std::string)) {
+            f = tuplex::Field(boost::any_cast<std::string>(value));
+        } else if(value.type() == typeid(const char*)) {
+            f = tuplex::Field(std::string(boost::any_cast<const char*>(value)));
+        } else if(value.type() == typeid(float)) {
+#ifndef NDEBUG
+            std::cerr<<"WARNING: number supplied as float (f32) but Tuplex internally only uses double"
+                     <<"precision floating point numbers. Consider calling with the correct double type (f64)."
+                     <<std::endl;
+#endif
+            f = tuplex::Field(static_cast<double>(boost::any_cast<float>(value)));
+        }else if(value.type() == typeid(double)) {
+            f = tuplex::Field(boost::any_cast<double>(value));
+        } else if(value.type() == typeid(int64_t)) {
+            f = tuplex::Field(boost::any_cast<int64_t>(value));
+        } else if(value.type() == typeid(int8_t)) {
+            f = tuplex::Field(static_cast<int64_t>(boost::any_cast<int8_t>(value)));
+        } else if(value.type() == typeid(int16_t)) {
+            f = tuplex::Field(static_cast<int64_t>(boost::any_cast<int16_t>(value)));
+        } else if(value.type() == typeid(int32_t)) {
+            f = tuplex::Field(static_cast<int64_t>(boost::any_cast<int32_t>(value)));
+        } else {
+            try {
+                f = boost::any_cast<tuplex::Field>(value);
+            } catch (const boost::bad_any_cast& b) {
+#ifndef NDEBUG
+                std::cerr<<"bad cast, expecting Field here but got instead "<<value.type().name()<<std::endl;
+                assert(false);
+#else
+                std::cerr<<"returning default value"<<std::endl;
+#endif
+            }
+        }
+        return f;
+    }
 
 }
 #endif //TUPLEX_FIELD_H

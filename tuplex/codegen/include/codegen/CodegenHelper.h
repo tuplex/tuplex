@@ -274,6 +274,19 @@ namespace tuplex {
             }
         };
 
+
+        // for variable length fields => offset and size packing!
+        inline llvm::Value* pack_offset_and_size(llvm::IRBuilder<>& builder, llvm::Value* offset, llvm::Value* size) {
+            auto& ctx = builder.GetInsertBlock()->getContext();
+
+            // truncate or ext both offset and size to 32bit
+            offset = builder.CreateZExtOrTrunc(offset, llvm::Type::getInt32Ty(ctx));
+            size = builder.CreateZExtOrTrunc(size, llvm::Type::getInt32Ty(ctx));
+
+            llvm::Value *info = builder.CreateOr(builder.CreateZExt(offset, llvm::Type::getInt64Ty(ctx)), builder.CreateShl(builder.CreateZExt(size, llvm::Type::getInt64Ty(ctx)), 32));
+            return info;
+        }
+
         /*!
          * generates code to get a compatible underlying value from an optimized value.
          * @param builder LLVM IR Builder
@@ -388,6 +401,14 @@ namespace tuplex {
         }
 
         /*!
+         * verifies module and then each function itself
+         * @param mod
+         * @param out
+         * @return whether module is ok or not.
+         */
+        extern bool verifyModule(llvm::Module& mod, std::string* out=nullptr);
+
+        /*!
          * verifies function and optionally yields error message
          * @param func
          * @param out
@@ -454,6 +475,11 @@ namespace tuplex {
 
         template<> inline llvm::Type* ctypeToLLVM<char>(llvm::LLVMContext& ctx) {
             static_assert(sizeof(char) == 1, "char must be 1 byte");
+            return llvm::Type::getInt8Ty(ctx);
+        }
+
+        template<> inline llvm::Type* ctypeToLLVM<int8_t>(llvm::LLVMContext& ctx) {
+            static_assert(sizeof(int8_t) == 1, "int8_t must be 1 byte");
             return llvm::Type::getInt8Ty(ctx);
         }
 

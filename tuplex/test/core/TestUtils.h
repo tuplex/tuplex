@@ -125,7 +125,7 @@ protected:
         co.set("tuplex.scratchDir", "file://" + scratchDir);
 
         // disable schema pushdown
-        co.set("tuplex.csv.selectionPushdown", "true");
+        co.set("tuplex.optimizer.selectionPushdown", "true");
 
 #ifdef BUILD_FOR_CI
         co.set("tuplex.aws.httpThreadCount", "0");

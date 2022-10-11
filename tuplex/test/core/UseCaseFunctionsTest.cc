@@ -1197,7 +1197,7 @@ TEST_F(UseCaseFunctionsTest, ZillowCacheEachStep) {
     opt_ref.set("tuplex.executorCount", "4"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "true"); // deactivate
     opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
-    opt_ref.set("tuplex.csv.selectionPushdown", "true"); // disable for now, prob errors later...
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "true"); // disable for now, prob errors later...
     opt_ref.set("tuplex.optimizer.generateParser", "true"); // do not use par => wrong parse for some cell here!
     opt_ref.set("tuplex.inputSplitSize", "64MB"); // probably something wrong with the reader, again??
     Context ctx(opt_ref);

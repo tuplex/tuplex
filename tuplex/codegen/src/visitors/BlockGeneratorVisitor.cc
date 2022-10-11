@@ -17,6 +17,8 @@
 #include <visitors/ApplyVisitor.h>
 #include <TypeHelper.h>
 #include <visitors/type_deopt.h>
+#include <experimental/StructDictHelper.h>
+#include <experimental/ListHelper.h>
 
 using namespace llvm;
 
@@ -3021,8 +3023,10 @@ namespace tuplex {
                 auto value_type = dict->_pairs[i].second->getInferredType();
                 auto value = cJSONObjectFromValue(builder, vals[i], value_type);
                 assert(value);
+                #ifndef NDEBUG
                 _env->debugPrint(builder, "calling cJSONAddITem with key=", key);
                 _env->debugPrint(builder, "calling cJSONAddITem with value=", value);
+                #endif
                 builder.CreateCall(cJSONAddItemToObject_prototype(_env->getContext(), _env->getModule().get()),
                                    {ret, key, value});
             }
@@ -3333,7 +3337,7 @@ namespace tuplex {
             auto iterType = listComprehension->generators[0]->iter->getInferredType();
             if(iterType == python::Type::RANGE || iterType == python::Type::STRING || (iterType.isListType() && iterType != python::Type::EMPTYLIST) || (iterType.isTupleType() && tupleElementsHaveSameType(iterType))) {
                 auto elementType = listComprehension->getInferredType().elementType();
-                auto listLLVMType = _env->getListType(listComprehension->getInferredType());
+                auto listLLVMType = _env->getOrCreateListType(listComprehension->getInferredType());
 
                 auto target = _blockStack.back(); // from comprehension
                 _blockStack.pop_back();
@@ -4052,6 +4056,15 @@ namespace tuplex {
                 addInstruction(ret.val, ret.size);
             }
             else {
+                // check if value is of struct dict type
+                if(sub->_value->getInferredType().isStructuredDictionaryType()) {
+                    SerializableValue ret;
+                    if(subscriptStructDict(builder, &ret, sub->_value->getInferredType(), value,  sub->_expression->getInferredType(), index, sub->_expression)) {
+                        addInstruction(ret.val, ret.size, ret.is_null);
+                        return;
+                    }
+                }
+
                 // undefined
                 std::stringstream ss;
                 ss << "unsupported type encountered with [] operator.";
@@ -4100,6 +4113,208 @@ namespace tuplex {
             }
             return true;
         }
+
+        std::tuple<std::string, python::Type> extractStaticKey(const python::Type& value_type, const SerializableValue& value, ASTNode *value_node) {
+            using namespace std;
+
+            std::string key;
+            python::Type key_type = python::Type::UNKNOWN;
+
+            auto type = value_type;
+
+            // is value a LLVM constant by chance?
+            if(value.is_null && llvm::isa<llvm::ConstantInt>(value.is_null)) {
+                // check what is null says. => i1 => null value!
+                auto is_null = llvm::cast<llvm::ConstantInt>(value.is_null)->getSExtValue();
+                if(is_null) {
+                    // it's zero
+                    assert(value_type.isOptionType() || value_type == python::Type::NULLVALUE);
+                    return make_tuple("None", value_type);
+                } else {
+                    // not null... -> normal decoding with primitive
+                    if(type.isOptionType())
+                        type = type.getReturnType();
+                }
+            }
+
+            // check whether value is constant
+            if(value.val && llvm::isa<llvm::Constant>(value.val)) {
+                // what type could it be?
+                if(type == python::Type::STRING) {
+                    // fetch data...
+                    auto str = globalVariableToString(value.val);
+                    // escape to py
+                    return make_tuple(escape_to_python_str(str), value_type);
+                }
+                if(type == python::Type::BOOLEAN) {
+                    auto i_val = llvm::cast<ConstantInt>(value.val)->getSExtValue();
+                    return make_tuple(i_val ? "True" : "False", value_type);
+                }
+                if(python::Type::I64 == type) {
+                    auto i_val = llvm::cast<ConstantInt>(value.val)->getSExtValue();
+                    return make_tuple(std::to_string(i_val), value_type);
+                }
+                if(python::Type::F64 == type) {
+                    auto d_val = llvm::cast<ConstantFP>(value.val)->getValueAPF().convertToDouble();
+                    return make_tuple(std::to_string(d_val), value_type);
+                }
+            }
+
+            // try first value, then check value node
+            if(value_node) {
+                return extractKeyFromASTNode(value_node);
+            }
+            return make_tuple("", python::Type::UNKNOWN);
+        }
+
+        bool BlockGeneratorVisitor::subscriptStructDict(llvm::IRBuilder<> &builder,
+                                                        SerializableValue *out_ret,
+                                                        const python::Type &value_type,
+                                                        const SerializableValue &value,
+                                                        const python::Type &idx_expr_type,
+                                                        const SerializableValue &idx_expr,
+                                                        ASTNode *idx_expr_node) {
+            using namespace std;
+
+            assert(value_type.isStructuredDictionaryType()); // -> what about the option stuff?
+
+            // can only subscript if a static key can be extracted (for now)
+            auto t_key_and_type = extractStaticKey(idx_expr_type, idx_expr, idx_expr_node);
+            auto key = std::get<0>(t_key_and_type);
+            auto key_type = std::get<1>(t_key_and_type);
+
+            if(key_type == python::Type::UNKNOWN || key.empty())
+                return false;
+
+            _logger.debug("extracted static key=" + key + " (" + key_type.desc() + ") from AST.");
+
+            // check if found in dict index type.
+            access_path_t path;
+            path.push_back(make_pair(key, key_type));
+            auto element_type = struct_dict_type_get_element_type(value_type, path);
+            if(element_type == python::Type::UNKNOWN) {
+                _logger.debug("did not find entry under key=" + key + " in dict.");
+                // generate key error
+                _lfb->exitWithException(ExceptionCode::KEYERROR);
+                return true;
+            }
+
+            // is keytype and elementtype identical (minus opt
+            if(key_type.withoutOptions() == element_type.withoutOptions()) {
+                // ok, can access data -> do so by generating the appropriate instructions
+                // handle option...
+                assert(!value_type.isOptionType());
+
+                // is it a maybe field? => check if present. if not, key error
+                auto field_present = struct_dict_load_present(*_env, builder, value.val, value_type, path);
+                auto field_not_present = _env->i1neg(builder, field_present);
+                _lfb->addException(builder, ExceptionCode::KEYERROR, field_not_present);
+                // load entry
+                if(out_ret)
+                    *out_ret = struct_dict_load_value(*_env, builder, value.val, value_type, path);
+                return true;
+            } else {
+                // key error, b.c. wrong type!
+                _lfb->exitWithException(ExceptionCode::KEYERROR);
+                return true;
+            }
+        }
+
+        SerializableValue BlockGeneratorVisitor::upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue &val,
+                                                                  const python::Type &type,
+                                                                  const python::Type &targetType) {
+            if(!canUpcastType(type, targetType))
+                throw std::runtime_error("types " + type.desc() + " and " + targetType.desc() + " not compatible for upcasting");
+
+            if(type == targetType)
+                return val;
+
+            // the types are different
+
+            // primitives
+            // bool -> int -> f64
+            if(type == python::Type::BOOLEAN) {
+                if(targetType == python::Type::I64) {
+                    // widen to i64
+                    return SerializableValue(upCast(builder, val.val, _env->i64Type()), _env->i64Const(sizeof(int64_t)));
+                }
+                if(targetType == python::Type::F64)
+                    // widen to f64
+                    return SerializableValue(upCast(builder, val.val, _env->doubleType()), _env->i64Const(sizeof(int64_t)));
+            }
+            // int -> f64
+            if(type == python::Type::I64 && targetType == python::Type::F64)
+                return SerializableValue(upCast(builder, val.val, _env->doubleType()), _env->i64Const(sizeof(int64_t)));
+
+            // null to Option[Any]
+            if(type == python::Type::NULLVALUE && targetType.isOptionType()) {
+
+                // need to create dummy value so LLVM works...
+                auto baseType = targetType.getReturnType();
+                auto tmp = CreateDummyValue(*_env, builder, baseType);
+                return SerializableValue(tmp.val, tmp.size, _env->i1Const(true));
+            }
+
+            // primitive to option?
+            if(!type.isOptionType() && targetType.isOptionType()) {
+                auto tmp = upCastReturnType(builder, val, type, targetType.withoutOptions());
+                return SerializableValue(tmp.val, tmp.size, _env->i1Const(false));
+            }
+
+            // option[a] to option[b]?
+            if(type.isOptionType() && targetType.isOptionType()) {
+                auto tmp = upCastReturnType(builder, val, type.withoutOptions(), targetType.withoutOptions());
+                return SerializableValue(tmp.val, tmp.size, val.is_null);
+            }
+
+            if(type.isTupleType() && targetType.isTupleType()) {
+                if(type.parameters().size() != targetType.parameters().size()) {
+                    error("upcasting tuple type " + type.desc() + " to tuple type " + targetType.desc()
+                    + " not possible, because tuples contain different amount of parameters!");
+                }
+                // upcast tuples
+                // Load as FlattenedTuple
+                FlattenedTuple val_tuple = FlattenedTuple::fromLLVMStructVal(_env, builder, val.val, type);
+                FlattenedTuple target_tuple(_env);
+                target_tuple.init(targetType);
+
+                auto num_elements = type.parameters().size();
+
+                // put to flattenedtuple (incl. assigning tuples!)
+                for (int i = 0; i < num_elements; ++i) {
+                    // retrieve from tuple itself and then upcast!
+                    auto el_type = val_tuple.fieldType(i);
+                    auto el_target_type = target_tuple.fieldType(i);
+                    SerializableValue el(val_tuple.get(i), val_tuple.getSize(i), val_tuple.getIsNull(i));
+                    auto el_target = upCastReturnType(builder, el, el_type, el_target_type);
+                    target_tuple.setElement(builder, i, el_target.val, el_target.size, el_target.is_null);
+                }
+
+                // get loadable struct type
+                auto ret = target_tuple.getLoad(builder);
+                assert(ret->getType()->isStructTy());
+                auto size = target_tuple.getSize(builder);
+                addInstruction(ret, size);
+
+                return SerializableValue(ret, size);
+            }
+
+            // @TODO: Issue https://github.com/LeonhardFS/Tuplex/issues/214
+            // @TODO: List[a] to List[b] if a,b are compatible?
+            // @TODO: Dict[a, b] to Dict[c, d] if upcast a to c works, and upcast b to d works?
+            if(type.isListType() && targetType.isListType()) {
+                // @TODO:
+                error("upcasting list type " + type.desc() + " to list type " + targetType.desc() + " not yet implemented");
+            }
+
+            if(type.isDictionaryType() && targetType.isDictionaryType()) {
+                error("upcasting dict type " + type.desc() + " to dict type " + targetType.desc() + " not yet implemented");
+            }
+
+            error("can not generate code to upcast " + type.desc() + " to " + targetType.desc());
+            return val;
+        }
+
 
         void BlockGeneratorVisitor::generateReturnWithNullExtraction(llvm::IRBuilder<>& builder,
                                                                      const SerializableValue& retVal,
@@ -5138,7 +5353,8 @@ namespace tuplex {
                     // if not, error. Type annotation failed then!
                     auto& slot = it->second;
 
-                    auto uni_type = unifyTypes(slot.type, var.second.type, allowNumericUpcasting);
+                    TypeUnificationPolicy t_policy; t_policy.allowAutoUpcastOfNumbers = allowNumericUpcasting;
+                    auto uni_type = unifyTypes(slot.type, var.second.type, t_policy);
                     if(uni_type == python::Type::UNKNOWN) {
                         error("variable " + name + " declared in " + branch_name + " with type "
                               + var.second.type.desc() + " conflicts with slot type" +

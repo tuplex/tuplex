@@ -48,7 +48,7 @@ def tplx_package_data():
 
 setup(
     name="Tuplex",
-    version="0.3.4dev",
+    version="0.3.6dev",
     packages=find_packages(),
     package_data=tplx_package_data(),
     include_package_data=True,

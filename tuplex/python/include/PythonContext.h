@@ -150,7 +150,7 @@ namespace tuplex {
                       const std::string& options);
 
         explicit PythonContext(const std::string &runtimeLibraryPath) : PythonContext("", runtimeLibraryPath,
-                                                                             "") {}
+                                                                             "") { python::registerWithInterpreter(); }
 
         ~PythonContext();
 
@@ -185,6 +185,17 @@ namespace tuplex {
                           py::object null_values = py::none(),
                           py::object type_hints = py::none(),
                           int sampling_mode=0);
+
+        /*!
+         * reads one (or multiple) json files into memory
+         * @param pattern file pattern (glob pattern) of json files to read
+         * @param unwrap_first_level if true, then the first level of keys is unwrapped and treated as columns. Missing values for the first level are filled in with None.
+         * @param treat_heterogeneous_lists_as_tuples if true, then lists where JSON element types differ are parsed as tuples.
+         * @return PythonDataSet wrapper around internal DataSet class
+         */
+        PythonDataSet json(const std::string& pattern,
+                           bool unwrap_first_level,
+                           bool treat_heterogeneous_lists_as_tuples);
 
         /*!
          * reads one (or multiple) text files into memory

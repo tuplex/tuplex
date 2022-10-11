@@ -204,6 +204,15 @@ namespace tuplex {
                      const SamplingMode& sampling_mode=DEFAULT_SAMPLING_MODE);
 
         /*!
+         * read data from newline-delimited json file
+         * @param pattern file pattern to search for
+         * @return Dataset
+         */
+        DataSet& json(const std::string& pattern,
+                      bool unwrap_first_level=true,
+                      bool treat_heterogenous_lists_as_tuples=true);
+
+        /*!
          * reads text files with into memory. Type will be always string or Option[string]. Parsing is done using line delimiters \n and \r
          * Analysis is done when function is called but actual loading is deferred (lazy)
          * @param pattern file pattern to search for

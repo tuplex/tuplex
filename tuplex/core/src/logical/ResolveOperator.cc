@@ -32,7 +32,7 @@ namespace tuplex {
         auto parent = getNormalParent();
 
         if(!parent) {
-            Logger::instance().defaultLogger().error("found no parent to which to apply resolve function");
+            // Logger::instance().defaultLogger().error("found no parent to which to apply resolve function");
             return false;
         }
 
@@ -43,12 +43,15 @@ namespace tuplex {
             // Note: better use unifyTypes here??
             return canUpcastToRowType(_udf.getOutputSchema().getRowType(), udfop->getUDF().getOutputSchema().getRowType());
         } else {
-            Logger::instance().defaultLogger().error("unsupported resolve found");
+            // Logger::instance().defaultLogger().error("unsupported resolve found");
             return false;
         }
     }
 
     bool ResolveOperator::good() const {
+        // good if type for inner schema could be detected.
+        if(_udf.getOutputSchema() != Schema::UNKNOWN)
+            return true;
 
         if(!schemasMatch()) {
             Logger::instance().defaultLogger().error("schema of udf is: " + _udf.getOutputSchema().getRowType().desc()
@@ -105,7 +108,11 @@ namespace tuplex {
                         _udf.setOutputSchema(udfop->getUDF().getOutputSchema());
                         return normalParent->getOutputSchema();
                     } else {
-                        throw std::runtime_error("incompatible upcasting in resolve operator!");
+                        // use the schema of the normal-case operator (to allow adding more operators!)
+                        return normalParent->getOutputSchema();
+
+                        //return _udf.getOutputSchema();
+                        // throw std::runtime_error("incompatible upcasting in resolve operator!");
                     }
                 }
             }
@@ -176,11 +183,25 @@ namespace tuplex {
                     _udf.setOutputSchema(udfop->getUDF().getOutputSchema());
                     setSchema(np->getOutputSchema());
                 } else {
-                    throw std::runtime_error("incompatible upcasting in resolve operator/rewriteDictAccess encountered.");
+                    // do not throw, simply leave as is
+                    return;
+                    // throw std::runtime_error("incompatible upcasting in resolve operator/rewriteDictAccess encountered.");
                 }
             } else {
                 setSchema(np->getOutputSchema());
             }
         }
+    }
+
+    bool ResolveOperator::isCompatibleWithThrowingOperator() const {
+        return schemasMatch();
+    }
+
+    Schema ResolveOperator::resolverSchema() const {
+        return _udf.getOutputSchema(); // <-- upcast etc.?
+    }
+
+    Schema ResolveOperator::throwingOperatorSchema() const {
+        return getNormalParent()->getOutputSchema();
     }
 }

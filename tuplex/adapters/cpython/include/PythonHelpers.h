@@ -267,6 +267,16 @@ namespace python {
     extern tuplex::Field pythonToField(PyObject *obj, bool autoUpcast=false);
 
     /*!
+     * helper function to map a python dictionary object to a struct dict field.
+     * Note that this function can easily get quite expensive... -> potentially should map
+     * using pyobject?
+     * @param dict_obj
+     * @param autoUpcast
+     * @return struct dict field.
+     */
+    extern tuplex::Field py_dict_to_field(PyObject* dict_obj, bool autoUpcast=false);
+
+    /*!
      * converts python object to Row using row type supplied in type.
      * @param obj
      * @param type specify what type of objects should be serialized, may contain options.
@@ -317,6 +327,11 @@ namespace python {
     extern void initInterpreter();
 
     /*!
+     * force run a gc pass in python. Helps when returning python objects.
+     */
+    extern void runGC();
+
+    /*!
      * check whether Python interpreter is running in/available to this process
      * @return bool when is running else false
      */
@@ -352,15 +367,16 @@ namespace python {
     extern void unlockGIL();
 
     /*!
+     * needs to be called if using as C-extension to setup gil etc. MUST BE CALLED FROM MAIN THREAD
+     */
+    extern void registerWithInterpreter();
+
+    /*!
      * check whether this thread holds the GIL or not
      * @return
      */
     extern bool holdsGIL();
 
-    /*!
-     * required in python extension module.
-     */
-    extern void acquireGIL();
 
     /*!
      * runs python code (throws runtime error if err occurred) and retrieves object with name

@@ -13,6 +13,7 @@
 #include <Field.h>
 #include <UDF.h>
 #include <Python.h>
+#include <regex>
 
 using namespace tuplex;
 
@@ -152,6 +153,20 @@ TEST(Row, NullValue) {
 
     Row r3(12, Tuple(Field::null()), Field::null(), Tuple(1, Field::null()), Tuple(Field::null(), 2));
     EXPECT_EQ(r3.toPythonString(), "(12,(None,),None,(1,None),(None,2))");
+}
+
+TEST(Row, StructTypeToPythonString) {
+    auto stype_sub = python::Type::makeStructuredDictType({std::make_pair("a", python::Type::I64),
+                                                           std::make_pair("b", python::Type::I64),
+                                                           std::make_pair("c", python::Type::NULLVALUE)});
+    auto stype = python::Type::makeStructuredDictType({std::make_pair("column1", stype_sub)});
+    Row r({Field::from_str_data("{\"column1\": {\"a\": 10, \"b\": 20, \"c\": null}}", stype)});
+
+    auto res = r.toPythonString();
+    // remove whitespace
+    auto replaced_res = std::regex_replace(res, std::regex(" "), "");
+
+    EXPECT_EQ(replaced_res, "({'column1':{'a':10,'b':20,'c':None}},)");
 }
 
 TEST(Row, OptionField) {

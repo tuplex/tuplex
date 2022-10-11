@@ -89,6 +89,20 @@ namespace core {
         }
         return ss.str();
     }
+
+    std::string prefixLines(const std::string& s, const std::string& prefix) {
+        using namespace std;
+        stringstream ss;
+
+        auto lines = splitLines(s, "\n");
+
+        int numLines = lines.size();
+
+        for(int i = 0; i < numLines; ++i){
+            ss<<prefix<<lines[i]<<'\n';
+        }
+        return ss.str();
+    }
 }
 
 std::string str_value_from_python_raw_value(const std::string& raw_string) {

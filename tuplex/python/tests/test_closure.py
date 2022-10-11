@@ -12,11 +12,13 @@
 from unittest import TestCase
 import tuplex
 import time
+from helper import test_options
 
 class TestClosure(TestCase):
 
     def setUp(self):
-        self.c = tuplex.Context(webui=False)
+        self.conf = test_options()
+        self.c = tuplex.Context(self.conf)
 
 
     def testGlobalVar(self):

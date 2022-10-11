@@ -183,7 +183,7 @@ TEST_F(CSVDataFrameTest, HeaderlessStringFile) {
     auto conf = testOptions();
     // deactivate optimizers for now
     conf.set("tuplex.optimizer.filterPushdown", "false");
-    conf.set("tuplex.csv.selectionPushdown", "false");
+    conf.set("tuplex.optimizer.selectionPushdown", "false");
     conf.set("tuplex.useLLVMOptimizer", "false");
     conf.set("tuplex.executorCount", "0");
     conf.set("tuplex.optimizer.generateParser", "false");

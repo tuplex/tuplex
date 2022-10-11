@@ -8,7 +8,7 @@
   "runTimeMemory": "256MB",
   "useLLVMOptimizer": true,
   "optimizer.nullValueOptimization": true,
-  "csv.selectionPushdown": true,
+  "optimizer.selectionPushdown": true,
   "optimizer.generateParser": true,
   "optimizer.filterPushdown": true
 }

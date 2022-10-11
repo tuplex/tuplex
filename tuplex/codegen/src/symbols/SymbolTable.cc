@@ -16,6 +16,26 @@
 using namespace std;
 
 namespace tuplex {
+
+    static  bool is_classinfo(const python::Type& t) {
+        if(t.isTypeObjectType())
+            return true;
+        if(t.isTupleType()) {
+            auto params = t.parameters();
+            for(auto p : params) {
+                if(!is_classinfo(p))
+                    return false;
+            }
+            return true;
+        }
+
+        // this is a bit weird b.c. list is homogenous...
+        if(t.isListType())
+            return is_classinfo(t.elementType());
+
+        return false;
+    }
+
     std::shared_ptr<SymbolTable> SymbolTable::createFromEnvironment(const tuplex::ClosureEnvironment *globals) {
         // Note: refactored functionality from SymbolTableVisitor.{h,cc}
         auto table = new SymbolTable();
@@ -353,6 +373,51 @@ namespace tuplex {
         addSymbol(make_shared<Symbol>("enumerate", enumerateFunctionTyper));
         addSymbol(make_shared<Symbol>("next", nextFunctionTyper));
 
+        // type(...), isinstance(...) and issubclass(...) functions
+
+
+        // language reference:
+        // class type(name, bases, dict, **kwds)
+        //With one argument, return the type of an object. The return value is a type object and generally the same object as returned by object.__class__.
+        //
+        //The isinstance() built-in function is recommended for testing the type of an object, because it takes subclasses into account.
+        //
+        //With three arguments, return a new type object. This is essentially a dynamic form of the class statement. The name string is the class name and becomes the __name__ attribute. The bases tuple contains the base classes and becomes the __bases__ attribute; if empty, object, the ultimate base of all classes, is added. The dict dictionary contains attribute and method definitions for the class body; it may be copied or wrapped before becoming the __dict__ attribute. The following two statements create identical type objects:
+        // -> only support 1 param version
+        auto typeTyper = [this](const python::Type& parameterType) {
+            assert(parameterType.isTupleType());
+            if(parameterType.parameters().size() != 1) {
+                throw std::runtime_error("number of parameters for type not yet supported");
+                return python::Type::UNKNOWN;
+            }
+
+            auto obj_type = parameterType.parameters().front();
+            return python::Type::makeFunctionType(parameterType, python::Type::makeTypeObjectType(obj_type));
+        };
+        addSymbol(make_shared<Symbol>("type", typeTyper));
+
+        auto isinstanceTyper = [this](const python::Type& parameterType) {
+            assert(parameterType.isTupleType());
+
+            // there should be two parameters
+            if(parameterType.parameters().size() != 2) {
+                throw std::runtime_error("invalid number of parameters (2 expected, "
+                + std::to_string(parameterType.parameters().size()) + " found)");
+            }
+
+            auto type_to_check = parameterType.parameters()[0];
+            auto _classinfo = parameterType.parameters()[1];
+
+            // if classinfo is not a type object or a tuple/list of types -> TypeError
+            auto type_error = python::TypeFactory::instance().getByName("TypeError");
+            assert(type_error != python::Type::UNKNOWN);
+            if(!is_classinfo(_classinfo))
+                return python::Type::makeFunctionType(parameterType, type_error);
+
+            return python::Type::makeFunctionType(parameterType, python::Type::BOOLEAN);
+        };
+        addSymbol(make_shared<Symbol>("isinstance", isinstanceTyper));
+
         // TODO: other parameters? i.e. step size and Co?
         // also, boolean, float? etc.?
         addSymbol("range", python::Type::makeFunctionType(python::Type::I64, python::Type::RANGE));
@@ -499,8 +564,36 @@ namespace tuplex {
         // which then bundles code generation, typing etc. => that might be easier to extent...
         // @TODO: is this wise?
 
+        addBuiltinTypes();
+
 
         addBuiltinExceptionHierarchy();
+    }
+
+
+    void SymbolTable::addBuiltinTypes() {
+        using namespace std;
+
+        // in python, certain typeobjects are defined as standard!
+        // str, bool, int, float, list, tuple, dict, set, range
+        // -> maybe more, and also then there's the builtin typing module.
+        // skip implementing that for now.
+        _builtinTypeObjects.clear();
+        _builtinTypeObjects["str"] = python::Type::makeTypeObjectType(python::Type::STRING);
+        _builtinTypeObjects["bool"] = python::Type::makeTypeObjectType(python::Type::BOOLEAN);
+        _builtinTypeObjects["int"] = python::Type::makeTypeObjectType(python::Type::I64);
+        _builtinTypeObjects["float"] = python::Type::makeTypeObjectType(python::Type::F64);
+
+        _builtinTypeObjects["tuple"] = python::Type::makeTypeObjectType(python::Type::GENERICTUPLE);
+        _builtinTypeObjects["list"] = python::Type::makeTypeObjectType(python::Type::GENERICLIST);
+//        _builtinTypeObjects["set"] = python::Type::makeTypeObjectType(python::Type::GENERICSET);
+        _builtinTypeObjects["range"] = python::Type::makeTypeObjectType(python::Type::RANGE);
+        _builtinTypeObjects["iterator"] = python::Type::makeTypeObjectType(python::Type::ITERATOR);
+    }
+
+    python::Type SymbolTable::findBuiltinType(const std::string &name) const {
+        auto it = _builtinTypeObjects.find(name);
+        return it == _builtinTypeObjects.end() ? python::Type::UNKNOWN : it->second;
     }
 
     void SymbolTable::addBuiltinExceptionHierarchy() {
@@ -726,7 +819,7 @@ namespace tuplex {
         os<<std::endl;
     }
 
-// should be used for simple type lookups!
+    // should be used for simple type lookups!
     python::Type SymbolTable::lookupType(const std::string &symbol) {
 
         auto sym = findSymbol(symbol);

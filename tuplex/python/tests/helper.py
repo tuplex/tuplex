@@ -10,10 +10,11 @@
 #----------------------------------------------------------------------------------------------------------------------#
 
 def test_options():
-    return {'tuplex.partitionSize' : "128KB",
-            "tuplex.executorMemory" : "4MB",
-            "tuplex.useLLVMOptimizer" : True,
-            "tuplex.allowUndefinedBehavior" : False,
-            "tuplex.webui.enable" : False,
+    return {'tuplex.partitionSize': "128KB",
+            "tuplex.executorMemory": "8MB",
+            "tuplex.useLLVMOptimizer": True,
+            "tuplex.allowUndefinedBehavior": False,
+            "tuplex.webui.enable": False,
             "tuplex.optimizer.mergeExceptionsInOrder": True,
-            "tuplex.csv.selectionPushdown" : True}
+            "tuplex.optimizer.selectionPushdown": True,
+            "tuplex.scratchDir": ".cache/"}

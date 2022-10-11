@@ -289,7 +289,7 @@ def run_tuplex(instances, branch, enableLLVMOpt, enablePushdown, num_runs=5, num
             "partitionSize": "32MB",
             "runTimeMemory": "256MB",
             "useLLVMOptimizer": enableLLVMOpt,
-            "csv.selectionPushdown": enablePushdown}
+            "optimizer.selectionPushdown": enablePushdown}
     with open(config_file, 'w') as fp:
         json.dump(conf, fp)
 

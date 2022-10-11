@@ -29,6 +29,7 @@ protected:
 namespace python {
     void testRowSerializationType(const std::string& PyLiteral, const std::string& expectedType, bool autoUpcast) {
         auto PyObj = python::runAndGet("obj = " + PyLiteral, "obj");
+        ASSERT_TRUE(PyObj);
         auto rowType = python::mapPythonClassToTuplexType(PyObj, autoUpcast);
         auto row = python::pythonToRow(PyObj, rowType, false);
         EXPECT_EQ(row.getRowType().desc(), expectedType);
@@ -45,6 +46,6 @@ TEST_F(SerializationTypeTest, ListSerializationTest) {
 TEST_F(SerializationTypeTest, OptionTupleSerializationTest) {
     python::testRowSerializationType("([(100, -10000000000), None, (5, 2147483647)])", "([Option[(i64,i64)]])", false);
     python::testRowSerializationType("([('string', None, False), (None, (1, [1, 2]), None)])", "([(Option[str],Option[(i64,[i64])],Option[boolean])])", false);
-    python::testRowSerializationType("[(1, (1, 2)) ,(2, None)])]", "([(Option[str],Option[(i64,[i64])],Option[boolean])])", false);
+    // no idea what the original here is supposed to be: python::testRowSerializationType("[(1, (1, 2)) ,(2, None)])]", "([(Option[str],Option[(i64,[i64])],Option[boolean])])", false);
     python::testRowSerializationType("('qwert', [ ((False, 2), True, 'ab'), None, (None, False, None), ((None, None), True, 'efghijk')])", "(str,[Option[(Option[(Option[boolean],Option[i64])],boolean,Option[str])]])", false);
 }

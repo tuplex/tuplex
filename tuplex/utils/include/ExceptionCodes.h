@@ -112,6 +112,7 @@ namespace tuplex {
 
         // FRAMEWORK specific errors
         NORMALCASEVIOLATION=07, // when the normal case is violated (e.g. in if branches)
+        GENERALCASEVIOLATION=8, // when the general case is violated -> and row requires then fallback processing.
         FILENOTFOUND = 10,
         CSV_UNDERRUN = 20,  //! too few columns
         CSV_OVERRUN = 21, //! too many columns
@@ -124,7 +125,8 @@ namespace tuplex {
         DOUBLEQUOTEERROR=55, // may happen whenever there is a single quote in a quoted field
         PYTHONFALLBACK_SERIALIZATION=60, // happens when callWithExceptionHandler is executed and serialization to user mem fails
         BADPARSE_STRING_INPUT=70, // used to signal that parsing didn't work, exception input will be then stored as length/string field.
-        PYTHON_PARALLELIZE=80 // used to signal schema violation from a python object in parallelize
+        PYTHON_PARALLELIZE=80, // used to signal schema violation from a python object in parallelize
+        JSONPARSER_ERROR=90
     };
 
 

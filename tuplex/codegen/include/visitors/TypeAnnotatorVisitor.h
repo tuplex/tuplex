@@ -25,6 +25,7 @@ namespace tuplex {
     private:
         SymbolTable& _symbolTable; // global symbol table for everything.
         const codegen::CompilePolicy& _policy;
+        TypeUnificationPolicy _typeUnificationPolicy;
         std::unordered_map<std::string, python::Type> _nameTable; // i.e. mini symbol table for assignments.
         std::unordered_map<std::string, std::shared_ptr<IteratorInfo>> _iteratorInfoTable; // i.e. name table for storing iteratorInfo of variables.
 
@@ -76,6 +77,8 @@ namespace tuplex {
         size_t _ongoingLoopCount;
         bool _annotateWithConstantValues; // optimization to create even more reduced types. If set to true, then literals will emit constantValued types!
 
+
+        void typeStructuredDictSubscription(NSubscription* sub, const python::Type& type);
 
         /*!
          * checks whether contained is statements are valid re types, return false if not.
@@ -150,6 +153,13 @@ namespace tuplex {
 
         TSet<std::string> getMissingIdentifiers() { return _missingIdentifiers; }
     };
+
+    /*!
+     * see whether ast node can be turned into a static key usable for structured dictionaries.
+     * @param node the ast node, if nullptr unknown is returned.
+     * @return key and type of key. unknown if not possible.
+     */
+    extern std::tuple<std::string, python::Type> extractKeyFromASTNode(ASTNode* node);
 }
 
 #endif //TUPLEX_TYPEANNOTATORVISITOR_H

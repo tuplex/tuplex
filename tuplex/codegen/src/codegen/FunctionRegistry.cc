@@ -644,7 +644,7 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
 
             // cast to f64
-            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::sin, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::sin, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }
@@ -1135,8 +1135,8 @@ namespace tuplex {
                 builder.SetInsertPoint(bb_below_one);
                 auto x_d = builder.CreateSIToFP(x, _env.doubleType());
                 auto y_d = builder.CreateSIToFP(y, _env.doubleType());
-                auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, x_d);
-                auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, y_d);
+                auto x_abs = CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, x_d);
+                auto y_abs = CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, y_d);
                 auto xy_cmp = builder.CreateFCmpOLT(x_abs, y_abs);
                 auto max_val = builder.CreateSelect(xy_cmp, y_abs, x_abs);
                 auto relxmax = builder.CreateFMul(max_val, rel_tol_val);
@@ -1161,7 +1161,7 @@ namespace tuplex {
                 // standard check for isclose
                 builder.SetInsertPoint(bb_standard);
                 auto diff = builder.CreateFSub(x_d, y_d);
-                auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
+                auto LHS = CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
 
                 llvm::Value* d_abs_tol = abs_tol;
                 if (abs_ty == python::Type::BOOLEAN || abs_ty == python::Type::I64) {
@@ -1248,12 +1248,12 @@ namespace tuplex {
                 // this block computes the result of the standard inequality that isclose uses:
                 // |x - y| <= max([rel_tol * max(|x|, |y|)], abs_tol)
                 builder.SetInsertPoint(bb_standard);
-                auto x_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, x);
-                auto y_abs = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, y);
+                auto x_abs = CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, x);
+                auto y_abs = CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, y);
                 auto xy_cmp = builder.CreateFCmpOLT(x_abs, y_abs);
                 auto xy_max = builder.CreateSelect(xy_cmp, y_abs, x_abs);
                 auto diff = builder.CreateFSub(x, y);
-                auto LHS = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
+                auto LHS = CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, diff);
                 auto relxmax = builder.CreateFMul(xy_max, rel_tol);
                 auto RHS_cmp = builder.CreateFCmpOLT(relxmax, abs_tol);
                 auto RHS = builder.CreateSelect(RHS_cmp, abs_tol, relxmax);
@@ -1281,7 +1281,7 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
 
             // cast to f64
-            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::cos, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::cos, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }
@@ -1294,7 +1294,7 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
 
             // cast to f64
-            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::sqrt, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::sqrt, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }
@@ -1307,7 +1307,7 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
 
             // cast to f64
-            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::exp, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::exp, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }
@@ -1320,7 +1320,7 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
 
             // cast to f64
-            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::log, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::log, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }
@@ -1356,7 +1356,7 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
 
             // cast to f64
-            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::log2, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::log2, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }
@@ -1369,7 +1369,7 @@ namespace tuplex {
             auto& context = builder.GetInsertBlock()->getContext();
 
             // cast to f64
-            auto resVal = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::log10, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::log10, codegen::upCast(builder, val.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }
@@ -1384,7 +1384,7 @@ namespace tuplex {
             auto val2 = power;
             auto& context = builder.GetInsertBlock()->getContext();
             // cast to f64
-            auto resVal = llvm::createBinaryIntrinsic(builder, llvm::Intrinsic::ID::pow, codegen::upCast(builder, val1.val, llvm::Type::getDoubleTy(context)), codegen::upCast(builder, val2.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = CreateBinaryIntrinsic(builder, llvm::Intrinsic::ID::pow, codegen::upCast(builder, val1.val, llvm::Type::getDoubleTy(context)), codegen::upCast(builder, val2.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }
@@ -1684,7 +1684,7 @@ namespace tuplex {
 
                 // call corresponding intrinsic
                 auto intrinsic = (qual_name == "math.ceil") ? (llvm::Intrinsic::ceil) : (llvm::Intrinsic::floor);
-                auto val = builder.CreateFPToSI(llvm::createUnaryIntrinsic(builder, intrinsic, arg.val),
+                auto val = builder.CreateFPToSI(CreateUnaryIntrinsic(builder, intrinsic, arg.val),
                 _env.i64Type());
                 return SerializableValue(val, _env.i64Const(sizeof(int64_t)));
             } else {

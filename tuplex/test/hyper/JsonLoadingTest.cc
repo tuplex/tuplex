@@ -1170,6 +1170,7 @@ namespace tuplex {
                 for(const auto& p : type_counts) {
                     auto j_obj = nlohmann::json::object();
                     j_obj["type"] = p.first.desc();
+                    j_obj["type_pretty"] = prettyPrintStructType(p.first);
                     j_obj["count"] = p.second;
                     j_arr.push_back(j_obj);
                 }
@@ -1271,6 +1272,7 @@ namespace tuplex {
                     for(auto p : global_type_counts) {
                         auto j_obj = nlohmann::json::object();
                         j_obj["type"] = p.first.desc();
+                        j_obj["type_pretty"] = prettyPrintStructType(p.first);
                         j_obj["count"] = p.second;
                         j_arr.push_back(j_obj);
                     }

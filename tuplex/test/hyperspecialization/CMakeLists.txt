@@ -7,8 +7,8 @@ file(GLOB SRCS *.cc)
 
 include(GoogleTest)
 
-add_executable(testhyper ${SRCS})
-target_link_libraries(testhyper
+add_executable(testhyperspecial ${SRCS})
+target_link_libraries(testhyperspecial
         libutils
         libio
         libcodegen
@@ -18,4 +18,4 @@ target_link_libraries(testhyper
         ${AWSSDK_LINK_LIBRARIES}
         ${Python3_LIBRARIES})
 
-gtest_add_tests(TARGET testhyper TEST_PREFIX "")
+gtest_add_tests(TARGET testhyperspecial TEST_PREFIX "")

@@ -195,7 +195,8 @@ namespace tuplex {
          */
         PythonDataSet json(const std::string& pattern,
                            bool unwrap_first_level,
-                           bool treat_heterogeneous_lists_as_tuples);
+                           bool treat_heterogeneous_lists_as_tuples,
+                           int sampling_mode=0);
 
         /*!
          * reads one (or multiple) text files into memory

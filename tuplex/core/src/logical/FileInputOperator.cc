@@ -220,13 +220,15 @@ namespace tuplex {
     FileInputOperator* FileInputOperator::fromJSON(const std::string &pattern,
                                                    bool unwrap_first_level,
                                                    bool treat_heterogenous_lists_as_tuples,
-                                                   const ContextOptions &co) {
+                                                   const ContextOptions &co,
+                                                   const SamplingMode& sampling_mode) {
         auto &logger = Logger::instance().logger("fileinputoperator");
 
 
         auto f = new FileInputOperator();
         f->_fmt = FileFormat::OUTFMT_JSON;
         f->_json_unwrap_first_level = unwrap_first_level;
+        f->_samplingMode = sampling_mode;
 
        Timer timer;
        f->detectFiles(pattern);
@@ -926,7 +928,7 @@ namespace tuplex {
             return;
 
         if(_columnNames.empty()) {
-            if(_optimizedSchema != Schema::UNKNOWN && columnNames.size() != inputColumnCount())
+            if(schema() != Schema::UNKNOWN && columnNames.size() != inputColumnCount())
                 throw std::runtime_error("number of columns given (" + std::to_string(columnNames.size()) +
                                          ") does not match detected count (" + std::to_string(inputColumnCount()) + ")");
             _columnNames = columnNames;
@@ -978,8 +980,7 @@ namespace tuplex {
                                                                              _cachePopulated(other._cachePopulated),
                                                                              _samplingMode(other._samplingMode),
                                                                              _sampling_time_s(other._sampling_time_s),
-                                                                             _samplingSize(other._samplingSize) {
-                                                                             _indexBasedHints(other._indexBasedHints),
+                                                                             _samplingSize(other._samplingSize),
                                                                              _json_unwrap_first_level(other._json_unwrap_first_level) {
         // copy members for logical operator
         LogicalOperator::copyMembers(&other);

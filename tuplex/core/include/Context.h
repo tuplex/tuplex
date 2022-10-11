@@ -210,7 +210,8 @@ namespace tuplex {
          */
         DataSet& json(const std::string& pattern,
                       bool unwrap_first_level=true,
-                      bool treat_heterogenous_lists_as_tuples=true);
+                      bool treat_heterogenous_lists_as_tuples=true,
+                      const SamplingMode& sm=DEFAULT_SAMPLING_MODE);
 
         /*!
          * reads text files with into memory. Type will be always string or Option[string]. Parsing is done using line delimiters \n and \r

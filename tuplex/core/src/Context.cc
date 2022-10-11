@@ -389,14 +389,19 @@ namespace tuplex {
 
     DataSet &Context::json(const std::string &pattern,
                            bool unwrap_first_level,
-                           bool treat_heterogenous_lists_as_tuples) {
+                           bool treat_heterogenous_lists_as_tuples,
+                           const SamplingMode& sm) {
         using namespace std;
 
         Schema schema;
         int dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
 
-        dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(FileInputOperator::fromJSON(pattern, unwrap_first_level, treat_heterogenous_lists_as_tuples, _options)));
+        dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(FileInputOperator::fromJSON(pattern,
+                                                                                                    unwrap_first_level,
+                                                                                                    treat_heterogenous_lists_as_tuples,
+                                                                                                    _options,
+                                                                                                    sm)));
         auto op = ((FileInputOperator*)dsptr->_operator.get());
 
         // check whether files were found, else return empty dataset!

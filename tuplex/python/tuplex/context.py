@@ -325,7 +325,7 @@ class Context:
         ds._dataSet = self._context.text(pattern, null_values, sampling_mode)
         return ds
 
-    def json(self, pattern, unwrap_first_level=True, treat_heterogenous_lists_as_tuples=True):
+    def json(self, pattern, unwrap_first_level=True, treat_heterogenous_lists_as_tuples=True, sampling_mode=SamplingMode.FIRST_ROWS|SamplingMode.LAST_ROWS|SamplingMode.FIRST_FILE):
         """reads json files.
         Args:
             pattern     (str): a file glob pattern, e.g. /data/file.json or /data/\*.json or /\*/\*json
@@ -340,7 +340,7 @@ class Context:
         assert isinstance(treat_heterogenous_lists_as_tuples, bool), 'treat_heterogenous_lists_as_tuples must be a bool'
 
         ds = DataSet()
-        ds._dataSet = self._context.json(pattern, unwrap_first_level, treat_heterogenous_lists_as_tuples)
+        ds._dataSet = self._context.json(pattern, unwrap_first_level, treat_heterogenous_lists_as_tuples, sampling_mode)
         return ds
 
     def orc(self, pattern, columns=None, sampling_mode=SamplingMode.FIRST_ROWS|SamplingMode.LAST_ROWS|SamplingMode.FIRST_FILE):

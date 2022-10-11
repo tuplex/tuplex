@@ -48,7 +48,7 @@ namespace tuplex {
         // filter breakup and reorder!
         // @TODO.
 
-        if(_options.CSV_PARSER_SELECTION_PUSHDOWN()) {
+        if(_options.OPT_SELECTION_PUSHDOWN()) {
             // pushdown
             // note: set dropOperators to true to get rid off not computed columns!!!
             std::vector<size_t> cols;
@@ -103,7 +103,7 @@ namespace tuplex {
 
         // projectionPushdown (to csv parser etc. if possible)
         // ==> i.e. only parse accessed fields!
-        if(_options.CSV_PARSER_SELECTION_PUSHDOWN()) {
+        if(_options.OPT_SELECTION_PUSHDOWN()) {
 
             // note: set dropOperators to true to get rid off not computed columns!!!
             vector<size_t> cols;

@@ -37,7 +37,7 @@ namespace tuplex {
         char _delimiter;
         bool _header;
 
-                // JSON
+        // JSON fields
         bool _json_unwrap_first_level;
 
         // general fields for managing both cases & projections
@@ -262,7 +262,7 @@ namespace tuplex {
         static FileInputOperator *fromText(const std::string& pattern,
                                           const ContextOptions& co,
                                           const std::vector<std::string>& null_values,
-                                           const SamplingMode& sampling_mode);
+                                          const SamplingMode& sampling_mode);
 
         /*!
         * create a new orc File Input operator.
@@ -285,7 +285,8 @@ namespace tuplex {
         static FileInputOperator *fromJSON(const std::string& pattern,
                                            bool unwrap_first_level,
                                            bool treat_heterogenous_lists_as_tuples,
-                                           const ContextOptions& co);
+                                           const ContextOptions& co,
+                                           const SamplingMode& sampling_mode);
 
 
         std::string name() override {
@@ -539,7 +540,7 @@ namespace tuplex {
                     _delimiter,
                     _header,
                     _null_values,
-                    _json_unwrap_level,
+                    _json_unwrap_first_level,
                     _columnNames,
                     _columnsToSerialize,
                     _indexBasedHints,
@@ -559,7 +560,7 @@ namespace tuplex {
                 _delimiter,
                 _header,
                 _null_values,
-                _json_unwrap_level,
+                _json_unwrap_first_level,
                 _columnNames,
                 _columnsToSerialize,
                 _indexBasedHints,

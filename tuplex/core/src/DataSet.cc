@@ -774,7 +774,7 @@ namespace tuplex {
 
         // special case: resolve operator and not matching schema!
         if(_operator->type() == LogicalOperatorType::RESOLVE) {
-            auto rop = (ResolveOperator*)_operator;
+            auto rop = std::dynamic_pointer_cast<ResolveOperator>(_operator);
             if(rop->isCompatibleWithThrowingOperator())
                 return _operator->getOutputSchema();
             else

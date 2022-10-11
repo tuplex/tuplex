@@ -13,7 +13,7 @@
 #include <TypeHelper.h>
 #include <Utils.h>
 #include <compression.h>
-#include <RuntimeInterface.h>
+#include <jit/RuntimeInterface.h>
 
 #include <AccessPathVisitor.h>
 

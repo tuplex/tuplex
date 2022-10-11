@@ -1389,7 +1389,7 @@ namespace tuplex {
         // check file sampling modes & then load the samples accordingly
         if(m & SamplingMode::FIRST_ROWS) {
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::FIRST_ROWS, true);
-            auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str());
+            auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str()));
             v = parseRowsFromJSON(sample.c_str(), sample_length, nullptr, false, _json_treat_heterogenous_lists_as_tuples);
         }
 
@@ -1397,7 +1397,7 @@ namespace tuplex {
             // the smaller of remaining and sample size!
             size_t file_offset = 0;
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::LAST_ROWS, true, &file_offset);
-            auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str());
+            auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str()));
             size_t offset = 0;
             if(!v.empty()) {
                 if(uri_size < 2 * _samplingSize) {
@@ -1412,7 +1412,7 @@ namespace tuplex {
                 auto start_offset = findNLJsonStart(sample.c_str() + offset, sample_length);
                 if(start_offset < 0)
                     return v;
-                sample_length -= std::min(start_offset, sample_length);
+                sample_length -= std::min((size_t)start_offset, sample_length);
                 auto rows = parseRowsFromJSON(sample.c_str() + offset + start_offset, sample_length, nullptr, false, _json_treat_heterogenous_lists_as_tuples);
 
                 std::copy(rows.begin(), rows.end(), std::back_inserter(v));
@@ -1422,7 +1422,7 @@ namespace tuplex {
                 auto start_offset = findNLJsonStart(sample.c_str() + offset, sample_length);
                 if(start_offset < 0)
                     return v;
-                sample_length -= std::min(start_offset, sample_length);
+                sample_length -= std::min((size_t)start_offset, sample_length);
 
                 v = parseRowsFromJSON(sample.c_str() + start_offset, sample_length, nullptr, false, _json_treat_heterogenous_lists_as_tuples);
             }

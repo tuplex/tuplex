@@ -72,6 +72,9 @@ namespace tuplex {
 
 
         size_t estimateTextFileRowCount(size_t sample_size, const SamplingMode& mode);
+        size_t estimateJsonFileRowCount(size_t sample_size, const SamplingMode& mode);
+
+        std::tuple<python::Type, python::Type> detectJsonTypesAndColumns();
 
         // for CSV, have here a global csv stat (that can get reset)
         // ??

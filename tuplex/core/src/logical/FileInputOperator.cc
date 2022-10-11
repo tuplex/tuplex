@@ -227,7 +227,7 @@ namespace tuplex {
 
         auto f = new FileInputOperator();
         f->_fmt = FileFormat::OUTFMT_JSON;
-        f->_json_unwrap_first_level = unwrap_first_level;
+        f->_json_unwrap_first_level = unwrap_first_level; //! set here for detect to work.
         f->_samplingMode = sampling_mode;
 
        Timer timer;
@@ -239,13 +239,13 @@ namespace tuplex {
             // now fill row cache (by parsing rows)
             f->fillRowCache(sampling_mode);
 
-            // run row count estimation (required for cost-basd optimizer)
-            f->_estimatedRowCount = f->estimateJsonFileRowCount(co.CSV_MAX_DETECTION_MEMORY(), sampling_mode);
-
             // detect normal/general type
             python::Type normalcasetype;
             python::Type generalcasetype;
-            std::tie(normalcasetype, generalcasetype) = f->detectJSONTypesAndColumns();
+            std::tie(normalcasetype, generalcasetype) = f->detectJsonTypesAndColumns();
+
+            // run row count estimation (required for cost-basd optimizer)
+            f->_estimatedRowCount = f->estimateJsonFileRowCount(co.CSV_MAX_DETECTION_MEMORY(), sampling_mode);
 
             // get type & assign schema
             f->_normalCaseRowType = normalcasetype;
@@ -1442,5 +1442,26 @@ namespace tuplex {
     std::vector<Row> FileInputOperator::sampleORCFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
         throw std::runtime_error("not yet implemented");
         return {};
+    }
+
+    std::tuple<python::Type, python::Type> FileInputOperator::detectJsonTypesAndColumns() {
+
+        throw std::runtime_error("nymimpl");
+
+        return std::tuple<python::Type, python::Type>();
+    }
+
+    size_t FileInputOperator::estimateJsonFileRowCount(size_t sample_size, const SamplingMode& mode) {
+        auto& logger = Logger::instance().logger("logical");
+
+        // make sure rows are filled.
+        if(_rowsSample.empty()) {
+            logger.warning("no row sample detected, using dummy value of 1000 rows.")
+            return 1000;
+        }
+
+        throw std::runtime_error("nymimpl");
+
+        return 1;
     }
 }

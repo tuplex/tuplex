@@ -5,7 +5,7 @@
 #ifndef TUPLEX_JSONPARSEROWGENERATOR_H
 #define TUPLEX_JSONPARSEROWGENERATOR_H
 
-#include <LLVMEnvironment.h>
+#include <codegen/LLVMEnvironment.h>
 #include <CodegenHelper.h>
 
 #include <experimental/ListHelper.h>

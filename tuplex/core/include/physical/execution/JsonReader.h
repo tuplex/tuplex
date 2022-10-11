@@ -6,8 +6,8 @@
 #define TUPLEX_JSONREADER_H
 
 #include "FileInputReader.h"
-#include <CodegenHelper.h>
-#include "CodeDefs.h"
+#include <codegen/CodegenHelper.h>
+#include <codegen/CodeDefs.h>
 
 namespace tuplex {
     // @March: implement here

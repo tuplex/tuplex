@@ -4,7 +4,7 @@
 
 #include <experimental/ListHelper.h>
 #include <experimental/StructDictHelper.h>
-#include <FlattenedTuple.h>
+#include <codegen/FlattenedTuple.h>
 
 namespace tuplex {
     namespace codegen {

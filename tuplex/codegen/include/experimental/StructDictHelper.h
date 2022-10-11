@@ -5,7 +5,7 @@
 #ifndef TUPLEX_STRUCTDICTHELPER_H
 #define TUPLEX_STRUCTDICTHELPER_H
 
-#include <LLVMEnvironment.h>
+#include <codegen/LLVMEnvironment.h>
 
 namespace tuplex {
     namespace codegen {

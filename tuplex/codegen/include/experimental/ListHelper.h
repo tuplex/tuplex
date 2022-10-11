@@ -5,7 +5,7 @@
 #ifndef TUPLEX_LISTHELPER_H
 #define TUPLEX_LISTHELPER_H
 
-#include <LLVMEnvironment.h>
+#include <codegen/LLVMEnvironment.h>
 
 // contains helper functions to generate code to work with lists
 

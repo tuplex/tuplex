@@ -170,9 +170,9 @@ namespace tuplex {
                 auto nrows = builder.CreateZExtOrTrunc(numRows, env().i32Type());
 
                 // store into ret!
-                auto idx_rc = llvm::CreateStructGEP(builder, _args["result"], 0);
-                auto idx_id = llvm::CreateStructGEP(builder, _args["result"], 1);
-                auto idx_nrows = llvm::CreateStructGEP(builder, _args["result"], 2);
+                auto idx_rc = CreateStructGEP(builder, _args["result"], 0);
+                auto idx_id = CreateStructGEP(builder, _args["result"], 1);
+                auto idx_nrows = CreateStructGEP(builder, _args["result"], 2);
 
                 builder.CreateStore(rc, idx_rc);
                 builder.CreateStore(id, idx_id);

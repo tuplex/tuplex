@@ -886,7 +886,7 @@ namespace tuplex {
 
                 if(!eps)
                     eps = defaultEpsilon();
-                auto ans = CreateUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, value);
+                auto ans = createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, value);
                 return builder.CreateFCmpOLT(ans, eps);
             }
 

@@ -3138,9 +3138,9 @@ namespace tuplex {
                 } else if(elementType == python::Type::I64 || elementType == python::Type::F64 || elementType == python::Type::BOOLEAN
                 || elementType == python::Type::STRING || elementType.isTupleType() || elementType.isDictionaryType()) {
                     // load the list with its initial size
-                    auto list_capacity_ptr = llvm::CreateStructGEP(builder, listAlloc, 0);
+                    auto list_capacity_ptr = CreateStructGEP(builder, listAlloc, 0);
                     builder.CreateStore(_env->i64Const(list->_elements.size()), list_capacity_ptr);
-                    auto list_len_ptr = llvm::CreateStructGEP(builder, listAlloc,  1);
+                    auto list_len_ptr = CreateStructGEP(builder, listAlloc,  1);
                     builder.CreateStore(_env->i64Const(list->_elements.size()), list_len_ptr);
 
                     // load the initial values ------
@@ -3172,7 +3172,7 @@ namespace tuplex {
                         }
                     }
                     // store the new array back into the array pointer
-                    auto list_arr = llvm::CreateStructGEP(builder, listAlloc, 2);
+                    auto list_arr = CreateStructGEP(builder, listAlloc, 2);
                     builder.CreateStore(list_arr_malloc, list_arr);
 
                     // set the serialized size (i64/f64/bool are fixed sized!)
@@ -3190,7 +3190,7 @@ namespace tuplex {
                             listSize = builder.CreateAdd(listSize, vals[i].size);
                         }
                         // store the new array back into the array pointer
-                        auto list_sizearr = llvm::CreateStructGEP(builder, listAlloc, 3);
+                        auto list_sizearr = CreateStructGEP(builder, listAlloc, 3);
                         builder.CreateStore(list_sizearr_malloc, list_sizearr);
                     }
                 }
@@ -3241,23 +3241,23 @@ namespace tuplex {
 
             // store the data in
             if(args.size() == 1) {
-                auto elPtr = llvm::CreateStructGEP(builder, rangeStructPtr, 0);
+                auto elPtr = CreateStructGEP(builder, rangeStructPtr, 0);
                 builder.CreateStore(_env->i64Const(0), elPtr);
-                elPtr = llvm::CreateStructGEP(builder, rangeStructPtr, 1);
+                elPtr = CreateStructGEP(builder, rangeStructPtr, 1);
                 builder.CreateStore(args[0].val, elPtr); // stop is the argument
-                elPtr = llvm::CreateStructGEP(builder, rangeStructPtr, 2);
+                elPtr = CreateStructGEP(builder, rangeStructPtr, 2);
                 builder.CreateStore(_env->i64Const(1), elPtr);
             } else if(args.size() == 2) {
                 for(int i = 0; i < 2; ++i) {
-                    auto elPtr = llvm::CreateStructGEP(builder, rangeStructPtr, i);
+                    auto elPtr = CreateStructGEP(builder, rangeStructPtr, i);
                     builder.CreateStore(args[i].val, elPtr);
                 }
-                auto elPtr = llvm::CreateStructGEP(builder, rangeStructPtr, 2);
+                auto elPtr = CreateStructGEP(builder, rangeStructPtr, 2);
                 builder.CreateStore(_env->i64Const(1), elPtr);
             } else {
                 assert(args.size() == 3);
                 for(int i = 0; i < 3; ++i) {
-                    auto elPtr = llvm::CreateStructGEP(builder, rangeStructPtr, i);
+                    auto elPtr = CreateStructGEP(builder, rangeStructPtr, i);
                     builder.CreateStore(args[i].val, elPtr);
                 }
             }
@@ -3347,9 +3347,9 @@ namespace tuplex {
                 llvm::Value *start, *stop, *step;
                 if(iterType == python::Type::RANGE) {
                     // get range parameters
-                    start = builder.CreateLoad(llvm::CreateStructGEP(builder, iter.val, 0));
-                    stop = builder.CreateLoad(llvm::CreateStructGEP(builder, iter.val, 1));
-                    step = builder.CreateLoad(llvm::CreateStructGEP(builder, iter.val, 2));
+                    start = builder.CreateLoad(CreateStructGEP(builder, iter.val, 0));
+                    stop = builder.CreateLoad(CreateStructGEP(builder, iter.val, 1));
+                    step = builder.CreateLoad(CreateStructGEP(builder, iter.val, 2));
                 } else if(iterType == python::Type::STRING) {
                     start = _env->i64Const(0);
                     stop = builder.CreateSub(iter.size, _env->i64Const(1));
@@ -3386,9 +3386,9 @@ namespace tuplex {
                     builder.CreateStore(builder.CreateAdd(builder.CreateMul(numiters, _env->i64Const(8)), _env->i64Const(8)), listSize);
 
                     // load the list with its initial size
-                    auto list_capacity_ptr = llvm::CreateStructGEP(builder, listAlloc, 0);
+                    auto list_capacity_ptr = CreateStructGEP(builder, listAlloc, 0);
                     builder.CreateStore(numiters, list_capacity_ptr);
-                    auto list_len_ptr = llvm::CreateStructGEP(builder, listAlloc, 1);
+                    auto list_len_ptr = CreateStructGEP(builder, listAlloc, 1);
                     builder.CreateStore(numiters, list_len_ptr);
 
                     // allocate the array
@@ -3400,7 +3400,7 @@ namespace tuplex {
                             listLLVMType->getStructElementType(2));
 
                     // store the new array back into the array pointer
-                    auto list_arr = llvm::CreateStructGEP(builder, listAlloc, 2);
+                    auto list_arr = CreateStructGEP(builder, listAlloc, 2);
                     builder.CreateStore(list_arr_malloc, list_arr);
 
                     llvm::Value* list_sizearr_malloc;
@@ -3411,7 +3411,7 @@ namespace tuplex {
                                 listLLVMType->getStructElementType(3));
 
                         // store the new array back into the array pointer
-                        auto list_sizearr = llvm::CreateStructGEP(builder, listAlloc, 3);
+                        auto list_sizearr = CreateStructGEP(builder, listAlloc, 3);
                         builder.CreateStore(list_sizearr_malloc, list_sizearr);
                     }
 
@@ -5555,9 +5555,9 @@ namespace tuplex {
                 step = _env->i64Const(1);
                 end = builder.CreateSub(exprAlloc.size, _env->i64Const(1));
             } else if(exprType == python::Type::RANGE) {
-                start = builder.CreateLoad(llvm::CreateStructGEP(builder, exprAlloc.val, 0));
-                end = builder.CreateLoad(llvm::CreateStructGEP(builder, exprAlloc.val, 1));
-                step = builder.CreateLoad(llvm::CreateStructGEP(builder, exprAlloc.val, 2));
+                start = builder.CreateLoad(CreateStructGEP(builder, exprAlloc.val, 0));
+                end = builder.CreateLoad(CreateStructGEP(builder, exprAlloc.val, 1));
+                step = builder.CreateLoad(CreateStructGEP(builder, exprAlloc.val, 2));
             } else if(exprType.isIteratorType()) {
                 assert(forStmt->expression->hasAnnotation() && forStmt->expression->annotation().iteratorInfo);
                 iteratorInfo = forStmt->expression->annotation().iteratorInfo;

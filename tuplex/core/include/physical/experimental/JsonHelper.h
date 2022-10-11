@@ -11,7 +11,6 @@
 
 #include <experimental/ListHelper.h>
 #include <experimental/StructDictHelper.h>
-#include "../../JITCompiler.h"
 
 // use this to trace memory
 // #define JSON_PARSER_TRACE_MEMORY

@@ -1384,7 +1384,7 @@ namespace tuplex {
             auto val2 = power;
             auto& context = builder.GetInsertBlock()->getContext();
             // cast to f64
-            auto resVal = CreateBinaryIntrinsic(builder, llvm::Intrinsic::ID::pow, codegen::upCast(builder, val1.val, llvm::Type::getDoubleTy(context)), codegen::upCast(builder, val2.val, llvm::Type::getDoubleTy(context)));
+            auto resVal = createBinaryIntrinsic(builder, llvm::Intrinsic::ID::pow, codegen::upCast(builder, val1.val, llvm::Type::getDoubleTy(context)), codegen::upCast(builder, val2.val, llvm::Type::getDoubleTy(context)));
             auto resSize = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(context), llvm::APInt(64, sizeof(double)));
             return SerializableValue(resVal, resSize);
         }

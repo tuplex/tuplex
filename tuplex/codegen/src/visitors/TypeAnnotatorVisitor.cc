@@ -1099,7 +1099,7 @@ namespace tuplex {
         else {
             // check whether there's a literal used for indexing and look up type
             // (future: constant valued type should work as well!)
-            if(isLiteral(sub->_expression) || type.valueType().isConstantValued()) {
+            if(isLiteral(sub->_expression.get()) || type.valueType().isConstantValued()) {
                 // check lookup in keys...
 
                 auto keyerror_sym = _symbolTable.findSymbol("KeyError");
@@ -1109,8 +1109,8 @@ namespace tuplex {
                 auto keyError_type = keyerror_sym->type();
 
                 std::string lookup_key;
-                if(isLiteral(sub->_expression)) {
-                    auto t_key_and_type = extractKeyFromASTNode(sub->_expression);
+                if(isLiteral(sub->_expression.get())) {
+                    auto t_key_and_type = extractKeyFromASTNode(sub->_expression.get());
                     lookup_key = std::get<0>(t_key_and_type);
                     auto t_type = std::get<1>(t_key_and_type);
                     if(python::Type::UNKNOWN == t_type) {

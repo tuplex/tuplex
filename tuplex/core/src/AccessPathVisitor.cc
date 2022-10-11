@@ -47,9 +47,9 @@ namespace tuplex {
                 _numColumns = _tupleArgument ? itype.parameters().front().parameters().size() : itype.parameters().size();
 
                 // fetch identifiers for args
-                for(auto argNode : lambda->_arguments->_args) {
+                for(const auto& argNode : lambda->_arguments->_args) {
                     assert(argNode->type() == ASTNodeType::Parameter);
-                    NIdentifier* id = ((NParameter*)argNode)->_identifier;
+                    NIdentifier* id = ((NParameter*)argNode.get())->_identifier.get();
                     _argNames.push_back(id->_name);
                     _argFullyUsed[id->_name] = false;
                     _argSubscriptIndices[id->_name] = std::vector<size_t>();
@@ -73,9 +73,9 @@ namespace tuplex {
                 _numColumns = _tupleArgument ? itype.parameters().front().parameters().size() : itype.parameters().size();
 
                 // fetch identifiers for args
-                for(auto argNode : func->_parameters->_args) {
+                for(const auto& argNode : func->_parameters->_args) {
                     assert(argNode->type() == ASTNodeType::Parameter);
-                    NIdentifier* id = ((NParameter*)argNode)->_identifier;
+                    NIdentifier* id = ((NParameter*)argNode.get())->_identifier.get();
                     _argNames.push_back(id->_name);
                     _argFullyUsed[id->_name] = false;
                     _argSubscriptIndices[id->_name] = std::vector<size_t>();
@@ -106,14 +106,14 @@ namespace tuplex {
                 // just simple stuff yet.
                 if (sub->_value->type() == ASTNodeType::Identifier &&
                     (val_type.isTupleType() || val_type.isDictionaryType())) {
-                    NIdentifier* id = (NIdentifier*)sub->_value;
+                    NIdentifier* id = (NIdentifier*)sub->_value.get();
 
                     // first check whether this identifier is in args,
                     // if not ignore.
                     if(std::find(_argNames.begin(), _argNames.end(), id->_name) != _argNames.end()) {
                         // no nested paths yet, i.e. x[0][2]
                         if(sub->_expression->type() == ASTNodeType::Number) {
-                            NNumber* num = (NNumber*)sub->_expression;
+                            NNumber* num = (NNumber*)sub->_expression.get();
 
                             // should be I64 or bool
                             assert(num->getInferredType() == python::Type::BOOLEAN ||
@@ -170,8 +170,8 @@ namespace tuplex {
            // mark visited
            mark_visited(sub);
 
-           auto expr = sub->_expression;
-           auto value = sub->_value;
+           auto expr = sub->_expression.get();
+           auto value = sub->_value.get();
 
            // update name
            if(value->type() == ASTNodeType::Identifier) {

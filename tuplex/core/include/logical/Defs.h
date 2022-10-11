@@ -19,6 +19,7 @@ namespace tuplex {
         OUTFMT_UNKNOWN=0,
         OUTFMT_TUPLEX,
         OUTFMT_CSV,
+        OUTFMT_JSON,
         OUTFMT_TEXT,
         OUTFMT_ORC
     };
@@ -29,6 +30,8 @@ namespace tuplex {
                 return "csv";
             case FileFormat::OUTFMT_TEXT:
                 return "txt";
+            case FileFormat::OUTFMT_JSON:
+                return "json";
             case FileFormat::OUTFMT_ORC:
                 return "orc";
             case FileFormat::OUTFMT_TUPLEX:

@@ -6,12 +6,12 @@
 #define TUPLEX_ACCESSPATHVISITOR_H
 
 #include <graphviz/GraphVizGraph.h>
-#include <IPrePostVisitor.h>
+#include <visitors/IPrePostVisitor.h>
 #include <unordered_map>
-#include <IReplaceVisitor.h>
-#include <ColumnRewriteVisitor.h>
-#include <TraceVisitor.h>
-#include <ApplyVisitor.h>
+#include <visitors/IReplaceVisitor.h>
+#include <visitors/ColumnRewriteVisitor.h>
+#include <tracing/TraceVisitor.h>
+#include <visitors/ApplyVisitor.h>
 
 namespace tuplex {
 

@@ -2356,31 +2356,6 @@ namespace tuplex {
                 retVal.val = strConst(builder, "");
                 retVal.size = i64Const(1);
                 retVal.is_null = i1Const(false);
-            } else if (type.isListType()) {
-                auto llvmType = getListType(type);
-                auto val = CreateFirstBlockAlloca(builder, llvmType);
-                if (type == python::Type::EMPTYLIST) {
-                    builder.CreateStore(i8nullptr(), val);
-                } else {
-                    auto elementType = type.elementType();
-                    if (elementType.isSingleValued()) {
-                        builder.CreateStore(i64Const(0), val);
-                    } else {
-                        builder.CreateStore(i64Const(0), CreateStructGEP(builder, val, 0));
-                        builder.CreateStore(i64Const(0), CreateStructGEP(builder, val, 1));
-                        builder.CreateStore(llvm::ConstantPointerNull::get(
-                                                    llvm::dyn_cast<PointerType>(llvmType->getStructElementType(2))),
-                                            CreateStructGEP(builder, val, 2));
-                        if (elementType == python::Type::STRING) {
-                            builder.CreateStore(llvm::ConstantPointerNull::get(
-                                                        llvm::dyn_cast<PointerType>(llvmType->getStructElementType(3))),
-                                                CreateStructGEP(builder, val, 3));
-                        }
-                    }
-                }
-                retVal.val = builder.CreateLoad(val);
-                retVal.size = i64Const(3 * sizeof(int64_t));
-                retVal.is_null = i1Const(false);
             } else {
                 Logger::instance().logger("codegen").warn("Requested dummy for type " + type.desc() + " but not yet implemented");
             }
@@ -2486,9 +2461,6 @@ namespace tuplex {
             throw std::runtime_error("can not generate code to upcast " + type.desc() + " to " + targetType.desc());
             return val;
         }
-    }
-}
-
 
         llvm::Type *
         LLVMEnvironment::getOrCreateStructuredDictType(const python::Type &structType, const std::string &twine) {

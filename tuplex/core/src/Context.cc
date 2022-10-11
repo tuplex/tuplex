@@ -39,7 +39,7 @@ namespace tuplex {
         _name = "context-" + uuid().substr(0, 8);
 
         // change this to be context dependent....
-        // i.e. if a context requests this much memory, than add on top of the memory manager!
+        // i.e. if a context requests this much memory, then add on top of the memory manager!
         // ==> free blocks after that on context destruction...
         _options = options;
 
@@ -396,8 +396,8 @@ namespace tuplex {
         int dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
 
-        dsptr->_operator = addOperator(FileInputOperator::fromJSON(pattern, unwrap_first_level, treat_heterogenous_lists_as_tuples, _options));
-        auto op = ((FileInputOperator*)dsptr->_operator);
+        dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(FileInputOperator::fromJSON(pattern, unwrap_first_level, treat_heterogenous_lists_as_tuples, _options)));
+        auto op = ((FileInputOperator*)dsptr->_operator.get());
 
         // check whether files were found, else return empty dataset!
         if(op->getURIs().empty()) {
@@ -407,7 +407,7 @@ namespace tuplex {
             return ds;
         }
 
-        auto detectedColumns = ((FileInputOperator*)dsptr->_operator)->columns();
+        auto detectedColumns = ((FileInputOperator*)dsptr->_operator.get())->columns();
         dsptr->setColumns(detectedColumns);
 
         // set dataset to operator

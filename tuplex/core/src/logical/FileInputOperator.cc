@@ -26,7 +26,8 @@ namespace tuplex {
 //        return _partitions;
 //    }
 
-    FileInputOperator::FileInputOperator() : _fmt(FileFormat::OUTFMT_UNKNOWN), _json_unwrap_first_level(false), _header(false),
+    FileInputOperator::FileInputOperator() : _fmt(FileFormat::OUTFMT_UNKNOWN), _json_unwrap_first_level(false),
+    _json_treat_heterogenous_lists_as_tuples(true), _header(false),
                               _sampling_time_s(0.0), _quotechar('\0'), _delimiter('\0') {}
 
     void FileInputOperator::detectFiles(const std::string& pattern) {
@@ -231,6 +232,7 @@ namespace tuplex {
         auto f = new FileInputOperator();
         f->_fmt = FileFormat::OUTFMT_JSON;
         f->_json_unwrap_first_level = unwrap_first_level; //! set here for detect to work.
+        f->_json_treat_heterogenous_lists_as_tuples = treat_heterogenous_lists_as_tuples;
         f->_samplingMode = sampling_mode;
 
        Timer timer;
@@ -1014,7 +1016,8 @@ namespace tuplex {
                                                                              _samplingMode(other._samplingMode),
                                                                              _sampling_time_s(other._sampling_time_s),
                                                                              _samplingSize(other._samplingSize),
-                                                                             _json_unwrap_first_level(other._json_unwrap_first_level) {
+                                                                             _json_unwrap_first_level(other._json_unwrap_first_level),
+                                                                             _json_treat_heterogenous_lists_as_tuples(other._json_treat_heterogenous_lists_as_tuples) {
         // copy members for logical operator
         LogicalOperator::copyMembers(&other);
         LogicalOperator::setDataSet(other.getDataSet());
@@ -1303,6 +1306,8 @@ namespace tuplex {
             // @TODO: there could be overlap with first/last rows.
             size_t file_offset = 0;
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::RANDOM_ROWS, true, &file_offset);
+
+            // detect csv start ?? -> test.
             // parse as rows using the settings detected.
             auto rows = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
                           _null_values, _delimiter, _quotechar);
@@ -1358,6 +1363,92 @@ namespace tuplex {
             auto line = sample.substr(markbegin, markend - markbegin);
             v.push_back(lineToRow(line, null_values, true));
         }
+        return v;
+    }
+
+    std::vector<Row>
+    FileInputOperator::sampleJsonFile(const tuplex::URI &uri, size_t uri_size, const tuplex::SamplingMode &mode) {
+        auto& logger = Logger::instance().logger("logical");
+        std::vector<Row> v;
+        assert(mode & SamplingMode::FIRST_ROWS || mode & SamplingMode::LAST_ROWS || mode & SamplingMode::RANDOM_ROWS);
+
+        if(0 == uri_size || uri == URI::INVALID) {
+            logger.debug("empty file, can't obtain sample from it");
+            return {};
+        }
+
+        SamplingMode m = mode;
+
+        // sample in no unwrap mode -> unwrap later on demand. -> requires special treatment in resample.
+
+
+        // if uri_size < file_size -> first rows only
+        if(uri_size <= _samplingSize)
+            m = SamplingMode::FIRST_ROWS;
+
+        // check file sampling modes & then load the samples accordingly
+        if(m & SamplingMode::FIRST_ROWS) {
+            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::FIRST_ROWS, true);
+            auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str());
+            v = parseRowsFromJSON(sample.c_str(), sample_length, nullptr, false, _json_treat_heterogenous_lists_as_tuples);
+        }
+
+        if(m & SamplingMode::LAST_ROWS) {
+            // the smaller of remaining and sample size!
+            size_t file_offset = 0;
+            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::LAST_ROWS, true, &file_offset);
+            auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str());
+            size_t offset = 0;
+            if(!v.empty()) {
+                if(uri_size < 2 * _samplingSize) {
+                    offset = _samplingSize - (uri_size - _samplingSize);
+                    assert(offset <= _samplingSize);
+                }
+                sample_length -= std::min(sample_length, offset);
+                if(0 == sample_length)
+                    return v;
+
+                // search for JSON newline start offset.
+                auto start_offset = findNLJsonStart(sample.c_str() + offset, sample_length);
+                if(start_offset < 0)
+                    return v;
+                sample_length -= std::min(start_offset, sample_length);
+                auto rows = parseRowsFromJSON(sample.c_str() + offset + start_offset, sample_length, nullptr, false, _json_treat_heterogenous_lists_as_tuples);
+
+                std::copy(rows.begin(), rows.end(), std::back_inserter(v));
+
+            } else {
+                // search for JSON newline start offset.
+                auto start_offset = findNLJsonStart(sample.c_str() + offset, sample_length);
+                if(start_offset < 0)
+                    return v;
+                sample_length -= std::min(start_offset, sample_length);
+
+                v = parseRowsFromJSON(sample.c_str() + start_offset, sample_length, nullptr, false, _json_treat_heterogenous_lists_as_tuples);
+            }
+        }
+
+        // random
+        if(m & SamplingMode::RANDOM_ROWS) {
+            // @TODO: there could be overlap with first/last rows.
+            size_t file_offset = 0;
+            auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::RANDOM_ROWS, true, &file_offset);
+            auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str());
+
+            auto start_offset = findNLJsonStart(sample.c_str(), sample_length);
+            if(start_offset < 0)
+                return v;
+            sample_length -= std::min(start_offset, sample_length);
+            // parse as rows using the settings detected.
+            auto rows = parseRowsFromJSON(sample.c_str() + start_offset, sample_length, nullptr, false, _json_treat_heterogenous_lists_as_tuples);
+
+            // erase last row, b.c. it may be partial
+            if(!rows.empty())
+                rows.erase(rows.end() - 1);
+
+            std::copy(rows.begin(), rows.end(), std::back_inserter(v));
+        }
+
         return v;
     }
 

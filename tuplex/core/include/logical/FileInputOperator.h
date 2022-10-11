@@ -39,6 +39,7 @@ namespace tuplex {
 
         // JSON fields
         bool _json_unwrap_first_level;
+        bool _json_treat_heterogenous_lists_as_tuples;
 
         // general fields for managing both cases & projections
         std::vector<std::string> _null_values;
@@ -204,6 +205,7 @@ namespace tuplex {
         std::vector<Row> sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         std::vector<Row> sampleTextFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         std::vector<Row> sampleORCFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
+        std::vector<Row> sampleJsonFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         inline std::vector<Row> sampleFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
             auto& logger = Logger::instance().logger("logical");
             if(!(mode & SamplingMode::FIRST_ROWS) && !(mode & SamplingMode::LAST_ROWS) && !(mode & SamplingMode::RANDOM_ROWS)) {
@@ -220,6 +222,9 @@ namespace tuplex {
                 }
                 case FileFormat::OUTFMT_ORC: {
                     return sampleORCFile(uri, uri_size, mode);
+                }
+                case FileFormat::OUTFMT_JSON: {
+                    return sampleJsonFile(uri, uri_size, mode);
                 }
                 default:
                     throw std::runtime_error("unsupported sampling of file format "+ std::to_string(static_cast<int>(this->_fmt)));
@@ -482,6 +487,9 @@ namespace tuplex {
             obj["hasHeader"] = _header;
             obj["null_values"] = _null_values;
 
+            obj["jsonUnwrap"] = _json_unwrap_first_level;
+            obj["jsonTuples"] = _json_treat_heterogenous_lists_as_tuples;
+
             obj["samplingMode"] = (int)_samplingMode;
             obj["samplingSize"] = _samplingSize;
 
@@ -510,6 +518,9 @@ namespace tuplex {
             fop->_quotechar = obj["quotechar"].get<char>();
             fop->_delimiter = obj["delimiter"].get<char>();
             fop->_header = obj["hasHeader"].get<bool>();
+
+            fop->_json_unwrap_first_level = obj["jsonUnwrap"].get<bool>();
+            fop->_json_treat_heterogenous_lists_as_tuples = obj["jsonTuples"].get<bool>();
             for(const auto& uri : obj["uris"])
                 fop->_fileURIs.push_back(uri.get<std::string>());
             fop->_sizes = obj["sizes"].get<std::vector<size_t>>();
@@ -544,6 +555,7 @@ namespace tuplex {
                     _header,
                     _null_values,
                     _json_unwrap_first_level,
+                    _json_treat_heterogenous_lists_as_tuples,
                     _columnNames,
                     _columnsToSerialize,
                     _indexBasedHints,
@@ -564,6 +576,7 @@ namespace tuplex {
                 _header,
                 _null_values,
                 _json_unwrap_first_level,
+                _json_treat_heterogenous_lists_as_tuples,
                 _columnNames,
                 _columnsToSerialize,
                 _indexBasedHints,

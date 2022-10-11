@@ -1433,12 +1433,12 @@ namespace tuplex {
             // @TODO: there could be overlap with first/last rows.
             size_t file_offset = 0;
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::RANDOM_ROWS, true, &file_offset);
-            auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str());
+            auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str()));
 
             auto start_offset = findNLJsonStart(sample.c_str(), sample_length);
             if(start_offset < 0)
                 return v;
-            sample_length -= std::min(start_offset, sample_length);
+            sample_length -= std::min((size_t)start_offset, sample_length);
             // parse as rows using the settings detected.
             auto rows = parseRowsFromJSON(sample.c_str() + start_offset, sample_length, nullptr, false, _json_treat_heterogenous_lists_as_tuples);
 

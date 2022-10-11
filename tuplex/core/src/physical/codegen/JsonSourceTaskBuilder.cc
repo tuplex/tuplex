@@ -2,7 +2,7 @@
 // Created by leonhard on 10/3/22.
 //
 
-#include <physical/JsonSourceTaskBuilder.h>
+#include <physical/codegen/JsonSourceTaskBuilder.h>
 #include <experimental/StructDictHelper.h>
 #include <experimental/ListHelper.h>
 #include <physical/experimental/JSONParseRowGenerator.h>

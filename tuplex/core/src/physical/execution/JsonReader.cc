@@ -2,12 +2,12 @@
 // Created by leonhard on 10/3/22.
 //
 
-#include <physical/JsonReader.h>
+#include <physical/execution/JsonReader.h>
 #include <simdjson.h>
 #include <JSONUtils.h>
 #include <JsonStatistic.h>
 #include <physical/experimental/JsonHelper.h>
-#include <RuntimeInterface.h>
+#include <jit/RuntimeInterface.h>
 
 namespace tuplex {
 

@@ -1714,7 +1714,7 @@ namespace tuplex {
             total_size += s;
 
         // num_samples rows == sample_size_used, how much rows are there for total_size?
-        double factor = 1.0 / (double)sample_size_used;
+        double factor = 1.0 / (double)sampleSize();
         double estimate = (factor * num_samples) * total_size;
 
         // safe-guard

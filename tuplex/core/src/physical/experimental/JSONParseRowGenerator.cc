@@ -3,7 +3,7 @@
 //
 
 #include <physical/experimental/JSONParseRowGenerator.h>
-#include <FlattenedTuple.h>
+#include <codegen/FlattenedTuple.h>
 
 namespace tuplex {
     namespace codegen {

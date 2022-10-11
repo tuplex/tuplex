@@ -15,8 +15,8 @@
 #include <physical/execution/CSVReader.h>
 #include <physical/execution/TextReader.h>
 #include <physical/execution/OrcReader.h>
+#include <physical/execution/JsonReader.h>
 #include <bucket.h>
-#include <physical/JsonReader.h>
 
 namespace tuplex {
     // atomic var to count output rows!

@@ -2,8 +2,8 @@
 // Created by leonhard on 9/23/22.
 //
 #include <physical/experimental/JsonHelper.h>
-#include <RuntimeInterface.h>
-#include <JITCompiler.h>
+#include <jit/RuntimeInterface.h>
+#include <jit/JITCompiler.h>
 
 
 namespace tuplex {

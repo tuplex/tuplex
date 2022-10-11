@@ -18,7 +18,9 @@ namespace tuplex {
                                   const std::vector<std::string>& normal_case_columns,
                                   const std::vector<std::string>& general_case_columns,
                                   bool unwrap_first_level,
-                                  const std::string& name);
+                                  const std::map<int, int>& normalToGeneralMapping,
+                                  const std::string &name,
+                                  bool serializeExceptionsAsGeneralCase);
 
             llvm::Function* build(bool terminateEarlyOnFailureCode) override;
         private:

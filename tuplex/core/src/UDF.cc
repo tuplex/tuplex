@@ -1165,6 +1165,10 @@ namespace tuplex {
                     }
                 }
             }
+            default: {
+                // do nothing...
+                break;
+            }
         }
 
         // no replacement

@@ -1456,7 +1456,7 @@ namespace tuplex {
 
         // make sure rows are filled.
         if(_rowsSample.empty()) {
-            logger.warning("no row sample detected, using dummy value of 1000 rows.")
+            logger.warn("no row sample detected, using dummy value of 1000 rows.");
             return 1000;
         }
 

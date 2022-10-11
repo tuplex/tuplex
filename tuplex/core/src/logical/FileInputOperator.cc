@@ -22,13 +22,10 @@
 
 namespace tuplex {
 
-//    std::vector<tuplex::Partition*> FileInputOperator::getPartitions() {
-//        return _partitions;
-//    }
-
     FileInputOperator::FileInputOperator() : _fmt(FileFormat::OUTFMT_UNKNOWN), _json_unwrap_first_level(false),
-    _json_treat_heterogenous_lists_as_tuples(true), _header(false),
-                              _sampling_time_s(0.0), _quotechar('\0'), _delimiter('\0') {}
+                                             _json_treat_heterogenous_lists_as_tuples(true), _header(false),
+                                             _sampling_time_s(0.0), _quotechar('\0'),
+                                             _delimiter('\0'), _samplingMode(SamplingMode::UNKNOWN) {}
 
     void FileInputOperator::detectFiles(const std::string& pattern) {
         auto &logger = Logger::instance().logger("fileinputoperator");

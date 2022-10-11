@@ -44,6 +44,7 @@ namespace tuplex {
 
     // helper enum to specify sampling mode
     enum SamplingMode : int {
+        UNKNOWN = 0,
         FIRST_ROWS = 1,
         LAST_ROWS = 2,
         RANDOM_ROWS = 4,

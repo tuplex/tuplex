@@ -7,7 +7,7 @@
 
 #include "CSVUtils.h"
 #include <vector>
-#include "TypeSystem.h"
+#include <TypeSystem.h>
 
 #include <simdjson.h>
 #include <TypeHelper.h>

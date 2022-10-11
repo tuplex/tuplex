@@ -300,6 +300,20 @@ namespace python {
         static Type makeOptionType(const python::Type& type);
 
         /*!
+         * creates a (structured) dictionary with known keys.
+         * @param kv_pairs
+         * @return type created
+         */
+        static Type makeStructuredDictType(const std::vector<std::pair<boost::any, python::Type>>& kv_pairs);
+
+        /*!
+        * creates a (structured) dictionary with known keys.
+        * @param kv_pairs
+        * @return type created
+        */
+        static Type makeStructuredDictType(const std::vector<StructEntry>& kv_pairs);
+
+        /*!
          * enclose type as tuple if it is a primitive type, if it is a tuple type, return the type itself
          * @param type
          * @return

@@ -775,23 +775,6 @@ namespace python {
         return entry._type == TypeFactory::AbstractType::TYPE;
     }
 
-    bool Type::isOptimizedType() const {
-        // currently know of the following...
-//         OPTIMIZED_CONSTANT, // constant value
-//            OPTIMIZED_DELAYEDPARSING, // dummy types to allow for certain optimizations
-//            OPTIMIZED_RANGECOMPRESSION // range compression
-        const auto& entry = TypeFactory::instance()._typeMap.at(_hash);
-        switch(entry._type) {
-            case TypeFactory::AbstractType::OPTIMIZED_CONSTANT:
-            case TypeFactory::AbstractType::OPTIMIZED_DELAYEDPARSING:
-            case TypeFactory::AbstractType::OPTIMIZED_RANGECOMPRESSION: {
-                return true;
-            }
-            default:
-                return false;
-        }
-    }
-
     bool Type::isSingleValued() const {
         return *this == Type::NULLVALUE || *this == Type::EMPTYTUPLE || *this == Type::EMPTYDICT || *this == Type::EMPTYLIST;
     }

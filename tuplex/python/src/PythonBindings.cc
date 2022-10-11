@@ -39,6 +39,8 @@ PYMODULE {
     m.attr("__version__") = "dev";
 #endif
 
+    // Note: before constructing any object - call registerWithInterpreter to setup GIL properly!
+
     py::class_<tuplex::PythonDataSet>(m, "_DataSet")
             .def("show", &tuplex::PythonDataSet::show)
             .def("collect", &tuplex::PythonDataSet::collect)
@@ -90,4 +92,6 @@ PYMODULE {
 
     // global method to register a new logging function
     m.def("registerLoggingCallback", &tuplex::registerPythonLoggingCallback);
+
+    m.def("registerWithInterpreter", &python::registerWithInterpreter);
 }

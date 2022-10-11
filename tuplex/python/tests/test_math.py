@@ -18,7 +18,6 @@ from helper import test_options
 from math import pi
 import math
 
-
 class TestMath(unittest.TestCase):
 
     def setUp(self):
@@ -298,7 +297,6 @@ class TestMath(unittest.TestCase):
         assert L_bool[0] == math.expm1(True)
         assert L_bool[1] == math.expm1(False)
 
-
     def testPow(self):
         c = tuplex.Context(self.conf)
 
@@ -358,10 +356,9 @@ class TestMath(unittest.TestCase):
         assert L_bool[2] == math.pow(False, True)
         assert L_bool[3] == math.pow(False, False)
 
+        def testIsNan(self):
+            c = tuplex.Context(self.conf)
 
-    def testIsNan(self):
-        c = tuplex.Context(self.conf)
-    
         # floats
         test = [math.nan, -math.nan, math.inf * 0, math.inf, math.pi, 0.0, 5.0, -128.0]
         L = c.parallelize(test).map(lambda x: math.isnan(x)).collect()
@@ -374,7 +371,7 @@ class TestMath(unittest.TestCase):
         self.assertEqual(L[5], False)
         self.assertEqual(L[6], False)
         self.assertEqual(L[7], False)
-    
+
         # integers
         test1 = [0, -1, 5, math.nan, math.inf * math.inf, 97]
         L1 = c.parallelize(test1).map(lambda x: math.isnan(x)).collect()
@@ -385,7 +382,7 @@ class TestMath(unittest.TestCase):
         self.assertEqual(L1[3], True)
         self.assertEqual(L1[4], False)
         self.assertEqual(L1[5], False)
-    
+
         # booleans
         test2 = [math.nan, True, False, False, math.nan]
         L2 = c.parallelize(test2).map(lambda x: math.isnan(x)).collect()
@@ -426,7 +423,7 @@ class TestMath(unittest.TestCase):
         self.assertEqual(L[6], False)
         self.assertEqual(L[7], False)
         self.assertEqual(L[8], False)
-        
+
         # integers
         test1 = [0, -1, 5, math.inf * 0, math.inf, 97]
         L1 = c.parallelize(test1).map(lambda x: math.isinf(x)).collect()
@@ -437,7 +434,7 @@ class TestMath(unittest.TestCase):
         self.assertEqual(L1[3], False)
         self.assertEqual(L1[4], True)
         self.assertEqual(L1[5], False)
-    
+
         # booleans
         test2 = [math.inf, True, False, False, -math.inf]
         L2 = c.parallelize(test2).map(lambda x: math.isinf(x)).collect()

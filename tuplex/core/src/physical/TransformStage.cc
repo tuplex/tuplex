@@ -403,6 +403,9 @@ namespace tuplex {
     }
 
     static void appendBucketToSerializer(Serializer &s, const uint8_t* buffer, const python::Type &aggType) {
+        if(!buffer)
+            return;
+
         int64_t bucket_size = *(int64_t*)buffer;
         const uint8_t *bucket = buffer + 8;
         appendBucketToSerializer(s, bucket, bucket_size, aggType);
@@ -438,11 +441,14 @@ namespace tuplex {
         }
         else throw std::runtime_error("unsupported key type");
 
-        // get the aggregated values
-        appendBucketToSerializer(s, buffer, aggType);
+        if(buffer) {
+            // get the aggregated values
+            appendBucketToSerializer(s, buffer, aggType);
 
-        // save the row
-        return appendRow(s, rows);
+            // save the row
+            return appendRow(s, rows);
+        }
+        return 0;
     }
 
     static size_t appendInt64BucketAsPartition(std::vector<std::pair<const char *, size_t>> &rows, const uint8_t *buffer, bool null, uint64_t key, const python::Type &keyType, const python::Type &aggType) {
@@ -480,7 +486,10 @@ namespace tuplex {
         uint8_t *bucket = nullptr;
         while((key = hashmap_get_next_key(hashtable, &iterator, &keylen)) != nullptr) {
             // get the value
-            hashmap_get(hashtable, key, keylen, (void **) (&bucket));
+            int rc = hashmap_get(hashtable, key, keylen, (void **) (&bucket));
+            if(rc != MAP_OK) {
+                std::cerr<<"internal error"<<std::endl;
+            }
             total_serialized_size += appendBucketAsPartition(unique_rows, bucket, keylen, key, result.keyType, result.bucketType);
         }
 
@@ -704,8 +713,14 @@ namespace tuplex {
                         free(null_bucket);
 
                     if(hm) {
-                        hashmap_free_key_and_data(hm);
-                        hashmap_free(hm);
+
+                        if(8 == hashtableKeyByteWidth()) {
+                            int64_hashmap_free_key_and_data(hm);
+                            int64_hashmap_free(hm);
+                        } else {
+                            hashmap_free_key_and_data(hm);
+                            hashmap_free(hm);
+                        }
                         hm = nullptr;
                     }
                 }
@@ -960,6 +975,8 @@ namespace tuplex {
 
         stage->_irBitCode = msg.bitcode();
         stage->_pyCode = msg.pycode();
+        stage->_pyAggregateCode = msg.pyaggcode();
+        stage->_pyAggregateFunctionName = msg.pyaggname();
 
         stage->_persistSeparateCases = msg.persistseparatecases();
 
@@ -992,6 +1009,8 @@ namespace tuplex {
 
         msg->set_bitcode(_irBitCode);
         msg->set_pycode(_pyCode);
+        msg->set_pyaggcode(_pyAggregateCode);
+        msg->set_pyaggname(_pyAggregateFunctionName);
 
         for(const auto& col : _inputColumns)
             msg->add_inputcolumns(col);

@@ -941,12 +941,10 @@ namespace tuplex {
 
                    A NAN must be a float/double, where the sign bit is 0 or 1, all exponent bits are set to 1,
                    and the mantissa is anything except all 0 bits (because that's how infinity is defined)
-
                    According to this: https://www.geeksforgeeks.org/floating-point-representation-basics/
                    a quiet NAN (QNAN) is represented with only the most significant bit of the mantissa set to 1.
                    a signaling NAN (SNAN) has only the two most significant bits of the mantissa set to 1.
                    (all other bits are set to 0)
-
                    QNAN = 0x7FF8000000000000
                    SNAN = 0x7FFC000000000000
                 */
@@ -1263,7 +1261,7 @@ namespace tuplex {
                 builder.CreateStore(standard_res, val); // overwrite value from bb_infres
                 builder.CreateBr(bb_done);
 
-                // bb_done``    ``` `
+                // bb_done
                 builder.SetInsertPoint(bb_done);
                 lfb.setLastBlock(bb_done);
                 // return the value that was stored in val
@@ -1487,7 +1485,6 @@ namespace tuplex {
                 return createMathCosHCall(builder, argsType, retType, args);
             if (symbol == "math.acosh")
                 return createMathArcCosHCall(builder, argsType, retType, args);
-
             if (symbol == "math.sinh")
                 return createMathSinHCall(builder, argsType, retType, args);
             if (symbol == "math.asinh")

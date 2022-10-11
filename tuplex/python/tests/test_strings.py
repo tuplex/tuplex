@@ -11,11 +11,13 @@
 
 import unittest
 from tuplex import *
+from helper import test_options
 
 class TestString(unittest.TestCase):
 
     def setUp(self):
-        self.conf = {"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"}
+        self.conf = test_options()
+        self.conf.update({"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"})
 
     def test_concat(self):
         c = Context(self.conf)

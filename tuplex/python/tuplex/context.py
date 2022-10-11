@@ -11,7 +11,11 @@
 
 import logging
 
-from .libexec.tuplex import _Context, _DataSet, getDefaultOptionsAsJSON
+try:
+    from .libexec.tuplex import _Context, _DataSet, getDefaultOptionsAsJSON
+except ModuleNotFoundError as e:
+    logging.error("need to compiled Tuplex first, details: {}".format(e))
+
 from .dataset import DataSet
 import os
 import glob
@@ -96,6 +100,9 @@ class Context:
         options = dict()
 
         # put meaningful defaults for special environments...
+
+        # per default disable webui
+        options['tuplex.webui.enable'] = False
         if in_google_colab():
             logging.debug('Detected Google Colab environment, adjusting options...')
 

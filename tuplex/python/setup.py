@@ -29,7 +29,7 @@ files = list(filter(lambda x: '__pycache__' not in x and not x.endswith('.pyc'),
 
 setup(
     name="Tuplex",
-    version="0.3.3rc0",
+    version="0.3.6dev",
     packages=find_packages(),
     package_data={
       # include libs in libexec
@@ -45,7 +45,7 @@ setup(
         'nbconvert<7.0',
         'jupyter<7.0',
         'nbformat<7.0',
-        'Werkzeug<2.0.0',
+        'Werkzeug<2.2.0',
         'attrs>=19.2.0',
         'dill>=0.2.7.1',
         'pluggy>=0.6.0, <1.0.0',

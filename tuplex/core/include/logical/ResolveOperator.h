@@ -43,6 +43,16 @@ namespace tuplex {
         bool isActionable() override { return false; }
         bool isDataSource() override { return false; }
 
+        /*!
+         * indicates whether the output schema of the resolve operator (after upcast etc.) is compatible with
+         * the operator it is resolving exceptions for.
+         * @return true -> compatible, false -> not compatible, i.e. need to put row onto fallback path.
+         */
+        bool isCompatibleWithThrowingOperator() const;
+
+        Schema throwingOperatorSchema() const;
+        Schema resolverSchema() const;
+
         std::vector<Row> getSample(const size_t num) const override;
 
         void rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) override;

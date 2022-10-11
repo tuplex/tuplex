@@ -14,6 +14,7 @@
 #include <ExceptionCodes.h>
 #include <UDF.h>
 #include <Base.h>
+#include <logical/AggregateOperator.h>
 
 namespace tuplex {
 
@@ -82,11 +83,21 @@ namespace tuplex {
         void resolve(int64_t operatorID, ExceptionCode ec, const UDF& udf); // resolver UDF (resolve last operator)
         void ignore(int64_t operatorID, ExceptionCode ec); // ignore specific exception code (i.e. filter out based on exception code)
 
-        std::string getCode() const { return _imports + "\n" + _header + "\n" + functionSignature() + _ss.str() + tailCode(); }
+        std::string getCode() const { return _imports + "\n" + _header + "\n" + functionSignature() + headCode() + _ss.str() + tailCode(); }
 
         // aggregate functions:
-        // --> @TODO.
+        void pythonAggByKey(int64_t operatorID,
+                            const std::string& hashmap_name,
+                            const UDF& aggUDF,
+                            const std::vector<size_t>& aggColumns,
+                            const Row& initial_value);
+        void pythonAggGeneral(int64_t operatorID,
+                              const std::string& agg_intermediate_name,
+                              const tuplex::UDF &aggUDF,
+                              const Row& initial_value);
 
+
+        static std::string udfToByteCode(const UDF& udf);
     private:
         std::string _funcName;
         std::stringstream _ss;
@@ -173,6 +184,10 @@ namespace tuplex {
             return ss.str();
         }
 
+        std::string _headCode;
+        std::string headCode() const {
+            return indentLines(1, _headCode);
+        }
 
         // because resolvers are added lazily, need to lazy flush function with exception handling
         struct Function {
@@ -185,15 +200,13 @@ namespace tuplex {
         Function _lastFunction;
         void flushLastFunction(); // add last function to code
 
-        std::string replaceTabs(const std::string& s);
+        std::string replaceTabs(const std::string& s) const;
 
         std::string columnsToList(const std::vector<std::string>& columns);
-        std::string toByteCode(const std::string& s);
-
-        std::string udfToByteCode(const UDF& udf);
+        static std::string toByteCode(const std::string& s);
 
         //! helper function to write one or more lines at specific indent level
-        std::string indentLines(int indentFactor, const std::string& s);
+        std::string indentLines(int indentFactor, const std::string& s) const;
         void writeLine(const std::string& s);
         void indent() { _indentLevel++; }
         void dedent() { _indentLevel--; }
@@ -218,6 +231,15 @@ namespace tuplex {
             return ss.str();
         }
     };
+
+    /*!
+     * generates a function that combines two aggregates
+     */
+    extern std::string codegenPythonCombineAggregateFunction(const std::string& function_name, int64_t operatorID,
+                                                             const AggregateType& agg_type,
+                                                             const Row& initial_value,
+                                                             const UDF& combine_udf);
+
 }
 
 #endif //TUPLEX_PYTHONPIPELINEBUILDER_H

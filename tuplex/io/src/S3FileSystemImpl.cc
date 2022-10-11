@@ -709,39 +709,39 @@ namespace tuplex {
     }
 
     void S3FileSystemImpl::initTransferThreadPool(size_t numThreads) {
-      // there's a typo in older AWS SDK versions
+        // there's a typo in older AWS SDK versions
 #if AWS_SDK_VERSION_PATCH < 309
-      auto overflow_policy = Aws::Utils::Threading::OverflowPolicy::QUEUE_TASKS_EVENLY_ACCROSS_THREADS;
+        auto overflow_policy = Aws::Utils::Threading::OverflowPolicy::QUEUE_TASKS_EVENLY_ACCROSS_THREADS;
 #else
-      auto overflow_policy = Aws::Utils::Threading::OverflowPolicy::QUEUE_TASKS_EVENLY_ACROSS_THREADS;
+        auto overflow_policy = Aws::Utils::Threading::OverflowPolicy::QUEUE_TASKS_EVENLY_ACROSS_THREADS;
 #endif
 
-      // lazy init
-      if(!_thread_pool)
-          _thread_pool = std::make_shared<Aws::Utils::Threading::PooledThreadExecutor>(numThreads,
-                                                                                       overflow_policy);
+        // lazy init
+        if(!_thread_pool)
+            _thread_pool = std::make_shared<Aws::Utils::Threading::PooledThreadExecutor>(numThreads,
+                                                                                         overflow_policy);
 
-      if(!_transfer_manager) {
-          Aws::Transfer::TransferManagerConfiguration config(_thread_pool.get());
-          config.s3Client = _client;
+        if(!_transfer_manager) {
+            Aws::Transfer::TransferManagerConfiguration config(_thread_pool.get());
+            config.s3Client = _client;
 
-          // @TODO: add callbacks for better upload etc.?
-          // std::function<void(const TransferManager*, const std::shared_ptr<const TransferHandle>&, const Aws::Client::AWSError<Aws::S3::S3Errors>&)>
-          Aws::Transfer::ErrorCallback error_callback = [](const Aws::Transfer::TransferManager* manager, const std::shared_ptr<const Aws::Transfer::TransferHandle>& handle,
-                                                           const Aws::Client::AWSError<Aws::S3::S3Errors>& err) {
-              auto& logger = Logger::instance().logger("filesystem");
-              std::string target_path;
-              if(handle) {
-                  target_path = URI::fromS3(handle->GetBucketName().c_str(), handle->GetKey().c_str()).toPath();
-              }
+            // @TODO: add callbacks for better upload etc.?
+            // std::function<void(const TransferManager*, const std::shared_ptr<const TransferHandle>&, const Aws::Client::AWSError<Aws::S3::S3Errors>&)>
+            Aws::Transfer::ErrorCallback error_callback = [](const Aws::Transfer::TransferManager* manager, const std::shared_ptr<const Aws::Transfer::TransferHandle>& handle,
+                                                             const Aws::Client::AWSError<Aws::S3::S3Errors>& err) {
+                auto& logger = Logger::instance().logger("filesystem");
+                std::string target_path;
+                if(handle) {
+                    target_path = URI::fromS3(handle->GetBucketName().c_str(), handle->GetKey().c_str()).toPath();
+                }
 
-              std::stringstream ss;
-              ss<<"AWS File Transfer error ("<<err.GetExceptionName().c_str()<<"). Details: "<<err.GetMessage().c_str();
-              logger.error(ss.str());
-          };
-          config.errorCallback = error_callback;
-          _transfer_manager = Aws::Transfer::TransferManager::Create(config);
-      }
+                std::stringstream ss;
+                ss<<"AWS File Transfer error ("<<err.GetExceptionName().c_str()<<"). Details: "<<err.GetMessage().c_str();
+                logger.error(ss.str());
+            };
+            config.errorCallback = error_callback;
+            _transfer_manager = Aws::Transfer::TransferManager::Create(config);
+        }
     }
 
     std::shared_ptr<Aws::Transfer::TransferHandle> S3FileSystemImpl::downloadFile(const URI &s3_uri,

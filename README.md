@@ -18,6 +18,7 @@ Contributions welcome!
 
 ### Contents
 + [Example](#example)
++ [Quickstart](#quickstart)
 + [Installation](#installation)
     - [Docker image](#docker)
     - [Pypi](#pypi)
@@ -37,14 +38,22 @@ res = c.parallelize([1, 2, None, 4]).map(lambda x: (x, x * x)).collect()
 # this prints [(1, 1), (2, 4), (4, 16)]
 print(res)
 ```
+### Quickstart
+To try out Tuplex, simply try out the following starter notebooks using Google Colab:
+
+| Name                           | Link             | Description                                                |
+|--------------------------------|------------------|------------------------------------------------------------|
+| 1. Intro to Tuplex             | [Google Colab](https://colab.research.google.com/drive/1idqCRmvN-9_F2naJ6k1hbslbQT-2bAqa?usp=sharing) | Basic commands to manipulate columns and modify data with user code. |
+| 2. Working with Files          | [Google Colab](https://colab.research.google.com/drive/10gOYUpxK_Bjkw11WYupuaflATsBPRgU0?usp=sharing) | Loading and saving files, detecting types.                          |
+
 
 More examples can be found [here](https://tuplex.cs.brown.edu/gettingstarted.html).
 
 ### Installation
-To install Tuplex, you can use a PyPi package for Linux, or a Docker container for MacOS which will launch a jupyter notebook with Tuplex preinstalled.
+To install Tuplex, you can use a PyPi package for Linux or MacOS(Intel), or a Docker container which will launch a jupyter notebook with Tuplex preinstalled.
 #### Docker
 ```
-docker run -p 8888:8888 tuplex/tuplex
+docker run -p 8888:8888 tuplex/tuplex:v0.3.6dev
 ```
 #### PyPI
 ```
@@ -53,14 +62,14 @@ pip install tuplex
 
 ### Building
 
-Tuplex is available for MacOS and Linux. The current version has been tested under MacOS 10.13-10.15 and Ubuntu 18.04 and 20.04 LTS.
+Tuplex is available for MacOS and Linux. The current version has been tested under MacOS 10.13-12.0 and Ubuntu 18.04/20.04/22.04 LTS.
 To install Tuplex, simply install the dependencies first and then build the package.
 
 #### MacOS build from source
-To build Tuplex, you need several other packages first which can be easily installed via [brew](https://brew.sh/). If you want to build Tuplex with AWS support, you need `macOS 10.13+`.
+To build Tuplex, you need several other packages first which can be easily installed via [brew](https://brew.sh/). If you want to build Tuplex with AWS support, you need `macOS 10.13+`. Python 3.9 or earlier requires an older cloudpickle version (1.6.0) whereas Python 3.10+ requires cloudpickle 2.1.0+.
 ```
 brew install llvm@9 boost boost-python3 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero protobuf libmagic
-python3 -m pip install cloudpickle numpy
+python3 -m pip install 'cloudpickle<2.0' numpy
 python3 setup.py install --user
 ```
 
@@ -68,7 +77,7 @@ python3 setup.py install --user
 To faciliate installing the dependencies for Ubuntu, we do provide two scripts (`scripts/ubuntu1804/install_reqs.sh` for Ubuntu 18.04, or `scripts/ubuntu2004/install_reqs.sh` for Ubuntu 20.04). To create an up to date version of Tuplex, simply run
 ```
 ./scripts/ubuntu1804/install_reqs.sh
-python3 -m pip install cloudpickle numpy
+python3 -m pip install 'cloudpickle<2.0' numpy
 python3 setup.py install --user
 ```
 
@@ -93,7 +102,7 @@ To customize the cmake build, the following options are available to be passed v
 | `BUILD_NATIVE` | `ON`, `OFF` (default) | build with `-march=native` to target platform architecture. |
 | `SKIP_AWS_TESTS` | `ON` (default), `OFF` | skip aws tests, helpful when no AWS credentials/AWS Tuplex chain is setup. |
 | `GENERATE_PDFS` | `ON`, `OFF` (default) | output in Debug mode PDF files if graphviz is installed (e.g., `brew install graphviz`) for ASTs of UDFs, query plans, ...|
-| `PYTHON3_VERSION` | `3.6`, ... | when trying to select a python3 version to build against, use this by specifying `major.minor`. To specify the python executable, use the options provided by [cmake](https://cmake.org/cmake/help/git-stage/module/FindPython3.html). |
+| `PYTHON3_VERSION` | `3.7`, ... | when trying to select a python3 version to build against, use this by specifying `major.minor`. To specify the python executable, use the options provided by [cmake](https://cmake.org/cmake/help/git-stage/module/FindPython3.html). |
 | `LLVM_ROOT_DIR` | e.g. `/usr/lib/llvm-9` | specify which LLVM version to use |
 | `BOOST_DIR` | e.g. `/opt/boost` | specify which Boost version to use. Note that the python component of boost has to be built against the python version used to build Tuplex |
 

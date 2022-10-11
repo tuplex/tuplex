@@ -38,7 +38,7 @@ def in_google_colab():
 
     shell_name_matching = False
     try:
-        shell_name_matching =  'google.colab' in str(get_ipython())
+        shell_name_matching = 'google.colab' in str(get_ipython())
     except:
         pass
 
@@ -67,7 +67,7 @@ test_dependencies = [
 
 # Also requires to install MongoDB
 webui_dependencies = [
-    'Flask>=2.0.2',
+    'Flask>=2.0.2,<2.2.0',
     'Werkzeug<2.2.0',
     'gunicorn',
     'eventlet==0.30.0', # newer versions of eventlet have a bug under MacOS
@@ -80,6 +80,7 @@ webui_dependencies = [
 # boto is broken currently...
 aws_lambda_dependencies = []
 
+# check python version, e.g., cloudpickle is specific
 
 # manual fix for google colab
 if in_google_colab():
@@ -108,7 +109,7 @@ if in_google_colab():
 else:
     logging.debug('Building dependencies for non Colab environment')
 
-    install_dependencies = [
+    install_dependencies = webui_dependencies + [
         'attrs>=19.2.0',
         'dill>=0.2.7.1',
         'pluggy',
@@ -124,7 +125,7 @@ else:
         'psutil',
         'pymongo',
         'iso8601'
-    ] + webui_dependencies + aws_lambda_dependencies
+    ] + aws_lambda_dependencies
 
 def ninja_installed():
     # check whether ninja is on the path
@@ -165,7 +166,29 @@ from setuptools import Command
 import setuptools.command.install
 import setuptools.command.develop
 
-build_config = {'BUILD_TYPE' : 'Release'}
+
+# check environment variables and print
+build_type = None
+if os.environ.get('TUPLEX_BUILD_TYPE', None):
+    build_type = os.environ['TUPLEX_BUILD_TYPE']
+    logging.info('Found TUPLEX_BUILD_TYPE environment variable, setting C extension build type to {}'.format(build_type))
+elif os.environ.get('CMAKE_BUILD_TYPE', None):
+    build_type = os.environ['CMAKE_BUILD_TYPE']
+    logging.info('Found CMAKE_BUILD_TYPEenvironment variable, setting C extension build type to {}'.format(build_type))
+else:
+    build_type = 'Release' # per default
+
+supported_modes = ['Debug', 'Release', 'RelWithDebInfo', 'MinSizeRel', 'tsan', 'asan']
+if build_type.lower() not in [t.lower() for t in supported_modes]:
+    logging.error('Unsupported build type {} found, aborting build.'.format(build_type))
+    sys.exit(1)
+else:
+    # lookup spelling
+    d = dict(zip([t.lower() for t in supported_modes], supported_modes))
+    build_type = d[build_type.lower()]
+
+build_config = {'BUILD_TYPE' : build_type}
+logging.info('Building Tuplex with build type {}'.format(build_type))
 
 class DevelopCommand(setuptools.command.develop.develop):
 
@@ -204,6 +227,8 @@ class CMakeExtension(Extension):
 class CMakeBuild(build_ext):
 
     def build_extension(self, ext):
+
+        macos_build_target = ''
 
         ext_filename = str(ext.name)
         ext_filename = ext_filename[ext_filename.rfind('.') + 1:]  # i.e. this is "tuplex"
@@ -318,6 +343,32 @@ class CMakeBuild(build_ext):
             "-DCMAKE_BUILD_TYPE={}".format(cfg),  # not used on MSVC, but no harm
             "-DPYTHON3_VERSION={}".format(py_maj_min),
         ]
+
+        # set correct mac os target
+        if platform.system().lower() == 'darwin':
+            macos_build_target = '10.13'
+            try:
+                macos_version = platform.mac_ver()[0]
+                macos_major_version = int(macos_version.split('.')[0])
+                if macos_major_version >= 11:
+                    macos_build_target = '{}.0'.format(macos_major_version)
+                logging.info("Found macOS {}, using build target {}".format(macos_version, macos_build_target))
+            except Exception as e:
+                logging.error('Could not detect macos version via python, details: {}', e)
+
+                try:
+                    # use process MACOS_VERSION=$(sw_vers -productVersion)
+                    process_output = subprocess.Popen("sw_vers -productVersion", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8').communicate()
+                    out = process_output[0].strip()
+                    logging.info('Detected MacOS version {}'.format(out))
+                    macos_major_version = int(out.split('.')[0])
+                    if macos_major_version >= 11:
+                        macos_build_target = '{}.0'.format(macos_major_version)
+                except:
+                    logging.error('Could not detect macos version, defaulting to macos 10.13 as build target')
+
+            # get mac OS version
+            cmake_args.append('-DCMAKE_OSX_DEPLOYMENT_TARGET={}'.format(macos_build_target))
 
         # add version info if not dev
         version_cmake = "-DVERSION_INFO={}".format(self.distribution.get_version())
@@ -445,6 +496,10 @@ class CMakeBuild(build_ext):
 
         build_env = dict(os.environ)
         logging.info('LD_LIBRARY_PATH is: {}'.format(build_env.get('LD_LIBRARY_PATH', '')))
+
+        # on mac os, set  MACOSX_DEPLOYMENT_TARGET
+        if 'MACOSX_DEPLOYMENT_TARGET' not in build_env.keys() and platform.system().lower() == 'darwin':
+            build_env['MACOSX_DEPLOYMENT_TARGET'] = macos_build_target
 
         subprocess.check_call(
             ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp, env=build_env
@@ -598,7 +653,7 @@ def tplx_package_data():
 # logic and declaration, and simpler if you include description/version in a file.
 setup(name="tuplex",
     python_requires='>=3.7.0',
-    version="0.3.3",
+    version="0.3.6dev",
     author="Leonhard Spiegelberg",
     author_email="tuplex@cs.brown.edu",
     description="Tuplex is a novel big data analytics framework incorporating a Python UDF compiler based on LLVM "

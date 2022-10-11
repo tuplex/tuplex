@@ -98,7 +98,7 @@ namespace tuplex {
         // from TransformTask
         // @TODO: refactor more nicely using traits?
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // put into hashmap or null bucket
@@ -106,14 +106,14 @@ namespace tuplex {
             // put into hashmap!
             uint8_t *bucket = nullptr;
             if(bucketize) {
-                hashmap_get(_htable.hm, key, key_size, (void **) (&bucket));
+                hashmap_get(_htable->hm, key, key_size, (void **) (&bucket));
                 // update or new entry
                 bucket = extend_bucket(bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
             }
-            hashmap_put(_htable.hm, key, key_size, bucket);
+            hashmap_put(_htable->hm, key, key_size, bucket);
         } else {
             // goes into null bucket, no hash
-            _htable.null_bucket = extend_bucket(_htable.null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
+            _htable->null_bucket = extend_bucket(_htable->null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
         }
     }
 
@@ -121,17 +121,17 @@ namespace tuplex {
         // from TransformTask
         // @TODO: refactor more nicely using traits?
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // get the bucket
         uint8_t *bucket = nullptr;
         if(key != nullptr && key_len > 0) {
             // get current bucket
-            hashmap_get(_htable.hm, key, key_len, (void **) (&bucket));
+            hashmap_get(_htable->hm, key, key_len, (void **) (&bucket));
         } else {
             // goes into null bucket, no hash
-            bucket = _htable.null_bucket;
+            bucket = _htable->null_bucket;
         }
 
         // aggregate in the new value
@@ -139,9 +139,9 @@ namespace tuplex {
 
         // write back the bucket
         if(key != nullptr && key_len > 0) {
-            hashmap_put(_htable.hm, key, key_len, bucket);
+            hashmap_put(_htable->hm, key, key_len, bucket);
         } else {
-            _htable.null_bucket = bucket;
+            _htable->null_bucket = bucket;
         }
     }
 
@@ -149,7 +149,7 @@ namespace tuplex {
         // from TransformTask
         // @TODO: refactor more nicely using traits?
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // put into hashmap or null bucket
@@ -157,14 +157,14 @@ namespace tuplex {
             // put into hashmap!
             uint8_t *bucket = nullptr;
             if(bucketize) {
-                int64_hashmap_get(_htable.hm, key, (void **) (&bucket));
+                int64_hashmap_get(_htable->hm, key, (void **) (&bucket));
                 // update or new entry
                 bucket = extend_bucket(bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
             }
-            int64_hashmap_put(_htable.hm, key, bucket);
+            int64_hashmap_put(_htable->hm, key, bucket);
         } else {
             // goes into null bucket, no hash
-            _htable.null_bucket = extend_bucket(_htable.null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
+            _htable->null_bucket = extend_bucket(_htable->null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
         }
     }
 
@@ -172,25 +172,25 @@ namespace tuplex {
         // from TransformTask
         // @TODO: refactor more nicely using traits?
         // saves key + rest in buckets (incl. null bucket)
-        assert(_htable.hm);
+        assert(_htable->hm);
         assert(_htableFormat != HashTableFormat::UNKNOWN);
 
         // get the bucket
         uint8_t *bucket = nullptr;
         if(!key_null) {
             // get current bucket
-            int64_hashmap_get(_htable.hm, key, (void **) (&bucket));
+            int64_hashmap_get(_htable->hm, key, (void **) (&bucket));
         } else {
-            bucket = _htable.null_bucket;
+            bucket = _htable->null_bucket;
         }
         // aggregate in the new value
         aggregateValues(&bucket, buf, buf_size);
         if(!key_null) {
             // get current bucket
-            int64_hashmap_put(_htable.hm, key, bucket);
+            int64_hashmap_put(_htable->hm, key, bucket);
         } else {
             // goes into null bucket, no hash
-            _htable.null_bucket = bucket;
+            _htable->null_bucket = bucket;
         }
     }
 
@@ -379,6 +379,7 @@ default:
             case ExceptionCode::BADPARSE_STRING_INPUT:
             case ExceptionCode::NORMALCASEVIOLATION:
             case ExceptionCode::PYTHON_PARALLELIZE:
+            case ExceptionCode::GENERALCASEVIOLATION:
                 return true;
             default:
                 return false;
@@ -456,239 +457,279 @@ default:
         // fallback 2: interpreter path
         // --> only go there if a non-true exception was recorded. Else, it will be dealt with above
         if(resCode == -1 && _interpreterFunctor) {
+            assert(!python::holdsGIL());
 
             // acquire GIL
             python::lockGIL();
-            PyCallable_Check(_interpreterFunctor);
 
-            // holds the pythonized data
-            PyObject* tuple = nullptr;
+            // catch any exceptions here
+            try {
+                PyCallable_Check(_interpreterFunctor);
 
-            bool parse_cells = false;
+                // holds the pythonized data
+                PyObject* tuple = nullptr;
+                bool parse_cells = false;
 
-            // there are different data reps for certain error codes.
-            // => decode the correct object from memory & then feed it into the pipeline...
-            if(ecCode == ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)) {
-                // it's a string!
-                tuple = tupleFromParseException(ebuf, eSize);
-                parse_cells = true; // need to parse cells in python mode.
-            } else if(ecCode == ecToI64(ExceptionCode::NORMALCASEVIOLATION)) {
-                // changed, why are these names so random here? makes no sense...
-                auto row = Row::fromMemory(exceptionsInputSchema(), ebuf, eSize);
+                // there are different data reps for certain error codes.
+                // => decode the correct object from memory & then feed it into the pipeline...
+                if(ecCode == ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)) {
+                    // it's a string!
+                    tuple = tupleFromParseException(ebuf, eSize);
+                    parse_cells = true; // need to parse cells in python mode.
+                } else if(ecCode == ecToI64(ExceptionCode::NORMALCASEVIOLATION)) {
+                    // changed, why are these names so random here? makes no sense...
+                    auto row = Row::fromMemory(exceptionsInputSchema(), ebuf, eSize);
 
-                tuple = python::rowToPython(row, true);
-                parse_cells = false;
-                // called below...
-            } else if (ecCode == ecToI64(ExceptionCode::PYTHON_PARALLELIZE)) {
-                auto pyObj = python::deserializePickledObject(python::getMainModule(), (char *) ebuf, eSize);
-                tuple = pyObj;
-                parse_cells = false;
-            } else {
-                // normal case, i.e. an exception occurred somewhere.
-                // --> this means if pipeline is using string as input, we should convert
-                auto row = Row::fromMemory(exceptionsInputSchema(), ebuf, eSize);
+                    tuple = python::rowToPython(row, true);
+                    parse_cells = false;
+                    // called below...
+                } else if (ecCode == ecToI64(ExceptionCode::PYTHON_PARALLELIZE)) {
+                    auto pyObj = python::deserializePickledObject(python::getMainModule(), (char *) ebuf, eSize);
+                    tuple = pyObj;
+                    parse_cells = false;
+                } else {
+                    // normal case, i.e. an exception occurred somewhere.
+                    // --> this means if pipeline is using string as input, we should convert
+                    auto row = Row::fromMemory(exceptionsInputSchema(), ebuf, eSize);
 
-                // cell source automatically takes input, i.e. no need to convert. simply get tuple from row object
-                tuple = python::rowToPython(row, true);
+                    // cell source automatically takes input, i.e. no need to convert. simply get tuple from row object
+                    tuple = python::rowToPython(row, true);
 
 #ifndef NDEBUG
-                if(PyTuple_Check(tuple)) {
-                    // make sure tuple is valid...
-                    for(unsigned i = 0; i < PyTuple_Size(tuple); ++i) {
-                        auto elemObj = PyTuple_GET_ITEM(tuple, i);
-                        assert(elemObj);
+                    if(PyTuple_Check(tuple)) {
+                        // make sure tuple is valid...
+                        for(unsigned i = 0; i < PyTuple_Size(tuple); ++i) {
+                            auto elemObj = PyTuple_GET_ITEM(tuple, i);
+                            assert(elemObj);
+                        }
                     }
+#endif
+                    parse_cells = false;
+                }
+
+                // compute
+                // @TODO: we need to encode the hashmaps as these hybrid objects!
+                // ==> for more efficiency we prob should store one per executor!
+                //     the same goes for any hashmap...
+
+                assert(tuple);
+#ifndef NDEBUG
+                if(!tuple) {
+                    owner()->error("bad decode, using () as dummy...");
+                    tuple = PyTuple_New(0); // empty tuple.
                 }
 #endif
-                parse_cells = false;
-            }
 
-            // compute
-            // @TODO: we need to encode the hashmaps as these hybrid objects!
-            // ==> for more efficiency we prob should store one per executor!
-            //     the same goes for any hashmap...
-
-            assert(tuple);
-#ifndef NDEBUG
-            if(!tuple) {
-                owner()->error("bad decode, using () as dummy...");
-                tuple = PyTuple_New(0); // empty tuple.
-            }
-#endif
-
-            // note: current python pipeline always expects a tuple arg. hence pack current element.
-            if(PyTuple_Check(tuple) && PyTuple_Size(tuple) > 1) {
-                // nothing todo...
-            } else {
-                auto tmp_tuple = PyTuple_New(1);
-                PyTuple_SET_ITEM(tmp_tuple, 0, tuple);
-                tuple = tmp_tuple;
-            }
-
-#ifndef NDEBUG
-            // // to print python object
-            // Py_XINCREF(tuple);
-            // PyObject_Print(tuple, stdout, 0);
-            // std::cout<<std::endl;
-#endif
-
-            // call pipFunctor
-            PyObject* args = PyTuple_New(1 + _py_intermediates.size());
-            PyTuple_SET_ITEM(args, 0, tuple);
-            for(unsigned i = 0; i < _py_intermediates.size(); ++i) {
-                Py_XINCREF(_py_intermediates[i]);
-                PyTuple_SET_ITEM(args, i + 1, _py_intermediates[i]);
-            }
-
-            auto kwargs = PyDict_New(); PyDict_SetItemString(kwargs, "parse_cells", python::boolean(parse_cells));
-            auto pcr = python::callFunctionEx(_interpreterFunctor, args, kwargs);
-
-            if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
-                // this should not happen, bad internal error. codegen'ed python should capture everything.
-                owner()->error("bad internal python error: " + pcr.exceptionMessage);
-            } else {
-                // all good, row is fine. exception occured?
-                assert(pcr.res);
-
-                // type check: save to regular rows OR save to python row collection
-                if(!pcr.res) {
-                    owner()->error("bad internal python error, NULL object returned");
+                // note: current python pipeline always expects a tuple arg. hence pack current element.
+                if(PyTuple_Check(tuple) && PyTuple_Size(tuple) > 1) {
+                    // nothing todo...
                 } else {
+                    auto tmp_tuple = PyTuple_New(1);
+                    PyTuple_SET_ITEM(tmp_tuple, 0, tuple);
+                    tuple = tmp_tuple;
+                }
 
 #ifndef NDEBUG
-                    // // uncomment to print res obj
-                    // Py_XINCREF(pcr.res);
-                    // PyObject_Print(pcr.res, stdout, 0);
-                    // std::cout<<std::endl;
+                // // to print python object
+                // Py_XINCREF(tuple);
+                // PyObject_Print(tuple, stdout, 0);
+                // std::cout<<std::endl;
 #endif
-                    auto exceptionObject = PyDict_GetItemString(pcr.res, "exception");
-                    if(exceptionObject) {
 
-                        // overwrite operatorID which is throwing.
-                        auto exceptionOperatorID = PyDict_GetItemString(pcr.res, "exceptionOperatorID");
-                        operatorID = PyLong_AsLong(exceptionOperatorID);
-                        auto exceptionType = PyObject_Type(exceptionObject);
-                        // can ignore input row.
-                        ecCode = ecToI64(python::translatePythonExceptionType(exceptionType));
+                // call pipFunctor
+                size_t num_python_args = 1 + _py_intermediates.size() + hasHashTableSink();
+
+                // special case unique, no arg required (done via output)
+                if(hasHashTableSink() && _hash_agg_type == AggregateType::AGG_UNIQUE)
+                    num_python_args -= 1;
+
+                PyObject* args = PyTuple_New(num_python_args);
+                PyTuple_SET_ITEM(args, 0, tuple);
+                for(unsigned i = 0; i < _py_intermediates.size(); ++i) {
+                    Py_XINCREF(_py_intermediates[i]);
+                    PyTuple_SET_ITEM(args, i + 1, _py_intermediates[i]);
+                }
+                // set hash table sink
+                if(hasHashTableSink() && _hash_agg_type != AggregateType::AGG_UNIQUE) { // special case: unique -> note: unify handling this with the other cases...
+                    assert(_htable->hybrid_hm);
+                    Py_XINCREF(_htable->hybrid_hm);
+                    PyTuple_SET_ITEM(args, num_python_args - 1, _htable->hybrid_hm);
+                }
+
+                auto kwargs = PyDict_New();
+                auto py_parse_cells = python::boolean(parse_cells);
+                PyDict_SetItemString(kwargs, "parse_cells", py_parse_cells);
+                auto pcr = python::callFunctionEx(_interpreterFunctor, args, kwargs);
+
+                if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
+                    // this should not happen, bad internal error. codegen'ed python should capture everything.
+                    owner()->error("bad internal python error: " + pcr.exceptionMessage);
+                    python::unlockGIL();
+                    return;
+                } else {
+                    // all good, row is fine. exception occurred?
+                    assert(pcr.res);
+
+                    // type check: save to regular rows OR save to python row collection
+                    if(!pcr.res) {
+                        owner()->error("bad internal python error, NULL object returned");
+                    } else {
 
 #ifndef NDEBUG
-                        // // debug printing of exception and what the reason is...
-                        // // print res obj
+                        // // uncomment to print res obj
                         // Py_XINCREF(pcr.res);
-                        // std::cout<<"exception occurred while processing using python: "<<std::endl;
                         // PyObject_Print(pcr.res, stdout, 0);
                         // std::cout<<std::endl;
 #endif
+                        auto exceptionObject = PyDict_GetItemString(pcr.res, "exception");
+                        if(exceptionObject) {
 
-                        // the callback exceptionCallback(ecCode, opID, _rowNumber, ebuf, eSize) gets called below...!
-                        resCode = -1;
-                    } else {
-                        // normal, check type and either merge to normal set back OR onto python set together with row number?
-                        auto resultRows = PyDict_GetItemString(pcr.res, "outputRows");
-                        assert(PyList_Check(resultRows));
-
-                        auto listSize = PyList_Size(resultRows);
-                        // No rows were created, meaning the row was filtered out
-                        if (0 == listSize) {
-                            _numUnresolved++;
-                        }
-
-                        for(int i = 0; i < listSize; ++i) {
-                            // type check w. output schema
-                            // cf. https://pythonextensionpatterns.readthedocs.io/en/latest/refcount.html
-                            auto rowObj = PyList_GetItem(resultRows, i);
-                            Py_XINCREF(rowObj);
-
-
-                            // because we have the logic to separate types etc. in the hashtable, for hash table output we can use
-                            // simplified output schema here!
-                            if(hasHashTableSink()) {
-                                sinkRowToHashTable(rowObj);
-                                continue;
-                            }
-
-                            auto rowType = python::mapPythonClassToTuplexType(rowObj, false);
-
-                            // special case output schema is str (fileoutput!)
-                            if(rowType == python::Type::STRING) {
-                                // write to file, no further type check necessary b.c.
-                                // if it was the object string it would be within a tuple!
-                                auto cptr = PyUnicode_AsUTF8(rowObj);
-                                Py_XDECREF(rowObj);
-                                mergeRow(reinterpret_cast<const uint8_t *>(cptr), strlen(cptr), BUF_FORMAT_NORMAL_OUTPUT); // don't write '\0'!
-                            } else {
-
-                                // there are three options where to store the result now
-
-                                // 1. fits targetOutputSchema (i.e. row becomes normalcase row)
-                                bool outputAsNormalRow = python::Type::UNKNOWN != unifyTypes(rowType, _targetOutputSchema.getRowType(), _allowNumericTypeUnification)
-                                                         && canUpcastToRowType(rowType, _targetOutputSchema.getRowType());
-                                // 2. fits generalCaseOutputSchema (i.e. row becomes generalcase row)
-                                bool outputAsGeneralRow = python::Type::UNKNOWN != unifyTypes(rowType,
-                                                                                              commonCaseOutputSchema().getRowType(), _allowNumericTypeUnification)
-                                                          && canUpcastToRowType(rowType, commonCaseOutputSchema().getRowType());
-
-                                // 3. doesn't fit, store as python object. => we should use block storage for this as well. Then data can be shared.
-
-                                // can upcast? => note that the && is necessary because of cases where outputSchema is
-                                // i64 but the given row type f64. We can cast up i64 to f64 but not the other way round.
-                                if(outputAsNormalRow) {
-                                    Row resRow = python::pythonToRow(rowObj).upcastedRow(_targetOutputSchema.getRowType());
-                                    assert(resRow.getRowType() == _targetOutputSchema.getRowType());
-
-                                    // write to buffer & perform callback
-                                    auto buf_size = 2 * resRow.serializedLength();
-                                    uint8_t *buf = new uint8_t[buf_size];
-                                    memset(buf, 0, buf_size);
-                                    auto serialized_length = resRow.serializeToMemory(buf, buf_size);
-                                    // call row func!
-                                    // --> merge row distinguishes between those two cases. Distinction has to be done there
-                                    //     because of compiled functor who calls mergeRow in the write function...
-                                    mergeRow(buf, serialized_length, BUF_FORMAT_NORMAL_OUTPUT);
-                                    delete [] buf;
-                                } else if(outputAsGeneralRow) {
-                                    Row resRow = python::pythonToRow(rowObj).upcastedRow(commonCaseOutputSchema().getRowType());
-                                    assert(resRow.getRowType() == commonCaseOutputSchema().getRowType());
-
-                                    // write to buffer & perform callback
-                                    auto buf_size = 2 * resRow.serializedLength();
-                                    uint8_t *buf = new uint8_t[buf_size];
-                                    memset(buf, 0, buf_size);
-                                    auto serialized_length = resRow.serializeToMemory(buf, buf_size);
-                                    // call row func!
-                                    // --> merge row distinguishes between those two cases. Distinction has to be done there
-                                    //     because of compiled functor who calls mergeRow in the write function...
-                                    mergeRow(buf, serialized_length, BUF_FORMAT_GENERAL_OUTPUT);
-                                    delete [] buf;
-                                } else {
-                                    // Unwrap single element tuples before writing them to the fallback sink
-                                    if(PyTuple_Check(rowObj) && PyTuple_Size(rowObj) == 1) {
-                                        writePythonObjectToFallbackSink(PyTuple_GetItem(rowObj, 0));
-                                    } else {
-                                        writePythonObjectToFallbackSink(rowObj);
-                                    }
-                                }
-                                // Py_XDECREF(rowObj);
-                            }
-                        }
+                            // overwrite operatorID which is throwing.
+                            auto exceptionOperatorID = PyDict_GetItemString(pcr.res, "exceptionOperatorID");
+                            operatorID = PyLong_AsLong(exceptionOperatorID);
+                            auto exceptionType = PyObject_Type(exceptionObject);
+                            // can ignore input row.
+                            ecCode = ecToI64(python::translatePythonExceptionType(exceptionType));
 
 #ifndef NDEBUG
-                        if(PyErr_Occurred()) {
-                            // print out the otber objects...
-                            std::cout<<__FILE__<<":"<<__LINE__<<" python error not cleared properly!"<<std::endl;
-                            PyErr_Print();
-                            std::cout<<std::endl;
-                            PyErr_Clear();
-                        }
+                            // // debug printing of exception and what the reason is...
+                            // // print res obj
+                            // Py_XINCREF(pcr.res);
+                            // std::cout<<"exception occurred while processing using python: "<<std::endl;
+                            // PyObject_Print(pcr.res, stdout, 0);
+                            // std::cout<<std::endl;
 #endif
 
-                        // everything was successful, change resCode to 0!
-                        resCode = 0;
+                            // the callback exceptionCallback(ecCode, opID, _rowNumber, ebuf, eSize) gets called below...!
+                            resCode = -1;
+                        } else {
+                            // normal, check type and either merge to normal set back OR onto python set together with row number?
+                            auto resultRows = PyDict_GetItemString(pcr.res, "outputRows");
+
+                            // no output rows? continue.
+                            if(!resultRows) {
+                                python::unlockGIL();
+                                return;
+                            }
+
+                            assert(PyList_Check(resultRows));
+
+                            auto listSize = PyList_Size(resultRows);
+                            // No rows were created, meaning the row was filtered out
+                            if (0 == listSize) {
+                                _numUnresolved++;
+                            }
+
+
+                            {
+#ifndef NDEBUG
+                                // // debug
+                                // Py_XINCREF(resultRows);
+                                // PyObject_Print(resultRows, stdout, 0); std::cout<<std::endl;
+#endif
+                            }
+
+                            for(int i = 0; i < listSize; ++i) {
+                                // type check w. output schema
+                                // cf. https://pythonextensionpatterns.readthedocs.io/en/latest/refcount.html
+                                auto rowObj = PyList_GetItem(resultRows, i);
+                                Py_XINCREF(rowObj);
+
+
+                                // because we have the logic to separate types etc. in the hashtable, for hash table output we can use
+                                // simplified output schema here!
+                                if(hasHashTableSink()) {
+                                    auto key = PyDict_GetItemString(pcr.res, "key");
+                                    sinkRowToHashTable(rowObj, key);
+                                    continue;
+                                }
+
+                                auto rowType = python::mapPythonClassToTuplexType(rowObj, false);
+
+                                // special case output schema is str (fileoutput!)
+                                if(rowType == python::Type::STRING) {
+                                    // write to file, no further type check necessary b.c.
+                                    // if it was the object string it would be within a tuple!
+                                    auto cptr = PyUnicode_AsUTF8(rowObj);
+                                    Py_XDECREF(rowObj);
+                                    mergeRow(reinterpret_cast<const uint8_t *>(cptr), strlen(cptr), BUF_FORMAT_NORMAL_OUTPUT); // don't write '\0'!
+                                } else {
+
+                                    // there are three options where to store the result now
+
+                                    // 1. fits targetOutputSchema (i.e. row becomes normalcase row)
+                                    bool outputAsNormalRow = python::Type::UNKNOWN != unifyTypes(rowType, _targetOutputSchema.getRowType(), _allowNumericTypeUnification)
+                                                             && canUpcastToRowType(rowType, _targetOutputSchema.getRowType());
+                                    // 2. fits generalCaseOutputSchema (i.e. row becomes generalcase row)
+                                    bool outputAsGeneralRow = python::Type::UNKNOWN != unifyTypes(rowType,
+                                                                                                  commonCaseOutputSchema().getRowType(), _allowNumericTypeUnification)
+                                                              && canUpcastToRowType(rowType, commonCaseOutputSchema().getRowType());
+
+                                    // 3. doesn't fit, store as python object. => we should use block storage for this as well. Then data can be shared.
+
+                                    // can upcast? => note that the && is necessary because of cases where outputSchema is
+                                    // i64 but the given row type f64. We can cast up i64 to f64 but not the other way round.
+                                    if(outputAsNormalRow) {
+                                        Row resRow = python::pythonToRow(rowObj).upcastedRow(_targetOutputSchema.getRowType());
+                                        assert(resRow.getRowType() == _targetOutputSchema.getRowType());
+
+                                        // write to buffer & perform callback
+                                        auto buf_size = 2 * resRow.serializedLength();
+                                        uint8_t *buf = new uint8_t[buf_size];
+                                        memset(buf, 0, buf_size);
+                                        auto serialized_length = resRow.serializeToMemory(buf, buf_size);
+                                        // call row func!
+                                        // --> merge row distinguishes between those two cases. Distinction has to be done there
+                                        //     because of compiled functor who calls mergeRow in the write function...
+                                        mergeRow(buf, serialized_length, BUF_FORMAT_NORMAL_OUTPUT);
+                                        delete [] buf;
+                                    } else if(outputAsGeneralRow) {
+                                        Row resRow = python::pythonToRow(rowObj).upcastedRow(commonCaseOutputSchema().getRowType());
+                                        assert(resRow.getRowType() == commonCaseOutputSchema().getRowType());
+
+                                        // write to buffer & perform callback
+                                        auto buf_size = 2 * resRow.serializedLength();
+                                        uint8_t *buf = new uint8_t[buf_size];
+                                        memset(buf, 0, buf_size);
+                                        auto serialized_length = resRow.serializeToMemory(buf, buf_size);
+                                        // call row func!
+                                        // --> merge row distinguishes between those two cases. Distinction has to be done there
+                                        //     because of compiled functor who calls mergeRow in the write function...
+                                        mergeRow(buf, serialized_length, BUF_FORMAT_GENERAL_OUTPUT);
+                                        delete [] buf;
+                                    } else {
+                                        // Unwrap single element tuples before writing them to the fallback sink
+                                        if(PyTuple_Check(rowObj) && PyTuple_Size(rowObj) == 1) {
+                                            writePythonObjectToFallbackSink(PyTuple_GetItem(rowObj, 0));
+                                        } else {
+                                            writePythonObjectToFallbackSink(rowObj);
+                                        }
+                                    }
+                                    // Py_XDECREF(rowObj);
+                                }
+                            }
+
+#ifndef NDEBUG
+                            if(PyErr_Occurred()) {
+                                // print out the otber objects...
+                                std::cout<<__FILE__<<":"<<__LINE__<<" python error not cleared properly!"<<std::endl;
+                                PyErr_Print();
+                                std::cout<<std::endl;
+                                PyErr_Clear();
+                            }
+#endif
+
+                            // everything was successful, change resCode to 0!
+                            resCode = 0;
+                        }
                     }
                 }
+            } catch(const std::exception& e) {
+                std::cout<<"exception during python execution: "<<e.what()<<std::endl;
+            } catch(...) {
+                std::cerr<<"unknown internal exception caught"<<std::endl;
             }
-
-            python::unlockGIL();
+    python::unlockGIL();
         }
 
         // fallback 3: still exception? save...
@@ -701,7 +742,7 @@ default:
     void ResolveTask::execute() {
 
         // Note: if output is hash-table then order doesn't really matter
-        // --> can simply process things independent from each other.
+        // --> can simply process things independent of each other.
 
         using namespace std;
 
@@ -711,8 +752,8 @@ default:
 
         // alloc hashmap if required
         if(hasHashTableSink()) {
-            if(!_htable.hm)
-                _htable.hm = hashmap_new();
+            if(!_htable->hm)
+                _htable->hm = hashmap_new();
 
             python::lockGIL();
             // init hybrid
@@ -723,8 +764,26 @@ default:
             if(adjusted_key_type.isOptionType())
                 adjusted_key_type = adjusted_key_type.elementType();
 
-            _htable.hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(_htable, adjusted_key_type,
-                                                                                        _hash_bucket_type));
+            // unique adjustment, unknown bucket type -> None
+            if(_hash_bucket_type == python::Type::UNKNOWN && _hash_agg_type == AggregateType::AGG_UNIQUE)
+                _hash_bucket_type = python::Type::NULLVALUE;
+
+#ifndef NDEBUG
+            assert(owner());
+            owner()->info("initializing hybrid hash table with keytype=" + adjusted_key_type.desc() + ", valuetype=" + _hash_bucket_type.desc());
+#endif
+            // value mode
+            LookupStorageMode valueMode;
+            if(_hash_agg_type == AggregateType::AGG_BYKEY || _hash_agg_type == AggregateType::AGG_GENERAL) {
+                valueMode = LookupStorageMode::VALUE;
+            } else {
+                // list of values (i.e. for a join)
+                valueMode = LookupStorageMode::LISTOFVALUES;
+            }
+            auto hybrid = CreatePythonHashMapWrapper(*_htable, adjusted_key_type,
+                                                                                        _hash_bucket_type, valueMode);
+            assert(_htable->hybrid_hm);
+            assert(reinterpret_cast<uintptr_t>(hybrid) == reinterpret_cast<uintptr_t>(_htable->hybrid_hm)); // objects are the same pointer!
             python::unlockGIL();
         }
 
@@ -1294,7 +1353,16 @@ default:
         rowToMemorySink(owner(), _mergedRowsSink, commonCaseOutputSchema(), 0, contextID(), buf, bufSize);
     }
 
-    void ResolveTask::sinkRowToHashTable(PyObject *rowObject) {
+    PyObject* unwrapTuple(PyObject* o) {
+        if(PyTuple_Check(o) && PyTuple_Size(o) == 1) {
+            auto item = PyTuple_GetItem(o, 0);
+            Py_XINCREF(item);
+            return item;
+        }
+        return o;
+    }
+
+    void ResolveTask::sinkRowToHashTable(PyObject *rowObject, PyObject* key) {
         using namespace std;
 
         // sink rowObject to hash table
@@ -1310,22 +1378,26 @@ default:
                     rowObject = PyTuple_GetItem(rowObject, 0);
                 }
 
-                // lazy create table
-                if(!_htable.hybrid_hm) {
-
-                    // adjust element type for single objects
-                    // @TODO: this properly has to be thought through again...
-                    auto adjusted_key_type = _hash_element_type.isTupleType() && _hash_element_type.parameters().size() == 1 ?
-                            _hash_element_type.parameters().front() : _hash_element_type;
-
-                    _htable.hybrid_hm = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(_htable,
-                                                                                                adjusted_key_type,
-                                                                                                _hash_bucket_type));
+                assert(_htable->hybrid_hm);
+                int rc =((HybridLookupTable*)_htable->hybrid_hm)->putItem(rowObject, nullptr);
+                // could also invoke via PyObject_SetItem(_htable->hybrid_hm, rowObject, python::none());
+                if(PyErr_Occurred()) {
+                    PyErr_Print();
+                    cout<<endl;
+                    PyErr_Clear();
                 }
+                break;
+            }
 
-                assert(_htable.hybrid_hm);
-                int rc =((HybridLookupTable*)_htable.hybrid_hm)->putItem(rowObject, nullptr);
-                // could also invoke via PyObject_SetItem(_htable.hybrid_hm, rowObject, python::none());
+            case AggregateType::AGG_BYKEY: {
+                // get key from result.
+                assert(key);
+
+                // unwrap tuple if necessary to store original value.
+                rowObject = unwrapTuple(rowObject);
+
+                assert(_htable->hybrid_hm);
+                int rc =((HybridLookupTable*)_htable->hybrid_hm)->putItem(key, rowObject);
                 if(PyErr_Occurred()) {
                     PyErr_Print();
                     cout<<endl;
@@ -1335,7 +1407,12 @@ default:
             }
 
             default: {
-                string err_msg = "unsupported aggregate fallback encountered, key type: " + _hash_element_type.desc() + ", bucket type: " + _hash_element_type.desc();
+                string agg_mode_str = "unknown";
+                if(_hash_agg_type == AggregateType::AGG_GENERAL)
+                    agg_mode_str = "general";
+                if(_hash_agg_type == AggregateType::AGG_BYKEY)
+                    agg_mode_str = "bykey";
+                string err_msg = "unsupported aggregate fallback for mode=" + agg_mode_str + " encountered, key type: " + _hash_element_type.desc() + ", bucket type: " + _hash_element_type.desc();
                 owner()->error(err_msg);
                 break;
             }

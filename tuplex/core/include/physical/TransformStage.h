@@ -238,6 +238,9 @@ namespace tuplex {
         std::string purePythonCode() const { return _pyCode; }
         std::string pythonPipelineName() const { return _pyPipelineName; }
 
+        std::string purePythonAggregateCode() const { return _pyAggregateCode; }
+        std::string pythonAggregateFunctionName() const { return _pyAggregateFunctionName; }
+
         std::vector<std::string> inputColumns() const {
             return _inputColumns;
         }
@@ -488,6 +491,8 @@ namespace tuplex {
         // pure python pipeline code & names
         std::string _pyCode;
         std::string _pyPipelineName;
+        std::string _pyAggregateCode;
+        std::string _pyAggregateFunctionName;
         std::string _writerFuncName;
         bool _updateInputExceptions;
 

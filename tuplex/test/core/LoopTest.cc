@@ -133,7 +133,7 @@ TEST_F(LoopTest, CodegenTestListDict) {
                                    Row(10)
                            }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(27));
 }
 
@@ -150,7 +150,7 @@ TEST_F(LoopTest, CodegenTestRange) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(10));
 }
 
@@ -167,7 +167,7 @@ TEST_F(LoopTest, CodegenTestEmptyString) {
         Row("should be the same")
     }).map(UDF(func_empty)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], std::string("should be the same"));
 }
 
@@ -185,7 +185,7 @@ TEST_F(LoopTest, CodegenTestString) {
         Row("")
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 2);
+    ASSERT_EQ(v.size(), 2);
     EXPECT_EQ(v[0], std::string("test12ab"));
     EXPECT_EQ(v[1], std::string("12ab"));
 }
@@ -204,7 +204,7 @@ TEST_F(LoopTest, CodegenTestExprIsId) {
         Row(10)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(20));
 }
 
@@ -221,7 +221,7 @@ TEST_F(LoopTest, CodegenTestEmptyTuple) {
         Row(10)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(10));
 }
 
@@ -238,7 +238,7 @@ TEST_F(LoopTest, CodegenTestSingleElementTuple) {
         Row("Num is ")
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], std::string("Num is 100"));
 }
 
@@ -255,7 +255,7 @@ TEST_F(LoopTest, CodegenTestTupleSameType) {
         Row(0)
     }).map(UDF(func1)).collectAsVector();
 
-    EXPECT_EQ(v1.size(), 1);
+    ASSERT_EQ(v1.size(), 1);
     EXPECT_EQ(v1[0], Row(180));
 
     auto func2 = "def f(x):\n"
@@ -267,7 +267,7 @@ TEST_F(LoopTest, CodegenTestTupleSameType) {
         Row(0)
     }).map(UDF(func2)).collectAsVector();
 
-    EXPECT_EQ(v2.size(), 1);
+    ASSERT_EQ(v2.size(), 1);
     EXPECT_EQ(v2[0], Row(14));
 }
 
@@ -284,7 +284,7 @@ TEST_F(LoopTest, CodegenTestTupleMixedType) {
         Row(2)
     }).map(UDF(func1)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(7));
 
     auto func2 = "def f(x):\n"
@@ -296,7 +296,7 @@ TEST_F(LoopTest, CodegenTestTupleMixedType) {
         Row("0")
     }).map(UDF(func2)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v2[0], std::string("012345.6{}"));
 }
 
@@ -315,7 +315,7 @@ TEST_F(LoopTest, CodegenTestTupleIsId) {
         Row("Expression is ")
     }).map(UDF(func1)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], std::string("Expression is 5 + 100.5 - 1234"));
 }
 
@@ -336,7 +336,7 @@ TEST_F(LoopTest, CodegenTestNested) {
         Row(2)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(625579680));
 
     auto func2 = "def f(x):\n"
@@ -351,7 +351,7 @@ TEST_F(LoopTest, CodegenTestNested) {
         Row(200)
     }).map(UDF(func2)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v2[0], Row(23400));
 }
 
@@ -374,7 +374,7 @@ TEST_F(LoopTest, CodegenTestNestedMixedType) {
         Row(2)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(8472));
 }
 
@@ -395,7 +395,7 @@ TEST_F(LoopTest, CodegenTestForWithIf) {
         Row(1)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(11));
 }
 
@@ -414,7 +414,7 @@ TEST_F(LoopTest, CodegenTestForElse) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(20));
 }
 
@@ -434,7 +434,7 @@ TEST_F(LoopTest, CodegenTestForSimpleContinue) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(11));
 }
 
@@ -459,7 +459,7 @@ TEST_F(LoopTest, CodegenTestForNestedContinue) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(94));
 }
 
@@ -477,7 +477,7 @@ TEST_F(LoopTest, CodegenTestForSimpleBreak) {
         Row(0)
     }).map(UDF(func1)).collectAsVector();
 
-    EXPECT_EQ(v1.size(), 1);
+    ASSERT_EQ(v1.size(), 1);
     EXPECT_EQ(v1[0], Row(0));
 }
 
@@ -503,7 +503,7 @@ TEST_F(LoopTest, CodegenTestForNestedBreak) {
         Row(-1000)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(-14364));
 }
 
@@ -524,7 +524,7 @@ TEST_F(LoopTest, CodegenTestForBreakElse) {
         Row(10)
     }).map(UDF(func1)).collectAsVector();
 
-    EXPECT_EQ(v1.size(), 1);
+    ASSERT_EQ(v1.size(), 1);
     EXPECT_EQ(v1[0], Row(25));
 
     auto func2 = "def f(x):\n"
@@ -540,7 +540,7 @@ TEST_F(LoopTest, CodegenTestForBreakElse) {
         Row("string: ")
     }).map(UDF(func2)).collectAsVector();
 
-    EXPECT_EQ(v2.size(), 1);
+    ASSERT_EQ(v2.size(), 1);
     EXPECT_EQ(v2[0], std::string("string: abcd!"));
 }
 
@@ -559,7 +559,7 @@ TEST_F(LoopTest, CodegenTestWhile) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(10));
 }
 
@@ -579,7 +579,7 @@ TEST_F(LoopTest, CodegenTestWhileElse) {
         Row("")
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], std::string("abababababEND"));
 }
 
@@ -603,7 +603,7 @@ TEST_F(LoopTest, CodegenTestWhileSimpleContinue) {
         Row(1)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(4452810));
 }
 
@@ -632,7 +632,7 @@ TEST_F(LoopTest, CodegenTestWhileNestedContinue) {
         Row(0.0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(-1131.5));
 }
 
@@ -654,7 +654,7 @@ TEST_F(LoopTest, CodegenTestWhileSimpleBreak) {
         Row(2000)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(840));
 }
 
@@ -681,7 +681,7 @@ TEST_F(LoopTest, CodegenTestWhileNestedBreak) {
         Row(10)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(6088));
 }
 
@@ -705,7 +705,7 @@ TEST_F(LoopTest, CodegenTestNestedForWhile) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(2049));
 }
 
@@ -724,7 +724,7 @@ TEST_F(LoopTest, CodegenTestForTupleElse) {
         Row("")
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], std::string("{}val1234tuple."));
 }
 
@@ -743,7 +743,7 @@ TEST_F(LoopTest, CodegenTestForTupleBreak) {
         Row(100)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(127));
 }
 
@@ -765,7 +765,7 @@ TEST_F(LoopTest, CodegenTestForTupleNestedBreak) {
         Row(10)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(249));
 }
 
@@ -784,7 +784,7 @@ TEST_F(LoopTest, CodegenTestForTupleContinue) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(14));
 }
 
@@ -811,7 +811,7 @@ TEST_F(LoopTest, CodegenTestForTupleNestedContinue) {
         Row("")
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], std::string("a:1245, b:1245, c:1245, d:1245"));
 }
 
@@ -830,7 +830,7 @@ TEST_F(LoopTest, CodegenTestForEmptyExprWithElse) {
         Row(0)
     }).map(UDF(func1)).collectAsVector();
 
-    EXPECT_EQ(v1.size(), 1);
+    ASSERT_EQ(v1.size(), 1);
     EXPECT_EQ(v1[0], Row(-1));
 
     auto func2 = "def f(x):\n"
@@ -844,7 +844,7 @@ TEST_F(LoopTest, CodegenTestForEmptyExprWithElse) {
         Row(0)
     }).map(UDF(func2)).collectAsVector();
 
-    EXPECT_EQ(v2.size(), 1);
+    ASSERT_EQ(v2.size(), 1);
     EXPECT_EQ(v2[0], Row(10));
 
     auto func3 = "def f(x):\n"
@@ -884,7 +884,7 @@ TEST_F(LoopTest, CodegenTestGeneralI) {
         Row("0")
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], std::string("01a151a141a131a121a11a[]51a[]41a[]31a[]21a[]1b151b141b131b121b11b[]51b[]41b["
                                 "]31b[]21b[]2a152a142a132a12a112a[]52a[]42a[]32a[]2a[]12a123452a123442a123432a12342a123"
                                 "412a.52a.42a.32a.2a.12b152b142b132b12b112b[]52b[]42b[]32b[]2b[]12b123452b123442b123432"
@@ -924,7 +924,7 @@ TEST_F(LoopTest, CodegenTestGeneralII) {
         Row(1000)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], 4898);
 }
 
@@ -942,7 +942,7 @@ TEST_F(LoopTest, CodegenTestMultiIdTupleI) {
         Row(10)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(110));
 }
 
@@ -959,7 +959,7 @@ TEST_F(LoopTest, CodegenTestMultiIdTupleII) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(21));
 }
 
@@ -977,7 +977,7 @@ TEST_F(LoopTest, CodegenTestListofTuple) {
         Row(10.0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(171.0));
 }
 
@@ -994,7 +994,7 @@ TEST_F(LoopTest, CodegenTestMultiIdListI) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(100));
 }
 
@@ -1011,7 +1011,7 @@ TEST_F(LoopTest, CodegenTestMultiIdListII) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(21));
 
     auto func2 = "def f(x):\n"
@@ -1024,7 +1024,7 @@ TEST_F(LoopTest, CodegenTestMultiIdListII) {
         Row(0)
     }).map(UDF(func2)).collectAsVector();
 
-    EXPECT_EQ(v2.size(), 1);
+    ASSERT_EQ(v2.size(), 1);
     EXPECT_EQ(v2[0], Row(-15));
 
     auto func3 = "def f(x):\n"
@@ -1037,7 +1037,7 @@ TEST_F(LoopTest, CodegenTestMultiIdListII) {
         Row(0)
     }).map(UDF(func3)).collectAsVector();
 
-    EXPECT_EQ(v3.size(), 1);
+    ASSERT_EQ(v3.size(), 1);
     EXPECT_EQ(v3[0], Row(10));
 }
 
@@ -1058,7 +1058,7 @@ TEST_F(LoopTest, CodegenTestListAsExprlistI) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(280));
 }
 
@@ -1076,7 +1076,7 @@ TEST_F(LoopTest, CodegenTestListAsExprlistII) {
         Row(-5)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(10));
 }
 
@@ -1100,7 +1100,7 @@ TEST_F(LoopTest, CodegenTestLoopInIf) {
         Row(-8)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 2);
+    ASSERT_EQ(v.size(), 2);
     EXPECT_EQ(v[0], Row(20));
     EXPECT_EQ(v[1], Row(2));
 }
@@ -1118,7 +1118,7 @@ TEST_F(LoopTest, CodegenTestExprWithoutParentheses) {
         Row(10)
     }).map(UDF(func1)).collectAsVector();
 
-    EXPECT_EQ(v1.size(), 1);
+    ASSERT_EQ(v1.size(), 1);
     EXPECT_EQ(v1[0], Row(20));
 
     auto func2 = "def f(x):\n"
@@ -1147,7 +1147,7 @@ TEST_F(LoopTest, CodegenTestLoopWithIterIteratorI) {
         Row(1)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(11));
 }
 
@@ -1165,7 +1165,7 @@ TEST_F(LoopTest, CodegenTestLoopWithIterIteratorII) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(1704));
 }
 
@@ -1184,7 +1184,7 @@ TEST_F(LoopTest, CodegenTestLoopWithEnumerateIterator) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(14, "abcd"));
 }
 
@@ -1203,7 +1203,7 @@ TEST_F(LoopTest, CodegenTestLoopWithZipIterator) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(50, "ab"));
 }
 
@@ -1223,7 +1223,7 @@ TEST_F(LoopTest, CodegenTestLoopWithIteratorGeneralI) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(2, 10));
 }
 
@@ -1245,7 +1245,7 @@ TEST_F(LoopTest, CodegenTestLoopWithIteratorGeneralII) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(4, Tuple(2, 30)));
 }
 
@@ -1266,7 +1266,7 @@ TEST_F(LoopTest, CodegenTestLoopWithIteratorGeneralIII) {
         Row(6000.0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(5000.5, 6000.0));
 }
 
@@ -1293,7 +1293,7 @@ TEST_F(LoopTest, CodegenTestLoopWithIteratorGeneralIV) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row("!", "d", Tuple(17, "!")));
 }
 
@@ -1321,7 +1321,7 @@ TEST_F(LoopTest, CodegenTestLoopOverInputDataI) {
         Row(10, List(1, 2, 3, 4))
     }).map(UDF(func, "", ce)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_DOUBLE_EQ(v[0].getDouble(0), sqrt(1.25));
 }
 
@@ -1339,7 +1339,7 @@ TEST_F(LoopTest, CodegenTestLoopOverInputDataII) {
         Row(List("a", "bc", "def", "ghij", "k"))
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row("abcdefghijk"));
 }
 
@@ -1360,7 +1360,7 @@ TEST_F(LoopTest, CodegenTestLoopTracingWithContinue) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(4.0));
 }
 
@@ -1381,7 +1381,7 @@ TEST_F(LoopTest, CodegenTestLoopTracingWithBreak) {
         Row(10)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 2);
+    ASSERT_EQ(v.size(), 2);
     EXPECT_EQ(v[0], Row(10.0));
     EXPECT_EQ(v[1], Row(1.0));
 }
@@ -1403,7 +1403,7 @@ TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralI) {
         Row(4)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(8.0));
 }
 
@@ -1422,7 +1422,7 @@ TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralII) {
         Row(10)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(20.0));
 }
 
@@ -1446,7 +1446,7 @@ TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralIII) {
         Row(1)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 3);
+    ASSERT_EQ(v.size(), 3);
     EXPECT_EQ(v[0], Row(10));
     EXPECT_EQ(v[1], Row(10));
     EXPECT_EQ(v[2], Row(11.0));
@@ -1472,7 +1472,7 @@ TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralIV) {
         Row(0)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 3);
+    ASSERT_EQ(v.size(), 3);
     EXPECT_EQ(v[0], Row(10));
     EXPECT_EQ(v[1], Row(12.0));
     EXPECT_EQ(v[2], Row(12.0));
@@ -1499,7 +1499,7 @@ TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralV) {
         Row(7)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 3);
+    ASSERT_EQ(v.size(), 3);
     EXPECT_EQ(v[0], Row(101));
     EXPECT_EQ(v[1], Row(4096.0));
     EXPECT_EQ(v[2], Row(16384.0));
@@ -1524,7 +1524,7 @@ TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralVI) {
         Row(3)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 4);
+    ASSERT_EQ(v.size(), 4);
     EXPECT_EQ(v[0], Row(6600.0));
     EXPECT_EQ(v[1], Row(-49476.0));
     EXPECT_EQ(v[2], Row(-109120.0));
@@ -1548,7 +1548,7 @@ TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralVII) {
         Row(100)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 1);
+    ASSERT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(365.0));
 }
 
@@ -1573,7 +1573,7 @@ TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralVIII) {
         Row(30)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 3);
+    ASSERT_EQ(v.size(), 3);
     EXPECT_EQ(v[0], Row(2264921595.0));
     EXPECT_EQ(v[1], Row(8304717290.0));
     EXPECT_EQ(v[2], Row(18119387085.0));
@@ -1602,7 +1602,7 @@ TEST_F(LoopTest, CodegenTestLoopTypeSpeculationGeneralIX) {
         Row(30)
     }).map(UDF(func)).collectAsVector();
 
-    EXPECT_EQ(v.size(), 3);
+    ASSERT_EQ(v.size(), 3);
     EXPECT_EQ(v[0], Row(2068.5));
     EXPECT_EQ(v[1], Row(16286.0));
     EXPECT_EQ(v[2], Row(54653.5));

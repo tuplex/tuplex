@@ -7,6 +7,8 @@ import logging
 import sys
 import requests
 import re
+import pathlib
+
 #from distutils.version import LooseVersion
 
 def LooseVersion(v):
@@ -15,7 +17,7 @@ def LooseVersion(v):
 
 
 # to create a testpypi version use X.Y.devN
-version = '0.3.3rc0'
+version = '0.3.6dev'
 
 # https://pypi.org/simple/tuplex/
 # or https://test.pypi.org/simple/tuplex/
@@ -37,6 +39,15 @@ def get_latest_pypi_version(url='https://pypi.org/simple/tuplex/'):
         return links[-1]
     except:
         return None
+
+def modify_example_script(path, version):
+    contents = open(path, 'r').read()
+    assert(len(contents) != 1)
+
+    new_contents = re.sub('tuplex:v\\d.\\d.\\d(dev)?', 'tuplex:' + version, contents)
+
+    with open(path, 'w') as fp:
+        fp.write(new_contents)
 
 if __name__ == '__main__':
     file_handler = logging.FileHandler(filename='version.log')
@@ -67,6 +78,9 @@ if __name__ == '__main__':
     version_test = get_latest_pypi_version(url='https://test.pypi.org/simple/tuplex/')
     logging.info('latest pypi.org version of tuplex is: {}'.format(version_pypi))
     logging.info('latest test.pypi.org version of tuplex is: {}'.format(version_test))
+
+    script_root = str(pathlib.Path(os.path.abspath(__file__)).parent)
+    logging.info("path of this file: {}".format(script_root))
 
     if version_test is None and version_pypi is not None:
         version_test = version_pypi
@@ -100,13 +114,17 @@ if __name__ == '__main__':
             sys.exit(1)
 
     # paths etc.
-    doc_path = '../doc/source/conf.py'
-    version_py_path = '../tuplex/python/tuplex/utils/version.py'
-    setup_py_path = '../tuplex/python/setup.py'
-    toplevel_setup_py_path = '../setup.py'
-    version_hist_path = '../tuplex/historyserver/thserver/version.py'
+    doc_path = os.path.abspath(os.path.join(script_root, '../doc/source/conf.py'))
+    version_py_path = os.path.abspath(os.path.join(script_root, '../tuplex/python/tuplex/utils/version.py'))
+    setup_py_path = os.path.abspath(os.path.join(script_root, '../tuplex/python/setup.py'))
+    toplevel_setup_py_path = os.path.abspath(os.path.join(script_root, '../setup.py'))
+    version_hist_path = os.path.abspath(os.path.join(script_root, '../tuplex/historyserver/thserver/version.py'))
+
+    example_script_path = os.path.abspath(os.path.join(script_root, 'docker/tuplex/create-image.sh'))
 
     # modify files...
+    modify_example_script(example_script_path, version)
+
     with open(version_py_path, 'w') as fp:
         fp.writelines('# (c) L.Spiegelberg 2017 - {}\n__version__="{}"'.format(datetime.datetime.now().year, version))
 

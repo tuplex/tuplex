@@ -391,18 +391,24 @@ TEST_F(PythonHelperTest, FunctionGlobals) {
 
     PyObject* pyFunc = python::runAndGet(code, "func");
 
-    // fetch globals, locals
-    cout<<endl;
-    cout<<"globals: "<<endl;
-    PyObject_Print(PyFunction_GetGlobals(pyFunc), stdout, 0);
-
     // convert globals object to lookup dictionary
     unordered_map<string, tuple<string, python::Type>> globals;
     auto pyGlobals = PyFunction_GetGlobals(pyFunc);
+
+
+    // fetch globals, locals
+    cout<<endl;
+    cout<<"globals: "<<endl;
+    Py_XINCREF(pyGlobals); // <-- inc before printing.
+    PyObject_Print(pyGlobals, stdout, 0);
+
     // iterate over dictionary
     PyObject *key = nullptr, *val = nullptr;
     Py_ssize_t pos = 0; // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
     while(PyDict_Next(pyGlobals, &pos, &key, &val)) {
+        // b. key/value will be used twice, inc refcount by one
+        Py_XINCREF(key);
+        Py_XINCREF(val);
         auto curKeyType = mapPythonClassToTuplexType(key, false);
         auto curValType = mapPythonClassToTuplexType(val, false);
         assert(curKeyType == python::Type::STRING);
@@ -416,10 +422,9 @@ TEST_F(PythonHelperTest, FunctionGlobals) {
     for(auto item : globals)
         cout<<item.first<<" ["<<std::get<1>(item.second).desc()<<"]: "<<std::get<0>(item.second)<<endl;
 
-    // simpyl get function globals via f.__globals__
+    // simply get function globals via f.__globals__
 
     cout<<endl;
-
 
     ASSERT_TRUE(PyCallable_Check(pyFunc));
     PyObject* pyArgs = PyTuple_Pack(1, PyLong_FromLong(10));

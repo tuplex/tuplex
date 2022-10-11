@@ -99,6 +99,10 @@ namespace tuplex {
     };
 
     struct HashTableSink { // should be 128bytes wide...
+        // delete copy and assignment. This is important so things can get freed and everything is properly propagated.
+        HashTableSink(const HashTableSink& other) = delete;
+        HashTableSink& operator = (const HashTableSink& other) = delete;
+
         map_t hm; //! pointer to hashmap, union with other structs...
         uint8_t* null_bucket; //! null bucket to store hashed NULL values.
         PyObject* hybrid_hm; //! optional pointer to hybrid hashmap including hm --> this will be only used in resolve task, because compiled paths have defined schema.
@@ -113,6 +117,7 @@ namespace tuplex {
                           _functor(nullptr),
                           _stageID(-1),
                           _htableFormat(HashTableFormat::UNKNOWN),
+                          _htable(nullptr),
                           _wallTime(0.0),
                           _updateInputExceptions(false) {
             resetSinks();
@@ -180,7 +185,8 @@ namespace tuplex {
         void setOutputPrefix(const char* buf, size_t bufSize); // extra prefix to write first to output.
 
         void sinkOutputToHashTable(HashTableFormat fmt, int64_t outputDataSetID);
-        HashTableSink hashTableSink() const { return _htable; } // needs to be freed manually!
+        HashTableSink* hashTableSink() const { return _htable; } // needs to be freed manually!
+        HashTableSink* moveHashSink() { auto ptr = _htable; _htable = nullptr; return ptr; }
 
         void setOutputLimit(size_t limit) { _outLimit = limit; resetOutputLimitCounter(); }
         void setOutputSkip(size_t numRowsToSkip) { _outSkipRows = numRowsToSkip; }
@@ -300,7 +306,7 @@ namespace tuplex {
         bool _updateInputExceptions;
 
         // hash table sink
-        HashTableSink _htable;
+        HashTableSink* _htable;
         HashTableFormat _htableFormat;
 
         // NEW: row counter here for correct exception handling...
@@ -340,7 +346,7 @@ namespace tuplex {
     extern bool initThreadLocalAggregateByKey(codegen::agg_init_f init_func, codegen::agg_combine_f combine_func, codegen::agg_agg_f aggregate_func);
     extern bool fetchAggregate(uint8_t** out, int64_t* out_size);
 
-    extern uint8_t* combineBuckets(uint8_t *bucketA, uint8_t* bucketB);
+    extern uint8_t* combineBuckets(const uint8_t *bucketA, const uint8_t* bucketB);
     extern void aggregateValues(uint8_t** bucket, char *buf, size_t buf_size);
 }
 

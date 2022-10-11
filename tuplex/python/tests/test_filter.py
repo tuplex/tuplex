@@ -11,12 +11,14 @@
 
 import unittest
 from tuplex import *
+from helper import test_options
 
 # test filter functionality
 class TestFilter(unittest.TestCase):
 
     def setUp(self):
-        self.conf = {"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"}
+        self.conf = test_options()
+        self.conf.update({"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"})
 
     def testFilter(self):
         c = Context(self.conf)

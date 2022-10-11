@@ -69,13 +69,12 @@ namespace tuplex {
         void fillFileCacheSinglethreaded(SamplingMode mode);
 
         // row cache (i.e. parse samples utilizing file cache)
-        void fillRowCache(SamplingMode mode);
-
+        void fillRowCache(SamplingMode mode, std::vector<std::vector<std::string>>* outNames=nullptr);
 
         size_t estimateTextFileRowCount(size_t sample_size, const SamplingMode& mode);
-        size_t estimateJsonFileRowCount(size_t sample_size, const SamplingMode& mode);
+        size_t estimateSampleBasedRowCount();
 
-        std::tuple<python::Type, python::Type> detectJsonTypesAndColumns();
+        std::tuple<python::Type, python::Type> detectJsonTypesAndColumns(const ContextOptions& co, const std::vector<std::vector<std::string>>& columnNamesSampleCollection);
 
         // for CSV, have here a global csv stat (that can get reset)
         // ??
@@ -200,13 +199,22 @@ namespace tuplex {
         std::vector<size_t> translateOutputToInputIndices(const std::vector<size_t>& output_indices);
 
         // sampling functions
-        std::vector<Row> sample(const SamplingMode& mode);
-        std::vector<Row> multithreadedSample(const SamplingMode& mode);
+        std::vector<Row> sample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames=nullptr);
+        std::vector<Row> multithreadedSample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames);
         std::vector<Row> sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         std::vector<Row> sampleTextFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         std::vector<Row> sampleORCFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
-        std::vector<Row> sampleJsonFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
-        inline std::vector<Row> sampleFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
+        std::vector<Row> sampleJsonFile(const URI& uri, size_t uri_size, const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames);
+
+        /*!
+         * samples a file according to internally stored file mode and a per-file sampling mode.
+         * @param uri URI of file to sample
+         * @param uri_size the actual file size
+         * @param mode the per-file sampling mode
+         * @param outNames an optional output field for column names (as for now only relevant for JSON)
+         * @return row sample.
+         */
+        inline std::vector<Row> sampleFile(const URI& uri, size_t uri_size, const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames) {
             auto& logger = Logger::instance().logger("logical");
             if(!(mode & SamplingMode::FIRST_ROWS) && !(mode & SamplingMode::LAST_ROWS) && !(mode & SamplingMode::RANDOM_ROWS)) {
                 logger.debug("no file sampling mode (first rows/last rows/random rows) specified. skip.");
@@ -224,7 +232,7 @@ namespace tuplex {
                     return sampleORCFile(uri, uri_size, mode);
                 }
                 case FileFormat::OUTFMT_JSON: {
-                    return sampleJsonFile(uri, uri_size, mode);
+                    return sampleJsonFile(uri, uri_size, mode, outNames);
                 }
                 default:
                     throw std::runtime_error("unsupported sampling of file format "+ std::to_string(static_cast<int>(this->_fmt)));
@@ -367,6 +375,12 @@ namespace tuplex {
 //            return  Schema(ml, _optimizedNormalCaseRowType);
             return projectSchema(normalCaseSchema());
         }
+
+        /*!
+         * how many bytes of sampling the current rows in the buffer represent
+         * @return size in bytes
+         */
+        size_t sampleSize() const;
 
         /*!
          * gets the normal case schema (no projection!)

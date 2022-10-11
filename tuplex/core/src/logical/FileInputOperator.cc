@@ -239,6 +239,10 @@ namespace tuplex {
        f->detectFiles(pattern);
 
         if(!f->_fileURIs.empty()) {
+
+            std::vector<std::vector<std::string>> nameCollection;
+            std::vector<std::vector<std::string>>* namePtr = f->_json_unwrap_first_level ? &nameCollection : nullptr;
+
             // fill sampling cache
             f->fillFileCache(sampling_mode);
             // now fill row cache (by parsing rows)
@@ -247,10 +251,10 @@ namespace tuplex {
             // detect normal/general type
             python::Type normalcasetype;
             python::Type generalcasetype;
-            std::tie(normalcasetype, generalcasetype) = f->detectJsonTypesAndColumns();
+            std::tie(normalcasetype, generalcasetype) = f->detectJsonTypesAndColumns(co, nameCollection);
 
             // run row count estimation (required for cost-basd optimizer)
-            f->_estimatedRowCount = f->estimateJsonFileRowCount(co.CSV_MAX_DETECTION_MEMORY(), sampling_mode);
+            f->_estimatedRowCount = f->estimateSampleBasedRowCount();
 
             // get type & assign schema
             f->_normalCaseRowType = normalcasetype;
@@ -373,7 +377,7 @@ namespace tuplex {
         return f;
     }
 
-    void FileInputOperator::fillRowCache(SamplingMode mode) {
+    void FileInputOperator::fillRowCache(SamplingMode mode, std::vector<std::vector<std::string>>* outNames) {
         auto &logger = Logger::instance().logger("fileinputoperator");
 
         // based on samples stored, fill the row cache
@@ -383,9 +387,9 @@ namespace tuplex {
         Timer timer;
 
         if(mode & SamplingMode::SINGLETHREADED)
-            _rowsSample = sample(mode);
+            _rowsSample = sample(mode, outNames);
         else
-            _rowsSample = multithreadedSample(mode);
+            _rowsSample = multithreadedSample(mode, outNames);
 
         logger.info("Extracting row sample took " + std::to_string(timer.time()) + "s");
     }
@@ -509,7 +513,7 @@ namespace tuplex {
         logger.info("Parallel sample fetch done.");
     }
 
-    std::vector<Row> FileInputOperator::multithreadedSample(const SamplingMode &mode) {
+    std::vector<Row> FileInputOperator::multithreadedSample(const SamplingMode &mode, std::vector<std::vector<std::string>>* outNames) {
         using namespace std;
         auto &logger = Logger::instance().logger("fileinputoperator");
 
@@ -528,15 +532,16 @@ namespace tuplex {
 
         // parse now rows for detection etc.
         vector<std::future<vector<Row>>> f_rows(indices.size());
+        vector<vector<vector<string>>> f_names;
         // inline std::vector<Row> sampleFile(const URI& uri, size_t uri_size, const SamplingMode& mode)
         for(unsigned i = 0; i < indices.size(); ++i) {
             auto idx = indices[i];
             auto uri = _fileURIs[idx];
             auto size = _sizes[idx];
             auto file_mode = perFileMode(mode);
-
-            f_rows[i] = std::async(std::launch::async, [this, file_mode](const URI& uri, size_t size) {
-                return sampleFile(uri, size, file_mode);
+            vector<vector<string>>* ptr = &f_names[i];
+            f_rows[i] = std::async(std::launch::async, [this, file_mode, ptr](const URI& uri, size_t size) {
+                return sampleFile(uri, size, file_mode, ptr);
             }, _fileURIs[idx], _sizes[idx]);
         }
 
@@ -545,6 +550,15 @@ namespace tuplex {
         for(unsigned i = 0; i < indices.size(); ++i) {
             auto rows = f_rows[i].get();
             std::copy(rows.begin(), rows.end(), std::back_inserter(res));
+        }
+
+        // if desired, combine column names
+        if(outNames) {
+            vector<vector<string>> sampleNames;
+            for(unsigned i = 0; i < indices.size(); ++i) {
+                std::copy(f_names[i].begin(), f_names[i].end(), std::back_inserter(sampleNames));
+            }
+            *outNames = sampleNames;
         }
 
         logger.info("Parallel sample parse done.");
@@ -1187,7 +1201,7 @@ namespace tuplex {
         return retype(input_row_type, is_projected_row_type, false);
     }
 
-    std::vector<Row> FileInputOperator::sample(const SamplingMode& mode) {
+    std::vector<Row> FileInputOperator::sample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames) {
         auto& logger = Logger::instance().logger("logical");
         if(_fileURIs.empty())
             return {};
@@ -1200,7 +1214,7 @@ namespace tuplex {
         if(mode & SamplingMode::ALL_FILES) {
             assert(_fileURIs.size() == _sizes.size());
             for(unsigned i = 0; i < _fileURIs.size(); ++i) {
-                auto s = sampleFile(_fileURIs[i], _sizes[i], mode);
+                auto s = sampleFile(_fileURIs[i], _sizes[i], mode, outNames);
                 std::copy(s.begin(), s.end(), std::back_inserter(v));
                 sampled_file_indices.insert(i);
             }
@@ -1208,14 +1222,14 @@ namespace tuplex {
 
         // sample the first file present?
         if(mode & SamplingMode::FIRST_FILE && sampled_file_indices.find(0) == sampled_file_indices.end()) {
-            auto s = sampleFile(_fileURIs.front(), _sizes.front(), mode);
+            auto s = sampleFile(_fileURIs.front(), _sizes.front(), mode, outNames);
             std::copy(s.begin(), s.end(), std::back_inserter(v));
             sampled_file_indices.insert(0);
         }
 
         // sample the last file present?
         if(mode & SamplingMode::LAST_FILE && sampled_file_indices.find(_fileURIs.size() - 1) == sampled_file_indices.end()) {
-            auto s = sampleFile(_fileURIs.back(), _sizes.back(), mode);
+            auto s = sampleFile(_fileURIs.back(), _sizes.back(), mode, outNames);
             std::copy(s.begin(), s.end(), std::back_inserter(v));
             sampled_file_indices.insert(_fileURIs.size() - 1);
         }
@@ -1230,7 +1244,7 @@ namespace tuplex {
             assert(!valid_indices.empty());
             auto random_idx = valid_indices[randi(0ul, valid_indices.size() - 1)];
             logger.debug("Sampling file (random) idx=" + std::to_string(random_idx));
-            auto s = sampleFile(_fileURIs[random_idx], _sizes[random_idx], mode);
+            auto s = sampleFile(_fileURIs[random_idx], _sizes[random_idx], mode, outNames);
             std::copy(s.begin(), s.end(), std::back_inserter(v));
             sampled_file_indices.insert(random_idx);
         }
@@ -1367,7 +1381,7 @@ namespace tuplex {
     }
 
     std::vector<Row>
-    FileInputOperator::sampleJsonFile(const tuplex::URI &uri, size_t uri_size, const tuplex::SamplingMode &mode) {
+    FileInputOperator::sampleJsonFile(const tuplex::URI &uri, size_t uri_size, const tuplex::SamplingMode &mode, std::vector<std::vector<std::string>>* outNames) {
         auto& logger = Logger::instance().logger("logical");
         std::vector<Row> v;
         assert(mode & SamplingMode::FIRST_ROWS || mode & SamplingMode::LAST_ROWS || mode & SamplingMode::RANDOM_ROWS);
@@ -1390,7 +1404,7 @@ namespace tuplex {
         if(m & SamplingMode::FIRST_ROWS) {
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::FIRST_ROWS, true);
             auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str()));
-            v = parseRowsFromJSON(sample.c_str(), sample_length, nullptr, false, _json_treat_heterogenous_lists_as_tuples);
+            v = parseRowsFromJSON(sample.c_str(), sample_length, outNames, outNames, _json_treat_heterogenous_lists_as_tuples);
         }
 
         if(m & SamplingMode::LAST_ROWS) {
@@ -1413,7 +1427,7 @@ namespace tuplex {
                 if(start_offset < 0)
                     return v;
                 sample_length -= std::min((size_t)start_offset, sample_length);
-                auto rows = parseRowsFromJSON(sample.c_str() + offset + start_offset, sample_length, nullptr, false, _json_treat_heterogenous_lists_as_tuples);
+                auto rows = parseRowsFromJSON(sample.c_str() + offset + start_offset, sample_length, outNames, outNames, _json_treat_heterogenous_lists_as_tuples);
 
                 std::copy(rows.begin(), rows.end(), std::back_inserter(v));
 
@@ -1424,7 +1438,7 @@ namespace tuplex {
                     return v;
                 sample_length -= std::min((size_t)start_offset, sample_length);
 
-                v = parseRowsFromJSON(sample.c_str() + start_offset, sample_length, nullptr, false, _json_treat_heterogenous_lists_as_tuples);
+                v = parseRowsFromJSON(sample.c_str() + start_offset, sample_length, outNames, outNames, _json_treat_heterogenous_lists_as_tuples);
             }
         }
 
@@ -1440,11 +1454,14 @@ namespace tuplex {
                 return v;
             sample_length -= std::min((size_t)start_offset, sample_length);
             // parse as rows using the settings detected.
-            auto rows = parseRowsFromJSON(sample.c_str() + start_offset, sample_length, nullptr, false, _json_treat_heterogenous_lists_as_tuples);
+            auto rows = parseRowsFromJSON(sample.c_str() + start_offset, sample_length, outNames, outNames, _json_treat_heterogenous_lists_as_tuples);
 
             // erase last row, b.c. it may be partial
-            if(!rows.empty())
+            if(!rows.empty()) {
                 rows.erase(rows.end() - 1);
+                if(outNames)
+                    outNames->erase(outNames->end() - 1);
+            }
 
             std::copy(rows.begin(), rows.end(), std::back_inserter(v));
         }
@@ -1538,15 +1555,150 @@ namespace tuplex {
         return {};
     }
 
-    std::tuple<python::Type, python::Type> FileInputOperator::detectJsonTypesAndColumns() {
+    std::tuple<python::Type, python::Type> FileInputOperator::detectJsonTypesAndColumns(const ContextOptions& co,
+                                                                                        const std::vector<std::vector<std::string>>& columnNamesSampleCollection) {
+        auto& logger = Logger::instance().logger("logical");
 
-        throw std::runtime_error("nymimpl");
+        // make sure row cache is filled
+        if(!_rowsSample.empty() && !_cachePopulated)
+            throw std::runtime_error("row cache needs to be populated for JSON reorg");
 
-        return std::tuple<python::Type, python::Type>();
+        if(_cachePopulated && _rowsSample.empty())
+            return std::make_tuple(python::Type::EMPTYTUPLE, python::Type::EMPTYTUPLE);
+
+        auto& rows = _rowsSample;
+        std::vector<std::string> ordered_names;
+
+        // rows do exist. -> should they get unwrapped?
+        if(_json_unwrap_first_level) {
+
+            assert(_rowsSample.size() == columnNamesSampleCollection.size());
+
+            // first step is column name estimation and subsequent row reorganization.
+            auto t = sortRowsAndIdentifyColumns(_rowsSample, columnNamesSampleCollection);
+            rows = std::get<0>(t);
+            ordered_names = std::get<1>(t);
+            // are there no rows? => too small a sample. increase sample size.
+            if(rows.empty()) {
+                throw std::runtime_error("not a single JSON document was found in the file, can't determine type. Please increase sample size.");
+            }
+        } else {
+            // if not, sample is fine as as is. -> maximize type cover
+        }
+
+        // check mode: is it unwrapping? => find dominating number of columns! And most likely combo of column names
+        std::unordered_map<python::Type, size_t> typeCountMap;
+        // simply calc all row counts
+        for(const auto& row : rows)
+            typeCountMap[row.getRowType()]++;
+
+
+        // transform to vector for cover
+        auto type_counts = std::vector<std::pair<python::Type, size_t>>(typeCountMap.begin(), typeCountMap.end());
+
+        TypeUnificationPolicy normal_policy;
+        normal_policy.allowAutoUpcastOfNumbers = co.AUTO_UPCAST_NUMBERS();
+        normal_policy.allowUnifyWithPyObject = false;
+        normal_policy.treatMissingDictKeysAsNone = false; // maybe as option?
+        normal_policy.unifyMissingDictKeys = false; // could be potentially allowed for subschemas etc.?
+
+        TypeUnificationPolicy general_policy;
+        normal_policy.allowAutoUpcastOfNumbers = co.AUTO_UPCAST_NUMBERS();
+        normal_policy.allowUnifyWithPyObject = false;
+        normal_policy.treatMissingDictKeysAsNone = false; // maybe as option?
+        normal_policy.unifyMissingDictKeys = true; // this sets it apart from normal policy...
+
+        // execute cover
+        auto normal_case_max_type = maximizeStructuredDictTypeCover(type_counts, co.NORMALCASE_THRESHOLD(), co.OPT_NULLVALUE_OPTIMIZATION(), normal_policy);
+        auto general_case_max_type = maximizeStructuredDictTypeCover(type_counts, co.NORMALCASE_THRESHOLD(), co.OPT_NULLVALUE_OPTIMIZATION(), general_policy);
+
+        // either invalid?
+        if(python::Type::UNKNOWN == normal_case_max_type.first || python::Type::UNKNOWN == general_case_max_type.first) {
+            logger.warn("could not detect schema for JSON input");
+            setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
+            return std::make_tuple(python::Type::EMPTYTUPLE, python::Type::EMPTYTUPLE);
+        }
+
+        // set ALL column names (as they appear)
+        // -> pushdown for JSON is special case...
+        if(_json_unwrap_first_level) {
+            setColumns(ordered_names);
+        }
+
+        // normalcase and exception case types
+        // -> use type cover for this from sample!
+        auto normalcasetype = !_json_unwrap_first_level ? normal_case_max_type.first.parameters().front() : normal_case_max_type.first;
+        auto generalcasetype = !_json_unwrap_first_level ? general_case_max_type.first.parameters().front() : general_case_max_type.first;
+
+        // rowtype is always, well a row
+        normalcasetype = python::Type::propagateToTupleType(normalcasetype);
+        generalcasetype = python::Type::propagateToTupleType(generalcasetype);
+
+        return std::make_tuple(normalcasetype, generalcasetype);
     }
 
-    size_t FileInputOperator::estimateJsonFileRowCount(size_t sample_size, const SamplingMode& mode) {
+    // this function is not accurate but rather an estimate. Can be easily improved.
+    size_t FileInputOperator::sampleSize() const {
+        size_t total_sample_size = 0;
+
+        // per-file factor
+        size_t sample_size_per_file = 0;
+
+        if(_samplingMode & SamplingMode::FIRST_ROWS)
+            sample_size_per_file += _samplingSize;
+
+        if(_samplingMode & SamplingMode::LAST_ROWS)
+            sample_size_per_file += _samplingSize;
+
+        if(_samplingMode & SamplingMode::RANDOM_ROWS)
+            sample_size_per_file += _samplingSize;
+
+        size_t num_files_to_sample = 0;
+
+        // base upon sampling mode.
+        if(_samplingMode & SamplingMode::FIRST_FILE)
+            num_files_to_sample++;
+        if(_samplingMode & SamplingMode::LAST_FILE)
+            num_files_to_sample++;
+        if(_samplingMode & SamplingMode::RANDOM_FILE)
+            num_files_to_sample++;
+
+        if(_samplingMode & SamplingMode::ALL_FILES) {
+            num_files_to_sample = _sizes.size();
+        }
+
+        // sanitize values
+        num_files_to_sample = std::min(num_files_to_sample, _sizes.size());
+
+        // how many per file?
+        // -> are there smaller files than the sample size? scale accordingly.
+        size_t size_smaller = 0;
+        size_t num_smaller = 0;
+        size_t total_size = 0;
+        for(auto s : _sizes) {
+            if(s < sample_size_per_file) {
+                num_smaller++;
+                size_smaller += s;
+            }
+            total_size += s;
+        }
+
+        // scale accordingly
+        if(num_smaller > 0) {
+            double fraction_smaller = (double)num_smaller / (double)_sizes.size();
+            double smaller_avg_size = (double)size_smaller / (double)num_smaller;
+            size_t estimate = (fraction_smaller * smaller_avg_size + (1.0 - fraction_smaller) * sample_size_per_file) * num_files_to_sample;
+            return estimate;
+        } else {
+            return num_files_to_sample * sample_size_per_file;
+        }
+    }
+
+    size_t FileInputOperator::estimateSampleBasedRowCount() {
         auto& logger = Logger::instance().logger("logical");
+
+        // cache & mode should be populated
+        assert(_samplingMode != SamplingMode::UNKNOWN && _cachePopulated);
 
         // make sure rows are filled.
         if(_rowsSample.empty()) {
@@ -1554,8 +1706,24 @@ namespace tuplex {
             return 1000;
         }
 
-        throw std::runtime_error("nymimpl");
+        // base estimation on number of samples stored vs. sample sizes vs. rest
+        size_t num_samples = _rowsSample.size();
+        if(num_samples < 5)
+            num_samples = 5; // attribute at least some cost to this
 
-        return 1;
+        // total file size
+        size_t total_size = 0;
+        for(auto s : _sizes)
+            total_size += s;
+
+        // num_samples rows == sample_size_used, how much rows are there for total_size?
+        double factor = 1.0 / (double)sample_size_used;
+        double estimate = (factor * num_samples) * total_size;
+
+        // safe-guard
+        if(estimate < 10.0)
+            return 10;
+
+        return (size_t)ceil(estimate);
     }
 }

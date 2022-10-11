@@ -17,6 +17,7 @@
 #include <physical/codegen/JITCSVSourceTaskBuilder.h>
 #include <physical/codegen/TuplexSourceTaskBuilder.h>
 #include <physical/codegen/ExceptionSourceTaskBuilder.h>
+#include <physical/codegen/JsonSourceTaskBuilder.h>
 #include <physical/codegen/AggregateFunctions.h>
 #include <logical/CacheOperator.h>
 #include <JSONUtils.h>
@@ -964,6 +965,20 @@ namespace tuplex {
                                                                            pathContext.checks);
                         break;
                     }
+                    case FileFormat::OUTFMT_JSON: {
+                        tb = make_shared<codegen::JsonSourceTaskBuilder>(env,
+                                                                         ctx.inputNodeID,
+                                                                         pathContext.inputSchema.getRowType(),
+                                                                         generalCaseInputRowType,
+                                                                         normal_case_columns,
+                                                                         general_case_columns,
+                                                                         unwrap_first_level,
+                                                                         normalToGeneralMapping,
+                                                                         funcStageName,
+                                                                         emitGeneralCaseExceptionRows);
+                        break;
+                    }
+
                     default:
                         throw std::runtime_error("file input format not yet supported!");
                 }

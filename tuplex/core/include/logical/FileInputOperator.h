@@ -40,6 +40,9 @@ namespace tuplex {
         bool _header;
         std::vector<std::string> _null_values;
 
+        // JSON
+        bool _json_unwrap_first_level;
+
         Schema _optimizedSchema; // schema after selection pushdown is performed.
 
         std::vector<std::string> _columnNames;
@@ -73,6 +76,9 @@ namespace tuplex {
         FileInputOperator(const std::string& pattern,
                           const ContextOptions& co,
                           const std::vector<std::string>& null_values);
+
+        //// JSON Constructor
+        //FileInputOperator(const std::string &pattern, const ContextOptions &co);
 
         // Orc Constructor
         FileInputOperator(const std::string& pattern,
@@ -119,9 +125,24 @@ namespace tuplex {
         * create a new orc File Input operator.
         * @param pattern files to search for
         * @param co ContextOptions, pipeline will take configuration for planning from there
+        * return input operator
         */
         static FileInputOperator *fromOrc(const std::string& pattern,
                                          const ContextOptions& co);
+
+        /*!
+         * create new file input operator reading JSON (newline delimited) files.
+         * @param pattern pattern to look for files
+         * @param unwrap_first_level if true, then the first level is unwrapped. Else, dataset is treated to have a single column.
+         * @param treat_heterogenous_lists_as_tuples set to true to lower footprint.
+         * @param co context options
+         * @return input operator
+         */
+        static FileInputOperator *fromJSON(const std::string& pattern,
+                                           bool unwrap_first_level,
+                                           bool treat_heterogenous_lists_as_tuples,
+                                           const ContextOptions& co);
+
 
         std::string name() override {
             switch (_fmt) {
@@ -131,6 +152,8 @@ namespace tuplex {
                     return "txt";
                 case FileFormat::OUTFMT_ORC:
                     return "orc";
+                case FileFormat::OUTFMT_JSON:
+                    return "json";
                 default:
                     auto &logger = Logger::instance().logger("fileinputoperator");
                     std::stringstream ss;
@@ -167,6 +190,8 @@ namespace tuplex {
         std::vector<std::string> null_values() const { return _null_values; }
 
         std::unordered_map<size_t, python::Type> typeHints() const { return _indexBasedHints; }
+
+        bool unwrap_first_level() const { return _json_unwrap_first_level; }
 
         /*!
          * force usage of normal case type for schema & Co.
@@ -248,6 +273,9 @@ namespace tuplex {
          * @return true or false
          */
         bool isEmpty() const;
+
+        FileInputOperator() : _fmt(FileFormat::OUTFMT_UNKNOWN), _json_unwrap_first_level(false), _header(false),
+                              _sampling_time_s(0.0), _quotechar('\0'), _delimiter('\0') {}
     };
 }
 

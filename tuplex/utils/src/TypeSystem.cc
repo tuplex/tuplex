@@ -9,6 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <TypeSystem.h>
+#include <TypeHelper.h>
 #include <Logger.h>
 #include <stack>
 #include <sstream>
@@ -16,6 +17,11 @@
 #include <TSet.h>
 #include <Utils.h>
 
+
+#include <Field.h>
+
+#include <TypeHelper.h>
+#include "TypeHelper.h"
 // types should be like form mypy https://mypy.readthedocs.io/en/latest/cheat_sheet_py3.html
 
 
@@ -44,6 +50,7 @@ namespace python {
     const Type Type::MODULE = python::TypeFactory::instance().createOrGetPrimitiveType("module");
     const Type Type::ITERATOR = python::TypeFactory::instance().createOrGetPrimitiveType("iterator");
     const Type Type::EMPTYITERATOR = python::TypeFactory::instance().createOrGetPrimitiveType("emptyiterator");
+    const Type Type::TYPEOBJECT = python::TypeFactory::instance().registerOrGetType("type", python::TypeFactory::AbstractType::TYPE, std::vector<Type>{}, python::Type::VOID);
 
     // builtin exception types
     // --> class system
@@ -73,7 +80,12 @@ namespace python {
                                         const std::vector<Type>& params,
                                         const python::Type& retval,
                                         const std::vector<Type>& baseClasses,
-                                        bool isVarLen) {
+                                        bool isVarLen,
+                                        const std::vector<StructEntry>& kv_pairs,
+                                        int64_t lower_bound,
+                                        int64_t upper_bound,
+                                        const std::string& constant) {
+        const std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = std::find_if(_typeMap.begin(),
                                _typeMap.end(),
                                [name](const std::pair<const int, TypeEntry>& p) {
@@ -86,7 +98,8 @@ namespace python {
         } else {
             // add new type to hashmap
             hash = _hash_generator++;
-            _typeMap[hash] = TypeEntry(name, at, params, retval, baseClasses, isVarLen);
+            _typeMap[hash] = TypeEntry(name, at, params, retval, baseClasses,
+                                       isVarLen, kv_pairs, lower_bound, upper_bound, constant);
         }
 
         Type t = Type();
@@ -115,6 +128,18 @@ namespace python {
         return registerOrGetType(name, AbstractType::OPTION, {}, type);
     }
 
+    Type TypeFactory::createOrGetTypeObjectType(const Type &type) {
+        // special case: type object of type object?
+        // e.g., type(type('hello'))
+        // --> <class 'type'>
+        if(type.isTypeObjectType())
+            return Type::TYPEOBJECT; // type object itself is a type object...
+
+        // create new option type!
+        std::string name = "Type[" + TypeFactory::instance().getDesc(type._hash) + "]";
+        return registerOrGetType(name, AbstractType::TYPE, {type}, type);
+    }
+
     Type TypeFactory::createOrGetFunctionType(const Type &param, const Type &ret) {
         std::string name = "";
         name += TypeFactory::instance().getDesc(param._hash);
@@ -138,18 +163,18 @@ namespace python {
 
     Type TypeFactory::createOrGetDictionaryType(const Type &key, const Type &val) {
         std::string name = "";
-        name += "{";
+        name += "Dict[";
         name += TypeFactory::instance().getDesc(key._hash);
         name += ",";
         name += TypeFactory::instance().getDesc(val._hash);
-        name += "}";
+        name += "]";
 
         return registerOrGetType(name, AbstractType::DICTIONARY, {key, val});
     }
 
     Type TypeFactory::createOrGetListType(const Type &val) {
         std::string name;
-        name += "[";
+        name += "List[";
         name += TypeFactory::instance().getDesc(val._hash);
         name += "]";
 
@@ -171,6 +196,94 @@ namespace python {
             name += ")";
 
         return registerOrGetType(name, AbstractType::TUPLE, args);
+    }
+
+    Type TypeFactory::createOrGetStructuredDictType(const std::vector<std::pair<boost::any, python::Type>> &pairs) {
+        std::vector<StructEntry> kv_pairs;
+        // for each pair, construct tuple (val_type, value) -> type
+        for(auto pair : pairs) {
+            std::string pair_str = "(";
+
+            // convert value to field
+            tuplex::Field f = tuplex::any_to_field(pair.first, tuplex::Field::null());
+
+            // create the actual kv_pair
+            StructEntry kv_pair;
+            kv_pair.keyType = f.getType();
+            kv_pair.key = f.toPythonString();
+            kv_pair.valueType = pair.second;
+            kv_pair.alwaysPresent = true;
+            kv_pairs.push_back(kv_pair);
+        }
+        return createOrGetStructuredDictType(kv_pairs);
+    }
+
+    static std::vector<StructEntry> remove_bad_pairs(const std::vector<StructEntry>& kv_pairs) {
+        // keytype and value have to be unique
+        // -> for now ok.
+        std::unordered_map<Type, std::vector<StructEntry>> m;
+        for(auto kv_pair : kv_pairs) {
+            auto it = m.find(kv_pair.keyType);
+            if(it == m.end()) {
+                m[kv_pair.keyType] = {kv_pair};
+            } else {
+                // is there a semantically equivalent in there?
+                auto jt = std::find_if(it->second.begin(), it->second.end(), [&](const StructEntry& entry) {
+                    return tuplex::semantic_python_value_eq(entry.keyType, entry.key, kv_pair.key);
+                });
+                if(jt == it->second.end()) {
+                    // append
+                    it->second.push_back(kv_pair);
+                } else {
+                    // debug
+#ifndef NDEBUG
+            std::cout<<"found conflicting pair"<<std::endl;
+#endif
+                }
+            }
+
+        }
+
+        // construct pairs from hashmap
+        std::vector<StructEntry> pairs;
+        for(const auto& kv : m) {
+            for(auto p : kv.second)
+            pairs.push_back(p);
+        }
+        return pairs;
+    }
+
+
+    Type TypeFactory::createOrGetStructuredDictType(const std::vector<StructEntry> &kv_pairs) {
+
+        // Struct[] is empty dict
+        if(kv_pairs.empty())
+            return python::Type::EMPTYDICT;
+
+        std::string name = "Struct[";
+
+        // for each pair, construct tuple (val_type, value) -> type
+        for(const auto& kv_pair : kv_pairs) {
+            std::string pair_str = "(";
+
+            // @TODO: we basically need a mechanism to serialize/deserialize field values to string and back.
+            // add mapping
+            // escape non-string values as string
+            auto py_string = kv_pair.keyType == python::Type::STRING ? kv_pair.key : escape_to_python_str(kv_pair.key);
+            auto map_str = kv_pair.alwaysPresent ? "->" : "=>";
+            pair_str += kv_pair.keyType.desc() + "," + py_string + map_str + kv_pair.valueType.desc();
+
+            pair_str += ")";
+            name += pair_str + ",";
+        }
+        if(name.back() == ',')
+            name.back() = ']';
+        else
+            name += "]";
+
+        // store as new type in type factory (@TODO)
+        auto t = registerOrGetType(name, AbstractType::STRUCTURED_DICTIONARY, {}, {}, {}, false, kv_pairs);
+        return t;
     }
 
     Type TypeFactory::createOrGetTupleType(const std::initializer_list<Type> args) {
@@ -218,12 +331,64 @@ namespace python {
         return registerOrGetType(name, AbstractType::ITERATOR, {yieldType});
     }
 
+    Type TypeFactory::createOrGetDelayedParsingType(const Type& underlying) {
+
+        // check that it is a primitive type
+        assert(underlying.isPrimitiveType());
+
+        std::string name;
+        name += "_Delayed[";
+        name += TypeFactory::instance().getDesc(underlying._hash);
+        name += "]";
+
+        return registerOrGetType(name, AbstractType::OPTIMIZED_DELAYEDPARSING, {underlying});
+    }
+
+    Type TypeFactory::createOrGetRangeCompressedIntegerType(int64_t lower_bound, int64_t upper_bound) {
+
+        // optimization: if lower_bound == upper_bound, use a constant!
+        if(lower_bound == upper_bound)
+            return createOrGetConstantValuedType(python::Type::I64, std::to_string(lower_bound));
+
+        std::string name;
+        name += "_Compressed[";
+        name += "low=" + std::to_string(lower_bound);
+        name += ",high=" + std::to_string(upper_bound);
+        name += "]";
+
+        return registerOrGetType(name, AbstractType::OPTIMIZED_RANGECOMPRESSION, {python::Type::I64},
+                                 python::Type::VOID,
+                                 {},
+                                 false,
+                                 {},
+                                 lower_bound,
+                                 upper_bound);
+    }
+
+    Type TypeFactory::createOrGetConstantValuedType(const Type& underlying, const std::string& constant) {
+        std::string name;
+        name += "_Constant[";
+        name += TypeFactory::instance().getDesc(underlying._hash);
+        name += ",value=" + constant;
+        name += "]";
+
+        return registerOrGetType(name, AbstractType::OPTIMIZED_CONSTANT, {underlying},
+                                 python::Type::VOID,
+                                 {},
+                                 false,
+                                 {},
+                                 std::numeric_limits<int64_t>::min(),
+                                 std::numeric_limits<int64_t>::max(),
+                                 constant);
+    }
+
     std::string TypeFactory::getDesc(const int _hash) const {
         assert(_hash >= 0);
         assert(_typeMap.find(_hash) != _typeMap.end());
 
         return _typeMap.at(_hash)._desc;
     }
+
     TypeFactory::~TypeFactory() {
 
     }
@@ -249,6 +414,10 @@ namespace python {
         return TypeFactory::instance().isOptionType(*this);
     }
 
+    bool Type::isConstantValued() const {
+        return TypeFactory::instance().isConstantValued(*this);
+    }
+
     bool Type::isExceptionType() const {
         auto classes = baseClasses();
         if(classes.empty())
@@ -265,6 +434,10 @@ namespace python {
 
     bool Type::isDictionaryType() const {
         return TypeFactory::instance().isDictionaryType(*this);
+    }
+
+    bool Type::isStructuredDictionaryType() const {
+        return TypeFactory::instance().isStructuredDictionaryType(*this);
     }
 
     bool Type::isListType() const {
@@ -308,7 +481,16 @@ namespace python {
             return false;
 
         auto type = it->second._type;
-        return type == AbstractType::DICTIONARY || t == Type::EMPTYDICT || t == Type::GENERICDICT;
+        return type == AbstractType::DICTIONARY || t == Type::EMPTYDICT || t == Type::GENERICDICT || type == AbstractType::STRUCTURED_DICTIONARY;
+    }
+
+    bool TypeFactory::isStructuredDictionaryType(const Type& t) const {
+        auto it = _typeMap.find(t._hash);
+        if(it == _typeMap.end())
+            return false;
+
+        auto type = it->second._type;
+        return type == AbstractType::STRUCTURED_DICTIONARY;
     }
 
     bool TypeFactory::isListType(const Type &t) const {
@@ -337,6 +519,7 @@ namespace python {
     }
 
     Type TypeFactory::returnType(const python::Type &t) const {
+        const std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = _typeMap.find(t._hash);
         assert(it != _typeMap.end());
         return it->second._ret;
@@ -344,6 +527,7 @@ namespace python {
 
 
     std::vector<Type> TypeFactory::parameters(const Type& t) const {
+        const std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = _typeMap.find(t._hash);
         assert(it != _typeMap.end());
         // exclude dictionary here, but internal reuse.
@@ -355,8 +539,40 @@ namespace python {
         return TypeFactory::instance().parameters(*this);
     }
 
+    std::vector<StructEntry> Type::get_struct_pairs() const {
+        assert(isStructuredDictionaryType());
+        auto& factory = TypeFactory::instance();
+        auto it = factory._typeMap.find(_hash);
+        assert(it != factory._typeMap.end());
+        return it->second._struct_pairs;
+    }
+
     Type Type::keyType() const {
-        assert(isDictionaryType() && _hash != EMPTYDICT._hash && _hash != GENERICDICT._hash);
+
+        // special cases: empty dict, generic dict and structured dict
+        if(_hash == EMPTYDICT._hash || _hash == GENERICDICT._hash)
+            return PYOBJECT;
+
+        // is it a structured dict? -> same key type?
+        if(isStructuredDictionaryType()) {
+            // check pairs and whether they all have the same type, if not return pyobject
+            auto& factory = TypeFactory::instance();
+            auto it = factory._typeMap.find(_hash);
+            assert(it != factory._typeMap.end());
+            auto pairs = it->second._struct_pairs;
+            assert(!pairs.empty()); // --> should be empty dict
+            auto key_type = pairs.front().keyType;
+            for(auto entry : pairs) {
+                // unify types...
+                key_type = tuplex::unifyTypes(key_type, entry.keyType);
+                if(key_type == UNKNOWN)
+                    return PYOBJECT;
+            }
+            return key_type;
+        }
+
+        // regular dict
+        assert(isDictionaryType() && !isStructuredDictionaryType() && _hash != EMPTYDICT._hash && _hash != GENERICDICT._hash);
         auto& factory = TypeFactory::instance();
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
@@ -373,6 +589,28 @@ namespace python {
     }
 
     Type Type::valueType() const {
+        // special cases: empty dict, generic dict and structured dict
+        if(_hash == EMPTYDICT._hash || _hash == GENERICDICT._hash)
+            return PYOBJECT;
+
+        // is it a structured dict? -> same key type?
+        if(isStructuredDictionaryType()) {
+            // check pairs and whether they all have the same type, if not return pyobject
+            auto& factory = TypeFactory::instance();
+            auto it = factory._typeMap.find(_hash);
+            assert(it != factory._typeMap.end());
+            auto pairs = it->second._struct_pairs;
+            assert(!pairs.empty()); // --> should be empty dict
+            auto value_type = pairs.front().keyType;
+            for(auto entry : pairs) {
+                // unify types...
+                value_type = tuplex::unifyTypes(value_type, entry.valueType);
+                if(value_type == UNKNOWN)
+                    return PYOBJECT;
+            }
+            return value_type;
+        }
+
         assert(isDictionaryType() && _hash != EMPTYDICT._hash && _hash != GENERICDICT._hash);
         auto& factory = TypeFactory::instance();
         auto it = factory._typeMap.find(_hash);
@@ -396,6 +634,26 @@ namespace python {
         }
     }
 
+    Type Type::underlying() const {
+        // should be optimizing type or typeobject...
+        assert(isOptimizedType() || isTypeObjectType());
+
+        auto& factory = TypeFactory::instance();
+        auto it = factory._typeMap.find(_hash);
+        assert(it != factory._typeMap.end());
+        assert(it->second._params.size() == 1);
+        return it->second._params[0];
+    }
+
+    std::string Type::constant() const {
+        assert(isConstantValued());
+        auto& factory = TypeFactory::instance();
+        auto it = factory._typeMap.find(_hash);
+        assert(it != factory._typeMap.end());
+        assert(it->second._params.size() == 1);
+        return it->second._constant_value;
+    }
+
     Type Type::yieldType() const {
         assert(isIteratorType() && _hash != EMPTYITERATOR._hash);
         auto& factory = TypeFactory::instance();
@@ -417,6 +675,13 @@ namespace python {
     }
 
     bool Type::isFixedSizeType() const {
+
+        // constant valued types are fixed-size, i.e. null => they don't require memory per-instance
+        if(isConstantValued())
+            return true;
+
+        // delayed parsing types are also fixed-size (they're 8 bytes each!)
+        // @TODO.
 
         // string is a varlen type but a primitive type.
         if(isPrimitiveType() && *this != python::Type::STRING)
@@ -452,6 +717,32 @@ namespace python {
         return false;
     }
 
+    static bool recursive_contains_option(const python::Type& t) {
+        if(t.isOptionType())
+            return true;
+        if(t.isPrimitiveType() || t.isConstantValued())
+            return false;
+
+        // composite types:
+        if(t.isStructuredDictionaryType())
+            return false; // has its own map...
+
+        if(t.isListType())
+            return recursive_contains_option(t.elementType());
+        if(t.isDictionaryType() && !t.isStructuredDictionaryType())
+            return recursive_contains_option(t.keyType()) && recursive_contains_option(t.valueType());
+        if(t.isTupleType()) {
+            for(const auto& p : t.parameters()) {
+                if(recursive_contains_option(p))
+                    return true;
+            }
+            return false;
+        }
+
+        // other types... prob. false
+        return false;
+    }
+
     bool Type::isOptional() const {
         // contains any options?
         if(isOptionType())
@@ -461,7 +752,30 @@ namespace python {
             return false;
 
         // for composite types, search their params / return values
-        return desc().find("Option") != std::string::npos; // @TODO: this is a quick and dirty hack, improve.
+        // return desc().find("Option") != std::string::npos; // @TODO: this is a quick and dirty hack, improve. --> not accurate for constants/struct types etc.
+        return recursive_contains_option(*this);
+    }
+
+    bool Type::isOptimizedType() const {
+        // currently know of the following...
+//         OPTIMIZED_CONSTANT, // constant value
+//            OPTIMIZED_DELAYEDPARSING, // dummy types to allow for certain optimizations
+//            OPTIMIZED_RANGECOMPRESSION // range compression
+        const auto& entry = TypeFactory::instance()._typeMap.at(_hash);
+        switch(entry._type) {
+            case TypeFactory::AbstractType::OPTIMIZED_CONSTANT:
+            case TypeFactory::AbstractType::OPTIMIZED_DELAYEDPARSING:
+            case TypeFactory::AbstractType::OPTIMIZED_RANGECOMPRESSION: {
+                return true;
+            }
+            default:
+                return false;
+        }
+    }
+
+    bool Type::isTypeObjectType() const {
+        const auto& entry = TypeFactory::instance()._typeMap.at(_hash);
+        return entry._type == TypeFactory::AbstractType::TYPE;
     }
 
     bool Type::isSingleValued() const {
@@ -485,6 +799,15 @@ namespace python {
                 return true;
             return false;
         } else if(isDictionaryType()) {
+
+            // special case, structured dict:
+            if(isStructuredDictionaryType()) {
+                for(auto pair : get_struct_pairs())
+                    if(pair.keyType.isIllDefined() || pair.valueType.isIllDefined())
+                        return true;
+                return false;
+            }
+
             // empty or generic are well defined
             if(_hash == Type::EMPTYDICT._hash || _hash == Type::GENERICDICT._hash)
                 return false;
@@ -517,6 +840,10 @@ namespace python {
         return TypeFactory::instance().createOrGetTupleType(v);
     }
 
+    Type Type::makeTypeObjectType(const python::Type &type) {
+        return TypeFactory::instance().createOrGetTypeObjectType(type);
+    }
+
     Type Type::makeFunctionType(const python::Type &argsType, const python::Type &retType) {
         return python::TypeFactory::instance().createOrGetFunctionType(argsType, retType);
     }
@@ -530,12 +857,32 @@ namespace python {
         return python::TypeFactory::instance().createOrGetListType(elementType);
     }
 
+    Type Type::makeStructuredDictType(const std::vector<std::pair<boost::any, python::Type>> &kv_pairs) {
+        return python::TypeFactory::instance().createOrGetStructuredDictType(kv_pairs);
+    }
+
+    Type Type::makeStructuredDictType(const std::vector<StructEntry> &kv_pairs) {
+        return python::TypeFactory::instance().createOrGetStructuredDictType(kv_pairs);
+    }
+
     Type Type::makeOptionType(const python::Type &type) {
         return python::TypeFactory::instance().createOrGetOptionType(type);
     }
 
     Type Type::makeIteratorType(const python::Type &yieldType) {
         return python::TypeFactory::instance().createOrGetIteratorType(yieldType);
+    }
+
+    Type makeDelayedParsingType(const python::Type& underlying) {
+        return python::TypeFactory::instance().createOrGetDelayedParsingType(underlying);
+    }
+
+    Type makeRangeCompressedIntegerType(int64_t lower_bound, int64_t upper_bound) {
+        return python::TypeFactory::instance().createOrGetRangeCompressedIntegerType(lower_bound, upper_bound);
+    }
+
+    Type makeConstantValuedType(const python::Type& underlying, const std::string& value) {
+        return python::TypeFactory::instance().createOrGetConstantValuedType(underlying, value);
     }
 
     std::string TypeFactory::TypeEntry::desc() {
@@ -584,6 +931,14 @@ namespace python {
         return res;
     }
 
+    bool TypeFactory::isConstantValued(const Type &t) const {
+        auto it = _typeMap.find(t._hash);
+        if(it == _typeMap.end())
+            return false;
+
+        return it->second._type == AbstractType::OPTIMIZED_CONSTANT;
+    }
+
     Type Type::propagateToTupleType(const python::Type &type) {
         if(type.isTupleType())
             return type;
@@ -591,166 +946,20 @@ namespace python {
             return makeTupleType(std::vector<python::Type>{type});
     }
 
-    Type decodeType(const std::string& s) {
-
-        if(s.length() == 0)
-            return Type::UNKNOWN;
-
-        // go through string
-        int numOpenParentheses = 0;
-        int numOpenBrackets = 0;
-        int numClosedParentheses = 0;
-        int numClosedBrackets = 0;
-        int numOpenSqBrackets = 0;
-        int numClosedSqBrackets = 0;
-        int pos = 0;
-        std::stack<bool> sqBracketIsListStack;
-        std::stack<std::vector<python::Type> > expressionStack;
-
-        while(pos < s.length()) {
-
-            // parentheses
-            if(s[pos] == '(') {
-                numOpenParentheses++;
-                expressionStack.push(std::vector<python::Type>());
-                pos++;
-            } else if(s[pos] == ')') {
-                numClosedParentheses++;
-                if(numOpenParentheses < numClosedParentheses) {
-                    Logger::instance().defaultLogger().error("parentheses mismatch in encoded typestr '" + s + "'");
-                    return Type::UNKNOWN;
-                }
-
-                // create tuple from vector & push back to stack (i.e. appending to last vector)
-                assert(expressionStack.size() > 0);
-                Type t = TypeFactory::instance().createOrGetTupleType(expressionStack.top());
-                expressionStack.pop();
-                // empty or not?
-                if(expressionStack.empty())
-                    expressionStack.push(std::vector<python::Type>({t}));
-                else
-                    expressionStack.top().push_back(t);
-                pos++;
-            } else if(s[pos] == '{') {
-                numOpenBrackets++;
-                expressionStack.push(std::vector<python::Type>());
-                pos++;
-            } else if(s[pos] == '}') {
-                numClosedBrackets++;
-                if(numOpenBrackets < numClosedBrackets) {
-                    Logger::instance().defaultLogger().error("brackets mismatch in encoded typestr '" + s + "'");
-                    return Type::UNKNOWN;
-                }
-
-                // create dictionary from vector and push back to stack (append to last vector) : treat it as a 2-element tuple
-                assert(expressionStack.size() > 0);
-                auto topVec = expressionStack.top();
-                Type t = expressionStack.top().size() == 2 ?
-                        TypeFactory::instance().createOrGetDictionaryType(topVec[0], topVec[1]) :
-                        Type::EMPTYDICT;
-                expressionStack.pop();
-
-                if(expressionStack.empty())
-                    expressionStack.push({t});
-                else
-                    expressionStack.top().push_back(t);
-                pos++;
-            } else if(s[pos] == '[') {
-                numOpenSqBrackets++;
-                expressionStack.push(std::vector<python::Type>());
-                sqBracketIsListStack.push(true);
-                pos++;
-            } else if(s[pos] == ']') {
-              numClosedSqBrackets++;
-              if(numOpenSqBrackets < numClosedSqBrackets) {
-                  Logger::instance().defaultLogger().error("square brackets [...] mismatch in encoded typestr '" + s + "'");
-                  return Type::UNKNOWN;
-              }
-
-                // create option type from vector and push back to stack (append to last vector) : treat it as a 2-element tuple
-//                if(expressionStack.size() != 1) {
-//                    Logger::instance().defaultLogger().error("Option requires one type!");
-//                    return Type::UNKNOWN;
-//                }
-                auto topVec = expressionStack.top();
-                auto isList = sqBracketIsListStack.top();
-                Type t;
-                if(isList) {
-                    t = TypeFactory::instance().createOrGetListType(topVec[0]);
-                } else {
-                    t = TypeFactory::instance().createOrGetOptionType(topVec[0]);
-                }
-                sqBracketIsListStack.pop();
-                expressionStack.pop();
-
-                if(expressionStack.empty())
-                    expressionStack.push({t});
-                else
-                    expressionStack.top().push_back(t);
-                pos++;
-
-            } else if(s.substr(pos, 3).compare("i64") == 0) {
-                Type t = Type::I64;
-                if(expressionStack.empty())
-                    expressionStack.push(std::vector<python::Type>({t}));
-                else
-                    expressionStack.top().push_back(t);
-                pos += 3;
-            } else if(s.substr(pos, 3).compare("f64") == 0) {
-                Type t = Type::F64;
-                if(expressionStack.empty())
-                    expressionStack.push(std::vector<python::Type>({t}));
-                else
-                    expressionStack.top().push_back(t);
-                pos += 3;
-            } else if(s.substr(pos, 3).compare("str") == 0) {
-                Type t = Type::STRING;
-                if(expressionStack.empty())
-                    expressionStack.push(std::vector<python::Type>({t}));
-                else
-                    expressionStack.top().push_back(t);
-                pos += 3;
-            } else if(s.substr(pos, 4).compare("bool") == 0) {
-                Type t = Type::BOOLEAN;
-                if(expressionStack.empty())
-                    expressionStack.push(std::vector<python::Type>({t}));
-                else
-                    expressionStack.top().push_back(t);
-                pos += 4;
-            } else if(s.substr(pos, 4).compare("None") == 0) {
-                Type t = Type::NULLVALUE;
-                if(expressionStack.empty())
-                    expressionStack.push(std::vector<python::Type>({t}));
-                else
-                    expressionStack.top().push_back(t);
-                pos += 4;
-            } else if(s.substr(pos, 8).compare("pyobject") == 0) {
-                Type t = Type::PYOBJECT;
-                if(expressionStack.empty())
-                    expressionStack.push(std::vector<python::Type>({t}));
-                else
-                    expressionStack.top().push_back(t);
-                pos += 8;
-            } else if (s.substr(pos, 7).compare("Option[") == 0) {
-                expressionStack.push(std::vector<python::Type>());
-                sqBracketIsListStack.push(false);
-                numOpenSqBrackets++;
-                pos += 7;
-            } else if(s[pos] == ',' || s[pos] == ' ' || s[pos] == '\t' || s[pos] == '\n') {
-                // skip ,
-                pos++;
-            }
-            else {
-                std::stringstream ss;
-                ss<<"unknown token '"<<s[pos]<<"' in encoded type str '"<<s<<"' encountered.";
-                Logger::instance().defaultLogger().error(ss.str());
-                return Type::UNKNOWN;
-            }
+    std::unordered_map<std::string, Type> TypeFactory::get_primitive_keywords() const {
+        std::unordered_map<std::string, Type> keywords;
+        for(auto keyval : _typeMap) {
+            Type t;
+            t._hash = keyval.first;
+            if(keyval.second._type == AbstractType::PRIMITIVE)
+                keywords[keyval.second._desc] = t;
         }
 
-        assert(expressionStack.size() > 0);
-        assert(expressionStack.top().size() > 0);
-        return expressionStack.top().front();
+        // add both None and null as NULLVALUE
+        keywords["None"] = Type::NULLVALUE;
+        keywords["null"] = Type::NULLVALUE;
+
+        return keywords;
     }
 
     bool tupleElementsHaveSameType(const python::Type& tupleType) {
@@ -811,6 +1020,15 @@ namespace python {
 
 
     Type Type::superType(const Type &A, const Type &B) {
+        // dealing with optimized types --> always deoptimize, For ranges though special case can be performed...
+        if(A.isOptimizedType() && B.isOptimizedType())
+            return tuplex::unifyOptimizedTypes(A, B);
+        if(A.isOptimizedType())
+            return superType(tuplex::deoptimizedType(A), B);
+        if(B.isOptimizedType())
+            return superType(A, tuplex::deoptimizedType(B));
+
+        // ------ regular super types -------
 
         // null and x => option[x]
         if (A == python::Type::NULLVALUE)
@@ -864,14 +1082,25 @@ namespace python {
         if(isTupleType()) {
             // go through elements & construct optionless tuples
             vector<Type> params;
-            for(auto t : parameters())
+            for(const auto& t : parameters())
                 params.push_back(t.withoutOptions());
             return Type::makeTupleType(params);
         }
 
         // dict?
         if(isDictionaryType()) {
-            return Type::makeDictionaryType(keyType().withoutOptions(), valueType().withoutOptions());
+            if(isStructuredDictionaryType()) {
+                // go through pairs!
+                auto pairs = get_struct_pairs();
+                for(auto& entry : pairs) {
+                    entry.keyType = entry.keyType.withoutOptions();
+                    entry.valueType = entry.valueType.withoutOptions();
+                }
+                return Type::makeStructuredDictType(pairs);
+            } else {
+                // homogenous key/value type dict
+                return Type::makeDictionaryType(keyType().withoutOptions(), valueType().withoutOptions());
+            }
         }
 
         // list?
@@ -883,8 +1112,12 @@ namespace python {
         if(isOptionType())
             return getReturnType().withoutOptions();
 
+//        // constant valueed? that's a tricky one, b.c. constant plays a role.
+//        if(isConstantValued())
+//            return
         // func not supported...
-        return python::Type::UNKNOWN;
+        // return type as is
+        return *this;
     }
 
 
@@ -896,6 +1129,15 @@ namespace python {
         // fast check: same type
         if(from == to)
             return true;
+
+        // NOTE: optimizing types should come first...
+        // optimizing types -> i.e. deoptimized/optimized version should be interchangeabke
+        // @TODO: hack. should have one set of things for all the opts
+        if(from.isConstantValued())
+            return canUpcastType(from.underlying(), to);
+        if(to.isConstantValued())
+            return canUpcastType(from, to.underlying());
+
 
         // option type?
         if(to.isOptionType()) {
@@ -922,8 +1164,17 @@ namespace python {
             return true;
         }
 
-        if(from.isListType() && to.isListType())
+        if(from.isListType() && to.isListType()) {
+            // empty list can be upcasted to anything, but only empty list can be casted to emptylist
+            if(python::Type::EMPTYLIST == from)
+                return true;
+            if(python::Type::EMPTYLIST == to) {
+                assert(python::Type::EMPTYLIST != from);
+                return false;
+            }
             return canUpcastType(from.elementType(), to.elementType());
+        }
+
 
 
         // primitive types
@@ -937,6 +1188,73 @@ namespace python {
             return true;
         if(from == python::Type::EMPTYLIST && to.isListType())
             return true;
+
+        // cast between struct dict and dict
+        if(from.isStructuredDictionaryType() && to.isDictionaryType()) {
+            // special case from & to are both structured -> are they compatible?
+            if(from.isStructuredDictionaryType() && to.isStructuredDictionaryType()) {
+                auto from_pairs = from.get_struct_pairs();
+                auto to_pairs = to.get_struct_pairs();
+
+                // to pairs must have at least as many pairs as from!
+                if(from_pairs.size() > to_pairs.size())
+                    return false;
+
+                std::unordered_map<std::string, StructEntry> from_key_type_map;
+                std::unordered_map<std::string, StructEntry> to_key_type_map;
+                for(const auto& p : from_pairs)
+                    from_key_type_map[p.key] = p;
+                for(const auto& p :to_pairs)
+                    to_key_type_map[p.key] = p;
+
+                // now go through from entries and check whether maybe upcast is possible
+                for(const auto& kv_from : from_pairs) {
+                    // need to put it into from
+                    if(to_key_type_map.find(kv_from.key) == to_key_type_map.end())
+                        return false;
+
+                    // check "maybe" compatibility. I.e., can upcast a present to maybe but not the other way round
+                    auto kv_to = to_key_type_map.at(kv_from.key);
+                    if(!kv_from.alwaysPresent && kv_to.alwaysPresent)
+                        return false;
+
+                    // can we upcast both key/value?
+                    if(!canUpcastType(kv_from.keyType, kv_to.keyType))
+                        return false;
+                    if(!canUpcastType(kv_from.valueType, kv_to.valueType))
+                        return false;
+                }
+
+                // each key in "to" that is required must be present in "from" as well
+                // => if this fails, can early determine upcast not possible.
+                for(const auto& kv : to_key_type_map) {
+                    if(kv.second.alwaysPresent) {
+                        // must be present and castable
+                        if(from_key_type_map.find(kv.first) == from_key_type_map.end())
+                            return false;
+                        if(!canUpcastType(from_key_type_map[kv.first].keyType, kv.second.keyType))
+                            return false;
+                        if(!canUpcastType(from_key_type_map[kv.first].valueType, kv.second.valueType))
+                            return false;
+                    }
+                }
+                return true;
+            } else {
+                // check whether ALL from key types and value types can be upcasted to generic type
+                auto dest_key_type = to.keyType();
+                auto dest_value_type = to.valueType();
+                auto pairs = from.get_struct_pairs();
+                for(const auto& p : pairs) {
+                    // for a dict[keytype,valuetype] keys are always maybe present, so no issue with upcasting.
+
+                    if(!canUpcastType(p.keyType, dest_key_type))
+                        return false;
+                    if(!canUpcastType(p.valueType, dest_value_type))
+                        return false;
+                }
+                return true;
+            }
+        }
 
         return false;
     }
@@ -960,118 +1278,119 @@ namespace python {
         return true;
     }
 
-    Type unifyTypes(const python::Type &a, const python::Type &b, bool autoUpcast) {
-        // UNKNOWN type is not compatible
-        if(a == python::Type::UNKNOWN || b == python::Type::UNKNOWN) {
-            return python::Type::UNKNOWN;
-        }
-
-        // same type, return either one
-        if(a == b) {
-            return a;
-        }
-
-        if(a == python::Type::NULLVALUE) {
-            return python::Type::makeOptionType(b);
-        }
-
-        if(b == python::Type::NULLVALUE) {
-            return python::Type::makeOptionType(a);
-        }
-
-        // check for optional type
-        bool makeOption = false;
-        // underlyingType: remove outermost Option if exists
-        python::Type aUnderlyingType = a;
-        python::Type bUnderlyingType = b;
-        if(a.isOptionType()) {
-            makeOption = true;
-            aUnderlyingType = a.getReturnType();
-        }
-
-        if(b.isOptionType()) {
-            makeOption = true;
-            bUnderlyingType = b.getReturnType();
-        }
-
-        // same underlying types? make option
-        if (aUnderlyingType == bUnderlyingType) {
-            return python::Type::makeOptionType(aUnderlyingType);
-        }
-
-        // both numeric types? upcast
-        if(autoUpcast) {
-            if(aUnderlyingType.isNumericType() && bUnderlyingType.isNumericType()) {
-                if(aUnderlyingType == python::Type::F64 || bUnderlyingType == python::Type::F64) {
-                    // upcast to F64 if either is F64
-                    if (makeOption) {
-                        return python::Type::makeOptionType(python::Type::F64);
-                    } else {
-                        return python::Type::F64;
-                    }
-                }
-                // at this point underlyingTypes cannot both be bool. Upcast to I64
-                if (makeOption) {
-                    return python::Type::makeOptionType(python::Type::I64);
-                } else {
-                    return python::Type::I64;
-                }
-            }
-        }
-
-        // list type? check if element type compatible
-        if(aUnderlyingType.isListType() && bUnderlyingType.isListType() && aUnderlyingType != python::Type::EMPTYLIST && bUnderlyingType != python::Type::EMPTYLIST) {
-            python::Type newElementType = unifyTypes(aUnderlyingType.elementType(), bUnderlyingType.elementType(),
-                                                     autoUpcast);
-            if(newElementType == python::Type::UNKNOWN) {
-                // incompatible list element type
-                return python::Type::UNKNOWN;
-            }
-            if(makeOption) {
-                return python::Type::makeOptionType(python::Type::makeListType(newElementType));
-            }
-            return python::Type::makeListType(newElementType);
-        }
-
-        // tuple type? check if every parameter type compatible
-        if(aUnderlyingType.isTupleType() && bUnderlyingType.isTupleType()) {
-            if (aUnderlyingType.parameters().size() != bUnderlyingType.parameters().size()) {
-                // tuple length differs
-                return python::Type::UNKNOWN;
-            }
-            std::vector<python::Type> newTuple;
-            for (size_t i = 0; i < aUnderlyingType.parameters().size(); i++) {
-                python::Type newElementType = unifyTypes(aUnderlyingType.parameters()[i],
-                                                         bUnderlyingType.parameters()[i], autoUpcast);
-                if(newElementType == python::Type::UNKNOWN) {
-                    // incompatible tuple element type
-                    return python::Type::UNKNOWN;
-                }
-                newTuple.emplace_back(newElementType);
-            }
-            if(makeOption) {
-                return python::Type::makeOptionType(python::Type::makeTupleType(newTuple));
-            }
-            return python::Type::makeTupleType(newTuple);
-        }
-
-        // dictionary type
-        if(aUnderlyingType.isDictionaryType() && bUnderlyingType.isDictionaryType()) {
-            auto key_t = unifyTypes(aUnderlyingType.keyType(), bUnderlyingType.keyType(), autoUpcast);
-            auto val_t = unifyTypes(aUnderlyingType.elementType(), bUnderlyingType.elementType(), autoUpcast);
-            if(key_t == python::Type::UNKNOWN || val_t == python::Type::UNKNOWN) {
-                return python::Type::UNKNOWN;
-            }
-            if(makeOption) {
-                return python::Type::makeOptionType(python::Type::makeDictionaryType(key_t, val_t));
-            } else {
-                return python::Type::makeDictionaryType(key_t, val_t);
-            }
-        }
-
-        // other non-supported types
-        return python::Type::UNKNOWN;
-    }
+    // moved to TypeHelper.h, deprecated.
+//    Type unifyTypes(const python::Type &a, const python::Type &b, bool autoUpcast) {
+//        // UNKNOWN type is not compatible
+//        if(a == python::Type::UNKNOWN || b == python::Type::UNKNOWN) {
+//            return python::Type::UNKNOWN;
+//        }
+//
+//        // same type, return either one
+//        if(a == b) {
+//            return a;
+//        }
+//
+//        if(a == python::Type::NULLVALUE) {
+//            return python::Type::makeOptionType(b);
+//        }
+//
+//        if(b == python::Type::NULLVALUE) {
+//            return python::Type::makeOptionType(a);
+//        }
+//
+//        // check for optional type
+//        bool makeOption = false;
+//        // underlyingType: remove outermost Option if it exists
+//        python::Type aUnderlyingType = a;
+//        python::Type bUnderlyingType = b;
+//        if(a.isOptionType()) {
+//            makeOption = true;
+//            aUnderlyingType = a.getReturnType();
+//        }
+//
+//        if(b.isOptionType()) {
+//            makeOption = true;
+//            bUnderlyingType = b.getReturnType();
+//        }
+//
+//        // same underlying types? make option
+//        if (aUnderlyingType == bUnderlyingType) {
+//            return python::Type::makeOptionType(aUnderlyingType);
+//        }
+//
+//        // both numeric types? upcast
+//        if(autoUpcast) {
+//            if(aUnderlyingType.isNumericType() && bUnderlyingType.isNumericType()) {
+//                if(aUnderlyingType == python::Type::F64 || bUnderlyingType == python::Type::F64) {
+//                    // upcast to F64 if either is F64
+//                    if (makeOption) {
+//                        return python::Type::makeOptionType(python::Type::F64);
+//                    } else {
+//                        return python::Type::F64;
+//                    }
+//                }
+//                // at this point underlyingTypes cannot both be bool. Upcast to I64
+//                if (makeOption) {
+//                    return python::Type::makeOptionType(python::Type::I64);
+//                } else {
+//                    return python::Type::I64;
+//                }
+//            }
+//        }
+//
+//        // list type? check if element type compatible
+//        if(aUnderlyingType.isListType() && bUnderlyingType.isListType() && aUnderlyingType != python::Type::EMPTYLIST && bUnderlyingType != python::Type::EMPTYLIST) {
+//            python::Type newElementType = unifyTypes(aUnderlyingType.elementType(), bUnderlyingType.elementType(),
+//                                                     autoUpcast);
+//            if(newElementType == python::Type::UNKNOWN) {
+//                // incompatible list element type
+//                return python::Type::UNKNOWN;
+//            }
+//            if(makeOption) {
+//                return python::Type::makeOptionType(python::Type::makeListType(newElementType));
+//            }
+//            return python::Type::makeListType(newElementType);
+//        }
+//
+//        // tuple type? check if every parameter type compatible
+//        if(aUnderlyingType.isTupleType() && bUnderlyingType.isTupleType()) {
+//            if (aUnderlyingType.parameters().size() != bUnderlyingType.parameters().size()) {
+//                // tuple length differs
+//                return python::Type::UNKNOWN;
+//            }
+//            std::vector<python::Type> newTuple;
+//            for (size_t i = 0; i < aUnderlyingType.parameters().size(); i++) {
+//                python::Type newElementType = unifyTypes(aUnderlyingType.parameters()[i],
+//                                                         bUnderlyingType.parameters()[i], autoUpcast);
+//                if(newElementType == python::Type::UNKNOWN) {
+//                    // incompatible tuple element type
+//                    return python::Type::UNKNOWN;
+//                }
+//                newTuple.emplace_back(newElementType);
+//            }
+//            if(makeOption) {
+//                return python::Type::makeOptionType(python::Type::makeTupleType(newTuple));
+//            }
+//            return python::Type::makeTupleType(newTuple);
+//        }
+//
+//        // dictionary type
+//        if(aUnderlyingType.isDictionaryType() && bUnderlyingType.isDictionaryType()) {
+//            auto key_t = unifyTypes(aUnderlyingType.keyType(), bUnderlyingType.keyType(), autoUpcast);
+//            auto val_t = unifyTypes(aUnderlyingType.elementType(), bUnderlyingType.elementType(), autoUpcast);
+//            if(key_t == python::Type::UNKNOWN || val_t == python::Type::UNKNOWN) {
+//                return python::Type::UNKNOWN;
+//            }
+//            if(makeOption) {
+//                return python::Type::makeOptionType(python::Type::makeDictionaryType(key_t, val_t));
+//            } else {
+//                return python::Type::makeDictionaryType(key_t, val_t);
+//            }
+//        }
+//
+//        // other non-supported types
+//        return python::Type::UNKNOWN;
+//    }
 
     bool python::Type::isZeroSerializationSize() const {
         if(*this == python::Type::NULLVALUE)
@@ -1160,5 +1479,410 @@ namespace python {
             }
         }
         return python::Type::UNKNOWN;
+    }
+
+    Type Type::makeConstantValuedType(const Type &underlying, const std::string &value) {
+        return TypeFactory::instance().createOrGetConstantValuedType(underlying, value);
+    }
+
+    Type Type::makeRangeCompressedIntegerType(int64_t lower_bound, int64_t upper_bound) {
+        return TypeFactory::instance().createOrGetRangeCompressedIntegerType(lower_bound, upper_bound);
+    }
+
+    Type Type::makeDelayedParsingType(const Type &underlying) {
+        return TypeFactory::instance().createOrGetDelayedParsingType(underlying);
+    }
+
+
+    inline Type decodeEx(const std::string& s, size_t *end_position=nullptr) {
+        if(s == "uninitialized") {
+            Type t = Type::fromHash(-1);
+            if(end_position)
+                *end_position = s.length();
+            return t;
+        }
+
+        // decoder fitting encode function below, super simple.
+        if(s.length() == 0)
+            return Type::UNKNOWN;
+
+        // fetch primitive keywords for decoding
+        size_t min_keyword_length = s.length();
+        size_t max_keyword_length = 0;
+        std::unordered_map<std::string, Type> keywords = TypeFactory::instance().get_primitive_keywords();
+
+        // add (), {}, and [] as keywords
+        keywords["()"] = python::Type::EMPTYTUPLE;
+        keywords["[]"] = python::Type::EMPTYLIST;
+        keywords["{}"] = python::Type::EMPTYDICT;
+
+        // fix for bool
+        keywords["bool"] = python::Type::BOOLEAN;
+
+        for(const auto& kv : keywords) {
+            min_keyword_length = std::min(min_keyword_length, kv.first.length());
+            max_keyword_length = std::max(max_keyword_length, kv.first.length());
+        }
+
+        // go through string
+        int numOpenParentheses = 0;
+        int numOpenBrackets = 0;
+        int numClosedParentheses = 0;
+        int numClosedBrackets = 0;
+        int numOpenSqBrackets = 0;
+        int numClosedSqBrackets = 0;
+        int pos = 0;
+        std::stack<std::vector<python::Type> > expressionStack;
+        std::stack<std::string> compoundStack;
+
+        std::stack<std::vector<StructEntry>> kvStack;
+
+        while(pos < s.length()) {
+
+#ifndef NDEBUG
+            // for debug:
+            std::string remaining_string = s.substr(pos, std::string::npos);
+#endif
+            // check against all keywords, match longest keyword first!
+            bool keyword_found = false;
+            Type keyword_type = Type::UNKNOWN;
+            std::string keyword = "";
+            for(unsigned i = std::min(s.length() - pos + 1, max_keyword_length); i >= min_keyword_length; --i) {
+                auto it = keywords.find(s.substr(pos, i));
+                if(it != keywords.end()) {
+                    // found keyword, append
+                    keyword_type = it->second;
+                    keyword = it->first;
+                    keyword_found = true;
+                    break;
+                }
+            }
+
+            // check first for keyword, then for parentheses
+            if(keyword_found) {
+                if(expressionStack.empty()) {
+                    expressionStack.push(std::vector<python::Type>({keyword_type}));
+                    compoundStack.push("primitive");
+                }
+                else
+                    expressionStack.top().push_back(keyword_type);
+                pos += keyword.size(); // should be 3 for i64 e.g.
+            } else if(s[pos] == '(' ) {
+                numOpenParentheses++;
+
+                // a new pair for struct is encountered when:
+                // 1. compoundStack top is Struct
+                // 2. expressionStack top is empty -> i.e. the top has been consumed as pair!
+                // 3. don't push if the last pair is not filled out completely yet! -> i.e. a tuple type was encountered
+
+                bool push_new_pair = false;
+                if(!compoundStack.empty() && compoundStack.top() == "Struct"
+                   && (expressionStack.empty() || expressionStack.top().empty()))
+                    push_new_pair = true;
+
+                // special case: tuple key
+                if(!kvStack.empty()
+                   && !kvStack.top().empty()
+                   && kvStack.top().back().isUndefined())
+                    push_new_pair = false;
+
+                // if in struct compound mode -> push pairs
+                if(push_new_pair) {
+                    // push new pair
+                    assert(!kvStack.empty());
+                    kvStack.top().push_back(StructEntry());
+                } else {
+                    expressionStack.push(std::vector<python::Type>());
+                    compoundStack.push("Tuple");
+                }
+                pos++;
+            } else if(s[pos] == ')') {
+                // must be a pair -> so take results from stack and push to pairs stack!
+                numClosedParentheses++;
+                pos++;
+
+                if(numOpenParentheses < numClosedParentheses) {
+                    Logger::instance().defaultLogger().error("parentheses (...) mismatch in encoded typestr '" + s + "'");
+                    return Type::UNKNOWN;
+                }
+
+                // if in struct compound mode -> push pairs
+                if(!compoundStack.empty() && compoundStack.top() == "Struct") {
+                    // edit last pair.
+                    assert(!kvStack.empty());
+                    assert(!kvStack.top().empty());
+                    assert(!expressionStack.empty());
+                    assert(expressionStack.top().size() >= 2);
+                    auto value_type = expressionStack.top().back();
+                    expressionStack.top().pop_back();
+                    auto key_type = expressionStack.top().back();
+                    expressionStack.top().pop_back();
+
+                    kvStack.top().back().keyType = key_type;
+                    kvStack.top().back().valueType = value_type;
+
+                    // special case: encode string (b.c. it's the raw string decoded right now!)
+                    if(python::Type::STRING == key_type) {
+                        kvStack.top().back().key = escape_to_python_str(kvStack.top().back().key);
+                    }
+                } else if(!compoundStack.empty() && compoundStack.top() == "Tuple") {
+                    // in tuple mode, pop from stack and replace!
+                    auto topVec = expressionStack.top();
+                    auto compound_type = compoundStack.top();
+                    Type t = TypeFactory::instance().createOrGetTupleType(topVec);
+
+                    compoundStack.pop();
+                    expressionStack.pop();
+
+                    if(expressionStack.empty()) {
+                        expressionStack.push({t});
+                        compoundStack.push("primitive");
+                    }
+                    else
+                        expressionStack.top().push_back(t);
+                } else {
+                   throw std::runtime_error("invalid type!");
+                }
+
+            } else if(s[pos] == '\'') {
+                // decode '...'-> string
+                std::string decoded_string = "";
+                pos++;
+                while(pos < s.size()) {
+                    if(pos + 1 < s.size() && s[pos] == '\\' && s[pos + 1] == '\'') {
+                        decoded_string += tuplex::char2str('\'');
+                        pos += 2;
+                    }  if(pos + 1 < s.size() && s[pos] == '\\' && s[pos + 1] == '\\') {
+                        decoded_string += tuplex::char2str('\\');
+                        pos += 2;
+                    } else if(s[pos] == '\'') {
+                        // string is done
+                        pos++;
+                        break;
+                    } else {
+                        decoded_string += tuplex::char2str(s[pos]);
+                        pos++;
+                    }
+                }
+
+                // skip any whitespace
+                while(pos < s.size() && isspace(s[pos]))
+                    pos++;
+                // check if next one is ->
+                bool alwaysPresent = true;
+                if(s.substr(pos, 2) == "->") {
+                    alwaysPresent = true;
+                    pos += 2;
+                } else if(s.substr(pos, 2) == "=>") {
+                    alwaysPresent = false;
+                    pos += 2;
+                } else {
+                    throw std::runtime_error("invalid pair found.");
+                }
+                // save onto last pair the string value!
+                assert(!kvStack.empty());
+                assert(!kvStack.top().empty());
+                kvStack.top().back().key = decoded_string;
+                kvStack.top().back().alwaysPresent = alwaysPresent;
+            } else if(s[pos] == ']') {
+                numClosedSqBrackets++;
+                if(numOpenSqBrackets < numClosedSqBrackets) {
+                    Logger::instance().defaultLogger().error("square brackets [...] mismatch in encoded typestr '" + s + "'");
+                    return Type::UNKNOWN;
+                }
+                auto topVec = expressionStack.top();
+                auto compound_type = compoundStack.top();
+                Type t;
+                if("List" == compound_type) {
+                    t = TypeFactory::instance().createOrGetListType(topVec[0]);
+                } else if("Tuple" == compound_type) {
+                    t = TypeFactory::instance().createOrGetTupleType(topVec);
+                } else if ("Option" == compound_type) {
+                    t = TypeFactory::instance().createOrGetOptionType(topVec[0]); // order?? --> might need reverse...
+                } else if("Function" == compound_type) {
+                    t = TypeFactory::instance().createOrGetFunctionType(topVec[0], topVec[1]); // order?? --> might need reversion?
+                } else if("Dict" == compound_type) {
+                    t = TypeFactory::instance().createOrGetDictionaryType(topVec[0], topVec[1]); // order?? --> might need reversion?
+                } else if ("Type" == compound_type) {
+                    t = TypeFactory::instance().createOrGetTypeObjectType(topVec[0]);
+                } else if("Struct" == compound_type) {
+                    auto kv_pairs = kvStack.top();
+                    kvStack.pop();
+                    t = TypeFactory::instance().createOrGetStructuredDictType(kv_pairs);
+                } else {
+                    Logger::instance().defaultLogger().error("Unknown compound type '" + compound_type + "' encountered, can't create compound type. Returning unknown.");
+                    return Type::UNKNOWN;
+                }
+                compoundStack.pop();
+                expressionStack.pop();
+
+                if(expressionStack.empty()) {
+                    expressionStack.push({t});
+                    compoundStack.push("primitive");
+                }
+                else
+                    expressionStack.top().push_back(t);
+                pos++;
+            } else if(s[pos] == '[') {
+                // legacy, encodes a list
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("List");
+                numOpenSqBrackets++;
+                pos++;
+            } else if(s[pos] == '{') {
+                // legacy, should now be treated as Dict[...] except for empty dict
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("Dict");
+                numOpenBrackets++;
+                pos++;
+            } else if(s[pos] == '}') {
+                // legacy, should now be treated as Dict[...] except for empty dict
+
+                numClosedBrackets++;
+                if(numOpenBrackets < numClosedBrackets) {
+                    Logger::instance().defaultLogger().error("brackets {...} mismatch in encoded typestr '" + s + "'");
+                    return Type::UNKNOWN;
+                }
+                auto topVec = expressionStack.top();
+                auto compound_type = compoundStack.top();
+                assert("Dict" == compound_type);
+                auto t = TypeFactory::instance().createOrGetDictionaryType(topVec[0], topVec[1]); // order?? --> might need reversion?
+
+                compoundStack.pop();
+                expressionStack.pop();
+
+                if(expressionStack.empty()) {
+                    expressionStack.push({t});
+                    compoundStack.push("primitive");
+                }
+                else
+                    expressionStack.top().push_back(t);
+                pos++;
+            }  else if (s.substr(pos, 7).compare("Option[") == 0) {
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("Option");
+                numOpenSqBrackets++;
+                pos += 7;
+            } else if (s.substr(pos, 6).compare("Tuple[") == 0) {
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("Tuple");
+                numOpenSqBrackets++;
+                pos += 6;
+            } else if (s.substr(pos, 5).compare("Dict[") == 0) {
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("Dict");
+                numOpenSqBrackets++;
+                pos += 5;
+            } else if (s.substr(pos, 9).compare("Function[") == 0) {
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("Function");
+                numOpenSqBrackets++;
+                pos += 9;
+            } else if (s.substr(pos, 5).compare("List[") == 0) {
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("List");
+                numOpenSqBrackets++;
+                pos += 5;
+            } else if(s.substr(pos, strlen("Struct[")).compare("Struct[") == 0) {
+                // it's a compound struct type made up of a bunch of other types
+                // need to decode pairs manually!
+                // i.e., what is the next token? -> if ] => then empty dict!
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("Struct");
+                kvStack.push({}); // new pair entry!
+                numOpenSqBrackets++;
+                pos += strlen("Struct[");
+            } else if(s[pos] == ',' || s[pos] == ' ' || s[pos] == '\t' || s[pos] == '\n') {
+                // skip ,
+                pos++;
+            } else {
+                std::stringstream ss;
+                ss<<"unknown token '"<<s[pos]<<"' in encoded type str '"<<s<<"' encountered.";
+                Logger::instance().defaultLogger().error(ss.str());
+                return Type::UNKNOWN;
+            }
+        }
+        if(end_position)
+            *end_position = pos;
+        assert(expressionStack.size() > 0);
+        assert(expressionStack.top().size() > 0);
+        return expressionStack.top().front();
+    }
+
+    Type Type::decode(const std::string& s) {
+        return decodeEx(s, nullptr);
+    }
+
+    // TODO: more efficient encoding using binary representation?
+    std::string Type::encode() const {
+        if(_hash > 0) {
+            // use super simple encoding scheme here.
+            // -> i.e. primitives use desc
+            // else, create compound type using <Name>[...]
+            // this allows for easy & quick decoding.
+            // => could even use quicker names for encoding the types
+
+            // do not use isPrimitiveType(), ... etc. here
+            // because these functions are for semantics...!
+            const auto& entry = TypeFactory::instance()._typeMap.at(_hash);
+            auto abstract_type = entry._type;
+            switch(abstract_type) {
+                case TypeFactory::AbstractType::PRIMITIVE: {
+                    return entry._desc;
+                }
+                case TypeFactory::AbstractType::OPTION: {
+                    return "Option[" + elementType().encode() + "]";
+                }
+                case TypeFactory::AbstractType::TUPLE: {
+                    std::stringstream ss;
+                    ss<<"Tuple[";
+                    for(unsigned i = 0; i < parameters().size(); ++i) {
+                        ss<<parameters()[i].encode();
+                        if(i != parameters().size() - 1)
+                            ss<<",";
+                    }
+                    ss<<"]";
+                    return ss.str();
+                }
+                case TypeFactory::AbstractType::LIST: {
+                    return "List[" + elementType().encode() + "]";
+                }
+                case TypeFactory::AbstractType::DICTIONARY: {
+                    return "Dict[" + keyType().encode() + "," + valueType().encode() + "]";
+                }
+                case TypeFactory::AbstractType::FUNCTION: {
+                    return "Function[" + getParamsType().encode() + "," + getReturnType().encode() + "]";
+                }
+                default: {
+                    Logger::instance().defaultLogger().error("Unknown type " + desc() + " encountered, can't encode. Using unknown.");
+                    return Type::UNKNOWN.encode();
+                }
+            }
+        } else if (_hash == 0)
+            return "unknown";
+        else
+            return "uninitialized";
+    }
+
+    std::vector<python::Type> primitiveTypes(bool return_options_as_well) {
+        std::vector<python::Type> v{python::Type::BOOLEAN, python::Type::I64, python::Type::F64,
+                                    python::Type::STRING, python::Type::NULLVALUE, python::Type::EMPTYTUPLE,
+                                    python::Type::EMPTYLIST, python::Type::EMPTYDICT};
+        //python::Type::PYOBJECT};
+
+        if(return_options_as_well) {
+            // make everything optional
+            auto num = v.size();
+            for(unsigned i = 0; i < num; ++i) {
+                v.push_back(python::Type::makeOptionType(v[i]));
+            }
+        }
+
+        // create set to remove duplicates
+        std::set<python::Type> S{v.begin(), v.end()};
+        v = std::vector<python::Type>{S.begin(), S.end()};
+        // sort
+        std::sort(v.begin(), v.end());
+        return v;
     }
 }

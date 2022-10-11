@@ -234,6 +234,23 @@ typedef int32_t* ptr_t;
 #include <cJSON.h>
 #endif
 
+// double and float equality
+#define DOUBLE_EPSILON 0.0000000001
+#define FLOAT_EPSILON 0.000000001f
+
+inline bool float_eq(float a, float b) {
+    return std::abs(a - b) < FLOAT_EPSILON;
+}
+
+inline bool double_eq(double a, double b) {
+    return std::abs(a - b) < DOUBLE_EPSILON;
+}
+
+template<typename T> std::string pointer2hex(T *ptr) {
+    char buf[64];
+    snprintf(buf, 64, "%p", ptr);
+    return std::string(buf);
+}
 
 // some basic helper to throw for possible bad code in debug mode an error (should never occur in release mode!)
 void debug_error_message(const char* message, const char* file, const int ine);
@@ -323,6 +340,10 @@ namespace core {
             return (k + 1) * base;
     }
 
+    template<typename T, typename U> inline T ceilToMultiple(const T& x, const U& base) {
+        return ceilToMultiple(x, static_cast<T>(base));
+    }
+
     // Note: GCC demands template<...> tokens to come first
     template<typename T> inline void swap(T& a, T& b) {
         T h = a;
@@ -354,6 +375,14 @@ namespace core {
      * @return string with line numbers.
      */
     extern std::string withLineNumbers(const std::string& s);
+
+    /*!
+     * prefix all lines (determined by '\n') with another string
+     * @param s string to split into lines
+     * @param prefix what to prefix
+     * @return prefixed string.
+     */
+    extern std::string prefixLines(const std::string& s, const std::string& prefix);
 
 
     /*!

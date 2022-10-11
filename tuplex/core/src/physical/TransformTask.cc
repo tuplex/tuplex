@@ -16,6 +16,7 @@
 #include <physical/TextReader.h>
 #include <physical/OrcReader.h>
 #include <bucket.h>
+#include <physical/JsonReader.h>
 
 namespace tuplex {
     // atomic var to count output rows!
@@ -952,6 +953,10 @@ namespace tuplex {
         _inputFilePath = inputFile;
         _inputSchema = Schema(Schema::MemoryLayout::ROW, rowType);
 
+        // JSON is done as block based reader
+        if(FileFormat::OUTFMT_JSON == fmt)
+            cellBasedFunctor = false;
+
         // completely compiled parser or the smaller version?
         if(cellBasedFunctor) {
             switch (fmt) {
@@ -993,6 +998,12 @@ namespace tuplex {
                     csv->setRange(rangeStart, rangeStart + rangeSize);
                     csv->setHeader(header);
                     _reader.reset(csv);
+                    break;
+                }
+                case FileFormat::OUTFMT_JSON: {
+                    auto j = new JsonReader(this, reinterpret_cast<codegen::read_block_f>(_functor), partitionSize);
+                    j->setRange(rangeStart, rangeStart + rangeSize);
+                    _reader.reset(j);
                     break;
                 }
                 default:

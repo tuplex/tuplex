@@ -471,7 +471,7 @@ if __name__ == '__main__':
             "runTimeMemory" : "128MB",
             "useLLVMOptimizer" : True,
             "optimizer.nullValueOptimization" : False,
-            "csv.selectionPushdown" : True,
+            "optimizer.selectionPushdown" : True,
             "optimizer.generateParser" : False} # bug when using generated parser. Need to fix that.
 
     if os.path.exists('tuplex_config.json'):

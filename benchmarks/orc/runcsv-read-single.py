@@ -41,7 +41,7 @@ if __name__ == '__main__':
             "runTimeMemory" : "128MB",
             "useLLVMOptimizer" : True,
             "optimizer.nullValueOptimization" : False,
-            "csv.selectionPushdown" : True}
+            "optimizer.selectionPushdown" : True}
 
     if os.path.exists('tuplex_config.json'):
         with open('tuplex_config.json') as fp:

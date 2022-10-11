@@ -372,7 +372,7 @@ TEST_F(AggregateTest, UniqueMixedTypesWithInterpreterFallback) {
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
     opt_ref.set("tuplex.optimizer.nullValueOptimization", "true");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
 
     Context c_ref(opt_ref);
@@ -397,7 +397,7 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
     opt.set("tuplex.redirectToPythonLogging", "True");
     opt.set("tuplex.executorMemory", "2G");
     opt.set("tuplex.driverMemory", "2G");
-    opt.set("tuplex.executorCount", "0");
+    // opt.set("tuplex.executorCount", "0"); // single-threaded setting.
     opt.set("tuplex.executorCount", "16");
 
     // ds = c.csv('311_subset.csv')

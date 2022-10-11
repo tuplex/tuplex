@@ -16,5 +16,5 @@ def test_options():
             "tuplex.allowUndefinedBehavior": False,
             "tuplex.webui.enable": False,
             "tuplex.optimizer.mergeExceptionsInOrder": True,
-            "tuplex.csv.selectionPushdown": True,
+            "tuplex.optimizer.selectionPushdown": True,
             "tuplex.scratchDir": ".cache/"}

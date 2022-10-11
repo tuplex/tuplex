@@ -262,7 +262,7 @@ Use following config for flights, to get it fast...
 "autoUpcast":true,
 "optimizer.generateParser":true,
 "optimizer.nullValueOptimization": true,
-"csv.selectionPushdown": true,
+"optimizer.selectionPushdown": true,
 "resolveWithInterpreterOnly":false}
 ```
 

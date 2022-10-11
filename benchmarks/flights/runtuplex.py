@@ -77,7 +77,7 @@ conf = {"webui.enable" : False,
         "runTimeMemory" : "128MB",
         "useLLVMOptimizer" : False,
         "optimizer.nullValueOptimization" : False,
-        "csv.selectionPushdown" : True,
+        "optimizer.selectionPushdown" : True,
         "tuplex.optimizer.generateParser": True}
 
 
@@ -105,7 +105,7 @@ for i, c in enumerate(df.columns):
     df = df.renameColumn(c, renamed_cols[i])
 
 # if cache/nosf mode is active, prefilter
-if args.simulate_spark and conf["csv.selectionPushdown"]:
+if args.simulate_spark and conf["optimizer.selectionPushdown"]:
     df = df.selectColumns(time_req_cols)
 if args.simulate_spark:
     df = df.cache()

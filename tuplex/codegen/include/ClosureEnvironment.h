@@ -53,7 +53,7 @@ namespace tuplex {
             Constant() {}
             Constant(const Constant& other) = default;
             Constant(Constant&& other) = default;
-
+            Constant(const python::Type& type, const std::string& identifier, const Field& value) : type(type), identifier(identifier), value(value) {}
             Constant& operator = (const Constant& other) = default;
         };
 

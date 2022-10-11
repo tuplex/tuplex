@@ -15,6 +15,8 @@
 #include <bucket.h>
 #include <TypeAnnotatorVisitor.h>
 #include <CSVUtils.h>
+#include <TypeHelper.h>
+
 
 #define BUF_FORMAT_COMPILED_RESOLVE 0
 #define BUF_FORMAT_NORMAL_OUTPUT 1
@@ -523,7 +525,7 @@ default:
                 // note: current python pipeline always expects a tuple arg. hence pack current element.
                 if(PyTuple_Check(tuple) && PyTuple_Size(tuple) > 1) {
                     // nothing todo...
-                } else {
+                } else if(!parse_cells) {
                     auto tmp_tuple = PyTuple_New(1);
                     PyTuple_SET_ITEM(tmp_tuple, 0, tuple);
                     tuple = tmp_tuple;
@@ -656,13 +658,14 @@ default:
                                 } else {
 
                                     // there are three options where to store the result now
+                                TypeUnificationPolicy t_policy; t_policy.allowAutoUpcastOfNumbers = _allowNumericTypeUnification;
 
                                     // 1. fits targetOutputSchema (i.e. row becomes normalcase row)
-                                    bool outputAsNormalRow = python::Type::UNKNOWN != unifyTypes(rowType, _targetOutputSchema.getRowType(), _allowNumericTypeUnification)
+                                    bool outputAsNormalRow = python::Type::UNKNOWN != unifyTypes(rowType, _targetOutputSchema.getRowType(), t_policy)
                                                              && canUpcastToRowType(rowType, _targetOutputSchema.getRowType());
                                     // 2. fits generalCaseOutputSchema (i.e. row becomes generalcase row)
                                     bool outputAsGeneralRow = python::Type::UNKNOWN != unifyTypes(rowType,
-                                                                                                  commonCaseOutputSchema().getRowType(), _allowNumericTypeUnification)
+                                                                                                  commonCaseOutputSchema().getRowType(), t_policy)
                                                               && canUpcastToRowType(rowType, commonCaseOutputSchema().getRowType());
 
                                     // 3. doesn't fit, store as python object. => we should use block storage for this as well. Then data can be shared.
@@ -729,7 +732,7 @@ default:
             } catch(...) {
                 std::cerr<<"unknown internal exception caught"<<std::endl;
             }
-    python::unlockGIL();
+            python::unlockGIL();
         }
 
         // fallback 3: still exception? save...

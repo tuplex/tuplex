@@ -1149,14 +1149,14 @@ TEST_F(WrapperTest, FlightSimulateSpark) {
     // "partitionSize": "32MB", "runTimeMemory": "64MB",
     // "inputSplitSize": "64MB", "useLLVMOptimizer": true,
     // "optimizer.nullValueOptimization": true,
-    // "csv.selectionPushdown": true,
+    // "optimizer.selectionPushdown": true,
     // "optimizer.generateParser": false,
     // "optimizer.mergeExceptionsInOrder": false,
     // "optimizer.filterPushdown": true}
     PythonContext ctx("python", "",
                     "{\"tuplex.webui.enable\":\"False\", \"tuplex.useLLVMOptimizer\" : \"True\","
                     " \"tuplex.optimizer.nullValueOptimization\" : \"True\","
-                    " \"tuplex.optimizer.csv.selectionPushdown\" : \"True\","
+                    " \"tuplex.optimizer.optimizer.selectionPushdown\" : \"True\","
                     " \"tuplex.resolveWithInterpreterOnly\":\"False\","
                     "\"tuplex.executorCount\":0,"
                     "\"tuplex.driverMemory\":\"6G\","
@@ -2207,7 +2207,7 @@ TEST_F(WrapperTest, ZillowDirty) {
                      " \"runTimeMemory\": \"4MB\","
                      " \"useLLVMOptimizer\": true,"
                      " \"optimizer.nullValueOptimization\": false,"
-                     " \"csv.selectionPushdown\": false, "
+                     " \"optimizer.selectionPushdown\": false, "
                      "\"optimizer.generateParser\": false,"
                      "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                      "\"optimizer.mergeExceptionsInOrder\": true}";
@@ -2220,7 +2220,7 @@ TEST_F(WrapperTest, ZillowDirty) {
                      " \"runTimeMemory\": \"4MB\","
                      " \"useLLVMOptimizer\": true,"
                      " \"optimizer.nullValueOptimization\": false,"
-                     " \"csv.selectionPushdown\": false, "
+                     " \"optimizer.selectionPushdown\": false, "
                      "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                      "\"optimizer.generateParser\": false,"
 

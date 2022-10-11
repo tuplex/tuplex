@@ -31,6 +31,8 @@ namespace tuplex {
         void csvInput(int64_t operatorID, const std::vector<std::string>& columns=std::vector<std::string>(),
                       const std::vector<std::string>& na_values=std::vector<std::string>());
 
+        void jsonInput(int64_t operatorID, const std::vector<std::string>& columns=std::vector<std::string>());
+
         /*!
          * add new cell based input, i.e. strings that get parsed to types depending on the hierarchy being defined.
          * @param operatorID ID of the input operator

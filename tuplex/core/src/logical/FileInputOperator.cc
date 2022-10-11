@@ -54,6 +54,9 @@ namespace tuplex {
     aligned_string FileInputOperator::loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode, bool use_cache, size_t* file_offset) {
         auto &logger = Logger::instance().logger("fileinputoperator");
 
+        // correct sample size for small files
+        sampleSize = std::min(sampleSize, file_size);
+
         if(0 == file_size || uri == URI::INVALID)
             return "";
 

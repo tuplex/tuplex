@@ -152,6 +152,7 @@ namespace tuplex {
                                                _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
 
             auto obj_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr(), "row_object");
+            json_release_object(_env, builder, obj_var);
             builder.CreateCall(Fgetobj, {parser, obj_var});
 
             auto obj = builder.CreateLoad(obj_var);
@@ -175,8 +176,8 @@ namespace tuplex {
             BasicBlock *bItemNotFound = BasicBlock::Create(ctx, "item_not_found", builder.GetInsertBlock()->getParent());
             BasicBlock *bContinue = BasicBlock::Create(ctx, "continue", builder.GetInsertBlock()->getParent());
             auto cond_item_found = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
-            // free obj_var...
-            json_freeObject(_env, builder, builder.CreateLoad(obj_var));
+
+            json_release_object(_env, builder, obj_var);
 #ifndef NDEBUG
             builder.CreateStore(_env.i8nullptr(), obj_var);
 #endif

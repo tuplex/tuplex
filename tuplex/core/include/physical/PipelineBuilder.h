@@ -393,6 +393,7 @@ namespace tuplex {
              */
             void addExceptionHandler(const std::string &callbackName) { _exceptionCallbackName = callbackName; }
 
+            std::string exceptionHandler() const { return _exceptionCallbackName; }
 
             bool addHashJoinProbe(int64_t leftKeyIndex, const python::Type &leftRowType,
                                   int64_t rightKeyIndex, const python::Type &rightRowType,

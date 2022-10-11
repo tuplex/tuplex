@@ -5,6 +5,9 @@ file(GLOB_RECURSE INCLUDES include/*.h)
 
 include_directories("include")
 
+# find zlib (any will do)
+find_package(ZLIB REQUIRED)
+
 ### include fmtlib/fmt
 include(ExternalProject)
 set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
@@ -49,7 +52,7 @@ if(NOT BUILD_WITH_AWS)
     set(FETCHCONTENT_BASE_DIR ${CMAKE_BINARY_DIR}/third_party/src)
     FetchContent_Declare(cJSON
         GIT_REPOSITORY https://github.com/DaveGamble/cJSON.git
-        GIT_TAG        v1.7.14
+        GIT_TAG        v1.7.15
         GIT_CONFIG advice.detachedHead=false
     )
     FetchContent_GetProperties(cJSON)
@@ -63,6 +66,17 @@ else()
     message(STATUS "Using cJSON shipped with AWSSDK")
     # Note: alternative is to use CJSON_HIDE_SYMBOLS IWTH AWS SDK.
 endif()
+
+# include simdjson, tutorial here https://github.com/simdjson/cmake_demo_single_file/blob/master/CMakeLists.txt
+include(FetchContent)
+FetchContent_Declare(
+        simdjson
+        GIT_REPOSITORY https://github.com/simdjson/simdjson.git
+        GIT_SHALLOW TRUE
+        GIT_TAG tags/v2.0.4
+)
+
+FetchContent_MakeAvailable(simdjson)
 
 # AWS SDK defines cjson since v1.5, yet if using BUILD_WITH_AWS=OFF make sure to add cJSON symbols...
 if(NOT BUILD_WITH_AWS)
@@ -103,7 +117,8 @@ target_include_directories(libutils PUBLIC
         ${cjson_SOURCE_DIR}
         ${json_INCLUDE_DIR}
         ${Boost_INCLUDE_DIR}
-        ${AWSSDK_INCLUDE_DIR})
+        ${AWSSDK_INCLUDE_DIR}
+        ${ZLIB_INCLUDE_DIRS})
 
 # Specify here the libraries this program depends on
-target_link_libraries(libutils Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${AWSSDK_LINK_LIBRARIES})
+target_link_libraries(libutils Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${AWSSDK_LINK_LIBRARIES} ${ZLIB_LIBRARIES} simdjson)

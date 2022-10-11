@@ -15,6 +15,7 @@
 #include <JSONUtils.h>
 #include <limits>
 #include <Signals.h>
+#include <TypeHelper.h>
 
 // possible classes are
 // int, float, str, list, tuple, dict
@@ -1248,6 +1249,45 @@ namespace tuplex {
         return pds;
     }
 
+    PythonDataSet PythonContext::json(const std::string& pattern,
+                                      bool unwrap_first_level,
+                                      bool treat_heterogeneous_lists_as_tuples) {
+        assert(_context);
+
+        // reset signals
+        if(check_and_forward_signals(true))
+            return makeError("job aborted via signal");
+
+        PythonDataSet pds;
+        assert(PyGILState_Check()); // make sure this thread holds the GIL!
+
+        python::unlockGIL();
+        DataSet *ds = nullptr;
+        std::string err_message = "";
+        try {
+            ds = &_context->json(pattern, unwrap_first_level, treat_heterogeneous_lists_as_tuples);
+        } catch(const std::exception& e) {
+            err_message = e.what();
+            Logger::instance().defaultLogger().error(err_message);
+        } catch(...) {
+            err_message = "unknown C++ exception occurred, please change type.";
+            Logger::instance().defaultLogger().error(err_message);
+        }
+
+        python::lockGIL();
+
+        // nullptr? then error dataset!
+        if(!ds || !err_message.empty()) {
+            Logger::instance().flushAll();
+            assert(_context);
+            ds = &_context->makeError(err_message);
+        }
+        pds.wrap(ds);
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
+        return pds;
+    }
+
     PythonDataSet PythonContext::orc(const std::string &pattern,
                                      py::object cols) {
         assert(_context);
@@ -1521,8 +1561,8 @@ namespace tuplex {
 
         // @TODO: move to optimizer
         PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.csv.selectionPushdown"),
-                       python::boolToPython(co.CSV_PARSER_SELECTION_PUSHDOWN()));
+                       python::PyString_FromString("tuplex.optimizer.selectionPushdown"),
+                       python::boolToPython(co.OPT_SELECTION_PUSHDOWN()));
 
 
         PyDict_SetItem(dictObject,

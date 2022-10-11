@@ -19,6 +19,9 @@
 #include <pcre2.h>
 #include <TupleTree.h>
 
+#include <experimental/StructDictHelper.h>
+#include <experimental/ListHelper.h>
+
 using namespace llvm;
 
 // helper functions for debugging.
@@ -187,8 +190,15 @@ namespace tuplex {
                         if (i < j && (python::Type::STRING == paramType.withoutOptions() ||
                                       python::Type::GENERICDICT == paramType.withoutOptions() ||
                                       paramType.withoutOptions().isDictionaryType() ||
-                                      (paramType.withoutOptions().isListType() && paramType.withoutOptions() != python::Type::EMPTYLIST && !paramType.withoutOptions().elementType().isSingleValued()))) // TODO: this should probably be generalized to type.isVarLen() or something
-                            sizeOffset++;
+                                      (paramType.withoutOptions().isListType() && paramType.withoutOptions() != python::Type::EMPTYLIST && !paramType.withoutOptions().elementType().isSingleValued()))) {
+                            // does not apply to lists AND struct dicts -> they hold size internally.
+                            if(paramType.withoutOptions().isListType() || paramType.withoutOptions().isStructuredDictionaryType()) {
+                                /// ...
+                            } else {
+                                // TODO: this should probably be generalized to type.isVarLen() or something
+                                sizeOffset++;
+                            }
+                        }
                     }
 
                     _tupleIndexCache[tupleType.hash()][j] = std::make_tuple(valueOffset, sizeOffset, bitmapPos);
@@ -273,13 +283,19 @@ namespace tuplex {
                     memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
                     numVarlenFields++;
                 } else if ((python::Type::GENERICDICT == t || t.isDictionaryType()) && t != python::Type::EMPTYDICT) { // dictionary
-                    memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
-                    numVarlenFields++;
+                    // special case structured dict
+                    if(t.isStructuredDictionaryType()) {
+                        memberTypes.push_back(getOrCreateStructuredDictType(t));
+                        // not classified as var field (var within).
+                    } else {
+                        // general i8* pointer to hold C-struct
+                        memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
+                        numVarlenFields++;
+                    }
                 } else if (t.isSingleValued()) {
                     // leave out. Not necessary to represent it in memory.
                 } else if(t.isListType()) {
-                    memberTypes.push_back(getListType(t));
-                    if(!t.elementType().isSingleValued()) numVarlenFields++;
+                    memberTypes.push_back(getOrCreateListType(t)); // internal size field...
                 } else {
                     // nested tuple?
                     // ==> do lookup!
@@ -311,7 +327,9 @@ namespace tuplex {
             return structType;
         }
 
-        llvm::Type *LLVMEnvironment::getListType(const python::Type &listType, const std::string &twine) {
+        llvm::Type *LLVMEnvironment::getOrCreateListType(const python::Type &listType, const std::string &twine) {
+            assert(listType == python::Type::EMPTYLIST || listType.isListType());
+
             if(listType == python::Type::EMPTYLIST) return i8ptrType(); // dummy type
             auto it = _generatedListTypes.find(listType);
             if(_generatedListTypes.end() != it) {
@@ -321,38 +339,82 @@ namespace tuplex {
             assert(listType.isListType() && listType != python::Type::EMPTYLIST);
 
             auto elementType = listType.elementType();
+
+            bool elements_optional = elementType.isOptionType();
+            if(elements_optional)
+                elementType = elementType.getReturnType();
+            assert(elementType != python::Type::UNKNOWN);
+
             llvm::Type *retType;
             if(elementType.isSingleValued()) {
-                retType = i64Type();
-            } else if(elementType == python::Type::I64 || elementType == python::Type::F64 || elementType == python::Type::BOOLEAN || elementType.isTupleType()) {
+                if(elements_optional) {
+                    std::vector<llvm::Type*> memberTypes;
+                    memberTypes.push_back(i64Type()); // array capacity
+                    memberTypes.push_back(i64Type()); // size
+                    memberTypes.push_back(i8ptrType()); // bool-array
+                    llvm::ArrayRef<llvm::Type *> members(memberTypes);
+                    retType = llvm::StructType::create(_context, members, "struct." + twine, false);
+                } else {
+                    // simple counter will do
+                    retType = i64Type(); // just need to figure out number of fields stored!
+                }
+            } else if(elementType == python::Type::I64 || elementType == python::Type::F64 || elementType == python::Type::BOOLEAN) {
                 std::vector<llvm::Type*> memberTypes;
                 memberTypes.push_back(i64Type()); // array capacity
                 memberTypes.push_back(i64Type()); // size
                 // array
-                // TODO: probably can replace with just llvm::PointerType::get(pythonToLLVMType(elementType), 0)
                 if(elementType == python::Type::I64) {
                     memberTypes.push_back(i64ptrType());
                 } else if(elementType == python::Type::F64) {
                     memberTypes.push_back(doublePointerType());
                 } else if(elementType == python::Type::BOOLEAN) {
                     memberTypes.push_back(getBooleanPointerType());
-                } else if(elementType.isTupleType()) {
-                    if(elementType.isFixedSizeType()) {
-                        // list stores the actual tuple structs
-                        memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(flattenedType(elementType)), 0));
-                    } else {
-                        // list stores pointers to tuple structs
-                        memberTypes.push_back(llvm::PointerType::get(llvm::PointerType::get(getOrCreateTupleType(flattenedType(elementType)), 0), 0));
-                    }
                 }
+                if(elements_optional)
+                    memberTypes.push_back(i8ptrType()); // bool-array
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
-            } else if(elementType == python::Type::STRING || elementType.isDictionaryType()) {
+            } else if(elementType == python::Type::STRING
+                      || elementType == python::Type::PYOBJECT) {
                 std::vector<llvm::Type*> memberTypes;
                 memberTypes.push_back(i64Type()); // array capacity
                 memberTypes.push_back(i64Type()); // size
-                memberTypes.push_back(llvm::PointerType::get(i8ptrType(), 0)); // str array
+                memberTypes.push_back(llvm::PointerType::get(i8ptrType(), 0)); // str array (or i8* pointer array)
                 memberTypes.push_back(i64ptrType()); // strlen array (with the +1 for \0)
+                if(elements_optional)
+                    memberTypes.push_back(i8ptrType()); // bool-array
+                llvm::ArrayRef<llvm::Type *> members(memberTypes);
+                retType = llvm::StructType::create(_context, members, "struct." + twine, false);
+            } else if(elementType.isStructuredDictionaryType()) {
+                auto llvm_element_type = getOrCreateStructuredDictType(elementType);
+
+                // pointer to the structured dict type!
+                std::vector<llvm::Type*> memberTypes;
+                memberTypes.push_back(i64Type()); // array capacity
+                memberTypes.push_back(i64Type()); // size
+                memberTypes.push_back(llvm::PointerType::get(llvm_element_type, 0));
+                if(elements_optional)
+                    memberTypes.push_back(i8ptrType()); // bool-array
+                llvm::ArrayRef<llvm::Type *> members(memberTypes);
+                retType = llvm::StructType::create(_context, members, "struct." + twine, false);
+            } else if(elementType.isListType()) {
+                // pointers to the list type!
+                std::vector<llvm::Type*> memberTypes;
+                memberTypes.push_back(i64Type()); // array capacity
+                memberTypes.push_back(i64Type()); // size
+                memberTypes.push_back(llvm::PointerType::get(getOrCreateListType(elementType), 0));
+                if(elements_optional)
+                    memberTypes.push_back(i8ptrType()); // bool-array
+                llvm::ArrayRef<llvm::Type *> members(memberTypes);
+                retType = llvm::StructType::create(_context, members, "struct." + twine, false);
+            } else if(elementType.isTupleType()) {
+                // pointers to the flattened tuple type!
+                std::vector<llvm::Type*> memberTypes;
+                memberTypes.push_back(i64Type()); // array capacity
+                memberTypes.push_back(i64Type()); // size
+                memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(elementType), 0));
+                if(elements_optional)
+                    memberTypes.push_back(i8ptrType()); // bool-array
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
             } else {
@@ -408,7 +470,7 @@ namespace tuplex {
                 memberTypes.push_back(llvm::Type::getInt32Ty(_context));
                 if(iterableType.isListType()) {
                     iteratorName = "list_";
-                    memberTypes.push_back(llvm::PointerType::get(getListType(iterableType), 0));
+                    memberTypes.push_back(llvm::PointerType::get(getOrCreateListType(iterableType), 0));
                 } else if(iterableType == python::Type::STRING) {
                     iteratorName = "str_";
                     memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
@@ -453,7 +515,7 @@ namespace tuplex {
             memberTypes.push_back(llvm::Type::getInt32Ty(_context));
             if(argType.isListType()) {
                 iteratorName = "list_";
-                memberTypes.push_back(llvm::PointerType::get(getListType(argType), 0));
+                memberTypes.push_back(llvm::PointerType::get(getOrCreateListType(argType), 0));
             } else if(argType == python::Type::STRING) {
                 iteratorName = "str_";
                 memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
@@ -735,21 +797,22 @@ namespace tuplex {
                 return SerializableValue{ret, size, isnull};
             }
 
-
-
             // extract elements
             // auto structValIdx = builder.CreateStructGEP(tuplePtr, valueOffset);
             auto structValIdx = CreateStructGEP(builder, tuplePtr, valueOffset);
             value = builder.CreateLoad(structValIdx);
 
             // size existing? ==> only for varlen types
-            if (!elementType.isFixedSizeType()) {
+            if (!elementType.isFixedSizeType() && !elementType.isStructuredDictionaryType() && !elementType.isListType()) {
                 //  auto structSizeIdx = builder.CreateStructGEP(tuplePtr, sizeOffset);
                 auto structSizeIdx = CreateStructGEP(builder, tuplePtr, sizeOffset);
                 size = builder.CreateLoad(structSizeIdx);
             } else {
                 // size from type
                 size = i64Size;
+
+                if(elementType.isListType() || elementType.isStructuredDictionaryType())
+                    size = nullptr; // need to explicitly compute (costly)
             }
 
             return SerializableValue(value, size, isnull);
@@ -801,11 +864,21 @@ namespace tuplex {
             // extract elements
             // auto structValIdx = builder.CreateStructGEP(tuplePtr, valueOffset);
             auto structValIdx = CreateStructGEP(builder, tuplePtr, valueOffset);
-            if (value.val)
-                builder.CreateStore(value.val, structValIdx);
+            if (value.val) {
+                auto v = value.val;
+                // special case isStructDict or isListType b.c. they may be represented through a lazy pointer
+                if(elementType.isListType() || elementType.isStructuredDictionaryType()) {
+                    if(v->getType() == structValIdx->getType())
+                        v = builder.CreateLoad(v); // load in order to store!
+                }
+
+                builder.CreateStore(v, structValIdx);
+            }
 
             // size existing? ==> only for varlen types
-            if (!elementType.isFixedSizeType()) {
+            if (!elementType.isFixedSizeType() &&
+                !elementType.isListType() &&
+                !elementType.isStructuredDictionaryType()) {
                 // auto structSizeIdx = builder.CreateStructGEP(tuplePtr, sizeOffset);
                 auto structSizeIdx = CreateStructGEP(builder, tuplePtr, sizeOffset);
                 if (value.size)
@@ -1178,8 +1251,16 @@ namespace tuplex {
 
             // string type is a primitive, hence we can return it
             if (t == python::Type::STRING || t == python::Type::GENERICDICT ||
-                t.isDictionaryType() || t == python::Type::PYOBJECT)
+                t == python::Type::PYOBJECT)
                 return Type::getInt8PtrTy(_context);
+
+            if(t.isDictionaryType()) {
+                if(t.isStructuredDictionaryType()) {
+                    return getOrCreateStructuredDictType(t);
+                } else {
+                    return Type::getInt8PtrTy(_context);
+                }
+            }
 
             if(t == python::Type::MATCHOBJECT)
                 return getMatchObjectPtrType();
@@ -1197,7 +1278,7 @@ namespace tuplex {
             }
 
             if(t.isListType())
-                return getListType(t);
+                return getOrCreateListType(t);
 
             if(t.isIteratorType()) {
                 // python iteratorType to LLVM iterator type is a one-to-many mapping, so not able to return LLVM type given only python type t
@@ -1214,33 +1295,49 @@ namespace tuplex {
                 bool packed = false;
 
                 if (rt == python::Type::BOOLEAN) {
-                    llvm::ArrayRef<llvm::Type *> members(
-                            std::vector<llvm::Type *>{Type::getInt64Ty(_context), Type::getInt1Ty(_context)});
+                    std::vector<llvm::Type*> member_types;
+                    member_types.push_back(Type::getInt64Ty(_context));
+                    member_types.push_back(Type::getInt1Ty(_context));
+                    llvm::ArrayRef<llvm::Type *> members(member_types);
                     return llvm::StructType::create(_context, members, "bool_opt", packed);
                 }
 
                 if (rt == python::Type::I64) {
-                    llvm::ArrayRef<llvm::Type *> members(
-                            std::vector<llvm::Type *>{Type::getInt64Ty(_context), Type::getInt1Ty(_context)});
+                    std::vector<llvm::Type*> member_types;
+                    member_types.push_back(Type::getInt64Ty(_context));
+                    member_types.push_back(Type::getInt1Ty(_context));
+                    llvm::ArrayRef<llvm::Type *> members(member_types);
                     return llvm::StructType::create(_context, members, "i64_opt", packed);
                 }
 
                 if (rt == python::Type::F64) {
-                    llvm::ArrayRef<llvm::Type *> members(
-                            std::vector<llvm::Type *>{Type::getDoubleTy(_context), Type::getInt1Ty(_context)});
+                    std::vector<llvm::Type*> member_types;
+                    member_types.push_back(Type::getDoubleTy(_context));
+                    member_types.push_back(Type::getInt1Ty(_context));
+                    llvm::ArrayRef<llvm::Type *> members(member_types);
                     return llvm::StructType::create(_context, members, "f64_opt", packed);
                 }
 
                 if (rt == python::Type::STRING || rt == python::Type::GENERICDICT || rt.isDictionaryType()) {
+
+                    // this here results in an error.
+                    // => fix this!
+                    std::vector<llvm::Type*> member_types;
+                    member_types.push_back(Type::getInt8PtrTy(_context));
+                    member_types.push_back(Type::getInt1Ty(_context));
+                    llvm::ArrayRef<llvm::Type *> members(member_types);
+
                     // could theoretically also use nullptr?
-                    llvm::ArrayRef<llvm::Type *> members(
-                            std::vector<llvm::Type *>{Type::getInt8PtrTy(_context), Type::getInt1Ty(_context)});
                     return llvm::StructType::create(_context, members, "str_opt", packed);
                 }
 
                 if (rt.isListType()) {
-                    llvm::ArrayRef<llvm::Type *> members(
-                            std::vector<llvm::Type *>{getListType(rt), Type::getInt1Ty(_context)});
+
+                    // same issue here
+                    std::vector<llvm::Type*> member_types;
+                    member_types.push_back(getOrCreateListType(rt));
+                    member_types.push_back(Type::getInt1Ty(_context));
+                    llvm::ArrayRef<llvm::Type *> members(member_types);
                     return llvm::StructType::create(_context, members, "list_opt", packed);
                 }
             }
@@ -1803,6 +1900,9 @@ namespace tuplex {
 
         llvm::Value * LLVMEnvironment::getListSize(llvm::IRBuilder<> &builder, llvm::Value *val,
                                                    const python::Type &listType) {
+
+            throw std::runtime_error("deprecated! replace!");
+
             // what list type do we have?
             if(listType == python::Type::EMPTYLIST)
                 return i64Const(0);
@@ -2125,6 +2225,47 @@ namespace tuplex {
             auto retAddr = llvm::BlockAddress::get(func, updateIndexBB);
             _generatedIteratorUpdateIndexFunctions[funcName] = retAddr;
             return retAddr;
+        }
+
+        llvm::Type *
+        LLVMEnvironment::getOrCreateStructuredDictType(const python::Type &structType, const std::string &twine) {
+            assert(structType.isStructuredDictionaryType());
+
+            // call helper function from StructDictHelper.h
+            auto it = _generatedStructDictTypes.find(structType);
+            if(it != _generatedStructDictTypes.end())
+                return it->second;
+            auto type = generate_structured_dict_type(*this, twine, structType);
+            _generatedStructDictTypes[structType] = type;
+            return type;
+        }
+
+        SerializableValue CreateDummyValue(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& type) {
+            using namespace llvm;
+
+            // dummy value needs to be created for llvm to combine stuff.
+            SerializableValue retVal;
+
+            // special case, option type:
+            if(type.isOptionType()) {
+                // recurse
+                retVal = CreateDummyValue(env, builder, type.getReturnType());
+                retVal.is_null = env.i1Const(true);
+            } else if (python::Type::BOOLEAN == type || python::Type::I64 == type) {
+                retVal.val = env.i64Const(0);
+                retVal.size = env.i64Const(sizeof(int64_t));
+            } else if (python::Type::F64 == type) {
+                retVal.val = env.f64Const(0.0);
+                retVal.size = env.i64Const(sizeof(double));
+            } else if (python::Type::STRING == type || type.isDictionaryType()) {
+                retVal.val = env.i8ptrConst(nullptr);
+                retVal.size = env.i64Const(0);
+            } else if(python::Type::NULLVALUE == type) {
+                retVal.is_null = env.i1Const(true);
+            } else {
+                throw std::runtime_error("not support to create dummy value for " + type.desc() + " yet.");
+            }
+            return retVal;
         }
     }
 }

@@ -77,7 +77,7 @@ class Context:
             csv.quotechar (str): single character denoting the character that is used as quote char according to RFC-4180 standard. E.g.  ``'"'``
             csv.comments (str): list of single character string which indicate start of a comment line, e.g. ``['#', '~']``
             csv.generateParser (str) or (bool): Whether to use C++ parser or a LLVM code generated parser
-            csv.selectionPushdown (str) or (bool): When enabled, then the physical planner will generate a parser that \
+            optimizer.selectionPushdown (str) or (bool): When enabled, then the physical planner will generate a parser that \
                                                    only serializes data that is required within the pipeline.
 
         """
@@ -317,6 +317,24 @@ class Context:
 
         ds = DataSet()
         ds._dataSet = self._context.text(pattern, null_values)
+        return ds
+
+    def json(self, pattern, unwrap_first_level=True, treat_heterogenous_lists_as_tuples=True):
+        """reads json files.
+        Args:
+            pattern     (str): a file glob pattern, e.g. /data/file.json or /data/\*.json or /\*/\*json
+            unwrap_first_level (bool): if true, then the first level of keys is unwrapped and treated as columns. Missing values for the first level are filled in with None.
+            treat_heterogenous_lists_as_tuples (bool): if true, then lists where JSON element types differ are parsed as tuples. if false, keeps the type as list. This will likely lead to more fallback rows.
+        Returns:
+            tuplex.dataset.DataSet: A Tuplex Dataset object that allows further ETL operations
+        """
+
+        assert isinstance(pattern, str), 'file pattern must be given as str'
+        assert isinstance(unwrap_first_level, bool), 'unwrap_first_level must be a bool'
+        assert isinstance(treat_heterogenous_lists_as_tuples, bool), 'treat_heterogenous_lists_as_tuples must be a bool'
+
+        ds = DataSet()
+        ds._dataSet = self._context.json(pattern, unwrap_first_level, treat_heterogenous_lists_as_tuples)
         return ds
 
     def orc(self, pattern, columns=None):

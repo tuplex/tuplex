@@ -19,6 +19,7 @@ namespace tuplex {
         OUTFMT_UNKNOWN=0,
         OUTFMT_TUPLEX,
         OUTFMT_CSV,
+        OUTFMT_JSON,
         OUTFMT_TEXT,
         OUTFMT_ORC
     };

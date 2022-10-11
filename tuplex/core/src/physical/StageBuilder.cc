@@ -16,6 +16,7 @@
 #include <physical/JITCSVSourceTaskBuilder.h>
 #include <physical/TuplexSourceTaskBuilder.h>
 #include <physical/ExceptionSourceTaskBuilder.h>
+#include <physical/JsonSourceTaskBuilder.h>
 #include <physical/AggregateFunctions.h>
 #include <logical/CacheOperator.h>
 #include <JSONUtils.h>
@@ -71,6 +72,10 @@ namespace tuplex {
                     case FileFormat::OUTFMT_TEXT:
                     case FileFormat::OUTFMT_ORC: {
                         ppb.objInput(fop->getID(), fop->inputColumns());
+                        break;
+                    }
+                    case FileFormat::OUTFMT_JSON: {
+                        ppb.jsonInput(fop->getID(), fop->inputColumns());
                         break;
                     }
                     default:
@@ -250,6 +255,7 @@ namespace tuplex {
             _fileInputParameters["delimiter"] = char2str(csvop->delimiter());
             _fileInputParameters["quotechar"] = char2str(csvop->quotechar());
             _fileInputParameters["null_values"] = stringArrayToJSON(csvop->null_values());
+            _fileInputParameters["unwrap_first_level"] = boolToString(csvop->unwrap_first_level());
 
             // store CSV header information...
             if (csvop->hasHeader()) {
@@ -698,7 +704,7 @@ namespace tuplex {
             // step 1. build pipeline, i.e. how to process data
             auto pip = std::make_shared<codegen::PipelineBuilder>(env, inSchema, intermediateType(), funcProcessRowName);
 
-            // Note: the pipeline function will return whether an exception occured.
+            // Note: the pipeline function will return whether an exception occurred.
             // if that happens, then call to handler in transform task builder
             // pip->addExceptionHandler(_funcExceptionCallback); // don't add a exception handler here.
 
@@ -1006,6 +1012,8 @@ namespace tuplex {
                 // note: null_values may be empty!
                 auto null_values = jsonToStringArray(_fileInputParameters.at("null_values"));
 
+                bool unwrap_first_level = stringToBool(_fileInputParameters.at("unwrap_first_level"));
+
                 switch (_inputFileFormat) {
                     case FileFormat::OUTFMT_CSV:
                     case FileFormat::OUTFMT_TEXT: {
@@ -1027,6 +1035,14 @@ namespace tuplex {
                     }
                     case FileFormat::OUTFMT_ORC: {
                         tb = make_shared<codegen::TuplexSourceTaskBuilder>(env, inSchema, funcStageName);
+                        break;
+                    }
+                    case FileFormat::OUTFMT_JSON: {
+                        // @TODO: change this here to general-case as well...
+                        // --> update cellsourcetask builder as well>
+                        tb = make_shared<codegen::JsonSourceTaskBuilder>(env, _inputNodeID, inSchema, inSchema,
+                                                                         _inputColumns, _inputColumns,
+                                                                         unwrap_first_level, funcStageName);
                         break;
                     }
                     default:

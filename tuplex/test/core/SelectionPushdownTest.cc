@@ -26,7 +26,7 @@ TEST_F(CSVSelectionPushDown, SimpleMap) {
     fclose(file);
 
     auto co = microTestOptions();
-    co.set("tuplex.csv.selectionPushdown", "true");
+    co.set("tuplex.optimizer.selectionPushdown", "true");
     Context c(co);
     auto v = c.csv(testName + ".csv").map(UDF("lambda x: x[2]")).collectAsVector();
     ASSERT_EQ(v.size(), 3);
@@ -50,7 +50,7 @@ TEST_F(CSVSelectionPushDown, SimpleFilterAndMap) {
 
 
     auto co = microTestOptions();
-    co.set("tuplex.csv.selectionPushdown", "true");
+    co.set("tuplex.optimizer.selectionPushdown", "true");
     Context c(co);
     auto v = c.csv(testName + ".csv").filter(UDF("lambda x: x[0] == 2")).map(UDF("lambda x: x[-1]")).collectAsVector();
     ASSERT_EQ(v.size(), 3);
@@ -75,7 +75,7 @@ TEST_F(CSVSelectionPushDown, SimpleFilterAndMapII) {
 
 
     auto co = microTestOptions();
-    co.set("tuplex.csv.selectionPushdown", "true");
+    co.set("tuplex.optimizer.selectionPushdown", "true");
     Context c(co);
     auto v = c.csv(testName + ".csv").filter(UDF("lambda a,b,c,d: a == 2")).map(UDF("lambda x,y,z, w: w")).collectAsVector();
     ASSERT_EQ(v.size(), 3);
@@ -99,7 +99,7 @@ TEST_F(CSVSelectionPushDown, SimpleFilterAndMapIII) {
     fclose(file);
 
     auto co = microTestOptions();
-    co.set("tuplex.csv.selectionPushdown", "true");
+    co.set("tuplex.optimizer.selectionPushdown", "true");
     Context c(co);
     auto v = c.csv(testName + ".csv").filter(UDF("lambda a,b,c,d: a == 2")).map(UDF("lambda x: x[-2]")).collectAsVector();
     ASSERT_EQ(v.size(), 3);

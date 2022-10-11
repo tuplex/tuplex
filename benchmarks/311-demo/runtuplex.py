@@ -69,7 +69,7 @@ else:
         "runTimeMemory": "128MB",
         "useLLVMOptimizer": True,
         "optimizer.nullValueOptimization": True,
-        "csv.selectionPushdown": True,
+        "optimizer.selectionPushdown": True,
         "optimizer.generateParser": True,
         "tuplex.optimizer.mergeExceptionsInOrder": False,
         "csv.filterPushdown": True,

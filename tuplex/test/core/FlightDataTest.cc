@@ -293,7 +293,7 @@ TEST_F(FlightDataTest, AirportCleaning) {
     opt.set("tuplex.useLLVMOptimizer", "false"); // deactivate
 
     // projection pushdown enabled!
-    opt.set("tuplex.csv.selectionPushdown", "true");
+    opt.set("tuplex.optimizer.selectionPushdown", "true");
 
     // null value opt!
     // opt.set("tuplex.optimizer.nullValueOptimization", "true");
@@ -371,7 +371,7 @@ TEST_F(FlightDataTest, LeftJoin) {
 
     // Notes: prob need to adjust columns in projection pushdown because of change in map operator...
     // also need to overwrite for rename/empty UDF...
-    opt.set("tuplex.csv.selectionPushdown", "true");
+    opt.set("tuplex.optimizer.selectionPushdown", "true");
 
     Context c(opt);
 
@@ -585,7 +585,7 @@ TEST_F(FlightDataTest, SelectAndFilterPushdown) {
 
     // deactivate NULL value optimization
     opt.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt.set("tuplex.csv.selectionPushdown", "true");
+    opt.set("tuplex.optimizer.selectionPushdown", "true");
 
     Context ctx(opt);
 
@@ -617,7 +617,7 @@ TEST_F(FlightDataTest, WeirdFilterIssue) {
 
     // deactivate NULL value optimization
     opt.set("tuplex.optimizer.filterPushdown", "true");
-    opt.set("tuplex.csv.selectionPushdown", "false");
+    opt.set("tuplex.optimizer.selectionPushdown", "false");
 
     Context ctx(opt);
 
@@ -654,11 +654,11 @@ TEST_F(FlightDataTest, ProjectionPushdown) {
 
     // deactivate NULL value optimization
     opt.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt.set("tuplex.csv.selectionPushdown", "true");
+    opt.set("tuplex.optimizer.selectionPushdown", "true");
     opt.set("tuplex.optimizer.filterPushdown", "true");
 
     auto opt_ref = opt;
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.filterPushdown", "false");
 
     // test a couple pipelines using the two different context objects.
@@ -747,7 +747,7 @@ TEST_F(FlightDataTest, ProjectionPushdownInvariant) {
 
     // deactivate NULL value optimization
     opt.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt.set("tuplex.csv.selectionPushdown", "true");
+    opt.set("tuplex.optimizer.selectionPushdown", "true");
 
     Context c(opt);
 
@@ -819,7 +819,7 @@ TEST_F(FlightDataTest, LargeFilePipeline) {
     opt.set("tuplex.inputSplitSize", "64MB");
     opt.set("tuplex.runTimeMemory", "340MB");
     opt.set("tuplex.optimizer.generateParser", "true");
-    opt.set("tuplex.csv.selectionPushdown", "true");
+    opt.set("tuplex.optimizer.selectionPushdown", "true");
 
     Context c(opt);
 
@@ -845,7 +845,7 @@ TEST_F(FlightDataTest, FallbackPythonDict) {
     opt.set("tuplex.optimizer.generateParser", "false");
     opt.set("tuplex.optimizer.nullValueOptimization", "true");
     opt.set("tuplex.optimizer.operatorReordering", "false");
-    opt.set("tuplex.csv.selectionPushdown", "false");
+    opt.set("tuplex.optimizer.selectionPushdown", "false");
 
     Context c(opt);
 

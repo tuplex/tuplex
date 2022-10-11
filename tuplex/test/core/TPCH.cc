@@ -65,7 +65,7 @@ TEST_F(TpchTest, Q6) {
     for(unsigned i = 0; i < (0x1ul << 4ul); ++i) {
         ContextOptions conf(ref_conf);
         conf.set("tuplex.optimizer.filterPushdown", (i & (0x1ul << 0ul)) ? "true" : "false");
-        conf.set("tuplex.csv.selectionPushdown", (i & (0x1ul << 1ul)) ? "true" : "false");
+        conf.set("tuplex.optimizer.selectionPushdown", (i & (0x1ul << 1ul)) ? "true" : "false");
         conf.set("tuplex.useLLVMOptimizer", (i & (0x1ul << 2ul)) ? "true" : "false");
         conf.set("tuplex.optimizer.generateParser", (i & (0x1ul << 3ul)) ? "true" : "false");
 
@@ -124,7 +124,7 @@ TEST_F(TpchTest, Q6_AggDictRewrite) {
 
     ContextOptions conf(ref_conf);
     conf.set("tuplex.optimizer.filterPushdown", "true");
-    conf.set("tuplex.csv.selectionPushdown", "true");
+    conf.set("tuplex.optimizer.selectionPushdown", "true");
     conf.set("tuplex.useLLVMOptimizer", "true");
     conf.set("tuplex.optimizer.generateParser", "true");
 
@@ -164,7 +164,7 @@ TEST_F(TpchTest, SimpleSumAggregate) {
     auto conf = testOptions();
     // deactivate optimizers for now
     conf.set("tuplex.optimizer.filterPushdown", "false");
-    conf.set("tuplex.csv.selectionPushdown", "false");
+    conf.set("tuplex.optimizer.selectionPushdown", "false");
     conf.set("tuplex.useLLVMOptimizer", "false");
     conf.set("tuplex.executorCount", "0");
     conf.set("tuplex.optimizer.generateParser", "true");
@@ -180,7 +180,7 @@ TEST_F(TpchTest, SimpleFileCountWGeneratedParser) {
     auto conf = testOptions();
     // deactivate optimizers for now
     conf.set("tuplex.optimizer.filterPushdown", "false");
-    conf.set("tuplex.csv.selectionPushdown", "false");
+    conf.set("tuplex.optimizer.selectionPushdown", "false");
     conf.set("tuplex.useLLVMOptimizer", "false");
     conf.set("tuplex.executorCount", "0");
     conf.set("tuplex.optimizer.generateParser", "true");

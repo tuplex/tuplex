@@ -72,6 +72,7 @@ PYMODULE {
             .def("csv", &tuplex::PythonContext::csv)
             .def("text", &tuplex::PythonContext::text)
             .def("orc", &tuplex::PythonContext::orc)
+            .def("json", &tuplex::PythonContext::json)
             .def("parallelize", &tuplex::PythonContext::parallelize)
             .def("options", &tuplex::PythonContext::options)
             .def("getMetrics", &tuplex::PythonContext::getMetrics)

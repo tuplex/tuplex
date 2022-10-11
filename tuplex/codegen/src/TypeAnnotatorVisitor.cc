@@ -13,6 +13,7 @@
 #include <TokenType.h>
 #include <ApplyVisitor.h>
 #include <ASTHelpers.h>
+#include <TypeHelper.h>
 
 namespace tuplex {
     bool isPythonIntegerType(const python::Type& t ) {
@@ -93,8 +94,8 @@ namespace tuplex {
             // go through all func types, and check whether they can be unified.
             auto combined_ret_type = _funcReturnTypes.front();
             for(int i = 1; i < _funcReturnTypes.size(); ++i)
-                combined_ret_type = python::unifyTypes(combined_ret_type, _funcReturnTypes[i],
-                                                       _policy.allowNumericTypeUnification);
+                combined_ret_type = unifyTypes(combined_ret_type, _funcReturnTypes[i],
+                                               _typeUnificationPolicy);
 
             if(combined_ret_type == python::Type::UNKNOWN) {
 
@@ -123,8 +124,8 @@ namespace tuplex {
                     auto best_so_far = std::get<0>(v.front());
 
                     for(int i = 1; i < v.size(); ++i) {
-                        auto u_type = python::unifyTypes(best_so_far, std::get<0>(v[i]),
-                                                         _policy.allowNumericTypeUnification);
+                        auto u_type = unifyTypes(best_so_far, std::get<0>(v[i]),
+                                                 _typeUnificationPolicy);
                         if(u_type != python::Type::UNKNOWN)
                             best_so_far = u_type;
                     }
@@ -149,19 +150,19 @@ namespace tuplex {
             // update suite with combined type!
             func->_suite->setInferredType(combined_ret_type);
 
-            bool autoUpcast = _policy.allowNumericTypeUnification;
+            auto typeUnificationPolicy = _typeUnificationPolicy;
 
             // set return type of all return statements to combined type!
             // ==> they will need to expand the respective value, usually given via their expression.
             tuplex::ApplyVisitor av([](const ASTNode* n) { return n->type() == ASTNodeType::Return; },
-                                    [combined_ret_type,autoUpcast](ASTNode& n) {
+                                    [combined_ret_type,typeUnificationPolicy](ASTNode& n) {
 
                                         // can upcast? => only then set. This allows in Blockgenerator to detect deviating return statements!
                                         if(n.getInferredType() == python::Type::UNKNOWN) // i.e. code that is never visited
                                             return;
 
-                                        auto uni_type = python::unifyTypes(n.getInferredType(), combined_ret_type,
-                                                                           autoUpcast);
+                                        auto uni_type = unifyTypes(n.getInferredType(), combined_ret_type,
+                                                                   typeUnificationPolicy);
                                         if(uni_type != python::Type::UNKNOWN)
                                             n.setInferredType(combined_ret_type);
                                     });
@@ -251,6 +252,9 @@ namespace tuplex {
                              {"str", python::Type::STRING},
                              {"bool", python::Type::BOOLEAN}};
         assert(0.0 <= _policy.normalCaseThreshold && _policy.normalCaseThreshold <= 1.0);
+
+        // @TODO: add other flags from compile policy!
+        _typeUnificationPolicy.allowAutoUpcastOfNumbers = _policy.allowNumericTypeUnification;
     }
 
     void TypeAnnotatorVisitor::visit(NIdentifier* id) {
@@ -352,6 +356,14 @@ namespace tuplex {
 
         // check if identifier is in symbol table, if not it's a missing identifier!
         if(python::Type::UNKNOWN == lookupType(id->_name)) {
+
+            // special case: is it a builtin type object? => least likely...
+            auto t = _symbolTable.findBuiltinType(id->_name);
+            if(t != python::Type::UNKNOWN) {
+                id->setInferredType(t);
+                return;
+            }
+
             // do not add identifier if it has function as parent (this means basically it is the function name)
             if(   parent()->type() != ASTNodeType::Function
                   && parent()->type() != ASTNodeType::Lambda
@@ -985,6 +997,65 @@ namespace tuplex {
         }
     }
 
+    void TypeAnnotatorVisitor::typeStructuredDictSubscription(tuplex::NSubscription *sub, const python::Type &type) {
+        assert(type.isStructuredDictionaryType());
+
+        // index by literal (or future: constant value?)
+#ifndef NDEBUG
+        Logger::instance().defaultLogger().info("add support for constant-valued types here as well...");
+        // maybe also normal-case speculation on struct type??
+        // --> could be done as well...
+#endif
+
+        sub->setInferredType(python::Type::UNKNOWN);
+
+        // is it homogenous in value type? -> simple decision, what to use as return type.
+        if(type.valueType() != python::Type::PYOBJECT)
+            sub->setInferredType(type.valueType());
+        else {
+            // check whether there's a literal used for indexing and look up type
+            // (future: constant valued type should work as well!)
+            if(isLiteral(sub->_expression) || type.valueType().isConstantValued()) {
+                // check lookup in keys...
+
+                auto keyerror_sym = _symbolTable.findSymbol("KeyError");
+                assert(keyerror_sym); // must exist...
+                if(!keyerror_sym)
+                    fatal_error("could not find KeyError symbol.");
+                auto keyError_type = keyerror_sym->type();
+
+                std::string lookup_key;
+                if(isLiteral(sub->_expression)) {
+                    auto t_key_and_type = extractKeyFromASTNode(sub->_expression);
+                    lookup_key = std::get<0>(t_key_and_type);
+                    auto t_type = std::get<1>(t_key_and_type);
+                    if(python::Type::UNKNOWN == t_type) {
+                        sub->setInferredType(keyError_type);
+                        return;
+                    }
+                } else if(type.valueType().isConstantValued()) {
+                    lookup_key = type.valueType().constant();
+                }
+
+                // lookup in kv pairs...
+                auto kv_pairs = type.get_struct_pairs();
+                auto it = std::find_if(kv_pairs.begin(), kv_pairs.end(), [&lookup_key](const python::StructEntry& entry) {
+                    return entry.key == lookup_key;
+                });
+                if(it != kv_pairs.end()) {
+                    sub->setInferredType(it->valueType);
+                } else {
+                    // -> if fails, set to key error!
+
+                    // warn?
+                    Logger::instance().defaultLogger().warn("could not find key '" + lookup_key
+                                                            + "' in structured dict type, code will always produce KeyError.");
+                    sub->setInferredType(keyError_type);
+                }
+            }
+        }
+    }
+
     void TypeAnnotatorVisitor::visit(NSubscription *sub) {
         ApatheticVisitor::visit(sub);
 
@@ -1079,7 +1150,12 @@ namespace tuplex {
             error("subscripting an empty dictionary will always yield a KeyError. Please fix code");
             sub->setInferredType(python::Type::UNKNOWN);
         } else if(type.isDictionaryType()) {
-            sub->setInferredType(type.valueType());
+            // special case: structured dict
+            if(type.isStructuredDictionaryType()) {
+                typeStructuredDictSubscription(sub, type);
+            } else {
+                sub->setInferredType(type.valueType());
+            }
         } else if(python::Type::EMPTYLIST == type) {
             error("subscripting an empty list will always yield an IndexError. Please fix code");
             sub->setInferredType(python::Type::UNKNOWN);
@@ -1293,7 +1369,7 @@ namespace tuplex {
             if(_nameTable.find(name) != _nameTable.end()) {
                 if(_nameTable[name] != type) {
                     // can we unify types?
-                    auto uni_type = python::unifyTypes(type, _nameTable[name], _policy.allowNumericTypeUnification);
+                    auto uni_type = unifyTypes(type, _nameTable[name], _typeUnificationPolicy);
                     if(uni_type != python::Type::UNKNOWN)
                         _nameTable[name] = uni_type;
                     else {
@@ -1330,7 +1406,7 @@ namespace tuplex {
 
                 if(if_type != else_type) {
                     // check if they can be unified
-                    auto uni_type = python::unifyTypes(if_type, else_type, _policy.allowNumericTypeUnification);
+                    auto uni_type = unifyTypes(if_type, else_type, _typeUnificationPolicy);
                     if(uni_type != python::Type::UNKNOWN) {
                         if_table[name] = uni_type;
                         else_table[name] = else_type;
@@ -1477,7 +1553,7 @@ namespace tuplex {
                 if(ifelse->isExpression()) {
                     // check:
                     if (iftype != elsetype) {
-                        auto combined_type = python::unifyTypes(iftype, elsetype, _policy.allowNumericTypeUnification);
+                        auto combined_type = unifyTypes(iftype, elsetype, _typeUnificationPolicy);
                         if(combined_type == python::Type::UNKNOWN)
                             error("could not combine type " + iftype.desc() +
                                   " of if-branch with type " + elsetype.desc() + " of else-branch in if-else expression");
@@ -1802,6 +1878,41 @@ namespace tuplex {
         if(t.isTupleType()) {
             for (const auto &tt : t.parameters()) {
                 checkRetType(tt);
+            }
+        }
+    }
+
+    std::tuple<std::string, python::Type> extractKeyFromASTNode(ASTNode* node) {
+        using namespace std;
+        std::string key;
+        if(!node)
+            return make_tuple("", python::Type::UNKNOWN);
+
+        switch(node->type()) {
+            case ASTNodeType::String: {
+                key = escape_to_python_str(static_cast<NString*>(node)->value());
+                return make_tuple(key, python::Type::STRING);
+                break;
+            }
+            case ASTNodeType::Number: {
+                key = static_cast<NNumber*>(node)->_value;
+                // is it float or int?
+                return make_tuple(key, node->getInferredType());
+                break;
+            }
+            case ASTNodeType::None: {
+                key = "None";
+                return make_tuple(key, python::Type::NULLVALUE);
+                break;
+            }
+            case ASTNodeType::Boolean: {
+                key = static_cast<NBoolean*>(node)->_value;
+                return make_tuple(key, python::Type::BOOLEAN);
+                break;
+            }
+                // could also type empty tuple, empty list, empty dict, ... @TODO.
+            default: {
+                return make_tuple("", python::Type::UNKNOWN);
             }
         }
     }

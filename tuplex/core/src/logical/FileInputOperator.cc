@@ -16,6 +16,10 @@
 #include <algorithm>
 #include <orc/OrcTypes.h>
 
+#include <JSONUtils.h>
+#include <JsonStatistic.h>
+#include <physical/experimental/JsonHelper.h>
+
 namespace tuplex {
 
     std::vector<tuplex::Partition*> FileInputOperator::getPartitions() {
@@ -58,7 +62,8 @@ namespace tuplex {
         auto uri = _fileURIs.front();
         size_t size = _sizes.front();
         auto vfs = VirtualFileSystem::fromURI(uri);
-        auto vf = vfs.open_file(uri, VirtualFileMode::VFS_READ);
+        auto read_mode = VirtualFileMode::VFS_READ;
+        auto vf = vfs.open_file(uri, read_mode);
         if (!vf) {
             logger.error("could not open file " + uri.toString());
             return "";
@@ -78,20 +83,16 @@ namespace tuplex {
         aligned_string sample(nbytes_sample, '\0');
         assert(sample.capacity() > 16 && sample.size() > 16);
 
-        // copy out memory from file for analysis
-        char *start = new char[sampleSize + 16 + 1];
+        auto ptr = &sample[0];
         // memset last 16 bytes to 0
-        assert(start + sampleSize - 16ul >= start);
+        assert(ptr + sampleSize - 16ul >= ptr);
         assert(sampleSize >= 16ul);
-        std::memset(start + sampleSize - 16ul, 0, 16ul);
+        std::memset(ptr + sampleSize - 16ul, 0, 16ul);
         // read contents
         size_t bytesRead = 0;
-        vf->readOnly(start, sampleSize, &bytesRead); // use read-only here to speed up sampling
-        auto end = start + sampleSize;
-        start[sampleSize] = 0; // important!
-
-        sample.assign(start, sampleSize+1);
-        delete [] start;
+        vf->readOnly(ptr, sampleSize, &bytesRead); // use read-only here to speed up sampling
+        auto end = ptr + sampleSize;
+        ptr[sampleSize] = 0; // important!
 
         Logger::instance().defaultLogger().info(
                 "sampled " + uri.toString() + " on " + sizeToMemString(sampleSize));
@@ -166,6 +167,125 @@ namespace tuplex {
                                                    const std::unordered_map<size_t, python::Type>& index_based_type_hints,
                                                    const std::unordered_map<std::string, python::Type>& column_based_type_hints) {
         return new FileInputOperator(pattern, co, hasHeader, delimiter, quotechar, null_values, column_name_hints, index_based_type_hints, column_based_type_hints);
+    }
+
+    FileInputOperator* FileInputOperator::fromJSON(const std::string &pattern,
+                                                   bool unwrap_first_level,
+                                                   bool treat_heterogenous_lists_as_tuples,
+                                                   const ContextOptions &co) {
+        auto &logger = Logger::instance().logger("fileinputoperator");
+
+
+        auto f = new FileInputOperator();
+        f->_fmt = FileFormat::OUTFMT_JSON;
+        f->_json_unwrap_first_level = unwrap_first_level;
+
+       Timer timer;
+       f->detectFiles(pattern);
+
+        // infer schema using first file only
+        if (!f->_fileURIs.empty()) {
+            auto aligned_sample = f->loadSample(co.CSV_MAX_DETECTION_MEMORY());
+
+            // before parsing the JSON, make sure it contains at least one document
+            if(!codegen::JsonContainsAtLeastOneDocument(aligned_sample.c_str(), aligned_sample.size())) {
+                throw std::runtime_error("sample size too small, does not contain at least one JSON document.");
+            }
+
+            // parse Rows from JSON
+            std::vector<std::vector<std::string>> columnNamesCollection;
+            auto aligned_sample_size = std::min(strlen(aligned_sample.c_str()), aligned_sample.size());
+            // parseJSON only works on well-formatted strings, i.e. those that end in '\0'
+            auto rows = parseRowsFromJSON(aligned_sample.c_str(),
+                                          aligned_sample_size,
+                                          unwrap_first_level ? &columnNamesCollection : nullptr,
+                                          unwrap_first_level,
+                                          treat_heterogenous_lists_as_tuples);
+
+            // when unwrapping, need to resort rows after column names
+            std::vector<std::string> ordered_names;
+            if(unwrap_first_level) {
+                auto t = sortRowsAndIdentifyColumns(rows, columnNamesCollection);
+                rows = std::get<0>(t);
+                ordered_names = std::get<1>(t);
+            }
+
+            // are there no rows? => too small a sample. increase sample size.
+            if(rows.empty()) {
+                throw std::runtime_error("not a single JSON document was found in the file, can't determine type. Please increase sample size.");
+            }
+
+            // estimator for #rows across all CSV files
+            double estimatedRowCount = 0.0;
+            for(auto s : f->_sizes) {
+                estimatedRowCount += (double)s / (double)aligned_sample_size * (double)f->_sample.size();
+            }
+            f->_estimatedRowCount = static_cast<size_t>(std::ceil(estimatedRowCount));
+
+            // set column names to empty. if unwrap, detection should happen here
+            f->_columnNames = std::vector<std::string>();
+
+            // check mode: is it unwrapping? => find dominating number of columns! And most likely combo of column names
+            std::unordered_map<python::Type, size_t> typeCountMap;
+            // simply calc all row counts
+            for(const auto& row : rows)
+                typeCountMap[row.getRowType()]++;
+
+            // transform to vector for cover
+            auto type_counts = std::vector<std::pair<python::Type, size_t>>(typeCountMap.begin(), typeCountMap.end());
+
+            TypeUnificationPolicy normal_policy;
+            normal_policy.allowAutoUpcastOfNumbers = co.AUTO_UPCAST_NUMBERS();
+            normal_policy.allowUnifyWithPyObject = false;
+            normal_policy.treatMissingDictKeysAsNone = false; // maybe as option?
+            normal_policy.unifyMissingDictKeys = false; // could be potentially allowed for subschemas etc.?
+
+            TypeUnificationPolicy general_policy;
+            normal_policy.allowAutoUpcastOfNumbers = co.AUTO_UPCAST_NUMBERS();
+            normal_policy.allowUnifyWithPyObject = false;
+            normal_policy.treatMissingDictKeysAsNone = false; // maybe as option?
+            normal_policy.unifyMissingDictKeys = true; // this sets it apart from normal policy...
+
+            // execute cover
+            auto normal_case_max_type = maximizeStructuredDictTypeCover(type_counts, co.NORMALCASE_THRESHOLD(), co.OPT_NULLVALUE_OPTIMIZATION(), normal_policy);
+            auto general_case_max_type = maximizeStructuredDictTypeCover(type_counts, co.NORMALCASE_THRESHOLD(), co.OPT_NULLVALUE_OPTIMIZATION(), general_policy);
+
+            // either invalid?
+            if(python::Type::UNKNOWN == normal_case_max_type.first || python::Type::UNKNOWN == general_case_max_type.first) {
+                logger.warn("could not detect schema for JSON input");
+                f->setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
+                return f;
+            }
+
+            // set ALL column names (as they appear)
+            // -> pushdown for JSON is special case...
+            if(unwrap_first_level) {
+                f->setColumns(ordered_names);
+            }
+            f->_sample = rows;
+
+            // normalcase and exception case types
+            // -> use type cover for this from sample!
+            auto normalcasetype = !unwrap_first_level ? normal_case_max_type.first.parameters().front() : normal_case_max_type.first;
+            auto generalcasetype = !unwrap_first_level ? general_case_max_type.first.parameters().front() : general_case_max_type.first;
+
+            // rowtype is always, well a row
+            normalcasetype = python::Type::propagateToTupleType(normalcasetype);
+            generalcasetype = python::Type::propagateToTupleType(generalcasetype);
+
+            // get type & assign schema
+            f->_normalCaseRowType = normalcasetype;
+            f->setSchema(Schema(Schema::MemoryLayout::ROW, generalcasetype));
+
+            // set defaults for possible projection pushdown...
+            f->setProjectionDefaults();
+        } else {
+            logger.warn("no input files found, can't infer type from given path: " + pattern);
+            f->setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
+        }
+        f->_sampling_time_s += timer.time();
+
+        return f;
     }
 
     FileInputOperator::FileInputOperator(const std::string &pattern, const ContextOptions &co,
@@ -474,8 +594,8 @@ namespace tuplex {
             return;
 
         assert(_columnNames.empty());
-
-        if (columnNames.size() != outputColumnCount())
+        // only perform check, if schema already initialized.
+        if (_optimizedSchema != Schema::UNKNOWN && columnNames.size() != outputColumnCount())
             throw std::runtime_error("number of columns given (" + std::to_string(columnNames.size()) +
                                      ") does not match detected count (" + std::to_string(outputColumnCount()) + ")");
 
@@ -506,7 +626,8 @@ namespace tuplex {
                                                                              _optimizedNormalCaseRowType(other._optimizedNormalCaseRowType),
                                                                              _sample(other._sample),
                                                                              _sampling_time_s(other._sampling_time_s),
-                                                                             _indexBasedHints(other._indexBasedHints) {
+                                                                             _indexBasedHints(other._indexBasedHints),
+                                                                             _json_unwrap_first_level(other._json_unwrap_first_level) {
         // copy members for logical operator
         LogicalOperator::copyMembers(&other);
 

@@ -1064,8 +1064,8 @@ namespace tuplex {
                     if (val->getType() == _env->getEmptyTupleType())
                         assert(type == python::Type::EMPTYTUPLE);
                     else
-                        assert((type.isListType() || type.isStructuredDictionaryType())
-                               && !type.elementType().isSingleValued());
+                        assert((type.isListType() && !type.elementType().isSingleValued())
+                        || type.isStructuredDictionaryType());
                 }
             }
 

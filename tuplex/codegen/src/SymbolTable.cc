@@ -346,6 +346,55 @@ namespace tuplex {
         addSymbol(make_shared<Symbol>("enumerate", enumerateFunctionTyper));
         addSymbol(make_shared<Symbol>("next", nextFunctionTyper));
 
+        // conversions for list/tuple
+
+        auto list_ret_type = [](const python::Type& type) {
+            // list? trivial
+            if(type.isListType())
+                return type;
+
+            // what can be converted to/from list?
+            // -> homogenous tuple
+
+            // TODO iterator...
+
+            // -> string
+            if(type == python::Type::STRING) {
+                return python::Type::makeListType(python::Type::STRING);
+            }
+            if(type.isOptionType() && type.withoutOptions() == python::Type::STRING) {
+                return python::Type::makeListType(python::Type::makeOptionType(python::Type::STRING));
+            }
+
+            // -> keyview/valueview
+            if(type.isDictKeysType() || type.isDictValuesType()) {
+                // get dict type
+                auto dict_type = type.elementType();
+
+                if(type.isDictValuesType())
+                    return python::Type::makeListType(dict_type.valueType());
+                if(type.isDictKeysType())
+                    return python::Type::makeListType(dict_type.keyType());
+            }
+
+            return python::Type::UNKNOWN;
+        };
+
+        addSymbol(make_shared<Symbol>("list", [&list_ret_type](const python::Type& parameterType) {
+
+            python::Type type = parameterType;
+
+            // param should be single tuple
+            if(parameterType.isTupleType() && parameterType.parameters().size() == 1)
+                type = parameterType.parameters().front();
+
+            auto ret_type = list_ret_type(type);
+            if(ret_type != python::Type::UNKNOWN)
+                return python::Type::makeFunctionType(parameterType, ret_type);
+            return python::Type::UNKNOWN;
+        }));
+        // tuple is special case -> need to speculate on list/str/sequence length!
+
         // TODO: other parameters? i.e. step size and Co?
         // also, boolean, float? etc.?
         addSymbol("range", python::Type::makeFunctionType(python::Type::I64, python::Type::RANGE));
@@ -406,6 +455,31 @@ namespace tuplex {
                                 python::Type::makeFunctionType(python::Type::EMPTYTUPLE, python::Type::BOOLEAN));
 
         // for dict, list, tuple use generic type version!
+
+        // for keys()/values() use generic dict and let symbol table create specialized type on the fly using
+        // typer function
+        /** TODO: finish implementing! (c++ lambda to get correct result) **/
+        {
+            addBuiltinTypeAttribute(python::Type::GENERICDICT, "keys", [](const python::Type& callerType,
+                    const python::Type& parameterType) {
+
+                assert(callerType.isDictionaryType() && callerType != python::Type::GENERICDICT);
+                // dict_view is always based on dictionary type
+                auto view_type = python::Type::makeDictKeysViewType(callerType);
+
+                return python::Type::makeFunctionType(callerType, view_type);
+            }, SymbolType::FUNCTION);
+
+            addBuiltinTypeAttribute(python::Type::GENERICDICT, "values", [](const python::Type& callerType,
+                                                                          const python::Type& parameterType) {
+
+                assert(callerType.isDictionaryType() && callerType != python::Type::GENERICDICT);
+                // dict_view is always based on dictionary type
+                auto values_type = python::Type::makeDictValuesViewType(callerType);
+
+                return python::Type::makeFunctionType(callerType, values_type);
+            }, SymbolType::FUNCTION);
+        }
 
         // i.e. type depending on input
 
@@ -477,7 +551,7 @@ namespace tuplex {
                                                                        python::Type::makeTupleType({dict_type.keyType(), dict_type.valueType()})));
 
             }
-
+        
         // for the weird case of the default object having different type than the dict value type, use tracing.
 
         // another good design for builtin functions could be:
@@ -645,6 +719,72 @@ namespace tuplex {
     }
 
     void SymbolTable::addBuiltinTypeAttribute(const python::Type &builtinType, const std::string &name,
+                                              std::function<python::Type(const python::Type &,
+                                                                         const python::Type &)> attributeTyper,
+                                              const SymbolType &sym_type) {
+        using namespace std;
+        assert(sym_type == SymbolType::VARIABLE || sym_type == SymbolType::FUNCTION);
+
+        // this seems wrong, need to perform the lookup directly...
+        // use desc as name
+        auto scope = currentScope();
+        auto it = scope->symbols.find(builtinType.desc());
+        if(it == scope->symbols.end()) {
+            auto sym = make_shared<Symbol>();
+            sym->name = sym->qualifiedName = builtinType.desc();
+            scope->symbols[builtinType.desc()] = sym;
+
+            it = scope->symbols.find(builtinType.desc());
+            assert(it != scope->symbols.end());
+        }
+        auto sym_att = it->second->findAttribute(name);
+        if(!sym_att) {
+            it->second->addAttribute(make_shared<Symbol>(name, name, builtinType, sym_type));
+            sym_att = it->second->findAttribute(name);
+        } else {
+            // replace symbol, there can be only one symbol with a typer function
+            if(sym_type != sym_att->symbolType)
+                throw std::runtime_error("symbol can only have one kind of types associated with it!");
+            assert(sym_att->qualifiedName == name);
+            sym_att->name = name;
+        }
+        assert(sym_att);
+        sym_att->parent = scope->symbols[name];
+        sym_att->attributeFunctionTyper = attributeTyper;
+    }
+
+    void SymbolTable::addBuiltinTypeAttribute(const python::Type &builtinType, const std::string &name,
+                                              std::function<python::Type(const python::Type &)> typer,
+                                              const SymbolType& sym_type = SymbolType::VARIABLE) {
+        using namespace std;
+        assert(sym_type == SymbolType::VARIABLE || sym_type == SymbolType::FUNCTION);
+
+        // this seems wrong, need to perform the lookup directly...
+        // use desc as name
+        auto scope = currentScope();
+        auto it = scope->symbols.find(builtinType.desc());
+        if(it == scope->symbols.end()) {
+            scope->symbols[builtinType.desc()] = make_shared<Symbol>(builtinType.desc(), typer);
+            it = scope->symbols.find(builtinType.desc());
+            assert(it != scope->symbols.end());
+        }
+        auto sym_att = it->second->findAttribute(name);
+        if(!sym_att) {
+            it->second->addAttribute(make_shared<Symbol>(name, name, builtinType, sym_type));
+            sym_att = it->second->findAttribute(name);
+        } else {
+            // replace symbol, there can be only one symbol with a typer function
+            if(sym_type != sym_att->symbolType)
+                throw std::runtime_error("symbol can only have one kind of types associated with it!");
+            assert(sym_att->qualifiedName == name);
+            sym_att->name = name;
+        }
+        assert(sym_att);
+        sym_att->parent = scope->symbols[name];
+        sym_att->functionTyper = typer;
+    }
+
+    void SymbolTable::addBuiltinTypeAttribute(const python::Type &builtinType, const std::string &name,
                                               const python::Type &type) {
         // this seems wrong, need to perform the lookup directly...
         // use desc as name
@@ -729,7 +869,10 @@ namespace tuplex {
         return python::Type::UNKNOWN;
     }
 
-    static python::Type typeAttribute(std::shared_ptr<Symbol> sym, std::string attribute, python::Type parameterType) {
+    static python::Type typeAttribute(std::shared_ptr<Symbol> sym,
+                                      std::string attribute,
+                                      python::Type parameterType,
+                                      python::Type objectType) {
         if(sym) {
             auto attr_sym = sym->findAttribute(attribute);
 
@@ -739,7 +882,7 @@ namespace tuplex {
                     // else, return single type
                     return attr_sym->type();
                 python::Type funcType = python::Type::UNKNOWN;
-                attr_sym->findFunctionTypeBasedOnParameterType(parameterType, funcType); // ignore ret value.
+                attr_sym->findAttributeFunctionType(objectType, parameterType, funcType); // ignore ret value.
                 return funcType;
             }
         }
@@ -788,7 +931,7 @@ namespace tuplex {
         auto name = type.desc();
         auto sym = findSymbol(name);
 
-        resultType = typeAttribute(sym, attribute, parameterType);
+        resultType = typeAttribute(sym, attribute, parameterType, type);
         if(resultType != python::Type::UNKNOWN)
             return resultType;
 
@@ -802,7 +945,7 @@ namespace tuplex {
             if(type.isDictionaryType() || type == python::Type::EMPTYDICT)
                 name = python::Type::GENERICDICT.desc();
             sym = findSymbol(name);
-            resultType = typeAttribute(sym, attribute, parameterType);
+            resultType = typeAttribute(sym, attribute, parameterType, type);
         }
 
         return resultType;

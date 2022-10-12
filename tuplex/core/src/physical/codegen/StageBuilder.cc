@@ -884,7 +884,19 @@ namespace tuplex {
             // TODO: need to optimize this..., i.e. more efficient when false.
             // --> yet, for now always emit general-case exceptions!
             // keep the smaller normal-case exception format. (note this option has not been properly tested throughout code base)
-            bool emitGeneralCaseExceptionRows = true;
+            bool emitGeneralCaseExceptionRows = true; // <-- need to fix this!
+
+            // make sure upcasting is posible
+            if(emitGeneralCaseExceptionRows) {
+                auto normal_case_output_type = pathContext.outputSchema.getRowType();
+                auto general_case_output_type = generalCaseOutputRowType;
+                if(!python::canUpcastType(normal_case_output_type, general_case_output_type)) {
+                    string err_message = "emitting general case exceptions, but normal case type and general case type are incompatible.";
+                    logger.error(err_message);
+                    throw std::runtime_error(err_message);
+                }
+            }
+
 
             // step 2. build connector to data source, i.e. generated parser or simply iterating over stuff
             std::shared_ptr<codegen::BlockBasedTaskBuilder> tb;

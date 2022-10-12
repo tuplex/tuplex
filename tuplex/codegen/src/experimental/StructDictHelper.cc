@@ -843,6 +843,12 @@ namespace tuplex {
 
                 // store
                 auto llvm_idx = CreateStructGEP(builder, ptr, field_idx);
+
+                // special case: sometimes storing element type dict or list will be based upon pointer -> load first!
+                if(value->getType() == llvm_idx->getType()) {
+                    value = builder.CreateLoad(value);
+                }
+
                 builder.CreateStore(value, llvm_idx);
             }
         }

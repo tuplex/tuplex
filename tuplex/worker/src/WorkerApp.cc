@@ -1927,12 +1927,6 @@ namespace tuplex {
 
             // remove exception format from ecCode (??)
 
-//            // only exec on faukty rpw
-//            if(i + 1 != 685) {
-//                ptr += delta;
-//                continue;
-//            }
-
             // hack: in some parts of the code base, the exception format is not used yet. Therefore, manually fix up BADPARSE_STRING_INPUT format
             if((ecCode >> 32) != static_cast<uint64_t>(ExceptionSerializationFormat::STRING_CELLS) && ecCode == ecToI32(ExceptionCode::BADPARSE_STRING_INPUT)) {
                 ecCode |= static_cast<uint64_t>(ExceptionSerializationFormat::STRING_CELLS) << 32;

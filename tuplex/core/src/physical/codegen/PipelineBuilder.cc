@@ -2443,15 +2443,14 @@ namespace tuplex {
                 const std::vector<std::string>& null_values,
                 const CompilePolicy& policy) {
 
-
-            // // uncomment to get debug printing for this function
-            // #define PRINT_EXCEPTION_PROCESSING_DETAILS
-
             auto& logger = Logger::instance().logger("codegen");
             auto pipFunc = pip.getFunction();
 
             if(!pipFunc)
                 return nullptr;
+
+            // debug
+#define PRINT_EXCEPTION_PROCESSING_DETAILS
 
             auto generalCaseType = pip.inputRowType();
             bool normalCaseAndGeneralCaseCompatible = checkCaseCompatibility(normalCaseType, generalCaseType, normalToGeneralMapping);

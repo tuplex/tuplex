@@ -529,11 +529,24 @@ default:
         // fallback 1: slow, compiled code path
         int resCode = -1;
         if(_functor && ecCode != ecToI32(ExceptionCode::PYTHON_PARALLELIZE)) {
+
+            auto originalEcCode = ecCode;
+
+            // hack: in some parts of the code base, the exception format is not used yet. Therefore, manually fix up BADPARSE_STRING_INPUT format
+            if((ecCode >> 32) != static_cast<uint64_t>(ExceptionSerializationFormat::STRING_CELLS) && ecCode == ecToI32(ExceptionCode::BADPARSE_STRING_INPUT)) {
+                ecCode |= static_cast<uint64_t>(ExceptionSerializationFormat::STRING_CELLS) << 32;
+            }
+
             resCode = _functor(this, _rowNumber, ecCode, ebuf, eSize);
             // uncomment to print out details on demand
             // if(resCode != 0) {
             //     std::cout<<"functor delivered resCode "<<resCode<<std::endl;
             // }
+
+
+            // restore
+            if(resCode != 0)
+                ecCode = originalEcCode;
 
             // normal-case violation too? -> backup via interpreter!
             if(resCode == ecToI32(ExceptionCode::NORMALCASEVIOLATION)) {

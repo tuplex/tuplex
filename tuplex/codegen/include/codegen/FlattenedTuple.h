@@ -494,6 +494,34 @@ namespace tuplex {
 
             return target_tuple;
         }
+
+        /*!
+         * deserialize bitmap from memory (bitmap stored as consecutive 8 byte blocks)
+         * @param env
+         * @param builder
+         * @param ptr
+         * @param numBits how many i1 comprise the bitmap
+         * @return vector of the 8 byte blocks.
+         */
+        inline std::tuple<llvm::Value*, std::vector<llvm::Value*>> deserializeBitmap(LLVMEnvironment& env,
+                                                                                             llvm::IRBuilder<>& builder,
+                                                                                             llvm::Value* ptr,
+                                                                                             size_t numBits) {
+            using namespace std;
+            size_t numBitmapElements = core::ceilToMultiple(numBits, 64ul) / 64ul;
+            assert(ptr && ptr->getType() == env.i8ptrType());
+            vector<llvm::Value*> bitmap;
+            for(unsigned i = 0; i < numBitmapElements; ++i) {
+                // read as 64bit int from memory
+                auto bitmapElement = builder.CreateLoad(builder.CreateBitCast(ptr, env.i64ptrType()), "bitmap_part");
+                bitmap.emplace_back(bitmapElement);
+                // move onto next pointer
+                ptr = builder.CreateGEP(ptr, env.i32Const(sizeof(int64_t)));
+            }
+
+            // return updated ptr & bitmap
+            return make_tuple(ptr, bitmap);
+        }
     }
 }
 

@@ -4,6 +4,7 @@
 
 #include <experimental/StructDictHelper.h>
 #include <experimental/ListHelper.h>
+#include <codegen/FlattenedTuple.h>
 
 namespace tuplex {
     namespace codegen {
@@ -1079,36 +1080,202 @@ namespace tuplex {
             }
         }
 
+        size_t struct_dict_get_field_count(const python::Type& dict_type) {
+            assert(dict_type.isStructuredDictionaryType());
+
+            flattened_struct_dict_entry_list_t entries;
+            flatten_recursive_helper(entries, dict_type);
+            auto indices = struct_dict_load_indices(dict_type);
+
+            // count how many fields there are => important to compute offsets!
+            size_t num_fields = 0;
+            for(auto entry : entries) {
+                auto access_path = std::get<0>(entry);
+                auto t_indices = indices.at(access_path);
+                auto value_idx = std::get<2>(t_indices);
+                auto value_type = std::get<1>(entry);
+
+                if(value_type.isOptionType())
+                    value_type = value_type.getReturnType();
+                // skip nested struct dicts!
+                if(value_type.isStructuredDictionaryType())
+                    continue;
+
+                if(value_idx < 0)
+                    continue; // can skip field, not necessary to serialize
+                num_fields++;
+            }
+
+            return num_fields;
+        }
+
         // deserializastion code...
         SerializableValue struct_dict_deserialize_from_memory(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type) {
             auto& logger = Logger::instance().logger("codegen");
             assert(dict_type.isStructuredDictionaryType());
 
             using namespace llvm;
+            using namespace std;
 
             SerializableValue v;
             auto stype = env.getOrCreateStructuredDictType(dict_type);
             v.val = env.CreateFirstBlockAlloca(builder, stype);
             struct_dict_mem_zero(env, builder, v.val, dict_type);
-            auto dest_ptr = v.val;
+            auto dict_ptr = v.val;
+            auto original_mem_start_ptr = ptr; // save pointer for memory distance
 
             // get flattened structure!
             flattened_struct_dict_entry_list_t entries;
             flatten_recursive_helper(entries, dict_type);
+            auto indices = struct_dict_load_indices(dict_type);
 
-            // @TODO: need to deserialize?? i.e. other way round process?
+            // optionally the bitmaps to store within the struct
+            vector<llvm::Value*> bitmap;
+            vector<llvm::Value*> presence_map;
 
             // step 1: decode bitmap if exists and load to array
-
+            if(struct_dict_has_bitmap(dict_type)) {
+                assert(stype->isStructTy() && stype->getStructElementType(0)->isArrayTy());
+                size_t num_bitmap_bits = stype->getStructElementType(0)->getArrayNumElements();
+                std::tie(ptr, bitmap) = deserializeBitmap(env, builder, ptr, num_bitmap_bits);
+            }
             // step 2: decode presence map if exists and load to array
+            if(struct_dict_has_presence_map(dict_type)) {
+                assert(stype->isStructTy() && stype->getStructElementType(1)->isArrayTy());
+                size_t num_presence_bits = stype->getStructElementType(1)->getArrayNumElements();
+                std::tie(ptr, presence_map) = deserializeBitmap(env, builder, ptr, num_presence_bits);
+            }
 
             // step 3: go over entries and load if present.
+            // count how many fields there are => important to compute offsets!
+            size_t num_fields = struct_dict_get_field_count(dict_type);
+            logger.debug("found " + pluralize(num_fields, "field") + " to deserialize.");
 
-            // -> for opt entries, check bitmap and perform load
+            size_t field_index = 0; // used in order to compute offsets!
+            llvm::Value* varLengthOffset = env.i64Const(0); // current offset from varfieldsstart ptr
+            llvm::Value* varFieldsStartPtr = builder.CreateGEP(ptr, env.i64Const(sizeof(int64_t) * num_fields)); // where in memory the variable field storage starts!
 
-            // -> for indirect entries setup pointers!
-            throw std::runtime_error("to be implemented...");
+            // get indices to properly decode
+            for(auto entry : entries) {
+                auto access_path = std::get<0>(entry);
+                auto value_type = std::get<1>(entry);
+                auto t_indices = indices.at(access_path);
 
+                // special case list: --> needs extra care
+                if(value_type.isOptionType())
+                    value_type = value_type.getReturnType();
+                if(python::Type::EMPTYLIST != value_type && value_type.isListType()) {
+                    throw std::runtime_error("list_deserialize not yet implemented.");
+                    // // special case, perform it here, then skip:
+                    // // call list specific function to determine length.
+                    // auto value_idx = std::get<2>(t_indices);
+                    // assert(value_idx >= 0);
+                    // auto list_type = value_type;
+                    // auto list_ptr = CreateStructGEP(builder, ptr, value_idx);
+                    // auto list_size_in_bytes = list_serialized_size(env, builder, list_ptr, list_type);
+                    //
+                    // // => list is ALWAYS a var length field, serialize like that.
+                    // // compute offset
+                    // // from current field -> varStart + varoffset
+                    // size_t cur_to_var_start_offset = (num_fields - field_index + 1) * sizeof(int64_t);
+                    // auto offset = builder.CreateAdd(env.i64Const(cur_to_var_start_offset), varLengthOffset);
+                    //
+                    // auto varDest = builder.CreateGEP(varFieldsStartPtr, varLengthOffset);
+                    // // call list function
+                    // list_serialize_to(env, builder, list_ptr, list_type, varDest);
+                    //
+                    // // pack offset and size into 64bit!
+                    // auto info = pack_offset_and_size(builder, offset, list_size_in_bytes);
+                    //
+                    // // store info away
+                    // auto casted_dest_ptr = builder.CreateBitOrPointerCast(dest_ptr, env.i64ptrType());
+                    // builder.CreateStore(info, casted_dest_ptr);
+                    //
+                    // dest_ptr = builder.CreateGEP(dest_ptr, env.i64Const(sizeof(int64_t)));
+                    // varLengthOffset = builder.CreateAdd(varLengthOffset, list_size_in_bytes);
+                    // field_index++;
+                    // continue;
+                }
+
+                // skip nested struct dicts! --> they're taken care of.
+                if(value_type.isStructuredDictionaryType())
+                    continue;
+
+                // depending on field, add size!
+                auto value_idx = std::get<2>(t_indices);
+                auto size_idx = std::get<3>(t_indices);
+
+                if(value_idx < 0)
+                    continue; // can skip field, not necessary to serialize
+
+                // what kind of data is it that needs to be serialized?
+                bool is_varlength_field = size_idx >= 0;
+                assert(value_idx >= 0);
+
+                // load value
+                llvm::Value* value = nullptr;
+                if(ptr->getType()->isPointerTy()) {
+                    auto llvm_value_idx = CreateStructGEP(builder, ptr, value_idx);
+                    value = builder.CreateLoad(llvm_value_idx);
+                } else {
+                    value = builder.CreateExtractValue(ptr, std::vector<unsigned>(1, value_idx));
+                }
+
+                if(!is_varlength_field) {
+                    // simple: just load data and copy!
+                    // make sure it's bool/i64/64 -> these are the only fixed size fields!
+                    assert(value_type == python::Type::BOOLEAN || value_type == python::Type::I64 || value_type == python::Type::F64);
+
+                    if(value_type == python::Type::BOOLEAN)
+                        value = builder.CreateZExt(value, env.i64Type());
+
+                    // store with casting
+                    auto casted_src_ptr = builder.CreateBitOrPointerCast(ptr, value->getType()->getPointerTo());
+                    value = builder.CreateLoad(casted_src_ptr);
+                    // store into struct ptr
+                    struct_dict_store_value(env, builder, dict_ptr, dict_type, access_path, value); // always store value
+                    struct_dict_store_size(env, builder, dict_ptr, dict_type, access_path, env.i64Const(sizeof(int64_t)));
+                    ptr = builder.CreateGEP(ptr, env.i64Const(sizeof(int64_t)));
+                } else {
+                    // more complex:
+                    // for now, only string supported... => load and fix!
+                    if(value_type != python::Type::STRING)
+                        throw std::runtime_error("unsupported type " + value_type.desc() + " encountered! ");
+
+                    // add size field + data
+                    auto llvm_size_idx = CreateStructGEP(builder, ptr, size_idx);
+                    auto value_size = llvm_size_idx->getType()->isPointerTy() ? builder.CreateLoad(llvm_size_idx) : llvm_size_idx; // <-- serialized size.
+
+                    // load info from ptr & move
+                    auto info = builder.CreateLoad(builder.CreateBitOrPointerCast(ptr, env.i64ptrType()));
+
+
+                    // unpack offset and size from info
+                    llvm::Value* offset=nullptr; llvm::Value *size=nullptr;
+
+                    std::tie(offset, size) = unpack_offset_and_size(builder, info);
+
+                    // get the pointer to the data
+                    auto data_ptr = builder.CreateGEP(ptr, offset);
+
+                    // store (always safe to do)
+                    struct_dict_store_value(env, builder, dict_ptr, dict_type, access_path, data_ptr); // always store value
+                    struct_dict_store_size(env, builder, dict_ptr, dict_type, access_path, size);
+
+                    // move decode ptr.
+                    ptr = builder.CreateGEP(ptr, env.i64Const(sizeof(int64_t)));
+                }
+
+                // serialized field -> inc index!
+                field_index++;
+            }
+
+            // move dest ptr to end!
+            ptr = builder.CreateGEP(ptr, varLengthOffset);
+            llvm::Value* deserialized_size = builder.CreatePtrDiff(ptr, original_mem_start_ptr);
+#ifndef NDEBUG
+            env.printValue(builder, deserialized_size, "deserialized struct_dict from bytes: ");
+#endif
             return v;
         }
 
@@ -1127,7 +1294,6 @@ namespace tuplex {
             // get flattened structure!
             flattened_struct_dict_entry_list_t entries;
             flatten_recursive_helper(entries, dict_type);
-
             auto indices = struct_dict_load_indices(dict_type);
 
             // check bitmap size (i.e. multiples of 64bit)
@@ -1160,24 +1326,7 @@ namespace tuplex {
             }
 
             // count how many fields there are => important to compute offsets!
-            size_t num_fields = 0;
-            for(auto entry : entries) {
-                auto access_path = std::get<0>(entry);
-                auto t_indices = indices.at(access_path);
-                auto value_idx = std::get<2>(t_indices);
-                auto value_type = std::get<1>(entry);
-
-                if(value_type.isOptionType())
-                    value_type = value_type.getReturnType();
-                // skip nested struct dicts!
-                if(value_type.isStructuredDictionaryType())
-                    continue;
-
-                if(value_idx < 0)
-                    continue; // can skip field, not necessary to serialize
-                num_fields++;
-            }
-
+            size_t num_fields = struct_dict_get_field_count(dict_type);
             logger.debug("found " + pluralize(num_fields, "field") + " to serialize.");
 
             size_t field_index = 0; // used in order to compute offsets!

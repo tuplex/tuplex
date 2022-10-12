@@ -287,6 +287,20 @@ namespace tuplex {
             return info;
         }
 
+        inline std::tuple<llvm::Value*, llvm::Value*> unpack_offset_and_size(llvm::IRBuilder<>& builder, llvm::Value* info) {
+            using namespace llvm;
+
+            // truncation yields lower 32 bit (= offset)
+            Value *offset = builder.CreateTrunc(info, Type::getInt32Ty(builder.getContext()));
+            // right shift by 32 yields size
+            Value *size = builder.CreateLShr(info, 32, "varsize");
+
+            // extend to 64bit
+            offset = builder.CreateZExtOrTrunc(offset, Type::getInt64Ty(builder.getContext()));
+            size = builder.CreateZExtOrTrunc(size, Type::getInt64Ty(builder.getContext()));
+            return std::make_tuple(offset, size);
+        }
+
         /*!
          * generates code to get a compatible underlying value from an optimized value.
          * @param builder LLVM IR Builder

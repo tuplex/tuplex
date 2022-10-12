@@ -188,16 +188,21 @@ namespace tuplex {
             vector<llvm::Value*> bitmap;
             bool hasBitmap = tupleType().isOptional();
             if(hasBitmap) {
+                // new:
                 auto atype = getLLVMType()->getStructElementType(0); assert(atype->isArrayTy());
-                int numBitmapElements = core::ceilToMultiple(atype->getArrayNumElements(), (uint64_t)64) / 64;
-
-                for(int i = 0; i < numBitmapElements; ++i) {
-                    // read as 64bit int from memory
-                    auto bitmapElement = builder.CreateLoad(builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), "bitmap_part");
-                    bitmap.emplace_back(bitmapElement);
-                    // set
-                    lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)));
-                }
+                auto numBits = atype->getArrayNumElements();
+                std::tie(lastPtr, bitmap) = deserializeBitmap(*_env, builder, lastPtr, numBits);
+                // old
+                // auto atype = getLLVMType()->getStructElementType(0); assert(atype->isArrayTy());
+                // int numBitmapElements = core::ceilToMultiple(atype->getArrayNumElements(), (uint64_t)64) / 64;
+                //
+                // for(int i = 0; i < numBitmapElements; ++i) {
+                //     // read as 64bit int from memory
+                //     auto bitmapElement = builder.CreateLoad(builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), "bitmap_part");
+                //     bitmap.emplace_back(bitmapElement);
+                //     // set
+                //     lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)));
+                // }
             }
 
             // go over all fields & retrieve them
@@ -264,10 +269,17 @@ namespace tuplex {
                     Value *varInfo = builder.CreateLoad(builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)),
                                                         "offset");
 
-                    // truncation yields lower 32 bit (= offset)
-                    Value *offset = builder.CreateTrunc(varInfo, Type::getInt32Ty(context));
-                    // right shift by 32 yields size
-                    Value *size = builder.CreateLShr(varInfo, 32, "varsize");
+                    // new:
+                    Value *offset = nullptr;
+                    Value *size = nullptr;
+                    std::tie(offset, size) = unpack_offset_and_size(builder, varInfo);
+
+                    // old:
+                    // // truncation yields lower 32 bit (= offset)
+                    // Value *offset = builder.CreateTrunc(varInfo, Type::getInt32Ty(context));
+                    // // right shift by 32 yields size
+                    // Value *size = builder.CreateLShr(varInfo, 32, "varsize");
+
 
                     // add offset to get starting point of varlen argument's memory region
                     Value *ptr = builder.CreateGEP(lastPtr, offset, twine);

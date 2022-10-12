@@ -290,7 +290,9 @@ namespace tuplex {
                         throw std::runtime_error("Should not happen!");
                     } else if(type.isDictionaryType()) {
                         if(type.isStructuredDictionaryType()) {
-                            throw std::runtime_error("struct dict deserialization nyimpl");
+                            // deserialize from ptr
+                            auto dict_val = struct_dict_deserialize_from_memory(*_env, builder, ptr, type);
+                            _tree.set(i, dict_val);
                         } else {
                             // create the dictionary pointer
                             auto dictPtr = builder.CreateCall(cJSONParse_prototype(_env->getContext(), _env->getModule().get()),

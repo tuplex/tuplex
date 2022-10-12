@@ -1297,7 +1297,9 @@ namespace tuplex {
                 std::copy(partitions.begin(), partitions.end(), std::back_inserter(exception_partitions));
             }
             auto dump_path = "fallback_exceptions_stage" + std::to_string(tstage->number()) + ".pkl";
-            dumpExceptionsForFallback(dump_path, exceptionInputSchema, exception_partitions);
+
+            // this does not work yet, b.c. decoding of struct dict in row not yet supported!
+            // dumpExceptionsForFallback(dump_path, exceptionInputSchema, exception_partitions);
         }
 #endif
 

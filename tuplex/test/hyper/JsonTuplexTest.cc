@@ -44,6 +44,7 @@ TEST_F(JsonTuplexTest, GithubLoad) {
 
     auto opt = microTestOptions();
     opt.set("tuplex.executorCount", "0"); // start single-threaded
+    opt.set("tuplex.resolveWithInterpreterOnly", "false");
     Context ctx(opt);
     bool unwrap_first_level = true;
 

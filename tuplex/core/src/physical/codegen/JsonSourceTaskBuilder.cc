@@ -234,6 +234,8 @@ namespace tuplex {
                 // serialized size (as is)
                 auto general_size = general_case_row.getSize(builder);
 
+                serializeAsNormalCaseException(builder, userData, _inputOperatorID, rowNumber(builder), general_case_row);
+
                 // in order to store an exception, need 8 bytes for each: rowNumber, ecCode, opID, eSize + the size of the row
                 general_size = builder.CreateAdd(general_size, _env->i64Const(4 * sizeof(int64_t)));
                 incVar(builder, _generalMemorySizeVar, general_size);
@@ -575,6 +577,29 @@ namespace tuplex {
             }
 
             return ft;
+        }
+
+        void JsonSourceTaskBuilder::serializeAsNormalCaseException(llvm::IRBuilder<> &builder, llvm::Value *userData,
+                                                                   int64_t operatorID, llvm::Value *row_no,
+                                                                   const tuplex::codegen::FlattenedTuple &general_case_row) {
+            // checks
+            assert(row_no);
+            assert(row_no->getType() == _env->i64Type());
+
+            // this is a regular exception -> i.e. cf. deserializeExceptionFromMemory for mem layout
+            auto mem = general_case_row.serializeToMemory(builder);
+            auto buf = mem.val;
+            auto buf_size = mem.size;
+
+            // buf is now fully serialized. => call exception handler from pipeline.
+            auto handler_name = exception_handler();
+            if(!hasExceptionHandler() || handler_name.empty())
+                throw std::runtime_error("invalid, no handler specified");
+
+            auto eh_func = exception_handler_prototype(_env->getContext(), _env->getModule().get(), handler_name);
+            llvm::Value *ecCode = _env->i64Const(ecToI64(ExceptionCode::NORMALCASEVIOLATION));
+            llvm::Value *ecOpID = _env->i64Const(operatorID);
+            builder.CreateCall(eh_func, {userData, ecCode, ecOpID, row_no, buf, buf_size});
         }
 
         void JsonSourceTaskBuilder::serializeBadParseException(llvm::IRBuilder<> &builder,

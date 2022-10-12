@@ -1107,21 +1107,20 @@ namespace tuplex {
             // 1. null-bitmap
             size_t bitmap_offset = 0;
             if(struct_dict_has_bitmap(dict_type)) {
-                llvm::Value* bitmap = nullptr;
-                if(ptr->getType()->isPointerTy()) {
-                    auto bitmap_idx = CreateStructGEP(builder, ptr, bitmap_offset);
-                    bitmap = builder.CreateLoad(bitmap_idx);
-                } else {
-                    bitmap = builder.CreateExtractValue(ptr, std::vector<unsigned>(1, bitmap_offset));
-                }
-
+                //                llvm::Value* bitmap = nullptr;
+                //                if(ptr->getType()->isPointerTy()) {
+                //                    auto bitmap_idx = CreateStructGEP(builder, ptr, bitmap_offset);
+                //                    bitmap = builder.CreateLoad(bitmap_idx);
+                //                } else {
+                //                    bitmap = builder.CreateExtractValue(ptr, std::vector<unsigned>(1, bitmap_offset));
+                //                }
+                auto bitmap = CreateStructLoad(builder, ptr, bitmap_offset);
                 dest_ptr = serializeBitmap(env, builder, bitmap, dest_ptr);
                 bitmap_offset++;
             }
             // 2. presence-bitmap
             if(struct_dict_has_presence_map(dict_type)) {
-                auto presence_map_idx = CreateStructGEP(builder, ptr, bitmap_offset);
-                auto presence_map = builder.CreateLoad(presence_map_idx);
+                auto presence_map = CreateStructLoad(builder, ptr, bitmap_offset);
                 dest_ptr = serializeBitmap(env, builder, presence_map, dest_ptr);
                 bitmap_offset++;
             }
@@ -1476,6 +1475,13 @@ namespace tuplex {
                                              const python::Type& dest_type) {
             // make sure scenario is supported
             assert((src_type == python::Type::EMPTYDICT || src_type.isStructuredDictionaryType()) && dest_type.isStructuredDictionaryType());
+
+            // check that llvm src val is correct.
+            assert(src.val);
+            auto src_val_llvm_type = src.val->getType();
+
+            assert(src_val_llvm_type == env.getOrCreateStructuredDictType(src_type)
+            || src_val_llvm_type == env.getOrCreateStructuredDictType(src_type)->getPointerTo());
 
             auto& logger = Logger::instance().logger("codegen");
 

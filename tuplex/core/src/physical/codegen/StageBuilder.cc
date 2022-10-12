@@ -1057,6 +1057,8 @@ namespace tuplex {
             using namespace std;
             using namespace llvm;
 
+            auto& logger = Logger::instance().logger("codegen");
+
             TransformStage::StageCodePath ret;
 
             // @TODO: the short-circuiting here kinda sounds off...!
@@ -1076,8 +1078,15 @@ namespace tuplex {
                std::dynamic_pointer_cast<CacheOperator>(_inputNode)->cachedFallbackPartitions().empty())
                 requireSlowPath = false;
 
+            // special case: JSON parsing and normal-case vs. general-case different.
+            // => also should maybe always generate slow path when blockgen uses normal-case violation!
+            // -> first codegen normal-case and then general-case on demand...?
+#warning "better to always generate slow path."
+            requireSlowPath = true; // always gen.
+
             // nothing todo, return empty code-path - i.e., normal
             if (numResolveOperators == 0 && !requireSlowPath) {
+                logger.debug("No resolvers found, and slowPath otherwise not required - skipping codegen.");
                 return ret;
             }
 
@@ -1092,8 +1101,6 @@ namespace tuplex {
 
             // @TODO: need to type here UDFs with commonCase/ExceptionCase type!
             // ==> i.e. the larger, unspecialized type!
-
-            auto &logger = Logger::instance().logger("codegen");
 
             // fill in names
             fillInCallbackNames("slow_", number(), ret);

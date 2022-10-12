@@ -2581,27 +2581,44 @@ namespace tuplex {
                     dataPtr = builder.CreateGEP(dataPtr, env.i32Const(sizeof(int64_t)));
                 }
 
-                auto ft = decodeCells(env, builder, generalCaseType, noCells, cellsPtr, sizesPtr, bbStringDecodeFailed,
-                                      null_values);
+                // check whether there are any non primitives within generalCaseType
+                bool any_non_primitives_found = false;
+                for(auto type : generalCaseType.parameters()) {
+                    // get rid off opt/option
+                    type = deoptimizedType(type);
+                    type = type.withoutOptions();
+                    if(!type.isPrimitiveType() && type != python::Type::STRING && type != python::Type::NULLVALUE)
+                        any_non_primitives_found = true;
+                }
 
-                // call pipeline & return its code
-                auto res = PipelineBuilder::call(builder, pipFunc, *ft, args["userData"], args["rowNumber"]);
-                auto resultCode = builder.CreateZExtOrTrunc(res.resultCode, env.i64Type());
-                auto resultOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env.i64Type());
-                auto resultNumRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env.i64Type());
+                if(!any_non_primitives_found) {
+                    auto ft = decodeCells(env, builder, generalCaseType, noCells, cellsPtr, sizesPtr, bbStringDecodeFailed,
+                                          null_values);
+
+                    // call pipeline & return its code
+                    auto res = PipelineBuilder::call(builder, pipFunc, *ft, args["userData"], args["rowNumber"]);
+                    auto resultCode = builder.CreateZExtOrTrunc(res.resultCode, env.i64Type());
+                    auto resultOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env.i64Type());
+                    auto resultNumRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env.i64Type());
 
 #ifdef PRINT_EXCEPTION_PROCESSING_DETAILS
-                 env.debugPrint(builder, "calling pipeline yielded #rows: ", resultNumRowsCreated);
+                    env.debugPrint(builder, "calling pipeline yielded #rows: ", resultNumRowsCreated);
 #endif
-                env.freeAll(builder);
-                builder.CreateRet(resultCode);
+                    env.freeAll(builder);
+                    builder.CreateRet(resultCode);
 
-                builder.SetInsertPoint(bbStringDecodeFailed);
+                    builder.SetInsertPoint(bbStringDecodeFailed);
 #ifdef PRINT_EXCEPTION_PROCESSING_DETAILS
-                 env.debugPrint(builder, "string decode failed");
+                    env.debugPrint(builder, "string decode failed");
 #endif
-                env.freeAll(builder);
-                builder.CreateRet(ecCode); // original exception code.
+                    env.freeAll(builder);
+                    builder.CreateRet(ecCode); // original exception code.
+                } else {
+                    // do not generate code.
+                    env.freeAll(builder);
+                    auto resultCode = env.i64Const(ecToI64(ExceptionCode::GENERALCASEVIOLATION));
+                    builder.CreateRet(resultCode);
+                }
             }
             // 2.) decode normal case type & upgrade to exception case type, then apply all resolvers & Co
             {

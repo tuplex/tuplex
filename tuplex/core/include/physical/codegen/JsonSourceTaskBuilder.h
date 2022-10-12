@@ -110,6 +110,12 @@ namespace tuplex {
                                             llvm::Value *row_no,
                                             llvm::Value *str,
                                             llvm::Value *str_size);
+
+            void serializeAsNormalCaseException(llvm::IRBuilder<>& builder,
+                                                llvm::Value* userData,
+                                                int64_t operatorID,
+                                                llvm::Value* row_no,
+                                                const FlattenedTuple& general_case_row);
         };
     }
 }

@@ -159,41 +159,6 @@ namespace tuplex {
             _flattenedTupleType = python::Type::makeTupleType(getFieldTypes());
         }
 
-        // TODO: this seems like a duplication of LLVMEnvironment::pythonToLLVMType??
-        llvm::Type* pythonToLLVMType(LLVMEnvironment& env, python::Type type) {
-            // primitives first
-            if(python::Type::BOOLEAN == type)
-                return env.getBooleanType();
-            if(python::Type::I64 == type)
-                return env.i64Type();
-            if(python::Type::F64 ==  type)
-                return env.doubleType();
-            if(python::Type::EMPTYTUPLE == type)
-                return env.getEmptyTupleType();
-
-            // dummy type for NULL value is i8ptr
-            if(python::Type::NULLVALUE == type)
-                return env.i8ptrType();
-
-            // NEW!!! i8* is string type or dictionary type incl. empty tuple.
-            if(python::Type::STRING == type || type.isDictionaryType())
-                return env.i8ptrType();
-
-            if(type.isListType()) {
-                return env.getOrCreateListType(type);
-            }
-
-            if(python::Type::PYOBJECT == type)
-                return env.i8ptrType();
-
-            if(type.isConstantValued())
-                return pythonToLLVMType(env, type.underlying());
-
-            Logger::instance().defaultLogger().warn("python type could not be converted to llvm type");
-
-            return nullptr;
-        }
-
         std::vector<llvm::Type*> FlattenedTuple::getTypes() {
 
             std::vector<llvm::Type*> types;
@@ -201,7 +166,7 @@ namespace tuplex {
             // iterate over all fields & return mapped types
             for(auto type : _tree.fieldTypes()) {
                 auto deoptimized_type = type.isConstantValued() ? type.underlying() : type;
-                types.push_back(pythonToLLVMType(*_env, deoptimized_type.withoutOptions()));
+                types.push_back(_env->pythonToLLVMType(deoptimized_type.withoutOptions()));
             }
 
             return types;

@@ -1165,36 +1165,31 @@ namespace tuplex {
                 if(value_type.isOptionType())
                     value_type = value_type.getReturnType();
                 if(python::Type::EMPTYLIST != value_type && value_type.isListType()) {
-                    throw std::runtime_error("list_deserialize not yet implemented.");
-                    // // special case, perform it here, then skip:
-                    // // call list specific function to determine length.
-                    // auto value_idx = std::get<2>(t_indices);
-                    // assert(value_idx >= 0);
-                    // auto list_type = value_type;
-                    // auto list_ptr = CreateStructGEP(builder, ptr, value_idx);
-                    // auto list_size_in_bytes = list_serialized_size(env, builder, list_ptr, list_type);
-                    //
-                    // // => list is ALWAYS a var length field, serialize like that.
-                    // // compute offset
-                    // // from current field -> varStart + varoffset
-                    // size_t cur_to_var_start_offset = (num_fields - field_index + 1) * sizeof(int64_t);
-                    // auto offset = builder.CreateAdd(env.i64Const(cur_to_var_start_offset), varLengthOffset);
-                    //
-                    // auto varDest = builder.CreateGEP(varFieldsStartPtr, varLengthOffset);
-                    // // call list function
-                    // list_serialize_to(env, builder, list_ptr, list_type, varDest);
-                    //
-                    // // pack offset and size into 64bit!
-                    // auto info = pack_offset_and_size(builder, offset, list_size_in_bytes);
-                    //
-                    // // store info away
-                    // auto casted_dest_ptr = builder.CreateBitOrPointerCast(dest_ptr, env.i64ptrType());
-                    // builder.CreateStore(info, casted_dest_ptr);
-                    //
-                    // dest_ptr = builder.CreateGEP(dest_ptr, env.i64Const(sizeof(int64_t)));
-                    // varLengthOffset = builder.CreateAdd(varLengthOffset, list_size_in_bytes);
-                    // field_index++;
-                    // continue;
+
+                    // list is always stored as var-length field, so extract info
+                    // load info from ptr & move
+                    auto info = builder.CreateLoad(builder.CreateBitOrPointerCast(ptr, env.i64ptrType()));
+
+                    // unpack offset and size from info
+                    llvm::Value* offset=nullptr; llvm::Value *size=nullptr;
+                    std::tie(offset, size) = unpack_offset_and_size(builder, info);
+
+                    // get the pointer to the data
+                    auto data_ptr = builder.CreateGEP(ptr, offset);
+
+                    // move decode ptr.
+                    ptr = builder.CreateGEP(ptr, env.i64Const(sizeof(int64_t)));
+
+                    // call list decode and store result in struct!
+                    llvm::Value* end_ptr= nullptr;
+                    SerializableValue list_val;
+                    std::tie(end_ptr, list_val) = list_deserialize_from(env, builder, data_ptr, value_type);
+
+                    // store value in struct (pointer should be sufficient)
+                    struct_dict_store_value(env, builder, list_val, dict_ptr, dict_type, access_path);
+
+                    field_index++;
+                    continue;
                 }
 
                 // skip nested struct dicts! --> they're taken care of.

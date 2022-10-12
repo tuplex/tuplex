@@ -942,6 +942,8 @@ namespace tuplex {
             // quite complex, basically write like strings/pyobjects incl. offset array!
 
             // skipped for now...
+            auto& logger = Logger::instance().logger("codegen");
+            logger.error("MISSING FEATURE: add support for list_of_structs_serialization");
 
             return env.i64Const(0);
         }
@@ -950,6 +952,8 @@ namespace tuplex {
             // quite complex, basically write like strings/pyobjects incl. offset array!
 
             // skipped for now...
+            auto& logger = Logger::instance().logger("codegen");
+            logger.error("MISSING FEATURE: add support for list_of_tuples_serialization");
 
             return env.i64Const(0);
         }
@@ -958,10 +962,11 @@ namespace tuplex {
             // quite complex, basically write like strings/pyobjects incl. offset array!
 
             // skipped for now...
+            auto& logger = Logger::instance().logger("codegen");
+            logger.error("MISSING FEATURE: add support for list_of_lists_serialization");
 
             return env.i64Const(0);
         }
-
 
         llvm::Value* list_serialize_to(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* dest_ptr) {
 
@@ -1061,6 +1066,19 @@ namespace tuplex {
             }
 
             return nullptr;
+        }
+
+        std::tuple<llvm::Value*, SerializableValue> list_deserialize_from(LLVMEnvironment& env,
+                                                                          llvm::IRBuilder<>& builder,
+                                                                          llvm::Value* ptr,
+                                                                          const python::Type& list_type) {
+            using namespace std;
+            using namespace llvm;
+
+            SerializableValue list_val;
+
+            return make_tuple(ptr, list_val);
+
         }
 
     }

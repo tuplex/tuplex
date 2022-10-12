@@ -435,7 +435,7 @@ namespace tuplex {
             auto uri = _fileURIs[idx];
             auto size = _sizes[idx];
             auto file_mode = perFileMode(mode);
-            vector<vector<string>>* ptr = &f_names[i];
+            vector<vector<string>>* ptr = outNames ? &f_names[i] : nullptr; // only fetch column names if outNames is valid, else use nullptr to keep data nested.
             f_rows[i] = std::async(std::launch::async, [this, file_mode, ptr](const URI& uri, size_t size) {
                 return sampleFile(uri, size, file_mode, ptr);
             }, _fileURIs[idx], _sizes[idx]);
@@ -1532,6 +1532,8 @@ namespace tuplex {
         // -> pushdown for JSON is special case...
         if(_json_unwrap_first_level) {
             setColumns(ordered_names);
+
+            assert(columns().size() == ordered_names.size());
         }
 
         // normalcase and exception case types

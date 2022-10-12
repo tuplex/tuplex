@@ -17,19 +17,19 @@ TEST_F(JsonTuplexTest, BasicLoad) {
     opt.set("tuplex.executorCount", "0"); // start single-threaded
     Context ctx(opt);
     bool unwrap_first_level = true;
-
-    // this seems to work.
-    // should show:
-    // 10, None, 3.414
-    // 2, 42, 12.0      <-- note the order correction
-    // None, None, 2    <-- note the order (fallback/general case)
-    unwrap_first_level = true;
-    ctx.json("../resources/ndjson/example2.json", unwrap_first_level).show();
-    auto v = ctx.json("../resources/ndjson/example2.json", unwrap_first_level).collectAsVector();
-    ASSERT_EQ(v.size(), 3);
-    EXPECT_EQ(v[0].toPythonString(), "(10,None,3.41400)");
-    EXPECT_EQ(v[1].toPythonString(), "(2,42,12.00000)");
-    EXPECT_EQ(v[2].toPythonString(), "(None,None,2)");
+//
+//    // this seems to work.
+//    // should show:
+//    // 10, None, 3.414
+//    // 2, 42, 12.0      <-- note the order correction
+//    // None, None, 2    <-- note the order (fallback/general case)
+//    unwrap_first_level = true;
+//    ctx.json("../resources/ndjson/example2.json", unwrap_first_level).show();
+//    auto v = ctx.json("../resources/ndjson/example2.json", unwrap_first_level).collectAsVector();
+//    ASSERT_EQ(v.size(), 3);
+//    EXPECT_EQ(v[0].toPythonString(), "(10,None,3.41400)");
+//    EXPECT_EQ(v[1].toPythonString(), "(2,42,12.00000)");
+//    EXPECT_EQ(v[2].toPythonString(), "(None,None,2)");
 
 
     unwrap_first_level = false; // --> requires implementing/adding decoding of struct dict...

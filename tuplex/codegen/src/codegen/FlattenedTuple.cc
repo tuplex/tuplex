@@ -1029,7 +1029,8 @@ namespace tuplex {
                      || val->getType() == llvm::Type::getDoubleTy(context)
                      || val->getType() == _env->getBooleanType()
                      || val->getType() == _env->getEmptyTupleType()
-                     || val->getType()->isStructTy())) {
+                     || val->getType()->isStructTy())
+                     || (val->getType()->isPointerTy() && val->getType()->getPointerElementType()->isStructTy())) {
                     std::cerr<<"invalid val type: "<<_env->getLLVMTypeName(val->getType())<<std::endl;
                 }
 
@@ -1039,7 +1040,8 @@ namespace tuplex {
                        || val->getType() == llvm::Type::getDoubleTy(context)
                        || val->getType() == _env->getBooleanType()
                        || val->getType() == _env->getEmptyTupleType()
-                       || val->getType()->isStructTy());
+                       || val->getType()->isStructTy()
+                       || (val->getType()->isPointerTy() && val->getType()->getPointerElementType()->isStructTy()));
 
 
                 if (val->getType() == llvm::Type::getInt8PtrTy(context, 0)) {

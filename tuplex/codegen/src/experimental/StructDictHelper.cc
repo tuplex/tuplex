@@ -1477,6 +1477,8 @@ namespace tuplex {
             // make sure scenario is supported
             assert((src_type == python::Type::EMPTYDICT || src_type.isStructuredDictionaryType()) && dest_type.isStructuredDictionaryType());
 
+            auto& logger = Logger::instance().logger("codegen");
+
             using namespace llvm;
             using namespace std;
 
@@ -1551,11 +1553,16 @@ namespace tuplex {
                         builder.CreateBr(bNext);
                         builder.SetInsertPoint(bNext);
                     }
+                } else {
+                    // should be maybe... -> else warn?
+                    if(dst_always_present) {
+                        auto path = access_path_to_str(dst_access_path);
+                        logger.debug("Found access path " + path + " which is always present, but is not flagged as maybe and src has no value for it. Is this correct? -> only ok if keycheck was added for normal-case code.");
+                    }
                 }
             }
 
             return SerializableValue(dest_ptr, nullptr, nullptr);
         }
-
     }
 }

@@ -532,11 +532,6 @@ default:
 
             auto originalEcCode = ecCode;
 
-            // hack: in some parts of the code base, the exception format is not used yet. Therefore, manually fix up BADPARSE_STRING_INPUT format
-            if((ecCode >> 32) != static_cast<uint64_t>(ExceptionSerializationFormat::STRING_CELLS) && ecCode == ecToI32(ExceptionCode::BADPARSE_STRING_INPUT)) {
-                ecCode |= static_cast<uint64_t>(ExceptionSerializationFormat::STRING_CELLS) << 32;
-            }
-
             resCode = _functor(this, _rowNumber, ecCode, ebuf, eSize);
             // uncomment to print out details on demand
             // if(resCode != 0) {

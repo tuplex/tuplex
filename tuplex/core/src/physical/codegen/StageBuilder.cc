@@ -19,6 +19,7 @@
 #include <physical/codegen/ExceptionSourceTaskBuilder.h>
 #include <physical/codegen/JsonSourceTaskBuilder.h>
 #include <physical/codegen/AggregateFunctions.h>
+#include <physical/codegen/ResolveHelper.h>
 #include <logical/CacheOperator.h>
 #include <JSONUtils.h>
 #include <CSVUtils.h>

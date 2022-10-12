@@ -485,20 +485,6 @@ namespace tuplex {
 
         // i.e. change parse row generator to always parse the stuff and throw exception with data in more general case
         // TODO
-
-        /*!
-         * creates llvm function to process an exception row
-         * (int64_t)(*)(void* userData, int64_t rowNumber, int64_t ExceptionCode, uint8_t* inputBuffer, int64_t inputBufferSize) to call pipeline over single function.
-         * @param pip
-         * @param name
-         * @return
-         */
-        extern llvm::Function *createProcessExceptionRowWrapper(PipelineBuilder& pip,
-                                                                const std::string& name,
-                                                                const python::Type& normalCaseType,
-                                                                const std::map<int, int>& normalToGeneralMapping,
-                                                                const std::vector<std::string>& null_values,
-                                                                const CompilePolicy& policy);
     }
 }
 

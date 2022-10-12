@@ -116,6 +116,9 @@ namespace tuplex {
         extern SerializableValue struct_dict_load_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path);
 
         extern SerializableValue struct_dict_upcast(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const SerializableValue& src, const python::Type& src_type, const python::Type& dest_type);
+
+        extern bool struct_dict_has_bitmap(const python::Type& dict_type);
+        extern bool struct_dict_has_presence_map(const python::Type& dict_type);
     }
 }
 

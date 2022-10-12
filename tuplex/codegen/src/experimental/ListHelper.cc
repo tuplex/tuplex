@@ -1075,10 +1075,23 @@ namespace tuplex {
             using namespace std;
             using namespace llvm;
 
+            assert(ptr && ptr->getType() == env.i8ptrType());
+            assert(list_type.isListType());
+
+            // alloc list ptr
             SerializableValue list_val;
+            auto llvm_list_type = env.getOrCreateListType(list_type);
+
+            list_val.val = env.CreateFirstBlockAlloca(builder, llvm_list_type);
+            list_init_empty(env, builder, list_val.val, list_type);
+
+            if(python::Type::EMPTYLIST == list_type)
+                return make_tuple(ptr, list_val);
+
+            // else, decode!
+
 
             return make_tuple(ptr, list_val);
-
         }
 
     }

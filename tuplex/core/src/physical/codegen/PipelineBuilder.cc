@@ -2721,6 +2721,15 @@ namespace tuplex {
             builder.CreateRet(ecCode); // original
 
 
+            // erase (empty) blocks with no predecessor and successor
+            for(auto it = func->begin(); it != func->end(); ++it) {
+                if(it->empty()) {
+                    size_t pred_count = predecessorCount(*it);
+                    size_t succ_count = successorBlockCount(*it);
+                    it = it->eraseFromParent();
+                }
+            }
+
             return func;
         }
 

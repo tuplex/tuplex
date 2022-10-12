@@ -107,10 +107,10 @@ namespace tuplex {
             // logger.info(ss.str());
 
             // let's start by allocating bitmaps for optional AND maybe types
-            size_t num_option_bitmap_bits = core::ceilToMultiple(option_count, 64ul); // multiples of 64bit
-            size_t num_maybe_bitmap_bits = core::ceilToMultiple(maybe_count, 64ul);
-            size_t num_option_bitmap_elements = num_option_bitmap_bits / 64;
-            size_t num_maybe_bitmap_elements = num_maybe_bitmap_bits / 64;
+            size_t num_option_bitmap_bits = option_count; // multiples of 64bit
+            size_t num_maybe_bitmap_bits = maybe_count;
+            size_t num_option_bitmap_elements = core::ceilToMultiple(option_count, 64ul) / 64ul;
+            size_t num_maybe_bitmap_elements = core::ceilToMultiple(maybe_count, 64ul) / 64ul;
 
 
             bool is_packed = false;
@@ -125,6 +125,14 @@ namespace tuplex {
             //      member_types.push_back(llvm::ArrayType::get(i64Type, num_option_bitmap_elements));
             // if (num_maybe_bitmap_elements > 0)
             //      member_types.push_back(llvm::ArrayType::get(i64Type, num_maybe_bitmap_elements));
+
+            // checks
+#ifndef NDEBUG
+            if(struct_dict_has_bitmap(dict_type))
+                assert(num_option_bitmap_elements > 0 && num_option_bitmap_bits > 0);
+            if(struct_dict_has_presence_map(dict_type))
+                assert(num_maybe_bitmap_elements > 0 && num_maybe_bitmap_bits > 0);
+#endif
 
             // i1 logic (similar to flattened tuple)
             if (num_option_bitmap_elements > 0)
@@ -225,6 +233,18 @@ namespace tuplex {
 
             llvm::Type *structType = llvm::StructType::create(ctx, members, name, false);
             llvm::StructType *STy = dyn_cast<StructType>(structType);
+
+            delete [] type_array;
+
+            // some checks re bitmaps
+            size_t bitmap_idx = 0;
+            if(struct_dict_has_bitmap(dict_type)) {
+                assert(structType->getStructElementType(bitmap_idx)->isArrayTy());
+                bitmap_idx++;
+            }
+            if(struct_dict_has_presence_map(dict_type)) {
+                assert(structType->getStructElementType(bitmap_idx)->isArrayTy());
+            }
 
             return structType;
         }
@@ -1134,15 +1154,17 @@ namespace tuplex {
             vector<llvm::Value*> presence_map;
 
             // step 1: decode bitmap if exists and load to array
+            size_t bitmap_idx = 0;
             if(struct_dict_has_bitmap(dict_type)) {
-                assert(stype->isStructTy() && stype->getStructElementType(0)->isArrayTy());
-                size_t num_bitmap_bits = stype->getStructElementType(0)->getArrayNumElements();
+                assert(stype->isStructTy() && stype->getStructElementType(bitmap_idx)->isArrayTy());
+                size_t num_bitmap_bits = stype->getStructElementType(bitmap_idx)->getArrayNumElements();
                 std::tie(ptr, bitmap) = deserializeBitmap(env, builder, ptr, num_bitmap_bits);
+                bitmap_idx++;
             }
             // step 2: decode presence map if exists and load to array
             if(struct_dict_has_presence_map(dict_type)) {
-                assert(stype->isStructTy() && stype->getStructElementType(1)->isArrayTy());
-                size_t num_presence_bits = stype->getStructElementType(1)->getArrayNumElements();
+                assert(stype->isStructTy() && stype->getStructElementType(bitmap_idx)->isArrayTy());
+                size_t num_presence_bits = stype->getStructElementType(bitmap_idx)->getArrayNumElements();
                 std::tie(ptr, presence_map) = deserializeBitmap(env, builder, ptr, num_presence_bits);
             }
 

@@ -277,11 +277,16 @@ namespace tuplex {
                     } else if(type == python::Type::EMPTYDICT) {
                         throw std::runtime_error("Should not happen!");
                     } else if(type.isDictionaryType()) {
-                        // create the dictionary pointer
-                        auto dictPtr = builder.CreateCall(cJSONParse_prototype(_env->getContext(), _env->getModule().get()),
-                                                          {ptr});
-                        _tree.set(i, codegen::SerializableValue(dictPtr, size, isnull));
+                        if(type.isStructuredDictionaryType()) {
+                            throw std::runtime_error("struct dict deserialization nyimpl");
+                        } else {
+                            // create the dictionary pointer
+                            auto dictPtr = builder.CreateCall(cJSONParse_prototype(_env->getContext(), _env->getModule().get()),
+                                                              {ptr});
+                            _tree.set(i, codegen::SerializableValue(dictPtr, size, isnull));
+                        }
                     } else if(type.isListType()) {
+                        throw std::runtime_error("list deserializaiton must be updated, not yet implemented");
                         assert(type != python::Type::EMPTYLIST);
                         auto llvmType = _env->getOrCreateListType(type);
                         llvm::Value *listAlloc = _env->CreateFirstBlockAlloca(builder, llvmType, "listAlloc");

@@ -1734,6 +1734,8 @@ namespace tuplex {
                 ss<<"has #columns: "<<codeGenerationContext.slowPathContext.inputSchema.getRowType().parameters().size()<<std::endl;
                 ss<<"normal case input row type: "<<codeGenerationContext.fastPathContext.inputSchema.getRowType().desc()<<std::endl;
                 ss<<"has #columns: "<<codeGenerationContext.fastPathContext.inputSchema.getRowType().parameters().size()<<std::endl;
+                ss<<"general case output row type: "<<codeGenerationContext.slowPathContext.outputSchema.getRowType().desc()<<std::endl;
+                ss<<"normal case output row type: "<<codeGenerationContext.fastPathContext.outputSchema.getRowType().desc()<<std::endl;
                 logger.debug(ss.str());
 
                 stage->_fastCodePath = generateFastCodePath(codeGenerationContext,

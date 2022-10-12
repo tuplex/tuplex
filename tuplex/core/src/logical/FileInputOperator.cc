@@ -247,11 +247,15 @@ namespace tuplex {
             f->fillRowCache(sampling_mode, namePtr);
 
             // detect normal/general type
-            python::Type normalcasetype;
-            python::Type generalcasetype;
-            std::tie(normalcasetype, generalcasetype) = f->detectJsonTypesAndColumns(co, nameCollection);
+            auto t = f->detectJsonTypesAndColumns(co, nameCollection);
+            python::Type normalcasetype = std::get<0>(t);
+            python::Type generalcasetype = std::get<1>(t);
 
-            // run row count estimation (required for cost-basd optimizer)
+            // check
+            logger.debug("JSON - normal case type: " + normalcasetype.desc());
+            logger.debug("JSON - general case type: " + generalcasetype.desc());
+
+            // run row count estimation (required for cost-based optimizer)
             f->_estimatedRowCount = f->estimateSampleBasedRowCount();
 
             // get type & assign schema
@@ -1512,10 +1516,10 @@ namespace tuplex {
         normal_policy.unifyMissingDictKeys = false; // could be potentially allowed for subschemas etc.?
 
         TypeUnificationPolicy general_policy;
-        normal_policy.allowAutoUpcastOfNumbers = co.AUTO_UPCAST_NUMBERS();
-        normal_policy.allowUnifyWithPyObject = false;
-        normal_policy.treatMissingDictKeysAsNone = false; // maybe as option?
-        normal_policy.unifyMissingDictKeys = true; // this sets it apart from normal policy...
+        general_policy.allowAutoUpcastOfNumbers = co.AUTO_UPCAST_NUMBERS();
+        general_policy.allowUnifyWithPyObject = false;
+        general_policy.treatMissingDictKeysAsNone = false; // maybe as option?
+        general_policy.unifyMissingDictKeys = true; // this sets it apart from normal policy...
 
         // execute cover
         auto normal_case_max_type = maximizeStructuredDictTypeCover(type_counts, co.NORMALCASE_THRESHOLD(), co.OPT_NULLVALUE_OPTIMIZATION(), normal_policy);

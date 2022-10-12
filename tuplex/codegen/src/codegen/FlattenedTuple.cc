@@ -1191,6 +1191,9 @@ namespace tuplex {
         FlattenedTuple FlattenedTuple::upcastTo(llvm::IRBuilder<>& builder,
                                                 const python::Type& target_type,
                                                 bool allow_simple_tuple_wrap) const {
+
+            auto& logger = Logger::instance().logger("codegen");
+
             // create new FlattenedTuple
             FlattenedTuple ft(_env);
             ft.init(target_type);
@@ -1198,6 +1201,8 @@ namespace tuplex {
 
             // check, make sure they upcastable...
             if(!python::canUpcastType(getTupleType(), target_type)) {
+
+                logger.debug("Can not upcast from type " + getTupleType().desc() + " to type " + target_type.desc());
 
                 // special case: simple tuple wrap, e.g. for a single tuple ()
                 if(!getTupleType().isTupleType() && python::canUpcastType(python::Type::propagateToTupleType(getTupleType()), target_type)) {
@@ -1218,6 +1223,8 @@ namespace tuplex {
 
                     // this is ok as well, i.e. (...) gets wrapped as (())
 
+                    logger.debug("another special case encountered...");
+
                 } else {
                     auto err_msg = "Code generation failure, can't upcast type " + getTupleType().desc() + " to type " + target_type.desc();
                     Logger::instance().logger("codegen").debug(err_msg);
@@ -1237,22 +1244,12 @@ namespace tuplex {
                 auto size = this->getSize(i);
                 auto is_null = this->getIsNull(i);
 
-                // only opt/ non-opt supported yet!
-                assert(paramsNew[i].isOptionType() || paramsNew[i] == paramsOld[i]);
-                if(paramsNew[i] != paramsOld[i]) {
-                    if(python::Type::NULLVALUE == paramsOld[i]) {
-                        assert(paramsNew[i].isOptionType());
-                        // nothing todo, values are good
-                        val = nullptr;
-                        size = nullptr;
-                    } else if(!paramsOld[i].isOptionType() && paramsNew[i].isOptionType()) {
-                        is_null = env->i1Const(false); // not null
-                    } else {
-                        // nothing todo...
-                    }
-                }
-
-                ft.assign(i, val, size, is_null);
+                // upcast from ... to
+                auto from_type = paramsOld[i];
+                auto to_type = paramsNew[i];
+                auto from = SerializableValue(val, size, is_null);
+                auto to = _env->upcastValue(builder, from, from_type, to_type);
+                ft.assign(i, to.val, to.size, to.is_null);
             }
 
             return ft;

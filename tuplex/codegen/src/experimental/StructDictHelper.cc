@@ -1079,6 +1079,40 @@ namespace tuplex {
             }
         }
 
+        // deserializastion code...
+        SerializableValue struct_dict_deserialize_from_memory(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type) {
+            auto& logger = Logger::instance().logger("codegen");
+            assert(dict_type.isStructuredDictionaryType());
+
+            using namespace llvm;
+
+            SerializableValue v;
+            auto stype = env.getOrCreateStructuredDictType(dict_type);
+            v.val = env.CreateFirstBlockAlloca(builder, stype);
+            struct_dict_mem_zero(env, builder, v.val, dict_type);
+            auto dest_ptr = v.val;
+
+            // get flattened structure!
+            flattened_struct_dict_entry_list_t entries;
+            flatten_recursive_helper(entries, dict_type);
+
+            // @TODO: need to deserialize?? i.e. other way round process?
+
+            // step 1: decode bitmap if exists and load to array
+
+            // step 2: decode presence map if exists and load to array
+
+            // step 3: go over entries and load if present.
+
+            // -> for opt entries, check bitmap and perform load
+
+            // -> for indirect entries setup pointers!
+            throw std::runtime_error("to be implemented...");
+
+            return v;
+        }
+
+
         SerializableValue struct_dict_serialize_to_memory(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, llvm::Value* dest_ptr) {
             auto& logger = Logger::instance().logger("codegen");
 

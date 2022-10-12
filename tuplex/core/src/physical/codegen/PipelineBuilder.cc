@@ -2724,9 +2724,11 @@ namespace tuplex {
             // erase (empty) blocks with no predecessor and successor
             for(auto it = func->begin(); it != func->end(); ++it) {
                 if(it->empty()) {
-                    size_t pred_count = predecessorCount(*it);
-                    size_t succ_count = successorBlockCount(*it);
-                    it = it->eraseFromParent();
+                    auto block = &(*it);
+                    size_t pred_count = predecessorCount(block);
+                    size_t succ_count = successorBlockCount(block);
+                    if(0 == pred_count && 0 == succ_count)
+                        it = it->eraseFromParent();
                 }
             }
 

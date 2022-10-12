@@ -2455,6 +2455,11 @@ namespace tuplex {
             }
 
             if(type.isDictionaryType() && targetType.isDictionaryType()) {
+
+                // are both struct dicts? -> that case can be solved
+                if((type == python::Type::EMPTYDICT || type.isStructuredDictionaryType()) && targetType.isStructuredDictionaryType())
+                    return struct_dict_upcast(*this, builder, val, type, targetType);
+
                 throw std::runtime_error("upcasting dict type " + type.desc() + " to dict type " + targetType.desc() + " not yet implemented");
             }
 

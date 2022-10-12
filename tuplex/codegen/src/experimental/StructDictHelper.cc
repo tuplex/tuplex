@@ -1463,5 +1463,99 @@ namespace tuplex {
             return value;
         }
 
+        // this function can be also used to implement some basic dict stuff
+        // like:
+        // x = {}
+        // x['a'] = 'test'
+        // x['b'] = 20
+        // ...
+        SerializableValue struct_dict_upcast(LLVMEnvironment& env,
+                                             llvm::IRBuilder<>& builder,
+                                             const SerializableValue& src,
+                                             const python::Type& src_type,
+                                             const python::Type& dest_type) {
+            // make sure scenario is supported
+            assert((src_type == python::Type::EMPTYDICT || src_type.isStructuredDictionaryType()) && dest_type.isStructuredDictionaryType());
+
+            using namespace llvm;
+            using namespace std;
+
+            // allocate dest ptr and zero
+            auto llvm_type = env.getOrCreateStructuredDictType(dest_type);
+            auto dest_ptr = env.CreateFirstBlockAlloca(builder, llvm_type);
+            struct_dict_mem_zero(env, builder, dest_ptr, dest_type);
+
+            // simple case: EMPTYDICT -> StructDict
+            if(src_type == python::Type::EMPTYDICT) {
+                // simply return
+                return SerializableValue(dest_ptr, nullptr, nullptr);
+            }
+
+            // more complex case: Basically insert all the data from the other dict while upcasting values.
+            // for this, access paths are required of both types.
+            flattened_struct_dict_entry_list_t src_paths;
+            flattened_struct_dict_entry_list_t dest_paths;
+            flatten_recursive_helper(src_paths, src_type);
+            flatten_recursive_helper(dest_paths, dest_type);
+
+            // for faster lookup, build dict
+            std::unordered_map<access_path_t, std::tuple<python::Type, bool>> m;
+            for(const auto& src_entry : src_paths) {
+                auto src_access_path = std::get<0>(src_entry);
+                auto src_value_type = std::get<1>(src_entry);
+                auto src_always_present = std::get<2>(src_entry);
+                m[src_access_path] = std::make_tuple(src_value_type, src_always_present);
+            }
+
+            // go through all dest access paths and check whether they exist in src paths
+            for(const auto& dst_entry : dest_paths) {
+                auto dst_access_path = std::get<0>(dst_entry);
+                auto dst_value_type = std::get<1>(dst_entry);
+                auto dst_always_present = std::get<2>(dst_entry);
+                if(!dst_always_present) {
+                    // store false for now
+                    struct_dict_store_present(env, builder, dest_ptr, dest_type, dst_access_path, env.i1Const(false));
+                }
+
+                // check whether path exists within src_paths
+                auto it = m.find(dst_access_path);
+                if(it != m.end()) {
+                    auto src_value_type = std::get<0>(it->second);
+                    auto src_always_present = std::get<1>(it->second);
+
+                    BasicBlock* bNext = nullptr;
+                    // load and store value iff present
+                    if(!src_always_present) {
+                        // need to create basic blocks: I.e., store only if present...
+                        auto& ctx = env.getContext();
+                        BasicBlock* bStore = BasicBlock::Create(ctx, "store_from_src", builder.GetInsertBlock()->getParent());
+                        bNext = BasicBlock::Create(ctx, "next_element", builder.GetInsertBlock()->getParent());
+
+                        auto is_present = struct_dict_load_present(env, builder, src.val, src_type, dst_access_path);
+                        builder.CreateCondBr(is_present, bStore, bNext);
+                        builder.SetInsertPoint(bStore);
+                        // store (same code as below)
+                    }
+
+                    // Store & upcast
+                    // always present, no check necessary.
+                    auto src_element = struct_dict_load_value(env, builder, src.val, src_type, dst_access_path);
+                    // type upcast necessary?
+                    if(src_value_type != dst_value_type)
+                        src_element = env.upcastValue(builder, src_element, src_value_type, dst_value_type);
+                    struct_dict_store_value(env, builder, src_element, dest_ptr, dest_type, dst_access_path);
+                    struct_dict_store_present(env, builder, dest_ptr, dest_type, dst_access_path, env.i1Const(true));
+
+                    // connect blocks from presence test
+                    if(!src_always_present) {
+                        builder.CreateBr(bNext);
+                        builder.SetInsertPoint(bNext);
+                    }
+                }
+            }
+
+            return SerializableValue(dest_ptr, nullptr, nullptr);
+        }
+
     }
 }

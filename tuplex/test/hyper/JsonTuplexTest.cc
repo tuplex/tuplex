@@ -142,6 +142,196 @@ namespace tuplex {
         Py_XINCREF(Py_None); // <-- unknown, use None.
         return Py_None;
     }
+
+    std::string decodeStructDictFromBinary(const python::Type& dict_type, const uint8_t* buf, size_t buf_size) {
+        assert(dict_type.isStructuredDictionaryType());
+
+        codegen::flattened_struct_dict_entry_list_t entries;
+        codegen::flatten_recursive_helper(entries, dict_type, {});
+        auto indices = codegen::struct_dict_load_indices(dict_type);
+
+        // retrieve counts => i.e. how many fields are options? how many are maybe present?
+        size_t field_count = 0, option_count = 0, maybe_count = 0;
+
+        for (auto entry: entries) {
+            bool is_always_present = std::get<2>(entry);
+            maybe_count += !is_always_present;
+            bool is_value_optional = std::get<1>(entry).isOptionType();
+            option_count += is_value_optional;
+
+            bool is_struct_type = std::get<1>(entry).isStructuredDictionaryType();
+            field_count += !is_struct_type; // only count non-struct dict fields. -> yet the nested struct types may change the maybe count for the bitmap!
+        }
+
+        size_t num_option_bitmap_bits = option_count; // multiples of 64bit
+        size_t num_maybe_bitmap_bits = maybe_count;
+        size_t num_option_bitmap_elements = core::ceilToMultiple(option_count, 64ul) / 64ul;
+        size_t num_maybe_bitmap_elements = core::ceilToMultiple(maybe_count, 64ul) / 64ul;
+
+        uint64_t *bitmap = nullptr;
+        uint64_t *presence_map = nullptr;
+        if(num_option_bitmap_elements > 0) {
+            bitmap = new uint64_t[num_option_bitmap_elements];
+            memset(bitmap, 0, sizeof(uint64_t) * num_option_bitmap_elements);
+        }
+        if(num_maybe_bitmap_elements > 0) {
+            presence_map = new uint64_t[num_maybe_bitmap_elements];
+            memset(presence_map, 0, sizeof(uint64_t) * num_maybe_bitmap_elements);
+        }
+
+        // start decode:
+        auto ptr = buf;
+        size_t remaining_bytes = buf_size;
+
+        // check if dict type has bitmaps, if so decode!
+        if(codegen::struct_dict_has_bitmap(dict_type)) {
+            // decode
+            auto size_to_decode = sizeof(uint64_t) * num_option_bitmap_elements;
+            assert(remaining_bytes >= size_to_decode);
+            memcpy(bitmap, ptr, size_to_decode);
+            ptr += size_to_decode;
+            remaining_bytes -= size_to_decode;
+        }
+        if(codegen::struct_dict_has_presence_map(dict_type)) {
+            auto size_to_decode = sizeof(uint64_t) * num_maybe_bitmap_elements;
+            assert(remaining_bytes >= size_to_decode);
+            memcpy(presence_map, ptr, size_to_decode);
+            ptr += size_to_decode;
+            remaining_bytes -= size_to_decode;
+        }
+
+        // go through entries & decode!
+        // get indices to properly decode
+        // this func is basically modeled after struct_dict_serialize_to_menory
+        unsigned field_index = 0;
+
+        std::unordered_map<codegen::access_path_t, std::string> elements;
+
+        for(auto entry : entries) {
+            auto access_path = std::get<0>(entry);
+            auto value_type = std::get<1>(entry);
+            auto always_present = std::get<2>(entry);
+            auto t_indices = indices.at(access_path);
+
+            int bitmap_idx = -1, present_idx = -1, value_idx = -1, size_idx = -1;
+            std::tie(bitmap_idx, present_idx, value_idx, size_idx) = t_indices;
+
+            assert(field_index < field_count);
+            auto field_ptr = ptr + sizeof(uint64_t) * field_index;
+
+            bool is_null = false;
+            bool is_present = true;
+
+            if(!always_present) {
+                // check presence map
+                assert(presence_map);
+                assert(present_idx >= 0);
+                auto el_idx = present_idx / 64;
+                auto bit_idx = present_idx % 64;
+                is_present = presence_map[el_idx] & (0x1ul << bit_idx);
+            }
+
+            // if not present, do not decode. But do inc field_index!
+            if(!is_present) {
+                if(value_type.isOptionType())
+                    value_type = value_type.getReturnType();
+                if(value_type.isStructuredDictionaryType() || value_idx < 0) {
+                    // nothing todo...
+                } else {
+                    field_index++;
+                }
+                continue;
+            }
+
+            // decode...
+            if(value_type.isOptionType()) {
+                assert(bitmap_idx >= 0);
+                assert(bitmap);
+                // check if null or not
+                auto el_idx = bitmap_idx / 64;
+                auto bit_idx = bitmap_idx % 64;
+                is_null = bitmap[el_idx] & (0x1ul << bit_idx);
+                if(is_null)
+                    elements[access_path] = "null";
+                value_type = value_type.getReturnType();
+            }
+
+            if(python::Type::EMPTYLIST != value_type && value_type.isListType()) {
+                // special case list.
+
+                // @TODO. for now, save empty list
+                elements[access_path] = "[]";
+
+                field_index++;
+                continue;
+            }
+
+            // skip nested struct dicts! --> they're taken care of.
+            if(value_type.isStructuredDictionaryType())
+                continue;
+
+            // depending on field, add size!
+            if(value_idx < 0) {
+                // what's the type? add dummy field to string!
+                if(!is_null)
+                    throw std::runtime_error("decode type " + value_type.desc());
+                continue; // can skip field, not necessary to serialize
+            }
+
+            // what kind of data is it that needs to be serialized?
+            bool is_varlength_field = size_idx >= 0;
+            assert(value_idx >= 0);
+
+            if(!is_varlength_field) {
+                // either double or i64 or bool
+                if(value_type == python::Type::BOOLEAN) {
+                    auto i = *(int64_t*)field_ptr;
+                    if(!is_null) {
+                        elements[access_path] = i != 0 ? "true" : "false";
+                    }
+                } else if(value_type == python::Type::I64) {
+                    auto i = *(int64_t*)field_ptr;
+                    if(!is_null) {
+                        elements[access_path] = std::to_string(i);
+                    }
+                } else if(value_type == python::Type::F64) {
+                    auto d = *(double*)field_ptr;
+                    if(!is_null)
+                        elements[access_path] = std::to_string(d);
+                } else {
+                    throw std::runtime_error("can't decode primitive field " + value_type.desc());
+                }
+            } else {
+                // should be tuple or string or pyobject?
+                if(value_type != python::Type::STRING)
+                    throw std::runtime_error("unsupported type " + value_type.desc() + " encountered! ");
+
+                // check size & offset
+                uint32_t offset = *((uint64_t*)field_ptr) & 0xFFFFFFFF;
+                uint32_t size = *((uint64_t*)field_ptr) >> 32u;
+
+                if(!is_null) {
+                    std::string sdata = std::string((char*)(field_ptr + offset - sizeof(int64_t)));
+                    elements[access_path] = sdata;
+                }
+            }
+
+            // serialized field -> inc index!
+            field_index++;
+        }
+
+        // reorg into JSON string...
+        // @TODO.
+        for(auto p : elements) {
+            std::cout<<codegen::access_path_to_str(p.first)<<":  "<<p.second<<std::endl;
+        }
+
+        if(bitmap)
+            delete [] bitmap;
+        if(presence_map)
+            delete [] presence_map;
+        return "";
+    }
 }
 
 
@@ -174,6 +364,41 @@ TEST_F(JsonTuplexTest, JsonToRow) {
     //auto f = json_string_to_field("{")
 }
 
+TEST_F(JsonTuplexTest, BinToPython) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto test_type_str = "(Struct[(str,'actor'->Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)]),(str,'created_at'->str),(str,'id'->str),(str,'org'=>Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)]),(str,'payload'->Struct[(str,'action'=>str),(str,'actor'=>str),(str,'actor_gravatar'=>str),(str,'comment_id'=>i64),(str,'commit'=>str),(str,'desc'=>null),(str,'head'=>str),(str,'name'=>str),(str,'object'=>str),(str,'object_name'=>Option[str]),(str,'page_name'=>str),(str,'push_id'=>i64),(str,'ref'=>str),(str,'repo'=>str),(str,'sha'=>str),(str,'shas'=>List[List[str]]),(str,'size'=>i64),(str,'snippet'=>str),(str,'summary'=>null),(str,'title'=>str),(str,'url'=>str)]),(str,'public'->boolean),(str,'repo'->Struct[(str,'id'=>i64),(str,'name'->str),(str,'url'->str)]),(str,'type'->str)])";
+
+    auto type = python::Type::decode(test_type_str);
+
+    // load data from file
+    auto data = fileToString(string("../resources/struct_dict_data.bin"));
+    EXPECT_EQ(data.size(), 726); // size
+
+    // decode
+    auto ptr = reinterpret_cast<const uint8_t*>(data.c_str());
+
+    uint32_t offset = *((uint64_t*)ptr) & 0xFFFFFFFF;
+    uint32_t size = *((uint64_t*)ptr) >> 32u;
+
+    std::cout<<"offset: "<<offset<<" size: "<<size<<std::endl;
+
+    auto start_ptr = ptr + offset; // this is where the data starts
+
+    // for ref: this is what should be contained within the buffer:
+    // {"repo":{"id":1357116,"url":"https://api.github.dev/repos/ezmobius/super-nginx","name":"ezmobius/super-nginx"},"type":"WatchEvent","public":true,"created_at":"2011-02-12T00:00:06Z","payload":{"repo":"ezmobius/super-nginx","actor":"sosedoff","actor_gravatar":"cd73497eb3c985f302723424c3fa5b50","action":"started"},"actor":{"gravatar_id":"cd73497eb3c985f302723424c3fa5b50","id":71051,"url":"https://api.github.dev/users/sosedoff","avatar_url":"https://secure.gravatar.com/avatar/cd73497eb3c985f302723424c3fa5b50?d=http://github.dev%2Fimages%2Fgravatars%2Fgravatar-user-420.png","login":"sosedoff"},"id":"1127195541"}
+    // dump buffer
+    core::asciidump(std::cout, start_ptr, size, true);
+
+    // now decode
+    auto json_str = decodeStructDictFromBinary(type.parameters().front(), start_ptr, size);
+
+    std::cout<<json_str<<std::endl;
+
+    ASSERT_TRUE(!json_str.empty());
+}
+
 TEST_F(JsonTuplexTest, GithubLoad) {
     using namespace tuplex;
     using namespace std;
@@ -189,27 +414,27 @@ TEST_F(JsonTuplexTest, GithubLoad) {
     auto lines = splitToLines(fileToString(ref_path));
     auto ref_row_count = lines.size();
 
-    {
-        // first test -> simple load in both unwrap and no unwrap mode.
-        unwrap_first_level = true;
-        auto& ds = ctx.json(ref_path, unwrap_first_level);
-        // no columns
-        EXPECT_TRUE(!ds.columns().empty());
-        auto v = ds.collectAsVector();
-
-        EXPECT_EQ(v.size(), ref_row_count);
-    }
-
 //    {
 //        // first test -> simple load in both unwrap and no unwrap mode.
-//        unwrap_first_level = false;
+//        unwrap_first_level = true;
 //        auto& ds = ctx.json(ref_path, unwrap_first_level);
 //        // no columns
-//        EXPECT_TRUE(ds.columns().empty());
+//        EXPECT_TRUE(!ds.columns().empty());
 //        auto v = ds.collectAsVector();
 //
 //        EXPECT_EQ(v.size(), ref_row_count);
 //    }
+
+    {
+        // first test -> simple load in both unwrap and no unwrap mode.
+        unwrap_first_level = false;
+        auto& ds = ctx.json(ref_path, unwrap_first_level);
+        // no columns
+        EXPECT_TRUE(ds.columns().empty());
+        auto v = ds.collectAsVector();
+
+        EXPECT_EQ(v.size(), ref_row_count);
+    }
 
 //    auto& ds = ctx.json("../resources/ndjson/github_two_rows.json", unwrap_first_level);
     //// could extract columns via keys() or so? -> no support for this yet.

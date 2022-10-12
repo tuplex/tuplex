@@ -545,6 +545,12 @@ default:
 
             // normal-case violation too? -> backup via interpreter!
             if(resCode == ecToI32(ExceptionCode::NORMALCASEVIOLATION)) {
+
+                 // // debug write file
+                 // FILE *fp = fopen("/home/leonhard/projects/tuplex-public/test.bin", "w");
+                 // fwrite(ebuf, eSize, 1, fp);
+                 // fclose(fp);
+
                 if(!_interpreterFunctor) {
 #ifndef NDEBUG
                     std::cerr<<"normal case violation encountered, but no interpreter backup?"<<std::endl;

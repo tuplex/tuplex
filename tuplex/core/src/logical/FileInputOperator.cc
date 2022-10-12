@@ -231,6 +231,7 @@ namespace tuplex {
         f->_json_unwrap_first_level = unwrap_first_level; //! set here for detect to work.
         f->_json_treat_heterogenous_lists_as_tuples = treat_heterogenous_lists_as_tuples;
         f->_samplingMode = sampling_mode;
+        f->_samplingSize = co.SAMPLE_SIZE();
 
        Timer timer;
        f->detectFiles(pattern);
@@ -380,6 +381,8 @@ namespace tuplex {
         // empty?
         if(file_indices.empty())
             return;
+
+        assert(_samplingSize > 0);
 
         // now load all the files in parallel into vector!
         vector<unsigned> indices(file_indices.begin(), file_indices.end());
@@ -962,7 +965,20 @@ namespace tuplex {
             _rowsSample.clear(); // reset row samples!
             fillFileCache(_samplingMode);
 
-            _estimatedRowCount = 100000; // @TODO.
+            // if JSON -> resort rows
+            if(FileFormat::OUTFMT_JSON == _fmt) {
+                ContextOptions co = ContextOptions::defaults();
+                // manipulate settings...
+                std::vector<std::vector<std::string>> namesCollection;
+                auto t = detectJsonTypesAndColumns(co, namesCollection);
+
+                auto normalcase = std::get<0>(t);
+                auto generalcase = std::get<1>(t);
+                _normalCaseRowType = normalcase;
+                _generalCaseRowType = generalcase;
+            }
+
+            _estimatedRowCount = estimateSampleBasedRowCount();
 
 //            // only CSV supported...
 //            if(_fmt != FileFormat::OUTFMT_CSV)

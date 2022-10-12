@@ -313,6 +313,9 @@ namespace tuplex {
             _fileInputParameters["quotechar"] = char2str(csvop->quotechar());
             _fileInputParameters["null_values"] = stringArrayToJSON(csvop->null_values());
 
+            // json specific settings
+            _fileInputParameters["unwrap_first_level"] = boolToString(csvop->unwrap_first_level());
+
             // store CSV header information...
             if (csvop->hasHeader()) {
                 // extract header!
@@ -446,6 +449,7 @@ namespace tuplex {
                                                                          const python::Type& generalCaseInputRowType,
                                                                          const std::vector<bool> &generalCaseColumnsToRead,
                                                                          const python::Type& generalCaseOutputRowType,
+                                                                         const std::vector<std::string>& general_case_columns,
                                                                          const std::map<int, int>& normalToGeneralMapping,
                                                                          int stageNo,
                                                                          const std::string& env_name) {
@@ -473,14 +477,8 @@ namespace tuplex {
 
             string func_prefix = "";
             // name for function processing a row (include stage number)
-            string funcStageName = ret.funcStageName;//func_prefix + "Stage_" + to_string(number());
-            string funcProcessRowName = ret.funcProcessRowName;//func_prefix + "processRow_Stage_" + to_string(number());
-//            ret._funcFileWriteCallbackName = func_prefix + "writeOut_Stage_" + to_string(number());
-//            ret._funcMemoryWriteCallbackName = func_prefix + "memOut_Stage_" + to_string(number());
-//            ret._funcHashWriteCallbackName = func_prefix + "hashOut_Stage_" + to_string(number());
-//            ret._funcExceptionCallback = func_prefix + "except_Stage_" + to_string(number());
-//            ret._writerFuncName = _writerFuncName;
-
+            string funcStageName = ret.funcStageName;
+            string funcProcessRowName = ret.funcProcessRowName;
             auto env = make_shared<codegen::LLVMEnvironment>(env_name);
 
             Row intermediateInitialValue; // filled by aggregate operator, if needed.
@@ -899,6 +897,8 @@ namespace tuplex {
                 char delimiter = ctx.fileInputParameters.at("delimiter")[0];
                 char quotechar = ctx.fileInputParameters.at("quotechar")[0];
 
+                bool unwrap_first_level = stringToBool(ctx.fileInputParameters.at("unwrap_first_level"));
+
                 // note: null_values may be empty!
                 auto null_values = jsonToStringArray(ctx.fileInputParameters.at("null_values"));
 
@@ -966,6 +966,8 @@ namespace tuplex {
                         break;
                     }
                     case FileFormat::OUTFMT_JSON: {
+                        std::vector<std::string> normal_case_columns = pathContext.columns();
+                        bool unwrap_first_level;
                         tb = make_shared<codegen::JsonSourceTaskBuilder>(env,
                                                                          ctx.inputNodeID,
                                                                          pathContext.inputSchema.getRowType(),
@@ -1740,6 +1742,7 @@ namespace tuplex {
                                                             generalCaseInputRowType,
                                                             codeGenerationContext.slowPathContext.columnsToRead,
                                                             codeGenerationContext.slowPathContext.outputSchema.getRowType(),
+                                                            codeGenerationContext.slowPathContext.columns(),
                                                             codeGenerationContext.normalToGeneralMapping,
                                                             number());
                 stage->_normalCaseColumnsToKeep = boolArrayToIndices<unsigned>(codeGenerationContext.fastPathContext.columnsToRead);
@@ -1911,6 +1914,7 @@ namespace tuplex {
                                                                 generalCaseInputRowType,
                                                                 ctx.slowPathContext.columnsToRead,
                                                                 ctx.slowPathContext.outputSchema.getRowType(),
+                                                                ctx.slowPathContext.columns(),
                                                                 ctx.normalToGeneralMapping,
                                                                 number());
                     stage->_normalCaseColumnsToKeep = boolArrayToIndices<unsigned>(ctx.fastPathContext.columnsToRead);

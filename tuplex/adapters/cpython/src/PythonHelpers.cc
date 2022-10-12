@@ -807,6 +807,15 @@ namespace python {
                 return PyLong_FromDouble(obj->valuedouble);
             case 'f':
                 return PyFloat_FromDouble(obj->valuedouble);
+//            auto pipFunc = pip.getFunction();
+//
+//            if(!pipFunc)
+//                return nullptr;
+//
+//            // debug
+//#define PRINT_EXCEPTION_PROCESSING_DETAILS
+//
+//            auto generalCaseType = pip.inputRowType();
             default:
                 std::string errorString = "unknown type identifier" + std::string(&type) + " in field encountered. Returning Py_None";
                 Logger::instance().defaultLogger().error(errorString);

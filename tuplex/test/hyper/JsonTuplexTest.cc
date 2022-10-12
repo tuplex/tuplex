@@ -38,6 +38,142 @@ TEST_F(JsonTuplexTest, BasicLoad) {
     // ctx.json("/data/2014-10-15.json").show();
 }
 
+// dev func here
+namespace tuplex {
+    Field json_string_to_field(const std::string& s, const python::Type& type) {
+        // base cases:
+        if(type == python::Type::NULLVALUE) {
+            return Field::null();
+        } else if(type == python::Type::BOOLEAN) {
+            return Field(stringToBool(s));
+        } else if(type == python::Type::I64) {
+            return Field(parseI64String(s));
+        } else if(type == python::Type::F64) {
+            return Field(parseF64String(s));
+        } else if(type.isOptionType()) {
+            if(s == "null")
+                return Field::null();
+            else {
+                return json_string_to_field(s, type.getReturnType());
+            }
+        } else {
+            throw std::runtime_error("Unknown type " + type.desc() + " encountered.");
+        }
+    }
+
+    // to pyobject, recursively
+    PyObject* json_string_to_pyobject(const std::string& s, const python::Type& type) {
+        using namespace std;
+
+        if(type.isStructuredDictionaryType()) {
+
+            // parse string via simdjson into dom!
+            simdjson::dom::parser parser;
+            auto obj = parser.parse(s);
+            assert(obj.is_object());
+
+            auto dict_obj = PyDict_New();
+
+            // special case: go over entries and decode string!
+            for(auto kv_pair : type.get_struct_pairs()) {
+                // what is the type?
+
+                // HACK: only support string key types for now!
+                // issue will be two keys with same value and different types -> need to be encoded in dict.
+                // could solve by using the key as-is -> i.e. python escaped strings (b.c. other values won't start with '', use b'' for pickled object)
+                if(kv_pair.keyType != python::Type::STRING)
+                    throw std::runtime_error("only string key type supported so far in decode");
+
+                auto key = str_value_from_python_raw_value(kv_pair.key);
+                // get string from there
+                auto raw_str = minify(obj[key]);
+
+                PyObject *el_obj = nullptr;
+
+                // special cases: struct, list, (dict?)
+                el_obj = json_string_to_pyobject(raw_str, kv_pair.valueType);
+
+                PyDict_SetItemString(dict_obj, key.c_str(), el_obj);
+            }
+            return dict_obj;
+        } else if(type.isListType()) {
+            simdjson::dom::parser parser;
+            auto arr = parser.parse(s);
+            assert(arr.is_array());
+            auto element_type = type.elementType();
+            std::vector<PyObject*> elements;
+            for(const auto& el : arr) {
+                // what is the element type?
+                auto el_str = simdjson::minify(el);
+                elements.push_back(json_string_to_pyobject(el_str, element_type));
+            }
+
+            // combine
+            auto list_obj = PyList_New(elements.size());
+            for(unsigned i = 0; i < elements.size(); ++i)
+                PyList_SET_ITEM(list_obj, i, elements[i]);
+            return list_obj;
+        }         // base cases:
+        else if(type == python::Type::NULLVALUE) {
+            Py_XINCREF(Py_None);
+            return Py_None;
+        } else if(type == python::Type::BOOLEAN) {
+            auto b = stringToBool(s);
+            return python::boolToPython(b);
+        } else if(type == python::Type::I64) {
+            auto val = parseI64String(s);
+            return PyLong_FromLongLong(val);
+        } else if(type == python::Type::F64) {
+            auto val = parseF64String(s);
+            return PyFloat_FromDouble(val);
+        } else if(type == python::Type::STRING) {
+            auto unescaped = unescape_json_string(s);
+            return python::PyString_FromString(unescaped.c_str());
+        } else if(type.isOptionType()) {
+            if(s == "null") {
+               Py_XINCREF(Py_None);
+               return Py_None;
+            } else {
+                return json_string_to_pyobject(s, type.getReturnType());
+            }
+        }else {
+            throw std::runtime_error("unsupported type to decode");
+        }
+        Py_XINCREF(Py_None); // <-- unknown, use None.
+        return Py_None;
+    }
+}
+
+
+TEST_F(JsonTuplexTest, JsonToRow) {
+    using namespace tuplex;
+    using namespace std;
+    // dev for decoding struct dicts (unfortunately necessary...)
+    // need memory -> Row
+
+    // and Row -> python
+
+    auto content = "{\"repo\":{\"id\":355634,\"url\":\"https://api.github.dev/repos/projectblacklight/blacklight\",\"name\":\"projectblacklight/blacklight\"},\"type\":\"PushEvent\",\"org\":{\"gravatar_id\":\"6cb76a4a521c36d96a0583e7c45eaf95\",\"id\":120516,\"url\":\"https://api.github.dev/orgs/projectblacklight\",\"avatar_url\":\"https://secure.gravatar.com/avatar/6cb76a4a521c36d96a0583e7c45eaf95?d=http://github.dev%2Fimages%2Fgravatars%2Fgravatar-org-420.png\",\"login\":\"projectblacklight\"},\"public\":true,\"created_at\":\"2011-02-12T00:00:00Z\",\"payload\":{\"shas\":[[\"d3da39ab96a2caecae5d526596a04820c6f848a6\",\"b31a437f57bdf70558bed8ac28790a53e8174b87@stanford.edu\",\"We have to stay with cucumber < 0.10 and rspec < 2, otherwise our tests break. I updated the gem requirements to reflect this, so people won't accidentally upgrade to a gem version that's too new when they run rake gems:install\",\"Bess Sadler\"],[\"898150b7830102cdc171cbd4304b6a783101c3e3\",\"b31a437f57bdf70558bed8ac28790a53e8174b87@stanford.edu\",\"Removing unused cruise control tasks. Also, we shouldn't remove the coverage.data file, so we can look at the coverage data over time.\",\"Bess Sadler\"]],\"repo\":\"projectblacklight/blacklight\",\"actor\":\"bess\",\"ref\":\"refs/heads/master\",\"size\":2,\"head\":\"898150b7830102cdc171cbd4304b6a783101c3e3\",\"actor_gravatar\":\"887fa2fcd0cf1cbdc6dc43e5524f33f6\",\"push_id\":24643024},\"actor\":{\"gravatar_id\":\"887fa2fcd0cf1cbdc6dc43e5524f33f6\",\"id\":65608,\"url\":\"https://api.github.dev/users/bess\",\"avatar_url\":\"https://secure.gravatar.com/avatar/887fa2fcd0cf1cbdc6dc43e5524f33f6?d=http://github.dev%2Fimages%2Fgravatars%2Fgravatar-user-420.png\",\"login\":\"bess\"},\"id\":\"1127195475\"}";
+
+    // parse as row, and then convert to python!
+    auto rows = parseRowsFromJSON(content, nullptr, false);
+
+    ASSERT_EQ(rows.size(), 1);
+    auto row = rows.front();
+
+    python::lockGIL();
+    try {
+        auto obj = json_string_to_pyobject(row.getString(0), row.getType(0));
+        PyObject_Print(obj, stdout, 0); std::cout<<std::endl;
+    } catch(...) {
+        std::cerr<<"exception occurred"<<std::endl;
+    }
+    python::unlockGIL();
+
+    // let's start with JSON string -> Row.
+    //auto f = json_string_to_field("{")
+}
+
 TEST_F(JsonTuplexTest, GithubLoad) {
     using namespace tuplex;
     using namespace std;

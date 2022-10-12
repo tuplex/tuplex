@@ -1545,6 +1545,22 @@ namespace tuplex {
         auto normalcasetype = !_json_unwrap_first_level ? normal_case_max_type.first.parameters().front() : normal_case_max_type.first;
         auto generalcasetype = !_json_unwrap_first_level ? general_case_max_type.first.parameters().front() : general_case_max_type.first;
 
+        // can normal case be upgraded to general case?
+        if(!python::canUpcastType(normalcasetype, generalcasetype)) {
+            logger.debug("normal type can't be upcasted to general case type.");
+
+            // unify current normal and general case type using optional keys -> this should help.
+            auto uni_type = unifyTypes(normalcasetype, generalcasetype, general_policy);
+            if(uni_type == python::Type::UNKNOWN)
+                logger.warn("got incompatible normal and general case types.");
+            else {
+                if(uni_type != generalcasetype)
+                    logger.debug("generalized general case further, so normal case can be upcasted to it.");
+                generalcasetype = uni_type;
+                assert(python::canUpcastType(normalcasetype, generalcasetype)); // now upcast should work
+            }
+        }
+
         // rowtype is always, well a row
         normalcasetype = python::Type::propagateToTupleType(normalcasetype);
         generalcasetype = python::Type::propagateToTupleType(generalcasetype);

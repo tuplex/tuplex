@@ -244,7 +244,7 @@ namespace tuplex {
             // fill sampling cache
             f->fillFileCache(sampling_mode);
             // now fill row cache (by parsing rows)
-            f->fillRowCache(sampling_mode);
+            f->fillRowCache(sampling_mode, namePtr);
 
             // detect normal/general type
             python::Type normalcasetype;
@@ -428,7 +428,7 @@ namespace tuplex {
 
         // parse now rows for detection etc.
         vector<std::future<vector<Row>>> f_rows(indices.size());
-        vector<vector<vector<string>>> f_names;
+        vector<vector<vector<string>>> f_names(indices.size());
         // inline std::vector<Row> sampleFile(const URI& uri, size_t uri_size, const SamplingMode& mode)
         for(unsigned i = 0; i < indices.size(); ++i) {
             auto idx = indices[i];
@@ -1492,7 +1492,7 @@ namespace tuplex {
                 throw std::runtime_error("not a single JSON document was found in the file, can't determine type. Please increase sample size.");
             }
         } else {
-            // if not, sample is fine as as is. -> maximize type cover
+            // if not, sample is fine as it is. -> maximize type cover
         }
 
         // check mode: is it unwrapping? => find dominating number of columns! And most likely combo of column names

@@ -1532,8 +1532,8 @@ namespace tuplex {
         // -> pushdown for JSON is special case...
         if(_json_unwrap_first_level) {
             setColumns(ordered_names);
-
-            assert(columns().size() == ordered_names.size());
+            // for columns() to work as well -> need to set projection defaults first!
+            assert(inputColumns().size() == ordered_names.size());
         }
 
         // normalcase and exception case types

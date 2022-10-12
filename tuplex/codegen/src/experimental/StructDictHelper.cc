@@ -1212,25 +1212,17 @@ namespace tuplex {
                 bool is_varlength_field = size_idx >= 0;
                 assert(value_idx >= 0);
 
-                // load value
-                llvm::Value* value = nullptr;
-                if(ptr->getType()->isPointerTy()) {
-                    auto llvm_value_idx = CreateStructGEP(builder, ptr, value_idx);
-                    value = builder.CreateLoad(llvm_value_idx);
-                } else {
-                    value = builder.CreateExtractValue(ptr, std::vector<unsigned>(1, value_idx));
-                }
-
                 if(!is_varlength_field) {
+                    llvm::Value * value = nullptr;
+
                     // simple: just load data and copy!
                     // make sure it's bool/i64/64 -> these are the only fixed size fields!
                     assert(value_type == python::Type::BOOLEAN || value_type == python::Type::I64 || value_type == python::Type::F64);
 
-                    if(value_type == python::Type::BOOLEAN)
-                        value = builder.CreateZExt(value, env.i64Type());
+                    llvm::Type* llvm_value_type_ptr = value_type == python::Type::F64 ? env.doublePointerType() : env.i64ptrType();
 
                     // store with casting
-                    auto casted_src_ptr = builder.CreateBitOrPointerCast(ptr, value->getType()->getPointerTo());
+                    auto casted_src_ptr = builder.CreateBitOrPointerCast(ptr, llvm_value_type_ptr);
                     value = builder.CreateLoad(casted_src_ptr);
                     // store into struct ptr
                     struct_dict_store_value(env, builder, dict_ptr, dict_type, access_path, value); // always store value
@@ -1241,10 +1233,6 @@ namespace tuplex {
                     // for now, only string supported... => load and fix!
                     if(value_type != python::Type::STRING)
                         throw std::runtime_error("unsupported type " + value_type.desc() + " encountered! ");
-
-                    // add size field + data
-                    auto llvm_size_idx = CreateStructGEP(builder, ptr, size_idx);
-                    auto value_size = llvm_size_idx->getType()->isPointerTy() ? builder.CreateLoad(llvm_size_idx) : llvm_size_idx; // <-- serialized size.
 
                     // load info from ptr & move
                     auto info = builder.CreateLoad(builder.CreateBitOrPointerCast(ptr, env.i64ptrType()));
@@ -1270,7 +1258,7 @@ namespace tuplex {
                 field_index++;
             }
 
-            // move dest ptr to end!
+            // move ptr to end!
             ptr = builder.CreateGEP(ptr, varLengthOffset);
             llvm::Value* deserialized_size = builder.CreatePtrDiff(ptr, original_mem_start_ptr);
 #ifndef NDEBUG

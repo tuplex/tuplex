@@ -47,15 +47,40 @@ TEST_F(JsonTuplexTest, GithubLoad) {
     Context ctx(opt);
     bool unwrap_first_level = true;
 
-    unwrap_first_level = false;
-    auto& ds = ctx.json("../resources/ndjson/github.json", unwrap_first_level);
-//    auto& ds = ctx.json("../resources/ndjson/github_two_rows.json", unwrap_first_level);
-    cout<<"columns: \n"<<ds.columns()<<endl; // <-- no columns here...
-    // could extract columns via keys() or so? -> no support for this yet.
-    // ds.map(UDF("lambda x: (x['type'], int(x['id']))")).show();
-    ds.show();
+    // check ref file lines
+    string ref_path = "../resources/ndjson/github.json";
+    auto lines = splitToLines(fileToString(ref_path));
+    auto ref_row_count = lines.size();
 
-    std::cout<<"json malloc report:\n"<<codegen::JsonMalloc_Report()<<std::endl;
+    {
+        // first test -> simple load in both unwrap and no unwrap mode.
+        unwrap_first_level = true;
+        auto& ds = ctx.json(ref_path, unwrap_first_level);
+        // no columns
+        EXPECT_TRUE(!ds.columns().empty());
+        auto v = ds.collectAsVector();
+
+        EXPECT_EQ(v.size(), ref_row_count);
+    }
+
+//    {
+//        // first test -> simple load in both unwrap and no unwrap mode.
+//        unwrap_first_level = false;
+//        auto& ds = ctx.json(ref_path, unwrap_first_level);
+//        // no columns
+//        EXPECT_TRUE(ds.columns().empty());
+//        auto v = ds.collectAsVector();
+//
+//        EXPECT_EQ(v.size(), ref_row_count);
+//    }
+
+//    auto& ds = ctx.json("../resources/ndjson/github_two_rows.json", unwrap_first_level);
+    //// could extract columns via keys() or so? -> no support for this yet.
+    // ds.map(UDF("lambda x: (x['type'], int(x['id']))")).show();
+    //ds.show();
+
+
+    //std::cout<<"json malloc report:\n"<<codegen::JsonMalloc_Report()<<std::endl;
 
     //ds.map(UDF("lambda x: x['type']")).unique().show();
 

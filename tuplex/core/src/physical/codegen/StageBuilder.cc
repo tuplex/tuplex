@@ -23,10 +23,10 @@
 #include <JSONUtils.h>
 #include <CSVUtils.h>
 #include <Utils.h>
-#include <string.h>
+#include <cstring>
 #include <logical/AggregateOperator.h>
 
-#include <limits.h>
+#include <climits>
 
 // New: Stage Specialization, maybe rename?
 #include <physical/codegen/StagePlanner.h>
@@ -286,7 +286,7 @@ namespace tuplex {
             path.pyAggregateCode = "";
             path.pyAggregateFunctionName = "";
             const auto& operators = ctx.slowPathContext.operators;
-            if(ctx.outputMode == EndPointMode::HASHTABLE && operators.size() > 0
+            if(ctx.outputMode == EndPointMode::HASHTABLE && !operators.empty()
                && operators.back()->type() == LogicalOperatorType::AGGREGATE) {
                 auto aop = std::dynamic_pointer_cast<AggregateOperator>(operators.back());
                 auto combine_udf = aop->combinerUDF();
@@ -967,7 +967,6 @@ namespace tuplex {
                     }
                     case FileFormat::OUTFMT_JSON: {
                         std::vector<std::string> normal_case_columns = pathContext.columns();
-                        bool unwrap_first_level;
                         tb = make_shared<codegen::JsonSourceTaskBuilder>(env,
                                                                          ctx.inputNodeID,
                                                                          pathContext.inputSchema.getRowType(),

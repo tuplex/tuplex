@@ -68,6 +68,12 @@ namespace tuplex {
          * @return updated memory pointer (position after list was deserialized) and the list value as llvm value.
          */
         extern std::tuple<llvm::Value*, SerializableValue> list_deserialize_from(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& list_type);
+
+        llvm::Value* list_of_varitems_serialized_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr,
+                                                      const python::Type& list_type,
+                                                      std::function<llvm::Value*(LLVMEnvironment&, llvm::IRBuilder<>&, llvm::Value*, llvm::Value*)> f_item_size);
+
+
     }
 }
 

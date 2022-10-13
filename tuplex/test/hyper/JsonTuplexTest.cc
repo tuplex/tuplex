@@ -589,23 +589,67 @@ TEST_F(JsonTuplexTest, BinToPython) {
     size_t size = 0;
     uint8_t* buf = nullptr;
 
-    // input buffer and size
-    char input_buf[] = "{\"repo\":{\"id\":1357116,\"url\":\"https://api.github.dev/repos/ezmobius/super-nginx\",\"name\":\"ezmobius/super-nginx\"},\"type\":\"WatchEvent\",\"public\":true,\"created_at\":\"2011-02-12T00:00:06Z\",\"payload\":{\"repo\":\"ezmobius/super-nginx\",\"actor\":\"sosedoff\",\"actor_gravatar\":\"cd73497eb3c985f302723424c3fa5b50\",\"action\":\"started\"},\"actor\":{\"gravatar_id\":\"cd73497eb3c985f302723424c3fa5b50\",\"id\":71051,\"url\":\"https://api.github.dev/users/sosedoff\",\"avatar_url\":\"https://secure.gravatar.com/avatar/cd73497eb3c985f302723424c3fa5b50?d=http://github.dev%2Fimages%2Fgravatars%2Fgravatar-user-420.png\",\"login\":\"sosedoff\"},\"id\":\"1127195541\"}";
-    size_t input_buf_size = strlen(input_buf) + 1;
-    auto rc = f(reinterpret_cast<const uint8_t*>(input_buf), input_buf_size, &buf, &size);
-    EXPECT_EQ(rc, 0);
-    ASSERT_TRUE(size > 0);
+    // second setup with shas
+    // test setup.
+    {
+        // load all lines from github.json, go over and check rc
+        auto lines = splitToLines(fileToString("../resources/ndjson/github.json"));
 
-    // now decode
-    auto json_str = decodeStructDictFromBinary(dict_type, buf, size);
-    std::cout<<json_str<<std::endl;
+        auto line = lines[0]; // <-- should have ssha list
+        auto rc = f(reinterpret_cast<const uint8_t*>(line.c_str()), line.size(), &buf, &size);
+        EXPECT_EQ(rc, 0);
 
-    // convert to python object
-    python::lockGIL();
+        // now decode
+        auto json_str = decodeStructDictFromBinary(dict_type, buf, size);
+        std::cout<<json_str<<std::endl;
 
-    auto py_obj = json_string_to_pyobject(json_str, dict_type);
-    PyObject_Print(py_obj, stdout, 0); std::cout<<std::endl;
-    python::unlockGIL();
+        // convert to python object
+        python::lockGIL();
+
+        auto py_obj = json_string_to_pyobject(json_str, dict_type);
+        PyObject_Print(py_obj, stdout, 0); std::cout<<std::endl;
+        python::unlockGIL();
+
+//        for(auto line : lines) {
+//            auto rc = f(reinterpret_cast<const uint8_t*>(line.c_str()), line.size(), &buf, &size);
+//            EXPECT_EQ(rc, 0);
+//        }
+
+        //ASSERT_TRUE(size > 0);
+
+//        // now decode
+//        auto json_str = decodeStructDictFromBinary(dict_type, buf, size);
+//        std::cout<<json_str<<std::endl;
+//
+//        // convert to python object
+//        python::lockGIL();
+//
+//        auto py_obj = json_string_to_pyobject(json_str, dict_type);
+//        PyObject_Print(py_obj, stdout, 0); std::cout<<std::endl;
+//        python::unlockGIL();
+    }
+
+//    // test setup.
+//    {
+//        // input buffer and size
+//        char input_buf[] = "{\"repo\":{\"id\":1357116,\"url\":\"https://api.github.dev/repos/ezmobius/super-nginx\",\"name\":\"ezmobius/super-nginx\"},\"type\":\"WatchEvent\",\"public\":true,\"created_at\":\"2011-02-12T00:00:06Z\",\"payload\":{\"repo\":\"ezmobius/super-nginx\",\"actor\":\"sosedoff\",\"actor_gravatar\":\"cd73497eb3c985f302723424c3fa5b50\",\"action\":\"started\"},\"actor\":{\"gravatar_id\":\"cd73497eb3c985f302723424c3fa5b50\",\"id\":71051,\"url\":\"https://api.github.dev/users/sosedoff\",\"avatar_url\":\"https://secure.gravatar.com/avatar/cd73497eb3c985f302723424c3fa5b50?d=http://github.dev%2Fimages%2Fgravatars%2Fgravatar-user-420.png\",\"login\":\"sosedoff\"},\"id\":\"1127195541\"}";
+//        size_t input_buf_size = strlen(input_buf) + 1;
+//        auto rc = f(reinterpret_cast<const uint8_t*>(input_buf), input_buf_size, &buf, &size);
+//        EXPECT_EQ(rc, 0);
+//        ASSERT_TRUE(size > 0);
+//
+//        // now decode
+//        auto json_str = decodeStructDictFromBinary(dict_type, buf, size);
+//        std::cout<<json_str<<std::endl;
+//
+//        // convert to python object
+//        python::lockGIL();
+//
+//        auto py_obj = json_string_to_pyobject(json_str, dict_type);
+//        PyObject_Print(py_obj, stdout, 0); std::cout<<std::endl;
+//        python::unlockGIL();
+//    }
+
 
 
 //    // load data from file

@@ -5,6 +5,7 @@
 #include "HyperUtils.h"
 
 #include <physical/experimental/JsonHelper.h>
+#include <physical/experimental/JSONParseRowGenerator.h>
 
 class JsonTuplexTest : public HyperPyTest {};
 
@@ -143,6 +144,39 @@ namespace tuplex {
         return Py_None;
     }
 
+
+    bool struct_dict_field_present(const std::unordered_map<codegen::access_path_t, std::tuple<int, int, int, int>>& indices,
+                                   const codegen::access_path_t& path, const std::vector<uint64_t>& presence_map) {
+        assert(!path.empty());
+
+        // get present map index of current element.
+        auto t = indices.at(path); // must exist.
+        auto present_idx = std::get<1>(t);
+
+        bool is_present = true;
+        // >= 0? -> entry in bitmap exists.
+        if(present_idx >= 0) {
+            // make sure indices are valid
+            auto el_idx = present_idx / 64;
+            auto bit_idx = present_idx % 64;
+            assert(el_idx < presence_map.size());
+            is_present = (presence_map[el_idx] & (0x1ul << bit_idx));
+        }
+
+        // not present? -> return
+        if(!is_present)
+            return false;
+
+        // else, check if parent is present
+        if(path.size() > 1) {
+            codegen::access_path_t parent_path(path.begin(), path.end() - 1);
+            return struct_dict_field_present(indices, parent_path, presence_map);
+        } else {
+            assert(is_present);
+            return is_present; // should be true here...
+        }
+    }
+
     std::string decodeStructDictFromBinary(const python::Type& dict_type, const uint8_t* buf, size_t buf_size) {
         assert(dict_type.isStructuredDictionaryType());
 
@@ -168,15 +202,13 @@ namespace tuplex {
         size_t num_option_bitmap_elements = core::ceilToMultiple(option_count, 64ul) / 64ul;
         size_t num_maybe_bitmap_elements = core::ceilToMultiple(maybe_count, 64ul) / 64ul;
 
-        uint64_t *bitmap = nullptr;
-        uint64_t *presence_map = nullptr;
+        std::vector<uint64_t> bitmap;
+        std::vector<uint64_t> presence_map;
         if(num_option_bitmap_elements > 0) {
-            bitmap = new uint64_t[num_option_bitmap_elements];
-            memset(bitmap, 0, sizeof(uint64_t) * num_option_bitmap_elements);
+            bitmap = std::vector<uint64_t>(num_option_bitmap_elements, 0);
         }
         if(num_maybe_bitmap_elements > 0) {
-            presence_map = new uint64_t[num_maybe_bitmap_elements];
-            memset(presence_map, 0, sizeof(uint64_t) * num_maybe_bitmap_elements);
+            presence_map = std::vector<uint64_t>(num_maybe_bitmap_elements, 0);
         }
 
         // start decode:
@@ -188,14 +220,14 @@ namespace tuplex {
             // decode
             auto size_to_decode = sizeof(uint64_t) * num_option_bitmap_elements;
             assert(remaining_bytes >= size_to_decode);
-            memcpy(bitmap, ptr, size_to_decode);
+            memcpy(&bitmap[0], ptr, size_to_decode);
             ptr += size_to_decode;
             remaining_bytes -= size_to_decode;
         }
         if(codegen::struct_dict_has_presence_map(dict_type)) {
             auto size_to_decode = sizeof(uint64_t) * num_maybe_bitmap_elements;
             assert(remaining_bytes >= size_to_decode);
-            memcpy(presence_map, ptr, size_to_decode);
+            memcpy(&presence_map[0], ptr, size_to_decode);
             ptr += size_to_decode;
             remaining_bytes -= size_to_decode;
         }
@@ -213,6 +245,8 @@ namespace tuplex {
             auto always_present = std::get<2>(entry);
             auto t_indices = indices.at(access_path);
 
+            auto path_str = codegen::json_access_path_to_string(access_path, value_type, always_present);
+
             int bitmap_idx = -1, present_idx = -1, value_idx = -1, size_idx = -1;
             std::tie(bitmap_idx, present_idx, value_idx, size_idx) = t_indices;
 
@@ -220,16 +254,9 @@ namespace tuplex {
             auto field_ptr = ptr + sizeof(uint64_t) * field_index;
 
             bool is_null = false;
-            bool is_present = true;
+            bool is_present = struct_dict_field_present(indices, access_path, presence_map);
 
-            if(!always_present) {
-                // check presence map
-                assert(presence_map);
-                assert(present_idx >= 0);
-                auto el_idx = present_idx / 64;
-                auto bit_idx = present_idx % 64;
-                is_present = presence_map[el_idx] & (0x1ul << bit_idx);
-            }
+            std::cout<<"decoding "<<path_str<<" present: "<<std::boolalpha<<is_present<<std::endl;
 
             // if not present, do not decode. But do inc field_index!
             if(!is_present) {
@@ -246,7 +273,7 @@ namespace tuplex {
             // decode...
             if(value_type.isOptionType()) {
                 assert(bitmap_idx >= 0);
-                assert(bitmap);
+                assert(!bitmap.empty());
                 // check if null or not
                 auto el_idx = bitmap_idx / 64;
                 auto bit_idx = bitmap_idx % 64;
@@ -326,10 +353,6 @@ namespace tuplex {
             std::cout<<codegen::access_path_to_str(p.first)<<":  "<<p.second<<std::endl;
         }
 
-        if(bitmap)
-            delete [] bitmap;
-        if(presence_map)
-            delete [] presence_map;
         return "";
     }
 }
@@ -364,6 +387,95 @@ TEST_F(JsonTuplexTest, JsonToRow) {
     //auto f = json_string_to_field("{")
 }
 
+namespace tuplex {
+    namespace codegen {
+        // helper function to generate a quick json-buffer parse and match against general-case check
+        std::function<int64_t(const uint8_t*, size_t, uint8_t**, size_t*)> generateJsonTestParse(JITCompiler& jit, const python::Type& dict_type) {
+            using namespace llvm;
+            using namespace std;
+
+            assert(dict_type.isStructuredDictionaryType());
+
+            std::string func_name = "json_test_parse";
+
+            LLVMEnvironment env;
+
+            // create func
+            auto& ctx = env.getContext();
+            auto func = getOrInsertFunction(env.getModule().get(), func_name, ctypeToLLVM<int64_t>(ctx), ctypeToLLVM<uint8_t*>(ctx),
+                    ctypeToLLVM<int64_t>(ctx),
+                            ctypeToLLVM<uint8_t**>(ctx),
+                                    ctypeToLLVM<int64_t*>(ctx));
+
+            auto argMap = mapLLVMFunctionArgs(func, {"buf", "buf_size", "out", "out_size"});
+
+            BasicBlock* bBody = BasicBlock::Create(ctx, "entry", func);
+            IRBuilder<> builder(bBody);
+
+            // create mismatch block
+            BasicBlock* bbMismatch = BasicBlock::Create(ctx, "mismatch", func);
+
+            // init parser
+            auto Finitparser = getOrInsertFunction(env.getModule().get(), "JsonParser_Init", env.i8ptrType());
+
+            auto parser = builder.CreateCall(Finitparser, {});
+
+            auto F = getOrInsertFunction(env.getModule().get(), "JsonParser_open", env.i64Type(), env.i8ptrType(),
+                                         env.i8ptrType(), env.i64Type());
+            auto buf = argMap["buf"];
+            auto buf_size = argMap["buf_size"];
+            auto open_rc = builder.CreateCall(F, {parser, buf, buf_size});
+
+            // get initial object
+            // => this is from parser
+            auto Fgetobj = getOrInsertFunction(env.getModule().get(), "JsonParser_getObject", env.i64Type(),
+                                               env.i8ptrType(), env.i8ptrType()->getPointerTo(0));
+
+            auto row_object_var = env.CreateFirstBlockVariable(builder, env.i8nullptr(), "row_object");
+            auto obj_var = row_object_var;
+
+            builder.CreateCall(Fgetobj, {parser, obj_var});
+
+            // don't forget to free everything...
+            // alloc variable
+            auto struct_dict_type = create_structured_dict_type(env, dict_type);
+            auto row_var = env.CreateFirstBlockAlloca(builder, struct_dict_type);
+            struct_dict_mem_zero(env, builder, row_var, dict_type); // !!! important !!!
+
+            // parse now
+            JSONParseRowGenerator gen(env, dict_type, bbMismatch);
+            gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
+
+            // ok, now serialize
+            auto s_length = struct_dict_serialized_memory_size(env, builder, row_var, dict_type).val;
+            env.printValue(builder, s_length, "serialized size is: ");
+            auto out_buf = env.cmalloc(builder, s_length);
+
+            // serialize
+            struct_dict_serialize_to_memory(env, builder, row_var, dict_type, out_buf);
+
+            builder.CreateStore(s_length, argMap["out_size"]);
+            builder.CreateStore(out_buf, argMap["out"]);
+
+            // do not care about leaks in this function...
+            builder.CreateRet(env.i64Const(0));
+
+            builder.SetInsertPoint(bbMismatch);
+            builder.CreateRet(env.i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
+
+            // --- gen done ---, compile...
+            bool rc_compile = jit.compile(std::move(env.getModule()));
+
+            if(!rc_compile)
+                throw std::runtime_error("compile error for module");
+
+            auto ptr = jit.getAddrOfSymbol(func_name);
+            return reinterpret_cast<int64_t(*)(const uint8_t*, size_t, uint8_t**, size_t*)>(ptr);
+        }
+    }
+}
+
+
 TEST_F(JsonTuplexTest, BinToPython) {
     using namespace tuplex;
     using namespace std;
@@ -372,31 +484,54 @@ TEST_F(JsonTuplexTest, BinToPython) {
 
     auto type = python::Type::decode(test_type_str);
 
-    // load data from file
-    auto data = fileToString(string("../resources/struct_dict_data.bin"));
-    EXPECT_EQ(data.size(), 726); // size
+    auto dict_type = type.parameters().front();
 
-    // decode
-    auto ptr = reinterpret_cast<const uint8_t*>(data.c_str());
+    runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
 
-    uint32_t offset = *((uint64_t*)ptr) & 0xFFFFFFFF;
-    uint32_t size = *((uint64_t*)ptr) >> 32u;
+    JITCompiler jit;
+    auto f = codegen::generateJsonTestParse(jit, dict_type);
 
-    std::cout<<"offset: "<<offset<<" size: "<<size<<std::endl;
+    // call f
+    size_t size = 0;
+    uint8_t* buf = nullptr;
 
-    auto start_ptr = ptr + offset; // this is where the data starts
-
-    // for ref: this is what should be contained within the buffer:
-    // {"repo":{"id":1357116,"url":"https://api.github.dev/repos/ezmobius/super-nginx","name":"ezmobius/super-nginx"},"type":"WatchEvent","public":true,"created_at":"2011-02-12T00:00:06Z","payload":{"repo":"ezmobius/super-nginx","actor":"sosedoff","actor_gravatar":"cd73497eb3c985f302723424c3fa5b50","action":"started"},"actor":{"gravatar_id":"cd73497eb3c985f302723424c3fa5b50","id":71051,"url":"https://api.github.dev/users/sosedoff","avatar_url":"https://secure.gravatar.com/avatar/cd73497eb3c985f302723424c3fa5b50?d=http://github.dev%2Fimages%2Fgravatars%2Fgravatar-user-420.png","login":"sosedoff"},"id":"1127195541"}
-    // dump buffer
-    core::asciidump(std::cout, start_ptr, size, true);
+    // input buffer and size
+    char input_buf[] = "{\"repo\":{\"id\":1357116,\"url\":\"https://api.github.dev/repos/ezmobius/super-nginx\",\"name\":\"ezmobius/super-nginx\"},\"type\":\"WatchEvent\",\"public\":true,\"created_at\":\"2011-02-12T00:00:06Z\",\"payload\":{\"repo\":\"ezmobius/super-nginx\",\"actor\":\"sosedoff\",\"actor_gravatar\":\"cd73497eb3c985f302723424c3fa5b50\",\"action\":\"started\"},\"actor\":{\"gravatar_id\":\"cd73497eb3c985f302723424c3fa5b50\",\"id\":71051,\"url\":\"https://api.github.dev/users/sosedoff\",\"avatar_url\":\"https://secure.gravatar.com/avatar/cd73497eb3c985f302723424c3fa5b50?d=http://github.dev%2Fimages%2Fgravatars%2Fgravatar-user-420.png\",\"login\":\"sosedoff\"},\"id\":\"1127195541\"}";
+    size_t input_buf_size = strlen(input_buf) + 1;
+    auto rc = f(reinterpret_cast<const uint8_t*>(input_buf), input_buf_size, &buf, &size);
+    EXPECT_EQ(rc, 0);
+    ASSERT_TRUE(size > 0);
 
     // now decode
-    auto json_str = decodeStructDictFromBinary(type.parameters().front(), start_ptr, size);
-
+    auto json_str = decodeStructDictFromBinary(dict_type, buf, size);
     std::cout<<json_str<<std::endl;
 
-    ASSERT_TRUE(!json_str.empty());
+
+//    // load data from file
+//    auto data = fileToString(string("../resources/struct_dict_data.bin"));
+//    EXPECT_EQ(data.size(), 726); // size
+//
+//    // decode
+//    auto ptr = reinterpret_cast<const uint8_t*>(data.c_str());
+//
+//    uint32_t offset = *((uint64_t*)ptr) & 0xFFFFFFFF;
+//    uint32_t size = *((uint64_t*)ptr) >> 32u;
+//
+//    std::cout<<"offset: "<<offset<<" size: "<<size<<std::endl;
+//
+//    auto start_ptr = ptr + offset; // this is where the data starts
+//
+//    // for ref: this is what should be contained within the buffer:
+//    // {"repo":{"id":1357116,"url":"https://api.github.dev/repos/ezmobius/super-nginx","name":"ezmobius/super-nginx"},"type":"WatchEvent","public":true,"created_at":"2011-02-12T00:00:06Z","payload":{"repo":"ezmobius/super-nginx","actor":"sosedoff","actor_gravatar":"cd73497eb3c985f302723424c3fa5b50","action":"started"},"actor":{"gravatar_id":"cd73497eb3c985f302723424c3fa5b50","id":71051,"url":"https://api.github.dev/users/sosedoff","avatar_url":"https://secure.gravatar.com/avatar/cd73497eb3c985f302723424c3fa5b50?d=http://github.dev%2Fimages%2Fgravatars%2Fgravatar-user-420.png","login":"sosedoff"},"id":"1127195541"}
+//    // dump buffer
+//    core::asciidump(std::cout, start_ptr, size, true);
+//
+//    // now decode
+//    auto json_str = decodeStructDictFromBinary(type.parameters().front(), start_ptr, size);
+//
+//    std::cout<<json_str<<std::endl;
+//
+//    ASSERT_TRUE(!json_str.empty());
 }
 
 TEST_F(JsonTuplexTest, GithubLoad) {

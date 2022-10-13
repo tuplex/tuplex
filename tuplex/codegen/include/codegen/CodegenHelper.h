@@ -527,6 +527,10 @@ namespace tuplex {
             return llvm::Type::getDoubleTy(ctx);
         }
 
+        template<> inline llvm::Type* ctypeToLLVM<uint8_t**>(llvm::LLVMContext& ctx) {
+            return llvm::Type::getInt8Ty(ctx)->getPointerTo(0)->getPointerTo();
+        }
+
         /*!
          * returns the underlying string of a global variable, created e.g. via env->strConst.
          * May throw exception if value is not a constantexpr

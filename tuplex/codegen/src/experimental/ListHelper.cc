@@ -928,7 +928,7 @@ namespace tuplex {
                 // get item's serialized size
                 auto item_size = f_item_size(env, builder, list_ptr, loop_i_val);
 
-                 env.printValue(builder, item_size, "item size to serialize is: ");
+                // env.printValue(builder, item_size, "item size to serialize is: ");
 
                 auto varlen_bytes = builder.CreateLoad(varlen_bytes_var);
                 assert(varlen_bytes->getType() == env.i64Type());
@@ -936,7 +936,7 @@ namespace tuplex {
                 auto item_dest_ptr = builder.CreateGEP(var_ptr, varlen_bytes);
                 // env.debugPrint(builder, "calling item func");
                 auto actual_size = f_item_serialize_to(env, builder, list_ptr, loop_i_val, item_dest_ptr);
-                env.printValue(builder, actual_size, "actually realized item size is: ");
+                //env.printValue(builder, actual_size, "actually realized item size is: ");
                 // env.debugPrint(builder, "item func called.");
                 // offset is (numSerialized - serialized_idx) * sizeof(int64_t) + varsofar.
                 // i.e. here (len - loop_i_val) * 8 + var
@@ -968,7 +968,7 @@ namespace tuplex {
             auto size = builder.CreateAdd(env.i64Const(8), builder.CreateAdd(builder.CreateMul(env.i64Const(8), len), varlen_bytes));
             assert(size->getType() == env.i64Type());
 
-            env.printValue(builder, size, "total list size serialized: ");
+            // env.printValue(builder, size, "total list size serialized: ");
 
             return size;
         }
@@ -1145,8 +1145,9 @@ namespace tuplex {
                 assert(item_size->getType() == env.i64Type());
                 assert(str_ptr->getType() == env.i8ptrType());
 
-                env.printValue(builder, str_ptr, "serializing str: ");
-                env.printValue(builder, item_size, "str size is: ");
+                // env.printValue(builder, str_ptr, "serializing str: ");
+                // env.printValue(builder, item_size, "str size is: ");
+
                 // memcpy contents
                 builder.CreateMemCpy(dest_ptr, 0, str_ptr, 0, item_size);
 

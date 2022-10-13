@@ -1510,4 +1510,8 @@ namespace tuplex {
 
         return ss.str();
     }
+
+    bool UDF::retype(const python::Type& new_row_type) {
+        return false;
+    }
 }

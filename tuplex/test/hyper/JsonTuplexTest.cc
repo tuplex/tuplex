@@ -150,6 +150,11 @@ namespace tuplex {
         assert(!path.empty());
 
         // get present map index of current element.
+        auto it = indices.find(path);
+        // if not found, it's an always present (parent path)
+        if(it == indices.end())
+            return true;
+
         auto t = indices.at(path); // must exist.
         auto present_idx = std::get<1>(t);
 
@@ -175,6 +180,75 @@ namespace tuplex {
             assert(is_present);
             return is_present; // should be true here...
         }
+    }
+
+    class StrJsonTree {
+    public:
+        StrJsonTree() {}
+
+        void add(const std::vector<std::string>& keys, const std::string& data) {
+            if(keys.empty()) {
+                _data = data;
+                return;
+            }
+
+            auto key = keys.front();
+
+            // key
+            auto it = _children.find(key);
+            if(it == _children.end()) {
+                // add new child
+                _children[key] = std::make_unique<StrJsonTree>();
+            }
+            it = _children.find(key);
+            assert(it != _children.end());
+            // modify child
+            it->second->add(std::vector<std::string>(keys.begin() + 1, keys.end()), data);
+        }
+
+        // dump as json
+        std::string to_json() const {
+            std::stringstream ss;
+            to_json(ss);
+            return ss.str();
+        }
+
+        void to_json(std::ostream& os) const {
+            // no children? simple
+            if(_children.empty()) {
+                os<<_data;
+            } else {
+                // children? struct
+                os<<"{";
+                unsigned i = 0;
+                for(const auto& child : _children) {
+                    os<<child.first<<":";
+                    child.second->to_json(os);
+                    if(i != _children.size() - 1)
+                        os<<",";
+                    ++i;
+                }
+                os<<"}";
+            }
+        }
+    private:
+        std::unordered_map<std::string, std::unique_ptr<StrJsonTree>> _children;
+        std::string _data;
+    };
+
+    std::vector<std::string> access_path_to_json_keys(const codegen::access_path_t& path) {
+        std::vector<std::string> keys;
+        for(auto atom : path) {
+            // what is the type?
+            if(atom.second != python::Type::STRING)
+                throw std::runtime_error("key type that is not string not yet supported in encoding.");
+
+            // assume it's string -> the key is python str
+            auto str_value = str_value_from_python_raw_value(atom.first);
+            // escape to json string
+            keys.push_back( escape_for_json(str_value));
+        }
+        return keys;
     }
 
     std::string decodeStructDictFromBinary(const python::Type& dict_type, const uint8_t* buf, size_t buf_size) {
@@ -239,6 +313,8 @@ namespace tuplex {
 
         std::unordered_map<codegen::access_path_t, std::string> elements;
 
+        auto tree = std::make_unique<StrJsonTree>();
+
         for(auto entry : entries) {
             auto access_path = std::get<0>(entry);
             auto value_type = std::get<1>(entry);
@@ -288,6 +364,7 @@ namespace tuplex {
 
                 // @TODO. for now, save empty list
                 elements[access_path] = "[]";
+                tree->add(access_path_to_json_keys(access_path), "[]");
 
                 field_index++;
                 continue;
@@ -315,16 +392,20 @@ namespace tuplex {
                     auto i = *(int64_t*)field_ptr;
                     if(!is_null) {
                         elements[access_path] = i != 0 ? "true" : "false";
+                        tree->add(access_path_to_json_keys(access_path), i != 0 ? "true" : "false");
                     }
                 } else if(value_type == python::Type::I64) {
                     auto i = *(int64_t*)field_ptr;
                     if(!is_null) {
                         elements[access_path] = std::to_string(i);
+                        tree->add(access_path_to_json_keys(access_path), std::to_string(i));
                     }
                 } else if(value_type == python::Type::F64) {
                     auto d = *(double*)field_ptr;
-                    if(!is_null)
+                    if(!is_null) {
                         elements[access_path] = std::to_string(d);
+                        tree->add(access_path_to_json_keys(access_path), std::to_string(d));
+                    }
                 } else {
                     throw std::runtime_error("can't decode primitive field " + value_type.desc());
                 }
@@ -338,8 +419,11 @@ namespace tuplex {
                 uint32_t size = *((uint64_t*)field_ptr) >> 32u;
 
                 if(!is_null) {
-                    std::string sdata = std::string((char*)(field_ptr + offset - sizeof(int64_t)));
+                    auto start_ptr = (char*)(field_ptr + offset - sizeof(int64_t));
+                    auto end_ptr = start_ptr + std::min((uint32_t)strlen(start_ptr), std::min(size, 8 * 1024 * 1024u)); // 8MB as safeguard.
+                    std::string sdata = fromCharPointers(start_ptr, end_ptr);
                     elements[access_path] = sdata;
+                    tree->add(access_path_to_json_keys(access_path), escape_for_json(sdata));
                 }
             }
 
@@ -348,12 +432,36 @@ namespace tuplex {
         }
 
         // reorg into JSON string...
-        // @TODO.
-        for(auto p : elements) {
+
+        // sort elements after length of access path -> then do a work list algorithm to print out everything.
+        std::vector<std::pair<codegen::access_path_t, std::string>> data(elements.begin(), elements.end());
+        std::sort(data.begin(), data.end(), [](const std::pair<codegen::access_path_t, std::string>& lhs,
+                                                       const std::pair<codegen::access_path_t, std::string>& rhs) {
+            return lhs.first.size() < rhs.first.size();
+        });
+
+        for(auto p : data) {
             std::cout<<codegen::access_path_to_str(p.first)<<":  "<<p.second<<std::endl;
         }
 
-        return "";
+        return tree->to_json();
+//        // @TODO.
+//        for(auto p : elements) {
+//            nlohmann::json& obj = j;
+//            auto access_path = p.first;
+//            for(auto& atom : access_path)
+//                obj = obj[std::get<0>(atom)];
+//
+//            // save
+//            obj = p.second;
+//
+//            std::cout<<codegen::access_path_to_str(p.first)<<":  "<<p.second<<std::endl;
+//        }
+//
+//        // debug
+//        std::cout<<j.dump(4)<<std::endl;
+//
+//        return j.dump();
     }
 }
 

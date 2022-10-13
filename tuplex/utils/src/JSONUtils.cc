@@ -197,6 +197,9 @@ namespace tuplex {
 
      // adapted from https://fossies.org/linux/envoy/source/common/common/json_escape_string.h
     std::string escape_for_json(const std::string& str) {
+
+        return escape_json_string(str);
+
         // create a copy
         std::string res(str.size() + 1 + escape_space_required_for_json(str), '\\');
 
@@ -204,6 +207,9 @@ namespace tuplex {
         // go through and escape
         for (const auto& c: str) {
             switch(c) {
+                case '\0':
+                    res[position] = '\0';
+                    return res;
                 case '"':
                     // Quotation mark (0x22).
                     assert(position + 1 < res.size());
@@ -261,7 +267,7 @@ namespace tuplex {
                     break;
             }
         }
-
+        res[position] = '\0';
         return res;
     }
 }

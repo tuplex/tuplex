@@ -258,6 +258,63 @@ namespace tuplex {
         return keys;
     }
 
+    std::string decodeListAsJSON(const python::Type& list_type, const uint8_t* buf, size_t buf_size) {
+
+        assert(list_type.isListType());
+
+        // any list has in its first field the number of elements.
+        int64_t num_elements = *(int64_t*)buf;
+
+        // check what the element type is
+        auto element_type = list_type.elementType();
+        if(element_type.isListType()) {
+            // recuse
+            std::stringstream ss;
+            ss<<"[";
+            auto ptr = buf + sizeof(int64_t);
+            for(unsigned i = 0; i < num_elements; ++i) {
+                // fetch offset and size
+                auto info = *(uint64_t*)ptr;
+
+                uint32_t offset = info & 0xFFFFFFFF;
+                uint32_t size = info >> 32u;
+
+                // get start and decode
+                ss<<decodeListAsJSON(element_type, ptr + offset, size);
+                if(i != num_elements - 1)
+                    ss<<",";
+
+                ptr += sizeof(int64_t);
+            }
+            ss<<"]";
+            return ss.str();
+        } else if(element_type == python::Type::STRING) {
+            std::stringstream ss;
+            ss<<"[";
+            auto ptr = buf + sizeof(int64_t);
+            for(unsigned i = 0; i < num_elements; ++i) {
+                // fetch offset and size
+                auto info = *(uint64_t*)ptr;
+
+                uint32_t offset = info & 0xFFFFFFFF;
+                uint32_t size = info >> 32u;
+
+                // get start and decode
+                std::string str((const char*)(ptr + offset));
+                ss<<escape_for_json(str);
+                if(i != num_elements - 1)
+                    ss<<",";
+
+                ptr += sizeof(int64_t);
+            }
+            ss<<"]";
+            return ss.str();
+        } else {
+            throw std::runtime_error("unsupported element type " + element_type.desc() + " in decodeListAsJSON");
+        }
+        return "[]"; // empty list as dummy default.
+    }
+
     std::string decodeStructDictFromBinary(const python::Type& dict_type, const uint8_t* buf, size_t buf_size) {
         assert(dict_type.isStructuredDictionaryType());
 
@@ -377,9 +434,13 @@ namespace tuplex {
             if(python::Type::EMPTYLIST != value_type && value_type.isListType()) {
                 // special case list.
 
+                // check size & offset
+                uint32_t offset = *((uint64_t*)field_ptr) & 0xFFFFFFFF;
+                uint32_t size = *((uint64_t*)field_ptr) >> 32u;
+
                 // @TODO. for now, save empty list
                 elements[access_path] = "[]";
-                tree->add(access_path_to_json_keys(access_path), "[]");
+                tree->add(access_path_to_json_keys(access_path), decodeListAsJSON(value_type, field_ptr + offset - sizeof(int64_t), size));
 
                 field_index++;
                 continue;

@@ -461,8 +461,8 @@ namespace tuplex {
 
             auto str_size = 1 + sv_value.size();
             char *buf = (char *) runtime::rtmalloc(str_size);
-            for (unsigned i = 0; i < sv_value.size(); ++i)
-                buf[i] = sv_value.at(i);
+            for (unsigned pos = 0; pos < sv_value.size(); ++pos)
+                buf[pos] = sv_value.at(pos);
             buf[sv_value.size()] = '\0';
             *out = buf;
             *size = sv_value.size() + 1;

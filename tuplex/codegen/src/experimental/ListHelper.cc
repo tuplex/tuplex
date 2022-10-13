@@ -883,12 +883,12 @@ namespace tuplex {
             // fetch length of list
             auto len = list_length(env, builder, list_ptr, list_type);
 
-            env.printValue(builder, len, "serializing var item list of length: ");
+            // env.printValue(builder, len, "serializing var item list of length: ");
 
             // write len of list to dest_ptr
             auto ptr = dest_ptr;
             builder.CreateStore(len, builder.CreatePointerCast(ptr, env.i64ptrType()));
-            env.debugPrint(builder, "stored length to pointer address");
+            // env.debugPrint(builder, "stored length to pointer address");
             ptr = builder.CreateGEP(ptr, env.i64Const(sizeof(int64_t)));
 
             auto info_start_ptr = ptr;
@@ -923,25 +923,26 @@ namespace tuplex {
                 builder.SetInsertPoint(bLoopBody);
                 auto loop_i_val = builder.CreateLoad(loop_i);
 
-                env.printValue(builder, loop_i_val, "serializing item: ");
+                // env.printValue(builder, loop_i_val, "serializing item: ");
 
                 // get item's serialized size
                 auto item_size = f_item_size(env, builder, list_ptr, loop_i_val);
 
-                env.printValue(builder, item_size, "item size: ");
+                 env.printValue(builder, item_size, "item size to serialize is: ");
 
                 auto varlen_bytes = builder.CreateLoad(varlen_bytes_var);
                 assert(varlen_bytes->getType() == env.i64Type());
-                env.printValue(builder, varlen_bytes, "so far serialized (bytes): ");
+                // env.printValue(builder, varlen_bytes, "so far serialized (bytes): ");
                 auto item_dest_ptr = builder.CreateGEP(var_ptr, varlen_bytes);
-                env.debugPrint(builder, "calling item func");
-                f_item_serialize_to(env, builder, list_ptr, loop_i_val, item_dest_ptr);
-                env.debugPrint(builder, "item func called.");
+                // env.debugPrint(builder, "calling item func");
+                auto actual_size = f_item_serialize_to(env, builder, list_ptr, loop_i_val, item_dest_ptr);
+                env.printValue(builder, actual_size, "actually realized item size is: ");
+                // env.debugPrint(builder, "item func called.");
                 // offset is (numSerialized - serialized_idx) * sizeof(int64_t) + varsofar.
                 // i.e. here (len - loop_i_val) * 8 + var
                 auto offset = builder.CreateAdd(varlen_bytes, builder.CreateMul(env.i64Const(8), builder.CreateSub(len, loop_i_val)));
 
-                env.printValue(builder, offset, "field offset:  ");
+                // env.printValue(builder, offset, "field offset:  ");
 
                 // save offset and item size.
                 // where to write this? -> current
@@ -964,8 +965,11 @@ namespace tuplex {
             // calculate actual size
             auto varlen_bytes = builder.CreateLoad(varlen_bytes_var);
 
-            auto size = builder.CreateAdd(builder.CreateMul(env.i64Const(8), len), varlen_bytes);
+            auto size = builder.CreateAdd(env.i64Const(8), builder.CreateAdd(builder.CreateMul(env.i64Const(8), len), varlen_bytes));
             assert(size->getType() == env.i64Type());
+
+            env.printValue(builder, size, "total list size serialized: ");
+
             return size;
         }
 
@@ -1028,7 +1032,7 @@ namespace tuplex {
 
             // calculate actual size
             auto varlen_bytes = builder.CreateLoad(varlen_bytes_var);
-            auto size = builder.CreateAdd(builder.CreateMul(env.i64Const(8), len), varlen_bytes);
+            auto size = builder.CreateAdd(env.i64Const(8), builder.CreateAdd(builder.CreateMul(env.i64Const(8), len), varlen_bytes));
             assert(size->getType() == env.i64Type());
             return size;
         }
@@ -1142,7 +1146,7 @@ namespace tuplex {
                 assert(str_ptr->getType() == env.i8ptrType());
 
                 env.printValue(builder, str_ptr, "serializing str: ");
-
+                env.printValue(builder, item_size, "str size is: ");
                 // memcpy contents
                 builder.CreateMemCpy(dest_ptr, 0, str_ptr, 0, item_size);
 

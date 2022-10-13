@@ -89,7 +89,7 @@ namespace tuplex {
     std::string Row::toPythonString() const {
         std::string s = "(";
         for(int i = 0; i < getNumColumns(); ++i) {
-            s += _values[i].desc();
+            s += _values[i].toPythonString();
 
             if(i != getNumColumns() - 1)
                 s += ",";
@@ -357,7 +357,8 @@ namespace tuplex {
     python::Type detectMajorityRowType(const std::vector<Row>& rows,
                                        double threshold,
                                        bool independent_columns,
-                                       bool use_nvo) {
+                                       bool use_nvo,
+                                       const TypeUnificationPolicy& t_policy) {
         if(rows.empty())
             return python::Type::UNKNOWN;
 
@@ -402,7 +403,7 @@ namespace tuplex {
                } else if(col_counts[i].size() == 1) {
                    col_types[i] = python::Type::fromHash(col_counts[i].begin()->second);
                } else {
-                   // more than one count. Now it getting tricky...
+                   // more than one count. Now it's getting tricky...
                    // is the first null and something else present? => use threshold to determine whether option type or not!
                    auto most_common_type = python::Type::fromHash(col_counts[i].begin()->second);
                    auto most_freq = col_counts[i].begin()->first;
@@ -416,7 +417,7 @@ namespace tuplex {
                        auto second_type = python::Type::fromHash(it->second);
 
                        // threshold?
-                       if(1.0 * most_freq / (1.0 * total_freq) >= threshold && use_nvo) {
+                       if(most_freq >= threshold * total_freq && use_nvo) {
                            // null value
                            col_types[i] = python::Type::NULLVALUE;
                        } else {
@@ -438,7 +439,6 @@ namespace tuplex {
                            assert(it->second == python::Type::NULLVALUE.hash());
                            // check counts, in case of non-nvo always use Option type
                            auto nv_count = it->first;
-
                            // when most freq count >= threshold, use that. else use option type.
                            if(most_freq >= threshold * total_freq && use_nvo) {
                                // nothing

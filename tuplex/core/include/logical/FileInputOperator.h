@@ -37,6 +37,10 @@ namespace tuplex {
         char _delimiter;
         bool _header;
 
+        // JSON fields
+        bool _json_unwrap_first_level;
+        bool _json_treat_heterogenous_lists_as_tuples;
+
         // general fields for managing both cases & projections
         std::vector<std::string> _null_values;
         std::vector<bool> _columnsToSerialize; // which columns to serialize
@@ -65,10 +69,12 @@ namespace tuplex {
         void fillFileCacheSinglethreaded(SamplingMode mode);
 
         // row cache (i.e. parse samples utilizing file cache)
-        void fillRowCache(SamplingMode mode);
-
+        void fillRowCache(SamplingMode mode, std::vector<std::vector<std::string>>* outNames=nullptr);
 
         size_t estimateTextFileRowCount(size_t sample_size, const SamplingMode& mode);
+        size_t estimateSampleBasedRowCount();
+
+        std::tuple<python::Type, python::Type> detectJsonTypesAndColumns(const ContextOptions& co, const std::vector<std::vector<std::string>>& columnNamesSampleCollection);
 
         // for CSV, have here a global csv stat (that can get reset)
         // ??
@@ -193,12 +199,22 @@ namespace tuplex {
         std::vector<size_t> translateOutputToInputIndices(const std::vector<size_t>& output_indices);
 
         // sampling functions
-        std::vector<Row> sample(const SamplingMode& mode);
-        std::vector<Row> multithreadedSample(const SamplingMode& mode);
+        std::vector<Row> sample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames=nullptr);
+        std::vector<Row> multithreadedSample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames);
         std::vector<Row> sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         std::vector<Row> sampleTextFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         std::vector<Row> sampleORCFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
-        inline std::vector<Row> sampleFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
+        std::vector<Row> sampleJsonFile(const URI& uri, size_t uri_size, const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames);
+
+        /*!
+         * samples a file according to internally stored file mode and a per-file sampling mode.
+         * @param uri URI of file to sample
+         * @param uri_size the actual file size
+         * @param mode the per-file sampling mode
+         * @param outNames an optional output field for column names (as for now only relevant for JSON)
+         * @return row sample.
+         */
+        inline std::vector<Row> sampleFile(const URI& uri, size_t uri_size, const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames) {
             auto& logger = Logger::instance().logger("logical");
             if(!(mode & SamplingMode::FIRST_ROWS) && !(mode & SamplingMode::LAST_ROWS) && !(mode & SamplingMode::RANDOM_ROWS)) {
                 logger.debug("no file sampling mode (first rows/last rows/random rows) specified. skip.");
@@ -215,6 +231,9 @@ namespace tuplex {
                 case FileFormat::OUTFMT_ORC: {
                     return sampleORCFile(uri, uri_size, mode);
                 }
+                case FileFormat::OUTFMT_JSON: {
+                    return sampleJsonFile(uri, uri_size, mode, outNames);
+                }
                 default:
                     throw std::runtime_error("unsupported sampling of file format "+ std::to_string(static_cast<int>(this->_fmt)));
             }
@@ -225,7 +244,7 @@ namespace tuplex {
 
         // required by cereal
         // make private
-        FileInputOperator() = default;
+        FileInputOperator();
 
         /*!
          * create a new CSV File Input operator
@@ -236,6 +255,7 @@ namespace tuplex {
          * @param quotechar quote char, i.e. only understood dialect is RFC compliant one
          * @param null_values which strings to interpret as null values
          * @param type_hints an optional mapping of column index to type if a certain type should be enforced for a column
+         * @return input operator
          */
         static FileInputOperator *fromCsv(const std::string& pattern,
                                          const ContextOptions& co,
@@ -253,20 +273,37 @@ namespace tuplex {
          * @param pattern files to search for
          * @param co ContextOptions, pipeline will take configuration for planning from there
          * @param null_values which strings to interpret as null values
+         * @return input operator
          */
         static FileInputOperator *fromText(const std::string& pattern,
                                           const ContextOptions& co,
                                           const std::vector<std::string>& null_values,
-                                           const SamplingMode& sampling_mode);
+                                          const SamplingMode& sampling_mode);
 
         /*!
         * create a new orc File Input operator.
         * @param pattern files to search for
         * @param co ContextOptions, pipeline will take configuration for planning from there
+        * return input operator
         */
         static FileInputOperator *fromOrc(const std::string& pattern,
                                          const ContextOptions& co,
                                           const SamplingMode& sampling_mode);
+
+        /*!
+         * create new file input operator reading JSON (newline delimited) files.
+         * @param pattern pattern to look for files
+         * @param unwrap_first_level if true, then the first level is unwrapped. Else, dataset is treated to have a single column.
+         * @param treat_heterogenous_lists_as_tuples set to true to lower footprint.
+         * @param co context options
+         * @return input operator
+         */
+        static FileInputOperator *fromJSON(const std::string& pattern,
+                                           bool unwrap_first_level,
+                                           bool treat_heterogenous_lists_as_tuples,
+                                           const ContextOptions& co,
+                                           const SamplingMode& sampling_mode);
+
 
         std::string name() override {
             switch (_fmt) {
@@ -276,6 +313,8 @@ namespace tuplex {
                     return "txt";
                 case FileFormat::OUTFMT_ORC:
                     return "orc";
+                case FileFormat::OUTFMT_JSON:
+                    return "json";
                 default:
                     auto &logger = Logger::instance().logger("fileinputoperator");
                     std::stringstream ss;
@@ -313,6 +352,8 @@ namespace tuplex {
 
         std::unordered_map<size_t, python::Type> typeHints() const { return _indexBasedHints; }
 
+        bool unwrap_first_level() const { return _json_unwrap_first_level; }
+
         /*!
          * force usage of normal case type for schema & Co.
          */
@@ -334,6 +375,12 @@ namespace tuplex {
 //            return  Schema(ml, _optimizedNormalCaseRowType);
             return projectSchema(normalCaseSchema());
         }
+
+        /*!
+         * how many bytes of sampling the current rows in the buffer represent
+         * @return size in bytes
+         */
+        size_t sampleSize() const;
 
         /*!
          * gets the normal case schema (no projection!)
@@ -454,6 +501,9 @@ namespace tuplex {
             obj["hasHeader"] = _header;
             obj["null_values"] = _null_values;
 
+            obj["jsonUnwrap"] = _json_unwrap_first_level;
+            obj["jsonTuples"] = _json_treat_heterogenous_lists_as_tuples;
+
             obj["samplingMode"] = (int)_samplingMode;
             obj["samplingSize"] = _samplingSize;
 
@@ -482,6 +532,9 @@ namespace tuplex {
             fop->_quotechar = obj["quotechar"].get<char>();
             fop->_delimiter = obj["delimiter"].get<char>();
             fop->_header = obj["hasHeader"].get<bool>();
+
+            fop->_json_unwrap_first_level = obj["jsonUnwrap"].get<bool>();
+            fop->_json_treat_heterogenous_lists_as_tuples = obj["jsonTuples"].get<bool>();
             for(const auto& uri : obj["uris"])
                 fop->_fileURIs.push_back(uri.get<std::string>());
             fop->_sizes = obj["sizes"].get<std::vector<size_t>>();
@@ -515,6 +568,8 @@ namespace tuplex {
                     _delimiter,
                     _header,
                     _null_values,
+                    _json_unwrap_first_level,
+                    _json_treat_heterogenous_lists_as_tuples,
                     _columnNames,
                     _columnsToSerialize,
                     _indexBasedHints,
@@ -534,6 +589,8 @@ namespace tuplex {
                 _delimiter,
                 _header,
                 _null_values,
+                _json_unwrap_first_level,
+                _json_treat_heterogenous_lists_as_tuples,
                 _columnNames,
                 _columnsToSerialize,
                 _indexBasedHints,

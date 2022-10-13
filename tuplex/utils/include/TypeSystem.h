@@ -21,6 +21,8 @@
 #include <limits>
 #include <unordered_map>
 
+#include <boost/any.hpp>
+
 #ifdef BUILD_WITH_CEREAL
 #include "cereal/access.hpp"
 #include "cereal/types/memory.hpp"
@@ -37,6 +39,8 @@ namespace python {
 
     class Type;
     class TypeFactory;
+
+    struct StructEntry;
 
     class Type {
         friend class TypeFactory;
@@ -67,6 +71,7 @@ namespace python {
         static const Type MODULE; //! generic module object, used in symbol table
         static const Type ITERATOR; //! iterator/generator type
         static const Type EMPTYITERATOR; //! special type for empty iterator
+        static const Type TYPEOBJECT; // the type of a type object. -> i.e. generic type.
 
         // define two special types, used in the inference to describe bounds
         // any is a subtype of everything
@@ -110,6 +115,7 @@ namespace python {
         bool isTupleType() const;
         bool isFunctionType() const;
         bool isDictionaryType() const;
+        bool isStructuredDictionaryType() const;
         bool isListType() const;
         bool isNumericType() const;
         bool isOptionType() const;
@@ -121,6 +127,7 @@ namespace python {
         bool isIteratorType() const;
         bool isConstantValued() const;
         bool isEmptyType() const;
+        bool isTypeObjectType() const;
 
         inline bool isGeneric() const {
             if(_hash == python::Type::PYOBJECT._hash ||
@@ -230,6 +237,9 @@ namespace python {
          */
         std::vector<Type> derivedClasses() const;
 
+        // helper functions
+        std::vector<StructEntry> get_struct_pairs() const;
+
         static Type makeTupleType(std::initializer_list<Type> L);
         static Type makeTupleType(std::vector<Type> v);
 
@@ -238,6 +248,13 @@ namespace python {
         static Type makeDictionaryType(const python::Type& keyType, const python::Type& valType);
 
         static Type makeListType(const python::Type &elementType);
+
+        /*!
+         * creates a typeobject for underlying type type. I.e. str itself is a type object referring to string.
+         * @param type
+         * @return type object type (weird, isn't it?)
+         */
+        static Type makeTypeObjectType(const python::Type& type);
 
         // optimizing types (delayed parsing, range compression, ...)
         /*!
@@ -281,6 +298,20 @@ namespace python {
          * @return If type is already a nullabble, type will be returned.
          */
         static Type makeOptionType(const python::Type& type);
+
+        /*!
+         * creates a (structured) dictionary with known keys.
+         * @param kv_pairs
+         * @return type created
+         */
+        static Type makeStructuredDictType(const std::vector<std::pair<boost::any, python::Type>>& kv_pairs);
+
+        /*!
+        * creates a (structured) dictionary with known keys.
+        * @param kv_pairs
+        * @return type created
+        */
+        static Type makeStructuredDictType(const std::vector<StructEntry>& kv_pairs);
 
         /*!
          * enclose type as tuple if it is a primitive type, if it is a tuple type, return the type itself
@@ -358,6 +389,7 @@ namespace python {
 ////                                                  type_entry._constant_value);
         }
 
+
         template<class Archive>
         inline void save(Archive &archive) const {
 //            // @TODO: this seems wrong, better: need to encode type as string and THEN decode!
@@ -368,6 +400,31 @@ namespace python {
         }
 #endif
     };
+
+     struct StructEntry { // an entry of a structured dict
+        std::string key; // the value of the key, represented as string
+        Type keyType; // type required to decode the string key
+        Type valueType; // type what to store under key
+        bool alwaysPresent; // whether this (key,value) pair is always present or not. if true, use ->, else use =>
+
+        inline bool isUndefined() const {
+            return key.empty() && keyType == Type() && valueType == Type();
+        }
+
+        StructEntry() : alwaysPresent(true) {}
+
+        StructEntry(const StructEntry& other) : key(other.key), keyType(other.keyType), valueType(other.valueType), alwaysPresent(other.alwaysPresent) {}
+        StructEntry(StructEntry&& other) : key(other.key), keyType(other.keyType), valueType(other.valueType), alwaysPresent(other.alwaysPresent) {}
+        StructEntry& operator = (const StructEntry& other) {
+            key = other.key;
+            keyType = other.keyType;
+            valueType = other.valueType;
+            alwaysPresent = other.alwaysPresent;
+            return *this;
+        }
+    };
+
+    extern bool isLiteralType(const Type& type);
 
     inline bool operator < (const Type& lhs, const Type& rhs) { return lhs._hash < rhs._hash; }
     inline bool operator == (const Type& lhs, const Type& rhs) { return lhs._hash == rhs._hash; }
@@ -383,10 +440,12 @@ namespace python {
             FUNCTION,
             TUPLE,
             DICTIONARY,
+            STRUCTURED_DICTIONARY,
             LIST,
             CLASS,
             OPTION, // for nullable
             ITERATOR,
+            TYPE, // for type objects...
             OPTIMIZED_CONSTANT, // constant value
             OPTIMIZED_DELAYEDPARSING, // dummy types to allow for certain optimizations
             OPTIMIZED_RANGECOMPRESSION // range compression
@@ -400,6 +459,10 @@ namespace python {
             std::vector<Type> _baseClasses; //! base classes from left to right
             bool _isVarLen; // params.empty && _isVarlen => GENERICTUPLE
 
+            // type specific meta-data
+            // structured dict:
+            std::vector<StructEntry> _struct_pairs; // pairs for structured dicts.
+
             // opt properties
             int64_t _lower_bound;
             int64_t _upper_bound;
@@ -412,61 +475,19 @@ namespace python {
                         const Type& ret,
                         const std::vector<Type>& baseClasses=std::vector<Type>{},
                         bool isVarLen=false,
+                      const std::vector<StructEntry>& kv_pairs={},
                         int64_t lower_bound=std::numeric_limits<int64_t>::min(),
                         int64_t upper_bound=std::numeric_limits<int64_t>::max(),
                         const std::string& constant="") : _desc(desc), _type(at), _params(params),
                         _ret(ret), _baseClasses(baseClasses), _isVarLen(isVarLen),
+                        _struct_pairs(kv_pairs),
                         _lower_bound(lower_bound),
                         _upper_bound(upper_bound),
                         _constant_value(constant) {}
             TypeEntry(const TypeEntry& other) : _desc(other._desc), _type(other._type), _params(other._params),
             _ret(other._ret), _baseClasses(other._baseClasses), _isVarLen(other._isVarLen),
+            _struct_pairs(other._struct_pairs),
             _lower_bound(other._lower_bound), _upper_bound(other._upper_bound), _constant_value(other._constant_value) {}
-
-#ifdef BUILD_WITH_CEREAL
-            // use specialized load/save functions here!
-            template<class Archive>
-            void save(Archive & archive) const {
-                using namespace std;
-
-                // need to use for recursive types hash values
-                vector<int> paramHashes;
-                vector<int> baseClassHashes;
-                for(auto t : _params)
-                    paramHashes.emplace_back(t._hash);
-                auto retHash = _ret._hash;
-                for(auto t : _baseClasses)
-                    baseClassHashes.emplace_back(t._hash);
-                archive(_desc, _type, paramHashes, retHash, baseClassHashes, _isVarLen, _lower_bound, _upper_bound, _constant_value);
-            }
-
-            template<class Archive>
-            void load(Archive & archive) {
-                using namespace std;
-
-                // need to use for recursive types hash values
-                vector<int> paramHashes;
-                vector<int> baseClassHashes;
-                int retHash = 0;
-                archive(_desc, _type, paramHashes, retHash, baseClassHashes, _isVarLen, _lower_bound, _upper_bound, _constant_value);
-
-                // fill in Type class
-                for(auto hash : paramHashes) {
-                    Type t;
-                    t._hash = hash;
-                    _params.emplace_back(t);
-                }
-                for(auto hash : baseClassHashes) {
-                    Type t;
-                    t._hash = hash;
-                    _baseClasses.emplace_back(t);
-                }
-                Type t;
-                t._hash = retHash;
-                _ret = t;
-            }
-#endif
-
             std::string desc();
         };
 
@@ -485,12 +506,14 @@ namespace python {
                                const python::Type& retval=python::Type::VOID,
                                const std::vector<Type>& baseClasses = std::vector<Type>(),
                                bool isVarLen=false,
+                               const std::vector<StructEntry>& kv_pairs={},
                                int64_t lower_bound=std::numeric_limits<int64_t>::min(),
                                int64_t upper_bound=std::numeric_limits<int64_t>::max(),
                                const std::string& constant="");
 
         bool isFunctionType(const Type& t) const;
         bool isDictionaryType(const Type& t) const;
+        bool isStructuredDictionaryType(const Type& t) const;
         bool isTupleType(const Type& t) const;
         bool isOptionType(const Type& t) const;
         bool isListType(const Type& t) const;
@@ -523,6 +546,9 @@ namespace python {
         Type createOrGetDictionaryType(const Type& key, const Type& val);
         Type createOrGetListType(const Type& val);
 
+        Type createOrGetStructuredDictType(const std::vector<std::pair<boost::any, python::Type>>& kv_pairs);
+        Type createOrGetStructuredDictType(const std::vector<StructEntry>& kv_pairs);
+
         Type createOrGetTupleType(const std::initializer_list<Type> args);
         Type createOrGetTupleType(const TTuple<Type>& args);
         Type createOrGetTupleType(const std::vector<Type>& args);
@@ -533,6 +559,7 @@ namespace python {
         Type createOrGetDelayedParsingType(const Type& underlying);
         Type createOrGetRangeCompressedIntegerType(int64_t lower_bound, int64_t upper_bound);
 
+        Type createOrGetTypeObjectType(const Type& underlying);
 
         Type getByName(const std::string& name);
 
@@ -554,7 +581,9 @@ namespace python {
      * @param s string to be used for type decoding
      * @return decoded type or unknown if decoding error occurred
      */
-    extern Type decodeType(const std::string& s);
+    inline Type decodeType(const std::string& s) {
+        return Type::decode(s);
+    }
 
 
     /*!
@@ -783,6 +812,12 @@ namespace python {
 
         return python::Type::UNKNOWN;
     }
+
+    /*!
+     * returns a core vector of types to support. Mainly used to write tests.
+     * @return vector of types
+     */
+    extern std::vector<python::Type> primitiveTypes(bool return_options_as_well=false);
 }
 
 

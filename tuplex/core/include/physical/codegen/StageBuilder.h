@@ -125,6 +125,7 @@ namespace tuplex {
                                                                       const python::Type& generalCaseInputRowType,
                                                                       const std::vector<bool> &generalCaseColumnsToRead,
                                                                       const python::Type& generalCaseOutputRowType,
+                                                                      const std::vector<std::string>& general_case_columns,
                                                                       const std::map<int, int>& normalToGeneralMapping,
                                                                       int stageNo,
                                                                       const std::string& env_name="tuplex_fastCodePath"); // file2mem always

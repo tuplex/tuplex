@@ -15,9 +15,14 @@
 
 #include <zlib.h>
 
+
+// include third_party gzip
+#include "third_party/gzip/decompress.hpp"
+#include "third_party/gzip/decompress.hpp"
+#include "third_party/gzip/utils.hpp"
+
 // from https://gist.github.com/gomons/9d446024fbb7ccb6536ab984e29e154a
 namespace tuplex {
-
 
     /** Compress a STL string using zlib with given compression level and return
     * the binary data. */

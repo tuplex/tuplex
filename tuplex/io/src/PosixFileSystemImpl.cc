@@ -253,7 +253,7 @@ namespace tuplex {
 #endif
 
         return  bytesWritten == bufferSize ? VirtualFileSystemStatus::VFS_OK
-                                                  : VirtualFileSystemStatus::VFS_IOERROR;
+                                           : VirtualFileSystemStatus::VFS_IOERROR;
     }
 
     VirtualFileSystemStatus PosixFileSystemImpl::PosixFile::read(void *buffer, uint64_t nbytes,
@@ -274,7 +274,7 @@ namespace tuplex {
 
         // ok, if up to nbytes are returned
         return  bytesRead <= nbytes ? VirtualFileSystemStatus::VFS_OK
-                                           : VirtualFileSystemStatus::VFS_IOERROR;
+                                    : VirtualFileSystemStatus::VFS_IOERROR;
     }
 
     bool PosixFileSystemImpl::PosixFile::eof() const {
@@ -404,7 +404,7 @@ namespace tuplex {
         int fd = ::open(path.c_str(), O_RDONLY);
         if(-1 == fd) {
             logger.error(std::string("Could not open file. Details: ")
-                                                  + strerror(errno));
+                         + strerror(errno));
             return false;
         }
 
@@ -412,7 +412,7 @@ namespace tuplex {
         if(fstat(fd, &st) == -1) {
             ::close(fd);
             logger.error(std::string("Could not get file statistics. Details: ")
-                                                  + strerror(errno));
+                         + strerror(errno));
             return false;
         }
 
@@ -458,7 +458,7 @@ namespace tuplex {
         if(!_guarded_start_ptr) {
             ::close(fd);
             logger.error(std::string("Could not get memory map file. Details: ")
-                                                  + strerror(errno));
+                         + strerror(errno));
             return false;
         }
 

@@ -121,7 +121,7 @@ def figure10(flights_path='r5d.8xlarge/flights/breakdown_small/', output_folder=
             t += 'sf'
         else:
             t += 'nosf'
-        if row['csv.selectionPushdown']:
+        if row['optimizer.selectionPushdown']:
             t += '+logical'
         if row['optimizer.nullValueOptimization']:
             t += '+null'

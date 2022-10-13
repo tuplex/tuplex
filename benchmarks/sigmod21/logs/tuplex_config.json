@@ -7,7 +7,7 @@
   "inputSplitSize": "64MB",
   "useLLVMOptimizer": true,
   "optimizer.nullValueOptimization": true,
-  "csv.selectionPushdown": true,
+  "optimizer.selectionPushdown": true,
   "optimizer.generateParser": false,
   "optimizer.mergeExceptionsInOrder": false,
   "optimizer.filterPushdown": true}

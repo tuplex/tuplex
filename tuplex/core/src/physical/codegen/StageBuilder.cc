@@ -17,15 +17,17 @@
 #include <physical/codegen/JITCSVSourceTaskBuilder.h>
 #include <physical/codegen/TuplexSourceTaskBuilder.h>
 #include <physical/codegen/ExceptionSourceTaskBuilder.h>
+#include <physical/codegen/JsonSourceTaskBuilder.h>
 #include <physical/codegen/AggregateFunctions.h>
+#include <physical/codegen/ResolveHelper.h>
 #include <logical/CacheOperator.h>
 #include <JSONUtils.h>
 #include <CSVUtils.h>
 #include <Utils.h>
-#include <string.h>
+#include <cstring>
 #include <logical/AggregateOperator.h>
 
-#include <limits.h>
+#include <climits>
 
 // New: Stage Specialization, maybe rename?
 #include <physical/codegen/StagePlanner.h>
@@ -126,6 +128,10 @@ namespace tuplex {
                     case FileFormat::OUTFMT_TEXT:
                     case FileFormat::OUTFMT_ORC: {
                         ppb.objInput(fop->getID(), fop->inputColumns());
+                        break;
+                    }
+                    case FileFormat::OUTFMT_JSON: {
+                        ppb.jsonInput(fop->getID(), fop->inputColumns());
                         break;
                     }
                     default:
@@ -281,7 +287,7 @@ namespace tuplex {
             path.pyAggregateCode = "";
             path.pyAggregateFunctionName = "";
             const auto& operators = ctx.slowPathContext.operators;
-            if(ctx.outputMode == EndPointMode::HASHTABLE && operators.size() > 0
+            if(ctx.outputMode == EndPointMode::HASHTABLE && !operators.empty()
                && operators.back()->type() == LogicalOperatorType::AGGREGATE) {
                 auto aop = std::dynamic_pointer_cast<AggregateOperator>(operators.back());
                 auto combine_udf = aop->combinerUDF();
@@ -307,6 +313,9 @@ namespace tuplex {
             _fileInputParameters["delimiter"] = char2str(csvop->delimiter());
             _fileInputParameters["quotechar"] = char2str(csvop->quotechar());
             _fileInputParameters["null_values"] = stringArrayToJSON(csvop->null_values());
+
+            // json specific settings
+            _fileInputParameters["unwrap_first_level"] = boolToString(csvop->unwrap_first_level());
 
             // store CSV header information...
             if (csvop->hasHeader()) {
@@ -441,6 +450,7 @@ namespace tuplex {
                                                                          const python::Type& generalCaseInputRowType,
                                                                          const std::vector<bool> &generalCaseColumnsToRead,
                                                                          const python::Type& generalCaseOutputRowType,
+                                                                         const std::vector<std::string>& general_case_columns,
                                                                          const std::map<int, int>& normalToGeneralMapping,
                                                                          int stageNo,
                                                                          const std::string& env_name) {
@@ -468,14 +478,8 @@ namespace tuplex {
 
             string func_prefix = "";
             // name for function processing a row (include stage number)
-            string funcStageName = ret.funcStageName;//func_prefix + "Stage_" + to_string(number());
-            string funcProcessRowName = ret.funcProcessRowName;//func_prefix + "processRow_Stage_" + to_string(number());
-//            ret._funcFileWriteCallbackName = func_prefix + "writeOut_Stage_" + to_string(number());
-//            ret._funcMemoryWriteCallbackName = func_prefix + "memOut_Stage_" + to_string(number());
-//            ret._funcHashWriteCallbackName = func_prefix + "hashOut_Stage_" + to_string(number());
-//            ret._funcExceptionCallback = func_prefix + "except_Stage_" + to_string(number());
-//            ret._writerFuncName = _writerFuncName;
-
+            string funcStageName = ret.funcStageName;
+            string funcProcessRowName = ret.funcProcessRowName;
             auto env = make_shared<codegen::LLVMEnvironment>(env_name);
 
             Row intermediateInitialValue; // filled by aggregate operator, if needed.
@@ -881,7 +885,19 @@ namespace tuplex {
             // TODO: need to optimize this..., i.e. more efficient when false.
             // --> yet, for now always emit general-case exceptions!
             // keep the smaller normal-case exception format. (note this option has not been properly tested throughout code base)
-            bool emitGeneralCaseExceptionRows = true;
+            bool emitGeneralCaseExceptionRows = true; // <-- need to fix this!
+
+            // make sure upcasting is posible
+            if(emitGeneralCaseExceptionRows) {
+                auto normal_case_output_type = pathContext.outputSchema.getRowType();
+                auto general_case_output_type = generalCaseOutputRowType;
+                if(!python::canUpcastType(normal_case_output_type, general_case_output_type)) {
+                    string err_message = "emitting general case exceptions, but normal case type and general case type are incompatible.";
+                    logger.error(err_message);
+                    throw std::runtime_error(err_message);
+                }
+            }
+
 
             // step 2. build connector to data source, i.e. generated parser or simply iterating over stuff
             std::shared_ptr<codegen::BlockBasedTaskBuilder> tb;
@@ -893,6 +909,8 @@ namespace tuplex {
                 // if pushdown is performed, outputschema holds whatever is left.
                 char delimiter = ctx.fileInputParameters.at("delimiter")[0];
                 char quotechar = ctx.fileInputParameters.at("quotechar")[0];
+
+                bool unwrap_first_level = stringToBool(ctx.fileInputParameters.at("unwrap_first_level"));
 
                 // note: null_values may be empty!
                 auto null_values = jsonToStringArray(ctx.fileInputParameters.at("null_values"));
@@ -960,6 +978,21 @@ namespace tuplex {
                                                                            pathContext.checks);
                         break;
                     }
+                    case FileFormat::OUTFMT_JSON: {
+                        std::vector<std::string> normal_case_columns = pathContext.columns();
+                        tb = make_shared<codegen::JsonSourceTaskBuilder>(env,
+                                                                         ctx.inputNodeID,
+                                                                         pathContext.inputSchema.getRowType(),
+                                                                         generalCaseInputRowType,
+                                                                         normal_case_columns,
+                                                                         general_case_columns,
+                                                                         unwrap_first_level,
+                                                                         normalToGeneralMapping,
+                                                                         funcStageName,
+                                                                         emitGeneralCaseExceptionRows);
+                        break;
+                    }
+
                     default:
                         throw std::runtime_error("file input format not yet supported!");
                 }
@@ -1037,6 +1070,8 @@ namespace tuplex {
             using namespace std;
             using namespace llvm;
 
+            auto& logger = Logger::instance().logger("codegen");
+
             TransformStage::StageCodePath ret;
 
             // @TODO: the short-circuiting here kinda sounds off...!
@@ -1056,8 +1091,15 @@ namespace tuplex {
                std::dynamic_pointer_cast<CacheOperator>(_inputNode)->cachedFallbackPartitions().empty())
                 requireSlowPath = false;
 
+            // special case: JSON parsing and normal-case vs. general-case different.
+            // => also should maybe always generate slow path when blockgen uses normal-case violation!
+            // -> first codegen normal-case and then general-case on demand...?
+#warning "better to always generate slow path."
+            requireSlowPath = true; // always gen.
+
             // nothing todo, return empty code-path - i.e., normal
             if (numResolveOperators == 0 && !requireSlowPath) {
+                logger.debug("No resolvers found, and slowPath otherwise not required - skipping codegen.");
                 return ret;
             }
 
@@ -1072,8 +1114,6 @@ namespace tuplex {
 
             // @TODO: need to type here UDFs with commonCase/ExceptionCase type!
             // ==> i.e. the larger, unspecialized type!
-
-            auto &logger = Logger::instance().logger("codegen");
 
             // fill in names
             fillInCallbackNames("slow_", number(), ret);
@@ -1714,6 +1754,8 @@ namespace tuplex {
                 ss<<"has #columns: "<<codeGenerationContext.slowPathContext.inputSchema.getRowType().parameters().size()<<std::endl;
                 ss<<"normal case input row type: "<<codeGenerationContext.fastPathContext.inputSchema.getRowType().desc()<<std::endl;
                 ss<<"has #columns: "<<codeGenerationContext.fastPathContext.inputSchema.getRowType().parameters().size()<<std::endl;
+                ss<<"general case output row type: "<<codeGenerationContext.slowPathContext.outputSchema.getRowType().desc()<<std::endl;
+                ss<<"normal case output row type: "<<codeGenerationContext.fastPathContext.outputSchema.getRowType().desc()<<std::endl;
                 logger.debug(ss.str());
 
                 stage->_fastCodePath = generateFastCodePath(codeGenerationContext,
@@ -1721,6 +1763,7 @@ namespace tuplex {
                                                             generalCaseInputRowType,
                                                             codeGenerationContext.slowPathContext.columnsToRead,
                                                             codeGenerationContext.slowPathContext.outputSchema.getRowType(),
+                                                            codeGenerationContext.slowPathContext.columns(),
                                                             codeGenerationContext.normalToGeneralMapping,
                                                             number());
                 stage->_normalCaseColumnsToKeep = boolArrayToIndices<unsigned>(codeGenerationContext.fastPathContext.columnsToRead);
@@ -1892,6 +1935,7 @@ namespace tuplex {
                                                                 generalCaseInputRowType,
                                                                 ctx.slowPathContext.columnsToRead,
                                                                 ctx.slowPathContext.outputSchema.getRowType(),
+                                                                ctx.slowPathContext.columns(),
                                                                 ctx.normalToGeneralMapping,
                                                                 number());
                     stage->_normalCaseColumnsToKeep = boolArrayToIndices<unsigned>(ctx.fastPathContext.columnsToRead);

@@ -504,97 +504,96 @@ namespace python {
             // maybe check in future also for PyBytes_Type
             return Field(PyUnicode_AsUTF8(obj));
         } else if (PyDict_Check(obj)) { // allow subtypes because of general access
-            // shortcut: empty dict?
-            if(PyDict_Size(obj) == 0)
-                return Field::empty_dict();
+            // represent now as struct dict (or homogenous dict if possible)
+            return py_dict_to_field(obj, autoUpcast);
 
-            auto dictType = mapPythonClassToTuplexType(obj, autoUpcast);
-            std::string dictStr;
-            PyObject *key = nullptr, *val = nullptr;
-            Py_ssize_t pos = 0;  // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
-            dictStr += "{";
-            while(PyDict_Next(obj, &pos, &key, &val)) {
-                // create key
-                auto keyStr = PyString_AsString(PyObject_Str(key));
-                auto keyType = mapPythonClassToTuplexType(key, autoUpcast);
-                python::Type valType;
-
-                // create value, mimicking cJSON printing standards
-                std::string valStr;
-                if(PyObject_IsInstance(val, (PyObject*)&PyUnicode_Type)) {
-                    valType = python::Type::STRING;
-                    valStr = PyString_AsString(val);
-                    // explicitly escape the escape characters
-                    for(int i = valStr.length() - 1; i>=0; i--) {
-                        char escapeChar = '0';
-                        switch(valStr[i]) {
-                            case '\"': escapeChar = '\"'; break;
-                            case '\\': escapeChar = '\\'; break;
-                            case '\b': escapeChar = 'b'; break;
-                            case '\f': escapeChar = 'f'; break;
-                            case '\n': escapeChar = 'n'; break;
-                            case '\r': escapeChar = 'r'; break;
-                            case '\t': escapeChar = 't'; break;
-                        }
-                        if(escapeChar != '0') {
-                            valStr[i] = '\\';
-                            valStr.insert(i+1, 1, escapeChar);
-                        }
-                    }
-                    valStr = "\"" + valStr + "\"";
-                } else if (PyObject_IsInstance(val, (PyObject *) &PyLong_Type) ||
-                           PyObject_IsInstance(val, (PyObject *) &PyFloat_Type)) {
-                    double dval;
-                    if(PyObject_IsInstance(val, (PyObject *) &PyLong_Type)) {
-                        valType = python::Type::I64;
-                        dval = PyLong_AsDouble(val);
-                    }
-                    else {
-                        valType = python::Type::F64;
-                        dval = PyFloat_AsDouble(val);
-                    }
-
-                    // TODO: cJSON does not support nan/inf
-                    // taken from cJSON::print_number
-                    unsigned char number_buffer[32];
-                    int length = 0;
-                    if (dval * 0 != 0) { // check for nan or +/- infinity. This special vals are encoded as NULL
-                        length = sprintf((char*)number_buffer, "null");
-                    } else {
-                        double test = 0.0;
-                        // Try 15 decimal places of precision to avoid nonsignificant nonzero digits
-                        length = sprintf((char*)number_buffer, "%1.15g", dval);
-
-                        // Check whether the original double can be recovered
-                        if ((sscanf((char*)number_buffer, "%lg", &test) != 1) || ((double)test != dval)) {
-                            // If not, print with 17 decimal places of precision
-                            length = sprintf((char*)number_buffer, "%1.17g", dval);
-                        }
-                    }
-                    // sprintf failed or buffer overrun occurred
-                    if ((length < 0) || (length > (int)(sizeof(number_buffer) - 1))) {
-                        Logger::instance().defaultLogger().error("Failure when serializing python dictionary to cJSON");
-                        throw std::runtime_error("Failure when serializing python dictionary to cJSON");
-                    }
-
-                    valStr = std::string((char*)number_buffer);
-                } else if(PyObject_IsInstance(obj, (PyObject*)&PyBool_Type)) {
-                    valType = python::Type::BOOLEAN;
-                    valStr = (PyBool_AsBool(val)) ? "true" : "false";
-                } else {
-                    Logger::instance().defaultLogger().error("Unsupported type for dictionary value: " + valType.desc());
-                    throw std::runtime_error("Unsupported type for dictionary value: " + valType.desc());
-                }
-                std::string newKeyStr = tuplexTypeToCharacter(keyType) + tuplexTypeToCharacter(valType) + keyStr;
-
-                dictStr += "\"";
-                dictStr += newKeyStr;
-                dictStr += "\":";
-                dictStr += valStr;
-                dictStr += ",";
-            }
-            dictStr = dictStr.substr(0, dictStr.length() - 1) + "}";
-            return Field::from_str_data(dictStr, dictType);
+//            auto dictType = mapPythonClassToTuplexType(obj, autoUpcast);
+//            std::string dictStr;
+//            PyObject *key = nullptr, *val = nullptr;
+//            Py_ssize_t pos = 0;  // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
+//            dictStr += "{";
+//            while(PyDict_Next(obj, &pos, &key, &val)) {
+//                // create key
+//                auto keyStr = PyString_AsString(PyObject_Str(key));
+//                auto keyType = mapPythonClassToTuplexType(key, autoUpcast);
+//                python::Type valType;
+//
+//                // create value, mimicking cJSON printing standards
+//                std::string valStr;
+//                if(PyObject_IsInstance(val, (PyObject*)&PyUnicode_Type)) {
+//                    valType = python::Type::STRING;
+//                    valStr = PyString_AsString(val);
+//                    // explicitly escape the escape characters
+//                    for(int i = valStr.length() - 1; i>=0; i--) {
+//                        char escapeChar = '0';
+//                        switch(valStr[i]) {
+//                            case '\"': escapeChar = '\"'; break;
+//                            case '\\': escapeChar = '\\'; break;
+//                            case '\b': escapeChar = 'b'; break;
+//                            case '\f': escapeChar = 'f'; break;
+//                            case '\n': escapeChar = 'n'; break;
+//                            case '\r': escapeChar = 'r'; break;
+//                            case '\t': escapeChar = 't'; break;
+//                        }
+//                        if(escapeChar != '0') {
+//                            valStr[i] = '\\';
+//                            valStr.insert(i+1, 1, escapeChar);
+//                        }
+//                    }
+//                    valStr = "\"" + valStr + "\"";
+//                } else if (PyObject_IsInstance(val, (PyObject *) &PyLong_Type) ||
+//                           PyObject_IsInstance(val, (PyObject *) &PyFloat_Type)) {
+//                    double dval;
+//                    if(PyObject_IsInstance(val, (PyObject *) &PyLong_Type)) {
+//                        valType = python::Type::I64;
+//                        dval = PyLong_AsDouble(val);
+//                    }
+//                    else {
+//                        valType = python::Type::F64;
+//                        dval = PyFloat_AsDouble(val);
+//                    }
+//
+//                    // TODO: cJSON does not support nan/inf
+//                    // taken from cJSON::print_number
+//                    unsigned char number_buffer[32];
+//                    int length = 0;
+//                    if (dval * 0 != 0) { // check for nan or +/- infinity. This special vals are encoded as NULL
+//                        length = sprintf((char*)number_buffer, "null");
+//                    } else {
+//                        double test = 0.0;
+//                        // Try 15 decimal places of precision to avoid nonsignificant nonzero digits
+//                        length = sprintf((char*)number_buffer, "%1.15g", dval);
+//
+//                        // Check whether the original double can be recovered
+//                        if ((sscanf((char*)number_buffer, "%lg", &test) != 1) || ((double)test != dval)) {
+//                            // If not, print with 17 decimal places of precision
+//                            length = sprintf((char*)number_buffer, "%1.17g", dval);
+//                        }
+//                    }
+//                    // sprintf failed or buffer overrun occurred
+//                    if ((length < 0) || (length > (int)(sizeof(number_buffer) - 1))) {
+//                        Logger::instance().defaultLogger().error("Failure when serializing python dictionary to cJSON");
+//                        throw std::runtime_error("Failure when serializing python dictionary to cJSON");
+//                    }
+//
+//                    valStr = std::string((char*)number_buffer);
+//                } else if(PyObject_IsInstance(obj, (PyObject*)&PyBool_Type)) {
+//                    valType = python::Type::BOOLEAN;
+//                    valStr = (PyBool_AsBool(val)) ? "true" : "false";
+//                } else {
+//                    Logger::instance().defaultLogger().error("Unsupported type for dictionary value: " + valType.desc());
+//                    throw std::runtime_error("Unsupported type for dictionary value: " + valType.desc());
+//                }
+//                std::string newKeyStr = tuplexTypeToCharacter(keyType) + tuplexTypeToCharacter(valType) + keyStr;
+//
+//                dictStr += "\"";
+//                dictStr += newKeyStr;
+//                dictStr += "\":";
+//                dictStr += valStr;
+//                dictStr += ",";
+//            }
+//            dictStr = dictStr.substr(0, dictStr.length() - 1) + "}";
+//            return Field::from_str_data(dictStr, dictType);
         } else if(PyList_Check(obj)) {
             // recursive
             auto numElements = PyList_Size(obj);
@@ -612,6 +611,44 @@ namespace python {
         } else {
             return createPickledField(obj);
         }
+    }
+
+    tuplex::Field py_dict_to_field(PyObject* dict_obj, bool autoUpcast) {
+        using namespace tuplex;
+        using namespace std;
+
+        assert(PyDict_Check(dict_obj));
+
+        // shortcut: empty dict?
+        if(PyDict_Size(dict_obj) == 0)
+            return Field::empty_dict();
+
+        // @TODO: could also just write a function in python to decode this complicated structure (i.e. getting the type).
+        // may save dev time.
+
+
+        // below is likely some complex code, write later. For now - treat as pyobjects.
+        Py_XINCREF(dict_obj);
+        auto serialized = python::pickleObject(python::getMainModule(), dict_obj);
+        return Field::from_pickled_memory(reinterpret_cast<const uint8_t *>(serialized.c_str()), serialized.size());
+
+//        // iterate over dictionary and map accordingly
+//        std::stringstream ss;
+//        std::vector<StructEntry> entries;
+//        PyObject *key = nullptr, *val = nullptr;
+//        Py_ssize_t pos = 0;  // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
+//        ss << "{";
+//        while(PyDict_Next(dict_obj, &pos, &key, &val)) {
+//            // convert key to str
+//            Py_XINCREF(key);
+//            auto key_str = PyString_AsString(key);
+//            Py_XINCREF(key);
+//            auto key_type = py
+//        }
+//
+//        auto dict_str = ss.str();
+//        auto dict_type = python::Type::makeStructuredDictType(entries);
+//        return Field::from_str_data(dict_str, dict_type);
     }
 
     tuplex::Field fieldCastTo(const tuplex::Field& f, const python::Type& type) {
@@ -685,7 +722,7 @@ namespace python {
             return tuplex::Field(tuplex::List::from_vector(v));
         } else {
             auto f = pythonToField(obj, autoUpcast);
-            return autoUpcast? fieldCastTo(f, type) : f;
+            return autoUpcast ? fieldCastTo(f, type) : f;
         }
     }
 
@@ -770,6 +807,15 @@ namespace python {
                 return PyLong_FromDouble(obj->valuedouble);
             case 'f':
                 return PyFloat_FromDouble(obj->valuedouble);
+//            auto pipFunc = pip.getFunction();
+//
+//            if(!pipFunc)
+//                return nullptr;
+//
+//            // debug
+//#define PRINT_EXCEPTION_PROCESSING_DETAILS
+//
+//            auto generalCaseType = pip.inputRowType();
             default:
                 std::string errorString = "unknown type identifier" + std::string(&type) + " in field encountered. Returning Py_None";
                 Logger::instance().defaultLogger().error(errorString);
@@ -828,6 +874,9 @@ namespace python {
         } else if(t == python::Type::EMPTYDICT) {
             return PyDict_New();
         } else if(t == python::Type::GENERICDICT || f.getType().isDictionaryType()) {
+            if(f.getType().isStructuredDictionaryType())
+                throw std::runtime_error("struct dict not yet implemented in fieldToPython - fix this!");
+
             cJSON* dptr = cJSON_Parse((char*)f.getPtr());
             return PyDict_FromCJSON(dptr);
         } else if(t.isListType()) {
@@ -1380,6 +1429,8 @@ namespace python {
 
     // mapping type to internal types, unknown as default
     python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast) {
+        assert(o);
+
         if(Py_None == o)
             return python::Type::NULLVALUE;
 
@@ -1451,7 +1502,8 @@ namespace python {
                 python::Type currElementType = mapPythonClassToTuplexType(PyList_GetItem(o, j), autoUpcast);
                 if(elementType != currElementType) {
                     // possible to use nullable type as element type?
-                    auto newElementType = tuplex::unifyTypes(elementType, currElementType, autoUpcast);
+                    tuplex::TypeUnificationPolicy policy; policy.allowAutoUpcastOfNumbers = autoUpcast;
+                    auto newElementType = tuplex::unifyTypes(elementType, currElementType, policy);
                     if (newElementType == python::Type::UNKNOWN) {
                         Logger::instance().defaultLogger().error("list with variable element type " + elementType.desc() + " and " + currElementType.desc() + " not supported.");
                         return python::Type::PYOBJECT;
@@ -1870,5 +1922,24 @@ namespace python {
       }
 #endif
       return true;
+    }
+
+    void runGC() {
+        // import gc module to access debug garbage collector information
+        //PyObject* gcModule = PyImport_AddModule("gc");
+        // call gc.set_debug(gc.DEBUG_LEAK)
+        // PyRun_SimpleString("import gc");
+        // PyRun_SimpleString("gc.set_debug(gc.DEBUG_LEAK)");
+        // PyRun_SimpleString("gc.disable()");
+
+        PyObject* gcModule = PyImport_ImportModule("gc");
+        assert(gcModule);
+        auto gc_dict = PyModule_GetDict(gcModule);
+        assert(gc_dict);
+        auto gc_collect = PyDict_GetItemString(gc_dict, "collect");
+        assert(gc_collect);
+        auto arg = PyTuple_New(1);
+        PyTuple_SET_ITEM(arg, 0, PyLong_FromLong(2)); // specify here collect level, 2 for full!
+        PyObject_CallObject(gc_collect, arg);
     }
 }

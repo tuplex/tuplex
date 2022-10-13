@@ -8,16 +8,21 @@
 #  Created by Leonhard Spiegelberg first on 1/1/2021                                                                   #
 #  License: Apache 2.0                                                                                                 #
 #----------------------------------------------------------------------------------------------------------------------#
-
-from .libexec.tuplex import _Context
-from .libexec.tuplex import _Metrics
+import logging
+import typing
+try:
+    from .libexec.tuplex import _Context
+    from .libexec.tuplex import _Metrics
+except ModuleNotFoundError as e:
+    logging.error("need to compiled Tuplex first, details: {}".format(e))
+    _Metrics = typing.Any
 
 import json
 
 class Metrics:
     """
     Stores a reference to the metrics associated with a
-    context object. 
+    context object.
     """
 
     def __init__(self, metrics: _Metrics):

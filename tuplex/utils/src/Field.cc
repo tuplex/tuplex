@@ -12,6 +12,8 @@
 #include <sstream>
 #include <iomanip>
 
+#include <nlohmann/json.hpp>
+
 // gcc fixes, needed for memcpy. Clang does not need those includes
 #ifdef __GNUC__
 #include <cstdlib>
@@ -20,7 +22,6 @@
 #include <string>
 #include <iostream>
 #include <Logger.h>
-
 #endif
 
 namespace tuplex {
@@ -284,8 +285,12 @@ namespace tuplex {
             Tuple *t = (Tuple*) this->_ptrValue;
             return t->desc();
         } else if(type.isDictionaryType() || type == python::Type::GENERICDICT) {
+            // @TODO: update with concrete/correct typing -> conversion to python!
             char *dstr = reinterpret_cast<char*>(_ptrValue);
-            return PrintCJSONDict(cJSON_Parse(dstr));
+            if(!type.isStructuredDictionaryType())
+                return PrintCJSONDict(cJSON_Parse(dstr));
+
+            return dstr;
         } else if(type.isListType()) {
             List *l = (List*)this->_ptrValue;
             return l->desc();
@@ -441,4 +446,174 @@ namespace tuplex {
             throw std::runtime_error("encountered unknown underlying type " + u_type.desc() + " when decoding constant type " + type.desc());
         }
     }
+
+    std::string jsonToPython(const std::string& s, const python::Type& t) {
+        if(t == python::Type::STRING) {
+            return escape_to_python_str(s);
+        }
+        if(t == python::Type::BOOLEAN) {
+            auto b = parseBoolString(s);
+            return b ? "True" : "False";
+        }
+//        if(t == python::Type::I64) {
+//            auto i =
+//        }
+
+        throw std::runtime_error("unknown type encountered for decoding.");
+        return s;
+    }
+
+    std::string jsonToPython(const nlohmann::json& j, const python::Type& t) {
+
+        // special case: option
+        if(t.isOptionType()) {
+            if(j.is_null())
+                return "None";
+            else
+                return jsonToPython(j, t.elementType());
+        }
+
+        // decode other json objects...
+        if(j.is_array()) {
+            // is type list type?
+            assert(t == python::Type::PYOBJECT || t .isListType()
+            || t.isTupleType() || t == python::Type::EMPTYTUPLE || t == python::Type::EMPTYLIST);
+            if(t == python::Type::EMPTYTUPLE)
+                return "()";
+            if(t == python::Type::EMPTYLIST)
+                return "[]";
+            if(t.isListType()) {
+                std::stringstream ss;
+                auto num_elements = j.size();
+                for(unsigned i = 0; i < num_elements; ++i) {
+                    ss<<jsonToPython(j[i], t.elementType());
+                    if(i != num_elements - 1)
+                        ss<<", ";
+                }
+                return ss.str();
+            } else if(t.isTupleType()) {
+                std::stringstream ss;
+                auto num_elements = j.size();
+                if(t.parameters().size() != num_elements) {
+                    throw std::runtime_error("invalid encoding, json array has " + pluralize(num_elements, "element")
+                    + " but given tuple type " + t.desc() + " has only " + std::to_string(t.parameters().size()) + ".");
+                }
+                for(unsigned i = 0; i < num_elements; ++i) {
+                    ss<<jsonToPython(j[i], t.parameters()[i]);
+                    if(i != num_elements - 1)
+                        ss<<", ";
+                }
+                return ss.str();
+            } else {
+                throw std::runtime_error("invalid decoding type " + t.desc()); // maybe tuple ok as well?
+            }
+        } else if(j.is_object()) {
+            if(t == python::Type::EMPTYDICT)
+                return "{}";
+
+            std::stringstream ss;
+            // nested dict? is it a struct dict? or regular dict?
+            if(t.isStructuredDictionaryType()) {
+                auto num_elements = j.size();
+                auto kv_pairs = t.get_struct_pairs();
+                // create lookup table
+                std::unordered_map<std::string, python::StructEntry> kv_lookup;
+                for(auto kv_pair : kv_pairs)
+                    kv_lookup[kv_pair.key] = kv_pair;
+                auto pos = 0;
+                ss<<"{";
+                for(const auto& el : j.items()) {
+
+                    // the key in json is always a string, yet struct type uses pystring storage or raw value. -> check for that reason
+                    auto key = el.key();
+                    auto skey = escape_to_python_str(key);
+                    auto it = kv_lookup.find(key);
+                    if(it == kv_lookup.end())
+                        it = kv_lookup.find(skey);
+                    if(it == kv_lookup.end())
+                        throw std::runtime_error("type decode error, could not find key " + key);
+
+                    auto key_t = it->second.keyType;
+                    auto val_t = it->second.valueType;
+                    ss<<jsonToPython(el.key(), key_t)<<": "<<jsonToPython(el.value(), val_t);
+                    if(pos != num_elements - 1)
+                        ss<<", ";
+                    pos++;
+                }
+                ss<<"}";
+                return ss.str();
+            } else if(t.isDictionaryType()) {
+                // trivial: key/value type
+                auto key_t = t.keyType();
+                auto val_t = t.valueType();
+                auto num_elements = j.size();
+                auto pos = 0;
+                ss<<"{";
+                for(const auto& el : j.items()) {
+                    ss<<jsonToPython(el.key(), key_t)<<": "<<jsonToPython(el.value(), val_t);
+                    if(pos != num_elements - 1)
+                        ss<<", ";
+                    pos++;
+                }
+                ss<<"}";
+                return ss.str();
+            } else {
+                throw std::runtime_error("found json object, but can only decode as struct dict or homogenous dict - not as " + t.desc());
+            }
+        } else if(j.is_string()) {
+            if(t != python::Type::STRING)
+                throw std::runtime_error("encoding mismatch, not string type");
+            return escape_to_python_str(j.get<std::string>());
+            return j.get<std::string>();
+        } else if(j.is_number()) {
+            if(t != python::Type::I64 && t != python::Type::F64)
+                throw std::runtime_error("encoding mismatch, not number (float or int)");
+            if(j.is_number_float()) {
+                auto val = j.get<double>();
+                return t == python::Type::I64 ? std::to_string((int64_t)val) : std::to_string(val);
+            } else {
+                auto val = j.get<int64_t>();
+                return t == python::Type::I64 ? std::to_string(val) : std::to_string(val) + ".0";
+            }
+        } else if(j.is_null()) {
+            if(!t.isOptionType() && t != python::Type::NULLVALUE)
+                throw std::runtime_error("encoding mismatch, not null");
+            return "None";
+        } else if(j.is_boolean()) {
+            if(t != python::Type::BOOLEAN)
+                throw std::runtime_error("encoding mismatch, not boolean");
+            return j.get<bool>() ? "True" : "False";
+        } else {
+            throw std::runtime_error("unknown json encountered.");
+        }
+    }
+
+    std::string Field::internalJSONToPythonString() const {
+        // decode internal json string according to spec.
+        assert(_type.isDictionaryType());
+        if(_type == python::Type::EMPTYDICT)
+            return "{}";
+
+        // is it a structured key type?
+        if(_type.isStructuredDictionaryType() || _type.isDictionaryType()) {
+            // special case: parse JSON dict
+            nlohmann::json j;
+            if(!_ptrValue) {
+                std::cerr<<"INTERNAL ERROR: no value stored for dict"<<std::endl;
+                return "None";
+            }
+            std::string str(reinterpret_cast<const char*>(_ptrValue));
+            try {
+                j = nlohmann::json::parse(str);
+                return jsonToPython(j, _type);
+            } catch (nlohmann::json::parse_error& ex) {
+                std::cerr << "JSON parse error at byte " << ex.byte << std::endl;
+                return "json.loads(" + escape_to_python_str(str) + ")";
+            }
+        } else {
+            throw std::runtime_error("internal error, what other struct is stored as JSON?");
+        }
+        return "None";
+    }
+
 }

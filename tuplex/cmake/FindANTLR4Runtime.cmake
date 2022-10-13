@@ -6,6 +6,8 @@
 #find_package(PkgConfig)
 #pkg_check_modules(PC_ANTLR4Runtime QUIET ANTLR4Runtime)
 
+set (CMAKE_CXX_STANDARD 14)
+
 # find include (is e.g. in /usr/local/include/antlr4-runtime/antlr4-runtime.h
 find_path(ANTLR4Runtime_INCLUDE_DIR NAMES "antlr4-runtime.h" PATH_SUFFIXES "antlr4-runtime")
 

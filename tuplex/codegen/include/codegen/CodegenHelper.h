@@ -274,6 +274,33 @@ namespace tuplex {
             }
         };
 
+
+        // for variable length fields => offset and size packing!
+        inline llvm::Value* pack_offset_and_size(llvm::IRBuilder<>& builder, llvm::Value* offset, llvm::Value* size) {
+            auto& ctx = builder.GetInsertBlock()->getContext();
+
+            // truncate or ext both offset and size to 32bit
+            offset = builder.CreateZExtOrTrunc(offset, llvm::Type::getInt32Ty(ctx));
+            size = builder.CreateZExtOrTrunc(size, llvm::Type::getInt32Ty(ctx));
+
+            llvm::Value *info = builder.CreateOr(builder.CreateZExt(offset, llvm::Type::getInt64Ty(ctx)), builder.CreateShl(builder.CreateZExt(size, llvm::Type::getInt64Ty(ctx)), 32));
+            return info;
+        }
+
+        inline std::tuple<llvm::Value*, llvm::Value*> unpack_offset_and_size(llvm::IRBuilder<>& builder, llvm::Value* info) {
+            using namespace llvm;
+
+            // truncation yields lower 32 bit (= offset)
+            Value *offset = builder.CreateTrunc(info, Type::getInt32Ty(builder.getContext()));
+            // right shift by 32 yields size
+            Value *size = builder.CreateLShr(info, 32, "varsize");
+
+            // extend to 64bit
+            offset = builder.CreateZExtOrTrunc(offset, Type::getInt64Ty(builder.getContext()));
+            size = builder.CreateZExtOrTrunc(size, Type::getInt64Ty(builder.getContext()));
+            return std::make_tuple(offset, size);
+        }
+
         /*!
          * generates code to get a compatible underlying value from an optimized value.
          * @param builder LLVM IR Builder
@@ -388,6 +415,14 @@ namespace tuplex {
         }
 
         /*!
+         * verifies module and then each function itself
+         * @param mod
+         * @param out
+         * @return whether module is ok or not.
+         */
+        extern bool verifyModule(llvm::Module& mod, std::string* out=nullptr);
+
+        /*!
          * verifies function and optionally yields error message
          * @param func
          * @param out
@@ -457,6 +492,11 @@ namespace tuplex {
             return llvm::Type::getInt8Ty(ctx);
         }
 
+        template<> inline llvm::Type* ctypeToLLVM<int8_t>(llvm::LLVMContext& ctx) {
+            static_assert(sizeof(int8_t) == 1, "int8_t must be 1 byte");
+            return llvm::Type::getInt8Ty(ctx);
+        }
+
         template<> inline llvm::Type* ctypeToLLVM<int64_t>(llvm::LLVMContext& ctx) {
             static_assert(sizeof(int64_t) == 8, "int64_t must be 8 bytes");
             return llvm::Type::getInt64Ty(ctx);
@@ -485,6 +525,10 @@ namespace tuplex {
         template<> inline llvm::Type* ctypeToLLVM<double>(llvm::LLVMContext& ctx) {
             static_assert(sizeof(double) == 8, "double should be 64bit");
             return llvm::Type::getDoubleTy(ctx);
+        }
+
+        template<> inline llvm::Type* ctypeToLLVM<uint8_t**>(llvm::LLVMContext& ctx) {
+            return llvm::Type::getInt8Ty(ctx)->getPointerTo(0)->getPointerTo();
         }
 
         /*!

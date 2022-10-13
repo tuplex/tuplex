@@ -12,11 +12,13 @@
 import unittest
 from tuplex import *
 from math import isclose
+from helper import test_options
 
 class TestDictionaries(unittest.TestCase):
 
     def setUp(self):
-        self.conf = {"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"}
+        self.conf = test_options()
+        self.conf.update({"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"})
 
     # test pop(), popitem()
     def test_attributes(self):

@@ -29,7 +29,7 @@ if __name__ == '__main__':
             'inputSplitSize' : args.input_split_size,
             'useLLVMOptimizer' : args.opt_llvm,
             'optimizer.nullValueOptimization' : args.opt_null,
-            'csv.selectionPushdown' : args.opt_pushdown,
+            'optimizer.selectionPushdown' : args.opt_pushdown,
             'optimizer.generateParser' : args.opt_parser,
             'optimizer.mergeExceptionsInOrder' : False,
             'optimizer.filterPushdown' : args.opt_filter}

@@ -467,17 +467,7 @@ namespace codegen {
         }
 
         // upcast return type
-        // @TODO: refactor, replace this
-        inline SerializableValue upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue& val, const python::Type& type, const python::Type& targetType) {
-
-            // @TODO: if it fails addInstruction(ret, size);? i.e. of the results below?
-            return _env->upcastValue(builder, val, type, targetType);
-        }
-
-        // @TODO: refactor, replace this
-        inline SerializableValue CreateDummyValue(llvm::IRBuilder<>& builder, const python::Type& type) {
-            return _env->dummyValue(builder, type);
-        }
+        SerializableValue upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue& val, const python::Type& type, const python::Type& targetType);
         SerializableValue popWithNullCheck(llvm::IRBuilder<>& builder, ExceptionCode ec, const std::string& message="");
 
         SerializableValue additionInst(const SerializableValue &L, NBinaryOp *op, const SerializableValue &R);
@@ -619,6 +609,25 @@ namespace codegen {
                 return true;
             return false;
         }
+
+        /*!
+         * generate code to index a structured dictionary value.
+         * @param builder
+         * @param ret where to store output
+         * @param value_type the type of the value to index
+         * @param value the value to index
+         * @param idx_expr_type the type of the expression with which to index the value
+         * @param idx_expr the expression with which to index the value
+         * @param idx_expr_node the AST node of the expression (optional)
+         * @return true if it worked, false else.
+         */
+        bool subscriptStructDict(llvm::IRBuilder<>& builder,
+                                 SerializableValue *out_ret,
+                                 const python::Type& value_type,
+                                 const SerializableValue& value,
+                                 const python::Type& idx_expr_type,
+                                 const SerializableValue& idx_expr,
+                                 ASTNode* idx_expr_node=nullptr);
 
     protected:
 

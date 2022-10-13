@@ -33,7 +33,7 @@ TEST_F(SigTest, FlightInterrupt) {
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
     opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
     opt_ref.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
 

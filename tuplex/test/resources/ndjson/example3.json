@@ -1,0 +1,3 @@
+{"column1": {"a": 10, "b": 20, "c": 30},"B": "test"}
+{"column1": {"a": 10, "b": 20, "c": null},"C": null}
+{"column1": {"a": 10,  "c": null}}

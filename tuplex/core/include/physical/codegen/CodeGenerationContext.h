@@ -48,13 +48,6 @@ namespace tuplex {
 
             std::map<int, int> normalToGeneralMapping; // mapping of column indices of normal-case to general-case columns.
 
-
-//                // Resolve variables (they will be only present on slow path!)
-//                std::vector<LogicalOperator*>                   resolveOperators;
-//                // the input node of the general case path. => fast-path may specialize its own input Node!
-//                LogicalOperator*                                inputNode;
-
-
             struct CodePathContext {
                 Schema readSchema;
                 Schema inputSchema;
@@ -78,6 +71,18 @@ namespace tuplex {
                     for(const auto& b : columnsToRead)
                         count += b;
                     return count;
+                }
+
+                // columns (after pushdown) of input operator to read
+                inline std::vector<std::string> columns() const {
+                    assert(inputNode);
+                    return inputNode->columns();
+                }
+
+                // columns (before pushdown) of input operator to read
+                inline std::vector<std::string> inputColumns() const {
+                    assert(inputNode);
+                    return inputNode->inputColumns();
                 }
 
 #ifdef BUILD_WITH_CEREAL

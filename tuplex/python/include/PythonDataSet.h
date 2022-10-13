@@ -11,10 +11,11 @@
 #ifndef TUPLEX_PYTHONDATASET_H
 #define TUPLEX_PYTHONDATASET_H
 
-#include "../../core/include/Context.h"
+#include <Context.h>
 #include <DataSet.h>
 #include <ErrorDataSet.h>
 #include "PythonWrappers.h"
+#include <PythonHelpers.h>
 
 namespace tuplex {
     // wrappers hold the actual objects
@@ -41,7 +42,7 @@ namespace tuplex {
         // convert a flat tuple type fast to list of tuples
         PyObject* simpleTupleToCPython(ResultSet* rs, const python::Type& type, size_t maxRowCount);
     public:
-        PythonDataSet(): _dataset(nullptr)  {}
+        PythonDataSet(): _dataset(nullptr)  { python::registerWithInterpreter(); }
         void wrap(DataSet *dataset) {
             _dataset = dataset;
         }

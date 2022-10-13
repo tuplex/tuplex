@@ -282,7 +282,7 @@ TEST_F(Resolve, ResolveAccessesOtherCol) {
     using namespace std;
 
     auto opt = microTestOptions();
-    opt.set("tuplex.csv.selectionPushdown", "true");
+    opt.set("tuplex.optimizer.selectionPushdown", "true");
     opt.set("tuplex.resolveWithInterpreterOnly", "false");
     Context c(opt);
 
@@ -308,7 +308,7 @@ TEST_F(Resolve, ResolveAccessesOtherColInterpreterOnlyAndPushdown) {
     // of input columns.
 
     auto opt = microTestOptions();
-    opt.set("tuplex.csv.selectionPushdown", "true");
+    opt.set("tuplex.optimizer.selectionPushdown", "true");
     opt.set("tuplex.resolveWithInterpreterOnly", "true");
     Context c(opt);
 
@@ -1097,7 +1097,7 @@ TEST_F(Resolve, NoProjectionPushdown) {
     // yeah, that would work...
 
     auto options = microTestOptions();
-    options.set("tuplex.csv.selectionPushdown", "false"); // setting to false should produce errors...
+    options.set("tuplex.optimizer.selectionPushdown", "false"); // setting to false should produce errors...
     Context c(options);
 
 //    auto extractSqft_c = "def extractSqft(x):\n"

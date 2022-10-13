@@ -1,12 +1,16 @@
 import tuplex
 from unittest import TestCase
+
+from helper import test_options
+
 """
 Tests functionality for `is` keyword. 
 """
 class TestIs(TestCase):
 
     def setUp(self):
-        self.conf = {"webui.enable": False, "executorCount": "0"}
+        self.conf = test_options()
+        self.conf.update({"webui.enable": False, "executorCount": "0"})
         self.c = tuplex.Context(self.conf)
 
     def test_boolIsBool(self):

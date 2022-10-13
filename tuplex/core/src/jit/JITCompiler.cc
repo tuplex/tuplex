@@ -29,6 +29,7 @@
 #include <third_party/i64toa_sse2.h>
 #include <third_party/ryu/ryu.h>
 
+#include <physical/experimental/JsonHelper.h>
 
 namespace tuplex {
 
@@ -239,6 +240,8 @@ namespace tuplex {
         registerSymbol("cJSON_CreateString", cJSON_CreateString);
 #endif
 
+        // register JSON parsing symbols
+        codegen::addJsonSymbolsToJIT(*this);
     }
 
     JITCompiler::~JITCompiler() {
@@ -459,4 +462,5 @@ namespace tuplex {
         }
     }
 #endif
+
 }

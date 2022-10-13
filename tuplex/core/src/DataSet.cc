@@ -743,7 +743,13 @@ namespace tuplex {
             return;
         }
 
-        int numColumns = rows[0].getNumColumns();
+        // there could be different number of columns. -> pick max!
+        auto numColumns = rows[0].getNumColumns();
+        for(unsigned i = 1; i < rows.size(); ++i)
+            numColumns = std::max(numColumns, rows[i].getNumColumns());
+
+        if(numColumns < 0)
+            throw std::runtime_error("internal error");
 
         std::vector<std::string> headers(numColumns);
         // check if column names are available or not
@@ -765,6 +771,16 @@ namespace tuplex {
             return Schema::UNKNOWN;
 
         assert(_operator);
+
+        // special case: resolve operator and not matching schema!
+        if(_operator->type() == LogicalOperatorType::RESOLVE) {
+            auto rop = std::dynamic_pointer_cast<ResolveOperator>(_operator);
+            if(rop->isCompatibleWithThrowingOperator())
+                return _operator->getOutputSchema();
+            else
+                return rop->resolverSchema(); // <-- get actual schema back!
+        }
+
         return _operator->getOutputSchema();
     }
 

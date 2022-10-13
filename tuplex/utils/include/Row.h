@@ -14,6 +14,7 @@
 #include <Serializer.h>
 #include <Field.h>
 #include <ExceptionCodes.h>
+#include <TypeHelper.h>
 
 #ifdef BUILD_WITH_CEREAL
 #include "cereal/access.hpp"
@@ -29,8 +30,8 @@
 
 namespace tuplex {
     /*!
-     * expensive wrapper for a single column
-     * . For the actual computation, serialized versions are used.
+     * expensive wrapper for a single column::
+     * For the actual computation, serialized versions are used.
      * This is merely a result type to be passed to the frontend.
      */
     class Row {
@@ -72,7 +73,7 @@ namespace tuplex {
             _serializedLength = getSerializedLength();
         }
 
-        inline size_t          getNumColumns() const { return _values.size(); }
+        inline size_t   getNumColumns() const { return _values.size(); }
         inline Field    get(const int col) const {
             assert(!_values.empty());
             assert(0 <= col && col < _values.size());
@@ -97,6 +98,7 @@ namespace tuplex {
             // update length, may change!
             _serializedLength = getSerializedLength();
         }
+
 
         bool            getBoolean(const int col) const;
         int64_t         getInt(const int col) const;
@@ -156,16 +158,13 @@ namespace tuplex {
         size_t serializeToMemory(uint8_t* buffer, const size_t capacity) const;
 
         /*!
-         * creates valid python source represe
-         * ntation of values as tuple.
+         * creates valid python source representation of values as tuple.
          * @return string with pythonic data representation
          */
         std::string toPythonString() const;
 
         /*!
-         * returns for each column a string represe
-         *
-         * nting its contents. Can be used for display.
+         * returns for each column a string representing its contents. Can be used for display.
          * @return vector of strings of the row contents.
          */
         inline std::vector<std::string> getAsStrings() const {
@@ -220,13 +219,16 @@ namespace tuplex {
      * detect (each col independent) majority for each column and form row type
      * @param rows sample, if empty unknown is returned
      * @param threshold normal-case threshold
-     * @param independent_columns whether to treat each column indepedently or use joint maximization
+     * @param independent_columns whether to treat each column independently or use joint maximization
      * @param use_nvo if active Option[T] types are speculated on to be either None, T or Option[T] depending on threshold
+     * @param t_policy to create a bigger majority case, types may be unified. This controls which policy to apply when unifying types.
      * @return majority type
      */
     extern python::Type detectMajorityRowType(const std::vector<Row>& rows,
                                               double threshold,
                                               bool independent_columns=true,
-                                              bool use_nvo=true);
+                                              bool use_nvo=true,
+                                              const TypeUnificationPolicy& t_policy=TypeUnificationPolicy::defaultPolicy());
+
 }
 #endif //TUPLEX_ROW_H

@@ -48,90 +48,123 @@
 
 #include "InstructionCountPass.h"
 
-
-// helper to enable llvm6 and llvm9 comaptibility // --> force onto llvm9+ for now.
-namespace llvm {
-    inline CallInst *createCallHelper(Function *Callee, ArrayRef<Value*> Ops,
-                                      IRBuilder<>& builder,
-                                      const Twine &Name = "",
-                                      Instruction *FMFSource = nullptr) {
-        CallInst *CI = CallInst::Create(Callee, Ops, Name);
-        if (FMFSource)
-            CI->copyFastMathFlags(FMFSource);
-        builder.GetInsertBlock()->getInstList().insert(builder.GetInsertPoint(), CI);
-        builder.SetInstDebugLocation(CI);
-        return CI;
-    }
-
-    inline CallInst* createBinaryIntrinsic(IRBuilder<>& builder,
-                                    Intrinsic::ID ID,
-                                    Value *LHS, Value* RHS,
-                                    const Twine& Name="",
-                                    Instruction *FMFSource = nullptr) {
-        Module *M = builder.GetInsertBlock()->getModule();
-        assert(M);
-        Function *Fn = Intrinsic::getDeclaration(M, ID, {LHS->getType()});
-        assert(Fn);
-        return createCallHelper(Fn, {LHS, RHS}, builder, Name, FMFSource);
-    }
-
-    inline CallInst* createUnaryIntrinsic(IRBuilder<>& builder,
-                                   Intrinsic::ID ID,
-                                   Value *V,
-                                   const Twine& Name="",
-                                   Instruction *FMFSource = nullptr) {
-        Module *M = builder.GetInsertBlock()->getModule();
-        Function *Fn = Intrinsic::getDeclaration(M, ID, {V->getType()});
-        return createCallHelper(Fn, {V}, builder, Name, FMFSource);
-    }
-
-    inline Value* CreateStructGEP(IRBuilder<>& builder, Value* ptr, unsigned int idx, const Twine& Name="") {
-#if LLVM_VERSION_MAJOR < 9
-        // compatibility
-        return builder.CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
-#else
-        return builder.CreateStructGEP(ptr, idx);
-#endif
-    }
-
-    inline Function* getOrInsertFunction(Module& mod, const std::string& name, FunctionType* FT) {
-#if LLVM_VERSION_MAJOR < 9
-        Function* func = cast<Function>(mod.getOrInsertFunction(name, FT));
-#else
-        Function *func = cast<Function>(mod.getOrInsertFunction(name, FT).getCallee());
-#endif
-        return func;
-    }
-
-    inline Function* getOrInsertFunction(Module* mod, const std::string& name, FunctionType* FT) {
-        if(!mod)
-            return nullptr;
-
-#if LLVM_VERSION_MAJOR < 9
-        Function* func = cast<Function>(mod->getOrInsertFunction(name, FT));
-#else
-        Function *func = cast<Function>(mod->getOrInsertFunction(name, FT).getCallee());
-#endif
-        return func;
-    }
-
-    template <typename... ArgsTy>
-    Function* getOrInsertFunction(llvm::Module* mod, const std::string& Name, Type *RetTy,
-                                       ArgsTy... Args) {
-        if(!mod)
-            return nullptr;
-        SmallVector<Type*, sizeof...(ArgsTy)> ArgTys{Args...};
-        return getOrInsertFunction(mod, Name, FunctionType::get(RetTy, ArgTys, false));
-    }
-
-}
-
 namespace tuplex {
     namespace codegen {
-        /*!
- * helper class to generate LLVM Code into one module. Captures all globals necessary for LLVM based
- * code generation. Also provides helper functions to create individual LLVM code pieces.
- */
+
+            // helper functions to enable llvm6 and llvm9 comaptibility // --> force onto llvm9+ for now.
+            inline llvm::CallInst *createCallHelper(llvm::Function *Callee, llvm::ArrayRef<llvm::Value*> Ops,
+                                              llvm::IRBuilder<>& builder,
+                                              const llvm::Twine &Name = "",
+                                                    llvm::Instruction *FMFSource = nullptr) {
+                llvm::CallInst *CI = llvm::CallInst::Create(Callee, Ops, Name);
+                if (FMFSource)
+                    CI->copyFastMathFlags(FMFSource);
+                builder.GetInsertBlock()->getInstList().insert(builder.GetInsertPoint(), CI);
+                builder.SetInstDebugLocation(CI);
+                return CI;
+            }
+
+            inline llvm::CallInst* createBinaryIntrinsic(llvm::IRBuilder<>& builder,
+                                                         llvm::Intrinsic::ID ID,
+                                                         llvm::Value *LHS, llvm::Value* RHS,
+                                                   const llvm::Twine& Name="",
+                                                         llvm::Instruction *FMFSource = nullptr) {
+                llvm::Module *M = builder.GetInsertBlock()->getModule();
+                assert(M);
+                llvm::Function *Fn = llvm::Intrinsic::getDeclaration(M, ID, {LHS->getType()});
+                assert(Fn);
+                // warning: initializing ‘llvm::ArrayRef<llvm::Value*>::Data’ from ‘std::initializer_list<llvm::Value*>::begin’ does not extend the lifetime of the underlying array [-Winit-list-lifetime]
+                return createCallHelper(Fn, std::vector<llvm::Value*>({LHS, RHS}), builder, Name, FMFSource);
+            }
+
+            inline llvm::CallInst* createUnaryIntrinsic(llvm::IRBuilder<>& builder,
+                                                        llvm::Intrinsic::ID ID,
+                                                        llvm::Value *V,
+                                                  const llvm::Twine& Name="",
+                                                        llvm::Instruction *FMFSource = nullptr) {
+                llvm::Module *M = builder.GetInsertBlock()->getModule();
+                llvm::Function *Fn = llvm::Intrinsic::getDeclaration(M, ID, {V->getType()});
+                return createCallHelper(Fn, {V}, builder, Name, FMFSource);
+            }
+
+            inline llvm::Value* CreateStructGEP(llvm::IRBuilder<>& builder, llvm::Value* ptr, unsigned int idx, const llvm::Twine& Name="") {
+                assert(ptr);
+#if LLVM_VERSION_MAJOR < 9
+                // compatibility
+        return builder.CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
+#else
+                if(ptr->getType()->isPointerTy())
+                    return builder.CreateStructGEP(ptr, idx);
+                else {
+                    assert(ptr->getType()->isStructTy());
+                    std::vector<unsigned> idx_array(1, idx);
+                    return builder.CreateExtractValue(ptr, idx_array);
+                    //return builder.CreateGEP(ptr, llvm::ConstantInt::get(builder.getContext(), llvm::APInt(64, idx)));
+                }
+#endif
+            }
+
+        inline llvm::Value* CreateStructLoad(llvm::IRBuilder<>& builder, llvm::Value* struct_object, unsigned int idx, const llvm::Twine& Name="") {
+            assert(struct_object);
+#if LLVM_VERSION_MAJOR < 9
+            // compatibility
+        return builder.CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
+#else
+            if(struct_object->getType()->isPointerTy())
+                return builder.CreateLoad(builder.CreateStructGEP(struct_object, idx));
+            else {
+                assert(struct_object->getType()->isStructTy());
+                std::vector<unsigned> idx_array(1, idx);
+                return builder.CreateExtractValue(struct_object, idx_array);
+            }
+#endif
+        }
+
+            inline llvm::Value* getOrInsertCallable(llvm::Module& mod, const std::string& name, llvm::FunctionType* FT) {
+#if LLVM_VERSION_MAJOR < 9
+                return mod.getOrInsertFunction(name, FT);
+#else
+                return mod.getOrInsertFunction(name, FT).getCallee();
+#endif
+            }
+
+            inline llvm::Value* getOrInsertCallable(llvm::Module* mod, const std::string& name, llvm::FunctionType* FT) {
+                assert(mod);
+                if(!mod)
+                    return nullptr;
+                return getOrInsertCallable(*mod, name, FT);
+            }
+
+
+            inline llvm::Function* getOrInsertFunction(llvm::Module& mod, const std::string& name, llvm::FunctionType* FT) {
+#if LLVM_VERSION_MAJOR < 9
+                llvm::Function* func = llvm::cast<llvm::Function>(mod.getOrInsertFunction(name, FT));
+#else
+                llvm::Function *func = llvm::cast<llvm::Function>(mod.getOrInsertFunction(name, FT).getCallee());
+#endif
+                return func;
+            }
+
+            inline llvm::Function* getOrInsertFunction(llvm::Module* mod, const std::string& name, llvm::FunctionType* FT) {
+                if(!mod)
+                    return nullptr;
+
+#if LLVM_VERSION_MAJOR < 9
+                llvm::Function* func = cast<Function>(mod->getOrInsertFunction(name, FT));
+#else
+                llvm::Function *func = llvm::cast<llvm::Function>(mod->getOrInsertFunction(name, FT).getCallee());
+#endif
+                return func;
+            }
+
+            template <typename... ArgsTy>
+            llvm::Function* getOrInsertFunction(llvm::Module* mod, const std::string& Name, llvm::Type *RetTy,
+                                          ArgsTy... Args) {
+                if(!mod)
+                    return nullptr;
+                llvm::SmallVector<llvm::Type*, sizeof...(ArgsTy)> ArgTys{Args...};
+                return getOrInsertFunction(mod, Name, llvm::FunctionType::get(RetTy, ArgTys, false));
+            }
 
         /*!
          * get index for value, size and bitmapPosition
@@ -148,12 +181,17 @@ namespace tuplex {
          */
         extern size_t calcBitmapElementCount(const python::Type& tupleType);
 
+        /*!
+         * helper class to generate LLVM Code into one module. Captures all globals necessary for LLVM based
+         * code generation. Also provides helper functions to create individual LLVM code pieces.
+         */
         class LLVMEnvironment {
         private:
             llvm::LLVMContext _context;
             std::unique_ptr<llvm::Module> _module;
             std::map<python::Type, llvm::Type *> _generatedTupleTypes;
             std::map<python::Type, llvm::Type *> _generatedListTypes;
+            std::map<python::Type, llvm::Type*> _generatedStructDictTypes;
             // use llvm struct member types for map key since iterators with the same yieldType may have different llvm structs
             std::map<std::vector<llvm::Type *>, llvm::Type *> _generatedIteratorTypes;
             // string: function name; BlockAddress*: BlockAddress* to be filled in an iterator struct
@@ -329,7 +367,15 @@ namespace tuplex {
              * @param twine an identifier for the codegen
              * @return llvm Type to be used as the given listType
              */
-            llvm::Type *getListType(const python::Type &listType, const std::string &twine = "list");
+            llvm::Type *getOrCreateListType(const python::Type &listType, const std::string &twine = "list");
+
+            /*!
+             * return (or create) the type that is used to represent an optimized, structured dictionary internally.
+             * @param structType
+             * @param twine
+             * @return llvm Type.
+             */
+            llvm::Type *getOrCreateStructuredDictType(const python::Type& structType, const std::string& twine="struct_dict");
 
             /*!
              * return LLVM type that is used to represent a iterator internally
@@ -498,6 +544,27 @@ namespace tuplex {
                 return llvm::StructType::get(_context, {i64Type(), i64Type(), i64Type()});
             }
 
+            // lifetime intrinsics -1 means variable sized.
+            // cf. https://llvm.org/docs/LangRef.html#llvm-lifetime-start-intrinsic
+            inline llvm::Value* lifetimeStart(llvm::IRBuilder<>& builder, llvm::Value* ptr, llvm::Value* size) {
+                assert(size->getType()->isIntegerTy() && llvm::isa<llvm::Constant>(size));
+                return createBinaryIntrinsic(builder, llvm::Intrinsic::ID::lifetime_start, size, ptr);
+            }
+
+            inline llvm::Value* lifetimeEnd(llvm::IRBuilder<>& builder, llvm::Value* ptr, llvm::Value* size) {
+                assert(size->getType()->isIntegerTy() && llvm::isa<llvm::Constant>(size));
+                return createBinaryIntrinsic(builder, llvm::Intrinsic::ID::lifetime_end, size, ptr);
+            }
+
+            inline llvm::Value* lifetimeStart(llvm::IRBuilder<>& builder, llvm::Value* ptr) {
+                return lifetimeStart(builder, ptr, i64Const(-1));
+            }
+
+            inline llvm::Value* lifetimeEnd(llvm::IRBuilder<>& builder, llvm::Value* ptr) {
+                return lifetimeEnd(builder, ptr, i64Const(-1));
+            }
+
+
             /*!
              * internally cmp returns an llvm i1 object. want to upcast to boolean type
              * @param val
@@ -635,6 +702,8 @@ namespace tuplex {
              * @return i8* pointer to memory region with size bytes
              */
             llvm::Value *malloc(llvm::IRBuilder<> &builder, llvm::Value *size);
+
+            inline llvm::Value* malloc(llvm::IRBuilder<>& builder, size_t size) { return malloc(builder, i64Const(size)); }
 
             /*!
              * call C's malloc function (need to generate free code as well!)
@@ -817,7 +886,7 @@ namespace tuplex {
 
                 if(!eps)
                     eps = defaultEpsilon();
-                auto ans = llvm::createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, value);
+                auto ans = createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, value);
                 return builder.CreateFCmpOLT(ans, eps);
             }
 
@@ -2036,6 +2105,14 @@ namespace tuplex {
                                           llvm::Value *str, llvm::Value *strSize,
                                           llvm::Value *isnull);
 
+        /*!
+        * creates an empty, zero initialized value (useful for if logic)
+        * @param env
+        * @param builder
+        * @param type
+        * @return dummy value
+        */
+        extern SerializableValue CreateDummyValue(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& type);
 
         extern SerializableValue constantValuedTypeToLLVM(llvm::IRBuilder<>& builder, const python::Type& const_type);
 

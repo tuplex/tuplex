@@ -1251,6 +1251,48 @@ namespace tuplex {
         return pds;
     }
 
+    PythonDataSet PythonContext::json(const std::string& pattern,
+                                      bool unwrap_first_level,
+                                      bool treat_heterogeneous_lists_as_tuples,
+                                      int sampling_mode) {
+        assert(_context);
+
+        // reset signals
+        if(check_and_forward_signals(true))
+            return makeError("job aborted via signal");
+
+        PythonDataSet pds;
+        assert(PyGILState_Check()); // make sure this thread holds the GIL!
+
+        auto sm = sampling_mode == 0 ? DEFAULT_SAMPLING_MODE : static_cast<SamplingMode>(sampling_mode);
+
+        python::unlockGIL();
+        DataSet *ds = nullptr;
+        std::string err_message = "";
+        try {
+            ds = &_context->json(pattern, unwrap_first_level, treat_heterogeneous_lists_as_tuples, sm);
+        } catch(const std::exception& e) {
+            err_message = e.what();
+            Logger::instance().defaultLogger().error(err_message);
+        } catch(...) {
+            err_message = "unknown C++ exception occurred, please change type.";
+            Logger::instance().defaultLogger().error(err_message);
+        }
+
+        python::lockGIL();
+
+        // nullptr? then error dataset!
+        if(!ds || !err_message.empty()) {
+            Logger::instance().flushAll();
+            assert(_context);
+            ds = &_context->makeError(err_message);
+        }
+        pds.wrap(ds);
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
+        return pds;
+    }
+
     PythonDataSet PythonContext::orc(const std::string &pattern,
                                      py::object cols,
                                      int sampling_mode) {
@@ -1378,6 +1420,9 @@ namespace tuplex {
     PythonContext::PythonContext(const std::string& name,
                                  const std::string &runtimeLibraryPath,
                                  const std::string& options) : _context(nullptr) {
+
+        python::registerWithInterpreter();
+
 
         using namespace std;
 
@@ -1529,8 +1574,8 @@ namespace tuplex {
 
         // @TODO: move to optimizer
         PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.csv.selectionPushdown"),
-                       python::boolToPython(co.CSV_PARSER_SELECTION_PUSHDOWN()));
+                       python::PyString_FromString("tuplex.optimizer.selectionPushdown"),
+                       python::boolToPython(co.OPT_SELECTION_PUSHDOWN()));
 
 
         PyDict_SetItem(dictObject,

@@ -1081,6 +1081,7 @@ namespace tuplex {
                                                                            generalCaseInputRowType,
                                                                            ctx.slowPathContext.columnsToRead,
                                                                            generalCaseOutputRowType,
+                                                                           ctx.slowPathContext.columns(),
                                                                            planner.normalToGeneralMapping(),
                                                                            stage->number());
         // update schemas!

@@ -80,6 +80,8 @@ add_subdirectory(utils)
 add_subdirectory(worker)
 add_subdirectory(hyperspecialization)
 
+add_subdirectory(hyper)
+
 # these require python, so only if embed is active!
 if(Python3_Embed_FOUND)
     add_subdirectory(core)

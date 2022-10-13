@@ -503,6 +503,13 @@ namespace tuplex {
                 continue;
             }
 
+            // special case null: (--> same applies for constants as well...)
+            if(value_type == python::Type::NULLVALUE) {
+                elements[access_path] = "null";
+                tree->add(access_path_to_json_keys(access_path), "null");
+                continue;
+            }
+
             // decode...
             if(value_type.isOptionType()) {
                 assert(bitmap_idx >= 0);

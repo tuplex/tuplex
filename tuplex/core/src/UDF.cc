@@ -288,6 +288,9 @@ namespace tuplex {
     }
 
     bool UDF::hintInputSchema(const Schema &schema, bool removeBranches, bool printErrors) {
+        // already typed? can't use hinting. Need to perform retyping.
+        if(isTyped())
+            throw std::runtime_error("UDF already typed, can't hint schema. Use retype instead.");
 
         _hintedInputSchema = schema;
         _inputSchema = Schema::UNKNOWN;
@@ -1489,5 +1492,18 @@ namespace tuplex {
             return !unknown_found;
         }
         return true;
+    }
+
+    std::string UDF::desc() const {
+        std::stringstream ss;
+        ss<<"is typed: "<<std::boolalpha<<isTyped()<<std::endl;
+        auto func_ast = _ast.getFunctionAST();
+        if(func_ast) {
+            ss<<"python type: "<<func_ast->getInferredType().desc()<<std::endl;
+        } else {
+            ss<<"no ast"<<std::endl;
+        }
+
+        return ss.str();
     }
 }

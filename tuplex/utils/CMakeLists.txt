@@ -109,6 +109,16 @@ ExternalProject_Get_Property(cereal source_dir)
 set(cereal_INCLUDE_DIR ${source_dir}/include)
 endif()
 
+# include simdjson, tutorial here https://github.com/simdjson/cmake_demo_single_file/blob/master/CMakeLists.txt
+include(FetchContent)
+FetchContent_Declare(
+        simdjson
+        GIT_REPOSITORY https://github.com/simdjson/simdjson.git
+        GIT_SHALLOW TRUE
+        GIT_TAG tags/v2.0.4
+)
+FetchContent_MakeAvailable(simdjson)
+
 # ------
 # dependencies
 
@@ -129,7 +139,7 @@ set(UTILS_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${Boost_INCLUDE_DIR}
         ${AWSSDK_INCLUDE_DIR}
         ${ZLIB_INCLUDE_DIRS})
-set(UTILS_LIBRARIES Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${ZLIB_LIBRARIES} ${AWSSDK_LINK_LIBRARIES})
+set(UTILS_LIBRARIES Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${ZLIB_LIBRARIES} ${AWSSDK_LINK_LIBRARIES} simdjson)
 
 # object library
 add_dependencies(libutils ${UTILS_DEPENDENCIES})

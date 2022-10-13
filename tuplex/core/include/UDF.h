@@ -119,6 +119,12 @@ namespace tuplex {
         }
 
         /*!
+         * provides description of UDF, suited for debugging purposes.
+         * @return
+         */
+        std::string desc() const;
+
+        /*!
          * creates an equivalent UDF but with potentially different compile policy
          * @param policy
          * @return UDF object.
@@ -136,6 +142,13 @@ namespace tuplex {
          * @return Schema with row type
          */
         Schema getOutputSchema() const;
+
+        /*!
+         * retype current AST with new row type
+         * @param new_row_type
+         * @return true if retype was successful, false else.
+         */
+        bool retype(const python::Type& new_row_type);
 
         /*!
          * returns input schema with guaranteed tuple type as row type.
@@ -228,6 +241,12 @@ namespace tuplex {
          */
         UDF& removeTypes(bool removeAnnotations=true);
 
+        /*!
+         * whether a schema was applied to the UDF or not. Doesn't tell whether the typing worked out successfully or not.
+         * for thism use hasWellDefinedTypes()
+         * @return true/false
+         */
+        inline bool isTyped() const { return _hintedInputSchema != Schema::UNKNOWN; }
 
         /*!
          * each UDF has a number of parameters. This here is to tell which columns are required for the computation

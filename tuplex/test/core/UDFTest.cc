@@ -299,6 +299,8 @@ TEST(UDF, RetypeTest) {
     EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "f64");
     EXPECT_EQ(udf.getOutputSchema().getRowType().desc(), "(f64)");
 
+    std::cout<<udf.desc()<<std::endl;
+
     // now perform projection pushdown, i.e. rewrite 2->0
     udf.rewriteParametersInAST({{2, 0}});
     EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "f64");
@@ -309,11 +311,11 @@ TEST(UDF, RetypeTest) {
     auto new_type_proj = python::Type::makeTupleType({python::Type::STRING});
 
     // retype using original
-    udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, new_type));
+    auto rc = udf.retype(new_type);
+    EXPECT_TRUE(rc);
+    //udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, new_type));
     EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "i64");
     EXPECT_EQ(udf.getOutputSchema().getRowType().desc(), "(i64)");
-
-
 }
 
 TEST(UDF, InputColumnCount) {

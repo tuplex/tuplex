@@ -305,13 +305,13 @@ namespace tuplex {
             ptr += size_to_decode;
             remaining_bytes -= size_to_decode;
 
-            // go over elements
-            for(unsigned i = 0; i < presence_map.size(); ++i) {
-                for(unsigned j = 0; j < 64; ++j) {
-                    if(presence_map[i] & (0x1ull << j))
-                        std::cout<<"presence bit "<<j + 64 * i<<" set."<<std::endl;
-                }
-            }
+            // // go over elements and print bit
+            // for(unsigned i = 0; i < presence_map.size(); ++i) {
+            //     for(unsigned j = 0; j < 64; ++j) {
+            //         if(presence_map[i] & (0x1ull << j))
+            //             std::cout<<"presence bit "<<j + 64 * i<<" set."<<std::endl;
+            //     }
+            // }
         }
 
         // go through entries & decode!
@@ -331,12 +331,6 @@ namespace tuplex {
 
             auto path_str = codegen::json_access_path_to_string(access_path, value_type, always_present);
 
-            // debug:
-            if(path_str.find("'repo' (str) -> 'id' (str) -> i64") != std::string::npos) {
-                std::cerr<<"debug found"<<std::endl;
-            }
-
-
             int bitmap_idx = -1, present_idx = -1, value_idx = -1, size_idx = -1;
             std::tie(bitmap_idx, present_idx, value_idx, size_idx) = t_indices;
 
@@ -346,7 +340,7 @@ namespace tuplex {
             bool is_null = false;
             bool is_present = struct_dict_field_present(indices, access_path, presence_map);
 
-            std::cout<<"decoding "<<path_str<<" from field= "<<field_index<<" present= "<<std::boolalpha<<is_present<<std::endl;
+            // std::cout<<"decoding "<<path_str<<" from field= "<<field_index<<" present= "<<std::boolalpha<<is_present<<std::endl;
 
             // if not present, do not decode. But do inc field_index!
             if(!is_present) {
@@ -446,36 +440,7 @@ namespace tuplex {
         }
 
         // reorg into JSON string...
-
-        // sort elements after length of access path -> then do a work list algorithm to print out everything.
-        std::vector<std::pair<codegen::access_path_t, std::string>> data(elements.begin(), elements.end());
-        std::sort(data.begin(), data.end(), [](const std::pair<codegen::access_path_t, std::string>& lhs,
-                                                       const std::pair<codegen::access_path_t, std::string>& rhs) {
-            return lhs.first.size() < rhs.first.size();
-        });
-
-        for(auto p : data) {
-            std::cout<<codegen::access_path_to_str(p.first)<<":  "<<p.second<<std::endl;
-        }
-
         return tree->to_json();
-//        // @TODO.
-//        for(auto p : elements) {
-//            nlohmann::json& obj = j;
-//            auto access_path = p.first;
-//            for(auto& atom : access_path)
-//                obj = obj[std::get<0>(atom)];
-//
-//            // save
-//            obj = p.second;
-//
-//            std::cout<<codegen::access_path_to_str(p.first)<<":  "<<p.second<<std::endl;
-//        }
-//
-//        // debug
-//        std::cout<<j.dump(4)<<std::endl;
-//
-//        return j.dump();
     }
 }
 

@@ -1349,7 +1349,7 @@ namespace tuplex {
             llvm::Value* varLengthOffset = env.i64Const(0); // current offset from varfieldsstart ptr
             llvm::Value* varFieldsStartPtr = builder.CreateGEP(dest_ptr, env.i64Const(sizeof(int64_t) * num_fields)); // where in memory the variable field storage starts!
 
-#define TRACE_STRUCT_SERIALIZATION
+// #define TRACE_STRUCT_SERIALIZATION
             // get indices to properly decode
             for(auto entry : entries) {
                 auto access_path = std::get<0>(entry);
@@ -1396,7 +1396,7 @@ namespace tuplex {
                     builder.CreateStore(info, casted_dest_ptr);
 
                     // env.printValue(builder, list_size_in_bytes, "encoding to field " + std::to_string(field_index) + " list of size: ");
-                    env.debugPrint(builder, path_str + ": encoding to field = " + std::to_string(field_index));
+                    //  env.debugPrint(builder, path_str + ": encoding to field = " + std::to_string(field_index));
 
                     dest_ptr = builder.CreateGEP(dest_ptr, env.i64Const(sizeof(int64_t)));
                     varLengthOffset = builder.CreateAdd(varLengthOffset, list_size_in_bytes);
@@ -1441,7 +1441,7 @@ namespace tuplex {
                     auto casted_dest_ptr = builder.CreateBitOrPointerCast(dest_ptr, value->getType()->getPointerTo());
                     builder.CreateStore(value, casted_dest_ptr);
 
-                    env.debugPrint(builder, path_str + ": encoding to field = " + std::to_string(field_index));
+                    // env.debugPrint(builder, path_str + ": encoding to field = " + std::to_string(field_index));
 
                     dest_ptr = builder.CreateGEP(dest_ptr, env.i64Const(sizeof(int64_t)));
                 } else {
@@ -1468,7 +1468,7 @@ namespace tuplex {
                     // store info away
                     auto casted_dest_ptr = builder.CreateBitOrPointerCast(dest_ptr, env.i64ptrType());
                     builder.CreateStore(info, casted_dest_ptr);
-                    env.debugPrint(builder, path_str + ": encoding to field = " + std::to_string(field_index));
+                    // env.debugPrint(builder, path_str + ": encoding to field = " + std::to_string(field_index));
                     dest_ptr = builder.CreateGEP(dest_ptr, env.i64Const(sizeof(int64_t)));
 
                     varLengthOffset = builder.CreateAdd(varLengthOffset, value_size);

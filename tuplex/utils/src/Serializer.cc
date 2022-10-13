@@ -12,6 +12,7 @@
 #include <stack>
 #include <TupleTree.h>
 #include <Utils.h>
+#include <StructCommon.h>
 
 static_assert(sizeof(double) == 8, "double must be 64bit");
 static_assert(sizeof(int64_t) == 8, "int64 must be 64bit");
@@ -1696,7 +1697,12 @@ namespace tuplex {
                 f = Field::from_str_data(getDictionary(i), python::Type::GENERICDICT);
             else if (type.isDictionaryType()) {
                 if(type.isStructuredDictionaryType()) {
-                    f = Field::from_str_data("StructDict[...]", type);
+                    auto buf = getPtr(i);
+                    auto buf_size = getSize(i);
+                    auto json_data = decodeStructDictFromBinary(type, buf, buf_size);
+                    f = Field::from_str_data(json_data, type);
+                    // old: dummy
+                    //f = Field::from_str_data("StructDict[...]", type);
                 } else {
                     f = Field::from_str_data(getDictionary(i), type);
                 }
@@ -1730,9 +1736,18 @@ namespace tuplex {
                             python::Type::GENERICDICT);
                 else if (rt.isDictionaryType()) {
                     if(rt.isStructuredDictionaryType()) {
-                        f = Field::from_str_data(
-                                isNull(i) ? option<std::string>::none : option<std::string>("StructDict[...]"),
-                                rt);
+
+                        if(isNull(i)) {
+                            f = Field::from_str_data(option<std::string>::none, rt);
+                        } else {
+                            // slow decode
+                            auto buf = getPtr(i);
+                            auto buf_size = getSize(i);
+                            auto json_data = decodeStructDictFromBinary(type, buf, buf_size);
+                            f = Field::from_str_data(option<std::string>(json_data),rt);
+                            // old:
+                            // f = Field::from_str_data(option<std::string>("StructDict[...]"),rt);
+                        }
                     } else {
                         f = Field::from_str_data(
                                 isNull(i) ? option<std::string>::none : option<std::string>(getDictionary(i)),

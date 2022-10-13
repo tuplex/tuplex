@@ -72,6 +72,11 @@ namespace tuplex {
     extern python::Type struct_dict_type_get_element_type(const python::Type& dict_type, const access_path_t& path);
 
     extern void retrieve_bitmap_counts(const flattened_struct_dict_entry_list_t& entries, size_t& bitmap_element_count, size_t& presence_map_element_count);
+
+    // decode
+    extern std::string decodeListAsJSON(const python::Type& list_type, const uint8_t* buf, size_t buf_size);
+
+    extern std::string decodeStructDictFromBinary(const python::Type& dict_type, const uint8_t* buf, size_t buf_size);
 }
 
 #endif //TUPLEX_STRUCTCOMMON_H

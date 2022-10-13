@@ -981,6 +981,8 @@ namespace tuplex {
         }
 
         llvm::Value* serializeBitmap(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* bitmap, llvm::Value* dest_ptr) {
+            using namespace std;
+
             assert(bitmap && dest_ptr);
             assert(bitmap->getType()->isArrayTy());
             auto element_type = bitmap->getType()->getArrayElementType();
@@ -990,28 +992,31 @@ namespace tuplex {
             auto num_bitmap_bits = bitmap->getType()->getArrayNumElements();
             auto num_elements = core::ceilToMultiple(num_bitmap_bits, 64ul) / 64ul;
 
+            // use the approach from FlattenedTuple using or (direct load from array DOESNT work)
+            vector<llvm::Value*> bitmap_array;
+            for(unsigned i = 0; i < num_elements; ++i)
+                bitmap_array.emplace_back(env.i64Const(0));
 
-            // need to create a temp variable
-            auto arr_ptr = env.CreateFirstBlockAlloca(builder, bitmap->getType());
-//            env.lifetimeStart(builder, arr_ptr);
-            builder.CreateStore(bitmap, arr_ptr);
-
-            llvm::Value* bitmap_ptr = builder.CreateBitOrPointerCast(arr_ptr, env.i64ptrType());
-            dest_ptr = builder.CreateBitOrPointerCast(dest_ptr, env.i64ptrType());
-
-            // store now
-            for(unsigned i = 0; i < num_elements; ++i) {
-                auto element_value = builder.CreateLoad(bitmap_ptr);
-                builder.CreateStore(element_value, dest_ptr);
-                bitmap_ptr = builder.CreateGEP(bitmap_ptr, env.i64Const(1));
-                dest_ptr = builder.CreateGEP(dest_ptr, env.i64Const(1));
+            // create ors
+            for(unsigned i = 0; i < num_bitmap_bits; ++i) {
+                // i1 array logic.
+                llvm::Value* bitmapIdx = nullptr;
+                if(bitmap->getType()->isArrayTy()) { // can not load directly from array, hence store into tmp variable - then load!
+                    auto bitmap_tmp = env.CreateFirstBlockAlloca(builder, bitmap->getType());
+                    builder.CreateStore(bitmap, bitmap_tmp);
+                    bitmap = bitmap_tmp;
+                }
+                bitmapIdx = builder.CreateConstInBoundsGEP2_64(bitmap, 0ull, i);
+                auto bit = builder.CreateLoad(bitmapIdx);
+                auto bit_ext = builder.CreateShl(builder.CreateZExt(bit, env.i64Type()), env.i64Const(i % 64ul));
+                bitmap_array[i / 64ul] = builder.CreateOr(bitmap_array[i / 64ul], bit_ext);
             }
 
-            // end lifetime of arr_ptr
-//            env.lifetimeEnd(builder, arr_ptr);
-
-            // cast back to i8 ptr
-            dest_ptr = builder.CreateBitOrPointerCast(dest_ptr, env.i8ptrType());
+            // write out elements
+            for(auto bitmap_element : bitmap_array) {
+                builder.CreateStore(bitmap_element, builder.CreatePointerCast(dest_ptr, env.i64ptrType()));
+                dest_ptr = builder.CreateGEP(dest_ptr, env.i64Const(sizeof(int64_t)));
+            }
 
             return dest_ptr;
         }

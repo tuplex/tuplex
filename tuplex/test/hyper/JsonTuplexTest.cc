@@ -283,15 +283,6 @@ namespace tuplex {
         }
         if(num_maybe_bitmap_elements > 0) {
             presence_map = std::vector<uint64_t>(num_maybe_bitmap_elements, 0);
-
-            // go over elements
-            for(unsigned i = 0; i < presence_map.size(); ++i) {
-                for(unsigned j = 0; j < 64; ++j) {
-                    if(presence_map[i] & (0x1ull << j))
-                        std::cout<<"presence bit "<<j + 64 * i<<" set."<<std::endl;
-                }
-            }
-
         }
 
         // start decode:
@@ -313,6 +304,14 @@ namespace tuplex {
             memcpy(&presence_map[0], ptr, size_to_decode);
             ptr += size_to_decode;
             remaining_bytes -= size_to_decode;
+
+            // go over elements
+            for(unsigned i = 0; i < presence_map.size(); ++i) {
+                for(unsigned j = 0; j < 64; ++j) {
+                    if(presence_map[i] & (0x1ull << j))
+                        std::cout<<"presence bit "<<j + 64 * i<<" set."<<std::endl;
+                }
+            }
         }
 
         // go through entries & decode!

@@ -874,6 +874,9 @@ namespace python {
         } else if(t == python::Type::EMPTYDICT) {
             return PyDict_New();
         } else if(t == python::Type::GENERICDICT || f.getType().isDictionaryType()) {
+            if(f.getType().isStructuredDictionaryType())
+                throw std::runtime_error("struct dict not yet implemented in fieldToPython - fix this!");
+
             cJSON* dptr = cJSON_Parse((char*)f.getPtr());
             return PyDict_FromCJSON(dptr);
         } else if(t.isListType()) {

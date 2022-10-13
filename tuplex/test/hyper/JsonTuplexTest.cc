@@ -165,7 +165,7 @@ namespace tuplex {
             auto el_idx = present_idx / 64;
             auto bit_idx = present_idx % 64;
             assert(el_idx < presence_map.size());
-            is_present = (presence_map[el_idx] & (0x1ul << bit_idx));
+            is_present = (presence_map[el_idx] & (0x1ull << bit_idx));
         }
 
         // not present? -> return
@@ -283,6 +283,15 @@ namespace tuplex {
         }
         if(num_maybe_bitmap_elements > 0) {
             presence_map = std::vector<uint64_t>(num_maybe_bitmap_elements, 0);
+
+            // go over elements
+            for(unsigned i = 0; i < presence_map.size(); ++i) {
+                for(unsigned j = 0; j < 64; ++j) {
+                    if(presence_map[i] & (0x1ull << j))
+                        std::cout<<"presence bit "<<j + 64 * i<<" set."<<std::endl;
+                }
+            }
+
         }
 
         // start decode:
@@ -323,6 +332,12 @@ namespace tuplex {
 
             auto path_str = codegen::json_access_path_to_string(access_path, value_type, always_present);
 
+            // debug:
+            if(path_str.find("'repo' (str) -> 'id' (str) -> i64") != std::string::npos) {
+                std::cerr<<"debug found"<<std::endl;
+            }
+
+
             int bitmap_idx = -1, present_idx = -1, value_idx = -1, size_idx = -1;
             std::tie(bitmap_idx, present_idx, value_idx, size_idx) = t_indices;
 
@@ -332,7 +347,7 @@ namespace tuplex {
             bool is_null = false;
             bool is_present = struct_dict_field_present(indices, access_path, presence_map);
 
-            std::cout<<"decoding "<<path_str<<" present: "<<std::boolalpha<<is_present<<std::endl;
+            std::cout<<"decoding "<<path_str<<" from field= "<<field_index<<" present= "<<std::boolalpha<<is_present<<std::endl;
 
             // if not present, do not decode. But do inc field_index!
             if(!is_present) {
@@ -353,7 +368,7 @@ namespace tuplex {
                 // check if null or not
                 auto el_idx = bitmap_idx / 64;
                 auto bit_idx = bitmap_idx % 64;
-                is_null = bitmap[el_idx] & (0x1ul << bit_idx);
+                is_null = bitmap[el_idx] & (0x1ull << bit_idx);
                 if(is_null)
                     elements[access_path] = "null";
                 value_type = value_type.getReturnType();

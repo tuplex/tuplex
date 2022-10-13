@@ -1353,6 +1353,13 @@ namespace tuplex {
 
 #ifdef TRACE_STRUCT_SERIALIZATION
                 auto path_str = json_access_path_to_string(access_path, value_type, std::get<2>(entry));
+
+                // check
+                auto present_idx = std::get<1>(t_indices);
+                if(present_idx >= 0) {
+                    env.printValue(builder, struct_dict_load_present(env, builder, ptr, dict_type, access_path), path_str + ": present_idx=" + std::to_string(present_idx) + " is present: ");
+                }
+
 #endif
                 // special case list: --> needs extra care
                 if(value_type.isOptionType())

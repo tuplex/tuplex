@@ -21,6 +21,10 @@
 
 #include <unordered_map>
 
+#include <StructCommon.h>
+#include <simdjson.h>
+#include <JSONUtils.h>
+
 // module specific vars
 static std::unordered_map<std::string, PyObject*> cached_functions;
 
@@ -837,6 +841,95 @@ namespace python {
         return dictObj;
     }
 
+    // to pyobject, recursively
+    PyObject* json_string_to_pyobject(const std::string& s, const python::Type& type) {
+        using namespace std;
+
+        if(type.isStructuredDictionaryType()) {
+
+            // parse string via simdjson into dom!
+            simdjson::dom::parser parser;
+            auto obj = parser.parse(s);
+            assert(obj.is_object());
+
+            auto dict_obj = PyDict_New();
+
+            // special case: go over entries and decode string!
+            for(auto kv_pair : type.get_struct_pairs()) {
+                // what is the type?
+
+                // HACK: only support string key types for now!
+                // issue will be two keys with same value and different types -> need to be encoded in dict.
+                // could solve by using the key as-is -> i.e. python escaped strings (b.c. other values won't start with '', use b'' for pickled object)
+                if(kv_pair.keyType != python::Type::STRING)
+                    throw std::runtime_error("only string key type supported so far in decode");
+
+                auto key = str_value_from_python_raw_value(kv_pair.key);
+
+                // check if field with key exists (doesn't have to!)
+                simdjson::error_code error;
+                simdjson::dom::element value;
+                obj.at_key(key).tie(value, error);
+                if(!error) {
+                    // get string from there
+                    auto raw_str = minify(obj[key]);
+
+                    PyObject *el_obj = nullptr;
+
+                    // special cases: struct, list, (dict?)
+                    el_obj = json_string_to_pyobject(raw_str, kv_pair.valueType);
+
+                    PyDict_SetItemString(dict_obj, key.c_str(), el_obj);
+                }
+            }
+            return dict_obj;
+        } else if(type.isListType()) {
+            simdjson::dom::parser parser;
+            auto arr = parser.parse(s);
+            assert(arr.is_array());
+            auto element_type = type.elementType();
+            std::vector<PyObject*> elements;
+            for(const auto& el : arr) {
+                // what is the element type?
+                auto el_str = simdjson::minify(el);
+                elements.push_back(json_string_to_pyobject(el_str, element_type));
+            }
+
+            // combine
+            auto list_obj = PyList_New(elements.size());
+            for(unsigned i = 0; i < elements.size(); ++i)
+                PyList_SET_ITEM(list_obj, i, elements[i]);
+            return list_obj;
+        }         // base cases:
+        else if(type == python::Type::NULLVALUE) {
+            Py_XINCREF(Py_None);
+            return Py_None;
+        } else if(type == python::Type::BOOLEAN) {
+            auto b = tuplex::stringToBool(s);
+            return python::boolToPython(b);
+        } else if(type == python::Type::I64) {
+            auto val = tuplex::parseI64String(s);
+            return PyLong_FromLongLong(val);
+        } else if(type == python::Type::F64) {
+            auto val = tuplex::parseF64String(s);
+            return PyFloat_FromDouble(val);
+        } else if(type == python::Type::STRING) {
+            auto unescaped = tuplex::unescape_json_string(s);
+            return python::PyString_FromString(unescaped.c_str());
+        } else if(type.isOptionType()) {
+            if(s == "null") {
+                Py_XINCREF(Py_None);
+                return Py_None;
+            } else {
+                return json_string_to_pyobject(s, type.getReturnType());
+            }
+        }else {
+            throw std::runtime_error("unsupported type to decode");
+        }
+        Py_XINCREF(Py_None); // <-- unknown, use None.
+        return Py_None;
+    }
+
     PyObject* fieldToPython(const tuplex::Field& f) {
         using namespace tuplex;
 
@@ -874,8 +967,17 @@ namespace python {
         } else if(t == python::Type::EMPTYDICT) {
             return PyDict_New();
         } else if(t == python::Type::GENERICDICT || f.getType().isDictionaryType()) {
-            if(f.getType().isStructuredDictionaryType())
-                throw std::runtime_error("struct dict not yet implemented in fieldToPython - fix this!");
+            if(f.getType().isStructuredDictionaryType()) {
+
+                // use expensive conversion ( may be a bottleneck, but for now - just get it working )
+                const char* buf = static_cast<const char *>(f.getPtr());
+                auto buf_size = f.getPtrSize();
+                std::string json_data(buf);
+
+                // buf should be json string.
+                // -> convert json string to pydict using helper!
+                return json_string_to_pyobject(json_data, f.getType());
+            }
 
             cJSON* dptr = cJSON_Parse((char*)f.getPtr());
             return PyDict_FromCJSON(dptr);

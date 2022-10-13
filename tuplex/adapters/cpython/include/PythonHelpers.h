@@ -418,6 +418,8 @@ namespace python {
      * @return true if ok, false else.
      */
     extern bool cloudpickleCompatibility(std::ostream* os=nullptr);
+
+    extern PyObject* json_string_to_pyobject(const std::string& s, const python::Type& type);
 }
 
 

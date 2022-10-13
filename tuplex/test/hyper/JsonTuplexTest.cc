@@ -86,15 +86,22 @@ namespace tuplex {
                     throw std::runtime_error("only string key type supported so far in decode");
 
                 auto key = str_value_from_python_raw_value(kv_pair.key);
-                // get string from there
-                auto raw_str = minify(obj[key]);
 
-                PyObject *el_obj = nullptr;
+                // check if field with key exists (doesn't have to!)
+                simdjson::error_code error;
+                simdjson::dom::element value;
+                obj.at_key(key).tie(value, error);
+                if(!error) {
+                    // get string from there
+                    auto raw_str = minify(obj[key]);
 
-                // special cases: struct, list, (dict?)
-                el_obj = json_string_to_pyobject(raw_str, kv_pair.valueType);
+                    PyObject *el_obj = nullptr;
 
-                PyDict_SetItemString(dict_obj, key.c_str(), el_obj);
+                    // special cases: struct, list, (dict?)
+                    el_obj = json_string_to_pyobject(raw_str, kv_pair.valueType);
+
+                    PyDict_SetItemString(dict_obj, key.c_str(), el_obj);
+                }
             }
             return dict_obj;
         } else if(type.isListType()) {
@@ -592,6 +599,13 @@ TEST_F(JsonTuplexTest, BinToPython) {
     // now decode
     auto json_str = decodeStructDictFromBinary(dict_type, buf, size);
     std::cout<<json_str<<std::endl;
+
+    // convert to python object
+    python::lockGIL();
+
+    auto py_obj = json_string_to_pyobject(json_str, dict_type);
+    PyObject_Print(py_obj, stdout, 0); std::cout<<std::endl;
+    python::unlockGIL();
 
 
 //    // load data from file

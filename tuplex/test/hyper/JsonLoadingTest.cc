@@ -780,8 +780,8 @@ namespace tuplex {
 
     nlohmann::json json_paths_to_json_array(const python::Type& type) {
         assert(type.isStructuredDictionaryType());
-        codegen::flattened_struct_dict_entry_list_t entries;
-        codegen::flatten_recursive_helper(entries, type);
+        flattened_struct_dict_entry_list_t entries;
+        flatten_recursive_helper(entries, type);
 
         auto j = nlohmann::json::array();
         for(auto entry : entries) {
@@ -789,7 +789,7 @@ namespace tuplex {
             auto value_type = std::get<1>(entry);
             auto always_present = std::get<2>(entry);
 
-            auto str = codegen::json_access_path_to_string(access_path, value_type, always_present);
+            auto str = json_access_path_to_string(access_path, value_type, always_present);
             j.push_back(str);
         }
 

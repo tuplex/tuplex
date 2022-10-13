@@ -39,6 +39,17 @@ TEST_F(JsonTuplexTest, BasicLoad) {
     // ctx.json("/data/2014-10-15.json").show();
 }
 
+TEST_F(JsonTuplexTest, BasicLoadWithSlowDecode) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opt = microTestOptions();
+    opt.set("tuplex.executorCount", "0"); // start single-threaded
+    Context ctx(opt);
+    bool unwrap_first_level = false; // --> requires implementing/adding decoding of struct dict...
+    ctx.json("../resources/ndjson/example2.json", unwrap_first_level).show();
+}
+
 // dev func here
 namespace tuplex {
     Field json_string_to_field(const std::string& s, const python::Type& type) {
@@ -152,42 +163,7 @@ namespace tuplex {
     }
 
 
-    bool struct_dict_field_present(const std::unordered_map<codegen::access_path_t, std::tuple<int, int, int, int>>& indices,
-                                   const codegen::access_path_t& path, const std::vector<uint64_t>& presence_map) {
-        assert(!path.empty());
 
-        // get present map index of current element.
-        auto it = indices.find(path);
-        // if not found, it's an always present (parent path)
-        if(it == indices.end())
-            return true;
-
-        auto t = indices.at(path); // must exist.
-        auto present_idx = std::get<1>(t);
-
-        bool is_present = true;
-        // >= 0? -> entry in bitmap exists.
-        if(present_idx >= 0) {
-            // make sure indices are valid
-            auto el_idx = present_idx / 64;
-            auto bit_idx = present_idx % 64;
-            assert(el_idx < presence_map.size());
-            is_present = (presence_map[el_idx] & (0x1ull << bit_idx));
-        }
-
-        // not present? -> return
-        if(!is_present)
-            return false;
-
-        // else, check if parent is present
-        if(path.size() > 1) {
-            codegen::access_path_t parent_path(path.begin(), path.end() - 1);
-            return struct_dict_field_present(indices, parent_path, presence_map);
-        } else {
-            assert(is_present);
-            return is_present; // should be true here...
-        }
-    }
 
     class StrJsonTree {
     public:
@@ -243,7 +219,7 @@ namespace tuplex {
         std::string _data;
     };
 
-    std::vector<std::string> access_path_to_json_keys(const codegen::access_path_t& path) {
+    std::vector<std::string> access_path_to_json_keys(const access_path_t& path) {
         std::vector<std::string> keys;
         for(auto atom : path) {
             // what is the type?
@@ -318,9 +294,9 @@ namespace tuplex {
     std::string decodeStructDictFromBinary(const python::Type& dict_type, const uint8_t* buf, size_t buf_size) {
         assert(dict_type.isStructuredDictionaryType());
 
-        codegen::flattened_struct_dict_entry_list_t entries;
-        codegen::flatten_recursive_helper(entries, dict_type, {});
-        auto indices = codegen::struct_dict_load_indices(dict_type);
+        flattened_struct_dict_entry_list_t entries;
+        flatten_recursive_helper(entries, dict_type, {});
+        auto indices = struct_dict_load_indices(dict_type);
 
         // retrieve counts => i.e. how many fields are options? how many are maybe present?
         size_t field_count = 0, option_count = 0, maybe_count = 0;
@@ -354,7 +330,7 @@ namespace tuplex {
         size_t remaining_bytes = buf_size;
 
         // check if dict type has bitmaps, if so decode!
-        if(codegen::struct_dict_has_bitmap(dict_type)) {
+        if(struct_dict_has_bitmap(dict_type)) {
             // decode
             auto size_to_decode = sizeof(uint64_t) * num_option_bitmap_elements;
             assert(remaining_bytes >= size_to_decode);
@@ -362,7 +338,7 @@ namespace tuplex {
             ptr += size_to_decode;
             remaining_bytes -= size_to_decode;
         }
-        if(codegen::struct_dict_has_presence_map(dict_type)) {
+        if(struct_dict_has_presence_map(dict_type)) {
             auto size_to_decode = sizeof(uint64_t) * num_maybe_bitmap_elements;
             assert(remaining_bytes >= size_to_decode);
             memcpy(&presence_map[0], ptr, size_to_decode);
@@ -383,7 +359,7 @@ namespace tuplex {
         // this func is basically modeled after struct_dict_serialize_to_menory
         unsigned field_index = 0;
 
-        std::unordered_map<codegen::access_path_t, std::string> elements;
+        std::unordered_map<access_path_t, std::string> elements;
 
         auto tree = std::make_unique<StrJsonTree>();
 
@@ -393,7 +369,7 @@ namespace tuplex {
             auto always_present = std::get<2>(entry);
             auto t_indices = indices.at(access_path);
 
-            auto path_str = codegen::json_access_path_to_string(access_path, value_type, always_present);
+            auto path_str = json_access_path_to_string(access_path, value_type, always_present);
 
             int bitmap_idx = -1, present_idx = -1, value_idx = -1, size_idx = -1;
             std::tie(bitmap_idx, present_idx, value_idx, size_idx) = t_indices;
@@ -656,7 +632,7 @@ TEST_F(JsonTuplexTest, BinToPython) {
         // load all lines from github.json, go over and check rc
         auto lines = splitToLines(fileToString("../resources/ndjson/github.json"));
 
-        auto line = lines[0]; // <-- should have ssha list
+        auto line = lines[0]; // <-- should have sha list
         auto rc = f(reinterpret_cast<const uint8_t*>(line.c_str()), line.size(), &buf, &size);
         EXPECT_EQ(rc, 0);
 

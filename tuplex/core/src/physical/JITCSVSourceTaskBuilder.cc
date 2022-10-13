@@ -10,7 +10,7 @@
 
 #include <physical/JITCSVSourceTaskBuilder.h>
 
-// #define TRACE_PARSER
+ #define TRACE_PARSER
 
 namespace tuplex {
     namespace codegen {
@@ -73,7 +73,10 @@ namespace tuplex {
 
             auto numColumns = parseRowType.parameters().size();
             for(int col = 0; col < numColumns; ++col) {
+                _env->debugPrint(builder, "get col result for column " + std::to_string(col));
                 auto val = _parseRowGen->getColumnResult(builder, col, parseResult);
+
+                _env->debugPrint(builder, "set column " + std::to_string(col));
                 ft.set(builder, {col}, val.val, val.size, val.is_null);
 
 #ifdef TRACE_PARSER
@@ -131,12 +134,16 @@ namespace tuplex {
             env().debugCellPrint(builder, lineStart, lineEnd);
 #endif
 
+            env().debugPrint(builder, "creating FlattenedTuple from csv result");
+
             // create whatever needs to be done with this row... (iterator style)
             // other option would be to write this to internal memory format & then spit out another processor...
             // --> doesn't matter, let's use the slow route
             // i.e. normal processor would serialize to Memory here... ==> add this as option too
             // load from csv (if csv input was given, make this later more flexible! better class + refactoring necessary!!!)
             auto ft = createFlattenedTupleFromCSVParseResult(builder, parseResult, _inputRowType);
+
+            env().debugPrint(builder, "FlattenedTuple created.");
 
             //        // serialize to CSV if option was added
             //        // else serialize to memory
@@ -296,6 +303,7 @@ namespace tuplex {
 
             IRBuilder builder(bbBody);
 
+            _env->debugPrint(builder, "enter main loop");
 
             // there should be a check if argInSize is 0
             // if so -> handle separately, i.e. return immediately
@@ -336,8 +344,10 @@ namespace tuplex {
             BasicBlock *bLoopBody = BasicBlock::Create(context, "loopBody", read_block_func);
 
             // parse first row
+            env().debugPrint(builder, "parse row...");
             auto parseCode = builder.CreateCall(parseRowF, {resStructVar, builder.CreateLoad(currentPtrVar, "readPtr"), endPtr}, "parseCode");
             builder.CreateStore(parseCode, parseCodeVar);
+            env().printValue(builder, parseCode, "parsed row with code: ");
             auto numParsedBytes = builder.CreateLoad(builder.CreateGEP(resStructVar, {env().i32Const(0), env().i32Const(0)}), "parsedBytes");
             // numParsedBytes should be > 0!
             builder.CreateStore(builder.CreateGEP(builder.CreateLoad(currentPtrVar, "readPtr"), numParsedBytes), currentPtrVar);
@@ -350,7 +360,9 @@ namespace tuplex {
 #endif
 
             // process row here -- BEGIN
+            env().debugPrint(builder, "process row");
             processRow(builder, argUserData, builder.CreateLoad(parseCodeVar), resStructVar, normalRowCountVar, badRowCountVar, outputRowNumberVar, nullptr, nullptr, terminateEarlyOnLimitCode,pipFunc);
+            env().debugPrint(builder, "row done.");
             // end process row here -- END
 
 #ifdef TRACE_PARSER
@@ -366,7 +378,7 @@ namespace tuplex {
 #if LLVM_VERSION_MAJOR < 9
             builder.CreateMemCpy(snippet, builder.CreateLoad(currentPtrVar, "readPtr"), 512, 0, true);
 #else
-            builder.CreateMemCpy(snippet, 0, builder.CreateLoad(currentPtrVar, "readPtr"), 0, 512, true);
+            builder.CreateMemCpy(snippet, 0, builder.CreateLoad(currentPtrVar, "readPtr"), 0, env().i64Const(512), true);
 #endif
             builder.CreateStore(env().i8Const(' '), builder.CreateGEP(snippet, env().i64Const(506)));
             builder.CreateStore(env().i8Const('.'), builder.CreateGEP(snippet, env().i64Const(507)));

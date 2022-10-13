@@ -693,8 +693,10 @@ namespace tuplex {
 
             auto t = serializedType().parameters()[column]; // Note: this here is accessing only serialized cells!
 
+            this->_env->debugPrint(builder, "get val");
             llvm::Value *val = builder.CreateLoad(
                     builder.CreateGEP(result, {_env->i32Const(0), _env->i32Const(3 + 1 + 2 * column)}));
+            this->_env->debugPrint(builder, "get size");
             llvm::Value *size = builder.CreateLoad(
                     builder.CreateGEP(result, {_env->i32Const(0), _env->i32Const(3 + 1 + 2 * column + 1)}));
 
@@ -707,6 +709,8 @@ namespace tuplex {
 
             // option type?
             if (t.isOptionType()) {
+                _env->debugPrint(builder, "fetch null bit");
+
                 // extract bitmap bit!
                 // fetch byte, load val
                 auto idxQword = builder.CreateGEP(result,

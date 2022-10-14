@@ -153,7 +153,6 @@ namespace tuplex {
         _imports += "import json\n"
                     "import csv\n"
                     "import io\n"
-                    "import json\n"
                     "import cloudpickle\n";
 
         // reset code collector to lazy write later func head
@@ -425,11 +424,26 @@ namespace tuplex {
         // // debug
         // code << "print("<<lastInputRowName()<<")\n";
 
+        // parse cells or not?
+        writeLine("if parse_cells:");
+        indent();
         code << "if not isinstance(" << lastInputRowName() << "[0], str):\n";
         exceptInnerCode(code, operatorID, "TypeError('json input must be of string type')", "", 1);
-        code << "\n"
+        code << "\treturn res\n"
              << "parsed_row = json.loads(" << lastInputRowName() << "[0])\n";
         writeLine(code.str());
+        dedent();
+        writeLine("else:");
+        indent();
+        {
+            writeLine("if not isinstance(" + lastInputRowName() +"[0], dict):\n");
+            std::stringstream ss;
+            exceptInnerCode(ss, operatorID, "TypeError('input must be of dict type')", "", 1);
+            writeLine(ss.str() + "\treturn res");
+        }
+
+        writeLine("parsed_row = " + lastInputRowName());
+        dedent();
 
         // auto convert values to types
         // check if columns are set -> then unwrap?

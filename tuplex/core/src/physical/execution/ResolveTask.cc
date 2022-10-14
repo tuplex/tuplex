@@ -543,8 +543,11 @@ default:
             if(resCode != 0)
                 ecCode = originalEcCode;
 
-            // normal-case violation too? -> backup via interpreter!
-            if(resCode == ecToI32(ExceptionCode::NORMALCASEVIOLATION)) {
+            // certain exceptions require backup via interpreter!
+            // however, if it's a true error - do not bother invoking interpreter.
+            if(resCode == ecToI32(ExceptionCode::NORMALCASEVIOLATION)
+               || resCode == ecToI32(ExceptionCode::BADPARSE_STRING_INPUT)
+               || resCode == ecToI32(ExceptionCode::GENERALCASEVIOLATION)) {
 
                  // // debug write file
                  // FILE *fp = fopen("/home/leonhard/projects/tuplex-public/test.bin", "w");

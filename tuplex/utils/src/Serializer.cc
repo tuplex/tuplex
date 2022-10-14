@@ -1700,6 +1700,8 @@ namespace tuplex {
                     auto buf = getPtr(i);
                     auto buf_size = getSize(i);
                     auto json_data = decodeStructDictFromBinary(type, buf, buf_size);
+                    if(buf_size > 0)
+                        assert(!json_data.empty());
                     f = Field::from_str_data(json_data, type);
                     // old: dummy
                     //f = Field::from_str_data("StructDict[...]", type);
@@ -1738,13 +1740,15 @@ namespace tuplex {
                     if(rt.isStructuredDictionaryType()) {
 
                         if(isNull(i)) {
-                            f = Field::from_str_data(option<std::string>::none, rt);
+                            f = Field::from_str_data(option<std::string>::none, type);
                         } else {
                             // slow decode
                             auto buf = getPtr(i);
                             auto buf_size = getSize(i);
-                            auto json_data = decodeStructDictFromBinary(type, buf, buf_size);
-                            f = Field::from_str_data(option<std::string>(json_data),rt);
+                            auto json_data = decodeStructDictFromBinary(rt, buf, buf_size);
+                            if(buf_size > 0)
+                                assert(!json_data.empty());
+                            f = Field::from_str_data(option<std::string>(json_data), type);
                             // old:
                             // f = Field::from_str_data(option<std::string>("StructDict[...]"),rt);
                         }

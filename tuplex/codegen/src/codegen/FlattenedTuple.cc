@@ -615,7 +615,7 @@ namespace tuplex {
                         Value *offset = builder.CreateAdd(_env->i64Const((numSerializedElements + 1 - serialized_idx) * sizeof(int64_t)), varlenSize);
 
                         // // debug print
-                        // _env->printValue(builder, size, "serializing dict of size: ");
+                         _env->printValue(builder, size, "serializing dict of size: ");
                         // _env->printValue(builder, offset, "serializing dict to offset: ");
 
                         // store offset + length
@@ -629,7 +629,20 @@ namespace tuplex {
                         // write actual data to outptr
                         auto s_info = struct_dict_serialize_to_memory(*_env, builder, field, dict_type, outptr);
 
-                        // _env->printValue(builder, s_info.size, "actually serialized size: ");
+                         _env->printValue(builder, s_info.size, "actually serialized size: ");
+
+                         // print info
+                         auto bitmap_pos_idx = 0;
+                         if(struct_dict_has_bitmap(dict_type)) {
+                             auto bitmap_val = builder.CreateLoad(builder.CreatePointerCast(builder.CreateGEP(s_info.val, _env->i64Const(bitmap_pos_idx)), _env->i64ptrType()));
+                             _env->printValue(builder, bitmap_val, "bitmap:      ");
+                             bitmap_pos_idx += 8;
+                         }
+                        if(struct_dict_has_presence_map(dict_type)) {
+                            auto bitmap_val = builder.CreateLoad(builder.CreatePointerCast(builder.CreateGEP(s_info.val, _env->i64Const(bitmap_pos_idx)), _env->i64ptrType()));
+                            _env->printValue(builder, bitmap_val, "presence map: ");
+                            bitmap_pos_idx += 8;
+                        }
 
                         // also varlensize needs to be output separately, so add
                         varlenSize = builder.CreateAdd(varlenSize, size);

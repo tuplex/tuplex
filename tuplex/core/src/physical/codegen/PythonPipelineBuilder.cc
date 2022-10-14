@@ -426,36 +426,25 @@ namespace tuplex {
 
         // parse cells or not?
         writeLine("if parse_cells:");
+        // parse json representation.
         indent();
         code << "if not isinstance(" << lastInputRowName() << "[0], str):\n";
         exceptInnerCode(code, operatorID, "TypeError('json input must be of string type')", "", 1);
         code << "\treturn res\n"
              << "parsed_row = json.loads(" << lastInputRowName() << "[0])\n";
         writeLine(code.str());
-        dedent();
-        writeLine("else:");
-        indent();
-        {
-            writeLine("if not isinstance(" + lastInputRowName() +"[0], dict):\n");
-            std::stringstream ss;
-            exceptInnerCode(ss, operatorID, "TypeError('input must be of dict type')", "", 1);
-            writeLine(ss.str() + "\treturn res");
-        }
-
-        writeLine("parsed_row = " + lastInputRowName());
-        dedent();
 
         // auto convert values to types
         // check if columns are set -> then unwrap?
         if(!columns.empty()) {
             // need to correct for other "column" order in dict
-            writeLine("row = parsed_row\n");
             writeLine("keys = " + vecToList(columns) + "\n");
-            writeLine("left_over_keys = list(set(row.keys()) - set(keys))\n");
+            writeLine("tmp_row = parsed_row");
+            writeLine("left_over_keys = list(set(tmp_row.keys()) - set(keys))\n");
             // this is the version where missing keys are not replaced with None. -> need to throw exception then.
             // for now, replace with None
-            // writeLine("parsed_row = [row[k] for k in keys] + [row[k] for k in left_over_keys]\n");
-            writeLine("parsed_row = [row.get(k, None) for k in keys] + [row.get(k, None) for k in left_over_keys]\n");
+            // writeLine("parsed_row = [tmp_row[k] for k in keys] + [tmp_row[k] for k in left_over_keys]\n");
+            writeLine("parsed_row = [tmp_row.get(k, None) for k in keys] + [tmp_row.get(k, None) for k in left_over_keys]\n");
         } else {
             // construct via unwrapping
             // -> no columns.
@@ -467,6 +456,19 @@ namespace tuplex {
             writeLine("res['outputColumns'] = keys + left_over_keys\n");
         } else
             writeLine(row() + " = Row([parsed_row])");
+
+        dedent();
+        writeLine("else:");
+        // proper python object is given.
+        indent();
+        writeLine("parsed_row = " + lastInputRowName());
+        // are there columns present? If so, add to row representation!
+        if (!columns.empty()) {
+            writeLine(row() + " = Row(parsed_row, " + columnsToList(columns) + ")");
+            writeLine("res['outputColumns'] = " + columnsToList(columns));
+        } else
+            writeLine(row() + " = Row(parsed_row)");
+        dedent();
     }
 
     void PythonPipelineBuilder::csvInput(int64_t operatorID,

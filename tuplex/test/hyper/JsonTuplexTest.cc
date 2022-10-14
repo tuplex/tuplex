@@ -336,6 +336,7 @@ TEST_F(JsonTuplexTest, GithubLoad) {
     auto lines = splitToLines(fileToString(ref_path));
     auto ref_row_count = lines.size();
 
+    // bug in here, presence map doesn't get serialized??
     {
         // first test -> simple load in both unwrap and no unwrap mode.
         unwrap_first_level = true;
@@ -347,16 +348,18 @@ TEST_F(JsonTuplexTest, GithubLoad) {
         EXPECT_EQ(v.size(), ref_row_count);
     }
 
-    {
-        // first test -> simple load in both unwrap and no unwrap mode.
-        unwrap_first_level = false;
-        auto& ds = ctx.json(ref_path, unwrap_first_level);
-        // no columns
-        EXPECT_TRUE(ds.columns().empty());
-        auto v = ds.collectAsVector();
 
-        EXPECT_EQ(v.size(), ref_row_count);
-    }
+//    // this here works:
+//    {
+//        // first test -> simple load in both unwrap and no unwrap mode.
+//        unwrap_first_level = false;
+//        auto& ds = ctx.json(ref_path, unwrap_first_level);
+//        // no columns
+//        EXPECT_TRUE(ds.columns().empty());
+//        auto v = ds.collectAsVector();
+//
+//        EXPECT_EQ(v.size(), ref_row_count);
+//    }
 
 //    auto& ds = ctx.json("../resources/ndjson/github_two_rows.json", unwrap_first_level);
     //// could extract columns via keys() or so? -> no support for this yet.

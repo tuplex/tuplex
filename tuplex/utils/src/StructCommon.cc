@@ -461,6 +461,14 @@ namespace tuplex {
             //             std::cout<<"presence bit "<<j + 64 * i<<" set."<<std::endl;
             //     }
             // }
+
+            // special case: presence map all 0s -> return {}
+            bool all_zero = true;
+            for(auto p_el : presence_map)
+                if(p_el)
+                    all_zero =false;
+            if(all_zero)
+                return "{}";
         }
 
         // go through entries & decode!

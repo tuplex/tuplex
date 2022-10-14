@@ -1035,6 +1035,10 @@ namespace python {
             }
             assert(obj); assert(obj->ob_refcnt > 0);
             return obj;
+        } else if(t.isStructuredDictionaryType()) {
+            // convert json representation to python!
+            auto json_data = (const char*)f.getPtr();
+            return json_string_to_pyobject(json_data, t);
         } else {
             Logger::instance().defaultLogger().error("unknown type " + f.getType().desc()
             + " in field encountered. Returning Py_None");

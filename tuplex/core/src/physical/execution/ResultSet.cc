@@ -304,14 +304,20 @@ namespace tuplex {
             auto group = _partitionGroups.front();
             _partitionGroups.pop_front();
             for (int i = group.normalPartitionStartIndex; i < group.normalPartitionStartIndex + group.numNormalPartitions; ++i) {
+                if(_remainingNormalPartitions.empty())
+                    break; // <-- TODO: group should be properly set up. Doesn't work for take yet.
                 _currentNormalPartitions.push_back(_remainingNormalPartitions.front());
                 _remainingNormalPartitions.pop_front();
             }
             for (int i = group.generalPartitionStartIndex; i < group.generalPartitionStartIndex + group.numGeneralPartitions; ++i) {
+                if(_remainingGeneralPartitions.empty())
+                    break; // <-- TODO: group should be properly set up. Doesn't work for take yet.
                 _currentGeneralPartitions.push_back(_remainingGeneralPartitions.front());
                 _remainingGeneralPartitions.pop_front();
             }
             for (int i = group.fallbackPartitionStartIndex; i < group.fallbackPartitionStartIndex + group.numFallbackPartitions; ++i) {
+                if(_remainingFallbackPartitions.empty())
+                    break; // <-- TODO: group should be properly set up. Doesn't work for take yet.
                 _currentFallbackPartitions.push_back(_remainingFallbackPartitions.front());
                 _remainingFallbackPartitions.pop_front();
             }

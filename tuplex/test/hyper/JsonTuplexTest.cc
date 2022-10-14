@@ -302,6 +302,25 @@ TEST_F(JsonTuplexTest, BinToPython) {
 //    ASSERT_TRUE(!json_str.empty());
 }
 
+TEST_F(JsonTuplexTest, GithubLoadTakeTop) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opt = microTestOptions();
+    opt.set("tuplex.executorCount", "0"); // start single-threaded
+    opt.set("tuplex.resolveWithInterpreterOnly", "false");
+    Context ctx(opt);
+    bool unwrap_first_level = true;
+
+    // check ref file lines
+    string ref_path = "../resources/ndjson/github.json";
+    auto lines = splitToLines(fileToString(ref_path));
+
+    // check both unwrap and no unwrap
+    auto v1 = ctx.json(ref_path, false).takeAsVector(5);
+    EXPECT_EQ(v1.size(), 5);
+}
+
 TEST_F(JsonTuplexTest, GithubLoad) {
     using namespace tuplex;
     using namespace std;
@@ -317,16 +336,16 @@ TEST_F(JsonTuplexTest, GithubLoad) {
     auto lines = splitToLines(fileToString(ref_path));
     auto ref_row_count = lines.size();
 
-//    {
-//        // first test -> simple load in both unwrap and no unwrap mode.
-//        unwrap_first_level = true;
-//        auto& ds = ctx.json(ref_path, unwrap_first_level);
-//        // no columns
-//        EXPECT_TRUE(!ds.columns().empty());
-//        auto v = ds.collectAsVector();
-//
-//        EXPECT_EQ(v.size(), ref_row_count);
-//    }
+    {
+        // first test -> simple load in both unwrap and no unwrap mode.
+        unwrap_first_level = true;
+        auto& ds = ctx.json(ref_path, unwrap_first_level);
+        // no columns
+        EXPECT_TRUE(!ds.columns().empty());
+        auto v = ds.collectAsVector();
+
+        EXPECT_EQ(v.size(), ref_row_count);
+    }
 
     {
         // first test -> simple load in both unwrap and no unwrap mode.

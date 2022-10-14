@@ -189,7 +189,137 @@ namespace tuplex {
             auto ptr = jit.getAddrOfSymbol(func_name);
             return reinterpret_cast<int64_t(*)(const uint8_t*, size_t, uint8_t**, size_t*)>(ptr);
         }
+
+        // helper function to generate a quick json-buffer parse and match against general-case check
+        std::function<int64_t(const uint8_t*, size_t, uint8_t**, size_t*)> generateJsonTupleTestParse(JITCompiler& jit,
+                                                                                                      const python::Type& tuple_type,
+                                                                                                      const std::vector<std::string>& columns) {
+            using namespace llvm;
+            using namespace std;
+
+            assert(tuple_type.isTupleType());
+            assert(columns.size() == tuple_type.parameters().size());
+
+            std::string func_name = "json_test_tuple_parse";
+
+            LLVMEnvironment env;
+
+            // create func
+            auto& ctx = env.getContext();
+            auto func = getOrInsertFunction(env.getModule().get(), func_name, ctypeToLLVM<int64_t>(ctx), ctypeToLLVM<uint8_t*>(ctx),
+                                            ctypeToLLVM<int64_t>(ctx),
+                                            ctypeToLLVM<uint8_t**>(ctx),
+                                            ctypeToLLVM<int64_t*>(ctx));
+
+            auto argMap = mapLLVMFunctionArgs(func, {"buf", "buf_size", "out", "out_size"});
+
+            BasicBlock* bBody = BasicBlock::Create(ctx, "entry", func);
+            IRBuilder<> builder(bBody);
+
+            // create mismatch block
+            BasicBlock* bbMismatch = BasicBlock::Create(ctx, "mismatch", func);
+
+            // init parser
+            auto Finitparser = getOrInsertFunction(env.getModule().get(), "JsonParser_Init", env.i8ptrType());
+
+            auto parser = builder.CreateCall(Finitparser, {});
+
+            auto F = getOrInsertFunction(env.getModule().get(), "JsonParser_open", env.i64Type(), env.i8ptrType(),
+                                         env.i8ptrType(), env.i64Type());
+            auto buf = argMap["buf"];
+            auto buf_size = argMap["buf_size"];
+            auto open_rc = builder.CreateCall(F, {parser, buf, buf_size});
+
+            // get initial object
+            // => this is from parser
+            auto Fgetobj = getOrInsertFunction(env.getModule().get(), "JsonParser_getObject", env.i64Type(),
+                                               env.i8ptrType(), env.i8ptrType()->getPointerTo(0));
+
+            auto row_object_var = env.CreateFirstBlockVariable(builder, env.i8nullptr(), "row_object");
+            auto obj_var = row_object_var;
+
+            builder.CreateCall(Fgetobj, {parser, obj_var});
+
+            // create dict type from columns & tuple
+            std::vector<python::StructEntry> pairs;
+            for(unsigned i = 0; i < tuple_type.parameters().size(); ++i) {
+                python::StructEntry e;
+                e.key = escape_to_python_str(columns[i]);
+                e.keyType = python::Type::STRING;
+                e.valueType = tuple_type.parameters()[i];
+            }
+            auto dict_type = python::Type::makeStructuredDictType(pairs);
+
+            // don't forget to free everything...
+            // alloc variable
+            auto struct_dict_type = create_structured_dict_type(env, dict_type);
+            auto row_var = env.CreateFirstBlockAlloca(builder, struct_dict_type);
+            struct_dict_mem_zero(env, builder, row_var, dict_type); // !!! important !!!
+
+            // parse now
+            JSONParseRowGenerator gen(env, dict_type, bbMismatch);
+            gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
+
+            // convert to tuple now and then serialize tuple
+#error "missing"
+
+
+            // ok, now serialize
+            auto s_length = struct_dict_serialized_memory_size(env, builder, row_var, dict_type).val;
+            env.printValue(builder, s_length, "serialized size is: ");
+            auto out_buf = env.cmalloc(builder, s_length);
+
+            // serialize
+            struct_dict_serialize_to_memory(env, builder, row_var, dict_type, out_buf);
+
+            builder.CreateStore(s_length, argMap["out_size"]);
+            builder.CreateStore(out_buf, argMap["out"]);
+
+            // do not care about leaks in this function...
+            builder.CreateRet(env.i64Const(0));
+
+            builder.SetInsertPoint(bbMismatch);
+            builder.CreateRet(env.i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
+
+            // --- gen done ---, compile...
+            bool rc_compile = jit.compile(std::move(env.getModule()));
+
+            if(!rc_compile)
+                throw std::runtime_error("compile error for module");
+
+            auto ptr = jit.getAddrOfSymbol(func_name);
+            return reinterpret_cast<int64_t(*)(const uint8_t*, size_t, uint8_t**, size_t*)>(ptr);
+        }
     }
+}
+
+TEST_F(JsonTuplexTest, TupleBinToPython) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto test_type_str = "(Struct[(str,'id'=>i64),(str,'name'->str),(str,'url'->str)],str,Option[Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)]],boolean,str,Struct[(str,'action'=>str),(str,'actor'=>str),(str,'actor_gravatar'=>str),(str,'comment_id'=>i64),(str,'commit'=>str),(str,'desc'=>null),(str,'head'=>str),(str,'name'=>str),(str,'object'=>str),(str,'object_name'=>str),(str,'page_name'=>str),(str,'push_id'=>i64),(str,'ref'=>str),(str,'repo'=>str),(str,'sha'=>str),(str,'shas'=>List[List[str]]),(str,'size'=>i64),(str,'snippet'=>str),(str,'summary'=>null),(str,'target'=>Struct[(str,'gravatar_id'->str),(str,'repos'->i64),(str,'followers'->i64),(str,'login'->str)]),(str,'title'=>str),(str,'url'=>str)],Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)],str)";
+
+    auto test_type = python::Type::decode(test_type_str);
+    ASSERT_TRUE(test_type.isTupleType());
+    EXPECT_EQ(test_type.parameters().size(), 8);
+    std::cout<<"testing with tuple..."<<std::endl;
+
+    // fetch test-line
+    // load all lines from github.json, go over and check rc
+    auto lines = splitToLines(fileToString("../resources/ndjson/github.json"));
+
+    auto line = lines[19];
+
+    runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
+
+    JITCompiler jit;
+
+    // create parse function (easier to debug!)
+    std::vector<std::string> columns({"repo", "type", "org", "public", "created_at", "payload", "actor", "id"});
+    auto f = codegen::generateJsonTupleTestParse(jit, test_type, columns);
+//    ASSERT_TRUE(f);
+    //     auto rc = f(reinterpret_cast<const uint8_t*>(line.c_str()), line.size(), &buf, &size);
+    //    EXPECT_EQ(rc, 0);
 }
 
 

@@ -447,6 +447,9 @@ namespace tuplex {
             ptr += size_to_decode;
             remaining_bytes -= size_to_decode;
         }
+
+        bool no_elements_present = false;
+
         if(struct_dict_has_presence_map(dict_type)) {
             auto size_to_decode = sizeof(uint64_t) * num_maybe_bitmap_elements;
             assert(remaining_bytes >= size_to_decode);
@@ -467,8 +470,25 @@ namespace tuplex {
             for(auto p_el : presence_map)
                 if(p_el)
                     all_zero =false;
-            if(all_zero)
-                return "{}";
+            if(all_zero) {
+
+                // check whether any elements must be there...
+                no_elements_present = true;
+                for(auto entry : entries) {
+                    auto access_path = std::get<0>(entry);
+                    auto value_type = std::get<1>(entry);
+                    auto always_present = std::get<2>(entry);
+                    auto t_indices = indices.at(access_path);
+
+                    auto path_str = json_access_path_to_string(access_path, value_type, always_present);
+
+                    int bitmap_idx = -1, present_idx = -1, value_idx = -1, size_idx = -1;
+                    std::tie(bitmap_idx, present_idx, value_idx, size_idx) = t_indices;
+
+                    if(bitmap_idx >= 0 || value_idx >= 0)
+                        no_elements_present = false;
+                }
+            }
         }
 
         // go through entries & decode!
@@ -607,7 +627,13 @@ namespace tuplex {
             field_index++;
         }
 
+        // special case: no elements
+        if(no_elements_present)
+            return "{}";
+
         // reorg into JSON string...
-        return tree->to_json();
+        auto json_str = tree->to_json();
+        assert(!json_str.empty());
+        return json_str;
     }
 }

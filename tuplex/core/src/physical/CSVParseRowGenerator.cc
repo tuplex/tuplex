@@ -693,19 +693,8 @@ namespace tuplex {
 
             auto t = serializedType().parameters()[column]; // Note: this here is accessing only serialized cells!
 
-            this->_env->debugPrint(builder, "get val");
-            llvm::Value *val = builder.CreateLoad(
-                    builder.CreateGEP(result, {_env->i32Const(0), _env->i32Const(3 + 1 + 2 * column)}));
-            this->_env->debugPrint(builder, "get size");
-            llvm::Value *size = builder.CreateLoad(
-                    builder.CreateGEP(result, {_env->i32Const(0), _env->i32Const(3 + 1 + 2 * column + 1)}));
-
+#error "need here phi nodes to decode value on demand only."
             llvm::Value *isnull = nullptr;
-
-            if (python::Type::STRING == t || python::Type::makeOptionType(python::Type::STRING) == t)
-                // safely zero terminate strings before further processing...
-                // this will lead to some copies that are unavoidable...
-                val = _env->zeroTerminateString(builder, val, size);
 
             // option type?
             if (t.isOptionType()) {
@@ -720,6 +709,29 @@ namespace tuplex {
                 isnull = builder.CreateICmpNE(builder.CreateAnd(qword, _env->i64Const(1UL << (static_cast<uint64_t>(column) % 64))),
                                               _env->i64Const(0));
             }
+
+            if(isnull) {
+                _env->printValue(builder, isnull, "column is_null: ");
+            }
+
+            this->_env->debugPrint(builder, "get val");
+            llvm::Value *val = builder.CreateLoad(
+                    builder.CreateGEP(result, {_env->i32Const(0), _env->i32Const(3 + 1 + 2 * column)}));
+            this->_env->debugPrint(builder, "get size");
+
+            // print type here
+            Logger::instance().logger("codegen").debug(_env->printStructType(result->getType()));
+
+            llvm::Value *size = builder.CreateLoad(
+                    builder.CreateGEP(result, {_env->i32Const(0), _env->i32Const(3 + 1 + 2 * column + 1)}));
+
+            _env->printValue(builder, val, "got value: ");
+            _env->printValue(builder, size, "got size: ");
+
+            if (python::Type::STRING == t || python::Type::makeOptionType(python::Type::STRING) == t)
+                // safely zero terminate strings before further processing...
+                // this will lead to some copies that are unavoidable...
+                val = _env->zeroTerminateString(builder, val, size);
 
             return codegen::SerializableValue(val, size, isnull);
         }

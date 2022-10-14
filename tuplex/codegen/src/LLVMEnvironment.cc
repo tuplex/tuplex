@@ -1063,6 +1063,33 @@ namespace tuplex {
             builder.CreateCall(func);
         }
 
+        std::string LLVMEnvironment::printStructType(llvm::Type *stype) {
+            std::stringstream ss;
+
+            if(!stype)
+                return "NULL";
+
+            std::string pointer_stars = "";
+            while(stype->isPointerTy()) {
+                stype = stype->getPointerElementType();
+                pointer_stars += "*";
+            }
+
+            if(!stype || !stype->isStructTy())
+                throw std::runtime_error("provided type is not a struct type but rather of type " + getLLVMTypeName(stype) + pointer_stars + ", can't print");
+
+            // first, get the name
+            auto name = getLLVMTypeName(stype);
+
+            ss<<"name: "<<name<<pointer_stars<<" "<<"("<<pluralize(stype->getStructNumElements(), "element")<<")\n";
+            // now print out struct elements
+            for(unsigned i = 0; i < stype->getStructNumElements(); ++i) {
+                ss<<"   "<<i<<": "<<getLLVMTypeName(stype->getStructElementType(i))<<"\n";
+            }
+            ss<<std::endl;
+            return ss.str();
+        }
+
         std::string LLVMEnvironment::getLLVMTypeName(llvm::Type *t) {
             auto& ctx = t->getContext();
 

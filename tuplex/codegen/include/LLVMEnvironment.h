@@ -603,6 +603,12 @@ namespace tuplex {
              */
             static std::string getLLVMTypeName(llvm::Type *t);
 
+            /*!
+             * pretty print a struct type for better debugging
+             * @param stype
+             * @return string
+             */
+            std::string printStructType(llvm::Type* stype);
 
             /*!
              * retrieves this environments struct type/stub for the empty tuple type

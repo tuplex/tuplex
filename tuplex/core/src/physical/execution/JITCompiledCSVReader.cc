@@ -330,6 +330,12 @@ namespace tuplex {
         assert(_inBufferLength > 0);
         auto bytesParsed = _functor(_userData, _inputBuffer, _inBufferLength, &_num_normal_rows, &_num_bad_rows, !eof);
 
+        // trick: negative means ECCdode! -> i.e. abort, no need to parse further
+        if(bytesParsed < 0) {
+            auto ecCode = -bytesParsed;
+            throw std::runtime_error("found ecCode " + std::to_string(ecCode)); // <-- TODO: add logic
+        }
+
 #ifdef TRACE_PARSER
         cout<<"processed "<<bytesParsed<<"/"<<_inBufferLength<<" bytes"<<endl;
         cout<<"parsed num rows: "<<num_normal_rows<< " normal, "<<num_bad_rows<<" exceptions"<<endl;

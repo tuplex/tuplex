@@ -296,7 +296,7 @@ namespace tuplex {
             auto terminateEarlyCond = builder.CreateICmpEQ(ecCode, env().i64Const(ecToI64(code)));
             builder.CreateCondBr(terminateEarlyCond, bbEarlyTermination, bbContinue);
             builder.SetInsertPoint(bbEarlyTermination);
-            builder.CreateRet(ecCode);
+            builder.CreateRet(builder.CreateMul(_env->i64Const(-1), ecCode)); // trick: return -ecCode!
             builder.SetInsertPoint(bbContinue);
         }
     }

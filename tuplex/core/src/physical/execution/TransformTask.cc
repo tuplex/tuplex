@@ -614,6 +614,10 @@ namespace tuplex {
                                        &generalPartitions[0], numGeneralPartitions, &generalIndexOffset, &generalRowOffset, &generalByteOffset,
                                        &fallbackPartitions[0], numFallbackPartitions, &fallbackIndexOffset, &fallbackRowOffset, &fallbackByteOffset);
 
+            assert(bytesParsed >= 0); //<-- negative means ecCode
+            if(bytesParsed < 0)
+                throw std::runtime_error("add missing logic.");
+
             // save number of normal rows to output rows written if not writeTofile
             if(hasMemorySink())
                 _numOutputRowsWritten += num_normal_rows;
@@ -701,6 +705,10 @@ namespace tuplex {
 
             // call functor
             auto bytesParsed = functor(this, inPtr, inSize, &num_normal_rows, &num_bad_rows, false);
+
+            assert(bytesParsed >= 0); // negative means ecCode! -> abort e.g. parse.
+            if(bytesParsed < 0)
+                throw std::runtime_error("add missing logic.");
 
             // save number of normal rows to output rows written if not writeTofile
             if(hasMemorySink())

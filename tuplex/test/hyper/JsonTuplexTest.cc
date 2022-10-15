@@ -247,6 +247,7 @@ namespace tuplex {
                 e.key = escape_to_python_str(columns[i]);
                 e.keyType = python::Type::STRING;
                 e.valueType = tuple_type.parameters()[i];
+                pairs.push_back(e);
             }
             auto dict_type = python::Type::makeStructuredDictType(pairs);
 
@@ -261,16 +262,28 @@ namespace tuplex {
             gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
 
             // convert to tuple now and then serialize tuple
-#error "missing"
+            // fetch columns from dict and assign to tuple!
+            FlattenedTuple ft(&env);
+            ft.init(tuple_type);
+            auto num_entries = tuple_type.parameters().size();
+            for(int i = 0; i < num_entries; ++i) {
+                SerializableValue value;
+
+                // fetch value from dict!
+                value = struct_dict_get_or_except(env, builder, dict_type, escape_to_python_str(columns[i]),
+                                                  python::Type::STRING, row_var, bbMismatch);
+
+                ft.set(builder, {i}, value.val, value.size, value.is_null);
+            }
 
 
             // ok, now serialize
-            auto s_length = struct_dict_serialized_memory_size(env, builder, row_var, dict_type).val;
+            auto s_length = ft.getSize(builder);
             env.printValue(builder, s_length, "serialized size is: ");
             auto out_buf = env.cmalloc(builder, s_length);
 
             // serialize
-            struct_dict_serialize_to_memory(env, builder, row_var, dict_type, out_buf);
+            ft.serialize(builder, out_buf);
 
             builder.CreateStore(s_length, argMap["out_size"]);
             builder.CreateStore(out_buf, argMap["out"]);
@@ -297,9 +310,10 @@ TEST_F(JsonTuplexTest, TupleBinToPython) {
     using namespace tuplex;
     using namespace std;
 
-    auto test_type_str = "(Struct[(str,'id'=>i64),(str,'name'->str),(str,'url'->str)],str,Option[Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)]],boolean,str,Struct[(str,'action'=>str),(str,'actor'=>str),(str,'actor_gravatar'=>str),(str,'comment_id'=>i64),(str,'commit'=>str),(str,'desc'=>null),(str,'head'=>str),(str,'name'=>str),(str,'object'=>str),(str,'object_name'=>str),(str,'page_name'=>str),(str,'push_id'=>i64),(str,'ref'=>str),(str,'repo'=>str),(str,'sha'=>str),(str,'shas'=>List[List[str]]),(str,'size'=>i64),(str,'snippet'=>str),(str,'summary'=>null),(str,'target'=>Struct[(str,'gravatar_id'->str),(str,'repos'->i64),(str,'followers'->i64),(str,'login'->str)]),(str,'title'=>str),(str,'url'=>str)],Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)],str)";
-
-    auto test_type = python::Type::decode(test_type_str);
+    string test_type_str = "(Struct[(str,'id'=>i64),(str,'name'->str),(str,'url'->str)],str,Option[Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)]],boolean,str,Struct[(str,'action'=>str),(str,'actor'=>str),(str,'actor_gravatar'=>str),(str,'comment_id'=>i64),(str,'commit'=>str),(str,'desc'=>null),(str,'head'=>str),(str,'name'=>str),(str,'object'=>str),(str,'object_name'=>str),(str,'page_name'=>str),(str,'push_id'=>i64),(str,'ref'=>str),(str,'repo'=>str),(str,'sha'=>str),(str,'shas'=>List[List[str]]),(str,'size'=>i64),(str,'snippet'=>str),(str,'summary'=>null),(str,'target'=>Struct[(str,'gravatar_id'->str),(str,'repos'->i64),(str,'followers'->i64),(str,'login'->str)]),(str,'title'=>str),(str,'url'=>str)],Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)],str)";
+           test_type_str = "(Struct[(str,'id'=>i64),(str,'name'->str),(str,'url'->str)],str,Option[Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)]],boolean,str,Struct[(str,'action'=>str),(str,'actor'=>str),(str,'actor_gravatar'=>str),(str,'desc'=>null),(str,'head'=>str),(str,'name'=>str),(str,'object'=>str),(str,'object_name'=>Option[str]),(str,'page_name'=>str),(str,'push_id'=>i64),(str,'ref'=>str),(str,'repo'=>str),(str,'sha'=>str),(str,'shas'=>List[List[str]]),(str,'size'=>i64),(str,'snippet'=>str),(str,'summary'=>null),(str,'target'=>Struct[(str,'gravatar_id'->str),(str,'repos'->i64),(str,'followers'->i64),(str,'login'->str)]),(str,'title'=>str),(str,'url'=>str)],Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)],str)";
+                auto ref = "(Struct[(str,'id'=>i64),(str,'name'->str),(str,'url'->str)],str,Option[Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)]],boolean,str,Struct[(str,'action'=>str),(str,'actor'=>str),(str,'actor_gravatar'=>str),(str,'desc'=>null),(str,'head'=>str),(str,'name'=>str),(str,'object'=>str),(str,'object_name'=>Option[str]),(str,'page_name'=>str),(str,'push_id'=>i64),(str,'ref'=>str),(str,'repo'=>str),(str,'sha'=>str),(str,'shas'=>List[List[str]]),(str,'size'=>i64),(str,'snippet'=>str),(str,'summary'=>null),(str,'target'=>Struct[(str,'gravatar_id'->str),(str,'repos'->i64),(str,'followers'->i64),(str,'login'->str)]),(str,'title'=>str),(str,'url'=>str)],Struct[(str,'gravatar_id'->str),(str,'id'->i64),(str,'url'->str),(str,'avatar_url'->str),(str,'login'->str)],str)";
+       auto test_type = python::Type::decode(test_type_str);
     ASSERT_TRUE(test_type.isTupleType());
     EXPECT_EQ(test_type.parameters().size(), 8);
     std::cout<<"testing with tuple..."<<std::endl;
@@ -308,7 +322,7 @@ TEST_F(JsonTuplexTest, TupleBinToPython) {
     // load all lines from github.json, go over and check rc
     auto lines = splitToLines(fileToString("../resources/ndjson/github.json"));
 
-    auto line = lines[19];
+   // auto line = lines[19];
 
     runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
 
@@ -317,9 +331,26 @@ TEST_F(JsonTuplexTest, TupleBinToPython) {
     // create parse function (easier to debug!)
     std::vector<std::string> columns({"repo", "type", "org", "public", "created_at", "payload", "actor", "id"});
     auto f = codegen::generateJsonTupleTestParse(jit, test_type, columns);
-//    ASSERT_TRUE(f);
-    //     auto rc = f(reinterpret_cast<const uint8_t*>(line.c_str()), line.size(), &buf, &size);
-    //    EXPECT_EQ(rc, 0);
+    ASSERT_TRUE(f);
+
+    unsigned line_no = 0;
+    for(auto line : lines) {
+        uint8_t* buf = nullptr;
+        size_t size = 0;
+
+        auto rc = f(reinterpret_cast<const uint8_t*>(line.c_str()), line.size(), &buf, &size);
+        if(rc == 70) {
+            std::cout<<line_no<<": "<<"BADPARSE_STRING_INPUT"<<std::endl;
+            line_no++;
+            continue;
+        }
+
+        EXPECT_EQ(rc, 0);
+
+        Row row = Row::fromMemory(Schema(Schema::MemoryLayout::ROW, test_type), buf, size);
+        std::cout<<line_no<<": "<<row.toPythonString()<<std::endl;
+        line_no++;
+    }
 }
 
 

@@ -591,6 +591,9 @@ namespace tuplex {
             auto buf = mem.val;
             auto buf_size = mem.size;
 
+            _env->printValue(builder, rowNumber(builder), "row number: ");
+            _env->printValue(builder, buf_size, "emitting normal-case violation in general case format of size: ");
+
             // buf is now fully serialized. => call exception handler from pipeline.
             auto handler_name = exception_handler();
             if(!hasExceptionHandler() || handler_name.empty())

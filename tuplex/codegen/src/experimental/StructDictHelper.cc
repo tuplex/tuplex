@@ -460,6 +460,14 @@ namespace tuplex {
             }
         }
 
+        llvm::Value* struct_dict_load_path_presence(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
+                                                    llvm::Value* ptr, const python::Type& dict_type,
+                                                    const access_path_t& full_path,
+                                                    const access_path_t& ignore_prefix={}) {
+            throw std::runtime_error("not yet implemented.");
+            return nullptr;
+        }
+
 
 
         bool struct_dict_path_has_presence_entry(const python::Type& dict_type, const access_path_t& path) {
@@ -575,6 +583,9 @@ namespace tuplex {
                     for(auto atom : suffix_path)
                         full_path.push_back(atom);
 
+                    // load presence of element (& top elements!)
+                    auto is_present = struct_dict_load_path_presence(env, builder, ptr, dict_type, full_path);
+
                     // load original element
                     auto type = struct_dict_type_get_element_type(dict_type, full_path);
                     if(type == python::Type::UNKNOWN)
@@ -585,6 +596,7 @@ namespace tuplex {
 
                     // store in subdict
                     struct_dict_store_value(env, builder, element_value, element_ptr, element_type_wo_option, suffix_path);
+                    struct_dict_store_present(env, builder, element_ptr, element_type, suffix_path, is_present);
                 }
 
                 return SerializableValue(element_ptr, nullptr, is_null);
@@ -602,6 +614,8 @@ namespace tuplex {
                 SerializableValue val;
                 val.size = env.i64Const(sizeof(int64_t));
                 val.is_null = env.i1Const(false);
+
+                assert(present_idx < 0); // should not be a maybe present element.
 
                 // load only if valid field_idx
                 if(field_idx >= 0) {

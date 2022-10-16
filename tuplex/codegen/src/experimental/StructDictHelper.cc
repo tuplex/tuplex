@@ -437,6 +437,11 @@ namespace tuplex {
             // return;
 
             auto indices = struct_dict_load_indices(dict_type);
+
+            // if path is not contained within indices, it's an always present (parent) object.
+            if(indices.end() == indices.find(path))
+                return env.i1Const(true);
+
             // fetch indices
             // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
             int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
@@ -464,8 +469,48 @@ namespace tuplex {
                                                     llvm::Value* ptr, const python::Type& dict_type,
                                                     const access_path_t& full_path,
                                                     const access_path_t& ignore_prefix={}) {
-            throw std::runtime_error("not yet implemented.");
-            return nullptr;
+            assert(!full_path.empty());
+
+            // check that ignore prefix is actually a prefix
+            if(!ignore_prefix.empty()) {
+                assert(ignore_prefix.size() <= full_path.size());
+                for(unsigned i = 0; i < ignore_prefix.size(); ++i) {
+                    assert(full_path[i].first == ignore_prefix[i].first);
+                    assert(full_path[i].second == ignore_prefix[i].second);
+                }
+            }
+
+            // this function is similar to struct_dict_field_present, basically the codegen version
+            auto indices = struct_dict_load_indices(dict_type);
+
+            auto it = indices.find(full_path);
+
+            // if not found, it's an always present element
+            if(it == indices.end())
+                return env.i1Const(true);
+
+            auto t = indices.at(full_path);
+            auto present_idx = std::get<1>(t);
+
+            // load is present
+            auto is_present = struct_dict_load_present(env, builder, ptr, dict_type, full_path);
+
+            // not present? -> return element directly, else check parent up to ignore prefix.
+            // if(!is_present) return false;
+            // -> can also do an and reduction. I.e., element is only present if parent element is also present.
+            // -> go parent chain up till ignore prefix
+            for(unsigned i = 1; i < full_path.size() - ignore_prefix.size(); ++i) {
+                access_path_t parent_path(full_path.begin(), full_path.end() - i);
+
+#ifndef NDEBUG
+                auto parent_path_str = access_path_to_str(parent_path);
+#endif
+
+                auto parent_present = struct_dict_load_present(env, builder, ptr, dict_type, parent_path);
+                is_present = builder.CreateAnd(is_present, parent_present);
+            }
+            assert(is_present && is_present->getType() == env.i1Type());
+            return is_present;
         }
 
 
@@ -596,7 +641,7 @@ namespace tuplex {
 
                     // store in subdict
                     struct_dict_store_value(env, builder, element_value, element_ptr, element_type_wo_option, suffix_path);
-                    struct_dict_store_present(env, builder, element_ptr, element_type, suffix_path, is_present);
+                    struct_dict_store_present(env, builder, element_ptr, element_type_wo_option, suffix_path, is_present);
                 }
 
                 return SerializableValue(element_ptr, nullptr, is_null);
@@ -614,8 +659,6 @@ namespace tuplex {
                 SerializableValue val;
                 val.size = env.i64Const(sizeof(int64_t));
                 val.is_null = env.i1Const(false);
-
-                assert(present_idx < 0); // should not be a maybe present element.
 
                 // load only if valid field_idx
                 if(field_idx >= 0) {

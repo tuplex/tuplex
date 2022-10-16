@@ -52,6 +52,11 @@ namespace tuplex {
         virtual double wallTime() const { return 0.0; }
 
         virtual TaskType type() const = 0;
+
+        /*!
+         * used when an exception is thrown to release all pending locks. -> else, deadlock.
+         */
+        virtual void releaseAllLocks() = 0;
     };
 
 

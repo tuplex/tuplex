@@ -90,7 +90,18 @@ namespace tuplex {
 
                 //executor.logger().info("started task...");
                 // process task
-                task->execute();
+                // save which thread executed this task
+                task->setID(std::this_thread::get_id());
+                try {
+                    task->execute();
+                } catch(const std::exception& e) {
+                    task->releaseAllLocks();
+                    executor.error(std::string("Task failed with exception: ") + e.what());
+                } catch(...) {
+                    task->releaseAllLocks();
+                    executor.error("Task failed with unknown exception.");
+                }
+
                 // save which thread executed this task
                 task->setID(std::this_thread::get_id());
 
@@ -114,8 +125,17 @@ namespace tuplex {
             task->setOwner(&executor);
             task->setThreadNumber(executor.threadNumber()); // redundant?
 
+            task->setID(std::this_thread::get_id());
             // process task
-            task->execute();
+            try {
+                task->execute();
+            } catch(const std::exception& e) {
+                task->releaseAllLocks();
+                executor.error(std::string("Task failed with exception ") + e.what());
+            } catch(...) {
+                task->releaseAllLocks();
+                executor.error("Task failed with unknown exception.");
+            }
             // save which thread executed this task
             task->setID(std::this_thread::get_id());
 

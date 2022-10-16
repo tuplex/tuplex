@@ -859,12 +859,14 @@ namespace tuplex {
         }
 
         // step 2: register callback functions with compiler
+
+        // does stage have an output limit? If so, limit normal case and file output.
         if(registerSymbols && !writeMemoryCallbackName().empty())
-            jit.registerSymbol(writeMemoryCallbackName(), TransformTask::writeRowCallback(false));
+            jit.registerSymbol(writeMemoryCallbackName(), TransformTask::writeRowCallback(hasOutputLimit()));
         if(registerSymbols && !exceptionCallbackName().empty())
-            jit.registerSymbol(exceptionCallbackName(), TransformTask::exceptionCallback(false));
+            jit.registerSymbol(exceptionCallbackName(), TransformTask::exceptionCallback(false)); // <-- no limit on exceptions.
         if(registerSymbols && !writeFileCallbackName().empty())
-            jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(true));
+            jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(hasOutputLimit()));
         if(registerSymbols && outputMode() == EndPointMode::HASHTABLE && !_fastCodePath.writeHashCallbackName.empty()) {
             logger.debug("change problematic logic here...");
             if (hashtableKeyByteWidth() == 8) {

@@ -595,6 +595,13 @@ TEST_F(JsonTuplexTest, TupleFlattening) {
     ASSERT_GT(tree.numElements(), 0);
 }
 
+TEST_F(JsonTuplexTest, MiniSampleForAllFiles) {
+    using namespace tuplex;
+    using namespace std;
+
+
+}
+
 // some UDF examples that should work:
 // x = {}
 // x['test'] = 10 # <-- type of x is now Struct['test' -> i64]

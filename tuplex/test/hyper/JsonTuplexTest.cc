@@ -599,7 +599,14 @@ TEST_F(JsonTuplexTest, MiniSampleForAllFiles) {
     using namespace tuplex;
     using namespace std;
 
+    auto co = ContextOptions::defaults();
+    Context c(co);
 
+    auto path = "../resources/ndjson/github.json";
+
+    // process all files (no hyperspecialization yet)
+    c.json(path).withColumn("repo_id", UDF("lambda x: x['repo']['id']"))
+     .selectColumns(std::vector<std::string>({"type", "repo_id"})).show();
 }
 
 // some UDF examples that should work:

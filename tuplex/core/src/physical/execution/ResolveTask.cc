@@ -1470,6 +1470,20 @@ default:
         rowToMemorySink(owner(), _mergedRowsSink, commonCaseOutputSchema(), 0, contextID(), buf, bufSize);
     }
 
+    void ResolveTask::releaseAllLocks() {
+        for(auto p : _partitions)
+            p->unlock();
+        for(auto p : _exceptionPartitions)
+            p->unlock();
+        for(auto p : _generalPartitions)
+            p->unlock();
+        for(auto p : _fallbackPartitions)
+            p->unlock();
+        this->_mergedRowsSink.unlock();
+        this->_fallbackSink.unlock();
+        this->_generalCaseSink.unlock();
+    }
+
     PyObject* unwrapTuple(PyObject* o) {
         if(PyTuple_Check(o) && PyTuple_Size(o) == 1) {
             auto item = PyTuple_GetItem(o, 0);

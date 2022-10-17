@@ -378,6 +378,8 @@ namespace tuplex {
         }
 
         void sinkRowToHashTable(PyObject *rowObject, PyObject* key=nullptr);
+
+        void releaseAllLocks() override;
     };
 
     /*!

@@ -64,4 +64,9 @@ namespace tuplex {
         // TODO: history server notification!
     }
 
+    void HashProbeTask::releaseAllLocks() {
+        _output.unlock();
+        _inputPartition->unlock();
+    }
+
 }

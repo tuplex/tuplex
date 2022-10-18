@@ -10,7 +10,8 @@
 
 #include <physical/JITCSVSourceTaskBuilder.h>
 
- #define TRACE_PARSER
+// uncomment to print detailed info about parsing (helpful for debugging)
+// #define TRACE_PARSER
 
 namespace tuplex {
     namespace codegen {

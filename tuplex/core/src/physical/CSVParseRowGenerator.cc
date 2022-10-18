@@ -682,6 +682,7 @@ namespace tuplex {
 
         codegen::SerializableValue
         CSVParseRowGenerator::getColumnResult(IRBuilder& builder, int column, llvm::Value *result) const {
+            using namespace llvm;
 
             // make sure column is within range!
             assert(0 <= column && column < serializedType().parameters().size());
@@ -693,12 +694,20 @@ namespace tuplex {
 
             auto t = serializedType().parameters()[column]; // Note: this here is accessing only serialized cells!
 
-#error "need here phi nodes to decode value on demand only."
             llvm::Value *isnull = nullptr;
+            llvm::Value *val = nullptr;
+            llvm::Value *size = nullptr;
+
+            unsigned val_idx = 3 + 1 + 2 * column;
+            unsigned size_idx = 3 + 1 + 2 * column + 1;
 
             // option type?
+            auto& ctx = builder.getContext();
+            BasicBlock* bDecode = nullptr;
+            BasicBlock* bContinue = nullptr;
+            BasicBlock* bBranchBlock = nullptr;
             if (t.isOptionType()) {
-                _env->debugPrint(builder, "fetch null bit");
+                // _env->debugPrint(builder, "fetch null bit");
 
                 // extract bitmap bit!
                 // fetch byte, load val
@@ -708,34 +717,61 @@ namespace tuplex {
 
                 isnull = builder.CreateICmpNE(builder.CreateAnd(qword, _env->i64Const(1UL << (static_cast<uint64_t>(column) % 64))),
                                               _env->i64Const(0));
+
+                bDecode = BasicBlock::Create(ctx, "decode_non_null", builder.GetInsertBlock()->getParent());
+                bContinue = BasicBlock::Create(ctx, "next_decode", builder.GetInsertBlock()->getParent());
+
+                // null constants
+                size = _env->i64Const(0);
+                auto llvm_val_type = resultType()->getStructElementType(val_idx);
+                val = _env->nullConstant(llvm_val_type);
+                bBranchBlock = builder.GetInsertBlock();
+                builder.CreateCondBr(isnull, bContinue, bDecode);
+                builder.SetInsertPoint(bDecode);
             }
 
-            if(isnull) {
-                _env->printValue(builder, isnull, "column is_null: ");
-            }
+            // _env->debugPrint(builder, "get val");
+            val = builder.CreateLoad(
+                    builder.CreateGEP(result, {_env->i32Const(0), _env->i32Const(val_idx)}));
+            // _env->debugPrint(builder, "get size");
 
-            this->_env->debugPrint(builder, "get val");
-            llvm::Value *val = builder.CreateLoad(
-                    builder.CreateGEP(result, {_env->i32Const(0), _env->i32Const(3 + 1 + 2 * column)}));
-            this->_env->debugPrint(builder, "get size");
-
+#ifdef TRACE_PARSER
             // print type here
             Logger::instance().logger("codegen").debug(_env->printStructType(result->getType()));
+#endif
 
-            llvm::Value *size = builder.CreateLoad(
-                    builder.CreateGEP(result, {_env->i32Const(0), _env->i32Const(3 + 1 + 2 * column + 1)}));
+            size = builder.CreateLoad(
+                    builder.CreateGEP(result, {_env->i32Const(0), _env->i32Const(size_idx)}));
 
-            _env->printValue(builder, val, "got value: ");
-            _env->printValue(builder, size, "got size: ");
+            // _env->printValue(builder, val, "got value: ");
+            // _env->printValue(builder, size, "got size: ");
 
             if (python::Type::STRING == t || python::Type::makeOptionType(python::Type::STRING) == t)
                 // safely zero terminate strings before further processing...
                 // this will lead to some copies that are unavoidable...
                 val = _env->zeroTerminateString(builder, val, size);
 
-            return codegen::SerializableValue(val, size, isnull);
-        }
 
+            // option type decode?
+            if(bContinue) {
+                auto curBlock = builder.GetInsertBlock();
+                builder.CreateBr(bContinue);
+
+                builder.SetInsertPoint(bContinue);
+                auto phi_val = builder.CreatePHI(val->getType(), 2);
+                auto phi_size = builder.CreatePHI(size->getType(), 2);
+
+                phi_val->addIncoming(val, curBlock);
+                phi_size->addIncoming(size, curBlock);
+                // null constants
+                phi_val->addIncoming(_env->nullConstant(val->getType()), bBranchBlock);
+                phi_size->addIncoming(_env->i64Const(0), bBranchBlock);
+
+                return codegen::SerializableValue(phi_val, phi_size, isnull);
+            } else {
+                return codegen::SerializableValue(val, size, isnull);
+            }
+        }
 
         llvm::Function* CSVParseRowGenerator::getCSVNormalizeFunc() {
             using namespace llvm;

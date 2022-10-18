@@ -308,14 +308,22 @@ TEST(UDF, RetypeTest) {
 
     // now retype using string
     auto new_type = python::Type::makeTupleType({python::Type::I64, python::Type::I64, python::Type::I64});
-    auto new_type_proj = python::Type::makeTupleType({python::Type::STRING});
+
+    bool rc = false;
 
     // retype using original
-    auto rc = udf.retype(new_type);
+    rc = udf.retype(new_type);
     EXPECT_TRUE(rc);
     //udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, new_type));
     EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "i64");
     EXPECT_EQ(udf.getOutputSchema().getRowType().desc(), "(i64)");
+
+    // now check when using retyping using a tinier type.
+    auto new_type_proj = python::Type::makeTupleType({python::Type::NULLVALUE});
+    rc = udf.retype(new_type_proj);
+    EXPECT_TRUE(rc);
+    EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "null");
+    EXPECT_EQ(udf.getOutputSchema().getRowType().desc(), "(null)");
 }
 
 TEST(UDF, InputColumnCount) {

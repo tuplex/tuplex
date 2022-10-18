@@ -1511,7 +1511,113 @@ namespace tuplex {
         return ss.str();
     }
 
+    class FirstArgRewriteVisitor : public IReplaceVisitor {
+    public:
+        FirstArgRewriteVisitor(const std::string& parameter_name) : _parameter_name(parameter_name), _func_type(ASTNodeType::UNKNOWN) {}
+    protected:
+        ASTNode* replace(ASTNode* parent, ASTNode* node) {
+
+            // there are two scenarios:
+            // 1. def'ed function => add assignment instruction that wraps the single param
+
+            // 2. Lambda => b.c. := is not supported, need to rewrite parameter_name[0] to parameter_name.
+            // for the future, if := should be supported -> same idea as in def'ed function
+
+            if(parent->type() == ASTNodeType::Function)
+                _func_type = ASTNodeType::Function;
+            if(parent->type() == ASTNodeType::Lambda)
+                _func_type = ASTNodeType::Lambda;
+
+            if(node->type() == ASTNodeType::Function)
+                _func_type = ASTNodeType::Function;
+            if(node->type() == ASTNodeType::Lambda)
+                _func_type = ASTNodeType::Lambda;
+
+            // now replace
+            switch(node->type()) {
+                case ASTNodeType::Subscription: {
+                   if(_func_type == ASTNodeType::Lambda) {
+                        // is parameter indexed?
+                        auto sub = (NSubscription*)node;
+                        if(sub->_value->type() == ASTNodeType::Identifier) {
+                            auto id = (NIdentifier*)sub->_value.get();
+                            if(id->_name == _parameter_name) {
+                                if(sub->_expression->type() == ASTNodeType::Number) {
+                                    auto num = (NNumber*)sub->_expression.get();
+                                    if(num->getI64() == 0) {
+                                        // release num and replace sub with value!
+                                        auto ptr = sub->_value.release();
+                                        sub->_value = nullptr;
+                                        return ptr;
+                                    }
+                                }
+                            }
+                        }
+                   }
+                   break;
+                }
+
+                // special case: for def'ed function -> add assign statement!
+                case ASTNodeType::Function: {
+                    assert(_func_type == ASTNodeType::Function);
+
+                    auto func = (NFunction*)node;
+                    // create new node!
+                    throw std::runtime_error("new node needed!");
+
+                    break;
+                }
+                case ASTNodeType::Suite: {
+                    auto suite = (NSuite*)node;
+                    if(parent->type() == ASTNodeType::Function) {
+                        throw std::runtime_error("code to fix this here neeeded");
+                    }
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+
+            return node;
+        }
+    private:
+        std::string _parameter_name;
+        ASTNodeType _func_type;
+    };
+
     bool UDF::retype(const python::Type& new_row_type) {
+
+        // make sure it's a row type
+        assert(new_row_type.isTupleType());
+
+        // what is the status of the UDF? has it been typed already?
+        if(!hasWellDefinedTypes()) {
+           // no types yet, type with hintInputSchema
+           return hintInputSchema(Schema(Schema::MemoryLayout::ROW, new_row_type));
+        } else {
+            // special case: new row type has a single element && UDF has single param
+            if(new_row_type.parameters().size() == 1 && getInputParameters().size() == 1) {
+                // -> rewrite access like lambda x: x[0] to lambda x: x.
+                // this only applies if first param is not a tuple (except empty tuple)
+                auto first_param_type = new_row_type.parameters().front();
+                auto input_params = getInputParameters();
+                auto parameter_name = std::get<0>(input_params.front());
+                if(first_param_type == python::Type::EMPTYTUPLE || !first_param_type.isTupleType()) {
+                    // rewrite AST
+                    FirstArgRewriteVisitor farv(parameter_name);
+                    assert(_ast.getFunctionAST());
+                    _ast.getFunctionAST()->accept(farv);
+                }
+            }
+            // remove types & rehint!
+            removeTypes(false); // keep annotations?
+
+            // reset schema
+            _hintedInputSchema = Schema::UNKNOWN;
+            return hintInputSchema(Schema(Schema::MemoryLayout::ROW, new_row_type));
+        }
+
         return false;
     }
 }

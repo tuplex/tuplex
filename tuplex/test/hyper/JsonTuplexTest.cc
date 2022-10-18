@@ -612,10 +612,16 @@ TEST_F(JsonTuplexTest, MiniSampleForAllFiles) {
     auto path = "../resources/ndjson/github.json";
 
     // process all files (no hyperspecialization yet)
+//    c.json(path).withColumn("repo_id", UDF("lambda x: x['repo']['id']"))
+//     .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+//     .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+//     .selectColumns(std::vector<std::string>({"type", "repo_id", "year"})).show(5);
+
     c.json(path).withColumn("repo_id", UDF("lambda x: x['repo']['id']"))
-     .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
-     .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
-     .selectColumns(std::vector<std::string>({"type", "repo_id", "year"})).show(5);
+            .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+            .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+            .selectColumns(std::vector<std::string>({"type", "repo_id", "year"}))
+            .tocsv("github_forkevents.csv");
 }
 
 // some UDF examples that should work:

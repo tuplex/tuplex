@@ -590,7 +590,7 @@ default:
                     parse_cells = true; // need to parse cells in python mode.
                 } else if(ecCode == ecToI64(ExceptionCode::NORMALCASEVIOLATION)) {
                     // changed, why are these names so random here? makes no sense...
-                    std::cout<<"except schema: "<<exceptionsInputSchema().getRowType().desc()<<std::endl;
+                    // std::cout<<"except schema: "<<exceptionsInputSchema().getRowType().desc()<<std::endl;
                     auto row = Row::fromMemory(exceptionsInputSchema(), ebuf, eSize);
 
                     tuple = python::rowToPython(row, true);

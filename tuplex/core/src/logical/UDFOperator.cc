@@ -233,7 +233,7 @@ namespace tuplex {
         if(UDFOperator::getInputSchema() != Schema::UNKNOWN) {
             size_t num_params_before_retype = rewriteMap().size(); //UDFOperator::getInputSchema().getRowType().parameters().size();
             size_t num_params_after_retype = colTypes.size();
-            if(num_params_before_retype != num_params_after_retype) {
+            if(!rewriteMap().empty() && num_params_before_retype != num_params_after_retype) {
                 throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");
                 return false;
             }

@@ -67,7 +67,7 @@ namespace tuplex {
              * @param opID operator ID
              * @param dsID output dataset ID
              */
-            void addMemoryOutput(const Schema& schema, int64_t opID, int64_t dsID);
+            void addMemoryOutput(std::shared_ptr<LogicalOperator> node, const Schema& schema, int64_t opID, int64_t dsID);
 
             /*!
              * change whether StageBuilder should generate null-value opt or not.
@@ -76,7 +76,8 @@ namespace tuplex {
             void setNullValueOptimization(bool enable) { _nullValueOptimization = enable;}
 
             // saves output to a hashtable, requires caller to combine multiple hash tables later...
-            void addHashTableOutput(const Schema& schema,
+            void addHashTableOutput(std::shared_ptr<LogicalOperator> node,
+                                    const Schema& schema,
                                     bool bucketizeOthers,
                                     bool aggregate,
                                     const std::vector<size_t> &colKeys,

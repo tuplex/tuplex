@@ -323,7 +323,7 @@ namespace tuplex {
             }
             case EndPointMode::MEMORY: {
                 auto outputDataSetID = outputNode->getDataSet() ? outputNode->getDataSet()->getID() : 0;
-                    builder.addMemoryOutput(outputNode->getOutputSchema(), outputNode->getID(),
+                    builder.addMemoryOutput(outputNode, outputNode->getOutputSchema(), outputNode->getID(),
                                             outputDataSetID);
 
                 // is lat node aggregate?
@@ -350,23 +350,23 @@ namespace tuplex {
                     // build left or right?
                     size_t keyCol = jop->buildRight() ? jop->rightKeyIndex() : jop->leftKeyIndex();
                     auto schema = jop->buildRight() ? jop->right()->getOutputSchema() : jop->left()->getOutputSchema();
-                    builder.addHashTableOutput(schema, true, false, {keyCol}, jop->keyType(), jop->bucketType()); // using keycol
+                    builder.addHashTableOutput(jop, schema, true, false, {keyCol}, jop->keyType(), jop->bucketType()); // using keycol
                 }
                 // is output node hashtable?
                 else if(outputNode->type() == LogicalOperatorType::AGGREGATE) {
                     // hash unique?
                     // note: need to hash multiple key cols -> use tuple to string functionality for now, need to improve
                     // TODO: base64 encode maybe if its multiple columns so string can be reused...
-                    auto aop = dynamic_cast<AggregateOperator*>(outputNode.get()); assert(aop);
+                    auto aop = std::dynamic_pointer_cast<AggregateOperator>(outputNode); assert(aop);
                     auto schema = aop->parent()->getOutputSchema();
                     if(aop->aggType() == AggregateType::AGG_UNIQUE) {
                         // @TODO: maybe do this via intermediates? And then combine everything?
-                        builder.addHashTableOutput(schema, false, false, {}, schema.getRowType(),
+                        builder.addHashTableOutput(aop, schema, false, false, {}, schema.getRowType(),
                                                    python::Type::UNKNOWN);
                         hashGroupedDataType = AggregateType::AGG_UNIQUE; // need to process the output hashtable to rows
                     } else if(aop->aggType() == AggregateType::AGG_BYKEY) {
                         // Builds intermediate hashtable outputs with the aggregate function, and then merges them with the combiner
-                        builder.addHashTableOutput(outputNode->getOutputSchema(), false, true, aop->keyColsInParent(), aop->keyType(), aop->aggregateOutputType());
+                        builder.addHashTableOutput(aop, outputNode->getOutputSchema(), false, true, aop->keyColsInParent(), aop->keyType(), aop->aggregateOutputType());
                         hashGroupedDataType = AggregateType::AGG_BYKEY;
                     } else throw std::runtime_error("wrong aggregate type!");
                 } else

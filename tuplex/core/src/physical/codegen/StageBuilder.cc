@@ -529,8 +529,6 @@ namespace tuplex {
 
             // create initstage/release stage functions (LLVM)
             using namespace llvm;
-//            ret._fastPathInitStageFuncName = func_prefix + "fastPathInitStage" + to_string(number());
-//            ret._fastPathReleaseStageFuncName = func_prefix + "fastPathReleaseStage" + to_string(number());
             auto fastPathInitStageFuncType = FunctionType::get(env->i64Type(),
                                                        {env->i64Type(), env->i8ptrType()->getPointerTo(),
                                                         env->i8ptrType()->getPointerTo()}, false);
@@ -755,7 +753,9 @@ namespace tuplex {
 
                         break; // aggregate isn't codegen'd
                     }
-                    case LogicalOperatorType::CACHE: {
+                    case LogicalOperatorType::CACHE:
+                    case LogicalOperatorType::FILEOUTPUT:
+                    case LogicalOperatorType::TAKE: {
                         // skip
                         break;
                     }
@@ -1384,10 +1384,6 @@ namespace tuplex {
                                                                             _policy);
 
             ret.funcStageName = rowProcessFunc->getName();
-//            ret._resolveRowFunctionName = rowProcessFunc->getName();
-//            ret._resolveRowWriteCallbackName = slowPathMemoryWriteCallback;
-//            ret._resolveRowExceptionCallbackName = slowPathExceptionCallback;
-//            ret._resolveHashCallbackName = slowPathHashWriteCallback;
 
             // close initStage/releaseStage functions
             // => call global init function of llvm env
@@ -1402,6 +1398,10 @@ namespace tuplex {
         }
 
         void StageBuilder::addFileOutput(const std::shared_ptr<FileOutputOperator>& fop) {
+
+            // new: push back op
+            _operators.push_back(fop);
+
             _fileOutputParameters["splitSize"] = std::to_string(fop->splitSize());
             _fileOutputParameters["numParts"] = std::to_string(fop->numParts());
             _fileOutputParameters["udf"] = fop->udf().getCode();
@@ -1475,7 +1475,9 @@ namespace tuplex {
             _inputNode = node;
         }
 
-        void StageBuilder::addMemoryOutput(const Schema &schema, int64_t opID, int64_t dsID) {
+        void StageBuilder::addMemoryOutput(std::shared_ptr<LogicalOperator> node, const Schema &schema, int64_t opID, int64_t dsID) {
+            _operators.push_back(node);
+
             // add memory writer
             _outputMode = EndPointMode::MEMORY;
             _outputSchema = schema;
@@ -1486,12 +1488,14 @@ namespace tuplex {
             _outputDataSetID = dsID;
         }
 
-        void StageBuilder::addHashTableOutput(const Schema &schema,
+        void StageBuilder::addHashTableOutput(std::shared_ptr<LogicalOperator> node, const Schema &schema,
                                               bool bucketizeOthers,
                                               bool aggregate,
                                               const std::vector<size_t> &colKeys,
                                               const python::Type& keyType,
                                               const python::Type& bucketType) {
+            _operators.push_back(node);
+
             assert(!bucketizeOthers || (bucketizeOthers && !colKeys.empty())); // can't bucketize w/o colkey
             _outputMode = EndPointMode::HASHTABLE;
             _hashColKeys = colKeys;
@@ -1503,15 +1507,6 @@ namespace tuplex {
             _outputDataSetID = 0;
 
             // leave others b.c. it's an intermediate stage...
-
-            // assert key type
-            // TODO(rahuly): do something about this assertion - it's false for AggregateByKey because the output schema doesn't match the parent's
-//            python::Type kt;
-//            if(colKey.has_value()) {
-//                kt = schema.getRowType().parameters().at(colKey.value());
-//                std::cout << "kt: " << kt.desc() << std::endl;
-//                assert(canUpcastType(kt, keyType));
-//            }
             _hashKeyType = keyType;
             _hashBucketType = bucketType;
         }

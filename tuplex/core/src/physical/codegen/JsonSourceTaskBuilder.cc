@@ -196,7 +196,7 @@ namespace tuplex {
             {
                 // 1. normal case
                 builder.SetInsertPoint(bbNormalCaseSuccess);
-                _env->debugPrint(builder, "try parsing as normal-case row...");
+                // _env->debugPrint(builder, "try parsing as normal-case row...");
 
                 // if pipeline exists, call pipeline on normal tuple!
                 if(pipeline()) {
@@ -218,7 +218,7 @@ namespace tuplex {
                 // serialized size (as is)
                 auto normal_size = normal_case_row.getSize(builder);
                 incVar(builder, _normalMemorySizeVar, normal_size);
-                _env->debugPrint(builder, "got normal-case row!");
+                // _env->debugPrint(builder, "got normal-case row!");
 
                 // inc by one
                 incVar(builder, _normalRowCountVar);
@@ -229,7 +229,7 @@ namespace tuplex {
                 // 2. general case
                 builder.SetInsertPoint(bbGeneralCaseSuccess);
 
-                _env->debugPrint(builder, "try parsing as general-case row...");
+                // _env->debugPrint(builder, "try parsing as general-case row...");
 
                 // serialized size (as is)
                 auto general_size = general_case_row.getSize(builder);
@@ -239,7 +239,7 @@ namespace tuplex {
                 // in order to store an exception, need 8 bytes for each: rowNumber, ecCode, opID, eSize + the size of the row
                 general_size = builder.CreateAdd(general_size, _env->i64Const(4 * sizeof(int64_t)));
                 incVar(builder, _generalMemorySizeVar, general_size);
-                _env->debugPrint(builder, "got general-case row!");
+                // _env->debugPrint(builder, "got general-case row!");
                 incVar(builder, _generalRowCountVar);
                 builder.CreateBr(_freeStart);
             }
@@ -248,7 +248,7 @@ namespace tuplex {
                 // 3. fallback case
                 builder.SetInsertPoint(bbFallback);
 
-                 _env->debugPrint(builder, "try parsing as fallback-case row...");
+                 // _env->debugPrint(builder, "try parsing as fallback-case row...");
 
                 // same like in general case, i.e. stored as badStringParse exception
                 // -> store here the raw json
@@ -261,7 +261,7 @@ namespace tuplex {
                 // @TODO: throughput can be improved by using a single C++ function for all of this!
                 serializeBadParseException(builder, userData, _inputOperatorID, rowNumber(builder), line, builder.CreateLoad(size_var));
 
-                _env->debugPrint(builder, "got fallback-case row!");
+                // _env->debugPrint(builder, "got fallback-case row!");
 
                 // should whitespace lines be skipped?
                 bool skip_whitespace_lines = true;
@@ -481,7 +481,7 @@ namespace tuplex {
 
             builder.CreateBr(bPostParse);
             builder.SetInsertPoint(bPostParse);
-            _env->debugPrint(builder, "free done.");
+            // _env->debugPrint(builder, "free done.");
 
             // free obj_var...
             //json_freeObject(*_env.get(), builder, builder.CreateLoad(obj_var));
@@ -567,10 +567,10 @@ namespace tuplex {
                 if(!dict_type.isStructuredDictionaryType())
                     throw std::runtime_error("parsing JSON files with type " + dict_type.desc() + " not yet implemented.");
 
-                _env->debugPrint(builder, "starting to parse row...");
+                // _env->debugPrint(builder, "starting to parse row...");
                 // parse struct dict
                 auto s = parseRowAsStructuredDict(builder, dict_type, parser, bbSchemaMismatch);
-                _env->debugPrint(builder, "row parsed.");
+                // _env->debugPrint(builder, "row parsed.");
 
                 // assign to tuple (for further processing)
                 ft.setElement(builder, 0, s, nullptr, nullptr);
@@ -591,8 +591,8 @@ namespace tuplex {
             auto buf = mem.val;
             auto buf_size = mem.size;
 
-            _env->printValue(builder, rowNumber(builder), "row number: ");
-            _env->printValue(builder, buf_size, "emitting normal-case violation in general case format of size: ");
+            // _env->printValue(builder, rowNumber(builder), "row number: ");
+            // _env->printValue(builder, buf_size, "emitting normal-case violation in general case format of size: ");
 
             // buf is now fully serialized. => call exception handler from pipeline.
             auto handler_name = exception_handler();

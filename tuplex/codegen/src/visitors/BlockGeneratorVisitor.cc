@@ -4199,25 +4199,18 @@ namespace tuplex {
                 return true;
             }
 
-            // is keytype and elementtype identical (minus opt
-            if(key_type.withoutOptions() == element_type.withoutOptions()) {
-                // ok, can access data -> do so by generating the appropriate instructions
-                // handle option...
-                assert(!value_type.isOptionType());
+            // ok, can access data -> do so by generating the appropriate instructions
+            // handle option...
+            assert(!element_type.isOptionType());
 
-                // is it a maybe field? => check if present. if not, key error
-                auto field_present = struct_dict_load_present(*_env, builder, value.val, value_type, path);
-                auto field_not_present = _env->i1neg(builder, field_present);
-                _lfb->addException(builder, ExceptionCode::KEYERROR, field_not_present);
-                // load entry
-                if(out_ret)
-                    *out_ret = struct_dict_load_value(*_env, builder, value.val, value_type, path);
-                return true;
-            } else {
-                // key error, b.c. wrong type!
-                _lfb->exitWithException(ExceptionCode::KEYERROR);
-                return true;
-            }
+            // is it a maybe field? => check if present. if not, key error
+            auto field_present = struct_dict_load_present(*_env, builder, value.val, value_type, path);
+            auto field_not_present = _env->i1neg(builder, field_present);
+            _lfb->addException(builder, ExceptionCode::KEYERROR, field_not_present);
+            // load entry
+            if(out_ret)
+                *out_ret = struct_dict_load_value(*_env, builder, value.val, value_type, path);
+            return true;
         }
 
         SerializableValue BlockGeneratorVisitor::upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue &val,

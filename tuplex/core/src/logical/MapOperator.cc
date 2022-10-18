@@ -57,6 +57,9 @@ namespace tuplex {
 
                 // infer schema (may throw exception!) after applying UDF
                 setSchema(this->inferSchema(parent->getOutputSchema()));
+                //_udf.retype(parent->getOutputSchema().getRowType());
+                assert(_udf.getOutputSchema() != Schema::UNKNOWN);
+                //setSchema(_udf.getOutputSchema());
             }
         }
 

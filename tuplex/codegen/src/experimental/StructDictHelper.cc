@@ -454,11 +454,18 @@ namespace tuplex {
                 // make sure type has presence map index
                 auto p_idx = presence_map_field_idx(dict_type);
                 assert(p_idx >= 0);
-                // i1 store logic
+                // i1 load logic
                 auto bitmapPos = present_idx;
-                auto structBitmapIdx = CreateStructGEP(builder, ptr, (size_t)p_idx); // bitmap comes first!
-                auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
-                return builder.CreateLoad(bitmapIdx);
+
+                if(ptr->getType()->isStructTy()) {
+                    auto bitmap = CreateStructLoad(builder, ptr, p_idx);
+                    return builder.CreateExtractValue(bitmap, std::vector<unsigned>(1, bitmapPos));
+                } else {
+                    assert(ptr->getType()->isPointerTy() && ptr->getType()->getPointerElementType()->isStructTy());
+                     auto structBitmapIdx = CreateStructGEP(builder, ptr, (size_t)p_idx); // bitmap comes first!
+                     auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
+                     return builder.CreateLoad(bitmapIdx);
+                }
             } else {
                 // always present
                 return env.i1Const(true);

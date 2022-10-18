@@ -166,6 +166,7 @@ namespace tuplex {
 
     UDF& UDF::removeTypes(bool removeAnnotations) {
 
+        _hintedInputSchema = Schema::UNKNOWN;
         _inputSchema = Schema::UNKNOWN;
         _outputSchema = Schema::UNKNOWN;
         _ast.removeParameterTypes();

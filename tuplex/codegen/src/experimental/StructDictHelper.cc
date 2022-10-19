@@ -1268,8 +1268,8 @@ namespace tuplex {
 
                     auto varDest = builder.CreateGEP(varFieldsStartPtr, varLengthOffset);
 
-                    env.printValue(builder, builder.CreatePtrDiff(varDest, original_dest_ptr), "list var start from start ptr: ");
-                    env.printValue(builder, builder.CreatePtrDiff(varDest, dest_ptr), "offset (calc) vardest to dest ptr: ");
+                    // env.printValue(builder, builder.CreatePtrDiff(varDest, original_dest_ptr), "list var start from start ptr: ");
+                    // env.printValue(builder, builder.CreatePtrDiff(varDest, dest_ptr), "offset (calc) vardest to dest ptr: ");
 
                     // call list function
                     list_serialize_to(env, builder, list_ptr, list_type, varDest);

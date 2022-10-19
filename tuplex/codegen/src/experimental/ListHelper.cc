@@ -9,6 +9,12 @@
 namespace tuplex {
     namespace codegen {
 
+        // forward declare:
+        llvm::Value* list_serialize_varitems_to(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr,
+                                                const python::Type& list_type, llvm::Value* dest_ptr,
+                                                std::function<llvm::Value*(LLVMEnvironment&, llvm::IRBuilder<>&, llvm::Value*, llvm::Value*)> f_item_size,
+                                                std::function<llvm::Value*(LLVMEnvironment&, llvm::IRBuilder<>&, llvm::Value*, llvm::Value*, llvm::Value*)> f_item_serialize_to);
+
         void list_free(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type) {
             // list should only use runtime allocations -> hence free later!
         }
@@ -540,108 +546,28 @@ namespace tuplex {
                     return builder.CreateExtractValue(list_ptr, std::vector<unsigned>(1, size_position));
                 }
             }
-
-//            if(elementType.isSingleValued()) {
-//                if(elements_optional) {
-//                    auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
-//                    return builder.CreateLoad(idx_size);
-//                } else {
-//                    // the list is represented as single i64
-//                    return builder.CreateLoad(list_ptr);
-//                }
-//            } else if(elementType == python::Type::I64
-//                      || elementType == python::Type::F64
-//                      || elementType == python::Type::BOOLEAN) {
-//                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
-//                return builder.CreateLoad(idx_size);
-//            } else if(elementType == python::Type::STRING
-//                      || elementType == python::Type::PYOBJECT) {
-//                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
-//                return builder.CreateLoad(idx_size);
-//            } else if(elementType.isStructuredDictionaryType()) {
-//                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
-//                return builder.CreateLoad(idx_size);
-//            } else if(elementType.isListType()) {
-//                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
-//                return builder.CreateLoad(idx_size);
-//            } else if(elementType.isTupleType()) {
-//                auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
-//                return builder.CreateLoad(idx_size);
-//            } else {
-//                throw std::runtime_error("Unsupported list element type: " + list_type.desc());
-//            }
         }
 
         llvm::Value* list_of_structs_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type) {
             using namespace llvm;
 
-            assert(list_type.isListType());
-            assert(list_type.elementType().isStructuredDictionaryType());
+            // should be same as in serialize_to!!!
+            auto f_struct_element_size = [list_type](LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, llvm::Value* index) -> llvm::Value* {
+                assert(index && index->getType() == env.i64Type());
 
-            auto element_type = list_type.elementType();
+                auto element_type = list_type.elementType();
 
-            // this requires a loop (maybe generate instead function?)
-            auto size_var = env.CreateFirstBlockAlloca(builder, env.i64Type());
-            // size field requires 8 bytes
-            llvm::Value* size = env.i64Const(8);
+                assert(element_type.isStructuredDictionaryType());
 
-            // fetch length
-            auto len = list_length(env, builder, list_ptr, list_type);
-            // now store len x 8 bytes for the individual length of entries.
-            // then store len x 8 bytes for the offsets.
-            // --> pretty inefficient storage. can get optimized, but no time...
+                auto ptr_values = CreateStructLoad(builder, list_ptr, 2);
 
-            auto len4 = builder.CreateMul(env.i64Const(8 * 2), len);
-
-            size = builder.CreateAdd(len4, size);
-            builder.CreateStore(size, size_var);
-
-            auto loop_i = env.CreateFirstBlockAlloca(builder, env.i64Type());
-            builder.CreateStore(env.i64Const(0), loop_i);
-
-            // start loop going over the size entries (--> this could be vectorized!)
-            auto& ctx = env.getContext(); auto F = builder.GetInsertBlock()->getParent();
-            BasicBlock *bLoopHeader = BasicBlock::Create(ctx, "var_size_loop_header", F);
-            BasicBlock *bLoopBody = BasicBlock::Create(ctx, "var_size_loop_body", F);
-            BasicBlock *bLoopExit = BasicBlock::Create(ctx, "var_size_loop_done", F);
-
-            auto idx_values = CreateStructGEP(builder, list_ptr, 2);
-            auto ptr_values = builder.CreateLoad(idx_values);
-
-            builder.CreateBr(bLoopHeader);
-
-            {
-                // --- header ---
-                builder.SetInsertPoint(bLoopHeader);
-                // if i < len:
-                auto loop_i_val = builder.CreateLoad(loop_i);
-                auto loop_cond = builder.CreateICmpULT(loop_i_val, len);
-                builder.CreateCondBr(loop_cond, bLoopBody, bLoopExit);
-            }
-
-
-            {
-                // --- body ---
-                builder.SetInsertPoint(bLoopBody);
-                auto loop_i_val = builder.CreateLoad(loop_i);
-
-                // fetch size by calling struct_size on each retrieved pointer! (they should be ALL valid)
-                // --> no check here!
-                auto item = builder.CreateGEP(ptr_values, loop_i_val);
-
-                // call function! (or better said: emit the necessary code...)
+                auto item = builder.CreateGEP(ptr_values, index);
                 auto item_size = struct_dict_serialized_memory_size(env, builder, item, element_type).val;
 
-                size = builder.CreateAdd(item_size, builder.CreateLoad(size_var));
-                builder.CreateStore(size, size_var);
+                return item_size;
+            };
 
-                // inc.
-                builder.CreateStore(builder.CreateAdd(env.i64Const(1), loop_i_val), loop_i);
-                builder.CreateBr(bLoopHeader);
-            }
-
-            builder.SetInsertPoint(bLoopExit);
-            return builder.CreateLoad(size_var);
+            return list_of_varitems_serialized_size(env, builder, list_ptr, list_type, f_struct_element_size);
         }
 
         llvm::Value* list_of_lists_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type) {
@@ -671,13 +597,13 @@ namespace tuplex {
             return list_of_varitems_serialized_size(env, builder, list_ptr, list_type, list_get_list_item_size);
         }
 
-//        llvm::Value* list_of_lists_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type) {
+        llvm::Value* list_of_tuples_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type) {
 //            using namespace llvm;
 //
 //            assert(list_type.isListType());
+//            assert(list_type.elementType().isTupleType());
 //
 //            auto element_type = list_type.elementType();
-//            assert(element_type.isListType());
 //
 //            // this requires a loop (maybe generate instead function?)
 //            auto size_var = env.CreateFirstBlockAlloca(builder, env.i64Type());
@@ -704,10 +630,8 @@ namespace tuplex {
 //            BasicBlock *bLoopBody = BasicBlock::Create(ctx, "var_size_loop_body", F);
 //            BasicBlock *bLoopExit = BasicBlock::Create(ctx, "var_size_loop_done", F);
 //
-//            // auto idx_values = CreateStructGEP(builder, list_ptr, 2);
-//            // auto ptr_values = builder.CreateLoad(idx_values);
-//            auto ptr_values = CreateStructLoad(builder, list_ptr, 2);
-//            assert(ptr_values->getType()->isPointerTy());
+//            auto idx_values = CreateStructGEP(builder, list_ptr, 2);
+//            auto ptr_values = builder.CreateLoad(idx_values);
 //
 //            builder.CreateBr(bLoopHeader);
 //
@@ -728,10 +652,11 @@ namespace tuplex {
 //
 //                // fetch size by calling struct_size on each retrieved pointer! (they should be ALL valid)
 //                // --> no check here!
-//                auto item = builder.CreateGEP(ptr_values, loop_i_val);
+//               auto item = ptr_values->getType()->isPointerTy() ? builder.CreateGEP(ptr_values, loop_i_val) : ptr_values;
 //
 //                // call function! (or better said: emit the necessary code...)
-//                auto item_size = list_serialized_size(env, builder, item, element_type);
+//                FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
+//                auto item_size = ft.getSize(builder);
 //
 //                size = builder.CreateAdd(item_size, builder.CreateLoad(size_var));
 //                builder.CreateStore(size, size_var);
@@ -743,82 +668,13 @@ namespace tuplex {
 //
 //            builder.SetInsertPoint(bLoopExit);
 //            return builder.CreateLoad(size_var);
-//        }
-
-        llvm::Value* list_of_tuples_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type) {
-            using namespace llvm;
-
-            assert(list_type.isListType());
-            assert(list_type.elementType().isTupleType());
-
-            auto element_type = list_type.elementType();
-
-            // this requires a loop (maybe generate instead function?)
-            auto size_var = env.CreateFirstBlockAlloca(builder, env.i64Type());
-            // size field requires 8 bytes
-            llvm::Value* size = env.i64Const(8);
-
-            // fetch length
-            auto len = list_length(env, builder, list_ptr, list_type);
-            // now store len x 8 bytes for the individual length of entries.
-            // then store len x 8 bytes for the offsets.
-            // --> pretty inefficient storage. can get optimized, but no time...
-
-            auto len4 = builder.CreateMul(env.i64Const(8 * 2), len);
-
-            size = builder.CreateAdd(len4, size);
-            builder.CreateStore(size, size_var);
-
-            auto loop_i = env.CreateFirstBlockAlloca(builder, env.i64Type());
-            builder.CreateStore(env.i64Const(0), loop_i);
-
-            // start loop going over the size entries (--> this could be vectorized!)
-            auto& ctx = env.getContext(); auto F = builder.GetInsertBlock()->getParent();
-            BasicBlock *bLoopHeader = BasicBlock::Create(ctx, "var_size_loop_header", F);
-            BasicBlock *bLoopBody = BasicBlock::Create(ctx, "var_size_loop_body", F);
-            BasicBlock *bLoopExit = BasicBlock::Create(ctx, "var_size_loop_done", F);
-
-            auto idx_values = CreateStructGEP(builder, list_ptr, 2);
-            auto ptr_values = builder.CreateLoad(idx_values);
-
-            builder.CreateBr(bLoopHeader);
-
-            {
-                // --- header ---
-                builder.SetInsertPoint(bLoopHeader);
-                // if i < len:
-                auto loop_i_val = builder.CreateLoad(loop_i);
-                auto loop_cond = builder.CreateICmpULT(loop_i_val, len);
-                builder.CreateCondBr(loop_cond, bLoopBody, bLoopExit);
-            }
-
-
-            {
-                // --- body ---
-                builder.SetInsertPoint(bLoopBody);
-                auto loop_i_val = builder.CreateLoad(loop_i);
-
-                // fetch size by calling struct_size on each retrieved pointer! (they should be ALL valid)
-                // --> no check here!
-               auto item = ptr_values->getType()->isPointerTy() ? builder.CreateGEP(ptr_values, loop_i_val) : ptr_values;
-
-                // call function! (or better said: emit the necessary code...)
-                FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
-                auto item_size = ft.getSize(builder);
-
-                size = builder.CreateAdd(item_size, builder.CreateLoad(size_var));
-                builder.CreateStore(size, size_var);
-
-                // inc.
-                builder.CreateStore(builder.CreateAdd(env.i64Const(1), loop_i_val), loop_i);
-                builder.CreateBr(bLoopHeader);
-            }
-
-            builder.SetInsertPoint(bLoopExit);
-            return builder.CreateLoad(size_var);
+throw std::runtime_error("nyimpl");
         }
 
-        static llvm::Value* list_serialize_fixed_sized_to(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* dest_ptr) {
+        static llvm::Value* list_serialize_fixed_sized_to(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
+                                                          llvm::Value* list_ptr,
+                                                          const python::Type& list_type,
+                                                          llvm::Value* dest_ptr) {
             auto elementType = list_type.elementType();
             assert(elementType == python::Type::I64
                    || elementType == python::Type::F64
@@ -842,12 +698,53 @@ namespace tuplex {
             return size;
         }
 
-        llvm::Value* list_of_structs_serialize_to(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* dest_ptr) {
+        llvm::Value* list_of_structs_serialize_to(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
+                                                  llvm::Value* list_ptr, const python::Type& list_type,
+                                                  llvm::Value* dest_ptr) {
             // quite complex, basically write like strings/pyobjects incl. offset array!
+
+            // -> there may be structs that are of fixed size. Could write them optimized. for now, write as var always...
+            auto f_struct_element_size = [list_type](LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, llvm::Value* index) -> llvm::Value* {
+                assert(index && index->getType() == env.i64Type());
+
+                auto element_type = list_type.elementType();
+
+                assert(element_type.isStructuredDictionaryType());
+
+                auto ptr_values = CreateStructLoad(builder, list_ptr, 2);
+
+                auto item = builder.CreateGEP(ptr_values, index);
+                auto item_size = struct_dict_serialized_memory_size(env, builder, item, element_type).val;
+
+                return item_size;
+            };
+
+            auto f_struct_element_serialize_to = [list_type](LLVMEnvironment& env, llvm::IRBuilder<>& builder,
+                                                            llvm::Value* list_ptr, llvm::Value* index, llvm::Value* dest_ptr) -> llvm::Value* {
+
+                assert(index && index->getType() == env.i64Type());
+
+                auto element_type = list_type.elementType();
+
+                assert(element_type.isStructuredDictionaryType());
+
+                auto ptr_values = CreateStructLoad(builder, list_ptr, 2);
+                auto item = builder.CreateGEP(ptr_values, index);
+
+                // call struct dict serialize
+                auto s_result = struct_dict_serialize_to_memory(env, builder, item, element_type, dest_ptr);
+                return s_result.val;
+            };
+
+
+            return list_serialize_varitems_to(env, builder, list_ptr, list_type, dest_ptr, f_struct_element_size, f_struct_element_serialize_to);
+
 
             // skipped for now...
             auto& logger = Logger::instance().logger("codegen");
             logger.error("MISSING FEATURE: add support for list_of_structs_serialization");
+
+            throw std::runtime_error("missing feature");
 
             return env.i64Const(0);
         }
@@ -862,6 +759,8 @@ namespace tuplex {
             // skipped for now...
             auto& logger = Logger::instance().logger("codegen");
             logger.error("MISSING FEATURE: add support for list_of_tuples_serialization");
+
+            throw std::runtime_error("missing feature");
 
             return env.i64Const(0);
         }

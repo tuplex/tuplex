@@ -624,6 +624,34 @@ TEST_F(JsonTuplexTest, MiniSampleForAllFiles) {
             .tocsv("github_forkevents.csv");
 }
 
+bool is_gzip_file(const uint8_t* ptr) {
+    if(!ptr)
+        return false;
+
+    // compare magic
+    uint8_t c1 = *ptr;
+    uint8_t c2 = *(ptr + 1);
+    // magic should be 1f 8b followed by compression method (08 = DEFLATE)
+    return c1 == 0x1f && c2 == 0x8b;
+}
+
+TEST_F(JsonTuplexTest, GZipFileRead) {
+    using namespace tuplex;
+    using namespace std;
+
+    // check whether a file is gzip or not (using magic)
+    auto gzip_data = fileToString(URI("../resources/gzip/basic.txt.gz"));
+
+    // magic?
+    cout<<"length: "<<gzip_data.size()<<endl;
+
+    EXPECT_TRUE(is_gzip_file(reinterpret_cast<const uint8_t*>(gzip_data.c_str())));
+
+    auto data = gzip::decompress(gzip_data.c_str(), gzip_data.size());
+    EXPECT_EQ(data, "Hello world!\n");
+}
+
+
 // some UDF examples that should work:
 // x = {}
 // x['test'] = 10 # <-- type of x is now Struct['test' -> i64]

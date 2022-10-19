@@ -1227,7 +1227,7 @@ namespace tuplex {
 //            env.printValue(builder, builder.CreatePtrDiff(dest_ptr, original_dest_ptr), "current dest_ptr position at byte: ");
 //            env.printValue(builder, varLengthOffset, "var length so far in bytes: ");
 
- #define TRACE_STRUCT_SERIALIZATION
+ // #define TRACE_STRUCT_SERIALIZATION
             // get indices to properly decode
             for(auto entry : entries) {
                 auto access_path = std::get<0>(entry);
@@ -1281,8 +1281,8 @@ namespace tuplex {
                     auto casted_dest_ptr = builder.CreateBitOrPointerCast(dest_ptr, env.i64ptrType());
                     builder.CreateStore(info, casted_dest_ptr);
 
-                    env.printValue(builder, offset, "encoded list " + list_type.desc() + " with offset: ");
-                    env.printValue(builder, list_size_in_bytes, "encoding to field " + std::to_string(field_index) + " list of size: ");
+                    // env.printValue(builder, offset, "encoded list " + list_type.desc() + " with offset: ");
+                    // env.printValue(builder, list_size_in_bytes, "encoding to field " + std::to_string(field_index) + " list of size: ");
                     //  env.debugPrint(builder, path_str + ": encoding to field = " + std::to_string(field_index));
 
                     dest_ptr = builder.CreateGEP(dest_ptr, env.i64Const(sizeof(int64_t)));

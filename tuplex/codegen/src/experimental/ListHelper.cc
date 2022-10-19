@@ -883,7 +883,7 @@ namespace tuplex {
             // fetch length of list
             auto len = list_length(env, builder, list_ptr, list_type);
 
-            env.printValue(builder, len, "serializing var item list of length: ");
+            // env.printValue(builder, len, "serializing var item list of length: ");
 
             // write len of list to dest_ptr
             auto ptr = dest_ptr;
@@ -942,7 +942,7 @@ namespace tuplex {
                 // i.e. here (len - loop_i_val) * 8 + var
                 auto offset = builder.CreateAdd(varlen_bytes, builder.CreateMul(env.i64Const(8), builder.CreateSub(len, loop_i_val)));
 
-                 env.printValue(builder, offset, "field offset:  ");
+                // env.printValue(builder, offset, "field offset:  ");
 
                 // save offset and item size.
                 // where to write this? -> current

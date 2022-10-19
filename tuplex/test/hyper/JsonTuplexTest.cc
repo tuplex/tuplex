@@ -595,6 +595,30 @@ TEST_F(JsonTuplexTest, TupleFlattening) {
     ASSERT_GT(tree.numElements(), 0);
 }
 
+// bbsn00
+TEST_F(JsonTuplexTest,SampleForAllFiles) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto co = ContextOptions::defaults();
+
+    // deactivate pushdown
+    co.set("tuplex.optimizer.selectionPushdown", "false");
+
+    // deactivate filter pushdown as well...
+    co.set("tuplex.optimizer.filterPushdown", "false");
+
+    Context c(co);
+
+    // /hot/data/github_daily/*.json
+    auto path = "/hot/data/github_daily/*.json";
+    // process all files (as they are)
+    c.json(path).withColumn("repo_id", UDF("lambda x: x['repo']['id']"))
+            .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+            .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+            .selectColumns(std::vector<std::string>({"type", "repo_id", "year"}))
+            .tocsv("github_forkevents.csv");
+}
 TEST_F(JsonTuplexTest, MiniSampleForAllFiles) {
     using namespace tuplex;
     using namespace std;

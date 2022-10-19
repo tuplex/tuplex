@@ -450,17 +450,17 @@ namespace tuplex {
                }
             }
 
-            // debug print:
-            std::stringstream ss;
-            for(unsigned i = 0; i < col_counts.size(); ++i) {
-                ss<<"col "<<i<<": ";
-                for(auto entry : col_counts[i]) {
-                    python::Type t = python::Type::fromHash(entry.second);
-                    ss<<t.desc()<<" ("<<entry.first<<"), ";
-                }
-                ss<<"\n";
-            }
-            std::cout<<ss.str()<<std::endl;
+            // // debug print:
+            // std::stringstream ss;
+            // for(unsigned i = 0; i < col_counts.size(); ++i) {
+            //     ss<<"col "<<i<<": ";
+            //     for(auto entry : col_counts[i]) {
+            //         python::Type t = python::Type::fromHash(entry.second);
+            //         ss<<t.desc()<<" ("<<entry.first<<"), ";
+            //     }
+            //     ss<<"\n";
+            // }
+            // std::cout<<ss.str()<<std::endl;
 
             return python::Type::makeTupleType(col_types);
         } else {

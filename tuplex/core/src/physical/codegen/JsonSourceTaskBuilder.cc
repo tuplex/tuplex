@@ -528,14 +528,14 @@ namespace tuplex {
                 auto num_entries = std::min(columns.size(), row_type.parameters().size());
 
 #ifndef NDEBUG
-                // loading entries:
-                {
-                    std::stringstream ss;
-                    for(unsigned i = 0; i < num_entries; ++i) {
-                        ss<<i<<": "<<columns[i]<<" -> "<<row_type.parameters()[i].desc()<<std::endl;
-                    }
-                    logger.debug("columns:\n" + ss.str());
-                }
+                // // loading entries:
+                // {
+                //     std::stringstream ss;
+                //     for(unsigned i = 0; i < num_entries; ++i) {
+                //         ss<<i<<": "<<columns[i]<<" -> "<<row_type.parameters()[i].desc()<<std::endl;
+                //     }
+                //     logger.debug("columns:\n" + ss.str());
+                // }
 #endif
 
                 for(unsigned i = 0; i < num_entries; ++i) {

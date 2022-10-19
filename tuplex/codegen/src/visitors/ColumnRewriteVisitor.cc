@@ -10,6 +10,7 @@
 
 #include <visitors/ColumnRewriteVisitor.h>
 #include <Utils.h>
+#include <ExceptionCodes.h>
 
 namespace tuplex {
 
@@ -62,8 +63,15 @@ namespace tuplex {
                         auto colName = str->value();
 
                         int idx = indexInVector(colName, _columnNames);
-                        if(idx < 0)
-                            error("could not find column '" + colName + "' in dataset.");
+                        if(idx < 0) {
+                            // column not found -> this could happen e.g. for JSON files/CSV files where this hasn't been detected.
+                            // emit warning and annotate node to become a deoptimization (python) node!
+                            auto& ann = node->annotation();
+                            ann.deoptException = ExceptionCode::GENERALCASEVIOLATION;
+                            warning("could not find column '" + colName + "' in dataset. Emitting deoptimization trigger.");
+                            return node;
+                            //error("could not find column '" + colName + "' in dataset.");
+                        }
 
                         // make true, access found
                         _dictAccessFound = true;

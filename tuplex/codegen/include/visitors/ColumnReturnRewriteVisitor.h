@@ -25,6 +25,11 @@ namespace tuplex {
         python::Type _newOutputType;
     protected:
         ASTNode* replace(ASTNode* parent, ASTNode* node);
+
+        inline void warning(const std::string& msg) {
+            auto& logger = Logger::instance().logger("codegen");
+            logger.warn(msg);
+        }
     public:
         std::vector<std::string> columnNames;
         ColumnReturnRewriteVisitor() = default;

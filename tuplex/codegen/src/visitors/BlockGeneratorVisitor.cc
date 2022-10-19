@@ -3846,6 +3846,15 @@ namespace tuplex {
             auto value_type = sub->_value->getInferredType();
             auto index_type = sub->_expression->getInferredType();
 
+            // special case: susbcript has a deopt annotation
+            if(sub->hasAnnotation()) {
+                if(sub->annotation().deoptException != ExceptionCode::SUCCESS) {
+                    _lfb->exitWithException(sub->annotation().deoptException);
+                    return;
+                }
+            }
+
+
             if (index_type.isOptionType()) {
                 assert(index.is_null);
 

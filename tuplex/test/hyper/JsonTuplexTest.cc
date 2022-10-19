@@ -626,6 +626,26 @@ TEST_F(JsonTuplexTest, TupleFlattening) {
     ASSERT_GT(tree.numElements(), 0);
 }
 
+
+namespace tuplex {
+    DataSet& github_pipeline(Context& ctx, const std::string& pattern) {
+        // in order to extract repo -> for 2012 till 2014 incl. repo key is called repository!
+        // => unknown key will trigger badparseinput exception.
+
+        auto repo_id_code = "def extract_repo_id(row):\n"
+                            "\tif 2012 <= row['year'] <= 2014:\n"
+                            "\t\treturn row['repository']['id']\n"
+                            "\telse:\n"
+                            "\t\treturn row['repo']['id']\n";
+
+        return ctx.json(pattern)
+                  .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+                  .withColumn("repo_id", UDF(repo_id_code))
+                  .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+                  .selectColumns(std::vector<std::string>({"type", "repo_id", "year"}));
+    }
+}
+
 // bbsn00
 TEST_F(JsonTuplexTest,SampleForAllFiles) {
     using namespace tuplex;
@@ -647,6 +667,12 @@ TEST_F(JsonTuplexTest,SampleForAllFiles) {
     // use sample
     string pattern = "../resources/hyperspecialization/github_daily/*.json.sample";
 
+    pattern = "../resources/hyperspecialization/github_daily/2012*.json.sample";
+
+    auto& ds = github_pipeline(c, pattern);
+    EXPECT_FALSE(ds.isError());
+    ds.tocsv("github_forkevents.csv");
+
 //    // process all files (as they are)
 //    c.json(pattern).withColumn("repo_id", UDF("lambda x: x['repo']['id']"))
 //            .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
@@ -654,22 +680,22 @@ TEST_F(JsonTuplexTest,SampleForAllFiles) {
 //            .selectColumns(std::vector<std::string>({"type", "repo_id", "year"}))
 //            .tocsv("github_forkevents.csv");
 
-    // process each file on its own and compare to the global files...
-    // -> they should be identical... (up to order)
-    auto paths = glob(pattern);
-    for(const auto& path : paths) {
-        std::cout<<"--> processing path "<<path<<std::endl;
-
-        auto basename = path.substr(path.rfind("/") + 1);
-        auto output_path = basename.substr(0, basename.find('.')) + "_github_forkevents.csv";
-        std::cout<<"writing output to: "<<output_path<<std::endl;
-
-        c.json(path).withColumn("repo_id", UDF("lambda x: x['repo']['id']"))
-        .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
-        .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
-        .selectColumns(std::vector<std::string>({"type", "repo_id", "year"}))
-        .tocsv(output_path);
-    }
+//    // process each file on its own and compare to the global files...
+//    // -> they should be identical... (up to order)
+//    auto paths = glob(pattern);
+//    for(const auto& path : paths) {
+//        std::cout<<"--> processing path "<<path<<std::endl;
+//
+//        auto basename = path.substr(path.rfind("/") + 1);
+//        auto output_path = basename.substr(0, basename.find('.')) + "_github_forkevents.csv";
+//        std::cout<<"writing output to: "<<output_path<<std::endl;
+//
+//        c.json(path).withColumn("repo_id", UDF("lambda x: x['repo']['id']"))
+//        .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+//        .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+//        .selectColumns(std::vector<std::string>({"type", "repo_id", "year"}))
+//        .tocsv(output_path);
+//    }
 }
 
 TEST_F(JsonTuplexTest, MiniSampleForAllFiles) {

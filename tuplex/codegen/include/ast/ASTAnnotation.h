@@ -18,6 +18,7 @@
 #include <TypeSystem.h>
 #include <TypeHelper.h>
 #include <Field.h>
+#include <ExceptionCodes.h>
 
 #ifdef BUILD_WITH_CEREAL
 #include "cereal/access.hpp"
@@ -404,10 +405,10 @@ namespace tuplex {
     class ASTAnnotation {
      public:
 
-        ASTAnnotation() : numTimesVisited(0), symbol(nullptr), iMin(0), iMax(0), negativeValueCount(0), positiveValueCount(0), iteratorInfo(nullptr), typeStableCount(0), typeChangedAndStableCount(0), typeChangedAndUnstableCount(0), zeroIterationCount(0) {}
+        ASTAnnotation() : numTimesVisited(0), symbol(nullptr), iMin(0), iMax(0), negativeValueCount(0), positiveValueCount(0), iteratorInfo(nullptr), typeStableCount(0), typeChangedAndStableCount(0), typeChangedAndUnstableCount(0), zeroIterationCount(0), deoptException(ExceptionCode::SUCCESS) {}
         ASTAnnotation(const ASTAnnotation& other) : numTimesVisited(other.numTimesVisited), iMin(other.iMin), iMax(other.iMax),
                                                     negativeValueCount(other.negativeValueCount), positiveValueCount(other.positiveValueCount), symbol(other.symbol), types(other.types), iteratorInfo(other.iteratorInfo), branchTakenSampleIndices(other.branchTakenSampleIndices),
-                                                    typeStableCount(other.typeStableCount), typeChangedAndStableCount(other.typeChangedAndStableCount), typeChangedAndUnstableCount(other.typeChangedAndUnstableCount), zeroIterationCount(other.zeroIterationCount) {}
+                                                    typeStableCount(other.typeStableCount), typeChangedAndStableCount(other.typeChangedAndStableCount), typeChangedAndUnstableCount(other.typeChangedAndUnstableCount), zeroIterationCount(other.zeroIterationCount), deoptException(other.deoptException) {}
 
         ///! how often was node visited? Helpful annotation for if-branches
         size_t numTimesVisited;
@@ -426,6 +427,8 @@ namespace tuplex {
 
         size_t negativeValueCount;
         size_t positiveValueCount;
+
+        ExceptionCode deoptException;
 
         ///! assigning a symbol to an ASTNode and storing it makes codegeneration easier.
         std::shared_ptr<Symbol> symbol;
@@ -485,7 +488,7 @@ namespace tuplex {
 
     #ifdef BUILD_WITH_CEREAL
         template <class Archive>
-        void serialize(Archive &ar) { ar(numTimesVisited, iMin, iMax, negativeValueCount, positiveValueCount, symbol, types); }
+        void serialize(Archive &ar) { ar(numTimesVisited, iMin, iMax, negativeValueCount, positiveValueCount, symbol, types, deoptException); }
     #endif
 
     };

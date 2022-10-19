@@ -27,6 +27,11 @@ namespace tuplex {
         bool _dictAccessFound;
     protected:
         ASTNode* replace(ASTNode* parent, ASTNode* node) override;
+
+        inline void warning(const std::string& msg) {
+            auto& logger = Logger::instance().logger("codegen");
+            logger.warn(msg);
+        }
     public:
         ColumnRewriteVisitor() = delete;
         ColumnRewriteVisitor(const std::vector<std::string>& columnNames,

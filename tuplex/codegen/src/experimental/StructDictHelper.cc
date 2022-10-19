@@ -625,7 +625,9 @@ namespace tuplex {
 
                 // go over access paths and access elements.
                 auto prefix_path = path;
-                logger.debug("prefix path: " + access_path_to_str(prefix_path));
+
+                // logger.debug("prefix path: " + access_path_to_str(prefix_path));
+
                 // paths for sub pointer
                 flattened_struct_dict_entry_list_t element_entries;
                 flatten_recursive_helper(element_entries, element_type_wo_option);

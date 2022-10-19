@@ -645,17 +645,31 @@ TEST_F(JsonTuplexTest,SampleForAllFiles) {
     string path = "/hot/data/github_daily/*.json";
 
     // use sample
-    path = "../resources/hyperspecialization/github_daily/*.json.sample";
+    string pattern = "../resources/hyperspecialization/github_daily/*.json.sample";
 
-    // process all files (as they are)
-    c.json(path).withColumn("repo_id", UDF("lambda x: x['repo']['id']"))
-            .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
-            .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
-            .selectColumns(std::vector<std::string>({"type", "repo_id", "year"}))
-            .tocsv("github_forkevents.csv");
+//    // process all files (as they are)
+//    c.json(pattern).withColumn("repo_id", UDF("lambda x: x['repo']['id']"))
+//            .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+//            .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+//            .selectColumns(std::vector<std::string>({"type", "repo_id", "year"}))
+//            .tocsv("github_forkevents.csv");
 
     // process each file on its own and compare to the global files...
     // -> they should be identical... (up to order)
+    auto paths = glob(pattern);
+    for(const auto& path : paths) {
+        std::cout<<"--> processing path "<<path<<std::endl;
+
+        auto basename = path.substr(path.rfind("/") + 1);
+        auto output_path = basename.substr(0, basename.find('.')) + "_github_forkevents.csv";
+        std::cout<<"writing output to: "<<output_path<<std::endl;
+
+        c.json(path).withColumn("repo_id", UDF("lambda x: x['repo']['id']"))
+        .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+        .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+        .selectColumns(std::vector<std::string>({"type", "repo_id", "year"}))
+        .tocsv(output_path);
+    }
 }
 
 TEST_F(JsonTuplexTest, MiniSampleForAllFiles) {

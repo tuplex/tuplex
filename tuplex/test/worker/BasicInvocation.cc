@@ -395,7 +395,7 @@ TEST(BasicInvocation, HashOutput) {
 
     auto key_type = mapop->getOutputSchema().getRowType().parameters()[0];
     auto bucket_type = mapop->getOutputSchema().getRowType().parameters()[1];
-    builder.addHashTableOutput(mapop->getOutputSchema(), true, false, {0}, key_type, bucket_type);
+    builder.addHashTableOutput(nullptr, mapop->getOutputSchema(), true, false, {0}, key_type, bucket_type);
 
 
 #warning "given pipeline is with i64 keys. -> issue. want to specialize stuff properly!"

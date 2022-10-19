@@ -3,6 +3,7 @@
 //
 
 #include "HyperUtils.h"
+#include "MimeType.h"
 
 #include <physical/experimental/JsonHelper.h>
 #include <physical/experimental/JSONParseRowGenerator.h>
@@ -624,17 +625,6 @@ TEST_F(JsonTuplexTest, MiniSampleForAllFiles) {
             .tocsv("github_forkevents.csv");
 }
 
-bool is_gzip_file(const uint8_t* ptr) {
-    if(!ptr)
-        return false;
-
-    // compare magic
-    uint8_t c1 = *ptr;
-    uint8_t c2 = *(ptr + 1);
-    // magic should be 1f 8b followed by compression method (08 = DEFLATE)
-    return c1 == 0x1f && c2 == 0x8b;
-}
-
 TEST_F(JsonTuplexTest, GZipFileRead) {
     using namespace tuplex;
     using namespace std;
@@ -649,6 +639,12 @@ TEST_F(JsonTuplexTest, GZipFileRead) {
 
     auto data = gzip::decompress(gzip_data.c_str(), gzip_data.size());
     EXPECT_EQ(data, "Hello world!\n");
+
+    // use now VirtualFileSystem to process gzip file
+    auto vf = VirtualFileSystem::open_file(URI("../resources/gzip/basic.txt.gz"), VirtualFileMode::VFS_READ);
+
+
+    vf->close();
 }
 
 

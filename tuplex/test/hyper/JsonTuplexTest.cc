@@ -307,6 +307,36 @@ namespace tuplex {
     }
 }
 
+TEST_F(JsonTuplexTest, TupleBinToPythonSimple) {
+    using namespace tuplex;
+    using namespace std;
+
+    string test_type_str = "(str,Struct[(str,'shas'=>List[List[str]])])";
+    auto test_type = python::Type::decode(test_type_str);
+    ASSERT_TRUE(test_type.isTupleType());
+    EXPECT_EQ(test_type.parameters().size(), 2);
+    std::cout<<"testing with tuple..."<<std::endl;
+
+    // sample line.
+    string line = "{\"A\":\"hello world!\",\"col\": {\"shas\":[[\"a\",\"b\"],[],[\"c\"]]}}";
+
+    runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
+
+    JITCompiler jit;
+
+    // create parse function (easier to debug!)
+    std::vector<std::string> columns({"A", "col"});
+    auto f = codegen::generateJsonTupleTestParse(jit, test_type, columns);
+    ASSERT_TRUE(f);
+
+    unsigned line_no = 0;
+
+    uint8_t *buf = nullptr;
+    size_t size = 0;
+    auto rc = f(reinterpret_cast<const uint8_t *>(line.c_str()), line.size(), &buf, &size);
+    EXPECT_EQ(rc, 0);
+}
+
 TEST_F(JsonTuplexTest, TupleBinToPython) {
     using namespace tuplex;
     using namespace std;

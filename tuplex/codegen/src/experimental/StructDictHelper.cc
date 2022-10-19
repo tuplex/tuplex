@@ -1222,7 +1222,12 @@ namespace tuplex {
             llvm::Value* varLengthOffset = env.i64Const(0); // current offset from varfieldsstart ptr
             llvm::Value* varFieldsStartPtr = builder.CreateGEP(dest_ptr, env.i64Const(sizeof(int64_t) * num_fields)); // where in memory the variable field storage starts!
 
-// #define TRACE_STRUCT_SERIALIZATION
+//            // print debug info
+//            env.printValue(builder, builder.CreatePtrDiff(varFieldsStartPtr, original_dest_ptr), "var fields begin at byte: ");
+//            env.printValue(builder, builder.CreatePtrDiff(dest_ptr, original_dest_ptr), "current dest_ptr position at byte: ");
+//            env.printValue(builder, varLengthOffset, "var length so far in bytes: ");
+
+ #define TRACE_STRUCT_SERIALIZATION
             // get indices to properly decode
             for(auto entry : entries) {
                 auto access_path = std::get<0>(entry);
@@ -1238,6 +1243,10 @@ namespace tuplex {
                     env.printValue(builder, struct_dict_load_present(env, builder, ptr, dict_type, access_path), path_str + ": present_idx=" + std::to_string(present_idx) + " is present: ");
                 }
 
+                // print debug info
+                env.printValue(builder, builder.CreatePtrDiff(varFieldsStartPtr, original_dest_ptr), "var fields begin at byte: ");
+                env.printValue(builder, builder.CreatePtrDiff(dest_ptr, original_dest_ptr), "current dest_ptr position at byte: ");
+                env.printValue(builder, varLengthOffset, "var length so far in bytes: ");
 #endif
                 // special case list: --> needs extra care
                 if(value_type.isOptionType())
@@ -1254,10 +1263,14 @@ namespace tuplex {
                     // => list is ALWAYS a var length field, serialize like that.
                     // compute offset
                     // from current field -> varStart + varoffset
-                    size_t cur_to_var_start_offset = (num_fields - field_index + 1) * sizeof(int64_t);
+                    size_t cur_to_var_start_offset = (num_fields - field_index) * sizeof(int64_t); // no +1 here b.c. we do not store the varsize length unlike in a tuple.
                     auto offset = builder.CreateAdd(env.i64Const(cur_to_var_start_offset), varLengthOffset);
 
                     auto varDest = builder.CreateGEP(varFieldsStartPtr, varLengthOffset);
+
+                    env.printValue(builder, builder.CreatePtrDiff(varDest, original_dest_ptr), "list var start from start ptr: ");
+                    env.printValue(builder, builder.CreatePtrDiff(varDest, dest_ptr), "offset (calc) vardest to dest ptr: ");
+
                     // call list function
                     list_serialize_to(env, builder, list_ptr, list_type, varDest);
 
@@ -1268,7 +1281,8 @@ namespace tuplex {
                     auto casted_dest_ptr = builder.CreateBitOrPointerCast(dest_ptr, env.i64ptrType());
                     builder.CreateStore(info, casted_dest_ptr);
 
-                    // env.printValue(builder, list_size_in_bytes, "encoding to field " + std::to_string(field_index) + " list of size: ");
+                    env.printValue(builder, offset, "encoded list " + list_type.desc() + " with offset: ");
+                    env.printValue(builder, list_size_in_bytes, "encoding to field " + std::to_string(field_index) + " list of size: ");
                     //  env.debugPrint(builder, path_str + ": encoding to field = " + std::to_string(field_index));
 
                     dest_ptr = builder.CreateGEP(dest_ptr, env.i64Const(sizeof(int64_t)));
@@ -1329,7 +1343,7 @@ namespace tuplex {
 
                     // compute offset
                     // from current field -> varStart + varoffset
-                    size_t cur_to_var_start_offset = (num_fields - field_index + 1) * sizeof(int64_t);
+                    size_t cur_to_var_start_offset = (num_fields - field_index) * sizeof(int64_t);
                     auto offset = builder.CreateAdd(env.i64Const(cur_to_var_start_offset), varLengthOffset);
 
                     auto varDest = builder.CreateGEP(varFieldsStartPtr, varLengthOffset);
@@ -1350,6 +1364,13 @@ namespace tuplex {
                 // serialized field -> inc index!
                 field_index++;
             }
+
+#ifdef TRACE_STRUCT_SERIALIZATION
+            // print debug info
+            env.printValue(builder, builder.CreatePtrDiff(varFieldsStartPtr, original_dest_ptr), "var fields begin at byte: ");
+            env.printValue(builder, builder.CreatePtrDiff(dest_ptr, original_dest_ptr), "current dest_ptr position at byte: ");
+            env.printValue(builder, varLengthOffset, "var length so far in bytes: ");
+#endif
 
             // move dest ptr to end!
             dest_ptr = builder.CreateGEP(dest_ptr, varLengthOffset);
@@ -1498,9 +1519,12 @@ namespace tuplex {
                 auto struct_indices = struct_dict_load_indices(dict_type);
 
                 if(prefix_indices.size() == 1) {
-                    // note: following will only work for single element OR a nested struct that is maybe
-                    auto indices = struct_indices.at(access_path);
-                    std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices;
+                    auto jt = struct_indices.find(access_path);
+                    if(jt != struct_indices.end()) {
+                        // note: following will only work for single element OR a nested struct that is maybe
+                        auto indices = struct_indices.at(access_path);
+                        std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices;
+                    }
                 }
 
                 // check if present map indicates something

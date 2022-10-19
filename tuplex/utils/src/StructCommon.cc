@@ -394,6 +394,27 @@ namespace tuplex {
             }
             ss<<"]";
             return ss.str();
+        } else if(element_type.isStructuredDictionaryType()) {
+            std::stringstream ss;
+            ss<<"[";
+            auto ptr = buf + sizeof(int64_t);
+            for(unsigned i = 0; i < num_elements; ++i) {
+                // fetch offset and size
+                auto info = *(uint64_t*)ptr;
+
+                uint32_t offset = info & 0xFFFFFFFF;
+                uint32_t size = info >> 32u;
+
+                // get start and decode
+                std::string str = decodeStructDictFromBinary(element_type, ptr + offset, size);
+                ss<<str;
+                if(i != num_elements - 1)
+                    ss<<",";
+
+                ptr += sizeof(int64_t);
+            }
+            ss<<"]";
+            return ss.str();
         } else {
             throw std::runtime_error("unsupported element type " + element_type.desc() + " in decodeListAsJSON");
         }
@@ -493,7 +514,7 @@ namespace tuplex {
 
         // go through entries & decode!
         // get indices to properly decode
-        // this func is basically modeled after struct_dict_serialize_to_menory
+        // this func is basically modeled after struct_dict_serialize_to_memory
         unsigned field_index = 0;
 
         std::unordered_map<access_path_t, std::string> elements;
@@ -560,7 +581,7 @@ namespace tuplex {
 
                 // @TODO. for now, save empty list
                 elements[access_path] = "[]";
-                tree->add(access_path_to_json_keys(access_path), decodeListAsJSON(value_type, field_ptr + offset - sizeof(int64_t), size));
+                tree->add(access_path_to_json_keys(access_path), decodeListAsJSON(value_type, field_ptr + offset, size));
 
                 field_index++;
                 continue;
@@ -615,7 +636,7 @@ namespace tuplex {
                 uint32_t size = *((uint64_t*)field_ptr) >> 32u;
 
                 if(!is_null) {
-                    auto start_ptr = (char*)(field_ptr + offset - sizeof(int64_t));
+                    auto start_ptr = (char*)(field_ptr + offset);
                     auto end_ptr = start_ptr + std::min((uint32_t)strlen(start_ptr), std::min(size, 8 * 1024 * 1024u)); // 8MB as safeguard.
                     std::string sdata = fromCharPointers(start_ptr, end_ptr);
                     elements[access_path] = sdata;

@@ -756,6 +756,9 @@ namespace tuplex {
                             i64Const(1));
                     return SerializableValue(ret, size, isnull);
                 }
+
+                // remove option first (handled above!)
+                elementType = elementType.getReturnType();
             }
 
             // extract elements
@@ -763,7 +766,13 @@ namespace tuplex {
 
             // size existing? ==> only for varlen types
             if (!elementType.isFixedSizeType()) {
-                size = builder.CreateExtractValue(tupleVal, {sizeOffset});
+
+                // struct and list are extra
+                if(elementType.isListType() || elementType.isStructuredDictionaryType()) {
+                    size = i64Const(0);
+                } else {
+                    size = builder.CreateExtractValue(tupleVal, {sizeOffset});
+                }
             } else {
                 // size from type
                 size = i64Size;

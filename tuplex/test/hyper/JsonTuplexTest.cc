@@ -612,14 +612,22 @@ TEST_F(JsonTuplexTest,SampleForAllFiles) {
     Context c(co);
 
     // /hot/data/github_daily/*.json
-    auto path = "/hot/data/github_daily/*.json";
+    string path = "/hot/data/github_daily/*.json";
+
+    // use sample
+    path = "../resources/hyperspecialization/github_daily/*.json.sample";
+
     // process all files (as they are)
     c.json(path).withColumn("repo_id", UDF("lambda x: x['repo']['id']"))
             .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
             .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
             .selectColumns(std::vector<std::string>({"type", "repo_id", "year"}))
             .tocsv("github_forkevents.csv");
+
+    // process each file on its own and compare to the global files...
+    // -> they should be identical... (up to order)
 }
+
 TEST_F(JsonTuplexTest, MiniSampleForAllFiles) {
     using namespace tuplex;
     using namespace std;

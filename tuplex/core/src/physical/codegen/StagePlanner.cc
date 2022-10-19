@@ -595,7 +595,7 @@ namespace tuplex {
 
             // the detected majority type here is BEFORE projection pushdown.
             // --> therefore restrict it to the type of the input operator.
-            std::cout<<"Majority detected row type is: "<<projectedMajType.desc()<<std::endl;
+            // std::cout<<"Majority detected row type is: "<<projectedMajType.desc()<<std::endl;
 
             // if majType of sample is different from input node type input sample -> retype!
             // also need to restrict type first!
@@ -902,7 +902,7 @@ namespace tuplex {
                             // => cache is a source, i.e. fetch optimized schema from it!
                             last_rowtype = cop->getOptimizedOutputSchema().getRowType();
                             checkRowType(last_rowtype);
-                            cout<<"cache is a source: optimized schema "<<last_rowtype.desc()<<endl;
+                            // cout<<"cache is a source: optimized schema "<<last_rowtype.desc()<<endl;
 
                             // use normal case & clone WITHOUT parents
                             // clone, set normal case & push back
@@ -913,8 +913,8 @@ namespace tuplex {
                             // cache should not have any children
                             assert(cop->children().empty());
                             // => i.e. first time cache is seen, it's processed as action!
-                            cout<<"cache is action, optimized schema: "<<endl;
-                            cout<<"cache normal case will be: "<<last_rowtype.desc()<<endl;
+                            // cout<<"cache is action, optimized schema: "<<endl;
+                            // cout<<"cache normal case will be: "<<last_rowtype.desc()<<endl;
                             // => reuse optimized schema!
                             cop->setOptimizedOutputType(last_rowtype);
                             // simply push back, no cloning here necessary b.c. no data is altered
@@ -1041,11 +1041,11 @@ namespace tuplex {
             path_ctx.readSchema = fop->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
             path_ctx.columnsToRead = fop->columnsToSerialize();
 
-            // print out columns & types!
-            assert(fop->columns().size() == path_ctx.inputSchema.getRowType().parameters().size());
-            for(unsigned i = 0; i < fop->columns().size(); ++i) {
-                std::cout<<"col "<<i<<" (" + fop->columns()[i] + ")"<<": "<<path_ctx.inputSchema.getRowType().parameters()[i].desc()<<std::endl;
-            }
+            // // print out columns & types!
+            // assert(fop->columns().size() == path_ctx.inputSchema.getRowType().parameters().size());
+            // for(unsigned i = 0; i < fop->columns().size(); ++i) {
+            //     std::cout<<"col "<<i<<" (" + fop->columns()[i] + ")"<<": "<<path_ctx.inputSchema.getRowType().parameters()[i].desc()<<std::endl;
+            // }
 
         } else {
             path_ctx.inputSchema = path_ctx.inputNode->getOutputSchema();

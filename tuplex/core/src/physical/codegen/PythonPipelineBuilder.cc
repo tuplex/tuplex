@@ -299,16 +299,15 @@ namespace tuplex {
 
         // debug information
     #ifndef NDEBUG
-        using namespace std;
-        cout<<"Columns to read from string:\n";
-        cout<<columns<<endl;
-
-        // check from projection map
-        std::map<int, int> m(projectionMap.begin(), projectionMap.end());
-        cout<<"reading columns:"<<endl;
-        for(auto keyval : m) {
-            cout<<columns[keyval.first]<<"  ("<<keyval.first<<" -> "<<keyval.second<<")"<<endl;
-        }
+        // using namespace std;
+        // cout<<"Columns to read from string:\n";
+        // cout<<columns<<endl;
+        // // check from projection map
+        // std::map<int, int> m(projectionMap.begin(), projectionMap.end());
+        // cout<<"reading columns:"<<endl;
+        // for(auto keyval : m) {
+        //     cout<<columns[keyval.first]<<"  ("<<keyval.first<<" -> "<<keyval.second<<")"<<endl;
+        // }
     #endif
 
 

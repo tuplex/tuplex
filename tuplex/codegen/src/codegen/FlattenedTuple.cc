@@ -1028,7 +1028,7 @@ namespace tuplex {
                      || val->getType() == _env->getEmptyTupleType()
                      || val->getType()->isStructTy())
                      || (val->getType()->isPointerTy() && val->getType()->getPointerElementType()->isStructTy())) {
-                    std::cerr<<"invalid val type: "<<_env->getLLVMTypeName(val->getType())<<std::endl;
+                    // std::cerr<<"invalid val type: "<<_env->getLLVMTypeName(val->getType())<<std::endl;
                 }
 
                 // val must be a primitive

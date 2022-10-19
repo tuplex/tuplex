@@ -1289,8 +1289,8 @@ namespace tuplex {
                 auto key = _env.strConst(builder, key_value);
 
                 if (kv_pair.valueType.isStructuredDictionaryType()) {
-                    logger.debug("parsing nested dict: " +
-                                 json_access_path_to_string(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
+                    //logger.debug("parsing nested dict: " +
+                    //             json_access_path_to_string(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
 
                     // check if an object exists under the given key.
                     auto F = getOrInsertFunction(_env.getModule().get(), "JsonItem_getObject", _env.i64Type(),

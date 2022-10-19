@@ -71,6 +71,7 @@ namespace tuplex {
                 _udf.clearCompileErrors();
                 // 2. try by annotating with if-blocks getting ignored statically...
                 logger.debug("performing static typing with partially ignoring branches for UDF in operator " + name());
+                _udf.removeTypes(false);
                 success = _udf.hintInputSchema(parentSchema, true, false);
                 if(!success && _udf.getCompileErrors().empty()) {
                     // 3. type by tracing a small sample from the parent!
@@ -78,6 +79,7 @@ namespace tuplex {
                     // => general case rows thus get transferred to interpreter...
                     logger.debug("performing traced typing for UDF in operator " + name());
                     auto rows_sample = parent()->getPythonicSample(MAX_TYPE_SAMPLING_ROWS);
+                    _udf.removeTypes(false);
                     success = _udf.hintSchemaWithSample(rows_sample,
                                                         parentSchema.getRowType(), true);
 

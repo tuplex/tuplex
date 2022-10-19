@@ -21,9 +21,10 @@ namespace tuplex {
             }
             case ASTNodeType::Number: {
                 NNumber* num = (NNumber*)node;
-                if(num->getInferredType() == python::Type::I64)
+                auto py_type = deoptimizedType(num->getInferredType());
+                if(py_type == python::Type::I64)
                     return option<bool>(num->getI64() > 0);
-                assert(num->getInferredType() == python::Type::F64);
+                assert(py_type == python::Type::F64);
                 return option<bool>(num->getF64() > 0.0);
             }
             case ASTNodeType::String: {

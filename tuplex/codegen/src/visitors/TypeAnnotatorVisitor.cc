@@ -1141,6 +1141,16 @@ namespace tuplex {
     }
 
     void TypeAnnotatorVisitor::visit(NSubscription *sub) {
+        // special case: annotation? can ignore visit.
+        if(sub->hasAnnotation()) {
+            if(sub->annotation().deoptException != ExceptionCode::SUCCESS) {
+                // set dummy to pyobject to trigger further except
+                auto general_exception = _symbolTable.lookupType("Exception");
+                sub->setInferredType(general_exception);
+                return; // <-- do not visit further. will only cause errors.
+            }
+        }
+
         ApatheticVisitor::visit(sub);
 
         // there are only two valid typings yet allowed:
@@ -1150,6 +1160,12 @@ namespace tuplex {
 
         auto type = sub->_value->getInferredType();
         auto index_type = deoptimizedType(sub->_expression->getInferredType());
+
+        // check: if either is exception -> propagate exception type
+        if(type.isExceptionType() || index_type.isExceptionType()) {
+            sub->setInferredType(unifiedExceptionType(type, index_type));
+            return;
+        }
 
         // this is a null check operation. I.e. strip option from either type or index type
         if(type.isOptionType())

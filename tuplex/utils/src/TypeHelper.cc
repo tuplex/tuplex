@@ -800,4 +800,15 @@ namespace tuplex {
        // std::cout<<"no solution found, but best pair..."<<std::endl;
         return best_pair;
     }
+
+    python::Type unifiedExceptionType(const python::Type& lhs, const python::Type& rhs) {
+        assert(lhs.isExceptionType() || rhs.isExceptionType());
+        if(lhs.isExceptionType() && !rhs.isExceptionType())
+            return lhs;
+        if(!lhs.isExceptionType() && rhs.isExceptionType())
+            return rhs;
+
+        throw std::runtime_error("unification here not implemented... -> i..e return baseclass of both exceptions (always exists)");
+        return python::Type::UNKNOWN;
+    }
 }

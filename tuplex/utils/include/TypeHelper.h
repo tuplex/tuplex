@@ -162,6 +162,14 @@ namespace tuplex {
                                                                            double threshold,
                                                                            bool use_nvo,
                                                                            const TypeUnificationPolicy& t_policy);
+
+    /*!
+     * if either type is an exception type, trigger unification (means walking the hierachy).
+     * @param lhs
+     * @param rhs
+     * @return exception type.
+     */
+    extern python::Type unifiedExceptionType(const python::Type& lhs, const python::Type& rhs);
 }
 
 #endif

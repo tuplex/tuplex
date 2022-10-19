@@ -24,7 +24,7 @@ namespace tuplex {
                 return nullptr;
             }
 
-            print_flatten_structured_dict_type(dict_type);
+            // print_flatten_structured_dict_type(dict_type);
 
             // --> flattening the dict like this will guarantee that each level is local to itself, simplifying access.
             // (could also organize in fixed_size fields or not, but this here works as well)

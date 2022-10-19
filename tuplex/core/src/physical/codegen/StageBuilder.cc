@@ -1162,6 +1162,8 @@ namespace tuplex {
             logger.debug("input schema for general case is: " + resolveInSchema.desc());
             logger.debug("intermediate type for general case is: " + intermediateType(pathContext.operators).desc());
 
+            std::cout.flush();
+
             auto slowPip = std::make_shared<codegen::PipelineBuilder>(env, resolveInSchema, intermediateType(pathContext.operators), ret.funcStageName/*funcSlowPathName*/);
             int global_var_cnt = 0;
             auto num_operators = pathContext.operators.size();

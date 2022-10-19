@@ -235,8 +235,8 @@ namespace tuplex {
 
         auto normal_case_type = normal_case_max_type.first.parameters().front();
         auto general_case_type = general_case_max_type.first.parameters().front();
-        std::cout << "normal  case:  " << normal_case_type.desc() << std::endl;
-        std::cout << "general case:  " << general_case_type.desc() << std::endl;
+        // std::cout << "normal  case:  " << normal_case_type.desc() << std::endl;
+        // std::cout << "general case:  " << general_case_type.desc() << std::endl;
 
         // check data layout
         codegen::LLVMEnvironment env;

@@ -550,10 +550,10 @@ namespace tuplex {
             // step 1: retrieve sample from inputnode!
             std::vector<Row> sample = fetchInputSample();
 
-            // columns, check for NAS_DELAY
-            for(int i = 0; i < _inputNode->columns().size(); ++i) {
-                std::cout<<i<<": "<<_inputNode->columns()[i]<<std::endl;
-            }
+            // // columns, check for NAS_DELAY
+            // for(int i = 0; i < _inputNode->columns().size(); ++i) {
+            //     std::cout<<i<<": "<<_inputNode->columns()[i]<<std::endl;
+            // }
 
             // @TODO: stats on types for sample. Use this to retype!
             // --> important first step!
@@ -563,9 +563,9 @@ namespace tuplex {
                 counts[row.getRowType().desc()]++;
                 t_counts[row.getRowType()]++;
             }
-            for(const auto& keyval : counts) {
-                std::cout<<keyval.second<<": "<<keyval.first<<std::endl;
-            }
+            // for(const auto& keyval : counts) {
+            //     std::cout<<keyval.second<<": "<<keyval.first<<std::endl;
+            // }
 
             // detect majority type
             // detectMajorityRowType(const std::vector<Row>& rows, double threshold, bool independent_columns)
@@ -619,10 +619,10 @@ namespace tuplex {
                 switch(_inputNode->type()) {
                     case LogicalOperatorType::FILEINPUT: {
                         auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
-                        std::cout << "(unoptimized) output schema of input op: "
-                                  << fop->getOutputSchema().getRowType().desc() << std::endl;
-                        std::cout << "(optimized) output schema of input op: "
-                                  << fop->getOptimizedOutputSchema().getRowType().desc() << std::endl;
+                        // std::cout << "(unoptimized) output schema of input op: "
+                        //           << fop->getOutputSchema().getRowType().desc() << std::endl;
+                        // std::cout << "(optimized) output schema of input op: "
+                        //           << fop->getOptimizedOutputSchema().getRowType().desc() << std::endl;
                         break;
                     }
                     default:
@@ -1058,9 +1058,9 @@ namespace tuplex {
         logger.info("specialized to output: " + path_ctx.outputSchema.getRowType().desc());
 
         // print out:
-        std::cout<<"input schema ("<<pluralize(path_ctx.inputSchema.getRowType().parameters().size(), "column")<<"): "<<path_ctx.inputSchema.getRowType().desc()<<std::endl;
-        std::cout<<"read schema ("<<pluralize(path_ctx.readSchema.getRowType().parameters().size(), "column")<<"): "<<path_ctx.readSchema.getRowType().desc()<<std::endl;
-        std::cout<<"output schema ("<<pluralize(path_ctx.outputSchema.getRowType().parameters().size(), "column")<<"): "<<path_ctx.outputSchema.getRowType().desc()<<std::endl;
+        // std::cout<<"input schema ("<<pluralize(path_ctx.inputSchema.getRowType().parameters().size(), "column")<<"): "<<path_ctx.inputSchema.getRowType().desc()<<std::endl;
+        // std::cout<<"read schema ("<<pluralize(path_ctx.readSchema.getRowType().parameters().size(), "column")<<"): "<<path_ctx.readSchema.getRowType().desc()<<std::endl;
+        // std::cout<<"output schema ("<<pluralize(path_ctx.outputSchema.getRowType().parameters().size(), "column")<<"): "<<path_ctx.outputSchema.getRowType().desc()<<std::endl;
 
         size_t numToRead = 0;
         for(auto indicator : path_ctx.columnsToRead)

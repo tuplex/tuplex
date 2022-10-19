@@ -1495,9 +1495,9 @@ namespace tuplex {
             flattened_struct_dict_entry_list_t entries;
             flatten_recursive_helper(entries, dict_type);
 
-            // print out paths
-            for(const auto& entry : entries)
-                std::cout<<json_access_path_to_string(std::get<0>(entry), std::get<1>(entry), std::get<2>(entry))<<std::endl;
+            // // print out paths
+            // for(const auto& entry : entries)
+            //    std::cout<<json_access_path_to_string(std::get<0>(entry), std::get<1>(entry), std::get<2>(entry))<<std::endl;
 
             // find corresponding entry
             // flat access path

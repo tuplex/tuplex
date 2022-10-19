@@ -71,7 +71,7 @@ namespace tuplex {
 
             // create (internal) llvm function to be inlined with all contents
 #ifndef NDEBUG
-            Logger::instance().defaultLogger().debug("DEBUG PRINT: creating func for " + _lastSchemaType.desc());
+            // Logger::instance().defaultLogger().debug("DEBUG PRINT: creating func for " + _lastSchemaType.desc());
 #endif
             auto& context = env().getContext();
 

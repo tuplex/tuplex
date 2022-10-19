@@ -1349,7 +1349,7 @@ namespace tuplex {
                     // }
 
                     // basically get the entry for the kv_pair.
-                    logger.debug("generating code to decode " + json_access_path_to_string(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
+                    // logger.debug("generating code to decode " + json_access_path_to_string(access_path, kv_pair.valueType, kv_pair.alwaysPresent));
                     SerializableValue decoded_value;
                     llvm::Value* value_is_present = nullptr;
                     llvm::Value* rc = nullptr; // can ignore rc -> parse escapes to mismatch...

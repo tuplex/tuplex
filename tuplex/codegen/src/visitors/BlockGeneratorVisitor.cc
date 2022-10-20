@@ -2819,8 +2819,8 @@ namespace tuplex {
                 // unbound local check, if not defined throw UnboundLocal error!
                 slot->generateUnboundLocalCheck(*_lfb, builder);
 
-                assert(slot->type != python::Type::UNKNOWN &&
-                id->getInferredType() != python::Type::UNKNOWN);
+                assert(slot->type != python::Type::UNKNOWN);
+                assert(id->getInferredType() != python::Type::UNKNOWN);
 
                 // check whether upcast is necessary
                 if(slot->type != id->getInferredType()) {
@@ -2828,7 +2828,7 @@ namespace tuplex {
                     // can id get upcasted to slot type?
                     // downcast!
                     if(python::canUpcastType(id->getInferredType(), slot->type)) {
-
+                        // nothing todo?
                     } else if(python::canUpcastType(slot->type, id->getInferredType())) {
                         // upcast
                         auto var = slot->var.load(builder);
@@ -2847,7 +2847,6 @@ namespace tuplex {
 #ifndef NDEBUG
                 //_env->debugPrint(builder, "accessing var " + slot->var.name + " =", var.val);
 #endif
-
                 addInstruction(var.val, var.size, var.is_null);
                 return;
             }
@@ -3818,6 +3817,21 @@ namespace tuplex {
             if(earlyExit())return;
 
             auto num_stack_before = _blockStack.size();
+
+            // is it an exception? (e.g. access of unknown column)
+            if(sub->getInferredType().isExceptionType()) {
+                // abort early (e.g., key error)?
+                throw std::runtime_error("exception type not yet supported in NSubscription");
+                // should be indexerror or keyerror.
+            }
+
+            // other option: annotation
+            if(sub->hasAnnotation()) {
+                if(sub->annotation().deoptException != ExceptionCode::SUCCESS) {
+                    _lfb->exitWithException(sub->annotation().deoptException);
+                    return;
+                }
+            }
 
             // visit children first
             ApatheticVisitor::visit(sub);

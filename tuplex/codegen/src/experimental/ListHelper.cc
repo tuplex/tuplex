@@ -819,7 +819,7 @@ namespace tuplex {
 
                 // call function! (or better said: emit the necessary code...)
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
-                auto s_size = ft.serialize(builder, dest_ptr)
+                auto s_size = ft.serialize(builder, dest_ptr);
 
                 return s_size;
             };

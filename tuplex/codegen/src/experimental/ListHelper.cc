@@ -597,7 +597,31 @@ namespace tuplex {
             return list_of_varitems_serialized_size(env, builder, list_ptr, list_type, list_get_list_item_size);
         }
 
-        llvm::Value* list_of_tuples_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type) {
+        llvm::Value* list_of_tuples_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
+                                         llvm::Value* list_ptr, const python::Type& list_type) {
+
+            auto f_tuple_element_size = [list_type](LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, llvm::Value* index) -> llvm::Value* {
+                assert(index && index->getType() == env.i64Type());
+
+                auto element_type = list_type.elementType();
+
+                assert(element_type.isTupleType());
+
+                if(python::Type::EMPTYTUPLE == element_type)
+                    return env.i64Const(0);
+
+                auto ptr_values = CreateStructLoad(builder, list_ptr, 2);
+                auto item = builder.CreateGEP(ptr_values, index);
+
+                // call function! (or better said: emit the necessary code...)
+                FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
+                auto item_size = ft.getSize(builder);
+
+                return item_size;
+            };
+
+            return list_of_varitems_serialized_size(env, builder, list_ptr, list_type, f_tuple_element_size);
+
 //            using namespace llvm;
 //
 //            assert(list_type.isListType());
@@ -737,7 +761,8 @@ namespace tuplex {
             };
 
 
-            return list_serialize_varitems_to(env, builder, list_ptr, list_type, dest_ptr, f_struct_element_size, f_struct_element_serialize_to);
+            return list_serialize_varitems_to(env, builder, list_ptr, list_type,
+                                              dest_ptr, f_struct_element_size, f_struct_element_serialize_to);
 
 
             // skipped for now...
@@ -756,13 +781,51 @@ namespace tuplex {
                                                  llvm::Value* dest_ptr) {
             // quite complex, basically write like strings/pyobjects incl. offset array!
 
-            // skipped for now...
-            auto& logger = Logger::instance().logger("codegen");
-            logger.error("MISSING FEATURE: add support for list_of_tuples_serialization");
+            // -> there may be structs that are of fixed size. Could write them optimized.
+            // for now, write as var always...
+            // -> use same Lambda func for size helper func...
+            auto f_tuple_element_size = [list_type](LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, llvm::Value* index) -> llvm::Value* {
+                assert(index && index->getType() == env.i64Type());
 
-            throw std::runtime_error("missing feature");
+                auto element_type = list_type.elementType();
 
-            return env.i64Const(0);
+                assert(element_type.isTupleType());
+
+                if(python::Type::EMPTYTUPLE == element_type)
+                    return env.i64Const(0);
+
+                auto ptr_values = CreateStructLoad(builder, list_ptr, 2);
+                auto item = builder.CreateGEP(ptr_values, index);
+
+                // call function! (or better said: emit the necessary code...)
+                FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
+                auto item_size = ft.getSize(builder);
+
+                return item_size;
+            };
+
+            auto f_tuple_element_serialize_to = [list_type](LLVMEnvironment& env, llvm::IRBuilder<>& builder,
+                                                             llvm::Value* list_ptr, llvm::Value* index, llvm::Value* dest_ptr) -> llvm::Value* {
+
+                assert(index && index->getType() == env.i64Type());
+
+                auto element_type = list_type.elementType();
+
+                if(python::Type::EMPTYTUPLE == element_type)
+                    return env.i64Const(0);
+
+                auto ptr_values = CreateStructLoad(builder, list_ptr, 2);
+                auto item = builder.CreateGEP(ptr_values, index);
+
+                // call function! (or better said: emit the necessary code...)
+                FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
+                auto s_size = ft.serialize(builder, dest_ptr)
+
+                return s_size;
+            };
+
+            return list_serialize_varitems_to(env, builder, list_ptr, list_type,
+                                              dest_ptr, f_tuple_element_size, f_tuple_element_serialize_to);
         }
 
         // generic list of variable fields serialization function

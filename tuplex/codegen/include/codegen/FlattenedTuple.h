@@ -200,8 +200,9 @@ namespace tuplex {
              * serialize to pointer (no capacity check!) only use if absolutely sure it works!
              * @param builder
              * @param ptr
+             * @return difference of pointer pos to start ptr (i.e., serialized size)
              */
-            void serialize(llvm::IRBuilder<> &builder, llvm::Value *ptr) const;
+            llvm::Value* serialize(llvm::IRBuilder<> &builder, llvm::Value *ptr) const;
 
             /*!
              * allocates via internal enviornment new memory block and fits tuple in

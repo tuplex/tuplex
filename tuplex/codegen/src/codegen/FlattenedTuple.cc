@@ -519,13 +519,15 @@ namespace tuplex {
             return serializationSize;
         }
 
-        void FlattenedTuple::serialize(llvm::IRBuilder<>& builder, llvm::Value *ptr) const {
+        llvm::Value* FlattenedTuple::serialize(llvm::IRBuilder<>& builder, llvm::Value *ptr) const {
             using namespace llvm;
             using namespace std;
 
             auto& context = _env->getContext();
             auto types = getFieldTypes();
             bool hasVarField = !getTupleType().withoutOptions().isFixedSizeType();
+
+            auto original_start_ptr = ptr;
 
             // serialize fixed size + varlen fields out
             Value *lastPtr = ptr;
@@ -762,7 +764,13 @@ namespace tuplex {
             // if varfield was encountered, store varfield size!
             if(hasVarField) {
                 builder.CreateStore(varlenSize, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0))); // last field
+                lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)));
+                // add varlength
+                lastPtr = builder.CreateGEP(lastPtr, varlenSize);
             }
+
+            // return diff
+            return builder.CreatePtrDiff(lastPtr, original_start_ptr);
         }
 
         void FlattenedTuple::setElement(llvm::IRBuilder<>& builder,

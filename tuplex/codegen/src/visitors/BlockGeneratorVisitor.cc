@@ -3818,19 +3818,42 @@ namespace tuplex {
 
             auto num_stack_before = _blockStack.size();
 
-            // is it an exception? (e.g. access of unknown column)
-            if(sub->getInferredType().isExceptionType()) {
-                // abort early (e.g., key error)?
-                throw std::runtime_error("exception type not yet supported in NSubscription");
-                // should be indexerror or keyerror.
-            }
-
             // other option: annotation
             if(sub->hasAnnotation()) {
                 if(sub->annotation().deoptException != ExceptionCode::SUCCESS) {
                     _lfb->exitWithException(sub->annotation().deoptException);
                     return;
                 }
+            }
+
+            // is it an exception? (e.g. access of unknown column)
+            if(sub->getInferredType().isExceptionType()) {
+
+                // this is a hack, basically check if anywhere in the down tree an exception is found.
+                // only works when no functions with side effects are called.
+                // for now true, b.c. no external funcs supported, UDFs stateless...
+                if(sub->getInferredType().desc() == "Exception") {
+
+                    std::vector<ExceptionCode> codes_found;
+                    ApplyVisitor av([](const ASTNode* node) { return true; },
+                                    [&codes_found](ASTNode& node) {
+                        if(node.hasAnnotation() && node.annotation().deoptException != ExceptionCode::SUCCESS)
+                            codes_found.push_back(node.annotation().deoptException);
+                    }, true);
+                    // apply to current node
+                    sub->accept(av);
+                    if(!codes_found.empty()) {
+                        if(codes_found.size() != 1) {
+                            error("more than one code found (??)");
+                        }
+                        _lfb->exitWithException(codes_found.front());
+                        return;
+                    }
+                }
+
+                // abort early (e.g., key error)?
+                throw std::runtime_error("exception type not yet supported in NSubscription");
+                // should be indexerror or keyerror.
             }
 
             // visit children first

@@ -668,7 +668,7 @@ namespace tuplex {
 //
 //            builder.SetInsertPoint(bLoopExit);
 //            return builder.CreateLoad(size_var);
-throw std::runtime_error("nyimpl");
+            throw std::runtime_error("list of tuples nyimpl");
         }
 
         static llvm::Value* list_serialize_fixed_sized_to(LLVMEnvironment& env, llvm::IRBuilder<>& builder,

@@ -923,8 +923,34 @@ namespace python {
             } else {
                 return json_string_to_pyobject(s, type.getReturnType());
             }
-        }else {
-            throw std::runtime_error("unsupported type to decode");
+        } else if(type.isTupleType()) {
+            simdjson::dom::parser parser;
+            auto arr = parser.parse(s);
+            assert(arr.is_array());
+            std::vector<PyObject*> elements;
+            unsigned pos = 0;
+            for(const auto& el : arr) {
+                // early abort in case
+                if(pos >= type.parameters().size()) {
+                    Logger::instance().logger("python").error("internal error, decoding list "
+                                                              "as tuple but too many elements available.");
+                    break;
+                }
+
+                auto element_type = type.parameters()[pos];
+                // what is the element type?
+                auto el_str = simdjson::minify(el);
+                elements.push_back(json_string_to_pyobject(el_str, element_type));
+                pos++;
+            }
+
+            // combine -> as tuple? or as list?
+            auto list_obj = PyList_New(elements.size());
+            for(unsigned i = 0; i < elements.size(); ++i)
+                PyList_SET_ITEM(list_obj, i, elements[i]);
+            return list_obj;
+        } else {
+            throw std::runtime_error("unsupported type " + type.desc() + " to decode");
         }
         Py_XINCREF(Py_None); // <-- unknown, use None.
         return Py_None;
@@ -1622,7 +1648,7 @@ namespace python {
 
         // match object
         auto name = typeName(o);
-        if(o->ob_type->tp_name == "re.Match")
+        if(0 == strcmp(o->ob_type->tp_name, "re.Match"))
             return python::Type::MATCHOBJECT;
 
         if("module" ==  name)

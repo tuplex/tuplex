@@ -343,6 +343,65 @@ namespace tuplex {
         return keys;
     }
 
+    std::string decodeTupleAsListFromBinary(const python::Type& tuple_type, const uint8_t* buf, size_t buf_size) {
+        std::stringstream ss;
+
+        assert(tuple_type.isTupleType());
+
+        // how many fixed size elements?
+        // how many var elements?
+        auto ptr = buf;
+        auto num_elements = tuple_type.parameters().size();
+        if(0 == num_elements)
+            return "[]";
+
+        // todo: flattened tuple? => not yet supported...
+
+
+        ss<<"[";
+        for(unsigned i = 0; i < num_elements; ++i) {
+            auto type = tuple_type.parameters()[i];
+            // fixed size type?
+            if(type.isNumericType()) {
+                if(python::Type::BOOLEAN == type) {
+                    int64_t i = *(int64_t*)ptr;
+                    ptr += sizeof(int64_t);
+                    ss<<(i ? "true" : "false");
+                } else if(python::Type::I64 == type) {
+                    int64_t i = *(int64_t*)ptr;
+                    ptr += sizeof(int64_t);
+                    ss<<i;
+                } else if(python::Type::F64 == type) {
+                    double d = *(double*)ptr;
+                    ptr += sizeof(double);
+                    ss<<d;
+                } else throw std::runtime_error("internal error when decoding numeric in decodeTupleAsListJSON");
+            } else if(python::Type::STRING == type) {
+                // fetch offset and size
+                auto info = *(uint64_t*)ptr;
+
+                uint32_t offset = info & 0xFFFFFFFF;
+                uint32_t size = info >> 32u;
+
+                std::string str((const char*)(ptr + offset));
+                ss<<escape_for_json(str);
+
+                ptr += sizeof(int64_t);
+            } else if(python::Type::NULLVALUE == type) {
+                ss<<"null";
+            } else {
+                throw std::runtime_error("unsupported type " + type.desc());
+            }
+
+            if(i != num_elements - 1)
+                ss<<",";
+
+        }
+        ss<<"]";
+
+        return ss.str();
+    }
+
     std::string decodeListAsJSON(const python::Type& list_type, const uint8_t* buf, size_t buf_size) {
 
         assert(list_type.isListType());
@@ -407,6 +466,37 @@ namespace tuplex {
 
                 // get start and decode
                 std::string str = decodeStructDictFromBinary(element_type, ptr + offset, size);
+                ss<<str;
+                if(i != num_elements - 1)
+                    ss<<",";
+
+                ptr += sizeof(int64_t);
+            }
+            ss<<"]";
+            return ss.str();
+        } else if(element_type == python::Type::EMPTYLIST || element_type == python::Type::EMPTYTUPLE) {
+            std::stringstream ss;
+            ss<<"[";
+            for(unsigned i = 0; i < num_elements; ++i) {
+                ss<<"[]";
+                if(i != num_elements - 1)
+                    ss<<",";
+            }
+            ss<<"]";
+            return ss.str();
+        } else if(element_type.isTupleType() && element_type != python::Type::EMPTYTUPLE) {
+            std::stringstream ss;
+            ss<<"[";
+            auto ptr = buf + sizeof(int64_t);
+            for(unsigned i = 0; i < num_elements; ++i) {
+                // fetch offset and size
+                auto info = *(uint64_t*)ptr;
+
+                uint32_t offset = info & 0xFFFFFFFF;
+                uint32_t size = info >> 32u;
+
+                // get start and decode
+                std::string str = decodeTupleAsListFromBinary(element_type, ptr + offset, size);
                 ss<<str;
                 if(i != num_elements - 1)
                     ss<<",";

@@ -65,6 +65,28 @@ namespace tuplex {
             // 1. try to type statically by simply annotating the AST
             logger.debug("performing static typing for UDF in operator " + name());
             bool success = _udf.hintInputSchema(parentSchema, false, false);
+
+            // check what the return type is. If it is of exception type, try to use a sample to get rid off branches that are off
+            if(success && _udf.getOutputSchema().getRowType().isExceptionType()) {
+                logger.debug("static typing resulted in UDF producing always exceptions. Try hinting with sample...");
+                auto rows_sample = parent()->getPythonicSample(MAX_TYPE_SAMPLING_ROWS);
+                _udf.removeTypes(false);
+                success = _udf.hintSchemaWithSample(rows_sample,
+                                                    parentSchema.getRowType(), true);
+                if(success) {
+                    if(_udf.getCompileErrors().empty() || _udf.getReturnError() != CompileError::COMPILE_ERROR_NONE) {
+                        // @TODO: add the constant folding for the other scenarios as well!
+                        if(containsConstantType(parentSchema.getRowType())) {
+                            _udf.optimizeConstants();
+                        }
+                    }
+                    // if unsupported types presented, use sample to determine type and use fallback mode (except for list return type error, only print error messages for now)
+                    return _udf.getOutputSchema();
+                }
+                logger.debug("no success hinting, trying out different hint modes...");
+                success = false;
+            }
+
             if(!success) {
                 // in debug, print compile errors.
                 logger.debug("static typing failed because of:\n  -- " + _udf.getCompileErrorsAsStr());
@@ -130,7 +152,6 @@ namespace tuplex {
             }
 
             if(_udf.getCompileErrors().empty() || _udf.getReturnError() != CompileError::COMPILE_ERROR_NONE) {
-
                 // @TODO: add the constant folding for the other scenarios as well!
                 if(containsConstantType(parentSchema.getRowType())) {
                     _udf.optimizeConstants();

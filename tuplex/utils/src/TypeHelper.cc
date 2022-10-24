@@ -15,6 +15,18 @@ namespace tuplex {
                                                  const TypeUnificationPolicy& policy) {
         assert(aUnderlyingType.isStructuredDictionaryType() && bUnderlyingType.isDictionaryType());
 
+        // generic dict allowed with python
+        if(policy.allowUnifyWithPyObject) {
+            if(bUnderlyingType == python::Type::GENERICDICT) {
+                return python::Type::GENERICDICT;
+            }
+        }
+
+        // special case: empty dict -> can be cast to whatever
+        if(bUnderlyingType == python::Type::EMPTYDICT) {
+            return aUnderlyingType; // <-- empty dict can be upcast to any dict type!
+        }
+
         // are both of them structured dictionaries?
         if(aUnderlyingType.isStructuredDictionaryType() && bUnderlyingType.isStructuredDictionaryType()) {
             // ok, most complex unify setup --> need to check key pairs (independent of order!)

@@ -22,23 +22,30 @@ namespace tuplex {
         //// infer schema (may throw exception!) after applying UDF
         //setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::UNKNOWN));
 
-        // check if compiled, then hintschema
-        if(_udf.isCompiled()) {
-            // remove types from UDF --> retype using parent...
-            _udf.removeTypes();
+        // special case: parent is of exception type -> propagate
+        if(this->parent()->getOutputSchema().getRowType().isExceptionType()) {
+            _udf.setInputSchema(this->parent()->getOutputSchema());
+            _udf.setOutputSchema(this->parent()->getOutputSchema());
+        } else {
+            // check if compiled, then hintschema
+            if(_udf.isCompiled()) {
+                // remove types from UDF --> retype using parent...
+                _udf.removeTypes();
 
-            // rewrite column access if given info
-            if(!_udf.rewriteDictAccessInAST(parent->columns())) {
-                _good = false;
-                return;
+                // rewrite column access if given info
+                if(!_udf.rewriteDictAccessInAST(parent->columns())) {
+                    _good = false;
+                    return;
+                }
+
+                // hint from parents
+                _udf.hintInputSchema(this->parent()->getOutputSchema());
+            } else {
+                // set input schema from parent & set as output bool
+                _udf.setInputSchema(this->parent()->getOutputSchema());
+                _udf.setOutputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType({python::Type::BOOLEAN})));
             }
 
-            // hint from parents
-            _udf.hintInputSchema(this->parent()->getOutputSchema());
-        } else {
-            // set input schema from parent & set as output bool
-            _udf.setInputSchema(this->parent()->getOutputSchema());
-            _udf.setOutputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType({python::Type::BOOLEAN})));
         }
 
         // check whether UDF is compliant, if so take schema from parent

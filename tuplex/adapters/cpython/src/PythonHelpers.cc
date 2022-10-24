@@ -884,6 +884,13 @@ namespace python {
             }
             return dict_obj;
         } else if(type.isListType()) {
+
+            // shortcut: empty list
+            if(python::Type::EMPTYLIST == type) {
+                auto list_obj = PyList_New(0);
+                return list_obj;
+            }
+
             simdjson::dom::parser parser;
             auto arr = parser.parse(s);
             assert(arr.is_array());
@@ -949,6 +956,9 @@ namespace python {
             for(unsigned i = 0; i < elements.size(); ++i)
                 PyList_SET_ITEM(list_obj, i, elements[i]);
             return list_obj;
+        } else if(type == python::Type::EMPTYDICT) {
+            auto dict_obj = PyDict_New();
+            return dict_obj;
         } else {
             throw std::runtime_error("unsupported type " + type.desc() + " to decode");
         }

@@ -299,6 +299,7 @@ namespace tuplex {
         _ast.setUnpacking(false);
         python::Type hintType = schema.getRowType();
 
+
         // if it's not a tuple type, go directly to the special case...
         if(!hintType.isTupleType())
             hintType = codegenTypeToRowType(hintType);

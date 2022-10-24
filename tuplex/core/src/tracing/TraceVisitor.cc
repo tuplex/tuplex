@@ -422,13 +422,18 @@ namespace tuplex {
 
             auto sample_row_type = python::Type::makeTupleType(_colTypes.back());
 
-            auto unified_type = unifyTypes(sample_row_type, _inputRowType);
+            // allow here unification with pyobject.
+            TypeUnificationPolicy t_policy;
+            t_policy.unifyMissingDictKeys = true;
+            t_policy.allowUnifyWithPyObject = true;
+
+            auto unified_type = unifyTypes(sample_row_type, _inputRowType, t_policy);
 
             if(unified_type == python::Type::UNKNOWN) { // check here for upcastability
 
                 // special case: coltypes could be single element & tuple!
                 if(_colTypes.back().size() == 1)
-                    unified_type = unifyTypes(_colTypes.back().front(), _inputRowType);
+                    unified_type = unifyTypes(_colTypes.back().front(), _inputRowType, t_policy);
                 if(unified_type != python::Type::UNKNOWN) {
                     // update colTypes accordingly!
                     for(auto& colType : _colTypes)
@@ -551,7 +556,19 @@ namespace tuplex {
                         throw std::runtime_error("Operator " + opToString(op) + " not yet supported in TraceVisitor/NCompare");
                 int opid = it->second;
 
-                res.value = PyObject_RichCompare(res.value, ti_vals[i + 1].value, opid);
+                res.value = PyObject_RichCompare(ti_vals[i].value, ti_vals[i + 1].value, opid);
+            }
+
+            errCheck();
+
+            // chain check
+            Py_XINCREF(res.value);
+            if(!PyObject_IsTrue(res.value)) {
+                // else, continue and update like above
+                Py_XINCREF(Py_False);
+                res.value = Py_False;
+                addTraceResult(node, res);
+                return;
             }
 
             // NULL? ==> failure!

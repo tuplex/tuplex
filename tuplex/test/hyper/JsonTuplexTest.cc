@@ -667,7 +667,7 @@ TEST_F(JsonTuplexTest,SampleForAllFiles) {
     // use sample
     string pattern = "../resources/hyperspecialization/github_daily/*.json.sample";
 
-    pattern = "../resources/hyperspecialization/github_daily/2012*.json.sample";
+     pattern = "../resources/hyperspecialization/github_daily/2011*.json.sample";
 
     auto& ds = github_pipeline(c, pattern);
     EXPECT_FALSE(ds.isError());

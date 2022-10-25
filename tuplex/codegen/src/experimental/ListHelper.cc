@@ -412,6 +412,8 @@ namespace tuplex {
                 auto llvm_element_type = env.getOrCreateTupleType(elementType);
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
 
+#error "this here is wrong, need to store a heap ptr! perform necessary conversion."
+
                 // store pointer --> should be HEAP allocated pointer. (maybe add attributes to check?)
                 assert(value.val);
                 auto ptr = builder.CreateLoad(idx_values);
@@ -616,6 +618,9 @@ namespace tuplex {
                 // call function! (or better said: emit the necessary code...)
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
                 auto item_size = ft.getSize(builder);
+
+                env.printValue(builder, index, "size of list element: ");
+                env.printValue(builder, item_size, "item size is: ");
 
                 return item_size;
             };
@@ -862,9 +867,9 @@ namespace tuplex {
 
             // start loop going over the size entries (--> this could be vectorized!)
             auto& ctx = env.getContext(); auto F = builder.GetInsertBlock()->getParent();
-            BasicBlock *bLoopHeader = BasicBlock::Create(ctx, "var_size_loop_header", F);
-            BasicBlock *bLoopBody = BasicBlock::Create(ctx, "var_size_loop_body", F);
-            BasicBlock *bLoopExit = BasicBlock::Create(ctx, "var_size_loop_done", F);
+            BasicBlock *bLoopHeader = BasicBlock::Create(ctx, "list_of_var_items_serialize_loop_header", F);
+            BasicBlock *bLoopBody = BasicBlock::Create(ctx, "list_of_var_items_serialize_loop_body", F);
+            BasicBlock *bLoopExit = BasicBlock::Create(ctx, "list_of_var_items_serialize_loop_done", F);
 
             auto varlen_bytes_var = env.CreateFirstBlockAlloca(builder, env.i64Type());
             builder.CreateStore(env.i64Const(0), varlen_bytes_var);
@@ -955,9 +960,9 @@ namespace tuplex {
 
             // start loop going over the size entries (--> this could be vectorized!)
             auto& ctx = env.getContext(); auto F = builder.GetInsertBlock()->getParent();
-            BasicBlock *bLoopHeader = BasicBlock::Create(ctx, "var_size_loop_header", F);
-            BasicBlock *bLoopBody = BasicBlock::Create(ctx, "var_size_loop_body", F);
-            BasicBlock *bLoopExit = BasicBlock::Create(ctx, "var_size_loop_done", F);
+            BasicBlock *bLoopHeader = BasicBlock::Create(ctx, "list_of_var_items_size_loop_header", F);
+            BasicBlock *bLoopBody = BasicBlock::Create(ctx, "list_of_var_items_size_loop_body", F);
+            BasicBlock *bLoopExit = BasicBlock::Create(ctx, "list_of_var_items_size_loop_done", F);
 
             auto varlen_bytes_var = env.CreateFirstBlockAlloca(builder, env.i64Type());
             builder.CreateStore(env.i64Const(0), varlen_bytes_var);

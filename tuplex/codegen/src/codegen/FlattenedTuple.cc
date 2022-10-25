@@ -890,6 +890,8 @@ namespace tuplex {
 
                 auto type = _tree.fieldType(i);
 
+                _env->printValue(builder, s, "cur size before serializing " + type.desc());
+
                 // special case: option
                 BasicBlock* bNext = nullptr;
                 BasicBlock* lastBlockBeforeNullCheck = nullptr;

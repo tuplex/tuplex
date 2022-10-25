@@ -593,6 +593,12 @@ namespace tuplex {
         }
 
         /*!
+         * helper function to annotate module such that each IR instruction is printed when executed. Helpful for debugging
+         * @param mod
+         */
+        extern void annotateModuleWithInstructionPrint(llvm::Module& mod);
+
+        /*!
          * check whether row type of normal-case can be upcast to general case type
          * @param normal_case_type
          * @param general_case_type

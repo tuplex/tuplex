@@ -658,6 +658,8 @@ TEST_F(JsonTuplexTest,SampleForAllFiles) {
 
     // deactivate filter pushdown as well...
     co.set("tuplex.optimizer.filterPushdown", "false");
+    co.set("tuplex.useLLVMOptimizer", "true");
+    co.set("tuplex.executorCount", "0");
 
     Context c(co);
 
@@ -667,34 +669,29 @@ TEST_F(JsonTuplexTest,SampleForAllFiles) {
     // use sample
     string pattern = "../resources/hyperspecialization/github_daily/*.json.sample";
 
-     pattern = "../resources/hyperspecialization/github_daily/2011*.json.sample";
+    pattern = "../resources/hyperspecialization/github_daily/2012*.json.sample";
+
+    std::cout<<"Processing in global mode..."<<std::endl;
 
     auto& ds = github_pipeline(c, pattern);
     EXPECT_FALSE(ds.isError());
     ds.tocsv("github_forkevents.csv");
 
-//    // process all files (as they are)
-//    c.json(pattern).withColumn("repo_id", UDF("lambda x: x['repo']['id']"))
-//            .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
-//            .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
-//            .selectColumns(std::vector<std::string>({"type", "repo_id", "year"}))
-//            .tocsv("github_forkevents.csv");
+//    std::cout<<"Processing in hyper mode..."<<std::endl;
 
 //    // process each file on its own and compare to the global files...
 //    // -> they should be identical... (up to order)
 //    auto paths = glob(pattern);
 //    for(const auto& path : paths) {
 //        std::cout<<"--> processing path "<<path<<std::endl;
-//
+
 //        auto basename = path.substr(path.rfind("/") + 1);
 //        auto output_path = basename.substr(0, basename.find('.')) + "_github_forkevents.csv";
 //        std::cout<<"writing output to: "<<output_path<<std::endl;
-//
-//        c.json(path).withColumn("repo_id", UDF("lambda x: x['repo']['id']"))
-//        .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
-//        .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
-//        .selectColumns(std::vector<std::string>({"type", "repo_id", "year"}))
-//        .tocsv(output_path);
+
+//        auto& ds = github_pipeline(c, path);
+//        EXPECT_FALSE(ds.isError());
+//        ds.tocsv(output_path);
 //    }
 }
 

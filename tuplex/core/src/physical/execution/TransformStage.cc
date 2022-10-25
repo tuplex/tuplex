@@ -855,8 +855,16 @@ namespace tuplex {
             // metrics.setLLVMOptimizationTime(llvm_optimization_time);
             logger.info("TransformStage - Optimization via LLVM passes took " + std::to_string(llvm_optimization_time) + " ms");
 
+#ifndef NDEBUG
+            auto opt_code = codegen::moduleToString(*fast_path_mod);
+            stringToFile(URI("fastpath_transform_stage_" + std::to_string(number()) + "_optimized.txt"), opt_code);
+#endif
+
             timer.reset();
         }
+
+        // annotate module (optimized)
+        // codegen::annotateModuleWithInstructionPrint(*fast_path_mod);
 
         // step 2: register callback functions with compiler
 

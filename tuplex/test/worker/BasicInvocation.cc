@@ -1021,58 +1021,6 @@ namespace tuplex {
         return rows_identical;
     }
 
-    void annotateModuleWithInstructionPrint(llvm::Module& mod) {
-
-        auto printf_func = codegen::printf_prototype(mod.getContext(), &mod);
-
-
-        // lookup table for names (before modifying module!)
-        std::unordered_map<llvm::Instruction*, std::string> names;
-        for(auto& func : mod) {
-            for(auto& bb : func) {
-
-                for(auto& inst : bb) {
-                    std::string inst_name;
-                    llvm::raw_string_ostream os(inst_name);
-                    inst.print(os);
-                    os.flush();
-
-                    // save instruction name in map
-                    auto inst_ptr = &inst;
-                    names[inst_ptr] = inst_name;
-
-                }
-            }
-        }
-
-
-        // go over all functions in mod
-        for(auto& func : mod) {
-            std::cout<<"Annotating "<<func.getName().str()<<std::endl;
-
-            // go over blocks
-            size_t num_blocks = 0;
-            size_t num_instructions = 0;
-            for(auto& bb : func) {
-                for(auto& inst : bb) {
-                    // only call printf IFF not a branching instruction and not a ret instruction
-                    auto inst_ptr = &inst;
-                    auto inst_name = names.at(inst_ptr);
-                    if(!llvm::isa<llvm::BranchInst>(inst_ptr) && !llvm::isa<llvm::ReturnInst>(inst_ptr) && !llvm::isa<llvm::PHINode>(inst_ptr)) {
-                        llvm::IRBuilder<> builder(inst_ptr);
-                        llvm::Value *sConst = builder.CreateGlobalStringPtr(inst_name);
-                        llvm::Value *sFormat = builder.CreateGlobalStringPtr("%s\n");
-                        builder.CreateCall(printf_func, {sFormat, sConst});
-                        num_instructions++;
-                    }
-                }
-
-                num_blocks++;
-            }
-            std::cout<<"Annotated "<<pluralize(num_blocks, "basic block")<<", "<<pluralize(num_instructions, "instruction")<<std::endl;
-        }
-    }
-
     int checkHyperSpecialization(const URI& input_uri, TransformStage* tstage_hyper, TransformStage* tstage_general, int num_threads, const URI& spillURI) {
         using namespace std;
         int rc = 0;
@@ -1108,7 +1056,7 @@ namespace tuplex {
             llvm::LLVMContext llvm_ctx;
             auto mod = codegen::bitCodeToModule(llvm_ctx, tstage_general->slowPathBitCode());
             stringToFile("general_slowpath.txt", codegen::moduleToString(*mod.get()));
-            annotateModuleWithInstructionPrint(*mod.get());
+            codegen::annotateModuleWithInstructionPrint(*mod.get());
             // debug, overwrite slowpath with newly annotated module!
             tstage_general->slowPathBitCode() = codegen::moduleToBitCodeString(*mod.get());
         }

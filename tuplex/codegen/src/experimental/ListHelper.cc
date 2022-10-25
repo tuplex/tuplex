@@ -139,7 +139,7 @@ namespace tuplex {
                 auto llvm_element_type = env.getOrCreateTupleType(elementType);
 
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
-                builder.CreateStore(env.nullConstant(llvm_element_type->getPointerTo()), idx_values);
+                builder.CreateStore(env.nullConstant(llvm_element_type->getPointerTo()->getPointerTo()), idx_values);
 
                 if(elements_optional) {
                     auto idx_opt_values = CreateStructGEP(builder, list_ptr, 3);
@@ -412,29 +412,37 @@ namespace tuplex {
                 auto llvm_element_type = env.getOrCreateTupleType(elementType);
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
 
-#error "this here is wrong, need to store a heap ptr! perform necessary conversion."
+                auto tuple = value.val;
+                if(tuple->getType() == llvm_element_type->getPointerTo())
+                    tuple = builder.CreateLoad(tuple);
+
+                // load FlattenedTuple from value (this ensures it is a heap ptr)
+                FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, tuple, elementType);
+                auto heap_ptr = ft.loadToHeapPtr(builder);
 
                 // store pointer --> should be HEAP allocated pointer. (maybe add attributes to check?)
-                assert(value.val);
                 auto ptr = builder.CreateLoad(idx_values);
                 auto idx_value = builder.CreateGEP(ptr, idx);
 
-                // what type is value.val?
-                if(!value.val)
-                    throw std::runtime_error("can not store nullptr as tuple");
-                if(value.val->getType() == llvm_element_type) {
-                    builder.CreateStore(value.val, idx_value); // store struct.tuple to pointer!
-                } else if(value.val->getType() == llvm_element_type->getPointerTo()) {
-                    // got a pointer, need to load then store!
-                    auto tuple = builder.CreateLoad(value.val);
-                    builder.CreateStore(tuple, idx_value);
-                } else {
-                    std::stringstream err;
-                    err<<"given value has type "<<env.getLLVMTypeName(value.val->getType())
-                       <<" but expected type "<<env.getLLVMTypeName(llvm_element_type)
-                       <<" or "<<env.getLLVMTypeName(llvm_element_type->getPointerTo());
-                    throw std::runtime_error(err.str());
-                }
+                // store the heap ptr.
+                builder.CreateStore(heap_ptr, idx_value);
+
+//                // what type is value.val?
+//                if(!value.val)
+//                    throw std::runtime_error("can not store nullptr as tuple");
+//                if(value.val->getType() == llvm_element_type) {
+//                    builder.CreateStore(value.val, idx_value); // store struct.tuple to pointer!
+//                } else if(value.val->getType() == llvm_element_type->getPointerTo()) {
+//                    // got a pointer, need to load then store!
+//                    auto tuple = builder.CreateLoad(value.val);
+//                    builder.CreateStore(tuple, idx_value);
+//                } else {
+//                    std::stringstream err;
+//                    err<<"given value has type "<<env.getLLVMTypeName(value.val->getType())
+//                       <<" but expected type "<<env.getLLVMTypeName(llvm_element_type)
+//                       <<" or "<<env.getLLVMTypeName(llvm_element_type->getPointerTo());
+//                    throw std::runtime_error(err.str());
+//                }
             } else {
                 throw std::runtime_error("Unsupported list element type: " + list_type.desc());
             }
@@ -614,6 +622,8 @@ namespace tuplex {
 
                 auto ptr_values = CreateStructLoad(builder, list_ptr, 2);
                 auto item = builder.CreateGEP(ptr_values, index);
+
+                item = builder.CreateLoad(item); // new when pointers are stored.
 
                 // call function! (or better said: emit the necessary code...)
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
@@ -802,6 +812,9 @@ namespace tuplex {
                 auto ptr_values = CreateStructLoad(builder, list_ptr, 2);
                 auto item = builder.CreateGEP(ptr_values, index);
 
+                // new
+                item = builder.CreateLoad(item);
+
                 // call function! (or better said: emit the necessary code...)
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
                 auto item_size = ft.getSize(builder);
@@ -821,6 +834,9 @@ namespace tuplex {
 
                 auto ptr_values = CreateStructLoad(builder, list_ptr, 2);
                 auto item = builder.CreateGEP(ptr_values, index);
+
+                // new
+                item = builder.CreateLoad(item);
 
                 // call function! (or better said: emit the necessary code...)
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);

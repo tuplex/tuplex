@@ -903,7 +903,8 @@ namespace tuplex {
 
         void LLVMEnvironment::setTupleElement(llvm::IRBuilder<> &builder, const python::Type &tupleType,
                                               llvm::Value *tuplePtr, unsigned int index,
-                                              const SerializableValue &value) {
+                                              const SerializableValue &value,
+                                              bool is_volatile) {
             using namespace llvm;
 
             assert(tupleType.isTupleType());
@@ -939,7 +940,7 @@ namespace tuplex {
                 // auto structBitmapIdx = builder.CreateStructGEP(tuplePtr, 0); // bitmap comes first!
                 auto structBitmapIdx = CreateStructGEP(builder, tuplePtr, 0ull); // bitmap comes first!
                 auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
-                builder.CreateStore(value.is_null, bitmapIdx);
+                builder.CreateStore(value.is_null, bitmapIdx, is_volatile);
             }
 
             // get rid off option & check again for special emptytuple/emptydict/...
@@ -959,7 +960,7 @@ namespace tuplex {
                         v = builder.CreateLoad(v); // load in order to store!
                 }
 
-                builder.CreateStore(v, structValIdx);
+                builder.CreateStore(v, structValIdx, is_volatile);
             }
 
             // size existing? ==> only for varlen types
@@ -969,10 +970,12 @@ namespace tuplex {
                 // auto structSizeIdx = builder.CreateStructGEP(tuplePtr, sizeOffset);
                 auto structSizeIdx = CreateStructGEP(builder, tuplePtr, sizeOffset);
                 if (value.size)
-                    builder.CreateStore(value.size, structSizeIdx);
+                    builder.CreateStore(value.size, structSizeIdx, is_volatile);
+                else {
+                    builder.CreateStore(i64Const(0), structSizeIdx, is_volatile);
+                }
             }
         }
-
 
         llvm::Value *LLVMEnvironment::truthValueTest(llvm::IRBuilder<> &builder, const SerializableValue &val,
                                                      const python::Type &type) {

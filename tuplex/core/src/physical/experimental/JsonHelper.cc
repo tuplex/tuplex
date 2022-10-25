@@ -465,7 +465,10 @@ namespace tuplex {
                 buf[pos] = sv_value.at(pos);
             buf[sv_value.size()] = '\0';
             *out = buf;
-            *size = sv_value.size() + 1;
+            *size = str_size;
+
+            assert(*size >= 1);
+
             return ecToI64(ExceptionCode::SUCCESS);
         }
 

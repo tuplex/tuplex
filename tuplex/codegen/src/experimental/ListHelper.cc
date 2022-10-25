@@ -413,19 +413,46 @@ namespace tuplex {
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
 
                 auto tuple = value.val;
-                if(tuple->getType() == llvm_element_type->getPointerTo())
-                    tuple = builder.CreateLoad(tuple);
 
                 // load FlattenedTuple from value (this ensures it is a heap ptr)
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, tuple, elementType);
                 auto heap_ptr = ft.loadToHeapPtr(builder);
 
+                // debug:
+                env.printValue(builder, idx, "storing tuple of type " + elementType.desc() + " at index: ");
+                env.printValue(builder, ft.getSize(builder), "tuple size is: ");
+
+                env.printValue(builder, heap_ptr, "pointer to store: ");
+
                 // store pointer --> should be HEAP allocated pointer. (maybe add attributes to check?)
                 auto ptr = builder.CreateLoad(idx_values);
                 auto idx_value = builder.CreateGEP(ptr, idx);
 
+                env.printValue(builder, builder.CreateLoad(idx_value), "pointer currently stored: ");
+
                 // store the heap ptr.
-                builder.CreateStore(heap_ptr, idx_value);
+                builder.CreateStore(heap_ptr, idx_value, true);
+
+                env.printValue(builder, builder.CreateLoad(idx_value), "pointer stored - post update: ");
+
+                // now load from list
+                // debug: print sizes of tuple
+                env.debugPrint(builder, "-- check --");
+                auto tuple_type = elementType;
+                auto num_tuple_elements = tuple_type.parameters().size();
+
+                // fetch item
+                auto ptr_values = CreateStructLoad(builder, list_ptr, 2);
+                auto item = builder.CreateGEP(ptr_values, idx);
+                item = builder.CreateLoad(item); // new when pointers are stored.
+
+                auto ft_check = FlattenedTuple::fromLLVMStructVal(&env, builder, item, tuple_type);
+                for(unsigned i = 0; i < num_tuple_elements; ++i) {
+                    auto item_size = ft_check.getSize({(int)i});
+                    auto element_type = tuple_type.parameters()[i];
+                    env.printValue(builder, item_size, "size of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
+                }
+                env.debugPrint(builder, "-- check end --");
 
 //                // what type is value.val?
 //                if(!value.val)
@@ -610,7 +637,8 @@ namespace tuplex {
         llvm::Value* list_of_tuples_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
                                          llvm::Value* list_ptr, const python::Type& list_type) {
 
-            auto f_tuple_element_size = [list_type](LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, llvm::Value* index) -> llvm::Value* {
+            auto f_tuple_element_size = [list_type](LLVMEnvironment& env, llvm::IRBuilder<>& builder,
+                    llvm::Value* list_ptr, llvm::Value* index) -> llvm::Value* {
                 assert(index && index->getType() == env.i64Type());
 
                 auto element_type = list_type.elementType();
@@ -619,6 +647,8 @@ namespace tuplex {
 
                 if(python::Type::EMPTYTUPLE == element_type)
                     return env.i64Const(0);
+
+                env.printValue(builder, index, "starting to compute size of list element at index: ");
 
                 auto ptr_values = CreateStructLoad(builder, list_ptr, 2);
                 auto item = builder.CreateGEP(ptr_values, index);
@@ -629,14 +659,14 @@ namespace tuplex {
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
                 auto item_size = ft.getSize(builder);
 
-                env.printValue(builder, index, "size of list element: ");
-                env.printValue(builder, item_size, "item size is: ");
+                env.printValue(builder, item_size, "list item size is: ");
 
                 return item_size;
             };
 
-            return list_of_varitems_serialized_size(env, builder, list_ptr, list_type, f_tuple_element_size);
-
+            auto l_size = list_of_varitems_serialized_size(env, builder, list_ptr, list_type, f_tuple_element_size);
+            env.printValue(builder, l_size, "list of tuples size is: ");
+            return l_size;
 //            using namespace llvm;
 //
 //            assert(list_type.isListType());

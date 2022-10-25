@@ -310,9 +310,10 @@ namespace tuplex {
              * stores contents to llvm struct val ptr.
              * @param builder
              * @param ptr
+             * @param is_volatile whether to store to volatile memory location or not
              * @return
              */
-            void storeTo(llvm::IRBuilder<> &builder, llvm::Value *ptr) const;
+            void storeTo(llvm::IRBuilder<> &builder, llvm::Value *ptr, bool is_volatile=false) const;
 
             /*!
              * returns the value at the given index. May be a tuple

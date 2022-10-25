@@ -439,7 +439,7 @@ namespace tuplex {
             SerializableValue extractTupleElement(llvm::IRBuilder<>& builder, const python::Type& tupleType, llvm::Value* tupleVal, unsigned int index);
 
             void setTupleElement(llvm::IRBuilder<> &builder, const python::Type &tupleType, llvm::Value *tuplePtr,
-                                 unsigned int index, const SerializableValue &value);
+                                 unsigned int index, const SerializableValue &value, bool is_volatile=false);
 
             llvm::Value* CreateMaximum(llvm::IRBuilder<>& builder, llvm::Value* rhs, llvm::Value* lhs);
 

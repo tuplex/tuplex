@@ -858,7 +858,7 @@ namespace tuplex {
 
             // calc number of serialized fixed-len fields, exclude null, emptytuple, emptydict
             // and all constants b.c. they won't get serialized.
-            size_t numSerializedFixedLenFields = 0;
+            int64_t numSerializedFixedLenFields = 0;
             for(auto& t : _flattenedTupleType.parameters()) {
                 if(!(t.isSingleValued() || t.isConstantValued() || (t.isOptionType() && t.getReturnType().isSingleValued()))) {
                     numSerializedFixedLenFields += 1;
@@ -890,7 +890,7 @@ namespace tuplex {
 
                 auto type = _tree.fieldType(i);
 
-                _env->printValue(builder, s, "cur size before serializing " + type.desc());
+                // _env->printValue(builder, s, "cur size before serializing " + type.desc());
 
                 // special case: option
                 BasicBlock* bNext = nullptr;
@@ -927,7 +927,12 @@ namespace tuplex {
                     } else {
                         // string etc.
                         assert(el.size && el.size->getType() == _env->i64Type());
+
+                        _env->printValue(builder, el.size, "size of element " + std::to_string(i) + " of type " + type.desc() + ": ");
+
                         s = builder.CreateAdd(s, el.size); // 0 for varlen option!
+
+                        _env->printValue(builder, s, "size: ");
                     }
                 }
 
@@ -981,7 +986,7 @@ namespace tuplex {
             return _env->CreateFirstBlockAlloca(builder, llvmType, twine);
         }
 
-        void FlattenedTuple::storeTo(llvm::IRBuilder<> &builder, llvm::Value *ptr) const {
+        void FlattenedTuple::storeTo(llvm::IRBuilder<> &builder, llvm::Value *ptr, bool is_volatile) const {
             // check that type corresponds
             auto llvmType = getLLVMType();
 
@@ -994,7 +999,9 @@ namespace tuplex {
                 throw std::runtime_error("need to figure this out..."); // what needs to be stored here anyways??
                 assert(1 == numElements());
                 // store size for packed empty tuple
-                builder.CreateStore(_tree.get(0).size, builder.CreateGEP(ptr, {_env->i32Const(0), _env->i32Const(numElements())}));
+                auto loc = builder.CreateGEP(ptr, {_env->i32Const(0), _env->i32Const(numElements())});
+                builder.CreateStore(_tree.get(0).size,
+                                    loc, is_volatile);
                 return;
             }
 
@@ -1270,7 +1277,7 @@ namespace tuplex {
             const auto& DL = _env->getModule()->getDataLayout();
             auto tuple_size = DL.getTypeAllocSize(llvm_type);
             auto ptr = builder.CreatePointerCast(_env->malloc(builder, tuple_size), llvm_type->getPointerTo());
-            storeTo(builder, ptr);
+            storeTo(builder, ptr, true);
             return ptr;
         }
     }

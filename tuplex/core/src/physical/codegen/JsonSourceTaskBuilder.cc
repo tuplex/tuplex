@@ -198,7 +198,7 @@ namespace tuplex {
             {
                 // 1. normal case
                 builder.SetInsertPoint(bbNormalCaseSuccess);
-                 _env->debugPrint(builder, "processing as normal-case row...");
+                // _env->debugPrint(builder, "processing as normal-case row...");
 
                 // if pipeline exists, call pipeline on normal tuple!
                 if(pipeline()) {
@@ -220,7 +220,7 @@ namespace tuplex {
                 // serialized size (as is)
                 auto normal_size = normal_case_row.getSize(builder);
                 incVar(builder, _normalMemorySizeVar, normal_size);
-                _env->debugPrint(builder, "got normal-case row!");
+                // _env->debugPrint(builder, "got normal-case row!");
 
                 // inc by one
                 incVar(builder, _normalRowCountVar);
@@ -263,7 +263,7 @@ namespace tuplex {
                 // @TODO: throughput can be improved by using a single C++ function for all of this!
                 serializeBadParseException(builder, userData, _inputOperatorID, rowNumber(builder), line, builder.CreateLoad(size_var));
 
-                _env->debugPrint(builder, "got fallback-case row!");
+                // _env->debugPrint(builder, "got fallback-case row!");
 
                 // should whitespace lines be skipped?
                 bool skip_whitespace_lines = true;
@@ -593,8 +593,8 @@ namespace tuplex {
             auto buf = mem.val;
             auto buf_size = mem.size;
 
-             _env->printValue(builder, rowNumber(builder), "row number: ");
-             _env->printValue(builder, buf_size, "emitting normal-case violation in general case format of size: ");
+             // _env->printValue(builder, rowNumber(builder), "row number: ");
+             // _env->printValue(builder, buf_size, "emitting normal-case violation in general case format of size: ");
 
             // buf is now fully serialized. => call exception handler from pipeline.
             auto handler_name = exception_handler();

@@ -294,6 +294,8 @@ namespace tuplex {
             auto str_var = _env.CreateFirstBlockVariable(builder, _env.i8nullptr(), "s");
             auto str_size_var = _env.CreateFirstBlockVariable(builder, _env.i64Const(0), "s_size");
 
+            builder.CreateStore(_env.i8nullptr(), str_var);
+            builder.CreateStore(_env.i64Const(0), str_size_var);
             llvm::Value* rc = builder.CreateCall(F, {array, index, str_var, str_size_var});
             SerializableValue v;
             v.val = builder.CreateLoad(str_var);
@@ -792,6 +794,7 @@ namespace tuplex {
             builder.CreateCondBr(match_cond, bbMatchingSize, _badParseBlock);
 
             builder.SetInsertPoint(bbMatchingSize);
+            _env.debugPrint(builder, "decoding tuple " + tuple_type.desc());
             for(unsigned i = 0; i < num_tuple_elements; ++i) {
                 // check type
                 auto element_type = tuple_type.parameters()[i];
@@ -814,6 +817,10 @@ namespace tuplex {
                 builder.CreateBr(_badParseBlock);
 
                 builder.SetInsertPoint(bDecodeOK);
+
+                // debug:
+                _env.printValue(builder, item.size, "size of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
+
                 // add to tuple
                 ft.set(builder, {(int)i}, item.val, item.size, item.is_null);
             }
@@ -821,6 +828,7 @@ namespace tuplex {
             llvm::Value* rc = builder.CreateLoad(rc_var);
             SerializableValue value;
             value.val = store_as_heap_ptr ? ft.loadToHeapPtr(builder) : ft.loadToPtr(builder);
+
             return make_tuple(rc, value);
         }
 

@@ -735,7 +735,7 @@ TEST_F(JsonTuplexTest, SampleForAllFiles) {
     co.set("tuplex.optimizer.filterPushdown", "false");
     co.set("tuplex.useLLVMOptimizer", "true");
 
-    // co.set("tuplex.executorCount", "0");
+     co.set("tuplex.executorCount", "0");
 
     Context c(co);
 

@@ -428,7 +428,7 @@ namespace tuplex {
                 auto info = *(uint64_t*)ptr;
 
                 uint32_t offset = info & 0xFFFFFFFF;
-                uint32_t size = info >> 32u;
+                // uint32_t size = info >> 32u;
 
                 std::string str((const char*)(ptr + offset));
                 ss<<escape_for_json(str);
@@ -488,7 +488,7 @@ namespace tuplex {
                 auto info = *(uint64_t*)ptr;
 
                 uint32_t offset = info & 0xFFFFFFFF;
-                uint32_t size = info >> 32u;
+                // uint32_t size = info >> 32u;
 
                 // get start and decode
                 std::string str((const char*)(ptr + offset));

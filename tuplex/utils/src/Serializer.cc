@@ -89,7 +89,8 @@ namespace tuplex {
             _types.push_back(python::Type::I64);
         } else {
             // type check in debug mode
-            assert(_schema.getRowType().parameters()[_col++] == python::Type::I64);
+            assert(_schema.getRowType().parameters()[_col] == python::Type::I64);
+            _col++;
         }
         return appendWithoutInference(i);
     }
@@ -111,7 +112,8 @@ namespace tuplex {
             _types.push_back(python::Type::BOOLEAN);
         } else {
             // type check in debug mode
-            assert(_schema.getRowType().parameters()[_col++] == python::Type::BOOLEAN);
+            assert(_schema.getRowType().parameters()[_col] == python::Type::BOOLEAN);
+            _col++;
         }
         return appendWithoutInference(b);
     }
@@ -131,10 +133,12 @@ namespace tuplex {
     Serializer &Serializer::append(const option<bool> &b) {
         if (_autoSchema)
             _types.push_back(python::Type::makeOptionType(python::Type::BOOLEAN));
-        else
+        else {
             // type check in debug mode
-            assert(_schema.getRowType().parameters()[_col++] == python::Type::makeOptionType(python::Type::BOOLEAN));
-
+            assert(_schema.getRowType().parameters()[_col] == python::Type::makeOptionType(python::Type::BOOLEAN));
+            _col++;
+        }
+            
         return appendWithoutInference(b);
     }
 
@@ -154,9 +158,12 @@ namespace tuplex {
     Serializer &Serializer::append(const option<int64_t> &i) {
         if (_autoSchema)
             _types.push_back(python::Type::makeOptionType(python::Type::I64));
-        else
+        else {
             // type check in debug mode
-            assert(_schema.getRowType().parameters()[_col++] == python::Type::makeOptionType(python::Type::I64));
+            assert(_schema.getRowType().parameters()[_col] == python::Type::makeOptionType(python::Type::I64));
+            _col++;
+        }
+           
         return appendWithoutInference(i);
     }
 

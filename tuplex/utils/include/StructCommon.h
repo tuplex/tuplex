@@ -58,7 +58,20 @@ namespace tuplex {
     extern bool struct_dict_field_present(const std::unordered_map<access_path_t, std::tuple<int, int, int, int>>& indices,
                                           const access_path_t& path, const std::vector<uint64_t>& presence_map);
 
+    /*!
+     * get all indices of the form bitmap_idx, present_idx, value_idx, size_idx.
+     * @param dict_type
+     * @return map of access paths to indices
+     */
     extern std::unordered_map<access_path_t, std::tuple<int, int, int, int>> struct_dict_load_indices(const python::Type& dict_type);
+
+    /*!
+     * get single index tuple of bitmap_idx, present_idx, value_idx, size_idx for an access path. If indices for path are not there, return -1, -1, -1, -1.
+     * @param dict_type
+     * @param path
+     * @return tuple of bitmap_idx, present_idx, value_idx, size_idx
+     */
+    extern std::tuple<int, int, int, int> struct_dict_get_indices(const python::Type& dict_type, const access_path_t& path);
 
     extern bool struct_dict_has_bitmap(const python::Type& dict_type);
     extern bool struct_dict_has_presence_map(const python::Type& dict_type);

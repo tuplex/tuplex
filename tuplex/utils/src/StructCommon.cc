@@ -20,6 +20,29 @@ namespace tuplex {
         return ss.str();
     }
 
+    // cache for types & indices to speed up computation
+    static std::unordered_map<int, std::unordered_map<access_path_t, std::tuple<int, int, int, int>>> g_struct_index_cache;
+    std::tuple<int, int, int, int> struct_dict_get_indices(const python::Type& dict_type, const access_path_t& path) {
+        assert(dict_type.isStructuredDictionaryType());
+
+        // check whether type is already cached, if not -> fill cache!
+        auto type_it = g_struct_index_cache.find(dict_type.hash());
+        if(type_it == g_struct_index_cache.end()) {
+            auto indices = struct_dict_load_indices(dict_type);
+            g_struct_index_cache[dict_type.hash()] = indices;
+            type_it = g_struct_index_cache.find(dict_type.hash());
+        }
+
+        // now fetch from it the access path
+        assert(type_it != g_struct_index_cache.end());
+        auto it = type_it->second.find(path);
+        if(it != type_it->second.end()) {
+            return it->second;
+        } else {
+            return std::make_tuple(-1, -1, -1, -1);
+        }
+    }
+
     void flatten_recursive_helper(flattened_struct_dict_entry_list_t &entries,
                                   const python::Type &dict_type,
                                   std::vector<std::pair<std::string, python::Type>> prefix,

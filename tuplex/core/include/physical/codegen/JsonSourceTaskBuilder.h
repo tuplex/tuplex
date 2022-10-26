@@ -96,6 +96,17 @@ namespace tuplex {
                                     llvm::Value* parser,
                                     llvm::BasicBlock *bbSchemaMismatch);
 
+            llvm::Function* generateParseRowFunction(const python::Type& row_type,
+                                                     const std::vector<std::string>& columns,
+                                                     bool unwrap_first_level);
+
+            FlattenedTuple generateAndCallParseRowFunction(llvm::IRBuilder<>& parent_builder,
+                                                           const python::Type& row_type,
+                                                           const std::vector<std::string>& columns,
+                                                           bool unwrap_first_level,
+                                                           llvm::Value* parser,
+                                                           llvm::BasicBlock *bbSchemaMismatch);
+
             llvm::Value *initJsonParser(llvm::IRBuilder<> &builder);
             void freeJsonParse(llvm::IRBuilder<> &builder, llvm::Value *j);
             llvm::Value *openJsonBuf(llvm::IRBuilder<> &builder, llvm::Value *j, llvm::Value *buf, llvm::Value *buf_size);

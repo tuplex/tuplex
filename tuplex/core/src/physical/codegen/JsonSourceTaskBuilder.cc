@@ -190,14 +190,15 @@ namespace tuplex {
             if(_normalCaseRowType == _generalCaseRowType) {
                 builder.CreateBr(bbFallback);
             } else {
+                // // new: (--> should be llvm optimizer friendlier)
+                // general_case_row = generateAndCallParseRowFunction(builder, _generalCaseRowType, general_case_columns,
+                //                                                    unwrap_first_level, parser, bbFallback);
+                // builder.CreateBr(bbGeneralCaseSuccess);
 
-                builder.CreateBr(bbFallback);
-#error "indeed, put this into its own function - else the LLVM optimizer will capitulate due to the overarching complexity."
-
-                // correct
-#warning "performance optimizations, put original back in..."
-//                general_case_row = parseRow(builder, _generalCaseRowType, general_case_columns, unwrap_first_level, parser, bbFallback);//parseRowAsStructuredDict(builder, _generalCaseRowType, parser, bbFallback);
-//                builder.CreateBr(bbGeneralCaseSuccess);
+                // old, but correct with long compile times:
+                general_case_row = parseRow(builder, _generalCaseRowType, general_case_columns,
+                                            unwrap_first_level, parser, bbFallback);
+                builder.CreateBr(bbGeneralCaseSuccess);
             }
 
             // now create the blocks for each scenario
@@ -362,6 +363,61 @@ namespace tuplex {
             return builder.CreateLoad(_parsedBytesVar);
         }
 
+        llvm::Function *JsonSourceTaskBuilder::generateParseRowFunction(const python::Type &row_type,
+                                                                        const std::vector<std::string> &columns,
+                                                                        bool unwrap_first_level) {
+            using namespace llvm;
+
+            FlattenedTuple ft(_env.get());
+            ft.init(row_type);
+            auto tuple_llvm_type = ft.getLLVMType();
+
+            // now, create function type
+            auto FT = FunctionType::get(_env->i64Type(), {_env->i8ptrType(), tuple_llvm_type->getPointerTo()}, false);
+            auto F = Function::Create(FT, llvm::GlobalValue::LinkageTypes::InternalLinkage, "parse_row_internal", _env->getModule().get());
+
+            BasicBlock* bEntry = BasicBlock::Create(_env->getContext(), "entry", F); // <-- call first!
+            BasicBlock* bMismatch = BasicBlock::Create(_env->getContext(), "mismatch", F);
+            IRBuilder<> builder(bMismatch);
+            builder.CreateRet(_env->i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
+
+            // main and entry block.
+            builder.SetInsertPoint(bEntry);
+
+            // map function args
+            auto args = mapLLVMFunctionArgs(F, {"parser", "out_tuple"});
+
+            auto parser = args["parser"];
+
+            auto ft_parsed = parseRow(builder, row_type, columns, unwrap_first_level, parser, bMismatch);
+            ft_parsed.storeTo(builder, args["out_tuple"]);
+            builder.CreateRet(_env->i64Const(0));
+            return F;
+        }
+
+        FlattenedTuple JsonSourceTaskBuilder::generateAndCallParseRowFunction(llvm::IRBuilder<> &parent_builder,
+                                                                              const python::Type &row_type,
+                                                                              const std::vector<std::string> &columns,
+                                                                              bool unwrap_first_level,
+                                                                              llvm::Value *parser,
+                                                                              llvm::BasicBlock *bbSchemaMismatch) {
+            using namespace llvm;
+
+            auto F = generateParseRowFunction(row_type, columns, unwrap_first_level);
+            FlattenedTuple ft(_env.get());
+            ft.init(row_type);
+
+            BasicBlock *bbOK = BasicBlock::Create(_env->getContext(), "parse_row_ok", parent_builder.GetInsertBlock()->getParent());
+
+            auto res_ptr = ft.alloc(parent_builder);
+            auto rc = parent_builder.CreateCall(F, {parser, res_ptr});
+            // check rc, if not 0 goto mismatch
+            auto rc_ok = parent_builder.CreateICmpEQ(rc, _env->i64Const(0));
+            parent_builder.CreateCondBr(rc_ok, bbOK, bbSchemaMismatch);
+            parent_builder.SetInsertPoint(bbOK);
+
+            return FlattenedTuple::fromLLVMStructVal(_env.get(), parent_builder, res_ptr, row_type);
+        }
 
         llvm::Value *
         JsonSourceTaskBuilder::parsedBytes(llvm::IRBuilder<> &builder, llvm::Value *parser, llvm::Value *buf_size) {

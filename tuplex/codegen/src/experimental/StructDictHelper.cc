@@ -233,9 +233,6 @@ namespace tuplex {
             auto stype = create_structured_dict_type(env, dict_type);
             assert(ptr);
 
-            // get indices for faster storage access (note: not all entries need to be present!)
-            auto indices = struct_dict_load_indices(dict_type);
-
             std::vector<std::pair<int, llvm::Value*>> bitmap_entries;
             std::vector<std::pair<int, llvm::Value*>> presence_entries;
 
@@ -260,7 +257,7 @@ namespace tuplex {
                 // fetch indices
                 // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
                 int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
-                std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(access_path);
+                std::tie(bitmap_idx, present_idx, field_idx, size_idx) = struct_dict_get_indices(dict_type, access_path);
 
                 // special case: list not supported yet, skip entries
                 if(value_type.isListType()) {
@@ -434,18 +431,17 @@ namespace tuplex {
 
         // --- load functions ---
         llvm::Value* struct_dict_load_present(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path) {
-            // return;
 
-            auto indices = struct_dict_load_indices(dict_type);
 
-            // if path is not contained within indices, it's an always present (parent) object.
-            if(indices.end() == indices.find(path))
-                return env.i1Const(true);
 
             // fetch indices
             // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
             int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
-            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
+            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = struct_dict_get_indices(dict_type, path);
+
+            // if path is not contained within indices, it's an always present (parent) object.
+            if(-1 == bitmap_idx && -1 == present_idx && -1 == field_idx && -1 == size_idx)
+                return env.i1Const(true);
 
             // load only if valid present_idx
             if(present_idx >= 0) {
@@ -487,17 +483,14 @@ namespace tuplex {
                 }
             }
 
-            // this function is similar to struct_dict_field_present, basically the codegen version
-            auto indices = struct_dict_load_indices(dict_type);
 
-            auto it = indices.find(full_path);
 
-            // if not found, it's an always present element
-            if(it == indices.end())
-                return env.i1Const(true);
-
-            auto t = indices.at(full_path);
+            auto t = struct_dict_get_indices(dict_type, full_path);
             auto present_idx = std::get<1>(t);
+
+            // if not found, it's an always present element (i.e. all indices -1)
+            if(-1 == std::get<0>(t) && -1 == std::get<1>(t) && -1 == std::get<2>(t) && -1 == std::get<3>(t))
+                return env.i1Const(true);
 
             // load is present
             auto is_present = struct_dict_load_present(env, builder, ptr, dict_type, full_path);
@@ -602,11 +595,10 @@ namespace tuplex {
 
                 if(element_type.isOptionType()) {
                     // is it not an option? that means resorting indices
-                    auto indices = struct_dict_load_indices(dict_type);
                     // fetch indices
                     // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
                     int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
-                    std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
+                    std::tie(bitmap_idx, present_idx, field_idx, size_idx) = struct_dict_get_indices(dict_type, path);
 
                     assert(bitmap_idx >= 0);
 
@@ -659,11 +651,11 @@ namespace tuplex {
                 // x = {}
                 // x['test'] = 10 # <-- type of x is now Struct['test' -> i64]
                 // x['blub'] = {'a' : 20, 'b':None} # <-- type of x is now Struct['test' -> i64, 'blub' -> Struct['a' -> i64, 'b' -> null]]
-                auto indices = struct_dict_load_indices(dict_type);
+
                 // fetch indices
                 // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
                 int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
-                std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
+                std::tie(bitmap_idx, present_idx, field_idx, size_idx) = struct_dict_get_indices(dict_type, path);
 
                 SerializableValue val;
                 val.size = env.i64Const(sizeof(int64_t));
@@ -709,13 +701,10 @@ namespace tuplex {
 
         // --- store functions ---
         void struct_dict_store_present(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* is_present) {
-            // return;
-
-            auto indices = struct_dict_load_indices(dict_type);
             // fetch indices
             // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
             int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
-            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
+            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = struct_dict_get_indices(dict_type, path);
 
             // store only if valid present_idx
             if(present_idx >= 0) {
@@ -734,11 +723,10 @@ namespace tuplex {
         }
 
         void struct_dict_store_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* value) {
-            auto indices = struct_dict_load_indices(dict_type);
             // fetch indices
             // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
             int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
-            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
+            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = struct_dict_get_indices(dict_type, path);
 
             // store only if valid field_idx
             if(field_idx >= 0) {
@@ -757,11 +745,10 @@ namespace tuplex {
         }
 
         void struct_dict_store_isnull(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* is_null) {
-            auto indices = struct_dict_load_indices(dict_type);
             // fetch indices
             // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
             int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
-            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
+            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = struct_dict_get_indices(dict_type, path);
 
             // store only if valid bitmap_idx
             if(bitmap_idx >= 0) {
@@ -780,12 +767,10 @@ namespace tuplex {
         }
 
         void struct_dict_store_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path, llvm::Value* size) {
-            auto indices = struct_dict_load_indices(dict_type);
-
             // fetch indices
             // 1. null bitmap index 2. maybe bitmap index 3. field index 4. size index
             int bitmap_idx = 0, present_idx =0, field_idx=0, size_idx=0;
-            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = indices.at(path);
+            std::tie(bitmap_idx, present_idx, field_idx, size_idx) = struct_dict_get_indices(dict_type, path);
 
             // store only if valid size_idx
             if(size_idx >= 0) {
@@ -819,8 +804,6 @@ namespace tuplex {
             flattened_struct_dict_entry_list_t entries;
             flatten_recursive_helper(entries, dict_type);
 
-            auto indices = struct_dict_load_indices(dict_type);
-
             // check bitmap size (i.e. multiples of 64bit)
             auto bitmap_size = struct_dict_bitmap_size_in_bytes(dict_type);
 
@@ -835,7 +818,7 @@ namespace tuplex {
                 auto access_path = std::get<0>(entry);
                 auto value_type = std::get<1>(entry);
                 bool always_present = std::get<2>(entry);
-                auto t_indices = indices.at(access_path);
+                auto t_indices = struct_dict_get_indices(dict_type, access_path);
 
                 // special case list: --> needs extra care
                 if(value_type.isOptionType())
@@ -937,8 +920,6 @@ namespace tuplex {
             flattened_struct_dict_entry_list_t entries;
             flatten_recursive_helper(entries, dict_type);
 
-            auto indices = struct_dict_load_indices(dict_type);
-
             // also zero bitmaps? i.e. everything should be null and not present?
 
             if(struct_dict_has_bitmap(dict_type)) {
@@ -954,7 +935,7 @@ namespace tuplex {
             }
             for(auto entry : entries) {
                 auto access_path = std::get<0>(entry);
-                auto t_indices = indices.at(access_path);
+                auto t_indices = struct_dict_get_indices(dict_type, access_path);
                 auto value_idx = std::get<2>(t_indices);
                 auto size_idx = std::get<3>(t_indices);
                 auto value_type = std::get<1>(entry);
@@ -991,13 +972,12 @@ namespace tuplex {
 
             flattened_struct_dict_entry_list_t entries;
             flatten_recursive_helper(entries, dict_type);
-            auto indices = struct_dict_load_indices(dict_type);
 
             // count how many fields there are => important to compute offsets!
             size_t num_fields = 0;
             for(auto entry : entries) {
                 auto access_path = std::get<0>(entry);
-                auto t_indices = indices.at(access_path);
+                auto t_indices = struct_dict_get_indices(dict_type, access_path);
                 auto value_idx = std::get<2>(t_indices);
                 auto value_type = std::get<1>(entry);
 
@@ -1033,7 +1013,6 @@ namespace tuplex {
             // get flattened structure!
             flattened_struct_dict_entry_list_t entries;
             flatten_recursive_helper(entries, dict_type);
-            auto indices = struct_dict_load_indices(dict_type);
 
             // optionally the bitmaps to store within the struct
             vector<llvm::Value*> bitmap;
@@ -1067,7 +1046,7 @@ namespace tuplex {
             for(auto entry : entries) {
                 auto access_path = std::get<0>(entry);
                 auto value_type = std::get<1>(entry);
-                auto t_indices = indices.at(access_path);
+                auto t_indices = struct_dict_get_indices(dict_type, access_path);
 
                 // special case list: --> needs extra care
                 if(value_type.isOptionType())
@@ -1185,7 +1164,6 @@ namespace tuplex {
             // get flattened structure!
             flattened_struct_dict_entry_list_t entries;
             flatten_recursive_helper(entries, dict_type);
-            auto indices = struct_dict_load_indices(dict_type);
 
             // check bitmap size (i.e. multiples of 64bit)
             auto bitmap_size = struct_dict_bitmap_size_in_bytes(dict_type);
@@ -1234,7 +1212,7 @@ namespace tuplex {
             for(auto entry : entries) {
                 auto access_path = std::get<0>(entry);
                 auto value_type = std::get<1>(entry);
-                auto t_indices = indices.at(access_path);
+                auto t_indices = struct_dict_get_indices(dict_type, access_path);
 
 #ifdef TRACE_STRUCT_SERIALIZATION
                 auto path_str = json_access_path_to_string(access_path, value_type, std::get<2>(entry));

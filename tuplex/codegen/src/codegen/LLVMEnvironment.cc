@@ -785,6 +785,7 @@ namespace tuplex {
                                                            llvm::Value *tuplePtr, unsigned int index) {
             using namespace llvm;
 
+
             assert(tuplePtr->getType()->isPointerTy()); // must be a pointer
             assert(tupleType.isTupleType());
             assert(tupleType.parameters().size() > index);
@@ -898,6 +899,13 @@ namespace tuplex {
                     size = nullptr; // need to explicitly compute (costly)
             }
 
+
+            // add debug print here:
+            if(value)
+                printValue(builder, value, "got element " + std::to_string(index) + " of tuple " + tupleType.desc() + ", value: ");
+            if(size)
+                printValue(builder, size, "got element " + std::to_string(index) + " of tuple " + tupleType.desc() + ", size: ");
+
             return SerializableValue(value, size, isnull);
         }
 
@@ -969,12 +977,22 @@ namespace tuplex {
                 !elementType.isStructuredDictionaryType()) {
                 // auto structSizeIdx = builder.CreateStructGEP(tuplePtr, sizeOffset);
                 auto structSizeIdx = CreateStructGEP(builder, tuplePtr, sizeOffset);
-                if (value.size)
-                    builder.CreateStore(value.size, structSizeIdx, is_volatile);
-                else {
-                    builder.CreateStore(i64Const(0), structSizeIdx, is_volatile);
+
+                auto size_to_store = value.size ? value.size : i64Const(0);
+                builder.CreateStore(size_to_store, structSizeIdx, is_volatile);
+
+                printValue(builder, size_to_store, "size stored at index " + std::to_string(index));
+            } else {
+                if(value.size) {
+                    std::cerr<<"got size field for element"<<std::endl;
                 }
             }
+
+            if(value.val)
+                printValue(builder, value.val, "set element " + std::to_string(index) + " of tuple " + tupleType.desc() + ", value: ");
+            if(value.size)
+                printValue(builder, value.size, "set element " + std::to_string(index) + " of tuple " + tupleType.desc() + ", size: ");
+
         }
 
         llvm::Value *LLVMEnvironment::truthValueTest(llvm::IRBuilder<> &builder, const SerializableValue &val,
@@ -1295,7 +1313,13 @@ namespace tuplex {
                 sconst = builder.CreateGlobalStringPtr(msg + " [f64] : %.12f\n");
             } else if (val->getType() == Type::getInt8PtrTy(_context, 0)) {
                 sconst = builder.CreateGlobalStringPtr(msg + " [i8*] : [%p] %s\n");
+            } else if(val->getType()->isPointerTy()) {
+                // get internal name
+                auto name = getLLVMTypeName(val->getType());
+                casted_val = builder.CreatePointerCast(val, llvm::Type::getInt8PtrTy(_context, 0));
+                sconst = builder.CreateGlobalStringPtr(msg + " [" + name + "] : [%p]\n");
             }
+
             auto fmt = builder.CreatePointerCast(sconst, llvm::Type::getInt8PtrTy(_context, 0));
             if (val->getType() != Type::getInt8PtrTy(_context, 0))
                 builder.CreateCall(printf_F, {fmt, casted_val});

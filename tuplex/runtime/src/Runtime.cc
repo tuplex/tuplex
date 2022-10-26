@@ -210,6 +210,7 @@ extern "C" void *rtmalloc(const size_t requested_size) noexcept {
         }
         // @Todo: maybe increase block size?
         // @Todo: Request super large block?
+
         printf("fatal error: Requested object size %lu, is larger than default block size %lu! Can't handle memory request!\n", size, heap->defaultBlockSize);
         exit(-1);
         return NULL;

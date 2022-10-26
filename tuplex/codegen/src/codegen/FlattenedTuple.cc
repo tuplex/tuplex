@@ -1276,7 +1276,14 @@ namespace tuplex {
 
             const auto& DL = _env->getModule()->getDataLayout();
             auto tuple_size = DL.getTypeAllocSize(llvm_type);
+
             auto ptr = builder.CreatePointerCast(_env->malloc(builder, tuple_size), llvm_type->getPointerTo());
+
+#ifndef NDEBUG
+            // memset to zero
+            builder.CreateMemSet(ptr, _env->i8Const(0), tuple_size, 0);
+#endif
+
             storeTo(builder, ptr, true);
             return ptr;
         }

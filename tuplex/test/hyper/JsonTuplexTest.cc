@@ -295,6 +295,8 @@ namespace tuplex {
             builder.SetInsertPoint(bbMismatch);
             builder.CreateRet(env.i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
 
+            annotateModuleWithInstructionPrint(*env.getModule());
+
             // --- gen done ---, compile...
             bool rc_compile = jit.compile(std::move(env.getModule()));
 
@@ -311,14 +313,16 @@ TEST_F(JsonTuplexTest, TupleBinToPythonSimple) {
     using namespace tuplex;
     using namespace std;
 
-    string test_type_str = "(str,Struct[(str,'shas'=>List[List[str]])])";
+//    string test_type_str = "(str,Struct[(str,'shas'=>List[List[str]])])";
+    string test_type_str = "(str,Struct[(str,'shas'=>List[(str,str,i64)])])";
     auto test_type = python::Type::decode(test_type_str);
     ASSERT_TRUE(test_type.isTupleType());
     EXPECT_EQ(test_type.parameters().size(), 2);
-    std::cout<<"testing with tuple..."<<std::endl;
+    std::cout<<"testing with tuple type " + test_type.desc() + "..."<<std::endl;
 
     // sample line.
-    string line = "{\"A\":\"hello world!\",\"col\": {\"shas\":[[\"a\",\"b\"],[],[\"c\"]]}}";
+//    string line = "{\"A\":\"hello world!\",\"col\": {\"shas\":[[\"a\",\"b\"],[],[\"c\"]]}}";
+    string line = "{\"A\":\"hello world!\",\"col\": {\"shas\":[[\"a\",\"b\",42],[\"c\",\"d\",12]]}}";
 
     runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
 
@@ -645,6 +649,71 @@ namespace tuplex {
                   .selectColumns(std::vector<std::string>({"type", "repo_id", "year"}));
     }
 }
+
+TEST_F(JsonTuplexTest, ListOfTuples) {
+    // create a simple example with loadToHeapPtr!
+    using namespace llvm;
+    using namespace tuplex;
+    using namespace tuplex::codegen;
+
+    LLVMEnvironment env;
+
+    std::string func_name = "test_tuples";
+
+    // create func
+    auto& ctx = env.getContext();
+    auto func = getOrInsertFunction(env.getModule().get(), func_name, ctypeToLLVM<int64_t>(ctx), ctypeToLLVM<uint8_t*>(ctx),
+                                    ctypeToLLVM<int64_t>(ctx));
+
+    auto argMap = mapLLVMFunctionArgs(func, {"buf", "buf_size"});
+
+    BasicBlock* bBody = BasicBlock::Create(ctx, "entry", func);
+    IRBuilder<> builder(bBody);
+
+    FlattenedTuple ft(&env);
+
+    auto tuple_type = python::Type::makeTupleType({python::Type::STRING, python::Type::BOOLEAN});
+    ft.init(tuple_type);
+    // set elements
+    ft.setElement(builder, 0, argMap["buf"], argMap["buf_size"], env.i1Const(false));
+    ft.setElement(builder, 1, env.boolConst(true), env.i64Const(8), env.i1Const(false));
+
+    auto tuple_ptr = ft.loadToHeapPtr(builder);
+
+    // create list now
+    auto list_type = python::Type::makeListType(tuple_type);
+
+    auto list_llvm_type = env.getOrCreateListType(list_type);
+    auto list_ptr = env.CreateFirstBlockAlloca(builder, list_llvm_type);
+
+    list_reserve_capacity(env, builder, list_ptr, list_type, env.i64Const(10), true);
+
+    // store tuple
+    list_store_value(env, builder, list_ptr, list_type, env.i64Const(9), SerializableValue(tuple_ptr, nullptr, nullptr));
+
+    // now get element from there.
+    auto tuple = builder.CreateLoad(tuple_ptr);
+    FlattenedTuple ft_check = FlattenedTuple::fromLLVMStructVal(&env, builder, tuple, tuple_type);
+
+    llvm::Value* size = ft_check.getSize(0);
+    builder.CreateRet(size);
+
+    runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
+
+    JITCompiler jit;
+
+    // use optimizer as well
+    LLVMOptimizer opt; opt.optimizeModule(*env.getModule());
+
+    jit.compile(std::move(env.getModule()));
+
+    auto f = reinterpret_cast<int64_t(*)(const char*,size_t)>(jit.getAddrOfSymbol(func_name));
+
+    std::string test_str = "Hello world";
+    auto rc = f(test_str.c_str(), test_str.size() + 1);
+    EXPECT_EQ(rc, test_str.size() + 1);
+}
+
 
 // bbsn00
 TEST_F(JsonTuplexTest,SampleForAllFiles) {

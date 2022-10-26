@@ -783,7 +783,7 @@ namespace tuplex {
             // step 2: check that the array has the same size as the tuple! if not -> schema mismatch...
             builder.SetInsertPoint(bbArrayFound);
             auto sub_array = builder.CreateLoad(item_var);
-            auto num_elements = arraySize(builder, array);
+            auto num_elements = arraySize(builder, sub_array);
 
             // debug print here number of elements...
             // _env.printValue(builder, num_elements, "found for type " + tupleType.desc() + " elements: ");

@@ -254,6 +254,7 @@ namespace tuplex {
             SerializableValue(llvm::Value *v, llvm::Value* s, llvm::Value* n) : val(v), size(s), is_null(n) {}
 
             SerializableValue(const SerializableValue& other) : val(other.val), size(other.size), is_null(other.is_null) {}
+            SerializableValue(SerializableValue&& other) : val(other.val), size(other.size), is_null(other.is_null) {}
 
             SerializableValue& operator = (const SerializableValue& other) {
                 val = other.val;

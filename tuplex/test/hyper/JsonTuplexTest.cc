@@ -745,7 +745,7 @@ TEST_F(JsonTuplexTest,SampleForAllFiles) {
     // /home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/resources/hyperspecialization/github_daily/2019-10-15.json.sample
     // pattern = "../resources/hyperspecialization/github_daily/2012*.json.sample"; // <-- put in here any problematic files found.
 
-    pattern = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/resources/hyperspecialization/github_daily/2019-10-15.json.sample";
+    pattern = "../resources/hyperspecialization/github_daily/2019-10-15.json.sample";
 
     std::cout<<"Processing in global mode..."<<std::endl;
 

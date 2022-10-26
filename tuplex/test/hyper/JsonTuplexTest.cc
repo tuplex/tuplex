@@ -720,7 +720,7 @@ TEST_F(JsonTuplexTest, ListOfTuples) {
 
 
 // bbsn00
-TEST_F(JsonTuplexTest,SampleForAllFiles) {
+TEST_F(JsonTuplexTest, SampleForAllFiles) {
     using namespace tuplex;
     using namespace std;
 
@@ -732,7 +732,7 @@ TEST_F(JsonTuplexTest,SampleForAllFiles) {
     // deactivate filter pushdown as well...
     co.set("tuplex.optimizer.filterPushdown", "false");
     co.set("tuplex.useLLVMOptimizer", "true");
-    co.set("tuplex.executorCount", "0");
+    // co.set("tuplex.executorCount", "0");
 
     Context c(co);
 

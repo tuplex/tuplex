@@ -133,8 +133,12 @@ namespace tuplex {
         tmb.setCPU(CPUStr);
         tmb.setRelocationModel(Reloc::Model::PIC_);
         tmb.addFeatures(getFeatureList());
-        //tmb.addFeatures(codegen::getLLVMFeatureStr()); //<-- should add here probably SSE4.2.??
 
+        // do not perform codegen here, should be done separately
+        tmb.setCodeGenOptLevel(CodeGenOpt::None); // <-- use this to speed up compile.
+        tmb.setCodeModel(CodeModel::Small); // <-- use this to speed up compute.
+
+        //tmb.addFeatures(codegen::getLLVMFeatureStr()); //<-- should add here probably SSE4.2.??
 
         Logger::instance().logger("LLVM").info("compiling code for " + CPUStr);
         auto featureStr = tmBuilder.get().getFeatures().getString();

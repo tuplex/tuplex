@@ -190,8 +190,14 @@ namespace tuplex {
             if(_normalCaseRowType == _generalCaseRowType) {
                 builder.CreateBr(bbFallback);
             } else {
-                general_case_row = parseRow(builder, _generalCaseRowType, general_case_columns, unwrap_first_level, parser, bbFallback);//parseRowAsStructuredDict(builder, _generalCaseRowType, parser, bbFallback);
-                builder.CreateBr(bbGeneralCaseSuccess);
+
+                builder.CreateBr(bbFallback);
+#error "indeed, put this into its own function - else the LLVM optimizer will capitulate due to the overarching complexity."
+
+                // correct
+#warning "performance optimizations, put original back in..."
+//                general_case_row = parseRow(builder, _generalCaseRowType, general_case_columns, unwrap_first_level, parser, bbFallback);//parseRowAsStructuredDict(builder, _generalCaseRowType, parser, bbFallback);
+//                builder.CreateBr(bbGeneralCaseSuccess);
             }
 
             // now create the blocks for each scenario

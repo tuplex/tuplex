@@ -61,8 +61,11 @@ namespace tuplex {
         context.metrics().setLogicalOptimizationTime(logical_optimization_time);
         Logger::instance().logger("logical planner").info("logical optimization took "
         + std::to_string(logical_optimization_time) + "ms");
-        
-        return new PhysicalPlan(optimized_plan, this, context);
+
+        Timer pp_timer;
+        auto plan = new PhysicalPlan(optimized_plan, this, context);
+        Logger::instance().logger("physical planner").info("Creating physical plan took " + std::to_string(pp_timer.time()) + "s");
+        return plan;
     }
 
     bool verifyLogicalPlan(const std::shared_ptr<LogicalOperator>& root) {

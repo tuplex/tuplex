@@ -69,7 +69,9 @@ namespace tuplex {
             // check what the return type is. If it is of exception type, try to use a sample to get rid off branches that are off
             if(success && _udf.getOutputSchema().getRowType().isExceptionType()) {
                 logger.debug("static typing resulted in UDF producing always exceptions. Try hinting with sample...");
+                Timer s_timer;
                 auto rows_sample = parent()->getPythonicSample(MAX_TYPE_SAMPLING_ROWS);
+                logger.info("retrieving pythonic sample took: " + std::to_string(s_timer.time()) + "s");
                 _udf.removeTypes(false);
                 success = _udf.hintSchemaWithSample(rows_sample,
                                                     parentSchema.getRowType(), true);

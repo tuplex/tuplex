@@ -200,7 +200,7 @@ namespace tuplex {
       Builder.SizeLevel = OptSize;
       Builder.LibraryInfo = new llvm::TargetLibraryInfoImpl(Triple);
       Builder.Inliner = llvm::createFunctionInliningPass(OptLevel, OptSize, false);
-      Builder.SLPVectorize = true; // enable vectorization!
+      Builder.SLPVectorize = false; // true; // enable vectorization! // --> deactivate. not suitable for complex parsing functions...
 
       std::unique_ptr<llvm::TargetMachine> TM = GetHostTargetMachine();
       assert(TM);

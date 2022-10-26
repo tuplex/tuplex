@@ -197,11 +197,16 @@ namespace tuplex {
             if(_normalCaseRowType == _generalCaseRowType) {
                 builder.CreateBr(bbFallback);
             } else {
-                 // new: (--> should be llvm optimizer friendlier)
-                 general_case_row = generateAndCallParseRowFunction(builder, "parse_general_row_internal",
-                                                                    _generalCaseRowType, general_case_columns,
-                                                                    unwrap_first_level, parser, bbFallback);
-                 builder.CreateBr(bbGeneralCaseSuccess);
+
+                // with this below, one could avoid using the complex general-case row parse stuff.
+                //  // be quick, avoid the complex structure
+                //  builder.CreateBr(bbFallback);
+
+                  // new: (--> should be llvm optimizer friendlier)
+                  general_case_row = generateAndCallParseRowFunction(builder, "parse_general_row_internal",
+                                                                     _generalCaseRowType, general_case_columns,
+                                                                     unwrap_first_level, parser, bbFallback);
+                  builder.CreateBr(bbGeneralCaseSuccess);
 
                  // // old, but correct with long compile times:
                  // general_case_row = parseRow(builder, _generalCaseRowType, general_case_columns,

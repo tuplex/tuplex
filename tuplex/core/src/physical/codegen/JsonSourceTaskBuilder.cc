@@ -152,7 +152,7 @@ namespace tuplex {
             // generate here...
             // _env->debugPrint(builder, "parsed row");
 
-            _env->printValue(builder, rowNumber(builder), "row no= ");
+            // _env->printValue(builder, rowNumber(builder), "row no= ");
 
             // check whether it's of object type -> parse then as object (only supported type so far!)
             cond = isDocumentOfObjectType(builder, parser);

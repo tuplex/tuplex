@@ -416,68 +416,71 @@ namespace tuplex {
 
                 // load FlattenedTuple from value (this ensures it is a heap ptr)
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, tuple, elementType);
-                auto heap_ptr = ft.loadToPtr(builder); //ft.loadToHeapPtr(builder);
 
-                // debug:
-                env.printValue(builder, idx, "storing tuple of type " + elementType.desc() + " at index: ");
-                env.printValue(builder, ft.getSize(builder), "tuple size is: ");
+                // this here works.
+                 auto heap_ptr = ft.loadToPtr(builder);
 
-                env.printValue(builder, heap_ptr, "pointer to store: ");
+                // // this here is NOT working.
+                // auto heap_ptr = ft.loadToHeapPtr(builder);
+
+                // // debug:
+                // env.printValue(builder, idx, "storing tuple of type " + elementType.desc() + " at index: ");
+                // env.printValue(builder, ft.getSize(builder), "tuple size is: ");
+                // env.printValue(builder, heap_ptr, "pointer to store: ");
 
                 // store pointer --> should be HEAP allocated pointer. (maybe add attributes to check?)
                 auto target_idx = builder.CreateGEP(ptr_values, idx);
 
-                env.printValue(builder, builder.CreateLoad(target_idx), "pointer currently stored: ");
-
-                {
-                    env.debugPrint(builder, "-- check of heap_ptr --");
-                    auto tuple_type = elementType;
-                    auto num_tuple_elements = tuple_type.parameters().size();
-                    llvm::Value* item = builder.CreateLoad(heap_ptr); // <-- this will be wrong. need to fix that in order to work.
-                    //item = heap_ptr; // <-- this should work (?)
-
-                    auto item_type_name = env.getLLVMTypeName(item->getType());
-                    std::cout<<"[DEBUG] item type anme: "<<item_type_name<<std::endl;
-                    auto ft_check = FlattenedTuple::fromLLVMStructVal(&env, builder, item, tuple_type);
-                    for(unsigned i = 0; i < num_tuple_elements; ++i) {
-                        auto item_size = ft_check.getSize(i);
-                        auto element_type = tuple_type.parameters()[i];
-                        env.printValue(builder, item_size, "size of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
-                        env.printValue(builder, ft_check.get(i), "content of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
-                    }
-                    env.debugPrint(builder, "-- check end --");
-                }
+                // env.printValue(builder, builder.CreateLoad(target_idx), "pointer currently stored: ");
+                // {
+                //     env.debugPrint(builder, "-- check of heap_ptr --");
+                //     auto tuple_type = elementType;
+                //     auto num_tuple_elements = tuple_type.parameters().size();
+                //     llvm::Value* item = builder.CreateLoad(heap_ptr); // <-- this will be wrong. need to fix that in order to work.
+                //     //item = heap_ptr; // <-- this should work (?)
+                //
+                //     auto item_type_name = env.getLLVMTypeName(item->getType());
+                //     std::cout<<"[DEBUG] item type anme: "<<item_type_name<<std::endl;
+                //     auto ft_check = FlattenedTuple::fromLLVMStructVal(&env, builder, item, tuple_type);
+                //     for(unsigned i = 0; i < num_tuple_elements; ++i) {
+                //         auto item_size = ft_check.getSize(i);
+                //         auto element_type = tuple_type.parameters()[i];
+                //         env.printValue(builder, item_size, "size of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
+                //         env.printValue(builder, ft_check.get(i), "content of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
+                //     }
+                //     env.debugPrint(builder, "-- check end --");
+                // }
 
                 // store the heap ptr.
                 builder.CreateStore(heap_ptr, target_idx, true);
 
-                env.printValue(builder, builder.CreateLoad(target_idx), "pointer stored - post update: ");
+                // env.printValue(builder, builder.CreateLoad(target_idx), "pointer stored - post update: ");
 
-                // now load from list
-                // debug: print sizes of tuple
-                env.debugPrint(builder, "-- check --");
-                auto tuple_type = elementType;
-                auto num_tuple_elements = tuple_type.parameters().size();
-
-                // fetch item
-                // ptr_values = CreateStructLoad(builder, list_ptr, 2);
-                // auto idx_item = builder.CreateGEP(ptr_values, idx);
-                // auto item = idx_item; // <-- this should work (?) //builder.CreateLoad(idx_item); // new when pointers are stored.
-
-                // various test cases (GEP should be i32!)
-                auto ptr_A = builder.CreateGEP(list_ptr, {env.i32Const(0), env.i32Const(2)});
-                auto ptr_A_name = env.getLLVMTypeName(ptr_A->getType());
-                std::cout<<"[DEBUG] tuple pointers: "<<ptr_A_name<<std::endl;
-
-                // getting the index -> should be simple tuple pointer
-                ptr_values = builder.CreateLoad(ptr_A);
-                auto ptr_A_item_idx = builder.CreateGEP(ptr_values, builder.CreateTrunc(idx, env.i32Type()));
-                auto ptr_A_item_idx_name = env.getLLVMTypeName(ptr_A_item_idx->getType());
-                std::cout<<"[DEBUG] tuple pointer: "<<ptr_A_item_idx_name<<std::endl;
-
-                auto ptr_A_item = builder.CreateLoad(ptr_A_item_idx);
-                auto ptr_A_item_name = env.getLLVMTypeName(ptr_A_item->getType());
-                std::cout<<"[DEBUG] tuple pointer: "<<ptr_A_item_name<<std::endl;
+                // // now load from list
+                // // debug: print sizes of tuple
+                // env.debugPrint(builder, "-- check --");
+                // auto tuple_type = elementType;
+                // auto num_tuple_elements = tuple_type.parameters().size();
+                //
+                // // fetch item
+                // // ptr_values = CreateStructLoad(builder, list_ptr, 2);
+                // // auto idx_item = builder.CreateGEP(ptr_values, idx);
+                // // auto item = idx_item; // <-- this should work (?) //builder.CreateLoad(idx_item); // new when pointers are stored.
+                //
+                // // various test cases (GEP should be i32!)
+                // auto ptr_A = builder.CreateGEP(list_ptr, {env.i32Const(0), env.i32Const(2)});
+                // auto ptr_A_name = env.getLLVMTypeName(ptr_A->getType());
+                // std::cout<<"[DEBUG] tuple pointers: "<<ptr_A_name<<std::endl;
+                //
+                // // getting the index -> should be simple tuple pointer
+                // ptr_values = builder.CreateLoad(ptr_A);
+                // auto ptr_A_item_idx = builder.CreateGEP(ptr_values, builder.CreateTrunc(idx, env.i32Type()));
+                // auto ptr_A_item_idx_name = env.getLLVMTypeName(ptr_A_item_idx->getType());
+                // std::cout<<"[DEBUG] tuple pointer: "<<ptr_A_item_idx_name<<std::endl;
+                //
+                // auto ptr_A_item = builder.CreateLoad(ptr_A_item_idx);
+                // auto ptr_A_item_name = env.getLLVMTypeName(ptr_A_item->getType());
+                // std::cout<<"[DEBUG] tuple pointer: "<<ptr_A_item_name<<std::endl;
 
 //                // get size index (0, 5)
 //                auto size_idx = CreateStructGEP(builder, ptr_A_item, 5); //builder.CreateGEP(ptr_A_item, {0, 5});
@@ -486,19 +489,19 @@ namespace tuplex {
 //
 //                env.printValue(builder, builder.CreateLoad(size_idx), "first str size is: ");
 
-                auto ptr_values_name = env.getLLVMTypeName(ptr_values->getType());
-                auto item = builder.CreateInBoundsGEP(ptr_values, {idx});
-                auto item_name = env.getLLVMTypeName(item->getType());
-                item = builder.CreateLoad(item);
-
-                auto ft_check = FlattenedTuple::fromLLVMStructVal(&env, builder, item, tuple_type);
-                for(unsigned i = 0; i < num_tuple_elements; ++i) {
-                    auto item_size = ft_check.getSize(i);
-                    auto element_type = tuple_type.parameters()[i];
-                    env.printValue(builder, item_size, "size of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
-                    env.printValue(builder, ft_check.get(i), "content of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
-                }
-                env.debugPrint(builder, "-- check end --");
+                // auto ptr_values_name = env.getLLVMTypeName(ptr_values->getType());
+                // auto item = builder.CreateInBoundsGEP(ptr_values, {idx});
+                // auto item_name = env.getLLVMTypeName(item->getType());
+                // item = builder.CreateLoad(item);
+                //
+                // auto ft_check = FlattenedTuple::fromLLVMStructVal(&env, builder, item, tuple_type);
+                // for(unsigned i = 0; i < num_tuple_elements; ++i) {
+                //     auto item_size = ft_check.getSize(i);
+                //     auto element_type = tuple_type.parameters()[i];
+                //     env.printValue(builder, item_size, "size of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
+                //     env.printValue(builder, ft_check.get(i), "content of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
+                // }
+                // env.debugPrint(builder, "-- check end --");
 
 //                // what type is value.val?
 //                if(!value.val)
@@ -694,7 +697,7 @@ namespace tuplex {
                 if(python::Type::EMPTYTUPLE == element_type)
                     return env.i64Const(0);
 
-                env.printValue(builder, index, "starting to compute size of list element at index: ");
+                // env.printValue(builder, index, "starting to compute size of list element at index: ");
 
                 auto ptr_values = CreateStructLoad(builder, list_ptr, 2);
                 auto item = builder.CreateGEP(ptr_values, index);
@@ -705,85 +708,16 @@ namespace tuplex {
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
                 auto item_size = ft.getSize(builder);
 
-                env.printValue(builder, item_size, "list item size is: ");
+                // env.printValue(builder, item_size, "list item size is: ");
 
                 return item_size;
             };
 
             auto l_size = list_of_varitems_serialized_size(env, builder, list_ptr, list_type, f_tuple_element_size);
-            env.printValue(builder, l_size, "list of tuples size is: ");
+
+            // env.printValue(builder, l_size, "list of tuples size is: ");
+
             return l_size;
-//            using namespace llvm;
-//
-//            assert(list_type.isListType());
-//            assert(list_type.elementType().isTupleType());
-//
-//            auto element_type = list_type.elementType();
-//
-//            // this requires a loop (maybe generate instead function?)
-//            auto size_var = env.CreateFirstBlockAlloca(builder, env.i64Type());
-//            // size field requires 8 bytes
-//            llvm::Value* size = env.i64Const(8);
-//
-//            // fetch length
-//            auto len = list_length(env, builder, list_ptr, list_type);
-//            // now store len x 8 bytes for the individual length of entries.
-//            // then store len x 8 bytes for the offsets.
-//            // --> pretty inefficient storage. can get optimized, but no time...
-//
-//            auto len4 = builder.CreateMul(env.i64Const(8 * 2), len);
-//
-//            size = builder.CreateAdd(len4, size);
-//            builder.CreateStore(size, size_var);
-//
-//            auto loop_i = env.CreateFirstBlockAlloca(builder, env.i64Type());
-//            builder.CreateStore(env.i64Const(0), loop_i);
-//
-//            // start loop going over the size entries (--> this could be vectorized!)
-//            auto& ctx = env.getContext(); auto F = builder.GetInsertBlock()->getParent();
-//            BasicBlock *bLoopHeader = BasicBlock::Create(ctx, "var_size_loop_header", F);
-//            BasicBlock *bLoopBody = BasicBlock::Create(ctx, "var_size_loop_body", F);
-//            BasicBlock *bLoopExit = BasicBlock::Create(ctx, "var_size_loop_done", F);
-//
-//            auto idx_values = CreateStructGEP(builder, list_ptr, 2);
-//            auto ptr_values = builder.CreateLoad(idx_values);
-//
-//            builder.CreateBr(bLoopHeader);
-//
-//            {
-//                // --- header ---
-//                builder.SetInsertPoint(bLoopHeader);
-//                // if i < len:
-//                auto loop_i_val = builder.CreateLoad(loop_i);
-//                auto loop_cond = builder.CreateICmpULT(loop_i_val, len);
-//                builder.CreateCondBr(loop_cond, bLoopBody, bLoopExit);
-//            }
-//
-//
-//            {
-//                // --- body ---
-//                builder.SetInsertPoint(bLoopBody);
-//                auto loop_i_val = builder.CreateLoad(loop_i);
-//
-//                // fetch size by calling struct_size on each retrieved pointer! (they should be ALL valid)
-//                // --> no check here!
-//               auto item = ptr_values->getType()->isPointerTy() ? builder.CreateGEP(ptr_values, loop_i_val) : ptr_values;
-//
-//                // call function! (or better said: emit the necessary code...)
-//                FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
-//                auto item_size = ft.getSize(builder);
-//
-//                size = builder.CreateAdd(item_size, builder.CreateLoad(size_var));
-//                builder.CreateStore(size, size_var);
-//
-//                // inc.
-//                builder.CreateStore(builder.CreateAdd(env.i64Const(1), loop_i_val), loop_i);
-//                builder.CreateBr(bLoopHeader);
-//            }
-//
-//            builder.SetInsertPoint(bLoopExit);
-//            return builder.CreateLoad(size_var);
-            throw std::runtime_error("list of tuples nyimpl");
         }
 
         static llvm::Value* list_serialize_fixed_sized_to(LLVMEnvironment& env, llvm::IRBuilder<>& builder,

@@ -794,7 +794,7 @@ namespace tuplex {
             builder.CreateCondBr(match_cond, bbMatchingSize, _badParseBlock);
 
             builder.SetInsertPoint(bbMatchingSize);
-            _env.debugPrint(builder, "decoding tuple " + tuple_type.desc());
+            // _env.debugPrint(builder, "decoding tuple " + tuple_type.desc());
             for(unsigned i = 0; i < num_tuple_elements; ++i) {
                 // check type
                 auto element_type = tuple_type.parameters()[i];
@@ -818,8 +818,8 @@ namespace tuplex {
 
                 builder.SetInsertPoint(bDecodeOK);
 
-                // debug:
-                _env.printValue(builder, item.size, "size of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
+                // // debug:
+                // _env.printValue(builder, item.size, "size of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
 
                 // add to tuple
                 ft.set(builder, {(int)i}, item.val, item.size, item.is_null);

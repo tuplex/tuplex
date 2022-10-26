@@ -928,11 +928,9 @@ namespace tuplex {
                         // string etc.
                         assert(el.size && el.size->getType() == _env->i64Type());
 
-                        _env->printValue(builder, el.size, "size of element " + std::to_string(i) + " of type " + type.desc() + ": ");
-
+                        // _env->printValue(builder, el.size, "size of element " + std::to_string(i) + " of type " + type.desc() + ": ");
                         s = builder.CreateAdd(s, el.size); // 0 for varlen option!
-
-                        _env->printValue(builder, s, "size: ");
+                        // _env->printValue(builder, s, "size: ");
                     }
                 }
 

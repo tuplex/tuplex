@@ -71,6 +71,13 @@ namespace tuplex {
 
     // these are the default passes used
     void generateFunctionPassesI(llvm::legacy::FunctionPassManager& fpm) {
+        
+        // perform first some dead code elimination to ease pressure on following passes
+        //fpm.add(createDeadArgEliminationPass());
+        //fpm.add(createDeadCodeEliminationPass());
+        //fpm.add(createDeadStoreEliminationPass());
+        
+        
         // function-wise passes
         fpm.add(createSROAPass()); // break up aggregates
         fpm.add(createInstructionCombiningPass());
@@ -87,6 +94,9 @@ namespace tuplex {
         // custom added passes
         // ==> Tuplex is memcpy heavy, i.e. optimize!
         fpm.add(createMemCpyOptPass()); // !!! use this pass for sure !!! It's quite expensive first, but it pays off big time.
+        
+        // create sel prep pass
+        //fpm.add(createCodeGenPreparePass());
     }
 
     void optimizePipelineI(llvm::Module& mod) {

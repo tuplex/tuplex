@@ -140,6 +140,7 @@ namespace tuplex {
 
         // use fastIsel to speed up compile times
         tmb.getOptions().EnableFastISel = 1;
+        tmb.getOptions().EnableGlobalISel = 0;
 
         //tmb.addFeatures(codegen::getLLVMFeatureStr()); //<-- should add here probably SSE4.2.??
 

@@ -138,6 +138,9 @@ namespace tuplex {
         tmb.setCodeGenOptLevel(CodeGenOpt::None); // <-- use this to speed up compile.
         tmb.setCodeModel(CodeModel::Small); // <-- use this to speed up compute.
 
+        // use fastIsel to speed up compile times
+        tmb.getOptions().EnableFastISel = 1;
+
         //tmb.addFeatures(codegen::getLLVMFeatureStr()); //<-- should add here probably SSE4.2.??
 
         Logger::instance().logger("LLVM").info("compiling code for " + CPUStr);

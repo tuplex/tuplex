@@ -400,28 +400,15 @@ namespace tuplex {
 
         // helper function re type
         int bitmap_field_idx(const python::Type& dict_type) {
-            // if has bitmap then
-            flattened_struct_dict_entry_list_t entries;
-            flatten_recursive_helper(entries, dict_type);
-            for(auto& entry : entries)
-                if(std::get<1>(entry).isOptionType())
-                    return 0;
-            return -1;
+            // if has bitmap then it's the first field
+            return struct_dict_has_bitmap(dict_type) ? 0 : -1;
         }
 
         int presence_map_field_idx(const python::Type& dict_type) {
-            // if has bitmap then
-            flattened_struct_dict_entry_list_t entries;
-            flatten_recursive_helper(entries, dict_type);
+            // if it has bitmap then it's the second field, else it's the first field if present.
+            bool has_bitmap = struct_dict_has_bitmap(dict_type);
+            bool has_presence = struct_dict_has_presence_map(dict_type);
 
-            bool has_bitmap = false;
-            bool has_presence = false;
-            for(auto& entry : entries) {
-                if(std::get<1>(entry).isOptionType())
-                    has_bitmap = true;
-                if(!std::get<2>(entry))
-                    has_presence = true;
-            }
             if(has_bitmap && has_presence)
                 return 1;
             if(has_presence)

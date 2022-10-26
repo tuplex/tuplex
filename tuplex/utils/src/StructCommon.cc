@@ -76,7 +76,7 @@ namespace tuplex {
         if(it == g_struct_property_cache.end()) {
             g_struct_property_cache[dict_type.hash()] = StructDictProperties(dict_type);
         }
-        return g_struct_property_cache.at(dict_type.hash()).has_presence_map;
+        return g_struct_property_cache.at(dict_type.hash()).has_bitmap;
     }
 
     bool struct_dict_has_presence_map(const python::Type& dict_type) {

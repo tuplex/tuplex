@@ -360,7 +360,7 @@ namespace tuplex {
         return 0;
     }
 
-    int64_t ResolveTask::mergeRow(const uint8_t *buf, int64_t bufSize, int bufFormat) {
+    int64_t ResolveTask::mergeRow(const uint8_t *buf, int64_t bufSize, int bufFormat) noexcept {
         using namespace std;
 
         // what format is it in?
@@ -768,7 +768,9 @@ default:
                                     // if it was the object string it would be within a tuple!
                                     auto cptr = PyUnicode_AsUTF8(rowObj);
                                     Py_XDECREF(rowObj);
+                                    python::unlockGIL();
                                     mergeRow(reinterpret_cast<const uint8_t *>(cptr), strlen(cptr), BUF_FORMAT_NORMAL_OUTPUT); // don't write '\0'!
+                                    python::lockGIL();
                                 } else {
 
                                     // there are three options where to store the result now
@@ -798,8 +800,10 @@ default:
                                         // call row func!
                                         // --> merge row distinguishes between those two cases. Distinction has to be done there
                                         //     because of compiled functor who calls mergeRow in the write function...
+                                        python::unlockGIL();
                                         mergeRow(buf, serialized_length, BUF_FORMAT_NORMAL_OUTPUT);
                                         delete [] buf;
+                                        python::lockGIL();
                                     } else if(outputAsGeneralRow) {
                                         Row resRow = python::pythonToRow(rowObj).upcastedRow(commonCaseOutputSchema().getRowType());
                                         assert(resRow.getRowType() == commonCaseOutputSchema().getRowType());
@@ -812,8 +816,10 @@ default:
                                         // call row func!
                                         // --> merge row distinguishes between those two cases. Distinction has to be done there
                                         //     because of compiled functor who calls mergeRow in the write function...
+                                        python::unlockGIL();
                                         mergeRow(buf, serialized_length, BUF_FORMAT_GENERAL_OUTPUT);
                                         delete [] buf;
+                                        python::lockGIL();
                                     } else {
                                         // Unwrap single element tuples before writing them to the fallback sink
                                         if(PyTuple_Check(rowObj) && PyTuple_Size(rowObj) == 1) {

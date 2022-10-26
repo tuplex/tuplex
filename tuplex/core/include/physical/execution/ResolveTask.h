@@ -118,13 +118,13 @@ namespace tuplex {
 
         /*!
          * this function merges the following buffer into output.
-         * schema of the row has to be resolverOutputSchema!!!
+         * schema of the row has to be resolverOutputSchema!!! DO NOT HOLD THE GIL WHEN CALLING THIS FUNCTION!
          * @param buf
          * @param bufSize
          * @param bufFormat in which format the row is. 0=resolver, 1=normal case, 2=general case
          * @return how many bytes were written to normal output partitions. Can be 0 when e.g. row goes to general case output exceptions.
          */
-        int64_t mergeRow(const uint8_t* buf, int64_t bufSize, int bufFormat);
+        int64_t mergeRow(const uint8_t* buf, int64_t bufSize, int bufFormat) noexcept;
 
         /*!
         * this function merges the following buffer into output.

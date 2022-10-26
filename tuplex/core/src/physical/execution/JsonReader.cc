@@ -251,6 +251,11 @@ namespace tuplex {
         auto endPtrVal = *endPtr;
 
         assert(_inBufferLength > 0);
+        
+        if(!_functor) {
+            throw std::runtime_error("functor in JsonReader is nullptr, compile error?");
+        }
+        
         auto bytesParsed = _functor(_userData, _inputBuffer, _inBufferLength, &_num_normal_rows, &_num_bad_rows, !eof);
 
         // if bytes are negative, error!

@@ -43,6 +43,87 @@ namespace tuplex {
         }
     }
 
+    // recomputing properties over and over again is slow. Therefore, use cache!
+
+    struct StructDictProperties {
+        bool has_bitmap;
+        bool has_presence_map;
+
+        StructDictProperties() = default;
+        StructDictProperties(const python::Type& dict_type) {
+            assert(dict_type.isStructuredDictionaryType());
+
+            flattened_struct_dict_entry_list_t entries;
+            flatten_recursive_helper(entries, dict_type);
+
+            size_t num_bitmap = 0, num_presence_map = 0;
+
+            retrieve_bitmap_counts(entries, num_bitmap, num_presence_map);
+
+            // compute members.
+            has_bitmap = num_bitmap > 0;
+            has_presence_map = num_presence_map > 0;
+        }
+    };
+    static std::unordered_map<int, StructDictProperties> g_struct_property_cache;
+
+
+    bool struct_dict_has_bitmap(const python::Type& dict_type) {
+        assert(dict_type.isStructuredDictionaryType());
+
+        // check cache & fill if necessary
+        auto it = g_struct_property_cache.find(dict_type.hash());
+        if(it == g_struct_property_cache.end()) {
+            g_struct_property_cache[dict_type.hash()] = StructDictProperties(dict_type);
+        }
+        return g_struct_property_cache.at(dict_type.hash()).has_presence_map;
+    }
+
+    bool struct_dict_has_presence_map(const python::Type& dict_type) {
+        assert(dict_type.isStructuredDictionaryType());
+        // check cache & fill if necessary
+        auto it = g_struct_property_cache.find(dict_type.hash());
+        if(it == g_struct_property_cache.end()) {
+            g_struct_property_cache[dict_type.hash()] = StructDictProperties(dict_type);
+        }
+        return g_struct_property_cache.at(dict_type.hash()).has_presence_map;
+    }
+
+    python::Type struct_dict_type_get_element_type(const python::Type& dict_type, const access_path_t& path) {
+
+        if(!dict_type.isStructuredDictionaryType())
+            return python::Type::UNKNOWN;
+
+        // fetch the type
+        assert(dict_type.isStructuredDictionaryType());
+        if(path.empty())
+            return dict_type;
+
+        auto p = path.front();
+        // this is done recursively
+        for(const auto& kv_pair : dict_type.get_struct_pairs()) {
+            // compare
+            if(p.second == kv_pair.keyType
+               && semantic_python_value_eq(p.second, p.first, kv_pair.key)) {
+                // match -> recurse!
+                if(path.size() == 1)
+                    return kv_pair.valueType;
+                else {
+                    assert(path.size() >= 2);
+                    auto suffix_path = access_path_t(path.begin() + 1, path.end());
+
+                    // special case: option[struct[...]] => search the non-option type
+                    auto value_type = kv_pair.valueType;
+                    if(value_type.isOptionType())
+                        value_type = value_type.getReturnType();
+                    return struct_dict_type_get_element_type(value_type, suffix_path);
+                }
+            }
+        }
+        return python::Type::UNKNOWN; // not found.
+    }
+
+
     void flatten_recursive_helper(flattened_struct_dict_entry_list_t &entries,
                                   const python::Type &dict_type,
                                   std::vector<std::pair<std::string, python::Type>> prefix,
@@ -233,68 +314,6 @@ namespace tuplex {
         }
 
         return indices;
-    }
-
-    bool struct_dict_has_bitmap(const python::Type& dict_type) {
-        assert(dict_type.isStructuredDictionaryType());
-
-        flattened_struct_dict_entry_list_t entries;
-        flatten_recursive_helper(entries, dict_type);
-
-        size_t num_bitmap = 0, num_presence_map = 0;
-
-        retrieve_bitmap_counts(entries, num_bitmap, num_presence_map);
-        bool has_bitmap = num_bitmap > 0;
-        bool has_presence_map = num_presence_map > 0;
-        return has_bitmap;
-    }
-
-    bool struct_dict_has_presence_map(const python::Type& dict_type) {
-        assert(dict_type.isStructuredDictionaryType());
-
-        flattened_struct_dict_entry_list_t entries;
-        flatten_recursive_helper(entries, dict_type);
-
-        size_t num_bitmap = 0, num_presence_map = 0;
-
-        retrieve_bitmap_counts(entries, num_bitmap, num_presence_map);
-        bool has_bitmap = num_bitmap > 0;
-        bool has_presence_map = num_presence_map > 0;
-        return has_presence_map;
-    }
-
-    python::Type struct_dict_type_get_element_type(const python::Type& dict_type, const access_path_t& path) {
-
-        if(!dict_type.isStructuredDictionaryType())
-            return python::Type::UNKNOWN;
-
-        // fetch the type
-        assert(dict_type.isStructuredDictionaryType());
-        if(path.empty())
-            return dict_type;
-
-        auto p = path.front();
-        // this is done recursively
-        for(const auto& kv_pair : dict_type.get_struct_pairs()) {
-            // compare
-            if(p.second == kv_pair.keyType
-               && semantic_python_value_eq(p.second, p.first, kv_pair.key)) {
-                // match -> recurse!
-                if(path.size() == 1)
-                    return kv_pair.valueType;
-                else {
-                    assert(path.size() >= 2);
-                    auto suffix_path = access_path_t(path.begin() + 1, path.end());
-
-                    // special case: option[struct[...]] => search the non-option type
-                    auto value_type = kv_pair.valueType;
-                    if(value_type.isOptionType())
-                        value_type = value_type.getReturnType();
-                    return struct_dict_type_get_element_type(value_type, suffix_path);
-                }
-            }
-        }
-        return python::Type::UNKNOWN; // not found.
     }
 
     class StrJsonTree {

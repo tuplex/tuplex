@@ -649,6 +649,12 @@ namespace tuplex {
                 continue;
             }
 
+            if(value_type == python::Type::EMPTYLIST || value_type == python::Type::EMPTYLIST) {
+                elements[access_path] = "[]";
+                tree->add(access_path_to_json_keys(access_path), "[]");
+                continue;
+            }
+
             // decode...
             if(value_type.isOptionType()) {
                 assert(bitmap_idx >= 0);

@@ -742,7 +742,7 @@ TEST_F(JsonTuplexTest,SampleForAllFiles) {
     // use sample
     string pattern = "../resources/hyperspecialization/github_daily/*.json.sample";
 
-    pattern = "../resources/hyperspecialization/github_daily/2012*.json.sample";
+    // pattern = "../resources/hyperspecialization/github_daily/2012*.json.sample"; // <-- put in here any problematic files found.
 
     std::cout<<"Processing in global mode..."<<std::endl;
 
@@ -750,22 +750,22 @@ TEST_F(JsonTuplexTest,SampleForAllFiles) {
     EXPECT_FALSE(ds.isError());
     ds.tocsv("github_forkevents.csv");
 
-//    std::cout<<"Processing in hyper mode..."<<std::endl;
+    std::cout<<"Processing in hyper mode..."<<std::endl;
 
-//    // process each file on its own and compare to the global files...
-//    // -> they should be identical... (up to order)
-//    auto paths = glob(pattern);
-//    for(const auto& path : paths) {
-//        std::cout<<"--> processing path "<<path<<std::endl;
+    // process each file on its own and compare to the global files...
+    // -> they should be identical... (up to order)
+    auto paths = glob(pattern);
+    for(const auto& path : paths) {
+        std::cout<<"--> processing path "<<path<<std::endl;
 
-//        auto basename = path.substr(path.rfind("/") + 1);
-//        auto output_path = basename.substr(0, basename.find('.')) + "_github_forkevents.csv";
-//        std::cout<<"writing output to: "<<output_path<<std::endl;
+        auto basename = path.substr(path.rfind("/") + 1);
+        auto output_path = basename.substr(0, basename.find('.')) + "_github_forkevents.csv";
+        std::cout<<"writing output to: "<<output_path<<std::endl;
 
-//        auto& ds = github_pipeline(c, path);
-//        EXPECT_FALSE(ds.isError());
-//        ds.tocsv(output_path);
-//    }
+        auto& ds = github_pipeline(c, path);
+        EXPECT_FALSE(ds.isError());
+        ds.tocsv(output_path);
+    }
 }
 
 TEST_F(JsonTuplexTest, MiniSampleForAllFiles) {

@@ -8,6 +8,8 @@
 #include <physical/experimental/JsonHelper.h>
 #include <physical/experimental/JSONParseRowGenerator.h>
 
+#include <jit/LLVMOptimizer.h>
+
 class JsonTuplexTest : public HyperPyTest {};
 
 

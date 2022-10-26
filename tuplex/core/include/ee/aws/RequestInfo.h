@@ -7,7 +7,10 @@
 
 #include <Base.h>
 #include <StringUtils.h>
+
+#ifdef BUILD_WITH_AWS
 #include <Lambda.pb.h>
+#endif
 
 namespace tuplex {
 
@@ -51,11 +54,12 @@ namespace tuplex {
         RequestInfo() : durationInMs(0), billedDurationInMs(100), memorySizeInMb(0), maxMemoryUsedInMb(0),
         returnCode(0), tsRequestStart(0), tsRequestEnd(0) {}
 
+#ifdef BUILD_WITH_AWS
         RequestInfo(const messages::RequestInfo& info) : requestId(info.requestid().c_str()),
         containerId(info.containerid()),
         durationInMs(info.durationinms()), billedDurationInMs(info.billeddurationinms()), memorySizeInMb(info.memorysizeinmb()),
         maxMemoryUsedInMb(info.maxmemoryusedinmb()), returnCode(info.returncode()), errorMessage(info.errormessage().c_str()), tsRequestStart(info.tsrequeststart()), tsRequestEnd(info.tsrequestend()) {}
-
+#endif
 
         static RequestInfo parseFromLog(const std::string& log);
 
@@ -76,6 +80,7 @@ namespace tuplex {
             return ss.str();
         }
 
+#ifdef BUILD_WITH_AWS
         inline void fill(messages::RequestInfo* r) const {
             if(!r)
                 return;
@@ -97,6 +102,7 @@ namespace tuplex {
             fill(r);
             return r;
         }
+#endif
     };
 }
 

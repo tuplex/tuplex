@@ -28,6 +28,8 @@
 
 #include "TuplexMatchBuilder.h"
 
+#include <logical/FileInputOperator.h>
+
 // NOTES:
 // for concrete parser implementation with pushdown etc., use
 // https://github.com/simdjson/simdjson/blob/master/doc/basics.md#json-pointer

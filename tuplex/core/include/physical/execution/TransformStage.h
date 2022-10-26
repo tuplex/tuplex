@@ -41,6 +41,7 @@
 
 namespace tuplex {
 
+#ifdef BUILD_WITH_AWS
     inline FileFormat proto_toFileFormat(messages::FileFormat fmt) {
         switch(fmt) {
             case messages::FileFormat::FF_CSV:
@@ -53,7 +54,7 @@ namespace tuplex {
                 return FileFormat::OUTFMT_UNKNOWN;
         }
     }
-
+#endif
 
     // forward declaration of friend class
     namespace codegen {

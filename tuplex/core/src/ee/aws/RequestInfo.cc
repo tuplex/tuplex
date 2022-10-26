@@ -7,6 +7,7 @@
 #include <aws/core/utils/HashingUtils.h>
 
 #include <regex>
+#include "Utils.h"
 
 namespace tuplex {
     RequestInfo RequestInfo::parseFromLog(const std::string& log) {

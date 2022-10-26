@@ -200,7 +200,7 @@ namespace tuplex {
       Builder.SizeLevel = OptSize;
       Builder.LibraryInfo = new llvm::TargetLibraryInfoImpl(Triple);
       Builder.Inliner = llvm::createFunctionInliningPass(OptLevel, OptSize, false);
-      Builder.SLPVectorize = true; // enable vectorization!
+         Builder.SLPVectorize = false; // true; // enable vectorization! --> not suitable for large parse functions. I.e., deactivate for parse function, but potentially apply to individual, small UDF functions (?)
 
       std::unique_ptr<llvm::TargetMachine> TM = GetHostTargetMachine();
       assert(TM);

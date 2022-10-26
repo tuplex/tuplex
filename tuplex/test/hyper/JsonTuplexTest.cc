@@ -745,7 +745,7 @@ TEST_F(JsonTuplexTest,SampleForAllFiles) {
     // /home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/resources/hyperspecialization/github_daily/2019-10-15.json.sample
     // pattern = "../resources/hyperspecialization/github_daily/2012*.json.sample"; // <-- put in here any problematic files found.
 
-//    pattern = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/resources/hyperspecialization/github_daily/2019-10-15.json.sample";
+    pattern = "../resources/hyperspecialization/github_daily/2019-10-15.json.sample";
 
     std::cout<<"Processing in global mode..."<<std::endl;
 
@@ -753,8 +753,10 @@ TEST_F(JsonTuplexTest,SampleForAllFiles) {
     EXPECT_FALSE(ds.isError());
     ds.tocsv("github_forkevents.csv");
 
+    return;
     std::cout<<"Processing in hyper mode..."<<std::endl;
 
+    
     // process each file on its own and compare to the global files...
     // -> they should be identical... (up to order)
     auto paths = glob(pattern);

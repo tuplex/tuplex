@@ -80,8 +80,8 @@ namespace tuplex {
 
             _parsedBytesVar = _env->CreateFirstBlockVariable(builder, _env->i64Const(0), "truncated_bytes");
 
-            // init JsonItem row object var
-            _row_object_var = _env->CreateFirstBlockVariable(builder, _env->i8nullptr(), "row_object");
+             // init JsonItem row object var
+             _row_object_var = _env->CreateFirstBlockVariable(builder, _env->i8nullptr(), "row_object");
         }
 
         llvm::Value *JsonSourceTaskBuilder::generateParseLoop(llvm::IRBuilder<> &builder,
@@ -178,10 +178,17 @@ namespace tuplex {
             //     builder.SetInsertPoint(bbKeep);
             // }
 
-
+            // new: within its own LLVM function
             // parse here as normal row
-            auto normal_case_row = parseRow(builder, _normalCaseRowType, normal_case_columns, unwrap_first_level, parser, bbParseAsGeneralCaseRow); //parseRowAsStructuredDict(builder, _normalCaseRowType, parser, bbParseAsGeneralCaseRow);
+            auto normal_case_row = generateAndCallParseRowFunction(builder, "parse_normal_row_internal",
+                                                                   _normalCaseRowType, normal_case_columns,
+                                                                   unwrap_first_level, parser, bbParseAsGeneralCaseRow);
             builder.CreateBr(bbNormalCaseSuccess);
+
+            // // old:
+            // // parse here as normal row
+            // auto normal_case_row = parseRow(builder, _normalCaseRowType, normal_case_columns, unwrap_first_level, parser, bbParseAsGeneralCaseRow);
+            // builder.CreateBr(bbNormalCaseSuccess);
 
             builder.SetInsertPoint(bbParseAsGeneralCaseRow);
 
@@ -190,15 +197,16 @@ namespace tuplex {
             if(_normalCaseRowType == _generalCaseRowType) {
                 builder.CreateBr(bbFallback);
             } else {
-                // // new: (--> should be llvm optimizer friendlier)
-                // general_case_row = generateAndCallParseRowFunction(builder, _generalCaseRowType, general_case_columns,
-                //                                                    unwrap_first_level, parser, bbFallback);
-                // builder.CreateBr(bbGeneralCaseSuccess);
+                 // new: (--> should be llvm optimizer friendlier)
+                 general_case_row = generateAndCallParseRowFunction(builder, "parse_general_row_internal",
+                                                                    _generalCaseRowType, general_case_columns,
+                                                                    unwrap_first_level, parser, bbFallback);
+                 builder.CreateBr(bbGeneralCaseSuccess);
 
-                // old, but correct with long compile times:
-                general_case_row = parseRow(builder, _generalCaseRowType, general_case_columns,
-                                            unwrap_first_level, parser, bbFallback);
-                builder.CreateBr(bbGeneralCaseSuccess);
+                 // // old, but correct with long compile times:
+                 // general_case_row = parseRow(builder, _generalCaseRowType, general_case_columns,
+                 //                             unwrap_first_level, parser, bbFallback);
+                 // builder.CreateBr(bbGeneralCaseSuccess);
             }
 
             // now create the blocks for each scenario
@@ -363,7 +371,117 @@ namespace tuplex {
             return builder.CreateLoad(_parsedBytesVar);
         }
 
-        llvm::Function *JsonSourceTaskBuilder::generateParseRowFunction(const python::Type &row_type,
+        llvm::Value* json_parseRowAsStructuredDict(LLVMEnvironment& env, llvm::IRBuilder<> &builder, const python::Type &dict_type,
+                llvm::Value *j, llvm::BasicBlock *bbSchemaMismatch) {
+            assert(j);
+            using namespace llvm;
+            auto &ctx = env.getContext();
+
+            // get initial object
+            // => this is from parser
+            auto Fgetobj = getOrInsertFunction(env.getModule().get(), "JsonParser_getObject", env.i64Type(),
+                                               env.i8ptrType(), env.i8ptrType()->getPointerTo(0));
+
+            auto obj_var = env.CreateFirstBlockVariable(builder, env.i8nullptr(), "row_object");
+
+            // release and store nullptr
+            json_release_object(env, builder, obj_var);
+
+            builder.CreateCall(Fgetobj, {j, obj_var});
+
+            // don't forget to free everything...
+            // alloc variable
+            auto struct_dict_type = create_structured_dict_type(env, dict_type);
+            auto row_var = env.CreateFirstBlockAlloca(builder, struct_dict_type);
+            struct_dict_mem_zero(env, builder, row_var, dict_type); // !!! important !!!
+
+            // create dict parser and store to row_var
+            JSONParseRowGenerator gen(env, dict_type, bbSchemaMismatch);
+            gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
+
+            // create new block (post - parse)
+            BasicBlock *bPostParse = BasicBlock::Create(ctx, "post_parse", builder.GetInsertBlock()->getParent());
+
+            builder.CreateBr(bPostParse);
+            builder.SetInsertPoint(bPostParse);
+
+            // free obj_var...
+            json_release_object(env, builder, obj_var);
+        #ifndef NDEBUG
+            builder.CreateStore(env.i8nullptr(), obj_var);
+        #endif
+            return row_var;
+        }
+
+        FlattenedTuple json_parseRow(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& row_type,
+                                const std::vector<std::string>& columns,
+                                bool unwrap_first_level,
+                                llvm::Value* parser,
+                                llvm::BasicBlock *bbSchemaMismatch) {
+            auto& logger = Logger::instance().logger("codegen");
+            assert(row_type.isTupleType());
+
+            FlattenedTuple ft(&env);
+            ft.init(row_type);
+
+            // should first level be unwrapped or not?
+            if(unwrap_first_level) {
+                // -> need to have columns info
+                assert(columns.size() >= row_type.parameters().size());
+
+                if(columns.size() < row_type.parameters().size()) {
+                    builder.CreateBr(bbSchemaMismatch);
+                    // maybe need to initialize with dummies?
+                    return ft;
+                }
+
+                // parse using a struct type composed of columns and the data!
+                std::vector<python::StructEntry> entries;
+                auto num_entries = std::min(columns.size(), row_type.parameters().size());
+
+                for(unsigned i = 0; i < num_entries; ++i) {
+                    python::StructEntry entry;
+                    entry.keyType = python::Type::STRING;
+                    entry.key = escape_to_python_str(columns[i]);
+                    entry.valueType = row_type.parameters()[i];
+                    entries.push_back(entry);
+                }
+                auto dict_type = python::Type::makeStructuredDictType(entries);
+
+                // parse dictionary
+                auto dict = json_parseRowAsStructuredDict(env, builder, dict_type, parser, bbSchemaMismatch);
+
+                // fetch columns from dict and assign to tuple!
+                for(int i = 0; i < num_entries; ++i) {
+                    SerializableValue value;
+
+                    // fetch value from dict!
+                    value = struct_dict_get_or_except(env, builder, dict_type, escape_to_python_str(columns[i]),
+                                                      python::Type::STRING, dict, bbSchemaMismatch);
+
+                    ft.set(builder, {i}, value.val, value.size, value.is_null);
+                }
+            } else {
+                assert(row_type.parameters().size() == 1);
+                auto dict_type = row_type.parameters()[0];
+                assert(dict_type.isStructuredDictionaryType()); // <-- this should be true, or an alternative parsing strategy devised...
+                if(!dict_type.isStructuredDictionaryType())
+                    throw std::runtime_error("parsing JSON files with type " + dict_type.desc() + " not yet implemented.");
+
+                // _env->debugPrint(builder, "starting to parse row...");
+                // parse struct dict
+                auto s = json_parseRowAsStructuredDict(env, builder, dict_type, parser, bbSchemaMismatch);
+                // _env->debugPrint(builder, "row parsed.");
+
+                // assign to tuple (for further processing)
+                ft.setElement(builder, 0, s, nullptr, nullptr);
+            }
+
+            return ft;
+        }
+
+        llvm::Function *JsonSourceTaskBuilder::generateParseRowFunction(const std::string& name,
+                                                                        const python::Type &row_type,
                                                                         const std::vector<std::string> &columns,
                                                                         bool unwrap_first_level) {
             using namespace llvm;
@@ -374,11 +492,14 @@ namespace tuplex {
 
             // now, create function type
             auto FT = FunctionType::get(_env->i64Type(), {_env->i8ptrType(), tuple_llvm_type->getPointerTo()}, false);
-            auto F = Function::Create(FT, llvm::GlobalValue::LinkageTypes::InternalLinkage, "parse_row_internal", _env->getModule().get());
+            auto F = Function::Create(FT, llvm::GlobalValue::LinkageTypes::InternalLinkage, name, _env->getModule().get());
 
             BasicBlock* bEntry = BasicBlock::Create(_env->getContext(), "entry", F); // <-- call first!
             BasicBlock* bMismatch = BasicBlock::Create(_env->getContext(), "mismatch", F);
             IRBuilder<> builder(bMismatch);
+
+            // free objects here
+
             builder.CreateRet(_env->i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
 
             // main and entry block.
@@ -389,13 +510,17 @@ namespace tuplex {
 
             auto parser = args["parser"];
 
-            auto ft_parsed = parseRow(builder, row_type, columns, unwrap_first_level, parser, bMismatch);
+            auto ft_parsed = json_parseRow(*_env.get(), builder, row_type, columns, unwrap_first_level, parser, bMismatch);
             ft_parsed.storeTo(builder, args["out_tuple"]);
+
+            // free temp objects here...
+
             builder.CreateRet(_env->i64Const(0));
             return F;
         }
 
         FlattenedTuple JsonSourceTaskBuilder::generateAndCallParseRowFunction(llvm::IRBuilder<> &parent_builder,
+                                                                              const std::string& name,
                                                                               const python::Type &row_type,
                                                                               const std::vector<std::string> &columns,
                                                                               bool unwrap_first_level,
@@ -403,7 +528,7 @@ namespace tuplex {
                                                                               llvm::BasicBlock *bbSchemaMismatch) {
             using namespace llvm;
 
-            auto F = generateParseRowFunction(row_type, columns, unwrap_first_level);
+            auto F = generateParseRowFunction(name, row_type, columns, unwrap_first_level);
             FlattenedTuple ft(_env.get());
             ft.init(row_type);
 

@@ -49,6 +49,7 @@ namespace tuplex {
             llvm::Value *_fallbackMemorySizeVar;
             llvm::Value* _parsedBytesVar;
 
+            // this is row specific -> should be handled separately.
             llvm::Value* _row_object_var;
 
             void initVars(llvm::IRBuilder<>& builder);
@@ -96,11 +97,13 @@ namespace tuplex {
                                     llvm::Value* parser,
                                     llvm::BasicBlock *bbSchemaMismatch);
 
-            llvm::Function* generateParseRowFunction(const python::Type& row_type,
+            llvm::Function* generateParseRowFunction(const std::string& name,
+                                                     const python::Type& row_type,
                                                      const std::vector<std::string>& columns,
                                                      bool unwrap_first_level);
 
             FlattenedTuple generateAndCallParseRowFunction(llvm::IRBuilder<>& parent_builder,
+                                                           const std::string& name,
                                                            const python::Type& row_type,
                                                            const std::vector<std::string>& columns,
                                                            bool unwrap_first_level,

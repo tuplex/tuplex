@@ -295,7 +295,11 @@ namespace tuplex {
             builder.SetInsertPoint(bbMismatch);
             builder.CreateRet(env.i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
 
-            annotateModuleWithInstructionPrint(*env.getModule());
+
+            // optimize
+            LLVMOptimizer opt; opt.optimizeModule(*env.getModule());
+
+            //annotateModuleWithInstructionPrint(*env.getModule());
 
             // --- gen done ---, compile...
             bool rc_compile = jit.compile(std::move(env.getModule()));

@@ -416,7 +416,7 @@ namespace tuplex {
 
                 // load FlattenedTuple from value (this ensures it is a heap ptr)
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, tuple, elementType);
-                auto heap_ptr = ft.loadToHeapPtr(builder);
+                auto heap_ptr = ft.loadToPtr(builder); //ft.loadToHeapPtr(builder);
 
                 // debug:
                 env.printValue(builder, idx, "storing tuple of type " + elementType.desc() + " at index: ");

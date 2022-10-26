@@ -1284,7 +1284,11 @@ namespace tuplex {
             builder.CreateMemSet(ptr, _env->i8Const(0), tuple_size, 0);
 #endif
 
-            storeTo(builder, ptr, true);
+            // alloc and then memcpy (can't directly store, not even using volatile mode).
+            auto tmp_ptr = _env->CreateFirstBlockAlloca(builder, getLLVMType());
+            storeTo(builder, tmp_ptr);
+            builder.CreateMemCpy(ptr, 0, tmp_ptr, 0, tuple_size);
+
             return ptr;
         }
     }

@@ -733,9 +733,9 @@ TEST_F(JsonTuplexTest, SampleForAllFiles) {
 
     // deactivate filter pushdown as well...
     co.set("tuplex.optimizer.filterPushdown", "false");
-    co.set("tuplex.useLLVMOptimizer", "true");
+    co.set("tuplex.useLLVMOptimizer", "false");
 
-     co.set("tuplex.executorCount", "0");
+    co.set("tuplex.executorCount", "0");
 
     Context c(co);
 

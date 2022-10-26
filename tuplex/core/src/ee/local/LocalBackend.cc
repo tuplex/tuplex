@@ -896,14 +896,16 @@ namespace tuplex {
         // -------------------------------------------------------------------
         // 2.) MAIN MEMORY processing tasks
         timer.reset();
+        Logger::instance().defaultLogger().info("initializing transform stage.");
 
         // ==> init using optionally hashmaps from dependents
         int64_t init_rc = 0;
-        if((init_rc = syms->_fastCodePath.initStageFunctor(tstage->initData().numArgs,
-                                  reinterpret_cast<void**>(tstage->initData().hash_maps),
-                                  reinterpret_cast<void**>(tstage->initData().null_buckets))) != 0)
-            throw std::runtime_error("fastPathInitStage() failed for stage " + std::to_string(tstage->number()) + " with code " + std::to_string(init_rc));
-
+        if(syms->_fastCodePath.initStageFunctor) {
+            if((init_rc = syms->_fastCodePath.initStageFunctor(tstage->initData().numArgs,
+                                                               reinterpret_cast<void**>(tstage->initData().hash_maps),
+                                                               reinterpret_cast<void**>(tstage->initData().null_buckets))) != 0)
+                throw std::runtime_error("fastPathInitStage() failed for stage " + std::to_string(tstage->number()) + " with code " + std::to_string(init_rc));
+        }
 
         // init aggregate by key
         if(syms->aggAggregateFunctor) {
@@ -916,6 +918,7 @@ namespace tuplex {
         }
 
         auto tasks = createLoadAndTransformToMemoryTasks(tstage, _options, syms);
+        Logger::instance().defaultLogger().info("Created " + pluralize(tasks.size(), "task") + " for transform stage.");
         auto completedTasks = performTasks(tasks);
 
         // calc number of input rows and total wall clock time
@@ -1219,10 +1222,10 @@ namespace tuplex {
 
 
         // call release func for stage globals
-        if(syms->_fastCodePath.releaseStageFunctor() != 0)
+        if(syms->_fastCodePath.releaseStageFunctor && syms->_fastCodePath.releaseStageFunctor() != 0)
             throw std::runtime_error("fastPathReleaseStage() failed for stage " + std::to_string(tstage->number()));
 
-        if(slowPathActuallyExecuted && syms->_slowCodePath.releaseStageFunctor() != 0)
+        if(slowPathActuallyExecuted && syms->_slowCodePath.releaseStageFunctor && syms->_slowCodePath.releaseStageFunctor() != 0)
             throw std::runtime_error("slowPathReleaseStage() failed for stage " + std::to_string(tstage->number()));
 
         // add exception counts from previous stages to current one

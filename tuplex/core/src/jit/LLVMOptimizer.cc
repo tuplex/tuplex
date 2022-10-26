@@ -276,7 +276,10 @@ namespace tuplex {
 
     void LLVMOptimizer::optimizeModule(llvm::Module &mod) {
         // OptLevel 3, SizeLevel 0
-        Optimize(mod, 3, 0);
+        // Optimize(mod, 3, 0);
+        
+        // perform some basic passes (for fast opt) -> defer complex logic to general-case.
+        optimizePipelineI(mod);
     }
 
     // use https://github.com/jmmartinez/easy-just-in-time/blob/master/runtime/Function.cpp

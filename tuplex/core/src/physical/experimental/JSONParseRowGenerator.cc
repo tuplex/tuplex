@@ -672,7 +672,10 @@ namespace tuplex {
 
             // decoding happens in a loop...
             // -> basically get the data!
-            auto list_rc = generateDecodeListItemsLoop(builder, sub_array, list_ptr, list_type, num_elements);
+            // auto list_rc = generateDecodeListItemsLoop(builder, sub_array, list_ptr, list_type, num_elements);
+
+            // debug: how much effect have above loops? -> separate them into their own function for performance reasons?
+            auto list_rc = _env.i64Const(1);
             builder.CreateStore(list_rc, rc_var);
             // debug print, checking what the list decode gives back...
             // _env.printValue(builder, list_rc, "decode result is: ");
@@ -974,7 +977,11 @@ namespace tuplex {
 
             // decoding happens in a loop...
             // -> basically get the data!
-            auto list_rc = generateDecodeListItemsLoop(builder, array, list_ptr, listType, num_elements);
+            // auto list_rc = generateDecodeListItemsLoop(builder, array, list_ptr, listType, num_elements);
+
+            // debug: how much effect have above loops? -> separate them into their own function for performance reasons?
+            auto list_rc = _env.i64Const(1);
+
             builder.CreateStore(list_rc, rc_var);
             // debug print, checking what the list decode gives back...
             // _env.printValue(builder, list_rc, "decode result is: ");

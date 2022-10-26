@@ -276,7 +276,7 @@ namespace tuplex {
 
     void LLVMOptimizer::optimizeModule(llvm::Module &mod) {
         // OptLevel 3, SizeLevel 0
-        Optimize(mod, 3, 0);
+        Optimize(mod, 1, 0);
     }
 
     // use https://github.com/jmmartinez/easy-just-in-time/blob/master/runtime/Function.cpp

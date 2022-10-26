@@ -73,7 +73,7 @@ namespace python {
     // ==> convert to uint64_t and use this for thread safe access
     static std::atomic_bool interpreterInitialized(false); // checks whether interpreter is initialized or not
     std::thread::id gil_main_thread_id; // id of the main thread.
-    std::thread::id gil_id; // id of the thread holding the gil right now.
+    std::atomic<std::thread::id> gil_id; // id of the thread holding the gil right now.
 
     // vars for python management
     static std::atomic<PyThreadState*> gilState(nullptr);

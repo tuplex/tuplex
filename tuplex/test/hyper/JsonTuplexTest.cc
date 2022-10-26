@@ -732,6 +732,7 @@ TEST_F(JsonTuplexTest, SampleForAllFiles) {
     // deactivate filter pushdown as well...
     co.set("tuplex.optimizer.filterPushdown", "false");
     co.set("tuplex.useLLVMOptimizer", "true");
+
     // co.set("tuplex.executorCount", "0");
 
     Context c(co);
@@ -743,7 +744,7 @@ TEST_F(JsonTuplexTest, SampleForAllFiles) {
     string pattern = "../resources/hyperspecialization/github_daily/*.json.sample";
 
     // pattern = "../resources/hyperspecialization/github_daily/2012*.json.sample"; // <-- put in here any problematic files found.
-    // pattern = "../resources/hyperspecialization/github_daily/2019-10-15.json.sample";
+    // pattern = "../resources/hyperspecialization/github_daily/2017-10-15.json.sample";
 
     std::cout<<"Processing in global mode..."<<std::endl;
 

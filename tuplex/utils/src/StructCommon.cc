@@ -22,8 +22,11 @@ namespace tuplex {
 
     // cache for types & indices to speed up computation
     static std::unordered_map<int, std::unordered_map<access_path_t, std::tuple<int, int, int, int>>> g_struct_index_cache;
+    static std::mutex g_struct_index_cache_mutex;
     std::tuple<int, int, int, int> struct_dict_get_indices(const python::Type& dict_type, const access_path_t& path) {
         assert(dict_type.isStructuredDictionaryType());
+
+        std::lock_guard<std::mutex> lock(g_struct_index_cache_mutex);
 
         // check whether type is already cached, if not -> fill cache!
         auto type_it = g_struct_index_cache.find(dict_type.hash());
@@ -66,9 +69,10 @@ namespace tuplex {
         }
     };
     static std::unordered_map<int, StructDictProperties> g_struct_property_cache;
-
+    static std::mutex g_struct_property_cache_mutex;
 
     bool struct_dict_has_bitmap(const python::Type& dict_type) {
+        std::lock_guard<std::mutex> lock(g_struct_property_cache_mutex);
         assert(dict_type.isStructuredDictionaryType());
 
         // check cache & fill if necessary
@@ -80,6 +84,7 @@ namespace tuplex {
     }
 
     bool struct_dict_has_presence_map(const python::Type& dict_type) {
+        std::lock_guard<std::mutex> lock(g_struct_property_cache_mutex);
         assert(dict_type.isStructuredDictionaryType());
         // check cache & fill if necessary
         auto it = g_struct_property_cache.find(dict_type.hash());

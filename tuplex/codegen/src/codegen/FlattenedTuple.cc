@@ -886,10 +886,14 @@ namespace tuplex {
             // add varlen sizes
             for(int i = 0; i < _tree.elements().size(); ++i) {
                 auto el = _tree.elements()[i];
-                if(!el.val) // i.e. for null elements, don't add a size.
+                auto type = _tree.fieldType(i);
+
+                // skip single-valued elements.
+                if(type.isSingleValued())
                     continue;
 
-                auto type = _tree.fieldType(i);
+                // not single-valued? there should be a value!
+                assert(el.val);
 
                 // _env->printValue(builder, s, "cur size before serializing " + type.desc());
 

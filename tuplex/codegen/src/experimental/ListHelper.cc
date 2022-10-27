@@ -651,15 +651,16 @@ namespace tuplex {
             auto t_item = env.getLLVMTypeName(item->getType());
             assert(item->getType()->isPointerTy()); // <-- this here fails...
 
-            env.printValue(builder, item, "stored heap ptr is: ");
-
-            // printing the i64 from the pointer...
-            auto dbg_ptr = builder.CreatePointerCast(item, env.i8ptrType());
-            for(unsigned i = 0; i < 10; ++i) {
-                auto i64_val = builder.CreateLoad(builder.CreatePointerCast(dbg_ptr, env.i64ptrType()));
-                dbg_ptr = builder.CreateGEP(dbg_ptr, env.i64Const(sizeof(int64_t)));
-                env.printValue(builder, i64_val, "bytes " + std::to_string(i * 8) + "-" + std::to_string((i+1)*8) + ": ");
-            }
+            // debug print: retrieve heap ptr
+            // env.printValue(builder, item, "stored heap ptr is: ");
+            //
+            // // printing the i64 from the pointer...
+            // auto dbg_ptr = builder.CreatePointerCast(item, env.i8ptrType());
+            // for(unsigned i = 0; i < 10; ++i) {
+            //     auto i64_val = builder.CreateLoad(builder.CreatePointerCast(dbg_ptr, env.i64ptrType()));
+            //     dbg_ptr = builder.CreateGEP(dbg_ptr, env.i64Const(sizeof(int64_t)));
+            //     env.printValue(builder, i64_val, "bytes " + std::to_string(i * 8) + "-" + std::to_string((i+1)*8) + ": ");
+            // }
 
 
             // call function! (or better said: emit the necessary code...)

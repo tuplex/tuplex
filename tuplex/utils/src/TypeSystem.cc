@@ -776,6 +776,10 @@ namespace python {
     }
 
     bool Type::isSingleValued() const {
+        // constants are single valued as well
+        if(isConstantValued())
+            return true;
+
         return *this == Type::NULLVALUE || *this == Type::EMPTYTUPLE || *this == Type::EMPTYDICT || *this == Type::EMPTYLIST;
     }
 

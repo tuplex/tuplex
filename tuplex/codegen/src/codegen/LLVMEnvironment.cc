@@ -265,12 +265,14 @@ namespace tuplex {
                     // is it of var lenght? -> then store size field!
                     // only applies to general dicts, str, pyobject, ...
                     if(python::Type::STRING == element_type || python::Type::PYOBJECT == element_type) {
-
+                        // store both value & size field
+                        value_idx = values_to_store_so_far++;
+                        size_idx = sizes_to_store_so_far++;
                     } else if(element_type.isDictionaryType() && !element_type.isStructuredDictionaryType()) {
                         // store both value & size field
                         assert(element_type != python::Type::EMPTYDICT);
                         value_idx = values_to_store_so_far++;
-                        sizes_to_store_so_far = sizes_to_store_so_far++;
+                        size_idx = sizes_to_store_so_far++;
                     } else if(element_type.isTupleType() && element_type != python::Type::EMPTYTUPLE) {
                         throw std::runtime_error("do not use tuple type " + element_type.desc() + " here, better flatten tuple type before");
                     } else {

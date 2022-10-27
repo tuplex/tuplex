@@ -697,25 +697,25 @@ namespace tuplex {
                 if(python::Type::EMPTYTUPLE == element_type)
                     return env.i64Const(0);
 
-                // env.printValue(builder, index, "starting to compute size of list element at index: ");
+                auto ptr_values = CreateStructGEP(builder, list_ptr, 2); // should be struct.tuple**
+                auto t_ptr_values = env.getLLVMTypeName(ptr_values->getType());
+                // now load the i-th element from ptr_values as struct.tuple*
+                auto item_ptr = builder.CreateInBoundsGEP(ptr_values, std::vector<llvm::Value*>(1, index));
+                auto t_item_ptr = env.getLLVMTypeName(item_ptr->getType()); // should be struct.tuple**
 
-                auto ptr_values = CreateStructLoad(builder, list_ptr, 2);
-                auto item = builder.CreateGEP(ptr_values, index);
-
-                item = builder.CreateLoad(item); // new when pointers are stored.
+                auto item = builder.CreateLoad(item_ptr); // <-- should be struct.tuple*
+                auto t_item = env.getLLVMTypeName(item->getType());
+                assert(item->getType()->isPointerTy()); // <-- this here fails...
 
                 // call function! (or better said: emit the necessary code...)
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
+
+                // get size
                 auto item_size = ft.getSize(builder);
-
-                // env.printValue(builder, item_size, "list item size is: ");
-
                 return item_size;
             };
 
             auto l_size = list_of_varitems_serialized_size(env, builder, list_ptr, list_type, f_tuple_element_size);
-
-            // env.printValue(builder, l_size, "list of tuples size is: ");
 
             return l_size;
         }
@@ -810,15 +810,21 @@ namespace tuplex {
                 if(python::Type::EMPTYTUPLE == element_type)
                     return env.i64Const(0);
 
-                auto ptr_values = CreateStructGEP(builder, list_ptr, 2);
-                auto ptr_array = builder.CreateLoad(ptr_values);
-                auto item = builder.CreateGEP(ptr_array, index);
-                item = builder.CreateLoad(item);
+                auto ptr_values = CreateStructGEP(builder, list_ptr, 2); // should be struct.tuple**
+                auto t_ptr_values = env.getLLVMTypeName(ptr_values->getType());
+                // now load the i-th element from ptr_values as struct.tuple*
+                auto item_ptr = builder.CreateInBoundsGEP(ptr_values, std::vector<llvm::Value*>(1, index));
+                auto t_item_ptr = env.getLLVMTypeName(item_ptr->getType()); // should be struct.tuple**
+
+                auto item = builder.CreateLoad(item_ptr); // <-- should be struct.tuple*
+                auto t_item = env.getLLVMTypeName(item->getType());
+                assert(item->getType()->isPointerTy()); // <-- this here fails...
 
                 // call function! (or better said: emit the necessary code...)
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
-                auto item_size = ft.getSize(builder);
 
+                // get size
+                auto item_size = ft.getSize(builder);
                 return item_size;
             };
 
@@ -841,19 +847,6 @@ namespace tuplex {
                 auto item = builder.CreateLoad(item_ptr); // <-- should be struct.tuple*
                 auto t_item = env.getLLVMTypeName(item->getType());
                 assert(item->getType()->isPointerTy()); // <-- this here fails...
-
-//                auto ptr_array = builder.CreateLoad(ptr_values);
-////                auto item = builder.CreateGEP(ptr_array, index);
-//
-////                FlattenedTuple ft_test(&env);
-////                ft_test.init(element_type);
-////                auto llvm_tuple_type = ft_test.getLLVMType();
-////                auto& DL = env.getModule()->getDataLayout();
-////                auto DL_size =DL.getTypeAllocSize(llvm_tuple_type);
-//
-//                auto item = builder.CreateGEP(ptr_array, index);
-//                item = builder.CreateLoad(item);
-
 
                 env.printValue(builder, index, "serializing item of type " + element_type.desc() + " at index: ");
                 env.printValue(builder, item, "stored heap ptr at index is: ");

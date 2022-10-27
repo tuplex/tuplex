@@ -848,31 +848,32 @@ namespace tuplex {
                 auto t_item = env.getLLVMTypeName(item->getType());
                 assert(item->getType()->isPointerTy()); // <-- this here fails...
 
-                env.printValue(builder, index, "serializing item of type " + element_type.desc() + " at index: ");
-                env.printValue(builder, item, "stored heap ptr at index is: ");
+                // debug:
+                // env.printValue(builder, index, "serializing item of type " + element_type.desc() + " at index: ");
+                // env.printValue(builder, item, "stored heap ptr at index is: ");
 
                 // call function! (or better said: emit the necessary code...)
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
 
-                // debug: print out items & sizes!
-                for(unsigned i = 0; i < ft.numElements(); ++i) {
-                    auto val = ft.get(i);
-                    auto size = ft.getSize(i);
-                    if(val)
-                        env.printValue(builder, val, "value of item " + std::to_string(i) + " is: ");
-                    if(size)
-                        env.printValue(builder, size, "size of item " + std::to_string(i) + " is: ");
-                }
-
-                // get size
-                env.printValue(builder, ft.getSize(builder), "size of tuple to serialize is: ");
+                // // debug: print out items & sizes!
+                // for(unsigned i = 0; i < ft.numElements(); ++i) {
+                //     auto val = ft.get(i);
+                //     auto size = ft.getSize(i);
+                //     if(val)
+                //         env.printValue(builder, val, "value of item " + std::to_string(i) + " is: ");
+                //     if(size)
+                //         env.printValue(builder, size, "size of item " + std::to_string(i) + " is: ");
+                // }
+                //
+                // // get size
+                // env.printValue(builder, ft.getSize(builder), "size of tuple to serialize is: ");
 
                 auto s_size = ft.serialize(builder, dest_ptr);
-
                 return s_size;
             };
 
-            env.debugPrint(builder, "---\nstarting list serialize\n---");
+            // debug print
+            // env.debugPrint(builder, "---\nstarting list serialize\n---");
 
             return list_serialize_varitems_to(env, builder, list_ptr, list_type,
                                               dest_ptr, f_tuple_element_size, f_tuple_element_serialize_to);

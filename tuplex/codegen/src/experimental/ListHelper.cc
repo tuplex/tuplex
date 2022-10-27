@@ -835,7 +835,8 @@ namespace tuplex {
             // fetch length of list
             auto len = list_length(env, builder, list_ptr, list_type);
 
-            env.printValue(builder, len, "serializing var item list of length: ");
+            // debug print:
+            // env.printValue(builder, len, "serializing var item list of length: ");
 
             // write len of list to dest_ptr
             auto ptr = dest_ptr;

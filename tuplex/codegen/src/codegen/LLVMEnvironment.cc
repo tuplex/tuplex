@@ -380,6 +380,10 @@ namespace tuplex {
                 auto py_element_type = type.parameters()[i];
                 auto llvm_element_type = pythonToLLVMType(py_element_type);
 
+                // special case: boolean -> force to i64, b.c. some LLVM passes are broken else
+                if(python::Type::BOOLEAN == py_element_type)
+                    llvm_element_type = i64Type();
+
                 // save according to indices
                 int value_idx = -1, size_idx = -1, bitmap_idx = -1;
                 auto t_indices = getTupleIndices(type, i);

@@ -236,8 +236,7 @@ namespace tuplex {
         // copy whatever was consumed back to beginning & resume loop
         // don't use memcpy here, might be unsafe. instead use memmove!
 
-        Logger::instance().defaultLogger().debug("calling memmove with bytesConsumed=" + std::to_string(bytesConsumed) + " and inbufferlength=" + std::to_string(_inBufferLength));
-
+        // Logger::instance().defaultLogger().debug("calling memmove with bytesConsumed=" + std::to_string(bytesConsumed) + " and inbufferlength=" + std::to_string(_inBufferLength));
         memmove(_inputBuffer, _inputBuffer + bytesConsumed, _inBufferLength - bytesConsumed);
         _inBufferLength = _inBufferLength - bytesConsumed;
         memset(_inputBuffer + _inBufferLength, 0, simd_security_bytes); // important for parsing!

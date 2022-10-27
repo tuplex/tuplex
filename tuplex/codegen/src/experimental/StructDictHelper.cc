@@ -1194,7 +1194,7 @@ namespace tuplex {
 //            env.printValue(builder, builder.CreatePtrDiff(dest_ptr, original_dest_ptr), "current dest_ptr position at byte: ");
 //            env.printValue(builder, varLengthOffset, "var length so far in bytes: ");
 
- // #define TRACE_STRUCT_SERIALIZATION
+  #define TRACE_STRUCT_SERIALIZATION
             // get indices to properly decode
             for(auto entry : entries) {
                 auto access_path = std::get<0>(entry);
@@ -1210,10 +1210,10 @@ namespace tuplex {
                     env.printValue(builder, struct_dict_load_present(env, builder, ptr, dict_type, access_path), path_str + ": present_idx=" + std::to_string(present_idx) + " is present: ");
                 }
 
-                // print debug info
-                env.printValue(builder, builder.CreatePtrDiff(varFieldsStartPtr, original_dest_ptr), "var fields begin at byte: ");
-                env.printValue(builder, builder.CreatePtrDiff(dest_ptr, original_dest_ptr), "current dest_ptr position at byte: ");
-                env.printValue(builder, varLengthOffset, "var length so far in bytes: ");
+                // // print debug info
+                // env.printValue(builder, builder.CreatePtrDiff(varFieldsStartPtr, original_dest_ptr), "var fields begin at byte: ");
+                // env.printValue(builder, builder.CreatePtrDiff(dest_ptr, original_dest_ptr), "current dest_ptr position at byte: ");
+                // env.printValue(builder, varLengthOffset, "var length so far in bytes: ");
 #endif
                 // special case list: --> needs extra care
                 if(value_type.isOptionType())

@@ -316,26 +316,56 @@ namespace tuplex {
 }
 
 TEST_F(JsonTuplexTest, TupleBinToPythonSimple) {
+//    using namespace tuplex;
+//    using namespace std;
+//
+////    string test_type_str = "(str,Struct[(str,'shas'=>List[List[str]])])";
+//    string test_type_str = "(str,Struct[(str,'shas'=>List[(str,str,i64)])])";
+//    auto test_type = python::Type::decode(test_type_str);
+//    ASSERT_TRUE(test_type.isTupleType());
+//    EXPECT_EQ(test_type.parameters().size(), 2);
+//    std::cout<<"testing with tuple type " + test_type.desc() + "..."<<std::endl;
+//
+//    // sample line.
+////    string line = "{\"A\":\"hello world!\",\"col\": {\"shas\":[[\"a\",\"b\"],[],[\"c\"]]}}";
+//    string line = "{\"A\":\"hello world!\",\"col\": {\"shas\":[[\"a\",\"b\",42],[\"c\",\"d\",12]]}}";
+//
+//    runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
+//
+//    JITCompiler jit;
+//
+//    // create parse function (easier to debug!)
+//    std::vector<std::string> columns({"A", "col"});
+//    auto f = codegen::generateJsonTupleTestParse(jit, test_type, columns);
+//    ASSERT_TRUE(f);
+//
+//    unsigned line_no = 0;
+//
+//    uint8_t *buf = nullptr;
+//    size_t size = 0;
+//    auto rc = f(reinterpret_cast<const uint8_t *>(line.c_str()), line.size(), &buf, &size);
+//    EXPECT_EQ(rc, 0);
+
     using namespace tuplex;
     using namespace std;
 
-//    string test_type_str = "(str,Struct[(str,'shas'=>List[List[str]])])";
-    string test_type_str = "(str,Struct[(str,'shas'=>List[(str,str,i64)])])";
-    auto test_type = python::Type::decode(test_type_str);
+    auto general_type_str = "(str,Struct[(str,'action'=>str),(str,'comment'=>Struct[(str,'url'->str),(str,'id'->i64),(str,'diff_hunk'->str),(str,'path'->str),(str,'position'->i64),(str,'original_position'->i64),(str,'commit_id'->str),(str,'original_commit_id'->str),(str,'user'->Struct[(str,'login'->str),(str,'id'->i64),(str,'avatar_url'->str),(str,'gravatar_id'->str),(str,'url'->str),(str,'html_url'->str),(str,'followers_url'->str),(str,'following_url'->str),(str,'gists_url'->str),(str,'starred_url'->str),(str,'subscriptions_url'->str),(str,'organizations_url'->str),(str,'repos_url'->str),(str,'events_url'->str),(str,'received_events_url'->str),(str,'type'->str),(str,'site_admin'->boolean)]),(str,'body'->str),(str,'created_at'->str),(str,'updated_at'->str),(str,'html_url'->str),(str,'pull_request_url'->str),(str,'_links'->Struct[(str,'self'->Struct[(str,'href'->str)]),(str,'html'->Struct[(str,'href'->str)]),(str,'pull_request'->Struct[(str,'href'->str)])])]),(str,'comment_id'=>i64),(str,'commit'=>str),(str,'desc'=>str),(str,'description'=>str),(str,'head'=>str),(str,'id'=>i64),(str,'issue'=>i64),(str,'issue_id'=>i64),(str,'master_branch'=>str),(str,'member'=>Struct[(str,'login'->str),(str,'id'->i64),(str,'avatar_url'->str),(str,'gravatar_id'->str),(str,'url'->str),(str,'html_url'->str),(str,'followers_url'->str),(str,'following_url'->str),(str,'gists_url'->str),(str,'starred_url'->str),(str,'subscriptions_url'->str),(str,'organizations_url'->str),(str,'repos_url'->str),(str,'events_url'->str),(str,'received_events_url'->str),(str,'type'->str),(str,'site_admin'->boolean)]),(str,'name'=>str),(str,'number'=>i64),(str,'pages'=>List[Struct[(str,'page_name'->str),(str,'title'->str),(str,'summary'->null),(str,'action'->str),(str,'sha'->str),(str,'html_url'->str)]]),(str,'pull_request'=>Struct[(str,'_links'->Struct[(str,'self'->Struct[(str,'href'->str)]),(str,'html'->Struct[(str,'href'->str)]),(str,'issue'->Struct[(str,'href'->str)]),(str,'comments'->Struct[(str,'href'->str)]),(str,'review_comments'->Struct[(str,'href'->str)]),(str,'statuses'->Struct[(str,'href'->str)])]),(str,'additions'->i64),(str,'assignee'->null),(str,'base'->Struct[(str,'label'->str),(str,'ref'->str),(str,'repo'->Struct[(str,'archive_url'->str),(str,'assignees_url'->str),(str,'blobs_url'->str),(str,'branches_url'->str),(str,'clone_url'->str),(str,'collaborators_url'->str),(str,'comments_url'->str),(str,'commits_url'->str),(str,'compare_url'->str),(str,'contents_url'->str),(str,'contributors_url'->str),(str,'created_at'->str),(str,'default_branch'->str),(str,'description'->str),(str,'downloads_url'->str),(str,'events_url'->str),(str,'fork'->boolean),(str,'forks'->i64),(str,'forks_count'->i64),(str,'forks_url'->str),(str,'full_name'->str),(str,'git_commits_url'->str),(str,'git_refs_url'->str),(str,'git_tags_url'->str),(str,'git_url'->str),(str,'has_downloads'->boolean),(str,'has_issues'->boolean),(str,'has_wiki'->boolean),(str,'homepage'->Option[str]),(str,'hooks_url'->str),(str,'html_url'->str),(str,'id'->i64),(str,'issue_comment_url'->str),(str,'issue_events_url'->str),(str,'issues_url'->str),(str,'keys_url'->str),(str,'labels_url'->str),(str,'language'->str),(str,'languages_url'->str),(str,'master_branch'->str),(str,'merges_url'->str),(str,'milestones_url'->str),(str,'mirror_url'->null),(str,'name'->str),(str,'notifications_url'->str),(str,'open_issues'->i64),(str,'open_issues_count'->i64),(str,'owner'->Struct[(str,'avatar_url'->str),(str,'events_url'->str),(str,'followers_url'->str),(str,'following_url'->str),(str,'gists_url'->str),(str,'gravatar_id'->Option[str]),(str,'html_url'->str),(str,'id'->i64),(str,'login'->str),(str,'organizations_url'->str),(str,'received_events_url'->str),(str,'repos_url'->str),(str,'site_admin'->boolean),(str,'starred_url'->str),(str,'subscriptions_url'->str),(str,'type'->str),(str,'url'->str)]),(str,'private'->boolean),(str,'pulls_url'->str),(str,'pushed_at'->str),(str,'size'->i64),(str,'ssh_url'->str),(str,'stargazers_url'->str),(str,'statuses_url'->str),(str,'subscribers_url'->str),(str,'subscription_url'->str),(str,'svn_url'->str),(str,'tags_url'->str),(str,'teams_url'->str),(str,'trees_url'->str),(str,'updated_at'->str),(str,'url'->str),(str,'watchers'->i64),(str,'watchers_count'->i64)]),(str,'sha'->str),(str,'user'->Struct[(str,'avatar_url'->str),(str,'events_url'->str),(str,'followers_url'->str),(str,'following_url'->str),(str,'gists_url'->str),(str,'gravatar_id'->Option[str]),(str,'html_url'->str),(str,'id'->i64),(str,'login'->str),(str,'organizations_url'->str),(str,'received_events_url'->str),(str,'repos_url'->str),(str,'site_admin'->boolean),(str,'starred_url'->str),(str,'subscriptions_url'->str),(str,'type'->str),(str,'url'->str)])]),(str,'body'->str),(str,'changed_files'->i64),(str,'closed_at'->Option[str]),(str,'comments'->i64),(str,'comments_url'->str),(str,'commits'->i64),(str,'commits_url'->str),(str,'created_at'->str),(str,'deletions'->i64),(str,'diff_url'->str),(str,'head'->Struct[(str,'label'->str),(str,'ref'->str),(str,'repo'->Struct[(str,'archive_url'->str),(str,'assignees_url'->str),(str,'blobs_url'->str),(str,'branches_url'->str),(str,'clone_url'->str),(str,'collaborators_url'->str),(str,'comments_url'->str),(str,'commits_url'->str),(str,'compare_url'->str),(str,'contents_url'->str),(str,'contributors_url'->str),(str,'created_at'->str),(str,'default_branch'->str),(str,'description'->str),(str,'downloads_url'->str),(str,'events_url'->str),(str,'fork'->boolean),(str,'forks'->i64),(str,'forks_count'->i64),(str,'forks_url'->str),(str,'full_name'->str),(str,'git_commits_url'->str),(str,'git_refs_url'->str),(str,'git_tags_url'->str),(str,'git_url'->str),(str,'has_downloads'->boolean),(str,'has_issues'->boolean),(str,'has_wiki'->boolean),(str,'homepage'->Option[str]),(str,'hooks_url'->str),(str,'html_url'->str),(str,'id'->i64),(str,'issue_comment_url'->str),(str,'issue_events_url'->str),(str,'issues_url'->str),(str,'keys_url'->str),(str,'labels_url'->str),(str,'language'->str),(str,'languages_url'->str),(str,'master_branch'->str),(str,'merges_url'->str),(str,'milestones_url'->str),(str,'mirror_url'->null),(str,'name'->str),(str,'notifications_url'->str),(str,'open_issues'->i64),(str,'open_issues_count'->i64),(str,'owner'->Struct[(str,'avatar_url'->str),(str,'events_url'->str),(str,'followers_url'->str),(str,'following_url'->str),(str,'gists_url'->str),(str,'gravatar_id'->Option[str]),(str,'html_url'->str),(str,'id'->i64),(str,'login'->str),(str,'organizations_url'->str),(str,'received_events_url'->str),(str,'repos_url'->str),(str,'site_admin'->boolean),(str,'starred_url'->str),(str,'subscriptions_url'->str),(str,'type'->str),(str,'url'->str)]),(str,'private'->boolean),(str,'pulls_url'->str),(str,'pushed_at'->str),(str,'size'->i64),(str,'ssh_url'->str),(str,'stargazers_url'->str),(str,'statuses_url'->str),(str,'subscribers_url'->str),(str,'subscription_url'->str),(str,'svn_url'->str),(str,'tags_url'->str),(str,'teams_url'->str),(str,'trees_url'->str),(str,'updated_at'->str),(str,'url'->str),(str,'watchers'->i64),(str,'watchers_count'->i64)]),(str,'sha'->str),(str,'user'->Struct[(str,'avatar_url'->str),(str,'events_url'->str),(str,'followers_url'->str),(str,'following_url'->str),(str,'gists_url'->str),(str,'gravatar_id'->Option[str]),(str,'html_url'->str),(str,'id'->i64),(str,'login'->str),(str,'organizations_url'->str),(str,'received_events_url'->str),(str,'repos_url'->str),(str,'site_admin'->boolean),(str,'starred_url'->str),(str,'subscriptions_url'->str),(str,'type'->str),(str,'url'->str)])]),(str,'html_url'->str),(str,'id'->i64),(str,'issue_url'->str),(str,'merge_commit_sha'->Option[str]),(str,'mergeable'->Option[boolean]),(str,'mergeable_state'->str),(str,'merged'->boolean),(str,'merged_at'->Option[str]),(str,'merged_by'->Option[Struct[(str,'login'->str),(str,'id'->i64),(str,'avatar_url'->str),(str,'gravatar_id'->str),(str,'url'->str),(str,'html_url'->str),(str,'followers_url'->str),(str,'following_url'->str),(str,'gists_url'->str),(str,'starred_url'->str),(str,'subscriptions_url'->str),(str,'organizations_url'->str),(str,'repos_url'->str),(str,'events_url'->str),(str,'received_events_url'->str),(str,'type'->str),(str,'site_admin'->boolean)]]),(str,'milestone'->null),(str,'number'->i64),(str,'patch_url'->str),(str,'review_comment_url'->str),(str,'review_comments'->i64),(str,'review_comments_url'->str),(str,'state'->str),(str,'statuses_url'->str),(str,'title'->str),(str,'updated_at'->str),(str,'url'->str),(str,'user'->Struct[(str,'login'->str),(str,'id'->i64),(str,'avatar_url'->str),(str,'gravatar_id'->str),(str,'url'->str),(str,'html_url'->str),(str,'followers_url'->str),(str,'following_url'->str),(str,'gists_url'->str),(str,'starred_url'->str),(str,'subscriptions_url'->str),(str,'organizations_url'->str),(str,'repos_url'->str),(str,'events_url'->str),(str,'received_events_url'->str),(str,'type'->str),(str,'site_admin'->boolean)])]),(str,'ref'=>Option[str]),(str,'ref_type'=>str),(str,'shas'=>List[(str,str,str,str,boolean)]),(str,'size'=>i64),(str,'target'=>Struct[(str,'id'->i64),(str,'login'->str),(str,'followers'->i64),(str,'repos'->i64),(str,'gravatar_id'->str)]),(str,'url'=>str)],boolean,str,str,Option[str],Struct[(str,'blog'=>str),(str,'company'=>str),(str,'email'->str),(str,'gravatar_id'->str),(str,'location'=>str),(str,'login'->str),(str,'name'=>str),(str,'type'->str)],Struct[(str,'created_at'->str),(str,'description'=>str),(str,'fork'->boolean),(str,'forks'->i64),(str,'has_downloads'->boolean),(str,'has_issues'->boolean),(str,'has_wiki'->boolean),(str,'homepage'=>str),(str,'id'->i64),(str,'integrate_branch'=>str),(str,'language'=>str),(str,'master_branch'->str),(str,'name'->str),(str,'open_issues'->i64),(str,'organization'=>str),(str,'owner'->str),(str,'private'->boolean),(str,'pushed_at'->str),(str,'size'->i64),(str,'stargazers'->i64),(str,'url'->str),(str,'watchers'->i64)])";
+    auto bad_row = "{\"created_at\":\"2013-10-15T00:07:50-07:00\",\"payload\":{\"shas\":[[\"18081d7ca4f4870dc88af0ff2d34027c8ac4200f\",\"5395ebfd174b0a5617e6f409dfbb3e064e3fdf0a@.(none)\",\"inistial\",\"unknown\",true],[\"ba4ba8296f0ebe79b999c788c54ad4573c9f96a6\",\"5395ebfd174b0a5617e6f409dfbb3e064e3fdf0a@.(none)\",\"modify the index.html\",\"unknown\",true],[\"7d12c2ff93149dff5eee8e68c9a66a1679531784\",\"5395ebfd174b0a5617e6f409dfbb3e064e3fdf0a@.(none)\",\"Merge branch 'master' of https://github.com/idpocky/anjularjs-demo\\n\\nConflicts:\\n\\tREADME.md\",\"unknown\",true]],\"size\":3,\"ref\":\"refs/heads/master\",\"head\":\"7d12c2ff93149dff5eee8e68c9a66a1679531784\"},\"public\":true,\"type\":\"PushEvent\",\"url\":\"https://github.com/idpocky/anjularjs-demo/compare/476e2955cd...7d12c2ff93\",\"actor\":\"idpocky\",\"actor_attributes\":{\"login\":\"idpocky\",\"type\":\"User\",\"gravatar_id\":\"a4550370e4f2af2be8a3907b92e2a912\",\"email\":\"da39a3ee5e6b4b0d3255bfef95601890afd80709\"},\"repository\":{\"id\":13582723,\"name\":\"anjularjs-demo\",\"url\":\"https://github.com/idpocky/anjularjs-demo\",\"description\":\"a demo of anjularjs\",\"watchers\":0,\"stargazers\":0,\"forks\":0,\"fork\":false,\"size\":0,\"owner\":\"idpocky\",\"private\":false,\"open_issues\":0,\"has_issues\":true,\"has_downloads\":true,\"has_wiki\":true,\"created_at\":\"2013-10-14T23:55:30-07:00\",\"pushed_at\":\"2013-10-15T00:07:50-07:00\",\"master_branch\":\"master\"}}";
+
+    auto test_type = python::Type::decode(general_type_str);
     ASSERT_TRUE(test_type.isTupleType());
-    EXPECT_EQ(test_type.parameters().size(), 2);
+    EXPECT_EQ(test_type.parameters().size(), 8);
     std::cout<<"testing with tuple type " + test_type.desc() + "..."<<std::endl;
 
     // sample line.
-//    string line = "{\"A\":\"hello world!\",\"col\": {\"shas\":[[\"a\",\"b\"],[],[\"c\"]]}}";
-    string line = "{\"A\":\"hello world!\",\"col\": {\"shas\":[[\"a\",\"b\",42],[\"c\",\"d\",12]]}}";
+    string line = bad_row;
 
     runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
 
     JITCompiler jit;
 
     // create parse function (easier to debug!)
-    std::vector<std::string> columns({"A", "col"});
+    std::vector<std::string> columns({"created_at", "payload", "public", "type", "url", "actor", "actor_attributes", "repository"});
     auto f = codegen::generateJsonTupleTestParse(jit, test_type, columns);
     ASSERT_TRUE(f);
 
@@ -345,6 +375,7 @@ TEST_F(JsonTuplexTest, TupleBinToPythonSimple) {
     size_t size = 0;
     auto rc = f(reinterpret_cast<const uint8_t *>(line.c_str()), line.size(), &buf, &size);
     EXPECT_EQ(rc, 0);
+
 }
 
 TEST_F(JsonTuplexTest, TupleBinToPython) {
@@ -720,6 +751,27 @@ TEST_F(JsonTuplexTest, ListOfTuples) {
     EXPECT_EQ(rc, test_str.size() + 1);
 }
 
+TEST_F(JsonTuplexTest, LoadListOfTuplesLoad) {
+    // path
+    auto pattern = "../resources/list_of_tuples.json";
+
+    using namespace tuplex;
+    using namespace std;
+
+    auto co = ContextOptions::defaults();
+
+    // deactivate pushdown
+    co.set("tuplex.optimizer.selectionPushdown", "false");
+
+    // deactivate filter pushdown as well...
+    co.set("tuplex.optimizer.filterPushdown", "false");
+    co.set("tuplex.useLLVMOptimizer", "false");
+
+    co.set("tuplex.executorCount", "0");
+
+    Context c(co);
+    c.json(pattern).withColumn("new_col", UDF("lambda x: str(x['rowno'])")).show();
+}
 
 // bbsn00
 TEST_F(JsonTuplexTest, SampleForAllFiles) {

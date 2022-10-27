@@ -44,6 +44,90 @@ namespace tuplex {
         }
     }
 
+
+    python::Type jsonTypeToPythonTypeRecursive(simdjson::dom::element obj,
+                                               bool interpret_heterogenous_lists_as_tuples) {
+        switch(obj.type()) {
+            case simdjson::dom::element_type::STRING: {
+                return python::Type::STRING;
+            }
+            case simdjson::dom::element_type::NULL_VALUE: {
+                return python::Type::NULLVALUE;
+            }
+            case simdjson::dom::element_type::BOOL: {
+                return python::Type::BOOLEAN;
+            }
+            case simdjson::dom::element_type::UINT64:
+            case simdjson::dom::element_type::INT64: {
+                return python::Type::I64;
+            }
+            case simdjson::dom::element_type::DOUBLE: {
+                return python::Type::F64;
+            }
+            case simdjson::dom::element_type::OBJECT: {
+                // json is always string keys -> value
+                std::vector<python::StructEntry> kv_pairs;
+                auto object = obj.get_object().value();
+                for(auto kv : object) {
+                    // add to names
+                    auto sv_key = kv.key;
+                    auto field = kv.value;
+                    std::string key = {sv_key.begin(), sv_key.end()};
+
+                    python::StructEntry entry;
+                    entry.key = escape_to_python_str(key);
+                    entry.keyType = python::Type::STRING;
+                    entry.valueType = jsonTypeToPythonTypeRecursive(field, interpret_heterogenous_lists_as_tuples); // recurse if necessary!
+                    kv_pairs.push_back(entry);
+                }
+
+                return python::Type::makeStructuredDictType(kv_pairs);
+                break;
+            }
+            case simdjson::dom::element_type::ARRAY: {
+                auto arr = obj.get_array().value();
+
+                 // go through array and check that types are the same
+                python::Type element_type;
+                bool first = true;
+                std::vector<python::Type> element_types;
+                unsigned arr_size = 0;
+                for(const auto& el : arr) {
+                    auto next_type = jsonTypeToPythonTypeRecursive(el, interpret_heterogenous_lists_as_tuples);
+                    element_types.push_back(next_type);
+                    if(first) {
+                        element_type = next_type;
+                        first = false;
+                    }
+                    auto uni_type = unifyTypes(element_type, next_type);
+                    if(uni_type == python::Type::UNKNOWN) {
+                        // special case: tuple?
+                        if(!interpret_heterogenous_lists_as_tuples)
+                            return python::Type::makeListType(python::Type::PYOBJECT); // non-homogenous list
+                    }
+
+                    element_type = uni_type;
+                    arr_size++;
+                }
+
+                if(arr_size == 0)
+                    return python::Type::EMPTYLIST;
+
+                // solve special case tuple for heterogenous list
+                if(interpret_heterogenous_lists_as_tuples && element_type == python::Type::UNKNOWN) {
+                    return python::Type::makeTupleType(element_types);
+                } else {
+                    assert(element_type != python::Type::UNKNOWN);
+                    return python::Type::makeListType(element_type);
+                }
+
+                // tuple or list
+                break;
+            }
+        }
+        return python::Type::UNKNOWN;
+    }
+
     python::Type jsonTypeToPythonTypeRecursive(simdjson::simdjson_result<simdjson::fallback::ondemand::value> obj,
                                                bool interpret_heterogenous_lists_as_tuples) {
         using namespace std;
@@ -238,8 +322,54 @@ namespace tuplex {
         if(type == python::Type::STRING)
             return Field(unescape_json_string(s));
 
-        if(type.isDictionaryType())
+        if(type.isDictionaryType()) {
+            if(type == python::Type::EMPTYDICT)
+                return Field::empty_dict();
+
             return Field::from_str_data(s, type);
+        }
+
+        if(type.isTupleType()) {
+            if(type == python::Type::EMPTYTUPLE)
+                return Field::empty_tuple();
+
+            // parse using simdjson and then transform
+            simdjson::dom::parser parser;
+            auto arr = parser.parse(s);
+            if(!arr.is_array())
+                throw std::runtime_error("given string is not an array, can't convert json str to field.");
+            std::vector<Field> elements;
+            unsigned pos = 0;
+            for(const auto& el : arr) {
+                auto element_type = type.parameters()[pos];
+                auto el_str = simdjson::minify(el);
+                elements.push_back(stringToField(el_str, element_type));
+                pos++;
+            }
+            return Field(Tuple::from_vector(elements));
+        }
+
+        if(type.isListType()) {
+            if(type == python::Type::EMPTYLIST)
+                return Field::empty_list();
+
+            // parse using simdjson and then transform
+            simdjson::dom::parser parser;
+            auto arr = parser.parse(s);
+            if(!arr.is_array())
+                throw std::runtime_error("given string " + s + "is not an array, can't convert json str to field.");
+            std::vector<Field> elements;
+            unsigned pos = 0;
+
+            auto element_type = type.elementType();
+            for(const auto& el : arr) {
+                auto el_str = simdjson::minify(el);
+                auto el_field = stringToField(el_str, element_type);
+                elements.push_back(el_field);
+                pos++;
+            }
+            return Field(List::from_vector(elements));
+        }
 
         throw std::runtime_error("unsupported primitive type " + type.desc());
     }
@@ -290,6 +420,37 @@ namespace tuplex {
         // exhausted, no positive result...
 
         return "";
+    }
+
+    /*!
+     * parse into homogenous list. If failure, returns null
+     */
+    Field json_array_to_list(const std::string& json_str, const python::Type& list_type, bool interpret_heterogenous_lists_as_tuples) {
+        auto& logger = Logger::instance().logger("json");
+
+        assert(list_type.isListType());
+        if(list_type == python::Type::EMPTYLIST)
+            return Field::empty_list();
+
+        simdjson::dom::parser parser;
+        auto arr = parser.parse(json_str);
+        if(!arr.is_array()) {
+            logger.error("given json str is not an array.");
+            return Field::null();
+        }
+        std::vector<Field> elements;
+
+        for(auto field : arr) {
+            auto raw_json_str = simdjson::minify(field);
+            auto py_type =  jsonTypeToPythonTypeRecursive(field, interpret_heterogenous_lists_as_tuples);
+            if(py_type != list_type.elementType()) {
+                logger.error("type of element does not match homogenous list's element type");
+                return Field::null();
+            }
+            elements.push_back(stringToField(raw_json_str, py_type));
+        }
+
+        return Field(List::from_vector(elements));
     }
 
     std::vector<Row> parseRowsFromJSON(const char* buf,
@@ -416,16 +577,16 @@ namespace tuplex {
                             // simple, use json dict
                             fields.push_back(Field::from_str_data(row_json_strings[i], row_field_types[i]));
                         } else if(row_field_types[i].isListType()) {
-                            // list field?
-                            // TODO
-                            fields.push_back(Field::from_str_data(row_json_strings[i], row_field_types[i]));
-                            Logger::instance().defaultLogger().warn("hacky list here added, fix.");
-                            //throw std::runtime_error("field type list not yet implemented, todo");
+                            // list field -> need to parse into individual fields (homogenous) and then create proper List out of this.
+                            auto list_field = json_array_to_list(row_json_strings[i], row_field_types[i], interpret_heterogenous_lists_as_tuples);
+                            if(list_field.getType() == python::Type::NULLVALUE) {
+                                Logger::instance().defaultLogger().warn("Found non-conforming list, adding null as dummy-value.");
+                            }
+                            fields.push_back(list_field);
                         } else {
                             // convert primitive string to field
                             fields.push_back(stringToField(row_json_strings[i], row_field_types[i]));
                         }
-
                     }
 
                     if(unwrap_rows)

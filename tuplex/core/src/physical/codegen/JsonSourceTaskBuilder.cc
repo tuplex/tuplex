@@ -124,7 +124,7 @@ namespace tuplex {
                 // create here free obj block.
                 llvm::IRBuilder<> b(_freeStart);
 
-                // _env->printValue(b, rowNumber(b), "entered free row objects for row no=");
+                 _env->printValue(b, rowNumber(b), "entered free row objects for row no=");
                 // release the row var if required
                 json_release_object(*_env, b, _row_object_var);
                 _freeEnd = b.GetInsertBlock();
@@ -151,11 +151,15 @@ namespace tuplex {
             builder.SetInsertPoint(bLoopBody);
             // generate here...
             // _env->debugPrint(builder, "parsed row");
-
-            // _env->printValue(builder, rowNumber(builder), "row no= ");
-
+#ifdef JSON_PARSER_TRACE_MEMORY
+             _env->printValue(builder, rowNumber(builder), "row no= ");
+#endif
             // check whether it's of object type -> parse then as object (only supported type so far!)
             cond = isDocumentOfObjectType(builder, parser);
+
+#ifdef JSON_PARSER_TRACE_MEMORY
+            _env->printValue(builder, cond, "check that document is object: ");
+#endif
 
             BasicBlock* bbParseAsGeneralCaseRow = BasicBlock::Create(_env->getContext(), "parse_as_general_row", builder.GetInsertBlock()->getParent());
             BasicBlock* bbNormalCaseSuccess = BasicBlock::Create(_env->getContext(), "normal_row_found", builder.GetInsertBlock()->getParent());
@@ -178,11 +182,17 @@ namespace tuplex {
             //     builder.SetInsertPoint(bbKeep);
             // }
 
+#ifdef JSON_PARSER_TRACE_MEMORY
+            _env->debugPrint(builder, "try parsing as normal row...");
+#endif
             // new: within its own LLVM function
             // parse here as normal row
             auto normal_case_row = generateAndCallParseRowFunction(builder, "parse_normal_row_internal",
                                                                    _normalCaseRowType, normal_case_columns,
                                                                    unwrap_first_level, parser, bbParseAsGeneralCaseRow);
+#ifdef JSON_PARSER_TRACE_MEMORY
+            _env->printValue(builder, rc, "normal row parsed.");
+#endif
             builder.CreateBr(bbNormalCaseSuccess);
 
             // // old:
@@ -206,6 +216,9 @@ namespace tuplex {
                   general_case_row = generateAndCallParseRowFunction(builder, "parse_general_row_internal",
                                                                      _generalCaseRowType, general_case_columns,
                                                                      unwrap_first_level, parser, bbFallback);
+#ifdef JSON_PARSER_TRACE_MEMORY
+                _env->printValue(builder, rc, "general row parsed.");
+#endif
                   builder.CreateBr(bbGeneralCaseSuccess);
 
                  // // old, but correct with long compile times:
@@ -218,8 +231,9 @@ namespace tuplex {
             {
                 // 1. normal case
                 builder.SetInsertPoint(bbNormalCaseSuccess);
-                // _env->debugPrint(builder, "processing as normal-case row...");
-
+#ifdef JSON_PARSER_TRACE_MEMORY
+                 _env->debugPrint(builder, "processing as normal-case row...");
+#endif
                 // if pipeline exists, call pipeline on normal tuple!
                 if(pipeline()) {
                     auto processRowFunc = pipeline()->getFunction();
@@ -251,18 +265,28 @@ namespace tuplex {
                 // 2. general case
                 builder.SetInsertPoint(bbGeneralCaseSuccess);
 
-                // _env->debugPrint(builder, "try parsing as general-case row...");
+#ifdef JSON_PARSER_TRACE_MEMORY
+                _env->debugPrint(builder, "got general-case row!");
+#endif
 
                 // serialized size (as is)
                 auto general_size = general_case_row.getSize(builder);
 
-                serializeAsNormalCaseException(builder, userData, _inputOperatorID, rowNumber(builder), general_case_row);
-
+#ifdef JSON_PARSER_TRACE_MEMORY
+                _env->printValue(builder, general_size, "serializing general-case row of size=");
+#endif
                 // in order to store an exception, need 8 bytes for each: rowNumber, ecCode, opID, eSize + the size of the row
                 general_size = builder.CreateAdd(general_size, _env->i64Const(4 * sizeof(int64_t)));
+
+                serializeAsNormalCaseException(builder, userData, _inputOperatorID, rowNumber(builder), general_case_row);
+
                 incVar(builder, _generalMemorySizeVar, general_size);
-                // _env->debugPrint(builder, "got general-case row!");
+
                 incVar(builder, _generalRowCountVar);
+
+#ifdef JSON_PARSER_TRACE_MEMORY
+                _env->debugPrint(builder, "serialization as exception done for general-case row.");
+#endif
                 builder.CreateBr(_freeStart);
             }
 
@@ -270,8 +294,9 @@ namespace tuplex {
                 // 3. fallback case
                 builder.SetInsertPoint(bbFallback);
 
-                 // _env->debugPrint(builder, "try parsing as fallback-case row...");
-
+#ifdef JSON_PARSER_TRACE_MEMORY
+                _env->debugPrint(builder, "try parsing as fallback-case row...");
+#endif
                 // same like in general case, i.e. stored as badStringParse exception
                 // -> store here the raw json
                 auto Frow = getOrInsertFunction(_env->getModule().get(), "JsonParser_getMallocedRowAndSize", _env->i8ptrType(),
@@ -282,9 +307,9 @@ namespace tuplex {
                 // create badParse exception
                 // @TODO: throughput can be improved by using a single C++ function for all of this!
                 serializeBadParseException(builder, userData, _inputOperatorID, rowNumber(builder), line, builder.CreateLoad(size_var));
-
-                // _env->debugPrint(builder, "got fallback-case row!");
-
+#ifdef JSON_PARSER_TRACE_MEMORY
+                 _env->debugPrint(builder, "got fallback-case row!");
+#endif
                 // should whitespace lines be skipped?
                 bool skip_whitespace_lines = true;
 
@@ -398,10 +423,17 @@ namespace tuplex {
             // alloc variable
             auto struct_dict_type = create_structured_dict_type(env, dict_type);
             auto row_var = env.CreateFirstBlockAlloca(builder, struct_dict_type);
+
+#ifdef JSON_PARSER_TRACE_MEMORY
+            env.debugPrint(builder, "initializing struct dict");
+#endif
             struct_dict_mem_zero(env, builder, row_var, dict_type); // !!! important !!!
 
             // create dict parser and store to row_var
             JSONParseRowGenerator gen(env, dict_type, bbSchemaMismatch);
+#ifdef JSON_PARSER_TRACE_MEMORY
+            env.debugPrint(builder, "parsing data to row var");
+#endif
             gen.parseToVariable(builder, builder.CreateLoad(obj_var), row_var);
 
             // create new block (post - parse)
@@ -409,12 +441,17 @@ namespace tuplex {
 
             builder.CreateBr(bPostParse);
             builder.SetInsertPoint(bPostParse);
-
+#ifdef JSON_PARSER_TRACE_MEMORY
+            env.debugPrint(builder, "entering post parse");
+#endif
             // free obj_var...
             json_release_object(env, builder, obj_var);
         #ifndef NDEBUG
             builder.CreateStore(env.i8nullptr(), obj_var);
         #endif
+#ifdef JSON_PARSER_TRACE_MEMORY
+            env.debugPrint(builder, "returning row var");
+#endif
             return row_var;
         }
 
@@ -460,12 +497,23 @@ namespace tuplex {
                 for(int i = 0; i < num_entries; ++i) {
                     SerializableValue value;
 
+#ifdef JSON_PARSER_TRACE_MEMORY
+                    env.debugPrint(builder, "fetching entry '" + columns[i] + "' type=" + row_type.parameters()[i].desc() + "  " + std::to_string(i + 1) + " of " + std::to_string(num_entries));
+#endif
+
                     // fetch value from dict!
                     value = struct_dict_get_or_except(env, builder, dict_type, escape_to_python_str(columns[i]),
                                                       python::Type::STRING, dict, bbSchemaMismatch);
-
+#ifdef JSON_PARSER_TRACE_MEMORY
+                    if(value.size)
+                        env.printValue(builder, value.size, "got entry " + std::to_string(i + 1) + " with size: ");
+#endif
                     ft.set(builder, {i}, value.val, value.size, value.is_null);
                 }
+
+#ifdef JSON_PARSER_TRACE_MEMORY
+                env.debugPrint(builder, "tuple load done.");
+#endif
             } else {
                 assert(row_type.parameters().size() == 1);
                 auto dict_type = row_type.parameters()[0];
@@ -517,6 +565,9 @@ namespace tuplex {
 
             auto ft_parsed = json_parseRow(*_env.get(), builder, row_type, columns, unwrap_first_level, parser, bMismatch);
             ft_parsed.storeTo(builder, args["out_tuple"]);
+#ifdef JSON_PARSER_TRACE_MEMORY
+            _env->debugPrint(builder, "tuple store to output ptr done.");
+#endif
 
             // free temp objects here...
 
@@ -533,6 +584,15 @@ namespace tuplex {
                                                                               llvm::BasicBlock *bbSchemaMismatch) {
             using namespace llvm;
 
+            auto& logger = Logger::instance().logger("codegen");
+
+#ifdef JSON_PARSER_TRACE_MEMORY
+            if(!columns.empty()) {
+                std::stringstream ss; ss<<"columns for function "<<name<<": "<<columns;
+                logger.debug(ss.str());
+            }
+#endif
+
             auto F = generateParseRowFunction(name, row_type, columns, unwrap_first_level);
             FlattenedTuple ft(_env.get());
             ft.init(row_type);
@@ -541,10 +601,19 @@ namespace tuplex {
 
             auto res_ptr = ft.alloc(parent_builder);
             auto rc = parent_builder.CreateCall(F, {parser, res_ptr});
+
+#ifdef JSON_PARSER_TRACE_MEMORY
+            _env->printValue(parent_builder, rc, "parse rc= ");
+#endif
+
             // check rc, if not 0 goto mismatch
             auto rc_ok = parent_builder.CreateICmpEQ(rc, _env->i64Const(0));
             parent_builder.CreateCondBr(rc_ok, bbOK, bbSchemaMismatch);
             parent_builder.SetInsertPoint(bbOK);
+
+#ifdef JSON_PARSER_TRACE_MEMORY
+            _env->printValue(parent_builder, rc, "parse ok, loading flattened tuple from struct val...");
+#endif
 
             return FlattenedTuple::fromLLVMStructVal(_env.get(), parent_builder, res_ptr, row_type);
         }
@@ -703,6 +772,13 @@ namespace tuplex {
             auto& logger = Logger::instance().logger("codegen");
             assert(row_type.isTupleType());
 
+#ifdef JSON_PARSER_TRACE_MEMORY
+            if(!columns.empty()) {
+                std::stringstream ss; ss<<"columns: "<<columns;
+                logger.debug(ss.str());
+            }
+#endif
+
             FlattenedTuple ft(_env.get());
             ft.init(row_type);
 
@@ -780,13 +856,18 @@ namespace tuplex {
             assert(row_no);
             assert(row_no->getType() == _env->i64Type());
 
+#ifdef JSON_PARSER_TRACE_MEMORY
+            _env->printValue(builder, row_no, "row number: ");
+#endif
+
             // this is a regular exception -> i.e. cf. deserializeExceptionFromMemory for mem layout
             auto mem = general_case_row.serializeToMemory(builder);
             auto buf = mem.val;
             auto buf_size = mem.size;
 
-             // _env->printValue(builder, rowNumber(builder), "row number: ");
-             // _env->printValue(builder, buf_size, "emitting normal-case violation in general case format of size: ");
+#ifdef JSON_PARSER_TRACE_MEMORY
+            _env->printValue(builder, buf_size, "emitting normal-case violation in general case format of size: ");
+#endif
 
             // buf is now fully serialized. => call exception handler from pipeline.
             auto handler_name = exception_handler();

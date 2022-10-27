@@ -724,6 +724,8 @@ namespace tuplex {
 
     Serializer &Serializer::appendWithoutInferenceHelper(const List &l) {
 
+        // @TODO: this has to be redone properly...
+
         // add number of elements
         _varLenFields.provideSpace(sizeof(uint64_t));
         *((uint64_t *)_varLenFields.ptr()) = l.numElements();
@@ -775,7 +777,7 @@ namespace tuplex {
             for (size_t listIndex = 0; listIndex < l.numElements(); ++listIndex) {
                 // write offset to placeholder
                 uint64_t currOffset = (uintptr_t)_varLenFields.ptr() - (uintptr_t)varLenOffsetAddr;
-                *(uint64_t *)varLenOffsetAddr = currOffset;
+                // *(uint64_t *)varLenOffsetAddr = currOffset; // <-- this is problematic (!)
                 // increment varLenOffsetAddr by 8
                 varLenOffsetAddr = (void *)((uint64_t *)varLenOffsetAddr + 1);
                 // append tuple

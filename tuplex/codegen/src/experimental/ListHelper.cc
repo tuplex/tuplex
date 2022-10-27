@@ -788,15 +788,6 @@ namespace tuplex {
 
             return list_serialize_varitems_to(env, builder, list_ptr, list_type,
                                               dest_ptr, f_struct_element_size, f_struct_element_serialize_to);
-
-
-            // skipped for now...
-            auto& logger = Logger::instance().logger("codegen");
-            logger.error("MISSING FEATURE: add support for list_of_structs_serialization");
-
-            throw std::runtime_error("missing feature");
-
-            return env.i64Const(0);
         }
 
         llvm::Value* list_of_tuples_serialize_to(LLVMEnvironment& env,
@@ -846,8 +837,14 @@ namespace tuplex {
                 auto item = builder.CreateGEP(ptr_array, index);
                 item = builder.CreateLoad(item);
 
+                env.printValue(builder, index, "serializing item of type " + element_type.desc() + " at index: ");
+
                 // call function! (or better said: emit the necessary code...)
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
+
+                // get size
+                env.printValue(builder, ft.getSize(builder), "size of tuple to serialize is: ");
+
                 auto s_size = ft.serialize(builder, dest_ptr);
 
                 return s_size;

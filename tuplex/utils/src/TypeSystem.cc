@@ -1191,8 +1191,15 @@ namespace python {
             return true;
 
         // empty consts for dict/list work too. NOT FOR EMPTY TUPLE!
-        if(from == python::Type::EMPTYDICT && to.isDictionaryType())
+        if(from == python::Type::EMPTYDICT && to.isDictionaryType()) {
+            // special case struct dict: upcast only possible if all pairs are maybe
+            if(to.isStructuredDictionaryType()) {
+                return to.all_struct_pairs_optional();
+            }
+
             return true;
+        }
+
         if(from == python::Type::EMPTYLIST && to.isListType())
             return true;
 
@@ -1869,6 +1876,15 @@ namespace python {
             return "unknown";
         else
             return "uninitialized";
+    }
+
+    bool Type::all_struct_pairs_optional() const {
+        assert(isStructuredDictionaryType());
+
+        for(auto p : get_struct_pairs())
+            if(p.alwaysPresent)
+                return false;
+        return true;
     }
 
     std::vector<python::Type> primitiveTypes(bool return_options_as_well) {

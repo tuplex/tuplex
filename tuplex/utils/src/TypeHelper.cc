@@ -22,9 +22,14 @@ namespace tuplex {
             }
         }
 
-        // special case: empty dict -> can be cast to whatever
+        // special case: empty dict -> can be cast struct dict iff all pairs are maybe
         if(bUnderlyingType == python::Type::EMPTYDICT) {
-            return aUnderlyingType; // <-- empty dict can be upcast to any dict type!
+            if(aUnderlyingType.isStructuredDictionaryType()) {
+                if(aUnderlyingType.all_struct_pairs_optional())
+                    return aUnderlyingType;
+            } else {
+                return aUnderlyingType; // <-- empty dict can be upcast to any dict type!
+            }
         }
 
         // are both of them structured dictionaries?

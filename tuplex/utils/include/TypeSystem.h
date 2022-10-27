@@ -399,6 +399,8 @@ namespace python {
             archive(encoded_str);
         }
 #endif
+
+        bool all_struct_pairs_optional() const;
     };
 
      struct StructEntry { // an entry of a structured dict

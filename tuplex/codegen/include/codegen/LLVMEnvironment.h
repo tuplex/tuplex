@@ -170,9 +170,9 @@ namespace tuplex {
          * get index for value, size and bitmapPosition
          * @param tupleType
          * @param index which tuple element
-         * @return tuple of val idx, size idx, bitmap idx
+         * @return tuple of val idx, size idx, bitmap idx. If an index is -1, this means it's not present.
          */
-        extern std::tuple<size_t, size_t, size_t> getTupleIndices(const python::Type& tupleType, size_t index);
+        extern std::tuple<int, int, int> getTupleIndices(const python::Type& tupleType, size_t index);
 
         /*!
          * return number of 64bit bitmap elements...
@@ -242,6 +242,38 @@ namespace tuplex {
                     }
                 }
                 return python::Type::UNKNOWN;
+            }
+
+            /*!
+             * validates that a pair of indices is fine for a tuple type.
+             * @param tuple_type the underlying python type.
+             * @param t_indices the indices
+             * @return true/false
+             */
+            inline bool validate_tuple_indices(const python::Type& tuple_type, const std::tuple<int, int, int>& t_indices) {
+                int value_idx = -1, size_idx = -1, bitmap_idx = -1;
+                std::tie(value_idx, size_idx, bitmap_idx) = t_indices;
+
+                auto llvm_type = getOrCreateTupleType(tuple_type);
+                assert(llvm_type->isStructTy());
+                auto N = llvm_type->getStructNumElements();
+
+                if(-1 != value_idx && (value_idx < 0 || value_idx >= N))
+                    return false;
+                if(-1 != size_idx && (size_idx < 0 || size_idx >= N))
+                    return false;
+                if(-1 != bitmap_idx) {
+                    // check validity by getting first element (i1 array)
+                    assert(N >= 1);
+                    auto first_el_type = llvm_type->getStructType(0);
+                    if(!first_el_type->isArrayTy())
+                        return false;
+                    // check
+                    auto arr_num_elements = first_el_type->getArrayNumElements();
+                    if(bitmap_idx < 0 || bitmap_idx >= arr_num_elements)
+                        return false;
+                }
+                return true;
             }
 
         public:
@@ -734,6 +766,13 @@ namespace tuplex {
              */
             static std::string getLLVMTypeName(llvm::Type *t);
 
+
+            /*!
+             * prints (over multiple lines) the aggregate type out. (incl. GEP offsets).
+             * @param agg_type
+             * @return string
+             */
+            std::string printAggregateType(llvm::Type* agg_type);
 
             /*!
              * retrieves this environments struct type/stub for the empty tuple type

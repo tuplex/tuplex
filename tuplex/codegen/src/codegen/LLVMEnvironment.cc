@@ -212,68 +212,96 @@ namespace tuplex {
         }
 
         // this function itself is super-slow, so cache its results
-        static std::unordered_map<int, std::vector<std::tuple<unsigned, unsigned, unsigned>>> _tupleIndexCache;
-        static std::mutex tupleIndexCacheMutex;
+        static std::unordered_map<int, std::vector<std::tuple<int, int, int>>> g_tupleIndexCache;
+        static std::mutex g_tupleIndexCacheMutex;
 
-        std::tuple<size_t, size_t, size_t> getTupleIndices(const python::Type &tupleType, size_t index) {
-            std::lock_guard<std::mutex> lock(tupleIndexCacheMutex);
+        std::tuple<int, int, int> getTupleIndices(const python::Type &tupleType, size_t index) {
+            // special case: empty tuple
+            if(tupleType == python::Type::EMPTYTUPLE)
+                return std::make_tuple(-1, -1, -1);
+
+            // general checks
+            assert(tupleType.isTupleType());
+            assert(index < tupleType.parameters().size());
+
+            auto err_bad_index_message = "specified invalid index of " + std::to_string(index) + " for tuple " + tupleType.desc();
+
+            std::lock_guard<std::mutex> lock(g_tupleIndexCacheMutex);
             // find cache
-            auto it = _tupleIndexCache.find(tupleType.hash());
-            if (it == _tupleIndexCache.end()) {
-                assert(tupleType.isTupleType());
-                assert(index < tupleType.parameters().size());
+            auto it = g_tupleIndexCache.find(tupleType.hash());
 
-                // compute entry
+            // found? then return entry!
+            if(it != g_tupleIndexCache.end()) {
 
-                _tupleIndexCache[tupleType.hash()] = std::vector<std::tuple<unsigned, unsigned, unsigned>>(
-                        tupleType.parameters().size());
-
-                for (int j = 0; j < tupleType.parameters().size(); ++j) {
-                    // compute offsets
-                    unsigned int sizeOffset = 0;
-                    unsigned int valueOffset = 0;
-                    unsigned int bitmapPos = 0;
-                    sizeOffset += tupleType.isOptional(); // +1 for bitmap array b/c first element is then vector type!
-                    valueOffset += tupleType.isOptional(); // +1 for bitmap array
-
-                    // all the serialized elements
-                    for (int i = 0; i < tupleType.parameters().size(); ++i) {
-                        auto paramType = tupleType.parameters()[i];
-
-                        auto is_in_fixed_len = !(paramType.isSingleValued() || (paramType.isOptionType() && paramType.getReturnType().isSingleValued()));
-                        // always inc sizeoffset
-                        if(is_in_fixed_len)
-                            sizeOffset++; // if only single value possible for type, no need to represent
-
-                        if(i < j && is_in_fixed_len)
-                            valueOffset++;
-
-                        if (i < j && paramType.isOptionType())
-                            bitmapPos++;
-
-                        // increase varlen offset as long as j not reached
-                        if (i < j && (python::Type::STRING == paramType.withoutOptions() ||
-                                      python::Type::GENERICDICT == paramType.withoutOptions() ||
-                                      paramType.withoutOptions().isDictionaryType() ||
-                                      (paramType.withoutOptions().isListType() && paramType.withoutOptions() != python::Type::EMPTYLIST && !paramType.withoutOptions().elementType().isSingleValued()))) {
-                            // does not apply to lists AND struct dicts -> they hold size internally.
-                            if(paramType.withoutOptions().isListType() || paramType.withoutOptions().isStructuredDictionaryType()) {
-                                /// ...
-                            } else {
-                                // TODO: this should probably be generalized to type.isVarLen() or something
-                                sizeOffset++;
-                            }
-                        }
-                    }
-
-                    _tupleIndexCache[tupleType.hash()][j] = std::make_tuple(valueOffset, sizeOffset, bitmapPos);
-                }
+                // quick check that everything is ok
+                if(index >= it->second.size())
+                    throw std::runtime_error(err_bad_index_message);
+                // ok
+                return it->second[index];
             }
 
-            assert(index < _tupleIndexCache[tupleType.hash()].size());
+            // not found, so create full entry for tuple type!
+            std::vector<std::tuple<int, int, int>> vec_of_indices;
 
-            // return entry
-            return _tupleIndexCache[tupleType.hash()][index];
+            unsigned values_to_store_so_far = 0;
+            unsigned sizes_to_store_so_far = 0;
+            unsigned cur_bitmap_idx = 0;
+            auto num_tuple_elements = tupleType.parameters().size();
+            for(int i = 0; i < num_tuple_elements; ++i) {
+                // what type is it?
+                int value_idx = -1, size_idx = -1, bitmap_idx = -1;
+
+                // is this value being stored at all?
+                auto element_type = tupleType.parameters()[i];
+
+                // option? => store bit!
+                if(element_type.isOptionType()) {
+                    bitmap_idx = cur_bitmap_idx++;
+                    element_type = element_type.getReturnType();
+                }
+
+                // single-valued? i.e. not stored?
+                if(!element_type.isSingleValued()) {
+                    // is it of var lenght? -> then store size field!
+                    // only applies to general dicts, str, pyobject, ...
+                    if(python::Type::STRING == element_type || python::Type::PYOBJECT == element_type) {
+
+                    } else if(element_type.isDictionaryType() && !element_type.isStructuredDictionaryType()) {
+                        // store both value & size field
+                        assert(element_type != python::Type::EMPTYDICT);
+                        value_idx = values_to_store_so_far++;
+                        sizes_to_store_so_far = sizes_to_store_so_far++;
+                    } else if(element_type.isTupleType() && element_type != python::Type::EMPTYTUPLE) {
+                        throw std::runtime_error("do not use tuple type " + element_type.desc() + " here, better flatten tuple type before");
+                    } else {
+                        // no size field stored! store only value.
+                        value_idx = values_to_store_so_far++;
+                    }
+                } else {
+                    // single-valued -> will not get stored. -> also applies to constants etc.
+                }
+
+                vec_of_indices.push_back(std::make_tuple(value_idx, size_idx, bitmap_idx));
+            }
+
+
+            // now correct for that sizes are stored after values and bitmap.
+            auto size_offset = (cur_bitmap_idx > 0) + values_to_store_so_far;
+            std::vector<std::tuple<int, int, int>> adj_vec_of_indices;
+            for(auto entry : vec_of_indices) {
+                int value_idx = -1, size_idx = -1, bitmap_idx = -1;
+                std::tie(value_idx, size_idx, bitmap_idx) = entry;
+                if(size_idx != -1)
+                    size_idx += size_offset;
+                adj_vec_of_indices.push_back(std::make_tuple(value_idx, size_idx, bitmap_idx));
+            }
+
+            // add to tuple cache.
+            g_tupleIndexCache[tupleType.hash()] = adj_vec_of_indices;
+
+            if(index >= vec_of_indices.size())
+                throw std::runtime_error(err_bad_index_message);
+            return adj_vec_of_indices[index];
         }
 
         llvm::Type *LLVMEnvironment::createTupleStructType(const python::Type &type, const std::string &twine) {
@@ -934,6 +962,9 @@ namespace tuplex {
             auto &ctx = builder.getContext();
             auto elementType = tupleType.parameters()[index];
 
+            // debug: pretty print struct
+            std::cout<<this->printAggregateType(tuplePtr->getType()->getPointerElementType())<<std::endl;
+
             // special types which don't need to be stored because the type determines the value
             if (elementType.isSingleValued())
                 return;
@@ -1527,6 +1558,25 @@ namespace tuplex {
 
             throw std::runtime_error("could not convert type '" + t.desc() + "' to LLVM compliant type");
             return nullptr;
+        }
+
+        std::string LLVMEnvironment::printAggregateType(llvm::Type* agg_type) {
+
+            std::stringstream ss;
+
+            // is it an aggregate type? if not, print.
+            if(agg_type->isStructTy()) {
+                // print name
+                ss<<getLLVMTypeName(agg_type)<<"\n";
+                for(unsigned i = 0; i < agg_type->getStructNumElements(); ++i) {
+                    auto el_type = agg_type->getStructElementType(i);
+                    ss<<"  "<<getLLVMTypeName(el_type)<<"  gep 0 "<<i<<"\n";
+                }
+            } else {
+                ss<<getLLVMTypeName(agg_type);
+            }
+
+            return ss.str();
         }
 
 

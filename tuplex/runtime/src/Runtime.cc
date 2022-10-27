@@ -267,6 +267,12 @@ extern "C" void *rtmalloc(const size_t requested_size) noexcept {
 
         // inc offset
         heap->lastBlock->offset += size;
+
+        // debugging
+        printf("rtmalloc [%p] size=%d\n", memaddr, size);
+        // also memset to zero in debug mode
+        memset(memaddr, 0, size);
+
         return memaddr;
     }
 }
@@ -276,6 +282,8 @@ extern "C" void *rtmalloc(const size_t requested_size) noexcept {
 extern "C" void rtfree(void *ptr) noexcept {
     // do nothing...
 }
+
+#define TRACE_MEMORY
 
 extern "C" void rtfree_all() noexcept {
     if(!heap)

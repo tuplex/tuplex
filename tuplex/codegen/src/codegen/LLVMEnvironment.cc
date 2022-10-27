@@ -119,6 +119,11 @@ namespace tuplex {
             //     delete TM;
             // TM = nullptr;
 
+            // always set data layout!
+            std::string default_target_triple = llvm::sys::getProcessTriple();
+            Logger::instance().logger("codegen").info("Compiling with target " + default_target_triple);
+            _module->setTargetTriple(default_target_triple);
+
             // setup defaults in typeMapping (ignore bool)
             _typeMapping[llvm::Type::getDoubleTy(_context)] = python::Type::F64;
             _typeMapping[llvm::Type::getInt64Ty(_context)] = python::Type::I64;
@@ -335,7 +340,11 @@ namespace tuplex {
 
                 if (python::Type::BOOLEAN == t) {
                     // i8
-                    memberTypes.push_back(getBooleanType());
+                    // memberTypes.push_back(getBooleanType());
+
+                    // compiler bug, use i64 so everything can get optimized...
+                    memberTypes.push_back(i64Type());
+
                 } else if (python::Type::I64 == t) {
                     // i64
                     memberTypes.push_back(i64Type());
@@ -964,11 +973,50 @@ namespace tuplex {
                 auto v = value.val;
                 // special case isStructDict or isListType b.c. they may be represented through a lazy pointer
                 if(elementType.isListType() || elementType.isStructuredDictionaryType()) {
-                    if(v->getType() == structValIdx->getType())
-                        v = builder.CreateLoad(v); // load in order to store!
-                }
+                    if(v->getType() != structValIdx->getType()) {
+                        if(v->getType() == structValIdx->getType()->getPointerElementType()) {
+                            // load (special treatment for nested structures...)
+                            auto ptr = CreateFirstBlockAlloca(builder, v->getType());
 
-                builder.CreateStore(v, structValIdx, is_volatile);
+                            // store -> direct load?
+                            auto struct_type = v->getType();
+                            for(unsigned i = 0; i < struct_type->getStructNumElements(); ++i) {
+                                auto item = CreateStructLoad(builder, v, i);
+                                // what is the type?
+                                auto item_type = getLLVMTypeName(item->getType());
+                                if(item->getType()->isStructTy()) {
+                                    Logger::instance().logger("codegen").info("found struct type: " + item_type);
+                                }
+
+                                auto target_idx = CreateStructGEP(builder, ptr, i);
+                                builder.CreateStore(item, target_idx, is_volatile);
+                            }
+
+                            v = ptr;
+
+                        } else {
+                            throw std::runtime_error("incompatible type " + getLLVMTypeName(v->getType()) + " found for storing data.");
+                        }
+                    }
+//
+//                    if(v->getType() == structValIdx->getType())
+//                        v = builder.CreateLoad(v); // load in order to store!
+
+                    // however, nested structs/aggs should be memcopied
+                    auto i8_src = builder.CreatePointerCast(v, i8ptrType());
+                    auto i8_dest = builder.CreatePointerCast(structValIdx, i8ptrType());
+                    auto& DL = _module->getDataLayout();
+                    auto struct_size = DL.getTypeAllocSize(v->getType()->getPointerElementType());
+                    builder.CreateMemCpy(i8_dest, 0, i8_src, 0, struct_size);
+                } else {
+                    // primitives can be stored
+
+                    // special case: bool
+                    if(python::Type::BOOLEAN == elementType)
+                        v = builder.CreateZExt(v, i64Type());
+
+                    builder.CreateStore(v, structValIdx, is_volatile);
+                }
             }
 
             // size existing? ==> only for varlen types

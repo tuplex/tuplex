@@ -1008,8 +1008,14 @@ namespace tuplex {
             }
 
             // storing is straight-forward, just use helper function (don't bother with bitmap logic!) from LLVMEnv.
-            for(int i = 0; i < _tree.numElements(); ++i)
-                _env->setTupleElement(builder, _flattenedTupleType, ptr, i, _tree.get(i));
+            for(int i = 0; i < _tree.numElements(); ++i) {
+                auto el = _tree.get(i);
+                if(el.val)
+                    _env->printValue(builder, el.val, "element " + std::to_string(i));
+                if(el.size)
+                    _env->printValue(builder, el.size, "size of element " + std::to_string(i));
+                _env->setTupleElement(builder, _flattenedTupleType, ptr, i, el, is_volatile);
+            }
         }
 
         llvm::Value* FlattenedTuple::getLoad(llvm::IRBuilder<> &builder) const {
@@ -1291,7 +1297,18 @@ namespace tuplex {
             // storeTo(builder, tmp_ptr);
             // builder.CreateMemCpy(ptr, 0, tmp_ptr, 0, tuple_size);
 
-            storeTo(builder, ptr);
+            storeTo(builder, ptr, true);
+
+            // debug: check pointer
+            auto item = ptr;
+            auto dbg_ptr = builder.CreatePointerCast(item, _env->i8ptrType());
+            auto N = tuple_size / 8;
+            _env->printValue(builder, item, "byte check for pointer: ");
+            for(unsigned i = 0; i < N; ++i) {
+                auto i64_val = builder.CreateLoad(builder.CreatePointerCast(dbg_ptr, _env->i64ptrType()));
+                dbg_ptr = builder.CreateGEP(dbg_ptr, _env->i64Const(sizeof(int64_t)));
+                _env->printValue(builder, i64_val, "bytes " + std::to_string(i * 8) + "-" + std::to_string((i+1)*8) + ": ");
+            }
 
             return ptr;
         }

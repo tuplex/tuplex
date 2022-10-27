@@ -375,6 +375,10 @@ namespace tuplex {
 
         // emptydict to any dict
         if(f._type == python::Type::EMPTYDICT && targetType.isDictionaryType()) {
+            // TODO: upcast to any dict works for dynamic dictionaries
+            // AND for struct dicts if all keys are maybe.
+            // else, upcast not possible.
+
             // upcast to any dict
             throw std::runtime_error("not yet implemented, pls add");
         }

@@ -1293,6 +1293,8 @@ namespace tuplex {
         void LLVMEnvironment::printValue(llvm::IRBuilder<> &builder, llvm::Value *val, std::string msg) {
             using namespace llvm;
 
+            size_t max_str_print = 1024; // maximum 1024 chars.
+
             auto printf_F = printf_prototype(_context, _module.get());
             llvm::Value *sconst = builder.CreateGlobalStringPtr("unknown type: ??");
 
@@ -1312,7 +1314,7 @@ namespace tuplex {
             } else if (val->getType() == Type::getDoubleTy(_context)) {
                 sconst = builder.CreateGlobalStringPtr(msg + " [f64] : %.12f\n");
             } else if (val->getType() == Type::getInt8PtrTy(_context, 0)) {
-                sconst = builder.CreateGlobalStringPtr(msg + " [i8*] : [%p] %s\n");
+                sconst = builder.CreateGlobalStringPtr(msg + " [i8*] : [%p] %." + std::to_string(max_str_print) + "s\n");
             } else if(val->getType()->isPointerTy()) {
                 // get internal name
                 auto name = getLLVMTypeName(val->getType());

@@ -716,7 +716,7 @@ namespace tuplex {
                 // special case: decode nested object from array
                 return decodeObjectFromArray(builder, array, index, element_type);
             } else if(element_type.isTupleType()) {
-                return decodeTupleFromArray(builder, array, index, element_type, true);
+                return decodeTupleFromArray(builder, array, index, element_type, true); // !! must be true here
             } else if(element_type == python::Type::NULLVALUE) {
                 return decodeNullFromArray(builder, array, index);
             } else if(element_type.isOptionType()) {

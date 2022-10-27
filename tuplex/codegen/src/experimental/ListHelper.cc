@@ -418,10 +418,10 @@ namespace tuplex {
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, tuple, elementType);
 
                 // this here works.
-                 auto heap_ptr = ft.loadToPtr(builder);
+                // auto heap_ptr = ft.loadToPtr(builder);
 
-                // // this here is NOT working.
-                // auto heap_ptr = ft.loadToHeapPtr(builder);
+                // must be a heap ptr, else invalid.
+                auto heap_ptr = ft.loadToHeapPtr(builder);
 
                 // // debug:
                 // env.printValue(builder, idx, "storing tuple of type " + elementType.desc() + " at index: ");
@@ -431,30 +431,30 @@ namespace tuplex {
                 // store pointer --> should be HEAP allocated pointer. (maybe add attributes to check?)
                 auto target_idx = builder.CreateGEP(ptr_values, idx);
 
-                // env.printValue(builder, builder.CreateLoad(target_idx), "pointer currently stored: ");
-                // {
-                //     env.debugPrint(builder, "-- check of heap_ptr --");
-                //     auto tuple_type = elementType;
-                //     auto num_tuple_elements = tuple_type.parameters().size();
-                //     llvm::Value* item = builder.CreateLoad(heap_ptr); // <-- this will be wrong. need to fix that in order to work.
-                //     //item = heap_ptr; // <-- this should work (?)
-                //
-                //     auto item_type_name = env.getLLVMTypeName(item->getType());
-                //     std::cout<<"[DEBUG] item type anme: "<<item_type_name<<std::endl;
-                //     auto ft_check = FlattenedTuple::fromLLVMStructVal(&env, builder, item, tuple_type);
-                //     for(unsigned i = 0; i < num_tuple_elements; ++i) {
-                //         auto item_size = ft_check.getSize(i);
-                //         auto element_type = tuple_type.parameters()[i];
-                //         env.printValue(builder, item_size, "size of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
-                //         env.printValue(builder, ft_check.get(i), "content of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
-                //     }
-                //     env.debugPrint(builder, "-- check end --");
-                // }
+                 env.printValue(builder, builder.CreateLoad(target_idx), "pointer currently stored: ");
+                 {
+                     env.debugPrint(builder, "-- check of heap_ptr --");
+                     auto tuple_type = elementType;
+                     auto num_tuple_elements = tuple_type.parameters().size();
+                     llvm::Value* item = builder.CreateLoad(heap_ptr); // <-- this will be wrong. need to fix that in order to work.
+                     //item = heap_ptr; // <-- this should work (?)
+
+                     auto item_type_name = env.getLLVMTypeName(item->getType());
+                     std::cout<<"[DEBUG] item type anme: "<<item_type_name<<std::endl;
+                     auto ft_check = FlattenedTuple::fromLLVMStructVal(&env, builder, item, tuple_type);
+                     for(unsigned i = 0; i < num_tuple_elements; ++i) {
+                         auto item_size = ft_check.getSize(i);
+                         auto element_type = tuple_type.parameters()[i];
+                         env.printValue(builder, item_size, "size of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
+                         env.printValue(builder, ft_check.get(i), "content of tuple element " + std::to_string(i) + " of type " + element_type.desc() + " is: ");
+                     }
+                     env.debugPrint(builder, "-- check end --");
+                 }
 
                 // store the heap ptr.
                 builder.CreateStore(heap_ptr, target_idx, true);
 
-                // env.printValue(builder, builder.CreateLoad(target_idx), "pointer stored - post update: ");
+                env.printValue(builder, builder.CreateLoad(target_idx), "pointer stored - post update: ");
 
                 // // now load from list
                 // // debug: print sizes of tuple
@@ -832,15 +832,44 @@ namespace tuplex {
                 if(python::Type::EMPTYTUPLE == element_type)
                     return env.i64Const(0);
 
-                auto ptr_values = CreateStructGEP(builder, list_ptr, 2);
-                auto ptr_array = builder.CreateLoad(ptr_values);
-                auto item = builder.CreateGEP(ptr_array, index);
-                item = builder.CreateLoad(item);
+                auto ptr_values = CreateStructGEP(builder, list_ptr, 2); // should be struct.tuple**
+                auto t_ptr_values = env.getLLVMTypeName(ptr_values->getType());
+                // now load the i-th element from ptr_values as struct.tuple*
+                auto item_ptr = builder.CreateInBoundsGEP(ptr_values, std::vector<llvm::Value*>(1, index));
+                auto t_item_ptr = env.getLLVMTypeName(item_ptr->getType()); // should be struct.tuple**
+
+                auto item = builder.CreateLoad(item_ptr); // <-- should be struct.tuple*
+                auto t_item = env.getLLVMTypeName(item->getType());
+                assert(item->getType()->isPointerTy()); // <-- this here fails...
+
+//                auto ptr_array = builder.CreateLoad(ptr_values);
+////                auto item = builder.CreateGEP(ptr_array, index);
+//
+////                FlattenedTuple ft_test(&env);
+////                ft_test.init(element_type);
+////                auto llvm_tuple_type = ft_test.getLLVMType();
+////                auto& DL = env.getModule()->getDataLayout();
+////                auto DL_size =DL.getTypeAllocSize(llvm_tuple_type);
+//
+//                auto item = builder.CreateGEP(ptr_array, index);
+//                item = builder.CreateLoad(item);
+
 
                 env.printValue(builder, index, "serializing item of type " + element_type.desc() + " at index: ");
+                env.printValue(builder, item, "stored heap ptr at index is: ");
 
                 // call function! (or better said: emit the necessary code...)
                 FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
+
+                // debug: print out items & sizes!
+                for(unsigned i = 0; i < ft.numElements(); ++i) {
+                    auto val = ft.get(i);
+                    auto size = ft.getSize(i);
+                    if(val)
+                        env.printValue(builder, val, "value of item " + std::to_string(i) + " is: ");
+                    if(size)
+                        env.printValue(builder, size, "size of item " + std::to_string(i) + " is: ");
+                }
 
                 // get size
                 env.printValue(builder, ft.getSize(builder), "size of tuple to serialize is: ");
@@ -849,6 +878,8 @@ namespace tuplex {
 
                 return s_size;
             };
+
+            env.debugPrint(builder, "---\nstarting list serialize\n---");
 
             return list_serialize_varitems_to(env, builder, list_ptr, list_type,
                                               dest_ptr, f_tuple_element_size, f_tuple_element_serialize_to);
@@ -871,7 +902,7 @@ namespace tuplex {
             // fetch length of list
             auto len = list_length(env, builder, list_ptr, list_type);
 
-            // env.printValue(builder, len, "serializing var item list of length: ");
+            env.printValue(builder, len, "serializing var item list of length: ");
 
             // write len of list to dest_ptr
             auto ptr = dest_ptr;

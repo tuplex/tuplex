@@ -1084,9 +1084,9 @@ namespace tuplex {
                 }
                 if(val->getType() == llvm::Type::getDoubleTy(context))
                     assert(type == python::Type::F64);
-                if(val->getType() == _env->getBooleanType()) {
-                    assert(type == python::Type::BOOLEAN);
-                }
+                // if(val->getType() == _env->getBooleanType()) {
+                //     assert(type == python::Type::BOOLEAN);
+                // }
 
                 if(val->getType()->isStructTy()) {
                     if (val->getType() == _env->getEmptyTupleType())

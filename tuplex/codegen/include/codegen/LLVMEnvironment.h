@@ -490,7 +490,10 @@ namespace tuplex {
              * @return llvm Type to be used as boolean
              */
             inline llvm::Type *getBooleanType() {
-                return llvm::IntegerType::get(_context, 8);
+                // some LLVM passes are broken with i8
+                // -> use i64 therefore.
+                // return llvm::IntegerType::get(_context, 8);
+                return llvm::IntegerType::get(_context, 64);
             }
 
             inline llvm::Type *getBooleanPointerType() {

@@ -807,6 +807,8 @@ namespace tuplex {
                 bool always_present = std::get<2>(entry);
                 auto t_indices = struct_dict_get_indices(dict_type, access_path);
 
+                auto path_desc = json_access_path_to_string(access_path, value_type, always_present);
+
                 // special case list: --> needs extra care
                 if(value_type.isOptionType())
                     value_type = value_type.getReturnType();
@@ -852,12 +854,16 @@ namespace tuplex {
                         // add size field + data
                         auto value_size = CreateStructLoad(builder, ptr, size_idx);
                         assert(value_size->getType() == env.i64Type());
+
+                        // only serialize if parents are present
+                        auto parent_present = struct_dict_load_path_presence(env, builder, ptr, dict_type, access_path);
+                        env.printValue(builder, parent_present, "path " + path_desc + " present: ");
+
                         size = builder.CreateAdd(size, value_size);
                     }
                 }
 
                 // // debug print
-                auto path_desc = json_access_path_to_string(access_path, value_type, always_present);
                 env.printValue(builder, size, "size after serializing " + path_desc + ": ");
             }
 

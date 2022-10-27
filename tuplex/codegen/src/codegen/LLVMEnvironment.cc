@@ -715,6 +715,14 @@ namespace tuplex {
             using namespace llvm;
             assert(!tupleVal->getType()->isPointerTy());
 
+#ifndef NDEBUG
+            // check that indices are ok.
+            {
+                auto t_indices = getTupleIndices(tupleType, index);
+                assert(validate_tuple_indices(tupleType, t_indices));
+            }
+#endif
+
             auto &ctx = builder.getContext();
             auto elementType = tupleType.parameters()[index];
 
@@ -828,6 +836,14 @@ namespace tuplex {
             assert(tuplePtr->getType()->isPointerTy()); // must be a pointer
             assert(tupleType.isTupleType());
             assert(tupleType.parameters().size() > index);
+
+#ifndef NDEBUG
+            // check that indices are ok.
+            {
+                auto t_indices = getTupleIndices(tupleType, index);
+                assert(validate_tuple_indices(tupleType, t_indices));
+            }
+#endif
 
             auto& ctx = builder.getContext();
             auto elementType = tupleType.parameters()[index];
@@ -961,11 +977,19 @@ namespace tuplex {
             assert(tupleType.isTupleType());
             assert(tupleType.parameters().size() > index);
 
+#ifndef NDEBUG
+            // check that indices are ok.
+            {
+                auto t_indices = getTupleIndices(tupleType, index);
+                assert(validate_tuple_indices(tupleType, t_indices));
+            }
+#endif
+
             auto &ctx = builder.getContext();
             auto elementType = tupleType.parameters()[index];
 
-            // debug: pretty print struct
-            std::cout<<this->printAggregateType(tuplePtr->getType()->getPointerElementType())<<std::endl;
+            // // debug: pretty print struct
+            // std::cout<<this->printAggregateType(tuplePtr->getType()->getPointerElementType())<<std::endl;
 
             // special types which don't need to be stored because the type determines the value
             if (elementType.isSingleValued())

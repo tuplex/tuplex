@@ -1126,8 +1126,8 @@ namespace tuplex {
 
             auto buf_size = getSize(builder);
 
-            // debug
-            _env->debugPrint(builder, "buf_size to serialize is: ", buf_size);
+            // // debug
+            // _env->debugPrint(builder, "buf_size to serialize is: ", buf_size);
 
             // debug print
             auto buf = _env->malloc(builder, buf_size);
@@ -1303,16 +1303,16 @@ namespace tuplex {
 
             storeTo(builder, ptr, true);
 
-            // debug: check pointer
-            auto item = ptr;
-            auto dbg_ptr = builder.CreatePointerCast(item, _env->i8ptrType());
-            auto N = tuple_size / 8;
-            _env->printValue(builder, item, "byte check for pointer: ");
-            for(unsigned i = 0; i < N; ++i) {
-                auto i64_val = builder.CreateLoad(builder.CreatePointerCast(dbg_ptr, _env->i64ptrType()));
-                dbg_ptr = builder.CreateGEP(dbg_ptr, _env->i64Const(sizeof(int64_t)));
-                _env->printValue(builder, i64_val, "bytes " + std::to_string(i * 8) + "-" + std::to_string((i+1)*8) + ": ");
-            }
+            // // debug: check pointer
+            // auto item = ptr;
+            // auto dbg_ptr = builder.CreatePointerCast(item, _env->i8ptrType());
+            // auto N = tuple_size / 8;
+            // _env->printValue(builder, item, "byte check for pointer: ");
+            // for(unsigned i = 0; i < N; ++i) {
+            //     auto i64_val = builder.CreateLoad(builder.CreatePointerCast(dbg_ptr, _env->i64ptrType()));
+            //     dbg_ptr = builder.CreateGEP(dbg_ptr, _env->i64Const(sizeof(int64_t)));
+            //     _env->printValue(builder, i64_val, "bytes " + std::to_string(i * 8) + "-" + std::to_string((i+1)*8) + ": ");
+            // }
 
             return ptr;
         }

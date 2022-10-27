@@ -124,7 +124,7 @@ namespace tuplex {
                 // create here free obj block.
                 llvm::IRBuilder<> b(_freeStart);
 
-                _env->printValue(b, rowNumber(b), "entered free row objects for row no=");
+                // _env->printValue(b, rowNumber(b), "entered free row objects for row no=");
 
                 // release the row var if required
                 json_release_object(*_env, b, _row_object_var);
@@ -242,7 +242,7 @@ namespace tuplex {
                         throw std::runtime_error("invalid function from pipeline builder in JsonSourceTaskBuilder");
                     auto row_no = rowNumber(builder);
                     auto intermediate = initIntermediate(builder);
-                    _env->debugPrint(builder, "Calling pipeline on rowno: ", row_no);
+                    // _env->debugPrint(builder, "Calling pipeline on rowno: ", row_no);
                     auto pip_res = PipelineBuilder::call(builder, processRowFunc, normal_case_row, userData, row_no, intermediate);
 
 #ifdef JSON_PARSER_TRACE_MEMORY
@@ -262,7 +262,7 @@ namespace tuplex {
                 auto normal_size = normal_case_row.getSize(builder);
                 incVar(builder, _normalMemorySizeVar, normal_size);
 
-                 _env->debugPrint(builder, "got normal-case row!");
+                // _env->debugPrint(builder, "got normal-case row!");
 
                 // inc by one
                 incVar(builder, _normalRowCountVar);

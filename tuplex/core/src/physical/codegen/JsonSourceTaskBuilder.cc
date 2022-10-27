@@ -209,23 +209,27 @@ namespace tuplex {
                 builder.CreateBr(bbFallback);
             } else {
 
-                // with this below, one could avoid using the complex general-case row parse stuff.
-                //  // be quick, avoid the complex structure
-                //  builder.CreateBr(bbFallback);
-
-                  // new: (--> should be llvm optimizer friendlier)
-                  general_case_row = generateAndCallParseRowFunction(builder, "parse_general_row_internal",
-                                                                     _generalCaseRowType, general_case_columns,
-                                                                     unwrap_first_level, parser, bbFallback);
+                // test: always emit badparse string input exceptions -> a good idea for hyper-specialization
+                bool emit_only_bad_parse = true;
+                if(emit_only_bad_parse) {
+                    // with this below, one could avoid using the complex general-case row parse stuff.
+                    // be quick, avoid the complex structure
+                    builder.CreateBr(bbFallback);
+                } else {
+                    // new: (--> should be llvm optimizer friendlier)
+                    general_case_row = generateAndCallParseRowFunction(builder, "parse_general_row_internal",
+                                                                       _generalCaseRowType, general_case_columns,
+                                                                       unwrap_first_level, parser, bbFallback);
 #ifdef JSON_PARSER_TRACE_MEMORY
-                _env->printValue(builder, rc, "general row parsed.");
+                    _env->printValue(builder, rc, "general row parsed.");
 #endif
-                  builder.CreateBr(bbGeneralCaseSuccess);
+                    builder.CreateBr(bbGeneralCaseSuccess);
 
-                 // // old, but correct with long compile times:
-                 // general_case_row = parseRow(builder, _generalCaseRowType, general_case_columns,
-                 //                             unwrap_first_level, parser, bbFallback);
-                 // builder.CreateBr(bbGeneralCaseSuccess);
+                    // // old, but correct with long compile times:
+                    // general_case_row = parseRow(builder, _generalCaseRowType, general_case_columns,
+                    //                             unwrap_first_level, parser, bbFallback);
+                    // builder.CreateBr(bbGeneralCaseSuccess);
+                }
             }
 
             // now create the blocks for each scenario

@@ -774,7 +774,7 @@ default:
                                 } else {
 
                                     // there are three options where to store the result now
-                                TypeUnificationPolicy t_policy; t_policy.allowAutoUpcastOfNumbers = _allowNumericTypeUnification;
+                                    TypeUnificationPolicy t_policy; t_policy.allowAutoUpcastOfNumbers = _allowNumericTypeUnification;
 
                                     // 1. fits targetOutputSchema (i.e. row becomes normalcase row)
                                     bool outputAsNormalRow = python::Type::UNKNOWN != unifyTypes(rowType, _targetOutputSchema.getRowType(), t_policy)

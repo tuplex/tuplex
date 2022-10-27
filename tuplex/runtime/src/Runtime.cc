@@ -269,15 +269,15 @@ extern "C" void *rtmalloc(const size_t requested_size) noexcept {
         heap->lastBlock->offset += size;
 
         // debugging
+#ifdef TRACE_MEMORY
 #ifdef MACOS
         printf("rtmalloc [%p] size=%zu\n", memaddr, size);
 #else
         printf("rtmalloc [%p] size=%d\n", memaddr, size);
 #endif
-        std::cout<<std::endl;
         // also memset to zero in debug mode
         memset(memaddr, 0, size);
-
+#endif
         return memaddr;
     }
 }
@@ -288,7 +288,7 @@ extern "C" void rtfree(void *ptr) noexcept {
     // do nothing...
 }
 
-#define TRACE_MEMORY
+// #define TRACE_MEMORY
 
 extern "C" void rtfree_all() noexcept {
     if(!heap)

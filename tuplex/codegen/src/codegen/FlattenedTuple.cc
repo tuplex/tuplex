@@ -1014,10 +1014,10 @@ namespace tuplex {
             // storing is straight-forward, just use helper function (don't bother with bitmap logic!) from LLVMEnv.
             for(int i = 0; i < _tree.numElements(); ++i) {
                 auto el = _tree.get(i);
-                if(el.val)
-                    _env->printValue(builder, el.val, "element " + std::to_string(i));
-                if(el.size)
-                    _env->printValue(builder, el.size, "size of element " + std::to_string(i));
+                // if(el.val)
+                //     _env->printValue(builder, el.val, "element " + std::to_string(i));
+                // if(el.size)
+                //     _env->printValue(builder, el.size, "size of element " + std::to_string(i));
                 _env->setTupleElement(builder, _flattenedTupleType, ptr, i, el, is_volatile);
             }
         }

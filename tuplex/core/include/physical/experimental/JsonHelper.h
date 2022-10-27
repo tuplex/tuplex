@@ -15,7 +15,7 @@
 #include <jit/JITCompiler.h>
 
 // // use this to trace memory
-#define JSON_PARSER_TRACE_MEMORY
+// #define JSON_PARSER_TRACE_MEMORY
 
 namespace tuplex {
     namespace codegen {

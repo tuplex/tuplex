@@ -915,6 +915,10 @@ namespace tuplex {
             // if(size)
             //     printValue(builder, size, "got element " + std::to_string(index) + " of tuple " + tupleType.desc() + ", size: ");
 
+            // boolean: special case
+            if(python::Type::BOOLEAN == elementType)
+                value = builder.CreateZExtOrTrunc(value, getBooleanType());
+
             return SerializableValue(value, size, isnull);
         }
 

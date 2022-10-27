@@ -269,7 +269,12 @@ extern "C" void *rtmalloc(const size_t requested_size) noexcept {
         heap->lastBlock->offset += size;
 
         // debugging
+#ifdef MACOS
+        printf("rtmalloc [%p] size=%zu\n", memaddr, size);
+#else
         printf("rtmalloc [%p] size=%d\n", memaddr, size);
+#endif
+        std::cout<<std::endl;
         // also memset to zero in debug mode
         memset(memaddr, 0, size);
 

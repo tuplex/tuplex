@@ -136,7 +136,13 @@ namespace tuplex {
 
         // do not perform codegen here, should be done separately
         tmb.setCodeGenOptLevel(CodeGenOpt::None); // <-- use this to speed up compile.
-        tmb.setCodeModel(CodeModel::Small); // <-- use this to speed up compute.
+
+
+        // small code model does not work under MacOS. -.-
+        // tmb.setCodeModel(CodeModel::Small); // <-- use this to speed up compute.
+#ifdef MACOS
+        tmb.setCodeModel(CodeModel::Large); // <-- force under macos to large model.
+#endif
 
         // use fastIsel to speed up compile times
         tmb.getOptions().EnableFastISel = 1;

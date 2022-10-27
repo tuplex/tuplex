@@ -313,6 +313,8 @@ namespace tuplex {
             return adj_vec_of_indices[index];
         }
 
+        // Note: this function below does not support all the weird Option[Tuple] cases Yunzhi implemented.
+        // handle these separately.
         llvm::Type *LLVMEnvironment::createTupleStructType(const python::Type &type, const std::string &twine) {
             using namespace llvm;
 
@@ -378,6 +380,12 @@ namespace tuplex {
             // fill in based on indices
             for(unsigned i = 0; i < num_tuple_elements; ++i) {
                 auto py_element_type = type.parameters()[i];
+
+                // get rid off opt -> it's handled in bitmap idx
+                auto is_opt_type = py_element_type.isOptionType();
+                if(is_opt_type)
+                    py_element_type = py_element_type.getReturnType();
+
                 auto llvm_element_type = pythonToLLVMType(py_element_type);
 
                 // special case: boolean -> force to i64, b.c. some LLVM passes are broken else
@@ -388,6 +396,10 @@ namespace tuplex {
                 int value_idx = -1, size_idx = -1, bitmap_idx = -1;
                 auto t_indices = getTupleIndices(type, i);
                 std::tie(value_idx, size_idx, bitmap_idx) = t_indices;
+
+                // quick check: for opt, bitmap should be set!
+                if(is_opt_type)
+                    assert(-1 != bitmap_idx);
 
                 if(-1 != value_idx) {
                     assert(nullptr == members[value_idx]);

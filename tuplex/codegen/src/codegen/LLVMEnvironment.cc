@@ -1296,7 +1296,7 @@ namespace tuplex {
             size_t max_str_print = 1024; // maximum 1024 chars.
 
             auto printf_F = printf_prototype(_context, _module.get());
-            llvm::Value *sconst = builder.CreateGlobalStringPtr("unknown type: ??");
+            llvm::Value *sconst = nullptr;
 
             llvm::Value *casted_val = val;
             // check type of value
@@ -1320,7 +1320,12 @@ namespace tuplex {
                 auto name = getLLVMTypeName(val->getType());
                 casted_val = builder.CreatePointerCast(val, llvm::Type::getInt8PtrTy(_context, 0));
                 sconst = builder.CreateGlobalStringPtr(msg + " [" + name + "] : [%p]\n");
+            } else {
+                sconst = builder.CreateGlobalStringPtr(getLLVMTypeName(val->getType()) + "[??] : [%p] ");
+                casted_val = i8nullptr();
             }
+
+            assert(sconst);
 
             auto fmt = builder.CreatePointerCast(sconst, llvm::Type::getInt8PtrTy(_context, 0));
             if (val->getType() != Type::getInt8PtrTy(_context, 0))

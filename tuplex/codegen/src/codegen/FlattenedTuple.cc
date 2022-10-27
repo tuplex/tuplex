@@ -617,9 +617,9 @@ namespace tuplex {
                         int64_t field_offset_in_bytes = (numSerializedElements + 1 - serialized_idx) * sizeof(int64_t);
                         Value *offset = builder.CreateAdd(_env->i64Const(field_offset_in_bytes), varlenSize);
 
-                         // // debug print
-                         // _env->printValue(builder, size, "serializing element " + std::to_string(i+1) + " of " + std::to_string(numElements()) +" as dict of size: ");
-                         // _env->printValue(builder, offset, "serializing dict to offset: ");
+                         // debug print
+                         _env->printValue(builder, size, "serializing element " + std::to_string(i+1) + " of " + std::to_string(numElements()) +" as dict of size: ");
+                         _env->printValue(builder, offset, "serializing dict to offset: ");
 
                         // store offset + length
                         // len | size
@@ -919,6 +919,9 @@ namespace tuplex {
                     // special cases list and struct
                     if(type.isStructuredDictionaryType()) {
                         auto s_size = struct_dict_serialized_memory_size(*_env, builder, el.val, type).val;
+
+                        _env->printValue(builder, s_size, "struct dict of " + type.desc() + " size is: ");
+
                         assert(s_size && s_size->getType() == _env->i64Type());
                         s = builder.CreateAdd(s, s_size);
                     } else if(type.isListType()) {
@@ -1114,7 +1117,7 @@ namespace tuplex {
             auto buf_size = getSize(builder);
 
             // debug
-            // _env->debugPrint(builder, "buf_size to serialize is: ", buf_size);
+            _env->debugPrint(builder, "buf_size to serialize is: ", buf_size);
 
             // debug print
             auto buf = _env->malloc(builder, buf_size);

@@ -622,32 +622,55 @@ namespace tuplex {
             return list_of_varitems_serialized_size(env, builder, list_ptr, list_type, list_get_list_item_size);
         }
 
+        FlattenedTuple get_tuple_item(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* index) {
+
+            assert(index && index->getType() == env.i64Type());
+            auto element_type = list_type.elementType();
+            assert(element_type.isTupleType());
+
+
+            // what type is there?
+            unsigned ptr_position = 2;
+            llvm::Value* ptr_values = nullptr;
+            if(list_ptr->getType()->isPointerTy()) {
+                auto idx_ptr = CreateStructGEP(builder, list_ptr, ptr_position);
+                //assert(idx_size->getType() == env.i64ptrType());
+                ptr_values = builder.CreateLoad(idx_ptr);
+            } else {
+                ptr_values = builder.CreateExtractValue(list_ptr, std::vector<unsigned>(1, ptr_position));
+            }
+
+            //auto ptr_values = CreateStructGEP(builder, list_ptr, 2); // should be struct.tuple**
+
+            auto t_ptr_values = env.getLLVMTypeName(ptr_values->getType());
+            // now load the i-th element from ptr_values as struct.tuple*
+            auto item_ptr = builder.CreateInBoundsGEP(ptr_values, std::vector<llvm::Value*>(1, index));
+            auto t_item_ptr = env.getLLVMTypeName(item_ptr->getType()); // should be struct.tuple**
+
+            auto item = builder.CreateLoad(item_ptr); // <-- should be struct.tuple*
+            auto t_item = env.getLLVMTypeName(item->getType());
+            assert(item->getType()->isPointerTy()); // <-- this here fails...
+
+            env.printValue(builder, item, "stored heap ptr is: ");
+
+            // call function! (or better said: emit the necessary code...)
+            FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
+            return ft;
+        }
+
+
         llvm::Value* list_of_tuples_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
                                          llvm::Value* list_ptr, const python::Type& list_type) {
 
             auto f_tuple_element_size = [list_type](LLVMEnvironment& env, llvm::IRBuilder<>& builder,
                     llvm::Value* list_ptr, llvm::Value* index) -> llvm::Value* {
-                assert(index && index->getType() == env.i64Type());
-
                 auto element_type = list_type.elementType();
-
                 assert(element_type.isTupleType());
 
                 if(python::Type::EMPTYTUPLE == element_type)
                     return env.i64Const(0);
 
-                auto ptr_values = CreateStructGEP(builder, list_ptr, 2); // should be struct.tuple**
-                auto t_ptr_values = env.getLLVMTypeName(ptr_values->getType());
-                // now load the i-th element from ptr_values as struct.tuple*
-                auto item_ptr = builder.CreateInBoundsGEP(ptr_values, std::vector<llvm::Value*>(1, index));
-                auto t_item_ptr = env.getLLVMTypeName(item_ptr->getType()); // should be struct.tuple**
-
-                auto item = builder.CreateLoad(item_ptr); // <-- should be struct.tuple*
-                auto t_item = env.getLLVMTypeName(item->getType());
-                assert(item->getType()->isPointerTy()); // <-- this here fails...
-
-                // call function! (or better said: emit the necessary code...)
-                FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
+                auto ft = get_tuple_item(env, builder, list_ptr, list_type, index);
 
                 // get size
                 auto item_size = ft.getSize(builder);
@@ -939,6 +962,9 @@ namespace tuplex {
 
             // fetch length of list
             auto len = list_length(env, builder, list_ptr, list_type);
+
+            env.printValue(builder, len, "---\ncomputing serialized size of list with #elements = ");
+
 
             // generate loop to go over items.
             auto loop_i = env.CreateFirstBlockAlloca(builder, env.i64Type());

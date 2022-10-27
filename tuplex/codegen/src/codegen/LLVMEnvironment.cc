@@ -1321,7 +1321,7 @@ namespace tuplex {
                 casted_val = builder.CreatePointerCast(val, llvm::Type::getInt8PtrTy(_context, 0));
                 sconst = builder.CreateGlobalStringPtr(msg + " [" + name + "] : [%p]\n");
             } else {
-                sconst = builder.CreateGlobalStringPtr(getLLVMTypeName(val->getType()) + "[??] : [%p] ");
+                sconst = builder.CreateGlobalStringPtr(getLLVMTypeName(val->getType()) + "[??] : [%p]\n");
                 casted_val = i8nullptr();
             }
 

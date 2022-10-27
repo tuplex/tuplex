@@ -819,8 +819,19 @@ namespace tuplex {
                     // call list specific function to determine length.
                     auto value_idx = std::get<2>(t_indices);
                     assert(value_idx >= 0);
-                    auto list_ptr = CreateStructGEP(builder, ptr, value_idx);
+                    auto list_ptr = CreateStructLoad(builder, ptr, value_idx);
+
+                    // is list_ptr a pointer?
+                    if(!list_ptr->getType()->isPointerTy()) {
+                        auto list = list_ptr;
+                        list_ptr = env.CreateFirstBlockAlloca(builder, list_ptr->getType());
+                        builder.CreateStore(list, list_ptr);
+                    }
+
                     auto s = list_serialized_size(env, builder, list_ptr, value_type);
+
+                    env.printValue(builder, s, "got list size of: ");
+
                     assert(s->getType() == env.i64Type());
                     // add 8 bytes for storing the info
                     s = builder.CreateAdd(s, env.i64Const(8));
@@ -846,8 +857,8 @@ namespace tuplex {
                 }
 
                 // // debug print
-                // auto path_desc = json_access_path_to_string(access_path, value_type, always_present);
-                // env.printValue(builder, size, "size after serializing " + path_desc + ": ");
+                auto path_desc = json_access_path_to_string(access_path, value_type, always_present);
+                env.printValue(builder, size, "size after serializing " + path_desc + ": ");
             }
 
             return SerializableValue(size, bytes8, nullptr);

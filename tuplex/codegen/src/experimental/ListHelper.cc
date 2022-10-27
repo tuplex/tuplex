@@ -931,7 +931,7 @@ namespace tuplex {
             // fetch length of list
             auto len = list_length(env, builder, list_ptr, list_type);
 
-            env.printValue(builder, len, "---\ncomputing serialized size of list with #elements = ");
+            // env.printValue(builder, len, "---\ncomputing serialized size of list with #elements = ");
 
 
             // generate loop to go over items.

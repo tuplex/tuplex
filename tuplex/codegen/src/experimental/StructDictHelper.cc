@@ -832,7 +832,7 @@ namespace tuplex {
 
                     auto s = list_serialized_size(env, builder, list_ptr, value_type);
 
-                    env.printValue(builder, s, "got list size of: ");
+                    // env.printValue(builder, s, "got list size of: ");
 
                     assert(s->getType() == env.i64Type());
                     // add 8 bytes for storing the info
@@ -855,16 +855,21 @@ namespace tuplex {
                         auto value_size = CreateStructLoad(builder, ptr, size_idx);
                         assert(value_size->getType() == env.i64Type());
 
+#ifdef TRACE_STRUCT_SERIALIZATION
                         // only serialize if parents are present
                         auto parent_present = struct_dict_load_path_presence(env, builder, ptr, dict_type, access_path);
                         env.printValue(builder, parent_present, "path " + path_desc + " present: ");
+#endif
 
                         size = builder.CreateAdd(size, value_size);
                     }
                 }
 
+
+#ifdef TRACE_STRUCT_SERIALIZATION
                 // // debug print
                 env.printValue(builder, size, "size after serializing " + path_desc + ": ");
+#endif
             }
 
             return SerializableValue(size, bytes8, nullptr);

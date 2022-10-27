@@ -1194,7 +1194,7 @@ namespace tuplex {
 //            env.printValue(builder, builder.CreatePtrDiff(dest_ptr, original_dest_ptr), "current dest_ptr position at byte: ");
 //            env.printValue(builder, varLengthOffset, "var length so far in bytes: ");
 
-  #define TRACE_STRUCT_SERIALIZATION
+//  #define TRACE_STRUCT_SERIALIZATION
             // get indices to properly decode
             for(auto entry : entries) {
                 auto access_path = std::get<0>(entry);

@@ -765,7 +765,7 @@ TEST_F(JsonTuplexTest, LoadListOfTuplesLoad) {
 
     // deactivate filter pushdown as well...
     co.set("tuplex.optimizer.filterPushdown", "false");
-    co.set("tuplex.useLLVMOptimizer", "false");
+    co.set("tuplex.useLLVMOptimizer", "true");
 
     co.set("tuplex.executorCount", "0");
 

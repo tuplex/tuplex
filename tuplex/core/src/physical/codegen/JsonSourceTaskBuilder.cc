@@ -124,7 +124,8 @@ namespace tuplex {
                 // create here free obj block.
                 llvm::IRBuilder<> b(_freeStart);
 
-                 _env->printValue(b, rowNumber(b), "entered free row objects for row no=");
+                // _env->printValue(b, rowNumber(b), "entered free row objects for row no=");
+
                 // release the row var if required
                 json_release_object(*_env, b, _row_object_var);
                 _freeEnd = b.GetInsertBlock();

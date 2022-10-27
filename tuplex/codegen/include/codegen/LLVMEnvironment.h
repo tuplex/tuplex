@@ -265,7 +265,7 @@ namespace tuplex {
                 if(-1 != bitmap_idx) {
                     // check validity by getting first element (i1 array)
                     assert(N >= 1);
-                    auto first_el_type = llvm_type->getStructType(0);
+                    auto first_el_type = llvm_type->getStructElementType(0);
                     if(!first_el_type->isArrayTy())
                         return false;
                     // check

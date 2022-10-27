@@ -1533,12 +1533,30 @@ namespace tuplex {
             // make sure scenario is supported
             assert((src_type == python::Type::EMPTYDICT || src_type.isStructuredDictionaryType()) && dest_type.isStructuredDictionaryType());
 
+
+            // special case empty dict -> struct dict
+            if(src_type == python::Type::EMPTYDICT) {
+                // make sure dest ptr is compatible
+                assert(dest_type.all_struct_pairs_optional());
+
+                using namespace llvm;
+                using namespace std;
+
+                // allocate dest ptr and zero
+                auto llvm_type = env.getOrCreateStructuredDictType(dest_type);
+                auto dest_ptr = env.CreateFirstBlockAlloca(builder, llvm_type);
+                struct_dict_mem_zero(env, builder, dest_ptr, dest_type);
+                // simple, just return. mem zero initialized presence_map to zero.
+                return SerializableValue(dest_ptr, nullptr, nullptr);
+            }
+
+            assert(src_type != python::Type::EMPTYDICT);
             // check that llvm src val is correct.
             assert(src.val);
             auto src_val_llvm_type = src.val->getType();
-
-            assert(src_val_llvm_type == env.getEmptyDictType() || src_val_llvm_type == env.getOrCreateStructuredDictType(src_type)
-            || src_val_llvm_type == env.getOrCreateStructuredDictType(src_type)->getPointerTo());
+            if(src_type.isStructuredDictionaryType())
+                assert(src_val_llvm_type == env.getOrCreateStructuredDictType(src_type)
+                   || src_val_llvm_type == env.getOrCreateStructuredDictType(src_type)->getPointerTo());
 
             auto& logger = Logger::instance().logger("codegen");
 
@@ -1549,12 +1567,6 @@ namespace tuplex {
             auto llvm_type = env.getOrCreateStructuredDictType(dest_type);
             auto dest_ptr = env.CreateFirstBlockAlloca(builder, llvm_type);
             struct_dict_mem_zero(env, builder, dest_ptr, dest_type);
-
-            // simple case: EMPTYDICT -> StructDict
-            if(src_type == python::Type::EMPTYDICT) {
-                // simply return
-                return SerializableValue(dest_ptr, nullptr, nullptr);
-            }
 
             // more complex case: Basically insert all the data from the other dict while upcasting values.
             // for this, access paths are required of both types.

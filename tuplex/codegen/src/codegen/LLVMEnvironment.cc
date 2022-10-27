@@ -731,32 +731,15 @@ namespace tuplex {
 
             // special types (not serialized in memory, i.e. constants to be constructed from typing)
             if (python::Type::NULLVALUE == elementType)
-                return SerializableValue(nullptr, nullptr, llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx),
-                                                                                           llvm::APInt(1, true)));
+                return SerializableValue(nullptr, nullptr, i1Const(true));
 
-            // empty tuple, empty dict
-            if (python::Type::EMPTYTUPLE == elementType) {
-                // special case, just empty object
+            // constants...
+            if(elementType.isConstantValued())
+                return constantValuedTypeToLLVM(builder, elementType);
+
+            // single valued elements are represented through nullptr
+            if(elementType.isSingleValued()) // i.e., empty tuple, empty dict, ...
                 return SerializableValue(nullptr, nullptr, nullptr);
-            }
-
-            if (python::Type::EMPTYDICT == elementType) {
-                // create empty dict (i.e. i8* pointer with cJSON)
-                // note, this could be directly done as str const!
-                auto ret = builder.CreateCall(cJSONCreateObject_prototype(ctx, _module.get()), {});
-                assert(ret->getType()->isPointerTy());
-                auto cjsonstr = builder.CreateCall(
-                        cJSONPrintUnformatted_prototype(ctx, _module.get()),
-                        {ret});
-                auto size = builder.CreateAdd(
-                        builder.CreateCall(strlen_prototype(ctx, _module.get()), {cjsonstr}),
-                        i64Const(1));
-                return SerializableValue{ret, size};
-            }
-
-            if(python::Type::EMPTYLIST == elementType) {
-                return SerializableValue(nullptr, nullptr, nullptr);
-            }
 
             auto indices = getTupleIndices(tupleType, index);
             unsigned int valueOffset = std::get<0>(indices);
@@ -784,24 +767,18 @@ namespace tuplex {
                 assert(structBitmapIdx->getType()->isAggregateType());
                 assert(bitmapPos < structBitmapIdx->getType()->getArrayNumElements());
                 isnull = builder.CreateExtractValue(structBitmapIdx, {static_cast<unsigned int>(bitmapPos)});
-                // empty tuple, empty dict
-                if(python::Type::EMPTYTUPLE == elementType.getReturnType()) {
-                    // special case, just empty object
-                    return SerializableValue(nullptr, nullptr, isnull);
+
+                // constants...
+                if(elementType.getReturnType().isConstantValued()) {
+                    auto v = constantValuedTypeToLLVM(builder, elementType.getReturnType());
+                    v.is_null = isnull;
+                    return v;
                 }
 
-                if(python::Type::EMPTYDICT == elementType.getReturnType()) {
-                    // create empty dict (i.e. i8* pointer with cJSON)
-                    // note, this could be directly done as str const!
-                    auto ret = builder.CreateCall(cJSONCreateObject_prototype(ctx, _module.get()), {});
-                    assert(ret->getType()->isPointerTy());
-                    auto cjsonstr = builder.CreateCall(
-                            cJSONPrintUnformatted_prototype(ctx, _module.get()),
-                            {ret});
-                    auto size = builder.CreateAdd(
-                            builder.CreateCall(strlen_prototype(ctx, _module.get()), {cjsonstr}),
-                            i64Const(1));
-                    return SerializableValue(ret, size, isnull);
+                // empty tuple, empty dict, ...
+                if(elementType.getReturnType().isSingleValued()) {
+                    // special case, just empty object
+                    return SerializableValue(nullptr, nullptr, isnull);
                 }
 
                 // remove option first (handled above!)
@@ -848,41 +825,17 @@ namespace tuplex {
             auto& ctx = builder.getContext();
             auto elementType = tupleType.parameters()[index];
 
-            // quick: constants
-            if(elementType.isConstantValued()) {
-                return constantValuedTypeToLLVM(builder, elementType);
-            }
-
             // special types (not serialized in memory, i.e. constants to be constructed from typing)
-            if(python::Type::NULLVALUE == elementType)
-                return SerializableValue(nullptr, nullptr, llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, true)));
+            if (python::Type::NULLVALUE == elementType)
+                return SerializableValue(nullptr, nullptr, i1Const(true));
 
-            // empty tuple, empty dict
-            if(python::Type::EMPTYTUPLE == elementType) {
-                // special case, just empty object
+            // constants...
+            if(elementType.isConstantValued())
+                return constantValuedTypeToLLVM(builder, elementType);
+
+            // single valued elements are represented through nullptr
+            if(elementType.isSingleValued()) // i.e., empty tuple, empty dict, ...
                 return SerializableValue(nullptr, nullptr, nullptr);
-            }
-
-            if(python::Type::EMPTYDICT == elementType) {
-                // create empty dict (i.e. i8* pointer with cJSON)
-                // note, this could be directly done as str const!
-                auto ret = builder.CreateCall(cJSONCreateObject_prototype(ctx, _module.get()), {});
-                assert(ret->getType()->isPointerTy());
-                auto cjsonstr = builder.CreateCall(
-                        cJSONPrintUnformatted_prototype(ctx, _module.get()),
-                        {ret});
-                auto size = builder.CreateAdd(
-                        builder.CreateCall(strlen_prototype(ctx, _module.get()), {cjsonstr}),
-                        i64Const(1));
-                return SerializableValue{ret, size};
-            }
-
-            if(python::Type::EMPTYLIST == elementType) {
-                return SerializableValue(nullptr, nullptr, nullptr);
-            }
-
-            // ndebug: safety check, right llvm type!
-            //assert(tuplePtr->getType() == createStructType(ctx, tupleType, "tuple")->getPointerTo()); ??
 
             auto indices = getTupleIndices(tupleType, index);
             auto valueOffset = std::get<0>(indices);
@@ -2642,6 +2595,11 @@ namespace tuplex {
 
         llvm::Type *
         LLVMEnvironment::getOrCreateStructuredDictType(const python::Type &structType, const std::string &twine) {
+
+            // fix for empty dict
+            if(python::Type::EMPTYDICT == structType)
+                return getOrCreateEmptyDictType();
+
             assert(structType.isStructuredDictionaryType());
 
             // call helper function from StructDictHelper.h

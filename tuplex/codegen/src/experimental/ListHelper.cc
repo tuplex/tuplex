@@ -775,24 +775,12 @@ namespace tuplex {
                 assert(index && index->getType() == env.i64Type());
 
                 auto element_type = list_type.elementType();
-
                 assert(element_type.isTupleType());
 
                 if(python::Type::EMPTYTUPLE == element_type)
                     return env.i64Const(0);
 
-                auto ptr_values = CreateStructGEP(builder, list_ptr, 2); // should be struct.tuple**
-                auto t_ptr_values = env.getLLVMTypeName(ptr_values->getType());
-                // now load the i-th element from ptr_values as struct.tuple*
-                auto item_ptr = builder.CreateInBoundsGEP(ptr_values, std::vector<llvm::Value*>(1, index));
-                auto t_item_ptr = env.getLLVMTypeName(item_ptr->getType()); // should be struct.tuple**
-
-                auto item = builder.CreateLoad(item_ptr); // <-- should be struct.tuple*
-                auto t_item = env.getLLVMTypeName(item->getType());
-                assert(item->getType()->isPointerTy()); // <-- this here fails...
-
-                // call function! (or better said: emit the necessary code...)
-                FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
+                auto ft = get_tuple_item(env, builder, list_ptr, list_type, index);
 
                 // get size
                 auto item_size = ft.getSize(builder);
@@ -809,36 +797,7 @@ namespace tuplex {
                 if(python::Type::EMPTYTUPLE == element_type)
                     return env.i64Const(0);
 
-                auto ptr_values = CreateStructGEP(builder, list_ptr, 2); // should be struct.tuple**
-                auto t_ptr_values = env.getLLVMTypeName(ptr_values->getType());
-                // now load the i-th element from ptr_values as struct.tuple*
-                auto item_ptr = builder.CreateInBoundsGEP(ptr_values, std::vector<llvm::Value*>(1, index));
-                auto t_item_ptr = env.getLLVMTypeName(item_ptr->getType()); // should be struct.tuple**
-
-                auto item = builder.CreateLoad(item_ptr); // <-- should be struct.tuple*
-                auto t_item = env.getLLVMTypeName(item->getType());
-                assert(item->getType()->isPointerTy()); // <-- this here fails...
-
-                // debug:
-                // env.printValue(builder, index, "serializing item of type " + element_type.desc() + " at index: ");
-                // env.printValue(builder, item, "stored heap ptr at index is: ");
-
-                // call function! (or better said: emit the necessary code...)
-                FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, item, element_type);
-
-                // // debug: print out items & sizes!
-                // for(unsigned i = 0; i < ft.numElements(); ++i) {
-                //     auto val = ft.get(i);
-                //     auto size = ft.getSize(i);
-                //     if(val)
-                //         env.printValue(builder, val, "value of item " + std::to_string(i) + " is: ");
-                //     if(size)
-                //         env.printValue(builder, size, "size of item " + std::to_string(i) + " is: ");
-                // }
-                //
-                // // get size
-                // env.printValue(builder, ft.getSize(builder), "size of tuple to serialize is: ");
-
+                auto ft = get_tuple_item(env, builder, list_ptr, list_type, index);
                 auto s_size = ft.serialize(builder, dest_ptr);
                 return s_size;
             };

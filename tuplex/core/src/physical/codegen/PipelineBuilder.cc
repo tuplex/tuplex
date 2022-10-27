@@ -991,12 +991,12 @@ namespace tuplex {
              // debug print
              for(int i = 0; i < _lastRowResult.numElements(); ++i) {
                  auto param = codegen::SerializableValue(_lastRowResult.get(i), _lastRowResult.getSize(i), _lastRowResult.getIsNull(i));
-                 assert(param.val);
-                 assert(param.size);
-                 assert(param.is_null);
-                 _env->debugPrint(builder, "final value x" + std::to_string(i) + " of pipeline: ", param.val);
-                 _env->debugPrint(builder, "final size of x" + std::to_string(i) + " of pipeline: ", param.size);
-                 _env->debugPrint(builder, "final isnull of x" + std::to_string(i) + " of pipeline: ", param.is_null);
+                 // assert(param.val);
+                 // assert(param.size);
+                 // assert(param.is_null);
+                 if(param.val)_env->debugPrint(builder, "final value x" + std::to_string(i) + " of pipeline: ", param.val);
+                 if(param.size)_env->debugPrint(builder, "final size of x" + std::to_string(i) + " of pipeline: ", param.size);
+                 if(param.is_null)_env->debugPrint(builder, "final isnull of x" + std::to_string(i) + " of pipeline: ", param.is_null);
              }
 
 

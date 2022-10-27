@@ -243,9 +243,9 @@ namespace tuplex {
             // not found, so create full entry for tuple type!
             std::vector<std::tuple<int, int, int>> vec_of_indices;
 
-            unsigned values_to_store_so_far = 0;
-            unsigned sizes_to_store_so_far = 0;
-            unsigned cur_bitmap_idx = 0;
+            int values_to_store_so_far = 0;
+            int sizes_to_store_so_far = 0;
+            int cur_bitmap_idx = 0;
             auto num_tuple_elements = tupleType.parameters().size();
             for(int i = 0; i < num_tuple_elements; ++i) {
                 // what type is it?
@@ -288,13 +288,20 @@ namespace tuplex {
 
 
             // now correct for that sizes are stored after values and bitmap.
-            auto size_offset = (cur_bitmap_idx > 0) + values_to_store_so_far;
+            bool has_bitmap = (cur_bitmap_idx > 0);
+            auto size_offset = has_bitmap + values_to_store_so_far;
             std::vector<std::tuple<int, int, int>> adj_vec_of_indices;
             for(auto entry : vec_of_indices) {
                 int value_idx = -1, size_idx = -1, bitmap_idx = -1;
                 std::tie(value_idx, size_idx, bitmap_idx) = entry;
-                if(size_idx != -1)
+
+                // correct value idx for bitmap
+                if(-1 != value_idx)
+                    value_idx += has_bitmap;
+                // correct size idx for both bitmap and values
+                if(-1 != size_idx)
                     size_idx += size_offset;
+
                 adj_vec_of_indices.push_back(std::make_tuple(value_idx, size_idx, bitmap_idx));
             }
 
@@ -312,8 +319,9 @@ namespace tuplex {
             python::Type T = python::Type::propagateToTupleType(type);
             assert(T.isTupleType());
 
+            auto& logger = Logger::instance().logger("codegen");
             auto &ctx = _context;
-            auto size_field_type = llvm::Type::getInt64Ty(ctx); // what type to use for size fields.
+            auto size_field_type = llvm::Type::getInt64Ty(ctx); // what llvm type to use for size fields.
 
             bool packed = false;
 
@@ -329,107 +337,183 @@ namespace tuplex {
                 return structType;
             }
 
-            assert(type.parameters().size() > 0);
-            // define type
-            std::vector<llvm::Type *> memberTypes;
 
-            auto params = type.parameters();
-            // count optional elements
-            int numNullables = 0;
-            for (int i = 0; i < params.size(); ++i) {
-                if (params[i].isOptionType()) {
-                    numNullables++;
-                    params[i] = params[i].withoutOptions();
+            // new -> base on tuple indices.
+            // first, determine max index, fill everything with dummy types (i64)
+            int max_value_idx = -1;
+            int max_size_idx = -1;
+            int max_bitmap_idx = -1;
+            int num_value_entries = 0;
+            int num_size_entries = 0;
+            auto num_tuple_elements = type.parameters().size();
+            for(unsigned i = 0; i < num_tuple_elements; ++i) {
+                int value_idx = -1, size_idx = -1, bitmap_idx = -1;
+                auto t_indices = getTupleIndices(type, i);
+                std::tie(value_idx, size_idx, bitmap_idx) = t_indices;
+
+                max_value_idx = std::max(max_value_idx, value_idx);
+                max_size_idx = std::max(max_size_idx, max_size_idx);
+                max_bitmap_idx = std::max(max_bitmap_idx, bitmap_idx);
+
+                num_value_entries += (value_idx != -1);
+                num_size_entries += (size_idx != -1);
+            }
+
+            // how many values? how many sizes? how many bitmap elements are required?
+            auto num_bitmap_entries = max_bitmap_idx + 1;
+
+            auto num_entries = (num_bitmap_entries > 0) + num_value_entries + num_size_entries;
+            // some checks re indices
+            assert(max_value_idx < num_entries);
+            assert(max_size_idx < num_entries);
+
+            // alloc vector
+            std::vector<llvm::Type*> members(num_entries, nullptr);
+
+            // fill in bitmap if present
+            if(num_bitmap_entries > 0) {
+                members[0] = ArrayType::get(Type::getInt1Ty(ctx), num_bitmap_entries);
+            }
+
+            // fill in based on indices
+            for(unsigned i = 0; i < num_tuple_elements; ++i) {
+                auto py_element_type = type.parameters()[i];
+                auto llvm_element_type = pythonToLLVMType(py_element_type);
+
+                // save according to indices
+                int value_idx = -1, size_idx = -1, bitmap_idx = -1;
+                auto t_indices = getTupleIndices(type, i);
+                std::tie(value_idx, size_idx, bitmap_idx) = t_indices;
+
+                if(-1 != value_idx) {
+                    assert(nullptr == members[value_idx]);
+                    members[value_idx] = llvm_element_type;
                 }
 
-                // empty tuple is ok, b.c. it's a primitive
-                assert(!params[i].isTupleType() ||
-                       params[i] == python::Type::EMPTYTUPLE); // no nesting at this level here supported!
-            }
-
-            // first, create bitmap as array of i1
-            if (numNullables > 0) {
-                // i1 array!
-                memberTypes.emplace_back(ArrayType::get(Type::getInt1Ty(ctx), numNullables));
-            }
-
-            // size fields at end
-            int numVarlenFields = 0;
-
-            // define bitmap on the fly
-            for (const auto &el: T.parameters()) {
-
-                // optimizing types -> use the actual, underlying type here
-                auto t = el.isConstantValued() ? el.underlying() : el;
-
-                // option
-                t = t.isOptionType() ? t.getReturnType() : t; // get rid of most outer options
-
-
-                // @TODO: special case empty tuple! also doesn't need to be represented
-
-                if (python::Type::BOOLEAN == t) {
-                    // i8
-                    // memberTypes.push_back(getBooleanType());
-
-                    // compiler bug, use i64 so everything can get optimized...
-                    memberTypes.push_back(i64Type());
-
-                } else if (python::Type::I64 == t) {
-                    // i64
-                    memberTypes.push_back(i64Type());
-                } else if (python::Type::F64 == t) {
-                    // double
-                    memberTypes.push_back(llvm::Type::getDoubleTy(ctx));
-                } else if (python::Type::STRING == t) {
-                    memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
-                    numVarlenFields++;
-                } else if (python::Type::PYOBJECT == t) {
-                    memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
-                    numVarlenFields++;
-                } else if ((python::Type::GENERICDICT == t || t.isDictionaryType()) && t != python::Type::EMPTYDICT) { // dictionary
-                    // special case structured dict
-                    if(t.isStructuredDictionaryType()) {
-                        memberTypes.push_back(getOrCreateStructuredDictType(t));
-                        // not classified as var field (var within).
-                    } else {
-                        // general i8* pointer to hold C-struct
-                        memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
-                        numVarlenFields++;
-                    }
-                } else if (t.isSingleValued()) {
-                    // leave out. Not necessary to represent it in memory.
-                } else if(t.isListType()) {
-                    memberTypes.push_back(getOrCreateListType(t)); // internal size field...
-                } else {
-                    // nested tuple?
-                    // ==> do lookup!
-                    // add i64 (for length)
-                    // and pointer type
-                    // previously defined? => get!
-                    if (t.isTupleType()) {
-                        // recurse!
-                        // add struct into it (can be accessed via recursion then!!!)
-                        memberTypes.push_back(getOrCreateTupleType(t, twine));
-                    } else {
-                        Logger::instance().logger("codegen").error(
-                                "not supported type " + el.desc() + " encountered in LLVM struct type creation");
-                        return nullptr;
-                    }
+                if(-1 != size_idx) {
+                    assert(nullptr == members[size_idx]);
+                    members[size_idx] = size_field_type;
                 }
             }
 
-            for (int i = 0; i < numVarlenFields; ++i)
-                memberTypes.emplace_back(size_field_type); // 64 bit int as size
+            // fill in missing fields, warn if incomplete
+            for(unsigned i = 0; i < members.size(); ++i) {
+                if(!members[i]) {
+                    logger.error("when creating type for tuple, encountered missing member type.");
+                    members[i] = i64Type();
+                }
+            }
 
-            llvm::ArrayRef<llvm::Type *> members(memberTypes);
-            llvm::Type *structType = llvm::StructType::create(ctx, members, "struct." + twine, packed);
+            llvm::ArrayRef<llvm::Type *> llvm_members(members);
+            llvm::Type *structType = llvm::StructType::create(ctx, llvm_members, "struct." + twine, packed);
 
-            // // add to mapping (make sure it doesn't exist yet!)
+            // add to mapping (make sure it doesn't exist yet!)
             assert(_typeMapping.find(structType) == _typeMapping.end());
             _typeMapping[structType] = type;
 
             return structType;
+
+//            assert(type.parameters().size() > 0);
+//            // define type
+//            std::vector<llvm::Type *> memberTypes;
+//
+//            auto params = type.parameters();
+//            // count optional elements
+//            int numNullables = 0;
+//            for (int i = 0; i < params.size(); ++i) {
+//                if (params[i].isOptionType()) {
+//                    numNullables++;
+//                    params[i] = params[i].withoutOptions();
+//                }
+//
+//                // empty tuple is ok, b.c. it's a primitive
+//                assert(!params[i].isTupleType() ||
+//                       params[i] == python::Type::EMPTYTUPLE); // no nesting at this level here supported!
+//            }
+//
+//            // first, create bitmap as array of i1
+//            if (numNullables > 0) {
+//                // i1 array!
+//                memberTypes.emplace_back(ArrayType::get(Type::getInt1Ty(ctx), numNullables));
+//            }
+//
+//            // size fields at end
+//            int numVarlenFields = 0;
+//
+//            // define bitmap on the fly
+//            for (const auto &el: T.parameters()) {
+//
+//                // optimizing types -> use the actual, underlying type here
+//                auto t = el.isConstantValued() ? el.underlying() : el;
+//
+//                // option
+//                t = t.isOptionType() ? t.getReturnType() : t; // get rid of most outer options
+//
+//
+//                // @TODO: special case empty tuple! also doesn't need to be represented
+//
+//                if (python::Type::BOOLEAN == t) {
+//                    // i8
+//                    // memberTypes.push_back(getBooleanType());
+//
+//                    // compiler bug, use i64 so everything can get optimized...
+//                    memberTypes.push_back(i64Type());
+//
+//                } else if (python::Type::I64 == t) {
+//                    // i64
+//                    memberTypes.push_back(i64Type());
+//                } else if (python::Type::F64 == t) {
+//                    // double
+//                    memberTypes.push_back(llvm::Type::getDoubleTy(ctx));
+//                } else if (python::Type::STRING == t) {
+//                    memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
+//                    numVarlenFields++;
+//                } else if (python::Type::PYOBJECT == t) {
+//                    memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
+//                    numVarlenFields++;
+//                } else if ((python::Type::GENERICDICT == t || t.isDictionaryType()) && t != python::Type::EMPTYDICT) { // dictionary
+//                    // special case structured dict
+//                    if(t.isStructuredDictionaryType()) {
+//                        memberTypes.push_back(getOrCreateStructuredDictType(t));
+//                        // not classified as var field (var within).
+//                    } else {
+//                        // general i8* pointer to hold C-struct
+//                        memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
+//                        numVarlenFields++;
+//                    }
+//                } else if (t.isSingleValued()) {
+//                    // leave out. Not necessary to represent it in memory.
+//                } else if(t.isListType()) {
+//                    memberTypes.push_back(getOrCreateListType(t)); // internal size field...
+//                } else {
+//                    // nested tuple?
+//                    // ==> do lookup!
+//                    // add i64 (for length)
+//                    // and pointer type
+//                    // previously defined? => get!
+//                    if (t.isTupleType()) {
+//                        // recurse!
+//                        // add struct into it (can be accessed via recursion then!!!)
+//                        memberTypes.push_back(getOrCreateTupleType(t, twine));
+//                    } else {
+//                        Logger::instance().logger("codegen").error(
+//                                "not supported type " + el.desc() + " encountered in LLVM struct type creation");
+//                        return nullptr;
+//                    }
+//                }
+//            }
+//
+//            for (int i = 0; i < numVarlenFields; ++i)
+//                memberTypes.emplace_back(size_field_type); // 64 bit int as size
+//
+//            llvm::ArrayRef<llvm::Type *> members(memberTypes);
+//            llvm::Type *structType = llvm::StructType::create(ctx, members, "struct." + twine, packed);
+//
+//            // // add to mapping (make sure it doesn't exist yet!)
+//            assert(_typeMapping.find(structType) == _typeMapping.end());
+//            _typeMapping[structType] = type;
+//
+//            return structType;
         }
 
         llvm::Type *LLVMEnvironment::getOrCreateListType(const python::Type &listType, const std::string &twine) {

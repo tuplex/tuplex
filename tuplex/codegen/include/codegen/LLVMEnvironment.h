@@ -184,6 +184,7 @@ namespace tuplex {
         /*!
          * helper class to generate LLVM Code into one module. Captures all globals necessary for LLVM based
          * code generation. Also provides helper functions to create individual LLVM code pieces.
+         * Note that LLVMEnvironment is NOT thread-safe. Each thread should have its own LLVMEnvironment object.
          */
         class LLVMEnvironment {
         private:
@@ -779,6 +780,12 @@ namespace tuplex {
              * @return valid llvm type representing an empty tuple
              */
             llvm::Type *getEmptyTupleType();
+
+            /*!
+             * dummy type for empty dictionary.
+             * @return type associated with empty dict.
+             */
+            llvm::Type* getOrCreateEmptyDictType();
 
             /*!
              * creates i1 cmp condition for checking the index

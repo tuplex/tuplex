@@ -25,8 +25,24 @@ namespace tuplex {
         // special case: empty dict -> can be cast struct dict iff all pairs are maybe
         if(bUnderlyingType == python::Type::EMPTYDICT) {
             if(aUnderlyingType.isStructuredDictionaryType()) {
-                if(aUnderlyingType.all_struct_pairs_optional())
-                    return aUnderlyingType;
+
+                // several options depending on policy.
+                if(!policy.unifyMissingDictKeys && !policy.treatMissingDictKeysAsNone) {
+                    // can only unify iff all pairs are optional.
+                    if(aUnderlyingType.all_struct_pairs_optional())
+                        return aUnderlyingType;
+                } else {
+                    // missing key unify? => make all aUnderlying pairs maybe!
+                    if(policy.unifyMissingDictKeys) {
+                        auto pairs = aUnderlyingType.get_struct_pairs();
+                        for(auto& p : pairs) {
+                            p.alwaysPresent = false;
+                        }
+                        return python::Type::makeStructuredDictType(pairs);
+                    }
+
+                    // other policies not yet implemented... (i.e. something could be prob. done with None...)
+                }
             } else {
                 return aUnderlyingType; // <-- empty dict can be upcast to any dict type!
             }

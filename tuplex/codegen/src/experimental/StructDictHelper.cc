@@ -1537,7 +1537,7 @@ namespace tuplex {
             assert(src.val);
             auto src_val_llvm_type = src.val->getType();
 
-            assert(src_val_llvm_type == env.getOrCreateStructuredDictType(src_type)
+            assert(src_val_llvm_type == env.getEmptyDictType() || src_val_llvm_type == env.getOrCreateStructuredDictType(src_type)
             || src_val_llvm_type == env.getOrCreateStructuredDictType(src_type)->getPointerTo());
 
             auto& logger = Logger::instance().logger("codegen");

@@ -2638,6 +2638,8 @@ namespace tuplex {
             return val;
         }
 
+        // mutex to make codegen thread-safe
+
         llvm::Type *
         LLVMEnvironment::getOrCreateStructuredDictType(const python::Type &structType, const std::string &twine) {
             assert(structType.isStructuredDictionaryType());
@@ -2649,6 +2651,22 @@ namespace tuplex {
             auto type = generate_structured_dict_type(*this, twine, structType);
             _generatedStructDictTypes[structType] = type;
             return type;
+        }
+
+        llvm::Type *LLVMEnvironment::getOrCreateEmptyDictType() {
+
+            // check if it exists in cache
+            auto it = _generatedStructDictTypes.find(python::Type::EMPTYDICT);
+
+            if(it != _generatedStructDictTypes.end())
+                return it->second;
+
+            // generate type
+            llvm::ArrayRef<llvm::Type *> members;
+            bool packed = false;
+            llvm::Type *structType = llvm::StructType::create(_module->getContext(), members, "emptydict", packed);
+            _generatedStructDictTypes[python::Type::EMPTYDICT] = structType;
+            return structType;
         }
 
         SerializableValue CreateDummyValue(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& type) {

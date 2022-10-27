@@ -797,7 +797,8 @@ namespace tuplex {
 
         // reorg into JSON string...
         auto json_str = tree->to_json();
-        assert(!json_str.empty());
+        if(json_str.empty())
+            return "{}"; // <-- this could happen for empty dict.
         return json_str;
     }
 }

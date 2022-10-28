@@ -4480,7 +4480,7 @@ namespace tuplex {
 
                 // the retval popped could need extension to an option type!
                 retVal = upCastReturnType(builder, retVal, expression_type, funcReturnType);
-
+                _lfb->setLastBlock(builder.GetInsertBlock());
                 // this adds a retValue
                 _lfb->addReturn(retVal);
             } else {
@@ -4493,12 +4493,15 @@ namespace tuplex {
                                                      expression_type,
                                                      funcReturnType,
                                                      _policy.allowNumericTypeUnification);
+                    _lfb->setLastBlock(builder.GetInsertBlock());
                 } else {
                     // always a normal-case violation.
                     // @TODO: if normal-case always yields exception -> do not process!
                     // add analysis of this (LLVM!) into pipeline.
                     _logger.debug("added normalcase speculation on return type " + target_type.desc() + ".");
                     _logger.debug("Actual oberserved funcReturnType is: " + funcReturnType.desc());
+
+                    _lfb->setLastBlock(builder.GetInsertBlock());
 
                     // normal case violation.
                     _lfb->exitNormalCase(); // NOTE: this only works in a statement, not on an expression.

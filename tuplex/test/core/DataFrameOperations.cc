@@ -551,3 +551,24 @@ TEST_F(DataFrameTest, FastPreview) {
             .takeAsVector(5);
     ASSERT_EQ(res.size(), 5);
 }
+
+TEST_F(DataFrameTest, ShowI64Options) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+    auto code = "def f(x):\n"
+                "    if x % 2 == 0:\n"
+                "        return (x, None)\n"
+                "    else:\n"
+                "        return (None, x)";
+
+    c.parallelize({Row(1), Row(2), Row(3), Row(4), Row(5)}).map(UDF(code)).show();
+
+    // actual testing:
+    auto res = c.parallelize({Row(1), Row(2), Row(3), Row(4), Row(5)}).map(UDF(code)).collectAsVector();
+    ASSERT_EQ(res.size(), 5);
+    EXPECT_EQ(res[0].toPythonString(), "(None,1)");
+    EXPECT_EQ(res[1].toPythonString(), "(2,None)");
+    EXPECT_EQ(res[2].toPythonString(), "(None,3)");
+    EXPECT_EQ(res[3].toPythonString(), "(4,None)");
+    EXPECT_EQ(res[4].toPythonString(), "(None,5)");
+}

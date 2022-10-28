@@ -210,7 +210,7 @@ namespace tuplex {
             } else {
 
                 // test: always emit badparse string input exceptions -> a good idea for hyper-specialization
-                bool emit_only_bad_parse = true;
+                bool emit_only_bad_parse = true; // --> disabling this will make EVERYTHING super slow.
                 if(emit_only_bad_parse) {
                     // with this below, one could avoid using the complex general-case row parse stuff.
                     // be quick, avoid the complex structure

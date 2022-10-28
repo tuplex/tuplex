@@ -2960,6 +2960,8 @@ namespace tuplex {
                 assert(ret->getType()->isStructTy());
                 auto size = ft.getSize(builder);
                 addInstruction(ret, size);
+                // update last block, important! --> should be done always...
+                _lfb->setLastBlock(builder.GetInsertBlock());
             }
         }
 

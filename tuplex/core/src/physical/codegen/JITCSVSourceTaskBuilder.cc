@@ -73,7 +73,9 @@ namespace tuplex {
 
             auto numColumns = parseRowType.parameters().size();
             for(int col = 0; col < numColumns; ++col) {
+                _env->debugPrint(builder, "get col result for column " + std::to_string(col));
                 auto val = _parseRowGen->getColumnResult(builder, col, parseResult);
+                _env->debugPrint(builder, "set column " + std::to_string(col));
                 ft.set(builder, {col}, val.val, val.size, val.is_null);
 
 #ifdef TRACE_PARSER

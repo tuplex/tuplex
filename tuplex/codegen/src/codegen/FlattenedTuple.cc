@@ -569,7 +569,13 @@ namespace tuplex {
                 // is varlenfield? == llvm pointer type
                 auto field = _tree.get(i).val;
                 auto size = _tree.get(i).size;
+                auto is_null = _tree.get(i).is_null;
+                auto is_not_null = is_null ? _env->i1neg(builder, is_null) : nullptr;
+                bool is_option_field = types[i].isOptionType();
                 auto fieldType = types[i].withoutOptions();
+
+                if(is_option_field)
+                    assert(is_null && is_not_null);
 
                  // debug
                  // if(field) _env->debugPrint(builder, "serializing field " + std::to_string(i) + ": ", field);
@@ -601,6 +607,7 @@ namespace tuplex {
 
                 // structured dict and regular dictionaries (JSON)
                 if(fieldType.isDictionaryType() && fieldType != python::Type::EMPTYDICT) {
+                    assert(!is_option_field); // --> need to implement if logic for this!
 
                     // serialize struct dict
                     if(fieldType.isStructuredDictionaryType()) {
@@ -680,9 +687,15 @@ namespace tuplex {
                     // the offset is computed using how many varlen fields have been already serialized
                     Value *offset = builder.CreateAdd(_env->i64Const((numSerializedElements + 1 - serialized_idx) * sizeof(int64_t)), varlenSize);
 
+                    // option trick: in case of isnull we don't want to copy anything b.c. it will ruin the memory!
+                    // -> therefore: multiply with is isnull
+                    if(is_option_field) {
+                        size = builder.CreateMul(size, builder.CreateZExt(is_not_null, _env->i64Type()));
+                    }
+
                     // // debug print
-                    // _env->printValue(builder, size, "serializing " + fieldType.desc() + " of size: ");
-                    // _env->printValue(builder, offset, "serializing " + fieldType.desc() + " to offset: ");
+                     _env->printValue(builder, size, "serializing " + fieldType.desc() + " of size: ");
+                     _env->printValue(builder, offset, "serializing " + fieldType.desc() + " to offset: ");
 
                     // store offset + length
                     // len | size
@@ -691,6 +704,10 @@ namespace tuplex {
                     //Value *info = builder.CreateOr(builder.CreateZExt(offset, Type::getInt64Ty(context)), builder.CreateShl(
                     //        builder.CreateZExt(size, Type::getInt64Ty(context)), 32)
                     //);
+
+                    if(is_option_field) {
+                        info = builder.CreateMul(info, builder.CreateZExt(is_not_null, _env->i64Type()));
+                    }
 
                     builder.CreateStore(info, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), false);
 
@@ -723,6 +740,9 @@ namespace tuplex {
                 } else {
                     assert(fieldType.isFixedSizeType());
 
+
+                    // trick -> if is_null store 0. -> can use multiply/select for this.
+
                     // depending on type perform cast & copy out
                     if(python::Type::BOOLEAN == fieldType) {
                         // check what the boolean type is
@@ -735,19 +755,35 @@ namespace tuplex {
                             boolVal = builder.CreateZExt(boolVal, Type::getInt64Ty(context));
                         }
 
+                        // option trick
+                        if(is_option_field) {
+                            boolVal = builder.CreateMul(boolVal, builder.CreateZExt(is_not_null, Type::getInt64Ty(context)));
+                        }
+
                         // store within output
                         Value *store = builder.CreateStore(boolVal, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), false);
                         lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)), "outptr");
                     }
                     else if(python::Type::I64 == fieldType) {
+                        // option trick
+                        if(is_option_field) {
+                            field = builder.CreateMul(field, builder.CreateZExt(is_not_null, Type::getInt64Ty(context)));
+                        }
+
                         // store within output
                         Value *store = builder.CreateStore(field, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), false);
                         lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)), "outptr");
                     } else if(python::Type::F64 == fieldType) {
+                        // option trick
+                        if(is_option_field) {
+                            field = builder.CreateFMul(field, builder.CreateSIToFP(builder.CreateZExt(is_not_null, Type::getInt64Ty(context)), _env->doubleType()));
+                        }
+
                         // store within output
                         Value *store = builder.CreateStore(field, builder.CreateBitCast(lastPtr, Type::getDoublePtrTy(context, 0)), false);
                         lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(double)), "outptr");
                     } else if(fieldType.isListType() && fieldType.elementType().isSingleValued()) {
+                        throw std::runtime_error("list not supported yet");
                         // store within output - the field is just the size of the list
                         Value *store = builder.CreateStore(field, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), false);
                         lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)), "outptr");
@@ -771,7 +807,10 @@ namespace tuplex {
             }
 
             // return diff
-            return builder.CreatePtrDiff(lastPtr, original_start_ptr);
+            auto bytes_written = builder.CreatePtrDiff(lastPtr, original_start_ptr);
+
+            _env->printValue(builder, bytes_written, "bytes written: ");
+            return bytes_written;
         }
 
         void FlattenedTuple::setElement(llvm::IRBuilder<>& builder,
@@ -908,6 +947,9 @@ namespace tuplex {
                     BasicBlock* bAddSize = BasicBlock::Create(ctx, "entry_valid", builder.GetInsertBlock()->getParent());
                     bNext = BasicBlock::Create(ctx, "next", builder.GetInsertBlock()->getParent());
                     lastBlockBeforeNullCheck = builder.GetInsertBlock();
+
+                    _env->printValue(builder, el.is_null, "element of type " + type.desc() + " is null: ");
+
                     builder.CreateCondBr(el.is_null, bNext, bAddSize);
                     builder.SetInsertPoint(bAddSize);
 
@@ -977,7 +1019,7 @@ namespace tuplex {
                 s = builder.CreateAdd(s, _env->i64Const(bitmap64Size));
             }
 
-            // _env->debugPrint(builder, "final size required is: ", s);
+             _env->debugPrint(builder, "final size required is: ", s);
 
             return s;
         }

@@ -337,6 +337,10 @@ namespace tuplex {
             BasicBlock *bLoopDone = BasicBlock::Create(context, "loopDone", read_block_func);
             BasicBlock *bLoopBody = BasicBlock::Create(context, "loopBody", read_block_func);
 
+#ifdef TRACE_PARSER
+            env().printValue(builder, builder.CreatePtrDiff(endPtr, builder.CreateLoad(currentPtrVar)), " bytes left to parse: (should be >= 16)");
+#endif
+
             // parse first row
             auto parseCode = builder.CreateCall(parseRowF, {resStructVar, builder.CreateLoad(currentPtrVar, "readPtr"), endPtr}, "parseCode");
             builder.CreateStore(parseCode, parseCodeVar);
@@ -381,6 +385,9 @@ namespace tuplex {
 
 #endif
             parseCode = builder.CreateCall(parseRowF, {resStructVar, builder.CreateLoad(currentPtrVar, "readPtr"), endPtr}, "parseCode");
+#ifdef TRACE_PARSER
+            env().printValue(builder, parseCode, "result of parseRowF is: ");
+#endif
             builder.CreateStore(parseCode, parseCodeVar);
             numParsedBytes = builder.CreateLoad(builder.CreateGEP(resStructVar, {env().i32Const(0), env().i32Const(0)}), "parsedBytes");
             // parseRow always returns ok if rows works, however, it could be the case the parse was good but the last

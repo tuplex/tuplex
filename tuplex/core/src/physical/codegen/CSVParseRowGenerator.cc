@@ -153,71 +153,74 @@ namespace tuplex {
 
 
 
-            // unsafe version: this requires that there are 15 zeroed bytes after endptr at least
-            auto v16qi_type = llvm::VectorType::get(llvm::Type::getInt8Ty(context), 16);
-            auto val = builder.CreateLoad(spanner);
-            auto casted_ptr = builder.CreateBitCast(ptr, v16qi_type->getPointerTo(0));
+            // {
+            //     // unsafe version: this requires that there are 15 zeroed bytes after endptr at least
+            //     auto v16qi_type = llvm::VectorType::get(llvm::Type::getInt8Ty(context), 16);
+            //     auto val = builder.CreateLoad(spanner);
+            //     auto casted_ptr = builder.CreateBitCast(ptr, v16qi_type->getPointerTo(0));
+            //
+            //     Function *pcmpistri128func = Intrinsic::getDeclaration(_env->getModule().get(),
+            //                                                            Intrinsic::x86_sse42_pcmpistri128);
+            //     auto res = builder.CreateCall(pcmpistri128func, {val, builder.CreateLoad(casted_ptr), _env->i8Const(0)});
+            //     return res;
+            // }
 
-            Function *pcmpistri128func = Intrinsic::getDeclaration(_env->getModule().get(),
-                                                                   Intrinsic::x86_sse42_pcmpistri128);
-            auto res = builder.CreateCall(pcmpistri128func, {val, builder.CreateLoad(casted_ptr), _env->i8Const(0)});
-            return res;
 
-            //  // safe version, i.e. when 16 byte border is not guaranteed.
-            //  Function* pcmpistri128func = Intrinsic::getDeclaration(_env->getModule().get(), Intrinsic::x86_sse42_pcmpistri128);
-            //  BasicBlock* bEnoughBytesLeft = BasicBlock::Create(context, "execute_spanner", _func);
-            //  BasicBlock* bAtEndOfFile = BasicBlock::Create(context, "spanner_at_end_of_file", _func);
-            //  BasicBlock* bSpannerDone = BasicBlock::Create(context, "spanner_done", _func);
-            //
-            //  auto val = builder.CreateLoad(spanner);
-            //  auto bytesLeft = builder.CreateSub(builder.CreatePtrToInt(_endPtr, _env->i64Type()),
-            //                                     builder.CreatePtrToInt(ptr, _env->i64Type()));
-            //  _env->printValue(builder, bytesLeft, "bytes left: ");
-            //  auto enoughBytesLeftCond = builder.CreateICmpUGE(bytesLeft, _env->i64Const(16));
-            //  llvm::Value* resVar = builder.CreateAlloca(_env->i32Type());
-            //  builder.CreateCondBr(enoughBytesLeftCond, bEnoughBytesLeft, bAtEndOfFile);
-            //
-            //
-            //  builder.SetInsertPoint(bEnoughBytesLeft);
-            //  auto v16qi_type = llvm::VectorType::get(llvm::Type::getInt8Ty(context), 16);
-            //  auto casted_ptr = builder.CreateBitCast(ptr, v16qi_type->getPointerTo(0));
-            //
-            //
-            //  builder.CreateStore(builder.CreateCall(pcmpistri128func, {val, builder.CreateLoad(casted_ptr), _env->i8Const(0)}), resVar);
-            //  builder.CreateBr(bSpannerDone);
-            //
-            //  // more complicated, fill values based on how many bytes are left.
-            //  builder.SetInsertPoint(bAtEndOfFile);
-            //
-            //  _env->printValue(builder, bytesLeft, "in at end of file for spanner, there are bytes left: ");
-            //
-            //  auto v16qi_val = builder.CreateAlloca(v16qi_type);
-            //  uint64_t idx = 0ul;
-            //  llvm::Value* whereToStore = builder.CreateLoad(v16qi_val);
-            //
-            //  llvm::Value* curPtr = ptr;
-            //  for(int i = 0; i < 16; ++i) {
-            //      auto value = builder.CreateSelect(builder.CreateICmpULT(curPtr, _endPtr),
-            //              builder.CreateLoad(curPtr), _env->i8Const(_escapechar));
-            //      curPtr = builder.CreateGEP(curPtr, _env->i32Const(1));
-            //      whereToStore = builder.CreateInsertElement(whereToStore, value, idx++);
-            //  }
-            //  builder.CreateStore(whereToStore, v16qi_val);
-            //
-            //  // spanner with v16qi_val
-            //  auto spanner_result = builder.CreateCall(pcmpistri128func, {val, builder.CreateLoad(v16qi_val), _env->i8Const(0)});
-            //
-            //  // minimum with bytes left (spanner may be 16 or so)
-            //  auto i32BytesLeft = builder.CreateSExtOrTrunc(bytesLeft, _env->i32Type());
-            //  auto eofRes = builder.CreateSelect(builder.CreateICmpULT(i32BytesLeft,
-            //          spanner_result), i32BytesLeft, spanner_result);
-            //  builder.CreateStore(eofRes, resVar);
-            //  builder.CreateBr(bSpannerDone);
-            //
-            //  // continue code gen
-            //  builder.SetInsertPoint(bSpannerDone);
-            //  auto res = builder.CreateLoad(resVar);
-            //  return res;
+              // safe version, i.e. when 16 byte border is not guaranteed.
+              Function* pcmpistri128func = Intrinsic::getDeclaration(_env->getModule().get(), Intrinsic::x86_sse42_pcmpistri128);
+              BasicBlock* bEnoughBytesLeft = BasicBlock::Create(context, "execute_spanner", _func);
+              BasicBlock* bAtEndOfFile = BasicBlock::Create(context, "spanner_at_end_of_file", _func);
+              BasicBlock* bSpannerDone = BasicBlock::Create(context, "spanner_done", _func);
+
+              auto val = builder.CreateLoad(spanner);
+              auto bytesLeft = builder.CreateSub(builder.CreatePtrToInt(_endPtr, _env->i64Type()),
+                                                 builder.CreatePtrToInt(ptr, _env->i64Type()));
+              _env->printValue(builder, bytesLeft, "bytes left: ");
+              auto enoughBytesLeftCond = builder.CreateICmpUGE(bytesLeft, _env->i64Const(16));
+              llvm::Value* resVar = builder.CreateAlloca(_env->i32Type());
+              builder.CreateCondBr(enoughBytesLeftCond, bEnoughBytesLeft, bAtEndOfFile);
+
+
+              builder.SetInsertPoint(bEnoughBytesLeft);
+              auto v16qi_type = llvm::VectorType::get(llvm::Type::getInt8Ty(context), 16);
+              auto casted_ptr = builder.CreateBitCast(ptr, v16qi_type->getPointerTo(0));
+
+
+              builder.CreateStore(builder.CreateCall(pcmpistri128func, {val, builder.CreateLoad(casted_ptr), _env->i8Const(0)}), resVar);
+              builder.CreateBr(bSpannerDone);
+
+              // more complicated, fill values based on how many bytes are left.
+              builder.SetInsertPoint(bAtEndOfFile);
+
+              _env->printValue(builder, bytesLeft, "in at end of file for spanner, there are bytes left: ");
+
+              auto v16qi_val = builder.CreateAlloca(v16qi_type);
+              uint64_t idx = 0ul;
+              llvm::Value* whereToStore = builder.CreateLoad(v16qi_val);
+
+              llvm::Value* curPtr = ptr;
+              for(int i = 0; i < 16; ++i) {
+                  auto value = builder.CreateSelect(builder.CreateICmpULT(curPtr, _endPtr),
+                          builder.CreateLoad(curPtr), _env->i8Const(_escapechar));
+                  curPtr = builder.CreateGEP(curPtr, _env->i32Const(1));
+                  whereToStore = builder.CreateInsertElement(whereToStore, value, idx++);
+              }
+              builder.CreateStore(whereToStore, v16qi_val);
+
+              // spanner with v16qi_val
+              auto spanner_result = builder.CreateCall(pcmpistri128func, {val, builder.CreateLoad(v16qi_val), _env->i8Const(0)});
+
+              // minimum with bytes left (spanner may be 16 or so)
+              auto i32BytesLeft = builder.CreateSExtOrTrunc(bytesLeft, _env->i32Type());
+              auto eofRes = builder.CreateSelect(builder.CreateICmpULT(i32BytesLeft,
+                      spanner_result), i32BytesLeft, spanner_result);
+              builder.CreateStore(eofRes, resVar);
+              builder.CreateBr(bSpannerDone);
+
+              // continue code gen
+              builder.SetInsertPoint(bSpannerDone);
+              auto res = builder.CreateLoad(resVar);
+              return res;
         }
 
         void CSVParseRowGenerator::buildUnquotedCellBlocks(llvm::BasicBlock *bUnquotedCellBegin,

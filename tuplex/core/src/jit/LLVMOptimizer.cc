@@ -96,7 +96,7 @@ namespace tuplex {
         fpm.add(createMemCpyOptPass()); // !!! use this pass for sure !!! It's quite expensive first, but it pays off big time.
         
         // create sel prep pass
-        //fpm.add(createCodeGenPreparePass());
+        fpm.add(createCodeGenPreparePass());
     }
 
     void optimizePipelineI(llvm::Module& mod) {

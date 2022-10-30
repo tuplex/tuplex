@@ -152,7 +152,7 @@ namespace tuplex {
             assert(ptr->getType() == Type::getInt8PtrTy(context, 0));
 
 
-
+            // Note: this requires codegenopt::less under mac os
              {
                  // unsafe version: this requires that there are 15 zeroed bytes after endptr at least
                  auto v16qi_type = llvm::VectorType::get(llvm::Type::getInt8Ty(context), 16);

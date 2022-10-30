@@ -948,7 +948,7 @@ namespace tuplex {
                     bNext = BasicBlock::Create(ctx, "next", builder.GetInsertBlock()->getParent());
                     lastBlockBeforeNullCheck = builder.GetInsertBlock();
 
-                    _env->printValue(builder, el.is_null, "element of type " + type.desc() + " is null: ");
+                    // _env->printValue(builder, el.is_null, "element of type " + type.desc() + " is null: ");
 
                     builder.CreateCondBr(el.is_null, bNext, bAddSize);
                     builder.SetInsertPoint(bAddSize);
@@ -1019,7 +1019,7 @@ namespace tuplex {
                 s = builder.CreateAdd(s, _env->i64Const(bitmap64Size));
             }
 
-             _env->debugPrint(builder, "final size required is: ", s);
+            // _env->debugPrint(builder, "final size required is: ", s);
 
             return s;
         }

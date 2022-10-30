@@ -863,8 +863,8 @@ namespace tuplex {
             timer.reset();
         }
 
-        // annotate module (optimized)
-        codegen::annotateModuleWithInstructionPrint(*fast_path_mod);
+        // // annotate module (optimized)
+        // codegen::annotateModuleWithInstructionPrint(*fast_path_mod);
 
         // step 2: register callback functions with compiler
 

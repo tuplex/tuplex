@@ -532,21 +532,20 @@ TEST_F(DataFrameTest, FastPreview) {
     std::vector<Row> res;
 
     // CSV preview check:
-//    res = c.csv("../resources/flights_on_time_performance_2019_01.sample.csv")
-//     .selectColumns({"DAY_OF_MONTH", "MONTH", "YEAR", "ORIGIN", "DEST", "OP_UNIQUE_CARRIER"})
-//     .takeAsVector(5);
-//    ASSERT_EQ(res.size(), 5);
+    res = c.csv("../resources/flights_on_time_performance_2019_01.sample.csv")
+     .selectColumns({"DAY_OF_MONTH", "MONTH", "YEAR", "ORIGIN", "DEST", "OP_UNIQUE_CARRIER"})
+     .takeAsVector(5);
+    ASSERT_EQ(res.size(), 5);
 
 
-//    // TEXT preview check
-//    auto textURI = testName + "_test.txt";
-//    stringToFile(textURI, "A\nB\nC\nD\nE\nF\nG\nH\nI\nJ");
-//    res = c.text(textURI)
-//    .map(UDF("lambda x: x.lower()"))
-//    .takeAsVector(5);
-//    ASSERT_EQ(res.size(), 5);
-//
-//    return;
+    // TEXT preview check
+    auto textURI = testName + "_test.txt";
+    stringToFile(textURI, "A\nB\nC\nD\nE\nF\nG\nH\nI\nJ");
+    res = c.text(textURI)
+    .map(UDF("lambda x: x.lower()"))
+    .takeAsVector(5);
+    ASSERT_EQ(res.size(), 5);
+
 
     // CSV preview check - compiled parser.
     // JITCompiled CSV source

@@ -137,10 +137,11 @@ namespace tuplex {
         // do not perform codegen here, should be done separately
         tmb.setCodeGenOptLevel(CodeGenOpt::None); // <-- use this to speed up compile.
 
-
         // small code model does not work under MacOS. -.-
         // tmb.setCodeModel(CodeModel::Small); // <-- use this to speed up compute.
 #ifdef MACOS
+        // under macos codegenopt::none doesn't work either...
+        tmb.setCodeGenOptLevel(CodeGenOpt::Less); // <-- needed for some instruction optimization (alignment?) for Mac OS
         tmb.setCodeModel(CodeModel::Large); // <-- force under macos to large model.
 #endif
 

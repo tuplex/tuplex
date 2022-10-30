@@ -536,6 +536,8 @@ TEST_F(DataFrameTest, FastPreview) {
 
     auto textURI = testName + "_test.txt";
 
+    return;
+
     stringToFile(textURI, "A\nB\nC\nD\nE\nF\nG\nH\nI\nJ");
     res = c.text(textURI)
     .map(UDF("lambda x: x.lower()"))

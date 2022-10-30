@@ -621,7 +621,8 @@ namespace tuplex {
                 }
 
                 // call functor
-                auto resCode = i64ToEC(_rowFunctor(_userData, rowNumber, cells, cell_sizes));
+                auto bytes_read = _rowFunctor(_userData, rowNumber, cells, cell_sizes);
+                auto resCode = bytes_read >= 0 ? ExceptionCode::SUCCESS : i64ToEC(-bytes_read);
                 _numRowsRead++;
                 if(resCode != ExceptionCode::SUCCESS) {
                     using namespace std;

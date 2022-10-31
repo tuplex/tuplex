@@ -694,8 +694,8 @@ namespace tuplex {
                     }
 
                     // // debug print
-                     _env->printValue(builder, size, "serializing " + fieldType.desc() + " of size: ");
-                     _env->printValue(builder, offset, "serializing " + fieldType.desc() + " to offset: ");
+                    // _env->printValue(builder, size, "serializing " + fieldType.desc() + " of size: ");
+                    // _env->printValue(builder, offset, "serializing " + fieldType.desc() + " to offset: ");
 
                     // store offset + length
                     // len | size
@@ -809,7 +809,7 @@ namespace tuplex {
             // return diff
             auto bytes_written = builder.CreatePtrDiff(lastPtr, original_start_ptr);
 
-            _env->printValue(builder, bytes_written, "bytes written: ");
+            // _env->printValue(builder, bytes_written, "bytes written: ");
             return bytes_written;
         }
 
@@ -932,6 +932,16 @@ namespace tuplex {
                     continue;
 
                 // not single-valued? there should be a value!
+                if(!el.val) {
+                    // is it an option type? -> fill in with dummy type.
+                    // could be that isnull is i1const(true)
+                    if(type.isOptionType())
+                        el.val = _env->dummyValue(builder, type.getReturnType()).val;
+
+                    // still not existing? fill in with nullConstant
+                    if(!el.val)
+                        el.val = _env->i64Const(0);
+                }
                 assert(el.val);
 
                 // _env->printValue(builder, s, "cur size before serializing " + type.desc());
@@ -1167,12 +1177,12 @@ namespace tuplex {
 
         codegen::SerializableValue FlattenedTuple::serializeToMemory(llvm::IRBuilder<> &builder) const {
 
-            _env->debugPrint(builder, "entering serialize to memory");
+            // _env->debugPrint(builder, "entering serialize to memory");
 
             auto buf_size = getSize(builder);
 
              // debug
-             _env->debugPrint(builder, "buf_size to serialize is: ", buf_size);
+            // _env->debugPrint(builder, "buf_size to serialize is: ", buf_size);
 
             // debug print
             auto buf = _env->malloc(builder, buf_size);

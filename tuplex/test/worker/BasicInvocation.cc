@@ -462,7 +462,11 @@ tuplex::TransformStage* create_github_stage(const std::string& test_path, const 
 //    co.set("tuplex.optimizer.constantFoldingOptimization", "false");
 //    co.set("tuplex.optimizer.filterPushdown", "true");
 
-    return builder.build();
+    // non hyper mode
+    // return builder.build();
+
+    // hyper mode!
+    return builder.encodeForSpecialization(nullptr, nullptr, true, false, true);
 }
 
 TEST(BasicInvocation, GithubProcessing) {

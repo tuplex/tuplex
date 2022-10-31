@@ -1621,6 +1621,14 @@ namespace tuplex {
                 auto is_null = row.getIsNull(i);
                 auto t = types[i];
 
+
+                // if(val)
+                //     env.printValue(builder, val,    "col " + std::to_string(i) + " -> CSV  value= ");
+                // if(size)
+                //     env.printValue(builder, size,   "col " + std::to_string(i) + " -> CSV   size= ");
+                // if(is_null)
+                //     env.printValue(builder, is_null, "col " + std::to_string(i) + " -> CSV isnull= ");
+
                 // directly use constants!
                 //@TODO: can optimize constants next to each other!
                 if(t.isConstantValued()) {
@@ -1995,6 +2003,10 @@ namespace tuplex {
                     auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
                     auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env.i64Const(i)), "s" + std::to_string(i));
                     auto val = parseI64(env, builder, valueErrorBlock, cellStr, cellSize, isnull);
+
+                    // debug:
+                    env.printValue(builder, val.val, "parsed i64: ");
+
                     ft->assign(i, val.val, val.size, isnull);
                 } else if(python::Type::F64 == t) {
                     // conversion code here

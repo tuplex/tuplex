@@ -104,6 +104,8 @@ namespace tuplex {
 
         void LLVMEnvironment::init(const std::string &moduleName) {
 
+            auto& logger = Logger::instance().logger("codegen");
+
             initLLVM();
 
             // init module
@@ -120,9 +122,14 @@ namespace tuplex {
             // TM = nullptr;
 
             // always set data layout!
-            std::string default_target_triple = llvm::sys::getProcessTriple();
-            Logger::instance().logger("codegen").info("Compiling with target " + default_target_triple);
-            _module->setTargetTriple(default_target_triple);
+            // std::string default_target_triple = llvm::sys::getProcessTriple();
+            // logger.info("Compiling with target " + default_target_triple);
+            // _module->setTargetTriple(default_target_triple);
+
+
+            // e-m:e-i64:64-f80:128-n8:16:32:64-S128
+            // e-m:e-i64:64-f80:128-n8:16:32:64-S128
+            logger.info("module's data layout is: " + _module->getDataLayoutStr());
 
             // setup defaults in typeMapping (ignore bool)
             _typeMapping[llvm::Type::getDoubleTy(_context)] = python::Type::F64;
@@ -374,7 +381,13 @@ namespace tuplex {
 
             // fill in bitmap if present
             if(num_bitmap_entries > 0) {
-                members[0] = ArrayType::get(Type::getInt1Ty(ctx), num_bitmap_entries);
+                // round up to multiple of 64 (so alignment doesn't become an issue)
+                auto rounded_num_bitmap_entries = core::ceilToMultiple(num_bitmap_entries, 64);
+                members[0] = ArrayType::get(Type::getInt1Ty(ctx), rounded_num_bitmap_entries);
+
+                // TODO: find out what broke this...
+                // // this will cause issues with optimization and compilation (misalignment for avx instructions?)
+                // members[0] = ArrayType::get(Type::getInt1Ty(ctx), num_bitmap_entries);
             }
 
             // fill in based on indices
@@ -421,6 +434,7 @@ namespace tuplex {
             }
 
             llvm::ArrayRef<llvm::Type *> llvm_members(members);
+            assert(!packed);
             llvm::Type *structType = llvm::StructType::create(ctx, llvm_members, "struct." + twine, packed);
 
             // add to mapping (make sure it doesn't exist yet!)
@@ -2249,7 +2263,6 @@ namespace tuplex {
             auto func = builder.GetInsertBlock()->getParent(); assert(func);
 
             Value* i64_val = env.CreateFirstBlockAlloca(builder, env.i64Type());
-            builder.CreateStore(env.i64Const(0), i64_val);
 
             // all the basicblocks
             BasicBlock* bbParse = BasicBlock::Create(ctx, "parse_i64_value", func);
@@ -2269,6 +2282,7 @@ namespace tuplex {
             FunctionType *FT = FunctionType::get(Type::getInt32Ty(ctx), argtypes, false);
             auto conv_func = env.getModule().get()->getOrInsertFunction("fast_atoi64", FT);
             auto cellEnd = builder.CreateGEP(str, builder.CreateSub(strSize, env.i64Const(1)));
+            builder.CreateStore(env.i64Const(0), i64_val); // <-- store before parse.
             auto resCode = builder.CreateCall(conv_func, {str, cellEnd, i64_val});
 
             auto parseSuccessCond = builder.CreateICmpEQ(resCode, env.i32Const(ecToI32(ExceptionCode::SUCCESS)));

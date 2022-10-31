@@ -261,7 +261,7 @@ TEST(BasicInvocation, PurePythonMode) {
     co.set("tuplex.useInterpreterOnly", "true");
 
     // // disable llvm optimizers?
-    // co.set("tuplex.useLLVMOptimizer", "false");
+     co.set("tuplex.useLLVMOptimizer", "false");
 
     codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
     auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path.toString(), co,
@@ -1612,6 +1612,7 @@ TEST(BasicInvocation, WorkshopPaperLocalExperiment) {
         return lexicographical_compare(a_str.begin(), a_str.end(), b_str.begin(), b_str.end());
     });
     cout<<"Found "<<paths.size()<<" CSV files.";
+    ASSERT_NE(paths.size(), 0);
     cout<<basename(paths.front().toString())<<" ... "<<basename(paths.back().toString())<<endl;
 
     std::reverse(paths.begin(), paths.end());

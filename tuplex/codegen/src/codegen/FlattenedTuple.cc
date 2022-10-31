@@ -577,9 +577,10 @@ namespace tuplex {
                 if(is_option_field)
                     assert(is_null && is_not_null);
 
-                 // debug
+                 // // debug
                  // if(field) _env->debugPrint(builder, "serializing field " + std::to_string(i) + ": ", field);
                  // if(size)_env->debugPrint(builder, "serializing field size" + std::to_string(i) + ": ", size);
+                 // if(is_null)_env->debugPrint(builder, "serializing field is_null " + std::to_string(i) + ": ", is_null);
 
                  // do not need to serialize: EmptyTuple, EmptyDict, EmptyList??, NULLVALUE
 
@@ -1065,12 +1066,12 @@ namespace tuplex {
             }
 
             // storing is straight-forward, just use helper function (don't bother with bitmap logic!) from LLVMEnv.
-            for(int i = 0; i < _tree.numElements(); ++i) {
+            for(unsigned i = 0; i < _tree.numElements(); ++i) {
                 auto el = _tree.get(i);
-                // if(el.val)
-                //     _env->printValue(builder, el.val, "element " + std::to_string(i));
-                // if(el.size)
-                //     _env->printValue(builder, el.size, "size of element " + std::to_string(i));
+                 // if(el.val)
+                 //     _env->printValue(builder, el.val, "storing to ptr element " + std::to_string(i));
+                 // if(el.size)
+                 //     _env->printValue(builder, el.size, "storing to ptr size of element " + std::to_string(i));
                 _env->setTupleElement(builder, _flattenedTupleType, ptr, i, el, is_volatile);
             }
         }
@@ -1212,7 +1213,7 @@ namespace tuplex {
             for(auto t : types)
                 if(t.isOptionType())
                     numOptions++;
-            assert(numOptions == numOptionalElements);
+            assert(numOptions <= numOptionalElements);
 #endif
 
             // construct bitmap using or operations
@@ -1249,11 +1250,11 @@ namespace tuplex {
                 auto val = get(i);
                 auto size = getSize(i);
                 auto isnull = getIsNull(i);
-                auto cellStr = "cell("+to_string(i)+") ";
-                _env->debugPrint(builder, cellStr + "type: " + t.desc());
-                if(val)_env->debugPrint(builder, cellStr + "value: ", val);
-                if(size)_env->debugPrint(builder, cellStr + "size: ", size);
-                if(isnull)_env->debugPrint(builder, cellStr + "is_null: ", isnull);
+                auto cellStr = "element("+to_string(i)+") ";
+                _env->debugPrint(builder, "- " + cellStr + "type: " + t.desc());
+                if(val)_env->debugPrint(builder, "  " + cellStr + "value: ", val);
+                if(size)_env->debugPrint(builder, "  " + cellStr + "size: ", size);
+                if(isnull)_env->debugPrint(builder, "  " + cellStr + "is_null: ", isnull);
             }
         }
 #endif

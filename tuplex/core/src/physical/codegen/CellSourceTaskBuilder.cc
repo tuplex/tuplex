@@ -58,6 +58,9 @@ namespace tuplex {
                 if(!pipFunc)
                     throw std::runtime_error("error in pipeline function");
 
+                // env().debugPrint(builder, "parsed following tuple from CSV: ");
+                // ft.print(builder);
+
                 auto res = PipelineBuilder::call(builder, pipFunc, ft, userData, builder.CreateLoad(outputRowNumberVar), initIntermediate(builder));
                 auto ecCode = builder.CreateZExtOrTrunc(res.resultCode, env().i64Type());
                 auto ecOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env().i64Type());

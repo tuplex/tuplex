@@ -922,6 +922,7 @@ namespace tuplex {
                 auto ctorBuilder = getFirstBlockBuilder(builder);
 
                 auto res = ctorBuilder.CreateAlloca(llvmType, 0, nullptr, name);
+                res->setAlignment(0); // <-- no alignment specified (in order to not mess with passes).
                 assert(res);
                 return res;
             }

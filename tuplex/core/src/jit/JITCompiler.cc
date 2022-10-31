@@ -107,6 +107,8 @@ namespace tuplex {
     JITCompiler::JITCompiler() {
         codegen::initLLVM(); // lazy initialization of LLVM backend.
 
+        auto& logger = Logger::instance().logger("LLVM");
+
         // create new LLJIT instance, details under https://www.youtube.com/watch?v=MOQG5vkh9J8
         // notes from https://llvm.org/docs/ORCv2.html#how-to-create-jitdylibs-and-set-up-linkage-relationships
         using namespace llvm;
@@ -126,6 +128,12 @@ namespace tuplex {
         auto triple = sys::getProcessTriple();
         std::string CPUStr = sys::getHostCPUName();
 
+        logger.info("using target triple: " + triple);
+        logger.info("compiling for CPU: " + CPUStr);
+
+        // Rust layout for darwin: "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+        // Rust layout for intel:  "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+
         // set optimized flags for host system
         auto& tmb = tmBuilder.get();
         tmb.setCodeGenOptLevel(CodeGenOpt::Aggressive);
@@ -135,7 +143,7 @@ namespace tuplex {
         tmb.addFeatures(getFeatureList());
 
         // do not perform codegen here, should be done separately
-        tmb.setCodeGenOptLevel(CodeGenOpt::None); // <-- use this to speed up compile.
+        tmb.setCodeGenOptLevel(CodeGenOpt::Less); // <-- use this to speed up compile.
 
         // small code model does not work under MacOS. -.-
         // tmb.setCodeModel(CodeModel::Small); // <-- use this to speed up compute.
@@ -150,8 +158,6 @@ namespace tuplex {
         tmb.getOptions().EnableGlobalISel = 0;
 
         //tmb.addFeatures(codegen::getLLVMFeatureStr()); //<-- should add here probably SSE4.2.??
-
-        Logger::instance().logger("LLVM").info("compiling code for " + CPUStr);
         auto featureStr = tmBuilder.get().getFeatures().getString();
 
         // cf. https://github.com/tensorflow/mlir/blob/master/lib/ExecutionEngine/ExecutionEngine.cpp
@@ -207,6 +213,7 @@ namespace tuplex {
         // JD.define to add symbols according to https://llvm.org/docs/ORCv2.html#how-to-create-jitdylibs-and-set-up-linkage-relationships
 
         const auto& DL = _lljit->getDataLayout();
+        logger.info("JIT data layout is: " + DL.getStringRepresentation());
         auto ProcessSymbolsGenerator =
                 DynamicLibrarySearchGenerator::GetForCurrentProcess(
                         DL.getGlobalPrefix());
@@ -275,8 +282,8 @@ namespace tuplex {
         auto mIdentifier = tsm->getModule()->getModuleIdentifier(); // this should not be an empty string...
 
         // change module target triple, data layout etc. to target machine
-        tsm->getModule()->setDataLayout(_lljit->getDataLayout());
-        tsm->getModule()->setTargetTriple(_targetTriple.str());
+        //tsm->getModule()->setDataLayout(_lljit->getDataLayout());
+        //tsm->getModule()->setTargetTriple(_targetTriple.str());
         // look into https://github.com/llvm/llvm-project/blob/master/llvm/examples/ModuleMaker/ModuleMaker.cpp on how to ouput bitcode
 
         // create for this module own jitlib

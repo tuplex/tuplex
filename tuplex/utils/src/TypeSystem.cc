@@ -381,6 +381,9 @@ namespace python {
     }
 
     std::string TypeFactory::getDesc(const int _hash) const {
+        if(_hash < 0)
+            return "unknown";
+
         assert(_hash >= 0);
         assert(_typeMap.find(_hash) != _typeMap.end());
 
@@ -1432,6 +1435,10 @@ namespace python {
     std::vector<Type> python::Type::baseClasses() const {
         // now search baseclasses recursively
         auto& factory = TypeFactory::instance();
+
+        // unknown? -> no entry.
+        if(_hash < 0)
+            return {};
 
         std::set<Type> classes;
         std::deque<Type> q;

@@ -13,6 +13,7 @@
 #include "visitors/TypeAnnotatorVisitor.h"
 #include "AWSCommon.h"
 #include "bucket.h"
+#include <physical/execution/JsonReader.h>
 
 namespace tuplex {
 
@@ -1020,6 +1021,8 @@ namespace tuplex {
         assert(tstage);
         assert(pipelineObject);
 
+        size_t partitionSize = _settings.exceptionBufferSize; // ? correct ??
+
         // reset counter
         if(inputRowCount)*inputRowCount = 0;
 
@@ -1109,6 +1112,11 @@ namespace tuplex {
                         // text->setRange(rangeStart, rangeStart + rangeSize);
                         text->setRange(part.rangeStart, part.rangeEnd);
                         reader.reset(text);
+                    } else if(tstage->inputFormat() == FileFormat::OUTFMT_JSON) {
+                        auto json = new JsonReader(userData, reinterpret_cast<codegen::read_block_f>(pythonCellFunctor),
+                                                   partitionSize);
+                        json->setRange(part.rangeStart, part.rangeEnd);
+                        reader.reset(json);
                     } else throw std::runtime_error("unsupported input file format given");
 
                     // Note: ORC reader does not support parts yet... I.e., function needs to read FULL file!
@@ -1270,6 +1278,12 @@ namespace tuplex {
                     // text->setRange(rangeStart, rangeStart + rangeSize);
                     text->setRange(part.rangeStart, part.rangeEnd);
                     reader.reset(text);
+                } else if(tstage->inputFormat() == FileFormat::OUTFMT_JSON) {
+                    size_t partitionSize = _settings.exceptionBufferSize;
+                    auto json = new JsonReader(userData, reinterpret_cast<codegen::read_block_f>(syms->functor),
+                                               partitionSize);
+                    json->setRange(part.rangeStart, part.rangeEnd);
+                    reader.reset(json);
                 } else throw std::runtime_error("unsupported input file format given");
 
                 // Note: ORC reader does not support parts yet... I.e., function needs to read FULL file!

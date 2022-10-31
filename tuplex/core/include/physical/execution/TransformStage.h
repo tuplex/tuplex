@@ -50,6 +50,8 @@ namespace tuplex {
                 return FileFormat::OUTFMT_TEXT;
             case messages::FileFormat::FF_TUPLEX:
                 return FileFormat::OUTFMT_TUPLEX;
+            case messages::FileFormat::FF_JSON:
+                return FileFormat::OUTFMT_JSON;
             default:
                 return FileFormat::OUTFMT_UNKNOWN;
         }

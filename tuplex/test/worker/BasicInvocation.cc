@@ -429,6 +429,161 @@ TEST(BasicInvocation, HashOutput) {
     app->shutdown();
 }
 
+
+tuplex::TransformStage* create_github_stage(const std::string& test_path, const std::string& test_output_path,
+                                            bool enable_nvo, const tuplex::ContextOptions& co) {
+    using namespace tuplex;
+    using namespace std;
+
+    bool enable_cf = false;
+    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, enable_cf, false);
+    auto jsonop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromJSON(test_path, true, true, co, DEFAULT_SAMPLING_MODE));
+
+    auto repo_id_code = "def extract_repo_id(row):\n"
+                        "\tif 2012 <= row['year'] <= 2014:\n"
+                        "\t\treturn row['repository']['id']\n"
+                        "\telse:\n"
+                        "\t\treturn row['repo']['id']\n";
+
+    auto wop1 = std::shared_ptr<LogicalOperator>(new WithColumnOperator(jsonop, jsonop->columns(), "year", UDF("lambda x: int(x['created_at'].split('-')[0])")));
+    auto wop2 = std::shared_ptr<LogicalOperator>(new WithColumnOperator(wop1, wop1->columns(), "repo_id", UDF(repo_id_code)));
+    auto filter_op = std::shared_ptr<LogicalOperator>(new FilterOperator(wop2, UDF("lambda x: x['type'] == 'ForkEvent'"), wop2->columns()));
+    auto sop = std::shared_ptr<LogicalOperator>(new MapOperator(filter_op, UDF("lambda t: (t['type'],t['repo_id'],t['year'])"), filter_op->columns()));
+   auto fop = std::make_shared<FileOutputOperator>(filter_op, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
+    builder.addFileInput(jsonop);
+    builder.addOperator(wop1);
+    builder.addOperator(wop2);
+    builder.addOperator(filter_op);
+    builder.addOperator(sop);
+    builder.addFileOutput(fop);
+
+
+//    // disable constant=folding opt for JSON
+//    co.set("tuplex.optimizer.constantFoldingOptimization", "false");
+//    co.set("tuplex.optimizer.filterPushdown", "true");
+
+    return builder.build();
+}
+
+TEST(BasicInvocation, GithubProcessing) {
+    using namespace std;
+    using namespace tuplex;
+
+    auto worker_path = find_worker();
+
+    auto testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
+    auto scratchDir = "/tmp/" + testName;
+
+    // change cwd & create dir to avoid conflicts!
+    auto cwd_path = boost::filesystem::current_path();
+    auto desired_cwd = cwd_path.string() + "/tests/" + testName;
+    // create dir if it doesn't exist
+    auto vfs = VirtualFileSystem::fromURI("file://");
+    vfs.create_dir(desired_cwd);
+    boost::filesystem::current_path(desired_cwd);
+
+    char buf[4096];
+    auto cur_dir = getcwd(buf, 4096);
+
+    EXPECT_NE(std::string(cur_dir).find(testName), std::string::npos);
+
+    cout<<"-- GITHUB workload testing --"<<endl;
+    cout<<"current working dir: "<<buf<<endl;
+
+    // check worker exists
+    ASSERT_TRUE(tuplex::fileExists(worker_path));
+
+    // test config here:
+    // local csv test file!
+    auto test_path = URI("file://../../../resources/hyperspecialization/github_daily/*.json.sample");
+    auto test_output_path = URI("file://output.txt");
+    auto spillURI = std::string("spill_folder");
+
+//    // S3 paths?
+//    test_path = URI("s3://tuplex-public/data/flights_on_time_performance_2009_01.csv");
+//    test_output_path = URI("file://output_s3.txt");
+//
+//    // local for quicker dev
+//    test_path = URI("file:///Users/leonhards/data/flights/flights_on_time_performance_2009_01.csv");
+//
+//    // test using S3
+//    test_path = URI("s3://tuplex-public/data/flights_on_time_performance_2009_01.csv");
+//    test_output_path = URI(std::string("s3://") + S3_TEST_BUCKET + "/output/output_s3.txt");
+//    scratchDir = URI(std::string("s3://") + S3_TEST_BUCKET + "/scratch/").toString();
+//    spillURI = URI(std::string("s3://") + S3_TEST_BUCKET + "/scratch/spill_folder/").toString();
+
+    size_t num_threads = 4;
+    num_threads = 4;
+
+    // need to init AWS SDK...
+#ifdef BUILD_WITH_AWS
+    {
+        // init AWS SDK to get access to S3 filesystem
+        auto& logger = Logger::instance().logger("aws");
+        auto aws_credentials = AWSCredentials::get();
+        auto options = ContextOptions::defaults();
+        Timer timer;
+        bool aws_init_rc = initAWS(aws_credentials, options.AWS_NETWORK_SETTINGS(), options.AWS_REQUESTER_PAY());
+        logger.debug("initialized AWS SDK in " + std::to_string(timer.time()) + "s");
+    }
+#endif
+
+    // invoke helper with --help
+    std::string work_dir = cur_dir;
+
+    tuplex::Timer timer;
+    auto res_stdout = runCommand(worker_path + " --help");
+    auto worker_invocation_duration = timer.time();
+    cout<<res_stdout<<endl;
+    cout<<"Invoking worker took: "<<worker_invocation_duration<<"s"<<endl;
+
+    // create a simple TransformStage reading in a file & saving it. Then, execute via Worker!
+    // Note: This one is unoptimized, i.e. no projection pushdown, filter pushdown etc.
+    python::initInterpreter();
+    python::unlockGIL();
+    ContextOptions co = ContextOptions::defaults();
+    auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
+    co.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", enable_nvo ? "true" : "false");
+    auto tstage = create_github_stage(test_path.toString(), test_output_path.toString(), enable_nvo, co);
+
+    // update test path
+    auto paths = glob(test_path.toPath());
+    std::vector<std::string> messages;
+    for(const auto& path : paths) {
+        // transform to message
+        vfs = VirtualFileSystem::fromURI(path);
+        uint64_t input_file_size = 0;
+        vfs.file_size(path, input_file_size);
+        auto json_message = transformStageToReqMessage(tstage, URI(path).toPath(),
+                                                       input_file_size, test_output_path.toString(),
+                                                       false,
+                                                       num_threads,
+                                                       spillURI);
+
+        // save to file
+        auto msg_file = URI("test_message.json");
+        stringToFile(msg_file, json_message);
+        messages.push_back(json_message);
+    }
+
+    python::lockGIL();
+    python::closeInterpreter();
+
+
+
+    // start worker within same process to easier debug...
+    auto app = make_unique<WorkerApp>(WorkerSettings());
+    for(const auto& message : messages) {
+        cout<<"Processing message..."<<endl;
+        app->processJSONMessage(message);
+    }
+
+
+    app->shutdown();
+
+    cout<<"-- test done."<<endl;
+}
+
 TEST(BasicInvocation, Worker) {
     using namespace std;
     using namespace tuplex;

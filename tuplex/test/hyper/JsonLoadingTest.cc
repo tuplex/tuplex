@@ -295,8 +295,6 @@ TEST_F(HyperTest, PushEventPaperExample) {
     // --- manual --- post filter pushdown + constant folding
     // Struct[type -> _Constant["PushEvent"], A -> Struct[B -> i64]]
 
-
-    throw std::runtime_error("");
 }
 
 namespace test {

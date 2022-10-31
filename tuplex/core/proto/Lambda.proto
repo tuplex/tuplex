@@ -6,6 +6,7 @@ enum FileFormat {
     FF_TUPLEX = 1;
     FF_CSV = 2;
     FF_TEXT = 3;
+    FF_JSON = 4;
 }
 
 enum EndPointMode {

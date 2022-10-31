@@ -974,6 +974,8 @@ namespace tuplex {
                 return messages::FileFormat::FF_CSV;
             case FileFormat::OUTFMT_TEXT:
                 return messages::FileFormat::FF_TEXT;
+            case FileFormat::OUTFMT_JSON:
+                return messages::FileFormat::FF_JSON;
             case FileFormat::OUTFMT_TUPLEX:
                 return messages::FileFormat::FF_TUPLEX;
             case FileFormat::OUTFMT_UNKNOWN:

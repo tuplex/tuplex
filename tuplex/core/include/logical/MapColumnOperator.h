@@ -45,7 +45,7 @@ namespace tuplex {
                           const std::unordered_map<size_t, size_t>& rewriteMap={});
         // needs a parent
 
-        std::string name() override { return "mapColumn"; }
+        std::string name() const override { return "mapColumn"; }
         LogicalOperatorType type() const override { return LogicalOperatorType::MAPCOLUMN; }
 
         bool isActionable() override { return false; }

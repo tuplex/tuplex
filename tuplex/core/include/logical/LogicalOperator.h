@@ -99,7 +99,7 @@ namespace tuplex {
 
         virtual ~LogicalOperator();
 
-        virtual std::string name() { return "logical operator"; }
+        virtual std::string name() const { return "logical operator"; }
         virtual LogicalOperatorType type() const = 0;
 
         bool isLeaf() { return 0 == _children.size(); }

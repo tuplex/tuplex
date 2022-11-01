@@ -40,7 +40,7 @@ namespace tuplex {
             return std::shared_ptr<LogicalOperator>(copy);
         }
 
-        std::string name() override { return "ignore"; }
+        std::string name() const override { return "ignore"; }
         LogicalOperatorType type() const override { return LogicalOperatorType::IGNORE; }
         bool isActionable() override { return false; }
         bool isDataSource() override { return false; }

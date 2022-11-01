@@ -38,7 +38,7 @@ namespace tuplex {
 
         virtual ~JoinOperator() {}
 
-        virtual std::string name() override { return "join"; }
+        virtual std::string name() const override { return "join"; }
 
         bool columnBasedJoin() const {
             assert(!((_leftColumn.has_value() && !_rightColumn.has_value()) ||

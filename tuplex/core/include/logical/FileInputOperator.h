@@ -305,7 +305,7 @@ namespace tuplex {
                                            const SamplingMode& sampling_mode);
 
 
-        std::string name() override {
+        std::string name() const override {
             switch (_fmt) {
                 case FileFormat::OUTFMT_CSV:
                     return "csv";
@@ -486,7 +486,7 @@ namespace tuplex {
         // HACK quick n dirty serializatio n (targeting only the CSV case...)
         inline nlohmann::json to_json() const {
             nlohmann::json obj;
-            obj["name"] = "csv"; // hack
+            obj["name"] = "input_" + name();
             auto uris = nlohmann::json::array();
             for(auto uri : _fileURIs)
                 uris.push_back(uri.toString());
@@ -500,6 +500,8 @@ namespace tuplex {
             obj["delimiter"] = _delimiter;
             obj["hasHeader"] = _header;
             obj["null_values"] = _null_values;
+
+            obj["fmt"] = (int)_fmt;
 
             obj["jsonUnwrap"] = _json_unwrap_first_level;
             obj["jsonTuples"] = _json_treat_heterogenous_lists_as_tuples;

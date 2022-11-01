@@ -39,7 +39,7 @@ namespace tuplex {
         const UDF& udf,
         const std::unordered_map<size_t, size_t>& rewriteMap={});
 
-        std::string name() override { return "withColumn"; }
+        std::string name() const override { return "withColumn"; }
         LogicalOperatorType type() const override { return LogicalOperatorType::WITHCOLUMN; }
 
         bool isActionable() override { return false; }
@@ -75,6 +75,30 @@ namespace tuplex {
             ar(::cereal::base_class<UDFOperator>(this), _newColumn, _columnToMapIndex);
         }
 #endif
+
+        inline nlohmann::json to_json() const {
+            // make it a super simple serialiation!
+            // basically mimick clone
+            nlohmann::json obj;
+            obj["name"] = "withColumn";
+            obj["columnNames"] = UDFOperator::columns();
+            obj["column"] = _newColumn;
+            obj["columnIndex"] = getColumnIndex();
+            obj["outputColumns"] = columns();
+            obj["schema"] = LogicalOperator::schema().getRowType().desc();
+            obj["id"] = getID();
+
+            // no closure env etc.
+            nlohmann::json udf;
+            udf["code"] = _udf.getCode();
+
+            // this doesn't work, needs base64 encoding. skip for now HACK
+            //udf["pickledCode"] = _udf.getPickledCode();
+
+            obj["udf"] = udf;
+
+            return obj;
+        }
 
     };
 }

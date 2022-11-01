@@ -71,7 +71,7 @@ namespace tuplex {
         }
 
 
-        std::string name() override {
+        std::string name() const override {
             switch(_aggType) {
                 case AggregateType::AGG_UNIQUE:
                     return "unique";

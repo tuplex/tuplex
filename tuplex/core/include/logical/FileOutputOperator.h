@@ -48,7 +48,7 @@ namespace tuplex {
 
         virtual ~FileOutputOperator() {}
 
-        virtual std::string name() override { return _name; }
+        virtual std::string name() const override { return _name; }
         virtual LogicalOperatorType type() const override { return LogicalOperatorType::FILEOUTPUT; }
 
         virtual bool good() const override { return true; }
@@ -64,6 +64,8 @@ namespace tuplex {
             // depending on format:
             switch (_fmt) {
                 case FileFormat::OUTFMT_CSV:
+                case FileFormat::OUTFMT_JSON:
+                case FileFormat::OUTFMT_TEXT:
                     // single string (per row)
                     return Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(python::Type::STRING));
                 case FileFormat::OUTFMT_ORC:
@@ -109,6 +111,52 @@ namespace tuplex {
             ar(::cereal::base_class<LogicalOperator>(this), _splitSize, _numParts, _limit, _uri, _fmt, _name, _outputPathUDF, _options);
         }
 #endif
+
+        inline nlohmann::json to_json() const {
+
+            // what is required to serialize:
+            //   size_t _splitSize; //! after how many bytes to split files. If 0, leave split decision to Tuplex
+            //        size_t _numParts; //! how many parts to create at most. If 0, unlimited parts allowed
+            //        size_t _limit; //! how many rows to ouput (max)
+            //        URI _uri; //! where to output files
+            //        FileFormat _fmt;
+            //        std::string _name;
+            //
+            //        // UDF to compile for parts (optional)
+            //        UDF _outputPathUDF;
+            //
+            //        std::unordered_map<std::string, std::string> _options; // output format specific options
+
+            // make it a super simple serialiation!
+            // basically mimick clone
+            nlohmann::json obj;
+            obj["name"] = "output_" + name();
+            obj["columnNames"] = columns();
+            obj["outputColumns"] = columns();
+            obj["schema"] = LogicalOperator::schema().getRowType().desc();
+            obj["id"] = getID();
+
+            obj["splitSize"] = _splitSize;
+            obj["numParts"] = _numParts;
+            obj["limit"] = _limit;
+            obj["uri"] = _uri.toString();
+
+            obj["fmt"] = (int)_fmt;
+
+            obj["options"] = _options;
+
+            // no closure env etc.
+            nlohmann::json udf;
+            udf["code"] = _outputPathUDF.getCode();
+
+            // this doesn't work, needs base64 encoding. skip for now HACK
+            //udf["pickledCode"] = _udf.getPickledCode();
+
+            obj["udf"] = udf;
+
+            return obj;
+        }
+
     };
 }
 

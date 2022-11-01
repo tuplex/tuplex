@@ -58,7 +58,7 @@ namespace tuplex {
          * set name of operator. Because map Operator is an umbrella for select/rename, use this here to give it more precise meaning.
          */
         void setName(const std::string& name) { _name = name; }
-        std::string name() override { return _name; }
+        std::string name() const override { return _name; }
         LogicalOperatorType type() const override { return LogicalOperatorType::MAP; }
         bool isActionable() override { return false; }
         bool isDataSource() override { return false; }

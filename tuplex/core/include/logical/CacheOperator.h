@@ -38,7 +38,7 @@ namespace tuplex {
             _sample = parent->getSample(MAX_TYPE_SAMPLING_ROWS);
         }
 
-        std::string name() override {
+        std::string name() const override {
            return "cache";
         }
 

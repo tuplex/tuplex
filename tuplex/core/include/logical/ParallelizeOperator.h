@@ -36,7 +36,7 @@ namespace tuplex {
                             const std::vector<std::string>& columns,
                             const SamplingMode& sampling_mode);
 
-        std::string name() override { return "parallelize"; }
+        std::string name() const override { return "parallelize"; }
         LogicalOperatorType type() const override { return LogicalOperatorType::PARALLELIZE; }
 
         bool isActionable() override { return false; }

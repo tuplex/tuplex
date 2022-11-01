@@ -26,7 +26,7 @@ namespace tuplex {
                        const std::vector<std::string>& columnNames,
                        const std::unordered_map<size_t, size_t>& rewriteMap={});
 
-        std::string name() override { return "filter"; }
+        std::string name() const override { return "filter"; }
         LogicalOperatorType type() const override { return LogicalOperatorType::FILTER; }
         bool isActionable() override { return false; }
         bool isDataSource() override { return false; }
@@ -56,6 +56,28 @@ namespace tuplex {
             ar(::cereal::base_class<UDFOperator>(this), _good);
         }
 #endif
+
+        inline nlohmann::json to_json() const {
+            // make it a super simple serialiation!
+            // basically mimick clone
+            nlohmann::json obj;
+            obj["name"] = "filter";
+            obj["columnNames"] = UDFOperator::columns();
+            obj["outputColumns"] =columns();
+            obj["schema"] = LogicalOperator::schema().getRowType().desc();
+            obj["id"] = getID();
+
+            // no closure env etc.
+            nlohmann::json udf;
+            udf["code"] = _udf.getCode();
+
+            // this doesn't work, needs base64 encoding. skip for now HACK
+            //udf["pickledCode"] = _udf.getPickledCode();
+
+            obj["udf"] = udf;
+
+            return obj;
+        }
 
     private:
         bool _good;

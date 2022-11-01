@@ -28,7 +28,7 @@ namespace tuplex {
 
         TakeOperator(const std::shared_ptr<LogicalOperator>& parent, const int64_t numElements);
 
-        std::string name() override {
+        std::string name() const override {
             if(_limit < 0 || std::numeric_limits<int64_t>::max() == _limit)
                 return "collect";
             return "take";

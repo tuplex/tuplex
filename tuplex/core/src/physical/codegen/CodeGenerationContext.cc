@@ -61,7 +61,9 @@ namespace tuplex {
                 return dynamic_cast<WithColumnOperator*>(op)->to_json();
             else if(op->type() == LogicalOperatorType::FILTER)
                 return dynamic_cast<FilterOperator*>(op)->to_json();
-            else {
+            else if(op->type() == LogicalOperatorType::FILEOUTPUT) {
+                return dynamic_cast<FileOutputOperator*>(op)->to_json();
+            } else {
                 throw std::runtime_error("unsupported operator " + op->name() + " seen for encoding... HACK");
             }
 

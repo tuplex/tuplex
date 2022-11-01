@@ -158,8 +158,35 @@ namespace tuplex {
             for(auto json_op : obj["operators"]) {
                 // only map and csv supported
                 auto name = json_op["name"].get<std::string>();
-                if(name == "csv") {
+                if(strStartsWith(name, "input_")) {
                     operators.push_back(std::shared_ptr<LogicalOperator>(FileInputOperator::from_json(json_op)));
+                } else if(strStartsWith(name, "output_")) {
+                    operators.push_back(std::shared_ptr<LogicalOperator>(FileOutputOperator::from_json(operators.back(), json_op)));
+                } else if(name == "withColumn") {
+                    auto columnNames = json_op["columnNames"].get<std::vector<std::string>>();
+                    auto columnName = json_op["columnName"].get<std::string>();
+                    auto id = json_op["id"].get<int>();
+                    auto code = json_op["udf"]["code"].get<std::string>();
+                    // @TODO: avoid typing call?
+                    // i.e. this will draw a sample too?
+                    // or ok, because sample anyways need to get drawn??
+                    UDF udf(code);
+
+                    auto wop = new WithColumnOperator(operators.back(), columnNames, columnName, udf);
+                    wop->setID(id);
+                    operators.push_back(std::shared_ptr<LogicalOperator>(wop));
+                } else if(name == "filter") {
+                    auto columnNames = json_op["columnNames"].get<std::vector<std::string>>();
+                    auto id = json_op["id"].get<int>();
+                    auto code = json_op["udf"]["code"].get<std::string>();
+                    // @TODO: avoid typing call?
+                    // i.e. this will draw a sample too?
+                    // or ok, because sample anyways need to get drawn??
+                    UDF udf(code);
+
+                    auto fop = new FilterOperator(operators.back(), udf, columnNames);
+                    fop->setID(id);
+                    operators.push_back(std::shared_ptr<LogicalOperator>(fop));
                 } else if(name == "map") {
                     // map is easy, simply decode UDF and hook up with parent operator!
                     assert(!operators.empty());

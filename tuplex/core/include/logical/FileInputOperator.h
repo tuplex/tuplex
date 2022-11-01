@@ -530,7 +530,7 @@ namespace tuplex {
         static FileInputOperator* from_json(nlohmann::json obj) {
 
             auto fop = new FileInputOperator();
-            fop->_fmt = FileFormat::OUTFMT_CSV;
+            fop->_fmt = static_cast<FileFormat>(obj["fmt"].get<int>());
             fop->_quotechar = obj["quotechar"].get<char>();
             fop->_delimiter = obj["delimiter"].get<char>();
             fop->_header = obj["hasHeader"].get<bool>();

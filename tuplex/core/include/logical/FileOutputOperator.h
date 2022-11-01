@@ -157,6 +157,33 @@ namespace tuplex {
             return obj;
         }
 
+        inline static FileOutputOperator* from_json(std::shared_ptr<LogicalOperator> parent, nlohmann::json obj) {
+
+            URI uri(obj["uri"].get<std::string>());
+            auto code = obj["udf"]["code"].get<std::string>();
+            UDF udf(code);
+
+            auto name = obj["name"].get<std::string>().substr(strlen("output_"));
+
+            auto options = obj["options"].get<std::unordered_map<std::string, std::string>>();
+            auto numParts = obj["numParts"].get<int>();
+            auto splitSize = obj["splitSize"].get<int>();
+            auto limit = obj["limit"].get<int>();
+            auto fmt = static_cast<FileFormat>(obj["fmt"].get<int>());
+
+            auto f = new FileOutputOperator(parent,
+                                            uri,
+                                            udf,
+                                            name,
+                                            fmt,
+                                            options,
+                                            numParts,
+                                            splitSize,
+                                            limit);
+
+            return f;
+        }
+
     };
 }
 

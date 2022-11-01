@@ -82,7 +82,7 @@ namespace tuplex {
             nlohmann::json obj;
             obj["name"] = "withColumn";
             obj["columnNames"] = UDFOperator::columns();
-            obj["column"] = _newColumn;
+            obj["columnName"] = _newColumn;
             obj["columnIndex"] = getColumnIndex();
             obj["outputColumns"] = columns();
             obj["schema"] = LogicalOperator::schema().getRowType().desc();

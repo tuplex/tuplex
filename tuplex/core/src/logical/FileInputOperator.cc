@@ -767,8 +767,11 @@ namespace tuplex {
         if(_rowsSample.empty())
             const_cast<FileInputOperator*>(this)->fillRowCache(_samplingMode);
 
-        if(!_cachePopulated || _rowsSample.empty())
-            throw std::runtime_error("need to populate cache first");
+        if(!_cachePopulated || _rowsSample.empty()) {
+            // empty -> silent warning b.c. hyperspecialize triggers this.
+            return {};
+        }
+
 
         // restrict to num
         if(num <= _rowsSample.size()) {

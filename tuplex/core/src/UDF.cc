@@ -303,6 +303,13 @@ namespace tuplex {
         // if it's not a tuple type, go directly to the special case...
         if(!hintType.isTupleType())
             hintType = codegenTypeToRowType(hintType);
+
+        // shortcut hint with exception type.
+        if(hintType.isExceptionType()) {
+            _inputSchema = _outputSchema = Schema(Schema::MemoryLayout::ROW, hintType);
+            return true;
+        }
+
         assert(hintType.isTupleType());
 
         // there are two cases now:

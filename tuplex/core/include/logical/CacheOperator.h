@@ -102,10 +102,10 @@ namespace tuplex {
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
             // Do not serialize cached stuff.
-            ar(::cereal::base_class<LogicalOperator>(this), _memoryLayout, _optimizedSchema, _cached, _storeSpecialized, _columns, _sample, _normalCaseRowCount, _generalCaseRowCount, _fallbackRowCount);
+            ar(::cereal::base_class<LogicalOperator>(this), _memoryLayout, _optimizedSchema, _cached, _storeSpecialized, _columns, _sample, _normalRowCount, _generalRowCount, _fallbackRowCount);
         }
         template<class Archive> void load(Archive &ar) {
-            ar(::cereal::base_class<LogicalOperator>(this), _memoryLayout, _optimizedSchema, _cached, _storeSpecialized, _columns, _sample, _normalCaseRowCount, _generalCaseRowCount, _fallbackRowCount);
+            ar(::cereal::base_class<LogicalOperator>(this), _memoryLayout, _optimizedSchema, _cached, _storeSpecialized, _columns, _sample, _normalRowCount, _generalRowCount, _fallbackRowCount);
         }
 #endif
 

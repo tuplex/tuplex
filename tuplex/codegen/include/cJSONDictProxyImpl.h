@@ -1,0 +1,72 @@
+//--------------------------------------------------------------------------------------------------------------------//
+//                                                                                                                    //
+//                                      Tuplex: Blazing Fast Python Data Science                                      //
+//                                                                                                                    //
+//                                                                                                                    //
+//  (c) 2017 - 2021, Tuplex team                                                                                      //
+//  Created by Leonhard Spiegelberg first on 8/9/2021                                                                 //
+//  License: Apache 2.0                                                                                               //
+//--------------------------------------------------------------------------------------------------------------------//
+#ifndef TUPLEX_CJSONDICTPROXYIMPL_H
+#define TUPLEX_CJSONDICTPROXYIMPL_H
+
+#ifdef BUILD_WITH_AWS
+#include <aws/core/external/cjson/cJSON.h>
+#else
+#include <cJSON.h>
+#endif
+#include "optional.h"
+#include <BuiltinDictProxyImpl.h>
+
+namespace tuplex {
+    namespace codegen {
+        class cJSONDictProxyImpl : public BuiltinDictProxyImpl {
+        public:
+            // cJSONDictProxyImpl() : _root(nullptr) {}
+            // is there a reason we want to separate the initialisation of cjsondictproxy objects and the actual cjson object?
+            cJSONDictProxyImpl() : _root(cJSON_CreateObject()) {}
+            ~cJSONDictProxyImpl() {
+                if(_root) {
+                    cJSON_free(_root);
+                    _root = nullptr;
+                }
+            }
+            cJSONDictProxyImpl(const cJSONDictProxyImpl& other) = delete;
+            cJSONDictProxyImpl& operator = (const cJSONDictProxyImpl& other) = delete;
+
+            void putItem(const Field& key, const Field& value) override;
+            void putItem(const python::Type& keyType, const SerializableValue& key, const python::Type& valueType, const SerializableValue& value) override;
+
+            bool keyExists(const Field& key) override;
+
+            Field getItem(const Field& key) override;
+
+            void replaceItem(const Field& key, const Field& value) override;
+
+            void deleteItem(const Field& key) override;
+
+            // void getKeyView() override;
+
+            // void getValuesView() override;
+
+            // notes:
+            // for cJSON subscripting, need to perform
+            //  SerializableValue BlockGeneratorVisitor::subscriptCJSONDictionary(NSubscription *sub, SerializableValue index,
+            //                                                                          const python::Type &index_type,
+            //                                                                          SerializableValue value) {
+
+        private:
+            cJSON *_root;   // a map of the elements
+            cJSON *_typeMap; // a map of strings -> types (nested)
+
+            /*!
+            * returns a string representing a type prefix when storing type information in cJSON object as well.
+            * @param type
+            * @return
+            */
+            static std::string typePrefix(const python::Type& type);
+        };
+    }
+}
+
+#endif //TUPLEX_CJSONDICTPROXYIMPL_H

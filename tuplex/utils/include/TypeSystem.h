@@ -18,6 +18,9 @@
 #include <algorithm>
 #include <TTuple.h>
 
+// need to define new type for d.keys (compound type - dictkeys)
+// make createdictkeystype and createdictvaluestype
+
 namespace python {
 
     class Type {
@@ -39,6 +42,7 @@ namespace python {
         static const Type EMPTYTUPLE; //! special type for an empty tuple
         static const Type EMPTYDICT; //! special type for empty dict
         static const Type EMPTYLIST; //! special type for empty list
+        static const Type EMPTYSET; //! special type for empty set
         static const Type NULLVALUE; //! special type for a nullvalue / None
         static const Type PYOBJECT; //! special type for any python object
         static const Type GENERICTUPLE; //! special type to accept ANY tuple object (helpful for symbol table)
@@ -49,7 +53,9 @@ namespace python {
         static const Type MODULE; //! generic module object, used in symbol table
         static const Type ITERATOR; //! iterator/generator type
         static const Type EMPTYITERATOR; //! special type for empty iterator
-
+        // static const Type DICTKEYS; //! special type for list of dictionary keys
+        // static const Type DICTVALUES; //! special type for list of dictionary values
+        
         // define two special types, used in the inference to describe bounds
         // any is a subtype of everything
         static const Type ANY;
@@ -100,6 +106,8 @@ namespace python {
         bool hasVariablePositionalArgs() const;
         bool isExceptionType() const;
         bool isIteratorType() const;
+        bool isDictKeysType() const;
+        bool isDictValuesType() const;
 
         inline bool isGeneric() const {
             if(_hash == python::Type::PYOBJECT._hash ||
@@ -114,7 +122,7 @@ namespace python {
                 return false;
             }
 
-            if(isListType() || isOptionType()) {
+            if(isListType() || isOptionType() || isDictKeysType() || isDictValuesType()) {
                 if(elementType().isGeneric())
                     return true;
                 return false;
@@ -182,7 +190,7 @@ namespace python {
         bool isPrimitiveType() const;
 
         /*!
-         * check whether a given type is iterable. Currently true for iterator, list, tuple, string, range and dictionary.
+         * check whether a given type is iterable. Currently true for iterator, list, tuple, string, range, dictionary, dict_keys, and dict_values.
          * @return
          */
         bool isIterableType() const;
@@ -215,6 +223,9 @@ namespace python {
         static Type makeDictionaryType(const python::Type& keyType, const python::Type& valType);
 
         static Type makeListType(const python::Type &elementType);
+
+        static Type makeDictKeysViewType(const python::Type& dictType);
+        static Type makeDictValuesViewType(const python::Type& dictType);
 
         /*!
          * create iterator type from yieldType.
@@ -278,6 +289,8 @@ namespace python {
             FUNCTION,
             TUPLE,
             DICTIONARY,
+            DICT_KEYS,
+            DICT_VALUES,
             LIST,
             CLASS,
             OPTION, // for nullable
@@ -321,11 +334,13 @@ namespace python {
 
         bool isFunctionType(const Type& t) const;
         bool isDictionaryType(const Type& t) const;
+        bool isDictKeysType(const Type& t);
+        bool isDictValuesType(const Type& t);
         bool isTupleType(const Type& t) const;
         bool isOptionType(const Type& t) const;
         bool isListType(const Type& t) const;
         bool isIteratorType(const Type& t) const;
-
+        
         std::vector<Type> parameters(const Type& t) const;
         Type returnType(const Type& t) const;
 
@@ -344,14 +359,14 @@ namespace python {
         // right now, no tuples or other weird types...
         Type createOrGetFunctionType(const Type& param, const Type& ret=Type::EMPTYTUPLE);
         Type createOrGetDictionaryType(const Type& key, const Type& val);
+        Type createOrGetDictKeysViewType(const Type& key);
+        Type createOrGetDictValuesViewType(const Type& val);
         Type createOrGetListType(const Type& val);
-
         Type createOrGetTupleType(const std::initializer_list<Type> args);
         Type createOrGetTupleType(const TTuple<Type>& args);
         Type createOrGetTupleType(const std::vector<Type>& args);
         Type createOrGetOptionType(const Type& type);
         Type createOrGetIteratorType(const Type& yieldType);
-
 
         Type getByName(const std::string& name);
 

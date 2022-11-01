@@ -33,11 +33,13 @@ namespace python {
     const Type Type::EMPTYTUPLE = python::TypeFactory::instance().createOrGetTupleType(std::vector<python::Type>());
     const Type Type::EMPTYDICT = python::TypeFactory::instance().createOrGetPrimitiveType("{}"); // empty dict
     const Type Type::EMPTYLIST = python::TypeFactory::instance().createOrGetPrimitiveType("[]"); // empty list: primitive because it can have any type element
+    const Type Type::EMPTYSET = python::TypeFactory::instance().createOrGetPrimitiveType("empty_set"); // empty list: primitive because it can have any type element
     const Type Type::NULLVALUE = python::TypeFactory::instance().createOrGetPrimitiveType("null");
     const Type Type::PYOBJECT = python::TypeFactory::instance().createOrGetPrimitiveType("pyobject");
     const Type Type::GENERICTUPLE = python::TypeFactory::instance().createOrGetPrimitiveType("tuple");
     const Type Type::GENERICDICT = python::TypeFactory::instance().createOrGetDictionaryType(python::Type::PYOBJECT, python::Type::PYOBJECT);
     const Type Type::GENERICLIST = python::TypeFactory::instance().createOrGetListType(python::Type::PYOBJECT);
+    //const Type Type::GENERICSET = python::TypeFactory::instance().createOrGetSetType(python::Type::PYOBJECT); // @TODO: implement.
     const Type Type::VOID = python::TypeFactory::instance().createOrGetPrimitiveType("void");
     const Type Type::MATCHOBJECT = python::TypeFactory::instance().createOrGetPrimitiveType("matchobject");
     const Type Type::RANGE = python::TypeFactory::instance().createOrGetPrimitiveType("range");
@@ -145,6 +147,24 @@ namespace python {
         name += "}";
 
         return registerOrGetType(name, AbstractType::DICTIONARY, {key, val});
+    }
+
+    Type TypeFactory::createOrGetDictKeysViewType(const Type& key) {
+        std::string name;
+        name += "DictKeysView[";
+        name += TypeFactory::instance().getDesc(key._hash);
+        name += "]";
+
+        return registerOrGetType(name, AbstractType::DICT_KEYS, {key});
+    }
+
+    Type TypeFactory::createOrGetDictValuesViewType(const Type& val) {
+        std::string name;
+        name += "DictValuesView[";
+        name += TypeFactory::instance().getDesc(val._hash);
+        name += "]";
+
+        return registerOrGetType(name, AbstractType::DICT_VALUES, {val});
     }
 
     Type TypeFactory::createOrGetListType(const Type &val) {
@@ -275,6 +295,14 @@ namespace python {
         return TypeFactory::instance().isIteratorType(*this);
     }
 
+    bool Type::isDictKeysType() const {
+        return TypeFactory::instance().isDictKeysType(*this);
+    }
+    
+    bool Type::isDictValuesType() const {
+        return TypeFactory::instance().isDictValuesType(*this);
+    }
+
     Type Type::getReturnType() const {
         // first make sure this a function type!
         if( ! (TypeFactory::instance().isFunctionType(*this) ||
@@ -309,6 +337,22 @@ namespace python {
 
         auto type = it->second._type;
         return type == AbstractType::DICTIONARY || t == Type::EMPTYDICT || t == Type::GENERICDICT;
+    }
+
+    bool TypeFactory::isDictKeysType(const Type& t) {
+        auto it = _typeMap.find(t._hash);
+        if(it == _typeMap.end())
+            return false;
+        
+        return it->second._type == AbstractType::DICT_KEYS;
+    }
+
+    bool TypeFactory::isDictValuesType(const Type& t) {
+        auto it = _typeMap.find(t._hash);
+        if(it == _typeMap.end())
+            return false;
+        
+        return it->second._type == AbstractType::DICT_VALUES;
     }
 
     bool TypeFactory::isListType(const Type &t) const {
@@ -356,6 +400,9 @@ namespace python {
     }
 
     Type Type::keyType() const {
+        if(_hash == EMPTYDICT._hash || _hash == GENERICDICT._hash)
+            return PYOBJECT;
+
         assert(isDictionaryType() && _hash != EMPTYDICT._hash && _hash != GENERICDICT._hash);
         auto& factory = TypeFactory::instance();
         auto it = factory._typeMap.find(_hash);
@@ -373,6 +420,9 @@ namespace python {
     }
 
     Type Type::valueType() const {
+        if(_hash == EMPTYDICT._hash || _hash == GENERICDICT._hash)
+            return PYOBJECT;
+
         assert(isDictionaryType() && _hash != EMPTYDICT._hash && _hash != GENERICDICT._hash);
         auto& factory = TypeFactory::instance();
         auto it = factory._typeMap.find(_hash);
@@ -382,8 +432,8 @@ namespace python {
     }
 
     Type Type::elementType() const {
-        if(isListType()) {
-            assert(isListType() && _hash != EMPTYLIST._hash);
+        if(isListType() || isDictKeysType() || isDictValuesType()) {
+            assert((isListType() && _hash != EMPTYLIST._hash) || isDictKeysType() || isDictValuesType());
             auto& factory = TypeFactory::instance();
             auto it = factory._typeMap.find(_hash);
             assert(it != factory._typeMap.end());
@@ -413,7 +463,7 @@ namespace python {
     }
 
     bool Type::isIterableType() const {
-        return (*this).isIteratorType() || (*this).isListType() || (*this).isTupleType() || *this == python::Type::STRING || *this == python::Type::RANGE || (*this).isDictionaryType();
+        return (*this).isIteratorType() || (*this).isListType() || (*this).isTupleType() || *this == python::Type::STRING || *this == python::Type::RANGE || (*this).isDictionaryType() || (*this).isDictKeysType() || (*this).isDictValuesType();
     }
 
     bool Type::isFixedSizeType() const {
@@ -447,6 +497,10 @@ namespace python {
         // ==> base type decides!
         if(isOptionType())
             return withoutOptions().isFixedSizeType();
+        
+        // dict_keys and dict_values are both immutable
+        if(isDictKeysType() || isDictValuesType())
+            return true;
 
         // functions, dictionaries, and lists are never a fixed type
         return false;
@@ -501,6 +555,10 @@ namespace python {
             if(elementType().isIllDefined())
                 return true;
             return false;
+        } else if (isDictKeysType() || isDictValuesType()) {
+            if (elementType().isIllDefined())
+                return true;
+            return false;
         } else {
             // must be primitive, directly check
             return    *this == Type::UNKNOWN
@@ -523,6 +581,14 @@ namespace python {
 
     Type Type::makeDictionaryType(const python::Type &keyType, const python::Type &valType) {
         return python::TypeFactory::instance().createOrGetDictionaryType(keyType, valType);
+    }
+
+    Type Type::makeDictKeysViewType(const python::Type& keyType) {
+        return python::TypeFactory::instance().createOrGetDictKeysViewType(keyType);
+    }
+
+    Type Type::makeDictValuesViewType(const python::Type& valType) {
+        return python::TypeFactory::instance().createOrGetDictValuesViewType(valType);
     }
 
     Type Type::makeListType(const python::Type &elementType){
@@ -1057,8 +1123,15 @@ namespace python {
 
         // dictionary type
         if(aUnderlyingType.isDictionaryType() && bUnderlyingType.isDictionaryType()) {
+
+            // empty dict can be always upcasted to concrete dict
+            if(python::Type::EMPTYDICT == aUnderlyingType)
+                return bUnderlyingType;
+            if(python::Type::EMPTYDICT == bUnderlyingType)
+                return aUnderlyingType;
+
             auto key_t = unifyTypes(aUnderlyingType.keyType(), bUnderlyingType.keyType(), autoUpcast);
-            auto val_t = unifyTypes(aUnderlyingType.elementType(), bUnderlyingType.elementType(), autoUpcast);
+            auto val_t = unifyTypes(aUnderlyingType.valueType(), bUnderlyingType.valueType(), autoUpcast);
             if(key_t == python::Type::UNKNOWN || val_t == python::Type::UNKNOWN) {
                 return python::Type::UNKNOWN;
             }

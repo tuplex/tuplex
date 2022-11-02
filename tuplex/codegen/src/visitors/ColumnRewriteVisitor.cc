@@ -24,6 +24,79 @@ namespace tuplex {
     }
 
 
+    ASTNode *ColumnRewriteVisitor::rewriteNameToIndex(tuplex::NSubscription *sub) {
+        if(sub->_value->type() == ASTNodeType::Identifier &&
+           sub->_expression->type() == ASTNodeType::String) {
+            auto id = (NIdentifier*)sub->_value.get();
+            auto str = (NString*)sub->_expression.get();
+
+            // rewrite if matches param
+            if(id->_name == _parameter) {
+                // exchange expression with number (index in column names array)
+
+                auto colName = str->value();
+
+                int idx = indexInVector(colName, _columnNames);
+                if(idx < 0) {
+                    // column not found -> this could happen e.g. for JSON files/CSV files where this hasn't been detected.
+                    // emit warning and annotate node to become a deoptimization (python) node!
+                    auto& ann = sub->annotation();
+                    ann.deoptException = ExceptionCode::GENERALCASEVIOLATION;
+                    warning("could not find column '" + colName + "' in dataset. Emitting deoptimization trigger.");
+                    return sub;
+                    //error("could not find column '" + colName + "' in dataset.");
+                }
+
+                // make true, access found
+                _dictAccessFound = true;
+
+                // only rewrite in non-dry mode
+                if(_rewrite) {
+                    // special case: If there is a single column, do not use param[idx],
+                    //               but just return param due to unpacking
+                    if(_columnNames.size() == 1)
+                        return id->clone();
+                    else
+                        return new NSubscription(id, new NNumber(static_cast<int64_t>(idx)));
+                }
+            }
+        }
+
+        // return as is, no rewrite possible.
+        return sub;
+    }
+
+    ASTNode *ColumnRewriteVisitor::rewriteIndexToName(tuplex::NSubscription *sub) {
+        if(sub->_value->type() == ASTNodeType::Identifier &&
+           sub->_expression->type() == ASTNodeType::Number) {
+            // check if boolean/integer access
+            auto num = (NNumber*)sub->_expression.get();
+            auto id = (NIdentifier*)sub->_value.get();
+            auto index = num->getI64();
+
+            // check whether index is in column range, then replace!
+            if(index < 0)
+                index += _columnNames.size(); // negative index correction
+            if(index >= 0 && index < _columnNames.size()) {
+                _dictAccessFound = true;
+
+                if(_rewrite) {
+                    auto name = _columnNames[index];
+
+                    // replace with NString node
+                    return new NSubscription(id, new NString(escape_to_python_str(name)));
+
+                }
+            }
+        }
+
+        // other option: constant valued access!
+        // @TODO.
+
+        return sub;
+    }
+
+
     ASTNode* ColumnRewriteVisitor::replace(ASTNode *parent, ASTNode* node) {
         if(!node)
             return nullptr;
@@ -50,43 +123,11 @@ namespace tuplex {
                 // def f(x):
                 //      y = 'columnA'
                 //      return x[y]
+                if(_mode == ColumnRewriteMode::NAME_TO_INDEX)
+                    return rewriteNameToIndex(sub);
 
-                if(sub->_value->type() == ASTNodeType::Identifier &&
-                   sub->_expression->type() == ASTNodeType::String) {
-                    auto id = (NIdentifier*)sub->_value.get();
-                    auto str = (NString*)sub->_expression.get();
-
-                    // rewrite if matches param
-                    if(id->_name == _parameter) {
-                        // exchange expression with number (index in column names array)
-
-                        auto colName = str->value();
-
-                        int idx = indexInVector(colName, _columnNames);
-                        if(idx < 0) {
-                            // column not found -> this could happen e.g. for JSON files/CSV files where this hasn't been detected.
-                            // emit warning and annotate node to become a deoptimization (python) node!
-                            auto& ann = node->annotation();
-                            ann.deoptException = ExceptionCode::GENERALCASEVIOLATION;
-                            warning("could not find column '" + colName + "' in dataset. Emitting deoptimization trigger.");
-                            return node;
-                            //error("could not find column '" + colName + "' in dataset.");
-                        }
-
-                        // make true, access found
-                        _dictAccessFound = true;
-
-                        // only rewrite in non-dry mode
-                        if(_rewrite) {
-                            // special case: If there is a single column, do not use param[idx],
-                            //               but just return param due to unpacking
-                            if(_columnNames.size() == 1)
-                                return id->clone();
-                            else
-                                return new NSubscription(id, new NNumber(static_cast<int64_t>(idx)));
-                        }
-                    }
-                }
+                if(_mode == ColumnRewriteMode::INDEX_TO_NAME)
+                    return rewriteIndexToName(sub);
 
                 return node;
             }

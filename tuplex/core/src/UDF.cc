@@ -1274,6 +1274,11 @@ namespace tuplex {
     }
 
     bool UDF::rewriteDictAccessInAST(const std::vector<std::string> &columnNames, const std::string& parameterName) {
+        auto& logger = Logger::instance().logger("logical");
+
+        // save
+        auto original_column_names = _columnNames;
+
         _columnNames = columnNames;
 
         // UDF compiled? if not, nothing to be done
@@ -1304,7 +1309,7 @@ namespace tuplex {
             parameter = parameterName;
         else if(!parameterName.empty()) {
 #ifndef NDEBUG
-            Logger::instance().defaultLogger().debug("attempting to rewrite param " + parameterName + " which is not in param list...");
+            logger.debug("attempting to rewrite param " + parameterName + " which is not in param list...");
 #endif
         }
 
@@ -1313,7 +1318,19 @@ namespace tuplex {
 
         // got a param to rewrite?
         if(!parameter.empty()) {
-            ColumnRewriteVisitor crv(columnNames, parameter);
+            // are column names the same? If not, deoptimize first by rewriting numbers into columns
+            if(!original_column_names.empty() && !vec_equal(columnNames, original_column_names)) {
+                logger.debug("column names differ, restoring column access via column names.");
+                ColumnRewriteVisitor crv(original_column_names, parameter, ColumnRewriteMode::INDEX_TO_NAME);
+                root->accept(crv);
+                if(crv.failed()) {
+                    logger.error("failed to rewrite indices to names");
+                    return false;
+                }
+            }
+
+            // rewrite again, but with new columns!
+            ColumnRewriteVisitor crv(columnNames, parameter, ColumnRewriteMode::NAME_TO_INDEX);
             root->accept(crv);
 
             if(crv.failed())

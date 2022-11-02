@@ -37,6 +37,7 @@ namespace tuplex {
 
     bool UDFOperator::retype(const tuplex::RetypeConfiguration &conf) {
         // apply a new typing to the existing UDF.
+        auto& logger = Logger::instance().logger("typer");
 
         // first: check whether column names are different, if so apply!
         if(!conf.columns.empty()) {
@@ -47,6 +48,7 @@ namespace tuplex {
 
         // remove types & rewrite
         try {
+            _udf.removeTypes(false);
             bool ret = _udf.retype(conf.row_type);
             if(!ret)
                 return false;
@@ -54,6 +56,7 @@ namespace tuplex {
             // update schemas accordingly
             setOutputSchema(_udf.getOutputSchema());
         } catch(const std::exception& e) {
+            logger.debug(std::string("retype failed because of exception: ") + e.what());
             return false;
         } catch(...) {
             return false;

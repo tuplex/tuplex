@@ -810,6 +810,8 @@ namespace tuplex {
                         auto op = node->clone(); // no need to clone with parents, b.c. assigned below.
                         auto oldInputType = op->getInputSchema().getRowType();
                         auto oldOutputType = op->getInputSchema().getRowType();
+                        auto columns_before = op->columns();
+
 
                         checkRowType(last_rowtype);
                         // set FIRST the parent. Why? because operators like ignore depend on parent schema
@@ -828,6 +830,11 @@ namespace tuplex {
                             ss<<"\told output type: "<<oldOutputType.desc()<<endl;
                             ss<<"\tnew input type: "<<op->getInputSchema().getRowType().desc()<<endl;
                             ss<<"\tnew output type: "<<op->getOutputSchema().getRowType().desc()<<endl;
+
+
+                            // columns: before/after
+                            ss<<"output columns before: "<<columns_before<<endl;
+                            ss<<"output columns after: "<<op->columns()<<endl;
 
                             logger.debug(ss.str());
                         }

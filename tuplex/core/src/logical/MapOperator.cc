@@ -190,6 +190,8 @@ namespace tuplex {
     bool MapOperator::retype(const RetypeConfiguration& conf) {
         assert(good());
 
+        throw std::runtime_error("wrong, use here the UDFOperator approach with the columns...");
+
         auto input_row_type = conf.row_type;
         auto is_projected_row_type = conf.is_projected;
 

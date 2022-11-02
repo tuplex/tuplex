@@ -958,6 +958,10 @@ namespace tuplex {
         return totalSize == 0;
     }
 
+    template<typename T> std::vector<T> limit_vector(const std::vector<T>& v, size_t limit) {
+        return std::vector<T>(v.begin(), v.begin() + limit);
+    }
+
     // HACK !!!!
     void FileInputOperator::setInputFiles(const std::vector<URI> &uris, const std::vector<size_t> &uri_sizes,
                                           bool resample) {
@@ -1001,10 +1005,70 @@ namespace tuplex {
             _estimatedRowCount = estimateSampleBasedRowCount();
 
             // correct for if columns are different
-            if(!vec_equal(columns(), cols_before_resample)) {
+            if(!vec_equal(inputColumns(), cols_before_resample)) {
                 // correct for this
                 logger.debug("found file with different order or different columns. Need to correct for this.");
+
+                // need to update rewriteMap (projection)
+
+                // which of the new columns are found in the old type?
+                std::vector<bool> column_in_before_found(cols_before_resample.size(), false);
+                for(auto name : inputColumns()) {
+                    auto idx = indexInVector(name, cols_before_resample);
+                    if(idx >= 0)
+                        column_in_before_found[idx] = true;
+                }
+
+                // now create (unprojected) type based on new columns
+                std::vector<python::Type> new_unprojected_col_types_normal = _normalCaseRowType.parameters();
+                std::vector<python::Type> new_unprojected_col_types_general = _generalCaseRowType.parameters();
+                std::vector<std::string>  new_unprojected_col_names = inputColumns();
+
+                python::Type exception_type = python::TypeFactory::instance().getByName("Exception");
+
+                std::unordered_map<int, int> oldIndexToNewIndex;
+
+                // all the old rows that are not present anymore are automatically exceptions (IndexError?)
+                for(unsigned i = 0; i < cols_before_resample.size(); ++i) {
+                    if (!column_in_before_found[i]) {
+
+                        // update
+                        oldIndexToNewIndex[i] = new_unprojected_col_types_normal.size(); // current size...
+
+                        new_unprojected_col_names.push_back(cols_before_resample[i]);
+                        new_unprojected_col_types_normal.push_back(exception_type);
+                        new_unprojected_col_types_general.push_back(exception_type);
+                    } else {
+                        // get the index
+                        oldIndexToNewIndex[i] = indexInVector(cols_before_resample[i], inputColumns());
+                    }
+                }
+
+                // unprojected is now ok. -> need to update projection map accordingly.
+                auto num_columns = new_unprojected_col_types_general.size();
+                _columnsToSerialize = std::vector<bool>(num_columns, true); // <-- all per default.
+
+                // go through old indices and fill them in!
+                for(unsigned i = 0; i < cols_to_serialize_before_resample.size(); ++i) {
+                    // update accordingly.
+                    _columnsToSerialize[oldIndexToNewIndex[i]] = cols_to_serialize_before_resample[i];
+                }
+
+                // restrict to actual found count.
+                auto num_found = inputColumns().size();
+                _columnsToSerialize = limit_vector(_columnsToSerialize, num_found);
+                new_unprojected_col_types_general = limit_vector(new_unprojected_col_types_general, num_found);
+                new_unprojected_col_types_normal = limit_vector(new_unprojected_col_types_normal, num_found);
+
+                // // OR update also input columns
+                // this->_columnNames = new_unprojected_col_names;
+
+                // update types
+                _normalCaseRowType = python::Type::makeTupleType(new_unprojected_col_types_normal);
+                _generalCaseRowType = python::Type::makeTupleType(new_unprojected_col_types_general);
             }
+
+            setSchema(Schema(Schema::MemoryLayout::ROW, _generalCaseRowType));
         }
     }
 
@@ -1023,20 +1087,24 @@ namespace tuplex {
         assert(old_col_types.size() <= old_general_col_types.size());
         auto& logger = Logger::instance().logger("codegen");
 
-        // check whether number of columns are compatible
-        if(is_projected_row_type) {
-            if(col_types.size() != num_projected_columns) {
-                logger.error("Provided incompatible (projected) rowtype to retype " + name() +
-                             ", provided type has " + pluralize(col_types.size(), "column") + " but optimized schema in operator has "
-                             + pluralize(old_col_types.size(), "column"));
-                return false;
-            }
-        } else {
-            if(col_types.size() != old_col_types.size()) {
-                logger.error("Provided incompatible rowtype to retype " + name() +
-                             ", provided type has " + pluralize(col_types.size(), "column") + " but optimized schema in operator has "
-                             + pluralize(old_col_types.size(), "column"));
-                return false;
+        // check whether number of columns are compatible (necessary when no concrete columns are given)
+        if(conf.columns.size() != projectColumns(inputColumns()).size()) {
+            if (is_projected_row_type) {
+                if (col_types.size() != num_projected_columns) {
+                    logger.error("Provided incompatible (projected) rowtype to retype " + name() +
+                                 ", provided type has " + pluralize(col_types.size(), "column") +
+                                 " but optimized schema in operator has "
+                                 + pluralize(old_col_types.size(), "column"));
+                    return false;
+                }
+            } else {
+                if (col_types.size() != old_col_types.size()) {
+                    logger.error("Provided incompatible rowtype to retype " + name() +
+                                 ", provided type has " + pluralize(col_types.size(), "column") +
+                                 " but optimized schema in operator has "
+                                 + pluralize(old_col_types.size(), "column"));
+                    return false;
+                }
             }
         }
 
@@ -1058,10 +1126,15 @@ namespace tuplex {
 
             if(!python::canUpcastType(t, old_general_col_types[lookup_index])) {
 
-                if(!(ignore_check_for_str_option && old_general_col_types[lookup_index] == str_opt_type)) {
-                    logger.warn("provided specialized type " + col_types[i].desc() + " can't be upcast to "
-                                + old_general_col_types[lookup_index].desc() + ", ignoring in retype.");
-                    col_types[i] = old_col_types[lookup_index];
+                // both struct types? => replace, can have different format. that's ok
+                if(t.withoutOptions().isStructuredDictionaryType() && old_general_col_types[lookup_index].withoutOptions().isStructuredDictionaryType()) {
+                    logger.debug("encountered struct dict with different structure at index " + std::to_string(i));
+                } else {
+                    if(!(ignore_check_for_str_option && old_general_col_types[lookup_index] == str_opt_type)) {
+                        logger.warn("provided specialized type " + col_types[i].desc() + " can't be upcast to "
+                                    + old_general_col_types[lookup_index].desc() + ", ignoring in retype.");
+                        col_types[i] = old_col_types[lookup_index];
+                    }
                 }
             }
         }

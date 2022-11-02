@@ -549,6 +549,7 @@ namespace tuplex {
 
             // step 1: retrieve sample from inputnode!
             std::vector<Row> sample = fetchInputSample();
+            std::vector<std::string> sample_columns = _inputNode ? _inputNode->columns() : std::vector<std::string>();
 
             // // columns, check for NAS_DELAY
             // for(int i = 0; i < _inputNode->columns().size(); ++i) {
@@ -770,6 +771,7 @@ namespace tuplex {
             RetypeConfiguration r_conf;
             r_conf.is_projected = true;
             r_conf.row_type = input_row_type;
+            r_conf.columns = input_column_names;
             if(!fop->retype(r_conf, true))
                 throw std::runtime_error("failed to retype " + fop->name() + " operator."); // for input operator, ignore Option[str] compatibility which is set per default
             fop->useNormalCase(); // this forces output schema to be normalcase (i.e. overwrite internally output schema to be normal case schema)

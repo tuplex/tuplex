@@ -96,11 +96,11 @@ namespace tuplex {
             }
             // use columns to serialize to get projected type
             assert(rowType.isTupleType());
-            assert(rowType.parameters().size() == _columnsToSerialize.size());
+            // assert(rowType.parameters().size() == _columnsToSerialize.size());
 
             auto params = rowType.parameters();
             std::vector<python::Type> col_types;
-            for(unsigned i = 0; i < _columnsToSerialize.size(); ++i) {
+            for(unsigned i = 0; i < std::min(params.size(), _columnsToSerialize.size()); ++i) {
                 if(_columnsToSerialize[i])
                     col_types.push_back(params[i]);
             }
@@ -129,9 +129,9 @@ namespace tuplex {
             if(_columnsToSerialize.empty() || _columnNames.empty())
                 return {};
 
-            assert(_columnsToSerialize.size() == _columnNames.size());
+            //assert(_columnsToSerialize.size() == _columnNames.size());
             std::vector<std::string> names;
-            for(unsigned i = 0; i < _columnsToSerialize.size(); ++i) {
+            for(unsigned i = 0; i < std::min(_columnNames.size(), _columnsToSerialize.size()); ++i) {
                 if(_columnsToSerialize[i])
                     names.push_back(_columnNames[i]);
             }
@@ -448,8 +448,8 @@ namespace tuplex {
             if(columns().empty())
                 num_cols = num_projected_columns();
             else {
-                if(columns().size() != num_projected_columns()) // important to hold
-                    throw std::runtime_error("size of columns stored (" + std::to_string(columns().size()) + ") does not match actual, projected number of columns("
+                 if(columns().size() != num_projected_columns()) // important to hold
+                     throw std::runtime_error("size of columns stored (" + std::to_string(columns().size()) + ") does not match actual, projected number of columns("
                                              + std::to_string(num_projected_columns()) + ").");
                 num_cols = columns().size();
             }

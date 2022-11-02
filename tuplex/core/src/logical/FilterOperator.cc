@@ -102,6 +102,8 @@ namespace tuplex {
 
     bool FilterOperator::retype(const python::Type& input_row_type, bool is_projected_row_type) {
         assert(input_row_type.isTupleType());
+        
+        throw std::runtime_error("need to fix. somehow types for UDF not defined here...");
 
         performRetypeCheck(input_row_type, is_projected_row_type);
 

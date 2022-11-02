@@ -1595,7 +1595,7 @@ namespace tuplex {
         // set ALL column names (as they appear)
         // -> pushdown for JSON is special case...
         if(_json_unwrap_first_level) {
-            setColumns(ordered_names);
+           _columnNames = ordered_names;
             // for columns() to work as well -> need to set projection defaults first!
             assert(inputColumns().size() == ordered_names.size());
         }

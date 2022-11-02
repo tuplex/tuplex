@@ -78,7 +78,7 @@ namespace tuplex {
 
     void MapColumnOperator::setDataSet(tuplex::DataSet *dsptr) {
         // check whether schema is ok, if not set error dataset!
-        if(schema().getRowType().isIllDefined())
+        if(getOutputSchema().getRowType().isIllDefined())
             LogicalOperator::setDataSet(&dsptr->getContext()->makeError("schema could not be propagated successfully"));
         else
             LogicalOperator::setDataSet(dsptr);

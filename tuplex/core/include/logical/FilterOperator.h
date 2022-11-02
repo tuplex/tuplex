@@ -39,6 +39,13 @@ namespace tuplex {
 
         std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
 
+        Schema getInputSchema() const override {
+            if(parent())
+                return parent()->getOutputSchema();
+
+            return Schema::UNKNOWN:
+        }
+
         /*!
          * projection pushdown, update UDF and schema...
          * @param rewriteMap

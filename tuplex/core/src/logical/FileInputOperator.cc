@@ -977,6 +977,12 @@ namespace tuplex {
                 ContextOptions co = ContextOptions::defaults();
                 // manipulate settings...
                 std::vector<std::vector<std::string>> namesCollection;
+
+                // fill row cache
+                std::vector<std::vector<std::string>>* namePtr = _json_unwrap_first_level ? &namesCollection : nullptr;
+                fillRowCache(_samplingMode, namePtr);
+
+                // detect new type
                 auto t = detectJsonTypesAndColumns(co, namesCollection);
 
                 auto normalcase = std::get<0>(t);

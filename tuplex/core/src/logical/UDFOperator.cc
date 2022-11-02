@@ -35,6 +35,32 @@ namespace tuplex {
         assert(parent);
     }
 
+    bool UDFOperator::retype(const tuplex::RetypeConfiguration &conf) {
+        // apply a new typing to the existing UDF.
+
+        // first: check whether column names are different, if so apply!
+        if(!conf.columns.empty()) {
+            // update internal column names & rewrite UDF accordingly
+            _columnNames = conf.columns;
+            _udf.rewriteDictAccessInAST(_columnNames);
+        }
+
+        // remove types & rewrite
+        try {
+            bool ret = _udf.retype(conf.row_type);
+            if(!ret)
+                return false;
+
+            // update schemas accordingly
+            setOutputSchema(_udf.getOutputSchema());
+        } catch(const std::exception& e) {
+            return false;
+        } catch(...) {
+            return false;
+        }
+        return true;
+    }
+
 
     Schema UDFOperator::inferSchema(Schema parentSchema, bool is_projected_schema) {
 

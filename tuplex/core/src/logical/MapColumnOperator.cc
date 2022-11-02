@@ -18,7 +18,7 @@ namespace tuplex {
         _columnToMapIndex = indexInVector(columnName, columns);
         assert(_columnToMapIndex >= 0);
 
-        setSchema(inferSchema(parent->getOutputSchema(), false));
+        setOutputSchema(inferSchema(parent->getOutputSchema(), false));
 
 //#ifndef NDEBUG
 //        Logger::instance().defaultLogger().info("detected output type for " + name() + " operator is " + schema().getRowType().desc());
@@ -149,7 +149,7 @@ namespace tuplex {
         projectColumns(rewriteMap);
 
         // update schema
-        setSchema(inferSchema(parent()->getOutputSchema(), false));
+        setOutputSchema(inferSchema(parent()->getOutputSchema(), false));
     }
 
     std::shared_ptr<LogicalOperator> MapColumnOperator::clone(bool cloneParents) {
@@ -212,10 +212,10 @@ namespace tuplex {
         // success?
         if(udfResType != python::Type::UNKNOWN) {
             // set schema
-            setSchema(Schema(memLayout, python::Type::makeTupleType(colTypes)));
+            setOutputSchema(Schema(memLayout, python::Type::makeTupleType(colTypes)));
             return true;
         } else {
-            setSchema(oldOut);
+            setOutputSchema(oldOut);
             return false;
         }
 

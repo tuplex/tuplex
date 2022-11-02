@@ -21,7 +21,7 @@ namespace tuplex {
 
         LogicalOperator::copyMembers(other);
         auto cop = (CacheOperator*)other;
-        setSchema(other->getOutputSchema());
+        setOutputSchema(other->getOutputSchema());
         _normalPartitions = cop->cachedNormalPartitions();
         _generalPartitions = cop->cachedGeneralPartitions();
         _fallbackPartitions = cop->cachedFallbackPartitions();
@@ -96,7 +96,7 @@ namespace tuplex {
 
         // if exceptions are empty, then force output schema to be the optimized one as well!
         if(_generalPartitions.empty())
-            setSchema(_optimizedSchema);
+            setOutputSchema(_optimizedSchema);
 
         // because the schema might have changed due to the result, need to update the dataset!
         if(getDataSet())

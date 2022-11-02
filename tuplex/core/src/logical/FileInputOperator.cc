@@ -196,7 +196,7 @@ namespace tuplex {
         _generalCaseRowType = rowType;
 
         // get type & assign schema
-        setSchema(Schema(Schema::MemoryLayout::ROW, rowType));
+        setOutputSchema(Schema(Schema::MemoryLayout::ROW, rowType));
         setProjectionDefaults();
 #ifndef NDEBUG
         logger.info("Created file input operator for text file");
@@ -261,11 +261,11 @@ namespace tuplex {
             // get type & assign schema
             f->_normalCaseRowType = normalcasetype;
             f->_generalCaseRowType = generalcasetype;
-            f->setSchema(Schema(Schema::MemoryLayout::ROW, generalcasetype));
+            f->setOutputSchema(Schema(Schema::MemoryLayout::ROW, generalcasetype));
         } else {
             f->_estimatedRowCount = 0;
             logger.warn("no input files found, can't infer type from given path: " + pattern);
-            f->setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
+            f->setOutputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
         }
 
         // set defaults for possible projection pushdown...
@@ -640,11 +640,11 @@ namespace tuplex {
             // get type & assign schema
             _normalCaseRowType = normalcasetype;
             _generalCaseRowType = generalcasetype;
-            setSchema(Schema(Schema::MemoryLayout::ROW, generalcasetype));
+            setOutputSchema(Schema(Schema::MemoryLayout::ROW, generalcasetype));
 
             // if csv stat produced unknown, issue warning and use empty
             if (csvstat.type() == python::Type::UNKNOWN) {
-                setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
+                setOutputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
                 Logger::instance().defaultLogger().warn("csv stats could not determine type, use () for type.");
             }
 
@@ -683,7 +683,7 @@ namespace tuplex {
 
         } else {
             logger.warn("no input files found, can't infer type from given path: " + pattern);
-            setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
+            setOutputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
         }
         _sampling_time_s += timer.time();
     }
@@ -880,7 +880,7 @@ namespace tuplex {
             return;
 
         if(_columnNames.empty()) {
-            if(schema() != Schema::UNKNOWN && columnNames.size() != inputColumnCount())
+            if(getOutputSchema() != Schema::UNKNOWN && columnNames.size() != inputColumnCount())
                 throw std::runtime_error("number of columns given (" + std::to_string(columnNames.size()) +
                                          ") does not match detected count (" + std::to_string(inputColumnCount()) + ")");
             _columnNames = columnNames;
@@ -1068,7 +1068,7 @@ namespace tuplex {
                 _generalCaseRowType = python::Type::makeTupleType(new_unprojected_col_types_general);
             }
 
-            setSchema(Schema(Schema::MemoryLayout::ROW, _generalCaseRowType));
+            setOutputSchema(Schema(Schema::MemoryLayout::ROW, _generalCaseRowType));
         }
     }
 
@@ -1080,7 +1080,7 @@ namespace tuplex {
         assert(input_row_type.isTupleType());
         auto col_types = input_row_type.parameters();
         auto old_col_types = normalCaseSchema().getRowType().parameters();
-        auto old_general_col_types = schema().getRowType().parameters();
+        auto old_general_col_types = getOutputSchema().getRowType().parameters();
 
         size_t num_projected_columns = getOptimizedOutputSchema().getRowType().parameters().size();
 
@@ -1588,7 +1588,7 @@ namespace tuplex {
         // either invalid?
         if(python::Type::UNKNOWN == normal_case_max_type.first || python::Type::UNKNOWN == general_case_max_type.first) {
             logger.warn("could not detect schema for JSON input");
-            setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
+            setOutputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
             return std::make_tuple(python::Type::EMPTYTUPLE, python::Type::EMPTYTUPLE);
         }
 

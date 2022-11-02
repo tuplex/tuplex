@@ -38,7 +38,7 @@ namespace tuplex {
             obj["name"] = "map";
             obj["columnNames"] = UDFOperator::columns();
             obj["outputColumns"] = _outputColumns;
-            obj["schema"] = LogicalOperator::schema().getRowType().desc();
+            obj["schema"] = getOutputSchema().getRowType().desc();
             obj["id"] = getID();
 
             // no closure env etc.

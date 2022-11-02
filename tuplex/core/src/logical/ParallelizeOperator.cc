@@ -18,7 +18,7 @@ namespace tuplex {
                                                  _columnNames(columns),
                                                  _samplingMode(sampling_mode) {
 
-        setSchema(schema);
+        setOutputSchema(schema);
 
         // parallelize operator holds data in memory for infinite lifetime.
         // => make partitions immortal

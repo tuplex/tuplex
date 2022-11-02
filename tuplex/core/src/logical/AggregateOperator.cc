@@ -66,7 +66,7 @@ namespace tuplex {
         try {
             // aggregate type unique? -> simply take parent schema
             if(AggregateType::AGG_UNIQUE == aggType()) {
-                setSchema(parent()->getOutputSchema()); // inherit schema from parent
+                setOutputSchema(parent()->getOutputSchema()); // inherit schema from parent
                 return true;
             }
 
@@ -134,7 +134,7 @@ namespace tuplex {
             }
 
             logger.debug("aggregate operator yields: " + final_type.desc());
-            setSchema(Schema(Schema::MemoryLayout::ROW, final_type));
+            setOutputSchema(Schema(Schema::MemoryLayout::ROW, final_type));
             return true;
         } catch(std::exception& e) {
             logger.error("exception while inferring types in aggregate: " + std::string(e.what()));

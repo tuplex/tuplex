@@ -81,7 +81,7 @@ namespace tuplex {
             _dataSet = other->_dataSet;
             _id = other->_id;
             // children and parents left, because special case...
-            _schema = other->_schema;
+            _outputSchema = other->_outputSchema;
         }
     }
 

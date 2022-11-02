@@ -14,7 +14,7 @@
 namespace tuplex {
     TakeOperator::TakeOperator(const std::shared_ptr<LogicalOperator>& parent, const int64_t numElements) : LogicalOperator::LogicalOperator(parent), _limit(numElements) {
         // take schema from parent node
-        setSchema(this->parent()->getOutputSchema());
+        setOutputSchema(this->parent()->getOutputSchema());
     }
 
     bool TakeOperator::good() const {

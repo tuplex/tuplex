@@ -18,7 +18,7 @@ namespace tuplex {
         _columnToMapIndex = calcColumnToMapIndex(columnNames, columnName);
 
         // infer schema, this is slightly more involved...
-        setSchema(inferSchema(parent->getOutputSchema(), false));
+        setOutputSchema(inferSchema(parent->getOutputSchema(), false));
     }
 
     int WithColumnOperator::calcColumnToMapIndex(const std::vector<std::string> &columnNames,
@@ -93,7 +93,7 @@ namespace tuplex {
 
     void WithColumnOperator::setDataSet(tuplex::DataSet *dsptr) {
         // check whether schema is ok, if not set error dataset!
-        if(schema().getRowType().isIllDefined())
+        if(getOutputSchema().getRowType().isIllDefined())
             LogicalOperator::setDataSet(&dsptr->getContext()->makeError("schema could not be propagated successfully"));
         else
             LogicalOperator::setDataSet(dsptr);
@@ -109,6 +109,22 @@ namespace tuplex {
         std::vector<std::string> v(columnNames.begin(), columnNames.end());
         v.emplace_back(_newColumn);
         return v;
+    }
+
+    Schema WithColumnOperator::getOutputSchema() const {
+        // get python type from UDF operator
+        auto udf_ret_type = _udf.getAnnotatedAST().getReturnType();
+
+        // check what schema is supposed to be
+        std::vector<python::Type> col_types = getInputSchema().getRowType().parameters();
+        if(_columnToMapIndex < UDFOperator::columns().size()) {
+            col_types[_columnToMapIndex] = udf_ret_type;
+        } else {
+            col_types.push_back(udf_ret_type);
+        }
+        auto row_type = python::Type::makeTupleType(col_types);
+
+        return Schema(getInputSchema().getMemoryLayout(), row_type);
     }
 
     std::vector<Row> WithColumnOperator::getSample(const size_t num) const {
@@ -192,7 +208,7 @@ namespace tuplex {
         // rewrite UDF & update schema
         UDFOperator::rewriteParametersInAST(rewriteMap);
         _columnToMapIndex = calcColumnToMapIndex(UDFOperator::columns(), _newColumn);
-        setSchema(inferSchema(input_schema, false)); // input schema is not rewritten, but parameters in AST are?
+        setOutputSchema(inferSchema(input_schema, false)); // input schema is not rewritten, but parameters in AST are?
     }
 
     std::shared_ptr<LogicalOperator> WithColumnOperator::clone(bool cloneParents) {
@@ -225,17 +241,15 @@ namespace tuplex {
             throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");
         }
 
-       // reset udf
-        _udf.removeTypes(false);
-        _udf.rewriteDictAccessInAST(parent()->columns());
+        // update UDFOperator
+        auto rc = UDFOperator::retype(conf);
+        if(rc) {
 
-        // infer schema with given type
-        auto schema = inferSchema(Schema(oldOut.getMemoryLayout(), input_row_type), conf.is_projected);
-        if(schema == Schema::UNKNOWN) {
-            return false;
-        } else {
-            setSchema(schema);
+            // update schema with result of UDF operator.
+
             return true;
+        } else {
+            return false;
         }
     }
 }

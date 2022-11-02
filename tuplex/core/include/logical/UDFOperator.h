@@ -79,6 +79,8 @@ namespace tuplex {
 
         void setColumns(const std::vector<std::string>& columns) { assert(_columnNames.empty() || _columnNames.size() == columns.size()); _columnNames = columns; }
 
+        bool retype(const RetypeConfiguration& conf) override;
+
 #ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {

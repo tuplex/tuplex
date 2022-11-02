@@ -67,7 +67,7 @@ namespace tuplex {
         // the destructor thereby maintains the invariance.
         std::vector<LogicalOperator*> _children;
         std::vector<std::shared_ptr<LogicalOperator>> _parents;
-        Schema _schema;
+        Schema _outputSchema;
         DataSet *_dataSet; // TODO: figure out dataset serialization!
 
         void addThisToParents() {
@@ -84,7 +84,7 @@ namespace tuplex {
         // for assigning continuously running IDs
         static int64_t logicalOperatorIDGenerator; // start at 100,000
     protected:
-        void setSchema(const Schema& schema) { _schema = schema; }
+        void setOutputSchema(const Schema& schema) { _outputSchema = schema; }
         virtual void copyMembers(const LogicalOperator* other);
     public:
         explicit LogicalOperator(const std::vector<std::shared_ptr<LogicalOperator>>& parents) : _id(logicalOperatorIDGenerator++), _parents(parents.begin(), parents.end()), _dataSet(nullptr) { addThisToParents(); }
@@ -111,8 +111,6 @@ namespace tuplex {
 
         bool isLeaf() { return 0 == _children.size(); }
         virtual bool isRoot() { return 0 == _parents.size(); }
-
-        Schema schema() const { return _schema; }
 
         /*!
          * checks whether logical operator is valid.
@@ -215,7 +213,7 @@ namespace tuplex {
          */
         virtual bool isDataSource() = 0;
 
-        virtual Schema getOutputSchema() const { return _schema; };
+        virtual Schema getOutputSchema() const { return _outputSchema; };
 
         virtual Schema getInputSchema() const = 0;
 

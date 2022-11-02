@@ -50,7 +50,7 @@ namespace tuplex {
 
         // check whether UDF is compliant, if so take schema from parent
         if(good())
-            setSchema(this->parent()->getOutputSchema());
+            setOutputSchema(this->parent()->getOutputSchema());
     }
 
     bool FilterOperator::good() const {
@@ -59,7 +59,7 @@ namespace tuplex {
 
     void FilterOperator::setDataSet(DataSet *dsptr) {
         // check whether schema is ok, if not set error dataset!
-        if(schema().getRowType().isIllDefined())
+        if(getOutputSchema().getRowType().isIllDefined())
             LogicalOperator::setDataSet(&dsptr->getContext()->makeError("schema could not be propagated successfully"));
         else
             LogicalOperator::setDataSet(dsptr);
@@ -94,7 +94,7 @@ namespace tuplex {
         UDFOperator::rewriteParametersInAST(rewriteMap);
 
         // update schema & co
-        setSchema(parent()->getOutputSchema());
+        setOutputSchema(parent()->getOutputSchema());
 
         // won't work b.c. of single param as tuple or not...
         // assert(_udf.getInputSchema() == parent()->getOutputSchema());
@@ -124,7 +124,7 @@ namespace tuplex {
             auto output_schema = _udf.getOutputSchema(); // should be boolean or so (else truth test!)
 
             // filter preserves schema from parent operator.
-            setSchema(parent()->getOutputSchema());
+            setOutputSchema(parent()->getOutputSchema());
 
             return true;
         } catch(...) {

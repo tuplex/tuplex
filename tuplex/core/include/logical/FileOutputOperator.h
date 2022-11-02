@@ -133,7 +133,7 @@ namespace tuplex {
             obj["name"] = "output_" + name();
             obj["columnNames"] = columns();
             obj["outputColumns"] = columns();
-            obj["schema"] = LogicalOperator::schema().getRowType().desc();
+            obj["schema"] = getOutputSchema().getRowType().desc();
             obj["id"] = getID();
 
             obj["splitSize"] = _splitSize;

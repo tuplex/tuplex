@@ -71,7 +71,7 @@ namespace tuplex {
             obj["name"] = "filter";
             obj["columnNames"] = UDFOperator::columns();
             obj["outputColumns"] =columns();
-            obj["schema"] = LogicalOperator::schema().getRowType().desc();
+            obj["schema"] = getOutputSchema().getRowType().desc();
             obj["id"] = getID();
 
             // no closure env etc.

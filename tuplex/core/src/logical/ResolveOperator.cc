@@ -22,7 +22,7 @@ namespace tuplex {
             const std::unordered_map<size_t, size_t>& rewriteMap) : UDFOperator::UDFOperator(parent, udf, columnNames, rewriteMap) {
 
         // infer schema. Make sure it fits parents schema!
-        setSchema(inferSchema(parent->getOutputSchema(), false));
+        setOutputSchema(inferSchema(parent->getOutputSchema(), false));
         setCode(ecToResolve);
     }
 
@@ -181,14 +181,14 @@ namespace tuplex {
                 if(canUpcastType(_udf.getOutputSchema().getRowType(), udfop->getUDF().getOutputSchema().getRowType())) {
                     // set upcasted schema!
                     _udf.setOutputSchema(udfop->getUDF().getOutputSchema());
-                    setSchema(np->getOutputSchema());
+                    setOutputSchema(np->getOutputSchema());
                 } else {
                     // do not throw, simply leave as is
                     return;
                     // throw std::runtime_error("incompatible upcasting in resolve operator/rewriteDictAccess encountered.");
                 }
             } else {
-                setSchema(np->getOutputSchema());
+                setOutputSchema(np->getOutputSchema());
             }
         }
     }

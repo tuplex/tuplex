@@ -85,7 +85,6 @@ namespace tuplex {
 
                     // replace with NString node
                     return new NSubscription(id, new NString(escape_to_python_str(name)));
-
                 }
             }
         }

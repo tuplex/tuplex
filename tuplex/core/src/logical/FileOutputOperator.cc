@@ -25,7 +25,7 @@ namespace tuplex {
                                                                               _splitSize(splitSize),
                                                                               _limit(limit) {
         // take schema from parent node
-        setSchema(this->parent()->getOutputSchema());
+        setOutputSchema(this->parent()->getOutputSchema());
 
         // depending on output file format, if empty options are given - set default options
         if(_options.empty() && _fmt == FileFormat::OUTFMT_CSV) {

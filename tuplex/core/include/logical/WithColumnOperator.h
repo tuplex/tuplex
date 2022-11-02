@@ -45,7 +45,7 @@ namespace tuplex {
         bool isActionable() override { return false; }
         bool isDataSource() override { return false; }
 
-        bool good() const override { return _columnToMapIndex >= 0 && UDFOperator::schema() != Schema::UNKNOWN; }
+        bool good() const override { return _columnToMapIndex >= 0 && UDFOperator::getOutputSchema() != Schema::UNKNOWN; }
 
         void setDataSet(DataSet* dsptr) override;
 
@@ -64,6 +64,8 @@ namespace tuplex {
 
             return parent()->getOutputSchema(); // overwrite here, because UDFOperator always returns the UDF's input schema. However, for mapColumn it's not a row but an element!
         }
+
+        Schema getOutputSchema() const override;
 
         bool retype(const RetypeConfiguration& conf) override;
 
@@ -85,7 +87,7 @@ namespace tuplex {
             obj["columnName"] = _newColumn;
             obj["columnIndex"] = getColumnIndex();
             obj["outputColumns"] = columns();
-            obj["schema"] = LogicalOperator::schema().getRowType().desc();
+            obj["schema"] = getOutputSchema().getRowType().desc();
             obj["id"] = getID();
 
             // no closure env etc.

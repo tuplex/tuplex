@@ -363,7 +363,7 @@ namespace tuplex {
             // _optimizedSchema = Schema(ml, _optimizedNormalCaseRowType);
             //std::cerr<<"DO NOT CALL, deprecated..."<<std::endl;
             _generalCaseRowType = _normalCaseRowType;
-            setSchema(Schema(Schema::MemoryLayout::ROW, _generalCaseRowType));
+            setOutputSchema(Schema(Schema::MemoryLayout::ROW, _generalCaseRowType));
         }
 
         /*!
@@ -553,7 +553,7 @@ namespace tuplex {
 
             fop->setID(obj["id"]);
             auto schema = Schema(Schema::MemoryLayout::ROW, fop->_generalCaseRowType);
-            fop->setSchema(schema);
+            fop->setOutputSchema(schema);
             return fop;
         }
 

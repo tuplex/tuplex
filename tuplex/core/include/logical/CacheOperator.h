@@ -29,7 +29,7 @@ namespace tuplex {
         CacheOperator(const std::shared_ptr<LogicalOperator> &parent, bool storeSpecialized,
                       const Schema::MemoryLayout& memoryLayout=Schema::MemoryLayout::ROW) : LogicalOperator(parent), _storeSpecialized(storeSpecialized), _memoryLayout(memoryLayout), _cached(false),
         _columns(parent->columns()), _normalRowCount(0), _fallbackRowCount(0), _generalRowCount(0) {
-            setSchema(this->parent()->getOutputSchema()); // inherit schema from parent
+            setOutputSchema(this->parent()->getOutputSchema()); // inherit schema from parent
             _optimizedSchema = getOutputSchema();
             if(memoryLayout != Schema::MemoryLayout::ROW)
                 throw std::runtime_error("only row based memory layout yet supported");
@@ -57,7 +57,7 @@ namespace tuplex {
         }
         void useNormalCase() {
             // optimized schema becomes normal schema
-            setSchema(_optimizedSchema);
+            setOutputSchema(_optimizedSchema);
         }
 
         virtual std::vector<Row> getSample(const size_t num) const override {

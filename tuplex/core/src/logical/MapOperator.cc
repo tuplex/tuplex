@@ -30,7 +30,7 @@ namespace tuplex {
             if(udf.empty()) {
                 // nothing todo, simply set schema as same. this is the same as supplying an identity function
                 // lambda x: x!
-                setSchema(parent->getOutputSchema());
+                setOutputSchema(parent->getOutputSchema());
 
                 // also overwrite schema in udf b.c. this allows setters/getters to work
                 _udf.setInputSchema(parent->getOutputSchema());
@@ -56,7 +56,7 @@ namespace tuplex {
                 }
 
                 // infer schema (may throw exception!) after applying UDF
-                setSchema(this->inferSchema(parent->getOutputSchema()));
+                setOutputSchema(this->inferSchema(parent->getOutputSchema()));
                 //_udf.retype(parent->getOutputSchema().getRowType());
                 assert(_udf.getOutputSchema() != Schema::UNKNOWN);
                 //setSchema(_udf.getOutputSchema());
@@ -66,20 +66,20 @@ namespace tuplex {
 #ifndef NDEBUG
         if(!_udf.empty())
             Logger::instance().defaultLogger().info(
-                "detected output type for " + _name + " operator is " + schema().getRowType().desc());
+                "detected output type for " + _name + " operator is " + getOutputSchema().getRowType().desc());
 #endif
     }
 
     void MapOperator::setDataSet(DataSet *dsptr) {
         // check whether schema is ok, if not set error dataset!
-        if (schema().getRowType().isIllDefined())
+        if (getOutputSchema().getRowType().isIllDefined())
             LogicalOperator::setDataSet(&dsptr->getContext()->makeError("schema could not be propagated successfully"));
         else
             LogicalOperator::setDataSet(dsptr);
     }
 
     bool MapOperator::good() const {
-        if (schema().getRowType().isIllDefined()) {
+        if (getOutputSchema().getRowType().isIllDefined()) {
             Logger::instance().defaultLogger().error("Could not infer schema for map operator.");
             return false;
         }
@@ -168,7 +168,7 @@ namespace tuplex {
         UDFOperator::rewriteParametersInAST(rewriteMap);
 
         // update output schema
-        setSchema(_udf.getOutputSchema());
+        setOutputSchema(_udf.getOutputSchema());
 
         // special case, empty udf: need to update output column names
         // ==> for the others, output column names are deduced from map.
@@ -200,7 +200,7 @@ namespace tuplex {
         // is it an empty UDF? I.e. a rename operation?
         if(_udf.empty()) {
             // force schema
-            setSchema(schema);
+            setOutputSchema(schema);
 
             // overwrite schema in udf b.c. this allows setters/getters to work
             _udf.setInputSchema(schema);
@@ -210,7 +210,7 @@ namespace tuplex {
             try {
                 _udf.removeTypes(false);
                 _udf.rewriteDictAccessInAST(inputColumns());
-                setSchema(this->inferSchema(schema, is_projected_row_type));
+                setOutputSchema(this->inferSchema(schema, is_projected_row_type));
                 return true;
             } catch(...) {
                 return false;

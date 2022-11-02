@@ -190,7 +190,7 @@ namespace tuplex {
                     joinType());
 
             // create schema
-            setSchema(Schema(Schema::MemoryLayout::ROW, combinedRowType));
+            setOutputSchema(Schema(Schema::MemoryLayout::ROW, combinedRowType));
             _columns = columns;
 
         } else {

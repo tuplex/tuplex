@@ -22,7 +22,7 @@ namespace tuplex {
         virtual ~IgnoreOperator() override = default;
 
         IgnoreOperator(const std::shared_ptr<LogicalOperator>& parent, const ExceptionCode& ec) : LogicalOperator(parent) {
-            setSchema(this->parent()->getOutputSchema());
+            setOutputSchema(this->parent()->getOutputSchema());
             setCode(ec);
         }
 
@@ -48,7 +48,7 @@ namespace tuplex {
         bool good() const override { return true; }
 
         Schema getInputSchema() const override { return getOutputSchema(); }
-        void updateSchema() { setSchema(parent()->getOutputSchema()); }
+        void updateSchema() { setOutputSchema(parent()->getOutputSchema()); }
         bool retype(const RetypeConfiguration& conf) override {
             updateSchema();
             return true;

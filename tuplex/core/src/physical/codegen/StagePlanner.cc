@@ -1016,15 +1016,26 @@ namespace tuplex {
 
         // force resampling b.c. of thin layer
         Timer samplingTimer;
+        bool enable_cf = false;
         if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
             auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode); assert(fop);
             fop->setInputFiles({uri}, {file_size}, true);
+
+            if(fop->fileFormat() != FileFormat::OUTFMT_JSON) {
+                enable_cf = true;
+                logger.warn("Enabled constant-folding for now (not supported for JSON yet).");
+            }
         }
         logger.info("sampling (setInputFiles) took " + std::to_string(samplingTimer.time()) + "s");
 
         // node need to find some smart way to QUICKLY detect whether the optimization can be applied or should be rather skipped...
         codegen::StagePlanner planner(inputNode, operators, nc_threshold);
         planner.enableAll();
+        planner.disableAll();
+        planner.enableNullValueOptimization();
+        planner.enableDelayedParsingOptimization();
+        if(enable_cf)
+            planner.enableConstantFoldingOptimization();
         planner.optimize();
         path_ctx.inputNode = planner.input_node();
         path_ctx.operators = planner.optimized_operators();

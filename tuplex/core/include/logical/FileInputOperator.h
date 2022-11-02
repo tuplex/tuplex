@@ -90,7 +90,7 @@ namespace tuplex {
     public:
         // helper function to project a schema
         inline python::Type projectRowType(const python::Type& rowType) const {
-            if(_columnsToSerialize.empty()) {
+            if(_columnsToSerialize.empty() || python::Type::EMPTYTUPLE == rowType) {
                 // not set, use original
                 return rowType;
             }

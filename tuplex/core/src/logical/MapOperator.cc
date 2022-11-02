@@ -187,8 +187,12 @@ namespace tuplex {
         }
     }
 
-    bool MapOperator::retype(const python::Type& input_row_type, bool is_projected_row_type) {
+    bool MapOperator::retype(const RetypeConfiguration& conf) {
         assert(good());
+
+        auto input_row_type = conf.row_type;
+        auto is_projected_row_type = conf.is_projected;
+
         performRetypeCheck(input_row_type, is_projected_row_type);
 
         auto schema = Schema(getOutputSchema().getMemoryLayout(), input_row_type);

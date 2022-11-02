@@ -205,7 +205,9 @@ namespace tuplex {
         return std::shared_ptr<LogicalOperator>(copy);
     }
 
-    bool WithColumnOperator::retype(const python::Type& input_row_type, bool is_projected_row_type) {
+    bool WithColumnOperator::retype(const RetypeConfiguration& conf) {
+
+        auto input_row_type = conf.row_type;
 
         assert(good());
 
@@ -225,9 +227,10 @@ namespace tuplex {
 
        // reset udf
         _udf.removeTypes(false);
+        _udf.rewriteDictAccessInAST(parent()->columns());
 
         // infer schema with given type
-        auto schema = inferSchema(Schema(oldOut.getMemoryLayout(), input_row_type), is_projected_row_type);
+        auto schema = inferSchema(Schema(oldOut.getMemoryLayout(), input_row_type), conf.is_projected);
         if(schema == Schema::UNKNOWN) {
             return false;
         } else {

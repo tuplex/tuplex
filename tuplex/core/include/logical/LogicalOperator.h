@@ -49,6 +49,13 @@ namespace tuplex {
     class DataSet;
     class Context;
 
+    // struct to easier extend retyping.
+    struct RetypeConfiguration {
+        python::Type row_type; // new row type
+        std::vector<std::string> columns;
+        bool is_projected; // whether row_type/columns are projected
+    };
+
     class LogicalOperator : public std::enable_shared_from_this<LogicalOperator> {
     private:
         int buildGraph(GraphVizBuilder& builder);
@@ -225,12 +232,40 @@ namespace tuplex {
         int64_t getID() const { return _id; }
 
         /*!
+         * retype operator
+         * @param conf
+         * @return true if retyping was successful, false if it couldn't be performed using the given configuration.
+         */
+        virtual bool retype(const RetypeConfiguration& conf) { return false; }
+
+        /*!
          * retype the operator by providing an optional rowType
          * @param input_row_type the new input type used for this operator.
          * @param is_projected_row_type whether the new input row type is projected or not. Important, so the case lambda x: x[0] cam be resolved.
+         * @param input_columns the (potentially) different input columns
          * @return true if retyping was successful.
          */
-        virtual bool retype(const python::Type& input_row_type, bool is_projected_row_type) { return false; }
+        inline bool retype(const python::Type& input_row_type,
+                            const std::vector<std::string>& input_columns,
+                            bool is_projected_row_type) {
+            RetypeConfiguration conf;
+            conf.row_type = input_row_type;
+            conf.columns = input_columns;
+            conf.is_projected = is_projected_row_type;
+            return retype(conf);
+        }
+
+        inline bool retype(const python::Type& input_row_type, bool is_projected_row_type=false) {
+            if(parents().size() > 1)
+                throw std::runtime_error("more than one parent, need to overwrite in operator.");
+
+            RetypeConfiguration conf;
+            conf.is_projected = is_projected_row_type;
+            conf.row_type = input_row_type;
+            conf.columns = parents().empty() ? std::vector<std::string>() : parent()->columns();
+
+            return retype(conf);
+        }
 
         /*!
          * overwrite internal ID. Should be only used in LogicalOptimizer

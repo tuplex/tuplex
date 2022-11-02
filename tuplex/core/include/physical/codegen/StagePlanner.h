@@ -258,9 +258,11 @@ namespace tuplex {
             /*!
              * perform null-value optimization & return full pipeline. First op is inputnode
              * @param input_row_type the input row type to use to retype the pipeline.
+             * @param input_column_names the input columns to use for retyping the UDF.
              * @return vector of operators
              */
-            std::vector<std::shared_ptr<LogicalOperator>> retypeUsingOptimizedInputSchema(const python::Type& input_row_type);
+            std::vector<std::shared_ptr<LogicalOperator>> retypeUsingOptimizedInputSchema(const python::Type& input_row_type,
+                                                                                          const std::vector<std::string>& input_column_names);
 
             /*!
              * perform constant folding optimization using sample

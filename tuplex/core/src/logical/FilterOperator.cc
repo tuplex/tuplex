@@ -100,7 +100,10 @@ namespace tuplex {
         // assert(_udf.getInputSchema() == parent()->getOutputSchema());
     }
 
-    bool FilterOperator::retype(const python::Type& input_row_type, bool is_projected_row_type) {
+    bool FilterOperator::retype(const RetypeConfiguration& conf) {
+        auto input_row_type = conf.row_type;
+        auto is_projected_row_type = conf.is_projected;
+
         assert(input_row_type.isTupleType());
 
         performRetypeCheck(input_row_type, is_projected_row_type);

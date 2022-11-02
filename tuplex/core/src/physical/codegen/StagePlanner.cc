@@ -593,6 +593,8 @@ namespace tuplex {
             size_t num_columns_before_pushdown = majType.parameters().size();
             size_t num_columns_after_pushdown = projectedMajType.parameters().size();
 
+            auto projectedColumns = _inputNode->columns();
+
             // the detected majority type here is BEFORE projection pushdown.
             // --> therefore restrict it to the type of the input operator.
             // std::cout<<"Majority detected row type is: "<<projectedMajType.desc()<<std::endl;
@@ -600,7 +602,7 @@ namespace tuplex {
             // if majType of sample is different from input node type input sample -> retype!
             // also need to restrict type first!
             logger.debug("performing Retyping");
-            optimized_operators = retypeUsingOptimizedInputSchema(projectedMajType);
+            optimized_operators = retypeUsingOptimizedInputSchema(projectedMajType, projectedColumns);
 
             // overwrite internal operators to apply subsequent optimizations
             _inputNode = _inputNode ? optimized_operators.front() : nullptr;
@@ -693,7 +695,8 @@ namespace tuplex {
             return validation_ok;
         }
 
-        std::vector<std::shared_ptr<LogicalOperator>> StagePlanner::retypeUsingOptimizedInputSchema(const python::Type& input_row_type) {
+        std::vector<std::shared_ptr<LogicalOperator>> StagePlanner::retypeUsingOptimizedInputSchema(const python::Type& input_row_type,
+                                                                                                    const std::vector<std::string>& input_column_names) {
             using namespace std;
 
             auto& logger = Logger::instance().logger("specializing stage optimizer");
@@ -723,9 +726,10 @@ namespace tuplex {
             Schema opt_input_schema;
             if(_inputNode->type() == LogicalOperatorType::FILEINPUT)
                 opt_input_schema = std::dynamic_pointer_cast<FileInputOperator>(_inputNode)->getOptimizedOutputSchema();
-            else if(_inputNode->type() == LogicalOperatorType::CACHE)
+            else if(_inputNode->type() == LogicalOperatorType::CACHE) {
+                throw std::runtime_error("need to fix here case when columns differ...");
                 opt_input_schema = std::dynamic_pointer_cast<CacheOperator>(_inputNode)->getOptimizedOutputSchema();
-            else
+            } else
                 throw std::runtime_error("internal error in specializing for the normal case");
             auto opt_input_rowtype = opt_input_schema.getRowType();
 
@@ -763,12 +767,16 @@ namespace tuplex {
             std::shared_ptr<LogicalOperator> lastNode = nullptr;
             auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode->clone());
             // need to restrict potentially?
-            if(!fop->retype(input_row_type, true, true))
+            RetypeConfiguration r_conf;
+            r_conf.is_projected = true;
+            r_conf.row_type = input_row_type;
+            if(!fop->retype(r_conf, true))
                 throw std::runtime_error("failed to retype " + fop->name() + " operator."); // for input operator, ignore Option[str] compatibility which is set per default
             fop->useNormalCase(); // this forces output schema to be normalcase (i.e. overwrite internally output schema to be normal case schema)
             opt_ops.push_back(fop);
 
             last_rowtype = fop->getOutputSchema().getRowType();
+            auto last_columns = fop->columns(); // the columns delivered by this particular operator.
 
             // go over the other ops from the stage...
             for(const auto& node : _operators) {
@@ -805,7 +813,7 @@ namespace tuplex {
                         // set FIRST the parent. Why? because operators like ignore depend on parent schema
                         // therefore, this needs to get updated first.
                         op->setParent(lastParent); // need to call this before retype, so that columns etc. can be utilized.
-                        if(!op->retype(last_rowtype, true))
+                        if(!op->retype(last_rowtype, last_columns, true))
                             throw std::runtime_error("could not retype operator " + op->name());
                         opt_ops.push_back(op);
                         opt_ops.back()->setID(node->getID());
@@ -901,6 +909,7 @@ namespace tuplex {
                         if(!cop->children().empty()) {
                             // => cache is a source, i.e. fetch optimized schema from it!
                             last_rowtype = cop->getOptimizedOutputSchema().getRowType();
+                            last_columns = cop->columns();
                             checkRowType(last_rowtype);
                             // cout<<"cache is a source: optimized schema "<<last_rowtype.desc()<<endl;
 
@@ -939,8 +948,11 @@ namespace tuplex {
                 if(!opt_ops.empty()) {
                     // cout<<"last opt_op name: "<<opt_ops.back()->name()<<endl;
                     // cout<<"last opt_op output type: "<<opt_ops.back()->getOutputSchema().getRowType().desc()<<endl;
-                    if(opt_ops.back()->type() != LogicalOperatorType::CACHE)
+                    if(opt_ops.back()->type() != LogicalOperatorType::CACHE) {
                         last_rowtype = opt_ops.back()->getOutputSchema().getRowType();
+                        last_columns = opt_ops.back()->columns();
+                    }
+
                     checkRowType(last_rowtype);
                 }
 
@@ -1051,7 +1063,6 @@ namespace tuplex {
             path_ctx.inputSchema = fop->getOptimizedOutputSchema();
             path_ctx.readSchema = fop->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
             path_ctx.columnsToRead = fop->columnsToSerialize();
-
             // // print out columns & types!
             // assert(fop->columns().size() == path_ctx.inputSchema.getRowType().parameters().size());
             // for(unsigned i = 0; i < fop->columns().size(); ++i) {

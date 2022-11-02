@@ -161,8 +161,10 @@ namespace tuplex {
         return std::shared_ptr<LogicalOperator>(copy);
     }
 
-    bool MapColumnOperator::retype(const python::Type& input_row_type, bool is_projected_row_type) {
+    bool MapColumnOperator::retype(const RetypeConfiguration& conf) {
         assert(good());
+
+        auto input_row_type = conf.row_type;
 
         // save old schema
         auto oldIn = getInputSchema();

@@ -87,7 +87,7 @@ namespace tuplex {
          */
         void rewriteParametersInAST(const std::unordered_map<size_t, size_t>& rewriteMap) override;
 
-        bool retype(const python::Type& input_row_type, bool is_projected_row_type) override;
+        bool retype(const RetypeConfiguration& conf) override;
 
 #ifdef BUILD_WITH_CEREAL
         // cereal serialization functions

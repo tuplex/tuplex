@@ -961,9 +961,16 @@ namespace tuplex {
     // HACK !!!!
     void FileInputOperator::setInputFiles(const std::vector<URI> &uris, const std::vector<size_t> &uri_sizes,
                                           bool resample) {
+        auto& logger = Logger::instance().logger("logical");
+
         assert(uris.size() == uri_sizes.size());
         _fileURIs = uris;
         _sizes = uri_sizes;
+
+        // for JSON files, it could happen that column names change!
+        // -> need to account for that, i.e. put into rewrite map
+        auto cols_to_serialize_before_resample = columnsToSerialize();
+        auto cols_before_resample = columns();
 
         if(resample && !_fileURIs.empty()) {
             // clear sample cache
@@ -993,47 +1000,19 @@ namespace tuplex {
 
             _estimatedRowCount = estimateSampleBasedRowCount();
 
-//            // only CSV supported...
-//            if(_fmt != FileFormat::OUTFMT_CSV)
-//                throw std::runtime_error("only csv supported");
-//
-//            // NOTE: 256 triggers deoptimization ==> need to study this behavior more carefully...!
-//
-//            size_t SAMPLE_SIZE = 1024 * 512; // use 256KB each
-//
-//            // @TODO: rework this...
-//            aligned_string sample;
-//            sample = loadSample(SAMPLE_SIZE, _fileURIs.front(), _sizes.front(),
-//                                SamplingMode::FIRST_ROWS);
-//
-//            _firstRowsSample = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1,
-//                                                                                   strlen(sample.c_str())), _null_values, _delimiter, _quotechar);
-//            // header? ignore first row!
-//            if(_header && !_firstRowsSample.empty())
-//                _firstRowsSample.erase(_firstRowsSample.begin());
-//
-//            // fetch also last rows sample?
-//            // only draw sample IF > 1 file or file_size > 2 * sample size
-//            bool draw_sample = _fileURIs.size() >= 2 || _sizes.back() >= 2 * SAMPLE_SIZE;
-//            if(draw_sample) {
-//                auto last_sample = loadSample(SAMPLE_SIZE, _fileURIs.back(), _sizes.back(), SamplingMode::LAST_ROWS);
-//                // search CSV beginning
-//                auto column_count = inputColumnCount();
-//                auto offset = csvFindLineStart(last_sample.c_str(), SAMPLE_SIZE, column_count, _delimiter, _quotechar);
-//                if(offset >= 0) {
-//                    // parse into last rows
-//                    _lastRowsSample = parseRows(last_sample.c_str(), last_sample.c_str() + std::min(last_sample.size() - 1, strlen(last_sample.c_str())), _null_values, _delimiter, _quotechar);
-//                } else {
-//                    //logger.warn("could not find CSV line start in last rows sample.");
-//                }
-//            }
-//
-//            // pretty bad but required, else stageplanner/builder will complain
-//            _estimatedRowCount = _firstRowsSample.size() * ( 1.0 * _sizes.front() / (1.0 * sample.size()));
+            // correct for if columns are different
+            if(!vec_equal(columns(), cols_before_resample)) {
+                // correct for this
+                logger.debug("found file with different order or different columns. Need to correct for this.");
+            }
         }
     }
 
-    bool FileInputOperator::retype(const python::Type& input_row_type, bool is_projected_row_type, bool ignore_check_for_str_option) {
+    bool FileInputOperator::retype(const RetypeConfiguration& conf, bool ignore_check_for_str_option) {
+
+        auto input_row_type = conf.row_type;
+        bool is_projected_row_type = conf.is_projected;
+
         assert(input_row_type.isTupleType());
         auto col_types = input_row_type.parameters();
         auto old_col_types = normalCaseSchema().getRowType().parameters();
@@ -1118,9 +1097,8 @@ namespace tuplex {
         return true;
     }
 
-    bool FileInputOperator::retype(const python::Type& input_row_type, bool is_projected_row_type) {
-        assert(input_row_type.isTupleType());
-        return retype(input_row_type, is_projected_row_type, false);
+    bool FileInputOperator::retype(const RetypeConfiguration& conf) {
+        return retype(conf, false);
     }
 
     std::vector<Row> FileInputOperator::sample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames) {

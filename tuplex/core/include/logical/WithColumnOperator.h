@@ -65,7 +65,7 @@ namespace tuplex {
             return parent()->getOutputSchema(); // overwrite here, because UDFOperator always returns the UDF's input schema. However, for mapColumn it's not a row but an element!
         }
 
-        bool retype(const python::Type& input_row_type, bool is_projected_row_type) override;
+        bool retype(const RetypeConfiguration& conf) override;
 
 #ifdef BUILD_WITH_CEREAL
         template<class Archive> void save(Archive &ar) const {

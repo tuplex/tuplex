@@ -123,6 +123,9 @@ namespace tuplex {
                 bool speculate = !_returnTypeCounts.empty();
                 if(speculate) {
 
+                    if(_funcReturnTypes.empty())
+                        error("no function return types found.");
+
                     // Note: this can be done using a greedy algorithm - perhaps we could also find something better.
                     // ALGORITHM
                     // => we could devise a correct algorithm for this.
@@ -130,7 +133,7 @@ namespace tuplex {
                     // then try to unify till no more possible. That's basically a greedy approach.
                     using namespace std;
                     vector<tuple<python::Type, size_t>> v;
-                    assert(_funcReturnTypes.size() == _returnTypeCounts.size());
+                    assert(_funcReturnTypes.size() <= _returnTypeCounts.size());
                     for(int i = 0; i < _funcReturnTypes.size(); ++i) {
                         v.emplace_back(_funcReturnTypes[i], _returnTypeCounts[i]);
                     }
@@ -144,7 +147,15 @@ namespace tuplex {
                     auto best_so_far = std::get<0>(v.front());
 
                     for(int i = 1; i < v.size(); ++i) {
-                        auto u_type = unifyTypes(best_so_far, std::get<0>(v[i]),
+                        auto cur_type = std::get<0>(v[i]);
+
+                        // skip unknown types
+                        if(python::Type::UNKNOWN == cur_type)
+                            continue;
+
+                        if(python::Type::UNKNOWN == best_so_far)
+                            best_so_far = cur_type;
+                        auto u_type = unifyTypes(best_so_far, cur_type,
                                                  _typeUnificationPolicy);
                         if(u_type != python::Type::UNKNOWN)
                             best_so_far = u_type;

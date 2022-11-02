@@ -205,6 +205,7 @@ namespace tuplex {
         } else {
             try {
                 _udf.removeTypes(false);
+                _udf.rewriteDictAccessInAST(inputColumns());
                 setSchema(this->inferSchema(schema, is_projected_row_type));
                 return true;
             } catch(...) {

@@ -102,8 +102,6 @@ namespace tuplex {
 
     bool FilterOperator::retype(const python::Type& input_row_type, bool is_projected_row_type) {
         assert(input_row_type.isTupleType());
-        
-        throw std::runtime_error("need to fix. somehow types for UDF not defined here...");
 
         performRetypeCheck(input_row_type, is_projected_row_type);
 
@@ -113,9 +111,18 @@ namespace tuplex {
         try {
             // update UDF
             _udf.removeTypes(false);
-            _udf.hintInputSchema(schema);
 
-            setSchema(schema);
+            // set columns & rewriteMap
+            _udf.rewriteDictAccessInAST(parent()->columns());
+            if(!_udf.retype(input_row_type))
+                return false;
+
+            // get new input/output schema
+            auto output_schema = _udf.getOutputSchema(); // should be boolean or so (else truth test!)
+
+            // filter preserves schema from parent operator.
+            setSchema(parent()->getOutputSchema());
+
             return true;
         } catch(...) {
             return false;

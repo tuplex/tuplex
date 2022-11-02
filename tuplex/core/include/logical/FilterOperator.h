@@ -43,7 +43,7 @@ namespace tuplex {
             if(parent())
                 return parent()->getOutputSchema();
 
-            return Schema::UNKNOWN:
+            return Schema::UNKNOWN;
         }
 
         /*!

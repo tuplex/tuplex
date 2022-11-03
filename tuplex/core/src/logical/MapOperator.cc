@@ -15,8 +15,11 @@
 #include <visitors/ColumnReturnRewriteVisitor.h>
 
 namespace tuplex {
-    MapOperator::MapOperator(const std::shared_ptr<LogicalOperator>& parent, const UDF &udf, const std::vector<std::string> &columnNames, const std::unordered_map<size_t, size_t>& rewriteMap)
-            : UDFOperator::UDFOperator(parent, udf, columnNames, rewriteMap), _name("map") {
+    MapOperator::MapOperator(const std::shared_ptr<LogicalOperator>& parent,
+                             const UDF &udf,
+                             const std::vector<std::string>& outputColumnNames,
+                             const std::unordered_map<size_t, size_t>& rewriteMap)
+            : UDFOperator::UDFOperator(parent, udf, outputColumnNames, rewriteMap), _name("map") {
 
         assert(parent);
 
@@ -35,7 +38,7 @@ namespace tuplex {
                 // also overwrite schema in udf b.c. this allows setters/getters to work
                 _udf.setInputSchema(parent->getOutputSchema());
                 _udf.setOutputSchema(parent->getOutputSchema());
-                _outputColumns = columnNames; // set output columns to the given ones AND retrieve UDF Operator columns from parent
+                _outputColumns = outputColumnNames; // set output columns to the given ones AND retrieve UDF Operator columns from parent
                 UDFOperator::setColumns(parent->columns());
             } else {
                 // rewrite output if it is a dictionary
@@ -189,6 +192,22 @@ namespace tuplex {
 
     bool MapOperator::retype(const RetypeConfiguration& conf) {
         assert(good());
+
+        // there are two options:
+        // 1.) it's a rename operator -> special case
+        if(_udf.empty()) {
+            throw std::runtime_error("rename not supported yet. Basically check if rename scheme works etc.");
+        } else {
+            // 2.) regular
+            bool ret = UDFOperator::retype(conf);
+
+            // extract output columns / input columns from retype
+            auto input_columns = UDFOperator::columns();
+            //_outputColumns = _udf.extractOutputColumns();
+
+            return ret;
+        }
+
 
         throw std::runtime_error("wrong, use here the UDFOperator approach with the columns...");
 

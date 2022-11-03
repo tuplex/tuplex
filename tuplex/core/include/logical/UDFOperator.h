@@ -67,6 +67,10 @@ namespace tuplex {
             return _udf.getInputSchema();
         }
 
+        // these here are actually the input columns
+        virtual std::vector<std::string> inputColumns() const override { return _columnNames; }
+
+        // is this wrong? should be potential output columns?
         virtual std::vector<std::string> columns() const override { return _columnNames; }
 
         virtual std::unordered_map<size_t, size_t> rewriteMap() const { return _rewriteMap; }

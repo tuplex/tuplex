@@ -200,6 +200,10 @@ namespace tuplex {
 
                     auto mop = new MapOperator(operators.back(), udf, columnNames);
                     mop->setID(id);
+
+                    // set other important fields
+                    mop->setOutputColumns(json_op["outputColumns"].get<std::vector<std::string>>());
+                    
                     operators.push_back(std::shared_ptr<LogicalOperator>(mop));
                 } else {
                     throw std::runtime_error("attempting to decode unknown op " + name);

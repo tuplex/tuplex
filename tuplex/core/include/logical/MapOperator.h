@@ -35,7 +35,7 @@ namespace tuplex {
             // make it a super simple serialiation!
             // basically mimick clone
             nlohmann::json obj;
-            obj["name"] = "map";
+            obj["name"] = name();
             obj["columnNames"] = UDFOperator::columns();
             obj["outputColumns"] = _outputColumns;
             obj["schema"] = getOutputSchema().getRowType().desc();

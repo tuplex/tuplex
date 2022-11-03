@@ -187,7 +187,7 @@ namespace tuplex {
                     auto fop = new FilterOperator(operators.back(), udf, columnNames);
                     fop->setID(id);
                     operators.push_back(std::shared_ptr<LogicalOperator>(fop));
-                } else if(name == "map") {
+                } else if(name == "map" || name == "select" || name == "rename") {
                     // map is easy, simply decode UDF and hook up with parent operator!
                     assert(!operators.empty());
                     auto columnNames = json_op["columnNames"].get<std::vector<std::string>>();
@@ -203,7 +203,7 @@ namespace tuplex {
 
                     // set other important fields
                     mop->setOutputColumns(json_op["outputColumns"].get<std::vector<std::string>>());
-                    
+
                     operators.push_back(std::shared_ptr<LogicalOperator>(mop));
                 } else {
                     throw std::runtime_error("attempting to decode unknown op " + name);

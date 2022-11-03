@@ -448,7 +448,9 @@ tuplex::TransformStage* create_github_stage(const std::string& test_path, const 
     auto wop1 = std::shared_ptr<LogicalOperator>(new WithColumnOperator(jsonop, jsonop->columns(), "year", UDF("lambda x: int(x['created_at'].split('-')[0])")));
     auto wop2 = std::shared_ptr<LogicalOperator>(new WithColumnOperator(wop1, wop1->columns(), "repo_id", UDF(repo_id_code)));
     auto filter_op = std::shared_ptr<LogicalOperator>(new FilterOperator(wop2, UDF("lambda x: x['type'] == 'ForkEvent'"), wop2->columns()));
-    auto sop = std::shared_ptr<LogicalOperator>(new MapOperator(filter_op, UDF("lambda t: (t['type'],t['repo_id'],t['year'])"), filter_op->columns()));
+    auto mop = new MapOperator(filter_op, UDF("lambda t: (t['type'],t['repo_id'],t['year'])"), filter_op->columns());
+    mop->setOutputColumns(std::vector<std::string>{"type", "repo_id", "year"});
+    auto sop = std::shared_ptr<LogicalOperator>(mop);
     auto fop = std::make_shared<FileOutputOperator>(sop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
     builder.addFileInput(jsonop);
     builder.addOperator(wop1);

@@ -2,6 +2,7 @@
 // Created by leonhard on 10/12/22.
 //
 #include <physical/codegen/ResolveHelper.h>
+#include "physical/codegen/JsonSourceTaskBuilder.h"
 
 namespace tuplex {
     namespace codegen {
@@ -34,8 +35,38 @@ namespace tuplex {
             // which input format should be parsed as?
             //auto input_row_type = pip.
             FlattenedTuple ft(&env);
+            ft.init(pip.inputRowType());
 
-            
+            // check the file format
+            switch(input_op->fileFormat()) {
+                case FileFormat::OUTFMT_JSON: {
+
+                    // parse tuple for pipeline, on failure return the code above.
+
+                    auto parseF = json_generateParseStringFunction(env, "general_case_parse_string",
+                                                                   input_op->getInputSchema().getRowType(),
+                                                                   input_op->inputColumns());
+
+                    // @TODO: make sure parseF output is compatible with pip input row type
+                    assert(input_op->getInputSchema().getRowType() == pip.inputRowType());
+
+                    // alloc and call parseF!
+                    // ec = call({llvm_result_ptr, str, str_size})
+                    // if ec != SUCCESS
+                    // return ecCode
+
+                    // return PipelineBuilder::Call(pip)...
+
+
+                    throw std::runtime_error("need to implement JSON parse here.");
+
+                    break;
+                }
+                default: {
+                    throw std::runtime_error("found input operator with unsupported file format, need to implement...");
+                    break;
+                }
+            }
 
             return ft;
         }

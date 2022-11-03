@@ -565,19 +565,20 @@ namespace tuplex {
             return ft;
         }
 
-        llvm::Function *JsonSourceTaskBuilder::generateParseRowFunction(const std::string& name,
-                                                                        const python::Type &row_type,
-                                                                        const std::vector<std::string> &columns,
-                                                                        bool unwrap_first_level) {
+        llvm::Function* json_generateParseRowFunction(LLVMEnvironment& env,
+                                                      const std::string& name,
+                                                      const python::Type &row_type,
+                                                      const std::vector<std::string> &columns,
+                                                      bool unwrap_first_level) {
             using namespace llvm;
 
-            FlattenedTuple ft(_env.get());
+            FlattenedTuple ft(&env);
             ft.init(row_type);
             auto tuple_llvm_type = ft.getLLVMType();
 
             // now, create function type
-            auto FT = FunctionType::get(_env->i64Type(), {_env->i8ptrType(), tuple_llvm_type->getPointerTo()}, false);
-            auto F = Function::Create(FT, llvm::GlobalValue::LinkageTypes::InternalLinkage, name, _env->getModule().get());
+            auto FT = FunctionType::get(env.i64Type(), {env.i8ptrType(), tuple_llvm_type->getPointerTo()}, false);
+            auto F = Function::Create(FT, llvm::GlobalValue::LinkageTypes::InternalLinkage, name, env.getModule().get());
 
             BasicBlock* bEntry = BasicBlock::Create(_env->getContext(), "entry", F); // <-- call first!
             BasicBlock* bMismatch = BasicBlock::Create(_env->getContext(), "mismatch", F);
@@ -595,7 +596,7 @@ namespace tuplex {
 
             auto parser = args["parser"];
 
-            auto ft_parsed = json_parseRow(*_env.get(), builder, row_type, columns, unwrap_first_level, parser, bMismatch);
+            auto ft_parsed = json_parseRow(env, builder, row_type, columns, unwrap_first_level, parser, bMismatch);
             ft_parsed.storeTo(builder, args["out_tuple"]);
 #ifdef JSON_PARSER_TRACE_MEMORY
             _env->debugPrint(builder, "tuple store to output ptr done.");
@@ -603,8 +604,25 @@ namespace tuplex {
 
             // free temp objects here...
 
-            builder.CreateRet(_env->i64Const(0));
+            builder.CreateRet(env.i64Const(0));
             return F;
+        }
+
+        llvm::Function* json_generateParseStringFunction(LLVMEnvironment& env,
+                                                         const std::string& name,
+                                                         const python::Type &row_type,
+                                                         const std::vector<std::string> &columns,
+                                                         bool unwrap_first_level) {
+            return nullptr;
+        }
+
+
+
+        llvm::Function *JsonSourceTaskBuilder::generateParseRowFunction(const std::string& name,
+                                                                        const python::Type &row_type,
+                                                                        const std::vector<std::string> &columns,
+                                                                        bool unwrap_first_level) {
+            return json_generateParseRowFunction(*_env.get(), name, row_type, columns, unwrap_first_level);
         }
 
         FlattenedTuple JsonSourceTaskBuilder::generateAndCallParseRowFunction(llvm::IRBuilder<> &parent_builder,

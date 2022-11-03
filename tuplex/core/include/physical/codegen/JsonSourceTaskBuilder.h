@@ -134,6 +134,36 @@ namespace tuplex {
                                                 llvm::Value* row_no,
                                                 const FlattenedTuple& general_case_row);
         };
+
+
+        // several json related codegen functions that are useful
+        extern FlattenedTuple json_parseRow(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& row_type,
+                                            const std::vector<std::string>& columns,
+                                            bool unwrap_first_level,
+                                            llvm::Value* parser,
+                                            llvm::BasicBlock *bbSchemaMismatch);
+
+        extern llvm::Function* json_generateParseRowFunction(LLVMEnvironment& env,
+                                                             const std::string& name,
+                                        const python::Type &row_type,
+                                        const std::vector<std::string> &columns,
+                                        bool unwrap_first_level);
+
+        /*!
+         * generates a llvm function that produces an llvm output according to flattenedtuple for row type and takes str pointer and size as input.
+         * Returns badparsestring input as exception if parse was not successful.
+         * @param env
+         * @param name
+         * @param row_type
+         * @param columns
+         * @param unwrap_first_level
+         * @return function.
+         */
+        extern llvm::Function* json_generateParseStringFunction(LLVMEnvironment& env,
+                                                                const std::string& name,
+                                                                const python::Type &row_type,
+                                                                const std::vector<std::string> &columns);
+
     }
 }
 

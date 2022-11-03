@@ -1207,7 +1207,8 @@ namespace tuplex {
         }
 
         // reset optional output counter
-        if(inputRowCount)*inputRowCount = 0;
+        if(inputRowCount)
+            *inputRowCount = 0;
 
         size_t rangeStart=0, rangeEnd=0;
         auto inputURI = part.uri;

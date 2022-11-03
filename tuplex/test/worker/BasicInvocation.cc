@@ -580,8 +580,8 @@ TEST(BasicInvocation, GithubProcessing) {
     // start worker within same process to easier debug...
     auto app = make_unique<WorkerApp>(WorkerSettings());
 
-//    // check individual messages that they work
-//    app->processJSONMessage(messages[1]);
+    // // check individual messages that they work
+    // app->processJSONMessage(messages[0]);
 
     // check all messages
      for(const auto& message : messages) {

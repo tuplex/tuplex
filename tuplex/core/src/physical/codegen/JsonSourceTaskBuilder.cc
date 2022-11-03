@@ -62,15 +62,28 @@ namespace tuplex {
             auto parsed_bytes = generateParseLoop(builder, bufPtr, bufSize, args["userData"], _normal_case_columns,
                                                   _general_case_columns, _unwrap_first_level, terminateEarlyOnFailureCode);
 
+
+            // store in output var info
+            llvm::Value* normalRowCount = builder.CreateLoad(_normalRowCountVar);
+            normalRowCount = builder.CreateSub(normalRowCount, builder.CreateLoad(_badNormalRowCountVar));
+            env().storeIfNotNull(builder, normalRowCount, args["outNormalRowCount"]);
+            llvm::Value* badRowCount = builder.CreateAdd(builder.CreateLoad(_generalRowCountVar), builder.CreateLoad(_fallbackRowCountVar));
+            badRowCount = builder.CreateAdd(builder.CreateLoad(_badNormalRowCountVar), badRowCount);
+            env().storeIfNotNull(builder, badRowCount, args["outBadRowCount"]); // <-- i.e. exceptions
+
             builder.CreateRet(parsed_bytes);
 
             return func;
         }
 
         void JsonSourceTaskBuilder::initVars(llvm::IRBuilder<> &builder) {
+            // input vars (read from reader)
             _normalRowCountVar = _env->CreateFirstBlockVariable(builder, _env->i64Const(0));
             _generalRowCountVar = _env->CreateFirstBlockVariable(builder, _env->i64Const(0));
             _fallbackRowCountVar = _env->CreateFirstBlockVariable(builder, _env->i64Const(0));
+
+            // stores how many of normal rows were processed with bad result (pipeline).
+            _badNormalRowCountVar = _env->CreateFirstBlockVariable(builder, _env->i64Const(0));
 
             _normalMemorySizeVar = _env->CreateFirstBlockVariable(builder, _env->i64Const(0));
             _generalMemorySizeVar = _env->CreateFirstBlockVariable(builder, _env->i64Const(0));
@@ -257,6 +270,13 @@ namespace tuplex {
                     auto ecCode = builder.CreateZExtOrTrunc(pip_res.resultCode, env().i64Type());
                     auto ecOpID = builder.CreateZExtOrTrunc(pip_res.exceptionOperatorID, env().i64Type());
                     auto numRowsCreated = builder.CreateZExtOrTrunc(pip_res.numProducedRows, env().i64Type());
+
+                    // if ecCode != success -> inc bad normal count.
+                    // do this here branchless
+                    auto bad_row_cond = builder.CreateICmpNE(ecCode, env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                    // inc
+                    auto bad_row_delta = builder.CreateZExt(bad_row_cond, env().i64Type());
+                    incVar(builder, _badNormalRowCountVar);
 
                     if(terminateEarlyOnLimitCode)
                         generateTerminateEarlyOnCode(builder, ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);

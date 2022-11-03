@@ -44,6 +44,9 @@ namespace tuplex {
             llvm::Value *_normalRowCountVar;
             llvm::Value *_generalRowCountVar;
             llvm::Value *_fallbackRowCountVar;
+
+            llvm::Value* _badNormalRowCountVar;
+
             llvm::Value *_normalMemorySizeVar;
             llvm::Value *_generalMemorySizeVar;
             llvm::Value *_fallbackMemorySizeVar;

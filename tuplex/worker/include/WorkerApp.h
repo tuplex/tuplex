@@ -521,11 +521,19 @@ namespace tuplex {
                                generalBufCount(0),
                                code(ecToI64(ExceptionCode::SUCCESS)),
                                operatorID(0) {}
+
+       FallbackPathResult(FallbackPathResult&& other)  noexcept : code(other.code), operatorID(other.operatorID),
+       buf(std::move(other.buf)), bufRowCount(other.bufRowCount),
+       generalBuf(std::move(other.generalBuf)), generalBufCount(other.generalBufCount), pyObjects(std::move(other.pyObjects)) {}
+
+       FallbackPathResult(const FallbackPathResult& other) = delete;
+        FallbackPathResult& operator = (const FallbackPathResult& other) = delete;
     };
 
 
     extern PyObject* fallbackTupleFromParseException(const uint8_t* buf, size_t buf_size);
-    extern FallbackPathResult processRowUsingFallback(PyObject* func,
+    extern void processRowUsingFallback(FallbackPathResult& res,
+                                        PyObject* func,
                                                       int64_t ecCode,
                                                       int64_t ecOperatorID,
                                                       const Schema& normal_input_schema,

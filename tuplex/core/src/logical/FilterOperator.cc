@@ -101,34 +101,44 @@ namespace tuplex {
     }
 
     bool FilterOperator::retype(const RetypeConfiguration& conf) {
-        auto input_row_type = conf.row_type;
-        auto is_projected_row_type = conf.is_projected;
 
-        assert(input_row_type.isTupleType());
-
-        performRetypeCheck(input_row_type, is_projected_row_type);
-
-        auto schema = Schema(getOutputSchema().getMemoryLayout(), input_row_type);
-
-        // is it an empty UDF? I.e. a rename operation?
-        try {
-            // update UDF
-            _udf.removeTypes(false);
-
-            // set columns & rewriteMap
-            _udf.rewriteDictAccessInAST(parent()->columns());
-            if(!_udf.retype(input_row_type))
-                return false;
-
-            // get new input/output schema
-            auto output_schema = _udf.getOutputSchema(); // should be boolean or so (else truth test!)
-
-            // filter preserves schema from parent operator.
-            setOutputSchema(parent()->getOutputSchema());
-
-            return true;
-        } catch(...) {
+        // UDFOperator retype
+        auto ret = UDFOperator::retype(conf);
+        if(!ret)
             return false;
-        }
+
+        // update output schema (based on parent)
+        setOutputSchema(parent()->getOutputSchema());
+        return true;
+
+//        auto input_row_type = conf.row_type;
+//        auto is_projected_row_type = conf.is_projected;
+//
+//        assert(input_row_type.isTupleType());
+//
+//        performRetypeCheck(input_row_type, is_projected_row_type);
+//
+//        auto schema = Schema(getOutputSchema().getMemoryLayout(), input_row_type);
+//
+//        // is it an empty UDF? I.e. a rename operation?
+//        try {
+//            // update UDF
+//            _udf.removeTypes(false);
+//
+//            // set columns & rewriteMap
+//            _udf.rewriteDictAccessInAST(parent()->columns());
+//            if(!_udf.retype(input_row_type))
+//                return false;
+//
+//            // get new input/output schema
+//            auto output_schema = _udf.getOutputSchema(); // should be boolean or so (else truth test!)
+//
+//            // filter preserves schema from parent operator.
+//            setOutputSchema(parent()->getOutputSchema());
+//
+//            return true;
+//        } catch(...) {
+//            return false;
+//        }
     }
 }

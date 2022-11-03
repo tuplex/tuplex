@@ -46,6 +46,11 @@ namespace tuplex {
             return Schema::UNKNOWN;
         }
 
+        std::vector<std::string> inputColumns() const override { return parent() ? parent()->columns() : std::vector<std::string>(); }
+
+        // for filter, output columns do not change.
+        std::vector<std::string> columns() const override { return inputColumns(); }
+
         /*!
          * projection pushdown, update UDF and schema...
          * @param rewriteMap
@@ -70,7 +75,7 @@ namespace tuplex {
             nlohmann::json obj;
             obj["name"] = "filter";
             obj["columnNames"] = UDFOperator::columns();
-            obj["outputColumns"] =columns();
+            obj["outputColumns"] = columns();
             obj["schema"] = getOutputSchema().getRowType().desc();
             obj["id"] = getID();
 

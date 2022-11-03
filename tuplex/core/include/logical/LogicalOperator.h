@@ -321,11 +321,11 @@ namespace tuplex {
 #ifdef BUILD_WITH_CEREAL
         // cereal serialization functions
         template<class Archive> void save(Archive &ar) const {
-            ar(_id, _parents, _schema);
+            ar(_id, _parents, _outputSchema);
         }
 
         template<class Archive> void load(Archive &ar) {
-            ar(_id, _parents, _schema);
+            ar(_id, _parents, _outputSchema);
             addThisToParents(); // build children of parents
         }
 #endif

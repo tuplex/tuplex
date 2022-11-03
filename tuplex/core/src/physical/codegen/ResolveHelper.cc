@@ -25,8 +25,55 @@ namespace tuplex {
             builder.SetInsertPoint(bIsNot);
         }
 
+
+        FlattenedTuple decodeBadParseStringInputException(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
+                                                          const std::shared_ptr<FileInputOperator>& input_op, PipelineBuilder& pip,
+                                                          const ExceptionCode& return_code_on_parse_error) {
+            assert(input_op);
+
+            // which input format should be parsed as?
+            //auto input_row_type = pip.
+            FlattenedTuple ft(&env);
+
+            
+
+            return ft;
+        }
+
+        void handleBadParseStringInputException(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ecCode,
+                                                const std::shared_ptr<FileInputOperator>& input_op, PipelineBuilder& pip) {
+            using namespace llvm;
+
+            auto& ctx = builder.getContext();
+
+            BasicBlock* bIsBadParseStringInput = BasicBlock::Create(ctx, "is_bad_string_parse_exception", builder.GetInsertBlock()->getParent());
+            BasicBlock* bIsNot = BasicBlock::Create(ctx, "is_not", builder.GetInsertBlock()->getParent());
+
+            auto is_bad_parse_cond = builder.CreateICmpEQ(ecCode, env.i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
+            builder.CreateCondBr(is_bad_parse_cond, bIsBadParseStringInput, bIsNot);
+
+            builder.SetInsertPoint(bIsBadParseStringInput);
+
+            // is input op given? -> then can handle, else abort immediately.
+            if(!input_op) {
+                // this exception is handled by the interpreter, so use interpreter for this!
+                builder.CreateRet(ecCode);
+            }
+
+            // all good, now handle everything here.
+            auto ft = decodeBadParseStringInputException(env, builder, input_op, pip, ExceptionCode::GENERALCASEVIOLATION);
+
+            // dummy for now
+            builder.CreateRet(ecCode);
+
+
+            // before exiting function, make sure to set builder to correct insert point.
+            builder.SetInsertPoint(bIsNot);
+        }
+
         // new version, require explicitly stored format information.
         llvm::Function* createProcessExceptionRowWrapper(PipelineBuilder& pip,
+                                                         const std::shared_ptr<FileInputOperator>& input_op,
                                                          const std::string& name,
                                                          const python::Type& normalCaseType,
                                                          const std::map<int, int>& normalToGeneralMapping,
@@ -94,6 +141,7 @@ namespace tuplex {
             // decode according to exception type => i.e. decode according to pipeline builder + nullvalue opt!
             auto ecCode = args["exceptionCode"];
             auto dataPtr = args["rowBuf"];
+            auto dataSize = args["bufSize"];
 
             // exceptions are stored in a variety of formats
             // 1. PYTHON_PARALLELIZE -> stored as pickled object, can't decode. Requires interpreter functor.
@@ -107,6 +155,13 @@ namespace tuplex {
 
             // 4. BADPARSE_STRING_INPUT
             // -> attempt to parse to general-case format, if fails return.
+            handleBadParseStringInputException(env, builder, ecCode, input_op, pip);
+
+
+            // debug
+#ifndef NDEBUG
+            env.printValue(builder, ecCode, "general path, got exception code (unhandled): ");
+#endif
 
             // no success, return original ecCode
             builder.CreateRet(ecCode);

@@ -1379,6 +1379,7 @@ namespace tuplex {
                                                      : std::vector<std::string>{"None"};
 
             auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(*slowPip,
+                                                                            _inputNode->type() == LogicalOperatorType::FILEINPUT ? std::dynamic_pointer_cast<FileInputOperator>(_inputNode) : nullptr,
                                                                             ret.funcStageName/*funcResolveRowName*/,
                                                                             normalCaseType,
                                                                             normalToGeneralMapping,

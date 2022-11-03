@@ -6,6 +6,7 @@
 #define TUPLEX_RESOLVEHELPER_H
 
 #include "PipelineBuilder.h"
+#include "logical/FileInputOperator.h"
 
 namespace tuplex {
     namespace codegen {
@@ -18,6 +19,7 @@ namespace tuplex {
          * @return
          */
         extern llvm::Function *createProcessExceptionRowWrapper(PipelineBuilder& pip,
+                                                                const std::shared_ptr<FileInputOperator>& input_op,
                                                                 const std::string& name,
                                                                 const python::Type& normalCaseType,
                                                                 const std::map<int, int>& normalToGeneralMapping,

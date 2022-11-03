@@ -580,13 +580,13 @@ namespace tuplex {
             auto FT = FunctionType::get(env.i64Type(), {env.i8ptrType(), tuple_llvm_type->getPointerTo()}, false);
             auto F = Function::Create(FT, llvm::GlobalValue::LinkageTypes::InternalLinkage, name, env.getModule().get());
 
-            BasicBlock* bEntry = BasicBlock::Create(_env->getContext(), "entry", F); // <-- call first!
-            BasicBlock* bMismatch = BasicBlock::Create(_env->getContext(), "mismatch", F);
+            BasicBlock* bEntry = BasicBlock::Create(env.getContext(), "entry", F); // <-- call first!
+            BasicBlock* bMismatch = BasicBlock::Create(env.getContext(), "mismatch", F);
             IRBuilder<> builder(bMismatch);
 
             // free objects here
 
-            builder.CreateRet(_env->i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
+            builder.CreateRet(env.i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
 
             // main and entry block.
             builder.SetInsertPoint(bEntry);

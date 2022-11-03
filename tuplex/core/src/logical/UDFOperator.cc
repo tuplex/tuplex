@@ -49,8 +49,30 @@ namespace tuplex {
         // remove types & rewrite
         try {
             _udf.removeTypes(false);
-            bool ret = _udf.retype(conf.row_type);
-            if(!ret)
+            bool success = _udf.retype(conf.row_type);
+
+            // check what the return type is. If it is of exception type, try to use a sample to get rid off branches that are off
+            if(success && _udf.getOutputSchema().getRowType().isExceptionType()) {
+                logger.debug("static retyping resulted in UDF producing always exceptions. Try hinting with sample...");
+                Timer s_timer;
+                auto rows_sample = parent()->getPythonicSample(MAX_TYPE_SAMPLING_ROWS);
+                logger.debug("retrieving pythonic sample took: " + std::to_string(s_timer.time()) + "s");
+                _udf.removeTypes(false);
+                success = _udf.hintSchemaWithSample(rows_sample,
+                                                    conf.row_type, true);
+                if(success) {
+                    if(_udf.getCompileErrors().empty() || _udf.getReturnError() != CompileError::COMPILE_ERROR_NONE) {
+                        // @TODO: add the constant folding for the other scenarios as well!
+                        if(containsConstantType(conf.row_type)) {
+                            _udf.optimizeConstants();
+                        }
+                    }
+                } else {
+                    logger.debug("no success hinting, trying out different hint modes...");
+                }
+            }
+
+            if(!success)
                 return false;
 
             // update schemas accordingly

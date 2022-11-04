@@ -580,9 +580,9 @@ TEST(BasicInvocation, GithubProcessing) {
     // start worker within same process to easier debug...
     auto app = make_unique<WorkerApp>(WorkerSettings());
 
-    // check individual messages that they work
-    app->processJSONMessage(messages[0]);
-    return;
+    // // check individual messages that they work
+    // app->processJSONMessage(messages[0]);
+    // return;
 
     // check all messages
      for(const auto& message : messages) {
@@ -594,6 +594,12 @@ TEST(BasicInvocation, GithubProcessing) {
 
     cout<<"-- test done."<<endl;
 }
+
+#ifndef BUILD_WITH_AWS
+TEST(BasicInvocation, GithubLambdaVersion) {
+
+}
+#endif
 
 TEST(BasicInvocation, Worker) {
     using namespace std;

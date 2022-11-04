@@ -43,7 +43,7 @@ namespace tuplex {
      * @param interpret_heterogenous_lists_as_tuples if a heterogenous list is encountered, interpret it as tuple.
      * @return python type
      */
-    extern python::Type jsonTypeToPythonTypeRecursive(simdjson::simdjson_result<simdjson::fallback::ondemand::value> obj,
+    extern python::Type jsonTypeToPythonTypeRecursive(simdjson::simdjson_result<simdjson::ondemand::value> obj,
                                                       bool interpret_heterogenous_lists_as_tuples);
 
     /*!

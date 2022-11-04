@@ -605,9 +605,9 @@ class PipelinesTest : public PyTest {};
 #ifdef BUILD_WITH_AWS
 
 TEST_F(PipelinesTest, GithubLambdaVersion) {
-#ifdef SKIP_AWS_TESTS
-    GTEST_SKIP();
-#endif
+//#ifdef SKIP_AWS_TESTS
+//    GTEST_SKIP();
+//#endif
 
     using namespace std;
     using namespace tuplex;
@@ -618,6 +618,11 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
     co.set("tuplex.useLLVMOptimizer", "true");
 
     Context c(co);
+
+
+    // create github based (JSON) pipeline.
+
+
 }
 
 TEST_F(PipelinesTest, ZillowAWS) {

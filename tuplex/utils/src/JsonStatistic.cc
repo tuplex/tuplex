@@ -128,7 +128,7 @@ namespace tuplex {
         return python::Type::UNKNOWN;
     }
 
-    python::Type jsonTypeToPythonTypeRecursive(simdjson::simdjson_result<simdjson::fallback::ondemand::value> obj,
+    python::Type jsonTypeToPythonTypeRecursive(simdjson::simdjson_result<simdjson::ondemand::value> obj,
                                                bool interpret_heterogenous_lists_as_tuples) {
         using namespace std;
 

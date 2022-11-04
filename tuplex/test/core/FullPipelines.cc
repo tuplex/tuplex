@@ -614,14 +614,31 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
     auto co = testOptions();
 
     co.set("tuplex.backend", "lambda");
-    co.set("tuplex.scratchDir", "s3://tuplex/scratch");
+    co.set("tuplex.aws.scratchDir", "s3://tuplex/scratch");
     co.set("tuplex.useLLVMOptimizer", "true");
+
+    // deactivate optimizations (should be done alter again)
+    // disable constant=folding opt for JSON
+    co.set("tuplex.optimizer.constantFoldingOptimization", "false");
+    co.set("tuplex.optimizer.filterPushdown", "false"); // <-- requires access path detection to work
+    co.set("tuplex.optimizer.selectionPushdown", "false"); // <-- requires access path detection to work.
 
     Context c(co);
 
-
     // create github based (JSON) pipeline.
+    auto repo_id_code = "def extract_repo_id(row):\n"
+                        "\tif 2012 <= row['year'] <= 2014:\n"
+                        "\t\treturn row['repository']['id']\n"
+                        "\telse:\n"
+                        "\t\treturn row['repo']['id']\n";
 
+    string pattern = "s3://tuplex-public/data/github_daily_sample/*.json.sample";
+
+    c.json(pattern).withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+    .withColumn("repo_id", UDF(repo_id_code))
+    .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+    .selectColumns({"type", "repo_id", "year"})
+    .show(5);
 
 }
 

@@ -28,7 +28,8 @@ namespace tuplex {
 
 
         FlattenedTuple decodeBadParseStringInputException(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
-                                                          const std::shared_ptr<FileInputOperator>& input_op, PipelineBuilder& pip,
+                                                          const std::shared_ptr<FileInputOperator>& input_op,
+                                                          const python::Type& pip_input_row_type,
                                                           const ExceptionCode& return_code_on_parse_error,
                                                           llvm::Value* buf,
                                                           llvm::Value* buf_size) {
@@ -38,7 +39,7 @@ namespace tuplex {
             // which input format should be parsed as?
             //auto input_row_type = pip.
             FlattenedTuple ft(&env);
-            ft.init(pip.inputRowType());
+            ft.init(pip_input_row_type);
 
             // check the file format
             switch(input_op->fileFormat()) {
@@ -52,7 +53,7 @@ namespace tuplex {
                                                                    input_op->inputColumns());
 
                     // @TODO: make sure parseF output is compatible with pip input row type
-                    assert(input_op->getInputSchema().getRowType() == pip.inputRowType());
+                    assert(input_op->getInputSchema().getRowType() == pip_input_row_type);
 
                     // extract string and length from data buffer
 
@@ -91,7 +92,7 @@ namespace tuplex {
                     builder.CreateRet(env.i64Const(ecToI64(return_code_on_parse_error)));
 
                     builder.SetInsertPoint(bParseOK);
-                    ft = FlattenedTuple::fromLLVMStructVal(&env, builder, tuple_var, pip.inputRowType());
+                    ft = FlattenedTuple::fromLLVMStructVal(&env, builder, tuple_var, pip_input_row_type);
                     return ft;
 //                    throw std::runtime_error("need to implement JSON parse here.");
 
@@ -106,9 +107,15 @@ namespace tuplex {
             return ft;
         }
 
-        void handleBadParseStringInputException(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ecCode,
-                                                const std::shared_ptr<FileInputOperator>& input_op, PipelineBuilder& pip,
-                                                llvm::Value* buf, llvm::Value* buf_size) {
+        void handleBadParseStringInputException(LLVMEnvironment& env,
+                                                llvm::IRBuilder<>& builder, const python::Type& pip_input_row_type,
+                                                llvm::Function* pipeline_func,
+                                                const std::shared_ptr<FileInputOperator>& input_op,
+                                                llvm::Value* ecCode,
+                                                llvm::Value* rowNumber,
+                                                llvm::Value* userData,
+                                                llvm::Value* buf,
+                                                llvm::Value* buf_size) {
             using namespace llvm;
 
             assert(buf && buf->getType() == env.i8ptrType());
@@ -131,16 +138,21 @@ namespace tuplex {
             }
 
             // all good, now handle everything here.
-            auto ft = decodeBadParseStringInputException(env, builder, input_op, pip,
+            auto ft = decodeBadParseStringInputException(env, builder, input_op, pip_input_row_type,
                                                          ExceptionCode::GENERALCASEVIOLATION, buf, buf_size);
 
-            // alloc and call parseF!
-            // ec = call({llvm_result_ptr, str, str_size})
-            // if ec != SUCCESS
-            // return ecCode
 
-            // return PipelineBuilder::Call(pip)...
+            // process using pipeline
+            //PipelineBuilder::call(builder, pip.build(), ft, userData, )
 
+            auto pip_res = PipelineBuilder::call(builder, pipeline_func, ft, userData, rowNumber); // no intermediate support right now.
+
+            // create if based on resCode to go into exception block
+            ecCode = builder.CreateZExtOrTrunc(pip_res.resultCode, env.i64Type());
+            auto ecOpID = builder.CreateZExtOrTrunc(pip_res.exceptionOperatorID, env.i64Type());
+            auto numRowsCreated = builder.CreateZExtOrTrunc(pip_res.numProducedRows, env.i64Type());
+
+            // not resolved? return code
 
             // dummy for now
             builder.CreateRet(ecCode);
@@ -151,7 +163,9 @@ namespace tuplex {
         }
 
         // new version, require explicitly stored format information.
-        llvm::Function* createProcessExceptionRowWrapper(PipelineBuilder& pip,
+        llvm::Function* createProcessExceptionRowWrapper(LLVMEnvironment& env,
+                                                         const python::Type& pip_input_row_type,
+                                                         llvm::Function* pipeline_func,
                                                          const std::shared_ptr<FileInputOperator>& input_op,
                                                          const std::string& name,
                                                          const python::Type& normalCaseType,
@@ -160,12 +174,12 @@ namespace tuplex {
                                                          const CompilePolicy& policy) {
 
             auto& logger = Logger::instance().logger("codegen");
-            auto pipFunc = pip.getFunction();
+            auto pipFunc = pipeline_func;
 
             if(!pipFunc)
                 return nullptr;
 
-            auto generalCaseType = pip.inputRowType();
+            auto generalCaseType = pip_input_row_type;
             bool normalCaseAndGeneralCaseCompatible = checkCaseCompatibility(normalCaseType, generalCaseType, normalToGeneralMapping);
 
             {
@@ -201,7 +215,6 @@ namespace tuplex {
 
             // create (internal) llvm function to be inlined with all contents
             auto& ctx = pipFunc->getContext();
-            auto& env = pip.env();
 
             // void* userData, int64_t rowNumber, int64_t ExceptionCode, uint8_t* inputBuffer, int64_t inputBufferSize
             FunctionType *func_type = FunctionType::get(Type::getInt64Ty(ctx),
@@ -221,6 +234,8 @@ namespace tuplex {
             auto ecCode = args["exceptionCode"];
             auto dataPtr = args["rowBuf"];
             auto dataSize = args["bufSize"];
+            auto userData = args["userData"];
+            auto rowNo = args["rowNumber"];
 
             // exceptions are stored in a variety of formats
             // 1. PYTHON_PARALLELIZE -> stored as pickled object, can't decode. Requires interpreter functor.
@@ -234,7 +249,8 @@ namespace tuplex {
 
             // 4. BADPARSE_STRING_INPUT
             // -> attempt to parse to general-case format, if fails return.
-            handleBadParseStringInputException(env, builder, ecCode, input_op, pip, dataPtr, dataSize);
+            handleBadParseStringInputException(env, builder, pip_input_row_type, pipFunc,
+                                               input_op, ecCode, rowNo, userData, dataPtr, dataSize);
 
 
             // debug

@@ -1378,7 +1378,13 @@ namespace tuplex {
             auto null_values = ctx.inputMode == EndPointMode::FILE ? jsonToStringArray(ctx.fileInputParameters.at("null_values"))
                                                      : std::vector<std::string>{"None"};
 
-            auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(*slowPip,
+            // retrieve function etc.
+            auto pip_func = slowPip->getFunction();
+            auto pip_input_row_type = slowPip->inputRowType();
+
+            auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(slowPip->env(),
+                                                                            pip_input_row_type,
+                                                                            pip_func,
                                                                             _inputNode->type() == LogicalOperatorType::FILEINPUT ? std::dynamic_pointer_cast<FileInputOperator>(_inputNode) : nullptr,
                                                                             ret.funcStageName/*funcResolveRowName*/,
                                                                             normalCaseType,

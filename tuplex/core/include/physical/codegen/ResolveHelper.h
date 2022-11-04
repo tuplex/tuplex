@@ -18,7 +18,9 @@ namespace tuplex {
          * @param name
          * @return
          */
-        extern llvm::Function *createProcessExceptionRowWrapper(PipelineBuilder& pip,
+        extern llvm::Function *createProcessExceptionRowWrapper(LLVMEnvironment& env,
+                                                                const python::Type& pip_input_row_type,
+                                                                llvm::Function* pipeline_func,
                                                                 const std::shared_ptr<FileInputOperator>& input_op,
                                                                 const std::string& name,
                                                                 const python::Type& normalCaseType,

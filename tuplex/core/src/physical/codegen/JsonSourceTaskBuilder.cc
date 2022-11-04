@@ -611,8 +611,7 @@ namespace tuplex {
         llvm::Function* json_generateParseStringFunction(LLVMEnvironment& env,
                                                          const std::string& name,
                                                          const python::Type &row_type,
-                                                         const std::vector<std::string> &columns,
-                                                         bool unwrap_first_level) {
+                                                         const std::vector<std::string> &columns) {
             return nullptr;
         }
 

@@ -735,12 +735,12 @@ namespace tuplex {
             inStream.reset();
             reader.reset();
 
-            setSchema(Schema(Schema::MemoryLayout::ROW, tuplexType));
+            setOutputSchema(Schema(Schema::MemoryLayout::ROW, tuplexType));
 
             setProjectionDefaults();
         } else {
             logger.warn("no input files found, can't infer type from sample.");
-            setSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
+            setOutputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
         }
         _sampling_time_s += timer.time();
 #else

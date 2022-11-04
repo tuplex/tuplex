@@ -604,6 +604,22 @@ class PipelinesTest : public PyTest {};
 
 #ifdef BUILD_WITH_AWS
 
+TEST_F(PipelinesTest, GithubLambdaVersion) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
+    using namespace std;
+    using namespace tuplex;
+    auto co = testOptions();
+
+    co.set("tuplex.backend", "lambda");
+    co.set("tuplex.scratchDir", "s3://tuplex/scratch");
+    co.set("tuplex.useLLVMOptimizer", "true");
+
+    Context c(co);
+}
+
 TEST_F(PipelinesTest, ZillowAWS) {
 #ifdef SKIP_AWS_TESTS
     GTEST_SKIP();

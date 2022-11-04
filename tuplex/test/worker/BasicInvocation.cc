@@ -555,13 +555,14 @@ TEST(BasicInvocation, GithubProcessing) {
     // update test path
     auto paths = glob(test_path.toPath());
     std::vector<std::string> messages;
+    unsigned pos = 0;
     for(const auto& path : paths) {
         // transform to message
         vfs = VirtualFileSystem::fromURI(path);
         uint64_t input_file_size = 0;
         vfs.file_size(path, input_file_size);
         auto json_message = transformStageToReqMessage(tstage, URI(path).toPath(),
-                                                       input_file_size, test_output_path.toString(),
+                                                       input_file_size, "output_" + std::to_string(++pos) + ".csv",
                                                        false,
                                                        num_threads,
                                                        spillURI);
@@ -594,12 +595,6 @@ TEST(BasicInvocation, GithubProcessing) {
 
     cout<<"-- test done."<<endl;
 }
-
-#ifndef BUILD_WITH_AWS
-TEST(BasicInvocation, GithubLambdaVersion) {
-
-}
-#endif
 
 TEST(BasicInvocation, Worker) {
     using namespace std;

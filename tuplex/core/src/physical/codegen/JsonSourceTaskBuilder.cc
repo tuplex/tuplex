@@ -644,7 +644,7 @@ namespace tuplex {
             BasicBlock* bBadParse = BasicBlock::Create(env.getContext(), "parse_failed", builder.GetInsertBlock()->getParent());
 
             builder.CreateCondBr(parse_ok, bParseOK, bBadParse);
-            builder.SetInserPoint(bBadParse);
+            builder.SetInsertPoint(bBadParse);
             json_freeParser(env, builder, parser);
             builder.CreateBr(bError);
             builder.SetInsertPoint(bParseOK);
@@ -663,7 +663,7 @@ namespace tuplex {
             auto llvm_tuple_type = ft.getLLVMType();
 
             // create new func
-            auto FT = FunctionType::get(env.i64Type(), {llvm_tuple_type, env.i8ptrType(), env.i64Type()}, false);
+            auto FT = FunctionType::get(env.i64Type(), {llvm_tuple_type->getPointerTo(), env.i8ptrType(), env.i64Type()}, false);
 
             auto func = getOrInsertFunction(env.getModule().get(), name, FT);
             BasicBlock* bEntry = BasicBlock::Create(env.getContext(), "entry", func);

@@ -58,7 +58,7 @@ namespace tuplex {
                     // extract string and length from data buffer
 
                     auto num_cells = builder.CreateLoad(builder.CreatePointerCast(buf, env.i64ptrType()));
-                    env.printValue(builder, num_cells, "num cells: ");
+                    // env.printValue(builder, num_cells, "num cells: ");
 
                     // for JSON, single info and cell
                     auto ptr = builder.CreateGEP(buf, env.i64Const(sizeof(int64_t)));
@@ -69,9 +69,9 @@ namespace tuplex {
 
                     auto str = builder.CreateGEP(ptr, offset);
 
-                    env.printValue(builder, offset, "offset (should be 8): ");
-                    env.printValue(builder, str, "data: ");
-                    env.printValue(builder, str_size, "data size: ");
+                    // env.printValue(builder, offset, "offset (should be 8): ");
+                    // env.printValue(builder, str, "data: ");
+                    // env.printValue(builder, str_size, "data size: ");
 
                     assert(parseF);
 
@@ -79,7 +79,7 @@ namespace tuplex {
                     auto tuple_var = env.CreateFirstBlockAlloca(builder, ft.getLLVMType());
                     auto rc = builder.CreateCall(parseF, {tuple_var, str, str_size});
 
-                    env.printValue(builder, rc, "call result: ");
+                    // env.printValue(builder, rc, "call result: ");
 
                     BasicBlock* bParseOK = BasicBlock::Create(env.getContext(), "parse_for_pipeline_ok", builder.GetInsertBlock()->getParent());
                     BasicBlock* bParseFailed =  BasicBlock::Create(env.getContext(), "parse_for_pipeline_failed", builder.GetInsertBlock()->getParent());

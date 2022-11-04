@@ -608,13 +608,93 @@ namespace tuplex {
             return F;
         }
 
+        void json_freeParser(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* parser) {
+            auto &ctx = env.getContext();
+            auto F = getOrInsertFunction(env.getModule().get(), "JsonParser_Free", llvm::Type::getVoidTy(ctx),
+                                         env.i8ptrType());
+            builder.CreateCall(F, parser);
+        }
+
+        // chain for initializing parser (incl. go to code)
+        llvm::Value* json_retrieveParser(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
+                                         llvm::Value* str, llvm::Value* str_size, llvm::BasicBlock* bError) {
+            using namespace llvm;
+
+            assert(str && str_size && bError);
+
+            auto F_init = getOrInsertFunction(env.getModule().get(), "JsonParser_Init", env.i8ptrType());
+
+            auto parser = builder.CreateCall(F_init, {});
+            auto is_null = builder.CreateICmpEQ(parser, env.i8nullptr());
+
+            BasicBlock* bParserInitOK = BasicBlock::Create(env.getContext(), "parser_init_ok", builder.GetInsertBlock()->getParent());
+            builder.CreateCondBr(is_null, bError, bParserInitOK);
+            builder.SetInsertPoint(bParserInitOK);
+
+
+            // now open buffer (i.e., parse)
+            auto F_parse = getOrInsertFunction(env.getModule().get(), "JsonParser_open", env.i64Type(), env.i8ptrType(),
+                                         env.i8ptrType(), env.i64Type());
+            auto parse_code =  builder.CreateCall(F_parse, {parser, str, str_size});
+
+            // check if ok
+            auto parse_ok = builder.CreateICmpEQ(parse_code, env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+
+            BasicBlock* bParseOK = BasicBlock::Create(env.getContext(), "parse_ok", builder.GetInsertBlock()->getParent());
+            BasicBlock* bBadParse = BasicBlock::Create(env.getContext(), "parse_failed", builder.GetInsertBlock()->getParent());
+
+            builder.CreateCondBr(parse_ok, bParseOK, bBadParse);
+            builder.SetInserPoint(bBadParse);
+            json_freeParser(env, builder, parser);
+            builder.CreateBr(bError);
+            builder.SetInsertPoint(bParseOK);
+
+            return parser;
+        }
+
         llvm::Function* json_generateParseStringFunction(LLVMEnvironment& env,
                                                          const std::string& name,
                                                          const python::Type &row_type,
                                                          const std::vector<std::string> &columns) {
-            return nullptr;
-        }
 
+            using namespace llvm;
+
+            FlattenedTuple ft(&env); ft.init(row_type);
+            auto llvm_tuple_type = ft.getLLVMType();
+
+            // create new func
+            auto FT = FunctionType::get(env.i64Type(), {llvm_tuple_type, env.i8ptrType(), env.i64Type()}, false);
+
+            auto func = getOrInsertFunction(env.getModule().get(), name, FT);
+            BasicBlock* bEntry = BasicBlock::Create(env.getContext(), "entry", func);
+            IRBuilder<> builder(bEntry);
+
+
+            auto args = mapLLVMFunctionArgs(func, std::vector<std::string>({"tuple_out", "str", "str_size"}));
+
+            auto input_str = args["str"];
+            auto input_str_size = args["str_size"];
+
+            BasicBlock* bError = BasicBlock::Create(env.getContext(), "error", func);
+
+            // init parser & open buf
+            auto parser = json_retrieveParser(env, builder, input_str, input_str_size, bError);
+
+            // now check that it is doc & row present
+            auto F_parse = json_generateParseRowFunction(env, name + "_parse_row", row_type, columns, true);
+
+            // call and check error code
+            auto rc = builder.CreateCall(F_parse, {parser, args["tuple_out"]});
+            // auto rc_ok = builder.CreateICmpEQ(rc, env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            json_freeParser(env, builder, parser);
+            builder.CreateRet(rc);
+
+            // fill error block (just return bad parse)
+            builder.SetInsertPoint(bError);
+            builder.CreateRet(env.i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
+
+            return func;
+        }
 
 
         llvm::Function *JsonSourceTaskBuilder::generateParseRowFunction(const std::string& name,

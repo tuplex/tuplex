@@ -29,7 +29,10 @@ namespace tuplex {
 
         FlattenedTuple decodeBadParseStringInputException(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
                                                           const std::shared_ptr<FileInputOperator>& input_op, PipelineBuilder& pip,
-                                                          const ExceptionCode& return_code_on_parse_error) {
+                                                          const ExceptionCode& return_code_on_parse_error,
+                                                          llvm::Value* buf,
+                                                          llvm::Value* buf_size) {
+            using namespace llvm;
             assert(input_op);
 
             // which input format should be parsed as?
@@ -43,22 +46,54 @@ namespace tuplex {
 
                     // parse tuple for pipeline, on failure return the code above.
 
-                    auto parseF = json_generateParseStringFunction(env, "general_case_parse_string",
+                    auto parseF = json_generateParseStringFunction(env,
+                                                                   "general_case_parse_string",
                                                                    input_op->getInputSchema().getRowType(),
                                                                    input_op->inputColumns());
 
                     // @TODO: make sure parseF output is compatible with pip input row type
                     assert(input_op->getInputSchema().getRowType() == pip.inputRowType());
 
-                    // alloc and call parseF!
-                    // ec = call({llvm_result_ptr, str, str_size})
-                    // if ec != SUCCESS
-                    // return ecCode
+                    // extract string and length from data buffer
 
-                    // return PipelineBuilder::Call(pip)...
+                    auto num_cells = builder.CreateLoad(builder.CreatePointerCast(buf, env.i64ptrType()));
+                    env.printValue(builder, num_cells, "num cells: ");
 
+                    // for JSON, single info and cell
+                    auto ptr = builder.CreateGEP(buf, env.i64Const(sizeof(int64_t)));
+                    auto info = builder.CreateLoad(builder.CreatePointerCast(ptr, env.i64ptrType()));
 
-                    throw std::runtime_error("need to implement JSON parse here.");
+                    llvm::Value* offset=nullptr, *str_size = nullptr;
+                    std::tie(offset, str_size) = unpack_offset_and_size(builder, info);
+
+                    auto str = builder.CreateGEP(ptr, offset);
+
+                    env.printValue(builder, offset, "offset (should be 8): ");
+                    env.printValue(builder, str, "data: ");
+                    env.printValue(builder, str_size, "data size: ");
+
+                    assert(parseF);
+
+                    // call by parsing function
+                    auto tuple_var = env.CreateFirstBlockAlloca(builder, ft.getLLVMType());
+                    auto rc = builder.CreateCall(parseF, {tuple_var, str, str_size});
+
+                    env.printValue(builder, rc, "call result: ");
+
+                    BasicBlock* bParseOK = BasicBlock::Create(env.getContext(), "parse_for_pipeline_ok", builder.GetInsertBlock()->getParent());
+                    BasicBlock* bParseFailed =  BasicBlock::Create(env.getContext(), "parse_for_pipeline_failed", builder.GetInsertBlock()->getParent());
+
+                    auto rc_ok = builder.CreateICmpEQ(rc, env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+
+                    builder.CreateCondBr(rc_ok, bParseOK, bParseFailed);
+
+                    builder.SetInsertPoint(bParseFailed);
+                    builder.CreateRet(env.i64Const(ecToI64(return_code_on_parse_error)));
+
+                    builder.SetInsertPoint(bParseOK);
+                    ft = FlattenedTuple::fromLLVMStructVal(&env, builder, tuple_var, pip.inputRowType());
+                    return ft;
+//                    throw std::runtime_error("need to implement JSON parse here.");
 
                     break;
                 }
@@ -72,8 +107,12 @@ namespace tuplex {
         }
 
         void handleBadParseStringInputException(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ecCode,
-                                                const std::shared_ptr<FileInputOperator>& input_op, PipelineBuilder& pip) {
+                                                const std::shared_ptr<FileInputOperator>& input_op, PipelineBuilder& pip,
+                                                llvm::Value* buf, llvm::Value* buf_size) {
             using namespace llvm;
+
+            assert(buf && buf->getType() == env.i8ptrType());
+            assert(buf_size && buf_size->getType() == env.i64Type());
 
             auto& ctx = builder.getContext();
 
@@ -92,7 +131,16 @@ namespace tuplex {
             }
 
             // all good, now handle everything here.
-            auto ft = decodeBadParseStringInputException(env, builder, input_op, pip, ExceptionCode::GENERALCASEVIOLATION);
+            auto ft = decodeBadParseStringInputException(env, builder, input_op, pip,
+                                                         ExceptionCode::GENERALCASEVIOLATION, buf, buf_size);
+
+            // alloc and call parseF!
+            // ec = call({llvm_result_ptr, str, str_size})
+            // if ec != SUCCESS
+            // return ecCode
+
+            // return PipelineBuilder::Call(pip)...
+
 
             // dummy for now
             builder.CreateRet(ecCode);
@@ -186,7 +234,7 @@ namespace tuplex {
 
             // 4. BADPARSE_STRING_INPUT
             // -> attempt to parse to general-case format, if fails return.
-            handleBadParseStringInputException(env, builder, ecCode, input_op, pip);
+            handleBadParseStringInputException(env, builder, ecCode, input_op, pip, dataPtr, dataSize);
 
 
             // debug

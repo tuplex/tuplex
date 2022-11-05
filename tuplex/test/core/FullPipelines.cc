@@ -630,7 +630,7 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
 
     Context c(co);
 
-    // create github based (JSON) pipeline.
+    // create Github based (JSON) pipeline.
     auto repo_id_code = "def extract_repo_id(row):\n"
                         "\tif 2012 <= row['year'] <= 2014:\n"
                         "\t\treturn row['repository']['id']\n"

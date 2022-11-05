@@ -556,13 +556,16 @@ TEST(BasicInvocation, GithubProcessing) {
     auto paths = glob(test_path.toPath());
 
     // s3 test: glob for actual data to debug failures (prob. missing rtfreeall)
-    string s3_pattern = "s3://tuplex-public/data/github_daily/*.json";
-    auto uris = VirtualFileSystem::globAll(s3_pattern);
+    // string s3_pattern = "s3://tuplex-public/data/github_daily/*.json";
+    // auto uris = VirtualFileSystem::globAll(s3_pattern);
+    // paths.clear();
+    // for(auto uri : uris) {
+    //     std::cout<<"Found S3 uri: "<<uri.toString()<<std::endl;
+    //     paths.push_back(uri.toString());
+    // }
     paths.clear();
-    for(auto uri : uris) {
-        std::cout<<"Found S3 uri: "<<uri.toString()<<std::endl;
-        paths.push_back(uri.toString());
-    }
+    URI s3_test_uri("s3://tuplex-public/data/github_daily/2021-10-15.json");
+    paths.push_back(s3_test_uri.toString());
 
     std::vector<std::string> messages;
     unsigned pos = 0;

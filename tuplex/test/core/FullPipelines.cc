@@ -623,6 +623,10 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
     co.set("tuplex.optimizer.filterPushdown", "false"); // <-- requires access path detection to work
     co.set("tuplex.optimizer.selectionPushdown", "false"); // <-- requires access path detection to work.
 
+    // hyper on/off
+    co.set("tuplex.experimental.hyperspecialization", "true");
+    co.set("tuplex.aws.lambdaMemory", "10000");
+
     Context c(co);
 
     // create github based (JSON) pipeline.
@@ -634,11 +638,17 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
 
     string pattern = "s3://tuplex-public/data/github_daily_sample/*.json.sample";
 
+    // @TODO: for hyperspecialization active, need to support TakeOperator!!!
+
     c.json(pattern).withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
     .withColumn("repo_id", UDF(repo_id_code))
     .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
     .selectColumns({"type", "repo_id", "year"})
-    .show(5);
+    .tocsv("s3://tuplex/scratch/exp-result/out.csv");
+    //.tocsv("test_out.csv"); // <-- local file isn't working in hyper mode... -.-
+    //.show(5);
+
+    // @TODO: incorrect exceptions reported. I.e., the original badparse string input exceptions are reported - yet should be whatever general-case/fallback yield...
 
 }
 

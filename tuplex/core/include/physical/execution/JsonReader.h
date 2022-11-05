@@ -20,6 +20,8 @@ namespace tuplex {
         JsonReader() = delete;
         JsonReader(void *userData, codegen::read_block_f rowFunctor, size_t bufferSize);
 
+        virtual ~JsonReader();
+
         // use here VirtualFileSystem when reading files...
         //@March: for testing, just don't call the rowFunctor yet, but rather construct a Row object and then print row.desc();
         void read(const URI& inputFilePath) override;

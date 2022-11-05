@@ -274,4 +274,15 @@ namespace tuplex {
 
         return bytesParsed;
     }
+
+    JsonReader::~JsonReader() {
+        if(_inputBuffer)
+            delete [] _inputBuffer;
+
+        _inBufferLength = 0;
+        _inputBuffer = nullptr;
+
+        _num_normal_rows = 0;
+        _num_bad_rows= 0;
+    }
 }

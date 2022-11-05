@@ -21,6 +21,7 @@ namespace tuplex {
 
             builder.SetInsertPoint(bIsPyParallelize);
             // this exception is handled by the interpreter, so use interpreter for this!
+            env.freeAll(builder);
             builder.CreateRet(ecCode);
 
             builder.SetInsertPoint(bIsNot);
@@ -89,6 +90,7 @@ namespace tuplex {
                     builder.CreateCondBr(rc_ok, bParseOK, bParseFailed);
 
                     builder.SetInsertPoint(bParseFailed);
+                    env.freeAll(builder);
                     builder.CreateRet(env.i64Const(ecToI64(return_code_on_parse_error)));
 
                     builder.SetInsertPoint(bParseOK);
@@ -134,6 +136,7 @@ namespace tuplex {
             // is input op given? -> then can handle, else abort immediately.
             if(!input_op) {
                 // this exception is handled by the interpreter, so use interpreter for this!
+                env.freeAll(builder);
                 builder.CreateRet(ecCode);
             }
 
@@ -152,11 +155,9 @@ namespace tuplex {
             auto ecOpID = builder.CreateZExtOrTrunc(pip_res.exceptionOperatorID, env.i64Type());
             auto numRowsCreated = builder.CreateZExtOrTrunc(pip_res.numProducedRows, env.i64Type());
 
-            // not resolved? return code
-
-            // dummy for now
+            // use provided return code.
+            env.freeAll(builder);
             builder.CreateRet(ecCode);
-
 
             // before exiting function, make sure to set builder to correct insert point.
             builder.SetInsertPoint(bIsNot);
@@ -259,6 +260,7 @@ namespace tuplex {
 #endif
 
             // no success, return original ecCode
+            env.freeAll(builder);
             builder.CreateRet(ecCode);
 
             // erase (empty) blocks with no predecessor and successor

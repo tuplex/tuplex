@@ -212,17 +212,49 @@ namespace tuplex {
         while(ws[buf[pos]] && pos < buf_size)
             pos++;
 
-        // parse possible from the start?
-        const char *end_ptr = nullptr;
-        auto json_obj = cJSON_ParseWithLengthOpts(buf + pos, buf_size - pos, &end_ptr, false);
-        if (json_obj) {
-            cJSON_free(json_obj);
 
-            // needs to newline (else partial parse to end...)
-            if (*end_ptr == '\n' || *end_ptr == '\r' || *end_ptr == '\0')
-                return end_ptr - buf;
+        // perform two step parsing process. First, limit buf size to 1MB - if that fails, use full buffer...
+        size_t limit_size = 1024 * 1024; // 1MB
+        if(buf_size - pos > limit_size) {
+            // check first using snippet.
+
+            const char *end_ptr = nullptr;
+            auto json_obj = cJSON_ParseWithLengthOpts(buf + pos, limit_size, &end_ptr, false);
+            if (json_obj) {
+                cJSON_free(json_obj);
+
+                // needs to newline (else partial parse to end...)
+                if (*end_ptr == '\n' || *end_ptr == '\r' || *end_ptr == '\0')
+                    return end_ptr - buf;
+            } else {
+                // full buffer parse (may conflict with rt runtime memory!)
+                end_ptr = nullptr;
+                auto json_obj = cJSON_ParseWithLengthOpts(buf + pos, buf_size - pos, &end_ptr, false);
+                if (json_obj) {
+                    cJSON_free(json_obj);
+
+                    // needs to newline (else partial parse to end...)
+                    if (*end_ptr == '\n' || *end_ptr == '\r' || *end_ptr == '\0')
+                        return end_ptr - buf;
+                }
+                return -1;
+            }
+            return -1;
+
+        } else {
+            // parse direct
+            // parse possible from the start?
+            const char *end_ptr = nullptr;
+            auto json_obj = cJSON_ParseWithLengthOpts(buf + pos, buf_size - pos, &end_ptr, false);
+            if (json_obj) {
+                cJSON_free(json_obj);
+
+                // needs to newline (else partial parse to end...)
+                if (*end_ptr == '\n' || *end_ptr == '\r' || *end_ptr == '\0')
+                    return end_ptr - buf;
+            }
+            return -1;
         }
-        return -1;
     }
 
     //@March implement: finding Json Offset

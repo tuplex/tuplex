@@ -172,6 +172,7 @@ namespace tuplex {
                     while(maxOffset < remainingToParse) {
                         // get offset to next line.
                         auto offset = findNLJsonOffsetToNextLine(p, endp - p);
+                        runtime::rtfree_all();
                         assert(offset >= 0);
                         // release fix
                         offset = std::max(static_cast<int64_t>(0), std::min(static_cast<int64_t>(endp - p), offset));

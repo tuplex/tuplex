@@ -148,6 +148,7 @@ namespace tuplex {
             llvm::Value *rc_cond = _env->i1neg(builder,
                                               builder.CreateICmpEQ(rc, _env->i64Const(ecToI64(ExceptionCode::SUCCESS))));
             exitMainFunctionWithError(builder, rc_cond, rc);
+            _env->freeAll(builder);
             builder.CreateBr(bLoopHeader);
 
 
@@ -417,6 +418,7 @@ namespace tuplex {
             // -> maybe better craft a separate process row function?
 
             // link back to header
+            _env->freeAll(builder);
             builder.CreateBr(bLoopHeader);
 
             // ---- post loop block ----

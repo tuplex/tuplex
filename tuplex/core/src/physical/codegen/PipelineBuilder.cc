@@ -43,7 +43,8 @@ namespace tuplex {
 
         void PipelineBuilder::addVariable(llvm::IRBuilder<> &builder, const std::string name, llvm::Type *type,
                                                    llvm::Value *initialValue) {
-            _variables[name] = builder.CreateAlloca(type, 0, nullptr, name);
+            _variables[name] = _env->CreateFirstBlockAlloca(builder, type);
+            //_variables[name] = builder.CreateAlloca(type, 0, nullptr, name);
 
             if(initialValue)
                 builder.CreateStore(initialValue, _variables[name]);
@@ -830,7 +831,17 @@ namespace tuplex {
             // }
 
             auto exceptionBlock = createExceptionBlock();
-            auto outVal = cf.callWithExceptionHandler(builder, _lastRowResult, resVal, exceptionBlock, getPointerToVariable(builder, "exceptionCode"));
+
+
+            // debug
+            BasicBlock* bexceptStart = BasicBlock::Create(builder.getContext(), "debug", builder.GetInsertBlock()->getParent());
+            llvm::IRBuilder<> b(bexceptStart);
+            _env->printValue(b, b.CreateLoad(getPointerToVariable(b, "exceptionCode")), "withColumn failed with code=");
+            b.CreateBr(exceptionBlock);
+
+            auto outVal = cf.callWithExceptionHandler(builder, _lastRowResult, resVal, bexceptStart, getPointerToVariable(builder, "exceptionCode"));
+
+//            auto outVal = cf.callWithExceptionHandler(builder, _lastRowResult, resVal, exceptionBlock, getPointerToVariable(builder, "exceptionCode"));
 
             SerializableValue resLoad;
             if(!cf.output_python_type.isTupleType() || cf.output_python_type == python::Type::EMPTYTUPLE) {

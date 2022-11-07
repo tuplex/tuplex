@@ -1924,6 +1924,8 @@ namespace tuplex {
         return WORKER_OK;
     }
 
+    static std::atomic_int rbuf_counter(0);
+
     int64_t WorkerApp::resolveBuffer(int threadNo, Buffer &buf, size_t numRows, const TransformStage *stage,
                                      const std::shared_ptr<TransformStage::JITSymbols> &syms) {
 
@@ -1951,6 +1953,11 @@ namespace tuplex {
 
         bool is_first_unresolved_interpreter = true;
 
+#ifndef NDEBUG
+        std::cout<<"opening file for debugging"<<std::endl;
+        FILE *pFile = fopen(("except_buf_" + std::to_string(rbuf_counter++) + ".txt").c_str(), "w");
+#endif
+
         // when both compiled resolver & interpreted resolver are invalid, this means basically that all exceptions stay...
         const auto* ptr = static_cast<const uint8_t*>(buf.buffer());
         auto env = &_threadEnvs[threadNo];
@@ -1968,6 +1975,13 @@ namespace tuplex {
             size_t ecBufSize = 0;
             auto delta = deserializeExceptionFromMemory(ptr, &ecCode, &ecOperatorID, &ecRowNumber, &ecBuf,
                                                         &ecBufSize);
+
+            // debug: print out
+            //std::cout<<"exception row="<<ecRowNumber<<": "<<(const char*)(ecBuf + 16)<<std::endl;
+#ifndef NDEBUG
+            fprintf(pFile, "%s\n", (const char*)(ecBuf + 16));
+#endif
+
 
             // try to resolve using compiled resolver...
             if(compiledResolver) {
@@ -2087,6 +2101,10 @@ namespace tuplex {
 
             ptr += delta;
         }
+
+#ifndef NDEBUG
+        fclose(pFile);
+#endif
 
         // sanity check: (applies for input row counts!)
         assert(numRows == exception_count + resolved_via_compiled_slow_path + resolved_via_interpreter);

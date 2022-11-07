@@ -272,6 +272,8 @@ namespace tuplex {
                     auto ecOpID = builder.CreateZExtOrTrunc(pip_res.exceptionOperatorID, env().i64Type());
                     auto numRowsCreated = builder.CreateZExtOrTrunc(pip_res.numProducedRows, env().i64Type());
 
+                    // env().printValue(builder, ecCode, "pip ecCode= ");
+
                     // if ecCode != success -> inc bad normal count.
                     // do this here branchless
                     auto bad_row_cond = builder.CreateICmpNE(ecCode, env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
@@ -282,6 +284,7 @@ namespace tuplex {
                     if(terminateEarlyOnLimitCode)
                         generateTerminateEarlyOnCode(builder, ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
 
+#ifndef NDEBUG
                     // does pipeline have exception handler or not?
                     // if not, then task needs to emit exception to process further down the line...
                     // -> could short circuit and save "true" exception first here.
@@ -292,6 +295,7 @@ namespace tuplex {
                     env().printValue(builder, ecCode, "pipeline returned ecCode: ");
                     builder.CreateBr(bNext);
                     builder.SetInsertPoint(bNext);
+#endif
                 }
 
                 // serialized size (as is)

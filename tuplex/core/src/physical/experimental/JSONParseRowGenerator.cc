@@ -1329,6 +1329,13 @@ namespace tuplex {
                         // entries.push_back(
                         //        make_tuple(access_path, kv_pair.valueType, kv_pair.alwaysPresent, SerializableValue(),
                         //                   is_object));
+                    } else {
+                        if(kv_pair.alwaysPresent) {
+                            // key MUST be present, hence it's a schema mismatch if not found.
+                            BasicBlock* bKeyFound = BasicBlock::Create(ctx, "key_found", builder.GetInsertBlock()->getParent());
+                            builder.CreateCondBr(is_object, bKeyFound, bbSchemaMismatch);
+                            builder.SetInsertPoint(bKeyFound);
+                        }
                     }
 
                     // create now some basic blocks to decode ON demand.
@@ -1346,7 +1353,7 @@ namespace tuplex {
                     // recurse using new prefix
                     // --> similar to flatten_recursive_helper(entries, kv_pair.valueType, access_path, include_maybe_structs);
                     decode(builder, dict_ptr, dict_ptr_type, item, bbSchemaMismatch, kv_pair.valueType, access_path, include_maybe_structs);
-                    builder.CreateBr(bbDecodeDone); // whererver builder is, continue to decode done for this item.
+                    builder.CreateBr(bbDecodeDone); // where ever builder is, continue to decode done for this item.
                     builder.SetInsertPoint(bbDecodeDone); // continue from here...
                 } else {
 

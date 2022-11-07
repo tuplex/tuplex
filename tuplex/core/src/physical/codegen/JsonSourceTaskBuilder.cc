@@ -281,6 +281,17 @@ namespace tuplex {
 
                     if(terminateEarlyOnLimitCode)
                         generateTerminateEarlyOnCode(builder, ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
+
+                    // does pipeline have exception handler or not?
+                    // if not, then task needs to emit exception to process further down the line...
+                    // -> could short circuit and save "true" exception first here.
+                    BasicBlock *bNotOK = BasicBlock::Create(ctx, "pipeline_not_ok", builder.GetInsertBlock()->getParent());
+                    BasicBlock *bNext = BasicBlock::Create(ctx, "pipeline_next", builder.GetInsertBlock()->getParent());
+                    builder.CreateCondBr(bad_row_cond, bNotOK, bNext);
+                    builder.SetInsertPoint(bNotOK);
+                    env().printValue(builder, ecCode, "pipeline returned ecCode: ");
+                    builder.CreateBr(bNext);
+                    builder.SetInsertPoint(bNext);
                 }
 
                 // serialized size (as is)

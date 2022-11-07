@@ -296,7 +296,9 @@ namespace tuplex {
         if(!syms)
             return WORKER_ERROR_COMPILATION_FAILED;
 
-        return processTransformStage(tstage, syms, parts, outputURI);
+        auto rc = processTransformStage(tstage, syms, parts, outputURI);
+        _lastStat = jsonStat(req, tstage); // generate stats before returning.
+        return rc;
     }
 
     int
@@ -501,8 +503,9 @@ namespace tuplex {
             numInputRowsProcessed = 0;
             for(auto el : v_inputRowCount)
                 numInputRowsProcessed += el;
-
-            logger().debug("All threads joined, processing done.");
+            _stats.inputRowCount = numInputRowsProcessed;
+            logger().debug("All threads joined, processing done. Processed "
+                            + pluralize(numInputRowsProcessed, "input row") + ".");
         }
 
         // check return codes of threads...
@@ -523,6 +526,8 @@ namespace tuplex {
         // compute number of successful normal-case rows -> rest is unresolved
         auto exception_row_count = get_exception_row_count();
 
+        logger().debug("Of " + pluralize(numInputRowsProcessed, "input row")
+                       + " there are " + pluralize(exception_row_count, "exception row") + ".");
 
         // limiting, fix later.
         exception_row_count = std::min(exception_row_count, numInputRowsProcessed);
@@ -1350,6 +1355,14 @@ namespace tuplex {
             }
         }
 
+        // print out some stats (??)
+#ifndef NDEBUG
+        std::cout<<"finished processing normal case: "<<"normal: "<<env->numNormalRows<<" exception: "<<env->numExceptionRows<<std::endl;
+        std::cout<<"exception details:"<<std::endl;
+        for(auto kv : env->exceptionCounts) {
+            std::cout<<" -- "<<std::get<0>(kv.first)<<" "<<std::get<1>(kv.first)<<"   "<<kv.second<<std::endl;
+        }
+#endif
         // when processing is done, simply output everything to URI (should be an S3 one!)
         return WORKER_OK;
     }
@@ -1920,11 +1933,15 @@ namespace tuplex {
         // counters for debugging
         size_t resolved_via_compiled_slow_path = 0;
         size_t resolved_via_interpreter = 0;
+        size_t exception_count = 0;
 
         // fetch functors
         auto compiledResolver = syms->resolveFunctor;
         auto interpretedResolver = preparePythonPipeline(stage->purePythonCode(), stage->pythonPipelineName());
         _has_python_resolver = true;
+
+        // hack
+        compiledResolver = nullptr;
 
         // debug:
 #ifndef NDEBUG
@@ -1965,11 +1982,14 @@ namespace tuplex {
                        || rc == ecToI32(ExceptionCode::GENERALCASEVIOLATION)
                        || rc == ecToI32(ExceptionCode::PYTHON_PARALLELIZE))
                         rc = -1;
-                    // todo, true exceptions??
+                    else {
+                        // it's a true exception the resolver won't be able to handle.
+                        // can short circuit here. => i.e. for key error.
+                    }
                 } else {
                     // resolved if rc == success
-                    if(rc == ecToI32(ExceptionCode::SUCCESS))
-                        resolved_via_compiled_slow_path++;
+                    assert(rc == ecToI32(ExceptionCode::SUCCESS));
+                    resolved_via_compiled_slow_path++;
                 }
             }
 
@@ -2061,11 +2081,15 @@ namespace tuplex {
 
             // else, save as exception!
             if(-1 == rc) {
+                exception_count++;
                 writeException(threadNo, ecCode, ecOperatorID, ecRowNumber, const_cast<uint8_t *>(ecBuf), ecBufSize);
             }
 
             ptr += delta;
         }
+
+        // sanity check: (applies for input row counts!)
+        assert(numRows == exception_count + resolved_via_compiled_slow_path + resolved_via_interpreter);
 
         // update stats
         _codePathStats.rowsOnGeneralPathCount += resolved_via_compiled_slow_path;
@@ -2616,5 +2640,41 @@ namespace tuplex {
         }
 
         return merged;
+    }
+
+    std::string
+    WorkerApp::jsonStat(const tuplex::messages::InvocationRequest &req, tuplex::TransformStage *stage) const {
+        std::stringstream ss;
+
+        ss<<"{";
+        auto num_input_files = req.inputuris_size();
+
+        // input path breakdown:
+        ss<<"\"input\":{";
+        ss<<"\"input_file_count\":"<<num_input_files<<",";
+        ss<<"\"total_input_row_count\":"<<_stats.inputRowCount<<",";
+        ss<<"\"normal\":"<<_codePathStats.rowsOnNormalPathCount<<",";
+        ss<<"\"general\":"<<_codePathStats.rowsOnGeneralPathCount<<",";
+        ss<<"\"fallback\":"<<_codePathStats.rowsOnInterpreterPathCount<<",";
+        ss<<"\"unresolved\":"<<_codePathStats.unresolvedRowsCount;
+        ss<<"}";
+
+
+
+        ss<<"}";
+
+        // basic checks: do line counts add up correctly?
+#ifndef NDEBUG
+        using namespace std;
+        auto noexcept_in = _codePathStats.rowsOnNormalPathCount + _codePathStats.rowsOnGeneralPathCount + _codePathStats.rowsOnInterpreterPathCount;
+        auto except_in = _codePathStats.unresolvedRowsCount.load();
+        cout<<"input row count: "<<_stats.inputRowCount<<" = "
+        <<noexcept_in<<" (normal) + "<<except_in<<" (except) . is this true? "
+        <<boolalpha<<(_stats.inputRowCount == noexcept_in + except_in)<<endl;
+#endif
+
+
+
+        return ss.str();
     }
 }

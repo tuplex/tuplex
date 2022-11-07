@@ -199,6 +199,9 @@ namespace tuplex {
 
         virtual int globalInit();
 
+        inline std::string jsonStats() const {
+            return _lastStat;
+        }
     protected:
 
         std::vector<MessageStatistic> _statistics; // statistics per message
@@ -424,6 +427,8 @@ namespace tuplex {
         virtual int64_t writeRow(size_t threadNo, const uint8_t* buf, int64_t bufSize);
         virtual void writeHashedRow(size_t threadNo, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);
         virtual void writeException(size_t threadNo, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);
+
+
     private:
         bool _has_python_resolver;
         CodePathStatistics _codePathStats; // stats per message
@@ -431,9 +436,16 @@ namespace tuplex {
         python::Type _hyperspecializedNormalCaseRowType; // this can be incompatible with the given normal case type which in this case requires a conversion.
         bool _ncAndHyperNCIncompatible;
         std::vector<URI> _output_uris; // where data was actually written to.
+        std::string _lastStat; // information about last invocation/request
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);
         static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);
         static void exceptRowCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);
+
+        struct StatsObject {
+            size_t inputRowCount;
+        };
+        StatsObject _stats;
+
 
         // slow path callbacks
         static int64_t slowPathRowCallback(ThreadEnv *env, uint8_t* buf, int64_t bufSize);
@@ -442,6 +454,8 @@ namespace tuplex {
         inline bool useHyperSpecialization(const tuplex::messages::InvocationRequest& req) {
             return req.stage().has_serializedstage() && !req.stage().serializedstage().empty() && req.inputuris_size() > 0;
         }
+
+        std::string jsonStat(const tuplex::messages::InvocationRequest& req, TransformStage* stage) const;
 
         inline bool astFormatCompatible(const tuplex::messages::InvocationRequest& req) const {
             if(req.stage().has_stageserializationmode()) {

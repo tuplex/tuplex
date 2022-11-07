@@ -625,7 +625,7 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
 
     // hyper on/off
     co.set("tuplex.experimental.hyperspecialization", "true");
-//    co.set("tuplex.experimental.hyperspecialization", "false");
+    //co.set("tuplex.experimental.hyperspecialization", "false");
     co.set("tuplex.aws.lambdaMemory", "10000");
 
     Context c(co);
@@ -643,6 +643,10 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
     pattern = "s3://tuplex-public/data/github_daily/2013*.json";
     pattern = "s3://tuplex-public/data/github_daily/2011*.json,s3://tuplex-public/data/github_daily/2013*.json";
 
+
+    // tinier sample:
+    //pattern = "s3://tuplex-public/data/github_daily_sample/2011*.json.sample,s3://tuplex-public/data/github_daily_sample/2013*.json.sample";
+
     // @TODO: for hyperspecialization active, need to support TakeOperator!!!
 
     c.json(pattern).withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
@@ -654,7 +658,6 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
     //.show(5);
 
     // @TODO: incorrect exceptions reported. I.e., the original badparse string input exceptions are reported - yet should be whatever general-case/fallback yield...
-
 }
 
 TEST_F(PipelinesTest, ZillowAWS) {

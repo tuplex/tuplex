@@ -573,6 +573,7 @@ TEST(BasicInvocation, GithubProcessing) {
 
     std::vector<std::string> messages;
     unsigned pos = 0;
+    bool use_interpreter_only = false;
     for(const auto& path : paths) {
         // transform to message
         vfs = VirtualFileSystem::fromURI(path);
@@ -580,7 +581,7 @@ TEST(BasicInvocation, GithubProcessing) {
         vfs.file_size(path, input_file_size);
         auto json_message = transformStageToReqMessage(tstage, URI(path).toPath(),
                                                        input_file_size, "output_" + std::to_string(++pos) + ".csv",
-                                                       false,
+                                                       use_interpreter_only,
                                                        num_threads,
                                                        spillURI);
 
@@ -598,14 +599,21 @@ TEST(BasicInvocation, GithubProcessing) {
     // start worker within same process to easier debug...
     auto app = make_unique<WorkerApp>(WorkerSettings());
 
-    // // check individual messages that they work
-    // app->processJSONMessage(messages[0]);
-    // return;
+     // check individual messages that they work
+     app->processJSONMessage(messages[1]); // <-- second file is the critical one where something goes wrong...
+     return;
+
+    // reverse
+    std::reverse(messages.begin(), messages.end());
 
     // check all messages
      for(const auto& message : messages) {
         cout<<"Processing message..."<<endl;
         app->processJSONMessage(message);
+
+        // get info (paths and exceptions)
+        auto json_info = app->jsonStats();
+        cout<<json_info<<endl;
      }
 
     app->shutdown();

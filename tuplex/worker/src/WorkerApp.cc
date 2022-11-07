@@ -2047,6 +2047,10 @@ namespace tuplex {
 #endif
                     }
 
+                    // need to update ecCode and operator ID from fallback!
+                    ecCode = fallbackRes.code;
+                    ecOperatorID = fallbackRes.operatorID;
+                    // rc == -1 indicates write it as exception.
                     rc = -1;
                 }
             }

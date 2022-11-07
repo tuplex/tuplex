@@ -82,13 +82,44 @@ TEST(JsonReader, Ranges) {
     auto buf = data_str.data();
     auto buf_size = data_str.size();
 
-    // open up large test file parse in full.
+//    // open up large test file parse in full.
+//    {
+//        auto partitionSize = 128 * 1024 * 1024;
+//        JsonReader reader(nullptr, dummy_read_functor, partitionSize);
+//        reader.read(path);
+//        auto row_count = reader.inputRowCount();
+//        EXPECT_EQ(row_count, 1200);
+//    }
+//
+//    // use buffer smaller than file
+//    {
+//        auto partitionSize = 512 * 1024; // 512KB buffer
+//        JsonReader reader(nullptr, dummy_read_functor, partitionSize);
+//        reader.read(path);
+//        auto row_count = reader.inputRowCount();
+//        EXPECT_EQ(row_count, 1200);
+//    }
+
+    // use ranges
     {
-        auto partitionSize = 128 * 1024 * 1024;
-        JsonReader reader(nullptr, dummy_read_functor, partitionSize);
-        reader.read(path);
-        auto row_count = reader.inputRowCount();
-        EXPECT_EQ(row_count, 1200);
+        auto partitionSize = 512 * 1024; // 512KB buffer
+        auto fileSize = buf_size + 1;
+
+        // parse in 128KB increments
+        auto delta = 128 * 1024;
+        unsigned pos = 0;
+        unsigned total_row_count = 0;
+        while(pos < fileSize) {
+
+            JsonReader reader(nullptr, dummy_read_functor, partitionSize);
+            std::cout<<"reading range: "<<pos<<" - "<<pos + delta<<std::endl;
+            reader.setRange(pos, pos + delta);
+            reader.read(path);
+            auto row_count = reader.inputRowCount();
+            pos += delta;
+            total_row_count += row_count;
+        }
+        EXPECT_EQ(total_row_count, 1200);
     }
 
 }

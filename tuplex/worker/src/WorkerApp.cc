@@ -363,6 +363,7 @@ namespace tuplex {
         assert(numInputRowsProcessed >= exception_row_count);
         _codePathStats.rowsOnNormalPathCount += numInputRowsProcessed - exception_row_count;
         _codePathStats.unresolvedRowsCount += exception_row_count;
+        _codePathStats.inputRowCount += numInputRowsProcessed;
 
         if(rc != WORKER_OK)
             return rc;
@@ -407,6 +408,8 @@ namespace tuplex {
                 processCodes[0] = WORKER_ERROR_EXCEPTION;
             }
             runtime::releaseRunTimeMemory();
+
+            _codePathStats.inputRowCount += numInputRowsProcessed;
         } else {
             // multi-threaded
             // -> split into parts according to size and distribute between threads!
@@ -503,7 +506,7 @@ namespace tuplex {
             numInputRowsProcessed = 0;
             for(auto el : v_inputRowCount)
                 numInputRowsProcessed += el;
-            _stats.inputRowCount = numInputRowsProcessed;
+            _codePathStats.inputRowCount += numInputRowsProcessed;
             logger().debug("All threads joined, processing done. Processed "
                             + pluralize(numInputRowsProcessed, "input row") + ".");
         }
@@ -2670,7 +2673,7 @@ namespace tuplex {
         // input path breakdown:
         ss<<"\"input\":{";
         ss<<"\"input_file_count\":"<<num_input_files<<",";
-        ss<<"\"total_input_row_count\":"<<_stats.inputRowCount<<",";
+        ss<<"\"total_input_row_count\":"<<_codePathStats.inputRowCount<<",";
         ss<<"\"normal\":"<<_codePathStats.rowsOnNormalPathCount<<",";
         ss<<"\"general\":"<<_codePathStats.rowsOnGeneralPathCount<<",";
         ss<<"\"fallback\":"<<_codePathStats.rowsOnInterpreterPathCount<<",";
@@ -2686,9 +2689,9 @@ namespace tuplex {
         using namespace std;
         auto noexcept_in = _codePathStats.rowsOnNormalPathCount + _codePathStats.rowsOnGeneralPathCount + _codePathStats.rowsOnInterpreterPathCount;
         auto except_in = _codePathStats.unresolvedRowsCount.load();
-        cout<<"input row count: "<<_stats.inputRowCount<<" = "
+        cout<<"input row count: "<<_codePathStats.inputRowCount.load()<<" = "
         <<noexcept_in<<" (normal) + "<<except_in<<" (except) . is this true? "
-        <<boolalpha<<(_stats.inputRowCount == noexcept_in + except_in)<<endl;
+        <<boolalpha<<(_codePathStats.inputRowCount.load() == noexcept_in + except_in)<<endl;
 #endif
 
 

@@ -62,12 +62,14 @@ namespace tuplex {
     // consider https://codereview.stackexchange.com/questions/113439/copyable-atomic
 
     struct CodePathStatistics {
+        std::atomic<int64_t> inputRowCount;
         std::atomic<int64_t> rowsOnNormalPathCount;
         std::atomic<int64_t> rowsOnGeneralPathCount;
         std::atomic<int64_t> rowsOnInterpreterPathCount;
         std::atomic<int64_t> unresolvedRowsCount;
 
         void reset() {
+            inputRowCount = 0;
             rowsOnNormalPathCount = 0;
             rowsOnGeneralPathCount = 0;
             rowsOnInterpreterPathCount = 0;
@@ -78,12 +80,14 @@ namespace tuplex {
             reset();
         }
 
-        CodePathStatistics(const CodePathStatistics& other) : rowsOnNormalPathCount(other.rowsOnNormalPathCount.load()),
+        CodePathStatistics(const CodePathStatistics& other) : inputRowCount(other.inputRowCount.load()),
+        rowsOnNormalPathCount(other.rowsOnNormalPathCount.load()),
         rowsOnGeneralPathCount(other.rowsOnGeneralPathCount.load()),
         rowsOnInterpreterPathCount(other.rowsOnInterpreterPathCount.load()),
         unresolvedRowsCount(other.unresolvedRowsCount.load()) {}
 
         CodePathStatistics& operator = (const CodePathStatistics& other) {
+            inputRowCount = other.inputRowCount.load();
             rowsOnNormalPathCount = other.rowsOnNormalPathCount.load();
             rowsOnGeneralPathCount = other.rowsOnGeneralPathCount.load();
             rowsOnInterpreterPathCount = other.rowsOnInterpreterPathCount.load();
@@ -440,12 +444,6 @@ namespace tuplex {
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);
         static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);
         static void exceptRowCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);
-
-        struct StatsObject {
-            size_t inputRowCount;
-        };
-        StatsObject _stats;
-
 
         // slow path callbacks
         static int64_t slowPathRowCallback(ThreadEnv *env, uint8_t* buf, int64_t bufSize);

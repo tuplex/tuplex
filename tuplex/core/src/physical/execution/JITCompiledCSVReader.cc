@@ -328,7 +328,13 @@ namespace tuplex {
         auto endPtrVal = *endPtr;
 
         assert(_inBufferLength > 0);
+
+        int64_t num_normal_rows = 0, num_bad_rows = 0;
         auto bytesParsed = _functor(_userData, _inputBuffer, _inBufferLength, &_num_normal_rows, &_num_bad_rows, !eof);
+
+        _num_normal_rows += num_normal_rows;
+        _num_bad_rows += num_bad_rows;
+
 
         // trick: negative means ECCdode! -> i.e. abort, no need to parse further
         if(bytesParsed < 0) {

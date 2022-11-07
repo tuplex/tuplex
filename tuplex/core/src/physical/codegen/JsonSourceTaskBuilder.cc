@@ -63,12 +63,22 @@ namespace tuplex {
                                                   _general_case_columns, _unwrap_first_level, terminateEarlyOnFailureCode);
 
 
+
+            // debug
+            env().debugPrint(builder, "---");
+             env().printValue(builder, builder.CreateLoad(_rowNumberVar), "row number: ");
+             env().printValue(builder, builder.CreateLoad(_normalRowCountVar), "normal:     ");
+             env().printValue(builder, builder.CreateLoad(_generalRowCountVar), "general:    ");
+             env().printValue(builder, builder.CreateLoad(_fallbackRowCountVar), "fallback:   ");
+             env().printValue(builder, builder.CreateLoad(_badNormalRowCountVar), "bad normal: ");
+             env().debugPrint(builder, "---");
+
             // store in output var info
             llvm::Value* normalRowCount = builder.CreateLoad(_normalRowCountVar);
-            normalRowCount = builder.CreateSub(normalRowCount, builder.CreateLoad(_badNormalRowCountVar));
+            //normalRowCount = builder.CreateSub(normalRowCount, builder.CreateLoad(_badNormalRowCountVar));
             env().storeIfNotNull(builder, normalRowCount, args["outNormalRowCount"]);
             llvm::Value* badRowCount = builder.CreateAdd(builder.CreateLoad(_generalRowCountVar), builder.CreateLoad(_fallbackRowCountVar));
-            badRowCount = builder.CreateAdd(builder.CreateLoad(_badNormalRowCountVar), badRowCount);
+            // badRowCount = builder.CreateAdd(builder.CreateLoad(_badNormalRowCountVar), badRowCount);
             env().storeIfNotNull(builder, badRowCount, args["outBadRowCount"]); // <-- i.e. exceptions
 
             builder.CreateRet(parsed_bytes);
@@ -279,6 +289,9 @@ namespace tuplex {
                     auto bad_row_cond = builder.CreateICmpNE(ecCode, env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
                     // inc
                     auto bad_row_delta = builder.CreateZExt(bad_row_cond, env().i64Type());
+
+                    // debug:
+
                     incVar(builder, _badNormalRowCountVar);
 
                     if(terminateEarlyOnLimitCode)

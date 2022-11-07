@@ -129,8 +129,31 @@ TEST(JsonReader, Ranges) {
         auto partitionSize = 256 * 1024; // 256KB buffer
         auto fileSize = buf_size + 1;
 
-        // parse in 128KB increments
+        // parse in increments
         auto delta = 301 * 1024; // delta bigger than partition buffer.
+        unsigned pos = 0;
+        unsigned total_row_count = 0;
+        while(pos < fileSize) {
+
+            JsonReader reader(nullptr, dummy_read_functor, partitionSize);
+            std::cout<<"reading range: "<<pos<<" - "<<pos + delta<<std::endl;
+            reader.setRange(pos, pos + delta);
+            reader.read(path);
+            auto row_count = reader.inputRowCount();
+            pos += delta;
+            total_row_count += row_count;
+        }
+        EXPECT_EQ(total_row_count, 1200);
+    }
+
+    // use ranges
+    {
+        std::cout<<"Range Test III::"<<std::endl;
+        auto partitionSize = 256 * 1024; // 256KB buffer
+        auto fileSize = buf_size + 1;
+
+        // parse in increments
+        auto delta = 1400 * 1024; // delta bigger than partition buffer.
         unsigned pos = 0;
         unsigned total_row_count = 0;
         while(pos < fileSize) {

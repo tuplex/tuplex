@@ -1945,8 +1945,9 @@ namespace tuplex {
         auto interpretedResolver = preparePythonPipeline(stage->purePythonCode(), stage->pythonPipelineName());
         _has_python_resolver = true;
 
-        // hack
-        compiledResolver = nullptr;
+        // deactivate compiled resolver with this...
+        // // hack
+        // compiledResolver = nullptr;
 
         // debug:
 #ifndef NDEBUG

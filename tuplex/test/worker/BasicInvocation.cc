@@ -564,7 +564,7 @@ TEST(BasicInvocation, GithubProcessing) {
     //     paths.push_back(uri.toString());
     // }
     paths.clear();
-    URI s3_test_uri("s3://tuplex-public/data/github_daily/2021-10-15.json");
+    URI s3_test_uri("s3://tuplex-public/data/github_daily/2013-10-15.json"); // this is off...
     paths.push_back(s3_test_uri.toString());
 
     std::vector<std::string> messages;

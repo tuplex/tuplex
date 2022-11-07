@@ -1296,6 +1296,8 @@ namespace tuplex {
                 if(inputRowCount)
                     *inputRowCount = reader->inputRowCount();
 
+                // more detailed stats
+
                 runtime::rtfree_all();
                 break;
             }

@@ -61,7 +61,10 @@ if __name__ == '__main__':
     input_pattern = 's3://tuplex-public/data/github_daily/*.json' # <-- full dataset
 
     # small sample
-    input_pattern = 's3://tuplex-public/data/github_daily_sample/*.sample'
+    #input_pattern = 's3://tuplex-public/data/github_daily_sample/*.sample'
+
+    input_pattern = 's3://tuplex-public/data/github_daily/2014*.json' # <-- single file   
+
 
     if use_hyper_specialization:
         s3_output_path += '/hyper'

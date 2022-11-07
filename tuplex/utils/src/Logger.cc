@@ -19,19 +19,17 @@ Logger::Logger() : _initialized(false) {
 
 void Logger::initDefault() {
     if(!_initialized) {
-
         try {
             // add later here also an stderr sink...
             _sinks.push_back(std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>());
-#ifndef NDEBUGe
+#ifndef NDEBUG
             // disable slow log in release mode
             _sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>("log.txt"));
 #endif
             _initialized = true;
 
             // create default logger
-        }
-        catch(const spdlog::spdlog_ex& ex) {
+        } catch(const spdlog::spdlog_ex& ex) {
             std::cout<<"[FATAL] Initialization of logging system failed: "<<ex.what()<<std::endl;
             exit(1);
         }
@@ -45,6 +43,11 @@ void Logger::init(const std::vector<spdlog::sink_ptr> &sinks) {
         log.reset();
         log._sinks = sinks;
         log._initialized = true;
+
+        // initialize default logger.
+        log.initDefault();
+
+        assert(!log._sinks.empty());
     }
     catch(const spdlog::spdlog_ex& ex) {
         std::cerr<<"[FATAL] Initialization of logging system failed: "<<ex.what()<<std::endl;
@@ -56,25 +59,31 @@ MessageHandler& Logger::logger(const std::string &name) {
 
     std::unique_lock<std::mutex> lock(_mutex);
 
-    // setup sinks if required
-    initDefault();
+    try {
+        // setup sinks if required
+        initDefault();
 
-    // check if a message handler under this name is already registered
-    // if not create, else return reference
-    auto it = _handlers.find(name);
-    if(it != _handlers.end())
-        return it->second;
-    else {
-        _handlers[name] = MessageHandler().setName(name);
+        // check if a message handler under this name is already registered
+        // if not create, else return reference
+        auto it = _handlers.find(name);
+        if(it != _handlers.end())
+            return it->second;
+        else {
+            _handlers[name] = MessageHandler().setName(name);
 
-        // create the logger and register it
-        auto spdlogger = std::make_shared<spdlog::logger>(name, _sinks.begin(), _sinks.end());
+            // create the logger and register it
+            auto spdlogger = std::make_shared<spdlog::logger>(name, _sinks.begin(), _sinks.end());
 #ifndef NDEBUG
-        spdlogger->set_level(spdlog::level::debug);
+            spdlogger->set_level(spdlog::level::debug);
 #endif
-        spdlog::register_logger(spdlogger);
+            spdlog::register_logger(spdlogger);
 
-        return _handlers[name];
+            return _handlers[name];
+        }
+    } catch(const spdlog::spdlog_ex& ex) {
+        // error on default logger
+        std::cerr<<"exception while attempting to retrieve logger '"<<name<<"': "<<ex.what()<<std::endl;
+        exit(1);
     }
 }
 

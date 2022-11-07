@@ -624,8 +624,8 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
     co.set("tuplex.optimizer.selectionPushdown", "false"); // <-- requires access path detection to work.
 
     // hyper on/off
-    co.set("tuplex.experimental.hyperspecialization", "true");
-    //co.set("tuplex.experimental.hyperspecialization", "false");
+    //co.set("tuplex.experimental.hyperspecialization", "true");
+    co.set("tuplex.experimental.hyperspecialization", "false");
     co.set("tuplex.aws.lambdaMemory", "10000");
 
     Context c(co);

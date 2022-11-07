@@ -565,7 +565,11 @@ TEST(BasicInvocation, GithubProcessing) {
     // }
     paths.clear();
     URI s3_test_uri("s3://tuplex-public/data/github_daily/2013-10-15.json"); // this is off...
+    paths.push_back(URI("s3://tuplex-public/data/github_daily/2011-10-15.json"));
     paths.push_back(s3_test_uri.toString());
+
+    // use 2011 and 2013 but determine pipeline based on 2011
+    // pattern = "s3://tuplex-public/data/github_daily/2011*.json,s3://tuplex-public/data/github_daily/2013*.json";
 
     std::vector<std::string> messages;
     unsigned pos = 0;

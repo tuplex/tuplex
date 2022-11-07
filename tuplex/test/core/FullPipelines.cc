@@ -624,8 +624,8 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
     co.set("tuplex.optimizer.selectionPushdown", "false"); // <-- requires access path detection to work.
 
     // hyper on/off
-    // co.set("tuplex.experimental.hyperspecialization", "true");
-    co.set("tuplex.experimental.hyperspecialization", "false");
+    co.set("tuplex.experimental.hyperspecialization", "true");
+//    co.set("tuplex.experimental.hyperspecialization", "false");
     co.set("tuplex.aws.lambdaMemory", "10000");
 
     Context c(co);
@@ -639,7 +639,9 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
 
     string pattern = "s3://tuplex-public/data/github_daily_sample/*.json.sample";
 
-    pattern = "s3://tuplex-public/data/github_daily/*.json";
+    //    pattern = "s3://tuplex-public/data/github_daily/*.json";
+    pattern = "s3://tuplex-public/data/github_daily/2013*.json";
+    pattern = "s3://tuplex-public/data/github_daily/2011*.json,s3://tuplex-public/data/github_daily/2013*.json";
 
     // @TODO: for hyperspecialization active, need to support TakeOperator!!!
 

@@ -73,12 +73,20 @@ namespace tuplex {
 
         // // dummy for testing
         // _functor = dummy_functor;
+
+        _rangeStart = 0;
+        _rangeEnd = 0;
+        _originalRangeStart = 0;
+        _originalRangeEnd = 0;
     }
 
     void JsonReader::setRange(size_t start, size_t end) {
         assert(start <= end);
         _rangeStart = start;
         _rangeEnd = end;
+
+        _originalRangeStart = start;
+        _originalRangeEnd = end;
     }
 
     void JsonReader::read(const tuplex::URI &inputFilePath) {
@@ -126,7 +134,6 @@ namespace tuplex {
             // this is required because of the SSE42 instructions
             memset(_inputBuffer + _inBufferLength, 0, simd_security_bytes);
 
-
             // address header & co
             if(firstBlock) {
                 // if range is used and rangestart is different than zero detect start and move buffer
@@ -142,6 +149,7 @@ namespace tuplex {
                         // abort if not start could be found
                         if(j_offset < 0)
                             throw std::runtime_error("could not find json start in JsonReader, aborting task");
+                        jsonStartOffset = j_offset;
                         moveInputBuffer(static_cast<size_t>(j_offset), simd_security_bytes); // move to correct offset
                     }
                 }
@@ -217,6 +225,11 @@ namespace tuplex {
             // check if range expired
             if(useRange && rangeBytesRead > (_rangeEnd - _rangeStart))
                 break;
+        }
+
+        // range bytes read
+        if(useRange) {
+           // std::cout<<"actual range read: "<<_rangeStart<<"-"<<_rangeStart + rangeBytesRead<<std::endl;
         }
     }
 

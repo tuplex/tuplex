@@ -61,6 +61,18 @@ namespace tuplex {
         static const std::string tuplexRuntimePath;
         static const bool verifySSL;
 
+        void storeInvokeRequest() override {
+            // convert current message to JSON and upload to S3 (scratch dir)
+            std::string json_buf;
+            google::protobuf::util::MessageToJsonString(_currentMessage, &json_buf);
+            auto output_uri = URI(_settings.spillRootURI.toString() + "/original_request.json");
+
+            auto vf = VirtualFileSystem::fromURI(output_uri).open_file(output_uri, VirtualFileMode::VFS_WRITE | VirtualFileMode::VFS_TEXTMODE);
+            vf->write(json_buf.c_str(), json_buf.size());
+            vf->close();
+            logger().info("stored invoke request under " + output_uri.toString());
+        }
+
         int processMessage(const tuplex::messages::InvocationRequest& req) override;
 
         MessageHandler& logger() const override {

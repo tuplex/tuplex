@@ -210,6 +210,9 @@ namespace tuplex {
 
         std::vector<MessageStatistic> _statistics; // statistics per message
 
+        tuplex::messages::InvocationRequest _currentMessage;
+        virtual void storeInvokeRequest() {}
+
         WorkerSettings settingsFromMessage(const tuplex::messages::InvocationRequest& req);
 
         virtual int processMessage(const tuplex::messages::InvocationRequest& req);

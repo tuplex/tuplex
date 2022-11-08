@@ -196,7 +196,17 @@ namespace tuplex {
 
     std::unique_ptr<VirtualFile> VirtualFileSystem::open_file(const URI &uri, VirtualFileMode vfm) {
         auto impl = getFileSystemImpl(uri);
-        return impl ? impl->open_file(uri, vfm) : nullptr;
+
+        // is it a range based uri?
+        URI target_uri;
+        size_t range_start = 0, range_end = 0;
+        decodeRangeURI(uri.toString(), target_uri, range_start, range_end);
+
+        auto file = impl ? impl->open_file(target_uri, vfm) : nullptr;
+        if(file && (range_start != 0 && range_end != 0)) {
+            file->seek(range_start);
+        }
+        return file;
     }
 
     std::unique_ptr<VirtualMappedFile> VirtualFileSystem::map_file(const URI &uri) {

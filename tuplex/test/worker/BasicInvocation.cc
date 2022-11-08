@@ -606,8 +606,17 @@ TEST(BasicInvocation, GithubProcessing) {
     // start worker within same process to easier debug...
     auto app = make_unique<WorkerApp>(WorkerSettings());
 
+    string test_input_uri = "s3://tuplex-public/data/github_daily/2020-10-15.json:3758096384-4026531840";
+
+    // replace
+    auto j = nlohmann::json::parse(messages[0]);
+    auto arr = nlohmann::json::array();
+    arr.push_back(test_input_uri);
+    j["inputURIS"] = arr;
+    messages[0] = j.dump();
+
      // check individual messages that they work
-     app->processJSONMessage(messages[1]); // <-- second file is the critical one where something goes wrong...
+     app->processJSONMessage(messages[0]); // <-- second file is the critical one where something goes wrong...
      return;
 
     // reverse

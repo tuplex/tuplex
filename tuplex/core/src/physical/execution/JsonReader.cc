@@ -287,7 +287,9 @@ namespace tuplex {
                 // special case!
                 throw std::runtime_error("All ok here, just need to add the necessary logic...");
 
-            throw std::runtime_error("Json read failed with code " + std::to_string(-bytesParsed));
+            std::stringstream err;
+            err<<"Json read failed with code " + std::to_string(-bytesParsed);
+            throw std::runtime_error(err.str());
         }
 
         return bytesParsed;

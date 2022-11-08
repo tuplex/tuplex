@@ -431,7 +431,8 @@ TEST(BasicInvocation, HashOutput) {
 
 
 tuplex::TransformStage* create_github_stage(const std::string& test_path, const std::string& test_output_path,
-                                            bool enable_nvo, const tuplex::ContextOptions& co) {
+                                            bool enable_nvo, const tuplex::ContextOptions& co,
+                                            bool hyper_mode) {
     using namespace tuplex;
     using namespace std;
 
@@ -467,8 +468,11 @@ tuplex::TransformStage* create_github_stage(const std::string& test_path, const 
     // non hyper mode
     // return builder.build();
 
-    // hyper mode!
-    return builder.encodeForSpecialization(nullptr, nullptr, true, false, true);
+    if(hyper_mode)
+        // hyper mode!
+        return builder.encodeForSpecialization(nullptr, nullptr, true, false, true);
+    else
+        return builder.build();
 }
 
 TEST(BasicInvocation, GithubProcessing) {
@@ -504,6 +508,8 @@ TEST(BasicInvocation, GithubProcessing) {
     auto test_path = URI("file://../../../resources/hyperspecialization/github_daily/*.json.sample");
     auto test_output_path = URI("file://output.txt");
     auto spillURI = std::string("spill_folder");
+
+    auto hyper_mode = false;
 
 //    // S3 paths?
 //    test_path = URI("s3://tuplex-public/data/flights_on_time_performance_2009_01.csv");
@@ -550,7 +556,7 @@ TEST(BasicInvocation, GithubProcessing) {
     ContextOptions co = ContextOptions::defaults();
     auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
     co.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", enable_nvo ? "true" : "false");
-    auto tstage = create_github_stage(test_path.toString(), test_output_path.toString(), enable_nvo, co);
+    auto tstage = create_github_stage(test_path.toString(), test_output_path.toString(), enable_nvo, co, hyper_mode);
 
     // update test path
     auto paths = glob(test_path.toPath());
@@ -580,7 +586,7 @@ TEST(BasicInvocation, GithubProcessing) {
     std::vector<std::string> messages;
     unsigned pos = 0;
     bool use_interpreter_only = false;
-    num_threads = 0; // single threaded.
+    num_threads = 0; // single threaded. // 'tuplex.aws.lambdaThreads': '2'
     for(const auto& path : paths) {
         // transform to message
         vfs = VirtualFileSystem::fromURI(path);
@@ -605,6 +611,8 @@ TEST(BasicInvocation, GithubProcessing) {
 
     // start worker within same process to easier debug...
     auto app = make_unique<WorkerApp>(WorkerSettings());
+
+    // problematic for hyoer: s3://tuplex-public/data/github_daily/2020-10-15.json:1610612736-1879048192
 
     string test_input_uri = "s3://tuplex-public/data/github_daily/2020-10-15.json:3758096384-4026531840";
     test_input_uri = "s3://tuplex-public/data/github_daily/2020-10-15.json:5637144576-5905580032";

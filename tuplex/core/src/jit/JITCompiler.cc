@@ -145,6 +145,10 @@ namespace tuplex {
         // do not perform codegen here, should be done separately
         tmb.setCodeGenOptLevel(CodeGenOpt::Less); // <-- use this to speed up compile.
 
+#ifdef BOOST_OS_LINUX
+        tmb.setCodeGenOptLevel(CodeGenOpt::None); // <-- use no codegen opt.
+#endif
+
         // small code model does not work under MacOS. -.-
         // tmb.setCodeModel(CodeModel::Small); // <-- use this to speed up compute.
 #ifdef MACOS

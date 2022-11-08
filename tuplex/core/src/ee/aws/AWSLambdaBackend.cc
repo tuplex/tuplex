@@ -936,57 +936,138 @@ namespace tuplex {
 
         std::vector<messages::InvocationRequest> requests;
 
+        size_t splitSize = 256 * 1024 * 1024; // 256MB split size for now.
+        size_t total_size = 0;
+        for(auto info : uri_infos) {
+            total_size += std::get<1>(info);
+        }
+
+        logger().info("Found " + pluralize(uri_infos.size(), "uri")
+        + " with total size = " + sizeToMemString(total_size));
+
+        // new: part based
         // Note: for now, super simple: 1 request per file (this is inefficient, but whatever)
         // @TODO: more sophisticated splitting of workload!
         Timer timer;
         int num_digits = ilog10c(uri_infos.size());
         for (int i = 0; i < uri_infos.size(); ++i) {
             auto info = uri_infos[i];
-            messages::InvocationRequest req;
-            req.set_type(messages::MessageType::MT_TRANSFORM);
-            auto pb_stage = tstage->to_protobuf();
 
-            pb_stage->set_bitcode(bitCode);
+            // the smaller
+            auto uri_size = std::get<1>(info);
+            auto num_parts_per_file = uri_size / splitSize;
 
-            req.set_allocated_stage(pb_stage.release());
+            auto num_digits_part = ilog10c(num_parts_per_file + 1);
+            int part_no = 0;
+            size_t cur_size = 0;
+            while(cur_size < uri_size) {
+                messages::InvocationRequest req;
+                req.set_type(messages::MessageType::MT_TRANSFORM);
+                auto pb_stage = tstage->to_protobuf();
 
-            // add request for this
-            auto inputURI = std::get<0>(info);
-            auto inputSize = std::get<1>(info);
-            req.add_inputuris(inputURI);
-            req.add_inputsizes(inputSize);
+                auto rangeStart = cur_size;
+                auto rangeEnd = std::min(cur_size + splitSize, uri_size);
 
-            // worker config
-            auto ws = std::make_unique<messages::WorkerSettings>();
-            ws->set_numthreads(numThreads);
-            ws->set_normalbuffersize(buf_spill_size);
-            ws->set_exceptionbuffersize(buf_spill_size);
-            ws->set_spillrooturi(spillURI + "/lam" + fixedPoint(i, num_digits) + "/");
-            ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
-            ws->set_normalcasethreshold(_options.NORMALCASE_THRESHOLD());
-            req.set_allocated_settings(ws.release());
+                pb_stage->set_bitcode(bitCode);
 
-            req.set_verboselogging(_options.AWS_VERBOSE_LOGGING());
+                req.set_allocated_stage(pb_stage.release());
 
-            // output uri of job? => final one? parts?
-            // => create temporary if output is local! i.e. to memory etc.
-            int taskNo = i;
-            if (tstage->outputMode() == EndPointMode::MEMORY) {
-                // create temp file in scratch dir!
-                req.set_baseoutputuri(scratchDir(hintsFromTransformStage(tstage)).join_path("output.part" + fixedLength(taskNo, num_digits)).toString());
-            } else if (tstage->outputMode() == EndPointMode::FILE) {
-                // create output URI based on taskNo
-                auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), taskNo, tstage->outputFormat());
-                req.set_baseoutputuri(uri.toPath());
-            } else if (tstage->outputMode() == EndPointMode::HASHTABLE) {
-                // there's two options now, either this is an end-stage (i.e., unique/aggregateByKey/...)
-                // or an intermediate stage where a temp hash-table is required.
-                // in any case, because compute is done on Lambda materialize hash-table as temp file.
-                auto temp_uri = tempStageURI(tstage->number());
-                req.set_baseoutputuri(temp_uri.toString());
-            } else throw std::runtime_error("unknown output endpoint in lambda backend");
-            requests.push_back(req);
+                // add request for this
+                auto inputURI = std::get<0>(info);
+                auto inputSize = std::get<1>(info);
+                inputURI += ":" + std::to_string(rangeStart) + "-" + std::to_string(rangeEnd);
+                req.add_inputuris(inputURI);
+                req.add_inputsizes(inputSize);
+
+                // worker config
+                auto ws = std::make_unique<messages::WorkerSettings>();
+                ws->set_numthreads(numThreads);
+                ws->set_normalbuffersize(buf_spill_size);
+                ws->set_exceptionbuffersize(buf_spill_size);
+                ws->set_spillrooturi(spillURI + "/lam" + fixedPoint(i, num_digits) + "/" + fixedPoint(part_no, num_digits_part));
+                ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
+                ws->set_normalcasethreshold(_options.NORMALCASE_THRESHOLD());
+                req.set_allocated_settings(ws.release());
+
+                req.set_verboselogging(_options.AWS_VERBOSE_LOGGING());
+
+                // output uri of job? => final one? parts?
+                // => create temporary if output is local! i.e. to memory etc.
+                int taskNo = i;
+                if (tstage->outputMode() == EndPointMode::MEMORY) {
+                    // create temp file in scratch dir!
+                    req.set_baseoutputuri(scratchDir(hintsFromTransformStage(tstage)).join_path("output.part" + fixedLength(taskNo, num_digits) + "_" +
+                                                                                                        fixedLength(part_no, num_digits_part)).toString());
+                } else if (tstage->outputMode() == EndPointMode::FILE) {
+                    // create output URI based on taskNo
+                    auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), taskNo, tstage->outputFormat());
+                    req.set_baseoutputuri(uri.toPath());
+                } else if (tstage->outputMode() == EndPointMode::HASHTABLE) {
+                    // there's two options now, either this is an end-stage (i.e., unique/aggregateByKey/...)
+                    // or an intermediate stage where a temp hash-table is required.
+                    // in any case, because compute is done on Lambda materialize hash-table as temp file.
+                    auto temp_uri = tempStageURI(tstage->number());
+                    req.set_baseoutputuri(temp_uri.toString());
+                } else throw std::runtime_error("unknown output endpoint in lambda backend");
+                requests.push_back(req);
+
+                part_no++;
+                cur_size += splitSize;
+            }
         }
+
+        // old (not part based)
+//        // Note: for now, super simple: 1 request per file (this is inefficient, but whatever)
+//        // @TODO: more sophisticated splitting of workload!
+//        Timer timer;
+//        int num_digits = ilog10c(uri_infos.size());
+//        for (int i = 0; i < uri_infos.size(); ++i) {
+//            auto info = uri_infos[i];
+//            messages::InvocationRequest req;
+//            req.set_type(messages::MessageType::MT_TRANSFORM);
+//            auto pb_stage = tstage->to_protobuf();
+//
+//            pb_stage->set_bitcode(bitCode);
+//
+//            req.set_allocated_stage(pb_stage.release());
+//
+//            // add request for this
+//            auto inputURI = std::get<0>(info);
+//            auto inputSize = std::get<1>(info);
+//            req.add_inputuris(inputURI);
+//            req.add_inputsizes(inputSize);
+//
+//            // worker config
+//            auto ws = std::make_unique<messages::WorkerSettings>();
+//            ws->set_numthreads(numThreads);
+//            ws->set_normalbuffersize(buf_spill_size);
+//            ws->set_exceptionbuffersize(buf_spill_size);
+//            ws->set_spillrooturi(spillURI + "/lam" + fixedPoint(i, num_digits) + "/");
+//            ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
+//            ws->set_normalcasethreshold(_options.NORMALCASE_THRESHOLD());
+//            req.set_allocated_settings(ws.release());
+//
+//            req.set_verboselogging(_options.AWS_VERBOSE_LOGGING());
+//
+//            // output uri of job? => final one? parts?
+//            // => create temporary if output is local! i.e. to memory etc.
+//            int taskNo = i;
+//            if (tstage->outputMode() == EndPointMode::MEMORY) {
+//                // create temp file in scratch dir!
+//                req.set_baseoutputuri(scratchDir(hintsFromTransformStage(tstage)).join_path("output.part" + fixedLength(taskNo, num_digits)).toString());
+//            } else if (tstage->outputMode() == EndPointMode::FILE) {
+//                // create output URI based on taskNo
+//                auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), taskNo, tstage->outputFormat());
+//                req.set_baseoutputuri(uri.toPath());
+//            } else if (tstage->outputMode() == EndPointMode::HASHTABLE) {
+//                // there's two options now, either this is an end-stage (i.e., unique/aggregateByKey/...)
+//                // or an intermediate stage where a temp hash-table is required.
+//                // in any case, because compute is done on Lambda materialize hash-table as temp file.
+//                auto temp_uri = tempStageURI(tstage->number());
+//                req.set_baseoutputuri(temp_uri.toString());
+//            } else throw std::runtime_error("unknown output endpoint in lambda backend");
+//            requests.push_back(req);
+//        }
 
         logger().info("Created " + std::to_string(requests.size()) + " LAMBDA requests.");
 

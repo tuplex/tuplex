@@ -404,7 +404,11 @@ namespace tuplex {
                         break;
                     numInputRowsProcessed += inputRowCount;
                 }
+            } catch(const std::exception& e) {
+                logger().error("exception occurred in single-threaded mode: " + e.what());
+                processCodes[0] = WORKER_ERROR_EXCEPTION;
             } catch(...) {
+                logger().error("unknown exception occurred in single-threaded mode.");
                 processCodes[0] = WORKER_ERROR_EXCEPTION;
             }
             runtime::releaseRunTimeMemory();

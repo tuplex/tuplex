@@ -139,6 +139,8 @@ namespace tuplex {
             return WORKER_ERROR_INVALID_JSON_MESSAGE;
         }
 
+        _currentMessage = req;
+
         // get worker settings from message, if they differ from current setup -> reinitialize worker!
         auto settings = settingsFromMessage(req);
         if(settings != _settings)
@@ -525,6 +527,9 @@ namespace tuplex {
         }
         delete [] processCodes;
         if(failed) {
+            // save invoke message to scratch
+            storeInvokeRequest();
+
             return WORKER_ERROR_PIPELINE_FAILED;
         }
         logger().info("fast path took: " + std::to_string(fastPathTimer.time()) + "s");

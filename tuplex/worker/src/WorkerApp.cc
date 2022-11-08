@@ -405,7 +405,7 @@ namespace tuplex {
                     numInputRowsProcessed += inputRowCount;
                 }
             } catch(const std::exception& e) {
-                logger().error("exception occurred in single-threaded mode: " + e.what());
+                logger().error("exception occurred in single-threaded mode: " + std::string(e.what()));
                 processCodes[0] = WORKER_ERROR_EXCEPTION;
             } catch(...) {
                 logger().error("unknown exception occurred in single-threaded mode.");

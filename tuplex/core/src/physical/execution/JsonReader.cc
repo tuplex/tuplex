@@ -272,6 +272,13 @@ namespace tuplex {
             throw std::runtime_error("functor in JsonReader is nullptr, compile error?");
         }
 
+        // make utf8 compatible.
+        bool is_utf8 = simdjson::validate_utf8(reinterpret_cast<const char *>(_inputBuffer), _inBufferLength);
+        std::cout<<"buf is utf8: "<<is_utf8<<std::endl;
+
+        // need to check that last chars form valid utf8 sequence (max 4 chars)
+        assert(_inBufferLength >= 4);
+
         int64_t num_normal_rows = 0, num_bad_rows = 0;
         auto bytesParsed = _functor(_userData, _inputBuffer, _inBufferLength, &num_normal_rows, &num_bad_rows, !eof);
 

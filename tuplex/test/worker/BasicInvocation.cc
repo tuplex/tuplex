@@ -626,6 +626,8 @@ TEST(BasicInvocation, GithubProcessing) {
     j["inputURIS"] = arr;
     messages[0] = j.dump();
 
+    messages[0] = fileToString("/Users/leonhards/projects/tuplex-public/original_request.json");
+
      // check individual messages that they work
      app->processJSONMessage(messages[0]); // <-- second file is the critical one where something goes wrong...
      return;

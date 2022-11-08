@@ -63,7 +63,7 @@ if __name__ == '__main__':
     # small sample
     #input_pattern = 's3://tuplex-public/data/github_daily_sample/*.sample'
 
-    input_pattern = 's3://tuplex-public/data/github_daily/2014*.json' # <-- single file   
+    input_pattern = 's3://tuplex-public/data/github_daily/2011*.json,s3://tuplex-public/data/github_daily/2013*.json' # <-- single file   
 
 
     if use_hyper_specialization:
@@ -89,6 +89,8 @@ if __name__ == '__main__':
             "aws.lambdaThreads": lambda_threads,
             "aws.httpThreadCount": 410,
             "aws.maxConcurrency": 410,
+            'tuplex.aws.lambdaThreads': 0,
+            'tuplex.aws.verboseLogging':True,
             'tuplex.csv.maxDetectionMemory': '256KB',
             "aws.scratchDir": s3_scratch_dir,
             "experimental.hyperspecialization": use_hyper_specialization,

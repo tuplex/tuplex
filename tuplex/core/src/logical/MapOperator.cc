@@ -24,8 +24,6 @@ namespace tuplex {
         assert(parent);
 
         bool udf_well_defined = udf.hasWellDefinedTypes();
-        std::cout<<"UDF welldefined: "<<std::boolalpha<<udf_well_defined<<std::endl;
-
         bool typeUDF = !udf_well_defined || (parent && parent->getOutputSchema() != _udf.getInputSchema());
 
         if(typeUDF) {

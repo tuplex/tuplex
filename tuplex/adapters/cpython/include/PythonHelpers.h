@@ -194,17 +194,19 @@ namespace python {
      * compiles code given as string and returns pickled version of it.
      * @param mainModule module where to add code to
      * @param code python code as C++ string
+     * @param err_stream optional output of errors
      * @return pickled version of the object submitted. Empty string if error occured.
      */
-    extern std::string serializeFunction(PyObject* mainModule, const std::string& code);
+    extern std::string serializeFunction(PyObject* mainModule, const std::string& code, std::ostream* err_stream=nullptr);
 
     /*!
      * compiles code and returns callable
      * @param mainModule module where to add code to
      * @param code python code as C++ string
+     * @param err_stream optional output of errors
      * @return NULL if compilation failed, else callable object.
      */
-    extern PyObject* compileFunction(PyObject* mainModule, const std::string& code);
+    extern PyObject* compileFunction(PyObject* mainModule, const std::string& code, std::ostream* err_stream=nullptr);
 
     /*!
      * calls (depickled) function pFunc on pObj.

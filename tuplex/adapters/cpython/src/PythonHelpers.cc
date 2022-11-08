@@ -299,8 +299,7 @@ namespace python {
         }
     }
 
-    PyObject* compileFunction(PyObject* mainModule, const std::string& code) {
-        MessageHandler& logger = Logger::instance().logger("python");
+    PyObject* compileFunction(PyObject* mainModule, const std::string& code, std::ostream* err_stream) {
 
         assert(mainModule);
 
@@ -324,7 +323,9 @@ namespace python {
 
             // make sure it is not dumps or loads
             if(funcName == "dumps" || funcName == "loads") {
-                logger.error("can not serialize function '" + funcName + "' in module because of conflict with cloudpickle functions");
+                if(err_stream)
+                    *err_stream<<"can not serialize function '"<<funcName
+                    <<"' in module because of conflict with cloudpickle functions";
                 return nullptr;
             }
 
@@ -374,8 +375,8 @@ namespace python {
         }
     }
 
-    std::string serializeFunction(PyObject* mainModule, const std::string& code) {
-        auto func = compileFunction(mainModule, code);
+    std::string serializeFunction(PyObject* mainModule, const std::string& code, std::ostream* err_stream) {
+        auto func = compileFunction(mainModule, code, err_stream);
         if(!func)
             return "";
 
@@ -384,7 +385,8 @@ namespace python {
         // now serialize the damn thing
         auto pDumpsFunc = PyObject_GetAttrString(mainModule, "dumps");
         if(!pDumpsFunc) {
-            Logger::instance().defaultLogger().info("dumps not found in mainModule!");
+            if(err_stream)
+                *err_stream<<"dumps not found in mainModule!";
             return "";
         }
         assert(pDumpsFunc);

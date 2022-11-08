@@ -525,7 +525,7 @@ TEST(BasicInvocation, GithubProcessing) {
 //    spillURI = URI(std::string("s3://") + S3_TEST_BUCKET + "/scratch/spill_folder/").toString();
 
     size_t num_threads = 4;
-    num_threads = 4;
+    num_threads = 2;
 
     // need to init AWS SDK...
 #ifdef BUILD_WITH_AWS
@@ -586,7 +586,7 @@ TEST(BasicInvocation, GithubProcessing) {
     std::vector<std::string> messages;
     unsigned pos = 0;
     bool use_interpreter_only = false;
-    num_threads = 0; // single threaded. // 'tuplex.aws.lambdaThreads': '2'
+    num_threads = 2; // single threaded. // 'tuplex.aws.lambdaThreads': '2'
     for(const auto& path : paths) {
         // transform to message
         vfs = VirtualFileSystem::fromURI(path);

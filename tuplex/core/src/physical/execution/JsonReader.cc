@@ -273,14 +273,27 @@ namespace tuplex {
         }
 
         // make utf8 compatible.
-        bool is_utf8 = simdjson::validate_utf8(reinterpret_cast<const char *>(_inputBuffer), _inBufferLength);
-        std::cout<<"buf is utf8: "<<is_utf8<<std::endl;
-
         // need to check that last chars form valid utf8 sequence (max 4 chars)
         assert(_inBufferLength >= 4);
 
+        auto buf_length = _inBufferLength;
+
+        const char* last_byte = reinterpret_cast<const char*>(_inputBuffer + buf_length);
+        while(last_byte-- > reinterpret_cast<const char*>(_inputBuffer)) {
+            if((*last_byte & 0xC0) != 0x80) // found intial byte of valid UTF8 sequence
+                break;
+        }
+        buf_length = last_byte - reinterpret_cast<const char*>(_inputBuffer); // clamp...
+
+#ifndef NDEBUG
+        // CHECK:
+        bool full_buf_is_utf8 = simdjson::validate_utf8(reinterpret_cast<const char *>(_inputBuffer), _inBufferLength);
+        bool clamped_buf_is_utf8 = simdjson::validate_utf8(reinterpret_cast<const char *>(_inputBuffer), buf_length);
+        assert(clamped_buf_is_utf8);
+        std::cout<<"full buf is utf8: "<<std::boolalpha<<full_buf_is_utf8<<" clamped buf: "<<clamped_buf_is_utf8<<std::endl;
+#endif
         int64_t num_normal_rows = 0, num_bad_rows = 0;
-        auto bytesParsed = _functor(_userData, _inputBuffer, _inBufferLength, &num_normal_rows, &num_bad_rows, !eof);
+        auto bytesParsed = _functor(_userData, _inputBuffer, buf_length, &num_normal_rows, &num_bad_rows, !eof);
 
         _num_normal_rows += num_normal_rows;
         _num_bad_rows += num_bad_rows;

@@ -136,9 +136,6 @@ namespace tuplex {
         }
 
         uint64_t JsonParser_getDocType(JsonParser *j) {
-            if(!j)
-                return 0;
-
             assert(j);
             // i.e. simdjson::ondemand::json_type::object:
             // or simdjson::ondemand::json_type::array:
@@ -166,19 +163,9 @@ namespace tuplex {
                 }
 
                 if(simdjson::error_code::UTF8_ERROR == error) {
-
                     auto idx = j->it.current_index();
                     std::cerr<<"UTF-8 error at index: "<<idx<<std::endl;
-
-                    //std::cerr<<j->it.source()<<std::endl;
-                    // locate error
-                    std::stringstream ss;
-                    doc.value().dump_raw_tape(ss);
-
-                    std::cerr<<ss.str()<<std::endl;
-                    return 0;
                 }
-
 
                 std::stringstream ss;
                 ss<<error; // <-- can get error description like this
@@ -196,10 +183,7 @@ namespace tuplex {
                 return 0;
             }
 
-            if(line_type == simdjson::dom::element_type::OBJECT)
-                return static_cast<uint64_t>(line_type);
-            else
-                return 0;
+            return static_cast<uint64_t>(line_type);
         }
 
 
@@ -293,9 +277,6 @@ namespace tuplex {
         }
 
         uint64_t JsonItem_getStringAndSize(JsonItem *item, const char *key, char **out, int64_t *size) {
-            if(!item)
-                return ecToI64(ExceptionCode::NULLERROR);
-
             assert(item);
             assert(key);
             assert(out);

@@ -52,11 +52,31 @@ namespace tuplex {
     aligned_string FileInputOperator::loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode, bool use_cache, size_t* file_offset) {
         auto &logger = Logger::instance().logger("fileinputoperator");
 
-        // correct sample size for small files
-        sampleSize = std::min(sampleSize, file_size);
-
         if(0 == file_size || uri == URI::INVALID)
             return "";
+
+        // is the URI range based?
+        size_t range_start = 0, range_end = 0;
+        size_t range_size = 0;
+        URI target_uri;
+        decodeRangeURI(uri.toString(), target_uri, range_start, range_end);
+
+        // both 0? no restriction
+        if(range_start == 0 && range_end == 0) {
+            range_end = file_size;
+            range_size = file_size;
+        } else {
+            // restrict!
+            range_size = range_end - range_start;
+        }
+
+        if(0 == range_size)
+            return "";
+
+        assert(range_size > 0);
+
+        // correct sample size for small files
+        sampleSize = std::min(sampleSize, range_size);
 
         auto key = std::make_tuple(uri, perFileMode(mode));
         if(use_cache) {
@@ -68,36 +88,43 @@ namespace tuplex {
 
         auto vfs = VirtualFileSystem::fromURI(uri);
         auto read_mode = VirtualFileMode::VFS_READ;
-        auto vf = vfs.open_file(uri, read_mode);
+        auto vf = vfs.open_file(target_uri, read_mode);
         if (!vf) {
             logger.error("could not open file " + uri.toString());
             return "";
         }
 
+        // if range_start != 0 -> seek
+        if(0 != range_start)
+            vf->seek(range_start);
+
         if(file_offset)
-            *file_offset = 0;
+            *file_offset = range_start;
 
         // determine sample size
-        if (file_size > sampleSize)
-            sampleSize = core::floorToMultiple(std::min(sampleSize, file_size), 16ul);
+        if (range_size > sampleSize)
+            sampleSize = core::floorToMultiple(std::min(sampleSize, range_size), 16ul);
         else {
-            sampleSize = core::ceilToMultiple(std::min(sampleSize, file_size), 16ul);
+            sampleSize = core::ceilToMultiple(std::min(sampleSize, range_size), 16ul);
         }
+
+        if(0 == sampleSize)
+            return "";
 
         // depending on sampling mode seek in file!
         switch(mode) {
             case SamplingMode::LAST_ROWS: {
-                vf->seek(file_size - sampleSize);
+                vf->seek(range_size - sampleSize);
                 if(file_offset)
-                    *file_offset = file_size - sampleSize;
+                    *file_offset = range_start + range_size - sampleSize;
                 break;
             }
             case SamplingMode::RANDOM_ROWS: {
                 // random seek between 0 and file_size - sampleSize
-                auto randomSeekOffset = randi(0ul, file_size - sampleSize);
+                auto randomSeekOffset = randi(0ul, range_size - sampleSize);
                 vf->seek(randomSeekOffset);
                 if(file_offset)
-                    *file_offset = randomSeekOffset;
+                    *file_offset = range_start + randomSeekOffset;
                 break;
             }
             default:

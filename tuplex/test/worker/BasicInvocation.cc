@@ -628,8 +628,10 @@ TEST(BasicInvocation, GithubProcessing) {
 //
     // messages[0] = fileToString("/home/leonhard/projects/tuplex-public/original_request.json");
 
+    auto message = fileToString(URI("/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_2.json"));
+
      // check individual messages that they work
-     app->processJSONMessage(messages[0]); // <-- second file is the critical one where something goes wrong...
+     app->processJSONMessage(message); // <-- second file is the critical one where something goes wrong...
      return;
 
     // reverse

@@ -690,6 +690,17 @@ namespace tuplex {
         }
         if(!requests.empty()) {
             logger().info("Invoking " + pluralize(requests.size(), "request") + " ...");
+
+#ifndef NDEBUG
+            logger().debug("Emitting request files for easier debugging...");
+            for(unsigned i = 0; i < requests.size(); ++i) {
+                std::string json_buf;
+                google::protobuf::util::MessageToJsonString(requests[i], &json_buf);
+                stringToFile(URI("request_" + std::to_string(i) + ".json"), json_buf);
+            }
+            logger().debug("Debug files written (" + pluralize(requests.size(), "file") + ").");
+#endif
+
             for(const auto& req : requests)
                 invokeAsync(req);
             logger().info("LAMBDA requesting took "+ std::to_string(timer.time()) + "s");

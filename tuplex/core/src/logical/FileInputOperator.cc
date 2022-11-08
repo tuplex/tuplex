@@ -1391,6 +1391,26 @@ namespace tuplex {
             return {};
         }
 
+        // decode range based uri (and adjust seeking accordingly!)
+        // is the URI range based?
+        size_t range_start = 0, range_end = 0;
+        size_t range_size = 0;
+        URI target_uri;
+        decodeRangeURI(uri.toString(), target_uri, range_start, range_end);
+
+        // both 0? no restriction
+        if(range_start == 0 && range_end == 0) {
+            range_end = uri_size;
+            range_size = uri_size;
+        } else {
+            // restrict!
+            range_size = range_end - range_start;
+        }
+
+        if(0 == range_size || target_uri == URI::INVALID)
+            return {};
+
+
         SamplingMode m = mode;
 
         // sample in no unwrap mode -> unwrap later on demand. -> requires special treatment in resample.
@@ -1404,7 +1424,17 @@ namespace tuplex {
         if(m & SamplingMode::FIRST_ROWS) {
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::FIRST_ROWS, true);
             auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str()));
-            v = parseRowsFromJSON(sample.c_str(), sample_length, outNames, outNames, _json_treat_heterogenous_lists_as_tuples);
+
+            size_t start_offset = 0;
+            // range start != 0?
+            if(0 != range_start) {
+                start_offset = findNLJsonStart(sample.c_str(), sample_length);
+                if(start_offset < 0)
+                    return {};
+                sample_length -= std::min((size_t)start_offset, sample_length);
+            }
+
+            v = parseRowsFromJSON(sample.c_str() + start_offset, sample_length, outNames, outNames, _json_treat_heterogenous_lists_as_tuples);
         }
 
         if(m & SamplingMode::LAST_ROWS) {

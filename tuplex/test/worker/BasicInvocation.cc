@@ -628,8 +628,26 @@ TEST(BasicInvocation, GithubProcessing) {
 //
     // messages[0] = fileToString("/home/leonhard/projects/tuplex-public/original_request.json");
 
-    auto message = fileToString(URI("/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_2.json"));
+    {
+        // fetch sample
+        auto sample_size = ContextOptions::defaults().SAMPLE_SIZE();
+        // s3://tuplex-public/data/github_daily/2021-10-15.json:2952790016-3221225472
+        auto vf = VirtualFileSystem::open_file(URI("s3://tuplex-public/data/github_daily/2021-10-15.json"), VirtualFileMode::VFS_READ | VirtualFileMode::VFS_TEXTMODE);
+        vf->seek(2952790016ul);
+        char sample_buf[sample_size + 1];
+        sample_buf[sample_size] = '\0';
+        size_t bytes_read = 0;
+        vf->readOnly(sample_buf, sample_size, &bytes_read);
+        vf->close();
 
+        std::string sample(sample_buf);
+        stringToFile("sample.txt", sample);
+    }
+
+
+
+//    auto message = fileToString(URI("/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_2.json"));
+    auto message = fileToString(URI("/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_145.json"));
      // check individual messages that they work
      app->processJSONMessage(message); // <-- second file is the critical one where something goes wrong...
      return;

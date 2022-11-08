@@ -82,7 +82,7 @@ namespace tuplex {
             inParameters = inParameters.front().parameters();
 
         if(!inputColumnNames.empty())
-            assert(inputColumnNames.size() == inParameters.size());
+            assert(inputColumnNames.size() <= inParameters.size());
 
         if(_columnToMapIndex < inParameters.size())
             inParameters[_columnToMapIndex] = retType;

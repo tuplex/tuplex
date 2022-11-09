@@ -513,7 +513,7 @@ namespace tuplex {
         std::string res;
 
         std::copy_if(s.begin(), s.end(), std::back_inserter(res), [](char c) {
-            return '0' <= c <= '9';
+            return '0' <= c && c <= '9';
         });
         return res;
     }

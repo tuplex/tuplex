@@ -3,12 +3,14 @@
 
 # Tuplex based cleaning script
 import tuplex
+import tuplex.dataset
 import time
 import sys
 import json
 import os
 import glob
 import argparse
+import logging
 
 def extract_repo_id_code(row):
     if 2012 <= row['year'] <= 2014:
@@ -16,9 +18,15 @@ def extract_repo_id_code(row):
     else:
         return row['repo']['id']
 
-def fork_event_pipeline(ctx, input_pattern, s3_output_path):
+def fork_event_pipeline(ctx, input_pattern, s3_output_path, sm = None):
     """test pipeline to extract fork evenets across years"""
-    ctx.json(input_pattern) \
+    if sm is None:
+        sm = tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS
+    #sm = tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS
+    #sm = tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS
+    #sm = tuplex.dataset.SamplingMode.LAST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS
+
+    ctx.json(input_pattern, sampling_mode=sm) \
         .withColumn('year', lambda x: int(x['created_at'].split('-')[0])) \
         .withColumn('repo_id', extract_repo_id_code) \
         .filter(lambda x: x['type'] == 'ForkEvent') \
@@ -39,12 +47,25 @@ if __name__ == '__main__':
                         help="deactivate hyperspecialization optimization explicitly.")
     parser.add_argument('--no-cf', dest='no_cf', action="store_true",
                         help="deactivate constant-folding optimization explicitly.")
+    parser.add_argument('--sampling-mode', dest='sampling_mode', choices=['A', 'B', 'C', 'D', 'E', 'F'], default='A')
     parser.add_argument('--no-nvo', dest='no_nvo', action="store_true",
                         help="deactivate null value optimization explicitly.")
     args = parser.parse_args()
 
     #if not 'AWS_ACCESS_KEY_ID' in os.environ or 'AWS_SECRET_ACCESS_KEY' not in os.environ:
     #    raise Exception('Did not find AWS credentials in environment, please set.')
+
+
+    sm_map = {'A' : tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS,
+            'B': tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_ROWS | tuplex.dataset.SamplingMode.FIRST_ROWS,
+            'C':tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_FILE,
+            'D':tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS | tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_FILE,
+            'E':tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.ALL_FILES,
+            'F':tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS | tuplex.dataset.SamplingMode.ALL_FILES
+            }
+
+    sm = sm_map.get(args.sampling_mode, None)
+    logging.info('Using sampling mode: {}'.format(sm))
 
     lambda_size = "10000"
     lambda_threads = 2
@@ -63,7 +84,7 @@ if __name__ == '__main__':
     # small sample
     #input_pattern = 's3://tuplex-public/data/github_daily_sample/*.sample'
 
-    input_pattern = 's3://tuplex-public/data/github_daily/2011*.json,s3://tuplex-public/data/github_daily/2013*.json' # <-- single file   
+   # input_pattern = 's3://tuplex-public/data/github_daily/2011*.json,s3://tuplex-public/data/github_daily/2013*.json' # <-- single file   
 
 
     if use_hyper_specialization:
@@ -128,7 +149,7 @@ if __name__ == '__main__':
     tstart = time.time()
     ### QUERY HERE ###
 
-    fork_event_pipeline(ctx, input_pattern, s3_output_path)
+    fork_event_pipeline(ctx, input_pattern, s3_output_path, sm)
 
     ### END QUERY ###
     run_time = time.time() - tstart

@@ -484,7 +484,7 @@ namespace tuplex {
         bool isEmpty() const;
 
         // HACK quick n dirty serializatio n (targeting only the CSV case...)
-        inline nlohmann::json to_json() const {
+        inline nlohmann::json to_json(bool remove_uris=true) const {
             nlohmann::json obj;
             obj["name"] = "input_" + name();
             auto uris = nlohmann::json::array();
@@ -493,9 +493,16 @@ namespace tuplex {
             auto sizes = nlohmann::json::array();
             for(auto s : _sizes)
                 sizes.push_back(s);
-            obj["uris"] = uris;
-            obj["sizes"] = sizes;
-            obj["estimatedRowCount"] = _estimatedRowCount;
+            if(remove_uris) {
+                obj["uris"] = nlohmann::json::array();
+                obj["sizes"] = nlohmann::json::array();
+                obj["estimatedRowCount"] = 0;
+            } else {
+                obj["uris"] = uris;
+                obj["sizes"] = sizes;
+                obj["estimatedRowCount"] = _estimatedRowCount;
+            }
+
             obj["quotechar"] = _quotechar;
             obj["delimiter"] = _delimiter;
             obj["hasHeader"] = _header;

@@ -159,7 +159,11 @@ namespace tuplex {
                 // only map and csv supported
                 auto name = json_op["name"].get<std::string>();
                 if(strStartsWith(name, "input_")) {
-                    operators.push_back(std::shared_ptr<LogicalOperator>(FileInputOperator::from_json(json_op)));
+                    auto fop = FileInputOperator::from_json(json_op);
+                    // !! remove input files so there is no bad typing happening.
+                    fop->setInputFiles({}, {});
+
+                    operators.push_back(std::shared_ptr<LogicalOperator>(fop));
                 } else if(strStartsWith(name, "output_")) {
                     operators.push_back(std::shared_ptr<LogicalOperator>(FileOutputOperator::from_json(operators.back(), json_op)));
                 } else if(name == "withColumn") {

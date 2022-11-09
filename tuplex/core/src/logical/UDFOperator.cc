@@ -32,7 +32,7 @@ namespace tuplex {
     UDFOperator::UDFOperator(const std::shared_ptr<LogicalOperator>& parent, const UDF& udf,
     const std::vector<std::string>& columnNames,
     const std::unordered_map<size_t, size_t>& rewriteMap) : LogicalOperator::LogicalOperator(parent), _udf(udf), _columnNames(columnNames), _rewriteMap(rewriteMap) {
-        assert(parent);
+        // assert(parent);
     }
 
     bool UDFOperator::retype(const tuplex::RetypeConfiguration &conf) {
@@ -52,8 +52,9 @@ namespace tuplex {
             bool success = _udf.retype(conf.row_type);
 
             // check what the return type is. If it is of exception type, try to use a sample to get rid off branches that are off
-            if(success && _udf.getOutputSchema().getRowType().isExceptionType()) {
-                logger.debug("static retyping resulted in UDF producing always exceptions. Try hinting with sample...");
+            if(!success || _udf.getOutputSchema().getRowType().isExceptionType()) {
+                if(success && _udf.getOutputSchema().getRowType().isExceptionType())
+                    logger.debug("static retyping resulted in UDF producing always exceptions. Try hinting with sample...");
                 Timer s_timer;
                 auto rows_sample = parent()->getPythonicSample(MAX_TYPE_SAMPLING_ROWS);
                 logger.debug("retrieving pythonic sample took: " + std::to_string(s_timer.time()) + "s");
@@ -68,7 +69,7 @@ namespace tuplex {
                         }
                     }
                 } else {
-                    logger.debug("no success hinting, trying out different hint modes...");
+                    logger.debug("no success typing UDF - even with sample.");
                 }
             }
 
@@ -231,6 +232,13 @@ namespace tuplex {
         std::vector<python::Type> retrieved_types;
         for(auto r : processed_sample)
             retrieved_types.push_back(r.getRowType());
+
+        // empty types? return unknown.
+        if(retrieved_types.empty()) {
+            Logger::instance().defaultLogger().debug("no types could be retrieved, using Schema unknown.");
+            return Schema::UNKNOWN;
+        }
+
         auto detectedType = mostFrequentItem(retrieved_types);
 
         // set manually for codegen type

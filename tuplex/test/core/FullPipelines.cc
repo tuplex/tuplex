@@ -643,16 +643,20 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
     string pattern = "s3://tuplex-public/data/github_daily_sample/*.json.sample";
 
     // full data:
-    // pattern = "s3://tuplex-public/data/github_daily/*.json";
+     pattern = "s3://tuplex-public/data/github_daily/*.json";
    // pattern = "s3://tuplex-public/data/github_daily/2013*.json";
 //     pattern = "s3://tuplex-public/data/github_daily/2011*.json,s3://tuplex-public/data/github_daily/2013*.json";
 
 
     // tinier sample:
-    pattern = "s3://tuplex-public/data/github_daily_sample/2011*.json.sample,s3://tuplex-public/data/github_daily_sample/2013*.json.sample";
+//    pattern = "s3://tuplex-public/data/github_daily_sample/2011*.json.sample,s3://tuplex-public/data/github_daily_sample/2013*.json.sample";
 
     // @TODO: for hyperspecialization active, need to support TakeOperator!!!
     auto sm = SamplingMode::LAST_FILE | SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS;
+
+    // check that this here works
+    sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::ALL_FILES;
+
     c.json(pattern, true, true, sm).withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
     .withColumn("repo_id", UDF(repo_id_code))
     .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))

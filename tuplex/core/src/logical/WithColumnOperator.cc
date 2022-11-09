@@ -18,7 +18,11 @@ namespace tuplex {
         _columnToMapIndex = calcColumnToMapIndex(columnNames, columnName);
 
         // infer schema, this is slightly more involved...
-        setOutputSchema(inferSchema(parent->getOutputSchema(), false));
+        if(parent)
+            setOutputSchema(inferSchema(parent->getOutputSchema(), false));
+        else {
+            // not set ...
+        }
     }
 
     int WithColumnOperator::calcColumnToMapIndex(const std::vector<std::string> &columnNames,
@@ -93,9 +97,14 @@ namespace tuplex {
 
     void WithColumnOperator::setDataSet(tuplex::DataSet *dsptr) {
         // check whether schema is ok, if not set error dataset!
-        if(getOutputSchema().getRowType().isIllDefined())
-            LogicalOperator::setDataSet(&dsptr->getContext()->makeError("schema could not be propagated successfully"));
-        else
+        if(getOutputSchema().getRowType().isIllDefined()) {
+            if(dsptr)
+                LogicalOperator::setDataSet(&dsptr->getContext()->makeError("schema could not be propagated successfully"));
+            else {
+                Logger::instance().defaultLogger().error("output schema for " + name() + " operator is not well-defined, propagation error?");
+                LogicalOperator::setDataSet(nullptr);
+            }
+        } else
             LogicalOperator::setDataSet(dsptr);
     }
 
@@ -115,8 +124,12 @@ namespace tuplex {
         // get python type from UDF operator
         auto udf_ret_type = _udf.getAnnotatedAST().getReturnType();
 
+        auto in_schema = getInputSchema();
+        if(Schema::UNKNOWN == in_schema)
+            return Schema::UNKNOWN;
+
         // check what schema is supposed to be
-        std::vector<python::Type> col_types = getInputSchema().getRowType().parameters();
+        std::vector<python::Type> col_types = in_schema.getRowType().parameters();
         if(_columnToMapIndex < UDFOperator::columns().size()) {
             col_types[_columnToMapIndex] = udf_ret_type;
         } else {
@@ -243,6 +256,7 @@ namespace tuplex {
 
         // update UDFOperator
         auto rc = UDFOperator::retype(conf);
+        _columnToMapIndex = calcColumnToMapIndex(UDFOperator::columns(), _newColumn);
         if(rc) {
 
             // update schema with result of UDF operator.

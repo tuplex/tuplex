@@ -346,7 +346,10 @@ namespace tuplex {
 
         _cachePopulated = true;
         auto duration = timer.time();
-        logger.info("Filling sample cache for " + name() + " operator took " + std::to_string(duration) + "s (" + std::to_string(_sampleCache.size()) + " entries, " + pluralize(_rowsSample.size(), "row") + ")");
+
+        // only print if there are actually uris
+        if(!_fileURIs.empty() && !_sizes.empty())
+            logger.info("Filling sample cache for " + name() + " operator took " + std::to_string(duration) + "s (" + std::to_string(_sampleCache.size()) + " entries, " + pluralize(_rowsSample.size(), "row") + ")");
     }
 
     void FileInputOperator::fillFileCacheSinglethreaded(SamplingMode mode) {
@@ -1674,7 +1677,8 @@ namespace tuplex {
                 if(uni_type != generalcasetype)
                     logger.debug("generalized general case further, so normal case can be upcasted to it.");
                 generalcasetype = uni_type;
-                assert(python::canUpcastType(normalcasetype, generalcasetype)); // now upcast should work
+                if(!python::canUpcastType(normalcasetype, generalcasetype)) // now upcast should work
+                    logger.info("detected incompatible normal and general types, proceeding with different paths.");
             }
         }
 

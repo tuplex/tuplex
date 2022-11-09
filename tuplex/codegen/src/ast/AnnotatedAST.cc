@@ -111,7 +111,7 @@ namespace tuplex {
             ASTNode *node = findFunction(_root.get());
 
             if(!_typesDefined) {
-                Logger::instance().logger("codegen").error("types were not defined for UDF. Can't return returntype.");
+                Logger::instance().logger("codegen").debug("types were not defined for UDF. Can't return returntype.");
                 return python::Type::UNKNOWN;
             }
 

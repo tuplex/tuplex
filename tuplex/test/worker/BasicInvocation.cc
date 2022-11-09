@@ -475,6 +475,40 @@ tuplex::TransformStage* create_github_stage(const std::string& test_path, const 
         return builder.build();
 }
 
+TEST(BasicInvocation, SingleMessageDebug) {
+    using namespace tuplex;
+    using namespace std;
+
+    // need to init AWS SDK...
+#ifdef BUILD_WITH_AWS
+    {
+        // init AWS SDK to get access to S3 filesystem
+        auto& logger = Logger::instance().logger("aws");
+        auto aws_credentials = AWSCredentials::get();
+        auto options = ContextOptions::defaults();
+        Timer timer;
+        bool aws_init_rc = initAWS(aws_credentials, options.AWS_NETWORK_SETTINGS(), options.AWS_REQUESTER_PAY());
+        logger.debug("initialized AWS SDK in " + std::to_string(timer.time()) + "s");
+    }
+#endif
+
+    // start worker within same process to easier debug...
+    auto app = make_unique<WorkerApp>(WorkerSettings());
+
+    // problematic for hyoer: s3://tuplex-public/data/github_daily/2020-10-15.json:1610612736-1879048192
+
+    string test_input_uri = "s3://tuplex-public/data/github_daily/2020-10-15.json:3758096384-4026531840";
+    test_input_uri = "s3://tuplex-public/data/github_daily/2020-10-15.json:5637144576-5905580032";
+
+    test_input_uri = "s3://tuplex-public/data/github_daily/2013-10-15.json:268435456-533607666";
+
+    auto message = fileToString(URI("/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_0.json"));
+
+    // check individual messages that they work
+    auto rc = app->processJSONMessage(message); // <-- second file is the critical one where something goes wrong...
+    EXPECT_EQ(rc, WORKER_OK);
+}
+
 TEST(BasicInvocation, GithubProcessing) {
     using namespace std;
     using namespace tuplex;
@@ -554,6 +588,8 @@ TEST(BasicInvocation, GithubProcessing) {
     python::initInterpreter();
     python::unlockGIL();
     ContextOptions co = ContextOptions::defaults();
+
+
     auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
     co.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", enable_nvo ? "true" : "false");
     auto tstage = create_github_stage(test_path.toString(), test_output_path.toString(), enable_nvo, co, hyper_mode);
@@ -569,6 +605,9 @@ TEST(BasicInvocation, GithubProcessing) {
     //     std::cout<<"Found S3 uri: "<<uri.toString()<<std::endl;
     //     paths.push_back(uri.toString());
     // }
+
+
+
     paths.clear();
     URI s3_test_uri("s3://tuplex-public/data/github_daily/2013-10-15.json"); // this is off...
     paths.push_back("s3://tuplex-public/data/github_daily/2011-10-15.json");
@@ -649,7 +688,7 @@ TEST(BasicInvocation, GithubProcessing) {
 //    auto message = fileToString(URI("/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_2.json"));
     //auto message = fileToString(URI("/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_145.json"));
 
-    auto message = fileToString(URI("/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_1.json"));
+    auto message = fileToString(URI("/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_0.json"));
 
      // check individual messages that they work
      app->processJSONMessage(message); // <-- second file is the critical one where something goes wrong...

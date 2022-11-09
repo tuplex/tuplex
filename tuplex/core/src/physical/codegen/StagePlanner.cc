@@ -807,7 +807,7 @@ namespace tuplex {
                     case LogicalOperatorType::IGNORE: {
                         assert(node->getInputSchema() != Schema::UNKNOWN);
 
-                        auto op = node->clone(); // no need to clone with parents, b.c. assigned below.
+                        auto op = node->clone(false); // no need to clone with parents, b.c. assigned below.
                         auto oldInputType = op->getInputSchema().getRowType();
                         auto oldOutputType = op->getInputSchema().getRowType();
                         auto columns_before = op->columns();

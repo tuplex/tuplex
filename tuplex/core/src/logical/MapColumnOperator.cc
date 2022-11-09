@@ -182,6 +182,8 @@ namespace tuplex {
             throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");
         }
 
+        throw std::runtime_error("redesign");
+
         python::Type udfResType = python::Type::UNKNOWN;
         auto memLayout = oldOut.getMemoryLayout();
         _udf.removeTypes(false);

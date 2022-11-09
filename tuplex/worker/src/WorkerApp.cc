@@ -107,6 +107,8 @@ namespace tuplex {
         }
 
         _output_uris.clear();
+
+        _timeDict.clear();
     }
 
     void WorkerApp::shutdown() {

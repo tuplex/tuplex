@@ -628,6 +628,9 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
     //co.set("tuplex.experimental.hyperspecialization", "false");
     co.set("tuplex.aws.lambdaMemory", "10000");
 
+    // enable webui in order to collect statistics
+    co.set("tuplex.webui.enable", "true");
+
     Context c(co);
 
     // create Github based (JSON) pipeline.
@@ -639,7 +642,8 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
 
     string pattern = "s3://tuplex-public/data/github_daily_sample/*.json.sample";
 
-        pattern = "s3://tuplex-public/data/github_daily/*.json";
+    // tiny example.
+    // pattern = "s3://tuplex-public/data/github_daily/*.json";
    // pattern = "s3://tuplex-public/data/github_daily/2013*.json";
     // pattern = "s3://tuplex-public/data/github_daily/2011*.json,s3://tuplex-public/data/github_daily/2013*.json";
 

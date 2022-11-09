@@ -23,7 +23,7 @@ st.title('Lambda Job overview')
 
 stage_runtime_in_s = (data['stageEndTimestamp'] - data['stageStartTimestamp']) / 1e9
 col1, col2, col3 = st.columns(3)
-col1.metric('Runtime', '{:.2f}s'.format(stage_runtime_in_s), help='how long the job took to run')
+col1.metric('Runtime', '{:.2f}s'.format(stage_runtime_in_s), help='how long the job took to run, end-to-end in real time.')
 col2.metric('Hyperspecialization', 'On' if data['hyper_mode'] else 'Off')
 col3.metric('Cost', '${:.2f}'.format(data['cost']), help='total cost to run (incl. S3)')
 
@@ -125,6 +125,10 @@ for i, req in enumerate(sorted_reqs):
 
     row['normal (out)'] = req['output_paths_taken']['normal']
     row['unresolved (out)'] = req['output_paths_taken']['unresolved']
+
+    # timings
+    for k in ['t_fast', 't_slow', 't_hyper', 't_compile']:
+        row[k] = req.get(k, None)
 
     rows.append(row)
 df_reqs = pd.DataFrame(rows)

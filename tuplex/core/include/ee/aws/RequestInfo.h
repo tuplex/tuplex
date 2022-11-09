@@ -55,15 +55,20 @@ namespace tuplex {
         size_t in_normal, in_general, in_fallback, in_unresolved;
         size_t out_normal, out_unresolved;
 
+        // time infos
+        double fast_path_time, general_and_interpreter_time, compile_time, hyper_time;
+
         RequestInfo() : durationInMs(0), billedDurationInMs(100), memorySizeInMb(0), maxMemoryUsedInMb(0),
         returnCode(0), tsRequestStart(0), tsRequestEnd(0),
-        in_normal(0), in_general(0), in_fallback(0), in_unresolved(0), out_normal(0), out_unresolved(0) {}
+        in_normal(0), in_general(0), in_fallback(0), in_unresolved(0), out_normal(0), out_unresolved(0),
+        fast_path_time(0), general_and_interpreter_time(0), compile_time(0), hyper_time(0) {}
 
 #ifdef BUILD_WITH_AWS
         RequestInfo(const messages::RequestInfo& info) : requestId(info.requestid().c_str()),
         containerId(info.containerid()),
         durationInMs(info.durationinms()), billedDurationInMs(info.billeddurationinms()), memorySizeInMb(info.memorysizeinmb()),
-        maxMemoryUsedInMb(info.maxmemoryusedinmb()), returnCode(info.returncode()), errorMessage(info.errormessage().c_str()), tsRequestStart(info.tsrequeststart()), tsRequestEnd(info.tsrequestend()) {}
+        maxMemoryUsedInMb(info.maxmemoryusedinmb()), returnCode(info.returncode()), errorMessage(info.errormessage().c_str()),
+        tsRequestStart(info.tsrequeststart()), tsRequestEnd(info.tsrequestend()) {}
 #endif
 
         static RequestInfo parseFromLog(const std::string& log);
@@ -76,6 +81,15 @@ namespace tuplex {
 
             out_normal = response.numrowswritten();
             out_unresolved = response.numexceptions();
+
+            if(response.breakdowntimes().contains("fast_path_execution_time"))
+                fast_path_time = response.breakdowntimes().at("fast_path_execution_time");
+            if(response.breakdowntimes().contains("compile_time"))
+                compile_time = response.breakdowntimes().at("compile_time");
+            if(response.breakdowntimes().contains("general_and_interpreter_time"))
+                general_and_interpreter_time = response.breakdowntimes().at("general_and_interpreter_time");
+            if(response.breakdowntimes().contains("hyperspecialization_time"))
+                hyper_time = response.breakdowntimes().at("hyperspecialization_time");
         }
 
         // protobuf representation
@@ -99,6 +113,11 @@ namespace tuplex {
               <<"\"normal\":"<<out_normal<<","
               <<"\"unresolved\":"<<out_unresolved<<"}";
             // timing info
+            ss<<",\"t_hyper\":"<<hyper_time;
+            ss<<",\"t_compile\":"<<compile_time;
+            ss<<",\"t_fast\":"<<fast_path_time;
+            ss<<",\"t_slow\":"<<general_and_interpreter_time;
+            // global timing info
             ss<<",\"tsRequestStart\":"<<tsRequestStart;
             ss<<",\"tsRequestEnd\":"<<tsRequestEnd;
             ss<<"}";

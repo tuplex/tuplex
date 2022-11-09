@@ -100,6 +100,23 @@ namespace tuplex {
         uint64_t _startTimestamp;
         uint64_t _endTimestamp;
 
+        // statistics/info
+        struct JobInfo {
+            size_t total_input_normal_path;
+            size_t total_input_general_path;
+            size_t total_input_fallback_path;
+            size_t total_input_unresolved;
+
+            size_t total_output_rows;
+            size_t total_output_exceptions;
+
+            double cost;
+
+            JobInfo() {}
+        };
+
+        JobInfo _info;
+
         // web ui
         HistoryServerConnection _historyConn;
         std::shared_ptr<HistoryServerConnector> _historyServer;
@@ -169,7 +186,7 @@ namespace tuplex {
         /*!
          * print extended lambda statistics out
          */
-        void printStatistics();
+        void gatherStatistics();
 
         /*!
          * outputs all the stats etc. as json file for analysis

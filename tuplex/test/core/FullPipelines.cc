@@ -629,7 +629,7 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
     co.set("tuplex.aws.lambdaMemory", "10000");
 
     // enable webui in order to collect statistics
-    co.set("tuplex.webui.enable", "true");
+    // co.set("tuplex.webui.enable", "true");
 
     Context c(co);
 

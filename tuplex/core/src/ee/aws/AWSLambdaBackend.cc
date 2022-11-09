@@ -712,7 +712,7 @@ namespace tuplex {
 
         // wait till everything finished computing
         waitForRequests();
-        printStatistics();
+        gatherStatistics();
 
         std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> ecounts;
 
@@ -1385,6 +1385,21 @@ namespace tuplex {
         ss<<"\"stageStartTimestamp\":"<<_startTimestamp<<",";
         ss<<"\"stageEndTimestamp\":"<<_endTimestamp<<",";
 
+        // settings etc.
+        ss<<"\"hyper_mode\":"<<(_options.USE_EXPERIMENTAL_HYPERSPECIALIZATION() ? "true" : "false")<<",";
+        ss<<"\"cost\":"<<_info.cost<<",";
+        ss<<"\"input_paths_taken\":{"
+          <<"\"normal\":"<<_info.total_input_normal_path<<","
+          <<"\"general\":"<<_info.total_input_general_path<<","
+          <<"\"fallback\":"<<_info.total_input_fallback_path<<","
+          <<"\"unresolved\":"<<_info.total_input_unresolved
+          <<"},";
+        ss<<"\"output_paths_taken\":{"
+          <<"\"normal\":"<<_info.total_output_rows<<","
+          <<"\"unresolved\":"<<_info.total_output_exceptions
+          <<"},";
+
+
         // 1. tasks
         ss<<"\"tasks\":[";
         {
@@ -1461,8 +1476,10 @@ namespace tuplex {
         stringToFile(json_path, ss.str());
     }
 
-    void AwsLambdaBackend::printStatistics() {
+    void AwsLambdaBackend::gatherStatistics() {
         std::stringstream ss;
+
+        _info.cost = lambdaCost();
 
         {
             std::lock_guard<std::mutex> lock(_mutex);
@@ -1529,6 +1546,15 @@ namespace tuplex {
             + " general: " + std::to_string(total_general_path) + " interpreter: "
             + std::to_string(total_interpreter_path) + " unresolved: " + std::to_string(total_unresolved));
 
+            // save to internal
+            _info.total_input_normal_path = total_normal_path;
+            _info.total_input_general_path = total_general_path;
+            _info.total_input_fallback_path = total_interpreter_path;
+            _info.total_input_unresolved = total_unresolved;
+
+            _info.total_output_rows = total_num_output_rows;
+            _info.total_output_exceptions = total_num_exceptions;
+
 //            // print exception summary if any occurred
 //            if(total_num_exceptions > 0) {
 //                printErrorTreeHelper
@@ -1569,7 +1595,7 @@ namespace tuplex {
         return billed;
     }
 
-    size_t AwsLambdaBackend::getMBMs() {
+    size_t AwsLambdaBackend::getMBMs()  {
         std::lock_guard<std::mutex> lock(_mutex);
 
         // sum up billed mb ms

@@ -39,16 +39,17 @@ namespace tuplex {
         // apply a new typing to the existing UDF.
         auto& logger = Logger::instance().logger("typer");
 
-        // first: check whether column names are different, if so apply!
-        if(!conf.columns.empty()) {
-            // update internal column names & rewrite UDF accordingly
-            _columnNames = conf.columns;
-            _udf.rewriteDictAccessInAST(_columnNames);
-        }
-
         // remove types & rewrite
         try {
             _udf.removeTypes(false);
+
+            // first: check whether column names are different, if so apply!
+            if(!conf.columns.empty()) {
+                // update internal column names & rewrite UDF accordingly
+                _columnNames = conf.columns;
+                _udf.rewriteDictAccessInAST(_columnNames);
+            }
+
             bool success = _udf.retype(conf.row_type);
 
             // check what the return type is. If it is of exception type, try to use a sample to get rid off branches that are off

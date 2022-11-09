@@ -171,6 +171,9 @@ namespace tuplex {
         _outputSchema = Schema::UNKNOWN;
         _ast.removeParameterTypes();
 
+        // reset failed/iscompiled flags
+        _isCompiled = _ast.getFunctionAST(); // when ast is valid.
+
         // annotations as well?
         if(removeAnnotations) {
             ApplyVisitor av([](const ASTNode* node){ return true; }, [](ASTNode& node) {

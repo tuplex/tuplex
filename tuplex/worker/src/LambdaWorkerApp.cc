@@ -1054,6 +1054,11 @@ namespace tuplex {
 //            (*result.mutable_breakdowntimes())[keyval.first] = keyval.second;
 //        }
 
+        // save whichever metrics are interesting.
+        for(const auto& keyval : _timeDict) {
+            (*result.mutable_breakdowntimes())[keyval.first] = keyval.second;
+        }
+
         return result;
     }
 

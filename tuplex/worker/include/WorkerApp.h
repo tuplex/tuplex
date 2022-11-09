@@ -213,6 +213,10 @@ namespace tuplex {
         tuplex::messages::InvocationRequest _currentMessage;
         virtual void storeInvokeRequest() {}
 
+        void markTime(const std::string& label, double value) {
+            _timeDict[label] = value;
+        }
+
         WorkerSettings settingsFromMessage(const tuplex::messages::InvocationRequest& req);
 
         virtual int processMessage(const tuplex::messages::InvocationRequest& req);
@@ -347,6 +351,8 @@ namespace tuplex {
 
         ThreadEnv *_threadEnvs;
         size_t _numThreads;
+
+        std::unordered_map<std::string, double> _timeDict;
 
         void initThreadEnvironments(size_t numThreads);
 

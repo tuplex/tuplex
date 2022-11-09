@@ -290,14 +290,16 @@ namespace tuplex {
 
             // !!! need to use LLVM optimizers !!! Else, there's no difference.
             logger().info("-- hyperspecialization took " + std::to_string(timer.time()) + "s");
+            markTime("hyperspecialization_time", timer.time());
         }
 
         // if not, compile given code & process using both compile code & fallback
         // optimize via LLVM when in hyper mode.
+        Timer compileTimer;
         auto syms = compileTransformStage(*tstage, useHyperSpecialization(req));
         if(!syms)
             return WORKER_ERROR_COMPILATION_FAILED;
-
+        markTime("compile_time", compileTimer.time());
         auto rc = processTransformStage(tstage, syms, parts, outputURI);
         _lastStat = jsonStat(req, tstage); // generate stats before returning.
         return rc;
@@ -533,6 +535,7 @@ namespace tuplex {
             return WORKER_ERROR_PIPELINE_FAILED;
         }
         logger().info("fast path took: " + std::to_string(fastPathTimer.time()) + "s");
+        markTime("fast_path_execution_time", fastPathTimer.time());
 
         // update paths
         // compute number of successful normal-case rows -> rest is unresolved
@@ -591,7 +594,7 @@ namespace tuplex {
             resolveOutOfOrder(i, tstage, syms); // note: this func is NOT thread-safe yet!!!
         }
         logger().info("Exception resolution/slow path done. Took " + std::to_string(resolveTimer.time()) + "s");
-
+        markTime("general_and_interpreter_time", resolveTimer.time());
         auto row_stats = get_row_stats(tstage);
 
         auto numNormalRows = std::get<0>(row_stats);

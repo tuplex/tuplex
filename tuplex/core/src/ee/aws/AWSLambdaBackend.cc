@@ -460,6 +460,7 @@ namespace tuplex {
             if(response.status() == messages::InvocationResponse_Status_SUCCESS) {
                 // extract info
                 auto info = RequestInfo::parseFromLog(log.c_str());
+                info.fillInFromResponse(response);
                 std::stringstream ss;
                 auto& task = response;
                 if(task.type() == messages::MessageType::MT_WARMUP) {
@@ -1153,6 +1154,7 @@ namespace tuplex {
 
             // extract info
             auto info = RequestInfo::parseFromLog(log);
+            info.fillInFromResponse(response);
             // update with timestamp info
             info.tsRequestStart = tsStart;
             info.tsRequestEnd = tsEnd;

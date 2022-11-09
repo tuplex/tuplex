@@ -17,7 +17,7 @@ g_col = np.array([140, 192, 222]) / 255.0 #sns.color_palette()[1]
 DATA_PATH='/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/aws_job.json'
 data = json.loads(open(DATA_PATH, 'r').read())
 
-# st.set_page_config(page_title="Lambda job explore app", layout='wide')
+st.set_page_config(page_title="Lambda job explore app", layout='wide')
 st.title('Lambda Job overview')
 
 
@@ -103,6 +103,31 @@ def plot_request_completion_chart(st, requests, ts_start):
 ts_start = pd.to_datetime(data['stageStartTimestamp'])
 requests = data['requests']
 col1, col2 = st.columns(2)
-col1.metric('Requests', len(requests), help='number of requests')
+col1.metric('Requests issued', len(requests), help='number of requests')
 plot_request_completion_chart(col2, requests, ts_start)
+
+# create large table with all the requests in there!
+sort_key = 'tsRequestEnd'
+sorted_reqs = sorted(requests, key=lambda x: x[sort_key])
+rows = []
+for i, req in enumerate(sorted_reqs):
+    start, end = pd.to_datetime(req['tsRequestStart']), pd.to_datetime(req['tsRequestEnd'])
+    req_time = (end - start).total_seconds()
+
+    row = {'time in s': req_time,
+                 'status': 'ok' if 0 == req['returnCode'] else 'failed with code=' + str(req['returnCode'])}
+
+    # breakdown of input/output rows
+    row['normal (in)'] = req['input_paths_taken']['normal']
+    row['general (in)'] = req['input_paths_taken']['general']
+    row['fallback (in)'] = req['input_paths_taken']['fallback']
+    row['unresolved (in)'] = req['input_paths_taken']['unresolved']
+
+    row['normal (out)'] = req['output_paths_taken']['normal']
+    row['unresolved (out)'] = req['output_paths_taken']['unresolved']
+
+    rows.append(row)
+df_reqs = pd.DataFrame(rows)
+st.write('Individual requests overview:')
+st.dataframe(df_reqs)
 

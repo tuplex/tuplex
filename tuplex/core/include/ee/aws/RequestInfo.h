@@ -51,8 +51,13 @@ namespace tuplex {
         int returnCode;
         std::string errorMessage;
 
+        // input row split
+        size_t in_normal, in_general, in_fallback, in_unresolved;
+        size_t out_normal, out_unresolved;
+
         RequestInfo() : durationInMs(0), billedDurationInMs(100), memorySizeInMb(0), maxMemoryUsedInMb(0),
-        returnCode(0), tsRequestStart(0), tsRequestEnd(0) {}
+        returnCode(0), tsRequestStart(0), tsRequestEnd(0),
+        in_normal(0), in_general(0), in_fallback(0), in_unresolved(0), out_normal(0), out_unresolved(0) {}
 
 #ifdef BUILD_WITH_AWS
         RequestInfo(const messages::RequestInfo& info) : requestId(info.requestid().c_str()),
@@ -62,6 +67,16 @@ namespace tuplex {
 #endif
 
         static RequestInfo parseFromLog(const std::string& log);
+
+        inline void fillInFromResponse(const messages::InvocationResponse& response) {
+            in_normal = response.rowstats().normal();
+            in_general = response.rowstats().general();
+            in_fallback = response.rowstats().interpreter();
+            in_unresolved = response.rowstats().unresolved();
+
+            out_normal = response.numrowswritten();
+            out_unresolved = response.numexceptions();
+        }
 
         // protobuf representation
         inline std::string asJSON() const {
@@ -74,6 +89,16 @@ namespace tuplex {
             ss<<",\"maxMemoryUsedInMb\":"<<maxMemoryUsedInMb;
             ss<<",\"returnCode\":"<<returnCode;
             ss<<",\"errorMessage\":\""<<errorMessage<<"\"";
+            // row stats
+            ss<<",\"input_paths_taken\":{"
+              <<"\"normal\":"<<in_normal<<","
+              <<"\"general\":"<<in_general<<","
+              <<"\"fallback\":"<<in_fallback<<","
+              <<"\"unresolved\":"<<in_unresolved<<"}";
+            ss<<",\"output_paths_taken\":{"
+              <<"\"normal\":"<<out_normal<<","
+              <<"\"unresolved\":"<<out_unresolved<<"}";
+            // timing info
             ss<<",\"tsRequestStart\":"<<tsRequestStart;
             ss<<",\"tsRequestEnd\":"<<tsRequestEnd;
             ss<<"}";

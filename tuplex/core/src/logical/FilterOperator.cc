@@ -59,9 +59,14 @@ namespace tuplex {
 
     void FilterOperator::setDataSet(DataSet *dsptr) {
         // check whether schema is ok, if not set error dataset!
-        if(getOutputSchema().getRowType().isIllDefined())
-            LogicalOperator::setDataSet(&dsptr->getContext()->makeError("schema could not be propagated successfully"));
-        else
+        if(getOutputSchema().getRowType().isIllDefined()) {
+            if(dsptr)
+                LogicalOperator::setDataSet(&dsptr->getContext()->makeError("schema could not be propagated successfully"));
+            else {
+                Logger::instance().defaultLogger().error("output schema for filter operator is not well-defined, propagation error?");
+                LogicalOperator::setDataSet(nullptr);
+            }
+        } else
             LogicalOperator::setDataSet(dsptr);
     }
 
@@ -108,7 +113,12 @@ namespace tuplex {
             return false;
 
         // update output schema (based on parent)
-        setOutputSchema(parent()->getOutputSchema());
+        if(parent())
+            setOutputSchema(parent()->getOutputSchema());
+        else {
+            Schema schema(Schema::MemoryLayout::ROW, conf.row_type);
+            setOutputSchema(schema);
+        }
         return true;
 
 //        auto input_row_type = conf.row_type;

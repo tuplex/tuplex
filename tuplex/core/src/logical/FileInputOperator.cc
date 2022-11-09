@@ -1444,8 +1444,8 @@ namespace tuplex {
             auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str()));
             size_t offset = 0;
             if(!v.empty()) {
-                if(uri_size < 2 * _samplingSize) {
-                    offset = _samplingSize - (uri_size - _samplingSize);
+                if(range_size < 2 * _samplingSize) {
+                    offset = _samplingSize - (range_size - _samplingSize);
                     assert(offset <= _samplingSize);
                 }
                 sample_length -= std::min(sample_length, offset);

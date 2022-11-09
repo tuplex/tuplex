@@ -458,8 +458,12 @@ namespace tuplex {
             // lambda syntax doesn't support this
 
             auto retType = _ast.getReturnType();
-            auto schema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(retType));
-            assert(schema.getRowType().isTupleType());
+            auto schema_row_type = codegenTypeToRowType(retType);
+            if(schema_row_type == python::Type::UNKNOWN)
+                return Schema::UNKNOWN;
+
+            auto schema = Schema(Schema::MemoryLayout::ROW, schema_row_type);
+            assert(schema.getRowType().isTupleType() || schema.getRowType().isExceptionType());
             return schema;
         }
         // must be tuple type OR should be exception type only.

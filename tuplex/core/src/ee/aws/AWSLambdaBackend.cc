@@ -509,6 +509,34 @@ namespace tuplex {
         return containerIds;
     }
 
+    std::string remove_non_digits(const std::string& s) {
+        std::string res;
+
+        std::copy_if(s.begin(), s.end(), std::back_inserter(res), [](char c) {
+            return '0' <= c <= '9';
+        });
+        return res;
+    }
+
+    std::string nextJobDumpPath(const std::string& root_path) {
+        // create root path if not exists
+        auto vfs = VirtualFileSystem::fromURI(root_path);
+        vfs.create_dir(root_path);
+
+        // check whether job_0001.json etc. exists
+        auto uris = vfs.globAll(URI(root_path).join_path("job_*.json").toString());
+
+        if(uris.empty())
+            return URI(root_path).join_path("job_0000.json").toString();
+        unsigned max_job_no = 0;
+        for(auto uri : uris) {
+            auto name = uri.basename();
+            unsigned num = std::stoi(remove_non_digits(name));
+            max_job_no = std::max(num, max_job_no);
+        }
+        return URI(root_path).join_path("job_" + fixedLength(max_job_no + 1, 4) + ".json").toString();
+    }
+
     void AwsLambdaBackend::execute(PhysicalStage *stage) {
         using namespace std;
 
@@ -744,7 +772,9 @@ namespace tuplex {
         // save request end! --> i.e. synchronization points!
         _endTimestamp = current_utc_timestamp();
 
-        dumpAsJSON("aws_job.json");
+        auto path = nextJobDumpPath("job");
+        dumpAsJSON(path);
+        logger().info("dumped job info as JSON to " + path);
 
         {
             std::stringstream ss;

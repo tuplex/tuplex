@@ -533,7 +533,7 @@ namespace tuplex {
 
             // special case, no match
             if(GLOB_NOMATCH == return_value) {
-                logger.warn("did not find any files for pattern '" + pattern + "'");
+                logger.debug("did not find any files for pattern '" + pattern + "'");
                 return std::vector<URI>();
             }
 

@@ -114,7 +114,7 @@ namespace tuplex {
          * get non-prefix part of the URI
          * @return string without prefix
          */
-        std::string withoutPrefix() const {
+        inline std::string withoutPrefix() const {
             // if it starts with prefix, remove
             if(_uri.rfind(prefix(), 0) == 0) {
                 // starts with prefix
@@ -122,6 +122,18 @@ namespace tuplex {
             } else {
                 return _uri;
             }
+        }
+
+        inline std::string basename() const {
+            if(_uri.empty())
+                return "";
+
+            // rsearch /
+            auto ridx = _uri.rfind('/');
+            if(ridx != std::string::npos)
+                return _uri.substr(ridx+1);
+            else
+                return withoutPrefix();
         }
 
         bool operator == (const URI& other) const {

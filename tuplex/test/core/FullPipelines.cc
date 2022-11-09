@@ -639,17 +639,17 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
                         "\t\treturn row['repository']['id']\n"
                         "\telse:\n"
                         "\t\treturn row['repo']['id']\n";
-
+// tiny example.
     string pattern = "s3://tuplex-public/data/github_daily_sample/*.json.sample";
 
-    // tiny example.
-     pattern = "s3://tuplex-public/data/github_daily/*.json";
+    // full data:
+    // pattern = "s3://tuplex-public/data/github_daily/*.json";
    // pattern = "s3://tuplex-public/data/github_daily/2013*.json";
 //     pattern = "s3://tuplex-public/data/github_daily/2011*.json,s3://tuplex-public/data/github_daily/2013*.json";
 
 
     // tinier sample:
-    //pattern = "s3://tuplex-public/data/github_daily_sample/2011*.json.sample,s3://tuplex-public/data/github_daily_sample/2013*.json.sample";
+    pattern = "s3://tuplex-public/data/github_daily_sample/2011*.json.sample,s3://tuplex-public/data/github_daily_sample/2013*.json.sample";
 
     // @TODO: for hyperspecialization active, need to support TakeOperator!!!
     auto sm = SamplingMode::LAST_FILE | SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS;

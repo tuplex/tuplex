@@ -4102,8 +4102,7 @@ namespace tuplex {
 
                 auto ret = stringSliceInst({subject, subject_len}, start, end, _env->i64Const(1));
                 addInstruction(ret.val, ret.size);
-            }
-            else {
+            } else {
                 // check if value is of struct dict type
                 if(value_type.isStructuredDictionaryType()) {
                     SerializableValue ret;

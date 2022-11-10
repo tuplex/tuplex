@@ -173,7 +173,7 @@ namespace tuplex {
                 }
 
                 // create trivial mapping if empty.
-                if(_normalToGeneralMapping.empty()) {
+                if(_normalToGeneralMapping.empty() && _normalAndGeneralCompatible) {
                     // make sure size matches!
                     assert(inputRowType.isTupleType());
                     assert(generalCaseInputRowType.isTupleType());

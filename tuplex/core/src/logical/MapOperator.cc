@@ -21,7 +21,7 @@ namespace tuplex {
                              const std::unordered_map<size_t, size_t>& rewriteMap)
             : UDFOperator::UDFOperator(parent, udf, outputColumnNames, rewriteMap), _name("map") {
 
-        assert(parent);
+        // assert(parent);
 
         bool udf_well_defined = udf.hasWellDefinedTypes();
         bool typeUDF = !udf_well_defined || (parent && parent->getOutputSchema() != _udf.getInputSchema());
@@ -29,15 +29,19 @@ namespace tuplex {
         if(typeUDF) {
             // is it an empty UDF? I.e. a rename operation?
             if(udf.empty()) {
-                // nothing todo, simply set schema as same. this is the same as supplying an identity function
-                // lambda x: x!
-                setOutputSchema(parent->getOutputSchema());
+                if(parent) {
+                    // nothing todo, simply set schema as same. this is the same as supplying an identity function
+                    // lambda x: x!
+                    setOutputSchema(parent->getOutputSchema());
 
-                // also overwrite schema in udf b.c. this allows setters/getters to work
-                _udf.setInputSchema(parent->getOutputSchema());
-                _udf.setOutputSchema(parent->getOutputSchema());
+                    // also overwrite schema in udf b.c. this allows setters/getters to work
+                    _udf.setInputSchema(parent->getOutputSchema());
+                    _udf.setOutputSchema(parent->getOutputSchema());
+                    UDFOperator::setColumns(parent->columns());
+
+                }
+
                 _outputColumns = outputColumnNames; // set output columns to the given ones AND retrieve UDF Operator columns from parent
-                UDFOperator::setColumns(parent->columns());
             } else {
                 // rewrite output if it is a dictionary
                 if (_udf.isCompiled()) {
@@ -56,11 +60,13 @@ namespace tuplex {
                     _udf.removeTypes();
                 }
 
-                // infer schema (may throw exception!) after applying UDF
-                setOutputSchema(this->inferSchema(parent->getOutputSchema()));
-                //_udf.retype(parent->getOutputSchema().getRowType());
-                assert(_udf.getOutputSchema() != Schema::UNKNOWN);
-                //setSchema(_udf.getOutputSchema());
+                if(parent) {
+                    // infer schema (may throw exception!) after applying UDF
+                    setOutputSchema(this->inferSchema(parent->getOutputSchema()));
+                    //_udf.retype(parent->getOutputSchema().getRowType());
+                    assert(_udf.getOutputSchema() != Schema::UNKNOWN);
+                    //setSchema(_udf.getOutputSchema());
+                }
             }
         }
 
@@ -73,9 +79,14 @@ namespace tuplex {
 
     void MapOperator::setDataSet(DataSet *dsptr) {
         // check whether schema is ok, if not set error dataset!
-        if (getOutputSchema().getRowType().isIllDefined())
-            LogicalOperator::setDataSet(&dsptr->getContext()->makeError("schema could not be propagated successfully"));
-        else
+        if(getOutputSchema().getRowType().isIllDefined()) {
+            if(dsptr)
+                LogicalOperator::setDataSet(&dsptr->getContext()->makeError("schema could not be propagated successfully"));
+            else {
+                Logger::instance().defaultLogger().error("output schema for " + name() + " operator is not well-defined, propagation error?");
+                LogicalOperator::setDataSet(nullptr);
+            }
+        } else
             LogicalOperator::setDataSet(dsptr);
     }
 
@@ -189,7 +200,7 @@ namespace tuplex {
     }
 
     bool MapOperator::retype(const RetypeConfiguration& conf) {
-        assert(good());
+        // assert(good());
 
         // there are two options:
         // 1.) it's a rename operator -> special case

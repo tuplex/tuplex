@@ -1020,21 +1020,158 @@ namespace tuplex {
         fop = nullptr;
     }
 
-    static bool filterDependsOnParent(FilterOperator* op) {
+    void LogicalOptimizer::filterPushdown(const std::shared_ptr<LogicalOperator> &op) {
         if(!op)
-            throw std::runtime_error("operator not valid filter pushdown!");
+            return;
+
+        if(op->type() == LogicalOperatorType::FILTER) {
+#ifdef TRACE_LOGICAL_OPTIMIZATION
+            std::cout<<"filter found!"<<std::endl;
+#endif
+            if(!filterDependsOnParentOperator(dynamic_cast<FilterOperator*>(op.get()))) {
+                assert(op->parents().size() == 1); // filter has exactly one parent!
+#ifdef TRACE_LOGICAL_OPTIMIZATION
+                std::cout<<"push down filter in front of "<<op->parent()->name()<<std::endl;
+#endif
+                // how many parents does parent have?
+                if(op->parent()->parents().size() == 1) {
+                    // simply move operator in tree
+
+                    // children -> filter -> parent -> grandparent
+                    // should become
+                    // children -> parent -> filter -> grandparent
+                    // & call on filter again!
+                    auto children = op->children();
+                    auto parent = op->parent(); assert(parent);
+                    auto grandparent = parent->parent(); assert(grandparent);
+
+#ifdef TRACE_LOGICAL_OPTIMIZATION
+                    std::cout<<"parent output schema: "<<parent->getOutputSchema().getRowType().desc()<<std::endl;
+                    std::cout<<"grandparent output schema: "<<grandparent->getOutputSchema().getRowType().desc()<<std::endl;
+#endif
+
+                    // @TODO: this here is rather slow because the whole compilation pipeline gets kicked off
+                    // could optimize by remapping indices... => s
+                    // create copy of filter ==> need to reparse UDF & Co because of column access!
+                    auto code = std::dynamic_pointer_cast<FilterOperator>(op)->getUDF().getCode();
+                    auto pickled_code = std::dynamic_pointer_cast<FilterOperator>(op)->getUDF().getPickledCode();
+                    auto fop = std::shared_ptr<LogicalOperator>(new FilterOperator(grandparent, UDF(code, pickled_code), grandparent->columns()));
+                    fop->setID(op->getID()); // clone with ID, important for exception tracking!
+#ifdef TRACE_LOGICAL_OPTIMIZATION
+                    // debug:
+                    std::cout<<"new filter input schema: "<<fop->getUDF().getInputSchema().getRowType().desc()<<std::endl;
+                    std::cout<<"new filter output schema: "<<fop->getUDF().getOutputSchema().getRowType().desc()<<std::endl;
+
+                    std::cout<<"filter input schema: "<<fop->getInputSchema().getRowType().desc()<<std::endl;
+                    std::cout<<"filter output schema: "<<fop->getOutputSchema().getRowType().desc()<<std::endl;
+#endif
+
+                    // error here.. this code is wrong when join operator is involved!
+                    // link children -> parent (and vice versa)
+                    for(auto& child : children) {
+                        //child->setParent(parent);
+                        bool found = child->replaceParent(op, parent);
+                        assert(found);
+                        found = parent->replaceChild(op, child);
+                        // assert(found);
+                    }
+
+                    // parent -> filter (and vice versa)
+                    parent->setParent(fop); fop->setChild(parent);
+
+                    // filter->grandparent (and vice versa)
+                    fop->setParent(grandparent); grandparent->setChild(fop);
+
+                    // call filter pushdown on filter again
+
+                    // remove old filter
+                    op->setChildren({}); op->setParents({}); // no dependencies
+
+                    // // DEBUG
+                    // for(auto child : children)
+                    //     verifyLogicalPlan(child);
+                    // // END DEBUG
+
+                    // continue pushdown
+                    filterPushdown(fop);
+                } else {
+                    // parent has more than one parent? ==> i.e. add filter to whichever grandparent where if it makes sense!
+                    if(op->parent()->type() == LogicalOperatorType::JOIN) {
+                        auto jop = std::dynamic_pointer_cast<JoinOperator>(op->parent()); assert(jop);
+                        auto fop = std::dynamic_pointer_cast<FilterOperator>(op); assert(fop);
+                        pushdownFilterInJoin(fop, jop);
+                    } else throw std::runtime_error("only operator for multiple grandparent supported yet is join!");
+
+                    // go on with pushdown...
+
+                }
+
+            } else {
+#ifdef TRACE_LOGICAL_OPTIMIZATION
+                std::cout<<"no pushdown possible"<<std::endl;
+#endif
+                // stop.
+            }
+        } else {
+
+            // traverse tree until filter is found...
+            for(const auto &p : op->parents())
+                filterPushdown(p);
+        }
+    }
+
+    void LogicalOptimizer::rewriteAllFollowingResolvers(std::shared_ptr<LogicalOperator> op, const std::unordered_map<size_t, size_t>& rewriteMap) {
+        // go over children (single!)
+        if(!op)
+            return;
+
+        while(op && op->children().size() == 1) {
+            auto cur_op = op->children().front();
+
+            // ignore? => continue
+            if(cur_op->type() == LogicalOperatorType::RESOLVE) {
+                // rewrite!
+                auto rop = std::dynamic_pointer_cast<ResolveOperator>(cur_op); assert(rop);
+                rop->rewriteParametersInAST(rewriteMap);
+            } else if(cur_op->type() == LogicalOperatorType::IGNORE) {
+                auto iop = std::dynamic_pointer_cast<IgnoreOperator>(cur_op); assert(iop);
+                iop->updateSchema();
+                // nothing todo...
+            } else {
+                // quit loop & function
+                return;
+            }
+            op = cur_op;
+        }
+    }
+
+
+
+    bool filterDependsOnParentOperator(FilterOperator* op) {
+
+        auto& logger = Logger::instance().logger("logical optimizer");
+
+        if(!op || op->parents().empty())
+            return false;
 
         // make sure at least one parent exists!
         assert(!op->parents().empty());
 
+        if(op->parents().size() != 1) {
+            throw std::runtime_error("filter should have only one parent");
+        }
+
         // how many parents? ==> should be one here!
         auto parent = op->parent();
-        auto ptype = op->parent()->type();
+        auto parent_operator_type = op->parent()->type();
+
+        // // can also access paths to push further down.
+        // auto accessPaths = op->getUDF().getAccessedPaths();
 
         // get accessed columns in filter (important for checking with withColumn/mapColumn/join...)
         auto accessedColumns = op->getUDF().getAccessedColumns();
 
-        switch(ptype) {
+        switch(parent_operator_type) {
             case LogicalOperatorType::AGGREGATE: {
                 auto aop = dynamic_cast<AggregateOperator*>(parent.get()); assert(aop);
                 if(aop->aggType() == AggregateType::AGG_UNIQUE) {
@@ -1130,143 +1267,19 @@ namespace tuplex {
 #ifdef TRACE_LOGICAL_OPTIMIZATION
                 std::cout<<"@TODO: could combine filters..."<<std::endl;
 #endif
-                return false; // filters never depend on each other...
+                return false; // filters never depend on each other... --> they can be freely reordered.
             }
 
             case LogicalOperatorType::FILEINPUT:
             case LogicalOperatorType::PARALLELIZE: {
-                return true; // always depends on data sources!
+                return true; // always depend on data sources!
             }
 
             default:
+                logger.debug("unknown operator " + parent->name() + " in filterDependsOnParentOperator encountered, assuming full dependence.");
                 return true;
         }
         return true;
-    }
-
-    void LogicalOptimizer::filterPushdown(const std::shared_ptr<LogicalOperator> &op) {
-        if(!op)
-            return;
-
-        if(op->type() == LogicalOperatorType::FILTER) {
-#ifdef TRACE_LOGICAL_OPTIMIZATION
-            std::cout<<"filter found!"<<std::endl;
-#endif
-            if(!filterDependsOnParent(dynamic_cast<FilterOperator*>(op.get()))) {
-                assert(op->parents().size() == 1); // filter has exactly one parent!
-#ifdef TRACE_LOGICAL_OPTIMIZATION
-                std::cout<<"push down filter in front of "<<op->parent()->name()<<std::endl;
-#endif
-                // how many parents does parent have?
-                if(op->parent()->parents().size() == 1) {
-                    // simply move operator in tree
-
-                    // children -> filter -> parent -> grandparent
-                    // should become
-                    // children -> parent -> filter -> grandparent
-                    // & call on filter again!
-                    auto children = op->children();
-                    auto parent = op->parent(); assert(parent);
-                    auto grandparent = parent->parent(); assert(grandparent);
-
-#ifdef TRACE_LOGICAL_OPTIMIZATION
-                    std::cout<<"parent output schema: "<<parent->getOutputSchema().getRowType().desc()<<std::endl;
-                    std::cout<<"grandparent output schema: "<<grandparent->getOutputSchema().getRowType().desc()<<std::endl;
-#endif
-
-                    // @TODO: this here is rather slow because the whole compilation pipeline gets kicked off
-                    // could optimize by remapping indices... => s
-                    // create copy of filter ==> need to reparse UDF & Co because of column access!
-                    auto code = std::dynamic_pointer_cast<FilterOperator>(op)->getUDF().getCode();
-                    auto pickled_code = std::dynamic_pointer_cast<FilterOperator>(op)->getUDF().getPickledCode();
-                    auto fop = std::shared_ptr<LogicalOperator>(new FilterOperator(grandparent, UDF(code, pickled_code), grandparent->columns()));
-                    fop->setID(op->getID()); // clone with ID, important for exception tracking!
-#ifdef TRACE_LOGICAL_OPTIMIZATION
-                    // debug:
-                    std::cout<<"new filter input schema: "<<fop->getUDF().getInputSchema().getRowType().desc()<<std::endl;
-                    std::cout<<"new filter output schema: "<<fop->getUDF().getOutputSchema().getRowType().desc()<<std::endl;
-
-                    std::cout<<"filter input schema: "<<fop->getInputSchema().getRowType().desc()<<std::endl;
-                    std::cout<<"filter output schema: "<<fop->getOutputSchema().getRowType().desc()<<std::endl;
-#endif
-
-                    // error here.. this code is wrong when join operator is involved!
-                    // link children -> parent (and vice versa)
-                    for(auto& child : children) {
-                        //child->setParent(parent);
-                        bool found = child->replaceParent(op, parent);
-                        assert(found);
-                        found = parent->replaceChild(op, child);
-                        assert(found);
-                    }
-
-                    // parent -> filter (and vice versa)
-                    parent->setParent(fop); fop->setChild(parent);
-
-                    // filter->grandparent (and vice versa)
-                    fop->setParent(grandparent); grandparent->setChild(fop);
-
-                    // call filter pushdown on filter again
-
-                    // remove old filter
-                    op->setChildren({}); op->setParents({}); // no dependencies
-
-                    // // DEBUG
-                    // for(auto child : children)
-                    //     verifyLogicalPlan(child);
-                    // // END DEBUG
-
-                    // continue pushdown
-                    filterPushdown(fop);
-                } else {
-                    // parent has more than one parent? ==> i.e. add filter to whichever grandparent where if it makes sense!
-                    if(op->parent()->type() == LogicalOperatorType::JOIN) {
-                        auto jop = std::dynamic_pointer_cast<JoinOperator>(op->parent()); assert(jop);
-                        auto fop = std::dynamic_pointer_cast<FilterOperator>(op); assert(fop);
-                        pushdownFilterInJoin(fop, jop);
-                    } else throw std::runtime_error("only operator for multiple grandparent supported yet is join!");
-
-                    // go on with pushdown...
-
-                }
-
-            } else {
-#ifdef TRACE_LOGICAL_OPTIMIZATION
-                std::cout<<"no pushdown possible"<<std::endl;
-#endif
-                // stop.
-            }
-        } else {
-
-            // traverse tree until filter is found...
-            for(const auto &p : op->parents())
-                filterPushdown(p);
-        }
-    }
-
-    void LogicalOptimizer::rewriteAllFollowingResolvers(std::shared_ptr<LogicalOperator> op, const std::unordered_map<size_t, size_t>& rewriteMap) {
-        // go over children (single!)
-        if(!op)
-            return;
-
-        while(op && op->children().size() == 1) {
-            auto cur_op = op->children().front();
-
-            // ignore? => continue
-            if(cur_op->type() == LogicalOperatorType::RESOLVE) {
-                // rewrite!
-                auto rop = std::dynamic_pointer_cast<ResolveOperator>(cur_op); assert(rop);
-                rop->rewriteParametersInAST(rewriteMap);
-            } else if(cur_op->type() == LogicalOperatorType::IGNORE) {
-                auto iop = std::dynamic_pointer_cast<IgnoreOperator>(cur_op); assert(iop);
-                iop->updateSchema();
-                // nothing todo...
-            } else {
-                // quit loop & function
-                return;
-            }
-            op = cur_op;
-        }
     }
 
 }

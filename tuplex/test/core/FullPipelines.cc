@@ -602,6 +602,58 @@ namespace tuplex {
 
 class PipelinesTest : public PyTest {};
 
+TEST_F(PipelinesTest, GithubLocalVersion) {
+    using namespace std;
+    using namespace tuplex;
+    auto co = testOptions();
+
+    co.set("tuplex.useLLVMOptimizer", "true");
+
+    co.set("tuplex.executorMemory", "64MB");
+    co.set("tuplex.driverMemory", "64MB");
+
+    // deactivate optimizations (should be done alter again)
+    // disable constant=folding opt for JSON
+    co.set("tuplex.optimizer.constantFoldingOptimization", "false");
+//    co.set("tuplex.optimizer.filterPushdown", "false"); // <-- requires access path detection to work
+
+    co.set("tuplex.optimizer.filterPushdown", "true"); // <-- wip
+
+    co.set("tuplex.optimizer.selectionPushdown", "false"); // <-- requires access path detection to work.
+
+    // hyper on/off
+    co.set("tuplex.experimental.hyperspecialization", "true");
+    //co.set("tuplex.experimental.hyperspecialization", "false");
+
+    // enable webui in order to collect statistics
+    // co.set("tuplex.webui.enable", "true");
+
+    Context c(co);
+
+    // create Github based (JSON) pipeline.
+    auto repo_id_code = "def extract_repo_id(row):\n"
+                        "\tif 2012 <= row['year'] <= 2014:\n"
+                        "\t\treturn row['repository']['id']\n"
+                        "\telse:\n"
+                        "\t\treturn row['repo']['id']\n";
+    // tiny example.
+    string pattern = "../resources/hyperspecialization/github_daily/*.json.sample";
+
+    // @TODO: for hyperspecialization active, need to support TakeOperator!!!
+    auto sm = SamplingMode::LAST_FILE | SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS;
+
+    // check that this here works
+    sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::ALL_FILES;
+
+    sm = DEFAULT_SAMPLING_MODE;
+
+    c.json(pattern, true, true, sm).withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+            .withColumn("repo_id", UDF(repo_id_code))
+            .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+            .selectColumns({"type", "repo_id", "year"})
+            .tocsv("out.csv");
+}
+
 #ifdef BUILD_WITH_AWS
 
 TEST_F(PipelinesTest, GithubLambdaVersion) {
@@ -639,17 +691,17 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
                         "\t\treturn row['repository']['id']\n"
                         "\telse:\n"
                         "\t\treturn row['repo']['id']\n";
-// tiny example.
+    // tiny example.
     string pattern = "s3://tuplex-public/data/github_daily_sample/*.json.sample";
 
     // full data:
-     pattern = "s3://tuplex-public/data/github_daily/*.json";
-   // pattern = "s3://tuplex-public/data/github_daily/2013*.json";
-//     pattern = "s3://tuplex-public/data/github_daily/2011*.json,s3://tuplex-public/data/github_daily/2013*.json";
+    // pattern = "s3://tuplex-public/data/github_daily/*.json";
 
+    // pattern = "s3://tuplex-public/data/github_daily/2013*.json";
+    //     pattern = "s3://tuplex-public/data/github_daily/2011*.json,s3://tuplex-public/data/github_daily/2013*.json";
 
     // tinier sample:
-//    pattern = "s3://tuplex-public/data/github_daily_sample/2011*.json.sample,s3://tuplex-public/data/github_daily_sample/2013*.json.sample";
+    //    pattern = "s3://tuplex-public/data/github_daily_sample/2011*.json.sample,s3://tuplex-public/data/github_daily_sample/2013*.json.sample";
 
     // @TODO: for hyperspecialization active, need to support TakeOperator!!!
     auto sm = SamplingMode::LAST_FILE | SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS;

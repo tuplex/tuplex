@@ -690,6 +690,7 @@ namespace tuplex {
         } else {
             numThreads = std::stoi(_options.AWS_LAMBDA_THREAD_COUNT());
         }
+        logger().info("Lambda executors each use " + pluralize(numThreads, "thread"));
         auto spillURI = _options.AWS_SCRATCH_DIR() + "/spill_folder";
         // perhaps also use:  - 64 * numThreads ==> smarter buffer scaling necessary.
         size_t buf_spill_size = (_options.AWS_LAMBDA_MEMORY() - 256) / numThreads * 1000 * 1024;

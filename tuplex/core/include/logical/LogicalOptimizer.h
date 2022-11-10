@@ -77,6 +77,23 @@ namespace tuplex {
         static void rewriteAllFollowingResolvers(std::shared_ptr<LogicalOperator> op, const std::unordered_map<size_t, size_t>& rewriteMap);
 
     };
+
+
+    /*!
+     * check whether the UDF used in the filter depends on any columns produced by the parent operator.
+     * @param filter FilterOperator
+     * @return true if it depends, false else. Also returns false if filter has no parent or is nullptr
+     */
+    extern bool filterDependsOnParentOperator(FilterOperator* filter);
+
+    /*!
+     * check whether the UDF used in the filter depends on any columns produced by the parent operator.
+     * @param filter FilterOperator
+     * @return true if it depends, false else. Also returns false if filter has no parent or is nullptr
+     */
+    inline bool filterDependsOnParentOperator(const std::shared_ptr<FilterOperator>& filter) {
+        return filterDependsOnParentOperator(filter.get());
+    }
 }
 
 #endif //TUPLEX_LOGICALOPTIMIZER_H

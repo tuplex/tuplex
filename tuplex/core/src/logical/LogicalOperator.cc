@@ -125,7 +125,9 @@ namespace tuplex {
 
         // remove this from children parents
         for(auto& child : _children) {
-            child->_parents.erase(std::find(child->_parents.begin(), child->_parents.end(), shared_from_this()));
+            auto it = std::find(child->_parents.begin(), child->_parents.end(), shared_from_this());
+            if(it != child->_parents.end())
+                child->_parents.erase(it);
         }
         _children.clear();
 

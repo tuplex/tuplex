@@ -438,7 +438,11 @@ tuplex::TransformStage* create_github_stage(const std::string& test_path, const 
 
     bool enable_cf = false;
     codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, enable_cf, false);
-    auto jsonop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromJSON(test_path, true, true, co, DEFAULT_SAMPLING_MODE));
+
+    auto sm = DEFAULT_SAMPLING_MODE;
+    sm = SamplingMode::ALL_FILES | SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS;
+
+    auto jsonop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromJSON(test_path, true, true, co, sm));
 
     auto repo_id_code = "def extract_repo_id(row):\n"
                         "\tif 2012 <= row['year'] <= 2014:\n"
@@ -608,10 +612,10 @@ TEST(BasicInvocation, GithubProcessing) {
 
 
 
-    paths.clear();
-    URI s3_test_uri("s3://tuplex-public/data/github_daily/2013-10-15.json"); // this is off...
-    paths.push_back("s3://tuplex-public/data/github_daily/2011-10-15.json");
-    paths.push_back(s3_test_uri.toString());
+//    paths.clear();
+//    URI s3_test_uri("s3://tuplex-public/data/github_daily/2013-10-15.json"); // this is off...
+//    paths.push_back("s3://tuplex-public/data/github_daily/2011-10-15.json");
+//    paths.push_back(s3_test_uri.toString());
 
 
     // // local test files for linux
@@ -658,44 +662,8 @@ TEST(BasicInvocation, GithubProcessing) {
 
     test_input_uri = "s3://tuplex-public/data/github_daily/2013-10-15.json:268435456-533607666";
 
-    // // replace
-    // auto j = nlohmann::json::parse(messages[0]);
-    // auto arr = nlohmann::json::array();
-    // arr.push_back(test_input_uri);
-    // j["inputURIS"] = arr;
-    // messages[0] = j.dump();
-//
-    // messages[0] = fileToString("/home/leonhard/projects/tuplex-public/original_request.json");
-
-//    {
-//        // fetch sample
-//        auto sample_size = ContextOptions::defaults().SAMPLE_SIZE();
-//        // s3://tuplex-public/data/github_daily/2021-10-15.json:2952790016-3221225472
-//        auto vf = VirtualFileSystem::open_file(URI("s3://tuplex-public/data/github_daily/2021-10-15.json"), VirtualFileMode::VFS_READ | VirtualFileMode::VFS_TEXTMODE);
-//        vf->seek(2952790016ul);
-//        char sample_buf[sample_size + 1];
-//        sample_buf[sample_size] = '\0';
-//        size_t bytes_read = 0;
-//        vf->readOnly(sample_buf, sample_size, &bytes_read);
-//        vf->close();
-//
-//        std::string sample(sample_buf);
-//        stringToFile("sample.txt", sample);
-//    }
-
-
-
-//    auto message = fileToString(URI("/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_2.json"));
-    //auto message = fileToString(URI("/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_145.json"));
-
-    auto message = fileToString(URI("/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_0.json"));
-
-     // check individual messages that they work
-     app->processJSONMessage(message); // <-- second file is the critical one where something goes wrong...
-     return;
-
-    // reverse
-    std::reverse(messages.begin(), messages.end());
+    //// reverse
+    //std::reverse(messages.begin(), messages.end());
 
     // check all messages
      for(const auto& message : messages) {

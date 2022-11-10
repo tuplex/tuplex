@@ -9,6 +9,7 @@ import os
 import glob
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 n_col = np.array([53, 66, 89]) / 255.0#sns.color_palette()[0]
 g_col = np.array([140, 192, 222]) / 255.0 #sns.color_palette()[1]
@@ -94,9 +95,9 @@ def plot_request_completion_chart(st, requests, ts_start):
     #plt.legend(loc='upper left', fontsize=24)
     plt.ylabel('time in s')
     plt.xlabel('% of requests completed')
-    plt.ylim(0, 75)
+    #plt.ylim(0, 75)
     plt.xlim(0, 100)
-
+    sns.despine(fig)
     st.pyplot(fig)
 
 
@@ -133,7 +134,7 @@ for i, req in enumerate(sorted_reqs):
     rows.append(row)
 df_reqs = pd.DataFrame(rows)
 st.write('Individual requests overview:')
-st.dataframe(df_reqs)
+st.dataframe(df_reqs, use_container_width=True)
 
 
 # check which containers requests are assigned to.
@@ -175,7 +176,7 @@ nreused = len(set(nreused))
 nnew = len(set(nnew))
 col1, col2, col3, col4 = st.columns(4)
 col1.metric('Unique containers (total)', num_containers, help='each container corresponds to a Lambda executor')
-col2.metric('Max parallelism', max_parallelism, help='Maximum amount of containers active at any time')
+col2.metric('Max parallelism reached', max_parallelism, help='Maximum amount of containers active at any time')
 col3.metric('Reused containers', nreused, help="number of reused Lambda executors, from previous run")
 col4.metric('New containers', nnew, help='number of newly instantiated Lambda executors')
 
@@ -185,7 +186,9 @@ fig, ax = plt.subplots(figsize=(6,6))
 ax.plot([0.0] + x, [0.0] + y, '-x')
 ax.set_xlabel('time in s')
 ax.set_ylabel('active containers')
+ax.set_title('parallelism over time')
 col1, col2 = st.columns(2)
+sns.despine(fig)
 col1.pyplot(fig)
 
 # could use this here to analyze quickly hyper/general jobs etc.

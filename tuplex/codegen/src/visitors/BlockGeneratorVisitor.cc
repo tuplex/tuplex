@@ -4105,9 +4105,9 @@ namespace tuplex {
             }
             else {
                 // check if value is of struct dict type
-                if(sub->_value->getInferredType().isStructuredDictionaryType()) {
+                if(value_type.isStructuredDictionaryType()) {
                     SerializableValue ret;
-                    if(subscriptStructDict(builder, &ret, sub->_value->getInferredType(), value,  sub->_expression->getInferredType(), index, sub->_expression.get())) {
+                    if(subscriptStructDict(builder, &ret, value_type, value, index_type, index, sub->_expression.get())) {
                         addInstruction(ret.val, ret.size, ret.is_null);
                         return;
                     }

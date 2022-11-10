@@ -645,7 +645,7 @@ TEST_F(PipelinesTest, GithubLocalVersion) {
     // check that this here works
     sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::ALL_FILES;
 
-    sm = DEFAULT_SAMPLING_MODE;
+    // sm = DEFAULT_SAMPLING_MODE;
 
     c.json(pattern, true, true, sm).withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
             .withColumn("repo_id", UDF(repo_id_code))

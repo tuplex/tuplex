@@ -538,6 +538,9 @@ default:
             //     std::cout<<"functor delivered resCode "<<resCode<<std::endl;
             // }
 
+            // success? -> inc.
+            if(0 == resCode)
+                _pathStats.general++;
 
             // restore
             if(resCode != 0)
@@ -800,6 +803,9 @@ default:
 
                             // everything was successful, change resCode to 0!
                             resCode = 0;
+
+                            // processed via fallback, increase.
+                            _pathStats.fallback++;
                         }
                     }
                 }
@@ -813,6 +819,9 @@ default:
 
         // fallback 3: still exception? save...
         if(resCode == -1) {
+            // mark as unresolved
+            _pathStats.unresolved++;
+
             _numUnresolved++;
             exceptionCallback(ecCode, operatorID, _currentRowNumber, ebuf, eSize);
         }

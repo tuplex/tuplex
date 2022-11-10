@@ -193,6 +193,8 @@ namespace tuplex {
 
         TaskType type() const override { return TaskType::RESOLVE; }
 
+        CodePathStat codePathStats() const { return _pathStats; }
+
         std::vector<Partition*> getOutputPartitions() const override { return _partitions; }
 
         std::vector<Partition*> getOutputFallbackPartitions() const { return _fallbackSink.partitions; }
@@ -298,6 +300,8 @@ namespace tuplex {
 
         // hybrid inputs (i.e. when having a long stage the hash-tables of a join)
         std::vector<PyObject*> _py_intermediates;
+
+        CodePathStat _pathStats;
 
         /*!
        * certain exception codes are internal and require resolution via a pure python pipeline. I.e. malformed input...

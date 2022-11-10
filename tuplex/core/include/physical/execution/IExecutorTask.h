@@ -21,6 +21,20 @@ namespace tuplex {
     class IExecutorTask;
     class Partition;
 
+    struct CodePathStat {
+        size_t normal;
+        size_t general;
+        size_t fallback;
+        size_t unresolved;
+
+        CodePathStat(size_t n=0, size_t g=0, size_t f=0, size_t u=0) : normal(n), general(g), fallback(f), unresolved(u) {}
+    };
+
+    inline CodePathStat operator + (const CodePathStat& a, const CodePathStat& b) {
+        return CodePathStat(a.normal + b.normal, a.general + b.general,
+                            a.fallback + b.fallback, a.unresolved + b.unresolved);
+    }
+
     /*!
      * special class used for task to be delivered to executors
      */

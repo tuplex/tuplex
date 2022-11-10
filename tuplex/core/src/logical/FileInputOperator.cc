@@ -22,6 +22,43 @@
 
 namespace tuplex {
 
+    python::Type generalize_struct_type(const python::Type& struct_type) {
+        if(!struct_type.isStructuredDictionaryType())
+            return struct_type;
+
+        // go over pairs and make them all optional
+        auto kv_pairs = struct_type.get_struct_pairs();
+        for(auto& p : kv_pairs) {
+            p.alwaysPresent = false;
+
+            // update value types as well
+            p.valueType = generalize_struct_type(p.valueType);
+        }
+        return python::Type::makeStructuredDictType(kv_pairs);
+    }
+
+    // wip: more generalizing function
+    python::Type generalize_type(const python::Type& type) {
+        // is it a tuple?
+        if(type.isTupleType()) {
+            // make everything optional...
+            auto col_types = type.parameters();
+            for(auto& col_type : col_types) {
+
+                if(col_type.withoutOptions().isStructuredDictionaryType())
+                    col_type = generalize_struct_type(col_type);
+
+                if(!col_type.isOptionType() && col_type != python::Type::NULLVALUE) {
+                    col_type = python::Type::makeOptionType(col_type);
+                }
+            }
+            return python::Type::makeTupleType(col_types);
+        }
+
+        return type;
+    }
+
+
     FileInputOperator::FileInputOperator() : _fmt(FileFormat::OUTFMT_UNKNOWN), _json_unwrap_first_level(false),
                                              _json_treat_heterogenous_lists_as_tuples(true), _header(false),
                                              _sampling_time_s(0.0), _quotechar('\0'),
@@ -277,6 +314,9 @@ namespace tuplex {
             auto t = f->detectJsonTypesAndColumns(co, nameCollection);
             python::Type normalcasetype = std::get<0>(t);
             python::Type generalcasetype = std::get<1>(t);
+
+            // make type more general (to cover potentially more!)
+            generalcasetype = generalize_type(generalcasetype);
 
             // check
             logger.debug("JSON - normal case type: " + normalcasetype.desc());
@@ -1028,6 +1068,10 @@ namespace tuplex {
 
                 auto normalcase = std::get<0>(t);
                 auto generalcase = std::get<1>(t);
+
+                // make even more general
+                generalcase = generalize_type(generalcase);
+
                 _normalCaseRowType = normalcase;
                 _generalCaseRowType = generalcase;
             }

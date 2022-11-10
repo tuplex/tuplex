@@ -770,9 +770,21 @@ namespace tuplex {
         LambdaAccessedColumnVisitor() : _tupleArgument(false),
         _numColumns(0), _singleLambda(false) {}
 
+        // override subscript to handle special cases, i.e. stop traversal on (nested) dictionaries/lists.
+        virtual void visit(NSubscription* n) override;
+
 
         std::vector<size_t> getAccessedIndices() const;
     };
+
+    void LambdaAccessedColumnVisitor::visit(tuplex::NSubscription *n) {
+        if(!n)
+            return;
+
+        preOrder(n);
+        ApatheticVisitor::visit(n);
+        postOrder(n);
+    }
 
     std::vector<size_t> LambdaAccessedColumnVisitor::getAccessedIndices() const {
 
@@ -868,6 +880,10 @@ namespace tuplex {
             // check whether function with single parameter which is a tuple is accessed.
             case ASTNodeType::Subscription: {
                 NSubscription* sub = (NSubscription*)node;
+
+                // ignore subs that are typed as KeyError or unknown
+                if(sub->getInferredType() == python::Type::UNKNOWN || sub->getInferredType().isExceptionType())
+                    return;
 
                 assert(sub->_value->getInferredType() != python::Type::UNKNOWN); // type annotation/tracing must have run for this...
 

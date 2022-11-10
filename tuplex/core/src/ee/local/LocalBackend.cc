@@ -34,6 +34,16 @@
 
 namespace tuplex {
 
+    static CodePathStat mergeCodePathStats(const std::vector<IExecutorTask*> &tasks) {
+        CodePathStat stat;
+        for(auto task : tasks) {
+            if(task && task->type() == TaskType::RESOLVE) {
+                auto rtask = (ResolveTask*)task;
+                stat = stat + rtask->codePathStats();
+            }
+        }
+        return stat;
+    }
 
     void freeTasks(std::vector<IExecutorTask*>& tasks) {
         // delete tasks
@@ -1076,6 +1086,10 @@ namespace tuplex {
                 ss<<"in "<<slow_path_total_time<<"s";
                 logger().info(ss.str());
 
+                auto pathStats = mergeCodePathStats(completedTasks);
+                logger().info("paths rows took for slow code path: general: " + std::to_string(pathStats.general)
+                              + " fallback: " + std::to_string(pathStats.fallback)
+                              + " unresolved: " + std::to_string(pathStats.unresolved));
 
                 totalWallTime = 0.0;
                 size_t slowPathNumInputRows = 0;

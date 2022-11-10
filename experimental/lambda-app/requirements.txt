@@ -2,3 +2,4 @@ streamlit
 seaborn
 matplotlib
 pandas
+gdown

@@ -63,6 +63,8 @@ if __name__ == '__main__':
     parser.add_argument('--no-cf', dest='no_cf', action="store_true",
                         help="deactivate constant-folding optimization explicitly.")
     parser.add_argument('--sampling-mode', dest='sampling_mode', choices=['A', 'B', 'C', 'D', 'E', 'F'], default='A')
+    parser.add_argument('--no-filter-pushdown', dest='no_fpd', action="store_true",
+                        help="deactivate filter pushdown.")
     parser.add_argument('--no-nvo', dest='no_nvo', action="store_true",
                         help="deactivate null value optimization explicitly.")
     args = parser.parse_args()
@@ -148,7 +150,7 @@ if __name__ == '__main__':
 
     # for github deactivate all the optimizations, so stuff runs
     conf["optimizer.constantFoldingOptimization"] = False
-    conf["optimizer.filterPushdown"] = True
+    conf["optimizer.filterPushdown"] = not args.no_fpd
     conf["optimizer.selectionPushdown"] = False # <-- does not work yet
 
     # use this flage here to activate general path to make everything faster

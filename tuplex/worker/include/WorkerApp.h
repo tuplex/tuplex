@@ -129,11 +129,14 @@ namespace tuplex {
         bool useInterpreterOnly;
         bool useCompiledGeneralPath;
 
+
+        bool opportuneGeneralPathCompilation; // <-- note: not yet configurable...
+
         double normalCaseThreshold; ///! used for hyperspecialziation
 
         // use some defaults...
         WorkerSettings() : numThreads(1), normalBufferSize(WORKER_DEFAULT_BUFFER_SIZE),
-        exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE), useInterpreterOnly(false), useCompiledGeneralPath(true) {
+        exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE), useInterpreterOnly(false), useCompiledGeneralPath(true), opportuneGeneralPathCompilation(true) {
 
             // set some options from defaults...
             auto opt = ContextOptions::defaults();
@@ -453,6 +456,9 @@ namespace tuplex {
         bool _ncAndHyperNCIncompatible;
         std::vector<URI> _output_uris; // where data was actually written to.
         std::string _lastStat; // information about last invocation/request
+
+        codegen::resolve_f getCompiledResolver();
+
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);
         static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);
         static void exceptRowCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);

@@ -622,7 +622,7 @@ TEST_F(PipelinesTest, GithubLocalVersion) {
 
     co.set("tuplex.optimizer.filterPushdown", "true"); // <-- wip
 
-    co.set("tuplex.optimizer.selectionPushdown", "false"); // <-- requires access path detection to work.
+    co.set("tuplex.optimizer.selectionPushdown", "true"); // <-- requires access path detection to work.
 
     // hyper on/off
     co.set("tuplex.experimental.hyperspecialization", "true");
@@ -651,7 +651,7 @@ TEST_F(PipelinesTest, GithubLocalVersion) {
     // check that this here works
     sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::ALL_FILES;
 
-    // sm = DEFAULT_SAMPLING_MODE;
+     sm = DEFAULT_SAMPLING_MODE;
 
     c.json(pattern, true, true, sm).withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
             .withColumn("repo_id", UDF(repo_id_code))

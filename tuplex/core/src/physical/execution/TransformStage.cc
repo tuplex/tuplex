@@ -749,17 +749,14 @@ namespace tuplex {
         return fields;
     }
 
-    void TransformStage::compileSlowPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols) {
+    std::shared_ptr<TransformStage::JITSymbols> TransformStage::compileSlowPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols) {
         Timer timer;
         // JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
 
         // lazy compile
-        if(!_syms)
-            _syms = std::make_shared<JITSymbols>();
+        auto syms = std::make_shared<JITSymbols>();
 
         auto& logger = Logger::instance().defaultLogger();
-
-//        _slowCodePath = _slowCodePath_f.get();
 
         llvm::LLVMContext ctx;
         auto slow_path_bit_code = slowPathBitCode();
@@ -801,35 +798,26 @@ namespace tuplex {
         if(slow_path_mod && !jit.compile(std::move(slow_path_mod)))
             throw std::runtime_error("could not compile slow code for stage " + std::to_string(number()));
         Timer llvmLowerTimer;
-        if(!_syms->resolveFunctor)
-            _syms->resolveFunctor = !resolveWriteCallbackName().empty() ? reinterpret_cast<codegen::resolve_f>(jit.getAddrOfSymbol(resolveRowName())) : nullptr;
+        if(!syms->resolveFunctor)
+            syms->resolveFunctor = !resolveWriteCallbackName().empty() ? reinterpret_cast<codegen::resolve_f>(jit.getAddrOfSymbol(resolveRowName())) : nullptr;
 
-        if(!_syms->_slowCodePath.initStageFunctor)
-            _syms->_slowCodePath.initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_slowCodePath.initStageFuncName));
-        if(!_syms->_slowCodePath.releaseStageFunctor)
-            _syms->_slowCodePath.releaseStageFunctor = reinterpret_cast<codegen::release_stage_f>(jit.getAddrOfSymbol(_slowCodePath.releaseStageFuncName));
+        if(!syms->_slowCodePath.initStageFunctor)
+            syms->_slowCodePath.initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_slowCodePath.initStageFuncName));
+        if(!syms->_slowCodePath.releaseStageFunctor)
+            syms->_slowCodePath.releaseStageFunctor = reinterpret_cast<codegen::release_stage_f>(jit.getAddrOfSymbol(_slowCodePath.releaseStageFuncName));
     }
 
-    void TransformStage::compileFastPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols) {
+    std::shared_ptr<TransformStage::JITSymbols> TransformStage::compileFastPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols) {
         Timer timer;
         auto& logger = Logger::instance().defaultLogger();
 
-//        // adding a bunch of logging to debug where the failure happens
-//        logger.info("fetching metrics obj");
-//        // JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
-//        logger.info("metrics obj fetched");
-
-        // lazy compile
-        if(!_syms) {
-            logger.info("lazy init syms");
-            _syms = std::make_shared<JITSymbols>();
-        }
+        auto syms = std::make_shared<JITSymbols>();
 
         llvm::LLVMContext ctx;
         auto fast_path_bit_code = fastPathBitCode();
         if(fast_path_bit_code.empty()) {
             logger.info("empty bitcode found, skip");
-            return;
+            return nullptr;
         }
 
         auto fast_path_mod = codegen::bitCodeToModule(ctx, fast_path_bit_code);
@@ -902,38 +890,36 @@ namespace tuplex {
 
         // fetch symbols (this actually triggers the compilation first with register alloc etc.)
         Timer llvmLowerTimer;
-        if(!_syms->functor)
-        if(!_syms->functor && !_updateInputExceptions)
-            _syms->functor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(funcName()));
-        if(!_syms->functorWithExp && _updateInputExceptions)
-            _syms->functorWithExp = reinterpret_cast<codegen::read_block_exp_f>(jit.getAddrOfSymbol(funcName()));
-        logger.info("functor " + funcName() + " retrieved from llvm");
-//        if(_outputMode == EndPointMode::FILE && !_syms->writeFunctor)
-//            _syms->writeFunctor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(writerFuncName()));
-        if(!_syms->_fastCodePath.initStageFunctor)
-            _syms->_fastCodePath.initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_fastCodePath.initStageFuncName));
-        if(!_syms->_fastCodePath.releaseStageFunctor)
-            _syms->_fastCodePath.releaseStageFunctor = reinterpret_cast<codegen::release_stage_f>(jit.getAddrOfSymbol(_fastCodePath.releaseStageFuncName));
+        if(!syms->functor)
+        if(!syms->functor && !_updateInputExceptions)
+            syms->functor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(funcName()));
+        if(!syms->functorWithExp && _updateInputExceptions)
+            syms->functorWithExp = reinterpret_cast<codegen::read_block_exp_f>(jit.getAddrOfSymbol(funcName()));
+        if(!syms->_fastCodePath.initStageFunctor)
+            syms->_fastCodePath.initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_fastCodePath.initStageFuncName));
+        if(!syms->_fastCodePath.releaseStageFunctor)
+            syms->_fastCodePath.releaseStageFunctor = reinterpret_cast<codegen::release_stage_f>(jit.getAddrOfSymbol(_fastCodePath.releaseStageFuncName));
 
         // get aggregate functors
         if(!_fastCodePath.aggregateInitFuncName.empty())
-            _syms->aggInitFunctor = reinterpret_cast<codegen::agg_init_f>(jit.getAddrOfSymbol(_fastCodePath.aggregateInitFuncName));
+            syms->aggInitFunctor = reinterpret_cast<codegen::agg_init_f>(jit.getAddrOfSymbol(_fastCodePath.aggregateInitFuncName));
         if(!_fastCodePath.aggregateCombineFuncName.empty())
-            _syms->aggCombineFunctor = reinterpret_cast<codegen::agg_combine_f>(jit.getAddrOfSymbol(_fastCodePath.aggregateCombineFuncName));
+            syms->aggCombineFunctor = reinterpret_cast<codegen::agg_combine_f>(jit.getAddrOfSymbol(_fastCodePath.aggregateCombineFuncName));
         if(!_fastCodePath.aggregateAggregateFuncName.empty())
-            _syms->aggAggregateFunctor = reinterpret_cast<codegen::agg_agg_f>(jit.getAddrOfSymbol(_fastCodePath.aggregateAggregateFuncName));
+            syms->aggAggregateFunctor = reinterpret_cast<codegen::agg_agg_f>(jit.getAddrOfSymbol(_fastCodePath.aggregateAggregateFuncName));
 
         // check symbols are valid...
         bool hasValidFunctor = true;
-        if (_updateInputExceptions && !_syms->functorWithExp)
+        if (_updateInputExceptions && !syms->functorWithExp)
             hasValidFunctor = false;
-        if (!_updateInputExceptions && !_syms->functor)
+        if (!_updateInputExceptions && !syms->functor)
             hasValidFunctor = false;
-        if(!hasValidFunctor && _syms->_fastCodePath.initStageFunctor && _syms->_fastCodePath.releaseStageFunctor) {
+        if(!hasValidFunctor && syms->_fastCodePath.initStageFunctor && syms->_fastCodePath.releaseStageFunctor) {
             logger.error("invalid pointer address for JIT code returned in fast path");
             throw std::runtime_error("invalid pointer address for JIT code returned");
         }
 
+        return syms;
     }
 
     std::shared_ptr<TransformStage::JITSymbols> TransformStage::compile(JITCompiler &jit,
@@ -948,9 +934,11 @@ namespace tuplex {
 
         Timer timer;
         //JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
-        compileFastPath(jit, optimizer, registerSymbols);
+        auto fast_syms = compileFastPath(jit, optimizer, registerSymbols);
+        _syms->update(fast_syms);
         if (!excludeSlowPath) {
-            compileSlowPath(jit, optimizer, registerSymbols);
+            auto slow_syms = compileSlowPath(jit, optimizer, registerSymbols);
+            _syms->update(slow_syms);
         }
 
         double compilation_time_via_llvm_this_number = timer.time();

@@ -1824,6 +1824,14 @@ namespace tuplex {
         return hm_size;
     }
 
+    codegen::resolve_f WorkerApp::getCompiledResolver() {
+        logger().info("compiling slow code path b.c. exceptions occurred.");
+        Timer timer;
+        stage->compileSlowPath(*_compiler.get(), nullptr, false); // symbols should be known already...
+        syms = stage->jitsyms();
+        logger().info("Compilation of slow path took " + std::to_string(timer.time()) + "s");
+    }
+
     int64_t WorkerApp::resolveOutOfOrder(int threadNo, TransformStage *stage,
                                          std::shared_ptr<TransformStage::JITSymbols> syms) {
         using namespace std;
@@ -1861,11 +1869,10 @@ namespace tuplex {
         // symbols may not have yet a compiled slow path, if so -> compile!
         if(!_settings.useInterpreterOnly && !stage->slowPathBitCode().empty() && !syms->resolveFunctor) {
             if(_settings.useCompiledGeneralPath) {
-                logger().info("compiling slow code path b.c. exceptions occurred.");
-                Timer timer;
-                stage->compileSlowPath(*_compiler.get(), nullptr, false); // symbols should be known already...
-                syms = stage->jitsyms();
-                logger().info("Compilation of slow path took " + std::to_string(timer.time()) + "s");
+                auto compiledResolver = getCompiledResolver();
+                if(!compiledResolver) {
+                    logger().error("could not retrieve valid compiled resolver.");
+                }
             } else {
                 logger().info("Exceptions occurred, but skipping compilation of general case path. Worker uses setting resolveWithInterpreterOnly=true.");
             }
@@ -1961,7 +1968,7 @@ namespace tuplex {
         size_t exception_count = 0;
 
         // fetch functors
-        auto compiledResolver = syms->resolveFunctor;
+        auto compiledResolver = getCompiledResolver(); // syms->resolveFunctor;
         auto interpretedResolver = preparePythonPipeline(stage->purePythonCode(), stage->pythonPipelineName());
         _has_python_resolver = true;
 

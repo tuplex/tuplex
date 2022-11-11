@@ -33,6 +33,21 @@ def fork_event_pipeline(ctx, input_pattern, s3_output_path, sm = None):
         .selectColumns(['type', 'repo_id', 'year']) \
         .tocsv(s3_output_path)
 
+def push_event_pipeline(ctx, input_pattern, s3_output_path, sm = None):
+    """test pipeline to extract push events across years"""
+    if sm is None:
+        sm = tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS
+    #sm = tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS
+    #sm = tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS
+    #sm = tuplex.dataset.SamplingMode.LAST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS
+
+    ctx.json(input_pattern, sampling_mode=sm) \
+        .withColumn('year', lambda x: int(x['created_at'].split('-')[0])) \
+        .withColumn('repo_id', extract_repo_id_code) \
+        .filter(lambda x: x['type'] == 'PushEvent') \
+        .selectColumns(['type', 'repo_id', 'year']) \
+        .tocsv(s3_output_path)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Github hyper specialization query')
     # parser.add_argument('--path', type=str, dest='data_path', default='data/large100MB.csv',
@@ -136,9 +151,8 @@ if __name__ == '__main__':
     conf["optimizer.filterPushdown"] = True
     conf["optimizer.selectionPushdown"] = False # <-- does not work yet
 
-    # deactivate general path to make everything faster
-    # @BUG: why does this put more rows on the general path? fix.
-    conf["resolveWithInterpreterOnly"] = False # <-- this flag is not taken into considereation on Lambda yet. change that!
+    # use this flage here to activate general path to make everything faster
+    conf["resolveWithInterpreterOnly"] = False # <-- False means general path is activated 
 
     tstart = time.time()
     import tuplex
@@ -150,6 +164,7 @@ if __name__ == '__main__':
     ### QUERY HERE ###
 
     fork_event_pipeline(ctx, input_pattern, s3_output_path, sm)
+    #push_event_pipeline(ctx, input_pattern, s3_output_path, sm)
 
     ### END QUERY ###
     run_time = time.time() - tstart

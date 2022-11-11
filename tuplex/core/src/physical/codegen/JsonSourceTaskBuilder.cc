@@ -518,6 +518,7 @@ namespace tuplex {
         FlattenedTuple json_parseRow(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& row_type,
                                 const std::vector<std::string>& columns,
                                 bool unwrap_first_level,
+                                bool fill_missing_first_level_with_null,
                                 llvm::Value* parser,
                                 llvm::BasicBlock *bbSchemaMismatch) {
             auto& logger = Logger::instance().logger("codegen");
@@ -546,12 +547,20 @@ namespace tuplex {
                     entry.keyType = python::Type::STRING;
                     entry.key = escape_to_python_str(columns[i]);
                     entry.valueType = row_type.parameters()[i];
+
+                    // if value type is option[...] (or null) and fill missing flag is set,
+                    // then make it a maybe present element.
+                    if((python::Type::NULLVALUE == entry.valueType || entry.valueType.isOptionType()) && fill_missing_first_level_with_null)
+                        entry.alwaysPresent = false;
+
                     entries.push_back(entry);
                 }
                 auto dict_type = python::Type::makeStructuredDictType(entries);
 
                 // parse dictionary
                 auto dict = json_parseRowAsStructuredDict(env, builder, dict_type, parser, bbSchemaMismatch);
+
+                // env.debugPrint(builder, "-> start parse:");
 
                 // fetch columns from dict and assign to tuple!
                 for(int i = 0; i < num_entries; ++i) {
@@ -561,14 +570,69 @@ namespace tuplex {
                     env.debugPrint(builder, "fetching entry '" + columns[i] + "' type=" + row_type.parameters()[i].desc() + "  " + std::to_string(i + 1) + " of " + std::to_string(num_entries));
 #endif
 
-                    // fetch value from dict!
-                    value = struct_dict_get_or_except(env, builder, dict_type, escape_to_python_str(columns[i]),
-                                                      python::Type::STRING, dict, bbSchemaMismatch);
+                    // special case: maybe element and option type
+                    auto value_type = row_type.parameters()[i];
+                    bool treat_missing_as_null = (python::Type::NULLVALUE == value_type || value_type.isOptionType()) && fill_missing_first_level_with_null;
+                    if(treat_missing_as_null) {
+                        // check if element is present, load only if present - else dummy.
+                        access_path_t access_path;
+                        access_path.push_back(std::make_pair(escape_to_python_str(columns[i]), python::Type::STRING));
+                        auto is_present = struct_dict_load_present(env, builder, dict, dict_type, access_path);
+
+                        llvm::BasicBlock* bColumnPresent = llvm::BasicBlock::Create(env.getContext(), "column" + std::to_string(i) + "_present", builder.GetInsertBlock()->getParent());
+                        llvm::BasicBlock* bColumnDone = llvm::BasicBlock::Create(env.getContext(), "column" + std::to_string(i) + "_done", builder.GetInsertBlock()->getParent());
+
+                        auto curBlock = builder.GetInsertBlock();
+                        builder.SetInsertPoint(bColumnPresent);
+                        // parse
+                        // fetch value from dict!
+                        value = struct_dict_get_or_except(env, builder, dict_type, escape_to_python_str(columns[i]),
+                                                          python::Type::STRING, dict, bbSchemaMismatch);
+                        auto bLastColumnDone = builder.GetInsertBlock();
+                        builder.CreateBr(bColumnDone);
+
+                        // create branch and dummies
+                        builder.SetInsertPoint(curBlock);
+                        SerializableValue dummy = CreateDummyValue(env, builder, value_type);
+
+                        //  env.printValue(builder, is_present, "column " + std::to_string(i) + "/" + std::to_string(columns.size()) + " " + columns[i] + " present:");
+
+                       builder.CreateCondBr(is_present, bColumnPresent, bColumnDone);
+                        builder.SetInsertPoint(bColumnDone);
+
+                        // correct for size (sometimes passed around for e.g., None)
+                        if(!dummy.size)
+                            value.size = nullptr;
+                        if(!value.size)
+                            dummy.size = nullptr;
+
+                        // create phi nodes & store in flattened tuple
+                        auto phi_val = value.val ? builder.CreatePHI(value.val->getType(), 2) : nullptr;
+                        auto phi_size = value.size ? builder.CreatePHI(value.size->getType(), 2) : nullptr;
+                        auto is_null = env.i1neg(builder, is_present); // null when not present.
+
+                        if(value.val) {
+                            phi_val->addIncoming(value.val, bLastColumnDone);
+                            phi_val->addIncoming(dummy.val, curBlock);
+                        }
+                        if(value.size) {
+                            phi_size->addIncoming(value.size, bLastColumnDone);
+                            phi_size->addIncoming(dummy.size, curBlock);
+                        }
+
+                        ft.set(builder, {i}, phi_val, phi_size, is_null);
+
+                        //env.debugPrint(builder, "-- set");
+                    } else {
+                        // fetch value from dict!
+                        value = struct_dict_get_or_except(env, builder, dict_type, escape_to_python_str(columns[i]),
+                                                          python::Type::STRING, dict, bbSchemaMismatch);
 #ifdef JSON_PARSER_TRACE_MEMORY
-                    if(value.size)
+                        if(value.size)
                         env.printValue(builder, value.size, "got entry " + std::to_string(i + 1) + " with size: ");
 #endif
-                    ft.set(builder, {i}, value.val, value.size, value.is_null);
+                        ft.set(builder, {i}, value.val, value.size, value.is_null);
+                    }
                 }
 
 #ifdef JSON_PARSER_TRACE_MEMORY
@@ -611,7 +675,6 @@ namespace tuplex {
             BasicBlock* bEntry = BasicBlock::Create(env.getContext(), "entry", F); // <-- call first!
             BasicBlock* bMismatch = BasicBlock::Create(env.getContext(), "mismatch", F);
             IRBuilder<> builder(bMismatch);
-
             // free objects here
 
             builder.CreateRet(env.i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
@@ -624,14 +687,13 @@ namespace tuplex {
 
             auto parser = args["parser"];
 
-            auto ft_parsed = json_parseRow(env, builder, row_type, columns, unwrap_first_level, parser, bMismatch);
+            auto ft_parsed = json_parseRow(env, builder, row_type, columns, unwrap_first_level, true, parser, bMismatch);
             ft_parsed.storeTo(builder, args["out_tuple"]);
 #ifdef JSON_PARSER_TRACE_MEMORY
             _env->debugPrint(builder, "tuple store to output ptr done.");
 #endif
 
             // free temp objects here...
-
             builder.CreateRet(env.i64Const(0));
             return F;
         }

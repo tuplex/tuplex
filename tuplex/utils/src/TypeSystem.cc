@@ -542,6 +542,8 @@ namespace python {
     std::vector<StructEntry> Type::get_struct_pairs() const {
         assert(isStructuredDictionaryType());
         auto& factory = TypeFactory::instance();
+
+        const std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
         return it->second._struct_pairs;

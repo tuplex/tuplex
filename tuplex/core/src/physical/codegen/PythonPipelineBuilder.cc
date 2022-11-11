@@ -415,7 +415,7 @@ namespace tuplex {
             writeLine(row() + " = Row(parsed_row)");
     }
 
-    void PythonPipelineBuilder::jsonInput(int64_t operatorID, const std::vector<std::string> &columns) {
+    void PythonPipelineBuilder::jsonInput(int64_t operatorID, const std::vector<std::string> &columns, bool unwrap_first_level) {
         _parseCells = true;
 
         // data is stored in cell-format, but with a single cell...
@@ -467,6 +467,29 @@ namespace tuplex {
             writeLine("res['outputColumns'] = " + columnsToList(columns));
         } else
             writeLine(row() + " = Row(parsed_row)");
+
+        // special case: if unwrap is true (&& columns not empty) then need to wrap row such that None is returned for any key not stored within data!
+        if(unwrap_first_level && !columns.empty()) {
+            auto nullget_code = "\nclass NullGet:\n"
+                                "    def __init__(self, row):\n"
+                                "        self.row = row\n"
+                                "        \n"
+                                "\n"
+                                "    def __getitem__(self, key):\n"
+                                "        if not isinstance(key, (int, slice, str)):\n"
+                                "            raise IndexError()\n"
+                                "        try:\n"
+                                "            return self.row[key]\n"
+                                "        except (KeyError, IndexError):\n"
+                                "            return None\n"
+                                "        \n"
+                                "    def __repr__(self):\n"
+                                "        return repr(self.row)\n";
+
+            _header += nullget_code;
+            writeLine(row() + " = NullGet(" + row() + ")");
+        }
+
         dedent();
     }
 

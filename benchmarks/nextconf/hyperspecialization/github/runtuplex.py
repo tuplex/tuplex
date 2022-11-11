@@ -84,6 +84,11 @@ if __name__ == '__main__':
             }
 
     sm = sm_map.get(args.sampling_mode, None)
+
+    # when hyper is active use sampling mode D to make general path better.
+    if not args.no_hyper:
+        sm = sm_map.get('A', None)
+
     logging.info('Using sampling mode: {}'.format(sm))
 
     lambda_size = "10000"

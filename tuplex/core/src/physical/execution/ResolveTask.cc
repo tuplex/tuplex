@@ -565,7 +565,13 @@ default:
                 resCode = -1;
                 // exception occured that is not a schema violation so row will not be present in output
             } else if (resCode != 0) {
+                // it's a true exception, so count as such
+                _pathStats.unresolved++;
+
                 _numUnresolved++;
+
+                // -> note that it (should have?) gotten materialized by the slow path!
+                // @TODO: need to change that, screwed that up with hyperspecialization / lambda mode!
             }
         }
 
@@ -816,6 +822,9 @@ default:
             }
             python::unlockGIL();
         }
+
+        if(0 != resCode)
+            resCode = -1; // <-- make generally except
 
         // fallback 3: still exception? save...
         if(resCode == -1) {

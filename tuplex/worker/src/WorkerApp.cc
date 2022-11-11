@@ -2005,6 +2005,9 @@ namespace tuplex {
                     else {
                         // it's a true exception the resolver won't be able to handle.
                         // can short circuit here. => i.e. for key error.
+
+                        // b.c. this requires resolver to write exception row (not done yet) -> defer to interpreter. (??) maybe it's done ??
+                        rc = -1;
                     }
                 } else {
                     // resolved if rc == success

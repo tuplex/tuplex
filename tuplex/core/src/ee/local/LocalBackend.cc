@@ -1087,7 +1087,8 @@ namespace tuplex {
                 logger().info(ss.str());
 
                 auto pathStats = mergeCodePathStats(completedTasks);
-                logger().info("paths rows took for slow code path: general: " + std::to_string(pathStats.general)
+                std::string general_info = _options.RESOLVE_WITH_INTERPRETER_ONLY() ? "(deactivated)" : std::to_string(pathStats.general);
+                logger().info("paths rows took for slow code path: general: " + general_info
                               + " fallback: " + std::to_string(pathStats.fallback)
                               + " unresolved: " + std::to_string(pathStats.unresolved));
 

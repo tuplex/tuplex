@@ -1519,8 +1519,14 @@ namespace tuplex {
                 // check if present map indicates something
                 if(present_idx >= 0) {
                     // need to check bit
-                    auto element_present = struct_dict_load_present(env, builder, ptr, dict_type, access_path);
-                    throw std::runtime_error("not yet supported");
+                    auto element_present = struct_dict_load_path_presence(env, builder, ptr, dict_type, access_path);
+
+                    // create blocks.
+                    BasicBlock* bElementPresent = BasicBlock::Create(env.getContext(), "dict_element_present", builder.GetInsertBlock()->getParent());
+                    assert(bbKeyNotFound);
+                    builder.CreateCondBr(element_present, bElementPresent, bbKeyNotFound);
+                    builder.SetInsertPoint(bElementPresent);
+
                 }
 
                 // load value

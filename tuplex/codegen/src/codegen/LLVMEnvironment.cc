@@ -2759,8 +2759,18 @@ namespace tuplex {
                 retVal.val = env.f64Const(0.0);
                 retVal.size = env.i64Const(sizeof(double));
             } else if (python::Type::STRING == type || type.isDictionaryType()) {
-                retVal.val = env.i8ptrConst(nullptr);
-                retVal.size = env.i64Const(0);
+
+                // special case: struct dict!
+                if(python::Type::EMPTYDICT == type) {
+                    retVal.val = env.CreateFirstBlockAlloca(builder, env.getOrCreateEmptyDictType());
+                } else if(type.isStructuredDictionaryType()) {
+                    retVal.val = env.CreateFirstBlockAlloca(builder, env.getOrCreateStructuredDictType(type));
+                    struct_dict_mem_zero(env, builder, retVal.val, type);
+                } else {
+                    // generic dict...
+                    retVal.val = env.i8ptrConst(nullptr);
+                    retVal.size = env.i64Const(0);
+                }
             } else if(python::Type::NULLVALUE == type) {
                 retVal.is_null = env.i1Const(true);
             } else {

@@ -137,9 +137,22 @@ namespace tuplex {
 
 
         // several json related codegen functions that are useful
+        /*!
+         *
+         * @param env
+         * @param builder
+         * @param row_type
+         * @param columns
+         * @param unwrap_first_level
+         * @param fill_missing_first_level_with_null if a tuple is given as row type with options, and this flag is set then missing keys are replaced with nulls (for the first level).
+         * @param parser
+         * @param bbSchemaMismatch
+         * @return
+         */
         extern FlattenedTuple json_parseRow(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& row_type,
                                             const std::vector<std::string>& columns,
                                             bool unwrap_first_level,
+                                            bool fill_missing_first_level_with_null,
                                             llvm::Value* parser,
                                             llvm::BasicBlock *bbSchemaMismatch);
 

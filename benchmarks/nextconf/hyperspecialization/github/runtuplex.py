@@ -67,6 +67,8 @@ if __name__ == '__main__':
                         help="deactivate filter pushdown.")
     parser.add_argument('--no-nvo', dest='no_nvo', action="store_true",
                         help="deactivate null value optimization explicitly.")
+    parser.add_argument('--no-llvm-opt', dest='no_opt', action="store_true",
+                        help="deactivate llvm optimization explicitly.")
     args = parser.parse_args()
 
     #if not 'AWS_ACCESS_KEY_ID' in os.environ or 'AWS_SECRET_ACCESS_KEY' not in os.environ:
@@ -155,6 +157,8 @@ if __name__ == '__main__':
 
     # use this flage here to activate general path to make everything faster
     conf["resolveWithInterpreterOnly"] = False # <-- False means general path is activated 
+    
+    conf["useLLVMOptimizer"] = not args.no_opt # <-- disable llvm optimizers
 
     tstart = time.time()
     import tuplex

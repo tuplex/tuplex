@@ -127,12 +127,13 @@ namespace tuplex {
 
         bool allowNumericTypeUnification;
         bool useInterpreterOnly;
+        bool useCompiledGeneralPath;
 
         double normalCaseThreshold; ///! used for hyperspecialziation
 
         // use some defaults...
         WorkerSettings() : numThreads(1), normalBufferSize(WORKER_DEFAULT_BUFFER_SIZE),
-        exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE), useInterpreterOnly(false) {
+        exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE), useInterpreterOnly(false), useCompiledGeneralPath(true) {
 
             // set some options from defaults...
             auto opt = ContextOptions::defaults();
@@ -162,6 +163,8 @@ namespace tuplex {
             if(allowNumericTypeUnification != other.allowNumericTypeUnification)
                 return false;
             if(useInterpreterOnly != other.useInterpreterOnly)
+                return false;
+            if(useCompiledGeneralPath != other.useCompiledGeneralPath)
                 return false;
             if(!double_eq(normalCaseThreshold, other.normalCaseThreshold))
                 return false;

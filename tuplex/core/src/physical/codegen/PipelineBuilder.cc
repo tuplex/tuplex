@@ -836,7 +836,7 @@ namespace tuplex {
             // debug
             BasicBlock* bexceptStart = BasicBlock::Create(builder.getContext(), "debug", builder.GetInsertBlock()->getParent());
             llvm::IRBuilder<> b(bexceptStart);
-            _env->printValue(b, b.CreateLoad(getPointerToVariable(b, "exceptionCode")), "withColumn failed with code=");
+            //  _env->printValue(b, b.CreateLoad(getPointerToVariable(b, "exceptionCode")), "withColumn failed with code=");
             b.CreateBr(exceptionBlock);
 
             auto outVal = cf.callWithExceptionHandler(builder, _lastRowResult, resVal, bexceptStart, getPointerToVariable(builder, "exceptionCode"));

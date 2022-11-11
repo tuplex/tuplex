@@ -33,6 +33,21 @@ def fork_event_pipeline(ctx, input_pattern, s3_output_path, sm = None):
         .selectColumns(['type', 'repo_id', 'year']) \
         .tocsv(s3_output_path)
 
+def push_event_pipeline(ctx, input_pattern, s3_output_path, sm = None):
+    """test pipeline to extract push events across years"""
+    if sm is None:
+        sm = tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS
+    #sm = tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS
+    #sm = tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS
+    #sm = tuplex.dataset.SamplingMode.LAST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS
+
+    ctx.json(input_pattern, sampling_mode=sm) \
+        .withColumn('year', lambda x: int(x['created_at'].split('-')[0])) \
+        .withColumn('repo_id', extract_repo_id_code) \
+        .filter(lambda x: x['type'] == 'PushEvent') \
+        .selectColumns(['type', 'repo_id', 'year']) \
+        .tocsv(s3_output_path)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Github hyper specialization query')
     # parser.add_argument('--path', type=str, dest='data_path', default='data/large100MB.csv',
@@ -48,6 +63,8 @@ if __name__ == '__main__':
     parser.add_argument('--no-cf', dest='no_cf', action="store_true",
                         help="deactivate constant-folding optimization explicitly.")
     parser.add_argument('--sampling-mode', dest='sampling_mode', choices=['A', 'B', 'C', 'D', 'E', 'F'], default='A')
+    parser.add_argument('--no-filter-pushdown', dest='no_fpd', action="store_true",
+                        help="deactivate filter pushdown.")
     parser.add_argument('--no-nvo', dest='no_nvo', action="store_true",
                         help="deactivate null value optimization explicitly.")
     args = parser.parse_args()
@@ -72,11 +89,7 @@ if __name__ == '__main__':
     s3_scratch_dir = "s3://tuplex-leonhard/scratch/github-exp"
     use_hyper_specialization = not args.no_hyper
     use_constant_folding = not args.no_cf
-    input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv'
-    s3_output_path = 's3://tuplex-leonhard/experiments/flights_github'
-
-    # full dataset here (oO)
-    input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv'
+    s3_output_path = 's3://tuplex-leonhard/experiments/github'
 
     # two options: full dataset or tiny sample
     input_pattern = 's3://tuplex-public/data/github_daily/*.json' # <-- full dataset
@@ -137,8 +150,11 @@ if __name__ == '__main__':
 
     # for github deactivate all the optimizations, so stuff runs
     conf["optimizer.constantFoldingOptimization"] = False
-    conf["optimizer.filterPushdown"] = False
-    conf["optimizer.selectionPushdown"] = False
+    conf["optimizer.filterPushdown"] = not args.no_fpd
+    conf["optimizer.selectionPushdown"] = False # <-- does not work yet
+
+    # use this flage here to activate general path to make everything faster
+    conf["resolveWithInterpreterOnly"] = False # <-- False means general path is activated 
 
     tstart = time.time()
     import tuplex
@@ -150,6 +166,7 @@ if __name__ == '__main__':
     ### QUERY HERE ###
 
     fork_event_pipeline(ctx, input_pattern, s3_output_path, sm)
+    #push_event_pipeline(ctx, input_pattern, s3_output_path, sm)
 
     ### END QUERY ###
     run_time = time.time() - tstart

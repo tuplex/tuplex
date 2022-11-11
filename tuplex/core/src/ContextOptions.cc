@@ -309,7 +309,7 @@ namespace tuplex {
                      {"tuplex.aws.requesterPay", "false"},
                      {"tuplex.aws.verboseLogging", "true"},
                      {"tuplex.useInterpreterOnly", "false"},
-                     {"tuplex.resolveWithInterpreterOnly", "true"},
+                     {"tuplex.resolveWithInterpreterOnly", "false"},
                      {"tuplex.network.caFile", ""},
                      {"tuplex.network.caPath", ""},
                      {"tuplex.network.verifySSL", "false"},

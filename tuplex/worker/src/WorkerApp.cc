@@ -1463,6 +1463,8 @@ namespace tuplex {
             ws.allowNumericTypeUnification = req.settings().allownumerictypeunification();
         if(req.settings().has_useinterpreteronly())
             ws.useInterpreterOnly = req.settings().useinterpreteronly();
+        if(req.settings().has_usecompiledgeneralcase())
+            ws.useCompiledGeneralPath = req.settings().usecompiledgeneralcase();
         if(req.settings().has_normalcasethreshold())
             ws.normalCaseThreshold = req.settings().normalcasethreshold();
         ws.numThreads = std::max(1ul, ws.numThreads);
@@ -1858,11 +1860,15 @@ namespace tuplex {
 
         // symbols may not have yet a compiled slow path, if so -> compile!
         if(!_settings.useInterpreterOnly && !stage->slowPathBitCode().empty() && !syms->resolveFunctor) {
-            logger().info("compiling slow code path b.c. exceptions occurred.");
-            Timer timer;
-            stage->compileSlowPath(*_compiler.get(), nullptr, false); // symbols should be known already...
-            syms = stage->jitsyms();
-            logger().info("Compilation of slow path took " + std::to_string(timer.time()) + "s");
+            if(_settings.useCompiledGeneralPath) {
+                logger().info("compiling slow code path b.c. exceptions occurred.");
+                Timer timer;
+                stage->compileSlowPath(*_compiler.get(), nullptr, false); // symbols should be known already...
+                syms = stage->jitsyms();
+                logger().info("Compilation of slow path took " + std::to_string(timer.time()) + "s");
+            } else {
+                logger().info("Exceptions occurred, but skipping compilation of general case path. Worker uses setting resolveWithInterpreterOnly=true.");
+            }
         }
 
         // now go through all exceptions & resolve them.
@@ -1959,9 +1965,9 @@ namespace tuplex {
         auto interpretedResolver = preparePythonPipeline(stage->purePythonCode(), stage->pythonPipelineName());
         _has_python_resolver = true;
 
-        // deactivate compiled resolver with this...
-        // // hack
-        // compiledResolver = nullptr;
+        // deactivate compiled resolver according to setting
+        if(!_settings.useCompiledGeneralPath)
+            compiledResolver = nullptr;
 
         // debug:
 #ifndef NDEBUG
@@ -2005,6 +2011,9 @@ namespace tuplex {
                     else {
                         // it's a true exception the resolver won't be able to handle.
                         // can short circuit here. => i.e. for key error.
+
+                        // b.c. this requires resolver to write exception row (not done yet) -> defer to interpreter. (??) maybe it's done ??
+                        rc = -1;
                     }
                 } else {
                     // resolved if rc == success

@@ -131,7 +131,7 @@ namespace tuplex {
                         break;
                     }
                     case FileFormat::OUTFMT_JSON: {
-                        ppb.jsonInput(fop->getID(), fop->inputColumns());
+                        ppb.jsonInput(fop->getID(), fop->inputColumns(), fop->unwrap_first_level());
                         break;
                     }
                     default:

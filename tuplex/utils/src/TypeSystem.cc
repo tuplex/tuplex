@@ -58,6 +58,8 @@ namespace python {
     }
 
     Type TypeFactory::getByName(const std::string& name) {
+        std::lock_guard<std::mutex> lock(_typeMapMutex);
+
         auto it = std::find_if(_typeMap.begin(),
                                _typeMap.end(),
                                [name](const std::pair<const int, TypeEntry>& p) {
@@ -117,9 +119,13 @@ namespace python {
         if(type == python::Type::NULLVALUE)
             return type;
 
-        // 2.) already option? Optional[Optional[...]] = Optional[...]
-        if(TypeFactory::instance()._typeMap.at(type._hash)._type == AbstractType::OPTION)
-            return type;
+        {
+            std::lock_guard<std::mutex> lock(_typeMapMutex);
+            // 2.) already option? Optional[Optional[...]] = Optional[...]
+            if(TypeFactory::instance()._typeMap.at(type._hash)._type == AbstractType::OPTION)
+                return type;
+        }
+
 
         // create new option type!
         std::string name = "Option[" + TypeFactory::instance().getDesc(type._hash) + "]";
@@ -381,9 +387,10 @@ namespace python {
     }
 
     std::string TypeFactory::getDesc(const int _hash) const {
-        if(_hash < 0)
+        if(_hash <= 0)
             return "unknown";
 
+        std::lock_guard<std::mutex> lock(_typeMapMutex);
         assert(_hash >= 0);
         assert(_typeMap.find(_hash) != _typeMap.end());
 
@@ -460,6 +467,7 @@ namespace python {
     }
 
     bool TypeFactory::isFunctionType(const Type &t) const {
+        std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = _typeMap.find(t._hash);
         if(it == _typeMap.end())
             return false;
@@ -468,6 +476,7 @@ namespace python {
     }
 
     bool TypeFactory::isOptionType(const python::Type &t) const {
+        std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = _typeMap.find(t._hash);
         if(it == _typeMap.end())
             return false;
@@ -476,6 +485,7 @@ namespace python {
     }
 
     bool TypeFactory::isDictionaryType(const Type &t) const {
+        std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = _typeMap.find(t._hash);
         if(it == _typeMap.end())
             return false;
@@ -485,6 +495,7 @@ namespace python {
     }
 
     bool TypeFactory::isStructuredDictionaryType(const Type& t) const {
+        std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = _typeMap.find(t._hash);
         if(it == _typeMap.end())
             return false;
@@ -494,6 +505,7 @@ namespace python {
     }
 
     bool TypeFactory::isListType(const Type &t) const {
+        std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = _typeMap.find(t._hash);
         if(it == _typeMap.end())
             return false;
@@ -503,6 +515,7 @@ namespace python {
     }
 
     bool TypeFactory::isTupleType(const Type &t) const {
+        std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = _typeMap.find(t._hash);
         if(it == _typeMap.end())
             return false;
@@ -511,6 +524,7 @@ namespace python {
     }
 
     bool TypeFactory::isIteratorType(const Type &t) const {
+        std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = _typeMap.find(t._hash);
         if(it == _typeMap.end())
             return false;
@@ -542,6 +556,8 @@ namespace python {
     std::vector<StructEntry> Type::get_struct_pairs() const {
         assert(isStructuredDictionaryType());
         auto& factory = TypeFactory::instance();
+
+        const std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
         return it->second._struct_pairs;
@@ -553,13 +569,16 @@ namespace python {
         if(_hash == EMPTYDICT._hash || _hash == GENERICDICT._hash)
             return PYOBJECT;
 
+
         // is it a structured dict? -> same key type?
         if(isStructuredDictionaryType()) {
             // check pairs and whether they all have the same type, if not return pyobject
             auto& factory = TypeFactory::instance();
+            factory._typeMapMutex.lock();
             auto it = factory._typeMap.find(_hash);
             assert(it != factory._typeMap.end());
             auto pairs = it->second._struct_pairs;
+            factory._typeMapMutex.unlock();
             assert(!pairs.empty()); // --> should be empty dict
             auto key_type = pairs.front().keyType;
             for(auto entry : pairs) {
@@ -574,6 +593,8 @@ namespace python {
         // regular dict
         assert(isDictionaryType() && !isStructuredDictionaryType() && _hash != EMPTYDICT._hash && _hash != GENERICDICT._hash);
         auto& factory = TypeFactory::instance();
+
+        std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
         assert(it->second._params.size() == 2);
@@ -583,6 +604,7 @@ namespace python {
     bool Type::hasVariablePositionalArgs() const {
         assert(isFunctionType());
         auto& factory = TypeFactory::instance();
+        std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
         return it->second._isVarLen;
@@ -597,9 +619,11 @@ namespace python {
         if(isStructuredDictionaryType()) {
             // check pairs and whether they all have the same type, if not return pyobject
             auto& factory = TypeFactory::instance();
+            factory._typeMapMutex.lock();
             auto it = factory._typeMap.find(_hash);
             assert(it != factory._typeMap.end());
             auto pairs = it->second._struct_pairs;
+            factory._typeMapMutex.unlock();
             assert(!pairs.empty()); // --> should be empty dict
             auto value_type = pairs.front().keyType;
             for(auto entry : pairs) {
@@ -613,6 +637,7 @@ namespace python {
 
         assert(isDictionaryType() && _hash != EMPTYDICT._hash && _hash != GENERICDICT._hash);
         auto& factory = TypeFactory::instance();
+        std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
         assert(it->second._params.size() == 2);
@@ -623,6 +648,7 @@ namespace python {
         if(isListType()) {
             assert(isListType() && _hash != EMPTYLIST._hash);
             auto& factory = TypeFactory::instance();
+            std::lock_guard<std::mutex> lock(factory._typeMapMutex);
             auto it = factory._typeMap.find(_hash);
             assert(it != factory._typeMap.end());
             assert(it->second._params.size() == 1);
@@ -639,6 +665,7 @@ namespace python {
         assert(isOptimizedType() || isTypeObjectType());
 
         auto& factory = TypeFactory::instance();
+        std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
         assert(it->second._params.size() == 1);
@@ -648,6 +675,7 @@ namespace python {
     std::string Type::constant() const {
         assert(isConstantValued());
         auto& factory = TypeFactory::instance();
+        std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
         assert(it->second._params.size() == 1);
@@ -761,7 +789,9 @@ namespace python {
 //         OPTIMIZED_CONSTANT, // constant value
 //            OPTIMIZED_DELAYEDPARSING, // dummy types to allow for certain optimizations
 //            OPTIMIZED_RANGECOMPRESSION // range compression
-        const auto& entry = TypeFactory::instance()._typeMap.at(_hash);
+        auto& factory = TypeFactory::instance();
+        std::lock_guard<std::mutex> lock(factory._typeMapMutex);
+        const auto& entry = factory._typeMap.at(_hash);
         switch(entry._type) {
             case TypeFactory::AbstractType::OPTIMIZED_CONSTANT:
             case TypeFactory::AbstractType::OPTIMIZED_DELAYEDPARSING:
@@ -774,7 +804,9 @@ namespace python {
     }
 
     bool Type::isTypeObjectType() const {
-        const auto& entry = TypeFactory::instance()._typeMap.at(_hash);
+        auto& factory = TypeFactory::instance();
+        std::lock_guard<std::mutex> lock(factory._typeMapMutex);
+        const auto& entry = factory._typeMap.at(_hash);
         return entry._type == TypeFactory::AbstractType::TYPE;
     }
 
@@ -926,7 +958,7 @@ namespace python {
 
 
     std::string TypeFactory::printAllTypes() {
-
+        std::lock_guard<std::mutex> lock(_typeMapMutex);
         std::string res = "";
         for(auto it : _typeMap) {
             res += "hash:" + std::to_string(it.first) + "   " + it.second.desc() + "\n";
@@ -936,6 +968,7 @@ namespace python {
     }
 
     bool TypeFactory::isConstantValued(const Type &t) const {
+        std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = _typeMap.find(t._hash);
         if(it == _typeMap.end())
             return false;
@@ -962,13 +995,14 @@ namespace python {
 
     std::unordered_map<std::string, Type> TypeFactory::get_primitive_keywords() const {
         std::unordered_map<std::string, Type> keywords;
+        _typeMapMutex.lock();
         for(auto keyval : _typeMap) {
             Type t;
             t._hash = keyval.first;
             if(keyval.second._type == AbstractType::PRIMITIVE)
                 keywords[keyval.second._desc] = t;
         }
-
+        _typeMapMutex.unlock();
         // add both None and null as NULLVALUE
         keywords["None"] = Type::NULLVALUE;
         keywords["null"] = Type::NULLVALUE;
@@ -1435,7 +1469,7 @@ namespace python {
     std::vector<Type> python::Type::baseClasses() const {
         // now search baseclasses recursively
         auto& factory = TypeFactory::instance();
-
+        std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         // unknown? -> no entry.
         if(_hash < 0)
             return {};
@@ -1481,7 +1515,7 @@ namespace python {
         // note this function may be super slow...
         std::set<Type> classes;
         auto& factory = TypeFactory::instance();
-
+        std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         for(const auto& keyval : factory._typeMap) {
             Type t;
             t._hash = keyval.first;
@@ -1494,7 +1528,7 @@ namespace python {
 
     Type Type::byName(const std::string &name) {
         auto& factory = TypeFactory::instance();
-
+        std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         // slow linear search, is this good?
         for(const auto& keyval : factory._typeMap) {
             if(keyval.second._desc == name) {
@@ -1841,6 +1875,8 @@ namespace python {
     // TODO: more efficient encoding using binary representation?
     std::string Type::encode() const {
         if(_hash > 0) {
+            auto& factory = TypeFactory::instance();
+            std::lock_guard<std::mutex> lock(factory._typeMapMutex);
             // use super simple encoding scheme here.
             // -> i.e. primitives use desc
             // else, create compound type using <Name>[...]
@@ -1849,7 +1885,7 @@ namespace python {
 
             // do not use isPrimitiveType(), ... etc. here
             // because these functions are for semantics...!
-            const auto& entry = TypeFactory::instance()._typeMap.at(_hash);
+            const auto& entry = factory._typeMap.at(_hash);
             auto abstract_type = entry._type;
             switch(abstract_type) {
                 case TypeFactory::AbstractType::PRIMITIVE: {

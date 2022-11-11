@@ -548,9 +548,9 @@ namespace tuplex {
                     entry.key = escape_to_python_str(columns[i]);
                     entry.valueType = row_type.parameters()[i];
 
-                    // if value type is option[...] and fill missing flag is set,
+                    // if value type is option[...] (or null) and fill missing flag is set,
                     // then make it a maybe present element.
-                    if(entry.valueType.isOptionType() && fill_missing_first_level_with_null)
+                    if((python::Type::NULLVALUE == entry.valueType || entry.valueType.isOptionType()) && fill_missing_first_level_with_null)
                         entry.alwaysPresent = false;
 
                     entries.push_back(entry);
@@ -560,6 +560,7 @@ namespace tuplex {
                 // parse dictionary
                 auto dict = json_parseRowAsStructuredDict(env, builder, dict_type, parser, bbSchemaMismatch);
 
+                env.debugPrint(builder, "-> start parse:");
                 // fetch columns from dict and assign to tuple!
                 for(int i = 0; i < num_entries; ++i) {
                     SerializableValue value;
@@ -570,7 +571,7 @@ namespace tuplex {
 
                     // special case: maybe element and option type
                     auto value_type = row_type.parameters()[i];
-                    bool treat_missing_as_null = value_type.isOptionType() && fill_missing_first_level_with_null;
+                    bool treat_missing_as_null = (python::Type::NULLVALUE == value_type || value_type.isOptionType()) && fill_missing_first_level_with_null;
                     if(treat_missing_as_null) {
                         // check if element is present, load only if present - else dummy.
                         access_path_t access_path;
@@ -592,25 +593,33 @@ namespace tuplex {
                         // create branch and dummies
                         builder.SetInsertPoint(curBlock);
                         SerializableValue dummy = CreateDummyValue(env, builder, value_type);
-                        // env.printValue(builder, is_present, "column " + std::to_string(i) + "/" + std::to_string(columns.size()) + " " + columns[i] + " present:");
+                         env.printValue(builder, is_present, "column " + std::to_string(i) + "/" + std::to_string(columns.size()) + " " + columns[i] + " present:");
                         builder.CreateCondBr(is_present, bColumnPresent, bColumnDone);
                         builder.SetInsertPoint(bColumnDone);
 
+                        // correct for size (sometimes passed around for e.g., None)
+                        if(!dummy.size)
+                            value.size = nullptr;
+                        if(!value.size)
+                            dummy.size = nullptr;
+
                         // create phi nodes & store in flattened tuple
-                        auto phi_val = builder.CreatePHI(value.val->getType(), 2);
+                        auto phi_val = value.val ? builder.CreatePHI(value.val->getType(), 2) : nullptr;
                         auto phi_size = value.size ? builder.CreatePHI(value.size->getType(), 2) : nullptr;
                         auto is_null = env.i1neg(builder, is_present); // null when not present.
 
-                        auto val_type_name = env.getLLVMTypeName(value.val->getType());
-
-                        phi_val->addIncoming(value.val, bLastColumnDone);
-                        phi_val->addIncoming(dummy.val, curBlock);
+                        if(value.val) {
+                            phi_val->addIncoming(value.val, bLastColumnDone);
+                            phi_val->addIncoming(dummy.val, curBlock);
+                        }
                         if(value.size) {
                             phi_size->addIncoming(value.size, bLastColumnDone);
                             phi_size->addIncoming(dummy.size, curBlock);
                         }
 
                         ft.set(builder, {i}, phi_val, phi_size, is_null);
+
+                        env.debugPrint(builder, "-- set");
                     } else {
                         // fetch value from dict!
                         value = struct_dict_get_or_except(env, builder, dict_type, escape_to_python_str(columns[i]),

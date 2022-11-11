@@ -76,7 +76,7 @@ TEST_F(JsonTuplexTest, ExplainJsonMismatch) {
     EXPECT_NE(type, python::Type::UNKNOWN);
 
     // take now sample row from github_daily and match using helper function...
-    string path = "../resources/hyperspecialization/github_daily/2021-10-15.json.sample";
+    string path = "../resources/hyperspecialization/github_daily/2016-10-15.json.sample";
     auto data = fileToString(path);
     auto lines = splitToLines(data);
     ASSERT_FALSE(lines.empty());

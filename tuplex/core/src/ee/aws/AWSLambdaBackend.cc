@@ -943,6 +943,7 @@ namespace tuplex {
         ws->set_spillrooturi(spillURI);
         throw std::runtime_error("ERROR: need unique spill URIS");
         ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
+        ws->set_usecompiledgeneralcase(!_options.RESOLVE_WITH_INTERPRETER_ONLY());
         ws->set_normalcasethreshold(_options.NORMALCASE_THRESHOLD());
         req.set_allocated_settings(ws.release());
 
@@ -1029,6 +1030,7 @@ namespace tuplex {
                 ws->set_exceptionbuffersize(buf_spill_size);
                 ws->set_spillrooturi(spillURI + "/lam" + fixedPoint(i, num_digits) + "/" + fixedPoint(part_no, num_digits_part));
                 ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
+                ws->set_usecompiledgeneralcase(!_options.RESOLVE_WITH_INTERPRETER_ONLY());
                 ws->set_normalcasethreshold(_options.NORMALCASE_THRESHOLD());
                 req.set_allocated_settings(ws.release());
 
@@ -1575,8 +1577,9 @@ namespace tuplex {
             // print stage stats
             logger().info("LAMBDA Stage output: " + pluralize(total_num_output_rows, "row") + ", "
                                            + pluralize(total_num_exceptions, "exception"));
+            std::string general_info = _options.RESOLVE_WITH_INTERPRETER_ONLY() ? "(deactivated)" : std::to_string(pathStats.general);
             logger().info("LAMBDA paths input rows took: normal: " + std::to_string(total_normal_path)
-            + " general: " + std::to_string(total_general_path) + " interpreter: "
+            + " general: " + general_info + " interpreter: "
             + std::to_string(total_interpreter_path));
 
             // save to internal

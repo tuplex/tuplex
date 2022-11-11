@@ -136,6 +136,10 @@ if __name__ == '__main__':
     conf["optimizer.filterPushdown"] = True
     conf["optimizer.selectionPushdown"] = False # <-- does not work yet
 
+    # deactivate general path to make everything faster
+    # @BUG: why does this put more rows on the general path? fix.
+    conf["resolveWithInterpreterOnly"] = False # <-- this flag is not taken into considereation on Lambda yet. change that!
+
     tstart = time.time()
     import tuplex
     ctx = tuplex.Context(conf)

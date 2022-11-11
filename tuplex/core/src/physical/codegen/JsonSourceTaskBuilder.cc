@@ -560,7 +560,8 @@ namespace tuplex {
                 // parse dictionary
                 auto dict = json_parseRowAsStructuredDict(env, builder, dict_type, parser, bbSchemaMismatch);
 
-                env.debugPrint(builder, "-> start parse:");
+                // env.debugPrint(builder, "-> start parse:");
+
                 // fetch columns from dict and assign to tuple!
                 for(int i = 0; i < num_entries; ++i) {
                     SerializableValue value;
@@ -593,8 +594,10 @@ namespace tuplex {
                         // create branch and dummies
                         builder.SetInsertPoint(curBlock);
                         SerializableValue dummy = CreateDummyValue(env, builder, value_type);
-                         env.printValue(builder, is_present, "column " + std::to_string(i) + "/" + std::to_string(columns.size()) + " " + columns[i] + " present:");
-                        builder.CreateCondBr(is_present, bColumnPresent, bColumnDone);
+
+                        //  env.printValue(builder, is_present, "column " + std::to_string(i) + "/" + std::to_string(columns.size()) + " " + columns[i] + " present:");
+
+                       builder.CreateCondBr(is_present, bColumnPresent, bColumnDone);
                         builder.SetInsertPoint(bColumnDone);
 
                         // correct for size (sometimes passed around for e.g., None)
@@ -619,7 +622,7 @@ namespace tuplex {
 
                         ft.set(builder, {i}, phi_val, phi_size, is_null);
 
-                        env.debugPrint(builder, "-- set");
+                        //env.debugPrint(builder, "-- set");
                     } else {
                         // fetch value from dict!
                         value = struct_dict_get_or_except(env, builder, dict_type, escape_to_python_str(columns[i]),

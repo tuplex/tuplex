@@ -80,7 +80,7 @@ namespace tuplex {
                     auto tuple_var = env.CreateFirstBlockAlloca(builder, ft.getLLVMType());
                     auto rc = builder.CreateCall(parseF, {tuple_var, str, str_size});
 
-                    env.printValue(builder, rc, "parse bad string - call result: ");
+                    // env.printValue(builder, rc, "parse bad string - call result: ");
 
                     BasicBlock* bParseOK = BasicBlock::Create(env.getContext(), "parse_for_pipeline_ok", builder.GetInsertBlock()->getParent());
                     BasicBlock* bParseFailed =  BasicBlock::Create(env.getContext(), "parse_for_pipeline_failed", builder.GetInsertBlock()->getParent());

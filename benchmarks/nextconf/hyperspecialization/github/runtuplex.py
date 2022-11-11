@@ -72,11 +72,7 @@ if __name__ == '__main__':
     s3_scratch_dir = "s3://tuplex-leonhard/scratch/github-exp"
     use_hyper_specialization = not args.no_hyper
     use_constant_folding = not args.no_cf
-    input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv'
-    s3_output_path = 's3://tuplex-leonhard/experiments/flights_github'
-
-    # full dataset here (oO)
-    input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv'
+    s3_output_path = 's3://tuplex-leonhard/experiments/github'
 
     # two options: full dataset or tiny sample
     input_pattern = 's3://tuplex-public/data/github_daily/*.json' # <-- full dataset
@@ -137,8 +133,8 @@ if __name__ == '__main__':
 
     # for github deactivate all the optimizations, so stuff runs
     conf["optimizer.constantFoldingOptimization"] = False
-    conf["optimizer.filterPushdown"] = False
-    conf["optimizer.selectionPushdown"] = False
+    conf["optimizer.filterPushdown"] = True
+    conf["optimizer.selectionPushdown"] = False # <-- does not work yet
 
     tstart = time.time()
     import tuplex

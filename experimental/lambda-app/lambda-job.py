@@ -16,6 +16,10 @@ g_col = np.array([140, 192, 222]) / 255.0 #sns.color_palette()[1]
 
 
 DATA_PATH='/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/aws_job.json'
+DATA_PATH='/Users/leonhards/projects/tuplex-public/experimental/data/results-filter-pushdown/sampling/hyper/job/job_0001.json'
+DATA_PATH='/Users/leonhards/projects/tuplex-public/experimental/data/results-filter-pushdown/sampling/hyper/job/job_0002.json' # <-- this one here seems to work...
+DATA_PATH='/Users/leonhards/projects/tuplex-public/experimental/data/results-filter-pushdown/sampling/A/job/job_0002.json' # <-- this one here seems to work...
+
 data = json.loads(open(DATA_PATH, 'r').read())
 
 st.set_page_config(page_title="Lambda job explore app", layout='wide')
@@ -50,6 +54,10 @@ in_unresolved = data['input_paths_taken']['unresolved']
 
 out_normal = data['output_paths_taken']['normal']
 out_unresolved = data['output_paths_taken']['unresolved']
+
+# out_normal should be 294182
+if out_normal != 294182:
+    st.write('failed job...')
 
 in_df = pd.DataFrame({
     'total' : [in_normal + in_general + in_fallback + in_unresolved],
@@ -133,6 +141,16 @@ for i, req in enumerate(sorted_reqs):
 
     rows.append(row)
 df_reqs = pd.DataFrame(rows)
+
+# compute totals for fast time, slow time, hyperspecialization time and t_compile
+df_reqs_sum = df_reqs.fillna(0).sum()
+c1, c2, c3, c4 = st.columns(4)
+c1.metric('fast path', '{:.2f}s'.format(df_reqs_sum['t_fast']), help='time spent executing fast path')
+c2.metric('slow/interpreter path', '{:.2f}s'.format(df_reqs_sum['t_slow']), help='time spent in slow path (general + interpreter)')
+c3.metric('hyperspecialization', '{:.2f}s'.format(df_reqs_sum['t_hyper']), help='time spent on hyper specialization')
+c4.metric('compile time', '{:.2f}s'.format(df_reqs_sum['t_compile']))
+
+
 st.write('Individual requests overview:')
 st.dataframe(df_reqs, use_container_width=True)
 
@@ -190,6 +208,7 @@ ax.set_title('parallelism over time')
 col1, col2 = st.columns(2)
 sns.despine(fig)
 col1.pyplot(fig)
+
 
 # could use this here to analyze quickly hyper/general jobs etc.
 # options = st.multiselect(

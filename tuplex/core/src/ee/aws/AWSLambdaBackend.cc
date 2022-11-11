@@ -1577,7 +1577,7 @@ namespace tuplex {
             // print stage stats
             logger().info("LAMBDA Stage output: " + pluralize(total_num_output_rows, "row") + ", "
                                            + pluralize(total_num_exceptions, "exception"));
-            std::string general_info = _options.RESOLVE_WITH_INTERPRETER_ONLY() ? "(deactivated)" : std::to_string(pathStats.general);
+            std::string general_info = _options.RESOLVE_WITH_INTERPRETER_ONLY() ? "(deactivated)" : std::to_string(total_general_path);
             logger().info("LAMBDA paths input rows took: normal: " + std::to_string(total_normal_path)
             + " general: " + general_info + " interpreter: "
             + std::to_string(total_interpreter_path));

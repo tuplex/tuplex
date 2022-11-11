@@ -484,7 +484,23 @@ namespace tuplex {
                                 "            return None\n"
                                 "        \n"
                                 "    def __repr__(self):\n"
-                                "        return repr(self.row)\n";
+                                "        return repr(self.row)\n"
+                                "    \n"
+                                "    @property\n"
+                                "    def data(self):\n"
+                                "        return self.row.data\n"
+                                "    \n"
+                                "    @data.setter\n"
+                                "    def data(self, value):\n"
+                                "        self.row.data = value\n"
+                                "        \n"
+                                "    @property\n"
+                                "    def columns(self):\n"
+                                "        return self.row.columns\n"
+                                "    \n"
+                                "    @columns.setter\n"
+                                "    def columns(self, value):\n"
+                                "        self.row.columns = value\n";
 
             _header += nullget_code;
             writeLine(row() + " = NullGet(" + row() + ")");

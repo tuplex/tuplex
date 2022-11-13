@@ -393,7 +393,6 @@ namespace tuplex {
 
             JITSymbols() : functor(nullptr),
                            functorWithExp(nullptr),
-                           writeFunctor(nullptr),
                            resolveFunctor(nullptr),
                            _fastCodePath(),
                            _slowCodePath(),

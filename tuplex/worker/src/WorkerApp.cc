@@ -1824,12 +1824,19 @@ namespace tuplex {
         return hm_size;
     }
 
-    codegen::resolve_f WorkerApp::getCompiledResolver() {
+    codegen::resolve_f WorkerApp::getCompiledResolver(const TransformStage* stage) {
         logger().info("compiling slow code path b.c. exceptions occurred.");
         Timer timer;
-        stage->compileSlowPath(*_compiler.get(), nullptr, false); // symbols should be known already...
-        syms = stage->jitsyms();
+        auto syms = stage->compileSlowPath(*_compiler.get(), nullptr, false); // symbols should be known already...
+
+        // store syms internally (lock)
+        {
+            std::lock_guard<std::mutex> lock(_symsMutex);
+            _syms->update(syms);
+        }
+
         logger().info("Compilation of slow path took " + std::to_string(timer.time()) + "s");
+        return syms->resolveFunctor;
     }
 
     int64_t WorkerApp::resolveOutOfOrder(int threadNo, TransformStage *stage,

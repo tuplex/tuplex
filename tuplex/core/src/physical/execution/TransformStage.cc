@@ -785,8 +785,7 @@ namespace tuplex {
                 if(_slowCodePath.aggregateAggregateFuncName.empty())
                     jit.registerSymbol(resolveHashCallbackName(), ResolveTask::writeInt64HashTableCallback());
                 else jit.registerSymbol(resolveHashCallbackName(), ResolveTask::writeInt64HashTableAggregateCallback());
-            }
-            else {
+            } else {
                 logger.debug("change problematic logic here...");
                 if(_slowCodePath.aggregateAggregateFuncName.empty())
                     jit.registerSymbol(resolveHashCallbackName(), ResolveTask::writeStringHashTableCallback());
@@ -805,6 +804,8 @@ namespace tuplex {
             syms->_slowCodePath.initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_slowCodePath.initStageFuncName));
         if(!syms->_slowCodePath.releaseStageFunctor)
             syms->_slowCodePath.releaseStageFunctor = reinterpret_cast<codegen::release_stage_f>(jit.getAddrOfSymbol(_slowCodePath.releaseStageFuncName));
+
+        return syms;
     }
 
     std::shared_ptr<TransformStage::JITSymbols> TransformStage::compileFastPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols) {

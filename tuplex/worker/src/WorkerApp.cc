@@ -2001,9 +2001,8 @@ namespace tuplex {
         codegen::resolve_f compiledResolver = nullptr;
         if(_settings.opportuneGeneralPathCompilation) {
             logger().info("retrieving slow path from opportune compilation...");
-            _resolverFuture.wait();
-            compiledResolver = _resolverFuture.get();
-            _resolverCompileThread.join();
+            _resolverCompileThread.join(); // wait till compile thread finishes...
+            compiledResolver = _syms->resolveFunctor;
             logger().info("slow path retrieved!");
         } else {
             compiledResolver = getCompiledResolver(stage); // syms->resolveFunctor;

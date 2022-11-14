@@ -749,7 +749,9 @@ namespace tuplex {
         return fields;
     }
 
-    std::shared_ptr<TransformStage::JITSymbols> TransformStage::compileSlowPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols) {
+    std::shared_ptr<TransformStage::JITSymbols> TransformStage::compileSlowPath(JITCompiler &jit,
+                                                                                LLVMOptimizer *optimizer,
+                                                                                bool registerSymbols) const {
         Timer timer;
         // JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
 
@@ -808,7 +810,7 @@ namespace tuplex {
         return syms;
     }
 
-    std::shared_ptr<TransformStage::JITSymbols> TransformStage::compileFastPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols) {
+    std::shared_ptr<TransformStage::JITSymbols> TransformStage::compileFastPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols) const {
         Timer timer;
         auto& logger = Logger::instance().defaultLogger();
 

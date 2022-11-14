@@ -295,6 +295,9 @@ namespace tuplex {
             markTime("hyperspecialization_time", timer.time());
         }
 
+        // reset internal syms
+        _syms.reset(new TransformStage::JITSymbols());
+
         // if not, compile given code & process using both compile code & fallback
         // optimize via LLVM when in hyper mode.
         Timer compileTimer;
@@ -302,6 +305,15 @@ namespace tuplex {
         if(!syms)
             return WORKER_ERROR_COMPILATION_FAILED;
         markTime("compile_time", compileTimer.time());
+
+        // opportune compilation? --> do this here b.c. lljit is not thread-safe yet?
+        // kick off general case compile then
+        if(_settings.opportuneGeneralPathCompilation) {
+            _resolverFuture = std::async(std::launch::async, [this, tstage]() {
+                return getCompiledResolver(tstage);
+            });
+        }
+
         auto rc = processTransformStage(tstage, syms, parts, outputURI);
         _lastStat = jsonStat(req, tstage); // generate stats before returning.
         return rc;
@@ -1545,9 +1557,17 @@ namespace tuplex {
             // -> do not register symbols, because that has been done manually above.
 
             LLVMOptimizer opt;
-            auto syms = stage.compile(*_compiler, use_llvm_optimizer ? &opt : nullptr,
-                                        true,
-                                        false);
+//            auto syms = stage.compile(*_compiler, use_llvm_optimizer ? &opt : nullptr,
+//                                        true,
+//                                        false);
+            // do not register symbols
+            auto syms = stage.compileFastPath(*_compiler, use_llvm_optimizer ? &opt : nullptr, false);
+
+            {
+                // update internal symbols.
+                std::lock_guard<std::mutex> lock(_symsMutex);
+                _syms->update(syms);
+            }
 
             // // cache symbols for reuse.
             // _compileCache[bitCode] = syms;
@@ -1825,7 +1845,15 @@ namespace tuplex {
     }
 
     codegen::resolve_f WorkerApp::getCompiledResolver(const TransformStage* stage) {
-        logger().info("compiling slow code path b.c. exceptions occurred.");
+        logger().info("compiling slow code path.");
+
+        if(_settings.useInterpreterOnly || stage->slowPathBitCode().empty())
+            return nullptr;
+
+        if(!_settings.useCompiledGeneralPath)
+            return nullptr;
+
+        // perform actual compilation.
         Timer timer;
         auto syms = stage->compileSlowPath(*_compiler.get(), nullptr, false); // symbols should be known already...
 
@@ -1871,18 +1899,6 @@ namespace tuplex {
         if(stage->normalCaseOutputSchema() != stage->outputSchema()) {
             logger().error("normal case output schema: " + stage->normalCaseOutputSchema().getRowType().desc() + " general case output schema: " + stage->outputSchema().getRowType().desc());
             throw std::runtime_error("different schemas between normal/exception case not yet supported!");
-        }
-
-        // symbols may not have yet a compiled slow path, if so -> compile!
-        if(!_settings.useInterpreterOnly && !stage->slowPathBitCode().empty() && !syms->resolveFunctor) {
-            if(_settings.useCompiledGeneralPath) {
-                auto compiledResolver = getCompiledResolver();
-                if(!compiledResolver) {
-                    logger().error("could not retrieve valid compiled resolver.");
-                }
-            } else {
-                logger().info("Exceptions occurred, but skipping compilation of general case path. Worker uses setting resolveWithInterpreterOnly=true.");
-            }
         }
 
         // now go through all exceptions & resolve them.
@@ -1975,7 +1991,7 @@ namespace tuplex {
         size_t exception_count = 0;
 
         // fetch functors
-        auto compiledResolver = getCompiledResolver(); // syms->resolveFunctor;
+        auto compiledResolver = _settings.opportuneGeneralPathCompilation ? _resolverFuture.get() : getCompiledResolver(stage); // syms->resolveFunctor;
         auto interpretedResolver = preparePythonPipeline(stage->purePythonCode(), stage->pythonPipelineName());
         _has_python_resolver = true;
 

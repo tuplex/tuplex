@@ -169,6 +169,8 @@ namespace tuplex {
                 return false;
             if(useCompiledGeneralPath != other.useCompiledGeneralPath)
                 return false;
+            if(opportuneGeneralPathCompilation != other.opportuneGeneralPathCompilation)
+                return false;
             if(!double_eq(normalCaseThreshold, other.normalCaseThreshold))
                 return false;
             return true;
@@ -460,6 +462,7 @@ namespace tuplex {
 
         std::shared_ptr<TransformStage::JITSymbols> _syms;
         std::mutex _symsMutex;
+        std::shared_future<codegen::resolve_f> _resolverFuture;
         codegen::resolve_f getCompiledResolver(const TransformStage* stage);
 
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);

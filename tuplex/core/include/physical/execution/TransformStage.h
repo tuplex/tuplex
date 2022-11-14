@@ -442,8 +442,8 @@ namespace tuplex {
          */
         std::shared_ptr<JITSymbols> compile(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool excludeSlowPath=false, bool registerSymbols=true);
 
-        std::shared_ptr<JITSymbols> compileSlowPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool registerSymbols=true);
-        std::shared_ptr<JITSymbols> compileFastPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool registerSymbols=true);
+        std::shared_ptr<JITSymbols> compileSlowPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool registerSymbols=true) const;
+        std::shared_ptr<JITSymbols> compileFastPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool registerSymbols=true) const;
 
         EndPointMode outputMode() const override { return _outputMode; }
         EndPointMode inputMode() const override { return _inputMode; }
@@ -492,12 +492,12 @@ namespace tuplex {
          * general case output bucket type (NOT the specialized one)
          * @return
          */
-        python::Type hashOutputBucketType() {
+        inline python::Type hashOutputBucketType() const {
             assert(_hashOutputKeyType != python::Type::UNKNOWN);
             return _hashOutputBucketType;
         }
 
-        int hashtableKeyByteWidth() {
+        inline int hashtableKeyByteWidth() const {
             return codegen::hashtableKeyWidth(_hashOutputKeyType);
         }
 

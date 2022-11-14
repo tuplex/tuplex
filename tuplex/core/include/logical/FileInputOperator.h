@@ -60,6 +60,7 @@ namespace tuplex {
         // a sample cache (avoids sampling the same file over and over again).
         // -> load_sample uses this
         std::unordered_map<std::tuple<URI, SamplingMode>, aligned_string> _sampleCache;
+        std::mutex _sampleCacheMutex;
         bool _cachePopulated;
         std::vector<Row> _rowsSample;
 

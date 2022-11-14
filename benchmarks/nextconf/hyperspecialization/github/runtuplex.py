@@ -87,12 +87,12 @@ if __name__ == '__main__':
 
     # when hyper is active use sampling mode D to make general path better.
     if not args.no_hyper:
-        sm = sm_map.get('A', None)
+        sm = sm_map.get('B', None)
 
     logging.info('Using sampling mode: {}'.format(sm))
 
     lambda_size = "10000"
-    lambda_threads = 2
+    lambda_threads = 3 # 3 seems to be working the best?
     s3_scratch_dir = "s3://tuplex-leonhard/scratch/github-exp"
     use_hyper_specialization = not args.no_hyper
     use_constant_folding = not args.no_cf

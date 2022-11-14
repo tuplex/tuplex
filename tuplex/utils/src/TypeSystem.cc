@@ -996,7 +996,7 @@ namespace python {
     std::unordered_map<std::string, Type> TypeFactory::get_primitive_keywords() const {
         std::unordered_map<std::string, Type> keywords;
         _typeMapMutex.lock();
-        for(auto keyval : _typeMap) {
+        for(const auto& keyval : _typeMap) {
             Type t;
             t._hash = keyval.first;
             if(keyval.second._type == AbstractType::PRIMITIVE)
@@ -1876,7 +1876,6 @@ namespace python {
     std::string Type::encode() const {
         if(_hash > 0) {
             auto& factory = TypeFactory::instance();
-            std::lock_guard<std::mutex> lock(factory._typeMapMutex);
             // use super simple encoding scheme here.
             // -> i.e. primitives use desc
             // else, create compound type using <Name>[...]
@@ -1885,8 +1884,10 @@ namespace python {
 
             // do not use isPrimitiveType(), ... etc. here
             // because these functions are for semantics...!
+            factory._typeMapMutex.lock();
             const auto& entry = factory._typeMap.at(_hash);
             auto abstract_type = entry._type;
+            factory._typeMapMutex.unlock();
             switch(abstract_type) {
                 case TypeFactory::AbstractType::PRIMITIVE: {
                     return entry._desc;
@@ -1915,7 +1916,10 @@ namespace python {
                     return "Function[" + getParamsType().encode() + "," + getReturnType().encode() + "]";
                 }
                 default: {
-                    Logger::instance().defaultLogger().error("Unknown type " + desc() + " encountered, can't encode. Using unknown.");
+                    //Logger::instance().defaultLogger().error("Unknown type " + desc() + " encountered, can't encode. Using unknown.");
+#ifdef NDEBUG
+                    std::cerr<<"Unknown type " + desc() + " encountered, can't encode. Using unknown."<<std::endl;
+#endif
                     return Type::UNKNOWN.encode();
                 }
             }

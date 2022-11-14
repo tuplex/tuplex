@@ -1876,7 +1876,6 @@ namespace python {
     std::string Type::encode() const {
         if(_hash > 0) {
             auto& factory = TypeFactory::instance();
-            std::lock_guard<std::mutex> lock(factory._typeMapMutex);
             // use super simple encoding scheme here.
             // -> i.e. primitives use desc
             // else, create compound type using <Name>[...]
@@ -1885,8 +1884,10 @@ namespace python {
 
             // do not use isPrimitiveType(), ... etc. here
             // because these functions are for semantics...!
+            factory._typeMapMutex.lock();
             const auto& entry = factory._typeMap.at(_hash);
             auto abstract_type = entry._type;
+            factory._typeMapMutex.unlock();
             switch(abstract_type) {
                 case TypeFactory::AbstractType::PRIMITIVE: {
                     return entry._desc;

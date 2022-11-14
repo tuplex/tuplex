@@ -981,13 +981,14 @@ namespace tuplex {
         std::vector<messages::InvocationRequest> requests;
 
         size_t splitSize = 256 * 1024 * 1024; // 256MB split size for now.
+        splitSize = _options.INPUT_SPLIT_SIZE();
         size_t total_size = 0;
         for(auto info : uri_infos) {
             total_size += std::get<1>(info);
         }
 
         logger().info("Found " + pluralize(uri_infos.size(), "uri")
-        + " with total size = " + sizeToMemString(total_size));
+        + " with total size = " + sizeToMemString(total_size) + " (split size=" + sizeToMemString(splitSize) + ")");
 
         // new: part based
         // Note: for now, super simple: 1 request per file (this is inefficient, but whatever)

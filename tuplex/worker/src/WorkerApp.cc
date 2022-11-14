@@ -309,7 +309,7 @@ namespace tuplex {
         // opportune compilation? --> do this here b.c. lljit is not thread-safe yet?
         // kick off general case compile then
         if(_settings.opportuneGeneralPathCompilation) {
-            _resolverCompileThread = std::move(std::thread([this, tstage]() {
+            _resolverCompileThread.reset(new std::thread([this, tstage]() {
                 auto resolver = getCompiledResolver(tstage);
             }));
             //_resolverFuture = std::async(std::launch::async, [this, tstage]() {
@@ -2005,10 +2005,11 @@ namespace tuplex {
 
             if(!compiledResolver && !_settings.useInterpreterOnly && _settings.useCompiledGeneralPath) {
                 logger().info("waiting for slow path compilation to complete...");
-                if(_resolverCompileThread.joinable())
-                    _resolverCompileThread.join(); // wait till compile thread finishes...
+                if(_resolverCompileThread && _resolverCompileThread->joinable())
+                    _resolverCompileThread->join(); // wait till compile thread finishes...
                 compiledResolver = _syms->resolveFunctor; // <-- no sync here necessary, b.c. thread elapsed.
                 logger().info("slow path retrieved!");
+                _resolverCompileThread.reset(nullptr);
             }
         } else {
             compiledResolver = getCompiledResolver(stage); // syms->resolveFunctor;

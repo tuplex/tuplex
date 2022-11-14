@@ -996,7 +996,7 @@ namespace python {
     std::unordered_map<std::string, Type> TypeFactory::get_primitive_keywords() const {
         std::unordered_map<std::string, Type> keywords;
         _typeMapMutex.lock();
-        for(auto keyval : _typeMap) {
+        for(const auto& keyval : _typeMap) {
             Type t;
             t._hash = keyval.first;
             if(keyval.second._type == AbstractType::PRIMITIVE)
@@ -1916,7 +1916,10 @@ namespace python {
                     return "Function[" + getParamsType().encode() + "," + getReturnType().encode() + "]";
                 }
                 default: {
-                    Logger::instance().defaultLogger().error("Unknown type " + desc() + " encountered, can't encode. Using unknown.");
+                    //Logger::instance().defaultLogger().error("Unknown type " + desc() + " encountered, can't encode. Using unknown.");
+#ifdef NDEBUG
+                    std::cerr<<"Unknown type " + desc() + " encountered, can't encode. Using unknown."<<std::endl;
+#endif
                     return Type::UNKNOWN.encode();
                 }
             }

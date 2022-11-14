@@ -308,7 +308,10 @@ namespace tuplex {
 
         // opportune compilation? --> do this here b.c. lljit is not thread-safe yet?
         // kick off general case compile then
-        if(_settings.opportuneGeneralPathCompilation) {
+        if(_settings.opportuneGeneralPathCompilation && _settings.useCompiledGeneralPath) {
+            if(_resolverCompiledThread && _resolverCompileThread.joinable()) {
+                _resolverCompileThread.join(); // <-- need to join old existing thread or else program terminates...
+            }
             _resolverCompileThread.reset(new std::thread([this, tstage]() {
                 auto resolver = getCompiledResolver(tstage);
             }));

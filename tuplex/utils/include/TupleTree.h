@@ -284,6 +284,10 @@ namespace tuplex {
          * @return
          */
         T get(int index) const {
+            if(index < 0 || index >= numElements()) {
+                throw std::runtime_error("invalid index " + std::to_string(index) + " used in TupleTree of " + pluralize(numElements(), "element"));
+            }
+
             assert(index >= 0 && index < numElements());
             int i = 0;
             auto ret = searchNthLeave(_root, i, index);

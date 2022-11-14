@@ -1553,7 +1553,7 @@ namespace python {
     }
 
 
-    inline Type decodeEx(const std::string& s, size_t *end_position=nullptr) {
+    inline Type decodeEx(const std::string& s, size_t *end_position=nullptr, std::ostream* err_stream=nullptr) {
         if(s == "uninitialized") {
             Type t = Type::fromHash(-1);
             if(end_position)
@@ -1661,7 +1661,8 @@ namespace python {
                 pos++;
 
                 if(numOpenParentheses < numClosedParentheses) {
-                    Logger::instance().defaultLogger().error("parentheses (...) mismatch in encoded typestr '" + s + "'");
+                    if(err_stream)
+                        *err_stream<<"parentheses (...) mismatch in encoded typestr '"<<s<<"'";
                     return Type::UNKNOWN;
                 }
 
@@ -1746,7 +1747,8 @@ namespace python {
             } else if(s[pos] == ']') {
                 numClosedSqBrackets++;
                 if(numOpenSqBrackets < numClosedSqBrackets) {
-                    Logger::instance().defaultLogger().error("square brackets [...] mismatch in encoded typestr '" + s + "'");
+                    if(err_stream)
+                        *err_stream << "square brackets [...] mismatch in encoded typestr '" <<s << "'";
                     return Type::UNKNOWN;
                 }
                 auto topVec = expressionStack.top();
@@ -1769,7 +1771,8 @@ namespace python {
                     kvStack.pop();
                     t = TypeFactory::instance().createOrGetStructuredDictType(kv_pairs);
                 } else {
-                    Logger::instance().defaultLogger().error("Unknown compound type '" + compound_type + "' encountered, can't create compound type. Returning unknown.");
+                    if(err_stream)
+                        *err_stream << "Unknown compound type '" << compound_type << "' encountered, can't create compound type. Returning unknown.";
                     return Type::UNKNOWN;
                 }
                 compoundStack.pop();
@@ -1799,7 +1802,8 @@ namespace python {
 
                 numClosedBrackets++;
                 if(numOpenBrackets < numClosedBrackets) {
-                    Logger::instance().defaultLogger().error("brackets {...} mismatch in encoded typestr '" + s + "'");
+                    if(err_stream)
+                        *err_stream << "brackets {...} mismatch in encoded typestr '" << s << "'";
                     return Type::UNKNOWN;
                 }
                 auto topVec = expressionStack.top();
@@ -1857,7 +1861,8 @@ namespace python {
             } else {
                 std::stringstream ss;
                 ss<<"unknown token '"<<s[pos]<<"' in encoded type str '"<<s<<"' encountered.";
-                Logger::instance().defaultLogger().error(ss.str());
+                if(err_stream)
+                    *err_stream << ss.str();
                 return Type::UNKNOWN;
             }
         }

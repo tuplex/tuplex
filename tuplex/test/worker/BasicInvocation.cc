@@ -506,7 +506,9 @@ TEST(BasicInvocation, SingleMessageDebug) {
 
     test_input_uri = "s3://tuplex-public/data/github_daily/2013-10-15.json:268435456-533607666";
 
-    auto message = fileToString(URI("/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_0.json"));
+    auto message_path = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1.json";
+
+    auto message = fileToString(URI(message_path));
 
     // check individual messages that they work
     auto rc = app->processJSONMessage(message); // <-- second file is the critical one where something goes wrong...

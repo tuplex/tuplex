@@ -112,6 +112,13 @@ namespace tuplex {
     }
 
     void WorkerApp::shutdown() {
+
+        // join slow path compile thread
+        if(_resolverCompileThread && _resolverCompileThread->joinable()) {
+            _resolverCompileThread->join();
+            _resolverCompileThread.reset();
+        }
+
         if(python::isInterpreterRunning()) {
             python::lockGIL();
             python::closeInterpreter();
@@ -295,6 +302,11 @@ namespace tuplex {
             markTime("hyperspecialization_time", timer.time());
         }
 
+        // wait for old compile thread...
+        if(_resolverCompileThread && _resolverCompileThread->joinable()) {
+            _resolverCompileThread->join(); // <-- need to join old existing thread or else program terminates...
+        }
+
         // reset internal syms
         _syms.reset(new TransformStage::JITSymbols());
 
@@ -309,9 +321,7 @@ namespace tuplex {
         // opportune compilation? --> do this here b.c. lljit is not thread-safe yet?
         // kick off general case compile then
         if(_settings.opportuneGeneralPathCompilation && _settings.useCompiledGeneralPath) {
-            if(_resolverCompiledThread && _resolverCompileThread.joinable()) {
-                _resolverCompileThread.join(); // <-- need to join old existing thread or else program terminates...
-            }
+            // create new thread to compile slow path (in parallel to running fast path)
             _resolverCompileThread.reset(new std::thread([this, tstage]() {
                 auto resolver = getCompiledResolver(tstage);
             }));

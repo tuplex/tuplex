@@ -309,9 +309,16 @@ namespace tuplex {
         // opportune compilation? --> do this here b.c. lljit is not thread-safe yet?
         // kick off general case compile then
         if(_settings.opportuneGeneralPathCompilation) {
-            _resolverFuture = std::async(std::launch::async, [this, tstage]() {
-                return getCompiledResolver(tstage);
-            });
+
+            std::promise<codegen::resolve_f> promise;
+            _resolverFuture = promise.get_future();
+            _resolverCompileThread = std::thread([this, tstage](std::promise<codegen::resolve_f> barrier) {
+                auto resolver = getCompiledResolver(tstage);
+                barrier.set_value(resolver);
+            }, std::move(promise));
+            //_resolverFuture = std::async(std::launch::async, [this, tstage]() {
+            //    return getCompiledResolver(tstage);
+            //});
         }
 
         auto rc = processTransformStage(tstage, syms, parts, outputURI);
@@ -1991,7 +1998,16 @@ namespace tuplex {
         size_t exception_count = 0;
 
         // fetch functors
-        auto compiledResolver = _settings.opportuneGeneralPathCompilation ? _resolverFuture.get() : getCompiledResolver(stage); // syms->resolveFunctor;
+        codegen::resolve_f compiledResolver = nullptr;
+        if(_settings.opportuneGeneralPathCompilation) {
+            logger().info("retrieving slow path from opportune compilation...");
+            _resolverFuture.wait();
+            compiledResolver = _resolverFuture.get();
+            _resolverCompileThread.join();
+            logger().info("slow path retrieved!");
+        } else {
+            compiledResolver = getCompiledResolver(stage); // syms->resolveFunctor;
+        }
         auto interpretedResolver = preparePythonPipeline(stage->purePythonCode(), stage->pythonPipelineName());
         _has_python_resolver = true;
 

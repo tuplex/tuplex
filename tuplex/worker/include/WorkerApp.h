@@ -462,7 +462,8 @@ namespace tuplex {
 
         std::shared_ptr<TransformStage::JITSymbols> _syms;
         std::mutex _symsMutex;
-        std::shared_future<codegen::resolve_f> _resolverFuture;
+        std::future<codegen::resolve_f> _resolverFuture;
+        std::thread _resolverCompileThread;
         codegen::resolve_f getCompiledResolver(const TransformStage* stage);
 
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);

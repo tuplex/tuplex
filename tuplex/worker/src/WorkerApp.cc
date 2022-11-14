@@ -2000,11 +2000,20 @@ namespace tuplex {
         // fetch functors
         codegen::resolve_f compiledResolver = nullptr;
         if(_settings.opportuneGeneralPathCompilation) {
-            logger().info("retrieving slow path from opportune compilation...");
-            if(_resolverCompileThread.joinable())
-                _resolverCompileThread.join(); // wait till compile thread finishes...
-            compiledResolver = _syms->resolveFunctor;
-            logger().info("slow path retrieved!");
+
+            // check if available in syms already, if not wait till thread completes...
+            {
+                std::lock_guard<std::mutex> lock(_symsMutex);
+                compiledResolver = _syms->resolveFunctor;
+            }
+
+            if(!compiledResolver && !_settings.useInterpreterOnly && _settings.useCompiledGeneralPath) {
+                logger().info("waiting for slow path compilation to complete...");
+                if(_resolverCompileThread.joinable())
+                    _resolverCompileThread.join(); // wait till compile thread finishes...
+                compiledResolver = _syms->resolveFunctor; // <-- no sync here necessary, b.c. thread elapsed.
+                logger().info("slow path retrieved!");
+            }
         } else {
             compiledResolver = getCompiledResolver(stage); // syms->resolveFunctor;
         }

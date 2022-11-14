@@ -180,6 +180,8 @@ TEST(PythonPipeline, DictUnpacking) {
 
     auto code = ppb.getCode();
 
+    std::cout<<code<<std::endl;
+
     python::lockGIL();
 
     auto pipFunction = compile_pipeline(code);

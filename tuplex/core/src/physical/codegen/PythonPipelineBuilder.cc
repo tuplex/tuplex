@@ -153,7 +153,8 @@ namespace tuplex {
         _imports += "import json\n"
                     "import csv\n"
                     "import io\n"
-                    "import cloudpickle\n";
+                    "import cloudpickle\n"
+                    "import functools\n";
 
         // reset code collector to lazy write later func head
         indent();
@@ -557,9 +558,12 @@ namespace tuplex {
             _lastFunction._code = row() + ".columns = (" + cols.substr(1, cols.length() - 2) + ")\n"; // use tuple!
         } else {
             // setup function
-            _lastFunction._udfCode = "code = " + udfToByteCode(udf) + "\n"
-                                                                      "f = cloudpickle.loads(code)\n";
-            _lastFunction._udfCode += emitClosure(udf);
+            // old:
+            //        _lastFunction._udfCode = "code = " + udfToByteCode(udf) + "\n"
+            //                                 "f = cloudpickle.loads(code)\n";
+
+            // new:
+            _lastFunction._udfCode = "f = " + decodeFunction(udf);
 
             _lastFunction._code = "call_res = apply_func(f, " + row() + ")\n"
                                   + row() + " = result_to_row(call_res, " + row() + ".columns)\n";
@@ -571,8 +575,13 @@ namespace tuplex {
 
         flushLastFunction();
 
-        _lastFunction._udfCode = "code = " + udfToByteCode(udf) + "\n"
-                                                                  "f = cloudpickle.loads(code)\n";
+        // old:
+        //        _lastFunction._udfCode = "code = " + udfToByteCode(udf) + "\n"
+        //                                 "f = cloudpickle.loads(code)\n";
+
+        // new:
+        _lastFunction._udfCode = "f = " + decodeFunction(udf);
+
         _lastFunction._udfCode += emitClosure(udf);
         _lastFunction._code = "call_res = apply_func(f, " + row() + ")\n"
                                                                     "if not call_res:\n"
@@ -603,8 +612,13 @@ namespace tuplex {
 
 
         flushLastFunction();
-        _lastFunction._udfCode = "code = " + udfToByteCode(udf) + "\n"
-                                                                  "f = cloudpickle.loads(code)\n";
+        // old:
+        //        _lastFunction._udfCode = "code = " + udfToByteCode(udf) + "\n"
+        //                                 "f = cloudpickle.loads(code)\n";
+
+        // new:
+        _lastFunction._udfCode = "f = " + decodeFunction(udf);
+
         _lastFunction._udfCode += emitClosure(udf);
 
         std::stringstream code;
@@ -627,8 +641,12 @@ namespace tuplex {
 
         flushLastFunction();
 
-        _lastFunction._udfCode = "code = " + udfToByteCode(udf) + "\n"
-                                                                  "f = cloudpickle.loads(code)\n";
+        // old:
+        //        _lastFunction._udfCode = "code = " + udfToByteCode(udf) + "\n"
+        //                                 "f = cloudpickle.loads(code)\n";
+
+        // new:
+        _lastFunction._udfCode = "f = " + decodeFunction(udf);
         _lastFunction._udfCode += emitClosure(udf);
 
         std::stringstream code;
@@ -880,8 +898,11 @@ namespace tuplex {
     void PythonPipelineBuilder::resolve(int64_t operatorID, tuplex::ExceptionCode ec, const tuplex::UDF &udf) {
 
         std::stringstream code;
-        code << "code = " + udfToByteCode(udf) + "\n";
-        code << "f = cloudpickle.loads(code)\n";
+        // old:
+        //code << "code = " + udfToByteCode(udf) + "\n";
+        //code << "f = cloudpickle.loads(code)\n";
+        // new:
+        code << "f = " << decodeFunction(udf) << "\n";
         code << emitClosure(udf);
 
         // try except block for calling the concrete
@@ -1093,8 +1114,12 @@ namespace tuplex {
         _headCode += header.str();
 
         // decode function
-        ss << "code = " << udfToByteCode(aggUDF) << "\n";
-        ss << "f_agg = cloudpickle.loads(code)\n";
+        // old:
+        // ss << "code = " << udfToByteCode(aggUDF) << "\n";
+        // ss << "f_agg = cloudpickle.loads(code)\n";
+        // new:
+        ss << "f_agg = " << decodeFunction(aggUDF)<<"\n";
+
         ss << "agg_value = " << "apply_func2(f_agg, result_to_row(agg_value), " << row() << ")\n";
 
         // output aggregate value and key (b.c. special treatment necessary!)
@@ -1134,8 +1159,12 @@ namespace tuplex {
 
 
         // decode function
-        ss << "code = " << udfToByteCode(aggUDF) << "\n";
-        ss << "f_agg = cloudpickle.loads(code)\n";
+        // old:
+        // ss << "code = " << udfToByteCode(aggUDF) << "\n";
+        // ss << "f_agg = cloudpickle.loads(code)\n";
+        // new:
+        ss << "f_agg = " << decodeFunction(aggUDF)<<"\n";
+
         ss << "agg_value = " << "apply_func2(f_agg, result_to_row(agg_value), " << row() << ")\n";
         // output aggregate value and key (b.c. special treatment necessary!)
         // update row to be agg value
@@ -1222,5 +1251,28 @@ namespace tuplex {
         ss << "\treturn res\n";
 
         return ss.str();
+    }
+
+    std::string PythonPipelineBuilder::decodeFunction(const tuplex::UDF &udf) {
+        // add entry to cache
+        return _udfCache.addAndDecodeUDF(udf);
+    }
+
+    inline std::string PythonUDFCache::addAndDecodeUDF(const UDF& udf) {
+        _ss<<"\tif "<<_udfCounter<<" == n:\n";
+        _ss<<"\t\tcode = "<<PythonPipelineBuilder::udfToByteCode(udf)<<"\n";
+        _ss<<"\t\tf = cloudpickle.loads(code)\n";
+        _ss<<"\t\treturn f\n";
+        _udfCounter++;
+
+        // return call with right parameter!
+        return "decodeUDF(" + std::to_string(_udfCounter - 1) + ")";
+    }
+
+    std::string PythonPipelineBuilder::getCode() const {
+        const_cast<PythonPipelineBuilder*>(this)->_udfCache.finalize();
+        return _imports + "\n" + _header +
+                "\n" + _udfCache.code() + "\n" + functionSignature()
+                + headCode() + _ss.str() + tailCode();
     }
 }

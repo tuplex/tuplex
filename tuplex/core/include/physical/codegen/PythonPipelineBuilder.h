@@ -19,6 +19,26 @@
 namespace tuplex {
 
 
+    class PythonUDFCache {
+    public:
+        PythonUDFCache() : _udfCounter(0), _done(false) {
+            // init ss into function
+            _ss<<"@functools.cache\ndef decodeUDF(n):\n";
+        }
+
+        std::string addAndDecodeUDF(const UDF& udf);
+
+        void finalize() {
+            _ss<< "\treturn None\n";
+            _done = true;
+        }
+        std::string code() const { assert(_done); return _ss.str(); }
+    private:
+        std::stringstream _ss;
+        unsigned _udfCounter;
+        bool _done;
+    };
+
     /// class to generate a pure python version of the pipeline (incl. resolvers & Co).
     // ==> needed i.e. for bad input rows!
     // ==> needed, when the hybrid resolver doesn't work.
@@ -85,7 +105,7 @@ namespace tuplex {
         void resolve(int64_t operatorID, ExceptionCode ec, const UDF& udf); // resolver UDF (resolve last operator)
         void ignore(int64_t operatorID, ExceptionCode ec); // ignore specific exception code (i.e. filter out based on exception code)
 
-        std::string getCode() const { return _imports + "\n" + _header + "\n" + functionSignature() + headCode() + _ss.str() + tailCode(); }
+        std::string getCode() const;
 
         // aggregate functions:
         void pythonAggByKey(int64_t operatorID,
@@ -98,8 +118,11 @@ namespace tuplex {
                               const tuplex::UDF &aggUDF,
                               const Row& initial_value);
 
-
+        // static function decode helper
         static std::string udfToByteCode(const UDF& udf);
+
+        // this here uses a caching mechanism (to avoid costly cloudpickle calls)
+        std::string decodeFunction(const UDF& udf);
     private:
         std::string _funcName;
         std::stringstream _ss;
@@ -119,6 +142,8 @@ namespace tuplex {
 
         bool _parseCells; // whether to parse input cells
 
+        // function cache
+        PythonUDFCache _udfCache;
 
         std::string emitClosure(const UDF& udf);
 
@@ -168,7 +193,9 @@ namespace tuplex {
             ss<<"res['exception'] = "<<exception_id<<"\n";
             ss<<"res['exceptionOperatorID'] = "<<opID<<"\n";
             ss<<"res['inputRow'] = "<<inputRow<<"\n";
-            //ss<<"return res";
+
+            // this should be reactivated...
+            ss<<"return res";
 
             os<<indentLines(indentLevels, ss.str());
         }

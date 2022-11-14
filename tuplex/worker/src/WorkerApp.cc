@@ -312,10 +312,10 @@ namespace tuplex {
 
             std::promise<codegen::resolve_f> promise;
             _resolverFuture = promise.get_future();
-            _resolverCompileThread = std::thread([this, tstage](std::promise<codegen::resolve_f> barrier) {
+            _resolverCompileThread = std::move(std::thread([this, tstage](std::promise<codegen::resolve_f> barrier) {
                 auto resolver = getCompiledResolver(tstage);
                 barrier.set_value(resolver);
-            }, std::move(promise));
+            }, std::move(promise)));
             //_resolverFuture = std::async(std::launch::async, [this, tstage]() {
             //    return getCompiledResolver(tstage);
             //});
@@ -2001,7 +2001,8 @@ namespace tuplex {
         codegen::resolve_f compiledResolver = nullptr;
         if(_settings.opportuneGeneralPathCompilation) {
             logger().info("retrieving slow path from opportune compilation...");
-            _resolverCompileThread.join(); // wait till compile thread finishes...
+            if(_resolverCompileThread.joinable())
+                _resolverCompileThread.join(); // wait till compile thread finishes...
             compiledResolver = _syms->resolveFunctor;
             logger().info("slow path retrieved!");
         } else {

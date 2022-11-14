@@ -378,6 +378,14 @@ namespace tuplex {
         runtime::init(tuplexRuntimePath);
         _compiler = std::make_shared<JITCompiler>();
 
+        // add exception hierarchy to typesystem
+        // in order to decode properly, need to add exceptions to type system.
+        // do this by initializing a dummy symbol table
+        auto sym_table = SymbolTable::createFromEnvironment(nullptr);
+        if(sym_table) {
+           logger().info("initialized type system with builtin types.");
+        }
+
         // init python & set explicitly python home for Lambda
         std::string task_root = std::getenv("LAMBDA_TASK_ROOT");
         python::python_home_setup(task_root);

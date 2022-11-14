@@ -129,11 +129,14 @@ namespace tuplex {
         bool useInterpreterOnly;
         bool useCompiledGeneralPath;
 
+
+        bool opportuneGeneralPathCompilation; // <-- note: not yet configurable...
+
         double normalCaseThreshold; ///! used for hyperspecialziation
 
         // use some defaults...
         WorkerSettings() : numThreads(1), normalBufferSize(WORKER_DEFAULT_BUFFER_SIZE),
-        exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE), useInterpreterOnly(false), useCompiledGeneralPath(true) {
+        exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE), useInterpreterOnly(false), useCompiledGeneralPath(true), opportuneGeneralPathCompilation(true) {
 
             // set some options from defaults...
             auto opt = ContextOptions::defaults();
@@ -166,6 +169,8 @@ namespace tuplex {
                 return false;
             if(useCompiledGeneralPath != other.useCompiledGeneralPath)
                 return false;
+            if(opportuneGeneralPathCompilation != other.opportuneGeneralPathCompilation)
+                return false;
             if(!double_eq(normalCaseThreshold, other.normalCaseThreshold))
                 return false;
             return true;
@@ -187,7 +192,8 @@ namespace tuplex {
         // create WorkerApp from settings
         WorkerApp(const WorkerSettings& settings) : _threadEnvs(nullptr), _numThreads(0),
                                                     _globallyInitialized(false), _has_python_resolver(false),
-                                                    _logger(Logger::instance().logger("worker")) {}
+                                                    _logger(Logger::instance().logger("worker")),
+                                                    _syms(std::shared_ptr<TransformStage::JITSymbols>()) {}
 
         bool reinitialize(const WorkerSettings& settings);
 
@@ -453,6 +459,12 @@ namespace tuplex {
         bool _ncAndHyperNCIncompatible;
         std::vector<URI> _output_uris; // where data was actually written to.
         std::string _lastStat; // information about last invocation/request
+
+        std::shared_ptr<TransformStage::JITSymbols> _syms;
+        std::mutex _symsMutex;
+        std::unique_ptr<std::thread> _resolverCompileThread;
+        codegen::resolve_f getCompiledResolver(const TransformStage* stage);
+
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);
         static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);
         static void exceptRowCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);

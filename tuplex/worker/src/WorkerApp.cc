@@ -112,6 +112,13 @@ namespace tuplex {
     }
 
     void WorkerApp::shutdown() {
+
+        // join slow path compile thread
+        if(_resolverCompileThread && _resolverCompileThread->joinable()) {
+            _resolverCompileThread->join();
+            _resolverCompileThread.reset();
+        }
+
         if(python::isInterpreterRunning()) {
             python::lockGIL();
             python::closeInterpreter();
@@ -295,6 +302,14 @@ namespace tuplex {
             markTime("hyperspecialization_time", timer.time());
         }
 
+        // wait for old compile thread...
+        if(_resolverCompileThread && _resolverCompileThread->joinable()) {
+            _resolverCompileThread->join(); // <-- need to join old existing thread or else program terminates...
+        }
+
+        // reset internal syms
+        _syms.reset(new TransformStage::JITSymbols());
+
         // if not, compile given code & process using both compile code & fallback
         // optimize via LLVM when in hyper mode.
         Timer compileTimer;
@@ -302,6 +317,19 @@ namespace tuplex {
         if(!syms)
             return WORKER_ERROR_COMPILATION_FAILED;
         markTime("compile_time", compileTimer.time());
+
+        // opportune compilation? --> do this here b.c. lljit is not thread-safe yet?
+        // kick off general case compile then
+        if(_settings.opportuneGeneralPathCompilation && _settings.useCompiledGeneralPath) {
+            // create new thread to compile slow path (in parallel to running fast path)
+            _resolverCompileThread.reset(new std::thread([this, tstage]() {
+                auto resolver = getCompiledResolver(tstage);
+            }));
+            //_resolverFuture = std::async(std::launch::async, [this, tstage]() {
+            //    return getCompiledResolver(tstage);
+            //});
+        }
+
         auto rc = processTransformStage(tstage, syms, parts, outputURI);
         _lastStat = jsonStat(req, tstage); // generate stats before returning.
         return rc;
@@ -1545,9 +1573,17 @@ namespace tuplex {
             // -> do not register symbols, because that has been done manually above.
 
             LLVMOptimizer opt;
-            auto syms = stage.compile(*_compiler, use_llvm_optimizer ? &opt : nullptr,
-                                        true,
-                                        false);
+//            auto syms = stage.compile(*_compiler, use_llvm_optimizer ? &opt : nullptr,
+//                                        true,
+//                                        false);
+            // do not register symbols
+            auto syms = stage.compileFastPath(*_compiler, use_llvm_optimizer ? &opt : nullptr, false);
+
+            {
+                // update internal symbols.
+                std::lock_guard<std::mutex> lock(_symsMutex);
+                _syms->update(syms);
+            }
 
             // // cache symbols for reuse.
             // _compileCache[bitCode] = syms;
@@ -1824,6 +1860,29 @@ namespace tuplex {
         return hm_size;
     }
 
+    codegen::resolve_f WorkerApp::getCompiledResolver(const TransformStage* stage) {
+        logger().info("compiling slow code path.");
+
+        if(_settings.useInterpreterOnly || stage->slowPathBitCode().empty())
+            return nullptr;
+
+        if(!_settings.useCompiledGeneralPath)
+            return nullptr;
+
+        // perform actual compilation.
+        Timer timer;
+        auto syms = stage->compileSlowPath(*_compiler.get(), nullptr, false); // symbols should be known already...
+
+        // store syms internally (lock)
+        {
+            std::lock_guard<std::mutex> lock(_symsMutex);
+            _syms->update(syms);
+        }
+
+        logger().info("Compilation of slow path took " + std::to_string(timer.time()) + "s");
+        return syms->resolveFunctor;
+    }
+
     int64_t WorkerApp::resolveOutOfOrder(int threadNo, TransformStage *stage,
                                          std::shared_ptr<TransformStage::JITSymbols> syms) {
         using namespace std;
@@ -1856,19 +1915,6 @@ namespace tuplex {
         if(stage->normalCaseOutputSchema() != stage->outputSchema()) {
             logger().error("normal case output schema: " + stage->normalCaseOutputSchema().getRowType().desc() + " general case output schema: " + stage->outputSchema().getRowType().desc());
             throw std::runtime_error("different schemas between normal/exception case not yet supported!");
-        }
-
-        // symbols may not have yet a compiled slow path, if so -> compile!
-        if(!_settings.useInterpreterOnly && !stage->slowPathBitCode().empty() && !syms->resolveFunctor) {
-            if(_settings.useCompiledGeneralPath) {
-                logger().info("compiling slow code path b.c. exceptions occurred.");
-                Timer timer;
-                stage->compileSlowPath(*_compiler.get(), nullptr, false); // symbols should be known already...
-                syms = stage->jitsyms();
-                logger().info("Compilation of slow path took " + std::to_string(timer.time()) + "s");
-            } else {
-                logger().info("Exceptions occurred, but skipping compilation of general case path. Worker uses setting resolveWithInterpreterOnly=true.");
-            }
         }
 
         // now go through all exceptions & resolve them.
@@ -1961,7 +2007,26 @@ namespace tuplex {
         size_t exception_count = 0;
 
         // fetch functors
-        auto compiledResolver = syms->resolveFunctor;
+        codegen::resolve_f compiledResolver = nullptr;
+        if(_settings.opportuneGeneralPathCompilation) {
+
+            // check if available in syms already, if not wait till thread completes...
+            {
+                std::lock_guard<std::mutex> lock(_symsMutex);
+                compiledResolver = _syms->resolveFunctor;
+            }
+
+            if(!compiledResolver && !_settings.useInterpreterOnly && _settings.useCompiledGeneralPath) {
+                logger().info("waiting for slow path compilation to complete...");
+                if(_resolverCompileThread && _resolverCompileThread->joinable())
+                    _resolverCompileThread->join(); // wait till compile thread finishes...
+                compiledResolver = _syms->resolveFunctor; // <-- no sync here necessary, b.c. thread elapsed.
+                logger().info("slow path retrieved!");
+                _resolverCompileThread.reset(nullptr);
+            }
+        } else {
+            compiledResolver = getCompiledResolver(stage); // syms->resolveFunctor;
+        }
         auto interpretedResolver = preparePythonPipeline(stage->purePythonCode(), stage->pythonPipelineName());
         _has_python_resolver = true;
 

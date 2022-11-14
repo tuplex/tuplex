@@ -384,7 +384,6 @@ namespace tuplex {
 
             codegen::read_block_f functor; // can be memory2memory or file2memory
             codegen::read_block_exp_f functorWithExp;
-            codegen::read_block_f writeFunctor; // memory2file
             codegen::resolve_f resolveFunctor; // always memory2memory
 
             // @TODO: clean this up for different code-paths... buggy!
@@ -394,13 +393,40 @@ namespace tuplex {
 
             JITSymbols() : functor(nullptr),
                            functorWithExp(nullptr),
-                           writeFunctor(nullptr),
                            resolveFunctor(nullptr),
                            _fastCodePath(),
                            _slowCodePath(),
                            aggInitFunctor(nullptr),
                            aggCombineFunctor(nullptr),
                            aggAggregateFunctor(nullptr) {}
+
+
+           inline void update(const std::shared_ptr<JITSymbols>& syms) {
+                if(!syms)
+                    return;
+
+                // update if other is not null
+                if(syms->_fastCodePath.initStageFunctor)
+                    _fastCodePath.initStageFunctor = syms->_fastCodePath.initStageFunctor;
+               if(syms->_fastCodePath.releaseStageFunctor)
+                   _fastCodePath.releaseStageFunctor = syms->_fastCodePath.releaseStageFunctor;
+
+               if(syms->_slowCodePath.initStageFunctor)
+                   _slowCodePath.initStageFunctor = syms->_slowCodePath.initStageFunctor;
+               if(syms->_slowCodePath.releaseStageFunctor)
+                   _slowCodePath.releaseStageFunctor = syms->_slowCodePath.releaseStageFunctor;
+
+               if(syms->functor)
+                   functor = syms->functor;
+               if(syms->functorWithExp)
+                   functorWithExp = syms->functorWithExp;
+               if(syms->resolveFunctor)
+                   resolveFunctor = syms->resolveFunctor;
+               if(syms->aggInitFunctor)
+                   aggInitFunctor = syms->aggInitFunctor;
+               if(syms->aggAggregateFunctor)
+                   aggAggregateFunctor = syms->aggAggregateFunctor;
+            }
         };
 
         // HACK!!!
@@ -416,8 +442,8 @@ namespace tuplex {
          */
         std::shared_ptr<JITSymbols> compile(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool excludeSlowPath=false, bool registerSymbols=true);
 
-        void compileSlowPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool registerSymbols=true);
-        void compileFastPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool registerSymbols=true);
+        std::shared_ptr<JITSymbols> compileSlowPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool registerSymbols=true) const;
+        std::shared_ptr<JITSymbols> compileFastPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool registerSymbols=true) const;
 
         EndPointMode outputMode() const override { return _outputMode; }
         EndPointMode inputMode() const override { return _inputMode; }
@@ -466,12 +492,12 @@ namespace tuplex {
          * general case output bucket type (NOT the specialized one)
          * @return
          */
-        python::Type hashOutputBucketType() {
+        inline python::Type hashOutputBucketType() const {
             assert(_hashOutputKeyType != python::Type::UNKNOWN);
             return _hashOutputBucketType;
         }
 
-        int hashtableKeyByteWidth() {
+        inline int hashtableKeyByteWidth() const {
             return codegen::hashtableKeyWidth(_hashOutputKeyType);
         }
 

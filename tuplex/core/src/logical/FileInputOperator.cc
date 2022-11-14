@@ -117,6 +117,8 @@ namespace tuplex {
 
         auto key = std::make_tuple(uri, perFileMode(mode));
         if(use_cache) {
+            std::lock_guard<std::mutex> lock(_sampleCacheMutex);
+
             // check if in sample cache already
             auto it = _sampleCache.find(key);
             if(it != _sampleCache.end())
@@ -191,6 +193,8 @@ namespace tuplex {
                 "sampled " + uri.toString() + " on " + sizeToMemString(sampleSize));
 
         if(use_cache) {
+            std::lock_guard<std::mutex> lock(_sampleCacheMutex);
+
             // put into cache
             _sampleCache[key] = sample;
         }
@@ -345,9 +349,12 @@ namespace tuplex {
     void FileInputOperator::fillRowCache(SamplingMode mode, std::vector<std::vector<std::string>>* outNames) {
         auto &logger = Logger::instance().logger("fileinputoperator");
 
-        // based on samples stored, fill the row cache
-        if(_sampleCache.empty())
-            return;
+        {
+            std::lock_guard<std::mutex> lock(_sampleCacheMutex);
+            // based on samples stored, fill the row cache
+            if(_sampleCache.empty())
+                return;
+        }
 
         Timer timer;
 
@@ -366,6 +373,7 @@ namespace tuplex {
         // cache already populated?
         // drop!
         if(_cachePopulated) {
+            std::lock_guard<std::mutex> lock(_sampleCacheMutex);
             _sampleCache.clear();
             _cachePopulated = false;
         }
@@ -425,8 +433,12 @@ namespace tuplex {
             auto size = _sizes[idx];
             auto file_mode = perFileMode(mode);
             auto key = std::make_tuple(uri, file_mode);
-            // place into cache
-            _sampleCache[key] = loadSample(_samplingSize, uri, size, mode, true);
+
+            {
+                std::lock_guard<std::mutex> lock(_sampleCacheMutex);
+                // place into cache
+                _sampleCache[key] = loadSample(_samplingSize, uri, size, mode, true);
+            }
         }
 
         logger.info("Sample fetch done.");
@@ -476,8 +488,11 @@ namespace tuplex {
             auto uri = _fileURIs[idx];
             auto file_mode = perFileMode(mode);
             auto key = std::make_tuple(uri, file_mode);
-            // place into cache
-            _sampleCache[key] = vf[i].get();
+            {
+                std::lock_guard<std::mutex> lock(_sampleCacheMutex);
+                // place into cache
+                _sampleCache[key] = vf[i].get();
+            }
         }
 
         logger.info("Parallel sample fetch done.");
@@ -491,12 +506,15 @@ namespace tuplex {
         if(!_cachePopulated)
             fillFileCache(mode);
         set<unsigned> file_indices;
-        for(const auto& keyval : _sampleCache) {
-            auto uri = std::get<0>(keyval.first);
-            auto idx = indexInVector(uri, _fileURIs);
-            if(idx < 0)
-                throw std::runtime_error("fatal internal error, could not find URI " + uri.toString() + " in file cache.");
-            file_indices.insert(static_cast<unsigned>(idx));
+        {
+            std::lock_guard<std::mutex> lock(_sampleCacheMutex);
+            for(const auto& keyval : _sampleCache) {
+                auto uri = std::get<0>(keyval.first);
+                auto idx = indexInVector(uri, _fileURIs);
+                if(idx < 0)
+                    throw std::runtime_error("fatal internal error, could not find URI " + uri.toString() + " in file cache.");
+                file_indices.insert(static_cast<unsigned>(idx));
+            }
         }
         vector<unsigned> indices(file_indices.begin(), file_indices.end());
 
@@ -1428,7 +1446,10 @@ namespace tuplex {
     }
 
     std::vector<Row>
-    FileInputOperator::sampleJsonFile(const tuplex::URI &uri, size_t uri_size, const tuplex::SamplingMode &mode, std::vector<std::vector<std::string>>* outNames) {
+    FileInputOperator::sampleJsonFile(const tuplex::URI &uri,
+                                      size_t uri_size,
+                                      const tuplex::SamplingMode &mode,
+                                      std::vector<std::vector<std::string>>* outNames) {
         auto& logger = Logger::instance().logger("logical");
         std::vector<Row> v;
         assert(mode & SamplingMode::FIRST_ROWS || mode & SamplingMode::LAST_ROWS || mode & SamplingMode::RANDOM_ROWS);

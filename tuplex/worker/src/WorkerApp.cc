@@ -309,13 +309,9 @@ namespace tuplex {
         // opportune compilation? --> do this here b.c. lljit is not thread-safe yet?
         // kick off general case compile then
         if(_settings.opportuneGeneralPathCompilation) {
-
-            std::promise<codegen::resolve_f> promise;
-            _resolverFuture = promise.get_future();
-            _resolverCompileThread = std::move(std::thread([this, tstage](std::promise<codegen::resolve_f> barrier) {
+            _resolverCompileThread = std::move(std::thread([this, tstage]() {
                 auto resolver = getCompiledResolver(tstage);
-                barrier.set_value(resolver);
-            }, std::move(promise)));
+            }));
             //_resolverFuture = std::async(std::launch::async, [this, tstage]() {
             //    return getCompiledResolver(tstage);
             //});

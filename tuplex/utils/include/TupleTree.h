@@ -56,7 +56,7 @@ namespace tuplex {
 
                 // primitive type?
                 // ==> add index!
-                if(rtype.isPrimitiveType() || rtype.isDictionaryType() || rtype.isListType()) {
+                if(rtype.isPrimitiveType() || rtype.isDictionaryType() || rtype.isListType() || rtype.isExceptionType()) {
                     assert(!rtype.isTupleType());
                     // end recursive descent, just return the root
                     root->type = type;

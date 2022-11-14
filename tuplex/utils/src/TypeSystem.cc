@@ -1874,7 +1874,13 @@ namespace python {
     }
 
     Type Type::decode(const std::string& s) {
-        return decodeEx(s, nullptr);
+        std::stringstream err;
+        auto t = decodeEx(s, nullptr,  &err);
+        auto err_message = err.str();
+        if(!err_message.empty()) {
+            throw std::runtime_error("error while decoding type from string: " + err_message);
+        }
+        return t;
     }
 
     // TODO: more efficient encoding using binary representation?
@@ -1928,7 +1934,7 @@ namespace python {
                     return Type::UNKNOWN.encode();
                 }
             }
-        } else if (_hash == 0)
+        } else if (_hash <= 0)
             return "unknown";
         else
             return "uninitialized";

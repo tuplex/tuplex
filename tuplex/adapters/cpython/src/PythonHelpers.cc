@@ -1572,7 +1572,7 @@ namespace python {
     }
 
     // mapping type to internal types, unknown as default
-    python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast) {
+    python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast, bool treatHeterogeneousListAsTuple) {
         assert(o);
 
         if(Py_None == o)
@@ -1640,21 +1640,47 @@ namespace python {
             if(numElements == 0)
                 return python::Type::EMPTYLIST;
 
+            std::vector<python::Type> element_types;
+            element_types.reserve(numElements);
+
             python::Type elementType = mapPythonClassToTuplexType(PyList_GetItem(o, 0), autoUpcast);
+            element_types.push_back(elementType);
+
+            bool heterogenous_list = false;
+
             // verify that all elements have the same type
-            for(int j = 0; j < numElements; j++) {
+            for(int j = 1; j < numElements; j++) {
                 python::Type currElementType = mapPythonClassToTuplexType(PyList_GetItem(o, j), autoUpcast);
                 if(elementType != currElementType) {
                     // possible to use nullable type as element type?
                     tuplex::TypeUnificationPolicy policy; policy.allowAutoUpcastOfNumbers = autoUpcast;
                     auto newElementType = tuplex::unifyTypes(elementType, currElementType, policy);
                     if (newElementType == python::Type::UNKNOWN) {
-                        Logger::instance().defaultLogger().error("list with variable element type " + elementType.desc() + " and " + currElementType.desc() + " not supported.");
-                        return python::Type::PYOBJECT;
+                       heterogenous_list = true;
+                    } else {
+                        elementType = newElementType;
                     }
-                    elementType = newElementType;
                 }
+                // collect
+                element_types.push_back(elementType);
             }
+
+
+            // tuple or not?
+            if(treatHeterogeneousListAsTuple && heterogenous_list) {
+                // create tuple type
+               return python::Type::makeTupleType(element_types);
+            }
+
+            // else, check if variable element type
+            if(heterogenous_list) {
+#ifndef NDEBUG
+                Logger::instance().defaultLogger().error("heterogenous list found, mapping to List[PYOBJECT].");
+#endif
+                return python::Type::makeListType(python::Type::PYOBJECT);
+            }
+
+            assert(!heterogenous_list);
             return python::Type::makeListType(elementType);
         }
 

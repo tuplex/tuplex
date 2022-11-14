@@ -343,9 +343,10 @@ namespace python {
      * get corresponding tuplex type for python object
      * @param o python object to map to Tuplex type
      * @param autoUpcast whether to upcast numeric types to a unified type when type conflicts, false by default
+     * @param treatHeterogeneousListAsTuple whether to treat list of non homoegenous types as tuple (i.e. speculate on fixed size list)
      * @return internal Tuplex type corresponding to given python object.
      */
-    extern python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast=false);
+    extern python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast=false, bool treatHeterogeneousListAsTuple=true);
 
     /*!
      * Tuplex's python API provides a paramter to (optionally) specify a schema, this functions decodes that PyObject

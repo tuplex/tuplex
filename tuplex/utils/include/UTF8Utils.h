@@ -60,9 +60,9 @@ namespace tuplex {
         if(0 == buf_size)
             return 0;
 
-        // start (up to) 6 bytes ago and check for first valid sequence
+        // start (up to) 16 bytes ago and check for first valid sequence
         size_t max_pos = 0;
-        for(unsigned i = std::min(6ul, buf_size); i > 0; i--) {
+        for(unsigned i = std::min(16ul, buf_size); i > 0; i--) {
             char c = buf[buf_size - i];
             int rc = utf8_get_char_size(c);
             if(rc != -1) {

@@ -299,6 +299,7 @@ namespace tuplex {
         bool clamped_buf_is_utf8 = simdjson::validate_utf8(reinterpret_cast<const char *>(_inputBuffer), buf_length);
         assert(clamped_buf_is_utf8);
         std::stringstream ss;
+        ss<<"in buffer length: "<<_inBufferLength<<" clamped buf length: "<<buf_length<<std::endl;
         ss<<"full buf is utf8: "<<std::boolalpha<<full_buf_is_utf8<<" clamped buf: "<<clamped_buf_is_utf8<<std::endl;
         Logger::instance().defaultLogger().info(ss.str());
 //#endif

@@ -50,10 +50,11 @@ namespace tuplex {
 
                     // parse tuple for pipeline, on failure return the code above.
 
+                    // note: for JSON it's about the output columns (no check yet here)
                     auto parseF = json_generateParseStringFunction(env,
                                                                    "general_case_parse_string",
-                                                                   input_op->getInputSchema().getRowType(),
-                                                                   input_op->inputColumns());
+                                                                   input_op->getOutputSchema().getRowType(),
+                                                                   input_op->columns());
 
                     if(input_op->getOutputSchema().getRowType() != pip_input_row_type) {
                         std::stringstream ss;

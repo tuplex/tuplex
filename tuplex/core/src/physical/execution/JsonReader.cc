@@ -298,7 +298,7 @@ namespace tuplex {
             buf_length--;
         }
 
-//#ifndef NDEBUG
+#ifndef NDEBUG
         // CHECK:
         bool full_buf_is_utf8 = simdjson::validate_utf8(reinterpret_cast<const char *>(_inputBuffer), _inBufferLength);
         bool clamped_buf_is_utf8 = simdjson::validate_utf8(reinterpret_cast<const char *>(_inputBuffer), buf_length);
@@ -315,7 +315,7 @@ namespace tuplex {
             ss<<std::endl;
         }
         Logger::instance().defaultLogger().info(ss.str());
-//#endif
+#endif
         int64_t num_normal_rows = 0, num_bad_rows = 0;
         auto bytesParsed = _functor(_userData, _inputBuffer, buf_length, &num_normal_rows, &num_bad_rows, !eof);
 

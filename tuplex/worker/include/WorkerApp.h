@@ -197,7 +197,9 @@ namespace tuplex {
 
             // set default reader size to 16MB
             _readerBufferSize = 16 * 1024 * 1024;
-            _readerBufferSize = 128 * 1024 * 1000; // test
+
+            // originally a larger buffer was used... -> way too much.
+            // _readerBufferSize = 128 * 1024 * 1000; // test
         }
 
         virtual ~WorkerApp();

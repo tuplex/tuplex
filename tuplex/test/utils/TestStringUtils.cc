@@ -212,6 +212,14 @@ TEST(CSVUtils, I64ToString) {
 TEST(StringUtils, UTF8clamp) {
     using namespace tuplex;
 
+    size_t clamped_size = -1;
+
+    // problematic buffer from online:
+    uint8_t raw_test_buf[] = {0xe9, 0x80, 0xa0, 0xe4, 0xba, 0x86, 0xe9, 0xab, 0x98 , 0xe7, 0xba, 0xa7, 0xe7, 0xa8, 0x8b, 0xe5, '\0'};
+    const char* test_buf = reinterpret_cast<const char*>(raw_test_buf);
+    clamped_size = utf8clamp(test_buf, strlen(test_buf));
+    int len = strlen(test_buf);
+
     // need to detect UTF-8 end of buffer
 
     char test_bufA[]= {'a', 'b', 'c', 'd', '\0'};
@@ -224,7 +232,7 @@ TEST(StringUtils, UTF8clamp) {
     memset(buf, 0, 2048);
 
     char utf_invalid[] = "\xe6\x97\xa5\xd1\x88\xfa";
-    auto clamped_size = utf8clamp(utf_invalid, strlen(utf_invalid));
+    clamped_size = utf8clamp(utf_invalid, strlen(utf_invalid));
     EXPECT_EQ(6, clamped_size);
 
     // check validity

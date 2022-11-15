@@ -287,6 +287,11 @@ namespace tuplex {
         auto last_char = 0 == buf_length ? '\0' : *(reinterpret_cast<const char *>(_inputBuffer + buf_length - 1));
 
         auto is_clamped = buf_length > 0 && buf_length < _inBufferLength;
+
+        // special case: last char has utf8 mask
+        if(utf8_get_char_size(last_char) > 1)
+            is_clamped = true;
+
         // set to '\0'
         if(is_clamped) {
             _inputBuffer[buf_length - 1] = '\0';

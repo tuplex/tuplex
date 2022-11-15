@@ -193,7 +193,12 @@ namespace tuplex {
         WorkerApp(const WorkerSettings& settings) : _threadEnvs(nullptr), _numThreads(0),
                                                     _globallyInitialized(false), _has_python_resolver(false),
                                                     _logger(Logger::instance().logger("worker")),
-                                                    _syms(std::shared_ptr<TransformStage::JITSymbols>()) {}
+                                                    _syms(std::shared_ptr<TransformStage::JITSymbols>()) {
+
+            // set default reader size to 16MB
+            _readerBufferSize = 16 * 1024 * 1024;
+            _readerBufferSize = 128 * 1024 * 1000; // test
+        }
 
         virtual ~WorkerApp();
         bool reinitialize(const WorkerSettings& settings);
@@ -465,6 +470,8 @@ namespace tuplex {
         std::mutex _symsMutex;
         std::unique_ptr<std::thread> _resolverCompileThread;
         codegen::resolve_f getCompiledResolver(const TransformStage* stage);
+
+        size_t _readerBufferSize;
 
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);
         static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);

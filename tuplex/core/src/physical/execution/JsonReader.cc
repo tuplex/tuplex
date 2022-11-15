@@ -281,7 +281,8 @@ namespace tuplex {
 
         auto buf_length = _inBufferLength;
 
-        const char* last_byte = reinterpret_cast<const char*>(_inputBuffer + buf_length);
+        throw std::runtime_error("fix this here, it's buggy...");
+        const char* last_byte = reinterpret_cast<const char*>(_inputBuffer + buf_length - 1);
         while(last_byte-- > reinterpret_cast<const char*>(_inputBuffer)) {
             if((*last_byte & 0xC0) != 0x80) // found initial byte of valid UTF8 sequence
                 break;

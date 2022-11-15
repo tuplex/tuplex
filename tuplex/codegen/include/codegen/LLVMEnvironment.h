@@ -350,42 +350,19 @@ namespace tuplex {
              * @param twine optional name for the type
              * @return pointer to LLVM Type struct, nullptr if errors occured.
              */
-            inline llvm::Type *getOrCreateTupleType(const python::Type &tupleType,
+            inline llvm::Type *getOrCreateTupleType(const python::Type &tuple_type,
                                                     const std::string &twine = "tuple") {
-                assert(tupleType.isTupleType());
+                assert(tuple_type.isTupleType());
 
-                // @TODO: Hack
-                // normalize type, i.e. get rid off whatever optimizing types are. Later treat them separately.
-                // for now it causes issues in the codegen
-                // check if already generated
-                auto params = tupleType.parameters();
-                for(unsigned i = 0; i < params.size(); ++i) {
-                    if(params[i].isConstantValued())
-                        params[i] = params[i].underlying();
-                }
-                auto type = python::Type::makeTupleType(params);
-
-                auto it = _generatedTupleTypes.find(type);
+                auto it = _generatedTupleTypes.find(tuple_type);
                 if (_generatedTupleTypes.end() != it)
                     return it->second;
                 else {
-                    llvm::Type *t = createTupleStructType(type, twine);
+                    llvm::Type *t = createTupleStructType(tuple_type, twine);
                     std::string name = t->getStructName();
-                    _generatedTupleTypes[type] = t;
+                    _generatedTupleTypes[tuple_type] = t;
                     return t;
                 }
-
-
-//                // check if already generated
-//                auto it = _generatedTupleTypes.find(tupleType);
-//                if (_generatedTupleTypes.end() != it)
-//                    return it->second;
-//                else {
-//                    llvm::Type *t = createTupleStructType(tupleType, twine);
-//                    std::string name = t->getStructName();
-//                    _generatedTupleTypes[tupleType] = t;
-//                    return t;
-//                }
             }
 
             llvm::Type *getOrCreateTuplePtrType(const python::Type &tupleType, const std::string &twine = "tuple") {

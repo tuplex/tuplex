@@ -38,11 +38,16 @@ namespace tuplex {
 
             std::vector<codegen::SerializableValue> vals;
 
+            // check that pointer is of correct type
+            auto llvm_tuple_type = env->getOrCreateTupleType(t._flattenedTupleType);
+
             // two options: either it's a pointer to llvm type OR the type directly (i.e. in struct access)
             if(llvmType->isPointerTy()) {
                 assert(llvmType->isPointerTy());
                 assert(llvmType->getPointerElementType()->isStructTy());
                 assert(llvmType->getPointerElementType() == t.getLLVMType());
+
+                assert(llvmType->getPointerElementType() == llvm_tuple_type);
 
                 // now fill in values using getelementptr
                 for (unsigned int i = 0; i < t.numElements(); ++i)
@@ -50,6 +55,8 @@ namespace tuplex {
             } else {
                 // needs to be llvmtype
                 assert(llvmType == t.getLLVMType());
+
+                assert(llvmType == llvm_tuple_type);
 
                 for(unsigned int i = 0; i < t.numElements(); ++i) {
                     vals.emplace_back(env->extractTupleElement(builder, t._flattenedTupleType, ptr, i));

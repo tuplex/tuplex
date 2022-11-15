@@ -822,6 +822,12 @@ namespace tuplex {
             // make sure it is a valid index
             assert(0 <= iElement && iElement < tupleType().parameters().size());
 
+            // validate data
+            if(size)
+                assert(size->getType() == _env->i64Type());
+            if(is_null)
+                assert(is_null->getType() == _env->i1Type());
+
             auto type = tupleType().parameters()[iElement];
 
             // update for option type
@@ -925,7 +931,7 @@ namespace tuplex {
 
             // add varlen sizes
             for(int i = 0; i < _tree.elements().size(); ++i) {
-                auto el = _tree.elements()[i];
+                auto el = _tree.get(i); //_tree.elements()[i];
                 auto type = _tree.fieldType(i);
 
                 // skip single-valued elements.
@@ -1155,6 +1161,10 @@ namespace tuplex {
             if(size)
                 assert(size->getType() == llvm::Type::getInt64Ty(context));
 
+            // some checks
+            if(isnull)
+                assert(isnull->getType() == llvm::Type::getInt1Ty(context));
+
             _tree.set(i, codegen::SerializableValue(val, size, isnull));
         }
 
@@ -1173,7 +1183,9 @@ namespace tuplex {
                 return subtree.get(0);
             }
 
-            return codegen::SerializableValue(dummy.getLoad(builder), dummy.getSize(builder));
+            auto size = dummy.getSize(builder);
+            assert(size && size->getType() == _env->i64Type());
+            return codegen::SerializableValue(dummy.getLoad(builder), size);
         }
 
         codegen::SerializableValue FlattenedTuple::serializeToMemory(llvm::IRBuilder<> &builder) const {

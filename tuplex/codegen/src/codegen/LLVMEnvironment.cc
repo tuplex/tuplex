@@ -267,6 +267,12 @@ namespace tuplex {
                     element_type = element_type.getReturnType();
                 }
 
+                // special case: constant valued type?
+                if(element_type.isConstantValued()) {
+                    vec_of_indices.emplace_back(value_idx, size_idx, bitmap_idx);
+                    continue;
+                }
+
                 // single-valued? i.e. not stored?
                 if(!element_type.isSingleValued()) {
                     // is it of var lenght? -> then store size field!
@@ -290,7 +296,7 @@ namespace tuplex {
                     // single-valued -> will not get stored. -> also applies to constants etc.
                 }
 
-                vec_of_indices.push_back(std::make_tuple(value_idx, size_idx, bitmap_idx));
+                vec_of_indices.emplace_back(value_idx, size_idx, bitmap_idx);
             }
 
 
@@ -309,7 +315,7 @@ namespace tuplex {
                 if(-1 != size_idx)
                     size_idx += size_offset;
 
-                adj_vec_of_indices.push_back(std::make_tuple(value_idx, size_idx, bitmap_idx));
+                adj_vec_of_indices.emplace_back(value_idx, size_idx, bitmap_idx);
             }
 
             // add to tuple cache.
@@ -430,6 +436,18 @@ namespace tuplex {
                 if(!members[i]) {
                     logger.error("when creating type for tuple, encountered missing member type.");
                     members[i] = i64Type();
+                }
+            }
+
+            // quick check on size member type (must be i64)
+            for(unsigned i = 0; i < num_tuple_elements; ++i) {
+                int value_idx = -1, size_idx = -1, bitmap_idx = -1;
+                auto t_indices = getTupleIndices(type, i);
+                std::tie(value_idx, size_idx, bitmap_idx) = t_indices;
+
+                if(-1 != size_idx) {
+                    assert(size_idx >= 0 && size_idx < members.size());
+                    assert(members[size_idx] == i64Type());
                 }
             }
 
@@ -997,7 +1015,7 @@ namespace tuplex {
                 auto cjsonstr = builder.CreateCall(
                         cJSONPrintUnformatted_prototype(ctx, _module.get()),
                         {ret});
-                auto size = builder.CreateAdd(
+                size= builder.CreateAdd(
                         builder.CreateCall(strlen_prototype(ctx, _module.get()), {cjsonstr}),
                         i64Const(1));
                 return SerializableValue{ret, size, isnull};
@@ -1031,6 +1049,14 @@ namespace tuplex {
             // boolean: special case
             if(python::Type::BOOLEAN == elementType)
                 value = builder.CreateZExtOrTrunc(value, getBooleanType());
+
+#ifndef NDEBUG
+            // debug:
+            if(size->getType() != i64Type()) {
+                std::cerr<<"ERROR::"<<std::endl;
+                std::cerr<<"tuple element access:\n "<<printAggregateType(tuplePtr->getType()->getPointerElementType())<<std::endl;
+            }
+#endif
 
             return SerializableValue(value, size, isnull);
         }

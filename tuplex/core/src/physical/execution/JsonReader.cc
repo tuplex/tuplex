@@ -231,7 +231,8 @@ namespace tuplex {
 
         // range bytes read
         if(useRange) {
-            std::cout<<"actual range read: "<<_rangeStart<<"-"<<_rangeStart + rangeBytesRead<<std::endl;
+            std::stringstream ss;
+            ss<<"actual range read: "<<_rangeStart<<"-"<<_rangeStart + rangeBytesRead<<std::endl;
         }
     }
 

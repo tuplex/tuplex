@@ -1014,7 +1014,6 @@ TEST_F(JsonTuplexTest, FilePartitioning) {
 
     // check that split works
     auto input_split_size = memStringToSize("256MB");
-    input_split_size = memStringToSize("16MB");
 
     // need to init AWS SDK...
 #ifdef BUILD_WITH_AWS

@@ -97,6 +97,7 @@ if __name__ == '__main__':
     input_split_size = "256MB"
     input_split_size = "512MB"
     input_split_size = "64MB"
+    #input_split_size = "32MB"
     lambda_threads = 3 # 3 seems to be working the best?
     s3_scratch_dir = "s3://tuplex-leonhard/scratch/github-exp"
     use_hyper_specialization = not args.no_hyper
@@ -134,8 +135,8 @@ if __name__ == '__main__':
             "backend": "lambda",
             "aws.lambdaMemory": lambda_size,
             "aws.lambdaThreads": lambda_threads,
-            "aws.httpThreadCount": 410,
-            "aws.maxConcurrency": 410,
+            "aws.httpThreadCount": 1000,
+            "aws.maxConcurrency": 1000,
             'tuplex.aws.lambdaThreads': 0,
             'tuplex.aws.verboseLogging':True,
             'tuplex.csv.maxDetectionMemory': '256KB',
@@ -171,7 +172,7 @@ if __name__ == '__main__':
     # use this flage here to activate general path to make everything faster
     conf["resolveWithInterpreterOnly"] = False # <-- False means general path is activated 
     
-    conf['resolveWithInterpreterOnly'] = True
+    #conf['resolveWithInterpreterOnly'] = True
 
     conf["useLLVMOptimizer"] = not args.no_opt # <-- disable llvm optimizers
     conf["inputSplitSize"] = input_split_size

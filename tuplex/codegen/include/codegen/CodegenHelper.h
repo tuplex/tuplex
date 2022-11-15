@@ -250,8 +250,26 @@ namespace tuplex {
             llvm::Value *is_null; // should be i1, optional
 
             SerializableValue() : val(nullptr), size(nullptr), is_null(nullptr)   {}
-            SerializableValue(llvm::Value *v, llvm::Value* s) : val(v), size(s), is_null(nullptr) {}
-            SerializableValue(llvm::Value *v, llvm::Value* s, llvm::Value* n) : val(v), size(s), is_null(n) {}
+            SerializableValue(llvm::Value *v, llvm::Value* s) : val(v), size(s), is_null(nullptr) {
+#ifndef NDEBUG
+                if(s) {
+                   auto stype = s->getType();
+                   if(stype->isPointerTy())
+                       stype = stype->getPointerElementType();
+                    assert(stype == llvm::Type::getInt64Ty(s->getContext()));
+                }
+#endif
+            }
+            SerializableValue(llvm::Value *v, llvm::Value* s, llvm::Value* n) : val(v), size(s), is_null(n) {
+#ifndef NDEBUG
+                if(s) {
+                    auto stype = s->getType();
+                    if(stype->isPointerTy())
+                        stype = stype->getPointerElementType();
+                    assert(stype == llvm::Type::getInt64Ty(s->getContext()));
+                }
+#endif
+            }
 
             SerializableValue(const SerializableValue& other) : val(other.val), size(other.size), is_null(other.is_null) {}
             SerializableValue(SerializableValue&& other) : val(other.val), size(other.size), is_null(other.is_null) {}

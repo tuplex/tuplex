@@ -1180,6 +1180,9 @@ namespace tuplex {
             // note also special case empty tuple, else it will be sandwiched as (()) leading to errors...
             if(!subtree.tupleType().isTupleType() || subtree.tupleType() == python::Type::EMPTYTUPLE) {
                 assert(subtree.numElements() == 1);
+                auto size = subtree.get(0).size;
+                if(size)
+                    assert(size->getType() == _env->i64Type());
                 return subtree.get(0);
             }
 

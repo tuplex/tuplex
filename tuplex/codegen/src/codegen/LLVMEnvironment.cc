@@ -1052,7 +1052,7 @@ namespace tuplex {
 
 #ifndef NDEBUG
             // debug:
-            if(size->getType() != i64Type()) {
+            if(size && size->getType() != i64Type()) {
                 std::cerr<<"ERROR::"<<std::endl;
                 std::cerr<<"tuple element access:\n "<<printAggregateType(tuplePtr->getType()->getPointerElementType())<<std::endl;
             }

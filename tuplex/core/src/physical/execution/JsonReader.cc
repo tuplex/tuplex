@@ -195,7 +195,7 @@ namespace tuplex {
                     // zero out buffer after maxOffset
                     _inBufferLength = maxOffset;
                     // important to cut off here!
-                    memset(_inputBuffer + _inBufferLength + 1, 0, 16); // important for parsing! // with +1 or not?
+                    memset(_inputBuffer + _inBufferLength, 0, 16); // important for parsing! // with +1 or not?
                     rangeBytesRead += consume(true);
                     break;
                 }

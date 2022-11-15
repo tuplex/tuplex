@@ -689,6 +689,9 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
     // enable webui in order to collect statistics
     // co.set("tuplex.webui.enable", "true");
 
+    // split size 512MB
+    co.set("tuplex.inputSplitSize", "512MB");
+
     Context c(co);
 
     // create Github based (JSON) pipeline.

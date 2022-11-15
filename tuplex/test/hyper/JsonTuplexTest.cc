@@ -1029,9 +1029,6 @@ TEST_F(JsonTuplexTest, FilePartitioning) {
 #endif
 
     URI uri("s3://tuplex-public/data/github_daily/2018-10-15.json");
-    // new test
-    uri = URI("s3://tuplex-public/data/github_daily/2017-10-15.json");
-    input_split_size = memStringToSize("512MB");
     size_t uri_size = 0;
     auto vfs = VirtualFileSystem::fromURI(uri);
     vfs.file_size(uri, reinterpret_cast<uint64_t&>(uri_size));

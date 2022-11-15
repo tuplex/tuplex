@@ -1176,7 +1176,7 @@ namespace tuplex {
 
         size_t num_projected_columns = getOptimizedOutputSchema().getRowType().parameters().size();
 
-        assert(old_col_types.size() <= old_general_col_types.size());
+        // assert(old_col_types.size() <= old_general_col_types.size());
         auto& logger = Logger::instance().logger("codegen");
 
         // check whether number of columns are compatible (necessary when no concrete columns are given)

@@ -1344,7 +1344,7 @@ namespace tuplex {
             // are column names the same? If not, deoptimize first by rewriting numbers into columns
             if(!original_column_names.empty() && !vec_equal(columnNames, original_column_names)) {
                 logger.debug("column names differ, restoring column access via column names.");
-                ColumnRewriteVisitor crv(original_column_names, parameter, ColumnRewriteMode::INDEX_TO_NAME);
+                ColumnRewriteVisitor crv(original_column_names, parameter, _rewriteMap, ColumnRewriteMode::INDEX_TO_NAME);
                 root->accept(crv);
                 if(crv.failed()) {
                     logger.error("failed to rewrite indices to names");
@@ -1353,7 +1353,7 @@ namespace tuplex {
             }
 
             // rewrite again, but with new columns!
-            ColumnRewriteVisitor crv(columnNames, parameter, ColumnRewriteMode::NAME_TO_INDEX);
+            ColumnRewriteVisitor crv(columnNames, parameter, _rewriteMap, ColumnRewriteMode::NAME_TO_INDEX);
             root->accept(crv);
 
             if(crv.failed())

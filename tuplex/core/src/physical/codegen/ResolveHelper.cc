@@ -37,6 +37,8 @@ namespace tuplex {
             using namespace llvm;
             assert(input_op);
 
+            auto& logger = Logger::instance().logger("codegen");
+
             // which input format should be parsed as?
             //auto input_row_type = pip.
             FlattenedTuple ft(&env);
@@ -53,8 +55,15 @@ namespace tuplex {
                                                                    input_op->getInputSchema().getRowType(),
                                                                    input_op->inputColumns());
 
+                    if(input_op->getOutputSchema().getRowType() != pip_input_row_type) {
+                        std::stringstream ss;
+                        ss<<"input op input schema: "<<input_op->getInputSchema().getRowType().desc()<<std::endl;
+                        ss<<"pip input schema: "<<pip_input_row_type.desc()<<std::endl;
+                        logger.debug(ss.str());
+                    }
+
                     // @TODO: make sure parseF output is compatible with pip input row type
-                    assert(input_op->getInputSchema().getRowType() == pip_input_row_type);
+                    assert(input_op->getOutputSchema().getRowType() == pip_input_row_type);
 
                     // extract string and length from data buffer
 

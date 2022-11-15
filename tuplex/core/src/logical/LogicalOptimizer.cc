@@ -682,12 +682,12 @@ namespace tuplex {
             // ==> because it's a source node, use requiredCols!
             if(op->type() == LogicalOperatorType::FILEINPUT) {
                 // rewrite csv here
-                auto csvop = std::dynamic_pointer_cast<FileInputOperator>(op);
-                assert(csvop);
-                auto inputRowType = csvop->getInputSchema().getRowType();
+                auto input_op = std::dynamic_pointer_cast<FileInputOperator>(op);
+                assert(input_op);
+                auto input_op_row_type = input_op->getInputSchema().getRowType();
                 vector<size_t> colsToSerialize;
                 for (auto idx : requiredCols) {
-                    if (idx < inputRowType.parameters().size())
+                    if (idx < input_op_row_type.parameters().size())
                         colsToSerialize.emplace_back(idx);
                 }
                 sort(colsToSerialize.begin(), colsToSerialize.end());
@@ -703,7 +703,7 @@ namespace tuplex {
 #endif
                 // actual projection pushdown into the parser...
                 // --> use here relative indices!
-                csvop->selectColumns(colsToSerialize, false);
+                input_op->selectColumns(colsToSerialize, false);
 
 #ifdef TRACE_LOGICAL_OPTIMIZATION
                 cout<<"CSV output type after pushdown: "<<csvop->getOutputSchema().getRowType().desc()<<endl;

@@ -195,7 +195,7 @@ namespace tuplex {
                     // zero out buffer after maxOffset
                     _inBufferLength = maxOffset;
                     // important to cut off here!
-                    memset(_inputBuffer + _inBufferLength + 1, 0, 16); // important for parsing!
+                    memset(_inputBuffer + _inBufferLength, 0, 16); // important for parsing! // with +1 or not?
                     rangeBytesRead += consume(true);
                     break;
                 }
@@ -281,13 +281,17 @@ namespace tuplex {
 
         auto buf_length = _inBufferLength;
 
-        throw std::runtime_error("fix this here, it's buggy...");
-        const char* last_byte = reinterpret_cast<const char*>(_inputBuffer + buf_length - 1);
-        while(last_byte-- > reinterpret_cast<const char*>(_inputBuffer)) {
-            if((*last_byte & 0xC0) != 0x80) // found initial byte of valid UTF8 sequence
-                break;
+        // clamp utf8 buf
+        buf_length = utf8clamp(reinterpret_cast<const char *>(_inputBuffer), buf_length);
+        // get last char
+        auto last_char = 0 == buf_length ? '\0' : *(reinterpret_cast<const char *>(_inputBuffer + buf_length - 1));
+
+        auto is_clamped = buf_length > 0 && buf_length < _inBufferLength;
+        // set to '\0'
+        if(is_clamped) {
+            _inputBuffer[buf_length - 1] = '\0';
+            buf_length--;
         }
-        buf_length = last_byte - reinterpret_cast<const char*>(_inputBuffer) + 1; // clamp...
 
 #ifndef NDEBUG
         // CHECK:
@@ -298,6 +302,10 @@ namespace tuplex {
 #endif
         int64_t num_normal_rows = 0, num_bad_rows = 0;
         auto bytesParsed = _functor(_userData, _inputBuffer, buf_length, &num_normal_rows, &num_bad_rows, !eof);
+
+        // restore
+        if(is_clamped)
+            _inputBuffer[buf_length] = last_char;
 
         _num_normal_rows += num_normal_rows;
         _num_bad_rows += num_bad_rows;

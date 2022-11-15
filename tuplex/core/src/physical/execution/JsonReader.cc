@@ -301,6 +301,14 @@ namespace tuplex {
         std::stringstream ss;
         ss<<"in buffer length: "<<_inBufferLength<<" clamped buf length: "<<buf_length<<std::endl;
         ss<<"full buf is utf8: "<<std::boolalpha<<full_buf_is_utf8<<" clamped buf: "<<clamped_buf_is_utf8<<std::endl;
+        if(!clamped_buf_is_utf8) {
+            ss<<"last 16 bytes of buffer: ";
+            core::hexdump(ss, _inputBuffer + _inBufferLength - 16, 16);
+            ss<<std::endl;
+            ss<<"last 16 bytes of buffer in ASCII: ";
+            core::asciidump(ss, _inputBuffer + _inBufferLength - 16, 16);
+            ss<<std::endl;
+        }
         Logger::instance().defaultLogger().info(ss.str());
 //#endif
         int64_t num_normal_rows = 0, num_bad_rows = 0;

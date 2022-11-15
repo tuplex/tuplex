@@ -10,6 +10,8 @@
 
 #include <jit/LLVMOptimizer.h>
 
+#include <physical/execution/JsonReader.h>
+
 class JsonTuplexTest : public HyperPyTest {};
 
 
@@ -953,6 +955,109 @@ TEST_F(JsonTuplexTest, GZipFileRead) {
 
 
     vf->close();
+}
+
+namespace tuplex {
+    // helper func to decvelop parsing
+    int64_t json_dummy_functor(void* userData, const uint8_t* buf, int64_t buf_size,
+                               int64_t* out_normal_rows, int64_t* out_bad_rows, int8_t is_last_part) {
+        using namespace codegen;
+
+        // open up JSON parsing
+        auto j = JsonParser_init();
+        if(!j)
+            return -1;
+
+        int64_t row_number = 0;
+
+        JsonParser_open(j, reinterpret_cast<const char *>(buf), buf_size);
+        while (JsonParser_hasNextRow(j)) {
+            if (JsonParser_getDocType(j) != JsonParser_objectDocType()) {
+                // BADPARSE_STRINGINPUT
+                auto line = JsonParser_getMallocedRow(j);
+                free(line);
+            }
+
+            auto doc = *j->it;
+            JsonItem *obj = nullptr;
+            uint64_t rc = JsonParser_getObject(j, &obj);
+            if (rc != 0)
+                break; // --> don't forget to release stuff here!
+
+            // release all allocated things
+            JsonItem_Free(obj);
+
+            runtime::rtfree_all();
+            row_number++;
+            JsonParser_moveToNextRow(j);
+        }
+
+        size_t size = j->stream.size_in_bytes();
+        size_t truncated_bytes = j->stream.truncated_bytes();
+
+        JsonParser_close(j);
+        JsonParser_free(j);
+
+        if(out_normal_rows)
+            *out_normal_rows = row_number;
+        if(out_bad_rows)
+            *out_bad_rows = 0;
+
+        // returns how many bytes are parsed...
+        return buf_size - truncated_bytes;
+    }
+}
+
+TEST_F(JsonTuplexTest, FilePartitioning) {
+    using namespace tuplex;
+    using namespace std;
+
+    // check that split works
+    auto input_split_size = memStringToSize("256MB");
+    input_split_size = memStringToSize("16MB");
+
+    // need to init AWS SDK...
+#ifdef BUILD_WITH_AWS
+    {
+        // init AWS SDK to get access to S3 filesystem
+        auto& logger = Logger::instance().logger("aws");
+        auto aws_credentials = AWSCredentials::get();
+        auto options = ContextOptions::defaults();
+        Timer timer;
+        bool aws_init_rc = initAWS(aws_credentials, options.AWS_NETWORK_SETTINGS(), options.AWS_REQUESTER_PAY());
+        logger.debug("initialized AWS SDK in " + std::to_string(timer.time()) + "s");
+    }
+#endif
+
+    URI uri("s3://tuplex-public/data/github_daily/2018-10-15.json");
+    size_t uri_size = 0;
+    auto vfs = VirtualFileSystem::fromURI(uri);
+    vfs.file_size(uri, reinterpret_cast<uint64_t&>(uri_size));
+    std::cout<<"found uri "<<uri.toString()<<" of size "<<uri_size<<" ("<<sizeToMemString(uri_size)<<")"<<std::endl;
+    size_t cur_size = 0;
+    size_t total_rows = 0;
+    size_t num_parts = 0;
+    size_t partition_size = ContextOptions::defaults().PARTITION_SIZE();
+    auto reader = std::make_unique<JsonReader>(nullptr, json_dummy_functor, partition_size);
+    while(cur_size < uri_size) {
+        auto rangeStart = cur_size;
+        auto rangeEnd = std::min(cur_size + input_split_size, uri_size);
+        cur_size += input_split_size;
+        std::cout<<uri.toString()<<":"<<rangeStart<<"-"<<rangeEnd<<std::endl;
+
+        std::cout<<"part "<<num_parts<<": start read..."<<std::endl;
+        reader->setRange(rangeStart, rangeEnd);
+        reader->read(uri);
+        std::cout<<"done, read "<<pluralize(reader->inputRowCount(), "row")<<std::endl;
+        total_rows += reader->inputRowCount();
+        std::cout<<"total rows: "<<total_rows<<std::endl;
+        reader.reset(new JsonReader(nullptr, json_dummy_functor, partition_size));
+        num_parts++;
+    }
+
+    EXPECT_EQ(num_parts, 19);
+    EXPECT_EQ(total_rows, 1522655);
+    // make sure it's correct with expected file count
 }
 
 

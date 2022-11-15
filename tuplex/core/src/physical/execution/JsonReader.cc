@@ -176,6 +176,8 @@ namespace tuplex {
                     const char *p = (const char*)_inputBuffer; // NOTE: this code here works WHEN inputbuffer is at record start state!
                     auto endp = p + _inBufferLength;
 
+                    assert(remainingToParse <= _inBufferLength);
+
                     int64_t maxOffset = 0;
                     while(maxOffset < remainingToParse) {
                         // get offset to next line.
@@ -193,7 +195,7 @@ namespace tuplex {
                     // zero out buffer after maxOffset
                     _inBufferLength = maxOffset;
                     // important to cut off here!
-                    memset(_inputBuffer + _inBufferLength, 0, 16); // important for parsing!
+                    memset(_inputBuffer + _inBufferLength + 1, 0, 16); // important for parsing!
                     rangeBytesRead += consume(true);
                     break;
                 }
@@ -229,7 +231,7 @@ namespace tuplex {
 
         // range bytes read
         if(useRange) {
-           // std::cout<<"actual range read: "<<_rangeStart<<"-"<<_rangeStart + rangeBytesRead<<std::endl;
+            std::cout<<"actual range read: "<<_rangeStart<<"-"<<_rangeStart + rangeBytesRead<<std::endl;
         }
     }
 
@@ -280,10 +282,10 @@ namespace tuplex {
 
         const char* last_byte = reinterpret_cast<const char*>(_inputBuffer + buf_length);
         while(last_byte-- > reinterpret_cast<const char*>(_inputBuffer)) {
-            if((*last_byte & 0xC0) != 0x80) // found intial byte of valid UTF8 sequence
+            if((*last_byte & 0xC0) != 0x80) // found initial byte of valid UTF8 sequence
                 break;
         }
-        buf_length = last_byte - reinterpret_cast<const char*>(_inputBuffer); // clamp...
+        buf_length = last_byte - reinterpret_cast<const char*>(_inputBuffer) + 1; // clamp...
 
 #ifndef NDEBUG
         // CHECK:

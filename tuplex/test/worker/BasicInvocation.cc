@@ -506,7 +506,9 @@ TEST(BasicInvocation, SingleMessageDebug) {
 
     test_input_uri = "s3://tuplex-public/data/github_daily/2013-10-15.json:268435456-533607666";
 
-    auto message_path = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1.json";
+    // auto message_path = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1.json";
+
+    auto message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_16.json";
 
     auto message = fileToString(URI(message_path));
 

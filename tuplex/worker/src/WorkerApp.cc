@@ -2771,4 +2771,14 @@ namespace tuplex {
 
         return ss.str();
     }
+
+    WorkerApp::~WorkerApp() {
+        // wait for compile thread to end
+        if(_resolverCompileThread && _resolverCompileThread->joinable()) {
+            _resolverCompileThread->join();
+            _resolverCompileThread.reset(nullptr);
+        }
+
+        shutdown();
+    }
 }

@@ -55,6 +55,10 @@ namespace tuplex {
 
         int globalInit() override;
 
+        ~LambdaWorkerApp() {
+
+        }
+
     protected:
         /// put here Lambda specific constants to easily update them
         static const std::string caFile;

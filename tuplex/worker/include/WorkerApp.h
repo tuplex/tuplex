@@ -195,6 +195,7 @@ namespace tuplex {
                                                     _logger(Logger::instance().logger("worker")),
                                                     _syms(std::shared_ptr<TransformStage::JITSymbols>()) {}
 
+        virtual ~WorkerApp();
         bool reinitialize(const WorkerSettings& settings);
 
         int messageLoop();

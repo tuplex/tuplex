@@ -704,7 +704,7 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
     string pattern = "s3://tuplex-public/data/github_daily_sample/*.json.sample";
 
     // full data:
-    // pattern = "s3://tuplex-public/data/github_daily/*.json";
+    pattern = "s3://tuplex-public/data/github_daily/*.json";
 
     // pattern = "s3://tuplex-public/data/github_daily/2013*.json";
     //     pattern = "s3://tuplex-public/data/github_daily/2011*.json,s3://tuplex-public/data/github_daily/2013*.json";
@@ -717,6 +717,8 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
 
     // check that this here works
     sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::ALL_FILES;
+
+    sm = SamplingMode::FIRST_FILE | SamplingMode::FIRST_ROWS;
 
     c.json(pattern, true, true, sm).withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
     .withColumn("repo_id", UDF(repo_id_code))

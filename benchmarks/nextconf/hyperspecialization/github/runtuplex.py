@@ -86,12 +86,17 @@ if __name__ == '__main__':
     sm = sm_map.get(args.sampling_mode, None)
 
     # when hyper is active use sampling mode D to make general path better.
+    hyper_sm = 'B'
+    hyper_sm = 'A'
     if not args.no_hyper:
-        sm = sm_map.get('B', None)
+        sm = sm_map.get(hyper_sm, None)
 
     logging.info('Using sampling mode: {}'.format(sm))
 
     lambda_size = "10000"
+    input_split_size = "256MB"
+    #input_split_size = "512MB"
+    #input_split_size = "16MB"
     lambda_threads = 3 # 3 seems to be working the best?
     s3_scratch_dir = "s3://tuplex-leonhard/scratch/github-exp"
     use_hyper_specialization = not args.no_hyper
@@ -164,6 +169,11 @@ if __name__ == '__main__':
     conf["resolveWithInterpreterOnly"] = False # <-- False means general path is activated 
     
     conf["useLLVMOptimizer"] = not args.no_opt # <-- disable llvm optimizers
+    conf["inputSplitSize"] = input_split_size
+
+    # execute in pure python --> not working for JSON yet. need to parse... ?
+    #conf['useInterpreterOnly'] = True
+    #conf['resolveWithInterpreterOnly'] = True
 
     tstart = time.time()
     import tuplex

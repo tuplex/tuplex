@@ -1923,6 +1923,9 @@ namespace python {
                 case TypeFactory::AbstractType::DICTIONARY: {
                     return "Dict[" + keyType().encode() + "," + valueType().encode() + "]";
                 }
+                case TypeFactory::AbstractType::STRUCTURED_DICTIONARY: {
+                    return entry._desc;
+                }
                 case TypeFactory::AbstractType::FUNCTION: {
                     return "Function[" + getParamsType().encode() + "," + getReturnType().encode() + "]";
                 }

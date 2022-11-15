@@ -37,6 +37,8 @@ namespace tuplex {
             using namespace llvm;
             assert(input_op);
 
+            auto& logger = Logger::instance().logger("codegen");
+
             // which input format should be parsed as?
             //auto input_row_type = pip.
             FlattenedTuple ft(&env);
@@ -48,13 +50,21 @@ namespace tuplex {
 
                     // parse tuple for pipeline, on failure return the code above.
 
+                    // note: for JSON it's about the output columns (no check yet here)
                     auto parseF = json_generateParseStringFunction(env,
                                                                    "general_case_parse_string",
-                                                                   input_op->getInputSchema().getRowType(),
-                                                                   input_op->inputColumns());
+                                                                   input_op->getOutputSchema().getRowType(),
+                                                                   input_op->columns());
+
+                    if(input_op->getOutputSchema().getRowType() != pip_input_row_type) {
+                        std::stringstream ss;
+                        ss<<"input op input schema: "<<input_op->getInputSchema().getRowType().desc()<<std::endl;
+                        ss<<"pip input schema: "<<pip_input_row_type.desc()<<std::endl;
+                        logger.debug(ss.str());
+                    }
 
                     // @TODO: make sure parseF output is compatible with pip input row type
-                    assert(input_op->getInputSchema().getRowType() == pip_input_row_type);
+                    assert(input_op->getOutputSchema().getRowType() == pip_input_row_type);
 
                     // extract string and length from data buffer
 

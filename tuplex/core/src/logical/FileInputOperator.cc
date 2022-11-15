@@ -1176,7 +1176,7 @@ namespace tuplex {
 
         size_t num_projected_columns = getOptimizedOutputSchema().getRowType().parameters().size();
 
-        assert(old_col_types.size() <= old_general_col_types.size());
+        // assert(old_col_types.size() <= old_general_col_types.size());
         auto& logger = Logger::instance().logger("codegen");
 
         // check whether number of columns are compatible (necessary when no concrete columns are given)
@@ -1212,12 +1212,13 @@ namespace tuplex {
             // old type
             unsigned lookup_index = i;
 
-            if(is_projected_row_type) {
+            if(!is_projected_row_type) {
                 lookup_index = reverseProjectToReadIndex(i);
             }
 
-            if(!python::canUpcastType(t, old_general_col_types[lookup_index])) {
+            assert(lookup_index < old_general_col_types.size());
 
+            if(!python::canUpcastType(t, old_general_col_types[lookup_index])) {
                 // both struct types? => replace, can have different format. that's ok
                 if(t.withoutOptions().isStructuredDictionaryType() && old_general_col_types[lookup_index].withoutOptions().isStructuredDictionaryType()) {
                     logger.debug("encountered struct dict with different structure at index " + std::to_string(i));
@@ -1225,6 +1226,7 @@ namespace tuplex {
                     if(!(ignore_check_for_str_option && old_general_col_types[lookup_index] == str_opt_type)) {
                         logger.warn("provided specialized type " + col_types[i].desc() + " can't be upcast to "
                                     + old_general_col_types[lookup_index].desc() + ", ignoring in retype.");
+                        assert(lookup_index < old_col_types.size());
                         col_types[i] = old_col_types[lookup_index];
                     }
                 }

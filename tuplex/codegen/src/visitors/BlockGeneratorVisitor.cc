@@ -2952,8 +2952,9 @@ namespace tuplex {
                 std::reverse(vals.begin(), vals.end());
 
                 // put to flattenedtuple (incl. assigning tuples!)
-                for (int i = 0; i < tuple->_elements.size(); ++i)
+                for (int i = 0; i < tuple->_elements.size(); ++i) {
                     ft.setElement(builder, i, vals[i].val, vals[i].size, vals[i].is_null);
+                }
 
                 // get loadable struct type
                 auto ret = ft.getLoad(builder);
@@ -3944,9 +3945,12 @@ namespace tuplex {
                 // case 1: to be implemented
                 if (isStaticValue(expression, true)) {
                     auto ret = indexTupleWithStaticExpression(expression, sub->_value.get(), index, value);
+                    if(ret.size)
+                        assert(ret.size->getType() == _env->i64Type());
                     addInstruction(ret.val, ret.size, ret.is_null);
+                    return;
                 }
-                    // case 2: load to array & then select via gep
+                // case 2: load to array & then select via gep
                 else if (tupleElementsHaveSameType(value_type)) {
 
                     // store loaded vals into array & then index via gep

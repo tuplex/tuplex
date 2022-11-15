@@ -74,6 +74,11 @@ namespace tuplex {
             auto id = (NIdentifier*)sub->_value.get();
             auto index = num->getI64();
 
+            auto alt_index = projectedIdxToOriginalIdx(index);
+            auto alt_name = _columnNames[alt_index];
+
+            index = alt_index;
+
             // check whether index is in column range, then replace!
             if(index < 0)
                 index += _columnNames.size(); // negative index correction

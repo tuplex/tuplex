@@ -72,6 +72,13 @@ void global_init() {
     Logger::init({std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>()});
     Logger::instance().defaultLogger().info("global_init(): logging system initialized");
 
+    // in order to decode properly, need to add exceptions to type system.
+    // do this by initializing a dummy symbol table
+    auto sym_table = SymbolTable::createFromEnvironment(nullptr);
+    if(sym_table) {
+        Logger::instance().defaultLogger().info("initialized global symbol table.");
+    }
+
     // init aws sdk
     Timer timer;
     Aws::InitAPI(g_aws_options);

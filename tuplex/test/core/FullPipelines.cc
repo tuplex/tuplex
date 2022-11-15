@@ -625,8 +625,8 @@ TEST_F(PipelinesTest, GithubLocalVersion) {
     co.set("tuplex.optimizer.selectionPushdown", "true"); // <-- requires access path detection to work.
 
     // hyper on/off
-    co.set("tuplex.experimental.hyperspecialization", "true");
-    //co.set("tuplex.experimental.hyperspecialization", "false");
+    //co.set("tuplex.experimental.hyperspecialization", "true");
+    co.set("tuplex.experimental.hyperspecialization", "false");
 
 
     co.set("tuplex.executorCount", "0");

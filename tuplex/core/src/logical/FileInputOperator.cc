@@ -45,7 +45,7 @@ namespace tuplex {
             auto col_types = type.parameters();
             for(auto& col_type : col_types) {
 
-                if(col_type.withoutOptions().isStructuredDictionaryType())
+                if(col_type.withoutOption().isStructuredDictionaryType())
                     col_type = generalize_struct_type(col_type);
 
                 if(!col_type.isOptionType() && col_type != python::Type::NULLVALUE) {
@@ -1220,7 +1220,8 @@ namespace tuplex {
 
             if(!python::canUpcastType(t, old_general_col_types[lookup_index])) {
                 // both struct types? => replace, can have different format. that's ok
-                if(t.withoutOptions().isStructuredDictionaryType() && old_general_col_types[lookup_index].withoutOptions().isStructuredDictionaryType()) {
+                if(t.withoutOption().isStructuredDictionaryType() &&
+                   old_general_col_types[lookup_index].withoutOption().isStructuredDictionaryType()) {
                     logger.debug("encountered struct dict with different structure at index " + std::to_string(i));
                 } else {
                     if(!(ignore_check_for_str_option && old_general_col_types[lookup_index] == str_opt_type)) {

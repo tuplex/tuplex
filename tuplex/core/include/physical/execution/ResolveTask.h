@@ -180,7 +180,7 @@ namespace tuplex {
 
             python::lockGIL();
             auto valueMode = aggType == AggregateType::AGG_BYKEY ? LookupStorageMode::LISTOFVALUES : LookupStorageMode::VALUE;
-            auto hybrid = CreatePythonHashMapWrapper(*_htable, hashKeyType.withoutOptions(), hashBucketType, valueMode);
+            auto hybrid = CreatePythonHashMapWrapper(*_htable, hashKeyType.withoutOption(), hashBucketType, valueMode);
             assert(reinterpret_cast<uintptr_t>(hybrid) == reinterpret_cast<uintptr_t>(_htable->hybrid_hm)); // same object
             python::unlockGIL();
         }

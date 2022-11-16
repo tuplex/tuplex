@@ -219,7 +219,7 @@ llvm::Type* createStructType(llvm::LLVMContext& ctx, const python::Type &type, c
     for(int i = 0; i < params.size(); ++i) {
         if(params[i].isOptionType()) {
             numNullables++;
-            params[i] = params[i].withoutOptions();
+            params[i] = params[i].withoutOption();
         }
 
         assert(!params[i].isTupleType()); // no nesting at this level here supported!

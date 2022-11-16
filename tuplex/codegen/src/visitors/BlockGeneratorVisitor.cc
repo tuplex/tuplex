@@ -174,8 +174,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
-            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOption());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOption());
 
             // special case:
             // overloaded string operator
@@ -335,8 +335,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
-            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOption());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOption());
 
             // special case:
             // overloaded string operator
@@ -391,8 +391,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
-            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOption());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOption());
 
             // overloaded: string addition = concatenation
             if (ltype == python::Type::STRING
@@ -477,8 +477,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
-            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOption());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOption());
 
             // strings not yet supported
             if (ltype == python::Type::STRING
@@ -516,8 +516,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
-            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOption());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOption());
 
             // special case:
             // overloaded string operator
@@ -551,8 +551,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
-            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOption());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOption());
 
             // special case:
             // overloaded string operator
@@ -630,8 +630,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
-            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOption());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOption());
 
             if (!(ltype == python::Type::I64 || ltype == python::Type::BOOLEAN) ||
                 !(rtype == python::Type::I64 || rtype == python::Type::BOOLEAN)) {
@@ -660,8 +660,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
-            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOption());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOption());
 
             // only support i64, boolean
             if (!(ltype == python::Type::I64 || ltype == python::Type::BOOLEAN) ||
@@ -917,7 +917,7 @@ namespace tuplex {
 
             auto elementType = rightType.elementType();
 
-            if(elementType.withoutOptions() != leftType.withoutOptions()) {
+            if(elementType.withoutOptionsRecursive() != leftType.withoutOption()) {
                 return _env->boolConst(false);
             }
 
@@ -1031,7 +1031,7 @@ namespace tuplex {
             }
 
             // comparison of values without null
-            auto superType = python::Type::superType(leftType.withoutOptions(), rightType.withoutOptions());
+            auto superType = python::Type::superType(leftType.withoutOption(), rightType.withoutOption());
             if (superType == python::Type::UNKNOWN) {
                 std::stringstream ss;
                 ss << "Could not generate comparison for types "
@@ -1123,7 +1123,8 @@ namespace tuplex {
                         assert(R);
 
                         auto resVal = _env->CreateTernaryLogic(builder, L_isnull, [&] (llvm::IRBuilder<>& builder) { return _env->boolConst(tt == TokenType::NOTEQUAL || tt == TokenType::ISNOT); },
-                                                               [&] (llvm::IRBuilder<>& builder) { return compareInst(builder, L, leftType.withoutOptions(), tt, R, rightType); });
+                                                               [&] (llvm::IRBuilder<>& builder) { return compareInst(builder, L,
+                                                                                                                     leftType.withoutOption(), tt, R, rightType); });
                         _lfb->setLastBlock(builder.GetInsertBlock());
                         return resVal;
                     }
@@ -1139,7 +1140,8 @@ namespace tuplex {
                         assert(R);
 
                         auto resVal = _env->CreateTernaryLogic(builder, R_isnull, [&] (llvm::IRBuilder<>& builder) { return _env->boolConst(tt == TokenType::NOTEQUAL || tt == TokenType::ISNOT); },
-                                                               [&] (llvm::IRBuilder<>& builder) { return compareInst(builder, L, leftType, tt, R, rightType.withoutOptions()); });
+                                                               [&] (llvm::IRBuilder<>& builder) { return compareInst(builder, L, leftType, tt, R,
+                                                                                                                     rightType.withoutOption()); });
                         _lfb->setLastBlock(builder.GetInsertBlock());
                         return resVal;
                     }
@@ -1158,8 +1160,9 @@ namespace tuplex {
                         if (tt == TokenType::EQEQUAL || tt == TokenType::IS)
                             xorResult = builder.CreateNot(xorResult);
 
-                        auto resVal = _env->CreateTernaryLogic(builder, bothValid, [&] (llvm::IRBuilder<>& builder) { return compareInst(builder, L, leftType.withoutOptions(), tt, R,
-                                                                                                                                         rightType.withoutOptions()); }, [&] (llvm::IRBuilder<>& builder) { return xorResult; });
+                        auto resVal = _env->CreateTernaryLogic(builder, bothValid, [&] (llvm::IRBuilder<>& builder) { return compareInst(builder, L,
+                                                                                                                                         leftType.withoutOption(), tt, R,
+                                                                                                                                         rightType.withoutOption()); }, [&] (llvm::IRBuilder<>& builder) { return xorResult; });
                         _lfb->setLastBlock(builder.GetInsertBlock());
                         return resVal;
                     }
@@ -1175,7 +1178,7 @@ namespace tuplex {
                 // ERROR
                 error("invalid case attained in compareInst");
                 return _env->boolConst(true);
-            } else if(tt == TokenType::IN && rightType.withoutOptions().isListType()) {
+            } else if(tt == TokenType::IN && rightType.withoutOption().isListType()) {
                 // the in [list] operator has specific semantics for None on the left side
                 if(R_isnull) { // R can't be null
                     _lfb->addException(builder, ExceptionCode::TYPEERROR, R_isnull);
@@ -1188,20 +1191,20 @@ namespace tuplex {
                                                            [&](llvm::IRBuilder<> &builder) {
                                                                return listInclusionCheck(builder, L,
                                                                                          python::Type::NULLVALUE, R,
-                                                                                         rightType.withoutOptions());
+                                                                                         rightType.withoutOption());
                                                            },
                                                            [&](llvm::IRBuilder<> &builder) {
                                                                return listInclusionCheck(builder, L,
-                                                                                         leftType.withoutOptions(),
+                                                                                         leftType.withoutOption(),
                                                                                          R,
-                                                                                         rightType.withoutOptions());
+                                                                                         rightType.withoutOption());
                                                            });
                     _lfb->setLastBlock(builder.GetInsertBlock()); // ternary logic creates blocks but can't set lfb last block
                     return res;
                 }
 
                 assert(!leftType.isOptionType());
-                return listInclusionCheck(builder, L, leftType, R, rightType.withoutOptions());
+                return listInclusionCheck(builder, L, leftType, R, rightType.withoutOption());
             } else {
                 // exception check left
                 if (L_isnull) {
@@ -1213,7 +1216,8 @@ namespace tuplex {
                     _lfb->addException(builder, ExceptionCode::TYPEERROR, R_isnull);
                 }
 
-                auto resVal = compareInst(builder, L, leftType.withoutOptions(), tt, R, rightType.withoutOptions());
+                auto resVal = compareInst(builder, L, leftType.withoutOption(), tt, R,
+                                          rightType.withoutOption());
                 _lfb->setLastBlock(builder.GetInsertBlock());
                 return resVal;
             }
@@ -1348,8 +1352,8 @@ namespace tuplex {
 
             // TODO:
             // boolean, integer and float case
-            auto leftType = op->_left->getInferredType().withoutOptions();
-            auto rightType = op->_right->getInferredType().withoutOptions();
+            auto leftType = op->_left->getInferredType().withoutOption();
+            auto rightType = op->_right->getInferredType().withoutOption();
 
             // assume no options.
             assert(!op->_left->getInferredType().isOptionType());
@@ -3899,7 +3903,7 @@ namespace tuplex {
                 assert(index.is_null);
 
                 // add check
-                if (value_type.withoutOptions().isDictionaryType()) {
+                if (value_type.withoutOption().isDictionaryType()) {
                     // KeyError
                     _lfb->addException(builder, ExceptionCode::KEYERROR, index.is_null);
                 } else {
@@ -3908,7 +3912,7 @@ namespace tuplex {
                 }
             }
             // remove option from index_type
-            index_type = index_type.withoutOptions();
+            index_type = index_type.withoutOption();
 
             if (value_type.isOptionType()) {
                 // None can't be indexed, i.e. null check here!
@@ -3916,7 +3920,7 @@ namespace tuplex {
 
                 _lfb->addException(builder, ExceptionCode::TYPEERROR, value.is_null);
             }
-            value_type = value_type.withoutOptions();
+            value_type = value_type.withoutOption();
 
             // there are two options:
             // either the value is a string or a struct type (aka tuple)
@@ -4301,13 +4305,13 @@ namespace tuplex {
 
             // primitive to option?
             if(!type.isOptionType() && targetType.isOptionType()) {
-                auto tmp = upCastReturnType(builder, val, type, targetType.withoutOptions());
+                auto tmp = upCastReturnType(builder, val, type, targetType.withoutOption());
                 return SerializableValue(tmp.val, tmp.size, _env->i1Const(false));
             }
 
             // option[a] to option[b]?
             if(type.isOptionType() && targetType.isOptionType()) {
-                auto tmp = upCastReturnType(builder, val, type.withoutOptions(), targetType.withoutOptions());
+                auto tmp = upCastReturnType(builder, val, type.withoutOption(), targetType.withoutOption());
                 return SerializableValue(tmp.val, tmp.size, val.is_null);
             }
 
@@ -4779,7 +4783,7 @@ namespace tuplex {
             value = popWithNullCheck(builder, ExceptionCode::TYPEERROR, "'NoneType' object is not subscriptable");
 
             // get rid off option here
-            if (deoptimizedType(slice->_value->getInferredType().withoutOptions()) == python::Type::STRING) {
+            if (deoptimizedType(slice->_value->getInferredType().withoutOption()) == python::Type::STRING) {
                 assert(value.val->getType() == _env->i8ptrType());
 
                 stride.val = upCast(builder, stride.val, _env->i64Type());
@@ -5340,8 +5344,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOptions());
-            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOptions());
+            python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOption());
+            python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOption());
 
             // only support i64, boolean
             if (!(ltype == python::Type::I64 || ltype == python::Type::BOOLEAN) ||

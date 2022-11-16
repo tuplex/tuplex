@@ -173,7 +173,7 @@ namespace tuplex {
             // iterate over all fields & return mapped types
             for(auto type : _tree.fieldTypes()) {
                 auto deoptimized_type = type.isConstantValued() ? type.underlying() : type;
-                types.push_back(_env->pythonToLLVMType(deoptimized_type.withoutOptions()));
+                types.push_back(_env->pythonToLLVMType(deoptimized_type.withoutOption()));
             }
 
             return types;
@@ -532,7 +532,7 @@ namespace tuplex {
 
             auto& context = _env->getContext();
             auto types = getFieldTypes();
-            bool hasVarField = !getTupleType().withoutOptions().isFixedSizeType();
+            bool hasVarField = !getTupleType().withoutOptionsRecursive().isFixedSizeType();
 
             auto original_start_ptr = ptr;
 
@@ -579,7 +579,7 @@ namespace tuplex {
                 auto is_null = _tree.get(i).is_null;
                 auto is_not_null = is_null ? _env->i1neg(builder, is_null) : nullptr;
                 bool is_option_field = types[i].isOptionType();
-                auto fieldType = types[i].withoutOptions();
+                auto fieldType = types[i].withoutOption();
 
                 if(is_option_field)
                     assert(is_null && is_not_null);
@@ -601,13 +601,13 @@ namespace tuplex {
                 // @TODO: improve this for NULL VALUES...
                 if(!field) {
                     // dummy value
-                    if(fieldType.withoutOptions() == python::Type::BOOLEAN)
+                    if(fieldType.withoutOption() == python::Type::BOOLEAN)
                         field = _env->boolConst(false);
-                    if(fieldType.withoutOptions() == python::Type::I64)
+                    if(fieldType.withoutOption() == python::Type::I64)
                         field = _env->i64Const(0);
-                    if(fieldType.withoutOptions() == python::Type::F64)
+                    if(fieldType.withoutOption() == python::Type::F64)
                         field = _env->f64Const(0.0);
-                    if(fieldType.withoutOptions() == python::Type::STRING)
+                    if(fieldType.withoutOption() == python::Type::STRING)
                         field = _env->strConst(builder, "");
                 }
                 if(!size)
@@ -1106,7 +1106,7 @@ namespace tuplex {
             // check that assigned val matches primitive type
             auto types = getFieldTypes();
 
-            auto type = deoptimizedType(types[i].withoutOptions());
+            auto type = deoptimizedType(types[i].withoutOption);
 
             // null val & size for nulltype
             if(type == python::Type::NULLVALUE) {

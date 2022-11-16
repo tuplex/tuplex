@@ -589,8 +589,8 @@ namespace tuplex {
                 return;
             } else {
                 // get rid off options
-                left_type = left_type.withoutOptions();
-                right_type = right_type.withoutOptions();
+                left_type = left_type.withoutOption();
+                right_type = right_type.withoutOption();
             }
         }
 

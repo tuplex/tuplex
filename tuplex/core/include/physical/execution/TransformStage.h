@@ -484,7 +484,8 @@ namespace tuplex {
          * @return
          */
         python::Type hashOutputKeyType() {
-            assert(_aggMode != AggregateType::AGG_NONE || (_hashOutputKeyType.withoutOptions() == python::Type::I64 || _hashOutputKeyType.withoutOptions() == python::Type::STRING));
+            assert(_aggMode != AggregateType::AGG_NONE || (_hashOutputKeyType.withoutOption() == python::Type::I64 ||
+                    _hashOutputKeyType.withoutOption() == python::Type::STRING));
             return _hashOutputKeyType;
         }
 

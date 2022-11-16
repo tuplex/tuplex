@@ -867,7 +867,7 @@ namespace tuplex {
         // if(object_type.isClassType()) {...}
 
         // general option switch
-        auto type = object_type.isOptionType() ? object_type.withoutOptions() : object_type;
+        auto type = object_type.withoutOption();
 
         // i.e. dict, str, int, float get symbols => they're builtins
         // they all have different typings
@@ -940,7 +940,9 @@ namespace tuplex {
             // first, search with option type
             auto t = findClosestFunction(symbol, parameterType);
             if (t == python::Type::UNKNOWN)
-                t = findClosestFunction(symbol, parameterType.withoutOptions());
+                t = findClosestFunction(symbol, parameterType.withoutOption());
+            if (t == python::Type::UNKNOWN)
+                t = findClosestFunction(symbol, parameterType.withoutOptionsRecursive());
 
             // depending on typing, this could happen!
             // // check if still unknown, then this means could not be deducted
@@ -948,7 +950,7 @@ namespace tuplex {
             //     Logger::instance().defaultLogger().error("Could not find function named " + symbol
             //                                              + " with parameter type " + parameterType.desc() +
             //                                              " nor parameter type "
-            //                                              + parameterType.withoutOptions().desc());
+            //                                              + parameterType.withoutOptionsRecursive().desc());
             return t;
         } else {
 

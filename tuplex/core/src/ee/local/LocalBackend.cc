@@ -1397,7 +1397,7 @@ namespace tuplex {
                     hs->hm = input_intermediates.hash_maps[i];
                     hs->null_bucket = input_intermediates.null_buckets[i];
                     input_intermediates.hybrids[i] = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(*hs,
-                                                                                                             ts->hashResult().keyType.withoutOptions(),
+                                                                                                             ts->hashResult().keyType.withoutOption(),
                                                                                                              ts->hashResult().bucketType,
                                                                                                              LookupStorageMode::LISTOFVALUES)); // this is for joins, i.e. list of values...
                 }
@@ -1524,7 +1524,7 @@ namespace tuplex {
                     if(hasNormalHashSink) {
                         rtask->sinkOutputToHashTable(tt->hashTableFormat(),
                                                      tstage->dataAggregationMode(),
-                                                     tstage->hashOutputKeyType().withoutOptions(),
+                                                     tstage->hashOutputKeyType().withoutOption(),
                                                      tstage->hashOutputBucketType(),
                                                      hsink->hm,
                                                      hsink->null_bucket);
@@ -1539,7 +1539,7 @@ namespace tuplex {
                         assert(hm);
                         rtask->sinkOutputToHashTable(tt->hashTableFormat(),
                                                      tstage->dataAggregationMode(),
-                                                     tstage->hashOutputKeyType().withoutOptions(),
+                                                     tstage->hashOutputKeyType().withoutOption(),
                                                      tstage->hashOutputBucketType(),
                                                      hm,
                                                      nullptr);

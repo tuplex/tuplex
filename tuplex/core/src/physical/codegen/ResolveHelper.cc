@@ -436,7 +436,7 @@ namespace tuplex {
 //                for(auto type : generalCaseType.parameters()) {
 //                    // get rid off opt/option
 //                    type = deoptimizedType(type);
-//                    type = type.withoutOptions();
+//                    type = type.withoutOptionsRecursive();
 //                    if(!type.isPrimitiveType() && type != python::Type::STRING && type != python::Type::NULLVALUE)
 //                        any_non_primitives_found = true;
 //                }

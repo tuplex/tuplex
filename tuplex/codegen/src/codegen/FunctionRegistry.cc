@@ -506,7 +506,7 @@ namespace tuplex {
 
                 // string block
                 builder.SetInsertPoint(bbNotNull);
-                auto res = createStrCast(lfb, builder, python::Type::makeTupleType({type.withoutOptions()}), args);
+                auto res = createStrCast(lfb, builder, python::Type::makeTupleType({type.withoutOption()}), args);
                 builder.CreateStore(res.val, valVar);
                 builder.CreateStore(res.size, sizeVar);
                 builder.CreateBr(bbDone);

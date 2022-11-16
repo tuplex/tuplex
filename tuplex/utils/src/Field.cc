@@ -179,7 +179,7 @@ namespace tuplex {
         if(hasPtrData()) {
             if(_ptrValue) {
                 // select correct deletion method!
-                if(_type.withoutOptions().isListType() || _type.withoutOptions().isTupleType())
+                if(_type.withoutOption().isListType() || _type.withoutOption().isTupleType())
                     delete _ptrValue;
                 else
                     delete [] _ptrValue;

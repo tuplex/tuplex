@@ -157,7 +157,7 @@ TEST(TupleIndices, OptionTypes) {
     for(auto param : largeType.parameters()) {
         if(param.isOptionType())
             numoptional++;
-        if(first_str < 0 && param.withoutOptions() == python::Type::STRING)
+        if(first_str < 0 && param.withoutOption() == python::Type::STRING)
             first_str = pos;
         if(param == python::Type::makeOptionType(python::Type::I64))
             num_i64_opt++;

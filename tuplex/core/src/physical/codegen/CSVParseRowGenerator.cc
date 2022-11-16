@@ -76,7 +76,7 @@ namespace tuplex {
                 // ==> for option types, ignore!
                 auto stype = serializedType();
                 for (const auto& t : stype.parameters()) {
-                    vTypes.push_back(_env->pythonToLLVMType(t.withoutOptions()));
+                    vTypes.push_back(_env->pythonToLLVMType(t.withoutOption()));
                     vTypes.push_back(_env->i64Type()); // size field
                 }
 
@@ -877,14 +877,15 @@ namespace tuplex {
                         auto valueIsNull = _env->compareToNullValues(builder, normalizedStr, _null_values, true);
 
                         // allocate vars where to store parse result or dummy
-                        Value* valPtr = _env->CreateFirstBlockAlloca(builder, _env->pythonToLLVMType(type.withoutOptions()), "col" + std::to_string(pos));
+                        Value* valPtr = _env->CreateFirstBlockAlloca(builder, _env->pythonToLLVMType(
+                                type.withoutOption()), "col" + std::to_string(pos));
                         Value* sizePtr = _env->CreateFirstBlockAlloca(builder, _env->i64Type(), "col" + std::to_string(pos) + "_size");
                         // null them
                         _env->storeNULL(builder, valPtr);
                         _env->storeNULL(builder, sizePtr);
 
                         // hack: nullable string, store empty string!
-                        if(type.withoutOptions() == python::Type::STRING) {
+                        if(type.withoutOption() == python::Type::STRING) {
                             builder.CreateStore(_env->strConst(builder, ""), valPtr);
                         }
 
@@ -901,7 +902,7 @@ namespace tuplex {
                         }
 
                         // parse here according to type and raise error for failure...
-                        if(python::Type::BOOLEAN == type.withoutOptions()) {
+                        if(python::Type::BOOLEAN == type.withoutOption()) {
                             // call fast_atob(...)
                             std::vector<Type *> argtypes{i8ptr_type, i8ptr_type,
                                                          Type::getInt8PtrTy(context, 0)}; // bool is implemented as i8*
@@ -912,7 +913,7 @@ namespace tuplex {
                             auto parseOK = builder.CreateICmpEQ(resCode, _env->i32Const(ecToI32(ExceptionCode::SUCCESS)));
                             builder.CreateCondBr(parseOK, bbParseDone, bbValueError);
 
-                        } else if(python::Type::I64 == type.withoutOptions()) {
+                        } else if(python::Type::I64 == type.withoutOption()) {
                             // call fast_atoi64(...)
                             std::vector<Type *> argtypes{i8ptr_type, i8ptr_type, _env->i64Type()->getPointerTo(0)};
                             FunctionType *FT = FunctionType::get(Type::getInt32Ty(context), argtypes, false);
@@ -922,7 +923,7 @@ namespace tuplex {
                             auto parseOK = builder.CreateICmpEQ(resCode, _env->i32Const(ecToI32(ExceptionCode::SUCCESS)));
                             builder.CreateCondBr(parseOK, bbParseDone, bbValueError);
 
-                        } else if(python::Type::F64 == type.withoutOptions()) {
+                        } else if(python::Type::F64 == type.withoutOption()) {
                             // call fast_atod(...)
                             std::vector<Type *> argtypes{i8ptr_type, i8ptr_type, _env->doubleType()->getPointerTo(0)};
                             FunctionType *FT = FunctionType::get(Type::getInt32Ty(context), argtypes, false);
@@ -932,12 +933,12 @@ namespace tuplex {
                             auto parseOK = builder.CreateICmpEQ(resCode, _env->i32Const(ecToI32(ExceptionCode::SUCCESS)));
                             builder.CreateCondBr(parseOK, bbParseDone, bbValueError);
 
-                        } else if(python::Type::STRING == type.withoutOptions()) {
+                        } else if(python::Type::STRING == type.withoutOption()) {
                             // super simple, just store result!
                             builder.CreateStore(normalizedStr, valPtr);
                             builder.CreateStore(builder.CreateLoad(ret_size_ptr), sizePtr);
                             builder.CreateBr(bbParseDone);
-                        } else if(python::Type::NULLVALUE == type.withoutOptions()) {
+                        } else if(python::Type::NULLVALUE == type) {
 
                             // trivial, do not need to store anything, just go to parse done
                             builder.CreateBr(bbParseDone);

@@ -165,10 +165,16 @@ namespace python {
             return false;
         }
         /*!
-         * create corresponding type without options
+         * create corresponding type without options (recursive!)
          * @return
          */
-        Type withoutOptions() const;
+        Type withoutOptionsRecursive() const;
+
+        /*!
+         * removes most outer option (if it is an option).
+         * @return the underlying type.
+         */
+        Type withoutOption() const;
 
         std::vector<Type> parameters() const;
         std::vector<Type> returnValues() const;

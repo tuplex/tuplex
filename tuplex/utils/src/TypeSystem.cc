@@ -739,7 +739,7 @@ namespace python {
         // option?
         // ==> base type decides!
         if(isOptionType())
-            return withoutOptions().isFixedSizeType();
+            return withoutOption().isFixedSizeType();
 
         // functions, dictionaries, and lists are never a fixed type
         return false;
@@ -1087,12 +1087,12 @@ namespace python {
         // dealing with options
         if(A.isOptionType()) {
             if(B.isOptionType()) {
-                auto res = superType(A.withoutOptions(), B.withoutOptions());
+                auto res = superType(A.withoutOption(), B.withoutOption());
                 if(res == python::Type::UNKNOWN)
                     return python::Type::UNKNOWN;
                 return python::Type::makeOptionType(res);
             } else {
-                auto res = superType(A.withoutOptions(), B.withoutOptions());
+                auto res = superType(A.withoutOption(), B.withoutOption());
                 if(res == python::Type::UNKNOWN)
                     return python::Type::UNKNOWN;
                 return python::Type::makeOptionType(res);
@@ -1116,8 +1116,13 @@ namespace python {
         return Type::UNKNOWN;
     }
 
+    Type Type::withoutOption() const {
+        // option type?
+        // else return type as is
+        return isOptionType() ? getReturnType() : *this;
+    }
 
-    Type Type::withoutOptions() const {
+    Type Type::withoutOptionsRecursive() const {
         using namespace std;
 
         // check what type it is
@@ -1131,7 +1136,7 @@ namespace python {
             // go through elements & construct optionless tuples
             vector<Type> params;
             for(const auto& t : parameters())
-                params.push_back(t.withoutOptions());
+                params.push_back(t.withoutOptionsRecursive());
             return Type::makeTupleType(params);
         }
 
@@ -1141,24 +1146,24 @@ namespace python {
                 // go through pairs!
                 auto pairs = get_struct_pairs();
                 for(auto& entry : pairs) {
-                    entry.keyType = entry.keyType.withoutOptions();
-                    entry.valueType = entry.valueType.withoutOptions();
+                    entry.keyType = entry.keyType.withoutOptionsRecursive();
+                    entry.valueType = entry.valueType.withoutOptionsRecursive();
                 }
                 return Type::makeStructuredDictType(pairs);
             } else {
                 // homogenous key/value type dict
-                return Type::makeDictionaryType(keyType().withoutOptions(), valueType().withoutOptions());
+                return Type::makeDictionaryType(keyType().withoutOptionsRecursive(), valueType().withoutOptionsRecursive());
             }
         }
 
         // list?
         if(isListType()) {
-            return Type::makeListType(elementType().withoutOptions());
+            return Type::makeListType(elementType().withoutOptionsRecursive());
         }
 
         // option? ==> ret type!
         if(isOptionType())
-            return getReturnType().withoutOptions();
+            return getReturnType().withoutOptionsRecursive();
 
 //        // constant valueed? that's a tricky one, b.c. constant plays a role.
 //        if(isConstantValued())
@@ -1191,9 +1196,9 @@ namespace python {
         if(to.isOptionType()) {
             // from also option type?
             if(from.isOptionType())
-                return canUpcastType(from.withoutOptions(), to.withoutOptions());
+                return canUpcastType(from.withoutOption(), to.withoutOption());
             else
-                return canUpcastType(from, to.withoutOptions());
+                return canUpcastType(from, to.withoutOption());
         }
 
         // can't upcast option[X] to X

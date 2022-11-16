@@ -148,7 +148,7 @@ namespace tuplex {
                 }
 
                 PyTuple_SetItem(curr_obj, curr_index, elem_to_insert);
-                if (!current_type.withoutOptions().isSingleValued())
+                if (!current_type.withoutOption().isSingleValued())
                     current_buffer_index += SIZEOF_LONG;
 
                 prev = curr;

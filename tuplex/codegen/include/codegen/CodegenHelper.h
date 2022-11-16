@@ -590,10 +590,10 @@ namespace tuplex {
         }
 
         inline int hashtableKeyWidth(const python::Type &t) {
-            if (t.withoutOptions() == python::Type::I64 ||
+            if (t.withoutOption() == python::Type::I64 ||
                 (t.isTupleType() &&
                  t.parameters().size() == 1 &&
-                 t.parameters()[0].withoutOptions() == python::Type::I64)) {
+                        t.parameters()[0].withoutOption() == python::Type::I64)) {
                 static_assert(sizeof(int64_t) == 8, "int64_t must be 8 bytes");
                 return 8; // single int is hashed in an int hashtable
             }

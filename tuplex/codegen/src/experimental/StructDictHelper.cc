@@ -443,9 +443,18 @@ namespace tuplex {
                 auto bitmapPos = present_idx;
 
                 if(ptr->getType()->isStructTy()) {
-
+                    auto llvm_dict_type = env.getOrCreateStructuredDictType(dict_type);
                     // make sure types are compatible
-                    assert(ptr->getType() == env.getOrCreateStructuredDictType(dict_type));
+#ifndef NDEBUG
+                    if(ptr->getType() != env.getOrCreateStructuredDictType(dict_type)) {
+                        std::cerr<<"ERROR:\n";
+                        std::cerr<<"given type is: "<<env.getLLVMTypeName(ptr->getType())<<std::endl;
+                        std::cerr<<"but expected: "<<env.getLLVMTypeName(env.getOrCreateStructuredDictType(dict_type))<<std::endl;
+                        std::cerr<<"details:\n"<<env.printAggregateType(ptr->getType(), true)<<std::endl;
+                        std::cerr<<env.printAggregateType(llvm_dict_type, true)<<std::endl;
+                    }
+#endif
+                    assert(ptr->getType() == llvm_dict_type);
 
                     auto bitmap = CreateStructLoad(builder, ptr, p_idx);
                     assert(bitmap->getType()->isArrayTy());

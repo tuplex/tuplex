@@ -341,7 +341,7 @@ namespace tuplex {
                               std::to_string(i) + "])\n");
                 else {
                     // use specific type to parse for...
-                    auto t = it->second.withoutOptions();
+                    auto t = it->second.withoutOption();
 
                     // additional if for option type
                     if (it->second.isOptionType()) {

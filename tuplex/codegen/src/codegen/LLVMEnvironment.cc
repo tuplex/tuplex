@@ -132,8 +132,10 @@ namespace tuplex {
             logger.info("module's data layout is: " + _module->getDataLayoutStr());
 
             // setup defaults in typeMapping (ignore bool)
-            _typeMapping[llvm::Type::getDoubleTy(_context)] = python::Type::F64;
-            _typeMapping[llvm::Type::getInt64Ty(_context)] = python::Type::I64;
+            // _typeMapping[llvm::Type::getDoubleTy(_context)] = python::Type::F64;
+            // _typeMapping[llvm::Type::getInt64Ty(_context)] = python::Type::I64;
+            addType(llvm::Type::getDoubleTy(_context), python::Type::F64);
+            addType(llvm::Type::getInt64Ty(_context), python::Type::I64);
 
             // set up global init/release blocks
 
@@ -348,7 +350,8 @@ namespace tuplex {
 
                 // add to mapping (make sure it doesn't exist yet!)
                 assert(_typeMapping.find(structType) == _typeMapping.end());
-                _typeMapping[structType] = type;
+                addType(structType, type);
+                // _typeMapping[structType] = type;
                 return structType;
             }
 
@@ -456,8 +459,9 @@ namespace tuplex {
             llvm::Type *structType = llvm::StructType::create(ctx, llvm_members, "struct." + twine, packed);
 
             // add to mapping (make sure it doesn't exist yet!)
-            assert(_typeMapping.find(structType) == _typeMapping.end());
-            _typeMapping[structType] = type;
+            // assert(_typeMapping.find(structType) == _typeMapping.end());
+            // _typeMapping[structType] = type;
+            addType(structType, type);
 
             return structType;
 
@@ -471,7 +475,7 @@ namespace tuplex {
 //            for (int i = 0; i < params.size(); ++i) {
 //                if (params[i].isOptionType()) {
 //                    numNullables++;
-//                    params[i] = params[i].withoutOptions();
+//                    params[i] = params[i].withoutOptionsRecursive();
 //                }
 //
 //                // empty tuple is ok, b.c. it's a primitive
@@ -659,6 +663,7 @@ namespace tuplex {
             }
 
             _generatedListTypes[listType] = retType;
+            addType(retType, listType);
             return retType;
         }
 
@@ -999,7 +1004,7 @@ namespace tuplex {
             }
 
             // remove option
-            elementType = elementType.withoutOptions();
+            elementType = elementType.withoutOption();
 
             // empty tuple, empty dict
             if (python::Type::EMPTYTUPLE == elementType) {
@@ -1054,7 +1059,7 @@ namespace tuplex {
             // debug:
             if(size && size->getType() != i64Type()) {
                 std::cerr<<"ERROR::"<<std::endl;
-                std::cerr<<"tuple element access:\n "<<printAggregateType(tuplePtr->getType()->getPointerElementType())<<std::endl;
+                std::cerr<<"tuple element access:\n "<<printAggregateType(tuplePtr->getType()->getPointerElementType(), true)<<std::endl;
             }
 #endif
 
@@ -1115,7 +1120,7 @@ namespace tuplex {
             }
 
             // get rid off option & check again for special emptytuple/emptydict/...
-            elementType = elementType.withoutOptions();
+            elementType = elementType.withoutOption();
 
             if(elementType.isSingleValued())
                 return; // do not need to store, but bitmap is stored for them already.
@@ -1301,7 +1306,8 @@ namespace tuplex {
                 // else, ret the result of the truth test in the newly created block!
                 builder.CreateCondBr(val.is_null, bbTestDone, bbTest);
                 builder.SetInsertPoint(bbTest);
-                Value *testValue = truthValueTest(builder, SerializableValue(val.val, val.size), type.withoutOptions());
+                Value *testValue = truthValueTest(builder, SerializableValue(val.val, val.size),
+                                                  type.withoutOption());
                 builder.CreateBr(bbTestDone);
 
                 // set insert point
@@ -1679,7 +1685,7 @@ namespace tuplex {
             return nullptr;
         }
 
-        std::string LLVMEnvironment::printAggregateType(llvm::Type* agg_type) {
+        std::string LLVMEnvironment::printAggregateType(llvm::Type* agg_type, bool print_python_type) {
 
             std::stringstream ss;
 
@@ -1687,6 +1693,14 @@ namespace tuplex {
             if(agg_type->isStructTy()) {
                 // print name
                 ss<<getLLVMTypeName(agg_type)<<"\n";
+                if(print_python_type) {
+                    // look up in all the types
+                    auto py_types = lookupPythonTypes(agg_type);
+                    ss<<"found "<<pluralize(py_types.size(), "possible python type")<<":\n";
+                    for(unsigned i = 0; i < py_types.size(); ++i) {
+                        ss<<"-- "<<py_types[i].desc()<<"\n";
+                    }
+                }
                 for(unsigned i = 0; i < agg_type->getStructNumElements(); ++i) {
                     auto el_type = agg_type->getStructElementType(i);
                     ss<<"  "<<getLLVMTypeName(el_type)<<"  gep 0 "<<i<<"\n";
@@ -2670,13 +2684,13 @@ namespace tuplex {
 
             // primitive to option?
             if(!type.isOptionType() && targetType.isOptionType()) {
-                auto tmp = upcastValue(builder, val, type, targetType.withoutOptions());
+                auto tmp = upcastValue(builder, val, type, targetType.withoutOption());
                 return SerializableValue(tmp.val, tmp.size, i1Const(false));
             }
 
             // option[a] to option[b]?
             if(type.isOptionType() && targetType.isOptionType()) {
-                auto tmp = upcastValue(builder, val, type.withoutOptions(), targetType.withoutOptions());
+                auto tmp = upcastValue(builder, val, type.withoutOption(), targetType.withoutOption());
                 return SerializableValue(tmp.val, tmp.size, val.is_null);
             }
 
@@ -2748,6 +2762,7 @@ namespace tuplex {
                 return it->second;
             auto type = generate_structured_dict_type(*this, twine, structType);
             _generatedStructDictTypes[structType] = type;
+            addType(type, structType);
             return type;
         }
 
@@ -2764,6 +2779,7 @@ namespace tuplex {
             bool packed = false;
             llvm::Type *structType = llvm::StructType::create(_module->getContext(), members, "emptydict", packed);
             _generatedStructDictTypes[python::Type::EMPTYDICT] = structType;
+            addType(structType, python::Type::EMPTYDICT);
             return structType;
         }
 

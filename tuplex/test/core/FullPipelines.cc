@@ -653,7 +653,8 @@ TEST_F(PipelinesTest, GithubLocalVersion) {
 
      sm = DEFAULT_SAMPLING_MODE;
 
-    c.json(pattern, true, true, sm).withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+    c.json(pattern, true, true, sm)
+      .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
             .withColumn("repo_id", UDF(repo_id_code))
             .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
             .selectColumns({"type", "repo_id", "year"})
@@ -709,11 +710,13 @@ TEST_F(PipelinesTest, GithubLocalVersionEx) {
 
     sm = DEFAULT_SAMPLING_MODE;
 
-    c.json(pattern, true, true, sm).withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
-            .withColumn("repo_id", UDF(repo_id_code))
+    c.json(pattern, true, true, sm)
+    //.withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+      //      .withColumn("repo_id", UDF(repo_id_code))
             .withColumn("description", UDF("lambda x: x['payload']['description']"))
-            .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
-            .selectColumns({"type", "repo_id", "year", "description"})
+        //    .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+          //  .selectColumns({"type", "repo_id", "year", "description"})
+          .selectColumns(std::vector<std::string>({"type", "description"}))
             .show(5);
 }
 

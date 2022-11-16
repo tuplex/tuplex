@@ -197,8 +197,18 @@ namespace tuplex {
             std::map<std::vector<llvm::Type *>, llvm::Type *> _generatedIteratorTypes;
             // string: function name; BlockAddress*: BlockAddress* to be filled in an iterator struct
             std::map<std::string, llvm::BlockAddress *> _generatedIteratorUpdateIndexFunctions;
-            std::map<llvm::Type *, python::Type> _typeMapping;
+            std::map<llvm::Type *, std::set<python::Type>> _typeMapping; // reverser mapping (llvm -> type?)
             llvm::Type *createTupleStructType(const python::Type &type, const std::string &twine = "tuple");
+
+            inline void addType(llvm::Type* llvm_type, const python::Type& t) {
+                assert(llvm_type);
+
+                // check in type mapping
+                auto it = _typeMapping.find(llvm_type);
+                if(it == _typeMapping.end())
+                    _typeMapping[llvm_type] = std::set<python::Type>();
+                _typeMapping[llvm_type].insert(t);
+            }
 
             void init(const std::string &moduleName = "tuplex");
 
@@ -291,6 +301,21 @@ namespace tuplex {
 
             std::unique_ptr<llvm::Module> &getModule() { return _module; }
 
+            /*!
+             * get all python types that can be represented via the following LLVM type.
+             * @param llvm_type
+             * @return vector of possible python types.
+             */
+            inline std::vector<python::Type> lookupPythonTypes(llvm::Type* llvm_type) {
+                if(!llvm_type)
+                    return {};
+                auto it = _typeMapping.find(llvm_type);
+                if(it != _typeMapping.end()) {
+                    return std::vector<python::Type>(it->second.begin(), it->second.end());
+                } else {
+                    return {};
+                }
+            }
 
             /*!
              * helper to provide additional insight for func parameter errors...
@@ -753,7 +778,7 @@ namespace tuplex {
              * @param agg_type
              * @return string
              */
-            std::string printAggregateType(llvm::Type* agg_type);
+            std::string printAggregateType(llvm::Type* agg_type, bool print_python_type=false);
 
             /*!
              * retrieves this environments struct type/stub for the empty tuple type

@@ -718,7 +718,7 @@ namespace tuplex {
 
             // index here is already the optimized one, aka when selectionPushDown is used...
             auto elementType = _lastSchemaType.isTupleType() ? _lastSchemaType.parameters()[columnToMapIndex] : _lastSchemaType;
-            assert(elementType.withoutOptions().isPrimitiveType()); // only primitives yet supported!
+            assert(elementType.withoutOption().isPrimitiveType()); // only primitives yet supported!
             // convert to Flattened Tuple
 
             _lastRowInput = _lastRowResult;
@@ -1153,10 +1153,10 @@ namespace tuplex {
                     if (keyType.parameters().size() == 1) keyType = keyType.parameters().front();
                 }
             } else { // no keyCols given -> hash the whole row (e.g. unique)
-                if (!lastType.isTupleType() && lastType.withoutOptions() == python::Type::I64)
+                if (!lastType.isTupleType() && lastType.withoutOption() == python::Type::I64)
                     keyType = lastType; // whole row is just an i64 or Option[i64]
                 else if(lastType.isTupleType() && lastType.parameters().size() == 1 &&
-                        lastType.parameters()[0].withoutOptions() == python::Type::I64)
+                        lastType.parameters()[0].withoutOption() == python::Type::I64)
                     keyType = lastType.parameters()[0]; // whole row is (i64,) or (Option[i64],)
                 else
                     keyType = python::Type::STRING; // otherwise, we need to serialize the full row and use a string hashmap
@@ -1174,7 +1174,7 @@ namespace tuplex {
             // what is the key Type?
             auto needsNullBucket = keyType.isOptionType();
 
-            keyType = keyType.withoutOptions();
+            keyType = keyType.withoutOption();
 
             // what keyType do we have?
             // => makes sense to hash
@@ -1416,7 +1416,7 @@ namespace tuplex {
                     assert(is_null);
 
                     // check element type
-                    auto elementType = type.withoutOptions();
+                    auto elementType = type.withoutOption();
                     if(python::Type::BOOLEAN == elementType) {
                         // check that val is valid
                         if (!val)
@@ -1591,7 +1591,7 @@ namespace tuplex {
                 if(t.isOptionType())
                     foundOption = true;
 
-                t = t.withoutOptions(); // option is easy, just use null_value
+                t = t.withoutOption(); // option is easy, just use null_value
                 if(t == python::Type::BOOLEAN) {
                     // saved as true or false
                     space_needed += std::max(strlen("false"), strlen("true"));
@@ -1705,7 +1705,7 @@ namespace tuplex {
                 }
 
                 // simple types
-                if(t.withoutOptions() == python::Type::BOOLEAN) {
+                if(t.withoutOption() == python::Type::BOOLEAN) {
                     auto boolCond = builder.CreateICmpNE(env.boolConst(false), val);
                     // copy via if
                     BasicBlock* bbTrue = BasicBlock::Create(ctx,"cell(" + to_string(i)+")_true", func);
@@ -1726,19 +1726,19 @@ namespace tuplex {
                     phi->addIncoming(true_buf_ptr, bbTrue);
                     phi->addIncoming(false_buf_ptr, bbFalse);
                     buf_ptr = phi;
-                } else if(t.withoutOptions() == python::Type::I64) {
+                } else if(t.withoutOption() == python::Type::I64) {
                     // call fast int to str which auto moves the pointer
                     auto ft = i64toa_prototype(ctx, env.getModule().get());
                     // NOTE: must be <= 20
                     auto bytes_written = builder.CreateCall(ft, {val, buf_ptr});
                     buf_ptr = builder.CreateGEP(buf_ptr, bytes_written);
-                } else if(t.withoutOptions() == python::Type::F64) {
+                } else if(t.withoutOption() == python::Type::F64) {
                     // call ryu fast double to str function with fixed precision
                     auto ft = d2fixed_prototype(ctx, env.getModule().get());
                     // NOTE: must be <= 310 + max_float_precision
                     auto bytes_written = builder.CreateCall(ft, {val, env.i32Const(max_float_precision), buf_ptr});
                     buf_ptr = builder.CreateGEP(buf_ptr, bytes_written);
-                } else if(t.withoutOptions() == python::Type::STRING) {
+                } else if(t.withoutOption() == python::Type::STRING) {
                     // Note by directly copying over without the additional rtmalloc, higher speed could be achieved as well...
                     // use SSE42 instructions to quickly check if quoting is necessary
                     // copy over everything but need to quote first
@@ -1748,7 +1748,7 @@ namespace tuplex {
                     auto length = builder.CreateSub(size, env.i64Const(1));
                     builder.CreateMemCpy(buf_ptr, 0, val, 0, length);
                     buf_ptr = builder.CreateGEP(buf_ptr, length);
-                } else if(t.withoutOptions() == python::Type::NULLVALUE) {
+                } else if(t.withoutOption() == python::Type::NULLVALUE) {
                     if(!null_value.empty()) {
                         builder.CreateMemCpy(buf_ptr, 0, nullConst, 0, null_value.length());
                         buf_ptr = builder.CreateGEP(buf_ptr, env.i32Const(null_value.length()));
@@ -1993,7 +1993,7 @@ namespace tuplex {
                     builder.SetInsertPoint(bbNullCheckPassed);
                 }
 
-                t = t.withoutOptions();
+                t = t.withoutOption();
 
                 // values?
                 if(python::Type::STRING == t) {
@@ -2766,8 +2766,8 @@ namespace tuplex {
 
             // check what types are supported (as of now, only string!)
             // ==> create string key here else...
-            if (probeKeyType.withoutOptions() != python::Type::STRING && probeKeyType != python::Type::NULLVALUE &&
-                probeKeyType.withoutOptions() != python::Type::I64)
+            if (probeKeyType.withoutOption() != python::Type::STRING && probeKeyType != python::Type::NULLVALUE &&
+                    probeKeyType.withoutOption() != python::Type::I64)
                 throw std::runtime_error("only key types are string/i64/nullvalue");
 
             // create build-bucket type (i.e. whatever is in the bucket)
@@ -2782,7 +2782,7 @@ namespace tuplex {
 
             // call make key to transform possibly null result into nullptr...
             SerializableValue hash_map_key;
-            if (probeKeyType.withoutOptions() == python::Type::STRING || probeKeyType == python::Type::NULLVALUE) {
+            if (probeKeyType.withoutOption() == python::Type::STRING || probeKeyType == python::Type::NULLVALUE) {
                 hash_map_key = makeKey(builder, key, false);
                 if (hash_map_key.val)
                     assert(hash_map_key.val->getType() == _env->i8ptrType());
@@ -2820,7 +2820,7 @@ namespace tuplex {
                 assert(hash_map_key.is_null);
                 builder.CreateCondBr(hash_map_key.is_null, bbNext, bbNotNull);
                 builder.SetInsertPoint(bbNotNull);
-                if (probeKeyType.withoutOptions() == python::Type::STRING || probeKeyType == python::Type::NULLVALUE) {
+                if (probeKeyType.withoutOption() == python::Type::STRING || probeKeyType == python::Type::NULLVALUE) {
                     auto found_val = _env->callBytesHashmapGet(builder, hash_map, hash_map_key.val, hash_map_key.size,
                                                                bucket_value); // overwrite bucket_value...
                 } else {
@@ -2831,7 +2831,7 @@ namespace tuplex {
                 builder.SetInsertPoint(bbNext);
             } else if(probeKeyType != python::Type::NULLVALUE) {
                 // probe step
-                if (probeKeyType.withoutOptions() == python::Type::STRING || probeKeyType == python::Type::NULLVALUE) {
+                if (probeKeyType.withoutOption() == python::Type::STRING || probeKeyType == python::Type::NULLVALUE) {
                     // i8* hmap, i8* key, i64 key_size, i8** bucket
                     auto found_val = _env->callBytesHashmapGet(builder, hash_map, hash_map_key.val, hash_map_key.size,
                                                                bucket_value); // overwrite bucket_value...

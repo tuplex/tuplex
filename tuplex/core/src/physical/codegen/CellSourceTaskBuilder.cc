@@ -223,7 +223,7 @@ namespace tuplex {
                     }
 
                     t = simplifyConstantType(t);
-                    t = t.withoutOptions();
+                    t = t.withoutOption();
 
                     // constant?
                     if(t.isConstantValued()) {

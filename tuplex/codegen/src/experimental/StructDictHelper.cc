@@ -417,7 +417,9 @@ namespace tuplex {
         }
 
         // --- load functions ---
-        llvm::Value* struct_dict_load_present(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const python::Type& dict_type, const access_path_t& path) {
+        llvm::Value* struct_dict_load_present(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
+                                              llvm::Value* ptr, const python::Type& dict_type,
+                                              const access_path_t& path) {
 
 
 
@@ -441,10 +443,21 @@ namespace tuplex {
                 auto bitmapPos = present_idx;
 
                 if(ptr->getType()->isStructTy()) {
+
+                    // make sure types are compatible
+                    assert(ptr->getType() == env.getOrCreateStructuredDictType(dict_type));
+
                     auto bitmap = CreateStructLoad(builder, ptr, p_idx);
+                    assert(bitmap->getType()->isArrayTy());
+                    assert(bitmapPos < bitmap->getType()->getArrayNumElements());
                     return builder.CreateExtractValue(bitmap, std::vector<unsigned>(1, bitmapPos));
                 } else {
                     assert(ptr->getType()->isPointerTy() && ptr->getType()->getPointerElementType()->isStructTy());
+
+                    auto llvm_dict_type = ptr->getType()->getPointerElementType();
+
+                    assert(llvm_dict_type == env.getOrCreateStructuredDictType(dict_type));
+
                      auto structBitmapIdx = CreateStructGEP(builder, ptr, (size_t)p_idx); // bitmap comes first!
                      auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
                      return builder.CreateLoad(bitmapIdx);

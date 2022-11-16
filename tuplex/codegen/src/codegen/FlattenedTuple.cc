@@ -1106,7 +1106,7 @@ namespace tuplex {
             // check that assigned val matches primitive type
             auto types = getFieldTypes();
 
-            auto type = deoptimizedType(types[i].withoutOption);
+            auto type = deoptimizedType(types[i].withoutOption());
 
             // null val & size for nulltype
             if(type == python::Type::NULLVALUE) {

@@ -430,7 +430,7 @@ namespace tuplex {
             try {
                 // single-threaded
                 for(unsigned i = 0; i < input_parts.size(); ++i) {
-                   auto fp = input_parts[i];
+                   const auto& fp = input_parts[i];
                     size_t inputRowCount = 0;
                     processCodes[0] = processSource(0, tstage->fileInputOperatorID(), fp, tstage, syms, &inputRowCount);
                     logger().info("processed file " + std::to_string(i + 1) + "/" + std::to_string(input_parts.size()));
@@ -1339,7 +1339,8 @@ namespace tuplex {
                 // Note: ORC reader does not support parts yet... I.e., function needs to read FULL file!
 
                 // read assigned file...
-                reader->read(inputURI);
+                if(reader)
+                    reader->read(inputURI);
 
                 // fetch row count
                 if(inputRowCount)

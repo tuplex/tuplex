@@ -1062,6 +1062,7 @@ namespace tuplex {
         // for JSON files, it could happen that column names change!
         // -> need to account for that, i.e. put into rewrite map
         auto cols_to_serialize_before_resample = columnsToSerialize();
+        auto input_cols_before_resample = inputColumns();
         auto cols_before_resample = columns();
 
         if(resample && !_fileURIs.empty()) {
@@ -1103,12 +1104,14 @@ namespace tuplex {
 
                 // need to update rewriteMap (projection)
 
-                // which of the new columns are found in the old type?
-                std::vector<bool> column_in_before_found(cols_before_resample.size(), false);
-                for(auto name : inputColumns()) {
+                // which of the new columns are found in the old type AFTER pushdown? -> save the indices.
+                std::vector<int> indices_of_columns_before_resample;
+                for(unsigned i = 0; i < inputColumns().size(); ++i) {
+                    auto name = inputColumns()[i];
                     auto idx = indexInVector(name, cols_before_resample);
-                    if(idx >= 0)
-                        column_in_before_found[idx] = true;
+                    if(idx >= 0) {
+                        indices_of_columns_before_resample.push_back(idx);
+                    }
                 }
 
                 // now create (unprojected) type based on new columns
@@ -1120,37 +1123,84 @@ namespace tuplex {
 
                 std::unordered_map<int, int> oldIndexToNewIndex;
 
-                // all the old rows that are not present anymore are automatically exceptions (IndexError?)
-                for(unsigned i = 0; i < cols_before_resample.size(); ++i) {
-                    if (!column_in_before_found[i]) {
+                std::vector<int> indices_to_keep;
 
+                // all the old rows that are not present anymore are automatically exceptions (IndexError?)
+                size_t num_columns_not_present_anymore = 0;
+                for(unsigned i = 0; i < cols_before_resample.size(); ++i) {
+
+                    // is a column of name present in current columns?
+                    auto name = cols_before_resample[i];
+                    auto idx = indexInVector(name, new_unprojected_col_names);
+
+                    if(idx >= 0) {
+                        // mark as being serialized!
+                        indices_to_keep.push_back(idx);
+                    } else {
+                        // old column not found in new columns -> add and mark as exception.
                         // update
-                        oldIndexToNewIndex[i] = new_unprojected_col_types_normal.size(); // current size...
+                        auto last_idx = new_unprojected_col_types_normal.size();
+                        oldIndexToNewIndex[i] = last_idx; // current size...
 
                         new_unprojected_col_names.push_back(cols_before_resample[i]);
                         new_unprojected_col_types_normal.push_back(exception_type);
                         new_unprojected_col_types_general.push_back(exception_type);
-                    } else {
-                        // get the index
-                        oldIndexToNewIndex[i] = indexInVector(cols_before_resample[i], inputColumns());
+
+                        // mark this row as being serialized? yes.
+                        indices_to_keep.push_back(last_idx);
+                        num_columns_not_present_anymore++;
+                    }
+
+//                    if (!indices_of_columns_before_resample[i]) {
+//
+//                        // update
+//                        oldIndexToNewIndex[i] = new_unprojected_col_types_normal.size(); // current size...
+//
+//                        new_unprojected_col_names.push_back(cols_before_resample[i]);
+//                        new_unprojected_col_types_normal.push_back(exception_type);
+//                        new_unprojected_col_types_general.push_back(exception_type);
+//                    } else {
+//                        // get the index
+//                        oldIndexToNewIndex[i] = indexInVector(cols_before_resample[i], inputColumns());
+//                    }
+                }
+
+                // mark any new columns as being serialized (automatically)
+                size_t num_new_columns = 0;
+                for(unsigned i = 0; i < inputColumns().size(); ++i) {
+                    auto new_name = inputColumns()[i];
+                    // found in old input columns? -> ignore. --> case already handled above
+                    // if not found! mark!
+                    auto idx = indexInVector(new_name, input_cols_before_resample);
+                    if(idx < 0) {
+                        indices_to_keep.push_back(i);
+                        num_new_columns++;
                     }
                 }
 
+                logger.debug("Discovered " + pluralize(num_new_columns, "new column") + " during resampling, " + pluralize(num_columns_not_present_anymore, "column") + " not present in this file anymore.");
+
                 // unprojected is now ok. -> need to update projection map accordingly.
                 auto num_columns = new_unprojected_col_types_general.size();
-                _columnsToSerialize = std::vector<bool>(num_columns, true); // <-- all per default.
+                logger.debug("Parsing in total " + pluralize(num_columns, "input column") + " of which " + pluralize(indices_to_keep.size(), "column") + " are serialized.");
+                _columnsToSerialize = std::vector<bool>(num_columns, false); // <-- all per default false, then add indices to keep!
+                assert(!indices_to_keep.empty()); // dummy check?
 
-                // go through old indices and fill them in!
-                for(unsigned i = 0; i < cols_to_serialize_before_resample.size(); ++i) {
-                    // update accordingly.
-                    _columnsToSerialize[oldIndexToNewIndex[i]] = cols_to_serialize_before_resample[i];
+                // go through indices
+                for(auto idx : indices_to_keep) {
+                    _columnsToSerialize[idx] = true;
                 }
+
 
                 // restrict to actual found count.
                 auto num_found = inputColumns().size();
                 _columnsToSerialize = limit_vector(_columnsToSerialize, num_found);
                 new_unprojected_col_types_general = limit_vector(new_unprojected_col_types_general, num_found);
                 new_unprojected_col_types_normal = limit_vector(new_unprojected_col_types_normal, num_found);
+
+                // list which columns are now output
+                auto new_projected_columns = columns();
+
 
                 // // OR update also input columns
                 // this->_columnNames = new_unprojected_col_names;

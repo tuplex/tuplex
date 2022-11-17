@@ -201,7 +201,8 @@ namespace tuplex {
 
         // remove S3 File System
         VirtualFileSystem::removeS3FileSystem();
-        Aws::ShutdownAPI(aws_options);
+        if(isAWSInitialized)
+            Aws::ShutdownAPI(aws_options);
         isAWSInitialized = false;
     }
 

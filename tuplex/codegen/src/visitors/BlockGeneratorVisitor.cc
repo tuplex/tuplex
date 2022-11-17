@@ -3859,7 +3859,13 @@ namespace tuplex {
                 }
 
                 // abort early (e.g., key error)?
-                throw std::runtime_error("exception type not yet supported in NSubscription");
+                auto ec_code = pythonClassToExceptionCode(sub->getInferredType().desc());
+                if(ExceptionCode::UNKNOWN == ec_code)
+                    fatal_error("could not lookup exception code for " + sub->getInferredType().desc());
+                _lfb->exitWithException(ec_code);
+                return;
+
+                // throw std::runtime_error("exception type " + sub->getInferredType().desc() + " not yet supported in NSubscription");
                 // should be indexerror or keyerror.
             }
 

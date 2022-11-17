@@ -105,7 +105,10 @@ namespace tuplex {
                     // encode here serialization format as part of exception code
 #warning "refactor this more nicely!"
                     assert(fmt != ExceptionSerializationFormat::UNKNOWN);
-                    auto encodedECAndFormat = _env->pack32iTo64i(builder, _env->i32Const(static_cast<int32_t>(fmt)), builder.CreateTrunc(exceptionCode, _env->i32Type()));
+                    //auto encodedECAndFormat = _env->pack32iTo64i(builder, _env->i32Const(static_cast<int32_t>(fmt)), builder.CreateTrunc(exceptionCode, _env->i32Type()));
+
+                    auto encodedECAndFormat = exceptionCode;
+
                     builder.CreateCall(eh_func, {userData, encodedECAndFormat, exceptionOperatorID, rowNumber, badDataPtr, badDataLength});
                 } else {
                     logger().debug("Calling directly exception handler without being defined. Internal bug?");

@@ -115,9 +115,14 @@ namespace tuplex {
                     // --> when using hyperspecialiation, should always use that option.
                     logger.debug("UDF exceptions are emitted in general case format " + _inputRowTypeGeneralCase.desc());
 
+
+                    bool serialize_exception_in_tuplex_format = false;
+                    if(!isNormalCaseAndGeneralCaseCompatible()) // check: when cases are not compatible, always false...
+                        serialize_exception_in_tuplex_format = false;
+
                     // always emit general-case exceptions
                     // if normal <-> general are incompatible, serialize as NormalCaseViolationError that requires interpreter!
-                    if(isNormalCaseAndGeneralCaseCompatible()) {
+                    if(serialize_exception_in_tuplex_format) {
                         // add here exception block for pipeline errors, serialize tuple etc...
                         auto serialized_row = serializedExceptionRow(builder, ft, exception_serialization_format());
 

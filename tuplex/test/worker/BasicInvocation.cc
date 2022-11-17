@@ -1172,13 +1172,14 @@ TEST(BasicInvocation, FlightsHyper) {
     int num_threads = 1;
     auto spillURI = std::string("spill_folder");
     bool use_hyper = false;
+    use_hyper = true;
     auto tstage = create_flights_pipeline(test_path, test_output_path, use_hyper);
 
     // transform to message
     // create message only for first file!
 //    auto input_uri = URI(cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_08.csv");
     auto input_uri = URI(cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv");
-    input_uri = URI(flights_root + "flights_on_time_performance_2003_08.csv");
+//    input_uri = URI(flights_root + "flights_on_time_performance_2003_08.csv");
 //    input_uri = URI(flights_root + "flights_on_time_performance_2003_01.csv");
     auto output_uri = URI(test_output_path + (use_hyper ? string("output_hyper.csv") : string("output_general.csv")));
 

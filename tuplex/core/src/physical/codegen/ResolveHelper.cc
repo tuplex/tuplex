@@ -2,7 +2,8 @@
 // Created by leonhard on 10/12/22.
 //
 #include <physical/codegen/ResolveHelper.h>
-#include "physical/codegen/JsonSourceTaskBuilder.h"
+#include <physical/codegen/JsonSourceTaskBuilder.h>
+#include <physical/codegen/CellSourceTaskBuilder.h>
 
 namespace tuplex {
     namespace codegen {
@@ -25,6 +26,58 @@ namespace tuplex {
             builder.CreateRet(ecCode);
 
             builder.SetInsertPoint(bIsNot);
+        }
+
+        FlattenedTuple decodeCSVCells(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
+                                      const std::shared_ptr<FileInputOperator>& input_op,
+                                      const python::Type& pip_input_row_type,
+                                      const ExceptionCode& return_code_on_parse_error,
+                                      llvm::Value* buf,
+                                      llvm::Value* buf_size) {
+
+            using namespace llvm;
+            assert(input_op);
+            auto& logger = Logger::instance().logger("codegen");
+            assert(pip_input_row_type.isTupleType());
+
+            FlattenedTuple ft(&env);
+            ft.init(pip_input_row_type);
+
+            auto num_cells = builder.CreateLoad(builder.CreatePointerCast(buf, env.i64ptrType()));
+            int64_t num_desired_cells = pip_input_row_type.parameters().size();
+
+            // quick check on whether number of cells matches.
+            auto cell_count_match = builder.CreateICmpEQ(num_cells, env.i64Const(num_desired_cells));
+            BasicBlock* bCellCountOK = BasicBlock::Create(env.getContext(), "cell_count_ok", builder.GetInsertBlock()->getParent());
+            BasicBlock* bFailure =  BasicBlock::Create(env.getContext(), "row_mismatch", builder.GetInsertBlock()->getParent());
+
+            builder.CreateCondBr(cell_count_match, bCellCountOK, bFailure);
+            builder.SetInsertPoint(bFailure);
+            builder.CreateRet(env.i64Const(ecToI64(return_code_on_parse_error)));
+
+            // continue, parse cells according to schema!
+            builder.SetInsertPoint(bCellCountOK);
+
+            Value* ptr = builder.CreateGEP(buf, env.i64Const(sizeof(int64_t)));
+            // need to parse all cells
+            for(unsigned i = 0; i < num_desired_cells; ++i) {
+                // decode cell & size
+                auto info = builder.CreateLoad(builder.CreatePointerCast(ptr, env.i64ptrType()));
+                llvm::Value* offset=nullptr, *cell_size = nullptr;
+                std::tie(offset, cell_size) = unpack_offset_and_size(builder, info);
+                auto cell_str = builder.CreateGEP(ptr, offset);
+
+                // parse cell and assign.
+                auto cell = parse_string_cell(env, builder, bFailure, pip_input_row_type.parameters()[i], input_op->null_values(), cell_str, cell_size);
+
+                // assign to tuple
+                ft.set(builder, {(int)i}, cell.val, cell.size, cell.is_null);
+
+                ptr = builder.CreateGEP(ptr, env.i64Const(sizeof(int64_t)));
+            }
+
+            env.freeAll(builder);
+            return ft;
         }
 
 
@@ -106,8 +159,11 @@ namespace tuplex {
                     builder.SetInsertPoint(bParseOK);
                     ft = FlattenedTuple::fromLLVMStructVal(&env, builder, tuple_var, pip_input_row_type);
                     return ft;
-//                    throw std::runtime_error("need to implement JSON parse here.");
-
+                    break;
+                }
+                case FileFormat::OUTFMT_CSV: {
+                    // csv is broken up into multiple cells that need to be matched (incl. check on size!)
+                    return decodeCSVCells(env, builder, input_op, pip_input_row_type, return_code_on_parse_error, buf, buf_size);
                     break;
                 }
                 default: {

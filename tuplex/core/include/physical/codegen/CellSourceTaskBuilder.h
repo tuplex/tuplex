@@ -141,6 +141,11 @@ namespace tuplex {
 
             llvm::Function *build(bool terminateEarlyOnLimitCode) override;
         };
+
+
+        extern SerializableValue parse_string_cell(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::BasicBlock* bParseError,
+                                            const python::Type& cell_type, const std::vector<std::string>& null_values,
+                                            llvm::Value* cell_str, llvm::Value* cell_size);
     }
 }
 

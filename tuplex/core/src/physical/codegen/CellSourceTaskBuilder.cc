@@ -187,6 +187,92 @@ namespace tuplex {
             return func;
         }
 
+        llvm::Value* null_check(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const std::vector<std::string>& null_values,
+                                llvm::Value* cell_str, llvm::Value* cell_size) {
+            if(null_values.empty())
+                return env.i1Const(false);
+
+            // TODO: could do short cut compare with sizes...
+            return env.compareToNullValues(builder, cell_str, null_values, true);
+        }
+
+        SerializableValue parse_string_cell(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::BasicBlock* bParseError,
+                                            const python::Type& cell_type, const std::vector<std::string>& null_values,
+                                            llvm::Value* cell_str, llvm::Value* cell_size) {
+            using namespace llvm;
+
+            assert(bParseError);
+            assert(cell_str && cell_str->getType() == env.i8ptrType());
+            assert(cell_size && cell_size->getType() == env.i64Type());
+
+            Value* is_null = env.i1Const(false);
+            Value *value = nullptr;
+            Value *size = nullptr;
+            Value* is_null_var = nullptr;
+            Value* value_var = nullptr;
+            Value* size_var = nullptr;
+            SerializableValue ret;
+            BasicBlock* bParse = nullptr;
+            BasicBlock* bParseDone = nullptr;
+            python::Type primitive_type = cell_type.withoutOption();
+            if(cell_type.isOptionType()) {
+                bParse = BasicBlock::Create(env.getContext(), "parse_cell", builder.GetInsertBlock()->getParent());
+                bParseDone = BasicBlock::Create(env.getContext(), "parse_cell_done", builder.GetInsertBlock()->getParent());
+
+                is_null_var = env.CreateFirstBlockAlloca(builder, env.i1Type());
+                value_var = env.CreateFirstBlockAlloca(builder, env.pythonToLLVMType(primitive_type));
+                size_var = env.CreateFirstBlockAlloca(builder, env.i64Type());
+
+                // perform null-check
+                is_null = null_check(env, builder, null_values, cell_str, cell_size);
+                builder.CreateStore(is_null, is_null_var);
+                builder.CreateCondBr(is_null, bParseDone, bParse);
+                builder.SetInsertPoint(bParse);
+            }
+
+            // parse (incl. check)
+            if(python::Type::STRING == primitive_type) {
+                // fill in
+                value = cell_str;
+                size = cell_size;
+            } else if(python::Type::BOOLEAN == primitive_type) {
+                // conversion code here
+                auto val = parseBoolean(env, builder, bParseError, cell_str, cell_size, is_null);
+                ret = SerializableValue(val.val, val.size, is_null);
+            } else if(python::Type::I64 == primitive_type) {
+                // conversion code here
+                auto val = parseI64(env, builder, bParseError, cell_str, cell_size, is_null);
+                ret = SerializableValue(val.val, val.size, is_null);
+            } else if(python::Type::F64 == primitive_type) {
+                // conversion code here
+                auto val = parseF64(env, builder, bParseError, cell_str, cell_size, is_null);
+                ret = SerializableValue(val.val, val.size, is_null);
+            } else if(python::Type::NULLVALUE == primitive_type) {
+                is_null = null_check(env, builder, null_values, cell_str, cell_size);
+            } else {
+                throw std::runtime_error("unsupported type " + primitive_type.desc() + " encountered in parse_cell.");
+            }
+
+            if(cell_type.isOptionType()) {
+                // store in vars
+                if(value)
+                    builder.CreateStore(value, value_var);
+                if(size)
+                    builder.CreateStore(size, size_var);
+
+                builder.CreateBr(bParseDone);
+                builder.SetInsertPoint(bParseDone);
+                is_null = builder.CreateLoad(is_null_var);
+                if(value)
+                    value = builder.CreateLoad(value_var);
+                if(size)
+                    size = builder.CreateLoad(size_var);
+                ret = SerializableValue(value, size, is_null);
+            }
+
+            return ret;
+        }
+
         SerializableValue CellSourceTaskBuilder::cachedParse(llvm::IRBuilder<>& builder, const python::Type& type, size_t colNo, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
             using namespace llvm;
 

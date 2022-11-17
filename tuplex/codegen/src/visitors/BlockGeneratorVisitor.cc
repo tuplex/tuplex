@@ -1812,7 +1812,7 @@ namespace tuplex {
             if (_lfb->getLastBlock()) {
                 delete _lfb;
                 _lfb = nullptr;
-                error("missing return statement");
+                fatal_error("missing return statement -> maybe return with exception?");
             }
 
             delete _lfb;
@@ -4377,6 +4377,10 @@ namespace tuplex {
                                                                      bool autoUpcast) {
             using namespace llvm;
 
+
+            // check
+            assert(_lfb->getLastBlock() && builder.GetInsertBlock() && _lfb->getLastBlock() == builder.GetInsertBlock());
+
             // assert(canAchieveAtLeastNullCompatibility(retType, desiredRetType));
             if(retType == desiredRetType) {
                 _lfb->addReturn(retVal);
@@ -4441,6 +4445,7 @@ namespace tuplex {
             auto size = target_tuple.getSize(builder);
             addInstruction(ret, size);
 
+            _lfb->setLastBlock(builder.GetInsertBlock()); // now return...
             auto retValue = SerializableValue(ret, size);
             _lfb->addReturn(retValue);
         }
@@ -4506,7 +4511,7 @@ namespace tuplex {
                                                      expression_type,
                                                      funcReturnType,
                                                      _policy.allowNumericTypeUnification);
-                    _lfb->setLastBlock(builder.GetInsertBlock());
+                    // _lfb->setLastBlock(builder.GetInsertBlock());
                 } else {
                     // always a normal-case violation.
                     // @TODO: if normal-case always yields exception -> do not process!

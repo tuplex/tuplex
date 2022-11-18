@@ -75,6 +75,7 @@ namespace tuplex {
         bool PURE_PYTHON_MODE() const { return stringToBool(_store.at("tuplex.useInterpreterOnly")); } // if set to true, then everything will be processed using the generated py-code only!
 
         bool USE_EXPERIMENTAL_HYPERSPECIALIZATION() const { return stringToBool(_store.at("tuplex.experimental.hyperspecialization")); }
+        bool USE_EXPERIMENTAL_OPPORTUNE_COMPILATION() const { return stringToBool(_store.at("tuplex.experimental.opportuneCompilation")); }
 
         std::string AWS_LAMBDA_INVOCATION_STRATEGY() const { return _store.at("tuplex.aws.lambdaInvocationStrategy"); }
 

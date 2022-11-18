@@ -673,9 +673,18 @@ namespace tuplex {
                     if(!_normalToGeneralMapping.empty() && numGeneralCaseCells != numNormalCaseColsToSerialize) {
                         auto gen_idx = _normalToGeneralMapping.at(normal_pos);
                         assert(gen_idx < numGeneralCaseCells);
-                        assert(_generalCaseColumnsToSerialize[gen_idx]);
-                        gen_cells[gen_idx] = cell_strs[normal_pos];
-                        gen_cell_sizes[gen_idx] = cell_sizes[normal_pos];
+
+                        // this assert is violated by e.g. a constant property, parsed as check! handle accordingly...
+
+                        // if general case cell is not found in columns then it must be a check
+                        if(_generalCaseColumnsToSerialize[gen_idx]) {
+                            gen_cells[gen_idx] = cell_strs[normal_pos];
+                            gen_cell_sizes[gen_idx] = cell_sizes[normal_pos];
+                        } else {
+                            // ... => should be constant? // or ignored?
+
+                        }
+
                     } else {
                         gen_cells[general_pos] = cell_strs[normal_pos];
                         gen_cell_sizes[general_pos] = cell_sizes[normal_pos];

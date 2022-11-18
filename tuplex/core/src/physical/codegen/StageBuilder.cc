@@ -948,6 +948,27 @@ namespace tuplex {
                             logger.debug("reader produces normal case rows of type: " + output_nc_type.desc() + " (hash=" + std::to_string(output_nc_type.hash()) + ")");
                             logger.debug("pipeline expects normal case rows of type: " + pip->inputRowType().desc() + " (hash=" + std::to_string(pip->inputRowType().hash()) + ")");
 
+                            // debug print which columns normal-case and general case read
+#ifndef NDEBUG
+                            {
+                                std::stringstream ss;
+                                auto input_columns = pathContext.inputNode->inputColumns();
+                                std::vector<std::string> gc_names;
+                                std::vector<std::string> nc_names;
+                                for(unsigned i = 0; i < input_columns.size(); ++i) {
+                                    if(generalCaseColumnsToRead[i])
+                                        gc_names.push_back(input_columns[i]);
+                                    if(pathContext.columnsToRead[i])
+                                        nc_names.push_back(input_columns[i]);
+                                }
+
+                                ss<<"general case reads: "<<gc_names<<std::endl;
+                                ss<<"normal  case reads: "<<nc_names<<std::endl;
+                                logger.debug(ss.str());
+                            }
+#endif
+
+
                             tb = make_shared<codegen::CellSourceTaskBuilder>(env,
                                                                              pathContext.readSchema.getRowType(),
                                                                              pathContext.columnsToRead,

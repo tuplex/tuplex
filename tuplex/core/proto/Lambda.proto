@@ -103,6 +103,8 @@ message WorkerSettings {
     optional bool useInterpreterOnly = 9;
     optional bool useCompiledGeneralCase = 10;
     optional float normalCaseThreshold = 11;
+
+    map<string, string> other = 12; // holds additional settings (context options)
 }
 
 message WarmupMessage {

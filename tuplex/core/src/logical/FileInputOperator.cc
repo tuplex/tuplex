@@ -435,9 +435,8 @@ namespace tuplex {
             auto key = std::make_tuple(uri, file_mode);
 
             {
-                std::lock_guard<std::mutex> lock(_sampleCacheMutex);
-                // place into cache
-                _sampleCache[key] = loadSample(_samplingSize, uri, size, mode, true);
+                // place into cache (using true will automatically do this...)
+                loadSample(_samplingSize, uri, size, mode, true);
             }
         }
 

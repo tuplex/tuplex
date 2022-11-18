@@ -63,13 +63,16 @@ namespace tuplex {
                                               size_t buf_size,
                                               std::vector<std::vector<std::string>>* outColumnNames=nullptr,
                                               bool unwrap_rows=true,
-                                              bool interpret_heterogenous_lists_as_tuples=true);
+                                              bool interpret_heterogenous_lists_as_tuples=true,
+                                              size_t max_rows= std::numeric_limits<size_t>::max());
 
     inline std::vector<Row> parseRowsFromJSON(const std::string& s,
                                               std::vector<std::vector<std::string>>* outColumnNames=nullptr,
                                               bool unwrap_rows=true,
-                                              bool interpret_heterogenous_lists_as_tuples=true) {
-        return parseRowsFromJSON(s.c_str(), s.size() + 1, outColumnNames, unwrap_rows, interpret_heterogenous_lists_as_tuples);
+                                              bool interpret_heterogenous_lists_as_tuples=true,
+                                              size_t max_rows= std::numeric_limits<size_t>::max()) {
+        return parseRowsFromJSON(s.c_str(), s.size() + 1, outColumnNames, unwrap_rows,
+                                 interpret_heterogenous_lists_as_tuples, max_rows);
     }
 
     /*!

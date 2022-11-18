@@ -71,8 +71,8 @@ class Context:
             webui.mongodb.port (int): port for MongoDB instance
             webui.mongodb.path (str): local path where to store files for MongoDB instance to be started.
             webui.exceptionDisplayLimit (int): How many exceptions to display in UI max, must be at least 1.
-            csv.maxDetectionRows (int): maximum number of rows to determine types for CSV files.
-            csv.maxDetectionMemory (str) or (int): maximum number of bytes to use when performing type detection, separator inference, etc. over CSV files.
+            sample.maxDetectionRows (int): maximum number of rows to determine types for CSV files.
+            sample.maxDetectionMemory (str) or (int): maximum number of bytes to use when performing type detection, separator inference, etc. over CSV files.
             csv.separators (list): list of single character strings that are viable separators when autodetecting. E.g. ``[','. ';', '\t']``.
             csv.quotechar (str): single character denoting the character that is used as quote char according to RFC-4180 standard. E.g.  ``'"'``
             csv.comments (str): list of single character string which indicate start of a comment line, e.g. ``['#', '~']``

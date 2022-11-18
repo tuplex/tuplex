@@ -835,7 +835,7 @@ namespace tuplex {
             auto files = tstage->input_files();
             auto uri_str = std::get<0>(files.front());
             auto uri_size = std::get<1>(files.front());
-            hyperspecialize(tstage, uri_str, uri_size, _options.NORMALCASE_THRESHOLD());
+            hyperspecialize(tstage, uri_str, uri_size, _options.NORMALCASE_THRESHOLD(), _options.SAMPLE_MAX_DETECTION_ROWS());
         }
 
 

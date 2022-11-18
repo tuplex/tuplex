@@ -1495,13 +1495,35 @@ namespace tuplex {
             ws.useCompiledGeneralPath = req.settings().usecompiledgeneralcase();
         if(req.settings().has_normalcasethreshold())
             ws.normalCaseThreshold = req.settings().normalcasethreshold();
+
+        // set a couple settings from other field (map)
+        // cf. AWSLambdaBackend::config_worker
+        auto it = req.settings().other().find("tuplex.experimental.opportuneCompilation");
+        if(it != req.settings().other().end()) {
+            ws.opportuneGeneralPathCompilation = stringToBool(it->second);
+        } else {
+            ws.opportuneGeneralPathCompilation = false;
+        }
+        it = req.settings().other().find("tuplex.useLLVMOptimizer");
+        if(it != req.settings().other().end()) {
+            ws.useOptimizer = stringToBool(it->second);
+        } else {
+            ws.useOptimizer = true;
+        }
+        it = req.settings().other().find("tuplex.sample.maxDetectionRows");
+        if(it != req.settings().other().end()) {
+            ws.sampleLimitCount = std::stoull(it->second);
+        } else {
+            ws.sampleLimitCount = std::numeric_limits<size_t>::max();
+        }
+
         ws.numThreads = std::max(1ul, ws.numThreads);
         return ws;
     }
 
     std::shared_ptr<TransformStage::JITSymbols> WorkerApp::compileTransformStage(TransformStage &stage, bool use_llvm_optimizer) {
 
-        use_llvm_optimizer = false; // @TODO: make this a setting...
+        use_llvm_optimizer = _settings.useOptimizer;
 
         // 1. check fast code path
         auto bitCode = stage.fastPathBitCode() + stage.slowPathBitCode();

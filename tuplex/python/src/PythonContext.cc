@@ -1587,8 +1587,8 @@ namespace tuplex {
                        python::PyString_FromString("tuplex.executorCount"),
                        PyLong_FromLongLong(co.EXECUTOR_COUNT()));
         PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.csv.maxDetectionRows"),
-                       PyLong_FromLongLong(co.CSV_MAX_DETECTION_ROWS()));
+                       python::PyString_FromString("tuplex.sample.maxDetectionRows"),
+                       PyLong_FromLongLong(co.SAMPLE_MAX_DETECTION_ROWS()));
         PyDict_SetItem(dictObject,
                        python::PyString_FromString("tuplex.webui.port"),
                        PyLong_FromLongLong(co.WEBUI_PORT()));

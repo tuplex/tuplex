@@ -986,7 +986,8 @@ namespace tuplex {
 
     // HACK: magical experiment function!!!
     // HACK!
-    void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size, double nc_threshold) {
+    void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size,
+                         double nc_threshold, size_t sample_limit) {
         auto& logger = Logger::instance().logger("hyper specializer");
         // run hyperspecialization using planner, yay!
         assert(stage);
@@ -1041,7 +1042,7 @@ namespace tuplex {
         bool enable_cf = false;
         if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
             auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode); assert(fop);
-            fop->setInputFiles({uri}, {file_size}, true);
+            fop->setInputFiles({uri}, {file_size}, true, sample_limit);
 
             if(fop->fileFormat() != FileFormat::OUTFMT_JSON) {
                 enable_cf = true;

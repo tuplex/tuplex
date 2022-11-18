@@ -106,10 +106,10 @@ namespace tuplex {
         std::vector<char> CSV_COMMENTS() const; //! characters used to identify comments in csv file
         std::vector<char> CSV_SEPARATORS() const; //! potential CSV separators to scan
         char CSV_QUOTECHAR() const; //! quote char used for csv
-        size_t CSV_MAX_DETECTION_MEMORY() const; //! maximum bytes to use for CSV schema inference
-        size_t CSV_MAX_DETECTION_ROWS() const; //! maximum number of rows to use for CSV schema inference
+        size_t SAMPLE_MAX_DETECTION_MEMORY() const; //! maximum bytes to use for schema inference for each file source (for each sampling request)
+        size_t SAMPLE_MAX_DETECTION_ROWS() const; //! maximum number of rows to use for schema inference for each file source
 
-        size_t SAMPLE_SIZE() const { return CSV_MAX_DETECTION_MEMORY(); } // @TODO, change this setting name.
+        size_t SAMPLE_SIZE() const { return SAMPLE_MAX_DETECTION_MEMORY(); } // @TODO, change this setting name.
         double NORMALCASE_THRESHOLD() const; //! threshold for normalcase, between 0.0 and 1.0
         double OPTIONAL_THRESHOLD() const; //! threshold for detecting an optional field, between 0.0 and 1.0
 

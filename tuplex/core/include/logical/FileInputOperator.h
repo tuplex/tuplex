@@ -200,12 +200,13 @@ namespace tuplex {
         std::vector<size_t> translateOutputToInputIndices(const std::vector<size_t>& output_indices);
 
         // sampling functions
-        std::vector<Row> sample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames=nullptr);
-        std::vector<Row> multithreadedSample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames);
+        std::vector<Row> sample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames=nullptr, size_t sample_limit=std::numeric_limits<size_t>::max());
+        std::vector<Row> multithreadedSample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames, size_t sample_limit);
         std::vector<Row> sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         std::vector<Row> sampleTextFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         std::vector<Row> sampleORCFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
-        std::vector<Row> sampleJsonFile(const URI& uri, size_t uri_size, const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames);
+        std::vector<Row> sampleJsonFile(const URI& uri, size_t uri_size, const SamplingMode& mode,
+                                        std::vector<std::vector<std::string>>* outNames, size_t sample_limit);
 
         /*!
          * samples a file according to internally stored file mode and a per-file sampling mode.
@@ -215,7 +216,9 @@ namespace tuplex {
          * @param outNames an optional output field for column names (as for now only relevant for JSON)
          * @return row sample.
          */
-        inline std::vector<Row> sampleFile(const URI& uri, size_t uri_size, const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames) {
+        inline std::vector<Row> sampleFile(const URI& uri, size_t uri_size,
+                                           const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames,
+                                           size_t sample_limit) {
             auto& logger = Logger::instance().logger("logical");
             if(!(mode & SamplingMode::FIRST_ROWS) && !(mode & SamplingMode::LAST_ROWS) && !(mode & SamplingMode::RANDOM_ROWS)) {
                 logger.debug("no file sampling mode (first rows/last rows/random rows) specified. skip.");
@@ -233,7 +236,7 @@ namespace tuplex {
                     return sampleORCFile(uri, uri_size, mode);
                 }
                 case FileFormat::OUTFMT_JSON: {
-                    return sampleJsonFile(uri, uri_size, mode, outNames);
+                    return sampleJsonFile(uri, uri_size, mode, outNames, sample_limit);
                 }
                 default:
                     throw std::runtime_error("unsupported sampling of file format "+ std::to_string(static_cast<int>(this->_fmt)));
@@ -532,7 +535,8 @@ namespace tuplex {
         }
 
         // HACK !!!
-        void setInputFiles(const std::vector<URI>& uris, const std::vector<size_t>& uri_sizes, bool resample=false);
+        void setInputFiles(const std::vector<URI>& uris, const std::vector<size_t>& uri_sizes,
+                           bool resample=false, size_t sample_limit=std::numeric_limits<size_t>::max());
 
         // HACK !!!
         static FileInputOperator* from_json(nlohmann::json obj) {

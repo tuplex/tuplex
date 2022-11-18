@@ -24,8 +24,8 @@ TEST(CSVStats, IncompatibleHeader) {
 
     ContextOptions co = ContextOptions::defaults();
     CSVStatistic csvstat(co.CSV_SEPARATORS(), co.CSV_COMMENTS(),
-                         co.CSV_QUOTECHAR(), co.CSV_MAX_DETECTION_MEMORY(),
-                         co.CSV_MAX_DETECTION_ROWS(), co.NORMALCASE_THRESHOLD());
+                         co.CSV_QUOTECHAR(), co.SAMPLE_MAX_DETECTION_MEMORY(),
+                         co.SAMPLE_MAX_DETECTION_ROWS(), co.NORMALCASE_THRESHOLD());
 
     csvstat.estimate(test_str, strlen(test_str));
 
@@ -44,8 +44,8 @@ CSVStatistic getFileCSVStat(const URI& uri, const std::vector<std::string>& null
 
     // disable null inference
     CSVStatistic csvstat(co.CSV_SEPARATORS(), co.CSV_COMMENTS(),
-                         co.CSV_QUOTECHAR(), co.CSV_MAX_DETECTION_MEMORY(),
-                         co.CSV_MAX_DETECTION_ROWS(), co.NORMALCASE_THRESHOLD(),null_values);
+                         co.CSV_QUOTECHAR(), co.SAMPLE_MAX_DETECTION_MEMORY(),
+                         co.SAMPLE_MAX_DETECTION_ROWS(), co.NORMALCASE_THRESHOLD(), null_values);
 
     auto vfs = VirtualFileSystem::fromURI(uri);
     Logger::instance().defaultLogger().info("testing on file " + uri.toString());
@@ -58,10 +58,10 @@ CSVStatistic getFileCSVStat(const URI& uri, const std::vector<std::string>& null
     vfs.file_size(uri, reinterpret_cast<uint64_t&>(size));
     size_t sampleSize = 0;
     // determine sample size
-    if(size > co.CSV_MAX_DETECTION_MEMORY())
-        sampleSize = core::floorToMultiple(std::min(co.CSV_MAX_DETECTION_MEMORY(), size), 16ul);
+    if(size > co.SAMPLE_MAX_DETECTION_MEMORY())
+        sampleSize = core::floorToMultiple(std::min(co.SAMPLE_MAX_DETECTION_MEMORY(), size), 16ul);
     else {
-        sampleSize = core::ceilToMultiple(std::min(co.CSV_MAX_DETECTION_MEMORY(), size), 16ul);
+        sampleSize = core::ceilToMultiple(std::min(co.SAMPLE_MAX_DETECTION_MEMORY(), size), 16ul);
     }
 
     assert(sampleSize % 16 == 0); // needs to be divisible by 16...

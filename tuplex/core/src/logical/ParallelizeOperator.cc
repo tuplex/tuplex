@@ -34,7 +34,7 @@ namespace tuplex {
 
         // todo: general python objects from parallelize...
         if(!_normalPartitions.empty()) {
-           auto maxRows = getDataSet() ? getDataSet()->getContext()->getOptions().CSV_MAX_DETECTION_ROWS() : MAX_TYPE_SAMPLING_ROWS; // @TODO: change this variable/config name
+           auto maxRows = getDataSet() ? getDataSet()->getContext()->getOptions().SAMPLE_MAX_DETECTION_ROWS() : MAX_TYPE_SAMPLING_ROWS; // @TODO: change this variable/config name
 
            // fetch up to maxRows from partitions!
            auto schema = _normalPartitions.front()->schema();

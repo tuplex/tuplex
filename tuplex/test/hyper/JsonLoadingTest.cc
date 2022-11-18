@@ -211,7 +211,7 @@ namespace tuplex {
 
         // detect (general-case) type here:
 //    ContextOptions co = ContextOptions::defaults();
-//    auto sample_size = co.CSV_MAX_DETECTION_MEMORY();
+//    auto sample_size = co.SAMPLE_MAX_DETECTION_MEMORY();
 //    auto nc_th = co.NORMALCASE_THRESHOLD();
         auto sample_size = 256 * 1024ul; // 256kb
         auto nc_th = 0.9;
@@ -410,7 +410,7 @@ TEST_F(HyperTest, StructLLVMType) {
 
     // detect (general-case) type here:
 //    ContextOptions co = ContextOptions::defaults();
-//    auto sample_size = co.CSV_MAX_DETECTION_MEMORY();
+//    auto sample_size = co.SAMPLE_MAX_DETECTION_MEMORY();
 //    auto nc_th = co.NORMALCASE_THRESHOLD();
     auto sample_size = 256 * 1024ul; // 256kb
     auto nc_th = 0.9;
@@ -1542,7 +1542,7 @@ TEST_F(HyperTest, BasicStructLoad) {
 
     // detect (general-case) type here:
 //    ContextOptions co = ContextOptions::defaults();
-//    auto sample_size = co.CSV_MAX_DETECTION_MEMORY();
+//    auto sample_size = co.SAMPLE_MAX_DETECTION_MEMORY();
 //    auto nc_th = co.NORMALCASE_THRESHOLD();
     auto sample_size = 512 * 1024ul; // 512KB //256 * 1024ul; // 256kb
     auto nc_th = 0.9;

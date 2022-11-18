@@ -53,8 +53,8 @@ TEST_F(ZillowTest, Thresholding) {
     vector<string> null_values{""};
 
     CSVStatistic csvstat(co.CSV_SEPARATORS(), co.CSV_COMMENTS(),
-                         co.CSV_QUOTECHAR(), co.CSV_MAX_DETECTION_MEMORY(),
-                         co.CSV_MAX_DETECTION_ROWS(), co.NORMALCASE_THRESHOLD(), null_values);
+                         co.CSV_QUOTECHAR(), co.SAMPLE_MAX_DETECTION_MEMORY(),
+                         co.SAMPLE_MAX_DETECTION_ROWS(), co.NORMALCASE_THRESHOLD(), null_values);
 
     // load a sample
     string path = "../resources/zillow_dirty.csv";

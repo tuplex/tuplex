@@ -489,8 +489,12 @@ namespace tuplex {
                                        size_t buf_size,
                                        std::vector<std::vector<std::string>>* outColumnNames,
                                        bool unwrap_rows,
-                                       bool interpret_heterogenous_lists_as_tuples) {
+                                       bool interpret_heterogenous_lists_as_tuples,
+                                       size_t max_rows) {
         using namespace std;
+
+        if(0 == max_rows)
+            return {};
 
         // assert(buf[buf_size - 1] == '\0');
 
@@ -525,7 +529,7 @@ namespace tuplex {
         // use scalar() => for simple numbers etc.
 
         // anonymous row? I.e., simple value?
-        for(auto it = stream.begin(); it != stream.end(); ++it) {
+        for(auto it = stream.begin(); it != stream.end() && rows.size() <= max_rows; ++it) {
             auto doc = (*it);
 
             // error? stop parse, return partial results

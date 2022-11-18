@@ -58,10 +58,29 @@ namespace tuplex {
 
     static const SamplingMode DEFAULT_SAMPLING_MODE = static_cast<SamplingMode>(SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE);
 
+    /*!
+     * or combine both sampling modes (whatever is set wins)
+     * @param lhs
+     * @param rhs
+     * @return
+     */
     inline SamplingMode operator | (const SamplingMode& lhs, const SamplingMode& rhs) {
         int i_lhs = lhs;
         int i_rhs = rhs;
         auto ans = i_lhs | i_rhs;
+        return static_cast<SamplingMode>(ans);
+    }
+
+    /*!
+     * strip lhs sampling mode of all modes from rhs
+     * @param lhs
+     * @param rhs
+     * @return
+     */
+    inline SamplingMode operator ^ (const SamplingMode& lhs, const SamplingMode& rhs) {
+        int i_lhs = lhs;
+        int i_rhs = rhs;
+        auto ans = i_lhs & ~i_rhs;
         return static_cast<SamplingMode>(ans);
     }
 

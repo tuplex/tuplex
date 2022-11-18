@@ -1052,7 +1052,7 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
         auto enable_nvo = true; // test later with true! --> important for everything to work properly together!
         co.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", enable_nvo ? "true" : "false");
         co.set("tuplex.optimizer.constantFoldingOptimization", "true");
-        co.set("tuplex.csv.maxDetectionMemory", "32KB");
+        co.set("tuplex.sample.maxDetectionMemory", "32KB");
         codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
         auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path, co,
                                                                                    option<bool>::none,
@@ -1330,7 +1330,7 @@ namespace tuplex {
             llvm::LLVMContext llvm_ctx;
             auto mod = codegen::bitCodeToModule(llvm_ctx, tstage_general->slowPathBitCode());
             stringToFile("general_slowpath.txt", codegen::moduleToString(*mod.get()));
-            codegen::annotateModuleWithInstructionPrint(*mod.get());
+            // codegen::annotateModuleWithInstructionPrint(*mod.get());
             // debug, overwrite slowpath with newly annotated module!
             tstage_general->slowPathBitCode() = codegen::moduleToBitCodeString(*mod.get());
         }

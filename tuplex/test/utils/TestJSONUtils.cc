@@ -87,7 +87,7 @@ static bool stringToFile(const std::string& data, const std::string& path) {
 //
 //    // detect (general-case) type here:
 ////    ContextOptions co = ContextOptions::defaults();
-////    auto sample_size = co.CSV_MAX_DETECTION_MEMORY();
+////    auto sample_size = co.SAMPLE_MAX_DETECTION_MEMORY();
 ////    auto nc_th = co.NORMALCASE_THRESHOLD();
 //    auto sample_size = 256 * 1024ul; // 256kb
 //    auto nc_th = 0.9;

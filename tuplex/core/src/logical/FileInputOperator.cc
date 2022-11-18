@@ -250,7 +250,7 @@ namespace tuplex {
             fillFileCache(sampling_mode);
 
             // run estimation
-            _estimatedRowCount = estimateTextFileRowCount(co.CSV_MAX_DETECTION_MEMORY(), sampling_mode);
+            _estimatedRowCount = estimateTextFileRowCount(co.SAMPLE_MAX_DETECTION_MEMORY(), sampling_mode);
         } else {
             _estimatedRowCount = 0;
         }
@@ -359,9 +359,9 @@ namespace tuplex {
         Timer timer;
 
         if(mode & SamplingMode::SINGLETHREADED)
-            _rowsSample = sample(mode, outNames);
+            _rowsSample = sample(mode, outNames, sample_limit);
         else
-            _rowsSample = multithreadedSample(mode, outNames);
+            _rowsSample = multithreadedSample(mode, outNames, sample_limit);
 
         logger.info("Extracting row sample took " + std::to_string(timer.time()) + "s");
     }
@@ -498,7 +498,9 @@ namespace tuplex {
         logger.info("Parallel sample fetch done.");
     }
 
-    std::vector<Row> FileInputOperator::multithreadedSample(const SamplingMode &mode, std::vector<std::vector<std::string>>* outNames) {
+    std::vector<Row> FileInputOperator::multithreadedSample(const SamplingMode &mode,
+                                                            std::vector<std::vector<std::string>>* outNames,
+                                                            size_t sample_limit) {
         using namespace std;
         auto &logger = Logger::instance().logger("fileinputoperator");
 
@@ -528,8 +530,8 @@ namespace tuplex {
             auto size = _sizes[idx];
             auto file_mode = perFileMode(mode);
             vector<vector<string>>* ptr = outNames ? &f_names[i] : nullptr; // only fetch column names if outNames is valid, else use nullptr to keep data nested.
-            f_rows[i] = std::async(std::launch::async, [this, file_mode, ptr](const URI& uri, size_t size) {
-                return sampleFile(uri, size, file_mode, ptr);
+            f_rows[i] = std::async(std::launch::async, [this, file_mode, ptr, sample_limit](const URI& uri, size_t size) {
+                return sampleFile(uri, size, file_mode, ptr, sample_limit);
             }, _fileURIs[idx], _sizes[idx]);
         }
 
@@ -537,15 +539,35 @@ namespace tuplex {
         vector<Row> res;
         for(unsigned i = 0; i < indices.size(); ++i) {
             auto rows = f_rows[i].get();
-            std::copy(rows.begin(), rows.end(), std::back_inserter(res));
+
+            if(res.size() + rows.size() <= sample_limit)
+                std::copy(rows.begin(), rows.end(), std::back_inserter(res));
+            else {
+                // how many to copy?
+                auto max_to_copy = sample_limit - res.size();
+                max_to_copy = std::min(max_to_copy, rows.size());
+                std::copy(rows.begin(), rows.begin() + max_to_copy, std::back_inserter(res));
+            }
         }
+
+        assert(res.size() <= sample_limit);
 
         // if desired, combine column names
         if(outNames) {
             vector<vector<string>> sampleNames;
             for(unsigned i = 0; i < indices.size(); ++i) {
-                std::copy(f_names[i].begin(), f_names[i].end(), std::back_inserter(sampleNames));
+                auto names = f_names[i];
+
+                if(sampleNames.size() + names.size() <= sample_limit)
+                    std::copy(names.begin(), names.end(), std::back_inserter(sampleNames));
+                else {
+                    auto max_to_copy = sample_limit - sampleNames.size();
+                    max_to_copy = std::min(max_to_copy, names.size());
+                    std::copy(names.begin(), names.begin() + max_to_copy, std::back_inserter(sampleNames));
+                }
             }
+            assert(sampleNames.size() <= sample_limit);
+
             *outNames = sampleNames;
         }
 
@@ -595,8 +617,8 @@ namespace tuplex {
             }
 
             CSVStatistic csvstat(co.CSV_SEPARATORS(), co.CSV_COMMENTS(),
-                                 co.CSV_QUOTECHAR(), co.CSV_MAX_DETECTION_MEMORY(),
-                                 co.CSV_MAX_DETECTION_ROWS(), co.NORMALCASE_THRESHOLD(), _null_values);
+                                 co.CSV_QUOTECHAR(), co.SAMPLE_MAX_DETECTION_MEMORY(),
+                                 co.SAMPLE_MAX_DETECTION_ROWS(), co.NORMALCASE_THRESHOLD(), _null_values);
 
             // @TODO: header is missing??
             // "what about if user specifies header? should be accounted for in estimate for small files!!!"
@@ -1050,9 +1072,35 @@ namespace tuplex {
         return std::vector<T>(v.begin(), v.begin() + limit);
     }
 
+    SamplingMode optimize_sampling_mode(const SamplingMode& sm, unsigned num_uris=std::numeric_limits<unsigned>::max()) {
+        SamplingMode opt_sm = sm;
+
+        // how many files are sampled?
+        unsigned num_files = 0;
+        num_files += sm & SamplingMode::FIRST_FILE;
+        num_files += sm & SamplingMode::LAST_FILE;
+        num_files += 10 * (sm & SamplingMode::ALL_FILES);
+        num_files += sm & SamplingMode::RANDOM_FILE;
+
+        // if a single file is sampled then use single-threaded mode. Not worth to spawn threads
+        if(num_files <= 1) {
+            opt_sm = opt_sm ^ SamplingMode::MULTITHREADED;
+            opt_sm = opt_sm | SamplingMode::SINGLETHREADED;
+        }
+
+        // how many uris are actually given?
+        if(num_uris <= 1) {
+            // only single-threaded makes sense
+            opt_sm = opt_sm ^ SamplingMode::MULTITHREADED;
+            opt_sm = opt_sm | SamplingMode::SINGLETHREADED;
+        }
+
+        return opt_sm;
+    }
+
     // HACK !!!!
     void FileInputOperator::setInputFiles(const std::vector<URI> &uris, const std::vector<size_t> &uri_sizes,
-                                          bool resample) {
+                                          bool resample, size_t sample_limit) {
         auto& logger = Logger::instance().logger("logical");
 
         assert(uris.size() == uri_sizes.size());
@@ -1070,7 +1118,11 @@ namespace tuplex {
             _cachePopulated = false;
             _sampleCache.clear();
             _rowsSample.clear(); // reset row samples!
-            fillFileCache(_samplingMode);
+
+            // restrict sampling mode
+            auto sm = optimize_sampling_mode(_samplingMode, uris.size());
+
+            fillFileCache(sm);
 
             // if JSON -> resort rows
             if(FileFormat::OUTFMT_JSON == _fmt) {
@@ -1080,7 +1132,7 @@ namespace tuplex {
 
                 // fill row cache
                 std::vector<std::vector<std::string>>* namePtr = _json_unwrap_first_level ? &namesCollection : nullptr;
-                fillRowCache(_samplingMode, namePtr);
+                fillRowCache(sm, namePtr);
 
                 // detect new type
                 auto t = detectJsonTypesAndColumns(co, namesCollection);
@@ -1319,7 +1371,9 @@ namespace tuplex {
         return retype(conf, false);
     }
 
-    std::vector<Row> FileInputOperator::sample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames) {
+    std::vector<Row> FileInputOperator::sample(const SamplingMode& mode,
+                                               std::vector<std::vector<std::string>>* outNames,
+                                               size_t sample_limit) {
         auto& logger = Logger::instance().logger("logical");
         if(_fileURIs.empty())
             return {};
@@ -1331,29 +1385,35 @@ namespace tuplex {
         std::set<unsigned> sampled_file_indices;
         if(mode & SamplingMode::ALL_FILES) {
             assert(_fileURIs.size() == _sizes.size());
-            for(unsigned i = 0; i < _fileURIs.size(); ++i) {
-                auto s = sampleFile(_fileURIs[i], _sizes[i], mode, outNames);
+            for(unsigned i = 0; i < _fileURIs.size() && v.size() < sample_limit; ++i) {
+                auto s = sampleFile(_fileURIs[i], _sizes[i], mode, outNames, sample_limit);
                 std::copy(s.begin(), s.end(), std::back_inserter(v));
                 sampled_file_indices.insert(i);
             }
         }
 
         // sample the first file present?
-        if(mode & SamplingMode::FIRST_FILE && sampled_file_indices.find(0) == sampled_file_indices.end()) {
-            auto s = sampleFile(_fileURIs.front(), _sizes.front(), mode, outNames);
+        if(mode & SamplingMode::FIRST_FILE
+            && sampled_file_indices.find(0) == sampled_file_indices.end()
+            && v.size() < sample_limit) {
+            auto s = sampleFile(_fileURIs.front(), _sizes.front(), mode, outNames, sample_limit);
             std::copy(s.begin(), s.end(), std::back_inserter(v));
             sampled_file_indices.insert(0);
         }
 
         // sample the last file present?
-        if(mode & SamplingMode::LAST_FILE && sampled_file_indices.find(_fileURIs.size() - 1) == sampled_file_indices.end()) {
-            auto s = sampleFile(_fileURIs.back(), _sizes.back(), mode, outNames);
+        if(mode & SamplingMode::LAST_FILE
+            && sampled_file_indices.find(_fileURIs.size() - 1) == sampled_file_indices.end()
+            && v.size() < sample_limit) {
+            auto s = sampleFile(_fileURIs.back(), _sizes.back(), mode, outNames, sample_limit);
             std::copy(s.begin(), s.end(), std::back_inserter(v));
             sampled_file_indices.insert(_fileURIs.size() - 1);
         }
 
         // sample a random file?
-        if(mode & SamplingMode::RANDOM_FILE && sampled_file_indices.size() < _fileURIs.size()) {
+        if(mode & SamplingMode::RANDOM_FILE
+            && sampled_file_indices.size() < _fileURIs.size()
+            && v.size() < sample_limit) {
             // form set of valid indices
             std::vector<unsigned> valid_indices;
             for(unsigned i = 0; i < _fileURIs.size(); ++i)
@@ -1366,6 +1426,13 @@ namespace tuplex {
             std::copy(s.begin(), s.end(), std::back_inserter(v));
             sampled_file_indices.insert(random_idx);
         }
+
+        // restrict sample
+        if(v.size() > sample_limit) {
+            v = std::vector<Row>(v.begin(), v.begin() + sample_limit);
+        }
+
+        assert(v.size() <= sample_limit);
 
         logger.debug("Sampling (mode=" + std::to_string(mode) + ") took " + std::to_string(timer.time()) + "s");
         return v;
@@ -1502,7 +1569,8 @@ namespace tuplex {
     FileInputOperator::sampleJsonFile(const tuplex::URI &uri,
                                       size_t uri_size,
                                       const tuplex::SamplingMode &mode,
-                                      std::vector<std::vector<std::string>>* outNames) {
+                                      std::vector<std::vector<std::string>>* outNames,
+                                      size_t sample_limit) {
         auto& logger = Logger::instance().logger("logical");
         std::vector<Row> v;
         assert(mode & SamplingMode::FIRST_ROWS || mode & SamplingMode::LAST_ROWS || mode & SamplingMode::RANDOM_ROWS);
@@ -1511,6 +1579,11 @@ namespace tuplex {
             logger.debug("empty file, can't obtain sample from it");
             return {};
         }
+
+        if(0 == sample_limit)
+            return {};
+
+        size_t original_sample_limit = sample_limit;
 
         // decode range based uri (and adjust seeking accordingly!)
         // is the URI range based?
@@ -1542,7 +1615,7 @@ namespace tuplex {
             m = SamplingMode::FIRST_ROWS;
 
         // check file sampling modes & then load the samples accordingly
-        if(m & SamplingMode::FIRST_ROWS) {
+        if(m & SamplingMode::FIRST_ROWS && sample_limit > 0) {
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::FIRST_ROWS, true);
             auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str()));
 
@@ -1555,10 +1628,12 @@ namespace tuplex {
                 sample_length -= std::min((size_t)start_offset, sample_length);
             }
 
-            v = parseRowsFromJSON(sample.c_str() + start_offset, sample_length, outNames, outNames, _json_treat_heterogenous_lists_as_tuples);
+            v = parseRowsFromJSON(sample.c_str() + start_offset, sample_length,
+                                  outNames, outNames, _json_treat_heterogenous_lists_as_tuples, sample_limit);
+            sample_limit -= std::min(v.size(), sample_limit);
         }
 
-        if(m & SamplingMode::LAST_ROWS) {
+        if(m & SamplingMode::LAST_ROWS && sample_limit > 0) {
             // the smaller of remaining and sample size!
             size_t file_offset = 0;
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::LAST_ROWS, true, &file_offset);
@@ -1578,8 +1653,10 @@ namespace tuplex {
                 if(start_offset < 0)
                     return v;
                 sample_length -= std::min((size_t)start_offset, sample_length);
-                auto rows = parseRowsFromJSON(sample.c_str() + offset + start_offset, sample_length, outNames, outNames, _json_treat_heterogenous_lists_as_tuples);
-
+                auto rows = parseRowsFromJSON(sample.c_str() + offset + start_offset, sample_length,
+                                              outNames, outNames, _json_treat_heterogenous_lists_as_tuples,
+                                              sample_limit);
+                sample_limit -= std::min(rows.size(), sample_limit);
                 std::copy(rows.begin(), rows.end(), std::back_inserter(v));
 
             } else {
@@ -1589,12 +1666,15 @@ namespace tuplex {
                     return v;
                 sample_length -= std::min((size_t)start_offset, sample_length);
 
-                v = parseRowsFromJSON(sample.c_str() + start_offset, sample_length, outNames, outNames, _json_treat_heterogenous_lists_as_tuples);
+                v = parseRowsFromJSON(sample.c_str() + start_offset, sample_length,
+                                      outNames, outNames, _json_treat_heterogenous_lists_as_tuples,
+                                      sample_limit);
+                sample_limit -= std::min(v.size(), sample_limit);
             }
         }
 
         // random
-        if(m & SamplingMode::RANDOM_ROWS) {
+        if(m & SamplingMode::RANDOM_ROWS && sample_limit > 0) {
             // @TODO: there could be overlap with first/last rows.
             size_t file_offset = 0;
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::RANDOM_ROWS, true, &file_offset);
@@ -1605,7 +1685,10 @@ namespace tuplex {
                 return v;
             sample_length -= std::min((size_t)start_offset, sample_length);
             // parse as rows using the settings detected.
-            auto rows = parseRowsFromJSON(sample.c_str() + start_offset, sample_length, outNames, outNames, _json_treat_heterogenous_lists_as_tuples);
+            auto rows = parseRowsFromJSON(sample.c_str() + start_offset, sample_length,
+                                          outNames, outNames, _json_treat_heterogenous_lists_as_tuples,
+                                          sample_limit);
+            sample_limit -= std::min(rows.size(), sample_limit);
 
             // erase last row, b.c. it may be partial
             if(!rows.empty()) {
@@ -1616,6 +1699,8 @@ namespace tuplex {
 
             std::copy(rows.begin(), rows.end(), std::back_inserter(v));
         }
+
+        assert(v.size() <= original_sample_limit);
 
         return v;
     }

@@ -183,6 +183,8 @@ namespace tuplex {
 
         std::set<std::string> performWarmup(const std::vector<int>& countsToInvoke, size_t timeOutInMs=4000, size_t baseDelayInMs=75);
 
+        void config_worker(messages::WorkerSettings* ws, size_t numThreads, const URI& spillURI, size_t buf_spill_size);
+
         /*!
          * print extended lambda statistics out
          */

@@ -208,8 +208,8 @@ namespace tuplex {
                      {"tuplex.scratchDir", temp_cache_path},
                      {"tuplex.logDir", "."},
                      {"tuplex.runTimeLibrary", "tuplex_runtime"},
-                     {"tuplex.csv.maxDetectionRows", "10000"},
-                     {"tuplex.csv.maxDetectionMemory", "256KB"},
+                     {"tuplex.sample.maxDetectionRows", "10000"},
+                     {"tuplex.sample.maxDetectionMemory", "256KB"},
                      {"tuplex.csv.separators", "[',', ';', '|', '\t']"},
                      {"tuplex.csv.quotechar", "\""},
                      {"tuplex.csv.comments", "['#', '~']"},
@@ -270,8 +270,8 @@ namespace tuplex {
                      {"tuplex.scratchDir", temp_cache_path},
                      {"tuplex.logDir", "."},
                      {"tuplex.runTimeLibrary", "tuplex_runtime"},
-                     {"tuplex.csv.maxDetectionRows", "10000"},
-                     {"tuplex.csv.maxDetectionMemory", "256KB"},
+                     {"tuplex.sample.maxDetectionRows", "10000"},
+                     {"tuplex.sample.maxDetectionMemory", "256KB"},
                      {"tuplex.csv.separators", "[',', ';', '|', '\t']"},
                      {"tuplex.csv.quotechar", "\""},
                      {"tuplex.csv.comments", "['#', '~']"},
@@ -654,8 +654,8 @@ namespace tuplex {
         return res;
     }
 
-    size_t ContextOptions::CSV_MAX_DETECTION_MEMORY() const {
-        return memStringToSize(_store.at("tuplex.csv.maxDetectionMemory"));
+    size_t ContextOptions::SAMPLE_MAX_DETECTION_MEMORY() const {
+        return memStringToSize(_store.at("tuplex.sample.maxDetectionMemory"));
     }
 
     size_t ContextOptions::INPUT_SPLIT_SIZE() const {
@@ -666,8 +666,8 @@ namespace tuplex {
         return memStringToSize(_store.at("tuplex.readBufferSize"));
     }
 
-    size_t ContextOptions::CSV_MAX_DETECTION_ROWS() const {
-        auto val = _store.at("tuplex.csv.maxDetectionRows");
+    size_t ContextOptions::SAMPLE_MAX_DETECTION_ROWS() const {
+        auto val = _store.at("tuplex.sample.maxDetectionRows");
         return std::stoull(val);
     }
 

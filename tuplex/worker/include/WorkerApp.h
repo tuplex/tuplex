@@ -130,7 +130,9 @@ namespace tuplex {
         bool useCompiledGeneralPath;
 
 
-        bool opportuneGeneralPathCompilation; // <-- note: not yet configurable...
+        bool opportuneGeneralPathCompilation; // <-- whether to kick off query optimization as early on as possible
+        bool useOptimizer; // <-- whether to use optimizer for hyper or not
+        size_t sampleLimitCount; // <-- limit count imposed on resampling
 
         double normalCaseThreshold; ///! used for hyperspecialziation
 
@@ -144,6 +146,7 @@ namespace tuplex {
             runTimeMemoryDefaultBlockSize = opt.RUNTIME_MEMORY_DEFAULT_BLOCK_SIZE();
             allowNumericTypeUnification = opt.AUTO_UPCAST_NUMBERS();
             normalCaseThreshold = opt.NORMALCASE_THRESHOLD();
+            sampleLimitCount = std::numeric_limits<size_t>::max();
         }
 
         inline bool operator == (const WorkerSettings& other) const {
@@ -170,6 +173,10 @@ namespace tuplex {
             if(useCompiledGeneralPath != other.useCompiledGeneralPath)
                 return false;
             if(opportuneGeneralPathCompilation != other.opportuneGeneralPathCompilation)
+                return false;
+            if(useOptimizer != other.useOptimizer)
+                return false;
+            if(sampleLimitCount != other.sampleLimitCount)
                 return false;
             if(!double_eq(normalCaseThreshold, other.normalCaseThreshold))
                 return false;

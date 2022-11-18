@@ -815,6 +815,10 @@ namespace python {
         if(isConstantValued())
             return true;
 
+        // exceptions too
+        if(isExceptionType())
+            return true;
+
         return *this == Type::NULLVALUE || *this == Type::EMPTYTUPLE || *this == Type::EMPTYDICT || *this == Type::EMPTYLIST;
     }
 

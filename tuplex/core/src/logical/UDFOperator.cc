@@ -63,15 +63,17 @@ namespace tuplex {
                 _udf.removeTypes(true);
                 success = _udf.hintSchemaWithSample(rows_sample,
                                                     conf.row_type, true);
-                if(success) {
-                    if(_udf.getCompileErrors().empty() || _udf.getReturnError() != CompileError::COMPILE_ERROR_NONE) {
-                        // @TODO: add the constant folding for the other scenarios as well!
-                        if(containsConstantType(conf.row_type)) {
-                            _udf.optimizeConstants();
-                        }
-                    }
-                } else {
+                if(!success) {
                     logger.debug("no success typing UDF - even with sample.");
+                }
+            }
+
+            if(success) {
+                if(_udf.getCompileErrors().empty() || _udf.getReturnError() != CompileError::COMPILE_ERROR_NONE) {
+                    // @TODO: add the constant folding for the other scenarios as well!
+                    if(containsConstantType(conf.row_type)) {
+                        _udf.optimizeConstants();
+                    }
                 }
             }
 

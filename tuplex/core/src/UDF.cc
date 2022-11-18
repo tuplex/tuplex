@@ -1638,8 +1638,8 @@ namespace tuplex {
 
     bool UDF::retype(const python::Type& new_row_type) {
 
-        // make sure it's a row type
-        assert(new_row_type.isTupleType());
+        // make sure it's a row type (or exception)
+        assert(new_row_type.isExceptionType() || new_row_type.isTupleType());
 
         // what is the status of the UDF? has it been typed already?
         if(!hasWellDefinedTypes()) {

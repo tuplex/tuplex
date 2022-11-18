@@ -415,8 +415,6 @@ namespace tuplex {
         if(rc != WORKER_OK)
             return rc;
 
-        std::cout<<"initTrafoStage done"<<std::endl;
-
         size_t numInputRowsProcessed = 0;
         auto numCodes = std::max(1ul, _numThreads);
         auto processCodes = new int[numCodes];

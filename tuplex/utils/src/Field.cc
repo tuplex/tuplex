@@ -439,7 +439,8 @@ namespace tuplex {
         auto u_type = type.underlying();
         // decode...
         if(python::Type::STRING == u_type) {
-            return Field(str_value_from_python_raw_value(value));
+            return Field(value);
+            //return Field(str_value_from_python_raw_value(value));
         } else if(python::Type::BOOLEAN == u_type) {
             return Field(stringToBool(value));
         } else if(python::Type::I64 == u_type) {

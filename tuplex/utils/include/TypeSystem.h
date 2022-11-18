@@ -185,6 +185,11 @@ namespace python {
         // returns the element type in a list or within an option
         Type elementType() const;
         Type underlying() const;
+
+        /*!
+         * returns the underlying value of a constant type. Note that this the actual value (not a python string!)
+         * @return the value as string.
+         */
         std::string constant() const; // returns the underlying constant of the type (opt. HACK)
 
         /*!

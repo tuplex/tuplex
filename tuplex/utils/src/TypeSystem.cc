@@ -20,6 +20,8 @@
 
 #include <Field.h>
 
+#include <JsonUtils.h>
+
 // types should be like form mypy https://mypy.readthedocs.io/en/latest/cheat_sheet_py3.html
 
 
@@ -1938,6 +1940,15 @@ namespace python {
                 case TypeFactory::AbstractType::FUNCTION: {
                     return "Function[" + getParamsType().encode() + "," + getReturnType().encode() + "]";
                 }
+                // case TypeFactory::AbstractType::OPTIMIZED_CONSTANT: {
+                //     std::string s = "_Constant[" + underlying().desc() + ",value=";
+                //
+                //     // encode as json string (b.c. easy to parse)
+                //     s += escape_for_json(constant());
+                //
+                //     s += "]";
+                //     return s;
+                // }
                 default: {
                     //Logger::instance().defaultLogger().error("Unknown type " + desc() + " encountered, can't encode. Using unknown.");
 #ifdef NDEBUG

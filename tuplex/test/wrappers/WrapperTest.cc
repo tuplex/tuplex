@@ -352,6 +352,10 @@ TEST_F(WrapperTest, GetOptions) {
         ContextOptions co = ContextOptions::defaults();
         auto length = py::len(c.options());
         EXPECT_GE(co.store().size(), length);
+
+        PyObject_Print(c.options().ptr(), stdout, 0);
+        std::cout<<std::endl;
+        std::cout<<co.asJSON()<<std::endl;
     }
 
 }

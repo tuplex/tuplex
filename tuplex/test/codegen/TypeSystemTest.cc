@@ -336,3 +336,10 @@ TEST(TypeSys, TypeObject) {
         EXPECT_EQ(to.underlying(), t);
     }
 }
+
+TEST(TypeSys, ConstantEncodeDecode) {
+    auto c1 = python::Type::makeConstantValuedType(python::Type::STRING, escape_to_python_str("hello 'world'!"));
+    auto str_c1 = c1.encode();
+    auto c1_res = python::Type::decode(str_c1);
+    EXPECT_EQ(c1, c1_res);
+}

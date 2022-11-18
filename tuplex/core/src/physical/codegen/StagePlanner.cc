@@ -1049,7 +1049,15 @@ namespace tuplex {
                 logger.warn("Enabled constant-folding for now (not supported for JSON yet).");
             }
         }
-        logger.info("sampling (setInputFiles) took " + std::to_string(samplingTimer.time()) + "s");
+
+        {
+            std::stringstream ss;
+            ss<<"sampling (setInputFiles) took " + std::to_string(samplingTimer.time()) + "s";
+            if(sample_limit < std::numeric_limits<size_t>::max())
+                ss << " (limit=" << sample_limit << ")";
+            logger.info(ss.str());
+        }
+
 
         // node need to find some smart way to QUICKLY detect whether the optimization can be applied or should be rather skipped...
         codegen::StagePlanner planner(inputNode, operators, nc_threshold);

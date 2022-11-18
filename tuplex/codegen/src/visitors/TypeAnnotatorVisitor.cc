@@ -29,7 +29,7 @@ namespace tuplex {
 
     void TypeAnnotatorVisitor::visit(NString *str) {
         if(_annotateWithConstantValues && !str->getInferredType().isConstantValued()) {
-            str->setInferredType(python::Type::makeConstantValuedType(python::Type::STRING, str->raw_value()));
+            str->setInferredType(python::Type::makeConstantValuedType(python::Type::STRING, str->value()));
         }
     }
 

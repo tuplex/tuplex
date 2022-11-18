@@ -1032,7 +1032,7 @@ namespace tuplex {
             value = builder.CreateLoad(structValIdx);
 
             // size existing? ==> only for varlen types
-            if (!elementType.isFixedSizeType() && !elementType.isStructuredDictionaryType() && !elementType.isListType()) {
+            if (!elementType.isFixedSizeType() && !elementType.isStructuredDictionaryType() && !elementType.isListType() && !elementType.isExceptionType()) {
                 //  auto structSizeIdx = builder.CreateStructGEP(tuplePtr, sizeOffset);
                 auto structSizeIdx = CreateStructGEP(builder, tuplePtr, sizeOffset);
                 size = builder.CreateLoad(structSizeIdx);
@@ -1680,6 +1680,10 @@ namespace tuplex {
             // optimized type? -> deoptimize!
             if(t.isOptimizedType())
                 return pythonToLLVMType(t.underlying());
+
+            // special case: exception type -> map to i64
+            if(t.isExceptionType())
+                return Type::getInt64Ty(_context); // <-- simply hold exception code.
 
             throw std::runtime_error("could not convert type '" + t.desc() + "' to LLVM compliant type");
             return nullptr;

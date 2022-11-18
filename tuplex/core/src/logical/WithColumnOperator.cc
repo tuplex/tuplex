@@ -128,6 +128,11 @@ namespace tuplex {
         if(Schema::UNKNOWN == in_schema)
             return Schema::UNKNOWN;
 
+        // special case: UDF produced only exceptions -> set ret type to exception!
+        if(udf_ret_type.isExceptionType()) {
+            return Schema(Schema::MemoryLayout::ROW, udf_ret_type);
+        }
+
         // check what schema is supposed to be
         std::vector<python::Type> col_types = in_schema.getRowType().parameters();
         if(_columnToMapIndex < UDFOperator::columns().size()) {

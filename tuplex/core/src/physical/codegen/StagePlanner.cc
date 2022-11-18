@@ -30,9 +30,10 @@ namespace tuplex {
 
         // check type.
         void checkRowType(const python::Type& rowType) {
-            assert(rowType.isTupleType());
-            for(auto t : rowType.parameters())
-                assert(t != python::Type::UNKNOWN);
+            assert(rowType.isExceptionType() || rowType.isTupleType());
+            if(rowType.isTupleType())
+                for(auto t : rowType.parameters())
+                    assert(t != python::Type::UNKNOWN);
         }
 
         template<typename T> std::vector<T> vec_prepend(const T& t, const std::vector<T>& v) {
@@ -300,7 +301,7 @@ namespace tuplex {
                 std::stringstream ss;
                 ss<<"Pipeline (types):\n";
 
-                for(auto op : opt_ops) {
+                for(const auto& op : opt_ops) {
                     ss<<op->name()<<":\n";
                     ss<<"  in: "<<op->getInputSchema().getRowType().desc()<<"\n";
                     ss<<" out: "<<op->getOutputSchema().getRowType().desc()<<"\n";

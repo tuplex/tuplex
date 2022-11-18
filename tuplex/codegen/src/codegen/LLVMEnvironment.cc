@@ -91,7 +91,6 @@ namespace tuplex {
                 return SerializableValue(f64const, f64const_size, not_null);
             } else if(ut == python::Type::STRING) {
                 assert(builder.GetInsertBlock()->getParent()); // make sure block has a parent, else pretty bad bugs could happen...
-                constant_value = str_value_from_python_raw_value(constant_value);
                 auto sconst = builder.CreateGlobalStringPtr(constant_value);
                 auto sval = builder.CreatePointerCast(sconst, llvm::Type::getInt8PtrTy(ctx, 0));
                 auto s64const_size = llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, constant_value.length() + 1));

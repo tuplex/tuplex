@@ -63,6 +63,7 @@ if __name__ == '__main__':
     parser.add_argument('--no-cf', dest='no_cf', action="store_true",
                         help="deactivate constant-folding optimization explicitly.")
     parser.add_argument('--sampling-mode', dest='sampling_mode', choices=['A', 'B', 'C', 'D', 'E', 'F'], default='A')
+    parser.add_argument('--split-size', dest='split_size', default='256MB')
     parser.add_argument('--no-filter-pushdown', dest='no_fpd', action="store_true",
                         help="deactivate filter pushdown.")
     parser.add_argument('--no-nvo', dest='no_nvo', action="store_true",
@@ -96,8 +97,11 @@ if __name__ == '__main__':
     lambda_size = "10000"
     input_split_size = "256MB"
     input_split_size = "512MB"
-    input_split_size = "64MB"
+    #input_split_size = "64MB"
     #input_split_size = "32MB"
+
+    input_split_size = args.split_size
+
     lambda_threads = 3 # 3 seems to be working the best?
     s3_scratch_dir = "s3://tuplex-leonhard/scratch/github-exp"
     use_hyper_specialization = not args.no_hyper
@@ -139,7 +143,7 @@ if __name__ == '__main__':
             "aws.maxConcurrency": 1000,
             'tuplex.aws.lambdaThreads': 0,
             'tuplex.aws.verboseLogging':True,
-            'tuplex.csv.maxDetectionMemory': '256KB',
+            'tuplex.sample.maxDetectionMemory': '256KB',
             "aws.scratchDir": s3_scratch_dir,
             "experimental.hyperspecialization": use_hyper_specialization,
             "executorCount": 0,
@@ -176,6 +180,8 @@ if __name__ == '__main__':
 
     conf["useLLVMOptimizer"] = not args.no_opt # <-- disable llvm optimizers
     conf["inputSplitSize"] = input_split_size
+
+    conf["tuplex.experimental.opportuneCompilation"] = False # if true, compile general case in parallel
 
     # execute in pure python --> not working for JSON yet. need to parse... ?
     #conf['useInterpreterOnly'] = True

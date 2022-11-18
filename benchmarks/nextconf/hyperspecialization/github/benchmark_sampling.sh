@@ -3,7 +3,7 @@
 # benchmarks the different sampling modes for the Github query
 
 RESDIR=results/sampling
-NUM_RUNS=11
+NUM_RUNS=5
 PYTHON=python3.9
 TIMEOUT=300 # 5 min timeout per run
 echo ">> Running sampling benchmark (A - F) using ${NUM_RUNS} runs"

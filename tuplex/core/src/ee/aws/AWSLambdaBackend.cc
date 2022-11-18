@@ -995,7 +995,9 @@ namespace tuplex {
         return requests;
     }
 
-    void AwsLambdaBackend::config_worker(messages::WorkerSettings *ws, size_t numThreads, const tuplex::URI &spillURI,
+    void AwsLambdaBackend::config_worker(messages::WorkerSettings *ws,
+                                         size_t numThreads,
+                                         const tuplex::URI &spillURI,
                                          size_t buf_spill_size) {
         if(!ws)
             return;
@@ -1005,13 +1007,14 @@ namespace tuplex {
         ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
         ws->set_usecompiledgeneralcase(!_options.RESOLVE_WITH_INTERPRETER_ONLY());
         ws->set_normalcasethreshold(_options.NORMALCASE_THRESHOLD());
+        ws->set_spillrooturi(spillURI.toString());
 
         // set other fields for some other option settings
         std::vector<std::string> other_keys({"tuplex.experimental.opportuneCompilation",
                                              "tuplex.useLLVMOptimizer",
                                              "tuplex.sample.maxDetectionRows"});
         auto& m_map = *(ws->mutable_other());
-        for(auto key : other_keys)
+        for(const auto& key : other_keys)
             m_map[key] = _options.get(key);
     }
 

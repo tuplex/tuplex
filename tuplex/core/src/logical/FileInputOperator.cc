@@ -396,8 +396,10 @@ namespace tuplex {
         auto duration = timer.time();
 
         // only print if there are actually uris
-        if(!_fileURIs.empty() && !_sizes.empty())
-            logger.info("Filling sample cache for " + name() + " operator took " + std::to_string(duration) + "s (" + std::to_string(_sampleCache.size()) + " entries, " + pluralize(_rowsSample.size(), "row") + ")");
+        if(!_fileURIs.empty() && !_sizes.empty()) {
+            std::string entry_info = _sampleCache.size() == 1 ? "1 entry" : std::to_string(_sampleCache.size()) + " entries";
+            logger.info("Filling sample cache for " + name() + " operator took " + std::to_string(duration) + "s (" + entry_info + ")");
+        }
     }
 
     void FileInputOperator::fillFileCacheSinglethreaded(SamplingMode mode) {
@@ -570,7 +572,7 @@ namespace tuplex {
             *outNames = sampleNames;
         }
 
-        logger.info("Parallel sample parse done.");
+        logger.info("Parallel sample parse done (" + pluralize(res.size(), "sample") + ").");
         return res;
     }
 
@@ -1435,8 +1437,7 @@ namespace tuplex {
         }
 
         assert(v.size() <= sample_limit);
-
-        logger.debug("Sampling (mode=" + std::to_string(mode) + ") took " + std::to_string(timer.time()) + "s");
+        logger.debug("Sampling (mode=" + std::to_string(mode) + ") took " + std::to_string(timer.time()) + "s, ("  + pluralize(v.size(), "sample") + ").");
         return v;
     }
 

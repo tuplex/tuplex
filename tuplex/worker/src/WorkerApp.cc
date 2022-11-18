@@ -2053,7 +2053,19 @@ namespace tuplex {
                 _resolverCompileThread.reset(nullptr);
             }
         } else {
-            compiledResolver = getCompiledResolver(stage); // syms->resolveFunctor;
+
+            // check if in syms, if not compile and update!
+            {
+                std::lock_guard<std::mutex> lock(_symsMutex);
+                compiledResolver = _syms->resolveFunctor;
+            }
+            if(!compiledResolver)
+                compiledResolver = getCompiledResolver(stage); // syms->resolveFunctor;
+
+            {
+                std::lock_guard<std::mutex> lock(_symsMutex);
+                _syms->resolveFunctor = compiledResolver;
+            }
         }
         auto interpretedResolver = preparePythonPipeline(stage->purePythonCode(), stage->pythonPipelineName());
         _has_python_resolver = true;

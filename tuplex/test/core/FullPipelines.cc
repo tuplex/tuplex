@@ -649,9 +649,9 @@ TEST_F(PipelinesTest, GithubLocalVersion) {
     auto sm = SamplingMode::LAST_FILE | SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS;
 
     // check that this here works
-    sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::ALL_FILES;
+   // sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::ALL_FILES;
 
-     sm = DEFAULT_SAMPLING_MODE;
+     // sm = DEFAULT_SAMPLING_MODE;
 
     c.json(pattern, true, true, sm)
       .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))

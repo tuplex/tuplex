@@ -158,7 +158,7 @@ namespace tuplex {
          tmb.setCodeGenOptLevel(CodeGenOpt::None); // <-- use no codegen opt.
 #endif
 
-        tmb.setCodeGenOptLevel(CodeGenOpt::Aggressive);
+        // tmb.setCodeGenOptLevel(CodeGenOpt::Aggressive);
 
         // small code model does not work under MacOS. -.-
         // tmb.setCodeModel(CodeModel::Small); // <-- use this to speed up compute.

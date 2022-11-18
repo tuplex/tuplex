@@ -1172,7 +1172,7 @@ TEST(BasicInvocation, FlightsHyper) {
     int num_threads = 1;
     auto spillURI = std::string("spill_folder");
     bool use_hyper = false;
-    use_hyper = true;
+    //use_hyper = true;
     auto tstage = create_flights_pipeline(test_path, test_output_path, use_hyper);
 
     // transform to message

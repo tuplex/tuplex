@@ -1572,6 +1572,14 @@ namespace tuplex {
                        python::PyString_FromString("tuplex.aws.lambdaInvokeOthers"),
                        python::boolToPython(co.AWS_LAMBDA_SELF_INVOCATION()));
 
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.experimental.hyperspecialization"),
+                       python::boolToPython(co.USE_EXPERIMENTAL_HYPERSPECIALIZATION()));
+
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.experimental.opportuneCompilation"),
+                       python::boolToPython(co.USE_EXPERIMENTAL_OPPORTUNE_COMPILATION()));
+
         // @TODO: move to optimizer
         PyDict_SetItem(dictObject,
                        python::PyString_FromString("tuplex.optimizer.selectionPushdown"),

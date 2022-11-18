@@ -1501,6 +1501,8 @@ namespace tuplex {
 
     std::shared_ptr<TransformStage::JITSymbols> WorkerApp::compileTransformStage(TransformStage &stage, bool use_llvm_optimizer) {
 
+        use_llvm_optimizer = false; // @TODO: make this a setting...
+
         // 1. check fast code path
         auto bitCode = stage.fastPathBitCode() + stage.slowPathBitCode();
 

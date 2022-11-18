@@ -104,6 +104,15 @@ namespace tuplex {
     }
 
 
+    int debug_printf(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        auto rc = vprintf(format, args);
+        va_end(args);
+        std::cout.flush();
+        return rc;
+    }
+
     JITCompiler::JITCompiler() {
         codegen::initLLVM(); // lazy initialization of LLVM backend.
 
@@ -148,6 +157,8 @@ namespace tuplex {
 #ifdef BOOST_OS_LINUX
          tmb.setCodeGenOptLevel(CodeGenOpt::None); // <-- use no codegen opt.
 #endif
+
+        tmb.setCodeGenOptLevel(CodeGenOpt::Aggressive);
 
         // small code model does not work under MacOS. -.-
         // tmb.setCodeModel(CodeModel::Small); // <-- use this to speed up compute.
@@ -265,6 +276,8 @@ namespace tuplex {
         registerSymbol("cJSON_Parse", cJSON_Parse);
         registerSymbol("cJSON_CreateString", cJSON_CreateString);
 #endif
+
+        registerSymbol("debug_printf", debug_printf);
 
         // register JSON parsing symbols
         codegen::addJsonSymbolsToJIT(*this);

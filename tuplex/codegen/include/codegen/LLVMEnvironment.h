@@ -1132,10 +1132,10 @@ namespace tuplex {
 
 #if LLVM_VERSION_MAJOR < 9
             Function *func = cast<Function>(mod->getOrInsertFunction(
-            "printf", printf_type));
+            "debug_printf", printf_type));
 #else
             Function *func = cast<Function>(mod->getOrInsertFunction(
-                    "printf", printf_type).getCallee());
+                    "debug_printf", printf_type).getCallee());
 #endif
             return func;
         }

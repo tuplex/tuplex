@@ -52,6 +52,7 @@ namespace tuplex {
         bool OPT_CONSTANTFOLDING_OPTIMIZATION() const { return stringToBool(_store.at("tuplex.optimizer.constantFoldingOptimization")); }
         bool OPT_SHARED_OBJECT_PROPAGATION() const { return stringToBool(_store.at("tuplex.optimizer.sharedObjectPropagation")); }
         bool OPT_FILTER_PUSHDOWN() const { return stringToBool(_store.at("tuplex.optimizer.filterPushdown")); }
+        bool OPT_FILTER_PROMOTION() const { return stringToBool(_store.at("tuplex.optimizer.filerPromotion")); }
         bool OPT_OPERATOR_REORDERING() const { return stringToBool(_store.at("tuplex.optimizer.operatorReordering")); }
         bool OPT_MERGE_EXCEPTIONS_INORDER() const { return stringToBool(_store.at("tuplex.optimizer.mergeExceptionsInOrder")); }
         bool OPT_SELECTION_PUSHDOWN() const; //! whether to use selection pushdown when reading files. If false, then full data will be always read and thus serialized within memory.

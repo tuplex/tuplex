@@ -233,6 +233,7 @@ namespace tuplex {
                      {"tuplex.optimizer.operatorReordering", "false"},
                      {"tuplex.optimizer.sharedObjectPropagation", "true"},
                      {"tuplex.optimizer.mergeExceptionsInOrder", "true"},
+                     {"tuplex.optimizer.filterPromotion", "true"},
                      {"tuplex.interleaveIO", "true"},
                      {"tuplex.aws.scratchDir", ""},
                      {"tuplex.aws.requestTimeout", "600"},
@@ -278,6 +279,7 @@ namespace tuplex {
                      {"tuplex.normalcaseThreshold", "0.9"},
                      {"tuplex.optionalThreshold", "0.7"},
                      {"tuplex.optimizer.selectionPushdown", "true"}, //
+                     {"tuplex.optimizer.filterPromotion", "true"},
                      {"tuplex.webui.enable", "true"},
                      {"tuplex.webui.port", "5000"},
                      {"tuplex.webui.url", "localhost"},

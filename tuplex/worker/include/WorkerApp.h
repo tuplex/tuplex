@@ -128,6 +128,7 @@ namespace tuplex {
         bool allowNumericTypeUnification;
         bool useInterpreterOnly;
         bool useCompiledGeneralPath;
+        bool useFilterPromotion;
 
 
         bool opportuneGeneralPathCompilation; // <-- whether to kick off query optimization as early on as possible
@@ -138,7 +139,9 @@ namespace tuplex {
 
         // use some defaults...
         WorkerSettings() : numThreads(1), normalBufferSize(WORKER_DEFAULT_BUFFER_SIZE),
-        exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE), useInterpreterOnly(false), useCompiledGeneralPath(true), opportuneGeneralPathCompilation(true) {
+        exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE),
+        useInterpreterOnly(false), useCompiledGeneralPath(true),
+        opportuneGeneralPathCompilation(true), useFilterPromotion(false) {
 
             // set some options from defaults...
             auto opt = ContextOptions::defaults();
@@ -177,6 +180,8 @@ namespace tuplex {
             if(useOptimizer != other.useOptimizer)
                 return false;
             if(sampleLimitCount != other.sampleLimitCount)
+                return false;
+            if(useFilterPromotion != other.useFilterPromotion)
                 return false;
             if(!double_eq(normalCaseThreshold, other.normalCaseThreshold))
                 return false;

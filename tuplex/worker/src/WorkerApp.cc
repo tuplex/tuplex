@@ -1510,6 +1510,12 @@ namespace tuplex {
         } else {
             ws.useOptimizer = true;
         }
+         it = req.settings().other().find("tuplex.optimizer.filterPromotion");
+        if(it != req.settings().other().end()) {
+            ws.useFilterPromotion = stringToBool(it->second);
+        } else {
+            ws.useFilterPromotion = false;
+        }
         it = req.settings().other().find("tuplex.sample.maxDetectionRows");
         if(it != req.settings().other().end()) {
             ws.sampleLimitCount = std::stoull(it->second);

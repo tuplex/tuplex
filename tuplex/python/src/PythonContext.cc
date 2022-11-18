@@ -1552,6 +1552,9 @@ namespace tuplex {
                        python::PyString_FromString("tuplex.optimizer.operatorReordering"),
                        python::boolToPython(co.OPT_OPERATOR_REORDERING()));
         PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.optimizer.filterPromotion"),
+                       python::boolToPython(co.OPT_FILTER_PROMOTION()));
+        PyDict_SetItem(dictObject,
                        python::PyString_FromString("tuplex.interleaveIO"),
                        python::boolToPython(co.INTERLEAVE_IO()));
         PyDict_SetItem(dictObject,

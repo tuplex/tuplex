@@ -346,7 +346,7 @@ namespace tuplex {
         return f;
     }
 
-    void FileInputOperator::fillRowCache(SamplingMode mode, std::vector<std::vector<std::string>>* outNames) {
+    void FileInputOperator::fillRowCache(SamplingMode mode, std::vector<std::vector<std::string>>* outNames, size_t sample_limit) {
         auto &logger = Logger::instance().logger("fileinputoperator");
 
         {
@@ -1381,6 +1381,9 @@ namespace tuplex {
         Timer timer;
         std::vector<Row> v;
 
+        // TODO: open questions -> limit per file? or total limit?
+        // -> could configure that. It would affect sample quality...
+
         // check sampling mode, i.e. how files should be sample?
         std::set<unsigned> sampled_file_indices;
         if(mode & SamplingMode::ALL_FILES) {
@@ -1422,7 +1425,7 @@ namespace tuplex {
             assert(!valid_indices.empty());
             auto random_idx = valid_indices[randi(0ul, valid_indices.size() - 1)];
             logger.debug("Sampling file (random) idx=" + std::to_string(random_idx));
-            auto s = sampleFile(_fileURIs[random_idx], _sizes[random_idx], mode, outNames);
+            auto s = sampleFile(_fileURIs[random_idx], _sizes[random_idx], mode, outNames, sample_limit);
             std::copy(s.begin(), s.end(), std::back_inserter(v));
             sampled_file_indices.insert(random_idx);
         }

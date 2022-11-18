@@ -286,7 +286,7 @@ namespace tuplex {
             // check if specialized normal-case type is different from current normal case type
             _normalCaseRowType = tstage->normalCaseInputSchema().getRowType(); // needed when fastcode path is missing?
             auto normalCaseCols = tstage->normalCaseInputColumnsToKeep();
-            hyperspecialize(tstage, uri, file_size, _settings.normalCaseThreshold);
+            hyperspecialize(tstage, uri, file_size, _settings.normalCaseThreshold, _settings.sampleLimitCount);
             _hyperspecializedNormalCaseRowType = tstage->normalCaseInputSchema().getRowType(); // refactor?
             auto hyperspecializedNormalCaseCols = tstage->normalCaseInputColumnsToKeep();
 

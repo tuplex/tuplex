@@ -70,12 +70,14 @@ namespace tuplex {
         void fillFileCacheSinglethreaded(SamplingMode mode);
 
         // row cache (i.e. parse samples utilizing file cache)
-        void fillRowCache(SamplingMode mode, std::vector<std::vector<std::string>>* outNames=nullptr);
+        void fillRowCache(SamplingMode mode, std::vector<std::vector<std::string>>* outNames=nullptr,
+                          size_t sample_limit=std::numeric_limits<size_t>::max());
 
         size_t estimateTextFileRowCount(size_t sample_size, const SamplingMode& mode);
         size_t estimateSampleBasedRowCount();
 
-        std::tuple<python::Type, python::Type> detectJsonTypesAndColumns(const ContextOptions& co, const std::vector<std::vector<std::string>>& columnNamesSampleCollection);
+        std::tuple<python::Type, python::Type> detectJsonTypesAndColumns(const ContextOptions& co,
+                                                                         const std::vector<std::vector<std::string>>& columnNamesSampleCollection);
 
         // for CSV, have here a global csv stat (that can get reset)
         // ??

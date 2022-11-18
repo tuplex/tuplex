@@ -15,7 +15,6 @@ echo ">> Clearing job folder if it exists"
 
 # run hyper mode
 echo ">> running with hyper mode, saving results to $RESDIR/hyper"
-mkdir -p $RESDIR/hyper
 SPLIT_SIZES=(16MB 32MB 64MB 128MB 256MB 512MB 1GB 2GB)
 for size in "${SPLIT_SIZES[@]}"; do
   echo ">> running for size $size"

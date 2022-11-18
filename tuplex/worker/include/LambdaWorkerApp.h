@@ -72,6 +72,10 @@ namespace tuplex {
             auto output_uri = URI(_settings.spillRootURI.toString() + "/original_request.json");
 
             auto vf = VirtualFileSystem::fromURI(output_uri).open_file(output_uri, VirtualFileMode::VFS_WRITE | VirtualFileMode::VFS_TEXTMODE);
+            if(!vf) {
+                logger().error("failed to store original request to path " + output_uri.toString());
+                return;
+            }
             vf->write(json_buf.c_str(), json_buf.size());
             vf->close();
             logger().info("stored invoke request under " + output_uri.toString());

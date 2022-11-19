@@ -2744,6 +2744,11 @@ namespace tuplex {
                 throw std::runtime_error("upcasting dict type " + type.desc() + " to dict type " + targetType.desc() + " not yet implemented");
             }
 
+            if(type.isConstantValued()) {
+                auto u = constantValuedTypeToLLVM(builder, type);
+                return upcastValue(builder, u, type.underlying(), targetType);
+            }
+
             throw std::runtime_error("can not generate code to upcast " + type.desc() + " to " + targetType.desc());
             return val;
         }

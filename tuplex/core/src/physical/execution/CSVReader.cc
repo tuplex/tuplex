@@ -624,7 +624,9 @@ namespace tuplex {
                 auto bytes_read = _rowFunctor(_userData, rowNumber, cells, cell_sizes);
                 auto resCode = bytes_read >= 0 ? ExceptionCode::SUCCESS : i64ToEC(-bytes_read);
                 _numRowsRead++;
-                std::cout<<"read row no="<<_numRowsRead<<std::endl;
+
+                // std::cout<<"read row no="<<_numRowsRead<<std::endl;
+
                 if(resCode != ExceptionCode::SUCCESS) {
                     using namespace std;
                     // serialize

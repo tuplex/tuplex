@@ -4277,6 +4277,8 @@ namespace tuplex {
         SerializableValue BlockGeneratorVisitor::upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue &val,
                                                                   const python::Type &type,
                                                                   const python::Type &targetType) {
+#warning "is this function redundant? check if it can be removed."
+
             if(!canUpcastType(type, targetType))
                 throw std::runtime_error("types " + type.desc() + " and " + targetType.desc() + " not compatible for upcasting");
 
@@ -4363,6 +4365,11 @@ namespace tuplex {
 
             if(type.isDictionaryType() && targetType.isDictionaryType()) {
                 error("upcasting dict type " + type.desc() + " to dict type " + targetType.desc() + " not yet implemented");
+            }
+
+            if(type.isConstantValued()) {
+                auto u = constantValuedTypeToLLVM(builder, type);
+                return upCastReturnType(builder, u, type.underlying(), targetType);
             }
 
             error("can not generate code to upcast " + type.desc() + " to " + targetType.desc());

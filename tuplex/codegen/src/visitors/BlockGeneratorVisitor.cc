@@ -468,9 +468,9 @@ namespace tuplex {
                     assert(uL->getType() == _env->doubleType());
                     assert(uR->getType() == _env->doubleType());
                     auto ret = SerializableValue(builder.CreateFAdd(uL, uR), nullptr);
-                    _env->printValue(builder, uL, "op1");
-                    _env->printValue(builder, uR, "op2");
-                    _env->printValue(builder, ret.val, "double op1 + op2: ");
+                    // _env->printValue(builder, uL, "op1");
+                    // _env->printValue(builder, uR, "op2");
+                    // _env->printValue(builder, ret.val, "double op1 + op2: ");
                     return ret;
                 } else
                     return SerializableValue(builder.CreateAdd(uL, uR), nullptr);
@@ -4490,7 +4490,7 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
-            _env->debugPrint(builder, "enter return statement!");
+            // _env->debugPrint(builder, "enter return statement!");
 
             SerializableValue retVal;
             if(ret->_expression) {

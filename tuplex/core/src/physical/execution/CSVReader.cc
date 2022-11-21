@@ -630,16 +630,18 @@ namespace tuplex {
 
 
                 // call functor
-                auto bytes_read = _rowFunctor(_userData, rowNumber, cells, cell_sizes);
-                auto resCode = bytes_read >= 0 ? ExceptionCode::SUCCESS : i64ToEC(-bytes_read);
+                int64_t bytes_read = _rowFunctor(_userData, rowNumber, cells, cell_sizes);
+                int64_t actual_bytes_read = std::max(bytes_read, 0L);
+                int64_t rc = - std::min(bytes_read, 0L);
+                auto ecCode = i64ToEC(rc);
                 _numRowsRead++;
 
-                if(resCode != ExceptionCode::SUCCESS) {
+                if(ecCode != ExceptionCode::SUCCESS) {
                     using namespace std;
                     // serialize
 
                     // output limit reached?
-                    if(ExceptionCode::OUTPUT_LIMIT_REACHED == resCode)
+                    if(ExceptionCode::OUTPUT_LIMIT_REACHED == ecCode)
                         break;
 
                     // TODO here: for 311 need to put row onto separate exception stack!
@@ -653,7 +655,7 @@ namespace tuplex {
 
                     // upgrade parse errors for slow path resolution
                     if(_makeParseErrorsInternal)
-                        resCode = ExceptionCode::BADPARSE_STRING_INPUT;
+                        ecCode = ExceptionCode::BADPARSE_STRING_INPUT;
 
 #ifndef NDEBUG
                     // // memory will be freed from runtime, do not bother...
@@ -671,7 +673,7 @@ namespace tuplex {
                     //              uint8_t* buf,
                     //              int64_t buf_size
                     if(_exceptionHandler)
-                        _exceptionHandler(_userData, ecToI64(resCode), _operatorID, rowNumber, reinterpret_cast<uint8_t*>(exception_buf), exception_buf_size);
+                        _exceptionHandler(_userData, ecToI64(ecCode), _operatorID, rowNumber, reinterpret_cast<uint8_t*>(exception_buf), exception_buf_size);
                 }
 
 #ifdef CSVREADER_USE_MALLOC

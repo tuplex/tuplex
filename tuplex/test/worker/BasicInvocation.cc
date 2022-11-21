@@ -1067,7 +1067,7 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
         auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path, co,
                                                                                    option<bool>::none,
                                                                                    option<char>::none, option<char>::none,
-                                                                                   {""}, {}, {}, {}, mode));
+                                                                                   std::vector<std::string>({""}), {}, {}, {}, mode));
         auto mapop = std::make_shared<MapOperator>(csvop, UDF(udf_code), csvop->columns());
         auto fop = std::make_shared<FileOutputOperator>(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
 

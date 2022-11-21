@@ -1198,7 +1198,7 @@ TEST(BasicInvocation, FlightsHyper) {
 
     // test files:
     // other: s3://tuplex-public/data/flights_all/flights_on_time_performance_2017_06.csv:134217728-201326592
-    input_uri = URI("s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_08.csv:134217728-201326592");
+    // input_uri = URI("s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_08.csv:134217728-201326592");
 
 
     auto file = tuplex::VirtualFileSystem::open_file(output_uri, VirtualFileMode::VFS_OVERWRITE);

@@ -98,6 +98,9 @@ namespace tuplex {
                 return rowType;
             }
             // use columns to serialize to get projected type
+            if(!rowType.isTupleType())
+                throw std::runtime_error("can't project row type, expected a tuple type but got " + rowType.desc());
+
             assert(rowType.isTupleType());
             // assert(rowType.parameters().size() == _columnsToSerialize.size());
 

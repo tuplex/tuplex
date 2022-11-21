@@ -1564,6 +1564,54 @@ namespace python {
     }
 
 
+    inline std::string decodeJSONStringGreedily(const std::string& str, size_t *length) {
+        size_t pos = 0;
+        std::stringstream ss;
+        if(str.size() < 2) {
+            if(length)
+                *length = 0;
+            return "";
+        }
+
+        // first char must be "
+        if(str.front() != '\"')
+            throw std::runtime_error("illegal char");
+        pos++;
+
+        while(pos < str.size()) {
+            auto c = str[pos];
+
+            if(pos + 1 < str.size()) {
+                if(c == '\\' && str[pos + 1] == '\"') {
+                    ss<<'\"';
+                    pos += 2;
+                    continue;
+                }
+            }
+
+            // single char
+            if(c == '\"')
+                break;
+            else {
+                ss<<c;
+                pos++;
+            }
+        }
+
+        // check that last char is "
+        if(str[pos] != '\"') {
+            if(length)
+                *length = 0;
+            return "";
+        } else {
+            pos++;
+        }
+
+        if(length)
+            *length = pos;
+        return ss.str();
+    }
+
     inline Type decodeEx(const std::string& s, size_t *end_position=nullptr, std::ostream* err_stream=nullptr) {
         if(s == "uninitialized") {
             Type t = Type::fromHash(-1);
@@ -1606,6 +1654,8 @@ namespace python {
         std::stack<std::string> compoundStack;
 
         std::stack<std::vector<StructEntry>> kvStack;
+
+        std::string json_constant_value;
 
         while(pos < s.length()) {
 
@@ -1781,6 +1831,10 @@ namespace python {
                     auto kv_pairs = kvStack.top();
                     kvStack.pop();
                     t = TypeFactory::instance().createOrGetStructuredDictType(kv_pairs);
+                } else if("_Constant" == compound_type) {
+                    auto underlying_type = topVec[0];
+                    t = TypeFactory::instance().createOrGetConstantValuedType(underlying_type, json_constant_value);
+                    json_constant_value = "";
                 } else {
                     if(err_stream)
                         *err_stream << "Unknown compound type '" << compound_type << "' encountered, can't create compound type. Returning unknown.";
@@ -1869,6 +1923,26 @@ namespace python {
             } else if(s[pos] == ',' || s[pos] == ' ' || s[pos] == '\t' || s[pos] == '\n') {
                 // skip ,
                 pos++;
+
+                // special case _Constant -> value field comes!
+                if(compoundStack.top() == "_Constant") {
+                    // check that next comes value
+                    if(s.substr(pos, strlen("value=")).compare("value=") != 0)
+                        throw std::runtime_error("invalid _Constant formatting");
+                    // decode the string (no nested structure allowed)
+                    pos += strlen("value=");
+
+                    // escape the json string...
+                    size_t json_length = 0;
+                    json_constant_value = decodeJSONStringGreedily(s.substr(pos), &json_length);
+                    pos += json_length;
+                }
+
+            } else if(s.substr(pos, strlen("_Constant[")).compare("_Constant[") == 0) {
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("_Constant");
+                numOpenSqBrackets++;
+                pos += strlen("_Constant[");
             } else {
                 std::stringstream ss;
                 ss<<"unknown token '"<<s[pos]<<"' in encoded type str '"<<s<<"' encountered.";
@@ -1940,15 +2014,15 @@ namespace python {
                 case TypeFactory::AbstractType::FUNCTION: {
                     return "Function[" + getParamsType().encode() + "," + getReturnType().encode() + "]";
                 }
-                // case TypeFactory::AbstractType::OPTIMIZED_CONSTANT: {
-                //     std::string s = "_Constant[" + underlying().desc() + ",value=";
-                //
-                //     // encode as json string (b.c. easy to parse)
-                //     s += escape_for_json(constant());
-                //
-                //     s += "]";
-                //     return s;
-                // }
+                case TypeFactory::AbstractType::OPTIMIZED_CONSTANT: {
+                     std::string s = "_Constant[" + underlying().desc() + ",value=";
+
+                     // encode as json string (b.c. easy to parse)
+                     s += tuplex::escape_for_json(constant());
+
+                     s += "]";
+                     return s;
+                }
                 default: {
                     //Logger::instance().defaultLogger().error("Unknown type " + desc() + " encountered, can't encode. Using unknown.");
 #ifdef NDEBUG

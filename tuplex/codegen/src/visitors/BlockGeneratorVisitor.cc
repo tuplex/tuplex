@@ -1594,9 +1594,9 @@ namespace tuplex {
                 assert(R);
                 assert(L);
 
-                _env->debugPrint(builder, "instruction " + opToString(op->_op));
-                _env->printValue(builder, L, "left  operand (L): ");
-                _env->printValue(builder, R, "right operand (R): ");
+                // _env->debugPrint(builder, "instruction " + opToString(op->_op));
+                // _env->printValue(builder, L, "left  operand (L): ");
+                // _env->printValue(builder, R, "right operand (R): ");
 
                 switch (op->_op) {
                     // plus
@@ -2864,9 +2864,7 @@ namespace tuplex {
                 auto var = slot->var.load(builder);
 
 #ifndef NDEBUG
-                if(slot->var.name  == "crs_dep_time")
-                    std::cout<<"critical var"<<std::endl;
-                _env->debugPrint(builder, "accessing var " + slot->var.name + " =", var.val);
+                // _env->debugPrint(builder, "accessing var " + slot->var.name + " =", var.val);
 #endif
                 addInstruction(var.val, var.size, var.is_null);
                 return;

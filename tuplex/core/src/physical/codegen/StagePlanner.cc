@@ -1058,12 +1058,13 @@ namespace tuplex {
             logger.info(ss.str());
         }
 
+        enable_cf = false; // <- do not use constant-folding for now...
 
         // node need to find some smart way to QUICKLY detect whether the optimization can be applied or should be rather skipped...
         codegen::StagePlanner planner(inputNode, operators, nc_threshold);
         planner.enableAll();
         planner.disableAll();
-        planner.enableNullValueOptimization();
+       //  planner.enableNullValueOptimization();
         planner.enableDelayedParsingOptimization();
         if(enable_cf)
             planner.enableConstantFoldingOptimization();

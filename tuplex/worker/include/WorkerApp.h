@@ -129,7 +129,7 @@ namespace tuplex {
         bool useInterpreterOnly;
         bool useCompiledGeneralPath;
         bool useFilterPromotion;
-
+        bool useConstantFolding;
 
         bool opportuneGeneralPathCompilation; // <-- whether to kick off query optimization as early on as possible
         bool useOptimizer; // <-- whether to use optimizer for hyper or not
@@ -141,7 +141,7 @@ namespace tuplex {
         WorkerSettings() : numThreads(1), normalBufferSize(WORKER_DEFAULT_BUFFER_SIZE),
         exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE),
         useInterpreterOnly(false), useCompiledGeneralPath(true),
-        opportuneGeneralPathCompilation(true), useFilterPromotion(false) {
+        opportuneGeneralPathCompilation(true), useFilterPromotion(false), useConstantFolding(false) {
 
             // set some options from defaults...
             auto opt = ContextOptions::defaults();
@@ -182,6 +182,8 @@ namespace tuplex {
             if(sampleLimitCount != other.sampleLimitCount)
                 return false;
             if(useFilterPromotion != other.useFilterPromotion)
+                return false;
+            if(useConstantFolding != other.useConstantFolding)
                 return false;
             if(!double_eq(normalCaseThreshold, other.normalCaseThreshold))
                 return false;

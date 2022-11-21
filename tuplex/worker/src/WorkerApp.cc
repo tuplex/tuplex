@@ -1508,7 +1508,7 @@ namespace tuplex {
         } else {
             ws.useOptimizer = true;
         }
-         it = req.settings().other().find("tuplex.optimizer.filterPromotion");
+        it = req.settings().other().find("tuplex.optimizer.filterPromotion");
         if(it != req.settings().other().end()) {
             ws.useFilterPromotion = stringToBool(it->second);
         } else {
@@ -1519,6 +1519,12 @@ namespace tuplex {
             ws.sampleLimitCount = std::stoull(it->second);
         } else {
             ws.sampleLimitCount = std::numeric_limits<size_t>::max();
+        }
+        it = req.settings().other().find("tuplex.optimizer.constantFoldingOptimization");
+        if(it != req.settings().other().end()) {
+            ws.useConstantFolding = stringToBool(it->second);
+        } else {
+            ws.useConstantFolding = false;
         }
 
         ws.numThreads = std::max(1ul, ws.numThreads);

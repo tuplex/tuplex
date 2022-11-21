@@ -34,6 +34,9 @@
 #warning "need S3 Test bucket to run these tests"
 #endif
 
+
+//   constexpr double nan = std::numeric_limits<double>::quiet_NaN();
+
 #include <CSVUtils.h>
 #include <procinfo.h>
 #include <FileUtils.h>
@@ -118,6 +121,12 @@ namespace tuplex {
         ws->set_spillrooturi(spillURI);
         ws->set_useinterpreteronly(interpreterOnly);
         ws->set_normalcasethreshold(nc_threshold);
+
+        // do not use optimizer?
+        auto& m = *ws->mutable_other();
+        m["tuplex.useLLVMOptimizer"] = "false";
+        m["tuplex.optimizer.constantFoldingOptimization"] = "false";
+
         req.set_allocated_settings(ws.release());
 
         // transfrom to json
@@ -1052,6 +1061,7 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
         auto enable_nvo = true; // test later with true! --> important for everything to work properly together!
         co.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", enable_nvo ? "true" : "false");
         co.set("tuplex.optimizer.constantFoldingOptimization", "true");
+        co.set("tuplex.optimizer.constantFoldingOptimization", "false");
         co.set("tuplex.sample.maxDetectionMemory", "32KB");
         codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
         auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path, co,
@@ -1172,13 +1182,16 @@ TEST(BasicInvocation, FlightsHyper) {
     int num_threads = 1;
     auto spillURI = std::string("spill_folder");
     bool use_hyper = false;
-    //use_hyper = true;
+    use_hyper = true;
     auto tstage = create_flights_pipeline(test_path, test_output_path, use_hyper);
 
     // transform to message
     // create message only for first file!
 //    auto input_uri = URI(cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_08.csv");
     auto input_uri = URI(cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv");
+
+    input_uri = URI("s3://tuplex-public/data/flights_all/flights_on_time_performance_2001_12.csv");
+
 //    input_uri = URI(flights_root + "flights_on_time_performance_2003_08.csv");
 //    input_uri = URI(flights_root + "flights_on_time_performance_2003_01.csv");
     auto output_uri = URI(test_output_path + (use_hyper ? string("output_hyper.csv") : string("output_general.csv")));
@@ -1202,14 +1215,14 @@ TEST(BasicInvocation, FlightsHyper) {
     app->processJSONMessage(json_message);
     app->shutdown();
 
-    // check size of ref file
-    uint64_t output_file_size = 0;
-    vfs.file_size("file://./general_processing/output_hyper.csv.csv", output_file_size);
-    cout<<"Output size of hyper file is: "<<output_file_size<<endl;
-    vfs.file_size("file://./general_processing/output_general.csv.csv", output_file_size);
-    cout<<"Output size of general file is: "<<output_file_size<<endl;
+//    // check size of ref file
+//    uint64_t output_file_size = 0;
+//    vfs.file_size("file://./general_processing/output_hyper.csv.csv", output_file_size);
+//    cout<<"Output size of hyper file is: "<<output_file_size<<endl;
+//    vfs.file_size("file://./general_processing/output_general.csv.csv", output_file_size);
+//    cout<<"Output size of general file is: "<<output_file_size<<endl;
 
-    // Output size of file is: 46046908 (general, no hyper)
+//    // Output size of file is: 46046908 (general, no hyper)
     // 46046908
 
     cout<<"Test done."<<endl;

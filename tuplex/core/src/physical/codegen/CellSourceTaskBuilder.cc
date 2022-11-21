@@ -278,7 +278,10 @@ namespace tuplex {
             return ret;
         }
 
-        SerializableValue CellSourceTaskBuilder::cachedParse(llvm::IRBuilder<>& builder, const python::Type& type, size_t colNo, llvm::Value* cellsPtr, llvm::Value* sizesPtr) {
+        SerializableValue CellSourceTaskBuilder::cachedParse(llvm::IRBuilder<>& builder,
+                                                             const python::Type& type, size_t colNo,
+                                                             llvm::Value* cellsPtr,
+                                                             llvm::Value* sizesPtr) {
             using namespace llvm;
 
             auto key = std::make_tuple(colNo, type);
@@ -286,6 +289,15 @@ namespace tuplex {
             //@TODO: there's an error here, i.e. need to force parsing for both general/normal first on path
             // to avoid domination errors in codegen.
             bool no_cache = true; // HACK to disable cachedParse.
+
+#ifndef NDEBUG
+            {
+                // perform parse
+                auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
+                auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(colNo)), "s" + std::to_string(colNo));
+                env().printValue(builder, cellStr, "cell no=" + std::to_string(colNo) + ":  ");
+            };
+#endif
 
             auto it = _parseCache.find(key);
             if(no_cache || it == _parseCache.end()) {

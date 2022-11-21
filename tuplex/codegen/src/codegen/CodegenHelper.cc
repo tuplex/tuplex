@@ -762,6 +762,9 @@ namespace tuplex {
                 size_t num_blocks = 0;
                 size_t num_instructions = 0;
                 for(auto& bb : func) {
+
+                    auto printed_enter = false;
+
                     for(auto& inst : bb) {
                         // only call printf IFF not a branching instruction and not a ret instruction
                         auto inst_ptr = &inst;
@@ -769,7 +772,16 @@ namespace tuplex {
                         if(!llvm::isa<llvm::BranchInst>(inst_ptr) && !llvm::isa<llvm::ReturnInst>(inst_ptr) && !llvm::isa<llvm::PHINode>(inst_ptr)) {
                             llvm::IRBuilder<> builder(inst_ptr);
                             llvm::Value *sConst = builder.CreateGlobalStringPtr(inst_name);
-                            llvm::Value *sFormat = builder.CreateGlobalStringPtr("%s\n");
+
+                            // print enter instruction
+                            if(!printed_enter) {
+                                llvm::Value* str = builder.CreateGlobalStringPtr("enter basic block " + bb.getName().str() + " ::\n");
+                                builder.CreateCall(printf_func, {str});
+                                printed_enter = true;
+                            }
+
+
+                            llvm::Value *sFormat = builder.CreateGlobalStringPtr("  %s\n");
                             builder.CreateCall(printf_func, {sFormat, sConst});
                             num_instructions++;
                         }

@@ -620,12 +620,19 @@ namespace tuplex {
                     }
                 }
 
+                {
+                    std::stringstream line;
+                    for(int i = 0; i < _numColumns; ++i)
+                        line<<"cell "<<i<<": "<<cells[i]<<"\n";
+                    // read:
+                    std::cout<<"reading row: "<<line.str()<<std::endl;
+                }
+
+
                 // call functor
                 auto bytes_read = _rowFunctor(_userData, rowNumber, cells, cell_sizes);
                 auto resCode = bytes_read >= 0 ? ExceptionCode::SUCCESS : i64ToEC(-bytes_read);
                 _numRowsRead++;
-
-                // std::cout<<"read row no="<<_numRowsRead<<std::endl;
 
                 if(resCode != ExceptionCode::SUCCESS) {
                     using namespace std;

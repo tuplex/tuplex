@@ -1172,7 +1172,7 @@ TEST(BasicInvocation, FlightsHyper) {
     int num_threads = 1;
     auto spillURI = std::string("spill_folder");
     bool use_hyper = false;
-    //use_hyper = true;
+    use_hyper = true;
     auto tstage = create_flights_pipeline(test_path, test_output_path, use_hyper);
 
     // transform to message
@@ -1182,6 +1182,11 @@ TEST(BasicInvocation, FlightsHyper) {
 //    input_uri = URI(flights_root + "flights_on_time_performance_2003_08.csv");
 //    input_uri = URI(flights_root + "flights_on_time_performance_2003_01.csv");
     auto output_uri = URI(test_output_path + (use_hyper ? string("output_hyper.csv") : string("output_general.csv")));
+
+    // test files:
+    // other: s3://tuplex-public/data/flights_all/flights_on_time_performance_2017_06.csv:134217728-201326592
+    input_uri = URI("s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_08.csv:134217728-201326592");
+
 
     auto file = tuplex::VirtualFileSystem::open_file(output_uri, VirtualFileMode::VFS_OVERWRITE);
     ASSERT_TRUE(file);

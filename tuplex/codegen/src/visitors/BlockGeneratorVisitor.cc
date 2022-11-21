@@ -549,9 +549,10 @@ namespace tuplex {
                 assert(uR->getType() == _env->doubleType());
 
                 // _env->printValue(builder, uR, "performing null check for div against value: ");
-
-                auto is_zero = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, uR, _env->f64Const(0.0));
-                 _env->printValue(builder, is_zero, "null check result: "); // <-- without this, code with sigsev is generated...
+                auto null_const = _env->f64Const(0.0);
+                assert(null_const->getType() == _env->doubleType());
+                auto is_zero = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, null_const, uR, "zerodiv_cmp");
+                // _env->printValue(builder, is_zero, "null check result: "); // <-- without this, code with sigsev is generated...
                 _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, is_zero);
             } // normal code goes on
 

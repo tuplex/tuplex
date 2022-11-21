@@ -292,10 +292,10 @@ namespace tuplex {
 
 #ifndef NDEBUG
             {
-                // perform parse
-                auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
-                auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(colNo)), "s" + std::to_string(colNo));
-                env().printValue(builder, cellStr, "cell no=" + std::to_string(colNo) + ":  ");
+                // // perform parse
+                // auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(colNo)), "x" + std::to_string(colNo));
+                // auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(colNo)), "s" + std::to_string(colNo));
+                // env().printValue(builder, cellStr, "cell no=" + std::to_string(colNo) + ":  ");
             };
 #endif
 

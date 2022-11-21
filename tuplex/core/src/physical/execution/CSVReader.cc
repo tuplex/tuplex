@@ -620,13 +620,13 @@ namespace tuplex {
                     }
                 }
 
-                {
-                    std::stringstream line;
-                    for(int i = 0; i < _numColumns; ++i)
-                        line<<"cell "<<i<<": "<<cells[i]<<"\n";
-                    // read:
-                    std::cout<<"reading row: "<<line.str()<<std::endl;
-                }
+                // {
+                //     std::stringstream line;
+                //     for(int i = 0; i < _numColumns; ++i)
+                //         line<<"cell "<<i<<": "<<cells[i]<<"\n";
+                //     // read:
+                //     std::cout<<"reading row: "<<line.str()<<std::endl;
+                // }
 
 
                 // call functor

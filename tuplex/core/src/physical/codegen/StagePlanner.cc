@@ -1058,13 +1058,11 @@ namespace tuplex {
             logger.info(ss.str());
         }
 
-        enable_cf = false; // <- do not use constant-folding for now...
-
         // node need to find some smart way to QUICKLY detect whether the optimization can be applied or should be rather skipped...
         codegen::StagePlanner planner(inputNode, operators, nc_threshold);
         planner.enableAll();
         planner.disableAll();
-       //  planner.enableNullValueOptimization();
+        planner.enableNullValueOptimization();
         planner.enableDelayedParsingOptimization();
         if(enable_cf)
             planner.enableConstantFoldingOptimization();
@@ -1083,11 +1081,11 @@ namespace tuplex {
             path_ctx.inputSchema = fop->getOptimizedOutputSchema();
             path_ctx.readSchema = fop->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
             path_ctx.columnsToRead = fop->columnsToSerialize();
-            // // print out columns & types!
-            // assert(fop->columns().size() == path_ctx.inputSchema.getRowType().parameters().size());
-            // for(unsigned i = 0; i < fop->columns().size(); ++i) {
-            //     std::cout<<"col "<<i<<" (" + fop->columns()[i] + ")"<<": "<<path_ctx.inputSchema.getRowType().parameters()[i].desc()<<std::endl;
-            // }
+             // print out columns & types!
+             assert(fop->columns().size() == path_ctx.inputSchema.getRowType().parameters().size());
+             for(unsigned i = 0; i < fop->columns().size(); ++i) {
+                 std::cout<<"col "<<i<<" (" + fop->columns()[i] + ")"<<": "<<path_ctx.inputSchema.getRowType().parameters()[i].desc()<<std::endl;
+             }
 
         } else {
             path_ctx.inputSchema = path_ctx.inputNode->getOutputSchema();
@@ -1108,6 +1106,23 @@ namespace tuplex {
         for(auto indicator : path_ctx.columnsToRead)
             numToRead += indicator;
         logger.info("specialized code reads: " + pluralize(numToRead, "column"));
+
+        {
+            std::stringstream ss;
+            // print out normal-case columns and types
+            unsigned pos = 0;
+            for(unsigned i = 0; i < path_ctx.columnsToRead.size(); ++i) {
+                if(path_ctx.columnsToRead[i]) {
+                    ss<<"column "<<i<<" '"<<path_ctx.columns()[pos]<<"': "<<path_ctx.inputSchema.getRowType().parameters()[pos].desc()<<"\n";
+                    pos++;
+                }
+            }
+
+            logger.info(ss.str());
+        }
+
+
+
         ctx.fastPathContext = path_ctx;
 
         auto generalCaseInputRowType = ctx.slowPathContext.inputSchema.getRowType();

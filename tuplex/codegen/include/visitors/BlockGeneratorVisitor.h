@@ -219,8 +219,10 @@ namespace codegen {
                     auto i1_type = llvm::Type::getInt1Ty(val->getContext());
                     assert(val->getType() == i1_type);
                     // need to flip condition.
-                    auto neg_val = builder.CreateSub(llvm::Constant::getIntegerValue(i1_type, llvm::APInt(1, true)), val);
+                    auto neg_val = lfb.env().i1neg(builder, val);
                     lfb.addException(builder, ExceptionCode::UNBOUNDLOCALERROR, neg_val);
+                    // update last block for lfb.
+                    lfb.setLastBlock(builder.GetInsertBlock());
                 }
             }
 

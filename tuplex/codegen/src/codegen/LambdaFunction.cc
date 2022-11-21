@@ -308,15 +308,15 @@ namespace tuplex {
             builder.CreateRet(builder.CreateZExt(ecCode, _env->i64Type()));
 
             builder.SetInsertPoint(normalBB);
-            this->_body = normalBB;
+            setLastBlock(normalBB);
             return builder;
         }
 
         llvm::IRBuilder<> LambdaFunctionBuilder::addException(llvm::IRBuilder<> &builder, ExceptionCode ec,
                                                               llvm::Value *condition) {
+            assert(condition && condition->getType() == _env->i1Type());
             return addException(builder, _env->i32Const(ecToI32(ec)), condition);
         }
-
 
         LambdaFunction LambdaFunction::getFromEnvironment(LLVMEnvironment &env, const std::string &funcName) {
             // check whether function can be retrieved from env and is also stored within the global map here

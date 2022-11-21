@@ -109,6 +109,12 @@ namespace tuplex {
             llvm::IRBuilder<> addException(llvm::IRBuilder<>& builder, ExceptionCode ec, llvm::Value *condition);
             llvm::IRBuilder<> addException(llvm::IRBuilder<>& builder, llvm::Value* ecCode, llvm::Value *condition);
 
+            inline LLVMEnvironment& env() const {
+                if(!_env)
+                    throw std::runtime_error("can't acccess LLVMEnvironment from LambdaFunctionBuilder");
+                return *_env;
+            }
+
             /*!
              * the original python return type of the function.
              * @return python::Type of the original function. NOT THE ROW TYPE.

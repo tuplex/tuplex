@@ -464,9 +464,15 @@ namespace tuplex {
                 auto uR = upCast(builder, R.val, type);
 
                 // choose floating point or integer operation
-                if (type->isDoubleTy())
-                    return SerializableValue(builder.CreateFAdd(uL, uR), nullptr);
-                else
+                if (type->isDoubleTy()) {
+                    assert(uL->getType() == _env->doubleType());
+                    assert(uR->getType() == _env->doubleType());
+                    auto ret = SerializableValue(builder.CreateFAdd(uL, uR), nullptr);
+                    _env->printValue(builder, uL, "op1");
+                    _env->printValue(builder, uR, "op2");
+                    _env->printValue(builder, ret.val, "double op1 + op2: ");
+                    return ret;
+                } else
                     return SerializableValue(builder.CreateAdd(uL, uR), nullptr);
             }
         }
@@ -538,7 +544,12 @@ namespace tuplex {
             // exception handling if switched on
             if (!_policy.allowUndefinedBehavior) {
                 // check if right side is zero
+                assert(uR->getType() == _env->doubleType());
+
+                _env->printValue(builder, uR, "performing null check for div against value: ");
+
                 auto iszero = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, uR, _env->f64Const(0.0));
+                _env->printValue(builder, iszero, "null check result: ");
                 _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, iszero);
             } // normal code goes on
 
@@ -1582,6 +1593,10 @@ namespace tuplex {
                 Value *L = SerialL.val;
                 assert(R);
                 assert(L);
+
+                _env->debugPrint(builder, "instruction " + opToString(op->_op));
+                _env->printValue(builder, L, "left  operand (L): ");
+                _env->printValue(builder, R, "right operand (R): ");
 
                 switch (op->_op) {
                     // plus
@@ -2849,7 +2864,9 @@ namespace tuplex {
                 auto var = slot->var.load(builder);
 
 #ifndef NDEBUG
-                //_env->debugPrint(builder, "accessing var " + slot->var.name + " =", var.val);
+                if(slot->var.name  == "crs_dep_time")
+                    std::cout<<"critical var"<<std::endl;
+                _env->debugPrint(builder, "accessing var " + slot->var.name + " =", var.val);
 #endif
                 addInstruction(var.val, var.size, var.is_null);
                 return;
@@ -4474,6 +4491,8 @@ namespace tuplex {
             assert(_blockStack.size() > 0);
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
+
+            _env->debugPrint(builder, "enter return statement!");
 
             SerializableValue retVal;
             if(ret->_expression) {

@@ -1011,8 +1011,8 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
                     "        else:\n"
                     "            # use model to determine everything and set into (join with weather data?)\n"
                     "            # i.e., extract here a couple additional columns & use them for features etc.!\n"
-                    "            crs_dep_time = float(row['CRS_DEP_TIME'])\n"
-                    "            crs_arr_time = float(row['CRS_ARR_TIME'])\n"
+                    "            crs_dep_time = row['CRS_DEP_TIME'] #1.0 #float(row['CRS_DEP_TIME'])\n"
+                    "            crs_arr_time = 1.0 #float(row['CRS_ARR_TIME'])\n"
                     "            crs_elapsed_time = float(row['CRS_ELAPSED_TIME'])\n"
                     "            carrier_delay = 1024 + 2.7 * crs_dep_time - 0.2 * crs_elapsed_time\n"
                     "            weather_delay = 2000 + 0.09 * carrier_delay * (carrier_delay - 10.0)\n"
@@ -1203,6 +1203,7 @@ TEST(BasicInvocation, FlightsHyper) {
     vfs = VirtualFileSystem::fromURI(input_uri);
     uint64_t input_file_size = 0;
     vfs.file_size(input_uri, input_file_size);
+    num_threads = 0;
     auto json_message = transformStageToReqMessage(tstage, input_uri.toPath(),
                                                    input_file_size, output_uri.toString(),
                                                    false,

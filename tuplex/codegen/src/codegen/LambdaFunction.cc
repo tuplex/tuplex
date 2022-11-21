@@ -301,6 +301,10 @@ namespace tuplex {
             // based on condition returns exception code or not
             // alters builder with new block!
             BasicBlock *normalBB = BasicBlock::Create(_env->getContext(), "next", builder.GetInsertBlock()->getParent());
+            auto bb_name = normalBB->getName().str();
+            std::cout<<"created block "<<bb_name<<std::endl;
+            if(bb_name == "next68")
+                std::cout<<"critical block"<<std::endl;
             BasicBlock *exceptionBB = BasicBlock::Create(_env->getContext(), "except", builder.GetInsertBlock()->getParent());
 
             builder.CreateCondBr(condition, exceptionBB, normalBB);
@@ -308,7 +312,7 @@ namespace tuplex {
             builder.CreateRet(builder.CreateZExt(ecCode, _env->i64Type()));
 
             builder.SetInsertPoint(normalBB);
-            this->_body = normalBB;
+            setLastBlock(normalBB);
             return builder;
         }
 

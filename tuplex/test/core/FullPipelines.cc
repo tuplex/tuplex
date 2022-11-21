@@ -615,6 +615,9 @@ TEST_F(PipelinesTest, GithubLocalVersion) {
     co.set("tuplex.executorMemory", "64MB");
     co.set("tuplex.driverMemory", "64MB");
 
+    co.set("tuplex.executorMemory", "1GB");
+    co.set("tuplex.driverMemory", "1GB");
+
     // deactivate optimizations (should be done alter again)
     // disable constant=folding opt for JSON
     co.set("tuplex.optimizer.constantFoldingOptimization", "false");
@@ -622,7 +625,7 @@ TEST_F(PipelinesTest, GithubLocalVersion) {
 
     co.set("tuplex.optimizer.filterPushdown", "true"); // <-- wip
 
-    co.set("tuplex.optimizer.selectionPushdown", "true"); // <-- requires access path detection to work.
+    co.set("tuplex.optimizer.selectionPushdown", "false"); // <-- requires access path detection to work.
 
     // hyper on/off
     //co.set("tuplex.experimental.hyperspecialization", "true");
@@ -644,6 +647,9 @@ TEST_F(PipelinesTest, GithubLocalVersion) {
                         "\t\treturn row['repo']['id']\n";
     // tiny example.
     string pattern = "../resources/hyperspecialization/github_daily/*.json.sample";
+
+    // test: has attribute errors??
+    pattern = "s3://tuplex-public/data/github_daily/2017*.json";
 
     // @TODO: for hyperspecialization active, need to support TakeOperator!!!
     auto sm = SamplingMode::LAST_FILE | SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS;

@@ -522,6 +522,8 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getLLVMBuilder();
 
+            assert(L && op && R);
+
             python::Type ltype = deoptimizedType(op->_left->getInferredType().withoutOption());
             python::Type rtype = deoptimizedType(op->_right->getInferredType().withoutOption());
 
@@ -546,11 +548,11 @@ namespace tuplex {
                 // check if right side is zero
                 assert(uR->getType() == _env->doubleType());
 
-                _env->printValue(builder, uR, "performing null check for div against value: ");
+                // _env->printValue(builder, uR, "performing null check for div against value: ");
 
-                auto iszero = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, uR, _env->f64Const(0.0));
-                _env->printValue(builder, iszero, "null check result: ");
-                _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, iszero);
+                auto is_zero = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, uR, _env->f64Const(0.0));
+                 _env->printValue(builder, is_zero, "null check result: "); // <-- without this, code with sigsev is generated...
+                _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, is_zero);
             } // normal code goes on
 
             return builder.CreateFDiv(uL, uR);

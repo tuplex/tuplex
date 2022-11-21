@@ -301,10 +301,6 @@ namespace tuplex {
             // based on condition returns exception code or not
             // alters builder with new block!
             BasicBlock *normalBB = BasicBlock::Create(_env->getContext(), "next", builder.GetInsertBlock()->getParent());
-            auto bb_name = normalBB->getName().str();
-            std::cout<<"created block "<<bb_name<<std::endl;
-            if(bb_name == "next68")
-                std::cout<<"critical block"<<std::endl;
             BasicBlock *exceptionBB = BasicBlock::Create(_env->getContext(), "except", builder.GetInsertBlock()->getParent());
 
             builder.CreateCondBr(condition, exceptionBB, normalBB);
@@ -318,9 +314,9 @@ namespace tuplex {
 
         llvm::IRBuilder<> LambdaFunctionBuilder::addException(llvm::IRBuilder<> &builder, ExceptionCode ec,
                                                               llvm::Value *condition) {
+            assert(condition && condition->getType() == _env->i1Type());
             return addException(builder, _env->i32Const(ecToI32(ec)), condition);
         }
-
 
         LambdaFunction LambdaFunction::getFromEnvironment(LLVMEnvironment &env, const std::string &funcName) {
             // check whether function can be retrieved from env and is also stored within the global map here

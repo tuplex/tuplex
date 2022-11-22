@@ -883,20 +883,21 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
 
     // deactivate optimizations (should be done alter again)
     // disable constant=folding opt for JSON
-    co.set("tuplex.optimizer.constantFoldingOptimization", "false");
+    co.set("tuplex.optimizer.constantFoldingOptimization", "true");
     co.set("tuplex.optimizer.filterPushdown", "true"); // <-- requires access path detection to work
-    co.set("tuplex.optimizer.selectionPushdown", "false"); // <-- requires access path detection to work.
+    co.set("tuplex.optimizer.selectionPushdown", "true"); // <-- requires access path detection to work.
     co.set("tuplex.optimizer.nullValueOptimization", "true");
     // hyper on/off
     co.set("tuplex.experimental.hyperspecialization", "true");
     //co.set("tuplex.experimental.hyperspecialization", "false");
+    co.set("tuplex.inputSplitSize", "128MB");
     co.set("tuplex.aws.lambdaMemory", "10000");
 
     // enable webui in order to collect statistics
     // co.set("tuplex.webui.enable", "true");
 
     // split size 512MB
-    co.set("tuplex.inputSplitSize", "512MB");
+    //co.set("tuplex.inputSplitSize", "512MB");
 
     Context c(co);
 
@@ -910,7 +911,7 @@ TEST_F(PipelinesTest, GithubLambdaVersion) {
     string pattern = "s3://tuplex-public/data/github_daily_sample/*.json.sample";
 
     // full data:
-    pattern = "s3://tuplex-public/data/github_daily/2017*.json";
+    pattern = "s3://tuplex-public/data/github_daily/*.json";
 
     // pattern = "s3://tuplex-public/data/github_daily/2013*.json";
     //     pattern = "s3://tuplex-public/data/github_daily/2011*.json,s3://tuplex-public/data/github_daily/2013*.json";

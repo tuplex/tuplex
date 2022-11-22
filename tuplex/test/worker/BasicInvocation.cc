@@ -505,6 +505,7 @@ TEST(BasicInvocation, SingleMessageDebug) {
     }
 #endif
 
+
     // start worker within same process to easier debug...
     auto app = make_unique<WorkerApp>(WorkerSettings());
 
@@ -522,7 +523,7 @@ TEST(BasicInvocation, SingleMessageDebug) {
 #ifndef __APPLE__
     message_path = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_26.json";
 #else
-    message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_26.json";
+    message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1.json";
 #endif
     auto message = fileToString(URI(message_path));
 

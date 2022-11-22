@@ -200,14 +200,18 @@ namespace tuplex {
     /// exchange could be via request response, files, shared memory? etc.
     class WorkerApp {
     public:
-        WorkerApp() = delete;
+        WorkerApp() : _logger(Logger::instance().logger("worker")), _threadEnvs(nullptr), _numThreads(0), _globallyInitialized(false), _syms(std::shared_ptr<TransformStage::JITSymbols>()) {
+#ifdef BUILD_WITH_CEREAL
+            // init type system for decoding
+            auto sym_table = SymbolTable::createFromEnvironment(nullptr);
+#endif
+            // set default reader size to 16MB
+            _readerBufferSize = 16 * 1024 * 1024;
+        }
         WorkerApp(const WorkerApp& other) =  delete;
 
         // create WorkerApp from settings
-        WorkerApp(const WorkerSettings& settings) : _threadEnvs(nullptr), _numThreads(0),
-                                                    _globallyInitialized(false), _has_python_resolver(false),
-                                                    _logger(Logger::instance().logger("worker")),
-                                                    _syms(std::shared_ptr<TransformStage::JITSymbols>()) {
+        WorkerApp(const WorkerSettings& settings) : WorkerApp() {
 
             // set default reader size to 16MB
             _readerBufferSize = 16 * 1024 * 1024;

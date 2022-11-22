@@ -1526,11 +1526,17 @@ namespace python {
         // note this function may be super slow...
         std::set<Type> classes;
         auto& factory = TypeFactory::instance();
-        std::lock_guard<std::mutex> lock(factory._typeMapMutex);
-        for(const auto& keyval : factory._typeMap) {
+        std::vector<int> hashes;
+        {
+            std::lock_guard<std::mutex> lock(factory._typeMapMutex);
+            for(const auto& keyval : factory._typeMap) {
+                hashes.emplace_back(keyval.first);
+            }
+        }
+        for(auto hash : hashes) {
             Type t;
-            t._hash = keyval.first;
-            if(keyval.first != _hash && isSubclass(t))
+            t._hash = hash;
+            if(hash != _hash && isSubclass(t))
                 classes.insert(t);
         }
 

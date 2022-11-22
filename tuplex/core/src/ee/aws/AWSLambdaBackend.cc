@@ -1012,7 +1012,8 @@ namespace tuplex {
         // set other fields for some other option settings
         std::vector<std::string> other_keys({"tuplex.experimental.opportuneCompilation",
                                              "tuplex.useLLVMOptimizer",
-                                             "tuplex.sample.maxDetectionRows"});
+                                             "tuplex.sample.maxDetectionRows",
+                                             "tuplex.optimizer.constantFoldingOptimization"});
         auto& m_map = *(ws->mutable_other());
         for(const auto& key : other_keys)
             m_map[key] = _options.get(key);

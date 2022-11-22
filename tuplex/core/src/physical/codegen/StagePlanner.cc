@@ -987,7 +987,7 @@ namespace tuplex {
     // HACK: magical experiment function!!!
     // HACK!
     void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size,
-                         double nc_threshold, size_t sample_limit) {
+                         double nc_threshold, size_t sample_limit, bool enable_cf) {
         auto& logger = Logger::instance().logger("hyper specializer");
         // run hyperspecialization using planner, yay!
         assert(stage);
@@ -1039,14 +1039,13 @@ namespace tuplex {
 
         // force resampling b.c. of thin layer
         Timer samplingTimer;
-        bool enable_cf = false;
         if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
             auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode); assert(fop);
             fop->setInputFiles({uri}, {file_size}, true, sample_limit);
 
-            if(fop->fileFormat() != FileFormat::OUTFMT_JSON) {
-                enable_cf = true;
-                logger.warn("Enabled constant-folding for now (not supported for JSON yet).");
+            if(fop->fileFormat() == FileFormat::OUTFMT_JSON) {
+                enable_cf = false;
+                logger.warn("Disabled constant-folding for now (not supported for JSON yet).");
             }
         }
 

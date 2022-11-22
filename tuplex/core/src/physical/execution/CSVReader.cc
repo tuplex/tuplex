@@ -628,6 +628,7 @@ namespace tuplex {
                 //     std::cout<<"reading row: "<<line.str()<<std::endl;
                 // }
 
+                // std::cout<<"reading row no="<<rowNumber<<"..."<<std::endl;
 
                 // call functor
                 int64_t bytes_read = _rowFunctor(_userData, rowNumber, cells, cell_sizes);
@@ -635,6 +636,8 @@ namespace tuplex {
                 int64_t rc = - std::min(bytes_read, static_cast<int64_t>(0));
                 auto ecCode = i64ToEC(rc);
                 _numRowsRead++;
+
+                // std::cout<<"row done, rc="<<rc<<"."<<std::endl;
 
                 if(ecCode != ExceptionCode::SUCCESS) {
                     using namespace std;

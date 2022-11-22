@@ -615,11 +615,10 @@ namespace tuplex {
 
                 // structured dict and regular dictionaries (JSON)
                 if(fieldType.isDictionaryType() && fieldType != python::Type::EMPTYDICT) {
-                    assert(!is_option_field); // --> need to implement if logic for this!
 
                     // serialize struct dict
                     if(fieldType.isStructuredDictionaryType()) {
-                        auto dict_type = types[i].isOptionType() ? types[i].getReturnType() : types[i];
+                        auto dict_type = types[i].withoutOption();
 
                         // struct dicts are a var field (ignore the special case here)
                         size = struct_dict_serialized_memory_size(*_env, builder, field, dict_type).val;
@@ -668,6 +667,8 @@ namespace tuplex {
                         serialized_idx++;
                         continue; // field done.
                     } else {
+                        assert(!is_option_field); // --> need to implement if logic for this!
+
                         field = builder.CreateCall(
                                 cJSONPrintUnformatted_prototype(_env->getContext(), _env->getModule().get()),
                                 {field});

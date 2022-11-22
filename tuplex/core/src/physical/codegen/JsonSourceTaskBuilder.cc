@@ -609,7 +609,9 @@ namespace tuplex {
                         // create phi nodes & store in flattened tuple
                         auto phi_val = value.val ? builder.CreatePHI(value.val->getType(), 2) : nullptr;
                         auto phi_size = value.size ? builder.CreatePHI(value.size->getType(), 2) : nullptr;
-                        auto is_null = env.i1neg(builder, is_present); // null when not present.
+                        auto phi_is_null = value.is_null ? builder.CreatePHI(env.i1Type(), 2) : nullptr;
+
+                        auto is_null = env.i1neg(builder, is_present); // null when not present or when retrieved value is null?
 
                         if(value.val) {
                             phi_val->addIncoming(value.val, bLastColumnDone);
@@ -618,6 +620,14 @@ namespace tuplex {
                         if(value.size) {
                             phi_size->addIncoming(value.size, bLastColumnDone);
                             phi_size->addIncoming(dummy.size, curBlock);
+                        }
+
+                        if(phi_is_null) {
+                            phi_is_null->addIncoming(value.is_null, bLastColumnDone);
+                            phi_is_null->addIncoming(env.i1Const(false), curBlock);
+
+                            // update isnull
+                            is_null = builder.CreateOr(is_null, phi_is_null);
                         }
 
                         ft.set(builder, {i}, phi_val, phi_size, is_null);
@@ -640,7 +650,7 @@ namespace tuplex {
 #endif
             } else {
                 assert(row_type.parameters().size() == 1);
-                auto dict_type = row_type.parameters()[0];
+                auto dict_type = row_type.parameters()[0].withoutOption();
                 assert(dict_type.isStructuredDictionaryType()); // <-- this should be true, or an alternative parsing strategy devised...
                 if(!dict_type.isStructuredDictionaryType())
                     throw std::runtime_error("parsing JSON files with type " + dict_type.desc() + " not yet implemented.");
@@ -664,6 +674,8 @@ namespace tuplex {
                                                       bool unwrap_first_level) {
             using namespace llvm;
 
+            auto& logger = Logger::instance().logger("codegen");
+
             FlattenedTuple ft(&env);
             ft.init(row_type);
             auto tuple_llvm_type = ft.getLLVMType();
@@ -686,6 +698,11 @@ namespace tuplex {
             auto args = mapLLVMFunctionArgs(F, {"parser", "out_tuple"});
 
             auto parser = args["parser"];
+
+            if(columns.empty()) {
+                logger.debug("no column specified means defaulting to no unwrap mode.");
+                unwrap_first_level = false;
+            }
 
             auto ft_parsed = json_parseRow(env, builder, row_type, columns, unwrap_first_level, true, parser, bMismatch);
             ft_parsed.storeTo(builder, args["out_tuple"]);

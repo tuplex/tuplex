@@ -133,8 +133,6 @@ namespace tuplex {
 
         private:
 
-            friend void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size, double nc_threshold);
-
             /*!
              * not always are all symbols generated, this here is a helper function to set
              * all symbols that are not contained within the llvm module to ""

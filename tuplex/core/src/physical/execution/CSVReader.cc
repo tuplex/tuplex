@@ -632,8 +632,8 @@ namespace tuplex {
 
                 // call functor
                 int64_t bytes_read = _rowFunctor(_userData, rowNumber, cells, cell_sizes);
-                int64_t actual_bytes_read = std::max(bytes_read, 0L);
-                int64_t rc = - std::min(bytes_read, 0L);
+                int64_t actual_bytes_read = std::max(bytes_read, static_cast<int64_t>(0));
+                int64_t rc = - std::min(bytes_read, static_cast<int64_t>(0));
                 auto ecCode = i64ToEC(rc);
                 _numRowsRead++;
 

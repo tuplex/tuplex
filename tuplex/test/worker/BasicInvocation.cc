@@ -519,6 +519,8 @@ TEST(BasicInvocation, SingleMessageDebug) {
 
     auto message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_16.json";
 
+    message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_26.json";
+
     auto message = fileToString(URI(message_path));
 
     // check individual messages that they work

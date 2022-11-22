@@ -609,7 +609,9 @@ namespace tuplex {
                         // create phi nodes & store in flattened tuple
                         auto phi_val = value.val ? builder.CreatePHI(value.val->getType(), 2) : nullptr;
                         auto phi_size = value.size ? builder.CreatePHI(value.size->getType(), 2) : nullptr;
-                        auto is_null = env.i1neg(builder, is_present); // null when not present.
+                        auto phi_is_null = value.is_null ? builder.CreatePHI(env.i1Type(), 2) : nullptr;
+
+                        auto is_null = env.i1neg(builder, is_present); // null when not present or when retrieved value is null?
 
                         if(value.val) {
                             phi_val->addIncoming(value.val, bLastColumnDone);
@@ -618,6 +620,14 @@ namespace tuplex {
                         if(value.size) {
                             phi_size->addIncoming(value.size, bLastColumnDone);
                             phi_size->addIncoming(dummy.size, curBlock);
+                        }
+
+                        if(phi_is_null) {
+                            phi_is_null->addIncoming(value.is_null, bLastColumnDone);
+                            phi_is_null->addIncoming(env.i1Const(false), curBlock);
+
+                            // update isnull
+                            is_null = builder.CreateOr(is_null, phi_is_null);
                         }
 
                         ft.set(builder, {i}, phi_val, phi_size, is_null);

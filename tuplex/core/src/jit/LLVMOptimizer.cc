@@ -71,11 +71,15 @@ namespace tuplex {
 
     // these are the default passes used
     void generateFunctionPassesI(llvm::legacy::FunctionPassManager& fpm) {
-        
+
+#ifndef NDEBUG
+        // add lint pass in debug mode to identify problems quickly!
+        fpm.add(createLintPass());
+#endif
+
         // perform first some dead code elimination to ease pressure on following passes
         fpm.add(createDeadCodeEliminationPass());
-        //fpm.add(createDeadArgEliminationPass());
-        //fpm.add(createDeadStoreEliminationPass());
+        fpm.add(createDeadStoreEliminationPass());
         
         
 //        // function-wise passes
@@ -91,8 +95,15 @@ namespace tuplex {
         fpm.add(createPromoteMemoryToRegisterPass()); // mem2reg pass
         fpm.add(createAggressiveDCEPass());
 
+        fpm.add(createSinkingPass());
+        fpm.add(createCFGSimplificationPass());
+        fpm.add(createAggressiveInstCombinerPass());
 
-        // try here instruction combining pass...
+        fpm.add(createAggressiveDCEPass());
+
+        // // try here instruction combining pass...
+        // buggy...
+        // // fpm.add(createInstructionCombiningPass(true));
 
         // custom added passes
         // ==> Tuplex is memcpy heavy, i.e. optimize!

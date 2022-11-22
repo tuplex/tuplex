@@ -73,14 +73,14 @@ namespace tuplex {
     void generateFunctionPassesI(llvm::legacy::FunctionPassManager& fpm) {
         
         // perform first some dead code elimination to ease pressure on following passes
+        fpm.add(createDeadCodeEliminationPass());
         //fpm.add(createDeadArgEliminationPass());
-        //fpm.add(createDeadCodeEliminationPass());
         //fpm.add(createDeadStoreEliminationPass());
         
         
-        // function-wise passes
+//        // function-wise passes
         fpm.add(createSROAPass()); // break up aggregates
-        fpm.add(createInstructionCombiningPass());
+        //fpm.add(createInstructionCombiningPass()); // <-- this pass here fails. It has all the powerful patterns though...
         fpm.add(createReassociatePass());
         fpm.add(createGVNPass());
         fpm.add(createCFGSimplificationPass());
@@ -91,10 +91,13 @@ namespace tuplex {
         fpm.add(createPromoteMemoryToRegisterPass()); // mem2reg pass
         fpm.add(createAggressiveDCEPass());
 
+
+        // try here instruction combining pass...
+
         // custom added passes
         // ==> Tuplex is memcpy heavy, i.e. optimize!
         fpm.add(createMemCpyOptPass()); // !!! use this pass for sure !!! It's quite expensive first, but it pays off big time.
-        
+
         // create sel prep pass
         fpm.add(createCodeGenPreparePass());
     }
@@ -111,21 +114,21 @@ namespace tuplex {
         for(Function& f: mod.getFunctionList())
             fpm->run(f);
 
-        //// on current master, module optimizations are deactivated. Inlining seems to worsen things!
-        // // Step 2: optimize over whole module
-        // // Module passes (function inlining)
-        // legacy::PassManager pm;
-        // // inline functions now
-        // pm.add(createGlobalDCEPass()); // remove dead globals
-        // pm.add(createConstantMergePass()); // merge global constants
-        // pm.add(createFunctionInliningPass());
-        // pm.add(createDeadArgEliminationPass());
-        // pm.run(mod);
+        // on current master, module optimizations are deactivated. Inlining seems to worsen things!
+         // Step 2: optimize over whole module
+         // Module passes (function inlining)
+         legacy::PassManager pm;
+         // inline functions now
+         pm.add(createGlobalDCEPass()); // remove dead globals
+         pm.add(createConstantMergePass()); // merge global constants
+         pm.add(createFunctionInliningPass(200)); // 250 is O3 threshold.
+         pm.add(createDeadArgEliminationPass());
+         pm.run(mod);
 
-        // // run per function pass again
-        //// run function passes over each function in the module
-        //for(Function& f: mod.getFunctionList())
-        //    fpm->run(f);
+         // run per function pass again
+        // run function passes over each function in the module
+        for(Function& f: mod.getFunctionList())
+            fpm->run(f);
     }
 
     // // these are the default passes used
@@ -286,12 +289,12 @@ namespace tuplex {
 
     void LLVMOptimizer::optimizeModule(llvm::Module &mod) {
         // OptLevel 3, SizeLevel 0
-        Optimize(mod, 3, 0);
+       // Optimize(mod, 3, 0);
         
-        //Optimize(mod, 2, 0);
+        // Optimize(mod, 2, 0);
 
         // // perform some basic passes (for fast opt) -> defer complex logic to general-case.
-        //optimizePipelineI(mod);
+        optimizePipelineI(mod);
 
     }
 

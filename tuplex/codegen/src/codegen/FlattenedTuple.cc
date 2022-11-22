@@ -1057,7 +1057,29 @@ namespace tuplex {
         llvm::Value* FlattenedTuple::alloc(llvm::IRBuilder<> &builder, const std::string& twine) const {
             // copy structure llvm like out
             auto llvmType = getLLVMType();
-            return _env->CreateFirstBlockAlloca(builder, llvmType, twine);
+
+            auto cb = getFirstBlockBuilder(builder);
+            auto tuple_ptr = cb.CreateAlloca(llvmType, 0, nullptr, twine);
+
+            // get tuple indices and initialize values!
+            for(unsigned i = 0; i < _flattenedTupleType.parameters().size(); ++i) {
+                auto indices = getTupleIndices(_flattenedTupleType, i);
+
+                int val_idx=-1, size_idx=-1, bitmap_idx=-1;
+                std::tie(val_idx, size_idx, bitmap_idx) = indices;
+
+                if(val_idx >= 0) {
+                    auto nc = _env->nullConstant(llvmType->getStructElementType(val_idx));
+                    cb.CreateStore(nc, cb.CreateStructGEP(tuple_ptr, val_idx));
+                }
+                if(size_idx >= 0) {
+                    cb.CreateStore(_env->i64Const(0), cb.CreateStructGEP(tuple_ptr, size_idx));
+                }
+            }
+
+            return tuple_ptr;
+            // // create tuple & initialize with values!
+            // return _env->CreateFirstBlockAlloca(builder, llvmType, twine);
         }
 
         void FlattenedTuple::storeTo(llvm::IRBuilder<> &builder, llvm::Value *ptr, bool is_volatile) const {

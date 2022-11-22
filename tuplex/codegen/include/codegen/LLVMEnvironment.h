@@ -957,6 +957,7 @@ namespace tuplex {
                 auto ctorBuilder = getFirstBlockBuilder(builder);
                 auto llvmType = initialValue->getType();
                 auto res = ctorBuilder.CreateAlloca(llvmType, 0, nullptr, name);
+                res->setAlignment(0);
                 ctorBuilder.CreateStore(initialValue, res);
                 assert(res);
                 return res;

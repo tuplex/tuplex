@@ -807,8 +807,11 @@ namespace tuplex {
             return SerializableValue(builder.CreateLoad(bufVar), sizeWritten);
         }
 
-        llvm::Value *BlockGeneratorVisitor::numericCompareInst(llvm::IRBuilder<>& builder, llvm::Value *L, const python::Type &leftType,
-                                                               const TokenType &tt, llvm::Value *R,
+        llvm::Value *BlockGeneratorVisitor::numericCompareInst(llvm::IRBuilder<>& builder,
+                                                               llvm::Value *L,
+                                                               const python::Type &leftType,
+                                                               const TokenType &tt,
+                                                               llvm::Value *R,
                                                                const python::Type &rightType) {
             assert(L);
             assert(R);
@@ -856,16 +859,13 @@ namespace tuplex {
                     break;
 
                 default:
-                    error(
-                            "could not generate valid LLVM instruction for operator " + opToString(tt));
+                    error("could not generate valid LLVM instruction for operator " + opToString(tt));
                     return nullptr;
             }
 
             // create cmp instruction
-            if (floatType)
-                return _env->upcastToBoolean(builder, builder.CreateFCmp(predicate, uL, uR));
-            else
-                return _env->upcastToBoolean(builder, builder.CreateICmp(predicate, uL, uR));
+            auto res = floatType ? builder.CreateFCmp(predicate, uL, uR) : builder.CreateICmp(predicate, uL, uR);
+            return _env->upcastToBoolean(builder, builder.CreateSelect(res, _env->i1Const(true), _env->i1Const(false)));
         }
 
 

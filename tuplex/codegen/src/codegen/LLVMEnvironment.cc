@@ -453,6 +453,12 @@ namespace tuplex {
                 }
             }
 
+            if(num_bitmap_entries > 0) {
+                auto first_type = members.front();
+                assert(first_type->isArrayTy());
+                assert(first_type->getArrayNumElements() % 64 == 0); // rounded
+            }
+
             llvm::ArrayRef<llvm::Type *> llvm_members(members);
             assert(!packed);
             llvm::Type *structType = llvm::StructType::create(ctx, llvm_members, "struct." + twine, packed);

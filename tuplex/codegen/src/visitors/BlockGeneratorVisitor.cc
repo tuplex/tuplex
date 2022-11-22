@@ -2251,17 +2251,16 @@ namespace tuplex {
 
             // create combined type & alloc var!
             auto restype_py = ifelse->getInferredType();
-            auto restype_llvm = _env->pythonToLLVMType(
-                    restype_py.isOptionType() ? restype_py.getReturnType() : restype_py);
+            auto restype_llvm = _env->pythonToLLVMType(restype_py.withoutOption());
 
             if (restype_py.isTupleType())
                 error("tuple type as result of if-else expression not yet supported.");
 
             // Note: variable alloc should go into constructor block!
             // create alloca for result variable
-            auto result_var = builder.CreateAlloca(restype_llvm, 0, nullptr);
-            auto result_size = builder.CreateAlloca(_env->i64Type(), 0, nullptr);
-            auto result_isnull = builder.CreateAlloca(_env->i1Type(), 0, nullptr);
+            auto result_var = _env->CreateFirstBlockAlloca(builder, restype_llvm); //builder.CreateAlloca(restype_llvm, 0, nullptr);
+            auto result_size = _env->CreateFirstBlockVariable(builder, _env->i64Const(0)); //builder.CreateAlloca(_env->i64Type(), 0, nullptr);
+            auto result_isnull = _env->CreateFirstBlockVariable(builder, _env->i1Const(false)); //builder.CreateAlloca(_env->i1Type(), 0, nullptr);
             builder.CreateStore(_env->i1Const(false), result_isnull); // per default set it as valid!
             builder.CreateStore(_env->i64Const(0), result_size); // store dummy val of 0 in it.
 

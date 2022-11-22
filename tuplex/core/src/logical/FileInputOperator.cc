@@ -1459,7 +1459,38 @@ namespace tuplex {
         return v;
     }
 
-    std::vector<Row> FileInputOperator::sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode) {
+    std::vector<Row> csv_parseRows(const char* buf, size_t buf_size, size_t expected_column_count, size_t range_start,
+                                   char delimiter, char quotechar, const std::vector<std::string>& null_values, size_t limit) {
+        auto sample_length = std::min(buf_size - 1, strlen(buf));
+        auto end = buf + sample_length;
+
+        size_t start_offset = 0;
+        // range start != 0?
+        if(0 != range_start) {
+            start_offset = csvFindLineStart(buf, sample_length, expected_column_count, delimiter, quotechar);
+            if(start_offset < 0)
+                return {};
+            sample_length -= std::min((size_t)start_offset, sample_length);
+        }
+
+        // parse as rows using the settings detected.
+        std::vector<Row> v;
+        ExceptionCode ec;
+        std::vector<std::string> cells;
+        size_t num_bytes = 0;
+        const char* p = buf + start_offset;
+        while(p < end && (ec = parseRow(p, end, cells, num_bytes, delimiter, quotechar, false)) == ExceptionCode::SUCCESS) {
+            // convert cells to row
+            v.push_back(cellsToRow(cells, null_values));
+            cells.clear();
+            p += num_bytes;
+            if(v.size() >= limit)
+                break;
+        }
+        return v;
+    }
+
+    std::vector<Row> FileInputOperator::sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode, size_t sample_limit) {
         auto& logger = Logger::instance().logger("logical");
         std::vector<Row> v;
         assert(mode & SamplingMode::FIRST_ROWS || mode & SamplingMode::LAST_ROWS || mode & SamplingMode::RANDOM_ROWS);
@@ -1501,20 +1532,9 @@ namespace tuplex {
         // check file sampling modes & then load the samples accordingly
         if(m & SamplingMode::FIRST_ROWS) {
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::FIRST_ROWS, true);
-            auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str()));
-
-            size_t start_offset = 0;
-            // range start != 0?
-            if(0 != range_start) {
-                start_offset = csvFindLineStart(sample.c_str(), sample_length, expectedColumnCount, _delimiter, _quotechar);
-                if(start_offset < 0)
-                    return {};
-                sample_length -= std::min((size_t)start_offset, sample_length);
-            }
 
             // parse as rows using the settings detected.
-            v = parseRows(sample.c_str() + start_offset, sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
-                          _null_values, _delimiter, _quotechar);
+            v = csv_parseRows(sample.c_str(), sample.size(), expectedColumnCount, range_start, _delimiter, _quotechar, _null_values, sample_limit);
 
             // header? ignore first row!
             if(0 == range_start && _header && !v.empty())
@@ -1531,8 +1551,8 @@ namespace tuplex {
                     offset = _samplingSize - (uri_size - _samplingSize);
                     assert(offset <= _samplingSize);
                 }
-                auto rows = parseRows(sample.c_str() + offset, sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
-                                            _null_values, _delimiter, _quotechar);
+                assert(offset <= sample.size());
+                auto rows = csv_parseRows(sample.c_str() + offset, sample.size() - offset, expectedColumnCount, offset, _delimiter, _quotechar, _null_values, sample_limit);
                 // offset = 0?
                 if(file_offset == 0) {
                     // header? ignore first row!
@@ -1543,8 +1563,7 @@ namespace tuplex {
                 std::copy(rows.begin(), rows.end(), std::back_inserter(v));
 
             } else {
-                v = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
-                                _null_values, _delimiter, _quotechar);
+                v = csv_parseRows(sample.c_str(), sample.size(), expectedColumnCount, file_offset, _delimiter, _quotechar, _null_values, sample_limit);
 
                 // offset = 0?
                 if(file_offset == 0) {
@@ -1563,8 +1582,7 @@ namespace tuplex {
 
             // detect csv start ?? -> test.
             // parse as rows using the settings detected.
-            auto rows = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
-                          _null_values, _delimiter, _quotechar);
+            auto rows = csv_parseRows(sample.c_str(), sample.size(), expectedColumnCount, file_offset, _delimiter, _quotechar, _null_values, sample_limit);
 
             // offset = 0?
             if(file_offset == 0) {

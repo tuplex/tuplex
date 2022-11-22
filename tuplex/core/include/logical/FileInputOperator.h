@@ -207,7 +207,7 @@ namespace tuplex {
         // sampling functions
         std::vector<Row> sample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames=nullptr, size_t sample_limit=std::numeric_limits<size_t>::max());
         std::vector<Row> multithreadedSample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames, size_t sample_limit);
-        std::vector<Row> sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
+        std::vector<Row> sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode, size_t sample_limit);
         std::vector<Row> sampleTextFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         std::vector<Row> sampleORCFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         std::vector<Row> sampleJsonFile(const URI& uri, size_t uri_size, const SamplingMode& mode,
@@ -232,7 +232,7 @@ namespace tuplex {
 
             switch(_fmt) {
                 case FileFormat::OUTFMT_CSV: {
-                    return sampleCSVFile(uri, uri_size, mode);
+                    return sampleCSVFile(uri, uri_size, mode, sample_limit);
                 }
                 case FileFormat::OUTFMT_TEXT: {
                     return sampleTextFile(uri, uri_size, mode);

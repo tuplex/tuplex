@@ -155,7 +155,7 @@ namespace tuplex {
             if(inputNode) {
                 inputNode->setID(_inputNode->getID());
                 if(inputNode->type() == LogicalOperatorType::FILEINPUT)
-                    std::dynamic_pointer_cast<FileInputOperator>(inputNode)->cloneCaches(*_inputNode.get());
+                    std::dynamic_pointer_cast<FileInputOperator>(inputNode)->cloneCaches(*((FileInputOperator*)_inputNode.get()));
             }
 
 
@@ -772,7 +772,7 @@ namespace tuplex {
             vector<std::shared_ptr<LogicalOperator>> opt_ops;
             std::shared_ptr<LogicalOperator> lastNode = nullptr;
             auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode->clone());
-            fop->cloneCaches(*_inputNode.get()); // copy samples!
+            fop->cloneCaches(*((FileInputOperator*)_inputNode.get())); // copy samples!
 
             // need to restrict potentially?
             RetypeConfiguration r_conf;

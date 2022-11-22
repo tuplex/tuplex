@@ -74,6 +74,12 @@ namespace tuplex {
                                                                                                 VirtualFile::VirtualFile(uri, mode),
                                                                                                 _requestPayer(requestPayer), _bufferSize(5 * 1024 * 1024 + 100) {
             // 1024 * 1024 * 5 + 100; ///! for debug reasons, set 5MB + 100B buffer
+
+            // in release mode use larger buffer
+#ifdef NDEBUG
+           _bufferSize = 1024 * 1024 * 64; ///! size of the buffer, set here to 64MB buffer
+#endif
+
             init();
         }
 
@@ -118,12 +124,7 @@ namespace tuplex {
 
         uint8_t *_buffer; ///! buffers
         size_t _bufferLength; ///! how many valid bytes are stored in buffer
-
-#ifdef NDEBUG
-        static const size_t _bufferSize = 1024 * 1024 * 64; ///! size of the buffer, set here to 64MB buffer
-#else
         size_t _bufferSize;
-#endif
 
         // buffer size should be more than 5MB!
         // this is because parts needs to be at least 5MB for multipart upload

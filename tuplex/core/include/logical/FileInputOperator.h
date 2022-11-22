@@ -482,6 +482,9 @@ namespace tuplex {
         FileFormat fileFormat() const { return _fmt; }
         std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
 
+        // transfer caches
+        void cloneCaches(const FileInputOperator& other);
+
         void setProjectionDefaults();
 
         int64_t cost() const override;

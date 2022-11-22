@@ -246,7 +246,7 @@ namespace tuplex {
         // MessageHandler& logger = Logger::instance().logger("s3fs");
 
         // only if larger than limit!
-        if(_bufferLength < 5 * 1024 * 1024) {
+        if(_bufferLength < 5 * 1024 * 1024) { // the 5MB is an AWS limit.
 
             // enough soace left to hold additional bytes?
             if(_bufferLength + additional_space_required > _bufferSize) {

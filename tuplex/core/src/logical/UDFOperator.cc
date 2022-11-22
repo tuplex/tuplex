@@ -59,10 +59,14 @@ namespace tuplex {
                     logger.debug("static retyping resulted in UDF producing always exceptions. Try hinting with sample...");
                 Timer s_timer;
                 auto rows_sample = parent()->getPythonicSample(MAX_TYPE_SAMPLING_ROWS);
-                logger.debug("retrieving pythonic sample took: " + std::to_string(s_timer.time()) + "s");
-                _udf.removeTypes(true);
-                success = _udf.hintSchemaWithSample(rows_sample,
-                                                    conf.row_type, true);
+                if(!rows_sample.empty()) {
+                    logger.debug("retrieving pythonic sample took: " + std::to_string(s_timer.time()) + "s");
+                    _udf.removeTypes(true);
+                    success = _udf.hintSchemaWithSample(rows_sample,
+                                                        conf.row_type, true);
+                } else {
+                    logger.info("could not retrieve sample, typing fails. Could do randomized typing.");
+                }
                 if(!success) {
                     logger.debug("no success typing UDF - even with sample.");
                 }

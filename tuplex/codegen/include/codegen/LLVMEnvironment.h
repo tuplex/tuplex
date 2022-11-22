@@ -341,6 +341,18 @@ namespace tuplex {
                     return llvm::ConstantFP::get(_context, llvm::APFloat(0.0));
                 } else if(type->isPointerTy()) {
                     return llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(type));
+                } else if(type->isStructTy()) {
+                    std::vector<llvm::Constant*> members;
+                    for(unsigned i = 0; i < type->getStructNumElements(); ++i) {
+                        members.push_back(nullConstant(type->getStructElementType(i)));
+                    }
+                    llvm::ArrayRef<llvm::Constant*> ref(members);
+                    return llvm::ConstantStruct::get(llvm::cast<llvm::StructType>(type), ref);
+                } else if(type->isArrayTy()) {
+                    auto num_elements = type->getArrayNumElements();
+                    std::vector<llvm::Constant*> members(num_elements, nullConstant(type->getArrayElementType()));
+                    llvm::ArrayRef<llvm::Constant*> ref(members);
+                    return llvm::ConstantArray::get(llvm::cast<llvm::ArrayType>(type), ref);
                 } else {
                     throw std::runtime_error("unknown type to null found");
                 }

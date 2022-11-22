@@ -240,7 +240,7 @@ namespace tuplex {
     }
 
     void S3File::uploadAndResetBufferIfFull() {
-        MessageHandler& logger = Logger::instance().logger("s3fs");
+        // MessageHandler& logger = Logger::instance().logger("s3fs");
 
         // only if larger than limit!
         if(_bufferLength < 5 * 1024 * 1024)
@@ -258,17 +258,17 @@ namespace tuplex {
 
             // check if limit of 10,000 was reached. If so, abort!
             uploadPart();
-            logger.info("initiated multiupload, first part with size=" + std::to_string(part_size) + " uploaded.");
+            // logger.info("initiated multiupload, first part with size=" + std::to_string(part_size) + " uploaded.");
         } else {
             // append another multipart upload part
             uploadPart();
-            logger.info("uploaded another part with size=" + std::to_string(part_size) + ".");
+            // logger.info("uploaded another part with size=" + std::to_string(part_size) + ".");
         }
     }
 
     VirtualFileSystemStatus S3File::write(const void *buffer, uint64_t bufferSize) {
 
-        MessageHandler& logger = Logger::instance().logger("s3fs");
+        // MessageHandler& logger = Logger::instance().logger("s3fs");
 
         // make sure file is not yet uploaded
         if(_fileUploaded) {
@@ -279,7 +279,7 @@ namespace tuplex {
         if(0 == bufferSize)
             return VirtualFileSystemStatus::VFS_OK;
 
-        logger.info("Writing buffer of size " + std::to_string(bufferSize));
+        // logger.info("Writing buffer of size " + std::to_string(bufferSize));
 
         // what if buffer size is larger than internal buffer?
         // ==> invoke write in chunks (max-chunk size = internal buffer size!)

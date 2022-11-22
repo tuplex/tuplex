@@ -519,8 +519,11 @@ TEST(BasicInvocation, SingleMessageDebug) {
 
     auto message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_16.json";
 
+#ifndef __APPLE__
     message_path = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_26.json";
-
+#else
+    message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_26.json";
+#endif
     auto message = fileToString(URI(message_path));
 
     // check individual messages that they work

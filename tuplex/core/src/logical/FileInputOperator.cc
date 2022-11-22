@@ -322,6 +322,14 @@ namespace tuplex {
             // make type more general (to cover potentially more!)
             generalcasetype = generalize_type(generalcasetype);
 
+            // special case, no unwrap -> remove inner option.
+            if(!unwrap_first_level) {
+                if(generalcasetype.isTupleType())
+                    generalcasetype = python::Type::makeTupleType(std::vector<python::Type>({generalcasetype.parameters().front().withoutOption()}));
+                else
+                    generalcasetype = generalcasetype.withoutOption();
+            }
+
             // check
             logger.debug("JSON - normal case type: " + normalcasetype.desc());
             logger.debug("JSON - general case type: " + generalcasetype.desc());
@@ -1143,6 +1151,14 @@ namespace tuplex {
 
                 // make even more general
                 generalcase = generalize_type(generalcase);
+
+                // special case, no unwrap -> remove inner option.
+                if(!_json_unwrap_first_level) {
+                    if(generalcase.isTupleType())
+                        generalcase = python::Type::makeTupleType(std::vector<python::Type>({generalcase.parameters().front().withoutOption()}));
+                    else
+                        generalcase = generalcase.withoutOption();
+                }
 
                 _normalCaseRowType = normalcase;
                 _generalCaseRowType = generalcase;

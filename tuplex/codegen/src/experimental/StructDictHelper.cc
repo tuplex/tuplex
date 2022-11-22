@@ -699,9 +699,16 @@ namespace tuplex {
                     assert(b_idx >= 0);
                     // i1 load logic
                     auto bitmapPos = bitmap_idx;
-                    auto structBitmapIdx = CreateStructGEP(builder, ptr, (size_t)b_idx); // bitmap comes first!
-                    auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
-                    val.is_null = builder.CreateLoad(bitmapIdx);
+                    if(ptr->getType()->isStructTy()) {
+                        auto bitmap = CreateStructLoad(builder, ptr, b_idx);
+                        assert(bitmap->getType()->isArrayTy());
+                        assert(bitmapPos < bitmap->getType()->getArrayNumElements());
+                        val.is_null = builder.CreateExtractValue(bitmap, std::vector<unsigned>(1, bitmapPos));
+                    } else {
+                        auto structBitmapIdx = CreateStructGEP(builder, ptr, (size_t)b_idx); // bitmap comes first!
+                        auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
+                        val.is_null = builder.CreateLoad(bitmapIdx);
+                    }
                 }
 
                 return val;
@@ -1664,6 +1671,7 @@ namespace tuplex {
 
                     // connect blocks from presence test
                     if(!src_always_present) {
+                        assert(bNext);
                         builder.CreateBr(bNext);
                         builder.SetInsertPoint(bNext);
                     }

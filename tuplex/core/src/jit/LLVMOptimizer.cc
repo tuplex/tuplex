@@ -103,7 +103,7 @@ namespace tuplex {
 
         // // try here instruction combining pass...
         // buggy...
-        // // fpm.add(createInstructionCombiningPass(true));
+        // fpm.add(createInstructionCombiningPass(true));
 
         // custom added passes
         // ==> Tuplex is memcpy heavy, i.e. optimize!

@@ -1146,6 +1146,8 @@ namespace tuplex {
 
                 _normalCaseRowType = normalcase;
                 _generalCaseRowType = generalcase;
+            } else {
+                fillRowCache(sm);
             }
 
             _estimatedRowCount = estimateSampleBasedRowCount();
@@ -1451,6 +1453,29 @@ namespace tuplex {
             return {};
         }
 
+        // decode range based uri (and adjust seeking accordingly!)
+        // is the URI range based?
+        size_t range_start = 0, range_end = 0;
+        size_t range_size = 0;
+        URI target_uri;
+        decodeRangeURI(uri.toString(), target_uri, range_start, range_end);
+
+        // both 0? no restriction
+        if(range_start == 0 && range_end == 0) {
+            range_end = uri_size;
+            range_size = uri_size;
+        } else {
+            // restrict!
+            range_size = range_end - range_start;
+        }
+
+        // reuse old column count for estimation. -> else need to start CSV estimation from scratch!
+        auto expectedColumnCount = _columnsToSerialize.size();
+
+        if(0 == range_size || target_uri == URI::INVALID)
+            return {};
+
+
         SamplingMode m = mode;
 
         // if uri_size < file_size -> first rows only
@@ -1460,12 +1485,23 @@ namespace tuplex {
         // check file sampling modes & then load the samples accordingly
         if(m & SamplingMode::FIRST_ROWS) {
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::FIRST_ROWS, true);
+            auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str()));
+
+            size_t start_offset = 0;
+            // range start != 0?
+            if(0 != range_start) {
+                start_offset = csvFindLineStart(sample.c_str(), sample_length, expectedColumnCount, _delimiter, _quotechar);
+                if(start_offset < 0)
+                    return {};
+                sample_length -= std::min((size_t)start_offset, sample_length);
+            }
+
             // parse as rows using the settings detected.
-            v = parseRows(sample.c_str(), sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
+            v = parseRows(sample.c_str() + start_offset, sample.c_str() + std::min(sample.size() - 1, strlen(sample.c_str())),
                           _null_values, _delimiter, _quotechar);
 
             // header? ignore first row!
-            if(_header && !v.empty())
+            if(0 == range_start && _header && !v.empty())
                 v.erase(v.begin());
         }
 

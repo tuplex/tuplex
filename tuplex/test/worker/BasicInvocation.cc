@@ -522,6 +522,7 @@ TEST(BasicInvocation, SingleMessageDebug) {
 
 #ifndef __APPLE__
     message_path = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_26.json";
+    message_path = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1.json";
 #else
     message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1.json";
 #endif

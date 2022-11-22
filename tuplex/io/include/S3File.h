@@ -72,7 +72,10 @@ namespace tuplex {
 
         S3File(S3FileSystemImpl &fs, const URI &uri, VirtualFileMode mode, Aws::S3::Model::RequestPayer requestPayer) : _s3fs(fs),
                                                                                                 VirtualFile::VirtualFile(uri, mode),
-                                                                                                _requestPayer(requestPayer) { init(); }
+                                                                                                _requestPayer(requestPayer), _bufferSize(5 * 1024 * 1024 + 100) {
+            // 1024 * 1024 * 5 + 100; ///! for debug reasons, set 5MB + 100B buffer
+            init();
+        }
 
         virtual ~S3File();
 
@@ -97,7 +100,7 @@ namespace tuplex {
 
         bool eof() const override;
 
-        static size_t INTERNAL_BUFFER_SIZE() {
+        size_t bufferSize() {
             return _bufferSize;
         }
 
@@ -119,7 +122,7 @@ namespace tuplex {
 #ifdef NDEBUG
         static const size_t _bufferSize = 1024 * 1024 * 64; ///! size of the buffer, set here to 64MB buffer
 #else
-        static const size_t _bufferSize = 1024 * 1024 * 5 + 100; ///! for debug reasons, set 5MB + 100B buffer
+        size_t _bufferSize;
 #endif
 
         // buffer size should be more than 5MB!
@@ -134,7 +137,7 @@ namespace tuplex {
         // for a list parts request
         // Maximum number of multipart uploads                          1000
         // returned in a list multipart uploads request
-        static_assert(_bufferSize > 5 * 1024 * 1024, "because of part limit buffer should be at least 5MB");
+        //static_assert(_bufferSize > 5 * 1024 * 1024, "because of part limit buffer should be at least 5MB");
 
         // for dev purposes, choose smaller size
 //        static const size_t _bufferSize = 256; ///! size of the buffer, set here to 32MB buffer
@@ -148,15 +151,15 @@ namespace tuplex {
         bool _fileUploaded;
 
         /*!
-         * uploads current buffer to S3 (as multipart upload) if full.
+         * uploads current buffer to S3 (as multipart upload) if full. Also makes sure a buffer of additional space could fit (in any case)
          */
-        void uploadAndResetBufferIfFull();
+        bool uploadAndResetBufferIfFull(size_t additional_space_required);
 
         uint16_t _partNumber; // current part number (1 to 10,000 incl). If 0, no multipart upload
         Aws::String _uploadID; // multipart upload ID
         std::vector<Aws::S3::Model::CompletedPart> _parts;
         void initMultiPartUpload();
-        void uploadPart(); // uploads current buffer & resets everything
+        bool uploadPart(); // uploads current buffer & resets everything
         void completeMultiPartUpload(); // issues complete Upload request
 
         Aws::S3::Model::RequestPayer _requestPayer;

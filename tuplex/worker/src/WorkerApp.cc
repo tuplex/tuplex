@@ -1603,13 +1603,14 @@ namespace tuplex {
                 logger().error("could not verify module from bitcode");
                 logger().error(moduleErrors);
                 logger().error(core::withLineNumbers(codegen::moduleToString(*mod)));
-            } else
+            } else {
 #ifndef NDEBUG
-            logger().info("module verified.");
-            // save
-            auto ir_code = codegen::moduleToString(*mod.get());
-            stringToFile("worker_fast_path.txt", ir_code);
+                logger().info("module verified.");
+                // save
+                auto ir_code = codegen::moduleToString(*mod.get());
+                stringToFile("worker_fast_path.txt", ir_code);
 #endif
+            }
         }
 
             // perform actual compilation

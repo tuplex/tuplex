@@ -1062,6 +1062,19 @@ namespace tuplex {
         for (const auto& kv: other._sampleCache) { _sampleCache[kv.first] = kv.second; }
     }
 
+    void FileInputOperator::cloneCaches(const tuplex::FileInputOperator &other) {
+        std::lock_guard<std::mutex> lock(_sampleCacheMutex);
+
+        _cachePopulated = other._cachePopulated;
+
+        // clear internal caches
+        _sampleCache.clear();
+        _rowsSample.clear();
+
+        _sampleCache = other._sampleCache;
+        _rowsSample = other._rowsSample;
+    }
+
     int64_t FileInputOperator::cost() const {
         // use number of input rows as cost
         return _estimatedRowCount;

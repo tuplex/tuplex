@@ -534,6 +534,17 @@ namespace tuplex {
         }
 
         void AnnotatedAST::setReturnType(const python::Type &targetType) {
+
+            // special case: unknown -> target
+            // or to unknown
+            if(targetType == python::Type::UNKNOWN) {
+                return;
+            }
+            if(python::Type::UNKNOWN == getReturnType()) {
+                funcType = python::Type::makeFunctionType(funcType.getParamsType(), targetType);
+                setFunctionType(getFunctionAST(), funcType);
+            }
+
             // check what actual return type is
             if(!canUpcastType(getReturnType(), targetType)) {
                 throw std::runtime_error("Can't upcast return type from " + getReturnType().desc() + " to " + targetType.desc());

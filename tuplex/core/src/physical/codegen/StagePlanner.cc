@@ -578,22 +578,6 @@ namespace tuplex {
             auto majType = detectMajorityRowType(sample, _nc_threshold, true, _useNVO);
             python::Type projectedMajType = majType;
 
-            // list details using columns:
-            if(_inputNode) {
-                switch(_inputNode->type()) {
-                    case LogicalOperatorType::FILEINPUT: {
-                        auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
-                        auto columns = fop->inputColumns();
-                        projectedMajType = fop->projectRowType(majType);
-                        break;
-                    }
-                    default: {
-                        // nothing, projectedMajType = majType.
-                        break;
-                    }
-                }
-            }
-
             assert(majType.isTupleType());
             assert(projectedMajType.isTupleType());
             size_t num_columns_before_pushdown = majType.parameters().size();

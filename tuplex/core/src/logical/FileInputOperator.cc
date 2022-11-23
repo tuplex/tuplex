@@ -20,6 +20,9 @@
 #include <JsonStatistic.h>
 #include <physical/experimental/JsonHelper.h>
 
+#include <Base.h>
+#include <StringUtils.h>
+
 namespace tuplex {
 
     python::Type generalize_struct_type(const python::Type& struct_type) {
@@ -969,6 +972,29 @@ namespace tuplex {
     void FileInputOperator::selectColumns(const std::vector<size_t> &columnsToSerialize, bool original_indices) {
         using namespace std;
 
+#ifndef NDEBUG
+        {
+            // debug print:
+            std::stringstream ss;
+            ss<<"file input operator projection::\n";
+            ss<<"columns before projection pushdown: "<<columns()<<"\n";
+
+            // which columns to keep?
+            std::vector<std::string> new_cols;
+            for(auto idx : columnsToSerialize) {
+                if(idx < inputColumns().size()) {
+                    new_cols.push_back(inputColumns()[idx]);
+                } else {
+                    new_cols.push_back("<< INVALID INDEX>>");
+                }
+            }
+            ss<<"columns after projection pushdown: "<<new_cols<<"\n";
+            auto& logger = Logger::instance().logger("logical");
+            logger.debug(ss.str());
+        }
+#endif
+
+
         // are indices relative to original columns or to currently pushed down columns?
         auto original_col_indices_to_serialize = columnsToSerialize;
         // if so, translate them!
@@ -1326,6 +1352,12 @@ namespace tuplex {
 
         auto input_row_type = conf.row_type;
         bool is_projected_row_type = conf.is_projected;
+
+        // check that #columns corresponds to number of col types!
+        if(!conf.columns.empty()) {
+            assert(input_row_type.isTupleType());
+            assert(input_row_type.parameters().size() == conf.columns.size());
+        }
 
         assert(input_row_type.isTupleType());
         auto col_types = input_row_type.parameters();

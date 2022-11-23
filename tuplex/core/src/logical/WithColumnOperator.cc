@@ -177,8 +177,10 @@ namespace tuplex {
 
             // HACK: skip for pushdown.
             // this is bad, but let's get tplx208 done.
-            if(!inputColumns().empty() && row.getNumColumns() != inputColumns().size())
+            if(!inputColumns().empty() && row.getNumColumns() != inputColumns().size()) {
+                std::cerr<<"HACK executed here, pls fix."<<std::endl;
                 continue;
+            }
 
             auto pcr = !inputColumns().empty() ? python::callFunctionWithDictEx(pFunc, rowObj, inputColumns()) :
                        python::callFunctionEx(pFunc, rowObj);

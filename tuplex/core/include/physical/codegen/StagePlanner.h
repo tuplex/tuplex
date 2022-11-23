@@ -306,7 +306,7 @@ namespace tuplex {
     }
 
     // HACK!
-    extern void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size, double nc_threshold, size_t sample_limit=std::numeric_limits<size_t>::max(), bool enable_cf=true);
+    extern bool hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size, double nc_threshold, size_t sample_limit=std::numeric_limits<size_t>::max(), bool enable_cf=true);
 }
 
 #endif

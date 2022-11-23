@@ -992,7 +992,7 @@ namespace tuplex {
 
     // HACK: magical experiment function!!!
     // HACK!
-    void hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size,
+    bool hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size,
                          double nc_threshold, size_t sample_limit, bool enable_cf) {
         auto& logger = Logger::instance().logger("hyper specializer");
         // run hyperspecialization using planner, yay!
@@ -1001,7 +1001,7 @@ namespace tuplex {
         // need to decode CodeGenerationCOntext from stage
         if(stage->_encodedData.empty()) {
             logger.info("did not find encoded codegen context, skipping.");
-            return;
+            return false;
         }
 
         logger.info("specializing code to file " + uri.toString());
@@ -1136,17 +1136,52 @@ namespace tuplex {
 
         auto generalCaseOutputRowType = ctx.slowPathContext.outputSchema.getRowType();
 
+        // did specialized stage only yield exceptions or unknown? => then specialization failed.
+        if(path_ctx.inputSchema.getRowType().isExceptionType()
+            || path_ctx.inputSchema == Schema::UNKNOWN) {
+            logger.warn("could not hyperspecialize stage (input type: "
+                        + path_ctx.inputSchema.getRowType().desc()
+                        + "), skipping code generation.");
+            return false;
+        }
+        if(path_ctx.outputSchema.getRowType().isExceptionType()
+           || path_ctx.outputSchema == Schema::UNKNOWN) {
+            logger.warn("could not hyperspecialize stage (output type: "
+                        + path_ctx.outputSchema.getRowType().desc()
+                        + "), skipping code generation.");
+            return false;
+        }
+
+        // assignment to stage should happen below...
+
         // generate code! Add to stage, can then compile this. Yay!
         timer.reset();
-        stage->_fastCodePath = codegen::StageBuilder::generateFastCodePath(ctx,
-                                                                           ctx.fastPathContext,
-                                                                           generalCaseInputRowType,
-                                                                           ctx.slowPathContext.columnsToRead,
-                                                                           generalCaseOutputRowType,
-                                                                           ctx.slowPathContext.columns(),
-                                                                           planner.normalToGeneralMapping(),
-                                                                           stage->number());
+        StageCodePath fast_code_path;
+        try {
+            fast_code_path = codegen::StageBuilder::generateFastCodePath(ctx,
+                                                                              ctx.fastPathContext,
+                                                                              generalCaseInputRowType,
+                                                                              ctx.slowPathContext.columnsToRead,
+                                                                              generalCaseOutputRowType,
+                                                                              ctx.slowPathContext.columns(),
+                                                                              planner.normalToGeneralMapping(),
+                                                                              stage->number());
+        } catch(const std::exception& e) {
+            std::stringstream ss;
+            ss<<"Exception occurred during fast code generation in hyperspecialization, details: ";
+            ss<<e.what();
+            logger.error(ss.str());
+            return false;
+        } catch(...) {
+            std::stringstream ss;
+            ss<<"Unknown Exception occurred during fast code generation in hyperspecialization.";
+            ss<<e.what();
+            logger.error(ss.str());
+            return false;
+        }
+
         // update schemas!
+        stage->_fastCodePath = fast_code_path;
         stage->_normalCaseInputSchema = Schema(stage->_normalCaseInputSchema.getMemoryLayout(), path_ctx.inputSchema.getRowType());
 
         // the output schema (str in tocsv) case is not finalized yet...
@@ -1154,6 +1189,7 @@ namespace tuplex {
 
         logger.info("generated code in " + std::to_string(timer.time()) + "s");
         // can then compile everything, hooray!
+        return true;
     }
 
     std::vector<size_t>

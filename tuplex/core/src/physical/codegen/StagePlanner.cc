@@ -1156,7 +1156,7 @@ namespace tuplex {
 
         // generate code! Add to stage, can then compile this. Yay!
         timer.reset();
-        StageCodePath fast_code_path;
+        TransformStage::StageCodePath fast_code_path;
         try {
             fast_code_path = codegen::StageBuilder::generateFastCodePath(ctx,
                                                                               ctx.fastPathContext,
@@ -1175,7 +1175,6 @@ namespace tuplex {
         } catch(...) {
             std::stringstream ss;
             ss<<"Unknown Exception occurred during fast code generation in hyperspecialization.";
-            ss<<e.what();
             logger.error(ss.str());
             return false;
         }

@@ -286,20 +286,27 @@ namespace tuplex {
             // check if specialized normal-case type is different from current normal case type
             _normalCaseRowType = tstage->normalCaseInputSchema().getRowType(); // needed when fastcode path is missing?
             auto normalCaseCols = tstage->normalCaseInputColumnsToKeep();
-            hyperspecialize(tstage, uri, file_size, _settings.normalCaseThreshold,
+            // note that this function may or may not succeed. If it fails, original fast code path is used.
+            bool hyper_rc = hyperspecialize(tstage, uri, file_size, _settings.normalCaseThreshold,
                             _settings.sampleLimitCount, _settings.useConstantFolding);
             _hyperspecializedNormalCaseRowType = tstage->normalCaseInputSchema().getRowType(); // refactor?
-            auto hyperspecializedNormalCaseCols = tstage->normalCaseInputColumnsToKeep();
+            if(hyper_rc) {
+                auto hyperspecializedNormalCaseCols = tstage->normalCaseInputColumnsToKeep();
 
-            // note: types could be identical but projected columns different!
-            if(_hyperspecializedNormalCaseRowType != _normalCaseRowType ||
-               !vec_equal(normalCaseCols, hyperspecializedNormalCaseCols)) {
-                logger().info("specialized normal-case type " + _hyperspecializedNormalCaseRowType.desc() + " is different than given normal-case type " + _normalCaseRowType.desc() + ".");
-                _ncAndHyperNCIncompatible = true;
+                // note: types could be identical but projected columns different!
+                if(_hyperspecializedNormalCaseRowType != _normalCaseRowType ||
+                   !vec_equal(normalCaseCols, hyperspecializedNormalCaseCols)) {
+                    logger().info("specialized normal-case type " + _hyperspecializedNormalCaseRowType.desc() + " is different than given normal-case type " + _normalCaseRowType.desc() + ".");
+                    _ncAndHyperNCIncompatible = true;
+                }
+
+                // !!! need to use LLVM optimizers !!! Else, there's no difference.
+                logger().info("-- hyperspecialization took " + std::to_string(timer.time()) + "s");
+            } else {
+                logger().warn("-- hyperspecialization failed in " + std::to_string(timer.time())
+                              + "s, using original, provided fast code path.");
             }
 
-            // !!! need to use LLVM optimizers !!! Else, there's no difference.
-            logger().info("-- hyperspecialization took " + std::to_string(timer.time()) + "s");
             markTime("hyperspecialization_time", timer.time());
         }
 

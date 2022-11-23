@@ -35,6 +35,35 @@ namespace tuplex {
         // assert(parent);
     }
 
+    bool isOrContainsExceptionType(const python::Type& t) {
+        if(t.isExceptionType())
+            return true;
+        if(t.isTupleType()) {
+            for(auto pt : t.parameters()) {
+                if(isOrContainsExceptionType(pt))
+                    return true;
+            }
+        }
+
+        // list?
+        if(t.isListType()) {
+            if(isOrContainsExceptionType(t.elementType()));
+        }
+
+        if(t.isOptionType())
+            return isOrContainsExceptionType(t.withoutOption());
+
+        if(t.isStructuredDictionaryType()) {
+            for(auto kv_pair : t.get_struct_pairs()) {
+                if(isOrContainsExceptionType(kv_pair.keyType))
+                    return true;
+                if(isOrContainsExceptionType(kv_pair.valueType))
+                    return true;
+            }
+        }
+        return false;
+    }
+
     bool UDFOperator::retype(const tuplex::RetypeConfiguration &conf) {
         // apply a new typing to the existing UDF.
         auto& logger = Logger::instance().logger("typer");
@@ -52,11 +81,12 @@ namespace tuplex {
 
             bool success = _udf.retype(conf.row_type);
 
-            // check what the return type is. If it is of exception type, try to use a sample to get rid off branches that are off
+            // check what the return type is. If it is of exception type OR an exception type is contained, try to use a sample to get rid off branches that are off
             // => eliminate annotations first!
-            if(!success || _udf.getOutputSchema().getRowType().isExceptionType()) {
-                if(success && _udf.getOutputSchema().getRowType().isExceptionType())
-                    logger.debug("static retyping resulted in UDF producing always exceptions. Try hinting with sample...");
+            auto has_exception_in_output_type = isOrContainsExceptionType(_udf.getOutputSchema().getRowType());
+            if(!success || has_exception_in_output_type) {
+                if(success && has_exception_in_output_type)
+                    logger.debug("static retyping resulted in UDF producing exceptions. Try hinting with sample...");
                 Timer s_timer;
                 auto rows_sample = parent()->getPythonicSample(MAX_TYPE_SAMPLING_ROWS);
                 if(!rows_sample.empty()) {

@@ -64,6 +64,13 @@ namespace tuplex {
         bool _cachePopulated;
         std::vector<Row> _rowsSample;
 
+        /*!
+         * project sample according to map set for this operator
+         * @param rows
+         * @return projected rows
+         */
+        std::vector<Row> projectSample(const std::vector<Row>& rows) const;
+
         // file cache (i.e. just the samples from the files)
         void fillFileCache(SamplingMode mode);
         void fillFileCacheMultithreaded(SamplingMode mode);
@@ -89,6 +96,16 @@ namespace tuplex {
         // *** helper functions ***
         inline Schema normalCaseSchema() const { return Schema(Schema::MemoryLayout::ROW, _normalCaseRowType); }
         inline Schema generalCaseSchema() const { return Schema(Schema::MemoryLayout::ROW, _generalCaseRowType); }
+
+        inline bool usesProjectionMap() const {
+            if(_columnsToSerialize.empty())
+                return false;
+            for(auto c : _columnsToSerialize) {
+                if(!c)
+                    return true;
+            }
+            return false;
+        }
 
     public:
         // helper function to project a schema

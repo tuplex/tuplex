@@ -897,15 +897,39 @@ namespace tuplex {
             // select num random rows...
             // use https://en.wikipedia.org/wiki/Reservoir_sampling the optimal algorithm there to fetch the sample quickly...
             // i.e., https://www.geeksforgeeks.org/reservoir-sampling/
-            return randomSampleFromReservoir(_rowsSample, num);
+            return projectSample(randomSampleFromReservoir(_rowsSample, num));
         } else {
             // need to increase sample size!
             Logger::instance().defaultLogger().warn("requested " + std::to_string(num)
                                                     + " rows for sampling, but only "
                                                     + std::to_string(_rowsSample.size())
                                                     + " stored. Consider decreasing sample size. Returning all available rows.");
-            return _rowsSample;
+            return projectSample(_rowsSample);
         }
+    }
+
+    std::vector<Row> FileInputOperator::projectSample(const std::vector<Row>& rows) const {
+        if(rows.empty())
+            return {};
+
+        // trivial case? no projection?
+        if(!usesProjectionMap())
+            return rows;
+
+        // projection is used (i.e. at least one of columnsToSerialize is false...)
+        std::vector<Row> v;
+        std::vector<Field> fields;
+        for(const auto& row : rows) {
+            fields.clear();
+            for(unsigned i = 0; i < std::min(row.getNumColumns(), _columnsToSerialize.size()); ++i) {
+                if(_columnsToSerialize[i]) {
+                    fields.push_back(row.get(i));
+                }
+            }
+            v.push_back(Row::from_vector(fields));
+        }
+
+        return v;
     }
 
     std::vector<size_t> FileInputOperator::translateOutputToInputIndices(const std::vector<size_t> &output_indices) {

@@ -1585,12 +1585,14 @@ namespace tuplex {
             // @TODO: hashing callbacks...
 
             // in debug mode, validate module.
-#ifndef NDEBUG
-            llvm::LLVMContext ctx;
-        auto mod = codegen::bitCodeToModule(ctx, stage.fastPathBitCode());
-        if(!mod)
-            logger().error("error parsing module");
-        else {
+        llvm::LLVMContext ctx;
+        auto mod = stage.fastPathBitCode().empty() ? nullptr : codegen::bitCodeToModule(ctx, stage.fastPathBitCode());
+        if(!mod) {
+            if(!stage.fastPathBitCode().empty()) {
+                logger().error("error parsing module for fast code path");
+            }
+            return nullptr;
+        } else {
             logger().info("parsed llvm module from bitcode, " + mod->getName().str());
 
             // run verify pass on module and print out any errors, before attempting to compile it
@@ -1602,13 +1604,13 @@ namespace tuplex {
                 logger().error(moduleErrors);
                 logger().error(core::withLineNumbers(codegen::moduleToString(*mod)));
             } else
+#ifndef NDEBUG
             logger().info("module verified.");
-
             // save
             auto ir_code = codegen::moduleToString(*mod.get());
             stringToFile("worker_fast_path.txt", ir_code);
-        }
 #endif
+        }
 
             // perform actual compilation
             // -> do not compile slow path for now.
@@ -1635,6 +1637,8 @@ namespace tuplex {
             logger().error(std::string("compilation failed, details: ") + e.what());
             return nullptr;
         }
+
+        // if there is no
     }
 
     int64_t WorkerApp::writeRow(size_t threadNo, const uint8_t *buf, int64_t bufSize) {

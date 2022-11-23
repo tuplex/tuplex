@@ -521,10 +521,17 @@ TEST(BasicInvocation, SingleMessageDebug) {
     auto message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_16.json";
 
 #ifndef __APPLE__
+#ifdef BUILD_WITH_CEREAL
     message_path = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_26.json";
-    message_path = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1.json";
 #else
+    message_path = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1.json";
+#endif
+#else
+#ifdef BUILD_WITH_CEREAL
     message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1.json";
+#else
+    message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_1.json";
+#endif
 #endif
     auto message = fileToString(URI(message_path));
 

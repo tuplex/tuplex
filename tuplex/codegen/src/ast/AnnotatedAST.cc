@@ -541,6 +541,7 @@ namespace tuplex {
                 return;
             }
             if(python::Type::UNKNOWN == getReturnType()) {
+                auto funcType = getFunctionAST()->getInferredType();
                 funcType = python::Type::makeFunctionType(funcType.getParamsType(), targetType);
                 setFunctionType(getFunctionAST(), funcType);
             }

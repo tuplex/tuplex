@@ -362,7 +362,7 @@ namespace tuplex {
                 decode(builder,
                        dict_ptr,
                        dict_type,
-                       item, bbSchemaMismatch, dict_type, {}, true);
+                       item, bbSchemaMismatch, dict_type, {}, true, true);
                 builder.CreateBr(bbDecodeDone); // whererver builder is, continue to decode done for this item.
             }
 
@@ -1065,7 +1065,7 @@ namespace tuplex {
                 decode(builder,
                        value_item_var,
                        entry.valueType,
-                       sub_object, bbSchemaMismatch, entry.valueType, {}, true);
+                       sub_object, bbSchemaMismatch, entry.valueType, {}, true, true);
                 builder.CreateBr(bbDecodeDone); // whererver builder is, continue to decode done for this item.
             }
 
@@ -1274,6 +1274,67 @@ namespace tuplex {
             return make_tuple(rc, is_present, value);
         }
 
+        void JSONParseRowGenerator::perform_keyset_check(llvm::IRBuilder<> &builder, const python::Type &dict_type,
+                                                         llvm::Value *json_item, llvm::BasicBlock *bbMismatch) {
+
+            using namespace llvm;
+
+            assert(json_item);
+            assert(bbMismatch);
+            assert(dict_type.isStructuredDictionaryType());
+
+            // there are two ways to check: 1.) all keys are always present -> check via number of keys!
+            // 2.) not all keys are always present -> check via table (expensive check!)
+            assert(dict_type.isStructuredDictionaryType());
+
+            auto bKeysetMatch = BasicBlock::Create(builder.getContext(), "keyset_match", builder.GetInsertBlock()->getParent());
+
+            if(dict_type.all_struct_pairs_always_present()) {
+                // get number of keys
+                auto num_keys = numberOfKeysInObject(builder, json_item);
+
+                auto keyset_match = builder.CreateICmpEQ(_env.i64Const(dict_type.get_struct_pairs().size()), num_keys);
+
+                // _env.printValue(builder, keyset_match, "keyset check (->): ");
+
+                builder.CreateCondBr(keyset_match, bKeysetMatch, bbMismatch);
+                builder.SetInsertPoint(bKeysetMatch);
+            } else {
+                auto kv_pairs = dict_type.get_struct_pairs();
+                auto& ctx = _env.getContext();
+
+                // perform check by generating appropriate constants
+                // this is the expensive key check.
+                // -> i.e. should be used to match only against general-case.
+                // generate constants
+                std::vector<std::string> alwaysKeys;
+                std::vector<std::string> maybeKeys;
+                for (const auto &kv_pair: kv_pairs) {
+                    // for JSON should be always keyType == string!
+                    assert(kv_pair.keyType == python::Type::STRING);
+                    if (kv_pair.alwaysPresent)
+                        alwaysKeys.push_back(str_value_from_python_raw_value(kv_pair.key));
+                    else
+                        maybeKeys.push_back(str_value_from_python_raw_value(kv_pair.key));
+                }
+
+                auto sconst_always_keys = _env.strConst(builder, makeKeySetBuffer(alwaysKeys));
+                auto sconst_maybe_keys = _env.strConst(builder, makeKeySetBuffer(maybeKeys));
+
+                // perform check using helper function on item.
+                // call uint64_t JsonItem_keySetMatch(JsonItem *item, uint8_t* always_keys_buf, uint8_t* maybe_keys_buf)
+                auto Fcheck = getOrInsertFunction(_env.getModule().get(), "JsonItem_keySetMatch", _env.i64Type(),
+                                                  _env.i8ptrType(), _env.i8ptrType(), _env.i8ptrType());
+                auto rc = builder.CreateCall(Fcheck, {json_item, sconst_always_keys, sconst_maybe_keys});
+                auto cond = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+
+                // _env.printValue(builder, cond, "keyset check (=>): ");
+
+                builder.CreateCondBr(cond, bKeysetMatch, bbMismatch);
+                builder.SetInsertPoint(bKeysetMatch);
+            }
+        }
+
         void JSONParseRowGenerator::decode(llvm::IRBuilder<> &builder,
                                            llvm::Value* dict_ptr,
                                            const python::Type& dict_ptr_type,
@@ -1281,7 +1342,9 @@ namespace tuplex {
                                            llvm::BasicBlock* bbSchemaMismatch,
                                            const python::Type &dict_type,
                                            std::vector<std::pair<std::string, python::Type>> prefix,
-                                           bool include_maybe_structs) {
+                                           bool include_maybe_structs,
+                                           bool generate_keyset_check,
+                                           unsigned level) {
             using namespace std;
             using namespace llvm;
 
@@ -1352,7 +1415,13 @@ namespace tuplex {
 #endif
                     // recurse using new prefix
                     // --> similar to flatten_recursive_helper(entries, kv_pair.valueType, access_path, include_maybe_structs);
-                    decode(builder, dict_ptr, dict_ptr_type, item, bbSchemaMismatch, kv_pair.valueType, access_path, include_maybe_structs);
+                    decode(builder, dict_ptr, dict_ptr_type, item, bbSchemaMismatch, kv_pair.valueType, access_path, include_maybe_structs, generate_keyset_check, level + 1);
+
+                    // keyset match?
+                    if(generate_keyset_check) {
+                        perform_keyset_check(builder, kv_pair.valueType, builder.CreateLoad(item_var), bbSchemaMismatch);
+                    }
+
                     builder.CreateBr(bbDecodeDone); // where ever builder is, continue to decode done for this item.
                     builder.SetInsertPoint(bbDecodeDone); // continue from here...
                 } else {

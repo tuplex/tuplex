@@ -823,8 +823,11 @@ default:
             python::unlockGIL();
         }
 
-        if(0 != resCode)
+        if(0 != resCode) {
+            ecCode = resCode; // <-- note: there is something wrong b.c. ebuf needs to be upcast to general-case buffer
             resCode = -1; // <-- make generally except
+        }
+
 
         // fallback 3: still exception? save...
         if(resCode == -1) {

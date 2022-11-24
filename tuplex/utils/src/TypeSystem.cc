@@ -2052,6 +2052,16 @@ namespace python {
         return true;
     }
 
+    bool Type::all_struct_pairs_always_present() const {
+        assert(isStructuredDictionaryType());
+
+        for(auto p : get_struct_pairs()) {
+            if(!p.alwaysPresent)
+                return false;
+        }
+        return true;
+    }
+
     std::vector<python::Type> primitiveTypes(bool return_options_as_well) {
         std::vector<python::Type> v{python::Type::BOOLEAN, python::Type::I64, python::Type::F64,
                                     python::Type::STRING, python::Type::NULLVALUE, python::Type::EMPTYTUPLE,

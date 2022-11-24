@@ -412,6 +412,7 @@ namespace python {
 #endif
 
         bool all_struct_pairs_optional() const;
+        bool all_struct_pairs_always_present() const;
     };
 
      struct StructEntry { // an entry of a structured dict

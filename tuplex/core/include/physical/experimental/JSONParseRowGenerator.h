@@ -115,7 +115,7 @@ namespace tuplex {
                 builder.SetInsertPoint(_afterInitBlock);
 
                 // decode everything -> entries can be then used to store to a struct!
-                decode(builder, row_var, _rowType, object, _badParseBlock, _rowType, {}, true);
+                decode(builder, row_var, _rowType, object, _badParseBlock, _rowType, {}, true, true);
 
                 // generate free blocks and update builder
                 auto lastFreeBlock = generateFreeAllVars(builder.GetInsertBlock());
@@ -154,8 +154,13 @@ namespace tuplex {
                         llvm::BasicBlock* bbSchemaMismatch,
                         const python::Type &dict_type, // <-- the type of object (which must be a structured dict)
                         std::vector<std::pair<std::string, python::Type>> prefix = {},
-                        bool include_maybe_structs = true);
+                        bool include_maybe_structs = true,
+                        bool generate_keyset_check=false,
+                        unsigned level=0);
 
+            // generates keyset check
+            void perform_keyset_check(llvm::IRBuilder<>& builder, const python::Type& dict_type,
+                                      llvm::Value* json_item, llvm::BasicBlock* bbMismatch);
 
             // used for generating free blocks...
             std::vector<llvm::Value*> _objectVars;

@@ -362,7 +362,7 @@ namespace tuplex {
                 decode(builder,
                        dict_ptr,
                        dict_type,
-                       item, bbSchemaMismatch, dict_type, {}, true);
+                       item, bbSchemaMismatch, dict_type, {}, true, true);
                 builder.CreateBr(bbDecodeDone); // whererver builder is, continue to decode done for this item.
             }
 
@@ -1065,7 +1065,7 @@ namespace tuplex {
                 decode(builder,
                        value_item_var,
                        entry.valueType,
-                       sub_object, bbSchemaMismatch, entry.valueType, {}, true);
+                       sub_object, bbSchemaMismatch, entry.valueType, {}, true, true);
                 builder.CreateBr(bbDecodeDone); // whererver builder is, continue to decode done for this item.
             }
 
@@ -1294,13 +1294,14 @@ namespace tuplex {
                 auto num_keys = numberOfKeysInObject(builder, json_item);
 
                 auto keyset_match = builder.CreateICmpEQ(_env.i64Const(dict_type.get_struct_pairs().size()), num_keys);
+
+                // _env.printValue(builder, keyset_match, "keyset check (->): ");
+
                 builder.CreateCondBr(keyset_match, bKeysetMatch, bbMismatch);
                 builder.SetInsertPoint(bKeysetMatch);
             } else {
                 auto kv_pairs = dict_type.get_struct_pairs();
                 auto& ctx = _env.getContext();
-
-                _env.debugPrint(builder, "keyset check for: " + dict_type.desc());
 
                 // perform check by generating appropriate constants
                 // this is the expensive key check.
@@ -1325,8 +1326,11 @@ namespace tuplex {
                 auto Fcheck = getOrInsertFunction(_env.getModule().get(), "JsonItem_keySetMatch", _env.i64Type(),
                                                   _env.i8ptrType(), _env.i8ptrType(), _env.i8ptrType());
                 auto rc = builder.CreateCall(Fcheck, {json_item, sconst_always_keys, sconst_maybe_keys});
-                auto cond = builder.CreateICmpNE(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
-                builder.CreateCondBr(cond, bbMismatch, bKeysetMatch);
+                auto cond = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+
+                // _env.printValue(builder, cond, "keyset check (=>): ");
+
+                builder.CreateCondBr(cond, bKeysetMatch, bbMismatch);
                 builder.SetInsertPoint(bKeysetMatch);
             }
         }

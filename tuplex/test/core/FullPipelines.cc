@@ -634,6 +634,8 @@ TEST_F(PipelinesTest, GithubLocalVersion) {
 
     co.set("tuplex.executorCount", "0");
 
+    // co.set("tuplex.resolveWithInterpreterOnly", "true");
+
     // enable webui in order to collect statistics
     // co.set("tuplex.webui.enable", "true");
 
@@ -649,7 +651,7 @@ TEST_F(PipelinesTest, GithubLocalVersion) {
     string pattern = "../resources/hyperspecialization/github_daily/*.json.sample";
 
     // test: has attribute errors??
-    pattern = "s3://tuplex-public/data/github_daily/2017*.json";
+    // pattern = "s3://tuplex-public/data/github_daily/2017*.json";
 
     // @TODO: for hyperspecialization active, need to support TakeOperator!!!
     auto sm = SamplingMode::LAST_FILE | SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS;

@@ -221,6 +221,8 @@ namespace tuplex {
             auto ecOpID = builder.CreateZExtOrTrunc(pip_res.exceptionOperatorID, env.i64Type());
             auto numRowsCreated = builder.CreateZExtOrTrunc(pip_res.numProducedRows, env.i64Type());
 
+            env.printValue(builder, ecCode, "slow pip ec= ");
+
             // use provided return code.
             env.freeAll(builder);
             builder.CreateRet(ecCode);

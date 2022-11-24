@@ -163,6 +163,15 @@ namespace tuplex {
             logger.debug("input uri: " + req.inputuris(i) + " size: " + std::to_string(req.inputsizes(i)));
         }
 
+        // reset compiled symbols & wait for old slow thread in case
+        if(_resolverCompileThread && _resolverCompileThread->joinable())
+            _resolverCompileThread->join(); // wait till compile thread finishes...
+        _resolverCompileThread.reset(nullptr);
+        {
+            std::lock_guard<std::mutex> lock(_symsMutex);
+            _syms.reset();
+        }
+
         return processMessage(req);
     }
 

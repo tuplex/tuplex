@@ -62,40 +62,41 @@ namespace tuplex {
             // check if inputNode is FileInput -> i.e. projection scenario!
             if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
                 auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode);
+                return ds.specialize_row_type(inputNode->getOutputSchema().getRowType());
 
-                auto pushed_down_output_row_type = fop->getOutputSchema().getRowType();
-                std::vector<python::Type> col_types = pushed_down_output_row_type.parameters();
-                auto cols_to_serialize = fop->columnsToSerialize();
-                if(cols_to_serialize.size() != ds.constant_row.getNumColumns()) {
-                    throw std::runtime_error("internal error in constant-folding optimization, original number of columns not matching detection columns");
-                } else {
-
-                    logger.debug("file input operator output type: " + fop->getOutputSchema().getRowType().desc());
-                    col_types = std::vector<python::Type>(cols_to_serialize.size(), python::Type::NULLVALUE); // init as dummy nulls
-                    auto input_col_types = fop->getOutputSchema().getRowType().parameters();
-                    unsigned pos = 0;
-                    for(unsigned i = 0; i < cols_to_serialize.size(); ++i) {
-                        // to be serialized or not?
-                        if(cols_to_serialize[i]) {
-                            assert(pos < input_col_types.size());
-                            col_types[i] = input_col_types[pos++];
-                        }
-                    }
-                }
-                auto reprojected_output_row_type = python::Type::makeTupleType(col_types);
-                auto specialized_row_type = ds.specialize_row_type(reprojected_output_row_type);
-
-                // create projected version
-                col_types.clear();
-                for(unsigned i = 0; i < cols_to_serialize.size(); ++i) {
-                    // to be serialized or not?
-                    if(cols_to_serialize[i]) {
-                        col_types.push_back(specialized_row_type.parameters()[i]);
-                    }
-                }
-
-                auto projected_specialized_row_type = python::Type::makeTupleType(col_types);
-                return projected_specialized_row_type;
+//                auto pushed_down_output_row_type = fop->getOutputSchema().getRowType();
+//                std::vector<python::Type> col_types = pushed_down_output_row_type.parameters();
+//                auto num_cols_to_serialize = fop->outputColumnCount();
+//                if(num_cols_to_serialize != ds.constant_row.getNumColumns()) {
+//                    throw std::runtime_error("internal error in constant-folding optimization, original number of columns not matching detection columns");
+//                } else {
+//
+//                    logger.debug("file input operator output type: " + fop->getOutputSchema().getRowType().desc());
+//                    col_types = std::vector<python::Type>(num_cols_to_serialize, python::Type::NULLVALUE); // init as dummy nulls
+//                    auto input_col_types = fop->getOutputSchema().getRowType().parameters();
+//                    unsigned pos = 0;
+//                    for(unsigned i = 0; i < cols_to_serialize.size(); ++i) {
+//                        // to be serialized or not?
+//                        if(cols_to_serialize[i]) {
+//                            assert(pos < input_col_types.size());
+//                            col_types[i] = input_col_types[pos++];
+//                        }
+//                    }
+//                }
+//                auto reprojected_output_row_type = python::Type::makeTupleType(col_types);
+//                auto specialized_row_type = ds.specialize_row_type(reprojected_output_row_type);
+//
+//                // create projected version
+//                col_types.clear();
+//                for(unsigned i = 0; i < cols_to_serialize.size(); ++i) {
+//                    // to be serialized or not?
+//                    if(cols_to_serialize[i]) {
+//                        col_types.push_back(specialized_row_type.parameters()[i]);
+//                    }
+//                }
+//
+//                auto projected_specialized_row_type = python::Type::makeTupleType(col_types);
+//                return projected_specialized_row_type;
             } else {
                 // simple, no reprojection done. Just specialize type.
                 return ds.specialize_row_type(inputNode->getOutputSchema().getRowType());

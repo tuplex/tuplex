@@ -745,12 +745,12 @@ TEST_F(PipelinesTest, FullFlightsAWS) {
 
     // deactivate optimizations (should be done alter again)
     // disable constant=folding opt for JSON
-    co.set("tuplex.optimizer.constantFoldingOptimization", "false");
+    co.set("tuplex.optimizer.constantFoldingOptimization", "true");
     co.set("tuplex.optimizer.filterPushdown", "true"); // <-- requires access path detection to work
     co.set("tuplex.optimizer.selectionPushdown", "true"); // <-- requires access path detection to work.
     co.set("tuplex.optimizer.nullValueOptimization", "true");
     // hyper on/off
-    co.set("tuplex.experimental.hyperspecialization", "true");
+    co.set("tuplex.experimental.hyperspecialization", "false");
     co.set("tuplex.aws.lambdaMemory", "10000");
 
     // split size 512MB

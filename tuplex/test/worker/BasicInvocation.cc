@@ -522,13 +522,13 @@ TEST(BasicInvocation, SingleMessageDebug) {
 
 #ifndef __APPLE__
 #ifdef BUILD_WITH_CEREAL
-    message_path = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_26.json";
+    message_path = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1521.json";
 #else
-    message_path = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1.json";
+    message_path = "/home/leonhard/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_1.json";
 #endif
 #else
 #ifdef BUILD_WITH_CEREAL
-    message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1.json";
+    message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1480.json";
 #else
     message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_1.json";
 #endif

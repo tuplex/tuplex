@@ -222,7 +222,7 @@ namespace tuplex {
             logger.debug("specialized output-type of " + inputNode->name() + " from " +
                          inputNode->getOutputSchema().getRowType().desc() + " to " + projected_specialized_row_type.desc());
 
-            // check which input columns are required and remove checks.
+            // check which input columns are required and remove checks. --> this requires to use ORIGINAL indices.
             // --> this requires pushdown to work before!
             auto acc_cols = acc_cols_before_opt;
             std::vector<NormalCaseCheck> projected_checks;

@@ -1590,7 +1590,9 @@ namespace tuplex {
         }
 
         // reuse old column count for estimation. -> else need to start CSV estimation from scratch!
-        auto expectedColumnCount = _columnsToSerialize.size();
+        auto expectedColumnCount = std::max(_columnNames.size(), _columnsToSerialize.size());
+        if(expectedColumnCount == 0)
+            expectedColumnCount = 1;
 
         if(0 == range_size || target_uri == URI::INVALID)
             return {};

@@ -629,7 +629,7 @@ TEST_F(JsonTuplexTest, GithubLoadTakeTop) {
     auto lines = splitToLines(fileToString(ref_path));
 
     // check both unwrap and no unwrap
-    auto v1 = ctx.json(ref_path, false).takeAsVector(5);
+    auto v1 = ctx.json(ref_path, false).withColumn("test", UDF("lambda row: row['payload'].get('repo')")).takeAsVector(5);
     EXPECT_EQ(v1.size(), 5);
 }
 

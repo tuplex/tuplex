@@ -529,6 +529,12 @@ TEST(BasicInvocation, ProperFlightsTest) {
         cout<<"  - "<<uri.toString()<<" ("<<uri_size<<", "<<sizeToMemString(uri_size)<<")"<<endl;
     }
 
+    // reference row counts obtained from wc -l
+    // this includes the header row.
+    std::unordered_map<string, size_t> ref_row_counts{{"flights_on_time_performance_1987_10.csv", 448621},
+                                                       {"flights_on_time_performance_2000_10.csv", 485762},
+                                                       {"flights_on_time_performance_2021_11.csv", 547560}};
+
     // before parsing, make sure runtime memory is initialized
     // init runtime memory
     runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
@@ -538,8 +544,11 @@ TEST(BasicInvocation, ProperFlightsTest) {
         size_t number_of_rows = 0;
         auto reader = make_unique<CSVReader>(&number_of_rows, csv_dummy_row_functor, true, 0, nullptr, 110, ',');
         reader->read(uri);
-        cout<<"  - "<<uri.toString()<<" number of rows: "<<number_of_rows<<endl;
+        cout<<"  - "<<uri.toString()<<" number of rows: "<<number_of_rows<<" rows read: "<<reader->inputRowCount()<<endl;
+        EXPECT_EQ(ref_row_counts[uri.basename()], number_of_rows);
     }
+
+
 }
 
 

@@ -982,8 +982,9 @@ namespace tuplex {
             // which columns to keep?
             std::vector<std::string> new_cols;
             for(auto idx : columnsToSerialize) {
-                if(idx < inputColumns().size()) {
-                    new_cols.push_back(inputColumns()[idx]);
+                auto original_idx = original_indices ? idx : reverseProjectToReadIndex(idx);
+                if(original_idx < inputColumns().size()) {
+                    new_cols.push_back(inputColumns()[original_idx]);
                 } else {
                     new_cols.push_back("<< INVALID INDEX>>");
                 }
@@ -1550,7 +1551,10 @@ namespace tuplex {
         const char* p = buf + start_offset;
         while(p < end && (ec = parseRow(p, end, cells, num_bytes, delimiter, quotechar, false)) == ExceptionCode::SUCCESS) {
             // convert cells to row
-            v.push_back(cellsToRow(cells, null_values));
+            if(cells.size() >= expected_column_count) {
+                auto row = cellsToRow(cells, null_values);
+                v.push_back(row);
+            }
             cells.clear();
             p += num_bytes;
             if(v.size() >= limit)

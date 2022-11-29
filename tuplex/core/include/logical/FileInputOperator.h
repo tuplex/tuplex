@@ -129,7 +129,6 @@ namespace tuplex {
             }
             return python::Type::makeTupleType(col_types);
         }
-    private:
 
         inline size_t reverseProjectToReadIndex(size_t projected_index) {
             assert(projected_index < outputColumnCount());
@@ -147,7 +146,7 @@ namespace tuplex {
             }
             throw std::runtime_error("could not reverse project index");
         }
-
+    private:
         inline std::vector<std::string> projectColumns(const std::vector<std::string>& columns) const {
             if(_columnsToSerialize.empty() || _columnNames.empty())
                 return {};

@@ -166,10 +166,12 @@ namespace tuplex {
                 ss<<"Identified "<<pluralize(ds.constant_column_indices().size(), "column")<<" to be constant: "<<ds.constant_column_indices()<<endl;
 
                 // print out which rows are considered constant (and with which values!)
+                // --> note that these checks are done POST initial pushdown.
+                // i.e. use output columns. (previously: input columns)
                 for(auto idx : ds.constant_column_indices()) {
                     string column_name;
-                    if(inputNode && !inputNode->inputColumns().empty())
-                        column_name = inputNode->inputColumns()[idx];
+                    if(inputNode && !inputNode->columns().empty())
+                        column_name = inputNode->columns()[idx];
                     ss<<" - "<<column_name<<": "<<ds.constant_row.get(idx).desc()<<" : "<<ds.constant_row.get(idx).getType().desc()<<endl;
                 }
                 logger.debug(ss.str());
@@ -186,18 +188,21 @@ namespace tuplex {
 
                 constant_type = simplifyConstantType(constant_type);
 
+                // original index is from ALL available rows in input node
+                auto original_idx = std::dynamic_pointer_cast<FileInputOperator>(inputNode)->reverseProjectToReadIndex(idx);
+
                 // null-checks handled separately, do not add them
                 // if null-value optimization has been already performed.
                 // --> i.e., they're done using the schema (?)
-                assert(idx < unprojected_row_type.parameters().size());
-                auto opt_schema_col_type = unprojected_row_type.parameters()[idx];
+                assert(original_idx < unprojected_row_type.parameters().size());
+                auto opt_schema_col_type = unprojected_row_type.parameters()[original_idx];
                 if(constant_type == python::Type::NULLVALUE && opt_schema_col_type == python::Type::NULLVALUE) {
                     // skip
                 } else {
                     if(constant_type.isConstantValued())
-                        checks.emplace_back(NormalCaseCheck::ConstantCheck(idx, constant_type));
+                        checks.emplace_back(NormalCaseCheck::ConstantCheck(original_idx, constant_type));
                     else if(constant_type == python::Type::NULLVALUE) {
-                        checks.emplace_back(NormalCaseCheck::NullCheck(idx));
+                        checks.emplace_back(NormalCaseCheck::NullCheck(original_idx));
                     } else {
                         logger.error("invalid constant type to check for: " + constant_type.desc());
                     }
@@ -222,8 +227,9 @@ namespace tuplex {
             auto acc_cols = acc_cols_before_opt;
             std::vector<NormalCaseCheck> projected_checks;
             for(auto col_idx : acc_cols) {
+                auto original_col_idx = std::dynamic_pointer_cast<FileInputOperator>(inputNode)->reverseProjectToReadIndex(col_idx);
                for(const auto& check : checks) {
-                   if(check.colNo == col_idx) {
+                   if(check.colNo == original_col_idx) {
                        projected_checks.emplace_back(check); // need to adjust internal colNo? => no, keep for now.
                    }
                }
@@ -1028,6 +1034,9 @@ namespace tuplex {
         auto inputNode = path_ctx.inputNode;
         auto operators = path_ctx.operators;
 
+        size_t num_input_before_hyper = inputNode->getOutputSchema().getRowType().parameters().size();
+        logger.info("number of input columns before hyperspecialization: " + std::to_string(num_input_before_hyper));
+
         // force resampling b.c. of thin layer
         Timer samplingTimer;
         if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
@@ -1170,6 +1179,9 @@ namespace tuplex {
 
         // the output schema (str in tocsv) case is not finalized yet...
         // stage->_normalCaseOutputSchema = Schema(stage->_normalCaseOutputSchema.getMemoryLayout(), path_ctx.outputSchema.getRowType());
+
+        size_t num_input_after_hyper = ctx.fastPathContext.inputNode->getOutputSchema().getRowType().parameters().size();
+        logger.info("number of input columns after hyperspecialization: " + std::to_string(num_input_after_hyper));
 
         logger.info("generated code in " + std::to_string(timer.time()) + "s");
         // can then compile everything, hooray!

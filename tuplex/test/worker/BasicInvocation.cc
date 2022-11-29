@@ -958,6 +958,19 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
 
     using namespace tuplex;
     using namespace std;
+//
+//
+//    auto udf_code = "def fill_in_delays(row):\n"
+//                    "    # want to fill in data for missing carrier_delay, weather delay etc.\n"
+//                    "    # only need to do that prior to 2003/06\n"
+//                    "    \n"
+//                    "    year = row['YEAR']\n"
+//                    "    month = row['MONTH']\n"
+//                    "    \n"
+//                    "    if year == 2003 and month < 6:\n"
+//                    "         return {'x': row['DEP_DELAY']}\n"
+//                    "    else:\n"
+//                    "         return {'x': row['ARR_DELAY']}\n";
 
     auto udf_code = "def fill_in_delays(row):\n"
                     "    # want to fill in data for missing carrier_delay, weather delay etc.\n"
@@ -1121,6 +1134,27 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
     python::closeInterpreter();
     return tstage;
 }
+
+TEST(BasicInvocation, FlightsTestSpecialization) {
+    using namespace std;
+    using namespace tuplex;
+
+    auto test_path = "../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv,../resources/hyperspecialization/2021/flights_on_time_performance_2021_11.sample.csv,";
+    auto test_output_path = "./general_processing/";
+    int num_threads = 1;
+    auto spillURI = std::string("spill_folder");
+    bool use_hyper = false;
+    use_hyper = true;
+    auto tstage = create_flights_pipeline(test_path, test_output_path, use_hyper);
+
+    URI test_uri("../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv");
+    //URI test_uri("../resources/hyperspecialization/2021/flights_on_time_performance_2021_11.sample.csv");
+    auto vfs = VirtualFileSystem::fromURI(test_uri);
+    size_t test_uri_size = 0;
+    vfs.file_size(test_uri, test_uri_size);
+    hyperspecialize(tstage, test_uri, test_uri_size, 0.9);
+}
+
 
 TEST(BasicInvocation, FlightsHyper) {
     using namespace std;

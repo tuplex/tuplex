@@ -63,9 +63,11 @@ if __name__ == '__main__':
     parser.add_argument('--no-cf', dest='no_cf', action="store_true",
                         help="deactivate constant-folding optimization explicitly.")
     parser.add_argument('--sampling-mode', dest='sampling_mode', choices=['A', 'B', 'C', 'D', 'E', 'F'], default='A')
-    parser.add_argument('--split-size', dest='split_size', default='256MB')
+    parser.add_argument('--split-size', dest='split_size', default='128MB')
     parser.add_argument('--no-filter-pushdown', dest='no_fpd', action="store_true",
                         help="deactivate filter pushdown.")
+    parser.add_argument('--no-projection-pushdown', dest='no_proj', action="store_true",
+                        help="deactivate projection pushdown.")
     parser.add_argument('--no-nvo', dest='no_nvo', action="store_true",
                         help="deactivate null value optimization explicitly.")
     parser.add_argument('--no-llvm-opt', dest='no_opt', action="store_true",
@@ -169,19 +171,19 @@ if __name__ == '__main__':
     # for github deactivate all the optimizations, so stuff runs
     conf["optimizer.constantFoldingOptimization"] = False
     conf["optimizer.filterPushdown"] = not args.no_fpd
-    conf["optimizer.selectionPushdown"] = False # <-- does not work yet
+    conf["optimizer.selectionPushdown"] = not args.no_proj
 
     #conf["optimizer.selectionPushdown"] = True
 
     # use this flage here to activate general path to make everything faster
     conf["resolveWithInterpreterOnly"] = False # <-- False means general path is activated 
     
-    #conf['resolveWithInterpreterOnly'] = True
+    conf['resolveWithInterpreterOnly'] = True
 
     conf["useLLVMOptimizer"] = not args.no_opt # <-- disable llvm optimizers
     conf["inputSplitSize"] = input_split_size
 
-    conf["tuplex.experimental.opportuneCompilation"] = False # if true, compile general case in parallel
+    conf["tuplex.experimental.opportuneCompilation"] = True # if true, compile general case in parallel
 
     # execute in pure python --> not working for JSON yet. need to parse... ?
     #conf['useInterpreterOnly'] = True

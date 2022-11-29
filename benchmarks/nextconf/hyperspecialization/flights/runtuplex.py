@@ -147,7 +147,9 @@ if __name__ == '__main__':
 
     # full dataset here (oO)
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv'
-    #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv'
+    
+    # use following as debug pattern
+    # input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv'
     #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2002*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004*.csv'
 
 
@@ -185,11 +187,13 @@ if __name__ == '__main__':
             "optimizer.nullValueOptimization": True,
             "resolveWithInterpreterOnly": False,
             "optimizer.constantFoldingOptimization": use_constant_folding,
-            "csv.selectionPushdown" : True}
+            "optimizer.selectionPushdown" : True}
 
     if os.path.exists('tuplex_config.json'):
         with open('tuplex_config.json') as fp:
             conf = json.load(fp)
+
+    conf['inputSplitSize'] = '64MB' #'256MB' #'128MB'
 
     if args.no_nvo:
         conf["optimizer.nullValueOptimization"] = False

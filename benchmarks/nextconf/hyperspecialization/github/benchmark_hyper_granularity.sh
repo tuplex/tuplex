@@ -3,7 +3,7 @@
 # benchmarks the different sampling modes for the Github query
 
 RESDIR=results/granularity
-NUM_RUNS=1
+NUM_RUNS=3
 PYTHON=python3.9
 TIMEOUT=300 # 5 min timeout per run
 echo ">> Running hyper granularity benchmark using ${NUM_RUNS} runs"
@@ -15,7 +15,7 @@ echo ">> Clearing job folder if it exists"
 
 # run hyper mode
 echo ">> running with hyper mode, saving results to $RESDIR/hyper"
-SPLIT_SIZES=(16MB 32MB 64MB 128MB 256MB 512MB 1GB 2GB)
+SPLIT_SIZES=(16MB 32MB 64MB 100MB 128MB 160MB 200MB 256MB 300MB 400MB 512MB 600MB 700MB 900MB 1000MB 1024MB 2048MB)
 for size in "${SPLIT_SIZES[@]}"; do
   echo ">> running for size $size"
   mkdir -p job

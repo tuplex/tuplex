@@ -176,7 +176,7 @@ void createRefPipeline(const std::string& test_input_path,
         co.set("tuplex.allowUndefinedBehavior", "false");
         co.set("tuplex.webui.enable", "false");
         co.set("tuplex.scratchDir", scratch_dir);
-        co.set("tuplex.csv.selectionPushdown", "false"); // same setting as below??
+        co.set("tuplex.optimizer.selectionPushdown", "false"); // same setting as below??
         Context c(co);
 
         // from:

@@ -292,7 +292,7 @@ namespace tuplex {
                 // @TODO: pass this down somewhow?
                 opt.set("tuplex.optimizer.filterPushdown", "true");
                 opt.set("tuplex.optimizer.operatorReordering", "true");
-                opt.set("tuplex.csv.selectionPushdown", "true");
+                opt.set("tuplex.optimizer.selectionPushdown", "true");
 
                 return opt;
             }

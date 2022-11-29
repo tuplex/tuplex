@@ -96,7 +96,7 @@ TEST_F(DataFrameTest, PushdownWithSpecialization) {
     stringToFile(uri, "A,B,C\n0,a,c\n000,a,c\n0000,a,c\n00,a,c\nN/A,a,c");
     auto conf = microTestOptions();
 //    conf.set("tuplex.optimizer.projectionPushdown", "true");
-    conf.set("tuplex.csv.selectionPushdown", "true");
+    conf.set("tuplex.optimizer.selectionPushdown", "true");
     conf.set("tuplex.optimizer.nullValueOptimization", "true");
 
     Context c(conf);

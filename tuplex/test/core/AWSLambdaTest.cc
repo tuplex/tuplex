@@ -670,7 +670,7 @@ TEST_F(AWSTest, FlightsHyperPipeline) {
 
     opt.set("tuplex.optimizer.nullValueOptimization", "true");
     opt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
-    opt.set("tuplex.csv.selectionPushdown", "true");
+    opt.set("tuplex.optimizer.selectionPushdown", "true");
 
     // s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv -> s3://tuplex-leonhard/experiments/flights_hyper/general
     string inputFiles = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv";

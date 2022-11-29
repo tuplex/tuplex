@@ -16,12 +16,14 @@
 #include <jit/JITCompiler.h>
 #include <jit/RuntimeInterface.h>
 #include <VirtualFileSystem.h>
-#include <ee/local/LocalBackend.h>
 #include <utils/Signals.h>
+#include <ee/local/LocalBackend.h>
+#include <ee/worker/WorkerBackend.h>
 #ifdef BUILD_WITH_AWS
 #include <ee/aws/AWSLambdaBackend.h>
 #endif
 #include <Context.h>
+
 namespace tuplex {
 
     int Context::_contextIDGenerator = 10000;
@@ -53,6 +55,10 @@ namespace tuplex {
 
         // start backend depending on options
         switch(options.BACKEND()) {
+            case Backend::UNKNOWN: {
+                logger.warn("unknown backend encountered, falling back to local");
+                // fall through, no break
+            }
             case Backend::LOCAL: {
                 // creates a new local backend! --> maybe reuse for multiple contexts?
                 _ee = std::make_unique<LocalBackend>(*this);
@@ -75,6 +81,10 @@ namespace tuplex {
                 // @TODO: function name should come from options!
                 _ee = std::make_unique<AwsLambdaBackend>(*this, AWSCredentials::get(), "tuplex-lambda-runner");
 #endif
+                break;
+            }
+            case Backend::WORKER: {
+                _ee = std::make_unique<WorkerBackend>(*this, ""); // auto search worker...
                 break;
             }
             default: {

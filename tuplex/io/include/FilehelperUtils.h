@@ -2,8 +2,8 @@
 // Created by Leonhard Spiegelberg on 11/18/21.
 //
 
-#ifndef TUPLEX_FILEUTILS_H
-#define TUPLEX_FILEUTILS_H
+#ifndef TUPLEX_FILEHELPERUTILS_H
+#define TUPLEX_FILEHELPERUTILS_H
 
 #include <string>
 
@@ -64,4 +64,4 @@ namespace tuplex {
     }
 }
 
-#endif //TUPLEX_FILEUTILS_H
+#endif //TUPLEX_FILEHELPERUTILS_H

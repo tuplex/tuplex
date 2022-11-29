@@ -39,7 +39,7 @@
 
 #include <CSVUtils.h>
 #include <procinfo.h>
-#include <FileUtils.h>
+#include <FilehelperUtils.h>
 #include <physical/codegen/StagePlanner.h>
 #include <logical/LogicalOptimizer.h>
 

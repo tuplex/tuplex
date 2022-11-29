@@ -757,6 +757,8 @@ namespace tuplex {
             return Backend::LOCAL;
         } else if(b == "lambda") {
             return Backend::LAMBDA;
+        } else if(b == "worker") {
+            return Backend::WORKER;
         } else {
             Logger::instance().defaultLogger().error("found unknown backend '" + b + "', defaulting to local execution.");
             return Backend::LOCAL;

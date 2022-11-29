@@ -12,7 +12,7 @@
 #include <cassert>
 #include <stdexcept>
 
-#include "FileUtils.h"
+#include "FilehelperUtils.h"
 #include "URI.h"
 
 namespace tuplex {

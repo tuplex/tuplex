@@ -146,6 +146,7 @@ namespace tuplex {
 
         URI _scratchDir;
         bool _deleteScratchDirOnShutdown;
+
         /*!
          * returns a scratch dir. If none is stored/found, abort
          * @param hints one or more directories (typically buckets) where a temporary cache region could be stored.

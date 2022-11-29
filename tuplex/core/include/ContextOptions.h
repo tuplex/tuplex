@@ -19,9 +19,18 @@
 
 namespace tuplex {
 
+    /*!
+     * different supported backends for execution
+     * UNKNWOWN: dummy class, invalid.
+     * LOCAL: local execution engine
+     * WORKER: good for debugging, base class for future network based backend or Lambda backend.
+     * LAMBDA: Worker based backend for AWS Lambda.
+     */
     enum class Backend {
-        LOCAL,
-        LAMBDA
+        UNKNOWN=0,
+        LOCAL=1,
+        WORKER=2,
+        LAMBDA=3
     };
 
     /*!

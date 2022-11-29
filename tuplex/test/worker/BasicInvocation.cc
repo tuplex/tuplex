@@ -488,6 +488,61 @@ tuplex::TransformStage* create_github_stage(const std::string& test_path, const 
         return builder.build();
 }
 
+int64_t csv_dummy_row_functor(void* userData, int64_t num_cells, char **cells, int64_t* cell_sizes) {
+    auto num = reinterpret_cast<size_t*>(userData);
+    if(num) {
+        *num = *num + 1;
+    }
+    return 0;
+}
+
+// proper test for flight processing
+TEST(BasicInvocation, ProperFlightsTest) {
+    using namespace tuplex;
+    using namespace std;
+
+    // need to init AWS SDK...
+#ifdef BUILD_WITH_AWS
+    {
+        // init AWS SDK to get access to S3 filesystem
+        auto& logger = Logger::instance().logger("aws");
+        auto aws_credentials = AWSCredentials::get();
+        auto options = ContextOptions::defaults();
+        Timer timer;
+        bool aws_init_rc = initAWS(aws_credentials, options.AWS_NETWORK_SETTINGS(), options.AWS_REQUESTER_PAY());
+        logger.debug("initialized AWS SDK in " + std::to_string(timer.time()) + "s");
+    }
+#endif
+    cout<<">> starting flights (hyper) test"<<endl;
+
+    string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
+
+    // glob files
+    auto files = VirtualFileSystem::globAll(input_pattern);
+    vector<size_t> uri_sizes;
+    cout<<"-- Found "<<pluralize(files.size(), "file")<<endl;
+    for(const auto& uri: files) {
+        size_t uri_size = 0;
+        auto vfs = VirtualFileSystem::fromURI(uri);
+        vfs.file_size(uri, reinterpret_cast<uint64_t&>(uri_size));
+        uri_sizes.push_back(uri_size);
+        cout<<"  - "<<uri.toString()<<" ("<<uri_size<<", "<<sizeToMemString(uri_size)<<")"<<endl;
+    }
+
+    // before parsing, make sure runtime memory is initialized
+    // init runtime memory
+    runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
+
+    // check number of lines/rows in each file
+    for(const auto& uri : files) {
+        size_t number_of_rows = 0;
+        auto reader = make_unique<CSVReader>(&number_of_rows, csv_dummy_row_functor, true, 0, nullptr, 110, ',');
+        reader->read(uri);
+        cout<<"  - "<<uri.toString()<<" number of rows: "<<number_of_rows<<endl;
+    }
+}
+
+
 TEST(BasicInvocation, SingleMessageDebug) {
     using namespace tuplex;
     using namespace std;
@@ -1151,7 +1206,7 @@ TEST(BasicInvocation, FlightsTestSpecialization) {
     //URI test_uri("../resources/hyperspecialization/2021/flights_on_time_performance_2021_11.sample.csv");
     auto vfs = VirtualFileSystem::fromURI(test_uri);
     size_t test_uri_size = 0;
-    vfs.file_size(test_uri, test_uri_size);
+    vfs.file_size(test_uri, reinterpret_cast<uint64_t &>(test_uri_size));
     hyperspecialize(tstage, test_uri, test_uri_size, 0.9);
 }
 

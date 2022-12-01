@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 #ifdef BUILD_WITH_AWS
 
-#include <LambdaWorkerApp.h>
+#include <ee/aws/LambdaWorkerApp.h>
 
 // HACK
 #include <physical/codegen/StagePlanner.h>
@@ -333,11 +333,16 @@ namespace tuplex {
         return ctx.containers;
     }
 
-    int LambdaWorkerApp::globalInit() {
+    int LambdaWorkerApp::globalInit(bool skip) {
 
         // skip if already initialized
         if(_globallyInitialized)
             return WORKER_OK;
+
+        if(skip) {
+            _globallyInitialized=true;
+            return WORKER_OK;
+        }
 
         // Lambda specific initialization
         Timer timer;

@@ -236,7 +236,7 @@ namespace tuplex {
 
         bool isInitialized() const;
 
-        virtual int globalInit();
+        virtual int globalInit(bool skip=false);
 
         inline std::string jsonStats() const {
             return _lastStat;
@@ -617,7 +617,6 @@ namespace tuplex {
      * @return merged parts
      */
     extern std::vector<FilePart> mergeParts(const std::vector<FilePart>& parts, size_t startPartNo=0);
-
 }
 
 #endif //TUPLEX_WORKERAPP_H

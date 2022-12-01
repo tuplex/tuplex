@@ -16,8 +16,8 @@
 #include <logical/FileOutputOperator.h>
 #include <logical/MapOperator.h>
 #include <google/protobuf/util/json_util.h>
-#include "../../worker/include/WorkerApp.h"
-#include "../../worker/include/LambdaWorkerApp.h"
+#include <ee/worker/WorkerApp.h>
+#include <ee/aws/LambdaWorkerApp.h>
 
 #include <boost/filesystem.hpp>
 
@@ -39,7 +39,7 @@
 
 #include <CSVUtils.h>
 #include <procinfo.h>
-#include <FilehelperUtils.h>
+#include <FileHelperUtils.h>
 #include <physical/codegen/StagePlanner.h>
 #include <logical/LogicalOptimizer.h>
 
@@ -496,6 +496,114 @@ int64_t csv_dummy_row_functor(void* userData, int64_t num_cells, char **cells, i
     return 0;
 }
 
+inline std::string flights_code() {
+    auto udf_code = "def fill_in_delays(row):\n"
+                    "    # want to fill in data for missing carrier_delay, weather delay etc.\n"
+                    "    # only need to do that prior to 2003/06\n"
+                    "    \n"
+                    "    year = row['YEAR']\n"
+                    "    month = row['MONTH']\n"
+                    "    arr_delay = row['ARR_DELAY']\n"
+                    "    \n"
+                    "    if year == 2003 and month < 6 or year < 2003:\n"
+                    "        # fill in delay breakdown using model and complex logic\n"
+                    "        if arr_delay is None:\n"
+                    "            # stays None, because flight arrived early\n"
+                    "            # if diverted though, need to add everything to div_arr_delay\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': None,\n"
+                    "                    'carrier_delay' : None,\n"
+                    "                    'weather_delay': None,\n"
+                    "                    'nas_delay' : None,\n"
+                    "                    'security_delay': None,\n"
+                    "                    'late_aircraft_delay' : None}\n"
+                    "        elif arr_delay < 0.:\n"
+                    "            # stays None, because flight arrived early\n"
+                    "            # if diverted though, need to add everything to div_arr_delay\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': row['ARR_DELAY'],\n"
+                    "                    'carrier_delay' : None,\n"
+                    "                    'weather_delay': None,\n"
+                    "                    'nas_delay' : None,\n"
+                    "                    'security_delay': None,\n"
+                    "                    'late_aircraft_delay' : None}\n"
+                    "        elif arr_delay < 5.:\n"
+                    "            # it's an ontime flight, just attribute any delay to the carrier\n"
+                    "            carrier_delay = arr_delay\n"
+                    "            # set the rest to 0\n"
+                    "            # ....\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': row['ARR_DELAY'],\n"
+                    "                    'carrier_delay' : carrier_delay,\n"
+                    "                    'weather_delay': None,\n"
+                    "                    'nas_delay' : None,\n"
+                    "                    'security_delay': None,\n"
+                    "                    'late_aircraft_delay' : None}\n"
+                    "        else:\n"
+                    "            # use model to determine everything and set into (join with weather data?)\n"
+                    "            # i.e., extract here a couple additional columns & use them for features etc.!\n"
+                    "            crs_dep_time = float(row['CRS_DEP_TIME'])\n"
+                    "            crs_arr_time = float(row['CRS_ARR_TIME'])\n"
+                    "            crs_elapsed_time = float(row['CRS_ELAPSED_TIME'])\n"
+                    "            carrier_delay = 1024 + 2.7 * crs_dep_time - 0.2 * crs_elapsed_time\n"
+                    "            weather_delay = 2000 + 0.09 * carrier_delay * (carrier_delay - 10.0)\n"
+                    "            nas_delay = 3600 * crs_dep_time / 10.0\n"
+                    "            security_delay = 7200 / crs_dep_time\n"
+                    "            late_aircraft_delay = (20 + 1.0) / (2.0 + crs_dep_time)\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': row['ARR_DELAY'],\n"
+                    "                    'carrier_delay' : carrier_delay,\n"
+                    "                    'weather_delay': weather_delay,\n"
+                    "                    'nas_delay' : nas_delay,\n"
+                    "                    'security_delay': security_delay,\n"
+                    "                    'late_aircraft_delay' : late_aircraft_delay}\n"
+                    "    else:\n"
+                    "        # just return it as is\n"
+                    "        return {'year' : year, 'month' : month,\n"
+                    "                'day' : row['DAY_OF_MONTH'],\n"
+                    "                'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                'distance' : row['DISTANCE'],\n"
+                    "                'dep_delay' : row['DEP_DELAY'],\n"
+                    "                'arr_delay': row['ARR_DELAY'],\n"
+                    "                'carrier_delay' : row['CARRIER_DELAY'],\n"
+                    "                'weather_delay':row['WEATHER_DELAY'],\n"
+                    "                'nas_delay' : row['NAS_DELAY'],\n"
+                    "                'security_delay': row['SECURITY_DELAY'],\n"
+                    "                'late_aircraft_delay' : row['LATE_AIRCRAFT_DELAY']}";
+    return udf_code;
+}
+
 // proper test for flight processing
 TEST(BasicInvocation, ProperFlightsTest) {
     using namespace tuplex;
@@ -517,38 +625,47 @@ TEST(BasicInvocation, ProperFlightsTest) {
 
     string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
 
-    // glob files
-    auto files = VirtualFileSystem::globAll(input_pattern);
-    vector<size_t> uri_sizes;
-    cout<<"-- Found "<<pluralize(files.size(), "file")<<endl;
-    for(const auto& uri: files) {
-        size_t uri_size = 0;
-        auto vfs = VirtualFileSystem::fromURI(uri);
-        vfs.file_size(uri, reinterpret_cast<uint64_t&>(uri_size));
-        uri_sizes.push_back(uri_size);
-        cout<<"  - "<<uri.toString()<<" ("<<uri_size<<", "<<sizeToMemString(uri_size)<<")"<<endl;
-    }
+    // // glob files
+    // auto files = VirtualFileSystem::globAll(input_pattern);
+    // vector<size_t> uri_sizes;
+    // cout<<"-- Found "<<pluralize(files.size(), "file")<<endl;
+    // for(const auto& uri: files) {
+    //     size_t uri_size = 0;
+    //     auto vfs = VirtualFileSystem::fromURI(uri);
+    //     vfs.file_size(uri, reinterpret_cast<uint64_t&>(uri_size));
+    //     uri_sizes.push_back(uri_size);
+    //     cout<<"  - "<<uri.toString()<<" ("<<uri_size<<", "<<sizeToMemString(uri_size)<<")"<<endl;
+    // }
+    //
+    // // reference row counts obtained from wc -l
+    // // this includes the header row.
+    // std::unordered_map<string, size_t> ref_row_counts{{"flights_on_time_performance_1987_10.csv", 448621},
+    //                                                    {"flights_on_time_performance_2000_10.csv", 485762},
+    //                                                    {"flights_on_time_performance_2021_11.csv", 547560}};
+    //
+    // // before parsing, make sure runtime memory is initialized
+    // // init runtime memory
+    // runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
+    //
+    // // check number of lines/rows in each file
+    // for(const auto& uri : files) {
+    //     size_t number_of_rows = 0;
+    //     auto reader = make_unique<CSVReader>(&number_of_rows, csv_dummy_row_functor, true, 0, nullptr, 110, ',');
+    //     reader->read(uri);
+    //     cout<<"  - "<<uri.toString()<<" number of rows: "<<number_of_rows<<" rows read: "<<reader->inputRowCount()<<endl;
+    //     EXPECT_EQ(ref_row_counts[uri.basename()], number_of_rows);
+    // }
 
-    // reference row counts obtained from wc -l
-    // this includes the header row.
-    std::unordered_map<string, size_t> ref_row_counts{{"flights_on_time_performance_1987_10.csv", 448621},
-                                                       {"flights_on_time_performance_2000_10.csv", 485762},
-                                                       {"flights_on_time_performance_2021_11.csv", 547560}};
-
-    // before parsing, make sure runtime memory is initialized
-    // init runtime memory
-    runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
-
-    // check number of lines/rows in each file
-    for(const auto& uri : files) {
-        size_t number_of_rows = 0;
-        auto reader = make_unique<CSVReader>(&number_of_rows, csv_dummy_row_functor, true, 0, nullptr, 110, ',');
-        reader->read(uri);
-        cout<<"  - "<<uri.toString()<<" number of rows: "<<number_of_rows<<" rows read: "<<reader->inputRowCount()<<endl;
-        EXPECT_EQ(ref_row_counts[uri.basename()], number_of_rows);
-    }
-
-
+    // local worker mode for easier debugging
+    ContextOptions co = ContextOptions::defaults();
+    co.set("tuplex.backend", "worker");
+    Context ctx(co);
+    auto udf_code = flights_code();
+    python::initInterpreter();
+    python::unlockGIL();
+    ctx.csv(input_pattern).map(UDF(udf_code)).tocsv("local_worker_output.csv");
+    python::lockGIL();
+    python::closeInterpreter();
 }
 
 

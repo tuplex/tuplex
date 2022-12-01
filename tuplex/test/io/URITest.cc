@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 #include <VirtualFileSystem.h>
 #include <URI.h>
-#include <FilehelperUtils.h>
+#include <FileHelperUtils.h>
 #include "FileSystemUtils.h"
 
 TEST(URI, parent) {

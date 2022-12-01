@@ -169,9 +169,6 @@ namespace tuplex {
                                         const std::shared_ptr<const Aws::Client::AsyncCallerContext>& ctx);
         void invokeAsync(const messages::InvocationRequest& req);
 
-        // decode fileURIS
-        std::vector<std::tuple<std::string, size_t>> decodeFileURIs(const std::vector<Partition*>& partitions, bool invalidate=true);
-
         std::vector<URI> hintsFromTransformStage(const TransformStage* stage);
 
         inline MessageHandler logger() const { return _logger; }

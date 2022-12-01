@@ -16,6 +16,7 @@
 #include <numeric>
 #include <physical/execution/TransformTask.h>
 #include <physical/execution/ResolveTask.h>
+#include "WorkerApp.h"
 #include <utils/Messages.h>
 #include <regex>
 
@@ -51,10 +52,8 @@ namespace tuplex {
                                                                           const std::string& bitCode,
                                                                           const size_t numThreads,
                                                                           const std::vector<std::tuple<std::string, std::size_t>>& uri_infos,
-                                                                          const std::string& spillURI, const size_t buf_spill_size);
-
-        // decode fileURIS
-        std::vector<std::tuple<std::string, size_t>> decodeFileURIs(const std::vector<Partition*>& partitions, bool invalidate=true);
+                                                                          const std::string& spillURI,
+                                                                          const size_t buf_spill_size);
 
         std::vector<URI> hintsFromTransformStage(const TransformStage* stage);
 
@@ -63,6 +62,15 @@ namespace tuplex {
         void abortRequestsAndFailWith(int returnCode, const std::string& errorMessage);
 
         void config_worker(messages::WorkerSettings* ws, size_t numThreads, const URI& spillURI, size_t buf_spill_size);
+
+        /*!
+         * generate a baseURI for a temporary file.
+         * @param stageNo
+         * @return URI
+         */
+        inline URI tempStageURI(int stageNo) const {
+            return URI(_options.SCRATCH_DIR().toString() + "/temporary_stage_output/" + "stage_" + std::to_string(stageNo));
+        }
     private:
         URI _scratchDir;
         bool _deleteScratchDirOnShutdown;

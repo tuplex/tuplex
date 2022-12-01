@@ -5,7 +5,7 @@
 #ifndef TUPLEX_MAIN_H
 #define TUPLEX_MAIN_H
 
-#include "WorkerApp.h"
+#include <ee/worker/WorkerApp.h>
 
 #include <iostream>
 #include <memory>

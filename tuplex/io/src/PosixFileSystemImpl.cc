@@ -33,7 +33,7 @@
 #include <copyfile.h>
 #endif
 
-#include <FilehelperUtils.h>
+#include <FileHelperUtils.h>
 #include <dirent.h>
 
 // use this define to use non thread-safe POSIX APIs under Linux

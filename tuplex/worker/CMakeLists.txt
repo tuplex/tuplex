@@ -20,7 +20,7 @@ include_directories(${json_INCLUDE_DIR})
 
 include_directories(include)
 
-set(WORKER_SRCS src/main.cc src/WorkerApp.cc src/LambdaWorkerApp.cc)
+set(WORKER_SRCS src/main.cc)
 # linking
 add_executable(${WORKER_NAME} ${WORKER_SRCS})
 

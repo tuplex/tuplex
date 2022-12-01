@@ -40,9 +40,7 @@ include_directories("../worker/include")
 # linking
 add_executable(${LAMBDA_NAME} "src/main.cc"
         "src/lambda_main.cc"
-        "src/sighandler.cc"
-        "${CMAKE_CURRENT_LIST_DIR}/../worker/src/LambdaWorkerApp.cc"
-        "${CMAKE_CURRENT_LIST_DIR}/../worker/src/WorkerApp.cc")
+        "src/sighandler.cc")
 
 # enable export symbols in debug for backtrace
 set_target_properties(${LAMBDA_NAME} PROPERTIES ENABLE_EXPORTS 1)

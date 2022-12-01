@@ -7,7 +7,7 @@
 //  Created by Leonhard Spiegelberg first on 11/22/2021                                                               //
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
-#include <WorkerApp.h>
+#include "ee/worker/WorkerApp.h"
 #include <physical/execution/TransformTask.h>
 #include "ee/local/LocalBackend.h"
 #include "visitors/TypeAnnotatorVisitor.h"
@@ -17,10 +17,15 @@
 
 namespace tuplex {
 
-    int WorkerApp::globalInit() {
+    int WorkerApp::globalInit(bool skip) {
         // skip if already initialized.
         if(_globallyInitialized)
             return WORKER_OK;
+
+        if(skip) {
+            _globallyInitialized = true;
+            return WORKER_OK;
+        }
 
         logger().info("WorkerAPP globalInit");
 #ifdef BUILD_WITH_CEREAL
@@ -49,7 +54,6 @@ namespace tuplex {
             logger().error("runtime specified as " + std::string(runtime_path) + " could not be found.");
             return WORKER_ERROR_NO_TUPLEX_RUNTIME;
         }
-        _compiler = std::make_shared<JITCompiler>();
 
         // // init python home dir to point to directory where stdlib files are installed, cf.
         // // https://www.python.org/dev/peps/pep-0405/ for meaning of it. Per default, just use default behavior.
@@ -71,6 +75,12 @@ namespace tuplex {
         logger().info("performing global initialization (Worker App)");
         if(WORKER_OK != globalInit())
             return false;
+
+        // before initializing compiler, make sure runtime has been loaded
+        assert(runtime::loaded());
+
+        if(!_compiler)
+            _compiler = std::make_shared<JITCompiler>();
 
         initThreadEnvironments(_settings.numThreads);
         return true;

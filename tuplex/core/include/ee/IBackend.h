@@ -58,5 +58,13 @@ namespace tuplex {
         return lhs;
     }
 
+    /*!
+     * decode from partitions internally stored file uris and sizes.
+     * @param partitions
+     * @param invalidate
+     * @return vector of the uris and sizes.
+     */
+    extern std::vector<std::tuple<std::string, size_t> > decodeFileURIs(const std::vector<Partition *> &partitions, bool invalidate=true);
+
 }
 #endif //TUPLEX_IBACKEND_H

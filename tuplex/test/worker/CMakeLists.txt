@@ -7,7 +7,7 @@ FILE(GLOB SRCS *.cc)
 
 include(GoogleTest)
 
-ADD_EXECUTABLE(testworker ${SRCS} ../../worker/src/WorkerApp.cc ../../worker/src/LambdaWorkerApp.cc)
+ADD_EXECUTABLE(testworker ${SRCS})
 target_include_directories(testworker PUBLIC "../../worker/include")
 # find_package(pybind11 REQUIRED)
 TARGET_LINK_LIBRARIES(testworker

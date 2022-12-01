@@ -11,7 +11,7 @@
 #ifndef TUPLEX_LAMBDAWORKERAPP_H
 #define TUPLEX_LAMBDAWORKERAPP_H
 
-#include "WorkerApp.h"
+#include "../worker/WorkerApp.h"
 
 #ifdef BUILD_WITH_AWS
 
@@ -53,7 +53,7 @@ namespace tuplex {
 
         tuplex::messages::InvocationResponse generateResponse();
 
-        int globalInit() override;
+        int globalInit(bool skip) override;
 
         ~LambdaWorkerApp() {
 

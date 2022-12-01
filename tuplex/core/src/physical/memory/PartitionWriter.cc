@@ -106,6 +106,9 @@ namespace tuplex {
     }
 
     std::vector<Partition*> rowsToPartitions(Executor *executor, int64_t dataSetID, int64_t contextID, const std::vector<Row>& rows) {
+        if(!executor)
+            throw std::runtime_error("Got <null> executor, please pass valid & initialized executor to function.");
+
         if(rows.empty())
             return std::vector<Partition*>();
 

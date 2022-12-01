@@ -26,7 +26,7 @@
 #include <aws/s3/model/HeadObjectRequest.h>
 #include <Timer.h>
 #include <Utils.h>
-#include <FilehelperUtils.h>
+#include <FileHelperUtils.h>
 
 #include <AWSCommon.h>
 

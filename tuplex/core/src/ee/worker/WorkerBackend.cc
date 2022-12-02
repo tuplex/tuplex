@@ -101,14 +101,33 @@ namespace tuplex {
             // process using local app
             auto app = make_unique<WorkerApp>(WorkerSettings());
             app->globalInit(true);
-
+            auto stats_array = nlohmann::json::array();
+            size_t total_input_rows = 0;
             for (const auto &req: requests) {
                 Timer timer;
                 std::string json_buf;
                 google::protobuf::util::MessageToJsonString(req, &json_buf);
                 auto rc = app->processJSONMessage(json_buf);
+                // fetch result
+                auto stats = app->jsonStats();
+
+                auto j_stats = nlohmann::json::parse(stats);
+                nlohmann::json j;
+                auto j_req = nlohmann::json::parse(json_buf);
+                j["request"] = req.inputuris();
+                j["stats"] = j_stats;
+                stats_array.push_back(j);
+
+                total_input_rows += j_stats["input"]["total_input_row_count"].get<size_t>();
+
                 logger().info("Processed request in " + std::to_string(timer.time()) + "s, rc=" + std::to_string(rc));
             }
+
+            logger().info("total input row count: " + std::to_string(total_input_rows));
+
+            // dump
+            logger().info("JSON:\n" + stats_array.dump(2));
+
         } else {
             logger().warn("No requests generated, skipping stage.");
         }

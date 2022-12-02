@@ -18,6 +18,21 @@ namespace tuplex {
             return nullptr;
 
         if(node->getInferredType().isConstantValued()) {
+
+            auto constant_type = node->getInferredType();
+
+            // special case: if node is a parameter - DO NOT REPLACE
+            if(node->type() == ASTNodeType::Identifier) {
+                if(parent && parent->type() == ASTNodeType::Parameter)
+                    return node;
+            }
+
+            // same true for parameter
+            if(node->type() == ASTNodeType::Parameter) {
+                return node;
+            }
+
+
             // constant valued node! replace!
             auto type = node->getInferredType().underlying();
             auto value = node->getInferredType().constant();
@@ -34,16 +49,21 @@ namespace tuplex {
 
             if(python::Type::I64 == type || python::Type::F64 == type) {
                 // replace with number node
-                return new NNumber(value);
+                auto num = new NNumber(value);
+                num->setInferredType(constant_type);
+                return num;
             } else if(python::Type::STRING == type) {
                 // check that string is quoted with ''!
                 if(value.empty() || value.front() != '\'' || value.back() != '\'')
                     throw std::runtime_error("make sure string constants are escaped using '' ");
-                return new NString(value);
+                auto s = new NString(value);
+                s->setInferredType(constant_type);
             } else if(python::Type::NULLVALUE == type) {
                 return new NNone;
             } else if(python::Type::BOOLEAN == type) {
-                return new NBoolean(parseBoolString(value));
+               auto b = new NBoolean(parseBoolString(value));
+               b->setInferredType(constant_type);
+               return b;
             } else if(python::Type::EMPTYTUPLE == type) {
                 return new NTuple();
             } else if(python::Type::EMPTYLIST == type) {

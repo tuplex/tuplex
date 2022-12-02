@@ -46,7 +46,7 @@ namespace tuplex {
         template<class Node>
         inline Node* replaceh(ASTNode* parent, Node* node) {
             auto ret_ptr = replaceh(parent, (ASTNode*)node); // replace
-            assert(ret_ptr->type() == Node::type_);
+            // assert(ret_ptr->type() == Node::type_);
             return (Node*)ret_ptr;
         }
 

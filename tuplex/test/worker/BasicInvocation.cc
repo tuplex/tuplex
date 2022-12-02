@@ -659,11 +659,27 @@ TEST(BasicInvocation, ProperFlightsTest) {
     // local worker mode for easier debugging
     ContextOptions co = ContextOptions::defaults();
     co.set("tuplex.backend", "worker");
+
+    // activate optimizations
+    co.set("tuplex.optimizer.selectionPushdown", "true");
+    co.set("tuplex.optimizer.filterPushdown", "true");
+    co.set("tuplex.optimizer.constantFoldingOptimization", "true");
+    co.set("tuplex.filterPromotion", "true");
+    co.set("tuplex.experimental.hyperspecialization", "false"); // first check that THIS is correct.
+
+    // init runtime
+    auto rc_runtime = runtime::init(co.RUNTIME_LIBRARY().toPath());
+    ASSERT_TRUE(rc_runtime);
+
     Context ctx(co);
     auto udf_code = flights_code();
     python::initInterpreter();
     python::unlockGIL();
-    ctx.csv(input_pattern).map(UDF(udf_code)).tocsv("local_worker_output.csv");
+//    ctx.csv(input_pattern).map(UDF(udf_code)).tocsv("local_worker_output.csv");
+
+    // // let's use a simple pipeline to make sure everything works
+     ctx.csv(input_pattern).selectColumns(std::vector<std::string>{"YEAR"}).tocsv("year_extract.csv");
+
     python::lockGIL();
     python::closeInterpreter();
 }

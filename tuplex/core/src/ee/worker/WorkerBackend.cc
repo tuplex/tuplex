@@ -102,6 +102,7 @@ namespace tuplex {
             auto app = make_unique<WorkerApp>(WorkerSettings());
             app->globalInit(true);
             auto stats_array = nlohmann::json::array();
+            auto req_array = nlohmann::json::array();
             size_t total_input_rows = 0;
             for (const auto &req: requests) {
                 Timer timer;
@@ -120,6 +121,8 @@ namespace tuplex {
 
                 total_input_rows += j_stats["input"]["total_input_row_count"].get<size_t>();
 
+                req_array.push_back(j_req);
+
                 logger().info("Processed request in " + std::to_string(timer.time()) + "s, rc=" + std::to_string(rc));
             }
 
@@ -127,6 +130,15 @@ namespace tuplex {
 
             // dump
             logger().info("JSON:\n" + stats_array.dump(2));
+
+            // write output to file
+            nlohmann::json j_all;
+            j_all["responses"] = stats_array;
+            j_all["requests"] = req_array;
+            j_all["total_input_row_count"] = total_input_rows;
+            auto job_uri = URI("worker_app_job.json");
+            stringToFile(job_uri, j_all.dump());
+            logger().info("Saved job to " + job_uri.toPath());
 
         } else {
             logger().warn("No requests generated, skipping stage.");

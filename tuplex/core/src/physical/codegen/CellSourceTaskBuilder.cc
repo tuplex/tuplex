@@ -148,7 +148,7 @@ namespace tuplex {
                         auto nc_ecOpID = _env->i64Const(_operatorID);
 
                         // serialize as bad parse -> NOTE: the normal-case checks have passed. Hence, use dummies
-                        _env->printValue(builder, ecCode, "cell source parse failed with code, serializing true data: ");
+                        // _env->printValue(builder, ecCode, "cell source parse failed with code, serializing true data: ");
                         auto serialized_row = serializeBadParseException(builder, cellsPtr, sizesPtr, true, true);
 
                         // important to get curBlock here.
@@ -489,10 +489,10 @@ namespace tuplex {
                                 // if !check -> normal_case violation!
                                 // else, all good!
 
-                                 // debug:
-                                 _env->debugPrint(builder, "performing constant check for col=" + std::to_string(i) + " , " + check.constant_type().desc() + " (1=passed): ", check_cond);
-				                 _env->debugPrint(builder, "cellStr", cellStr);
-				                 _env->debugPrint(builder, "cellSize", cellSize);
+                                // // debug:
+                                // _env->debugPrint(builder, "performing constant check for col=" + std::to_string(i) + " , " + check.constant_type().desc() + " (1=passed): ", check_cond);
+                                // _env->debugPrint(builder, "cellStr", cellStr);
+                                // _env->debugPrint(builder, "cellSize", cellSize);
 
                             } else {
                                 logger.warn("unsupported check type encountered");

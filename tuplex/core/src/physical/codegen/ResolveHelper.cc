@@ -49,14 +49,14 @@ namespace tuplex {
             // quick check on whether number of cells matches.
             auto cell_count_match = builder.CreateICmpEQ(num_cells, env.i64Const(num_desired_cells));
 
-            env.printValue(builder, num_cells, "checking cell count (expected: " + std::to_string(num_desired_cells) + ")");
+            // env.printValue(builder, num_cells, "checking cell count (expected: " + std::to_string(num_desired_cells) + ")");
 
             BasicBlock* bCellCountOK = BasicBlock::Create(env.getContext(), "cell_count_ok", builder.GetInsertBlock()->getParent());
             BasicBlock* bFailure =  BasicBlock::Create(env.getContext(), "row_mismatch", builder.GetInsertBlock()->getParent());
 
             builder.CreateCondBr(cell_count_match, bCellCountOK, bFailure);
             builder.SetInsertPoint(bFailure);
-            env.printValue(builder, cell_count_match, "failed cell count match with: ");
+            // env.printValue(builder, cell_count_match, "failed cell count match with: ");
             builder.CreateRet(env.i64Const(ecToI64(return_code_on_parse_error)));
 
             // continue, parse cells according to schema!
@@ -72,7 +72,9 @@ namespace tuplex {
                 auto cell_str = builder.CreateGEP(ptr, offset);
 
                 auto cell_type = pip_input_row_type.parameters()[i];
-                env.printValue(builder, cell_str, "parsing cell " + std::to_string(i) + " (type: " + cell_type.desc() + " )");
+
+                // debug:
+                // env.printValue(builder, cell_str, "parsing cell " + std::to_string(i) + " (type: " + cell_type.desc() + " )");
 
                 // parse cell and assign.
                 auto cell = parse_string_cell(env, builder, bFailure, cell_type, input_op->null_values(), cell_str, cell_size);
@@ -85,7 +87,8 @@ namespace tuplex {
 
             // env.freeAll(builder); // <-- is this correct?
 
-            env.debugPrint(builder, "parsed ft from CSV");
+            // debug:
+            // env.debugPrint(builder, "parsed ft from CSV");
 
             return ft;
         }

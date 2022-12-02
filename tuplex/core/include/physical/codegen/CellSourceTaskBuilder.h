@@ -62,7 +62,15 @@ namespace tuplex {
                 return cellsToTuple(builder, _columnsToSerialize, _fileInputRowType, cellsPtr, sizesPtr);
             }
 
-            SerializableValue serializeBadParseException(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr, bool use_dummies) const;
+            SerializableValue serializeFullRowAsBadParseException(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr,
+                                                                  llvm::Value* sizesPtr) const ;
+
+            SerializableValue serializeGeneralColumnsAsBadParseException(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr,
+                                                                  llvm::Value* sizesPtr) const ;
+
+            SerializableValue serializeBadParseException(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr,
+                                                         llvm::Value* sizesPtr, bool use_dummies,
+                                                         bool use_only_projected_general_case_columns) const;
         public:
             CellSourceTaskBuilder() = delete;
 

@@ -553,7 +553,7 @@ namespace tuplex {
 
                 // bad parse exception! => gets matched/resolved first on fallback path.
                 // DO NOT USE dummies here
-                _env->debugPrint(builder, "checks failed, serializing row without dummies.");
+                // _env->debugPrint(builder, "checks failed, serializing row without dummies.");
                 auto serialized_row = serializeBadParseException(builder, cellsPtr, sizesPtr, false, true);
                 callExceptHandler(builder, userData, _env->i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)),
                                   _env->i64Const(_operatorID), rowNumber,

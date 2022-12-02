@@ -178,7 +178,7 @@ if __name__ == '__main__':
     # use this flage here to activate general path to make everything faster
     conf["resolveWithInterpreterOnly"] = False # <-- False means general path is activated 
     
-    conf['resolveWithInterpreterOnly'] = True
+    #conf['resolveWithInterpreterOnly'] = True
 
     conf["useLLVMOptimizer"] = not args.no_opt # <-- disable llvm optimizers
     conf["inputSplitSize"] = input_split_size

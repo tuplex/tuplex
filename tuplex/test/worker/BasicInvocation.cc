@@ -624,8 +624,9 @@ TEST(BasicInvocation, ProperFlightsTest) {
     cout<<">> starting flights (hyper) test"<<endl;
 
     string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
+    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv";
 
-    // input_pattern = "../resources/hyperspecialization/flights/*.sample";
+    input_pattern = "../resources/hyperspecialization/flights/*.sample";
 
     // // glob files
     // auto files = VirtualFileSystem::globAll(input_pattern);

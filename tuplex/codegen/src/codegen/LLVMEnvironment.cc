@@ -1240,8 +1240,13 @@ namespace tuplex {
                 return i1Const(false);
 
             if (python::Type::BOOLEAN == type) {
-                assert(val.val && val.val->getType() == getBooleanType());
-                return booleanToCondition(builder, val.val);
+                llvm::Value* value = val.val;
+                if(value && value->getType() != getBooleanType() && value->getType()->isIntegerTy()) {
+                    value = builder.CreateZExtOrTrunc(value, getBooleanType());
+                }
+
+                assert(value && value->getType() == getBooleanType());
+                return booleanToCondition(builder, value);
             }
 
             // numeric types?

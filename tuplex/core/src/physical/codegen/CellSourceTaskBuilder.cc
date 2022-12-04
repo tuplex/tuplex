@@ -58,7 +58,7 @@ namespace tuplex {
                 if(!pipFunc)
                     throw std::runtime_error("error in pipeline function");
 
-                // env().debugPrint(builder, "parsed following tuple from CSV: ");
+                 env().debugPrint(builder, "parsed following tuple from CSV: ");
                 // ft.print(builder);
 
                 auto res = PipelineBuilder::call(builder, pipFunc, ft, userData, builder.CreateLoad(outputRowNumberVar), initIntermediate(builder));
@@ -169,7 +169,8 @@ namespace tuplex {
                         writeIntermediate(builder, userData, _intermediateCallbackName);
                     }
 
-                    builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                    exitWith(builder, ExceptionCode::SUCCESS);
+                    // builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
                 } else {
 
                     // if intermediate callback desired, perform!
@@ -177,8 +178,9 @@ namespace tuplex {
                         writeIntermediate(builder, userData, _intermediateCallbackName);
                     }
 
-                    // propagate result to callee, because can be used to update counters
-                    builder.CreateRet(builder.CreateZExtOrTrunc(ecCode, env().i64Type()));
+                    exitWith(builder, ecCode);
+                    //// propagate result to callee, because can be used to update counters
+                    //builder.CreateRet(builder.CreateZExtOrTrunc(ecCode, env().i64Type()));
                 }
             } else {
                 // if intermediate callback desired, perform!
@@ -188,7 +190,8 @@ namespace tuplex {
 
 
                 // create success ret
-                builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                exitWith(builder, ExceptionCode::SUCCESS);
+                //builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
             }
             return func;
         }
@@ -561,7 +564,8 @@ namespace tuplex {
                                   serialized_row.val, serialized_row.size);
 
                 // processing done, rest needs to be done via different path.
-                builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
+                exitWith(builder, ExceptionCode::SUCCESS);
+                //builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
             }
 
             builder.SetInsertPoint(bbChecksPassed); // continue generating here...
@@ -965,8 +969,11 @@ namespace tuplex {
 
                 IRBuilder<> b(_valueErrorBlock);
 
+                env().debugPrint(b, "value error block entered.");
+
                 // could use here value error as well. However, for internal resolve use badparse string input!
-                b.CreateRet(env().i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
+                exitWith(b, ExceptionCode::BADPARSE_STRING_INPUT);
+                // b.CreateRet(env().i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
             }
 
             return _valueErrorBlock;
@@ -984,7 +991,8 @@ namespace tuplex {
                 // b.CreateRet(env().i64Const(ecToI64(ExceptionCode::NULLERROR))); // internal error! => use this to force compiled processing?
 
                 // use this to force fallback processing...
-                b.CreateRet(env().i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
+                exitWith(b, ExceptionCode::BADPARSE_STRING_INPUT);
+                // b.CreateRet(env().i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
             }
             return _nullErrorBlock;
         }

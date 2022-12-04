@@ -630,14 +630,19 @@ namespace tuplex {
 
                 // std::cout<<"reading row no="<<rowNumber<<"..."<<std::endl;
 
-                // call functor
+                // call functor, note that b.c. parse has been done above - if the function
+                // comes from CellSourceTaskBuilder, it will NOT give the number of bytes parsed.
                 int64_t bytes_read = _rowFunctor(_userData, rowNumber, cells, cell_sizes);
+
+                std::cout<<"row done, bytes read="<<bytes_read<<"."<<std::endl;
+
                 int64_t actual_bytes_read = std::max(bytes_read, static_cast<int64_t>(0));
                 int64_t rc = - std::min(bytes_read, static_cast<int64_t>(0));
                 auto ecCode = i64ToEC(rc);
                 _numRowsRead++;
 
-                // std::cout<<"row done, rc="<<rc<<"."<<std::endl;
+                std::cout<<"row done, rc="<<rc<<"."<<std::endl;
+
 
                 if(ecCode != ExceptionCode::SUCCESS) {
                     using namespace std;

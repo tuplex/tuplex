@@ -71,6 +71,21 @@ namespace tuplex {
             SerializableValue serializeBadParseException(llvm::IRBuilder<>& builder, llvm::Value* cellsPtr,
                                                          llvm::Value* sizesPtr, bool use_dummies,
                                                          bool use_only_projected_general_case_columns) const;
+
+            inline void exitWith(llvm::IRBuilder<>& builder, llvm::Value* ecCode) {
+                assert(ecCode);
+                if(ecCode->getType() != env().i64Type())
+                    ecCode = builder.CreateZExtOrTrunc(ecCode, env().i64Type());
+
+                // to make compatible, use negative ecCode
+                ecCode = builder.CreateMul(env().i64Const(-1), ecCode);
+                builder.CreateRet(ecCode);
+            }
+
+            inline void exitWith(llvm::IRBuilder<>& builder, const ExceptionCode& ec) {
+                exitWith(builder, env().i64Const(ecToI64(ec)));
+            }
+
         public:
             CellSourceTaskBuilder() = delete;
 

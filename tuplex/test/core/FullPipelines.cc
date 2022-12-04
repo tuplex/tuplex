@@ -16,6 +16,12 @@
 
 namespace tuplex {
 
+    // dummy
+    ContainerInfo getThisContainerInfo() {
+        ContainerInfo info;
+        return info;
+    }
+
     std::vector<std::string> pipelineAsStrs(DataSet& ds) {
         using namespace std;
 
@@ -750,11 +756,11 @@ TEST_F(PipelinesTest, FullFlightsAWS) {
     co.set("tuplex.optimizer.selectionPushdown", "true"); // <-- requires access path detection to work.
     co.set("tuplex.optimizer.nullValueOptimization", "true");
     // hyper on/off
-    co.set("tuplex.experimental.hyperspecialization", "false");
+    co.set("tuplex.experimental.hyperspecialization", "true");
     co.set("tuplex.aws.lambdaMemory", "10000");
 
     // split size 512MB
-    co.set("tuplex.inputSplitSize", "64MB");
+    co.set("tuplex.inputSplitSize", "2GB");
 
     Context c(co);
 

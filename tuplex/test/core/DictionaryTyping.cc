@@ -9,13 +9,13 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <UDF.h>
-#include <TypeAnnotatorVisitor.h>
-#include <SymbolTable.h>
+#include <visitors/TypeAnnotatorVisitor.h>
+#include <symbols/SymbolTable.h>
 #include <gtest/gtest.h>
 #include <parser/Parser.h>
 #include <graphviz/GraphVizGraph.h>
-#include <CodegenHelper.h>
-#include <AnnotatedAST.h>
+#include <codegen/CodegenHelper.h>
+#include <ast/AnnotatedAST.h>
 
 // TEST(DictionaryTyping, Template) {
 //     using namespace tuplex;

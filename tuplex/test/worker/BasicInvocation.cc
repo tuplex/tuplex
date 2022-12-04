@@ -628,7 +628,7 @@ TEST(BasicInvocation, ProperFlightsTest) {
     // get full data stats
     input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv";
 
-     input_pattern = "../resources/hyperspecialization/flights/*.sample";
+    input_pattern = "../resources/hyperspecialization/flights/*.sample";
 
     // // glob files
     // auto files = VirtualFileSystem::globAll(input_pattern);
@@ -670,6 +670,7 @@ TEST(BasicInvocation, ProperFlightsTest) {
     co.set("tuplex.optimizer.filterPushdown", "true");
     co.set("tuplex.optimizer.constantFoldingOptimization", "true"); // run with constant folding on/off
     co.set("tuplex.filterPromotion", "true");
+    co.set("tuplex.optimizer.nullValueOptimization", "true");
     co.set("tuplex.experimental.hyperspecialization", "false"); // first check that THIS is correct.
 
     // init runtime
@@ -682,6 +683,8 @@ TEST(BasicInvocation, ProperFlightsTest) {
     python::unlockGIL();
     // use sampling mode first/last file, first/last rows
     SamplingMode sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
+    // sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
+
     ctx.csv(input_pattern, {}, option<bool>::none,
             option<char>::none, '"', {""}, {}, {}, sm).map(UDF(udf_code)).tocsv("local_worker_output.csv");
 

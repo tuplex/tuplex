@@ -65,6 +65,10 @@ namespace tuplex {
         ///! an optional abstract typer function which can be applied if the symboltype is function
         std::function<python::Type(const python::Type&)> functionTyper;
 
+        ///! an optional abstract typer that takes the original type of the caller (e.g., for an attribute)
+        ///! and provides then together with the parameterType symilar to functionTyper a concrete type for the attribute function
+        std::function<python::Type(const python::Type&,const python::Type&)> attributeFunctionTyper;
+
         ///! optionally constant data associated with that symbol
         tuplex::Field constantData;
 
@@ -134,11 +138,12 @@ namespace tuplex {
             return full_name;
         }
 
-        Symbol() {}
-        virtual ~Symbol()  {
-            _attributes.clear();
-            parent.reset();
-        }
+    Symbol() : functionTyper([](const python::Type&){return python::Type::UNKNOWN;}),
+               attributeFunctionTyper([](const python::Type&, const python::Type&){return python::Type::UNKNOWN;}) {}
+    virtual ~Symbol()  {
+        _attributes.clear();
+        parent.reset();
+    }
 
         Symbol(const Symbol& other) = delete;
         Symbol& operator = (const Symbol& other) = delete;
@@ -157,6 +162,35 @@ namespace tuplex {
             if(it != _attributes.end())
                 return *it;
             return nullptr;
+        }
+
+        /*!
+         * the typing of an attribute which is a function may be based on both the callerType and the parameters. I.e.,
+         * this function helps to type an attribute x.a(p) where callerType = type(x) and parameterType = type(p) for some
+         * symbol a which is this.
+         * @param callerType
+         * @param parameterType
+         * @param specializedFunctionType where to store the concrete (non-generic!) output type!
+         * @return true if a specialized function type could be generated, false else.
+         */
+        inline bool findAttributeFunctionType(const python::Type& callerType,
+                                              const python::Type& parameterType,
+                                              python::Type& specializedFunctionType) {
+            // fallback based typing:
+            // 1. check attribute typer
+            // 2. check general typer
+            auto typed_result = attributeFunctionTyper(callerType, parameterType);
+            if(python::Type::UNKNOWN == typed_result) {
+                typed_result = functionTyper(parameterType);
+            }
+            // check if result is valid, then take it
+            if(typed_result != python::Type::UNKNOWN) {
+                specializedFunctionType = typed_result;
+                assertFunctionDoesNotReturnGeneric(specializedFunctionType);
+                return true;
+            }
+            // typer did not yield a result, hence try stored funciton types incl. upcasting
+            return findStoredTypedFunction(parameterType, specializedFunctionType);
         }
 
         /*!
@@ -179,19 +213,22 @@ namespace tuplex {
             _attributes.push_back(attribute);
         }
 
-        Symbol(std::string _name,
-               std::function<python::Type(const python::Type&)> typer) : name(_name), qualifiedName(_name),
-                                                                         functionTyper(std::move(typer)), symbolType(SymbolType::FUNCTION) {}
+    Symbol(std::string _name,
+           std::function<python::Type(const python::Type&)> typer) : name(_name), qualifiedName(_name),
+           functionTyper(std::move(typer)), attributeFunctionTyper([](const python::Type&, const python::Type&){return python::Type::UNKNOWN;}), symbolType(SymbolType::FUNCTION) {}
 
-        Symbol(std::string _name, python::Type _type) : name(_name), qualifiedName(_name),
-                                                        types{_type},
-                                                        symbolType(_type.isFunctionType() ? SymbolType::FUNCTION : SymbolType::VARIABLE), functionTyper([](const python::Type&) { return python::Type::UNKNOWN; }) {}
+    Symbol(std::string _name, python::Type _type) : name(_name), qualifiedName(_name),
+    types{_type},
+    symbolType(_type.isFunctionType() ? SymbolType::FUNCTION : SymbolType::VARIABLE),
+    functionTyper([](const python::Type&) { return python::Type::UNKNOWN; }),
+    attributeFunctionTyper([](const python::Type&, const python::Type&){return python::Type::UNKNOWN;}) {}
 
-        Symbol(std::string _name, std::string _qualifiedName, python::Type _type, SymbolType _symbolType) : name(_name),
-                                                                                                            qualifiedName(_qualifiedName),
-                                                                                                            types{_type},
-                                                                                                            symbolType(_symbolType),
-                                                                                                            functionTyper([](const python::Type&) { return python::Type::UNKNOWN; }) {}
+    Symbol(std::string _name, std::string _qualifiedName, python::Type _type, SymbolType _symbolType) : name(_name),
+    qualifiedName(_qualifiedName),
+    types{_type},
+    symbolType(_symbolType),
+    functionTyper([](const python::Type&) { return python::Type::UNKNOWN; }),
+    attributeFunctionTyper([](const python::Type&, const python::Type&){return python::Type::UNKNOWN;}) {}
 
     #ifdef BUILD_WITH_CEREAL
         template <class Archive>
@@ -203,13 +240,62 @@ namespace tuplex {
 
         /********* HELPER FUNCTIONS *************/
 
-        /*!
-         * helper function to check for compatibility, i.e. whether from type can be cast to to type.
-         * @param from source type
-         * @param to target type
-         * @return whether types are compatibility, i.e. there's some conversion available.
-         */
-        inline bool isTypeCompatible(const python::Type& from, const python::Type& to) {
+    inline bool findStoredTypedFunction(const python::Type& parameterType, python::Type& specializedFunctionType) {
+
+        // typing using typer functions above failed, hence now search for concrete stored types.
+        for(auto& type : types) {
+            // found symbol, now check its type
+            if(!type.isFunctionType())
+                continue;
+
+            auto tupleArgType = getTupleArg(type.getParamsType());
+
+            // check if there's a direct type match => use that function then!
+            if(parameterType == tupleArgType) {
+                specializedFunctionType = type;
+                assertFunctionDoesNotReturnGeneric(specializedFunctionType);
+                return true;
+            }
+        }
+
+        // no direct match was found. Check whether casting would work or partial matching.
+        for(auto& type : types) {
+            // found symbol, now check its type
+            if (!type.isFunctionType())
+                continue;
+
+            auto tupleArgType = getTupleArg(type.getParamsType());
+
+            // check if given parameters type is compatible with function type?
+            // actual invocation is with parameterType
+            // ==> can one upcast them to fit the defined one OR does is partially work?
+            // e.g., when the function is defined for NULL, but we have opt?
+            if (isTypeCompatible(parameterType, tupleArgType)) {
+                specializedFunctionType = type;
+
+                // specialize according to parameterType if it's a generic function so further typing works
+                assert(!specializedFunctionType.getReturnType().isGeneric());
+                if(specializedFunctionType.getParamsType().isGeneric()) {
+                    auto specializedParams = python::specializeGenerics(parameterType, tupleArgType);
+                    specializedFunctionType = python::Type::makeFunctionType(specializedParams,
+                                                                             specializedFunctionType.getReturnType());
+                }
+
+                assertFunctionDoesNotReturnGeneric(specializedFunctionType);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /*!
+     * helper function to check for compatibility, i.e. whether from type can be cast to to type.
+     * @param from source type
+     * @param to target type
+     * @return whether types are compatibility, i.e. there's some conversion available.
+     */
+    inline bool isTypeCompatible(const python::Type& from, const python::Type& to) {
 
             // any is compatible to any other type!
             if(from == python::Type::ANY || to == python::Type::ANY) {

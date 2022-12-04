@@ -927,8 +927,25 @@ namespace tuplex {
             keyType = dict->_pairs[0].first->getInferredType();
             valType = dict->_pairs[0].second->getInferredType(); // save the key type, val type of the first pair
             for(const auto& p: dict->_pairs) { // check if every pair has the same key type, val type
-                keyType = unifyTypes(keyType, p.first->getInferredType(), _policy.allowNumericTypeUnification);
-                valType = unifyTypes(valType, p.second->getInferredType(), _policy.allowNumericTypeUnification);
+                //  keyType = unifyTypes(keyType, p.first->getInferredType(), _policy.allowNumericTypeUnification);
+                //                valType = unifyTypes(valType, p.second->getInferredType(), _policy.allowNumericTypeUnification);
+                // @TODO note: might need to use here
+                if(p.first->getInferredType() != keyType || p.second->getInferredType() != valType) {
+                    // also for None case
+                    if (valType.isDictionaryType() && p.second->getInferredType() == python::Type::EMPTYDICT) {
+                        continue;
+                    } else if (valType == python::Type::EMPTYDICT && p.second->getInferredType().isDictionaryType()) {
+                        // upcast valType
+                        valType = p.second->getInferredType();
+                    } else if (valType == python::Type::NULLVALUE) {
+                        valType = python::Type::makeOptionType(p.second->getInferredType());
+                    } else if (p.second->getInferredType() == python::Type::NULLVALUE) {
+                        valType = python::Type::makeOptionType(valType);
+                    } else {
+                        is_key_val = false; // if they are not the same, then it is not of type Dictionary[Key, Val]
+                        break;
+                    }
+                }
             }
 
             if(keyType != python::Type::UNKNOWN && valType != python::Type::UNKNOWN) { // indicates whether every key, val have the same type
@@ -1416,8 +1433,19 @@ namespace tuplex {
             // we are now inside a loop; no type change detected yet
             // check potential type change during loops
             if(_nameTable.find(id->_name) != _nameTable.end() && type != _nameTable.at(id->_name)) {
-                error("variable " + id->_name + " changed type during loop from " + _nameTable.at(id->_name).desc() + " to " + type.desc() + ", traced typing needed to determine if the type change is stable");
-                _loopTypeChange = true;
+
+                // special case:
+                // emptylist, emptydict (and emptyset) can get promoted
+                auto type_of_named = _nameTable.at(id->_name);
+                if((type_of_named == python::Type::EMPTYLIST && type.isListType()) ||
+                   (type_of_named == python::Type::EMPTYDICT && type.isDictionaryType()) ) {
+                    // || (type_of_named == python::Type::EMPTYSET && type.isSetType())
+                    auto& logger = Logger::instance().logger("codegen");
+                    logger.debug("promoting " + id->_name + " from " + _nameTable.at(id->_name).desc() + " to " + type.desc());
+                } else {
+                    error("variable " + id->_name + " changed type during loop from " + _nameTable.at(id->_name).desc() + " to " + type.desc() + ", traced typing needed to determine if the type change is stable");
+                    _loopTypeChange = true;
+                }
             }
         }
 
@@ -1428,70 +1456,158 @@ namespace tuplex {
         _nameTable[id->_name] = type;
     }
 
-    void TypeAnnotatorVisitor::visit(NAssign *assign) {
-        ApatheticVisitor::visit(assign);
+    bool TypeAnnotatorVisitor::is_nested_subscript_target(ASTNode* target) {
+        // check if target is a subscript target
+        return target->type() == ASTNodeType::Subscription;
+    }
 
+    void TypeAnnotatorVisitor::recursive_set_subscript_types(NSubscription* target, python::Type value_type) {
+        target->_expression->accept(*this);
+        python::Type subscription_type = value_type;
+        python::Type index_type = target->_expression->getInferredType();
+        python::Type new_value_type = python::Type::makeDictionaryType(index_type, subscription_type);
+
+        if (target->_value->type() == ASTNodeType::Subscription) {
+            /* if the next target is a subscription, do recursive_set_subscript_types
+               on the next target, with value_type being Dict[index_type, value_type] */
+            recursive_set_subscript_types((NSubscription*)target->_value.get(), new_value_type);
+        } else if (target->_value->type() == ASTNodeType::Identifier) {
+            // if the next target is an identifier (e.g. d[0])
+            NIdentifier* id = (NIdentifier*)target->_value.get();
+            // check if the type the identifier maps to is something subscriptable (for now, just a dictionary)
+            if (_nameTable[id->_name].isDictionaryType()) {
+                python::Type curr_type = _nameTable[id->_name];
+
+                if (curr_type == python::Type::EMPTYDICT) {
+                    // we can just upcast type to Dict[index_type, value_type]
+                    assignHelper(id, new_value_type);
+                } else if (curr_type == python::Type::GENERICDICT) {
+                    // type remains generic dict (and need to set flag in annotator?)
+                    subscription_type = python::Type::PYOBJECT;
+                } else {
+                    // check if index_type and new_value_type match current index type and value type
+                    if (curr_type.keyType() != index_type) {
+                        // upcast index type to PYOBJECT and set flag
+                        index_type = python::Type::PYOBJECT;
+                    }
+
+                    if (curr_type.valueType() != value_type) {
+                        if (curr_type.valueType().isOptionType()) {
+                            // case where dictionary values are nullable
+                            // check if non-null option is the same type as value_type
+                            if (curr_type.valueType().elementType() == value_type) {
+                                // need to make subscription_type an option type instead
+                                subscription_type = python::Type::makeOptionType(subscription_type);
+                            } else {
+                                // upcast value type to PYOBJECT and set flag
+                                subscription_type = python::Type::PYOBJECT;
+                            }
+                        } else {
+                            // upcast value type to PYOBJECT and set flag
+                            subscription_type = python::Type::PYOBJECT;
+                        }
+                    }
+
+                    new_value_type = python::Type::makeDictionaryType(index_type, subscription_type);
+                    assignHelper(id, new_value_type);
+                }
+            } else {
+                // otherwise, raise an error (identifier type not subscriptable)
+                error("only dictionary subscription supported; " + _nameTable[id->_name].desc() + " not (yet) supported");
+            }
+        } else {
+            // otherwise, need to check if final type of expression is something subscriptable (just dictionary for now)
+            // else: raise error (can't subscript type)
+            target->_value->accept(*this);
+            if (!target->_value->getInferredType().isDictionaryType()) {
+                error(target->_value->getInferredType().desc() + " is not (yet) subscriptable; only dictionaries supported");
+            }
+        }
+
+        // set type of subscription node (target)
+        target->setInferredType(subscription_type);
+    }
+
+    void TypeAnnotatorVisitor::visit(NAssign *assign) {
         // now interesting part comes
         // check what left side is
 
-        // TODO cases
-        /**
-         * id = id
-         * id, id, ... = id/val
-         * id, id, ... = id, val, ... (SPECIAL CASE even here for a, b = b, a)
-         */
-        if(assign->_target->type() == ASTNodeType::Identifier) {
-            // Single identifier case
-            //@Todo: check that symbol table contains target!
+        if (is_nested_subscript_target(assign->_target.get())) {
+            assert(assign->_target->type() == ASTNodeType::Subscription);
 
-            // then check if identifier is already within symbol table. If not, add!
-            NIdentifier* id = (NIdentifier*)assign->_target.get();
-            assignHelper(id, assign->_value->getInferredType());
-            if(assign->_value->getInferredType().isIteratorType()) {
-                id->annotation().iteratorInfo = assign->_value->annotation().iteratorInfo;
-                _iteratorInfoTable[id->_name] = assign->_value->annotation().iteratorInfo;
-            }
-        } else if(assign->_target->type() == ASTNodeType::Tuple) {
-            // now we have a tuple assignment!
-            // the right hand side MUST be some unpackable thing. Currently this is a tuple but later we will
-            // have lists as well
-            NTuple *ids = (NTuple *) assign->_target.get();
-            auto rhsInferredType = assign->_value->getInferredType();
-            // TODO add support for dictionaries, etc.
-            if (rhsInferredType.isTupleType()) {
-                // get the types contained in our tuple
-                std::vector<python::Type> tupleTypes = rhsInferredType.parameters();
-                if(ids->_elements.size() != tupleTypes.size()) {
-                    error("Incorrect number of arguments to unpack in assignment");
-                }
+            NSubscription* sub_node = (NSubscription*) assign->_target.get();
 
-                int id_elt_idx = 0;
-                for(auto &elt : ids->_elements) {
-                    if(elt->type() != ASTNodeType::Identifier) {
-                        error("Trying to assign to a non identifier in a tuple");
-                    }
-                    NIdentifier *id = (NIdentifier *) elt.get();
-                    // assign each identifier to the type in the tuple at the corresponding index
-                    assignHelper(id, tupleTypes[id_elt_idx]);
-                    id_elt_idx++;
+            // visit b's tree
+            assign->_value->accept(*this);
+
+            auto value_type = assign->_value->getInferredType();
+
+            // recursively set types for each subscription target
+            recursive_set_subscript_types(sub_node, value_type);
+
+            // set assign type to value type
+            assign->setInferredType(value_type);
+        } else {
+            ApatheticVisitor::visit(assign);
+            // TODO cases
+            /**
+             * id = id
+             * id, id, ... = id/val
+             * id, id, ... = id, val, ... (SPECIAL CASE even here for a, b = b, a)
+             */
+            if(assign->_target->type() == ASTNodeType::Identifier) {
+                // Single identifier case
+                //@Todo: check that symbol table contains target!
+
+                // then check if identifier is already within symbol table. If not, add!
+                NIdentifier* id = (NIdentifier*)assign->_target.get();
+                assignHelper(id, assign->_value->getInferredType());
+                if(assign->_value->getInferredType().isIteratorType()) {
+                    id->annotation().iteratorInfo = assign->_value->annotation().iteratorInfo;
+                    _iteratorInfoTable[id->_name] = assign->_value->annotation().iteratorInfo;
                 }
-            } else if(rhsInferredType == python::Type::STRING) {
-                for(const auto& elt : ids->_elements) {
-                    if(elt->type() != ASTNodeType::Identifier) {
-                        error("Trying to assign to a non identifier in a tuple");
+            } else if(assign->_target->type() == ASTNodeType::Tuple) {
+                // now we have a tuple assignment!
+                // the right hand side MUST be some unpackable thing. Currently this is a tuple but later we will
+                // have lists as well
+                NTuple *ids = (NTuple *) assign->_target.get();
+                auto rhsInferredType = assign->_value->getInferredType();
+                // TODO add support for dictionaries, etc.
+                if (rhsInferredType.isTupleType()) {
+                    // get the types contained in our tuple
+                    std::vector<python::Type> tupleTypes = rhsInferredType.parameters();
+                    if(ids->_elements.size() != tupleTypes.size()) {
+                        error("Incorrect number of arguments to unpack in assignment");
                     }
-                    NIdentifier *id = (NIdentifier *) elt.get();
-                    assignHelper(id, python::Type::STRING);
+
+                    for(unsigned long i = 0; i < ids->_elements.size(); i ++) {
+                        auto elt = ids->_elements[i].get();
+                        if(elt->type() != ASTNodeType::Identifier) {
+                            error("Trying to assign to a non identifier in a tuple");
+                        }
+                        NIdentifier *id = (NIdentifier *) elt;
+                        // assign each identifier to the type in the tuple at the corresponding index
+                        assignHelper(id, tupleTypes[i]);
+                    }
+                } else if(rhsInferredType == python::Type::STRING) {
+                    for(const auto& elt : ids->_elements) {
+                        if(elt->type() != ASTNodeType::Identifier) {
+                            error("Trying to assign to a non identifier in a tuple");
+                        }
+                        NIdentifier *id = (NIdentifier *) elt.get();
+                        assignHelper(id, python::Type::STRING);
+                    }
+                } else {
+                    error("bad type annotation in tuple assign");
                 }
             } else {
-                error("bad type annotation in tuple assign");
+                error("only assignment to tuples/identifiers supported yet!!!");
+                // error("only assignment to tuples/identifiers/subscriptions supported yet!!!");
             }
-        } else {
-            error("only assignment to tuples/identifiers supported yet!!!");
+            // in all cases, set the type of the entire assign
+            // TODO we def want this in the single identifier case, but in general?
+            assign->setInferredType(assign->_target->getInferredType());
         }
-        // in all cases, set the type of the entire assign
-        // TODO we def want this in the single identifier case, but in general?
-        assign->setInferredType(assign->_target->getInferredType());
     }
 
     void TypeAnnotatorVisitor::resolveNameConflicts(const std::unordered_map<std::string, python::Type> &table) {
@@ -1877,6 +1993,26 @@ namespace tuplex {
             } else if(exprType.isIteratorType()) {
                 _nameTable[id->_name] = exprType.yieldType();
                 id->setInferredType(exprType.yieldType());
+            } else if(exprType.isDictValuesType()) {
+                auto dict_type = exprType.elementType();
+                auto yield_type = dict_type.valueType();
+                if(yield_type == python::Type::PYOBJECT || yield_type == python::Type::UNKNOWN) {
+                    // might require unrolling & speculation on view length!
+                    addCompileError(CompileError::TYPE_ERROR_UNSUPPORTED_LOOP_TESTLIST_TYPE);
+                    return;
+                }
+                _nameTable[id->_name] = yield_type;
+                id->setInferredType(yield_type);
+            } else if(exprType.isDictKeysType()) {
+                auto dict_type = exprType.elementType();
+                auto yield_type = dict_type.keyType();
+                if(yield_type == python::Type::PYOBJECT || yield_type == python::Type::UNKNOWN) {
+                    // might require unrolling & speculation on view length!
+                    addCompileError(CompileError::TYPE_ERROR_UNSUPPORTED_LOOP_TESTLIST_TYPE);
+                    return;
+                }
+                _nameTable[id->_name] = yield_type;
+                id->setInferredType(yield_type);
             } else {
                 addCompileError(CompileError::TYPE_ERROR_UNSUPPORTED_LOOP_TESTLIST_TYPE);
             }

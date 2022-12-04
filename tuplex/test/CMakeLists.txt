@@ -77,6 +77,7 @@ add_subdirectory(io)
 add_subdirectory(runtime)
 add_subdirectory(adapters)
 add_subdirectory(utils)
+add_subdirectory(dict)
 add_subdirectory(worker)
 add_subdirectory(hyperspecialization)
 

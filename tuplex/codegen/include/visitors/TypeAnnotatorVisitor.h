@@ -59,6 +59,10 @@ namespace tuplex {
                                        const TokenType tt, ASTNode* right,
                                        const python::Type& b);
         void assignHelper(NIdentifier *id, const python::Type &type);
+
+        bool is_nested_subscript_target(ASTNode* target);
+        void recursive_set_subscript_types(NSubscription* target, python::Type value_type);
+
         void checkRetType(python::Type t);
         /*!
          * Annotate iterator-related NCall with iterator-specific info

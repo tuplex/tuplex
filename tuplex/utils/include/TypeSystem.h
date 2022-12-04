@@ -61,6 +61,7 @@ namespace python {
         static const Type EMPTYTUPLE; //! special type for an empty tuple
         static const Type EMPTYDICT; //! special type for empty dict
         static const Type EMPTYLIST; //! special type for empty list
+        static const Type EMPTYSET; //! special type for empty set
         static const Type NULLVALUE; //! special type for a nullvalue / None
         static const Type PYOBJECT; //! special type for any python object
         static const Type GENERICTUPLE; //! special type to accept ANY tuple object (helpful for symbol table)
@@ -128,6 +129,8 @@ namespace python {
         bool isConstantValued() const;
         bool isEmptyType() const;
         bool isTypeObjectType() const;
+        bool isDictKeysType() const;
+        bool isDictValuesType() const;
 
         inline bool isGeneric() const {
             if(_hash == python::Type::PYOBJECT._hash ||
@@ -142,7 +145,7 @@ namespace python {
                 return false;
             }
 
-            if(isListType() || isOptionType()) {
+            if(isListType() || isOptionType() || isDictKeysType() || isDictValuesType()) {
                 if(elementType().isGeneric())
                     return true;
                 return false;
@@ -223,7 +226,7 @@ namespace python {
         bool isPrimitiveType() const;
 
         /*!
-         * check whether a given type is iterable. Currently true for iterator, list, tuple, string, range and dictionary.
+         * check whether a given type is iterable. Currently true for iterator, list, tuple, string, range, dictionary, dict_keys, and dict_values.
          * @return
          */
         bool isIterableType() const;
@@ -295,6 +298,9 @@ namespace python {
         // static Type makeDictCompressedType()
 
         // TODO: could create delta-encoded type or so as well...
+
+        static Type makeDictKeysViewType(const python::Type& dictType);
+        static Type makeDictValuesViewType(const python::Type& dictType);
 
         /*!
          * create iterator type from yieldType.
@@ -454,6 +460,8 @@ namespace python {
             FUNCTION,
             TUPLE,
             DICTIONARY,
+            DICT_KEYS,
+            DICT_VALUES,
             STRUCTURED_DICTIONARY,
             LIST,
             CLASS,
@@ -528,6 +536,8 @@ namespace python {
         bool isFunctionType(const Type& t) const;
         bool isDictionaryType(const Type& t) const;
         bool isStructuredDictionaryType(const Type& t) const;
+        bool isDictKeysType(const Type& t) const;
+        bool isDictValuesType(const Type& t) const;
         bool isTupleType(const Type& t) const;
         bool isOptionType(const Type& t) const;
         bool isListType(const Type& t) const;
@@ -558,6 +568,8 @@ namespace python {
         // right now, no tuples or other weird types...
         Type createOrGetFunctionType(const Type& param, const Type& ret=Type::EMPTYTUPLE);
         Type createOrGetDictionaryType(const Type& key, const Type& val);
+        Type createOrGetDictKeysViewType(const Type& key);
+        Type createOrGetDictValuesViewType(const Type& val);
         Type createOrGetListType(const Type& val);
 
         Type createOrGetStructuredDictType(const std::vector<std::pair<boost::any, python::Type>>& kv_pairs);

@@ -354,6 +354,10 @@ namespace tuplex {
                     _inputSchema = Schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType(_ast.getParameterTypes().argTypes));
                     _outputSchema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(_ast.getReturnType()));
 
+                    // well-typed? -> if not. abort.
+                    if(_outputSchema.getRowType().isIllDefined())
+                        return false;
+
                     if(hasPythonObjectTyping())
                         markAsNonCompilable();
                     _numInputColumns = 1;

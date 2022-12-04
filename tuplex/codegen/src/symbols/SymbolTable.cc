@@ -551,6 +551,45 @@ namespace tuplex {
 
                 return python::Type::makeFunctionType(callerType, values_type);
             }, SymbolType::FUNCTION);
+
+            addBuiltinTypeAttribute(python::Type::GENERICDICT, "get", [](const python::Type& callerType,
+                    const python::Type& parameterType) {
+                assert(callerType.isDictionaryType() && callerType != python::Type::GENERICDICT);
+
+                assert(parameterType.isTupleType());
+                auto key_type = parameterType.parameters().front();
+                auto value_type = python::Type::UNKNOWN;
+
+                // check if return type can be determiend
+                if(callerType.isDictionaryType() && !callerType.isStructuredDictionaryType()) {
+                    // compatible?
+                    if(python::canUpcastType(key_type, callerType.keyType()))
+                        value_type = callerType.valueType();
+                }
+
+                // struct dict? => check if constant type is used, if so lookup!
+                if(callerType.isStructuredDictionaryType() && key_type.isConstantValued()) {
+                    // todo, lookup const value
+                    // -> get first tracing version going, then fix this here.
+                }
+
+                // multiple options: was a default argument provided or not?
+                // if not, implicitly use None
+                if(parameterType.parameters().size() == 1) {
+                    // no need to lookup, but make ooptional
+                    key_type = python::Type::makeOptionType(value_type);
+                } else {
+                    // should be two
+                    assert(parameterType.parameters().size() == 2);
+
+                    // can value type and second type be unified?
+                    auto uni_type = unifyTypes(value_type, parameterType.parameters().back());
+                    value_type = uni_type;
+                }
+
+                auto ret_type = value_type; // unknown if anything fails...
+                return python::Type::makeFunctionType(callerType, ret_type);
+            });
         }
 
         // i.e. type depending on input

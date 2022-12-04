@@ -55,6 +55,14 @@ if(NOT BUILD_WITH_AWS)
         GIT_TAG        v1.7.15
         GIT_CONFIG advice.detachedHead=false
     )
+    # Rhea's cJSON fork:
+    #  FetchContent_Declare(cJSON
+    #        # GIT_REPOSITORY https://github.com/DaveGamble/cJSON.git
+    #        # GIT_TAG        v1.7.14
+    #        GIT_REPOSITORY https://github.com/aletheia094/cJSON.git
+    #        GIT_TAG ada484892e39329d90c0519fb34a90a340309a60
+    #        GIT_CONFIG advice.detachedHead=false
+    #    )
     FetchContent_GetProperties(cJSON)
     if(NOT cjson_Populated)
         FetchContent_Populate(cJSON)

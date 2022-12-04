@@ -686,7 +686,12 @@ TEST(BasicInvocation, ProperFlightsTest) {
     // sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
 
     ctx.csv(input_pattern, {}, option<bool>::none,
-            option<char>::none, '"', {""}, {}, {}, sm).map(UDF(udf_code)).tocsv("local_worker_output.csv");
+            option<char>::none, '"', {""}, {}, {}, sm)
+            .map(UDF("lambda x: {'year':x['YEAR'], 'nas':x['NAS_DELAY']}"))
+            .tocsv("local_worker_output.csv");
+
+//    ctx.csv(input_pattern, {}, option<bool>::none,
+//            option<char>::none, '"', {""}, {}, {}, sm).map(UDF(udf_code)).tocsv("local_worker_output.csv");
 
     // // let's use a simple pipeline to make sure everything works
     // ctx.csv(input_pattern).selectColumns(std::vector<std::string>{"YEAR"}).tocsv("year_extract.csv");

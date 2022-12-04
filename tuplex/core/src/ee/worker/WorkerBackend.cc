@@ -104,6 +104,7 @@ namespace tuplex {
             auto stats_array = nlohmann::json::array();
             auto req_array = nlohmann::json::array();
             size_t total_input_rows = 0;
+            size_t total_num_output_rows = 0;
             for (const auto &req: requests) {
                 Timer timer;
                 std::string json_buf;
@@ -118,15 +119,15 @@ namespace tuplex {
                 j["request"] = req.inputuris();
                 j["stats"] = j_stats;
                 stats_array.push_back(j);
-
+                total_num_output_rows += j_stats["output"]["normal"].get<size_t>() + j_stats["output"]["except"].get<size_t>();
                 total_input_rows += j_stats["input"]["total_input_row_count"].get<size_t>();
-
                 req_array.push_back(j_req);
 
                 logger().info("Processed request in " + std::to_string(timer.time()) + "s, rc=" + std::to_string(rc));
             }
 
             logger().info("total input row count: " + std::to_string(total_input_rows));
+            logger().info("total output row count: " + std::to_string(total_num_output_rows));
 
             // dump
             logger().info("JSON:\n" + stats_array.dump(2));

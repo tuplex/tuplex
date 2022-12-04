@@ -2831,6 +2831,12 @@ namespace tuplex {
         ss<<"\"unresolved\":"<<_codePathStats.unresolvedRowsCount;
         ss<<"}";
 
+        // output path breakdown
+        ss<<",\"output\":{";
+        ss<<"\"normal\":"<<_statistics.back().numNormalOutputRows;
+        ss<<",\"except\":"<<_statistics.back().numExceptionOutputRows;
+        ss<<"}";
+
 
 
         ss<<"}";

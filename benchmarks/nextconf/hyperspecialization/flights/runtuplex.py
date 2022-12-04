@@ -138,7 +138,7 @@ if __name__ == '__main__':
         raise Exception('Did not find AWS credentials in environment, please set.')
 
     lambda_size = "10000"
-    lambda_threads = 2
+    lambda_threads = 1
     s3_scratch_dir = "s3://tuplex-leonhard/scratch/flights-exp"
     use_hyper_specialization = not args.no_hyper
     use_constant_folding = not args.no_cf
@@ -149,8 +149,17 @@ if __name__ == '__main__':
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv'
     
     # use following as debug pattern
-    # input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv'
+    #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv'
     #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2002*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004*.csv'
+    sm_map = {'A' : tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS,
+            'B': tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_ROWS | tuplex.dataset.SamplingMode.FIRST_ROWS,
+            'C':tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_FILE,
+            'D':tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS | tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_FILE,
+            'E':tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.ALL_FILES,
+            'F':tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS | tuplex.dataset.SamplingMode.ALL_FILES
+            }
+
+    sm = sm_map['C'] #ism_map.get(args.sampling_mode, None)
 
 
     if use_hyper_specialization:
@@ -175,7 +184,7 @@ if __name__ == '__main__':
             "aws.lambdaThreads": lambda_threads,
             "aws.httpThreadCount": 410,
             "aws.maxConcurrency": 410,
-            'tuplex.csv.maxDetectionMemory': '256KB',
+            'tuplex.sample.maxDetectionMemory': '256KB',
             "aws.scratchDir": s3_scratch_dir,
             "experimental.hyperspecialization": use_hyper_specialization,
             "executorCount": 0,
@@ -193,7 +202,8 @@ if __name__ == '__main__':
         with open('tuplex_config.json') as fp:
             conf = json.load(fp)
 
-    conf['inputSplitSize'] = '64MB' #'256MB' #'128MB'
+    conf['inputSplitSize'] = '2GB' #'256MB' #'128MB'
+    conf["tuplex.experimental.opportuneCompilation"] = False
 
     if args.no_nvo:
         conf["optimizer.nullValueOptimization"] = False
@@ -209,7 +219,7 @@ if __name__ == '__main__':
     tstart = time.time()
     ### QUERY HERE ###
 
-    ctx.csv(input_pattern).map(fill_in_delays).tocsv(s3_output_path)
+    ctx.csv(input_pattern, sampling_mode=sm).map(fill_in_delays).tocsv(s3_output_path)
 
     ### END QUERY ###
     run_time = time.time() - tstart

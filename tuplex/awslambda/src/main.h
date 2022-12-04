@@ -22,7 +22,7 @@
 #include <Lambda.pb.h>
 #include <Python.h>
 
-#include <LambdaWorkerApp.h>
+#include <ee/aws/LambdaWorkerApp.h>
 #include "logsink.h"
 
 // lambda main function, i.e. get a json request and return a json object

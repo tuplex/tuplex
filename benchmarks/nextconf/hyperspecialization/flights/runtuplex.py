@@ -159,8 +159,13 @@ if __name__ == '__main__':
             'F':tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS | tuplex.dataset.SamplingMode.ALL_FILES
             }
 
-    sm = sm_map['C'] #ism_map.get(args.sampling_mode, None)
+    sm = sm_map['D'] #ism_map.get(args.sampling_mode, None)
+    sm = sm_map['B']
 
+    if use_hyper_specialization:
+        sm = sm_map['B']
+    else:
+        sm = sm_map['D']
 
     if use_hyper_specialization:
         s3_output_path += '/hyper'
@@ -186,6 +191,7 @@ if __name__ == '__main__':
             "aws.maxConcurrency": 410,
             'tuplex.sample.maxDetectionMemory': '256KB',
             "aws.scratchDir": s3_scratch_dir,
+            "autoUpcast":True,
             "experimental.hyperspecialization": use_hyper_specialization,
             "executorCount": 0,
             "executorMemory": "2G",
@@ -193,6 +199,7 @@ if __name__ == '__main__':
             "partitionSize": "32MB",
             "runTimeMemory": "128MB",
             "useLLVMOptimizer": True,
+            "optimizer.generateParser":False, # not supported on lambda yet
             "optimizer.nullValueOptimization": True,
             "resolveWithInterpreterOnly": False,
             "optimizer.constantFoldingOptimization": use_constant_folding,
@@ -203,7 +210,7 @@ if __name__ == '__main__':
             conf = json.load(fp)
 
     conf['inputSplitSize'] = '2GB' #'256MB' #'128MB'
-    conf["tuplex.experimental.opportuneCompilation"] = False
+    conf["tuplex.experimental.opportuneCompilation"] = False #True
 
     if args.no_nvo:
         conf["optimizer.nullValueOptimization"] = False

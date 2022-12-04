@@ -58,7 +58,8 @@ namespace tuplex {
                 if(!pipFunc)
                     throw std::runtime_error("error in pipeline function");
 
-                 env().debugPrint(builder, "parsed following tuple from CSV: ");
+                // debug:
+                // env().debugPrint(builder, "parsed following tuple from CSV: ");
                 // ft.print(builder);
 
                 auto res = PipelineBuilder::call(builder, pipFunc, ft, userData, builder.CreateLoad(outputRowNumberVar), initIntermediate(builder));
@@ -969,7 +970,7 @@ namespace tuplex {
 
                 IRBuilder<> b(_valueErrorBlock);
 
-                env().debugPrint(b, "value error block entered.");
+                // env().debugPrint(b, "value error block entered.");
 
                 // could use here value error as well. However, for internal resolve use badparse string input!
                 exitWith(b, ExceptionCode::BADPARSE_STRING_INPUT);

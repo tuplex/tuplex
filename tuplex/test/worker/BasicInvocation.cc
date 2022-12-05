@@ -630,6 +630,9 @@ TEST(BasicInvocation, ProperFlightsTest) {
 
     input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1995_11.csv,../resources/hyperspecialization/flights/*.sample";
 
+    // test, constant folding should only detect year and month.
+    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv:0-247414256";
+
     // s3://tuplex-public/data/flights_all/flights_on_time_performance_1995_11.csv produces in hyper mode exceptions.
     // -> why? => splitsize should be 2G
 
@@ -687,6 +690,7 @@ TEST(BasicInvocation, ProperFlightsTest) {
     python::unlockGIL();
     // use sampling mode first/last file, first/last rows
     SamplingMode sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
+   // sm = SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE;
     // sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
 
     ctx.csv(input_pattern, {}, option<bool>::none,

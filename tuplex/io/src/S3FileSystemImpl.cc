@@ -701,6 +701,10 @@ namespace tuplex {
         URI uri(pattern);
         assert(uri.prefix() == "s3://");
 
+        // remove range if given
+        size_t range_start = 0, range_end = 0;
+        decodeRangeURI(pattern.toPath(), uri, range_start, range_end);
+
         // call glob function
         std::vector<URI> files;
 

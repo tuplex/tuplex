@@ -251,8 +251,9 @@ namespace tuplex {
             trim(s);
         }
         // normalize paths...
-        for(int i = 0; i < v.size(); ++i)
+        for(int i = 0; i < v.size(); ++i) {
             v[i] = URI(v[i]).toPath();
+        }
 
         // go through patterns & call walkPattern of impl
         for(const auto& pattern : v) {

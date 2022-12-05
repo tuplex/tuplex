@@ -2774,8 +2774,8 @@ namespace tuplex {
 
             // multiple options now.
 
-#error "TODO: add code here AND change the typing to use constant type for .get function (to avoid costly tracing)"
-
+#warning "TODO: add code here AND change the typing to use constant type for .get function (to avoid costly tracing)"
+            throw std::runtime_error("not yet implemented");
             return {};
         }
 

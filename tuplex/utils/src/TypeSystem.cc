@@ -1703,6 +1703,7 @@ namespace python {
 
         // fix for bool
         keywords["bool"] = python::Type::BOOLEAN;
+        keywords["boolean"] = python::Type::BOOLEAN;
 
         for(const auto& kv : keywords) {
             min_keyword_length = std::min(min_keyword_length, kv.first.length());

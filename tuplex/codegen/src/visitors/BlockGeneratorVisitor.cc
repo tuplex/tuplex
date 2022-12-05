@@ -4714,6 +4714,8 @@ namespace tuplex {
                     // ==> will throw attribute error
 
                     if(callerType.isOptionType()) {
+                        assert(caller.is_null);
+                        
                         // null check
                         _lfb->addException(builder, ExceptionCode::ATTRIBUTEERROR, caller.is_null);
                         ret = _functionRegistry->createAttributeCall(*_lfb, builder, attrName, callerType, argsType,
@@ -4728,7 +4730,7 @@ namespace tuplex {
                         ret = _functionRegistry->createGlobalSymbolCall(*_lfb, builder, name, argsType, retType, args);
                     } else {
                         // regular call to an instance of an object, i.e. builtin objects like int, bool, float, ...
-                        assert(!caller.is_null);
+                        // assert(!caller.is_null);
                         ret = _functionRegistry->createAttributeCall(*_lfb, builder, attrName, callerType, argsType,
                                                                      retType, caller, args);
                     }

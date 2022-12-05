@@ -859,18 +859,22 @@ namespace tuplex {
             // -> then create type from arguments + return type!
             if(call->_func->hasAnnotation()) {
                 auto ret_type = call->_func->annotation().majorityType();
-
-                std::vector<python::Type> param_types;
-                // params type from positional arguments
-                for(auto &arg : call->_positionalArguments) {
-                    auto arg_type = arg->getInferredType();
-                    if(arg_type == python::Type::UNKNOWN)
-                        fatal_error("Could not infer typing for callable " + name + ", positional arg has unknown type.");
-                    param_types.push_back(arg_type);
+                python::Type func_type = python::Type::UNKNOWN;
+                if(!ret_type.isFunctionType()) {
+                    Logger::instance().logger("type inference").debug("DEBUG: fix this here, shouldn't occur...");
+                    std::vector<python::Type> param_types;
+                    // params type from positional arguments
+                    for(auto &arg : call->_positionalArguments) {
+                        auto arg_type = arg->getInferredType();
+                        if(arg_type == python::Type::UNKNOWN)
+                            fatal_error("Could not infer typing for callable " + name + ", positional arg has unknown type.");
+                        param_types.push_back(arg_type);
+                    }
+                    func_type = python::Type::makeFunctionType(python::Type::makeTupleType(param_types), ret_type);
+                } else {
+                    func_type = ret_type;
                 }
-
-                auto func_type = python::Type::makeFunctionType(python::Type::makeTupleType(param_types), ret_type);
-                call->_func->setInferredType(func_type);
+               call->_func->setInferredType(func_type);
             } else {
                 fatal_error("Could not infer typing for callable " + name);
             }
@@ -1099,9 +1103,35 @@ namespace tuplex {
             object_type = deoptimizedType(object_type);
             auto type = _symbolTable.findAttributeType(object_type, attr->_attribute->_name, lastCallParameterType);
 
+            // special case: result type is UNKNOWN but an annotation exists? (check also func case!)
+            bool unknown_attribute_type = type == python::Type::UNKNOWN;
+            if(type.isFunctionType() && (type.getReturnType() == python::Type::UNKNOWN || type.getReturnType().isIllDefined()))
+                unknown_attribute_type = true;
+
             // unknown type but annotation available? -> use that one
-            if(type == python::Type::UNKNOWN && attr->_attribute->hasAnnotation()) {
-                type = attr->_attribute->annotation().majorityType();
+            if(unknown_attribute_type) {
+                // multiple options:
+                if(attr->_attribute->hasAnnotation()) {
+                    // func or not?
+                    if(type.isFunctionType()) {
+                        auto maj_ret_type = attr->_attribute->annotation().majorityType();
+                        type = python::Type::makeFunctionType(type.getParamsType(), maj_ret_type);
+                    } else {
+                        // regular attribute.
+                        type = attr->_attribute->annotation().majorityType();
+                    }
+                }
+
+//                if(attr->hasAnnotation()) {
+//                    auto maj_ret_type = attr->annotation().majorityType();
+//                    // call result -> need to annotate attribute as well?
+//                    if(type.isFunctionType()) {
+//                        type = python::Type::makeFunctionType(type.getParamsType(), maj_ret_type);
+//                    } else {
+//                        // regular attribute.
+//                        type = maj_ret_type;
+//                    }
+//                }
             } else {
                 attr->setInferredType(type);
             }

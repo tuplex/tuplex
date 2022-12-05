@@ -71,6 +71,8 @@ namespace tuplex {
         if(optType.isGeneric())
             return optType;
 
+        if(optType.isFunctionType())
+            return python::Type::makeFunctionType(deoptimizedType(optType.getParamsType()), deoptimizedType(optType.getReturnType()));
 
         throw std::runtime_error("unsupported type " + optType.desc() + " encountered in "
                                  + std::string(__FILE__) + ":" + std::to_string(__LINE__));

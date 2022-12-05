@@ -769,9 +769,14 @@ namespace tuplex {
 
         // create python args
         PyObject* args = PyTuple_New(numArgs);
+        std::vector<python::Type> arg_types;
         for(unsigned i = 0; i < numArgs; ++i) {
             Py_XINCREF(ti_args[i].value);
             PyTuple_SET_ITEM(args, i, ti_args[i].value);
+
+            // map arg type
+            Py_XINCREF(ti_args[i].value);
+            arg_types.push_back(python::mapPythonClassToTuplexType(ti_args[i].value, false));
         }
 
         auto res = PyObject_Call(ti_func.value, args, nullptr);
@@ -779,7 +784,16 @@ namespace tuplex {
         // only add trace result if call succeeded.
         if(!res)
             errCheck(); // jumps out of control flow
-        addTraceResult(node, TraceItem(res));
+        auto res_item = TraceItem(res);
+        addTraceResult(node, res_item);
+
+        // because this is a call, edit the type of func to reflect params type -> ret type
+        auto ret_type = node->annotation().types.back();
+        auto param_type = python::Type::makeTupleType(arg_types);
+        auto func_type = python::Type::makeFunctionType(param_type, ret_type);
+        // edit?
+        assert(!node->_func->annotation().types.empty());
+        node->_func->annotation().types.back() = func_type;
     }
 
     void TraceVisitor::visit(NAttribute *node) {

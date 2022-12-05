@@ -31,6 +31,12 @@ namespace tuplex {
 
         // empty columns?
         if(columnNames.empty()) {
+
+            // no parent given?
+            // set to 1
+            if(!parent())
+                return 1;
+
             // no column names given, two options: if inputschema of parent is tuple get num elements, else it is 1
             auto parentRowType = parent()->getOutputSchema().getRowType();
             if(parentRowType.isTupleType() && parentRowType != python::Type::EMPTYTUPLE) {

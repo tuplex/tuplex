@@ -2746,11 +2746,38 @@ namespace tuplex {
                 return createCJSONPopItemCall(lfb, builder, caller, retType);
             }
 
+            if(symbol == "get") {
+                if(args.size() < 1 || args.size() > 2)
+                    throw std::runtime_error("dict.get() takes 1 or 2 arguments");
+                return createDictGetCall(lfb, builder, caller, callerType, args, argsType.parameters(), retType);
+            }
+
             // throw exception
             throw std::runtime_error("attribute call for " + callerType.desc() + "." + symbol + " not yet implemented");
 
             // else return nullptr
             return SerializableValue(nullptr, nullptr);
         }
+
+        SerializableValue FunctionRegistry::createDictGetCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
+                                                              const SerializableValue &caller,
+                                                              const python::Type& callerType,
+                                                              const std::vector<tuplex::codegen::SerializableValue> &args,
+                                                              const std::vector<python::Type> &argsTypes,
+                                                              const python::Type &retType) {
+            // only certain dicts yet supported
+            if(!callerType.isStructuredDictionaryType()) {
+                throw std::runtime_error("Only struct dict yet supported for dict.get");
+            }
+
+            assert(callerType.isStructuredDictionaryType());
+
+            // multiple options now.
+
+#error "TODO: add code here AND change the typing to use constant type for .get function (to avoid costly tracing)"
+
+            return {};
+        }
+
     }
 }

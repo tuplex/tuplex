@@ -630,6 +630,8 @@ TEST(BasicInvocation, ProperFlightsTest) {
 
     input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1995_11.csv,../resources/hyperspecialization/flights/*.sample";
 
+    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv:0-247414256";
+
     // s3://tuplex-public/data/flights_all/flights_on_time_performance_1995_11.csv produces in hyper mode exceptions.
     // -> why? => splitsize should be 2G
 

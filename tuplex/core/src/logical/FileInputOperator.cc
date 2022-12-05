@@ -153,6 +153,8 @@ namespace tuplex {
         if(0 == sampleSize)
             return "";
 
+        assert(range_size >= sampleSize);
+
         // depending on sampling mode seek in file!
         switch(mode) {
             case SamplingMode::LAST_ROWS: {
@@ -1627,7 +1629,8 @@ namespace tuplex {
                     assert(offset <= _samplingSize);
                 }
                 assert(offset <= sample.size());
-                auto rows = csv_parseRows(sample.c_str() + offset, sample.size() - offset, expectedColumnCount, offset, _delimiter, _quotechar, _null_values, sample_limit);
+                auto rows = csv_parseRows(sample.c_str() + offset, sample.size() - offset, expectedColumnCount,
+                                          offset, _delimiter, _quotechar, _null_values, sample_limit);
                 // offset = 0?
                 if(file_offset == 0) {
                     // header? ignore first row!

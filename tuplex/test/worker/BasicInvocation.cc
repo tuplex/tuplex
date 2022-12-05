@@ -628,7 +628,10 @@ TEST(BasicInvocation, ProperFlightsTest) {
     // get full data stats
     input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv";
 
-    input_pattern = "../resources/hyperspecialization/flights/*.sample";
+    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1995_11.csv,../resources/hyperspecialization/flights/*.sample";
+
+    // s3://tuplex-public/data/flights_all/flights_on_time_performance_1995_11.csv produces in hyper mode exceptions.
+    // -> why? => splitsize should be 2G
 
     // // glob files
     // auto files = VirtualFileSystem::globAll(input_pattern);
@@ -671,7 +674,8 @@ TEST(BasicInvocation, ProperFlightsTest) {
     co.set("tuplex.optimizer.constantFoldingOptimization", "true"); // run with constant folding on/off
     co.set("tuplex.filterPromotion", "true");
     co.set("tuplex.optimizer.nullValueOptimization", "true");
-    co.set("tuplex.experimental.hyperspecialization", "false"); // first check that THIS is correct.
+    co.set("tuplex.experimental.hyperspecialization", "true"); // first check that THIS is correct.
+    co.set("tuplex.inputSplitSize", "2GB");
 
     // init runtime
     auto rc_runtime = runtime::init(co.RUNTIME_LIBRARY().toPath());

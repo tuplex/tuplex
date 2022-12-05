@@ -893,6 +893,15 @@ namespace tuplex {
                             gen_cells[general_pos] = cellStr;
                             gen_cell_sizes[general_pos] = cellSize;
                         }
+
+                        // special case: constant normal check
+                        for(auto check : _checks) {
+                            if(i == check.colNo && check.type == CheckType::CHECK_CONSTANT) {
+                                std::string str_value = check.constant_type().constant();
+                                gen_cells[general_pos] = _env->strConst(builder, str_value);
+                                gen_cell_sizes[general_pos] = _env->i64Const(str_value.size());
+                            }
+                        }
                     }
                     general_pos++;
                 }

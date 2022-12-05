@@ -745,11 +745,12 @@ TEST(BasicInvocation, SingleMessageDebug) {
 #endif
 #else
 #ifdef BUILD_WITH_CEREAL
-    message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1480.json";
+    message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1086.json";
 #else
     message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_1.json";
 #endif
 #endif
+
     auto message = fileToString(URI(message_path));
 
     // check individual messages that they work

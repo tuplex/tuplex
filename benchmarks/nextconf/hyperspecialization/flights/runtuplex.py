@@ -138,7 +138,7 @@ if __name__ == '__main__':
         raise Exception('Did not find AWS credentials in environment, please set.')
 
     lambda_size = "10000"
-    lambda_threads = 1
+    lambda_threads = 3 #1
     s3_scratch_dir = "s3://tuplex-leonhard/scratch/flights-exp"
     use_hyper_specialization = not args.no_hyper
     use_constant_folding = not args.no_cf
@@ -163,9 +163,10 @@ if __name__ == '__main__':
     sm = sm_map['B']
 
     if use_hyper_specialization:
-        sm = sm_map['B']
+        sm = sm_map['D']
     else:
         sm = sm_map['D']
+        #sm = sm_map['A']
 
     if use_hyper_specialization:
         s3_output_path += '/hyper'

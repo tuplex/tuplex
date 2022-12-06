@@ -629,7 +629,9 @@ namespace tuplex {
         _buffer = nullptr;
 
          // print
-         std::cout<<"s3 request time spent on "<<_uri.toPath()<<": "<<_requestTime<<"s "<<std::endl;
+         std::stringstream ss;
+         ss<<"s3 request time spent on "<<_uri.toPath()<<": "<<_requestTime<<"s"<<std::endl;
+         Logger::instance().defaultLogger().info(ss.str());
     }
 
     bool S3File::eof() const {

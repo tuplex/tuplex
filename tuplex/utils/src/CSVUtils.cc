@@ -1739,4 +1739,38 @@ parse_error:
         return rows;
     }
 
+    std::vector<Row> csv_parseRows(const char* buf, size_t buf_size, size_t expected_column_count, size_t range_start,
+                                   char delimiter, char quotechar, const std::vector<std::string>& null_values, size_t limit) {
+        auto sample_length = std::min(buf_size - 1, strlen(buf));
+        auto end = buf + sample_length;
+
+        size_t start_offset = 0;
+        // range start != 0?
+        if(0 != range_start) {
+            start_offset = csvFindLineStart(buf, sample_length, expected_column_count, delimiter, quotechar);
+            if(start_offset < 0)
+                return {};
+            sample_length -= std::min((size_t)start_offset, sample_length);
+        }
+
+        // parse as rows using the settings detected.
+        std::vector<Row> v;
+        ExceptionCode ec;
+        std::vector<std::string> cells;
+        size_t num_bytes = 0;
+        const char* p = buf + start_offset;
+        while(p < end && (ec = parseRow(p, end, cells, num_bytes, delimiter, quotechar, false)) == ExceptionCode::SUCCESS) {
+            // convert cells to row
+            if(cells.size() >= expected_column_count) {
+                auto row = cellsToRow(cells, null_values);
+                v.push_back(row);
+            }
+            cells.clear();
+            p += num_bytes;
+            if(v.size() >= limit)
+                break;
+        }
+        return v;
+    }
+
 }

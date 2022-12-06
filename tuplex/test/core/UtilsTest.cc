@@ -11,6 +11,7 @@
 #include <URI.h>
 #include "gtest/gtest.h"
 #include "../../utils/include/Utils.h"
+#include "VirtualFileSystem.h"
 
 using namespace tuplex;
 

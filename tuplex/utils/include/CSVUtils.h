@@ -194,6 +194,21 @@ namespace tuplex {
         }
         return needs_quoting ? q + res + q : str;
     }
+
+    /*!
+     * helper function to parse a sample (does not need to be at start of proper CSV row) into rows.
+     * @param buf
+     * @param buf_size
+     * @param expected_column_count
+     * @param range_start
+     * @param delimiter
+     * @param quotechar
+     * @param null_values
+     * @param limit
+     * @return rows, maybe be empty buffer if parsing fails.
+     */
+    extern std::vector<Row> csv_parseRows(const char* buf, size_t buf_size, size_t expected_column_count, size_t range_start,
+                                          char delimiter, char quotechar, const std::vector<std::string>& null_values, size_t limit);
 }
 
 #endif //TUPLEX_CSVUTILS_H

@@ -16,6 +16,8 @@
 #define S3_TEST_BUCKET "tuplex-test"
 #endif
 
+#include <S3Cache.h>
+
 #warning "need S3 Test bucket to run these tests"
 #endif
 
@@ -36,6 +38,28 @@ protected:
         testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
     }
 };
+
+TEST_F(S3Tests, FileCache) {
+    using namespace tuplex;
+    auto& cache = S3FileCache::instance();
+    size_t max_cache_size = 2 * 1024 * 1024; // 2MB
+    cache.reset(max_cache_size);
+
+    // get data from S3 uri (this caches it as well)
+    std::string test_uri = "s3://tuplex-public/data/github_daily/2013-10-15.json";
+
+    // put async buffer in (i.e. prefill buffer!)
+    // cache.put(test_uri, 0, 1024 * 1024); // 1MB cache
+
+    // read a buffer
+    size_t buf_capacity = 512 * 1024; // buf smaller than get.
+    auto buf = new uint8_t[buf_capacity];
+    cache.get(buf, buf_capacity, test_uri, 0, 1024 * 1024);
+
+
+    delete [] buf;
+}
+
 
 #ifndef SKIP_AWS_TESTS
 

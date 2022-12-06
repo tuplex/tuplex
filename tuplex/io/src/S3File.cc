@@ -42,10 +42,10 @@ namespace tuplex {
         _fileUploaded = false;
 
 
-#ifndef NDEBUG
+//#ifndef NDEBUG
         //debug:
         _requestTime = 0.0;
-#endif
+//#endif
     }
 
     bool S3File::is_open() const {
@@ -554,9 +554,9 @@ namespace tuplex {
         auto get_object_outcome = _s3fs.client().GetObject(req);
         // std::cout<<" done!"<<std::endl;
         _s3fs._getRequests++;
-#ifndef NDEBUG
+//#ifndef NDEBUG
         _requestTime += timer.time();
-#endif
+//#endif
         if (get_object_outcome.IsSuccess()) {
             auto result = get_object_outcome.GetResultWithOwnership();
 
@@ -612,8 +612,8 @@ namespace tuplex {
             delete [] _buffer;
         _buffer = nullptr;
 
-        // // print
-        // std::cout<<"request Time on "<<_uri.toPath()<<": "<<_requestTime<<"s "<<std::endl;
+         // print
+         std::cout<<"s3 request time spent on "<<_uri.toPath()<<": "<<_requestTime<<"s "<<std::endl;
     }
 
     bool S3File::eof() const {

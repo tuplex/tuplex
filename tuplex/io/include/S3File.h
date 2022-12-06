@@ -165,10 +165,10 @@ namespace tuplex {
 
         Aws::S3::Model::RequestPayer _requestPayer;
 
-#ifndef NDEBUG
+//#ifndef NDEBUG
         // debug
         double _requestTime;
-#endif
+//#endif
 
         template <typename R, typename E>
         std::string outcome_error_message(const Aws::Utils::Outcome<R, E>& outcome, const std::string& uri="") const {

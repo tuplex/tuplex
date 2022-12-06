@@ -42,10 +42,10 @@ namespace tuplex {
         _fileUploaded = false;
 
 
-#ifndef NDEBUG
+//#ifndef NDEBUG
         //debug:
         _requestTime = 0.0;
-#endif
+//#endif
     }
 
     bool S3File::is_open() const {
@@ -102,7 +102,9 @@ namespace tuplex {
                 put_req.SetBody(stream);
 
                 // perform upload request
+                Timer timer;
                 auto outcome = _s3fs.client().PutObject(put_req);
+                _requestTime += timer.time();
                 _s3fs._putRequests++;
                 if(!outcome.IsSuccess()) {
                     MessageHandler& logger = Logger::instance().logger("s3fs");
@@ -139,7 +141,9 @@ namespace tuplex {
             req.SetContentType(content_type.c_str());
         }
 
+        Timer timer;
         auto outcome = _s3fs.client().CreateMultipartUpload(req);
+        _requestTime += timer.time();
         _s3fs._multiPartPutRequests++;
         // count as put request
 
@@ -189,7 +193,9 @@ namespace tuplex {
         auto stream = std::shared_ptr<Aws::IOStream>(new boost::interprocess::bufferstream((char*)_buffer, _bufferLength));
         req.SetBody(stream);
 
+        Timer timer;
         auto outcome = _s3fs.client().UploadPart(req);
+        _requestTime += timer.time();
         _s3fs._multiPartPutRequests++;
         _s3fs._bytesTransferred += _bufferLength;
         if(!outcome.IsSuccess()) {
@@ -233,7 +239,9 @@ namespace tuplex {
 
         req.SetMultipartUpload(std::move(upld));
 
+        Timer timer;
         auto outcome = _s3fs.client().CompleteMultipartUpload(req);
+        _requestTime += timer.time();
         _s3fs._closeMultiPartUploadRequests++;
         if(!outcome.IsSuccess()) {
             auto err_msg = outcome_error_message(outcome, _uri.toString());
@@ -391,7 +399,9 @@ namespace tuplex {
         size_t fileSize = _fileSize;
         if(!_buffer && fileSize == 0) {
             // ==> fill in file size
+            Timer timer;
             fileSize = s3GetContentLength(this->_s3fs.client(), this->_uri);
+            const_cast<S3File*>(this)->_requestTime += timer.time();
         }
 
         // clamp nbytes
@@ -413,8 +423,10 @@ namespace tuplex {
         req.SetRequestPayer(_requestPayer);
 
         // Get the object ==> Note: this s3 client is damn slow, need to make it faster in the future...
+        Timer timer;
         auto get_object_outcome = _s3fs.client().GetObject(req);
         _s3fs._getRequests++;
+        const_cast<S3File*>(this)->_requestTime += timer.time();
 
         if (get_object_outcome.IsSuccess()) {
             auto result = get_object_outcome.GetResultWithOwnership();
@@ -534,8 +546,12 @@ namespace tuplex {
         // range header
 
         // make sure file size is not 0
-        if(_fileSize == 0 && !_buffer)
+        if(_fileSize == 0 && !_buffer) {
+            Timer timer;
             _fileSize = s3GetContentLength(_s3fs.client(), _uri);
+            _requestTime += timer.time();
+        }
+
 
         size_t range_end = std::min(_bufferedAbsoluteFilePosition + bytesToRequest - 1, _fileSize - 1);
         std::string range = "bytes=" + std::to_string(_bufferedAbsoluteFilePosition) + "-" + std::to_string(range_end);
@@ -554,9 +570,9 @@ namespace tuplex {
         auto get_object_outcome = _s3fs.client().GetObject(req);
         // std::cout<<" done!"<<std::endl;
         _s3fs._getRequests++;
-#ifndef NDEBUG
+//#ifndef NDEBUG
         _requestTime += timer.time();
-#endif
+//#endif
         if (get_object_outcome.IsSuccess()) {
             auto result = get_object_outcome.GetResultWithOwnership();
 
@@ -612,8 +628,10 @@ namespace tuplex {
             delete [] _buffer;
         _buffer = nullptr;
 
-        // // print
-        // std::cout<<"request Time on "<<_uri.toPath()<<": "<<_requestTime<<"s "<<std::endl;
+         // print
+         std::stringstream ss;
+         ss<<"s3 request time spent on "<<_uri.toPath()<<": "<<_requestTime<<"s"<<std::endl;
+         Logger::instance().defaultLogger().info(ss.str());
     }
 
     bool S3File::eof() const {
@@ -630,7 +648,9 @@ namespace tuplex {
         // new file pos (clamp)
         // is file size known?
         if(!_buffer && _fileSize == 0) { // not 100% correct, but we can live with additional request for empty files...
+            Timer timer;
             _fileSize = s3GetContentLength(_s3fs.client(), _uri);
+            _requestTime += timer.time();
         }
 
         // clamp delta

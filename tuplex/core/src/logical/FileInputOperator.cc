@@ -153,6 +153,8 @@ namespace tuplex {
         if(0 == sampleSize)
             return "";
 
+        assert(range_size >= sampleSize);
+
         // depending on sampling mode seek in file!
         switch(mode) {
             case SamplingMode::LAST_ROWS: {

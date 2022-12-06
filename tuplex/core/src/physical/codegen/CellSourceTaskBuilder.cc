@@ -129,7 +129,7 @@ namespace tuplex {
 
                         // debug print
                         logger.debug("CellSourceTaskBuilder: input row type in which exceptions from pipeline are stored that are **not** parse-exceptions is " + ft.getTupleType().desc());
-                        logger.debug("I.e., when creating resolve tasks for this pipeline - set exceptionRowType to this type.");
+                        logger.debug("I.e., when creating resolve tas ks for this pipeline - set exceptionRowType to this type.");
                         outputRowNumber = builder.CreateLoad(outputRowNumberVar);
                         llvm::BasicBlock *curBlock = builder.GetInsertBlock();
                         auto bbException = exceptionBlock(builder, userData, ecCode, ecOpID, outputRowNumber,

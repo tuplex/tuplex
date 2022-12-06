@@ -1548,6 +1548,15 @@ namespace tuplex {
         URI target_uri;
         decodeRangeURI(uri.toString(), target_uri, range_start, range_end);
 
+        size_t original_sample_limit = sample_limit;
+        size_t mode_count = 0;
+        mode_count += (mode & SamplingMode::FIRST_ROWS) > 0;
+        mode_count += (mode & SamplingMode::LAST_ROWS) > 0;
+        mode_count += (mode & SamplingMode::RANDOM_ROWS) > 0;
+
+        sample_limit = std::max(mode_count, sample_limit);
+        size_t per_mode_limit = sample_limit / mode_count;
+
         // both 0? no restriction
         if(range_start == 0 && range_end == 0) {
             range_end = uri_size;
@@ -1576,8 +1585,11 @@ namespace tuplex {
         if(m & SamplingMode::FIRST_ROWS) {
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::FIRST_ROWS, true);
 
+            auto limit = std::min(sample_limit, per_mode_limit);
             // parse as rows using the settings detected.
-            v = csv_parseRows(sample.c_str(), sample.size(), expectedColumnCount, range_start, _delimiter, _quotechar, _null_values, sample_limit);
+            v = csv_parseRows(sample.c_str(), sample.size(), expectedColumnCount,
+                              range_start, _delimiter, _quotechar, _null_values, limit);
+            sample_limit -= std::min(v.size(), limit);
 
             // header? ignore first row!
             if(0 == range_start && _header && !v.empty())
@@ -1596,8 +1608,10 @@ namespace tuplex {
                 }
                 assert(offset <= sample.size());
                 auto sample_global_offset = file_offset + offset;
+                auto limit = std::min(sample_limit, per_mode_limit);
                 auto rows = csv_parseRows(sample.c_str() + offset, sample.size() - offset, expectedColumnCount,
-                                          sample_global_offset, _delimiter, _quotechar, _null_values, sample_limit);
+                                          sample_global_offset, _delimiter, _quotechar, _null_values, limit);
+                sample_limit -= std::min(v.size(), limit);
                 // offset = 0?
                 if(file_offset == 0) {
                     // header? ignore first row!
@@ -1608,8 +1622,10 @@ namespace tuplex {
                 std::copy(rows.begin(), rows.end(), std::back_inserter(v));
 
             } else {
-                v = csv_parseRows(sample.c_str(), sample.size(), expectedColumnCount, file_offset, _delimiter, _quotechar, _null_values, sample_limit);
-
+                auto limit = std::min(sample_limit, per_mode_limit);
+                v = csv_parseRows(sample.c_str(), sample.size(), expectedColumnCount, file_offset,
+                                  _delimiter, _quotechar, _null_values, limit);
+                sample_limit -= std::min(v.size(), limit);
                 // offset = 0?
                 if(file_offset == 0) {
                     // header? ignore first row!
@@ -1627,9 +1643,10 @@ namespace tuplex {
 
             // detect csv start ?? -> test.
             // parse as rows using the settings detected.
+            auto limit = std::min(sample_limit, per_mode_limit);
             auto rows = csv_parseRows(sample.c_str(), sample.size(), expectedColumnCount, file_offset,
-                                      _delimiter, _quotechar, _null_values, sample_limit);
-
+                                      _delimiter, _quotechar, _null_values, limit);
+            sample_limit -= std::min(v.size(), limit);
             // offset = 0?
             if(file_offset == 0) {
                 // header? ignore first row!
@@ -1726,6 +1743,14 @@ namespace tuplex {
 
         SamplingMode m = mode;
 
+        size_t mode_count = 0;
+        mode_count += (mode & SamplingMode::FIRST_ROWS) > 0;
+        mode_count += (mode & SamplingMode::LAST_ROWS) > 0;
+        mode_count += (mode & SamplingMode::RANDOM_ROWS) > 0;
+
+        sample_limit = std::max(mode_count, sample_limit);
+        size_t per_mode_limit = sample_limit / mode_count;
+
         // sample in no unwrap mode -> unwrap later on demand. -> requires special treatment in resample.
 
 
@@ -1747,9 +1772,10 @@ namespace tuplex {
                 sample_length -= std::min((size_t)start_offset, sample_length);
             }
 
+            auto limit = std::min(sample_limit, per_mode_limit);
             v = parseRowsFromJSON(sample.c_str() + start_offset, sample_length,
-                                  outNames, outNames, _json_treat_heterogenous_lists_as_tuples, sample_limit);
-            sample_limit -= std::min(v.size(), sample_limit);
+                                  outNames, outNames, _json_treat_heterogenous_lists_as_tuples, limit);
+            sample_limit -= std::min(v.size(), limit);
         }
 
         if(m & SamplingMode::LAST_ROWS && sample_limit > 0) {
@@ -1772,10 +1798,11 @@ namespace tuplex {
                 if(start_offset < 0)
                     return v;
                 sample_length -= std::min((size_t)start_offset, sample_length);
+                auto limit = std::min(sample_limit, per_mode_limit);
                 auto rows = parseRowsFromJSON(sample.c_str() + offset + start_offset, sample_length,
                                               outNames, outNames, _json_treat_heterogenous_lists_as_tuples,
-                                              sample_limit);
-                sample_limit -= std::min(rows.size(), sample_limit);
+                                              limit);
+                sample_limit -= std::min(rows.size(), limit);
                 std::copy(rows.begin(), rows.end(), std::back_inserter(v));
 
             } else {
@@ -1785,10 +1812,11 @@ namespace tuplex {
                     return v;
                 sample_length -= std::min((size_t)start_offset, sample_length);
 
+                auto limit = std::min(sample_limit, per_mode_limit);
                 v = parseRowsFromJSON(sample.c_str() + start_offset, sample_length,
                                       outNames, outNames, _json_treat_heterogenous_lists_as_tuples,
-                                      sample_limit);
-                sample_limit -= std::min(v.size(), sample_limit);
+                                      limit);
+                sample_limit -= std::min(v.size(), limit);
             }
         }
 
@@ -1804,10 +1832,11 @@ namespace tuplex {
                 return v;
             sample_length -= std::min((size_t)start_offset, sample_length);
             // parse as rows using the settings detected.
+            auto limit = std::min(sample_limit, per_mode_limit);
             auto rows = parseRowsFromJSON(sample.c_str() + start_offset, sample_length,
                                           outNames, outNames, _json_treat_heterogenous_lists_as_tuples,
-                                          sample_limit);
-            sample_limit -= std::min(rows.size(), sample_limit);
+                                          limit);
+            sample_limit -= std::min(rows.size(), limit);
 
             // erase last row, b.c. it may be partial
             if(!rows.empty()) {

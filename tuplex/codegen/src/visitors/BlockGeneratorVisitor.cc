@@ -4288,11 +4288,13 @@ namespace tuplex {
 
             // is it a maybe field? => check if present. if not, key error
             auto field_present = struct_dict_load_present(*_env, builder, value.val, value_type, path);
+            _lfb->setLastBlock(builder.GetInsertBlock());
             auto field_not_present = _env->i1neg(builder, field_present);
             _lfb->addException(builder, ExceptionCode::KEYERROR, field_not_present);
             // load entry
             if(out_ret)
                 *out_ret = struct_dict_load_value(*_env, builder, value.val, value_type, path);
+            _lfb->setLastBlock(builder.GetInsertBlock());
             return true;
         }
 

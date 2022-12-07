@@ -555,6 +555,7 @@ namespace tuplex {
             if(element_type.isOptionType()) {
                 // store only if not null
                 assert(value.is_null);
+
                 BasicBlock* bStore = BasicBlock::Create(ctx, "store_dict", builder.GetInsertBlock()->getParent());
                 bNext = BasicBlock::Create(ctx, "next", builder.GetInsertBlock()->getParent());
 

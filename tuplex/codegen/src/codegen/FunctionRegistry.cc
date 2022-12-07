@@ -16,6 +16,7 @@
 #endif
 #include <pcre2.h>
 #include <cmath>
+#include <experimental/StructDictHelper.h>
 
 namespace tuplex {
     namespace codegen {
@@ -2828,6 +2829,15 @@ namespace tuplex {
                     auto bbExit = llvm::BasicBlock::Create(_env.getContext(), "dict_get_done", func);
 
                     // use variable for result and store default value (here null!)
+                    SerializableValue var;
+                    var.val = _env.CreateFirstBlockAlloca(builder, _env.pythonToLLVMType(retType));
+                    var.size = _env.CreateFirstBlockAlloca(builder, _env.i64Type());
+                    var.is_null = _env.CreateFirstBlockAlloca(builder, _env.i1Type());
+
+                    // null variable and set to default (here anyways null)
+                    builder.CreateStore(_env.nullConstant(var.val->getType()->getPointerElementType()), var.val);
+                    builder.CreateStore(_env.i64Const(0), var.size);
+                    builder.CreateStore(_env.i1Const(true), var.is_null); // indicate None!
 
                     // not trivial, check all pairs (presence! and whether null!)
                     SerializableValue key = args.front();
@@ -2853,10 +2863,20 @@ namespace tuplex {
                             // regular processing, no early deopt failure
                             _env.printValue(builder, key.val, "key match for key=" + pair.key);
                             if(pair.alwaysPresent) {
-                                // can simply load value
-                                //_env.debugPrint()
+                                // can simply load value, no further checks necessary. value type and ret type are the same
+                                assert(pair.valueType == retType);
+                                access_path_t access_path;
+                                access_path.push_back(std::make_pair(pair.key, pair.keyType));
+                                auto val = struct_dict_load_value(_env, builder, caller.val, callerType, access_path);
+                                if(val.val)
+                                    builder.CreateStore(val.val, var.val);
+                                if(val.size)
+                                    builder.CreateStore(val.size, var.size);
+                                if(val.is_null)
+                                    builder.CreateStore(val.is_null, var.is_null);
                             } else {
-                                //throw std::runtime_error("failure");
+                                _env.debugPrint(builder, "maybe present pair");
+                                // requires special treatment
                             }
 
                             // match succeeded, b.c. it's unique can go directly to end!
@@ -2874,14 +2894,16 @@ namespace tuplex {
                     lfb.setLastBlock(builder.GetInsertBlock());
 
                     // load variable!
-
-                    return {_env.strConst(builder, "dummy"), nullptr, nullptr}; // test...
+                    return {builder.CreateLoad(var.val),
+                            builder.CreateLoad(var.size),
+                            builder.CreateLoad(var.is_null)}; // test...
 
                 }
 
 
             } else if(2 == argsTypes.size()) {
                 // upcast to default
+                throw std::runtime_error("not yet supported, adapt from above.");
 
             } else {
                 throw std::runtime_error("incompatible number of arguments " + std::to_string(argsTypes.size()) + " encountered for dict.get function");

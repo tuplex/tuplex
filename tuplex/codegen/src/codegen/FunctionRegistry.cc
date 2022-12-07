@@ -2773,6 +2773,21 @@ namespace tuplex {
             assert(callerType.isStructuredDictionaryType());
 
             // multiple options now.
+            // how many parameters are there?
+            if(1 == argsTypes.size()) {
+                // single, result is option
+                assert(retType.isOptionType());
+
+                // now check what kind of type argsTypes is, is that a constant type? that would simplify things.
+
+
+
+            } else if(2 == argsTypes.size()) {
+                // upcast to default
+
+            } else {
+                throw std::runtime_error("incompatible number of arguments " + std::to_string(argsTypes.size()) + " encountered for dict.get function");
+            }
 
 #warning "TODO: add code here AND change the typing to use constant type for .get function (to avoid costly tracing)"
             throw std::runtime_error("not yet implemented");

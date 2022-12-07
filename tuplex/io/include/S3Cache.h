@@ -76,6 +76,8 @@ namespace tuplex {
             CacheEntry(const CacheEntry& other) = delete;
             CacheEntry(CacheEntry&& other) = default;
 
+            CacheEntry& operator = (CacheEntry&& other) = default;
+
             ~CacheEntry() {
                 if(buf)
                     delete [] buf;

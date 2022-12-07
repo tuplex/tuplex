@@ -2759,6 +2759,26 @@ namespace tuplex {
             return SerializableValue(nullptr, nullptr);
         }
 
+        // do not call on elements that are not present. failure!
+        llvm::Value* struct_pair_keys_equal(LLVMEnvironment& env,
+                                            llvm::IRBuilder<> &builder,
+                                            const python::StructEntry& entry,
+                                            const SerializableValue& key,
+                                            const python::Type& key_type) {
+            // check key equality
+            if(entry.keyType != key_type)
+                return env.i1Const(false);
+
+            if(key_type == python::Type::STRING) {
+                auto key_value = str_value_from_python_raw_value(entry.key); // the actual value\
+                assert(key.val);
+                assert(key.val->getType() == env.i8ptrType());
+                return env.fixedSizeStringCompare(builder, key.val, key_value);
+            } else {
+                throw std::runtime_error("unsupported key type comparison for key type=" + key_type.desc());
+            }
+        }
+
         SerializableValue FunctionRegistry::createDictGetCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
                                                               const SerializableValue &caller,
                                                               const python::Type& callerType,
@@ -2778,8 +2798,8 @@ namespace tuplex {
             // multiple options now.
             // how many parameters are there?
             if(1 == argsTypes.size()) {
-                // single, result is option
-                assert(retType.isOptionType());
+                // single, is result option type? if not need to perform output-type match or deoptimize with normal-case failure.
+                bool require_deoptimization = !retType.isOptionType();
 
                 // now check what kind of type argsTypes is, is that a constant type? that would simplify things.
                 auto key_type = argsTypes.front();
@@ -2802,8 +2822,60 @@ namespace tuplex {
                         // trivial, return None
                         return SerializableValue(nullptr, nullptr, _env.i1Const(true));
 
+                    // last exit block
+                    auto func = builder.GetInsertBlock()->getParent();
+                    assert(func);
+                    auto bbExit = llvm::BasicBlock::Create(_env.getContext(), "dict_get_done", func);
+
+                    // use variable for result and store default value (here null!)
+
                     // not trivial, check all pairs (presence! and whether null!)
-                    assert(false);
+                    SerializableValue key = args.front();
+                    unsigned pair_pos = 0;
+                    for(auto pair : kv_pairs) {
+                        // check if key matches, if so load and return entry!
+                        auto key_match = struct_pair_keys_equal(_env, builder, pair, key, key_type);
+                        auto bbMatch = llvm::BasicBlock::Create(_env.getContext(), "key_match_pair" + std::to_string(pair_pos), func);
+                        auto bbNext = llvm::BasicBlock::Create(_env.getContext(), "key_check_pair" + std::to_string(pair_pos+1), func);
+                        builder.CreateCondBr(key_match, bbMatch, bbNext);
+
+                        // handle match case, then proceed.
+                        builder.SetInsertPoint(bbMatch);
+
+                        // special case deopt?
+                        // do we need to deoptimize?
+                        // this means pair.value_type must match return type, else it's directly a normal case failure
+                        if(require_deoptimization && pair.valueType != retType) {
+                            lfb.setLastBlock(builder.GetInsertBlock());
+                            lfb.exitWithException(ExceptionCode::NORMALCASEVIOLATION);
+                            builder.SetInsertPoint(lfb.getLastBlock());
+                        } else {
+                            // regular processing, no early deopt failure
+                            _env.printValue(builder, key.val, "key match for key=" + pair.key);
+                            if(pair.alwaysPresent) {
+                                // can simply load value
+                                //_env.debugPrint()
+                            } else {
+                                //throw std::runtime_error("failure");
+                            }
+
+                            // match succeeded, b.c. it's unique can go directly to end!
+                            builder.CreateBr(bbExit);
+                        }
+
+                        // is it an always present pair? then safe to load.
+                        builder.SetInsertPoint(bbNext);
+                        pair_pos++;
+                    }
+
+                    // link to exit
+                    builder.CreateBr(bbExit);
+                    builder.SetInsertPoint(bbExit);
+                    lfb.setLastBlock(builder.GetInsertBlock());
+
+                    // load variable!
+
+                    return {_env.strConst(builder, "dummy"), nullptr, nullptr}; // test...
 
                 }
 

@@ -2765,6 +2765,9 @@ namespace tuplex {
                                                               const std::vector<tuplex::codegen::SerializableValue> &args,
                                                               const std::vector<python::Type> &argsTypes,
                                                               const python::Type &retType) {
+
+            auto& logger = Logger::instance().logger("codegen");
+
             // only certain dicts yet supported
             if(!callerType.isStructuredDictionaryType()) {
                 throw std::runtime_error("Only struct dict yet supported for dict.get");
@@ -2779,7 +2782,30 @@ namespace tuplex {
                 assert(retType.isOptionType());
 
                 // now check what kind of type argsTypes is, is that a constant type? that would simplify things.
+                auto key_type = argsTypes.front();
+                if(key_type.isConstantValued()) {
+                    // simple, it's a constant key -> can perform direct lookup in struct dict.
+                    assert(false);
+                } else {
+                    // it's not a constant type, need to emit chain of checks... -> costly. Maybe it's own function?
+                    // for now, emit check
 
+                    // get all pairs with same key type
+                    std::vector<python::StructEntry> kv_pairs;
+                    for(auto pair : callerType.get_struct_pairs()) {
+                        if(pair.keyType == key_type)
+                            kv_pairs.push_back(pair);
+                    }
+
+                    logger.debug("Found " + pluralize(kv_pairs.size(), "pair") + " to perform .get on");
+                    if(kv_pairs.empty())
+                        // trivial, return None
+                        return SerializableValue(nullptr, nullptr, _env.i1Const(true));
+
+                    // not trivial, check all pairs (presence! and whether null!)
+                    assert(false);
+
+                }
 
 
             } else if(2 == argsTypes.size()) {

@@ -144,7 +144,7 @@ namespace tuplex {
             *file_offset = range_start;
 
         // determine sample size
-        if (range_size > sampleSize)
+        if (range_size >= sampleSize)
             sampleSize = core::floorToMultiple(std::min(sampleSize, range_size), 16ul);
         else {
             sampleSize = core::ceilToMultiple(std::min(sampleSize, range_size), 16ul);

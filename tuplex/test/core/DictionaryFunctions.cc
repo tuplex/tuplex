@@ -517,3 +517,10 @@ TEST_F(DictionaryFunctions, DictCount) {
     graph.createFromAST(root.get(), true);
     graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dict_count.pdf");
 }
+
+
+TEST_F(DictionaryFunctions, Get) {
+    using namespace tuplex;
+
+
+}

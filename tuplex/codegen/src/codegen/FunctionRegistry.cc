@@ -2877,6 +2877,7 @@ namespace tuplex {
                             } else {
                                 _env.debugPrint(builder, "maybe present pair");
                                 // requires special treatment
+#error "fix this here"
                             }
 
                             // match succeeded, b.c. it's unique can go directly to end!
@@ -2894,10 +2895,12 @@ namespace tuplex {
                     lfb.setLastBlock(builder.GetInsertBlock());
 
                     // load variable!
-                    return {builder.CreateLoad(var.val),
-                            builder.CreateLoad(var.size),
-                            builder.CreateLoad(var.is_null)}; // test...
+                    auto ret_val = SerializableValue(builder.CreateLoad(var.val),
+                                                     builder.CreateLoad(var.size),
+                                                     builder.CreateLoad(var.is_null));
 
+                    _env.printValue(builder, ret_val.val, "value: ");
+                    return ret_val; // test...
                 }
 
 

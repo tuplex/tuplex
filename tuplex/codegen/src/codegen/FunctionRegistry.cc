@@ -2875,9 +2875,58 @@ namespace tuplex {
                                 if(val.is_null)
                                     builder.CreateStore(val.is_null, var.is_null);
                             } else {
-                                _env.debugPrint(builder, "maybe present pair");
-                                // requires special treatment
-#error "fix this here"
+                                access_path_t access_path;
+                                access_path.push_back(std::make_pair(pair.key, pair.keyType));
+
+                                // check if element is present
+                                auto is_present = struct_dict_load_present(_env, builder, caller.val, callerType, access_path);
+
+                                // if element is present, proceed to load & store element
+                                // if not, return default element if ok
+                                auto bbIsPresent = llvm::BasicBlock::Create(_env.getContext(), "is_present_pair" + std::to_string(pair_pos), func);
+                                auto bbNotPresent = llvm::BasicBlock::Create(_env.getContext(), "not_present_pair" + std::to_string(pair_pos), func);
+
+                                builder.CreateCondBr(is_present, bbIsPresent, bbNotPresent);
+
+                                // handle is present case (same like in pair.alwaysPresent)
+                                builder.SetInsertPoint(bbIsPresent);
+                                _env.debugPrint(builder, "access path " + access_path_to_str(access_path) + " present.");
+                                auto val = struct_dict_load_value(_env, builder, caller.val, callerType, access_path);
+                                if(val.val)
+                                    builder.CreateStore(val.val, var.val);
+                                if(val.size)
+                                    builder.CreateStore(val.size, var.size);
+                                if(val.is_null)
+                                    builder.CreateStore(val.is_null, var.is_null);
+                                bbIsPresent = builder.GetInsertBlock(); // <-- for connect, update to last block.
+
+                                // ----
+                                builder.SetInsertPoint(bbNotPresent);
+
+                                // special case, is return type option or not? if not, deoptimize...
+                                if(retType.isOptionType()) {
+                                    _env.debugPrint(builder, "access path " + access_path_to_str(access_path) + " NOT present.");
+
+                                    builder.CreateStore(val.is_null, _env.i1Const(true));
+                                    bbNotPresent = builder.GetInsertBlock();
+
+                                    // connect both to new block
+                                    auto bbDone = llvm::BasicBlock::Create(_env.getContext(), "presence_done_pair" + std::to_string(pair_pos), func);
+                                    builder.SetInsertPoint(bbIsPresent);
+                                    builder.CreateBr(bbDone);
+                                    builder.SetInsertPoint(bbNotPresent);
+                                    builder.SetInsertPoint(bbDone);
+                                    builder.SetInsertPoint(bbDone);
+                                    lfb.setLastBlock(bbDone);
+                                } else {
+                                    lfb.setLastBlock(builder.GetInsertBlock());
+                                    lfb.exitWithException(ExceptionCode::NORMALCASEVIOLATION);
+                                    builder.SetInsertPoint(lfb.getLastBlock());
+
+                                    // continue execution only on present path!
+                                    builder.SetInsertPoint(bbIsPresent);
+                                    lfb.setLastBlock(bbIsPresent);
+                                }
                             }
 
                             // match succeeded, b.c. it's unique can go directly to end!

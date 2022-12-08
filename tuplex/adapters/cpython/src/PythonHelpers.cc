@@ -1614,6 +1614,8 @@ namespace python {
             if(numElements == 0)
                 return python::Type::EMPTYDICT; // be specific, empty dict!
 
+            std::vector<python::StructEntry> kv_pairs;
+#error "fix this so tracing works, i.e. detect proper structdict type from python dicts... -> unify then!"
             python::Type keyType, valType;
             PyObject *key = nullptr, *val = nullptr;
             Py_ssize_t pos = 0; // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.

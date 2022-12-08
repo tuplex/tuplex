@@ -633,6 +633,32 @@ TEST_F(JsonTuplexTest, GithubLoadTakeTop) {
     EXPECT_EQ(v1.size(), 5);
 }
 
+TEST_F(JsonTuplexTest, PushEventNumberOfCommits) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto opt = microTestOptions();
+    opt.set("tuplex.executorCount", "0"); // start single-threaded
+    opt.set("tuplex.resolveWithInterpreterOnly", "false");
+    Context ctx(opt);
+    bool unwrap_first_level = true;
+
+    // check ref file lines
+    string ref_path = "../resources/hyperspecialization/github_daily/*.json.sample";
+    auto lines = splitToLines(fileToString(ref_path));
+
+    std::cout<<ctx.json(ref_path, true).columns()<<std::endl;
+
+    // check both unwrap and no unwrap
+    auto v1 = ctx.json(ref_path, true)
+                 .withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
+                 .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
+                 .filter(UDF("lambda row: row['type'] == 'PushEvent'"))
+                 .selectColumns(std::vector<std::string>{"type", "number_of_commits"})
+                 .takeAsVector(5);
+    EXPECT_EQ(v1.size(), 5);
+}
+
 TEST_F(JsonTuplexTest, GithubLoad) {
     using namespace tuplex;
     using namespace std;

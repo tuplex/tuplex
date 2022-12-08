@@ -711,7 +711,8 @@ namespace codegen {
         llvm::Module *getLLVMModule() const { return _env->getModule().get(); }
 
         std::string getLastFuncName() {
-            assert(_funcNames.size() > 0);
+            if(_funcNames.empty())
+                return "";
             return _funcNames.top();
         }
 

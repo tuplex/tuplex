@@ -30,7 +30,6 @@ def fork_event_pipeline(ctx, input_pattern, s3_output_path, sm = None):
         .withColumn('year', lambda x: int(x['created_at'].split('-')[0])) \
         .withColumn('repo_id', extract_repo_id_code) \
         .filter(lambda x: x['type'] == 'ForkEvent') \
-        .withColumn("org", 
         .selectColumns(['type', 'repo_id', 'year']) \
         .tocsv(s3_output_path)
 
@@ -193,8 +192,8 @@ if __name__ == '__main__':
     tstart = time.time()
     ### QUERY HERE ###
 
-    fork_event_pipeline(ctx, input_pattern, s3_output_path, sm)
-    #push_event_pipeline(ctx, input_pattern, s3_output_path, sm)
+    #fork_event_pipeline(ctx, input_pattern, s3_output_path, sm)
+    push_event_pipeline(ctx, input_pattern, s3_output_path, sm)
 
     ### END QUERY ###
     run_time = time.time() - tstart

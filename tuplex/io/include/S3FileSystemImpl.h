@@ -24,6 +24,7 @@
 namespace tuplex {
     class S3FileSystemImpl : public IFileSystemImpl {
         friend class S3File;
+        friend class S3FileCache;
     public:
         S3FileSystemImpl() = delete;
         S3FileSystemImpl(const std::string& access_key, const std::string& secret_key, const std::string& session_token,

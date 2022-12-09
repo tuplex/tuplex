@@ -26,8 +26,12 @@ namespace tuplex {
          * @param maxSize maximum size of cache in bytes.
          */
         void reset(size_t maxSize=128 * 1024 * 1024);
-        inline void setFS(S3FileSystemImpl& fs) {
+        inline void setFS(S3FileSystemImpl& fs, bool requesterPays=true) {
             _s3fs = &fs;
+            if(requesterPays)
+                _requestPayer = Aws::S3::Model::RequestPayer::requester;
+            else
+                _requestPayer = Aws::S3::Model::RequestPayer::NOT_SET;
         }
         static S3FileCache& instance() {
             static S3FileCache the_one_and_only;
@@ -58,6 +62,10 @@ namespace tuplex {
 
         S3FileCache() : _maxSize(128 * 1024 * 1024), _s3fs(nullptr) {
             // 128MB default cache size...
+        }
+
+        ~S3FileCache() {
+            reset(0); // empty everything...
         }
 
         size_t _maxSize; // maximum aggregate size in bytes of cache.
@@ -91,6 +99,7 @@ namespace tuplex {
         bool pruneBy(size_t size);
 
         S3FileSystemImpl* _s3fs; // weak ptr.
+        Aws::S3::Model::RequestPayer _requestPayer;
         CacheEntry s3Read(const URI& uri, size_t range_start, size_t range_end);
 
     };

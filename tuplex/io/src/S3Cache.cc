@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <future>
 #include "Logger.h"
+#include "Timer.h"
+#include "S3File.h"
 
 namespace tuplex {
     void S3FileCache::reset(size_t maxSize) {
@@ -169,10 +171,73 @@ namespace tuplex {
 
 
     S3FileCache::CacheEntry S3FileCache::s3Read(const URI &uri, size_t range_start, size_t range_end) {
-
-
-
         CacheEntry entry;
+
+        auto& logger = Logger::instance().logger("s3fs");
+
+        if(!_s3fs)
+            throw std::runtime_error("Trying to use S3Cache without an initialized S3 Filesystem");
+
+        // issue a S3 read (part) request -> will contain all data etc.
+// simply issue here one direct request
+        size_t retrievedBytes = 0;
+        size_t nbytes = range_end - range_start;
+        // range header
+        std::string range = "bytes=" + std::to_string(range_start) + "-" + std::to_string(range_start + nbytes - 1);
+        // make AWS S3 part request to uri
+        // check how to retrieve object in poarts
+        Aws::S3::Model::GetObjectRequest req;
+        req.SetBucket(uri.s3Bucket().c_str());
+        req.SetKey(uri.s3Key().c_str());
+        // retrieve byte range according to http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35
+        req.SetRange(range.c_str());
+        req.SetRequestPayer(_requestPayer);
+
+        // Get the object ==> Note: this s3 client is damn slow, need to make it faster in the future...
+        Timer timer;
+        auto get_object_outcome = _s3fs->client().GetObject(req);
+        _s3fs->_getRequests++;
+        logger.info("Requested from S3 in " + std::to_string(timer.time()) + "s");
+
+        if (get_object_outcome.IsSuccess()) {
+            auto result = get_object_outcome.GetResultWithOwnership();
+
+            // extract extracted byte range + size
+            // syntax is: start-inclend/fsize
+            auto cr = result.GetContentRange();
+            auto idxSlash = cr.find_first_of('/');
+            auto idxMinus = cr.find_first_of('-');
+            // these are kind of weird, they are already requested range I presume
+            size_t fileSize = std::strtoull(cr.substr(idxSlash + 1).c_str(), nullptr, 10);
+            retrievedBytes = result.GetContentLength();
+
+            // Get an Aws::IOStream reference to the retrieved file
+            auto &retrieved_file = result.GetBody();
+
+            if(0 == retrievedBytes) {
+                logger.debug("empty range");
+                return entry;
+            }
+
+            // alloc buffer
+            entry.buf = new uint8_t[retrievedBytes];
+            entry.range_start = range_start;
+            entry.range_end = range_start + retrievedBytes;
+            entry.uri = uri;
+            entry.uri_size = fileSize;
+
+            // copy contents
+            retrieved_file.read((char*)entry.buf, retrievedBytes);
+
+            // note: for ascii files there might be an issue regarding the file ending!!!
+            _s3fs->_bytesReceived += retrievedBytes;
+        } else {
+            auto s3_details = format_s3_outcome_error_message(get_object_outcome, uri.toPath());
+            auto err_msg = s3_details;
+            logger.error(err_msg);
+            throw std::runtime_error(err_msg);
+        }
+
         return entry;
     }
 

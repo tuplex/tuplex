@@ -471,3 +471,54 @@ TEST_F(PythonHelperTest, SchemaEncoding) {
 TEST_F(PythonHelperTest, VersionCheck) {
     EXPECT_NE(python::python_version(), "");
 }
+
+TEST_F(PythonHelperTest, DictTypeDeduction) {
+    auto d = PyDict_New();
+    PyDict_SetItemString(d, "test string", PyLong_FromLong(42));
+    PyDict_SetItemString(d, "\"hello world\"", PyString_FromString("test"));
+    PyDict_SetItem(d, PyLong_FromLong(0), PyString_FromString("test"));
+
+    auto sub_d = PyDict_New();
+    PyDict_SetItemString(sub_d, "test", PyFloat_FromDouble(0.4));
+    PyDict_SetItemString(d, "abc", sub_d);
+
+    auto type = mapPythonClassToTuplexType(d);
+
+    std::cout<<"Detected (dict) type is: "<<type.desc()<<std::endl;
+
+    ASSERT_TRUE(type.isStructuredDictionaryType());
+    auto kv_pairs = type.get_struct_pairs();
+    auto it = std::find_if(kv_pairs.begin(), kv_pairs.end(), [](const python::StructEntry& entry) {
+       return entry.key == "'test string'";
+    });
+    ASSERT_NE(kv_pairs.end(), it);
+    EXPECT_EQ(it->keyType.desc(), python::Type::STRING.desc());
+    EXPECT_EQ(it->valueType.desc(), python::Type::I64.desc());
+
+    it = std::find_if(kv_pairs.begin(), kv_pairs.end(), [](const python::StructEntry& entry) {
+        return entry.key == escape_to_python_str("\"hello world\"");
+    });
+    ASSERT_NE(kv_pairs.end(), it);
+    EXPECT_EQ(it->keyType.desc(), python::Type::STRING.desc());
+    EXPECT_EQ(it->valueType.desc(), python::Type::STRING.desc());
+
+    it = std::find_if(kv_pairs.begin(), kv_pairs.end(), [](const python::StructEntry& entry) {
+        return entry.key == escape_to_python_str("0");
+    });
+    ASSERT_NE(kv_pairs.end(), it);
+    EXPECT_EQ(it->keyType.desc(), python::Type::I64.desc());
+    EXPECT_EQ(it->valueType.desc(), python::Type::STRING.desc());
+
+    it = std::find_if(kv_pairs.begin(), kv_pairs.end(), [](const python::StructEntry& entry) {
+        return entry.key == escape_to_python_str("abc");
+    });
+    ASSERT_NE(kv_pairs.end(), it);
+    EXPECT_EQ(it->keyType.desc(), python::Type::STRING.desc());
+    EXPECT_TRUE(it->valueType.isStructuredDictionaryType());
+    EXPECT_EQ(it->valueType.get_struct_pairs().size(), 1);
+
+    // make sure i64 key is properly escaped
+    EXPECT_EQ(escape_to_python_str("0"), "'0'");
+
+    Py_XDECREF(d);
+}

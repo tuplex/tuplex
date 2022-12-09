@@ -2233,6 +2233,9 @@ namespace tuplex {
         llvm::Value * LLVMEnvironment::getListSize(llvm::IRBuilder<> &builder, llvm::Value *val,
                                                    const python::Type &listType) {
 
+
+            return list_length(*this, builder, val, listType);
+
             throw std::runtime_error("deprecated! replace!");
 
             // what list type do we have?

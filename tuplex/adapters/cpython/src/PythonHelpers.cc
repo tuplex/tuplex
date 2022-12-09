@@ -1571,6 +1571,8 @@ namespace python {
         return pcr;
     }
 
+    python::Type mapPythonDictToTuplexTupe(PyObject* dict_obj, bool autoUpcast, bool shrink_to_homogenous=false);
+
     // mapping type to internal types, unknown as default
     python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast, bool treatHeterogeneousListAsTuple) {
         assert(o);
@@ -1610,29 +1612,7 @@ namespace python {
         // subdivide type for this into a fixed key type/fixed arg type dict and a variable one
         // if(cls.compare("dict") == 0) {}
         if(PyDict_CheckExact(o)) {
-            int numElements = PyDict_Size(o);
-            if(numElements == 0)
-                return python::Type::EMPTYDICT; // be specific, empty dict!
-
-            std::vector<python::StructEntry> kv_pairs;
-#error "fix this so tracing works, i.e. detect proper structdict type from python dicts... -> unify then!"
-            python::Type keyType, valType;
-            PyObject *key = nullptr, *val = nullptr;
-            Py_ssize_t pos = 0; // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
-            bool types_set = false; // need extra var here b/c vals could be unknown.
-            while(PyDict_Next(o, &pos, &key, &val)) {
-                auto curKeyType = mapPythonClassToTuplexType(key, autoUpcast);
-                auto curValType = mapPythonClassToTuplexType(val, autoUpcast);
-                if(!types_set) {
-                    types_set = true;
-                    keyType = curKeyType;
-                    valType = curValType;
-                } else {
-                    if(keyType != curKeyType) return python::Type::GENERICDICT;
-                    if(valType != curValType) return python::Type::GENERICDICT;
-                }
-            }
-            return python::TypeFactory::instance().createOrGetDictionaryType(keyType, valType);
+            return mapPythonDictToTuplexTupe(o, autoUpcast, false);
         }
 
         // subdivide this into a list with identical elements and a variable typed list...
@@ -1705,6 +1685,48 @@ namespace python {
 #endif
 
         return python::Type::PYOBJECT;
+    }
+
+    python::Type mapPythonDictToTuplexTupe(PyObject* dict_obj, bool autoUpcast, bool shrink_to_homogenous) {
+        assert(PyDict_CheckExact(dict_obj));
+        int numElements = PyDict_Size(dict_obj);
+        if(numElements == 0)
+            return python::Type::EMPTYDICT; // be specific, empty dict!
+
+        std::vector<python::StructEntry> kv_pairs;
+        python::Type keyType, valType;
+        PyObject *key = nullptr, *val = nullptr;
+        Py_ssize_t pos = 0; // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
+        bool types_set = false; // need extra var here b/c vals could be unknown.
+        while(PyDict_Next(dict_obj, &pos, &key, &val)) {
+            Py_XINCREF(key);
+            auto str_key = PyString_AsString(key);
+            str_key = escape_to_python_str(str_key);
+            auto curKeyType = mapPythonClassToTuplexType(key, autoUpcast);
+            auto curValType = mapPythonClassToTuplexType(val, autoUpcast);
+
+            // append pair
+            python::StructEntry entry;
+            entry.keyType = curKeyType;
+            entry.valueType = curValType;
+            entry.key = str_key; // <-- correct?
+            kv_pairs.emplace_back(entry);
+
+            if(!types_set) {
+                types_set = true;
+                keyType = curKeyType;
+                valType = curValType;
+            } else {
+                if(keyType != curKeyType) keyType = python::Type::GENERICDICT;
+                if(valType != curValType) valType = python::Type::GENERICDICT;
+            }
+        }
+
+        // check what to return
+        if(shrink_to_homogenous)
+            return python::TypeFactory::instance().createOrGetDictionaryType(keyType, valType);
+        else
+            return python::Type::makeStructuredDictType(kv_pairs);
     }
 
     // @TODO: inc type objects??

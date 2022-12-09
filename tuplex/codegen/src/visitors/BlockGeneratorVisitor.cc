@@ -4718,9 +4718,9 @@ namespace tuplex {
                     if(callerType.isOptionType()) {
                         assert(caller.is_null);
                         
-                        // null check
+                        // null check -> None.attr() is attribute error.
                         _lfb->addException(builder, ExceptionCode::ATTRIBUTEERROR, caller.is_null);
-                        ret = _functionRegistry->createAttributeCall(*_lfb, builder, attrName, callerType, argsType,
+                        ret = _functionRegistry->createAttributeCall(*_lfb, builder, attrName, callerType.withoutOption(), argsType,
                                                                      retType, SerializableValue(caller.val, caller.size), args);
                     } else if(callerType == python::Type::NULLVALUE) {
                         _lfb->addException(builder, ExceptionCode::ATTRIBUTEERROR, _env->i1Const(true));

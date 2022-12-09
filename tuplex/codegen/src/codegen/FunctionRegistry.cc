@@ -2789,6 +2789,10 @@ namespace tuplex {
 
             auto& logger = Logger::instance().logger("codegen");
 
+            // option?
+            // -> emit AttributeError, should be handled in blockgen
+            assert(!callerType.isOptionType());
+
             // only certain dicts yet supported
             if(!callerType.isStructuredDictionaryType()) {
                 throw std::runtime_error("Only struct dict yet supported for dict.get");
@@ -2861,7 +2865,8 @@ namespace tuplex {
                             builder.SetInsertPoint(lfb.getLastBlock());
                         } else {
                             // regular processing, no early deopt failure
-                            _env.printValue(builder, key.val, "key match for key=" + pair.key);
+                            //_env.printValue(builder, key.val, "key match for key=" + pair.key);
+
                             if(pair.alwaysPresent) {
                                 // can simply load value, no further checks necessary. value type and ret type are the same
                                 assert(pair.valueType == retType);

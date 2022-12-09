@@ -334,7 +334,7 @@ namespace python {
     extern void runGC();
 
     /*!
-     * check whether Python interpreter is running in/available to this process
+     * check whether Python interpreter is running in/available to this processN
      * @return bool when is running else false
      */
     extern bool isInterpreterRunning();
@@ -343,7 +343,7 @@ namespace python {
      * get corresponding tuplex type for python object
      * @param o python object to map to Tuplex type
      * @param autoUpcast whether to upcast numeric types to a unified type when type conflicts, false by default
-     * @param treatHeterogeneousListAsTuple whether to treat list of non homoegenous types as tuple (i.e. speculate on fixed size list)
+     * @param treatHeterogeneousListAsTuple whether to treat list of non homogeneous types as a tuple (i.e. speculate on fixed size list)
      * @return internal Tuplex type corresponding to given python object.
      */
     extern python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast=false, bool treatHeterogeneousListAsTuple=true);

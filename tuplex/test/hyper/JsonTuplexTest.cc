@@ -649,7 +649,8 @@ TEST_F(JsonTuplexTest, PushEventNumberOfCommits) {
 
     std::cout<<ctx.json(ref_path, true).columns()<<std::endl;
 
-    // check both unwrap and no unwrap
+    // TODO: can add expensive string operation to produce and format a condensed commit message for the push event!
+    // => easy! I.e., sort by committer and timestamp? could use other dict functions for this??
     auto v1 = ctx.json(ref_path, true)
                  .withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
                  .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))

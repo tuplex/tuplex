@@ -46,7 +46,8 @@ namespace tuplex {
         // write to external buffer.
         bool get(uint8_t* buf, size_t buf_capacity,
                  const URI& uri, size_t range_start,
-                 size_t range_end, option<size_t> uri_size = option<size_t>::none);
+                 size_t range_end,
+                 size_t* bytes_written=nullptr);
 
         // helper for full file.
         uint8_t* get(const URI& uri) { return get(uri, 0, 0); }
@@ -82,7 +83,15 @@ namespace tuplex {
 
             CacheEntry() : buf(nullptr), range_start(0), range_end(0), timestamp(0), uri_size(0) {}
             CacheEntry(const CacheEntry& other) = delete;
-            CacheEntry(CacheEntry&& other) = default;
+            CacheEntry(CacheEntry&& other) {
+                buf = other.buf; other.buf = nullptr;
+                range_start = other.range_start;
+                range_end = other.range_end;
+
+                uri = other.uri;
+                uri_size = other.uri_size;
+                timestamp = other.timestamp;
+            }
 
             CacheEntry& operator = (CacheEntry&& other) = default;
 

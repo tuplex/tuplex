@@ -53,7 +53,13 @@ namespace tuplex {
             pruneBy(requested_size);
         } else {
             // ok, can store.
-            throw std::runtime_error("not yet implemented");
+            auto chunk = s3Read(uri, range_start, range_end);
+            {
+                std::lock_guard<std::mutex> lock(_mutex);
+                auto ptr = chunk.buf;
+                _chunks.emplace_back(std::move(chunk));
+                return ptr;
+            }
         }
 
         return nullptr;
@@ -122,7 +128,7 @@ namespace tuplex {
     }
 
     bool S3FileCache::get(uint8_t *buf, size_t buf_capacity, const URI &uri, size_t range_start, size_t range_end,
-                          option<size_t> uri_size) {
+                          size_t* bytes_written) {
         auto& logger = Logger::instance().logger("s3cache");
         if(!buf) {
             logger.debug("invalid buffer");
@@ -153,7 +159,12 @@ namespace tuplex {
             assert(offset <= it->size());
             assert(range_end >= range_start);
             assert(range_end - range_start <= buf_capacity);
-            memcpy(buf, it->buf + offset, std::min(it->size() - offset, range_end - range_start));
+            size_t max_size_to_copy = std::min(it->size() - offset, range_end - range_start);
+            max_size_to_copy = std::min(max_size_to_copy, buf_capacity);
+            memcpy(buf, it->buf + offset, max_size_to_copy);
+            if(bytes_written)
+                *bytes_written = max_size_to_copy;
+            return true;
         }
 
         // no chunk found, need to fetch and store if there's space - else kick out as much as possible.
@@ -161,6 +172,16 @@ namespace tuplex {
         // but for now, simply fetch the concrete block demanded.
 
         auto entry = s3Read(uri, range_start, range_end);
+
+        if(!entry.buf)
+            return false;
+
+        // copy directly & output
+        size_t max_size_to_copy = std::min(entry.size(), range_end - range_start);
+        max_size_to_copy = std::min(max_size_to_copy, buf_capacity);
+        memcpy(buf, entry.buf, max_size_to_copy);
+        if(bytes_written)
+            *bytes_written = max_size_to_copy;
 
         return true;
     }

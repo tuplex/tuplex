@@ -4,6 +4,8 @@
 
 #include "FileSystemUtils.h"
 #include "S3File.h"
+#include <ContextOptions.h>
+#include <Timer.h>
 
 #ifdef BUILD_WITH_AWS
 
@@ -41,9 +43,22 @@ protected:
 
 TEST_F(S3Tests, FileCache) {
     using namespace tuplex;
+
+    {
+        // init AWS SDK to get access to S3 filesystem
+        auto& logger = Logger::instance().logger("aws");
+        auto aws_credentials = AWSCredentials::get();
+        auto options = ContextOptions::defaults();
+        Timer timer;
+        bool aws_init_rc = initAWS(aws_credentials, options.AWS_NETWORK_SETTINGS(), options.AWS_REQUESTER_PAY());
+        logger.debug("initialized AWS SDK in " + std::to_string(timer.time()) + "s");
+    }
+
     auto& cache = S3FileCache::instance();
     size_t max_cache_size = 2 * 1024 * 1024; // 2MB
     cache.reset(max_cache_size);
+
+    cache.setFS(*VirtualFileSystem::getS3FileSystemImpl());
 
     // get data from S3 uri (this caches it as well)
     std::string test_uri = "s3://tuplex-public/data/github_daily/2013-10-15.json";

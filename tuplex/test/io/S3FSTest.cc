@@ -64,13 +64,49 @@ TEST_F(S3Tests, FileCache) {
     std::string test_uri = "s3://tuplex-public/data/github_daily/2013-10-15.json";
 
     // put sync buffer in (i.e. prefill buffer!)
-    cache.put(test_uri, 0, 1024 * 1024); // 1MB cache
+    // fill 5x 1MB into buffer
+    Timer timer;
+    size_t chunk_size = 1024 * 1024;
+    for(unsigned i = 0; i < 5; ++i)
+        cache.put(test_uri, i * chunk_size, (i + 1) * chunk_size); // 1MB cache
+    std::cout<<"sync fill of cache took "<<timer.time()<<"s"<<std::endl;
+
+    // now same, async fill
+    cache.reset();
+    timer.reset();
+    std::vector<std::future<size_t>> futures;
+    for(unsigned i = 0; i < 5; ++i)
+        futures.emplace_back(cache.putAsync(test_uri, i * chunk_size, (i + 1) * chunk_size)); // 1MB cache
+    // wait for futures
+    for(auto& f : futures)
+        f.wait();
+    std::cout<<"async fill of full cache took "<<timer.time()<<"s"<<std::endl;
+
+    size_t uri_size = cache.file_size(test_uri);
+    std::cout<<"uri size: "<<uri_size<<" bytes"<<std::endl;
 
     // read a buffer
     size_t buf_capacity = 512 * 1024; // buf smaller than get.
     auto buf = new uint8_t[buf_capacity];
     cache.get(buf, buf_capacity, test_uri, 0, 1024 * 1024);
 
+    delete [] buf;
+
+    // now an actual usage check: Use s3cache to quickly issue a request for sampling and other request for storing full data
+    cache.reset(1024 * 1024 * 1024); // 1G cache
+    futures.clear();
+    timer.reset();
+    std::cout<<"starting fetching from S3:"<<std::endl;
+    futures.emplace_back(cache.putAsync(test_uri, 0, chunk_size)); // 1MB cache
+    futures.emplace_back(cache.putAsync(test_uri, chunk_size, uri_size)); // rest of the file (get as much as possible!!!)
+    // wait till the first future (for sampling is done)
+    futures.front().wait();
+    // now call get on the chunks
+    buf = new uint8_t[chunk_size];
+    cache.get(buf, chunk_size, test_uri, 0, chunk_size);
+    std::cout<<"got first chunk in "<<timer.time()<<std::endl;
+    futures.back().wait();
+    std::cout<<"all futures waited for in "<<timer.time()<<std::endl;
     delete [] buf;
 }
 

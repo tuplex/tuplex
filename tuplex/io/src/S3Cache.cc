@@ -5,6 +5,7 @@
 #include <S3Cache.h>
 #include <algorithm>
 #include <future>
+#include <aws/s3/model/HeadObjectRequest.h>
 #include "Logger.h"
 #include "Timer.h"
 #include "S3File.h"
@@ -14,7 +15,7 @@ namespace tuplex {
 
         // delete all cache entries (+ abort any existing runs?)
         std::lock_guard<std::mutex> lock(_mutex);
-
+        _chunks.clear();
         _maxSize = maxSize;
         _cacheSize = 0;
     }
@@ -46,6 +47,8 @@ namespace tuplex {
         // first though, check size of array
         auto requested_size = range_end - range_start;
         if(requested_size > _maxSize) {
+            // prune to available size
+
             // ignore... to large to store.
             return nullptr;
         } else if(requested_size + cacheSize() > _maxSize) {
@@ -65,11 +68,20 @@ namespace tuplex {
         return nullptr;
     }
 
-    std::future<uint8_t *>
-    S3FileCache::putAsync(const URI &uri, size_t range_start, size_t range_end, option<size_t> uri_size) {
-        auto f = std::future<uint8_t*>();
-        return f;
+    std::future<size_t> S3FileCache::putAsync(const URI &uri, size_t range_start, size_t range_end) {
+        // future from a promise
+        return std::async( [this, uri, range_start, range_end] {
+            size_t bytes_written = 0;
+            put(uri, range_start, range_end);
+            return bytes_written;
+        });
     }
+
+//    std::future<uint8_t *>
+//    S3FileCache::putAsync(const URI &uri, size_t range_start, size_t range_end, option<size_t> uri_size) {
+//        auto f = std::future<uint8_t*>();
+//        return f;
+//    }
 
     // from https://codereview.stackexchange.com/questions/206686/removing-by-indices-several-elements-from-a-vector
     template <typename Iter, typename Index_iter>
@@ -125,6 +137,50 @@ namespace tuplex {
                               indices_to_remove.begin(), indices_to_remove.end());
 
         return true;
+    }
+
+    size_t S3FileCache::file_size(const URI& uri) {
+        // is there an entry in the cache?
+        {
+            std::lock_guard<std::mutex> lock(_mutex);
+            auto it = std::find_if(_chunks.begin(), _chunks.end(), [uri](const CacheEntry& entry) {
+               return entry.uri == uri;
+            });
+            if(it != _chunks.end()) {
+                return it->uri_size;
+            }
+        }
+
+        auto& logger = Logger::instance().logger("s3fs");
+
+        if(!_s3fs)
+            throw std::runtime_error("Trying to use S3Cache without an initialized S3 Filesystem");
+        // not found? issue request directly.
+        // perform request
+        Aws::S3::Model::HeadObjectRequest request;
+        request.WithBucket(uri.s3Bucket().c_str());
+        request.WithKey(uri.s3Key().c_str());
+        auto head_outcome = _s3fs->client().HeadObject(request);
+        if (head_outcome.IsSuccess()) {
+            auto& result = head_outcome.GetResult();
+            return result.GetContentLength();
+//            ss<<"{";
+//            ss<<"\"LastModified\":"<<chronoToISO8601(result.GetLastModified().UnderlyingTimestamp())<<","
+//              <<"\"ContentLength\":"<<result.GetContentLength()<<","
+//              <<"\"VersionId\":"<<result.GetVersionId().c_str()<<","
+//              <<"\"ContentType\":"<<result.GetContentType().c_str();
+//            ss<<"}";
+
+        } else {
+           std::stringstream err;
+            err<<"HeadObject Request failed with HTTP code "
+                   <<static_cast<int>(head_outcome.GetError().GetResponseCode())
+                   <<", details: "
+                   <<head_outcome.GetError().GetMessage().c_str();
+            logger.error(err.str());
+            throw std::runtime_error(err.str());
+        }
+        return 0;
     }
 
     bool S3FileCache::get(uint8_t *buf, size_t buf_capacity, const URI &uri, size_t range_start, size_t range_end,

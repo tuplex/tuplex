@@ -58,6 +58,11 @@ namespace tuplex {
 
         bool copySingleFileWithinS3(const URI& s3_src, const URI& s3_dest);
 
+        void activateReadCache(size_t max_cache_size=128 * 1024 * 1024);
+        void disableReadCache() {
+            _useS3ReadCache = false;
+        }
+
     private:
         std::shared_ptr<Aws::S3::S3Client> _client;
         Aws::S3::Model::RequestPayer _requestPayer;
@@ -80,6 +85,8 @@ namespace tuplex {
         std::shared_ptr<Aws::Transfer::TransferManager> _transfer_manager;
 
         void initTransferThreadPool(size_t numThreads = 4);
+
+        bool _useS3ReadCache;
 
     protected:
         VirtualFileSystemStatus create_dir(const URI& uri) override;

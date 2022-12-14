@@ -12,6 +12,7 @@
 #include <S3FileSystemImpl.h>
 #include <Logger.h>
 #include <S3File.h>
+#include <S3Cache.h>
 
 #include <aws/core/platform/Environment.h>
 #include <aws/core/client/ClientConfiguration.h>
@@ -269,6 +270,12 @@ namespace tuplex {
 
     VirtualFileSystemStatus S3FileSystemImpl::file_size(const tuplex::URI &uri, uint64_t &size) {
 
+        // use cache?
+        if(_useS3ReadCache) {
+            size = S3FileCache::instance().file_size(uri);
+            return VirtualFileSystemStatus::VFS_OK;
+        }
+
         // quick way to retrieve file size is to make a tiny parts request to the uri
         // range header
 
@@ -483,7 +490,7 @@ namespace tuplex {
 
     S3FileSystemImpl::S3FileSystemImpl(const std::string& access_key, const std::string& secret_key,
                                        const std::string& session_token, const std::string& region,
-                                       const NetworkSettings& ns, bool lambdaMode, bool requesterPay) {
+                                       const NetworkSettings& ns, bool lambdaMode, bool requesterPay) : _useS3ReadCache(false) {
         // Note: If current region is different than other region, use S3 transfer acceleration
         // cf. Aws::S3::Model::GetBucketAccelerateConfigurationRequest
         // and https://s3-accelerate-speedtest.s3-accelerate.amazonaws.com/en/accelerate-speed-comparsion.html
@@ -568,6 +575,12 @@ namespace tuplex {
 //        }
     }
 
+
+    void S3FileSystemImpl::activateReadCache(size_t max_cache_size) {
+        _useS3ReadCache = true;
+        S3FileCache::instance().reset(max_cache_size);
+        S3FileCache::instance().setFS(*this, _requestPayer == Aws::S3::Model::RequestPayer::requester);
+    }
 
 
 // S3 helper functions

@@ -10,6 +10,7 @@
 
 #ifdef BUILD_WITH_AWS
 #include <S3File.h>
+#include <S3Cache.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/PutObjectRequest.h>
 #include <boost/interprocess/streams/bufferstream.hpp>
@@ -378,6 +379,33 @@ namespace tuplex {
     // fast tiny read (do not advance internal pointers)
     VirtualFileSystemStatus S3File::readOnly(void *buffer, uint64_t nbytes, size_t *bytesRead) const {
 
+        // use cache?
+        if(_s3fs._useS3ReadCache) {
+            auto& cache = S3FileCache::instance();
+            // check if file size has been queried/filled.
+            // --> required to clamp request to avoid invalid range!
+            size_t fileSize = _fileSize;
+            if(!_buffer && fileSize == 0) {
+                // ==> fill in file size
+                fileSize = cache.file_size(_uri);
+            }
+
+            // clamp nbytes
+            if(_filePosition + nbytes > fileSize) {
+                nbytes = fileSize - _filePosition;
+            }
+
+            // simply issue here one direct request
+            size_t retrievedBytes = 0;
+            auto range_start = _filePosition;
+            auto range_end = _filePosition + nbytes - 1;
+
+            assert(range_end - range_start <= nbytes);
+            cache.get(reinterpret_cast<uint8_t*>(buffer), nbytes, _uri, range_start, range_end, bytesRead);
+            return VirtualFileSystemStatus::VFS_OK;
+        }
+
+        // regular requesting...
         // short cut for empty read
         if(nbytes == 0) {
             if(bytesRead)
@@ -542,6 +570,35 @@ namespace tuplex {
             if(_bufferedAbsoluteFilePosition >= _fileSize)
                 return 0;
         }
+
+        // use S3 cache? if so fill buffer from cache.
+        if(_s3fs._useS3ReadCache) {
+            auto& cache = S3FileCache::instance();
+            // check if file size has been queried/filled.
+            // --> required to clamp request to avoid invalid range!
+            size_t fileSize = _fileSize;
+            // make sure file size is not 0
+            if(_fileSize == 0 && !_buffer) {
+                _fileSize = cache.file_size(_uri);
+            }
+
+            size_t range_end = std::min(_bufferedAbsoluteFilePosition + bytesToRequest - 1, _fileSize - 1);
+            size_t range_start = _bufferedAbsoluteFilePosition;
+
+
+            // simply issue here one direct request
+            retrievedBytes = range_end - range_start;
+            // copy contents & move cursors
+            assert(_bufferPosition + retrievedBytes <= _bufferSize);
+            cache.get(reinterpret_cast<uint8_t *>((char *) (_buffer + _bufferPosition)), retrievedBytes, _uri, range_start, range_end, &retrievedBytes);
+            _bufferLength += retrievedBytes;
+            _bufferedAbsoluteFilePosition += retrievedBytes;
+
+            // in bounds check
+            assert(_bufferPosition + _bufferLength <= _bufferSize);
+            return retrievedBytes;
+        }
+
 
         // range header
 

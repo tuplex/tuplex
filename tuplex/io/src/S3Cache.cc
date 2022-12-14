@@ -207,7 +207,7 @@ namespace tuplex {
                 ret[index] = ret[i];
             }
         }
-        return std::vector<std::tuple<URI, size_t, size_t>>(ret.begin(), ret.begin() + index);
+        return std::vector<std::tuple<URI, size_t, size_t>>(ret.begin(), ret.begin() + index + 1);
     }
 
     // complement of merged ranges!

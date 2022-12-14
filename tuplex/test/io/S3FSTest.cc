@@ -48,6 +48,13 @@ TEST_F(S3Tests, RangesToComplete) {
     // code to check which ranges are required to complete a request
     URI uri("s3://tuplex-public/data/github_daily/2013-10-15.json");
     std::vector<std::tuple<URI, size_t, size_t>> existing_ranges;
+    std::vector<std::tuple<URI, size_t, size_t>> res;
+
+    // check 0: no existing range, i.e. full range required
+    res = required_requests(uri, 100, 500, existing_ranges);
+    ASSERT_EQ(res.size(), 1);
+    EXPECT_EQ(std::get<1>(res.front()), 100);
+    EXPECT_EQ(std::get<2>(res.front()), 500);
 
     // check 1: full range
     existing_ranges.clear();
@@ -56,11 +63,47 @@ TEST_F(S3Tests, RangesToComplete) {
     existing_ranges.emplace_back(make_tuple(uri, 350, 600)); // irrelevant range
 
     // request range 200, 400. -> contained with 100, 500. so no additional required.
-    auto res = required_requests(uri, 100, 500, existing_ranges);
+    res = required_requests(uri, 100, 500, existing_ranges);
     EXPECT_EQ(res.size(), 0);
 
-    // check 2a: overlapping range (
+    // check 2a: overlapping range -> missing range at end
+    existing_ranges.clear();
+    existing_ranges.emplace_back(make_tuple(uri, 0, 350));
+    res = required_requests(uri, 100, 500, existing_ranges);
+    ASSERT_EQ(res.size(), 1);
+    EXPECT_EQ(std::get<1>(res.front()), 350);
+    EXPECT_EQ(std::get<2>(res.front()), 500);
 
+    // check 2b: overlapping range -> missing range at start
+    existing_ranges.clear();
+    existing_ranges.emplace_back(make_tuple(uri, 100, 600));
+    res = required_requests(uri, 0, 500, existing_ranges);
+    ASSERT_EQ(res.size(), 1);
+    EXPECT_EQ(std::get<1>(res.front()), 0);
+    EXPECT_EQ(std::get<2>(res.front()), 100);
+
+    // check 3: missing ranges (no overlapping segments)
+    // 0 - 1000 requested. but only [200, 400], [500, 600] and [950, 1200] there
+    existing_ranges.clear();
+    existing_ranges.emplace_back(make_tuple(uri, 950, 1200));
+    existing_ranges.emplace_back(make_tuple(uri, 200, 400));
+    existing_ranges.emplace_back(make_tuple(uri, 500, 600));
+    // required requests are: [0, 200], [400, 500], [600, 950]
+    res = required_requests(uri, 0, 1000, existing_ranges);
+    ASSERT_EQ(res.size(), 3);
+    // sort res after start
+    std::sort(res.begin(), res.end(), [](const tuple<URI, size_t, size_t>& lhs,
+                                         const tuple<URI, size_t, size_t>& rhs) {
+        auto lhs_start = std::get<1>(lhs);
+        auto rhs_start = std::get<1>(rhs);
+        return lhs_start < rhs_start;
+    });
+    EXPECT_EQ(std::get<1>(res[0]), 0);
+    EXPECT_EQ(std::get<2>(res[0]), 200);
+    EXPECT_EQ(std::get<1>(res[1]), 400);
+    EXPECT_EQ(std::get<2>(res[1]), 500);
+    EXPECT_EQ(std::get<1>(res[2]), 600);
+    EXPECT_EQ(std::get<2>(res[2]), 950);
 }
 
 TEST_F(S3Tests, FileCache) {

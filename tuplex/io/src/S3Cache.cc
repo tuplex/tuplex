@@ -230,6 +230,12 @@ namespace tuplex {
     std::vector<std::tuple<URI, size_t, size_t>> required_requests(const URI& uri, size_t range_start, size_t range_end, const std::vector<std::tuple<URI, size_t, size_t>>& existing_ranges) {
         using namespace std;
 
+        if(existing_ranges.empty()) {
+            // full range required
+            std::vector<std::tuple<URI, size_t, size_t>> ranges;
+            ranges.emplace_back(make_tuple(uri, range_start, range_end));
+            return ranges;
+        }
 
         // merge ranges and clamp
         std::vector<std::tuple<URI, size_t, size_t>> clamped_ranges;
@@ -238,8 +244,9 @@ namespace tuplex {
             auto s_start = std::get<1>(range);
             auto s_end = std::get<2>(range);
 
-            if((s_start <= range_start && range_start <= s_end) ||
-                    (s_start <= range_end && range_end <= s_end)) {
+            if((s_start <= range_start && range_start <= s_end) || // overlap at range start?
+                    (s_start <= range_end && range_end <= s_end) || // overlap at range end?
+                    (range_start <= s_start && s_end <= range_end)) { // segment within range?
                 // add segment & clamp
                 clamped_ranges.emplace_back(make_tuple(std::get<0>(range), max(s_start, range_start), min(s_end, range_end)));
             }
@@ -247,7 +254,24 @@ namespace tuplex {
 
         // now, merge segments together & compute complement
         auto ranges = merge_ranges(clamped_ranges);
-        return complement_of_non_overlapping_ranges(ranges);
+
+        if(ranges.empty()) {
+            ranges.emplace_back(make_tuple(uri, range_start, range_end));
+            return ranges;
+        }
+
+        assert(!ranges.empty());
+        auto clamp_start = std::get<1>(ranges.front());
+        auto clamp_end = std::get<2>(ranges.back());
+        ranges = complement_of_non_overlapping_ranges(ranges);
+
+        // is clamp start before range_start? if not, add
+        if(clamp_start > range_start)
+            ranges.emplace_back(make_tuple(uri, range_start, clamp_start));
+        if(clamp_end < range_end)
+            ranges.emplace_back(make_tuple(uri, clamp_end, range_end));
+
+        return ranges;
 
 //        // now check whether there's overlap and what is required else!
 //        // i.e., sort by start and range size!

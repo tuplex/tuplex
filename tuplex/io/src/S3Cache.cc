@@ -247,7 +247,7 @@ namespace tuplex {
 
         // now, merge segments together & compute complement
         auto ranges = merge_ranges(clamped_ranges);
-        return complement_of_non_overlapping_ranges(clamped_ranges);
+        return complement_of_non_overlapping_ranges(ranges);
 
 //        // now check whether there's overlap and what is required else!
 //        // i.e., sort by start and range size!

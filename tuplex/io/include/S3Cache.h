@@ -111,7 +111,14 @@ namespace tuplex {
         Aws::S3::Model::RequestPayer _requestPayer;
         CacheEntry s3Read(const URI& uri, size_t range_start, size_t range_end);
 
+        /*!
+         * computes which requests would need to be issued to make sure the range requested is covered.
+         */
+        std::vector<std::tuple<URI, size_t, size_t>> requiredRequests(const URI& uri, size_t range_start, size_t range_end);
+
     };
+
+    extern std::vector<std::tuple<URI, size_t, size_t>> required_requests(const URI& uri, size_t range_start, size_t range_end, const std::vector<std::tuple<URI, size_t, size_t>>& existing_ranges);
 }
 
 

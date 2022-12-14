@@ -41,6 +41,28 @@ protected:
     }
 };
 
+TEST_F(S3Tests, RangesToComplete) {
+    using namespace tuplex;
+    using namespace std;
+
+    // code to check which ranges are required to complete a request
+    URI uri("s3://tuplex-public/data/github_daily/2013-10-15.json");
+    std::vector<std::tuple<URI, size_t, size_t>> existing_ranges;
+
+    // check 1: full range
+    existing_ranges.clear();
+    existing_ranges.emplace_back(make_tuple(uri, 100, 500));
+    existing_ranges.emplace_back(make_tuple(uri, 0, 10)); // irrelevant range
+    existing_ranges.emplace_back(make_tuple(uri, 350, 600)); // irrelevant range
+
+    // request range 200, 400. -> contained with 100, 500. so no additional required.
+    auto res = required_requests(uri, 100, 500, existing_ranges);
+    EXPECT_EQ(res.size(), 0);
+
+    // check 2a: overlapping range (
+
+}
+
 TEST_F(S3Tests, FileCache) {
     using namespace tuplex;
 

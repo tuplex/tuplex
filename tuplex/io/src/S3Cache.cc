@@ -183,6 +183,140 @@ namespace tuplex {
         return 0;
     }
 
+    std::vector<std::tuple<URI, size_t, size_t>> merge_ranges(const std::vector<std::tuple<URI, size_t, size_t>>& ranges) {
+        using namespace std;
+
+        // merge intervals
+        // https://www.geeksforgeeks.org/merging-intervals/
+        std::vector<std::tuple<URI, size_t, size_t>> ret = ranges;
+        std::sort(ret.begin(), ret.end(), [](const tuple<URI, size_t, size_t>& lhs,
+                                             const tuple<URI, size_t, size_t>& rhs) {
+            auto lhs_start = std::get<1>(lhs);
+            auto rhs_start = std::get<1>(rhs);
+            return lhs_start < rhs_start;
+        });
+        unsigned index = 0;
+        for(unsigned i = 1; i < ret.size(); ++i) {
+            // ret[index].e >= ret[index].s
+            if(std::get<2>(ret[index]) >= std::get<1>(ret[i])) {
+                auto t = ret[index];
+                // merge previous and current intervals
+                ret[index] = make_tuple(get<0>(t), get<1>(t), max(get<2>(t), get<2>(ret[i])));
+            } else {
+                index++;
+                ret[index] = ret[i];
+            }
+        }
+        return std::vector<std::tuple<URI, size_t, size_t>>(ret.begin(), ret.begin() + index);
+    }
+
+    // complement of merged ranges!
+    std::vector<std::tuple<URI, size_t, size_t>> complement_of_non_overlapping_ranges(const std::vector<std::tuple<URI, size_t, size_t>>& ranges) {
+        std::vector<std::tuple<URI, size_t, size_t>> complement_ranges;
+        if(ranges.size() <= 1)
+            return {};
+        for(unsigned i = 0; i < ranges.size() - 1; ++i) {
+            // current range covers a good amount, create complement to next range
+            auto s_start = std::get<1>(ranges[i]);
+            auto s_end = std::get<2>(ranges[i]);
+            auto snext_start = std::get<1>(ranges[i+1]);
+            auto snext_end = std::get<2>(ranges[i+1]);
+            // could do +/- 1, but this here is def. correct.
+            complement_ranges.push_back(std::make_tuple(std::get<0>(ranges[i]), s_end , snext_start));
+        }
+        return complement_ranges;
+    }
+
+    std::vector<std::tuple<URI, size_t, size_t>> required_requests(const URI& uri, size_t range_start, size_t range_end, const std::vector<std::tuple<URI, size_t, size_t>>& existing_ranges) {
+        using namespace std;
+
+
+        // merge ranges and clamp
+        std::vector<std::tuple<URI, size_t, size_t>> clamped_ranges;
+        for(auto range : existing_ranges) {
+            // does either range_start or range_end fall within segment?
+            auto s_start = std::get<1>(range);
+            auto s_end = std::get<2>(range);
+
+            if((s_start <= range_start && range_start <= s_end) ||
+                    (s_start <= range_end && range_end <= s_end)) {
+                // add segment & clamp
+                clamped_ranges.emplace_back(make_tuple(std::get<0>(range), max(s_start, range_start), min(s_end, range_end)));
+            }
+        }
+
+        // now, merge segments together & compute complement
+        auto ranges = merge_ranges(clamped_ranges);
+        return complement_of_non_overlapping_ranges(clamped_ranges);
+
+//        // now check whether there's overlap and what is required else!
+//        // i.e., sort by start and range size!
+//        std::sort(existing_ranges.begin(), existing_ranges.end(), [](const tuple<URI, size_t, size_t>& lhs,
+//                                                                     const tuple<URI, size_t, size_t>& rhs) {
+//            auto lhs_size = std::get<2>(lhs) - std::get<1>(lhs);
+//            auto rhs_size = std::get<2>(rhs) - std::get<1>(rhs);
+//            auto lhs_start = std::get<1>(lhs);
+//            auto rhs_start = std::get<1>(rhs);
+//            return lhs_start < rhs_start && lhs_size > rhs_size;
+//        });
+//
+//        // now compute cover, i.e. which requests are needed?
+//        size_t pos = range_start;
+//
+//        std::vector<tuple<URI, size_t, size_t>> requests_required;
+//        for(const auto& t : existing_ranges) {
+//            auto s_start = std::get<1>(t);
+//            auto s_end = std::get<2>(t);
+//            assert(s_start <= s_end);
+//
+//            auto first_segment = pos == range_start;
+//
+//            // before? skip.
+//            if(s_start <= pos && s_end <= pos) {
+//                continue;
+//            }
+//            // segment after?
+//            if(range_end < s_start)
+//                continue;
+//
+//            // is pos within?
+//            if(s_start <= pos && s_end <= pos) {
+//                // ok, segment can be used to cover range [pos, min(s_end, range_end)]
+//                pos += std::min(s_end, range_end) - pos;
+//                continue;
+//            }
+//
+//            // is segment after pos?
+//            if(pos < s_start) {
+//                // add request and consume segment
+//
+//            }
+//        }
+//
+//        // is pos == range_end? ok, if not add segment
+//        if(pos != range_end) {
+//            assert(pos < range_end);
+//            requests_required.emplace_back(make_tuple(uri, pos, range_end));
+//        }
+//
+//        return requests_required; // no requests needed, space is completely covered!
+    }
+
+    std::vector<std::tuple<URI, size_t, size_t>> S3FileCache::requiredRequests(const URI &uri, size_t range_start, size_t range_end) {
+        using namespace std;
+        vector<tuple<URI, size_t, size_t>> existing_ranges;
+        {
+            std::lock_guard<std::mutex> lock(_mutex);
+            for(const auto& chunk : _chunks) {
+                if(chunk.uri == uri) {
+                    existing_ranges.emplace_back(make_tuple(chunk.uri, chunk.range_start, chunk.range_end));
+                }
+            }
+        }
+
+       return required_requests(uri, range_start, range_end, existing_ranges);
+    }
+
     bool S3FileCache::get(uint8_t *buf, size_t buf_capacity, const URI &uri, size_t range_start, size_t range_end,
                           size_t* bytes_written) {
         auto& logger = Logger::instance().logger("s3cache");

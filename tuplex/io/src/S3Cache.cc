@@ -385,6 +385,15 @@ namespace tuplex {
                                                  const std::tuple<URI, size_t, size_t, uint8_t*>& rhs) {
                 auto lhs_start = std::get<1>(lhs);
                 auto rhs_start = std::get<1>(rhs);
+
+                auto lhs_end = std::get<2>(lhs);
+                auto rhs_end = std::get<2>(rhs);
+
+                auto lhs_size = lhs_end - lhs_start;
+                auto rhs_size = rhs_end - rhs_start;
+                // sort after start + inverted size (prefer larger chunks! -> less copy)
+                if(lhs_start == rhs_start)
+                    return lhs_size >= rhs_size;
                 return lhs_start < rhs_start;
             });
 

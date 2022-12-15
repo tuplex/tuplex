@@ -164,8 +164,8 @@ TEST_F(S3Tests, PreCaching) {
     cache.setFS(*VirtualFileSystem::getS3FileSystemImpl());
 
     // get data from S3 uri (this caches it as well)
-//    auto test_uri = URI("s3://tuplex-public/data/github_daily/2013-10-15.json");
-    auto test_uri = URI("s3://tuplex-public/data/github_daily_sample/2013-10-15.json.sample");
+    auto test_uri = URI("s3://tuplex-public/data/github_daily/2013-10-15.json");
+    //auto test_uri = URI("s3://tuplex-public/data/github_daily_sample/2013-10-15.json.sample");
 
     // first, get reference buffer (this may take a while)
     Timer timer;
@@ -215,10 +215,13 @@ TEST_F(S3Tests, PreCaching) {
     cache.get(test_buf, uri_size, test_uri, 20, 200, &bytes_read); // get 180 bytes
 
     // direct cache test
+    timer.reset();
     cache.get(test_buf, uri_size, test_uri, 0, uri_size, &bytes_read);
+    cout<<"Reading from cache took: "<<timer.time()<<"s."<<endl;
     EXPECT_EQ(bytes_read, uri_size);
+    timer.reset();
     auto ret = memcmp(ref_buf, test_buf, uri_size);
-    cout<<"memcmp result is: "<<ret<<endl;
+    cout<<"memcmp result is: "<<ret<<" (took "<<timer.time()<<"s to compare)"<<endl;
     EXPECT_EQ(ret, 0);
 
 

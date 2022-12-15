@@ -359,45 +359,151 @@ namespace tuplex {
         if(requested_size > buf_capacity)
             range_end = range_start + buf_capacity;
 
-        // is buf fully OR partially contained within cache?
-        // -> then short cut. Else, fully read buf.
-        std::lock_guard<std::mutex> lock(_mutex);
-        auto it = std::find_if(_chunks.begin(), _chunks.end(), [target_uri, range_start, range_end](const CacheEntry& chunk) {
-            bool in_range = chunk.range_start <= range_start && range_end <= chunk.range_end;
-            return chunk.uri == target_uri && in_range && chunk.buf;
-        });
+        // are any additional requests required for this operation?
+        size_t pos = range_start;
+        std::vector<std::tuple<URI, size_t, size_t>> requests_required;
+        {
+            std::lock_guard<std::mutex> lock(_mutex);
+            std::vector<std::tuple<URI, size_t, size_t>> existing_ranges;
+            std::vector<std::tuple<URI, size_t, size_t, uint8_t*>> existing_chunks;
+            for(auto& chunk : _chunks) {
+                // does either range_start or range_end fall within segment?
+                auto s_start = chunk.range_start;
+                auto s_end = chunk.range_end;
 
-        if(it != _chunks.end()) {
-            // contained, memcpy buffer content
-            auto offset = range_start - it->range_start;
-            assert(offset <= it->size());
-            assert(range_end >= range_start);
-            assert(range_end - range_start <= buf_capacity);
-            size_t max_size_to_copy = std::min(it->size() - offset, range_end - range_start);
-            max_size_to_copy = std::min(max_size_to_copy, buf_capacity);
-            memcpy(buf, it->buf + offset, max_size_to_copy);
-            if(bytes_written)
-                *bytes_written = max_size_to_copy;
-            return true;
+                if(chunk.buf && chunk.uri == uri && ((s_start <= range_start && range_start <= s_end) || // overlap at range start?
+                                        (s_start <= range_end && range_end <= s_end) || // overlap at range end?
+                                        (range_start <= s_start && s_end <= range_end))) { // segment within range?
+                    existing_ranges.emplace_back(std::make_tuple(chunk.uri, chunk.range_start, chunk.range_end));
+                    existing_chunks.emplace_back(std::make_tuple(chunk.uri, chunk.range_start, chunk.range_end, chunk.buf));
+                }
+            }
+            requests_required = required_requests(target_uri, range_start, range_end, existing_ranges);
+
+            // copy over any existing ranges that match.
+            std::sort(existing_chunks.begin(), existing_chunks.end(), [](const std::tuple<URI, size_t, size_t, uint8_t*>& lhs,
+                                                 const std::tuple<URI, size_t, size_t, uint8_t*>& rhs) {
+                auto lhs_start = std::get<1>(lhs);
+                auto rhs_start = std::get<1>(rhs);
+                return lhs_start < rhs_start;
+            });
+
+            // copy parts into buffer from cache
+            for(auto chunk : existing_chunks) {
+
+                // what type of chunk is it?
+                auto chunk_start = std::get<1>(chunk);
+                auto chunk_end = std::get<2>(chunk);
+                auto chunk_buf = std::get<3>(chunk);
+
+                auto chunk_size = chunk_end - chunk_start;
+                std::cout<<"pos="<<pos<<" found chunk: "<<chunk_start<<" - "<<chunk_end<<std::endl;
+
+                // already further ahead with write?
+                // skip!
+                if(pos > chunk_end)
+                    continue;
+
+                // overlap with range_start?
+                if(chunk_start < pos) {
+                    assert(pos <= chunk_end); // must be true
+
+                    // within, clamp and copy over!
+                    auto buf_offset = pos - range_start;
+                    auto chunk_offset = pos - chunk_start;
+                    size_t buf_capacity_remaining = buf_offset < buf_capacity ? buf_capacity - buf_offset : 0;
+                    size_t bytes_to_copy = std::min(buf_capacity_remaining, std::min(chunk_end - pos, range_end - pos));
+                    assert(bytes_to_copy <= chunk_size);
+                    if(0 != bytes_to_copy)
+                        memcpy(buf + buf_offset, chunk_buf + chunk_offset, bytes_to_copy);
+                    pos += bytes_to_copy;
+                } else if(pos <= chunk_start) {
+                    // some bytes are missing, copy over current chunk and move pos
+                    auto buf_offset = chunk_start - range_start;
+                    size_t buf_capacity_remaining = buf_offset < buf_capacity ? buf_capacity - buf_offset : 0;
+                    size_t bytes_to_copy = std::min(buf_capacity_remaining, std::min(chunk_end - chunk_start, std::max(range_end, chunk_end) - chunk_start));
+                    assert(bytes_to_copy <= chunk_size);
+                    if(0 != bytes_to_copy)
+                        memcpy(buf + buf_offset, chunk_buf, bytes_to_copy);
+                    pos = chunk_start + bytes_to_copy; // skip missing bytes, they're going to be filled below.
+                }
+            }
+
+            // no additional requests required? copy over whatever exists to buffer.
+            if(requests_required.empty()) {
+                if(bytes_written)
+                    *bytes_written = pos - range_start;
+                return true;
+            }
         }
 
-        // no chunk found, need to fetch and store if there's space - else kick out as much as possible.
-        // could optimize with partial fetch etc.
-        // but for now, simply fetch the concrete block demanded.
+        // additional requests required? => perform them and copy contents to output buffer!
+        assert(!requests_required.empty());
+        size_t cur_range_end = pos;
+        for(auto& r : requests_required) {
+            // clamp
+            auto r_start = std::max(range_start, std::get<1>(r));
+            auto r_end = std::min(range_end, std::get<2>(r));
+            auto r_uri = std::get<0>(r);
 
-        auto entry = s3Read(uri, range_start, range_end);
+            // fetch
+            auto chunk = s3Read(r_uri, r_start, r_end);
 
-        if(!entry.buf)
-            return false;
+            // copy over to buf
+            std::cout<<"got chunk: "<<chunk.range_start<<" - "<<chunk.range_end<<std::endl;
+            auto buf_offset = chunk.range_start - range_start;
+            size_t buf_capacity_remaining = buf_offset < buf_capacity ? buf_capacity - buf_offset : 0;
+            size_t bytes_to_copy = std::min(buf_capacity_remaining, std::min(chunk.range_end - chunk.range_start, std::max(range_end, chunk.range_end) - chunk.range_start));
+            assert(bytes_to_copy <= chunk.size());
+            if(0 != bytes_to_copy)
+                memcpy(buf + buf_offset, chunk.buf, bytes_to_copy);
+            pos = chunk.range_start + bytes_to_copy;
+            cur_range_end = std::max(pos, cur_range_end);
+        }
 
-        // copy directly & output
-        size_t max_size_to_copy = std::min(entry.size(), range_end - range_start);
-        max_size_to_copy = std::min(max_size_to_copy, buf_capacity);
-        memcpy(buf, entry.buf, max_size_to_copy);
         if(bytes_written)
-            *bytes_written = max_size_to_copy;
-
+            *bytes_written = cur_range_end - range_start;
         return true;
+
+//        // is buf fully OR partially contained within cache?
+//        // -> then short cut. Else, fully read buf.
+//        std::lock_guard<std::mutex> lock(_mutex);
+//        auto it = std::find_if(_chunks.begin(), _chunks.end(), [target_uri, range_start, range_end](const CacheEntry& chunk) {
+//            bool in_range = chunk.range_start <= range_start && range_end <= chunk.range_end;
+//            return chunk.uri == target_uri && in_range && chunk.buf;
+//        });
+//
+//        if(it != _chunks.end()) {
+//            // contained, memcpy buffer content
+//            auto offset = range_start - it->range_start;
+//            assert(offset <= it->size());
+//            assert(range_end >= range_start);
+//            assert(range_end - range_start <= buf_capacity);
+//            size_t max_size_to_copy = std::min(it->size() - offset, range_end - range_start);
+//            max_size_to_copy = std::min(max_size_to_copy, buf_capacity);
+//            memcpy(buf, it->buf + offset, max_size_to_copy);
+//            if(bytes_written)
+//                *bytes_written = max_size_to_copy;
+//            return true;
+//        }
+//
+//        // no chunk found, need to fetch and store if there's space - else kick out as much as possible.
+//        // could optimize with partial fetch etc.
+//        // but for now, simply fetch the concrete block demanded.
+//
+//        auto entry = s3Read(uri, range_start, range_end);
+//
+//        if(!entry.buf)
+//            return false;
+//
+//        // copy directly & output
+//        size_t max_size_to_copy = std::min(entry.size(), range_end - range_start);
+//        max_size_to_copy = std::min(max_size_to_copy, buf_capacity);
+//        memcpy(buf, entry.buf, max_size_to_copy);
+//        if(bytes_written)
+//            *bytes_written = max_size_to_copy;
+//
+//        return true;
     }
 
     // simplify design maybe for Lambda. I.e., needs to be explicitly put called!

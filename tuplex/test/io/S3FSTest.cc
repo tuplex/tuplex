@@ -106,6 +106,126 @@ TEST_F(S3Tests, RangesToComplete) {
     EXPECT_EQ(std::get<2>(res[2]), 950);
 }
 
+TEST_F(S3Tests, MiniPreCaching) {
+    using namespace tuplex;
+    using namespace std;
+    {
+// init AWS SDK to get access to S3 filesystem
+        auto &logger = Logger::instance().logger("aws");
+        auto aws_credentials = AWSCredentials::get();
+        auto options = ContextOptions::defaults();
+        Timer timer;
+        bool aws_init_rc = initAWS(aws_credentials, options.AWS_NETWORK_SETTINGS(), options.AWS_REQUESTER_PAY());
+        logger.debug("initialized AWS SDK in " + std::to_string(timer.time()) + "s");
+    }
+
+    auto &cache = S3FileCache::instance();
+    size_t max_cache_size = 2 * 1024 * 1024; // 2MB
+    cache.reset(max_cache_size);
+
+    cache.setFS(*VirtualFileSystem::getS3FileSystemImpl());
+
+    auto test_uri = URI("s3://tuplex-public/data/github_daily_sample/2013-10-15.json.sample");
+
+    // use basically the ranges from above to test (case 3)
+    // existing_ranges.emplace_back(make_tuple(uri, 950, 1200));
+    // existing_ranges.emplace_back(make_tuple(uri, 200, 400));
+    // existing_ranges.emplace_back(make_tuple(uri, 500, 600));
+    cache.put(test_uri, 950, 1200);
+    cache.put(test_uri, 200, 400);
+    cache.put(test_uri, 500, 600);
+
+    // mow get full range 0-1000
+    auto test_buf = new uint8_t[1000];
+
+    size_t bytes_read = 0;
+    cache.get(test_buf, 1000, test_uri, 0, 1000, &bytes_read);
+    EXPECT_EQ(bytes_read, 1000);
+    delete [] test_buf;
+}
+
+TEST_F(S3Tests, PreCaching) {
+    using namespace tuplex;
+    using namespace std;
+    {
+// init AWS SDK to get access to S3 filesystem
+        auto &logger = Logger::instance().logger("aws");
+        auto aws_credentials = AWSCredentials::get();
+        auto options = ContextOptions::defaults();
+        Timer timer;
+        bool aws_init_rc = initAWS(aws_credentials, options.AWS_NETWORK_SETTINGS(), options.AWS_REQUESTER_PAY());
+        logger.debug("initialized AWS SDK in " + std::to_string(timer.time()) + "s");
+    }
+
+    auto &cache = S3FileCache::instance();
+    size_t max_cache_size = 2 * 1024 * 1024; // 2MB
+    cache.reset(max_cache_size);
+
+    cache.setFS(*VirtualFileSystem::getS3FileSystemImpl());
+
+    // get data from S3 uri (this caches it as well)
+//    auto test_uri = URI("s3://tuplex-public/data/github_daily/2013-10-15.json");
+    auto test_uri = URI("s3://tuplex-public/data/github_daily_sample/2013-10-15.json.sample");
+
+    // first, get reference buffer (this may take a while)
+    Timer timer;
+    size_t uri_size;
+    auto vfs = VirtualFileSystem::fromURI(test_uri);
+    vfs.file_size(test_uri, reinterpret_cast<uint64_t&>(uri_size));
+    cout<<"size of "<<test_uri.toPath()<<" is: "<<uri_size<<" bytes."<<endl;
+    ASSERT_NE(uri_size, 0);
+    uint8_t* ref_buf = new uint8_t[uri_size];
+
+    // read into ref_buf
+    auto ref_file = vfs.open_file(test_uri, VirtualFileMode::VFS_READ | VirtualFileMode::VFS_TEXTMODE);
+    ASSERT_TRUE(ref_file);
+    size_t bytes_read = 0;
+    ref_file->read(ref_buf, uri_size, &bytes_read);
+    ref_file->close();
+    cout<<"Reading file of size "<<uri_size<<" took "<<timer.time()<<"s ("<<bytes_read<<" bytes read)"<<endl;
+    EXPECT_EQ(bytes_read, uri_size);
+
+    // use file cache now
+    auto s3impl = vfs.getS3FileSystemImpl();
+    ASSERT_TRUE(s3impl);
+    s3impl->activateReadCache(memStringToSize("1G")); // use 1G cache for now
+
+    // put a bunch of futures into the cache (in 32 MB chunks)
+    timer.reset();
+    vector<future<size_t>> futures;
+    futures.emplace_back(cache.putAsync(test_uri, 0, 256 * 1024)); // first cache line
+    futures.emplace_back(cache.putAsync(test_uri, uri_size - 256 * 1024, uri_size));
+
+    // fill with chunk size
+    size_t chunk_size = 32 * 1024 * 1024; // 32MB
+    size_t total = 0;
+    while(total < uri_size) {
+        futures.emplace_back(cache.putAsync(test_uri, total, total + chunk_size));
+        total += chunk_size;
+    }
+
+    // wait for all futures
+    for(auto& f : futures)
+        f.wait();
+    cout<<"parallel/async fill of S3 cache took "<<timer.time()<<"s."<<endl;
+
+    // now read into test buf and run then memcmp
+    auto test_buf = new uint8_t[uri_size];
+    // test
+    cache.get(test_buf, uri_size, test_uri, 20, 200, &bytes_read); // get 180 bytes
+
+    // direct cache test
+    cache.get(test_buf, uri_size, test_uri, 0, uri_size, &bytes_read);
+    EXPECT_EQ(bytes_read, uri_size);
+    auto ret = memcmp(ref_buf, test_buf, uri_size);
+    cout<<"memcmp result is: "<<ret<<endl;
+    EXPECT_EQ(ret, 0);
+
+
+    delete [] test_buf;
+    delete [] ref_buf;
+}
+
 TEST_F(S3Tests, FileCache) {
     using namespace tuplex;
 

@@ -182,7 +182,7 @@ TEST_F(S3Tests, PreCaching) {
     size_t bytes_read = 0;
     ref_file->read(ref_buf, uri_size, &bytes_read);
     ref_file->close();
-    cout<<"Reading file of size "<<uri_size<<" took "<<timer.time()<<"s ("<<bytes_read<<" bytes read)"<<endl;
+    cout<<"Reading ref file of size "<<uri_size<<" took "<<timer.time()<<"s ("<<bytes_read<<" bytes read)"<<endl;
     EXPECT_EQ(bytes_read, uri_size);
 
     // use file cache now
@@ -224,6 +224,20 @@ TEST_F(S3Tests, PreCaching) {
     cout<<"memcmp result is: "<<ret<<" (took "<<timer.time()<<"s to compare)"<<endl;
     EXPECT_EQ(ret, 0);
 
+    // memset 0 and read as file
+    memset(test_buf, 0, uri_size);
+    timer.reset();
+    auto test_file = vfs.open_file(test_uri, VirtualFileMode::VFS_READ | VirtualFileMode::VFS_TEXTMODE);
+    ASSERT_TRUE(test_file);
+    bytes_read = 0;
+    test_file->read(ref_buf, uri_size, &bytes_read);
+    test_file->close();
+    cout<<"Reading test file of size "<<uri_size<<" took "<<timer.time()<<"s ("<<bytes_read<<" bytes read)"<<endl;
+    EXPECT_EQ(bytes_read, uri_size);
+    timer.reset();
+    ret = memcmp(ref_buf, test_buf, uri_size);
+    cout<<"memcmp result is: "<<ret<<" (took "<<timer.time()<<"s to compare)"<<endl;
+    EXPECT_EQ(ret, 0);
 
     delete [] test_buf;
     delete [] ref_buf;

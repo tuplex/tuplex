@@ -628,10 +628,10 @@ TEST(BasicInvocation, ProperFlightsTest) {
     // get full data stats
     input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv";
 
-    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1995_11.csv,../resources/hyperspecialization/flights/*.sample";
-
-    // test, constant folding should only detect year and month.
-    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv:0-247414256";
+//    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1995_11.csv,../resources/hyperspecialization/flights/*.sample";
+//
+//    // test, constant folding should only detect year and month.
+//    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv:0-247414256";
 
     // s3://tuplex-public/data/flights_all/flights_on_time_performance_1995_11.csv produces in hyper mode exceptions.
     // -> why? => splitsize should be 2G
@@ -677,27 +677,61 @@ TEST(BasicInvocation, ProperFlightsTest) {
     co.set("tuplex.optimizer.constantFoldingOptimization", "true"); // run with constant folding on/off
     co.set("tuplex.filterPromotion", "true");
     co.set("tuplex.optimizer.nullValueOptimization", "true");
-    co.set("tuplex.experimental.hyperspecialization", "true"); // first check that THIS is correct.
+    co.set("tuplex.experimental.hyperspecialization", "false"); // first check that THIS is correct.
     co.set("tuplex.experimental.s3PreCacheSize", "1G");
     co.set("tuplex.inputSplitSize", "2GB");
+
+    auto co_hyper = co;
+    co_hyper.set("tuplex.experimental.hyperspecialization", "true");
+
+
+    // use sampling mode first/last file, first/last rows
+    SamplingMode sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
 
     // init runtime
     auto rc_runtime = runtime::init(co.RUNTIME_LIBRARY().toPath());
     ASSERT_TRUE(rc_runtime);
 
-    Context ctx(co);
-    auto udf_code = flights_code();
     python::initInterpreter();
     python::unlockGIL();
-    // use sampling mode first/last file, first/last rows
-    SamplingMode sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
-   // sm = SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE;
-    // sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
 
-    ctx.csv(input_pattern, {}, option<bool>::none,
-            option<char>::none, '"', {""}, {}, {}, sm)
-            .map(UDF("lambda x: {'year':x['YEAR'], 'nas':x['NAS_DELAY']}"))
-            .tocsv("local_worker_output.csv");
+
+    double hyper_time = 0;
+    double nohyper_time = 0;
+    // non-hyper vs. hyper (there needs to be a runtime difference.
+    {
+        Context ctx(co);
+        auto udf_code = flights_code();
+
+        Timer timer;
+        ctx.csv(input_pattern, {}, option<bool>::none,
+                option<char>::none, '"', {""}, {}, {}, sm)
+            .map(UDF(udf_code))
+            //.map(UDF("lambda x: {'year':x['YEAR'], 'nas':x['NAS_DELAY']}"))
+            .tocsv("nohyper_local_worker_output.csv");
+        nohyper_time = timer.time();
+        std::cout<<"no-hyper mode: "<<nohyper_time<<std::endl;
+    }
+
+    {
+        Context ctx(co_hyper);
+        auto udf_code = flights_code();
+
+        Timer timer;
+        ctx.csv(input_pattern, {}, option<bool>::none,
+                option<char>::none, '"', {""}, {}, {}, sm)
+                .map(UDF(udf_code))
+                        //.map(UDF("lambda x: {'year':x['YEAR'], 'nas':x['NAS_DELAY']}"))
+                .tocsv("hyper_local_worker_output.csv");
+        hyper_time = timer.time();
+        std::cout<<"hyper mode: "<<hyper_time<<std::endl;
+    }
+
+    // final:
+    std::cout<<"result:::"<<std::endl;
+    std::cout<<"   hyper: "<<hyper_time<<std::endl;
+    std::cout<<"no hyper: "<<nohyper_time<<std::endl;
+
 
 //    ctx.csv(input_pattern, {}, option<bool>::none,
 //            option<char>::none, '"', {""}, {}, {}, sm).map(UDF(udf_code)).tocsv("local_worker_output.csv");

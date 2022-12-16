@@ -625,6 +625,8 @@ TEST(BasicInvocation, ProperFlightsTest) {
 
     string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
 
+
+    input_pattern = "../resources/hyperspecialization/flights/*.sample";
     // get full data stats
     // input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv";
 

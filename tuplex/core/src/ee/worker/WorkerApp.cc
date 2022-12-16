@@ -158,7 +158,8 @@ namespace tuplex {
         runtime::freeRunTimeMemory();
 
 #ifdef BUILD_WITH_AWS
-        shutdownAWS();
+        // causes error!!!
+        // shutdownAWS();
 #endif
     }
 

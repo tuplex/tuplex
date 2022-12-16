@@ -604,6 +604,18 @@ inline std::string flights_code() {
     return udf_code;
 }
 
+TEST(BasicInvocation, MultiAWSInit) {
+    using namespace tuplex;
+
+    Timer timer;
+    initAWS();
+    shutdownAWS();
+    std::cout<<"aws test 1: "<<timer.time()<<std::endl;
+    initAWS();
+    shutdownAWS();
+    std::cout<<"aws test 2: "<<timer.time()<<std::endl;
+}
+
 // proper test for flight processing
 TEST(BasicInvocation, ProperFlightsTest) {
     using namespace tuplex;

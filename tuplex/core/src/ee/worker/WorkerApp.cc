@@ -191,12 +191,12 @@ namespace tuplex {
         }
         auto settings = settingsFromMessage(req);
         if(settings != _settings) {
-            std::stringstream ss;
-            logger.info(ss.str());
+            // reinit with new settings...
             reinitialize(settings);
             _settings = settings; // make sure the new ones are now used!!!
             std::stringstream ss;
             ss<<"settings from message are different, reinitialized with: "<<_settings;
+            logger.info(ss.str());
         }
 
         // currently message represents merely a transformstage/transformtask

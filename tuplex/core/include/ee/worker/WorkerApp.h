@@ -49,6 +49,7 @@
 
 #include <Serializer.h>
 #include <FilePart.h>
+#include "JSONUtils.h"
 
 // Notes: For fileoutput, sometimes a reorg step might be necessary!
 // e.g., when using S3 file-system could upload 5TB per object.
@@ -153,6 +154,24 @@ namespace tuplex {
             sampleLimitCount = std::numeric_limits<size_t>::max();
         }
 
+        WorkerSettings(const WorkerSettings& other) : numThreads(other.numThreads),
+        normalBufferSize(other.normalBufferSize),
+        exceptionBufferSize(other.exceptionBufferSize),
+        hashBufferSize(other.hashBufferSize),
+        spillRootURI(other.spillRootURI),
+        runTimeMemory(other.runTimeMemory),
+        runTimeMemoryDefaultBlockSize(other.runTimeMemoryDefaultBlockSize),
+        allowNumericTypeUnification(other.allowNumericTypeUnification),
+        useInterpreterOnly(other.useInterpreterOnly),
+        useCompiledGeneralPath(other.useCompiledGeneralPath),
+        useFilterPromotion(other.useFilterPromotion),
+        useConstantFolding(other.useConstantFolding),
+        opportuneGeneralPathCompilation(other.opportuneGeneralPathCompilation),
+        s3PreCacheSize(other.s3PreCacheSize),
+        useOptimizer(other.useOptimizer),
+        sampleLimitCount(other.sampleLimitCount),
+        normalCaseThreshold(other.normalCaseThreshold) {}
+
         inline bool operator == (const WorkerSettings& other) const {
 
             // compare variables...
@@ -197,6 +216,29 @@ namespace tuplex {
             return !(*this == other);
         }
     };
+
+    std::ostream& operator << (std::ostream& os, const WorkerSettings& ws) {
+        os << "{";
+        os << "\"numThreads\":"<<ws.numThreads<<", ";
+        os << "\"normalBufferSize\":"<<ws.normalBufferSize<<", ";
+        os << "\"exceptionBufferSize\":"<<ws.exceptionBufferSize<<", ";
+        os << "\"hashBufferSize\":"<<ws.hashBufferSize<<", ";
+        os << "\"spillRootURI\":"<<escape_json_string(ws.spillRootURI.toPath())<<", ";
+        os << "\"runTimeMemory\":"<<ws.runTimeMemory<<", ";
+        os << "\"runTimeMemoryDefaultBlockSize\":"<<ws.runTimeMemoryDefaultBlockSize<<", ";
+        os << "\"allowNumericTypeUnification\":"<<boolToString(ws.allowNumericTypeUnification)<<", ";
+        os << "\"useInterpreterOnly\":"<<boolToString(ws.useInterpreterOnly)<<", ";
+        os << "\"useCompiledGeneralPath\":"<<boolToString(ws.useCompiledGeneralPath)<<", ";
+        os << "\"opportuneGeneralPathCompilation\":"<<boolToString(ws.opportuneGeneralPathCompilation)<<", ";
+        os << "\"useOptimizer\":"<<boolToString(ws.useOptimizer)<<", ";
+        os << "\"sampleLimitCount\":"<<ws.sampleLimitCount<<", ";
+        os << "\"useFilterPromotion\":"<<boolToString(ws.useFilterPromotion)<<", ";
+        os << "\"useConstantFolding\":"<<boolToString(ws.useConstantFolding)<<", ";
+        os << "\"normalCaseThreshold\":"<<ws.normalCaseThreshold<<", ";
+        os << "\"s3PreCacheSize\":"<<ws.s3PreCacheSize;
+        os << "}";
+        return os;
+    }
 
     /// main class to represent a running worker application
     /// i.e., this is an applicaton which performs some task and returns it in some way

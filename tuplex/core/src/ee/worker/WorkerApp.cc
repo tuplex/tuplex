@@ -182,9 +182,19 @@ namespace tuplex {
         _currentMessage = req;
 
         // get worker settings from message, if they differ from current setup -> reinitialize worker!
+        {
+            std::stringstream ss;
+            ss<<"current worker settings: "<<_settings;
+            logger.info(ss.str());
+        }
         auto settings = settingsFromMessage(req);
-        if(settings != _settings)
+        if(settings != _settings) {
+            logger.info(ss.str());
             reinitialize(settings);
+            _settings = settings; // make sure the new ones are now used!!!
+            std::stringstream ss;
+            ss<<"settings from message are different, reinitialized with: "<<_settings;
+        }
 
         // currently message represents merely a transformstage/transformtask
         // @TODO: in the future this could change!

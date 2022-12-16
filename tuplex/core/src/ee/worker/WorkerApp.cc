@@ -191,6 +191,7 @@ namespace tuplex {
         }
         auto settings = settingsFromMessage(req);
         if(settings != _settings) {
+            std::stringstream ss;
             logger.info(ss.str());
             reinitialize(settings);
             _settings = settings; // make sure the new ones are now used!!!

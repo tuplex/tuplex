@@ -158,7 +158,9 @@ namespace tuplex {
         runtime::freeRunTimeMemory();
 
 #ifdef BUILD_WITH_AWS
-        shutdownAWS();
+        // causes error!!!
+        // cf. https://github.com/aws/aws-sdk-cpp/issues/456 --> implement something like this.
+        // shutdownAWS();
 #endif
     }
 

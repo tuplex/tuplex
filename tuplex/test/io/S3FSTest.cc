@@ -164,8 +164,8 @@ TEST_F(S3Tests, PreCaching) {
     cache.setFS(*VirtualFileSystem::getS3FileSystemImpl());
 
     // get data from S3 uri (this caches it as well)
-    auto test_uri = URI("s3://tuplex-public/data/github_daily/2013-10-15.json");
-    //auto test_uri = URI("s3://tuplex-public/data/github_daily_sample/2013-10-15.json.sample");
+//    auto test_uri = URI("s3://tuplex-public/data/github_daily/2013-10-15.json");
+    auto test_uri = URI("s3://tuplex-public/data/github_daily_sample/2013-10-15.json.sample");
 
     // first, get reference buffer (this may take a while)
     Timer timer;

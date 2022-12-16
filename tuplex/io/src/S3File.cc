@@ -379,6 +379,23 @@ namespace tuplex {
     // fast tiny read (do not advance internal pointers)
     VirtualFileSystemStatus S3File::readOnly(void *buffer, uint64_t nbytes, size_t *bytesRead) const {
 
+        // regular requesting...
+        // short cut for empty read
+        if(nbytes == 0) {
+            if(bytesRead)
+                *bytesRead = 0;
+            return VirtualFileSystemStatus::VFS_OK;
+        }
+
+        // shortcut: is buffer filled and nbytes available?
+        // --> no need to query again!
+        if(_buffer && _bufferPosition + nbytes <= _bufferLength) {
+            memcpy(buffer, _buffer + _bufferPosition, nbytes);
+            if(bytesRead)
+                *bytesRead = nbytes;
+            return VirtualFileSystemStatus::VFS_OK;
+        }
+
         // use cache?
         if(_s3fs._useS3ReadCache) {
             auto& cache = S3FileCache::instance();
@@ -402,23 +419,6 @@ namespace tuplex {
 
             assert(range_end - range_start <= nbytes);
             cache.get(reinterpret_cast<uint8_t*>(buffer), nbytes, _uri, range_start, range_end, bytesRead);
-            return VirtualFileSystemStatus::VFS_OK;
-        }
-
-        // regular requesting...
-        // short cut for empty read
-        if(nbytes == 0) {
-            if(bytesRead)
-                *bytesRead = 0;
-            return VirtualFileSystemStatus::VFS_OK;
-        }
-
-        // shortcut: is buffer filled and nbytes available?
-        // --> no need to query again!
-        if(_buffer && _bufferPosition + nbytes <= _bufferLength) {
-            memcpy(buffer, _buffer + _bufferPosition, nbytes);
-            if(bytesRead)
-                *bytesRead = nbytes;
             return VirtualFileSystemStatus::VFS_OK;
         }
 
@@ -536,6 +536,8 @@ namespace tuplex {
                 const_cast<S3File*>(this)->fillBuffer(_bufferSize); // try to request full buffer
                 bytesAvailable = _bufferLength - _bufferPosition;
 
+                if(bytesAvailable == 0)
+                    break;
                 assert(bytesAvailable > 0);
             }
 
@@ -558,10 +560,18 @@ namespace tuplex {
         if(0 == bytesToRequest)
             return 0;
 
+        // important to check here
+        if(_s3fs._useS3ReadCache) {
+            auto &cache = S3FileCache::instance();
+            // check if file size has been queried/filled.
+            if (_fileSize == 0 && !_buffer) {
+                _fileSize = cache.file_size(_uri);
+            }
+        }
+
         // create buffer if not existing
         if(!_buffer) {
             _buffer = new uint8_t[_bufferSize];
-
             _bufferPosition = 0;
             _bufferLength = 0;
             _fileSize = 0;
@@ -576,13 +586,10 @@ namespace tuplex {
             auto& cache = S3FileCache::instance();
             // check if file size has been queried/filled.
             // --> required to clamp request to avoid invalid range!
-            size_t fileSize = _fileSize;
-            // make sure file size is not 0
-            if(_fileSize == 0 && !_buffer) {
-                _fileSize = cache.file_size(_uri);
-            }
+            // fill size from cache (should be there, else single request)
+            _fileSize = cache.file_size(_uri);
 
-            size_t range_end = std::min(_bufferedAbsoluteFilePosition + bytesToRequest - 1, _fileSize - 1);
+            size_t range_end = std::min(_bufferedAbsoluteFilePosition + bytesToRequest, _fileSize);
             size_t range_start = _bufferedAbsoluteFilePosition;
 
 

@@ -86,6 +86,7 @@ namespace tuplex {
 
         bool USE_EXPERIMENTAL_HYPERSPECIALIZATION() const { return stringToBool(_store.at("tuplex.experimental.hyperspecialization")); }
         bool USE_EXPERIMENTAL_OPPORTUNE_COMPILATION() const { return stringToBool(_store.at("tuplex.experimental.opportuneCompilation")); }
+        size_t USE_EXPERIMENTAL_S3_PRECACHE_SIZE() const { return memStringToSize(_store.at("tuplex.experimental.s3PreCacheSize")); }
 
         std::string AWS_LAMBDA_INVOCATION_STRATEGY() const { return _store.at("tuplex.aws.lambdaInvocationStrategy"); }
 

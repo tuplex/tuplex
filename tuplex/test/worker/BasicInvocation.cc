@@ -678,6 +678,7 @@ TEST(BasicInvocation, ProperFlightsTest) {
     co.set("tuplex.filterPromotion", "true");
     co.set("tuplex.optimizer.nullValueOptimization", "true");
     co.set("tuplex.experimental.hyperspecialization", "true"); // first check that THIS is correct.
+    co.set("tuplex.experimental.s3PreCacheSize", "1G");
     co.set("tuplex.inputSplitSize", "2GB");
 
     // init runtime

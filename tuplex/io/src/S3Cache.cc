@@ -21,11 +21,14 @@ namespace tuplex {
     }
 
 
-    uint8_t* S3FileCache::put(const URI &uri, size_t range_start, size_t range_end, option<size_t> uri_size) {
+    uint8_t* S3FileCache::put(const URI &uri, size_t range_start, size_t range_end, size_t* bytes_written, option<size_t> uri_size) {
 
         URI target_uri = uri;
         size_t custom_range_start = 0, custom_range_end = 0;
         decodeRangeURI(uri.toPath(), target_uri, custom_range_start, custom_range_end);
+
+        if(bytes_written)
+            *bytes_written = 0;
 
         // manipulate range_start, range_end to be valid
 
@@ -60,6 +63,8 @@ namespace tuplex {
             {
                 std::lock_guard<std::mutex> lock(_mutex);
                 auto ptr = chunk.buf;
+                if(bytes_written)
+                    *bytes_written = chunk.size();
                 _chunks.emplace_back(std::move(chunk));
                 return ptr;
             }
@@ -72,7 +77,7 @@ namespace tuplex {
         // future from a promise
         return std::async( [this, uri, range_start, range_end] {
             size_t bytes_written = 0;
-            put(uri, range_start, range_end);
+            put(uri, range_start, range_end, &bytes_written);
             return bytes_written;
         });
     }

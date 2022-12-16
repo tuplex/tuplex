@@ -255,7 +255,8 @@ namespace tuplex {
                      {"tuplex.network.verifySSL", "false"},  // if default is going to be changed to true, ship cacert.pem from Amazon to avoid issues.
                      {"tuplex.redirectToPythonLogging", "false"},
                      {"tuplex.experimental.hyperspecialization", "false"},
-                     {"tuplex.experimental.opportuneCompilation", "true"}};
+                     {"tuplex.experimental.opportuneCompilation", "true"},
+                     {"tuplex.experimental.s3PreCacheSize", "0"}};
 #else
         // DEBUG options
         co._store = {{"tuplex.useLLVMOptimizer", "false"},
@@ -318,7 +319,8 @@ namespace tuplex {
                      {"tuplex.network.verifySSL", "false"},
                      {"tuplex.redirectToPythonLogging", "false"},
                      {"tuplex.experimental.hyperspecialization", "false"},
-                     {"tuplex.experimental.opportuneCompilation", "true"}}; // experimental feature, deactivate for now.
+                     {"tuplex.experimental.opportuneCompilation", "true"},
+                     {"tuplex.experimental.s3PreCacheSize", "0"}}; // experimental feature, deactivate for now.
 #endif
 
         // update with tuplex env

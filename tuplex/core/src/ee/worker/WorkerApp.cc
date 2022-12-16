@@ -14,6 +14,8 @@
 #include "AWSCommon.h"
 #include "bucket.h"
 #include <physical/execution/JsonReader.h>
+#include <S3FileSystemImpl.h>
+#include <S3Cache.h>
 
 namespace tuplex {
 
@@ -83,6 +85,25 @@ namespace tuplex {
             _compiler = std::make_shared<JITCompiler>();
 
         initThreadEnvironments(_settings.numThreads);
+
+        // init s3 cache if required
+        if(_settings.s3PreCacheSize != 0) {
+            // make sure s3 system is initialized
+            auto s3impl = VirtualFileSystem::getS3FileSystemImpl();
+            if(!s3impl) {
+                logger().error("required S3 cache, but S3 file system not initialized.");
+                return false;
+            }
+            s3impl->activateReadCache(_settings.s3PreCacheSize);
+        } else {
+            auto s3impl = VirtualFileSystem::getS3FileSystemImpl();
+            if(!s3impl) {
+                logger().error("required S3 cache, but S3 file system not initialized.");
+                return false;
+            }
+            s3impl->disableReadCache();
+        }
+
         return true;
     }
 
@@ -277,6 +298,9 @@ namespace tuplex {
         URI outputURI = outputURIFromReq(req);
         auto parts = partsFromMessage(req);
 
+        if(0 != _settings.s3PreCacheSize)
+            preCacheS3(parts);
+
         // reset types
         _normalCaseRowType = tstage->normalCaseInputSchema().getRowType();
         _hyperspecializedNormalCaseRowType = python::Type::UNKNOWN;
@@ -360,6 +384,27 @@ namespace tuplex {
         auto rc = processTransformStage(tstage, syms, parts, outputURI);
         _lastStat = jsonStat(req, tstage); // generate stats before returning.
         return rc;
+    }
+
+    void WorkerApp::preCacheS3(const std::vector<FilePart> &parts) {
+        // pre-cache in S3 file cache all the parts!
+        Timer timer;
+        auto& cache = S3FileCache::instance();
+        cache.reset(_settings.s3PreCacheSize);
+        std::vector<std::future<size_t>> futures;
+        for(const auto& part : parts) {
+            futures.emplace_back(cache.putAsync(part.uri, part.rangeStart, part.rangeEnd));
+        }
+
+        size_t total_cached = 0;
+        for(auto& f : futures) {
+            total_cached += f.get();
+        }
+        std::stringstream ss;
+        auto cache_time = timer.time();
+        double s3ReadSpeed = (total_cached / (1024.0 * 1024.0)) / cache_time;
+        ss<<"Cached "<<total_cached<<" bytes in "<<cache_time<<"s from S3 ( "<<s3ReadSpeed<<" MB/s)";
+        logger().info(ss.str());
     }
 
     int
@@ -1528,6 +1573,12 @@ namespace tuplex {
             ws.opportuneGeneralPathCompilation = stringToBool(it->second);
         } else {
             ws.opportuneGeneralPathCompilation = false;
+        }
+        it = req.settings().other().find("tuplex.experimental.s3PreCacheSize");
+        if(it != req.settings().other().end()) {
+            ws.s3PreCacheSize = memStringToSize(it->second);
+        } else {
+            ws.s3PreCacheSize = 0; // 0 means deactivated
         }
         it = req.settings().other().find("tuplex.useLLVMOptimizer");
         if(it != req.settings().other().end()) {

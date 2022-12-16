@@ -309,6 +309,7 @@ namespace tuplex {
 
         // set other fields for some other option settings
         std::vector<std::string> other_keys({"tuplex.experimental.opportuneCompilation",
+                                             "tuplex.experimental.s3PreCacheSize",
                                              "tuplex.useLLVMOptimizer",
                                              "tuplex.sample.maxDetectionRows",
                                              "tuplex.optimizer.constantFoldingOptimization"});

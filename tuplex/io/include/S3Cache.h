@@ -40,7 +40,7 @@ namespace tuplex {
 
         // explicit ranges
         uint8_t* get(const URI& uri, size_t range_start, size_t range_end, option<size_t> uri_size = option<size_t>::none);
-        uint8_t* put(const URI& uri, size_t range_start, size_t range_end, option<size_t> uri_size = option<size_t>::none);
+        uint8_t* put(const URI& uri, size_t range_start, size_t range_end, size_t* bytes_written =nullptr, option<size_t> uri_size = option<size_t>::none);
         std::future<size_t> putAsync(const URI& uri, size_t range_start, size_t range_end);
 
         // write to external buffer.

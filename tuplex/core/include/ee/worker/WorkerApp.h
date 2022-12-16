@@ -132,6 +132,7 @@ namespace tuplex {
         bool useConstantFolding;
 
         bool opportuneGeneralPathCompilation; // <-- whether to kick off query optimization as early on as possible
+        size_t s3PreCacheSize; // <-- whether to load S3 first and activate cache
         bool useOptimizer; // <-- whether to use optimizer for hyper or not
         size_t sampleLimitCount; // <-- limit count imposed on resampling
 
@@ -141,7 +142,7 @@ namespace tuplex {
         WorkerSettings() : numThreads(1), normalBufferSize(WORKER_DEFAULT_BUFFER_SIZE),
         exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE),
         useInterpreterOnly(false), useCompiledGeneralPath(true),
-        opportuneGeneralPathCompilation(true), useFilterPromotion(false), useConstantFolding(false) {
+        opportuneGeneralPathCompilation(true), useFilterPromotion(false), useConstantFolding(false), s3PreCacheSize(0) {
 
             // set some options from defaults...
             auto opt = ContextOptions::defaults();
@@ -186,6 +187,8 @@ namespace tuplex {
             if(useConstantFolding != other.useConstantFolding)
                 return false;
             if(!double_eq(normalCaseThreshold, other.normalCaseThreshold))
+                return false;
+            if(s3PreCacheSize != other.s3PreCacheSize)
                 return false;
             return true;
         }
@@ -560,6 +563,8 @@ namespace tuplex {
             }
             return numExceptionRows;
         }
+
+        void preCacheS3(const std::vector<FilePart>& parts);
     };
 
 

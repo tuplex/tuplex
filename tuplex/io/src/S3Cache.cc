@@ -406,7 +406,9 @@ namespace tuplex {
                 auto chunk_buf = std::get<3>(chunk);
 
                 auto chunk_size = chunk_end - chunk_start;
-                std::cout<<"pos="<<pos<<" found chunk: "<<chunk_start<<" - "<<chunk_end<<std::endl;
+
+                // debug print
+                // std::cout<<"pos="<<pos<<" found chunk: "<<chunk_start<<" - "<<chunk_end<<std::endl;
 
                 // already further ahead with write?
                 // skip!

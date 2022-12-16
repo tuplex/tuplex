@@ -164,8 +164,8 @@ TEST_F(S3Tests, PreCaching) {
     cache.setFS(*VirtualFileSystem::getS3FileSystemImpl());
 
     // get data from S3 uri (this caches it as well)
-//    auto test_uri = URI("s3://tuplex-public/data/github_daily/2013-10-15.json");
-    auto test_uri = URI("s3://tuplex-public/data/github_daily_sample/2013-10-15.json.sample");
+    auto test_uri = URI("s3://tuplex-public/data/github_daily/2013-10-15.json");
+    // auto test_uri = URI("s3://tuplex-public/data/github_daily_sample/2013-10-15.json.sample");
 
     // first, get reference buffer (this may take a while)
     Timer timer;
@@ -183,6 +183,10 @@ TEST_F(S3Tests, PreCaching) {
     ref_file->read(ref_buf, uri_size, &bytes_read);
     ref_file->close();
     cout<<"Reading ref file of size "<<uri_size<<" took "<<timer.time()<<"s ("<<bytes_read<<" bytes read)"<<endl;
+    // calculate S3 rate in MB / s
+    double s3ReadSpeed = ((bytes_read / (1024 * 1024.0)) / timer.time());
+    cout<<"S3 read speed: "<<s3ReadSpeed<<"MB/s"<<endl;
+
     EXPECT_EQ(bytes_read, uri_size);
 
     // use file cache now
@@ -208,6 +212,9 @@ TEST_F(S3Tests, PreCaching) {
     for(auto& f : futures)
         f.wait();
     cout<<"parallel/async fill of S3 cache took "<<timer.time()<<"s."<<endl;
+    // calculate S3 rate in MB / s
+    s3ReadSpeed = ((uri_size + (2 * 256 * 1024.0)) / (1024 * 1024.0)) / timer.time();
+    cout<<"S3 read speed: "<<s3ReadSpeed<<"MB/s"<<endl;
 
     // now read into test buf and run then memcmp
     auto test_buf = new uint8_t[uri_size];
@@ -230,7 +237,7 @@ TEST_F(S3Tests, PreCaching) {
     auto test_file = vfs.open_file(test_uri, VirtualFileMode::VFS_READ | VirtualFileMode::VFS_TEXTMODE);
     ASSERT_TRUE(test_file);
     bytes_read = 0;
-    test_file->read(ref_buf, uri_size, &bytes_read);
+    test_file->read(test_buf, uri_size, &bytes_read);
     test_file->close();
     cout<<"Reading test file of size "<<uri_size<<" took "<<timer.time()<<"s ("<<bytes_read<<" bytes read)"<<endl;
     EXPECT_EQ(bytes_read, uri_size);

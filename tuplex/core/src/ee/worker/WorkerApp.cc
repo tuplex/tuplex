@@ -159,6 +159,7 @@ namespace tuplex {
 
 #ifdef BUILD_WITH_AWS
         // causes error!!!
+        // cf. https://github.com/aws/aws-sdk-cpp/issues/456 --> implement something like this.
         // shutdownAWS();
 #endif
     }

@@ -668,6 +668,9 @@ TEST(BasicInvocation, ProperFlightsTest) {
     //     EXPECT_EQ(ref_row_counts[uri.basename()], number_of_rows);
     // }
 
+    python::initInterpreter();
+    python::unlockGIL();
+
     // local worker mode for easier debugging
     ContextOptions co = ContextOptions::defaults();
     co.set("tuplex.backend", "worker");
@@ -692,9 +695,6 @@ TEST(BasicInvocation, ProperFlightsTest) {
     // init runtime
     auto rc_runtime = runtime::init(co.RUNTIME_LIBRARY().toPath());
     ASSERT_TRUE(rc_runtime);
-
-    python::initInterpreter();
-    python::unlockGIL();
 
 
     double hyper_time = 0;

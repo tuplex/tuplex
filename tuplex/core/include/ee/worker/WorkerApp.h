@@ -217,7 +217,7 @@ namespace tuplex {
         }
     };
 
-    std::ostream& operator << (std::ostream& os, const WorkerSettings& ws) {
+    inline std::ostream& operator << (std::ostream& os, const WorkerSettings& ws) {
         os << "{";
         os << "\"numThreads\":"<<ws.numThreads<<", ";
         os << "\"normalBufferSize\":"<<ws.normalBufferSize<<", ";

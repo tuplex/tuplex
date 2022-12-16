@@ -616,6 +616,47 @@ TEST(BasicInvocation, MultiAWSInit) {
     std::cout<<"aws test 2: "<<timer.time()<<std::endl;
 }
 
+class BasicInvocationF : public ::testing::Test {
+protected:
+    PyThreadState *saveState;
+    std::stringstream logStream;
+
+    void SetUp() override {
+        // reset global static variables, i.e. whether to use UDF compilation or not!
+        tuplex::UDF::enableCompilation();
+
+        // init logger to write to both stream as well as stdout
+        // ==> searching the stream can be used to validate err Messages
+        Logger::init({std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>()});
+
+        python::initInterpreter();
+        // release GIL
+        python::unlockGIL();
+    }
+
+    void TearDown() override {
+        python::lockGIL();
+        // important to get GIL for this
+        python::closeInterpreter();
+
+        // release runtime memory
+        tuplex::runtime::releaseRunTimeMemory();
+
+        // remove all loggers ==> note: this crashed because of multiple threads not being done yet...
+        // call only AFTER all threads/threadpool is terminated from Context/LocalBackend/LocalEngine...
+        Logger::instance().reset();
+
+        tuplex::UDF::enableCompilation(); // reset
+
+        // check whether exceptions work, LLVM9 has a bug which screws up C++ exception handling in ORCv2 APIs
+        try {
+            throw std::exception();
+        } catch(...) {
+            std::cout << "test done." << std::endl;
+        }
+    }
+};
+
 // proper test for flight processing
 TEST(BasicInvocation, ProperFlightsTest) {
     using namespace tuplex;
@@ -668,9 +709,6 @@ TEST(BasicInvocation, ProperFlightsTest) {
     //     EXPECT_EQ(ref_row_counts[uri.basename()], number_of_rows);
     // }
 
-    python::initInterpreter();
-    python::unlockGIL();
-
     // local worker mode for easier debugging
     ContextOptions co = ContextOptions::defaults();
     co.set("tuplex.backend", "worker");
@@ -701,6 +739,8 @@ TEST(BasicInvocation, ProperFlightsTest) {
     double nohyper_time = 0;
     // non-hyper vs. hyper (there needs to be a runtime difference.
     {
+        python::initInterpreter();
+        python::unlockGIL();
         Context ctx(co);
         auto udf_code = flights_code();
 
@@ -715,6 +755,9 @@ TEST(BasicInvocation, ProperFlightsTest) {
     }
 
     {
+        // bug: workerapp shutsdown interpreter -> needs to be fixed!
+        python::initInterpreter();
+        python::unlockGIL();
         Context ctx(co_hyper);
         auto udf_code = flights_code();
 

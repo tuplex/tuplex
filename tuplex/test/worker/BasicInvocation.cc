@@ -609,24 +609,11 @@ TEST(BasicInvocation, ProperFlightsTest) {
     using namespace tuplex;
     using namespace std;
 
-    // need to init AWS SDK...
-#ifdef BUILD_WITH_AWS
-    {
-        // init AWS SDK to get access to S3 filesystem
-        auto& logger = Logger::instance().logger("aws");
-        auto aws_credentials = AWSCredentials::get();
-        auto options = ContextOptions::defaults();
-        Timer timer;
-        bool aws_init_rc = initAWS(aws_credentials, options.AWS_NETWORK_SETTINGS(), options.AWS_REQUESTER_PAY());
-        logger.debug("initialized AWS SDK in " + std::to_string(timer.time()) + "s");
-    }
-#endif
     cout<<">> starting flights (hyper) test"<<endl;
 
     string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
 
-
-    input_pattern = "../resources/hyperspecialization/flights/*.sample";
+    input_pattern = "s3://tuplex-public/data/flights_on_time_performance_2009_01.10k.csv"; //"../resources/hyperspecialization/flights/*.sample";
     // get full data stats
     // input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv";
 
@@ -723,7 +710,7 @@ TEST(BasicInvocation, ProperFlightsTest) {
         ctx.csv(input_pattern, {}, option<bool>::none,
                 option<char>::none, '"', {""}, {}, {}, sm)
                 .map(UDF(udf_code))
-                        //.map(UDF("lambda x: {'year':x['YEAR'], 'nas':x['NAS_DELAY']}"))
+                //.map(UDF("lambda x: {'year':x['YEAR'], 'nas':x['NAS_DELAY']}"))
                 .tocsv("hyper_local_worker_output.csv");
         hyper_time = timer.time();
         std::cout<<"hyper mode: "<<hyper_time<<std::endl;

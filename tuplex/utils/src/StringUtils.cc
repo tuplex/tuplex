@@ -265,22 +265,37 @@ namespace tuplex {
     }
 
     bool isBoolString(const std::string& str) {
-        // @TODO: can we optimize this?
-
-        // true list
-        for(const auto& t : booleanTrueStrings()) {
-            if(boost::algorithm::to_lower_copy(str).compare(t) == 0)
-                return true;
+        static std::unordered_map<std::string, bool> m;
+        if(m.empty()) {
+            for(const auto& t : booleanTrueStrings())
+                m[t] = true;
+            for(const auto& t : booleanFalseStrings())
+                m[t] = false;
         }
+        // new version, use lazy lookup dict
+        assert(!m.empty());
 
-        // false list
-        for(const auto& f : booleanFalseStrings()) {
-            if(boost::algorithm::to_lower_copy(str).compare(f) == 0)
-                return true;
-        }
+        auto key = boost::algorithm::to_lower_copy(str);
+        auto it = m.find(key);
+        return it != m.end();
 
-        // not a boolean string
-        return false;
+        // old, slow version
+        // // @TODO: can we optimize this?
+        //
+        // // true list
+        // for(const auto& t : booleanTrueStrings()) {
+        //     if(boost::algorithm::to_lower_copy(str).compare(t) == 0)
+        //         return true;
+        // }
+        //
+        // // false list
+        // for(const auto& f : booleanFalseStrings()) {
+        //     if(boost::algorithm::to_lower_copy(str).compare(f) == 0)
+        //         return true;
+        // }
+        //
+        // // not a boolean string
+        // return false;
     }
 
     bool parseBoolString(const std::string& str) {

@@ -27,6 +27,13 @@
 
 class SamplingTest : public PyTest {};
 
+namespace tuplex {
+    // dummy
+    ContainerInfo getThisContainerInfo() {
+        ContainerInfo info;
+        return info;
+    }
+}
 
 // @TODO:
 // func traceFlightsPipeline(rows, pip) ....

@@ -40,7 +40,8 @@ include_directories("../worker/include")
 # linking
 add_executable(${LAMBDA_NAME} "src/main.cc"
         "src/lambda_main.cc"
-        "src/sighandler.cc")
+        "src/sighandler.cc"
+        "../core/src/ee/aws/LambdaWorkerApp.cc")
 
 # enable export symbols in debug for backtrace
 set_target_properties(${LAMBDA_NAME} PROPERTIES ENABLE_EXPORTS 1)

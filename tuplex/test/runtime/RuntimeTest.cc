@@ -16,7 +16,6 @@
 #include <cctype>
 #include <string>
 
-
 // this would be a test for the internal fmtlib conversion functions...
 //TEST(Runtime, FmtlibFloatingFormats) {
 //    using namespace std;

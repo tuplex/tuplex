@@ -21,6 +21,15 @@
 
 #include <boost/filesystem/operations.hpp>
 
+namespace tuplex {
+    // dummy
+    ContainerInfo getThisContainerInfo() {
+        ContainerInfo info;
+        return info;
+    }
+}
+
+
 // need for these tests a running python interpreter, so spin it up
 class WrapperTest : public TuplexTest {
     void SetUp() override {

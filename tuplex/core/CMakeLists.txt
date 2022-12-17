@@ -55,6 +55,9 @@ include_directories(${Boost_INCLUDE_DIR})
 # Source code & linking
 file(GLOB_RECURSE SOURCES src/*.cc)
 
+# remove manually LambdaWorkerApp.cc, should be linked explicitly for lambda app.
+list(FILTER SOURCES EXCLUDE REGEX LambdaWorkerApp)
+
 if(BUILD_WITH_AWS)
     # add protobuf srcs
     list(APPEND SOURCES ${PROTO_SRCS} ${PROTO_HDRS})

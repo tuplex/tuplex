@@ -1048,6 +1048,21 @@ TEST(BasicInvocation, CSVResamplingTest) {
                                        option<bool>(true),
                                                option<char>(','), option<char>('"'),
             {""}, {}, {}, {}, DEFAULT_SAMPLING_MODE));
+
+    // now resampling test, why is it so slow?
+    std::vector<URI> uris;
+    std::vector<size_t> uri_sizes;
+
+    uris.push_back(URI("s3://tuplex-public/data/flights_on_time_performance_2010_01.csv"));
+    for(auto& uri : uris) {
+        auto vfs = VirtualFileSystem::fromURI(uri);
+        size_t uri_size = 0;
+        vfs.file_size(uri, uri_size);
+        uri_sizes.push_back(uri_size);
+    }
+    timer.reset();
+    csvop->setInputFiles(uris, uri_sizes, true);
+    std::cout<<"resampling took: "<<timer.time()<<"s"<<std::endl;
 }
 
 TEST(BasicInvocation, Worker) {

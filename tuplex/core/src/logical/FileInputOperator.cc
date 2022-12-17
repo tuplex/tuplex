@@ -1535,6 +1535,7 @@ namespace tuplex {
         auto& logger = Logger::instance().logger("logical");
         std::vector<Row> v;
         assert(mode & SamplingMode::FIRST_ROWS || mode & SamplingMode::LAST_ROWS || mode & SamplingMode::RANDOM_ROWS);
+        Timer timer;
 
         if(0 == uri_size || uri == URI::INVALID) {
             logger.debug("empty file, can't obtain sample from it");
@@ -1656,6 +1657,10 @@ namespace tuplex {
 
             std::copy(rows.begin(), rows.end(), std::back_inserter(v));
         }
+
+        auto sampling_time = timer.time();
+        auto per_row_sampling_time_ms = 1000.0 * sampling_time / (std::max(1.0, 1.0 * v.size()));
+        logger.info("sampled " + pluralize(v.size(), "row") + " in " + std::to_string(sampling_time) + "s (" + std::to_string(per_row_sampling_time_ms) + "ms / row)");
 
         return v;
     }

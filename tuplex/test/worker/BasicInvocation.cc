@@ -1008,6 +1008,63 @@ TEST(BasicInvocation, GithubProcessing) {
     cout<<"-- test done."<<endl;
 }
 
+namespace tuplex {
+    void aws_init() {
+        // need to init AWS SDK...
+    #ifdef BUILD_WITH_AWS
+        {
+            // init AWS SDK to get access to S3 filesystem
+            auto& logger = Logger::instance().logger("aws");
+            auto aws_credentials = AWSCredentials::get();
+            auto options = ContextOptions::defaults();
+            Timer timer;
+            bool aws_init_rc = initAWS(aws_credentials, options.AWS_NETWORK_SETTINGS(), options.AWS_REQUESTER_PAY());
+            logger.debug("initialized AWS SDK in " + std::to_string(timer.time()) + "s");
+        }
+    #endif
+    }
+}
+
+
+TEST(BasicInvocation, CSVResamplingTest) {
+    using namespace std;
+    using namespace tuplex;
+
+    // test using S3
+    auto test_path = URI("s3://tuplex-public/data/flights_on_time_performance_2009_01.csv");
+
+    aws_init();
+
+    tuplex::Timer timer;
+
+    // check why resampling//csv parsinbg takes so long
+    python::initInterpreter();
+    python::unlockGIL();
+    ContextOptions co = ContextOptions::defaults();
+    auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
+    co.set("tuplex.optimizer.nullValueOptimization", enable_nvo ? "true" : "false");
+    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
+    auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path.toString(), co,
+                                       option<bool>(true),
+                                               option<char>(','), option<char>('"'),
+            {""}, {}, {}, {}, DEFAULT_SAMPLING_MODE));
+
+    // now resampling test, why is it so slow?
+    std::vector<URI> uris;
+    std::vector<size_t> uri_sizes;
+
+    uris.push_back(URI("s3://tuplex-public/data/flights_on_time_performance_2010_01.csv"));
+    for(auto& uri : uris) {
+        auto vfs = VirtualFileSystem::fromURI(uri);
+        size_t uri_size = 0;
+        vfs.file_size(uri, uri_size);
+        uri_sizes.push_back(uri_size);
+    }
+    timer.reset();
+    csvop->setInputFiles(uris, uri_sizes, true);
+    std::cout<<"resampling took: "<<timer.time()<<"s"<<std::endl;
+}
+
 TEST(BasicInvocation, Worker) {
     using namespace std;
     using namespace tuplex;

@@ -1057,7 +1057,7 @@ TEST(BasicInvocation, CSVResamplingTest) {
     for(auto& uri : uris) {
         auto vfs = VirtualFileSystem::fromURI(uri);
         size_t uri_size = 0;
-        vfs.file_size(uri, uri_size);
+        vfs.file_size(uri, reinterpret_cast<uint64_t&>(uri_size));
         uri_sizes.push_back(uri_size);
     }
     timer.reset();

@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <algorithm>
 #include <mutex>
 #include <TTuple.h>
@@ -517,7 +518,7 @@ namespace python {
 
         // need threadsafe hashmap here...
         // either tbb's or the one from folly...
-        std::map<int, TypeEntry> _typeMap;
+        std::unordered_map<int, TypeEntry> _typeMap;
         mutable std::mutex _typeMapMutex;
 
         TypeFactory() : _hash_generator(0)  {}

@@ -1041,6 +1041,11 @@ TEST(BasicInvocation, CSVResamplingTest) {
     python::initInterpreter();
     python::unlockGIL();
     ContextOptions co = ContextOptions::defaults();
+
+    // sampling size, increase to make it more dominant
+    co.set("tuplex.sample.maxDetectionMemory", "4MB");
+    co.set("tuplex.sample.maxDetectionRows", "100000");
+
     auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
     co.set("tuplex.optimizer.nullValueOptimization", enable_nvo ? "true" : "false");
     codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);

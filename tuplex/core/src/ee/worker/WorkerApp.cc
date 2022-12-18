@@ -339,6 +339,9 @@ namespace tuplex {
             size_t file_size = req.inputsizes(0);
             logger().info("-- specializing to " + uri);
 
+            std::string irCodeBefore = tstage->fastPathBitCode();
+            logger().info("fast code path size before hyperspecialization: " + sizeToMemString(irCodeBefore.size()));
+
             // check if specialized normal-case type is different from current normal case type
             _normalCaseRowType = tstage->normalCaseInputSchema().getRowType(); // needed when fastcode path is missing?
             auto normalCaseCols = tstage->normalCaseInputColumnsToKeep();
@@ -362,7 +365,7 @@ namespace tuplex {
                 logger().warn("-- hyperspecialization failed in " + std::to_string(timer.time())
                               + "s, using original, provided fast code path.");
             }
-
+            logger().info("fast code path size after hyperspecialization: " + sizeToMemString(tstage->fastPathBitCode().size()));
             markTime("hyperspecialization_time", timer.time());
         }
 

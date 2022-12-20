@@ -291,6 +291,8 @@ namespace tuplex {
 
             auto key = std::make_tuple(colNo, type);
 
+            logger().debug("cachedParse col=" + std::to_string(colNo) + " (" + type.desc() + ")");
+
             //@TODO: there's an error here, i.e. need to force parsing for both general/normal first on path
             // to avoid domination errors in codegen.
             bool no_cache = true; // HACK to disable cachedParse.
@@ -979,8 +981,9 @@ namespace tuplex {
 
                 IRBuilder<> b(_valueErrorBlock);
 
-                // env().debugPrint(b, "value error block entered.");
-
+#ifndef NDEBUG
+                 // env().debugPrint(b, "value error block entered.");
+#endif
                 // could use here value error as well. However, for internal resolve use badparse string input!
                 exitWith(b, ExceptionCode::BADPARSE_STRING_INPUT);
                 // b.CreateRet(env().i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)));
@@ -996,7 +999,7 @@ namespace tuplex {
                 IRBuilder<> b(_nullErrorBlock);
 
 #ifndef NDEBUG
-                // _env->debugPrint(b, "emitting NULLERROR (CellSourceTaskBuilder)");
+                 // _env->debugPrint(b, "emitting NULLERROR (CellSourceTaskBuilder)");
 #endif
                 // b.CreateRet(env().i64Const(ecToI64(ExceptionCode::NULLERROR))); // internal error! => use this to force compiled processing?
 

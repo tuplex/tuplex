@@ -124,8 +124,8 @@ namespace tuplex {
 
         // do not use optimizer?
         auto& m = *ws->mutable_other();
-        m["tuplex.useLLVMOptimizer"] = "false";
-        m["tuplex.optimizer.constantFoldingOptimization"] = "false";
+        m["tuplex.useLLVMOptimizer"] = "true";
+        m["tuplex.optimizer.constantFoldingOptimization"] = "true";
 
         req.set_allocated_settings(ws.release());
 
@@ -2229,9 +2229,8 @@ TEST(BasicInvocation, FlightsSampling) {
     auto tstage_general = create_flights_pipeline(input_pattern, "./general_processing/", false, sampling_mode);
 
     // now specify which files to run on.
-    paths = {URI(flights_root + "/flights_on_time_performance_2003_11.csv")};
-    std::reverse(paths.begin(), paths.end());
-
+    //paths = {URI(flights_root + "/flights_on_time_performance_2003_11.csv")};
+    //std::reverse(paths.begin(), paths.end());
     for(const auto& path : paths) {
         Timer timer;
         cout<<"Testing "<<basename(path.toString())<<"...";

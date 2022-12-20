@@ -2224,8 +2224,8 @@ TEST(BasicInvocation, FlightsSampling) {
     auto spillURI = std::string("spill_folder");
 
     // sm = tuplex.dataset.SamplingMode.ALL_FILES | tuplex.dataset.SamplingMode.FIRST_ROWS
-    auto sampling_mode = SamplingMode::ALL_FILES | SamplingMode::FIRST_ROWS;
-    auto tstage_hyper = nullptr; // create_flights_pipeline(input_pattern, "./hyper_processing/", true);
+    auto sampling_mode = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE; // //SamplingMode::ALL_FILES | SamplingMode::FIRST_ROWS;
+    auto tstage_hyper = create_flights_pipeline(input_pattern, "./hyper_processing/", true);
     auto tstage_general = create_flights_pipeline(input_pattern, "./general_processing/", false, sampling_mode);
 
     // now specify which files to run on.

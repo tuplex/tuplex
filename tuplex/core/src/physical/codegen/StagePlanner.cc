@@ -580,6 +580,11 @@ namespace tuplex {
             //     std::cout<<keyval.second<<": "<<keyval.first<<std::endl;
             // }
 
+            if(sample.empty()) {
+                logger.info("got empty sample, skipping optimization.");
+                return;
+            }
+
             // detect majority type
             // detectMajorityRowType(const std::vector<Row>& rows, double threshold, bool independent_columns)
             auto majType = detectMajorityRowType(sample, _nc_threshold, true, _useNVO);

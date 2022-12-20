@@ -483,13 +483,43 @@ namespace tuplex {
                                     auto str_size = builder.CreateLoad(sizePtr);
                                     // size correct?
                                     auto size_ok = builder.CreateICmpEQ(str_size, env().i64Const(value.size() + 1));
-                                    auto ptr = builder.CreateGEP(cellsPtr, env().i64Const(i));
+                                    auto ptr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)));
                                     const auto& DL = env().getModule()->getDataLayout();
-                                    const TargetLibraryInfo *TLI = nullptr;
-                                    auto cmp_ok = llvm::emitBCmp(ptr,
-                                                                 env().strConst(builder, value),
-                                                                 env().i64Const(value.size()),
-                                                                 DL, TLI); //builder.CreateBinaryIntrinsic(Intrinsic::ID::memc
+                                    //const TargetLibraryInfo *TLI = nullptr; // <-- this may be wrong?
+
+                                    //    if (!BaselineInfoImpl)
+                                    //     BaselineInfoImpl =
+                                    //         TargetLibraryInfoImpl(Triple(F.getParent()->getTargetTriple()));
+                                    //   return TargetLibraryInfo(*BaselineInfoImpl, &F);
+
+//                                    TargetLibraryAnalysis TLA;
+//                                    FunctionAnalysisManager DummyFAM;
+//                                    auto F  = builder.GetInsertBlock()->getParent();
+//                                    auto TLI = TLA.run(*F, DummyFAM);
+//                                    auto M = builder.GetInsertBlock()->getParent()->getParent();
+//                                    auto BaselineInfoImpl = TargetLibraryInfoImpl(Triple(M->getTargetTriple()));
+//                                    auto TLI2 = TargetLibraryInfo(BaselineInfoImpl);
+//
+//                                    memcmp_prototype()
+//                                    // bcmp means simply compare memory, but no need to retrieve first pos of different byte.
+//                                    // -> cheaper to execute.
+//                                    auto cmp_ok = llvm::emitBCmp(ptr,
+//                                                                 env().strConst(builder, value),
+//                                                                 env().i64Const(value.size()),
+//                                                                 builder,
+//                                                                 DL,
+//                                                                 &TLI);
+
+                                    // should be optimized to bcmp
+                                    auto memcmpFunc = memcmp_prototype(env().getContext(), env().getModule().get());
+                                    auto n = env().i64Const(value.size());
+                                    auto cmp_ptr = env().strConst(builder, value);
+                                    assert(ptr);
+                                    assert(ptr->getType() == env().i8ptrType());
+                                    assert(cmp_ptr->getType() == env().i8ptrType());
+                                    auto cmp_ok = builder.CreateICmpEQ(env().i64Const(0), builder.CreateCall(memcmpFunc, {ptr, cmp_ptr, n}));
+                                    assert(cmp_ok);
+                                    assert(cmp_ok->getType() == env().i1Type());
                                     check_cond = builder.CreateAnd(size_ok, cmp_ok);
 
 

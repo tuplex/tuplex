@@ -10,6 +10,7 @@
 
 #include <physical/codegen/CellSourceTaskBuilder.h>
 #include <codegen/CodegenHelper.h>
+#include <llvm/Transforms/Utils/BuildLibCalls.h>
 
 namespace tuplex {
     namespace codegen {
@@ -471,11 +472,34 @@ namespace tuplex {
                                     auto c_val = parseBoolString(const_type.constant());
                                     check_cond = builder.CreateICmpEQ(_env->boolConst(c_val), val.val);
                                 } else if(python::Type::I64 == elementType) {
-                                    auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
 
-                                    // compare value
-                                    auto c_val = parseI64String(const_type.constant());
-                                    check_cond = builder.CreateICmpEQ(_env->i64Const(c_val), val.val);
+                                    // this check can be performed faster (if no leading 0s are assumed).
+                                    // i.e. use https://news.ycombinator.com/item?id=21019007 intrinsic.
+                                    // can also use that intrinsic for string comparison!
+
+                                    auto const_string = value;
+
+                                    auto sizePtr = builder.CreateGEP(sizesPtr, env().i64Const(i));
+                                    auto str_size = builder.CreateLoad(sizePtr);
+                                    // size correct?
+                                    auto size_ok = builder.CreateICmpEQ(str_size, env().i64Const(value.size() + 1));
+                                    auto ptr = builder.CreateGEP(cellsPtr, env().i64Const(i));
+                                    const auto& DL = env().getModule()->getDataLayout();
+                                    const TargetLibraryInfo *TLI = nullptr;
+                                    auto cmp_ok = llvm::emitBCmp(ptr,
+                                                                 env().strConst(builder, value),
+                                                                 env().i64Const(value.size()),
+                                                                 DL, TLI); //builder.CreateBinaryIntrinsic(Intrinsic::ID::memc
+                                    check_cond = builder.CreateAnd(size_ok, cmp_ok);
+
+
+                                    // #error "prevent expensive check here, simply compare length of string and value contents!"
+                                    // old code here: i.e., full parse...
+                                    // auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
+//
+                                    // // compare value
+                                    // auto c_val = parseI64String(const_type.constant());
+                                    // check_cond = builder.CreateICmpEQ(_env->i64Const(c_val), val.val);
                                 } else if(python::Type::F64 == elementType) {
                                     auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
 

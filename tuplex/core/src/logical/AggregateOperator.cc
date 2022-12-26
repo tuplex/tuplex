@@ -100,15 +100,47 @@ namespace tuplex {
                 aggregateType = aggregateType.parameters().front();
 
             _aggregateOutputType = aggregateType;
-            hintTwoParamUDF(_combiner, aggregateType, aggregateType);
-            logger.debug("combiner output-schema is: " + _combiner.getOutputSchema().getRowType().desc());
 
-            // how hint the aggregator function. It too has to have two input params.
+            // hint first the aggregator. It's output type an aggregateType need to be compatible.
+            // if not - fail.
+            // hint the aggregator function. It does have to have two input params too.
             auto rowtype = parent()->getOutputSchema().getRowType();
             if(rowtype.parameters().size() == 1) // unpack one level
                 rowtype = rowtype.parameters().front();
             hintTwoParamUDF(_aggregator, aggregateType, rowtype);
             logger.debug("aggregator output-schema is: " + _aggregator.getOutputSchema().getRowType().desc());
+
+            if(Schema::UNKNOWN == _aggregator.getOutputSchema()) {
+                throw std::runtime_error("failed to type aggregator function.");
+            }
+
+            // are they compatible?
+            auto t_policy = TypeUnificationPolicy::defaultPolicy();
+            t_policy.allowAutoUpcastOfNumbers = true;
+            t_policy.unifyMissingDictKeys = true;
+            auto aggregator_output_type = _aggregator.getOutputSchema().getRowType();
+            if(aggregator_output_type.parameters().size() == 1)
+               aggregator_output_type = aggregator_output_type.parameters().front();
+            auto uni_type = unifyTypes(aggregateOutputType(), aggregator_output_type, t_policy);
+            if(python::Type::UNKNOWN == uni_type) {
+                logger.error("type of initial aggregate " + aggregateOutputType().desc() +
+                " and output type of aggregator udf " + aggregator_output_type.desc() + " incompatible.");
+                return false;
+            }
+
+            // different? update!
+            if(aggregateOutputType() != uni_type) {
+                logger.debug("updating aggregate type from " + aggregateType.desc()
+                + " to " + uni_type.desc() + " due to output of aggregator udf.");
+                aggregateType = uni_type;
+                _aggregateOutputType = uni_type;
+            }
+
+            // type combiner now (with potentially updated output type)
+            hintTwoParamUDF(_combiner, aggregateType, aggregateType);
+            logger.debug("combiner output-schema is: " + _combiner.getOutputSchema().getRowType().desc());
+
+            // how
 
 
             // check whether everything is compatible.
@@ -119,7 +151,7 @@ namespace tuplex {
 
             // @TODO: upcasting checks from tplx197...
 
-            auto final_type = python::Type::superType(ctype, python::Type::superType(atype, itype));
+            auto final_type = unifyTypes(ctype, unifyTypes(atype, itype, t_policy), t_policy);
             if(final_type == python::Type::UNKNOWN)
                 throw std::runtime_error("incompatible types in aggregate operator");
 

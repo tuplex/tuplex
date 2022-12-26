@@ -2146,6 +2146,20 @@ TEST(BasicInvocation, TestAllFlightFiles) {
     cout<<"Test done."<<endl;
 }
 
+TEST(BasicInvocation, FlightAggTest) {
+    // row['ARR_DELAY']
+    using namespace std;
+    using namespace tuplex;
+
+    ContextOptions co = ContextOptions::defaults();
+
+    Context ctx(co);
+    ctx.csv("../resources/hyperspecialization/flights/flights_on_time_performance_*.csv.sample")
+       .selectColumns(std::vector<std::string>({"YEAR", "MONTH", "ARR_DELAY"}))
+       .aggregateByKey(UDF("lambda a, b: a + b"),
+                       UDF("lambda a, row: a + row['ARR_DELAY']"),
+                       Row(0), std::vector<std::string>({"YEAR", "MONTH"})).show();
+}
 
 TEST(BasicInvocation, FlightsSampling) {
     using namespace std;

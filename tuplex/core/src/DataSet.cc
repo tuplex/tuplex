@@ -704,7 +704,8 @@ namespace tuplex {
     }
 
     // TODO: this is almost the exact same code as above, maybe refactor?
-    DataSet & DataSet::aggregateByKey(const UDF &aggCombine, const UDF &aggUDF, const Row &aggInitial, const std::vector<std::string> &keyColumns) {
+    DataSet & DataSet::aggregateByKey(const UDF &aggCombine, const UDF &aggUDF,
+                                      const Row &aggInitial, const std::vector<std::string> &keyColumns) {
         if(isError())
             return *this;
 

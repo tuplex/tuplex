@@ -178,8 +178,28 @@ namespace tuplex {
                 throw std::runtime_error("UDF is empty in createAggregateFunction, this should not happen");
             auto params = udf.getInputParameters();
             assert(params.size() == 2);
-            assert(python::Type::propagateToTupleType(std::get<1>(params[0])) == python::Type::propagateToTupleType(aggType));
-            assert(python::Type::propagateToTupleType(std::get<1>(params[1])) == python::Type::propagateToTupleType(rowType));
+            // check compatibility
+            auto t_policy = TypeUnificationPolicy::defaultPolicy();
+            t_policy.allowAutoUpcastOfNumbers = true;
+            t_policy.unifyMissingDictKeys = true;
+
+            auto& logger = Logger::instance().logger("codegen");
+            {
+                std::stringstream ss;
+                ss<<"parameters passed to aggregate function are:\n";
+                for(unsigned i = 0; i < params.size(); ++i) {
+                    ss<<"param ("<<i<<"): "<<std::get<0>(params[i])<<"="<<std::get<1>(params[0]).desc()<<"\n";
+                }
+                logger.debug(ss.str());
+            }
+
+            auto uni_agg_type = unifyTypes(python::Type::propagateToTupleType(std::get<1>(params[0])),
+                                       python::Type::propagateToTupleType(aggType), t_policy);
+            assert(python::Type::UNKNOWN != uni_agg_type);
+            auto uni_output_type = unifyTypes(python::Type::propagateToTupleType(std::get<1>(params[1])),
+                                             python::Type::propagateToTupleType(rowType),
+                                             t_policy);
+            assert(python::Type::UNKNOWN != uni_output_type);
 
             // deserialize using aggType
             FlattenedTuple ftAgg(env); ftAgg.init(aggType);

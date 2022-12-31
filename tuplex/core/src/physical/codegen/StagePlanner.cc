@@ -947,6 +947,50 @@ namespace tuplex {
                     case LogicalOperatorType::AGGREGATE: {
                         // aggregate is currently not part of codegen, i.e. the aggregation happens when writing out the output!
                         // ==> what about aggByKey though?
+
+                        auto aop = std::dynamic_pointer_cast<AggregateOperator>(node);
+                        // need to retype aggregateByKey operator with new, specialized input type!
+                        assert(node->getInputSchema() != Schema::UNKNOWN);
+
+                        auto op = node->clone(false); // no need to clone with parents, b.c. assigned below.
+                        auto oldInputType = node->getInputSchema().getRowType();
+                        auto oldOutputType = node->getInputSchema().getRowType();
+                        auto columns_before = node->columns();
+
+                        {
+                            std::stringstream ss;
+                            ss<<"retyping "<<aop->name()<<std::endl;
+                            logger.debug(ss.str());
+                        }
+
+
+                        checkRowType(last_rowtype);
+                        // set FIRST the parent. Why? because operators like ignore depend on parent schema
+                        // therefore, this needs to get updated first.
+                        op->setParent(lastParent); // need to call this before retype, so that columns etc. can be utilized.
+                        if(!op->retype(last_rowtype, last_columns, true))
+                            throw std::runtime_error("could not retype operator " + op->name());
+                        opt_ops.push_back(op);
+                        opt_ops.back()->setID(node->getID());
+
+#ifdef VERBOSE_BUILD
+                        {
+                            stringstream ss;
+                            ss<<FLINESTR<<endl;
+                            ss<<"retyped "<<op->name()<<endl;
+                            ss<<"\told input type: "<<oldInputType.desc()<<endl;
+                            ss<<"\told output type: "<<oldOutputType.desc()<<endl;
+                            ss<<"\tnew input type: "<<op->getInputSchema().getRowType().desc()<<endl;
+                            ss<<"\tnew output type: "<<op->getOutputSchema().getRowType().desc()<<endl;
+
+
+                            // columns: before/after
+                            ss<<"output columns before: "<<columns_before<<endl;
+                            ss<<"output columns after: "<<op->columns()<<endl;
+
+                            logger.debug(ss.str());
+                        }
+#endif
                         break;
                     }
                     default: {

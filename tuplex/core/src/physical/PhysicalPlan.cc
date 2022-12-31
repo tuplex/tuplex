@@ -57,7 +57,8 @@ namespace tuplex {
     //    }
 
 
-    PhysicalStage* PhysicalPlan::createStage(const std::shared_ptr<LogicalOperator> &root, std::shared_ptr<LogicalOperator> endNode=nullptr,
+    PhysicalStage* PhysicalPlan::createStage(const std::shared_ptr<LogicalOperator> &root,
+                                             std::shared_ptr<LogicalOperator> endNode=nullptr,
                                              bool isRootStage=true,
                                              EndPointMode outMode=EndPointMode::UNKNOWN) {
         using namespace std;
@@ -195,7 +196,7 @@ namespace tuplex {
             inputMode = ops.front()->type() == LogicalOperatorType::FILEINPUT ? EndPointMode::FILE : EndPointMode::MEMORY;
             ioNode = ops.front();
             if(inputMode == EndPointMode::MEMORY) {
-                // type should be parallelize or cache!
+                // type should be "parallelize" or "cache"!
                 auto t = ops.front()->type();
                 assert(t == LogicalOperatorType::PARALLELIZE || t == LogicalOperatorType::CACHE);
                 if (t == LogicalOperatorType::PARALLELIZE)
@@ -260,7 +261,7 @@ namespace tuplex {
                 break;
             }
             case EndPointMode::MEMORY: {
-                // note: can be parallelize or any other node if its internal!
+                // note: can be "parallelize" or any other node if its internal!
                 // => has to be output schema here of parent because of Map Operator!
                 Schema inSchema;
                 if(ioNode)

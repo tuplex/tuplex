@@ -1518,13 +1518,16 @@ namespace tuplex {
             _outputDataSetID = dsID;
         }
 
-        void StageBuilder::addHashTableOutput(std::shared_ptr<LogicalOperator> node, const Schema &schema,
+        void StageBuilder::addHashTableOutput(std::shared_ptr<LogicalOperator> node,
+                                              const Schema &schema,
                                               bool bucketizeOthers,
                                               bool aggregate,
                                               const std::vector<size_t> &colKeys,
                                               const python::Type& keyType,
                                               const python::Type& bucketType) {
-            _operators.push_back(node);
+            // has the operator been already pushed internally? skip. else, add.
+            if(!_operators.empty() && _operators.back()->getID() != node->getID())
+                _operators.push_back(node);
 
             assert(!bucketizeOthers || (bucketizeOthers && !colKeys.empty())); // can't bucketize w/o colkey
             _outputMode = EndPointMode::HASHTABLE;
@@ -1633,6 +1636,12 @@ namespace tuplex {
             //     auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode); assert(fop);
             //     fop->setInputFiles({uri}, {file_size}, true);
             // }
+
+            // is end-point hashtable? need to specialize hashkeytype etc.
+            if(!path_ctx.operators.empty()) {
+                auto& last_op = path_ctx.operators.back();
+                auto last_name = last_op->name();
+            }
 
             // node need to find some smart way to QUICKLY detect whether the optimization can be applied or should be rather skipped...
             codegen::StagePlanner planner(inputNode, operators, nc_threshold);

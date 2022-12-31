@@ -2589,24 +2589,26 @@ namespace tuplex {
                         for (auto &arg : func->args()) {
                            args.emplace_back(&arg);
                         }
-                        assert(args.size() == 2); // should be two tuples
-                        assert(args[0]->getType()->isPointerTy());
-                        assert(args[1]->getType()->isPointerTy());
 
-                        // fetch input/output type
-                        auto out_llvm_type = args[0]->getType()->getPointerElementType();
-                        auto in_llvm_type = args[1]->getType()->getPointerElementType();
+                        // when it's a udf, should be two tuples
+                        if(args.size() == 2 && args[0]->getType()->isPointerTy() && args[1]->getType()->isPointerTy()) {
+                            assert(args[0]->getType()->isPointerTy());
+                            assert(args[1]->getType()->isPointerTy());
 
-                        // look python types up
-                        auto in_llvm_name = getLLVMTypeName(in_llvm_type);
-                        auto out_llvm_name = getLLVMTypeName(out_llvm_type);
-                        ss<<"function @" +func_name<<": "<<in_llvm_name<<" -> "<<out_llvm_name<<"\n";
+                            // fetch input/output type
+                            auto out_llvm_type = args[0]->getType()->getPointerElementType();
+                            auto in_llvm_type = args[1]->getType()->getPointerElementType();
 
-                        // get name from stored tuples
-                        auto in_type = lookupPythonType(in_llvm_name);
-                        auto out_type = lookupPythonType(out_llvm_name);
-                        ss<<"corresponds to: "<<in_type.desc()<<" -> "<<out_type.desc()<<"\n";
+                            // look python types up
+                            auto in_llvm_name = getLLVMTypeName(in_llvm_type);
+                            auto out_llvm_name = getLLVMTypeName(out_llvm_type);
+                            ss<<"function @" +func_name<<": "<<in_llvm_name<<" -> "<<out_llvm_name<<"\n";
 
+                            // get name from stored tuples
+                            auto in_type = lookupPythonType(in_llvm_name);
+                            auto out_type = lookupPythonType(out_llvm_name);
+                            ss<<"corresponds to: "<<in_type.desc()<<" -> "<<out_type.desc()<<"\n";
+                        }
                     } else {
                         ss<<"function @" + func_name + " not found in LLVM module\n";
                     }

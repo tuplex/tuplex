@@ -2151,6 +2151,9 @@ TEST(BasicInvocation, FlightAggTest) {
     using namespace std;
     using namespace tuplex;
 
+    python::initInterpreter();
+    python::unlockGIL();
+
     ContextOptions co = ContextOptions::defaults();
 
     Context ctx(co);
@@ -2159,6 +2162,8 @@ TEST(BasicInvocation, FlightAggTest) {
        .aggregateByKey(UDF("lambda a, b: a + b"),
                        UDF("lambda a, row: a + row['ARR_DELAY']"),
                        Row(0), std::vector<std::string>({"YEAR", "MONTH"})).show();
+    python::lockGIL();
+    python::closeInterpreter();
 }
 
 TEST(BasicInvocation, FlightsSampling) {

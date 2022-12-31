@@ -231,6 +231,8 @@ namespace tuplex {
             IRBuilder<> eb(exceptionBlock);
             eb.CreateRet(eb.CreateLoad(exceptionVar));
 
+#error "fix this here... wrong types??"
+            
             auto ftOut = cf.callWithExceptionHandler(builder, ftin, resultVar, exceptionBlock, exceptionVar);
 
             // if it's variably allocated, free out after combine and realloc...

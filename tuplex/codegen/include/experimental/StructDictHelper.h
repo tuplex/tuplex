@@ -11,11 +11,6 @@
 namespace tuplex {
     namespace codegen {
 
-        inline llvm::Constant *cbool_const(llvm::LLVMContext &ctx, bool b) {
-            auto type = ctypeToLLVM<bool>(ctx);
-            return llvm::ConstantInt::get(llvm::Type::getIntNTy(ctx, type->getIntegerBitWidth()), b);
-        }
-
         using flattened_struct_dict_decoded_entry_t = std::tuple<std::vector<std::pair<std::string, python::Type>>, python::Type, bool, SerializableValue, llvm::Value*>;
         using flattened_struct_dict_decoded_entry_list_t = std::vector<flattened_struct_dict_decoded_entry_t>;
 

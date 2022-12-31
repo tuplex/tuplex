@@ -1119,6 +1119,14 @@ namespace tuplex {
                                                                  bool isAggregateByKey) {
             auto& logger = Logger::instance().logger("codegen");
 
+            {
+                std::stringstream ss;
+                ss<<"building with hashmap endpoint::\n";
+                ss<<"key columns: "<<keyCols<<"\n";
+                ss<<"store data from non-key columns in hashmap: "<<std::boolalpha<<bucketize;
+                logger.debug(ss.str());
+            }
+
             assert(!bucketize || (bucketize && !keyCols.empty() && !isAggregateByKey));
             assert((isAggregateByKey && !bucketize) || !isAggregateByKey);
             assert(hashtableWidth == 8 || hashtableWidth == 0);
@@ -1342,7 +1350,7 @@ namespace tuplex {
                                                                      ctypeToLLVM<int64_t>(ctx)}, false);
                 auto callback_func = env().getModule()->getOrInsertFunction(callbackName, hashCallback_type);
                 builder.CreateCall(callback_func,
-                                   {_argUserData, key, keyNull, _env->boolConst(bucketize), bucket, bucketSize});
+                                   {_argUserData, key, keyNull, cbool_const(ctx, bucketize), bucket, bucketSize});
             } else {
                 FunctionType *hashCallback_type = FunctionType::get(Type::getVoidTy(ctx),
                                                                     {ctypeToLLVM<void *>(ctx),
@@ -1351,7 +1359,7 @@ namespace tuplex {
                                                                      ctypeToLLVM<int64_t>(ctx)}, false);
                 auto callback_func = env().getModule()->getOrInsertFunction(callbackName, hashCallback_type);
                 builder.CreateCall(callback_func,
-                                   {_argUserData, key, keySize, _env->boolConst(bucketize), bucket, bucketSize});
+                                   {_argUserData, key, keySize, cbool_const(ctx, bucketize), bucket, bucketSize});
                 // NEW: hashmap handles key dup
                 // call free on the key
                 _env->cfree(builder, key); // should be NULL safe.

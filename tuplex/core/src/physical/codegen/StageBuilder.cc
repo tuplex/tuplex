@@ -818,9 +818,17 @@ namespace tuplex {
                      // force output type to be always general case (=> so merging works easily!)
                      // only exception is if source is cache and no exceptions happened.
 
+                     // note that codegen should emit type of aggregator UDF in case
+                     // and the next stage then does take this and perform the initial combine!
+
                      bool leaveNormalCase = false;
-                     if(!pathContext.operators.empty())
+                     if(!pathContext.operators.empty()) {
                          leaveNormalCase = pathContext.operators.back()->type() == LogicalOperatorType::CACHE;
+                         if(pathContext.operators.back()->type() == LogicalOperatorType::AGGREGATE &&
+                                 ((const AggregateOperator*)pathContext.operators.back().get())->aggType() != AggregateType::AGG_UNIQUE)
+                             leaveNormalCase = true; // leave as is, later combine need to make sure everything works.
+
+                     }
 
                      // special case: join is executed on top of a .cache()
                      // =>
@@ -1637,11 +1645,11 @@ namespace tuplex {
             //     fop->setInputFiles({uri}, {file_size}, true);
             // }
 
-            // is end-point hashtable? need to specialize hashkeytype etc.
-            if(!path_ctx.operators.empty()) {
-                auto& last_op = path_ctx.operators.back();
-                auto last_name = last_op->name();
-            }
+//            // is end-point hashtable? need to specialize hashkeytype etc.
+//            if(!path_ctx.operators.empty()) {
+//                auto& last_op = path_ctx.operators.back();
+//                auto last_name = last_op->name();
+//            }
 
             // node need to find some smart way to QUICKLY detect whether the optimization can be applied or should be rather skipped...
             codegen::StagePlanner planner(inputNode, operators, nc_threshold);

@@ -2181,6 +2181,10 @@ namespace tuplex {
 
         extern SerializableValue constantValuedTypeToLLVM(llvm::IRBuilder<>& builder, const python::Type& const_type);
 
+        inline llvm::Constant *cbool_const(llvm::LLVMContext &ctx, bool b) {
+            auto type = ctypeToLLVM<bool>(ctx);
+            return llvm::ConstantInt::get(llvm::Type::getIntNTy(ctx, type->getIntegerBitWidth()), b);
+        }
     }
 }
 

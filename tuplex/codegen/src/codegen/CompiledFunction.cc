@@ -104,6 +104,48 @@ namespace tuplex {
                 auto resArgName = function->arg_begin()->getName();
                 auto paramArgName = (function->arg_begin() + 1)->getName();
 
+                // check function types
+                logger.debug("generating code to call function " + function->getName().str()
+                + " within function " + callingFunction->getName().str());
+
+
+                // check that types match, else assert failure.
+                auto args_map = mapLLVMFunctionArgs(function, std::vector<std::string>({"out", "in"}));
+                auto expected_out_type = args_map["out"]->getType();
+                auto expected_in_type = args_map["in"]->getType();
+
+                logger.debug("out type: " + env.getLLVMTypeName(resPtr->getType())
+                    + " (expected: " + env.getLLVMTypeName(expected_out_type) + ")");
+                logger.debug("in type:  " + env.getLLVMTypeName(inRowPtr->getType())
+                    + " (expected: " + env.getLLVMTypeName(expected_in_type) + ")");
+
+
+                // if not the same, print additional info
+                if(expected_out_type != resPtr->getType()) {
+                    std::stringstream ss;
+                    ss<<"actual out type given is: ";
+                    for(auto t : env.lookupPythonTypes(resPtr->getType()))
+                        ss<<t.desc()<<"\n";
+                    ss<<" but expected: ";
+                    for(auto t : env.lookupPythonTypes(expected_out_type))
+                        ss<<t.desc()<<"\n";
+                    logger.error(ss.str());
+                }
+
+                if(expected_in_type != inRowPtr->getType()) {
+                    std::stringstream ss;
+                    ss<<"actual in type given is: ";
+                    for(auto t : env.lookupPythonTypes(inRowPtr->getType()))
+                        ss<<t.desc()<<"\n";
+                    ss<<" but expected: ";
+                    for(auto t : env.lookupPythonTypes(expected_in_type))
+                        ss<<t.desc()<<"\n";
+                    logger.error(ss.str());
+                }
+
+                assert(expected_out_type == resPtr->getType());
+                assert(expected_in_type == inRowPtr->getType());
+
                 auto retCode = builder.CreateCall(function, {resPtr, inRowPtr});
 
                 // store exception Code

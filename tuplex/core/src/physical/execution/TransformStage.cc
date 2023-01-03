@@ -696,6 +696,14 @@ namespace tuplex {
             // set input partitions & init Data
             setInitData(numArgs, hash_maps, null_buckets);
             if(inputPartitions().empty()) {
+                // construct default partition group
+                std::vector<PartitionGroup> defaultPartitionGroups;
+                for (int i = 0; i < partitions.size(); ++i) {
+                    // New partition group for each normal partition so number is constant at 1
+                    // This is because each normal partition is assigned its own task
+                    defaultPartitionGroups.push_back(PartitionGroup(1, i, 0, 0, 0, 0));
+                }
+                setPartitionGroups(defaultPartitionGroups);
                 setInputPartitions(partitions);
             }
         }

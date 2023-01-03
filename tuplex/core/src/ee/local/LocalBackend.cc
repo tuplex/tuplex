@@ -690,6 +690,11 @@ namespace tuplex {
             auto generalPartitions = tstage->generalPartitions();
             auto fallbackPartitions = tstage->fallbackPartitions();
             auto partitionGroups = tstage->partitionGroups();
+
+            // sanity check: partition groups have to exist when partitions exist!
+            if(!inputPartitions.empty())
+                assert(!partitionGroups.empty());
+
             for (const auto &group : partitionGroups) {
                 std::vector<Partition*> taskNormalPartitions;
                 bool invalidateAfterUse = false;

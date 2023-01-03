@@ -2155,13 +2155,14 @@ TEST(BasicInvocation, FlightAggTest) {
     python::unlockGIL();
 
     ContextOptions co = ContextOptions::defaults();
-
+    co.set("tuplex.executorCount", "0");
     Context ctx(co);
     ctx.csv("../resources/hyperspecialization/flights/flights_on_time_performance_*.csv.sample")
        .selectColumns(std::vector<std::string>({"YEAR", "MONTH", "ARR_DELAY"}))
        .aggregateByKey(UDF("lambda a, b: a + b"),
                        UDF("lambda a, row: a + row['ARR_DELAY']"),
-                       Row(0), std::vector<std::string>({"YEAR", "MONTH"})).show();
+                       Row(0), std::vector<std::string>({"YEAR", "MONTH"}))
+       .show();
     python::lockGIL();
     python::closeInterpreter();
 }

@@ -387,6 +387,14 @@ namespace tuplex {
             s.append(d.getList(col));
         } else if(t.isDictionaryType()) {
             s.append(d.getDictionary(col));
+        } else if(t.isOptionType()) {
+            auto bt = t.withoutOption();
+            if(bt == python::Type::I64) {
+                s.append(option<int64_t>(d.getInt(col)));
+            } else {
+                throw std::runtime_error("need to implement additional option types in appendToSerializer...");
+            }
+
         } else {
             throw std::runtime_error("invalid type in appendToSerializer: " + t.desc());
         }

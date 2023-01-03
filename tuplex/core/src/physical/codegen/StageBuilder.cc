@@ -827,20 +827,24 @@ namespace tuplex {
                      // and the next stage then does take this and perform the initial combine!
 
                      bool leaveNormalCase = false;
+                     std::vector<size_t> keyCols; // empty
                      if(!pathContext.operators.empty()) {
                          leaveNormalCase = pathContext.operators.back()->type() == LogicalOperatorType::CACHE;
 
-                         // // fix?
-                         // if(pathContext.operators.back()->type() == LogicalOperatorType::AGGREGATE &&
-                         //        ((const AggregateOperator*)pathContext.operators.back().get())->aggType() != AggregateType::AGG_UNIQUE)
-                         //    leaveNormalCase = true; // leave as is, later combine need to make sure everything works.
-
+                          // fix?
+                          if(pathContext.operators.back()->type() == LogicalOperatorType::AGGREGATE &&
+                                 ((const AggregateOperator*)pathContext.operators.back().get())->aggType() != AggregateType::AGG_UNIQUE) {
+                              // extract key cols
+                              auto aop = std::dynamic_pointer_cast<AggregateOperator>(pathContext.operators.back());
+                              keyCols = aop->keyColsInParent();
+                          }
+                             //leaveNormalCase = true; // leave as is, later combine need to make sure everything works.
                      }
 
                      // special case: join is executed on top of a .cache()
                      // =>
                     if(!leaveNormalCase) {
-                        if (!pip->addTypeUpgrade(generalCaseOutputRowType))
+                        if (!pip->addTypeUpgrade(generalCaseOutputRowType, keyCols))
                             throw std::runtime_error(
                                     "type upgrade from " + pathContext.outputSchema.getRowType().desc() + " to " +
                                             generalCaseOutputRowType.desc() + " failed.");

@@ -423,10 +423,11 @@ namespace tuplex {
 
             /*!
              * casts result to bigger row type (necessary i.e. to transform partially primitive types to option types, bool to int, int to float etc.)
-             * @param rowType
-             * @return
+             * @param rowType the row type to which to upcast to
+             * @param col_indices if non-empty, cast row type only to columns given
+             * @return whether upcast was successful or not.
              */
-            bool addTypeUpgrade(const python::Type& rowType);
+            bool addTypeUpgrade(const python::Type& rowType, const std::vector<size_t> col_indices={});
 
 
 

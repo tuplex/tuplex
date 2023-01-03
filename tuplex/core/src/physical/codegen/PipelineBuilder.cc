@@ -2466,7 +2466,7 @@ namespace tuplex {
 
 
 
-        bool PipelineBuilder::addTypeUpgrade(const python::Type &rowType) {
+        bool PipelineBuilder::addTypeUpgrade(const python::Type &rowType, const std::vector<size_t> col_indices) {
             using namespace std;
             using namespace llvm;
             auto& logger = Logger::instance().logger("PipelineBuilder");
@@ -2477,6 +2477,18 @@ namespace tuplex {
                 logger.error("types not compatible.");
                 return false;
             }
+
+            // restricted upcast?
+            if(!col_indices.empty()) {
+                auto col_types = _lastRowResult.getTupleType().parameters();
+                for(auto idx : col_indices) {
+                    if(idx < col_types.size())
+                        col_types[idx] = rowType.parameters()[idx];
+                }
+                auto restricted_row_type = python::Type::makeTupleType(col_types);
+                return addTypeUpgrade(restricted_row_type);
+            }
+
 
             IRBuilder<> builder(_lastBlock);
             try {

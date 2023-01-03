@@ -331,8 +331,10 @@ namespace tuplex {
 
             // 4. BADPARSE_STRING_INPUT
             // -> attempt to parse to general-case format, if fails return.
-            handleBadParseStringInputException(env, builder, pip_input_row_type, pipFunc,
-                                               input_op, ecCode, rowNo, userData, dataPtr, dataSize);
+            // -> only available when input_op is given.
+            if(input_op)
+                handleBadParseStringInputException(env, builder, pip_input_row_type, pipFunc,
+                                                   input_op, ecCode, rowNo, userData, dataPtr, dataSize);
 
 
             // debug

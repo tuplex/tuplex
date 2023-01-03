@@ -716,7 +716,12 @@ namespace tuplex {
                             ret.aggregateInitFuncName = aggregateInitFunc->getName().str();
                             ret.aggregateCombineFuncName = combFunc->getName().str();
 
-                            if(aop->aggType() == AggregateType::AGG_BYKEY) { // need to make the aggregate functor
+                            if(aop->aggType() == AggregateType::AGG_BYKEY) {
+                                // need to make the aggregate functor
+
+                                // print info on key / bucket type
+                                logger.debug("fastPath aggByKey: keyType=" + aop->keyType().desc() + " bucketType=" + aop->bucketType().desc());
+
                                 auto aggregateFunc = codegen::createAggregateFunction(env.get(),
                                                                                       ret.aggregateAggregateFuncName,
                                                                                       aop->aggregatorUDF(), aggType,
@@ -824,9 +829,11 @@ namespace tuplex {
                      bool leaveNormalCase = false;
                      if(!pathContext.operators.empty()) {
                          leaveNormalCase = pathContext.operators.back()->type() == LogicalOperatorType::CACHE;
-                         if(pathContext.operators.back()->type() == LogicalOperatorType::AGGREGATE &&
-                                 ((const AggregateOperator*)pathContext.operators.back().get())->aggType() != AggregateType::AGG_UNIQUE)
-                             leaveNormalCase = true; // leave as is, later combine need to make sure everything works.
+
+                         // // fix?
+                         // if(pathContext.operators.back()->type() == LogicalOperatorType::AGGREGATE &&
+                         //        ((const AggregateOperator*)pathContext.operators.back().get())->aggType() != AggregateType::AGG_UNIQUE)
+                         //    leaveNormalCase = true; // leave as is, later combine need to make sure everything works.
 
                      }
 

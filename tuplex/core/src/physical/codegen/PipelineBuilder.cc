@@ -1231,6 +1231,7 @@ namespace tuplex {
                         ft.set(builder, {i}, keyValues[i].val, keyValues[i].size, keyValues[i].is_null);
                     }
 
+                    logger.debug("hashing with keytype=" + tt.desc());
                     keyVal = ft.serializeToMemory(builder); // serialize the value
                 }
             } else { // get the whole row -> unique

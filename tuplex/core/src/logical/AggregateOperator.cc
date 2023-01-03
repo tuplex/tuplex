@@ -175,14 +175,17 @@ namespace tuplex {
                 _aggregateOutputType = uni_type;
 
                 // update aggregator func as well
-                sdgj
+                _aggregator.removeTypes();
+                auto new_row_type = python::Type::makeTupleType({aggregateType, rowtype});
+                if(!_aggregator.retype(new_row_type)) {
+                    logger.error("could not infer type for aggregator udf with updated aggregate type " + aggregateType.desc());
+                    return false;
+                }
             }
 
             // type combiner now (with potentially updated output type)
             hintTwoParamUDF(_combiner, aggregateType, aggregateType);
             logger.debug("combiner output-schema is: " + _combiner.getOutputSchema().getRowType().desc());
-
-            // how
 
 
             // check whether everything is compatible.

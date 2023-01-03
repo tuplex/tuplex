@@ -184,6 +184,9 @@ namespace tuplex {
                     _paramLookup[argname] = ftarg.getLoad(builder, {i});
                 }
             }
+
+            // update insert block
+            setLastBlock(builder.GetInsertBlock());
         }
 
         LambdaFunction LambdaFunctionBuilder::exitWithException(const ExceptionCode &ec) {

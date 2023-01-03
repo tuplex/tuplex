@@ -173,6 +173,9 @@ namespace tuplex {
                 + " to " + uni_type.desc() + " due to output of aggregator udf.");
                 aggregateType = uni_type;
                 _aggregateOutputType = uni_type;
+
+                // update aggregator func as well
+                sdgj
             }
 
             // type combiner now (with potentially updated output type)
@@ -280,6 +283,13 @@ namespace tuplex {
                              + " to " + uni_type.desc() + " due to output of aggregator udf.");
                 aggregateType = uni_type;
                 _aggregateOutputType = uni_type;
+
+                _aggregator.removeTypes();
+                auto new_row_type = python::Type::makeTupleType({aggregateType, conf.row_type});
+                if(!_aggregator.retype(new_row_type)) {
+                    logger.error("could not retype aggregator udf with updated aggregate type " + aggregateType.desc());
+                    return false;
+                }
             }
 
             // type combiner now (with potentially updated output type)

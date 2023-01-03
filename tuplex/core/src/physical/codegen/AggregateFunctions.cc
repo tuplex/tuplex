@@ -216,6 +216,9 @@ namespace tuplex {
             ftin.set(builder, {0}, ftAgg);
             ftin.set(builder, {1}, ftRow);
 
+            logger.debug("ftin type: " + ftin.getTupleType().desc());
+            logger.debug("Compiling aggregate function:\n" + udf.desc());
+
             // compile dependent on udf
             assert(udf.isCompiled());
             auto cf = const_cast<UDF&>(udf).compile(*env);
@@ -231,8 +234,6 @@ namespace tuplex {
             IRBuilder<> eb(exceptionBlock);
             eb.CreateRet(eb.CreateLoad(exceptionVar));
 
-#error "fix this here... wrong types??"
-            
             auto ftOut = cf.callWithExceptionHandler(builder, ftin, resultVar, exceptionBlock, exceptionVar);
 
             // if it's variably allocated, free out after combine and realloc...

@@ -476,6 +476,9 @@ namespace tuplex {
                         // lists of fixed size are just represented by a length
                         Value *num_elements = builder.CreateLoad(builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), twine);
                         _tree.set(i, codegen::SerializableValue(num_elements, _env->i64Const(sizeof(int64_t)), isnull));
+                    } else if(type.isConstantValued()) {
+                        // simple constant gen
+                        _tree.set(i, constantValuedTypeToLLVM(builder, type));
                     } else {
                         Logger::instance().defaultLogger().error("unknown type '" + type.desc() + "' to be deserialized!");
                     }

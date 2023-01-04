@@ -2154,15 +2154,35 @@ TEST(BasicInvocation, FlightAggTest) {
     python::initInterpreter();
     python::unlockGIL();
 
-    ContextOptions co = ContextOptions::defaults();
-    co.set("tuplex.executorCount", "0");
-    Context ctx(co);
-    ctx.csv("../resources/hyperspecialization/flights/flights_on_time_performance_*.csv.sample")
-       .selectColumns(std::vector<std::string>({"YEAR", "MONTH", "ARR_DELAY"}))
-       .aggregateByKey(UDF("lambda a, b: a + b"),
-                       UDF("lambda a, row: a + row['ARR_DELAY']"),
-                       Row(0), std::vector<std::string>({"YEAR", "MONTH"}))
-       .show();
+    // single file w. constant-folding!
+    {
+        ContextOptions co = ContextOptions::defaults();
+        co.set("tuplex.executorCount", "0");
+
+        // activate constant-folding for hashing optimization!
+        co.set("tuplex.optimizer.constantFoldingOptimization", "true");
+        Context ctx(co);
+        ctx.csv("../resources/hyperspecialization/flights/flights_on_time_performance_1987_10.csv.sample")
+                .selectColumns(std::vector<std::string>({"YEAR", "MONTH", "ARR_DELAY"}))
+                .aggregateByKey(UDF("lambda a, b: a + b"),
+                                UDF("lambda a, row: a + row['ARR_DELAY']"),
+                                Row(0), std::vector<std::string>({"YEAR", "MONTH"}))
+                .show();
+    }
+
+//    // no constant folding for global version
+//    {
+//        ContextOptions co = ContextOptions::defaults();
+//        co.set("tuplex.executorCount", "0");
+//        Context ctx(co);
+//        ctx.csv("../resources/hyperspecialization/flights/flights_on_time_performance_*.csv.sample")
+//                .selectColumns(std::vector<std::string>({"YEAR", "MONTH", "ARR_DELAY"}))
+//                .aggregateByKey(UDF("lambda a, b: a + b"),
+//                                UDF("lambda a, row: a + row['ARR_DELAY']"),
+//                                Row(0), std::vector<std::string>({"YEAR", "MONTH"}))
+//                .show();
+//    }
+
     python::lockGIL();
     python::closeInterpreter();
 }

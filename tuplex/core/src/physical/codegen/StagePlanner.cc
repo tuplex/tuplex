@@ -181,34 +181,48 @@ namespace tuplex {
             vector<size_t> checks_indices = ds.constant_column_indices();
             vector<NormalCaseCheck> checks;
             auto unprojected_row_type = unprojected_optimized_row_type();
-            for(auto idx : checks_indices) {
-                auto underlying_type = ds.constant_row.getType(idx);
-                auto underlying_constant = ds.constant_row.get(idx).desc();
-                auto constant_type = python::Type::makeConstantValuedType(underlying_type, underlying_constant);
+            if(inputNode) {
+                for(auto idx : checks_indices) {
+                    auto underlying_type = ds.constant_row.getType(idx);
+                    auto underlying_constant = ds.constant_row.get(idx).desc();
+                    auto constant_type = python::Type::makeConstantValuedType(underlying_type, underlying_constant);
 
-                constant_type = simplifyConstantType(constant_type);
+                    constant_type = simplifyConstantType(constant_type);
 
-                // original index is from ALL available rows in input node
-                auto original_idx = std::dynamic_pointer_cast<FileInputOperator>(inputNode)->reverseProjectToReadIndex(idx);
+                    // original index is from ALL available rows in input node
+                    size_t original_idx = 0;
+                    if(inputNode->type() == LogicalOperatorType::FILEINPUT)
+                        original_idx = std::dynamic_pointer_cast<FileInputOperator>(inputNode)->reverseProjectToReadIndex(
+                                idx);
+                    else {
+                        // no project on other operators.
+                        original_idx = idx;
+                        auto out_column_count = inputNode->getOutputSchema().getRowType().parameters().size();
+                        assert(original_idx <= out_column_count);
+                    }
 
-                // null-checks handled separately, do not add them
-                // if null-value optimization has been already performed.
-                // --> i.e., they're done using the schema (?)
-                assert(original_idx < unprojected_row_type.parameters().size());
-                auto opt_schema_col_type = unprojected_row_type.parameters()[original_idx];
-                if(constant_type == python::Type::NULLVALUE && opt_schema_col_type == python::Type::NULLVALUE) {
-                    // skip
-                } else {
-                    if(constant_type.isConstantValued())
-                        checks.emplace_back(NormalCaseCheck::ConstantCheck(original_idx, constant_type));
-                    else if(constant_type == python::Type::NULLVALUE) {
-                        checks.emplace_back(NormalCaseCheck::NullCheck(original_idx));
+                    // null-checks handled separately, do not add them
+                    // if null-value optimization has been already performed.
+                    // --> i.e., they're done using the schema (?)
+                    assert(original_idx < unprojected_row_type.parameters().size());
+                    auto opt_schema_col_type = unprojected_row_type.parameters()[original_idx];
+                    if(constant_type == python::Type::NULLVALUE && opt_schema_col_type == python::Type::NULLVALUE) {
+                        // skip
                     } else {
-                        logger.error("invalid constant type to check for: " + constant_type.desc());
+                        if(constant_type.isConstantValued())
+                            checks.emplace_back(NormalCaseCheck::ConstantCheck(original_idx, constant_type));
+                        else if(constant_type == python::Type::NULLVALUE) {
+                            checks.emplace_back(NormalCaseCheck::NullCheck(original_idx));
+                        } else {
+                            logger.error("invalid constant type to check for: " + constant_type.desc());
+                        }
                     }
                 }
+                logger.debug("generated " + pluralize(checks.size(), "check") + " for stage");
+            } else {
+                logger.debug("skipped check generation, because input node is empty.");
             }
-            logger.debug("generated " + pluralize(checks.size(), "check") + " for stage");
+
 
             // folding is done now in two steps:
             // 1. propagate the new input type through the ASTs, i.e. make certain fields constant
@@ -227,7 +241,9 @@ namespace tuplex {
             auto acc_cols = acc_cols_before_opt;
             std::vector<NormalCaseCheck> projected_checks;
             for(auto col_idx : acc_cols) {
-                auto original_col_idx = std::dynamic_pointer_cast<FileInputOperator>(inputNode)->reverseProjectToReadIndex(col_idx);
+                auto original_col_idx =  inputNode->type() == LogicalOperatorType::FILEINPUT ?
+                        std::dynamic_pointer_cast<FileInputOperator>(inputNode)->reverseProjectToReadIndex(col_idx)
+                        : col_idx;
                for(const auto& check : checks) {
                    if(check.colNo == original_col_idx) {
                        projected_checks.emplace_back(check); // need to adjust internal colNo? => no, keep for now.
@@ -277,7 +293,7 @@ namespace tuplex {
                 std::stringstream ss;
                 ss<<"Pipeline (types/before logical opt):\n";
 
-                for(auto op : opt_ops) {
+                for(const auto& op : opt_ops) {
                     ss<<op->name()<<":\n";
                     ss<<"  in: "<<op->getInputSchema().getRowType().desc()<<"\n";
                     ss<<" out: "<<op->getOutputSchema().getRowType().desc()<<"\n";
@@ -290,7 +306,7 @@ namespace tuplex {
             }
 
 
-            // 2. because some fields were replaced with constants, less columns might need to get accessed!
+            // 2. because some fields were replaced with constants, fewer columns might need to get accessed!
             //    --> perform projection pushdown and then eliminate as many checks as possible
             auto accessed_columns_before_opt = get_accessed_columns(opt_ops);
 
@@ -636,18 +652,24 @@ namespace tuplex {
 
             // perform sample based optimizations
             if(_useConstantFolding) {
-                logger.info("performing Constant-Folding specialization");
-                optimized_operators = constantFoldingOptimization(sample);
 
-                // overwrite internal operators to apply subsequent optimizations
-                _inputNode = _inputNode ? optimized_operators.front() : nullptr;
-                _operators = _inputNode ? vector<shared_ptr<LogicalOperator>>{optimized_operators.begin() + 1,
-                                                                              optimized_operators.end()}
-                                                                              : optimized_operators;
+                // perform only when input op is present (could do later, but requires sample!)
+                if(_inputNode && _inputNode->type() == LogicalOperatorType::FILEINPUT) {
+                    logger.info("performing Constant-Folding specialization");
+                    optimized_operators = constantFoldingOptimization(sample);
 
-                // run validation after applying constant folding
-                validation_rc = validatePipeline();
-                logger.debug(std::string("post-constant-folding pipeline validation: ") + (validation_rc ? "ok" : "failed"));
+                    // overwrite internal operators to apply subsequent optimizations
+                    _inputNode = _inputNode ? optimized_operators.front() : nullptr;
+                    _operators = _inputNode ? vector<shared_ptr<LogicalOperator>>{optimized_operators.begin() + 1,
+                                                                                  optimized_operators.end()}
+                                            : optimized_operators;
+
+                    // run validation after applying constant folding
+                    validation_rc = validatePipeline();
+                    logger.debug(std::string("post-constant-folding pipeline validation: ") + (validation_rc ? "ok" : "failed"));
+                } else {
+                    logger.debug("skipping constant-folding optimization for stage");
+                }
             }
 
             // can filters get pushed down even further? => check! constant folding may remove code!

@@ -1129,7 +1129,7 @@ namespace tuplex {
 
             assert(!bucketize || (bucketize && !keyCols.empty() && !isAggregateByKey));
             assert((isAggregateByKey && !bucketize) || !isAggregateByKey);
-            assert(hashtableWidth == 8 || hashtableWidth == 0);
+            assert(hashtableWidth == 8 || hashtableWidth == 0 || hashtableWidth == 0xFFFFFFFF);
             using namespace llvm;
             using namespace std;
 
@@ -1174,9 +1174,32 @@ namespace tuplex {
 
             // perform type conversions: general types become strings (serialize to hash)
             if(keyType.isTupleType()) {
-                if(keyType.isOptionType()) throw std::runtime_error("This shouldn't happen.");
-                keyType = python::Type::STRING;
+
+                // all constants? create constant tuple!
+                bool all_constants = true;
+                for(const auto& t : keyType.parameters()) {
+                    if(!t.isConstantValued())
+                        all_constants = false;
+                }
+                if(all_constants) {
+                    // create constant tuple!
+                    std::stringstream ss;
+                    ss<<"(";
+                    std::vector<python::Type> col_types;
+                    for(const auto& t : keyType.parameters()) {
+                        col_types.push_back(t.underlying());
+                        ss<<t.constant()<<",";
+                    }
+                    ss<<")";
+                    keyType = python::Type::makeConstantValuedType(python::Type::makeTupleType(col_types), ss.str());
+                } else {
+                    if(keyType.isOptionType()) throw std::runtime_error("This shouldn't happen.");
+                    keyType = python::Type::STRING;
+                }
             }
+
+            logger.debug("using physical hashmap with keytype=" + keyType.desc());
+
             // TODO: eventually, make boolean/f64 into int (potentially with options)
 
             // what is the key Type?
@@ -1190,6 +1213,11 @@ namespace tuplex {
             if(keyType == python::Type::BOOLEAN || keyType == python::Type::F64) {
                 throw std::runtime_error("bool, f64 hashmap not yet implemented");
             }
+
+            // special case: handle constant-valued aggregate!
+            // -> this is an optimization
+            if(keyType.isConstantValued())
+                return buildWithConstantKeyHashmapWriter(callbackName, keyCols, bucketize, isAggregateByKey);
 
             // use the C hashmap provided for string, nullvalue, i64
             // => note: that excludeds unique on non-string rows!
@@ -1305,7 +1333,7 @@ namespace tuplex {
                     keySize = _env->i64Const(0);
                 }
             } else if(keyType == python::Type::NULLVALUE) {
-                if(hashtableWidth == 0) key = _env->i8nullptr();
+                if(hashtableWidth == 0xFFFFFFFF) key = _env->i8nullptr();
                 else if(hashtableWidth == 8) key = _env->i64Const(0);
                 keySize = _env->i64Const(0);
                 keyNull = _env->boolConst(true);
@@ -1368,6 +1396,88 @@ namespace tuplex {
             _env->cfree(builder, bucket); // should be NULL safe.
 
             // connect blocks
+            _lastBlock = builder.GetInsertBlock();
+            return build();
+        }
+
+        llvm::Function *
+        PipelineBuilder::buildWithConstantKeyHashmapWriter(const std::string &callbackName,
+                                                           const std::vector<size_t> &keyCols,
+                                                           bool bucketize,
+                                                           bool isAggregateByKey) {
+            using namespace llvm;
+
+            // simple, need to only store bucket if necessary
+            // start codegen here...
+            IRBuilder<> builder(_lastBlock);
+            auto &ctx = env().getContext();
+            auto lastType = _lastRowResult.getTupleType();
+
+            // because key is constant, there's no need to create a key. Simply calling the hash function with the bucket is enough.
+            // i.e., only use bucket value (also cmalloc!) => receiving function has to free them
+            Value *bucket = _env->i8nullptr();
+            Value *bucketSize = _env->i64Const(0);
+
+            if(bucketize && !isAggregateByKey) {
+                std::set<int> keyColSet(keyCols.begin(), keyCols.end());
+                std::vector<python::Type> py_types;
+                for(int i = 0; i < lastType.parameters().size(); ++i)
+                    if(keyColSet.count(i) == 0)
+                        py_types.push_back(lastType.parameters()[i]);
+
+                // empty? nullptr + bucket size (initialized above)
+                if(!py_types.empty()) {
+                    auto bucketType = python::Type::makeTupleType(py_types);
+
+                    FlattenedTuple ft(_env.get());
+                    ft.init(bucketType);
+
+                    // assign from last tuple & serialize to bucket
+                    int pos = 0;
+                    for(int i = 0; i < lastType.parameters().size(); ++i) {
+                        if(keyColSet.count(i) == 0) {
+                            ft.assign(pos++, _lastRowResult.get(i), _lastRowResult.getSize(i), _lastRowResult.getIsNull(i));
+                        }
+                    }
+
+                    bucketSize = ft.getSize(builder);
+                    bucket = _env->cmalloc(builder, bucketSize); // TODO: I think this memory is being leaked! (check TransformTask::writeRowToHashtable and similar functions - I don't think anyone frees the bucket)
+                    ft.serialize(builder, bucket);
+                }
+            }
+            if(isAggregateByKey) { // need to pass the entire row to the aggregate function
+                bucketSize = _lastRowResult.getSize(builder);
+                bucket = _env->cmalloc(builder, bucketSize);
+                _lastRowResult.serialize(builder, bucket);
+            }
+
+            // call (always when using aggregateby key
+            bool emit_call = isAggregateByKey || bucketize;
+            if(emit_call) {
+//                FunctionType *hashCallback_type = FunctionType::get(Type::getVoidTy(ctx),
+//                                                                    {ctypeToLLVM<void *>(ctx),
+//                                                                     ctypeToLLVM<uint8_t *>(ctx), ctypeToLLVM<int64_t>(ctx),
+//                                                                     ctypeToLLVM<bool>(ctx), ctypeToLLVM<uint8_t *>(ctx),
+//                                                                     ctypeToLLVM<int64_t>(ctx)}, false);
+//                auto callback_func = env().getModule()->getOrInsertFunction(callbackName, hashCallback_type);
+//
+//                // could use more efficient function...
+//                auto key = _env->i8nullptr();
+//                auto keySize = _env->i64Const(0);
+//                builder.CreateCall(callback_func,
+//                                   {_argUserData, key, keySize, cbool_const(ctx, bucketize), bucket, bucketSize});
+
+                // use type of const_hash_row_f --> this makes an efficient call.
+                FunctionType *hashCallback_type = FunctionType::get(Type::getVoidTy(ctx),
+                                                                    {ctypeToLLVM<void *>(ctx),
+                                                                     ctypeToLLVM<uint8_t *>(ctx),
+                                                                             ctypeToLLVM<int64_t>(ctx)}, false);
+                auto callback_func = env().getModule()->getOrInsertFunction(callbackName, hashCallback_type);
+                builder.CreateCall(callback_func,
+                                   {_argUserData, bucket, bucketSize});
+            }
+            _env->cfree(builder, bucket); // should be NULL safe.
+
             _lastBlock = builder.GetInsertBlock();
             return build();
         }

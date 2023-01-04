@@ -212,6 +212,7 @@ namespace tuplex {
         static codegen::str_hash_row_f writeStringHashTableAggregateCallback();
         static codegen::i64_hash_row_f writeInt64HashTableAggregateCallback();
         static codegen::write_row_f aggCombineCallback();
+        static codegen::const_hash_row_f writeConstantKeyedHashTableAggregateCallback();
 
         static void resetOutputLimitCounter();
 
@@ -224,6 +225,8 @@ namespace tuplex {
         void writeRowToHashTable(uint64_t key, bool key_null, bool bucketize, char *buf, size_t buf_size);
         void writeRowToHashTableAggregate(char *key, size_t key_len, bool bucketize, char *buf, size_t buf_size);
         void writeRowToHashTableAggregate(uint64_t key, bool key_null, bool bucketize, char *buf, size_t buf_size);
+
+        void writeRowToConstantKeyedAggregate(char *buf, size_t buf_size);
 
         // prob remove getOutputPartitions from task...
         std::vector<Partition*> getOutputPartitions() const override { return _output.partitions; }

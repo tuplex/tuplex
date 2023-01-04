@@ -837,8 +837,11 @@ namespace tuplex {
                               // extract key cols
                               auto aop = std::dynamic_pointer_cast<AggregateOperator>(pathContext.operators.back());
                               keyCols = aop->keyColsInParent();
+
+                              logger.warn("may need to change this again...");
+                              // hack:
+                              leaveNormalCase = true; // leave as is, later combine need to make sure everything works.
                           }
-                             //leaveNormalCase = true; // leave as is, later combine need to make sure everything works.
                      }
 
                      // special case: join is executed on top of a .cache()
@@ -854,6 +857,7 @@ namespace tuplex {
                         // HACK: uncommented... need to fix.
                         //const_cast<StageBuilder*>(this)->_normalCaseOutputSchema = _generalCaseOutputSchema;
                     }
+#error "need to update ctx.hashKeyType and ctx.hashBucketType acc. to optimizer!"
                     pip->buildWithHashmapWriter(ret.writeHashCallbackName,
                                                 ctx.hashColKeys,
                                                 hashtableKeyWidth(ctx.hashKeyType),

@@ -797,7 +797,10 @@ namespace tuplex {
             jit.registerSymbol(resolveExceptionCallbackName(), ResolveTask::exceptionCallback());
 
         if(registerSymbols && outputMode() == EndPointMode::HASHTABLE && !resolveExceptionCallbackName().empty()) {
-            if(hashtableKeyByteWidth() == 8) {
+            if(hashtableKeyByteWidth() == 0) {
+                // constant key
+                throw std::runtime_error("constant key in resolve task not yet supported. implement...");
+            } if(hashtableKeyByteWidth() == 8) {
                 // this logic is HIGHLY questionable and should be checked...
                 logger.debug("change problematic logic here...");
                 if(_slowCodePath.aggregateAggregateFuncName.empty())
@@ -884,12 +887,18 @@ namespace tuplex {
             jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(hasOutputLimit()));
         if(registerSymbols && outputMode() == EndPointMode::HASHTABLE && !_fastCodePath.writeHashCallbackName.empty()) {
             logger.debug("change problematic logic here...");
-            if (hashtableKeyByteWidth() == 8) {
+            // constant key?
+            logger.debug("change the misleading hashtable key byte width indicator here...");
+
+            if (hashtableKeyByteWidth() == 0) {
+                if(_fastCodePath.aggregateAggregateFuncName.empty())
+                    throw std::runtime_error("makes no sense when constant key...");
+                else jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeConstantKeyedHashTableAggregateCallback());
+            } else if (hashtableKeyByteWidth() == 8) {
                 if(_fastCodePath.aggregateAggregateFuncName.empty())
                     jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeInt64HashTableCallback());
                 else jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeInt64HashTableAggregateCallback());
-            }
-            else {
+            } else {
                 if(_fastCodePath.aggregateAggregateFuncName.empty())
                     jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeStringHashTableCallback());
                 else jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeStringHashTableAggregateCallback());

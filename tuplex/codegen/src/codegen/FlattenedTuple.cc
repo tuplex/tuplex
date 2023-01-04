@@ -479,12 +479,13 @@ namespace tuplex {
                     } else if(type.isConstantValued()) {
                         // simple constant gen
                         _tree.set(i, constantValuedTypeToLLVM(builder, type));
+                        continue; // important to skip 8-byte skip when decoding!
                     } else {
                         Logger::instance().defaultLogger().error("unknown type '" + type.desc() + "' to be deserialized!");
                     }
                 }
 
-                // inc last ptr
+                // inc last ptr (SKIP for constants)
                 lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)), "inptr");
             }
         }

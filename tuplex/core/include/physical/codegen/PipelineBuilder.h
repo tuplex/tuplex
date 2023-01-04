@@ -159,6 +159,11 @@ namespace tuplex {
 
             void assignWriteCallbackReturnValue(llvm::IRBuilder<> &builder, int64_t operatorID,
                                                 llvm::CallInst *callbackECVal);
+
+            llvm::Function *buildWithConstantKeyHashmapWriter(const std::string &callbackName,
+                                                              const std::vector<size_t> &keyCols,
+                                                              bool bucketize,
+                                                              bool isAggregateByKey);
         protected:
             llvm::StructType* resultStructType() const {
                 return resultStructType(_env->getContext());

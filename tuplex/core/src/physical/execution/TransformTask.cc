@@ -94,6 +94,11 @@ extern "C" {
         task->writeRowToHashTable(key, intkeynull, bucketize, buf, buf_size);
     }
 
+    static void w2ConstAggCallback(tuplex::TransformTask *task, char* buf, size_t buf_size) {
+        assert(task);
+        task->writeRowToConstantKeyedAggregate(buf, buf_size);
+    }
+
     static void strw2hAggCallback(tuplex::TransformTask *task, char *strkey, size_t key_size, bool bucketize, char *buf, size_t buf_size) {
         assert(task);
         assert(dynamic_cast<tuplex::TransformTask*>(task));
@@ -203,6 +208,10 @@ namespace tuplex {
 
     codegen::i64_hash_row_f TransformTask::writeInt64HashTableAggregateCallback() {
         return reinterpret_cast<codegen::i64_hash_row_f>(i64w2hAggCallback);
+    }
+
+    codegen::const_hash_row_f TransformTask::writeConstantKeyedHashTableAggregateCallback() {
+        return reinterpret_cast<codegen::const_hash_row_f>(w2ConstAggCallback);
     }
 
 
@@ -795,6 +804,12 @@ namespace tuplex {
             // goes into null bucket, no hash
             _htable->null_bucket = extend_bucket(_htable->null_bucket, reinterpret_cast<uint8_t *>(buf), buf_size);
         }
+    }
+
+    void TransformTask::writeRowToConstantKeyedAggregate(char *buf, size_t buf_size) {
+        uint8_t *bucket = _htable->null_bucket; // reuse null bucket for this...
+        aggregateValues(&bucket, buf, buf_size);
+        _htable->null_bucket = bucket;
     }
 
     void TransformTask::writeRowToHashTableAggregate(char* key, size_t key_len, bool bucketize, char *buf, size_t buf_size) {

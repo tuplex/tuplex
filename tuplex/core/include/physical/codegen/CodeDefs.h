@@ -86,6 +86,9 @@ namespace tuplex {
         typedef void(*str_hash_row_f)(void*, const uint8_t* str_key, int64_t str_key_size, bool bucketize, const uint8_t* bucket, int64_t bucket_size);
         typedef void(*i64_hash_row_f)(void*, int64_t int_key, bool int_key_null, bool bucketize, const uint8_t* bucket, int64_t bucket_size);
 
+        // aggregateByKey hashing func for constant keyed table
+        typedef void(*const_hash_row_f)(void*, const uint8_t* bucket, int64_t bucket_size);
+
         // // functor to initialize/release the global variables. ==> call in init stage!
         // typedef int64_t(*global_init_release_f)();
 

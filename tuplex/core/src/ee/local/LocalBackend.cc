@@ -570,7 +570,8 @@ namespace tuplex {
                                                  numColumns, 0, 0, delimiter, quotechar, colsToKeep, options.PARTITION_SIZE(), tstage->inputFormat());
                         // hash table or memory output?
                         if(tstage->outputMode() == EndPointMode::HASHTABLE) {
-                            if (tstage->hashtableKeyByteWidth() == 8)
+                            auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
+                            if (ht_width == 8)
                                 task->sinkOutputToHashTable(HashTableFormat::UINT64,
                                                             tstage->outputDataSetID());
                             else
@@ -604,7 +605,8 @@ namespace tuplex {
                                                      quotechar, colsToKeep, options.PARTITION_SIZE(), tstage->inputFormat());
                             // hash table or memory output?
                             if(tstage->outputMode() == EndPointMode::HASHTABLE) {
-                                if (tstage->hashtableKeyByteWidth() == 8)
+                                auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
+                                if (ht_width == 8)
                                     task->sinkOutputToHashTable(HashTableFormat::UINT64,
                                                                 tstage->outputDataSetID());
                                 else
@@ -641,7 +643,8 @@ namespace tuplex {
                                                          quotechar, colsToKeep, options.PARTITION_SIZE(), tstage->inputFormat());
                                 // hash table or memory output?
                                 if(tstage->outputMode() == EndPointMode::HASHTABLE) {
-                                    if (tstage->hashtableKeyByteWidth() == 8)
+                                    auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
+                                    if (ht_width == 8)
                                         task->sinkOutputToHashTable(HashTableFormat::UINT64,
                                                                     tstage->outputDataSetID());
                                     else
@@ -730,7 +733,8 @@ namespace tuplex {
                 task->setFallbackPartitions(taskFallbackPartitions);
                 // hash table or memory output?
                 if(tstage->outputMode() == EndPointMode::HASHTABLE) {
-                    if (tstage->hashtableKeyByteWidth() == 8)
+                    auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
+                    if (ht_width == 8)
                         task->sinkOutputToHashTable(HashTableFormat::UINT64,
                                                     tstage->outputDataSetID());
                     else
@@ -1194,8 +1198,9 @@ namespace tuplex {
                 } else {
 
                     auto py_combine = preparePythonPipeline(tstage->purePythonAggregateCode(), tstage->pythonAggregateFunctionName());
+                    auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
                     auto hsink = createFinalHashmap(completedTasks,
-                                                    tstage->hashtableKeyByteWidth(),
+                                                    ht_width,
                                                     combineOutputHashmaps,
                                                     syms->aggInitFunctor,
                                                     syms->aggCombineFunctor,
@@ -1336,8 +1341,9 @@ namespace tuplex {
             // compile & prep python pipeline for this stage
             auto pip_object = preparePythonPipeline(tstage->purePythonAggregateCode(), tstage->pythonAggregateFunctionName());
 
+            auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
             hsink = createFinalHashmap(tasks,
-                                       tstage->hashtableKeyByteWidth(),
+                                       ht_width,
                                        combineHashmaps,
                                        init_aggregate,
                                        combine_aggregate,
@@ -1529,8 +1535,8 @@ namespace tuplex {
                     if(hasNormalHashSink) {
                         rtask->sinkOutputToHashTable(tt->hashTableFormat(),
                                                      tstage->dataAggregationMode(),
-                                                     tstage->hashOutputKeyType().withoutOption(),
-                                                     tstage->hashOutputBucketType(),
+                                                     tstage->generalCaseHashKeyType().withoutOption(), //tstage->hashOutputKeyType().withoutOption(),
+                                                     tstage->generalCaseHashBucketType(), //tstage->hashOutputBucketType(),
                                                      hsink->hm,
                                                      hsink->null_bucket);
                         hasNormalHashSink = false;
@@ -1540,12 +1546,13 @@ namespace tuplex {
                     } else {
 
                         // init hash table based on key
-                        auto hm = tstage->hashtableKeyByteWidth() == 8 ? int64_hashmap_new() : hashmap_new();
+                        auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
+                        auto hm = ht_width == 8 ? int64_hashmap_new() : hashmap_new();
                         assert(hm);
                         rtask->sinkOutputToHashTable(tt->hashTableFormat(),
                                                      tstage->dataAggregationMode(),
-                                                     tstage->hashOutputKeyType().withoutOption(),
-                                                     tstage->hashOutputBucketType(),
+                                                     tstage->generalCaseHashKeyType().withoutOption(), //tstage->hashOutputKeyType().withoutOption(),
+                                                     tstage->generalCaseHashBucketType(), //tstage->hashOutputBucketType(),
                                                      hm,
                                                      nullptr);
                     }

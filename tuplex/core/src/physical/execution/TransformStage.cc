@@ -661,8 +661,11 @@ namespace tuplex {
                             // --> if we have a union operator, we need to unify multiple hashops eventually
                             std::vector<Partition *> p;
 
-                            bool hashFixedSizeKeys = tstage->hashtableKeyByteWidth() == 8;
-                            p = convertHashTableKeysToPartitions(tstage->hashResult(), tstage->outputSchema(), hashFixedSizeKeys, tstage->hashtableKeyByteWidth(), context);
+                            auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
+                            bool hashFixedSizeKeys = ht_width == 8;
+                            p = convertHashTableKeysToPartitions(tstage->hashResult(), tstage->outputSchema(),
+                                                                 hashFixedSizeKeys,
+                                                                 ht_width, context);
                             std::copy(std::begin(p), std::end(p), std::back_inserter(partitions));
                         } else if(tstage->dataAggregationMode() == AggregateType::AGG_BYKEY) {
                             std::vector<Partition *> p;
@@ -671,7 +674,8 @@ namespace tuplex {
                             if(context.getOptions().OPT_NULLVALUE_OPTIMIZATION())
                                 Logger::instance().defaultLogger().error("aggregation resolution not supported yet with NVO. Deactivate to make this working. Other bugs might be here as well...");
 
-                            if (tstage->hashtableKeyByteWidth() == 8)
+                            auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
+                            if (ht_width == 8)
                                 p = convertInt64HashTableToPartitionsAggByKey(tstage->hashResult(), tstage->outputSchema(), context);
                             else
                                 p = convertHashTableToPartitionsAggByKey(tstage->hashResult(), tstage->outputSchema(), context);
@@ -725,8 +729,8 @@ namespace tuplex {
                         free(null_bucket);
 
                     if(hm) {
-
-                        if(8 == hashtableKeyByteWidth()) {
+                        auto ht_width = codegen::hashtableKeyWidth(normalCaseHashKeyType());
+                        if(8 == ht_width) {
                             int64_hashmap_free_key_and_data(hm);
                             int64_hashmap_free(hm);
                         } else {
@@ -797,10 +801,11 @@ namespace tuplex {
             jit.registerSymbol(resolveExceptionCallbackName(), ResolveTask::exceptionCallback());
 
         if(registerSymbols && outputMode() == EndPointMode::HASHTABLE && !resolveExceptionCallbackName().empty()) {
-            if(hashtableKeyByteWidth() == 0) {
+            auto ht_width = codegen::hashtableKeyWidth(generalCaseHashKeyType());
+            if(ht_width == 0) {
                 // constant key
                 throw std::runtime_error("constant key in resolve task not yet supported. implement...");
-            } if(hashtableKeyByteWidth() == 8) {
+            } if(ht_width == 8) {
                 // this logic is HIGHLY questionable and should be checked...
                 logger.debug("change problematic logic here...");
                 if(_slowCodePath.aggregateAggregateFuncName.empty())
@@ -890,18 +895,18 @@ namespace tuplex {
             // constant key?
             logger.debug("change the misleading hashtable key byte width indicator here...");
 
-            auto hashtableKeyByteWidth = codegen::hashtableKeyWidth(_fastCodePath.)
+            auto hashtableKeyByteWidth = codegen::hashtableKeyWidth(normalCaseHashKeyType());
 
-            if (hashtableKeyByteWidth() == 0) {
+            if (hashtableKeyByteWidth == 0) {
                 if(_fastCodePath.aggregateAggregateFuncName.empty())
                     throw std::runtime_error("makes no sense when constant key...");
                 else jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeConstantKeyedHashTableAggregateCallback());
-            } else if (hashtableKeyByteWidth() == 8) {
+            } else if (hashtableKeyByteWidth == 8) {
                 if(_fastCodePath.aggregateAggregateFuncName.empty())
                     jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeInt64HashTableCallback());
                 else jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeInt64HashTableAggregateCallback());
             } else {
-                assert(hashtableKeyByteWidth() == 0xFFFFFFFF);
+                assert(hashtableKeyByteWidth == 0xFFFFFFFF);
                 if(_fastCodePath.aggregateAggregateFuncName.empty())
                     jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeStringHashTableCallback());
                 else jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeStringHashTableAggregateCallback());

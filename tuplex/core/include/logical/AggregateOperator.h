@@ -38,15 +38,18 @@ namespace tuplex {
                           std::vector<std::string> keys = {}) : LogicalOperator(parent), _aggType(at),
                                                                 _combiner(combiner), _aggregator(aggregator),
                                                                 _initialValue(std::move(initialValue)), _keys(std::move(keys)) {
-            std::vector<python::Type> keyTypes;
+
+            // construct key col indices via name lookup.
             for(const auto &k : _keys) {
                 auto val = indexInVector(k, parent->columns());
                 if(val < 0) throw std::runtime_error("Column " + k + " not in columns (Aggregate)");
+
+                if(val >= parent->getOutputSchema().getRowType().parameters().size())
+                    throw std::runtime_error("invalid index for key column");
                 _keyColsInParent.push_back(val);
-                keyTypes.push_back(parent->getOutputSchema().getRowType().parameters()[val]);
             }
-            _keyType = python::Type::makeTupleType(keyTypes);
-            if(_keyType.parameters().size() == 1) _keyType = _keyType.parameters().front();
+
+            _keyType = keyTypeFromParent();
 
             if(!inferAndCheckTypes()) {
 //#ifndef NDEBUG
@@ -163,6 +166,8 @@ namespace tuplex {
         python::Type _keyType; // the overall type of the key
 
         bool inferAndCheckTypes();
+
+        python::Type keyTypeFromParent() const;
     };
 }
 

@@ -1624,8 +1624,11 @@ namespace tuplex {
             stage->_fileOutputParameters = _fileOutputParameters;
             stage->_inputMode = _inputMode;
             stage->_outputMode = _outputMode;
-            stage->_hashOutputKeyType = _hashKeyType;
-            stage->_hashOutputBucketType = _hashBucketType;
+
+
+            // // deprecated
+            // stage->_hashOutputKeyType = _hashKeyType;
+            // stage->_hashOutputBucketType = _hashBucketType;
 
             // copy code
             // llvm ir as string is super wasteful, use bitcode instead. Can be faster parsed.
@@ -1838,6 +1841,13 @@ namespace tuplex {
                                                             number());
                 stage->_normalCaseColumnsToKeep = boolArrayToIndices<unsigned>(codeGenerationContext.fastPathContext.columnsToRead);
                 stage->_slowCodePath = slowCodePath_f.get();
+
+                // fill in hashing
+                auto hash_key_cols = codeGenerationContext.hashColKeys;
+                stage->_normalHashOutputKeyType = codeGenerationContext.fastPathContext.hashKeyType(hash_key_cols);
+                stage->_normalHashOutputBucketType = codeGenerationContext.fastPathContext.hashBucketType(hash_key_cols);
+                stage->_generalHashOutputKeyType = codeGenerationContext.slowPathContext.hashKeyType(hash_key_cols);
+                stage->_generalHashOutputBucketType = codeGenerationContext.slowPathContext.hashBucketType(hash_key_cols);
             }
 
             // fill parameters from builder
@@ -2054,6 +2064,13 @@ namespace tuplex {
 //                logger.info("serialized stage as JSON string (TODO: make this better, more efficient, ...");
                 // stage->_encodedData = json_str; // hack
                 stage->_encodedData = compressed_cg_str; // the codegen context
+
+                // fill in hashing
+                auto hash_key_cols = ctx.hashColKeys;
+                stage->_normalHashOutputKeyType = ctx.fastPathContext.hashKeyType(hash_key_cols);
+                stage->_normalHashOutputBucketType = ctx.fastPathContext.hashBucketType(hash_key_cols);
+                stage->_generalHashOutputKeyType = ctx.slowPathContext.hashKeyType(hash_key_cols);
+                stage->_generalHashOutputBucketType = ctx.slowPathContext.hashBucketType(hash_key_cols);
             }
 
             return stage;

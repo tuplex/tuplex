@@ -234,6 +234,9 @@ namespace tuplex {
         // others require retyping of aggregator etc.
         // -> means extracting part of row type to feed in the case of bykey
         try {
+            // update key type from parent
+            _keyType = keyTypeFromParent(); // <-- redundant? really need to store this?
+
             //  rewrite dict access in UDFs
             if(_aggregator.isCompiled()) {
                 assert(_aggregator.getInputParameters().size() == 2);
@@ -333,5 +336,15 @@ namespace tuplex {
         }
 
         return false;
+    }
+
+    python::Type AggregateOperator::keyTypeFromParent() const {
+        std::vector<python::Type> keyTypes;
+        for(auto idx : _keyColsInParent) {
+            keyTypes.push_back(parent()->getOutputSchema().getRowType().parameters()[idx]);
+        }
+        auto keyType = python::Type::makeTupleType(keyTypes);
+        if(keyType.parameters().size() == 1) keyType = keyType.parameters().front();
+        return keyType;
     }
 }

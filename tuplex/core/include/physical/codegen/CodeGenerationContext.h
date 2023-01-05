@@ -89,17 +89,19 @@ namespace tuplex {
                 inline python::Type hashKeyType(const std::vector<size_t>& key_cols) const {
                     if(!operators.empty() && operators.back()->type() == LogicalOperatorType::AGGREGATE) {
                         auto aop = std::dynamic_pointer_cast<AggregateOperator>(operators.back());
+                        assert(aop);
                         return aop->keyType();
                     }
-                    throw std::runtime_error("can't return hash key type");
+                    return python::Type::EMPTYTUPLE;
                 }
 
                 inline python::Type hashBucketType(const std::vector<size_t>& key_cols) const {
                     if(!operators.empty() && operators.back()->type() == LogicalOperatorType::AGGREGATE) {
                         auto aop = std::dynamic_pointer_cast<AggregateOperator>(operators.back());
+                        assert(aop);
                         return aop->bucketType();
                     }
-                    throw std::runtime_error("can't return hash key type");
+                    return python::Type::EMPTYTUPLE;
                 }
 
 #ifdef BUILD_WITH_CEREAL

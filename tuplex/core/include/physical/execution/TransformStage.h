@@ -182,8 +182,14 @@ namespace tuplex {
         Schema normalCaseOutputSchema() const { return _normalCaseOutputSchema; }
         Schema normalCaseInputSchema() const { return _normalCaseInputSchema; }
 
-        python::Type normalCaseHashKeyType() const;
-        python::Type generalCaseHashKeyType() const;
+        //         python::Type _normalHashOutputKeyType;
+        //        python::Type _normalHashOutputBucketType;
+        //        python::Type _generalHashOutputKeyType;
+        //        python::Type _generalHashOutputBucketType;
+        python::Type normalCaseHashKeyType() const { return _normalHashOutputKeyType; }
+        python::Type generalCaseHashKeyType() const { return _generalHashOutputKeyType; }
+        python::Type normalCaseHashBucketType() const { return _normalHashOutputBucketType; }
+        python::Type generalCaseHashBucketType() const { return _generalHashOutputBucketType; }
 
         /*!
          * from original columns, get indices back which columns are read in each case. To get number of columns, use inputColumnCount
@@ -483,24 +489,24 @@ namespace tuplex {
             return _hashResult;
         }
 
-        /*!
-         * general case output key type (NOT the specialized one)
-         * @return
-         */
-        python::Type hashOutputKeyType() {
-            assert(_aggMode != AggregateType::AGG_NONE || (_hashOutputKeyType.withoutOption() == python::Type::I64 ||
-                    _hashOutputKeyType.withoutOption() == python::Type::STRING));
-            return _hashOutputKeyType;
-        }
-
-        /*!
-         * general case output bucket type (NOT the specialized one)
-         * @return
-         */
-        inline python::Type hashOutputBucketType() const {
-            assert(_hashOutputKeyType != python::Type::UNKNOWN);
-            return _hashOutputBucketType;
-        }
+//        /*!
+//         * general case output key type (NOT the specialized one)
+//         * @return
+//         */
+//        python::Type hashOutputKeyType() {
+//            assert(_aggMode != AggregateType::AGG_NONE || (_hashOutputKeyType.withoutOption() == python::Type::I64 ||
+//                    _hashOutputKeyType.withoutOption() == python::Type::STRING));
+//            return _hashOutputKeyType;
+//        }
+//
+//        /*!
+//         * general case output bucket type (NOT the specialized one)
+//         * @return
+//         */
+//        inline python::Type hashOutputBucketType() const {
+//            assert(_hashOutputKeyType != python::Type::UNKNOWN);
+//            return _hashOutputBucketType;
+//        }
 
 //        inline int hashtableKeyByteWidth() const {
 //            return codegen::hashtableKeyWidth(_hashOutputKeyType);
@@ -511,8 +517,11 @@ namespace tuplex {
             _hashResult.hash_map = hash_map;
             _hashResult.null_bucket = null_bucket;
             _hashResult.hybrid = hybrid;
-            _hashResult.keyType = _hashOutputKeyType;
-            _hashResult.bucketType = _hashOutputBucketType;
+
+#warning "fix this here"
+            // ??
+            // _hashResult.keyType = _hashOutputKeyType;
+            // _hashResult.bucketType = _hashOutputBucketType;
         }
 
 
@@ -728,8 +737,13 @@ namespace tuplex {
         //void pushDownOutputLimit(); //! enable optimizations for limited pipeline by restricting input read!
 
         // for hash output, the key and bucket type
-        python::Type _hashOutputKeyType;
-        python::Type _hashOutputBucketType;
+        // python::Type _hashOutputKeyType;
+        // python::Type _hashOutputBucketType;
+
+        python::Type _normalHashOutputKeyType;
+        python::Type _normalHashOutputBucketType;
+        python::Type _generalHashOutputKeyType;
+        python::Type _generalHashOutputBucketType;
 
         bool hasOutputLimit() const {
             return _outputLimit < std::numeric_limits<size_t>::max();

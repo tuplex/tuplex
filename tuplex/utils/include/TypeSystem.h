@@ -845,6 +845,16 @@ namespace python {
      * @return vector of types
      */
     extern std::vector<python::Type> primitiveTypes(bool return_options_as_well=false);
+
+    inline bool isTupleOfConstants(const python::Type& tuple_type) {
+        if(!tuple_type.isTupleType())
+            return false;
+        for(const auto t : tuple_type.parameters()) {
+            if(!t.isConstantValued())
+                return false;
+        }
+        return true;
+    }
 }
 
 

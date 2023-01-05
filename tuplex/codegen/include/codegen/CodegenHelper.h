@@ -597,10 +597,13 @@ namespace tuplex {
                 static_assert(sizeof(int64_t) == 8, "int64_t must be 8 bytes");
                 return 8; // single int is hashed in an int hashtable
             }
-            if(t.isConstantValued())
+            // constant or tuple of constants?
+            if(t.isConstantValued() || python::isTupleOfConstants(t))
                 return 0;
+
             return 0xFFFFFFFF; // strings are strings and anything besides int is just serialized to string right now
         }
+
 
         inline std::vector<std::string> extractFunctionNames(llvm::Module* mod) {
             using namespace std;

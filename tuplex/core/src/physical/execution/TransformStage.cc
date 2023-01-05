@@ -890,6 +890,8 @@ namespace tuplex {
             // constant key?
             logger.debug("change the misleading hashtable key byte width indicator here...");
 
+            auto hashtableKeyByteWidth = codegen::hashtableKeyWidth(_fastCodePath.)
+
             if (hashtableKeyByteWidth() == 0) {
                 if(_fastCodePath.aggregateAggregateFuncName.empty())
                     throw std::runtime_error("makes no sense when constant key...");
@@ -899,6 +901,7 @@ namespace tuplex {
                     jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeInt64HashTableCallback());
                 else jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeInt64HashTableAggregateCallback());
             } else {
+                assert(hashtableKeyByteWidth() == 0xFFFFFFFF);
                 if(_fastCodePath.aggregateAggregateFuncName.empty())
                     jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeStringHashTableCallback());
                 else jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeStringHashTableAggregateCallback());

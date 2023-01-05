@@ -1381,6 +1381,7 @@ namespace tuplex {
                 builder.CreateCall(callback_func,
                                    {_argUserData, key, keyNull, cbool_const(ctx, bucketize), bucket, bucketSize});
             } else {
+                assert(hashtableWidth == 0xFFFFFFFF);
                 FunctionType *hashCallback_type = FunctionType::get(Type::getVoidTy(ctx),
                                                                     {ctypeToLLVM<void *>(ctx),
                                                                      ctypeToLLVM<uint8_t *>(ctx), ctypeToLLVM<int64_t>(ctx),

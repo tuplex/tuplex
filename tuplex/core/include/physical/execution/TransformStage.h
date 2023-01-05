@@ -182,6 +182,9 @@ namespace tuplex {
         Schema normalCaseOutputSchema() const { return _normalCaseOutputSchema; }
         Schema normalCaseInputSchema() const { return _normalCaseInputSchema; }
 
+        python::Type normalCaseHashKeyType() const;
+        python::Type generalCaseHashKeyType() const;
+
         /*!
          * from original columns, get indices back which columns are read in each case. To get number of columns, use inputColumnCount
          */
@@ -499,9 +502,9 @@ namespace tuplex {
             return _hashOutputBucketType;
         }
 
-        inline int hashtableKeyByteWidth() const {
-            return codegen::hashtableKeyWidth(_hashOutputKeyType);
-        }
+//        inline int hashtableKeyByteWidth() const {
+//            return codegen::hashtableKeyWidth(_hashOutputKeyType);
+//        }
 
         void setHashResult(map_t hash_map, uint8_t* null_bucket,
                            PyObject* hybrid=nullptr) {

@@ -518,10 +518,9 @@ namespace tuplex {
             _hashResult.null_bucket = null_bucket;
             _hashResult.hybrid = hybrid;
 
-#warning "fix this here"
-            // ??
-            // _hashResult.keyType = _hashOutputKeyType;
-            // _hashResult.bucketType = _hashOutputBucketType;
+            // use normal-case for this here
+             _hashResult.keyType = _normalHashOutputKeyType;
+             _hashResult.bucketType = _normalHashOutputBucketType;
         }
 
 

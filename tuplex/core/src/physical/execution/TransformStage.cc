@@ -479,7 +479,8 @@ namespace tuplex {
         return appendRow(s, rows);
     }
 
-    static std::vector<Partition*> convertHashTableToPartitionsAggByKey(const TransformStage::HashResult& result, const Schema &schema, const Context &context) {
+    static std::vector<Partition*> convertHashTableToPartitionsAggByKey(const TransformStage::HashResult& result,
+                                                                        const Schema &schema, const Context &context) {
         std::vector<std::pair<const char*, size_t>> unique_rows;
         size_t total_serialized_size = 0;
         const map_t &hashtable = result.hash_map;
@@ -527,6 +528,54 @@ namespace tuplex {
         ret.push_back(p);
 
         // @TODO: arbitrary python objects!
+
+        return ret;
+    }
+
+    static std::vector<Partition*> convertConstantKeyedHashTableToPartition(const TransformStage::HashResult& result,
+                                                                        const python::Type& target_row_type, const Context &context) {
+       auto& logger = Logger::instance().defaultLogger();
+
+        // create combined type from key type/bucket type
+        auto key_type = python::Type::propagateToTupleType(result.keyType);
+        auto bucket_type = python::Type::propagateToTupleType(result.bucketType);
+        std::vector<python::Type> col_types;
+        for(auto t: key_type.parameters())col_types.push_back(t);
+        for(auto t: bucket_type.parameters())col_types.push_back(t);
+        auto row_type = python::Type::makeTupleType(col_types);
+
+        logger.debug("converting const-keyed hashtable with row_type=" + row_type.desc() + " to row_type=" + target_row_type.desc());
+
+        if(!python::canUpcastToRowType(row_type, target_row_type))
+            throw std::runtime_error("can not upcast row types!");
+
+        auto schema = Schema(Schema::MemoryLayout::ROW, target_row_type);
+        auto buffer = result.null_bucket;
+        assert(buffer);
+
+        int64_t buf_size = *(int64_t*)buffer;
+        const uint8_t *buf = buffer + 8;
+
+        Row original_row = Row::fromMemory(Schema(Schema::MemoryLayout::ROW, row_type), buf, buf_size);
+        Row row = original_row.upcastedRow(target_row_type);
+        size_t total_serialized_size = row.serializedLength();
+
+        // construct return partition
+        auto p = context.getDriver()->allocWritablePartition(total_serialized_size + sizeof(uint64_t), schema, -1, context.id());
+        auto data_region = reinterpret_cast<char *>(p->lockWrite());
+        row.serializeToMemory(reinterpret_cast<uint8_t *>(data_region), p->capacity());
+        p->setBytesWritten(total_serialized_size);
+        p->setNumRows(1);
+
+        // special case: if the type is 0 length serialized, add a dummy row!
+        if(result.keyType.isZeroSerializationSize() && total_serialized_size == 0 && result.null_bucket != nullptr) {
+            p->setNumRows(1);
+        }
+
+        p->unlockWrite();
+
+        std::vector<Partition*> ret;
+        ret.push_back(p);
 
         return ret;
     }
@@ -675,6 +724,15 @@ namespace tuplex {
                                 Logger::instance().defaultLogger().error("aggregation resolution not supported yet with NVO. Deactivate to make this working. Other bugs might be here as well...");
 
                             auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
+                            if(0 == ht_width) {
+                                // hack
+                                auto& logger = Logger::instance().defaultLogger();
+                                logger.debug("hacky version to convert const-keyed to outputschema!");
+                                logger.debug("const keyed to output type=" + tstage->outputSchema().getRowType().desc());
+
+                                // single row conversion basically...
+                                p = convertConstantKeyedHashTableToPartition(tstage->hashResult(), tstage->outputSchema().getRowType(), context);
+                            } else
                             if (ht_width == 8)
                                 p = convertInt64HashTableToPartitionsAggByKey(tstage->hashResult(), tstage->outputSchema(), context);
                             else

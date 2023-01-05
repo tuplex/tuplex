@@ -436,6 +436,8 @@ namespace tuplex {
                    aggInitFunctor = syms->aggInitFunctor;
                if(syms->aggAggregateFunctor)
                    aggAggregateFunctor = syms->aggAggregateFunctor;
+               if(syms->aggCombineFunctor)
+                   aggCombineFunctor = syms->aggCombineFunctor;
             }
         };
 

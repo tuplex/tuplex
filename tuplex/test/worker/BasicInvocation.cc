@@ -2154,6 +2154,16 @@ TEST(BasicInvocation, FlightAggTest) {
     python::initInterpreter();
     python::unlockGIL();
 
+    // TODO: next steps:
+    // -> run over FULL 1987 file.
+    // contrast timing for constant-keyed hashing vs. non-constant-keyed hashing for full 1987 file
+
+    // check timing info for ALL files to get sense
+
+    // expand pipeline, clean up.
+
+    // put onto lambda.
+
     // single file w. constant-folding!
     {
         ContextOptions co = ContextOptions::defaults();
@@ -2162,7 +2172,12 @@ TEST(BasicInvocation, FlightAggTest) {
         // activate constant-folding for hashing optimization!
         co.set("tuplex.optimizer.constantFoldingOptimization", "true");
         Context ctx(co);
-        ctx.csv("../resources/hyperspecialization/flights/flights_on_time_performance_1987_10.csv.sample")
+        string input_pattern = "../resources/hyperspecialization/flights/flights_on_time_performance_1987_10.csv.sample";
+
+        // a larger file
+        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2002_01.csv";
+
+        ctx.csv(input_pattern)
                 .selectColumns(std::vector<std::string>({"YEAR", "MONTH", "ARR_DELAY"}))
                 .aggregateByKey(UDF("lambda a, b: a + b"),
                                 UDF("lambda a, row: a + row['ARR_DELAY']"),

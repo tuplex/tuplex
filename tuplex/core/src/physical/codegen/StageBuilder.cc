@@ -860,8 +860,8 @@ namespace tuplex {
 
                     {
                         std::stringstream ss;
-                        ss<<"building fast path with hashmap writer (key_type="<<ctx.hashKeyType.desc()
-                          <<", bucket_type="<<ctx.hashBucketType.desc()<<")";
+                        ss<<"building fast path with hashmap writer (key_type="<<ctx.fastPathContext.hashKeyType(ctx.hashColKeys).desc()
+                          <<", bucket_type="<<ctx.fastPathContext.hashBucketType(ctx.hashColKeys).desc()<<")";
                         logger.debug(ss.str());
                     }
 
@@ -869,7 +869,7 @@ namespace tuplex {
 //#error "need to update ctx.hashKeyType and ctx.hashBucketType acc. to optimizer!"
                     pip->buildWithHashmapWriter(ret.writeHashCallbackName,
                                                 ctx.hashColKeys,
-                                                hashtableKeyWidth(ctx.hashKeyType),
+                                                hashtableKeyWidth(ctx.fastPathContext.hashKeyType(ctx.hashColKeys)),
                                                 ctx.hashSaveOthers,
                                                 ctx.hashAggregate);
                     break;
@@ -1421,9 +1421,12 @@ namespace tuplex {
             } else {
                 // @TODO: hashwriter if hash output desired
                 if(ctx.outputMode == EndPointMode::HASHTABLE) {
-                    slowPathFunc = slowPip->buildWithHashmapWriter(ret.writeHashCallbackName/*slowPathHashWriteCallback*/, ctx.hashColKeys, hashtableKeyWidth(ctx.hashKeyType), ctx.hashSaveOthers, ctx.hashAggregate);
+                    slowPathFunc = slowPip->buildWithHashmapWriter(ret.writeHashCallbackName/*slowPathHashWriteCallback*/,
+                                                                   ctx.hashColKeys, hashtableKeyWidth(ctx.slowPathContext.hashKeyType(ctx.hashColKeys)),
+                                                                   ctx.hashSaveOthers, ctx.hashAggregate);
                 } else {
-                    slowPathFunc = slowPip->buildWithTuplexWriter(ret.writeMemoryCallbackName/*slowPathMemoryWriteCallback*/, ctx.outputNodeID, hasOutputLimit());
+                    slowPathFunc = slowPip->buildWithTuplexWriter(ret.writeMemoryCallbackName/*slowPathMemoryWriteCallback*/,
+                                                                  ctx.outputNodeID, hasOutputLimit());
                 }
             }
 
@@ -1716,6 +1719,7 @@ namespace tuplex {
 
             normalToGeneralMapping.clear();
             normalToGeneralMapping = planner.normalToGeneralMapping();
+
             return path_ctx;
         }
 
@@ -1916,8 +1920,8 @@ namespace tuplex {
 
             // hash output parameters
             ctx.hashColKeys = _hashColKeys;
-            ctx.hashKeyType = _hashKeyType;
-            ctx.hashBucketType = _hashBucketType;
+            // ctx.hashKeyType = _hashKeyType;
+            // ctx.hashBucketType = _hashBucketType;
             ctx.hashSaveOthers = _hashSaveOthers;
             ctx.hashAggregate = _hashAggregate;
 

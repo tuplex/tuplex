@@ -36,8 +36,8 @@ namespace tuplex {
             size_t                                          outputLimit;
 
             std::vector<size_t>                             hashColKeys; // the column to use as hash key
-            python::Type                                    hashKeyType;
-            python::Type                                    hashBucketType;
+            // python::Type                                    hashKeyType;
+            // python::Type                                    hashBucketType;
             bool                                            hashSaveOthers; // whether to save other columns than the key or not. => TODO: UDAs, meanByKey etc. all will require similar things...
             bool                                            hashAggregate; // whether the hashtable is an aggregate
 
@@ -84,6 +84,22 @@ namespace tuplex {
                 inline std::vector<std::string> inputColumns() const {
                     assert(inputNode);
                     return inputNode->inputColumns();
+                }
+
+                inline python::Type hashKeyType(const std::vector<size_t>& key_cols) const {
+                    if(!operators.empty() && operators.back()->type() == LogicalOperatorType::AGGREGATE) {
+                        auto aop = std::dynamic_pointer_cast<AggregateOperator>(operators.back());
+                        return aop->keyType();
+                    }
+                    throw std::runtime_error("can't return hash key type");
+                }
+
+                inline python::Type hashBucketType(const std::vector<size_t>& key_cols) const {
+                    if(!operators.empty() && operators.back()->type() == LogicalOperatorType::AGGREGATE) {
+                        auto aop = std::dynamic_pointer_cast<AggregateOperator>(operators.back());
+                        return aop->bucketType();
+                    }
+                    throw std::runtime_error("can't return hash key type");
                 }
 
 #ifdef BUILD_WITH_CEREAL

@@ -28,10 +28,10 @@ namespace tuplex {
                 root["fileOutputParameters"] = fileOutputParameters;
                 root["outputLimit"] = outputLimit;
                 root["hashColKeys"] = hashColKeys;
-                if(python::Type::UNKNOWN != hashKeyType && hashKeyType.hash() > 0) // HACK
-                    root["hashKeyType"] = hashKeyType.desc();
-                if(python::Type::UNKNOWN != hashBucketType && hashBucketType.hash() > 0) // HACK
-                    root["hashBucketType"] = hashBucketType.desc();
+//                if(python::Type::UNKNOWN != hashKeyType && hashKeyType.hash() > 0) // HACK
+//                    root["hashKeyType"] = hashKeyType.desc();
+//                if(python::Type::UNKNOWN != hashBucketType && hashBucketType.hash() > 0) // HACK
+//                    root["hashBucketType"] = hashBucketType.desc();
                 root["hashSaveOthers"] = hashSaveOthers;
                 root["hashAggregate"] = hashAggregate;
                 root["inputMode"] = inputMode;

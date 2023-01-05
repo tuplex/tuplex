@@ -2262,7 +2262,7 @@ namespace tuplex {
             // create new combined pointer
             sink.null_bucket = static_cast<uint8_t*>(malloc(new_size + 8));
             *(int64_t*)sink.null_bucket = new_size;
-            memcpy(sink.null_bucket + 8, new_val, new_size);
+            memcpy(sink.null_bucket + 8, new_val + 8, new_size); // note the +8 to copy the values (and not the sizes)
             free(new_val);
             free(old_ptr);
         }

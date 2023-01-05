@@ -37,6 +37,7 @@ namespace tuplex {
 
             std::vector<size_t>                             hashColKeys; // the column to use as hash key
             python::Type                                    hashKeyType;
+            python::Type                                    hashBucketType;
             bool                                            hashSaveOthers; // whether to save other columns than the key or not. => TODO: UDAs, meanByKey etc. all will require similar things...
             bool                                            hashAggregate; // whether the hashtable is an aggregate
 

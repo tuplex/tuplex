@@ -857,7 +857,16 @@ namespace tuplex {
                         // HACK: uncommented... need to fix.
                         //const_cast<StageBuilder*>(this)->_normalCaseOutputSchema = _generalCaseOutputSchema;
                     }
-#error "need to update ctx.hashKeyType and ctx.hashBucketType acc. to optimizer!"
+
+                    {
+                        std::stringstream ss;
+                        ss<<"building fast path with hashmap writer (key_type="<<ctx.hashKeyType.desc()
+                          <<", bucket_type="<<ctx.hashBucketType.desc()<<")";
+                        logger.debug(ss.str());
+                    }
+
+
+//#error "need to update ctx.hashKeyType and ctx.hashBucketType acc. to optimizer!"
                     pip->buildWithHashmapWriter(ret.writeHashCallbackName,
                                                 ctx.hashColKeys,
                                                 hashtableKeyWidth(ctx.hashKeyType),
@@ -1908,6 +1917,7 @@ namespace tuplex {
             // hash output parameters
             ctx.hashColKeys = _hashColKeys;
             ctx.hashKeyType = _hashKeyType;
+            ctx.hashBucketType = _hashBucketType;
             ctx.hashSaveOthers = _hashSaveOthers;
             ctx.hashAggregate = _hashAggregate;
 

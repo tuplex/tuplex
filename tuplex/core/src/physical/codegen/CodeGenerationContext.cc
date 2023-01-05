@@ -30,6 +30,8 @@ namespace tuplex {
                 root["hashColKeys"] = hashColKeys;
                 if(python::Type::UNKNOWN != hashKeyType && hashKeyType.hash() > 0) // HACK
                     root["hashKeyType"] = hashKeyType.desc();
+                if(python::Type::UNKNOWN != hashBucketType && hashBucketType.hash() > 0) // HACK
+                    root["hashBucketType"] = hashBucketType.desc();
                 root["hashSaveOthers"] = hashSaveOthers;
                 root["hashAggregate"] = hashAggregate;
                 root["inputMode"] = inputMode;
@@ -127,8 +129,11 @@ namespace tuplex {
                 ctx.inputNodeID = root["inputNodeID"].get<int>();// = inputNodeID;
                 ctx.fileInputParameters = root["fileInputParameters"].get<std::unordered_map<std::string, std::string>>();// = fileInputParameters;
 
+                // TODO:
                 // if(python::Type::UNKNOWN != hashKeyType && hashKeyType.hash() > 0) // HACK
                 //     root["hashKeyType"] = hashKeyType.desc();
+                // if(python::Type::UNKNOWN != hashBucketType && hashBucketType.hash() > 0) // HACK
+                //     root["hashBucketType"] = hashBucketType.desc();
 
                 if(root.find("fastPathContext") != root.end()) {
                     // won't be true, skip

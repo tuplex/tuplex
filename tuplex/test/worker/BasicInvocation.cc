@@ -43,6 +43,8 @@
 #include <physical/codegen/StagePlanner.h>
 #include <logical/LogicalOptimizer.h>
 
+#include "PerfEvent.hpp"
+
 // dummy so linking works
 namespace tuplex {
     ContainerInfo getThisContainerInfo() {
@@ -2172,12 +2174,18 @@ TEST(BasicInvocation, FlightAggTest) {
     std::vector<std::tuple<std::string, double, double>> timings;
     double cf_time = 0.0, nocf_time = 0.0;
 
+    // use https://github.com/viktorleis/perfevent
+
     // no constant folding for global version
     {
         ContextOptions co = ContextOptions::defaults();
         co.set("tuplex.executorCount", "0");
         co.set("tuplex.optimizer.constantFoldingOptimization", "false");
         Context ctx(co);
+
+        PerfEvent e;
+        e.startCounters();
+
         Timer timer;
         ctx.csv(input_pattern)
                 .selectColumns(std::vector<std::string>({"YEAR", "MONTH", "ARR_DELAY"}))
@@ -2186,6 +2194,9 @@ TEST(BasicInvocation, FlightAggTest) {
                                 Row(0), std::vector<std::string>({"YEAR", "MONTH"}))
                 .show();
         nocf_time = timer.time();
+
+        e.stopCounters();
+        e.printReport(std::cout, 1); // use n as scale factor
         std::cout<<"processing of "<<input_pattern<<" without constant-folding took: "<<nocf_time<<std::endl;
     }
 
@@ -2199,6 +2210,10 @@ TEST(BasicInvocation, FlightAggTest) {
         co.set("tuplex.optimizer.constantFoldingOptimization", "true");
         Context ctx(co);
 
+        PerfEvent e;
+        e.startCounters();
+
+
         Timer timer;
         ctx.csv(input_pattern)
                 .selectColumns(std::vector<std::string>({"YEAR", "MONTH", "ARR_DELAY"}))
@@ -2207,6 +2222,9 @@ TEST(BasicInvocation, FlightAggTest) {
                                 Row(0), std::vector<std::string>({"YEAR", "MONTH"}))
                 .show();
         cf_time = timer.time();
+
+        e.stopCounters();
+        e.printReport(std::cout, 1); // use n as scale factor
         std::cout<<"processing of "<<input_pattern<<" with constant-folding took: "<<cf_time<<std::endl;
     }
 

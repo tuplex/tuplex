@@ -506,6 +506,11 @@ namespace tuplex {
             if(_htable->null_bucket)
                 numBuckets++;
 
+#ifndef NDEBUG
+            if(_htable->null_bucket)
+                std::cout<<"f64 val: "<<*(double*)(_htable->null_bucket + 8)<<std::endl;
+#endif
+
             // count rows from input & output buckets
             ss<<pluralize(numOutputRows, "normal row")<<", "
               <<pluralize(getNumExceptions(), "exception")<<", "

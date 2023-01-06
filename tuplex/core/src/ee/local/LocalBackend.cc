@@ -2213,6 +2213,13 @@ namespace tuplex {
         return MAP_OK;
     }
 
+    static void printSingleF64Bucket(const void* bucket) {
+        assert(bucket);
+        auto size = *(int64_t*)bucket;
+        double val = *(double*)((uint8_t*)bucket + 8);
+        std::cout<<"size: "<<size<<"  value: "<<val<<std::endl;
+    }
+
     void applyCombinePerGroup(HashTableSink& sink, int hashtableKeyByteWidth, codegen::agg_init_f init_aggregate,
                               codegen::agg_combine_f combine_aggregate) {
 
@@ -2241,6 +2248,10 @@ namespace tuplex {
             int64_t init_size = 0;
             init_aggregate(&init_val, &init_size);
 
+            std::cout<<"init val: "<<*(double*)init_val<<std::endl;
+            std::cout<<"given bucket: "<<std::endl;
+            printSingleF64Bucket(sink.null_bucket);
+
             // call combine over null-bucket
             // decode first bucket values!
             // --> for aggregate by key a single value is stored there
@@ -2255,14 +2266,28 @@ namespace tuplex {
                 std::cerr<<"combine function failed"<<std::endl;
             }
 
-            // free original aggregate
-            free(init_val);
+            // free original aggregate if new one was allocated (could be overwritten! i.e. for fixed size agg type)
+            if(new_val != init_val) {
+                free(init_val);
+                init_val = nullptr;
+            }
+
             auto old_ptr = sink.null_bucket;
             assert(new_size == init_size);
             // create new combined pointer
             sink.null_bucket = static_cast<uint8_t*>(malloc(new_size + 8));
+#ifndef NDEBUG
+            memset(sink.null_bucket, 0, new_size + 8);
+#endif
             *(int64_t*)sink.null_bucket = new_size;
-            memcpy(sink.null_bucket + 8, new_val + 8, new_size); // note the +8 to copy the values (and not the sizes)
+            memcpy(sink.null_bucket + 8, new_val, new_size); // note the +8 to copy the values (and not the sizes)
+
+           // debug:
+#ifndef NDEBUG
+            std::cout<<"double before: "<<*(double*)(old_ptr + 8)<<std::endl;
+            std::cout<<"double after: "<<*(double*)(sink.null_bucket + 8)<<std::endl;
+#endif
+
             free(new_val);
             free(old_ptr);
         }

@@ -63,11 +63,18 @@ namespace tuplex {
                                                        decltype(malloc) allocator) {
             using namespace llvm;
 
+            auto& logger = Logger::instance().logger("codegen");
+            logger.debug("generating agg_combine function for agg_type=" + aggType.desc());
+
             assert(env);
             assert(allocator == malloc || allocator == runtime::rtmalloc); // only two supported alloc functions. Could support any in future...
 
             // create new function
-            auto func_type = FunctionType::get(env->i64Type(), {env->i8ptrType()->getPointerTo(), env->i64ptrType(), env->i8ptrType(), env->i64Type()}, false);
+            // the pointers point to the raw, serialized data representing a value of type aggType
+            auto func_type = FunctionType::get(env->i64Type(), {env->i8ptrType()->getPointerTo(),
+                                                                env->i64ptrType(),
+                                                                env->i8ptrType(),
+                                                                env->i64Type()}, false);
             auto func = Function::Create(func_type, Function::ExternalLinkage, name, env->getModule().get());
 
             // set arg names
@@ -117,6 +124,12 @@ namespace tuplex {
             eb.CreateRet(eb.CreateLoad(exceptionVar));
 
             auto ftOut = cf.callWithExceptionHandler(builder, ftin, resultVar, exceptionBlock, exceptionVar);
+
+            // check that the output type matches the expectation (agg!)
+            auto out_type = python::Type::propagateToTupleType(ftOut.getTupleType());
+            if(out_type != python::Type::propagateToTupleType(aggType)) {
+                throw std::runtime_error("output mismatch in combine aggregate, is: " + out_type.desc() + " expected: " + aggType.desc());
+            }
 
             // if it's variably allocated, free out after combine and realloc...
             if(aggType.isFixedSizeType()) {

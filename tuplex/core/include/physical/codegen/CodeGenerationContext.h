@@ -146,7 +146,7 @@ namespace tuplex {
                    fileOutputParameters,
                    outputLimit,
                    hashColKeys,
-                   hashKeyType,
+                   //hashKeyType,
                    hashSaveOthers,
                    hashAggregate,
                    inputMode,

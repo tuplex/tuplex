@@ -2196,7 +2196,7 @@ TEST(BasicInvocation, FlightAggTest) {
     {
         ContextOptions co = ContextOptions::defaults();
         co.set("tuplex.executorCount", "0");
-        co.set("tuplex.optimizer.constantFoldingOptimization", "true");
+        co.set("tuplex.optimizer.constantFoldingOptimization", "false");
         Context ctx(co);
         Timer timer;
         ctx.csv(input_pattern)

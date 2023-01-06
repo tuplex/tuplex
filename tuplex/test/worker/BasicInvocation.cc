@@ -2180,7 +2180,7 @@ TEST(BasicInvocation, FlightAggTest) {
     {
         ContextOptions co = ContextOptions::defaults();
         co.set("tuplex.executorCount", "0");
-	co.set("tuplex.sample.maxDetectionRows", "20");
+	    co.set("tuplex.sample.maxDetectionRows", "20");
         // activate constant-folding for hashing optimization!
         co.set("tuplex.optimizer.constantFoldingOptimization", "false");
         Context ctx(co);
@@ -2206,7 +2206,7 @@ TEST(BasicInvocation, FlightAggTest) {
     {
         ContextOptions co = ContextOptions::defaults();
         co.set("tuplex.executorCount", "0");
-	co.set("tuplex.sample.maxDetectionRows", "20");
+	    co.set("tuplex.sample.maxDetectionRows", "20");
 
         // activate constant-folding for hashing optimization!
         co.set("tuplex.optimizer.constantFoldingOptimization", "true");

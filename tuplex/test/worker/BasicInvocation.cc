@@ -2164,6 +2164,14 @@ TEST(BasicInvocation, FlightAggTest) {
 
     // put onto lambda.
 
+    string input_pattern = "../resources/hyperspecialization/flights/flights_on_time_performance_1987_10.csv.sample";
+
+    // a larger file
+    input_pattern = "/hot/data/flights_all/flights_on_time_performance_2002_01.csv";
+
+    std::vector<std::tuple<std::string, double, double>> timings;
+    double cf_time = 0.0, nocf_time = 0.0;
+
     // single file w. constant-folding!
     {
         ContextOptions co = ContextOptions::defaults();
@@ -2172,34 +2180,48 @@ TEST(BasicInvocation, FlightAggTest) {
         // activate constant-folding for hashing optimization!
         co.set("tuplex.optimizer.constantFoldingOptimization", "true");
         Context ctx(co);
-        string input_pattern = "../resources/hyperspecialization/flights/flights_on_time_performance_1987_10.csv.sample";
 
-        // a larger file
-        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2002_01.csv";
-
+        Timer timer;
         ctx.csv(input_pattern)
                 .selectColumns(std::vector<std::string>({"YEAR", "MONTH", "ARR_DELAY"}))
                 .aggregateByKey(UDF("lambda a, b: a + b"),
                                 UDF("lambda a, row: a + row['ARR_DELAY']"),
                                 Row(0), std::vector<std::string>({"YEAR", "MONTH"}))
                 .show();
+        cf_time = timer.time();
+        std::cout<<"processing of "<<input_pattern<<" with constant-folding took: "<<cf_time<<std::endl;
     }
 
-//    // no constant folding for global version
-//    {
-//        ContextOptions co = ContextOptions::defaults();
-//        co.set("tuplex.executorCount", "0");
-//        Context ctx(co);
-//        ctx.csv("../resources/hyperspecialization/flights/flights_on_time_performance_*.csv.sample")
-//                .selectColumns(std::vector<std::string>({"YEAR", "MONTH", "ARR_DELAY"}))
-//                .aggregateByKey(UDF("lambda a, b: a + b"),
-//                                UDF("lambda a, row: a + row['ARR_DELAY']"),
-//                                Row(0), std::vector<std::string>({"YEAR", "MONTH"}))
-//                .show();
-//    }
+    // no constant folding for global version
+    {
+        ContextOptions co = ContextOptions::defaults();
+        co.set("tuplex.executorCount", "0");
+        co.set("tuplex.optimizer.constantFoldingOptimization", "true");
+        Context ctx(co);
+        Timer timer;
+        ctx.csv(input_pattern)
+                .selectColumns(std::vector<std::string>({"YEAR", "MONTH", "ARR_DELAY"}))
+                .aggregateByKey(UDF("lambda a, b: a + b"),
+                                UDF("lambda a, row: a + row['ARR_DELAY']"),
+                                Row(0), std::vector<std::string>({"YEAR", "MONTH"}))
+                .show();
+        nocf_time = timer.time();
+        std::cout<<"processing of "<<input_pattern<<" without constant-folding took: "<<nocf_time<<std::endl;
+    }
+
+    timings.push_back(make_tuple(input_pattern, cf_time, nocf_time));
 
     python::lockGIL();
     python::closeInterpreter();
+
+    // print result table
+    std::stringstream ss;
+    ss<<"path,cf_time,nocf_time\n";
+    for(auto t : timings) {
+        ss<<std::get<0>(t)<<","<<std::get<1>(t)<<","<<std::get<2>(t)<<"\n";
+    }
+    std::cout<<"RESULTS:\n----\n";
+    std::cout<<ss.str()<<std::endl;
 }
 
 TEST(BasicInvocation, FlightsSampling) {

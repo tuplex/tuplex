@@ -2148,6 +2148,69 @@ TEST(BasicInvocation, TestAllFlightFiles) {
     cout<<"Test done."<<endl;
 }
 
+TEST(BasicInvocation, BasicAggTest) {
+    using namespace std;
+    using namespace tuplex;
+
+    size_t N = 100000;
+    int64_t* data = new int64_t[N * 3];
+    for(unsigned i = 0; i < N; ++i) {
+        data[3 * i + 0] = 2012;
+        data[3 * i + 1] = 06;
+        data[3 * i + 2] = 1;
+    }
+
+    {
+        Timer timer;
+        int64_t count = 0;
+        std::vector<std::tuple<int64_t, int64_t, int64_t>> bad_rows;
+
+        // simple agg, time this here
+        for(unsigned i = 0; i < N; ++i) {
+            if(data[3 * i + 0] != 2012 || data[3 * i + 1] != 6)
+                bad_rows.emplace_back(make_tuple(data[3 * i + 0], data[3 * i + 1], data[3 * i + 2]));
+            else
+                count += data[3 * i + 2];
+        }
+        std::cout<<"specialized code took: "<<timer.time()<<" res: "<<count<<" expected: "<<N<<std::endl;
+    }
+
+    {
+        Timer timer;
+        int64_t count = 0;
+        auto hm = hashmap_new();
+
+        // simple agg, time this here
+        int64_t value;
+        int64_t key[2];
+        for(unsigned i = 0; i < N; ++i) {
+            uint8_t *bucket = nullptr;
+            key[0] = data[3 * i + 0];
+            key[1] = data[3 * i + 1];
+            hashmap_get(hm, reinterpret_cast<const char*>(key), 2 * sizeof(int64_t), (void **)(&bucket));
+            if(!bucket) {
+                assert(i == 0);
+                bucket = new uint8_t[8];
+                *(int64_t*)bucket = 0;
+            }
+
+            // update bucket with current value
+            *(int64_t*)bucket += data[3 * i + 2];
+            hashmap_put(hm, reinterpret_cast<const char*>(key), 2 * sizeof(int64_t), bucket);
+        }
+
+        // get count from hashmap
+        uint8_t *bucket = nullptr;
+        key[0] = 2012;
+        key[1] = 6;
+        hashmap_get(hm, reinterpret_cast<const char*>(key), 2 * sizeof(int64_t), (void **)(&bucket));
+        assert(bucket);
+        count = *(int64_t*)bucket;
+        std::cout<<"general code took: "<<timer.time()<<" res: "<<count<<" expected: "<<N<<std::endl;
+    }
+
+}
+
 TEST(BasicInvocation, FlightAggTest) {
     // row['ARR_DELAY']
     using namespace std;

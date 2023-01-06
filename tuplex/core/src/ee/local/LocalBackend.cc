@@ -2248,9 +2248,9 @@ namespace tuplex {
             int64_t init_size = 0;
             init_aggregate(&init_val, &init_size);
 
-            std::cout<<"init val: "<<*(double*)init_val<<std::endl;
-            std::cout<<"given bucket: "<<std::endl;
-            printSingleF64Bucket(sink.null_bucket);
+            // std::cout<<"init val: "<<*(double*)init_val<<std::endl;
+            // std::cout<<"given bucket: "<<std::endl;
+            // printSingleF64Bucket(sink.null_bucket);
 
             // call combine over null-bucket
             // decode first bucket values!
@@ -2284,8 +2284,8 @@ namespace tuplex {
 
            // debug:
 #ifndef NDEBUG
-            std::cout<<"double before: "<<*(double*)(old_ptr + 8)<<std::endl;
-            std::cout<<"double after: "<<*(double*)(sink.null_bucket + 8)<<std::endl;
+            //std::cout<<"double before: "<<*(double*)(old_ptr + 8)<<std::endl;
+            //std::cout<<"double after: "<<*(double*)(sink.null_bucket + 8)<<std::endl;
 #endif
 
             free(new_val);
@@ -2406,7 +2406,7 @@ namespace tuplex {
                     continue;
 
 
-                if(combine) combineBuckets(sink->null_bucket, task_sink->null_bucket);
+                if(combine) sink->null_bucket = combineBuckets(sink->null_bucket, task_sink->null_bucket);
                 else sink->null_bucket = merge_buckets(&sink->null_bucket, task_sink->null_bucket);
 
                 // fetch all buckets in hashmap & place into new hashmap

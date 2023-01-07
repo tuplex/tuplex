@@ -2185,8 +2185,8 @@ TEST(BasicInvocation, FlightAggTest) {
         co.set("tuplex.optimizer.constantFoldingOptimization", "false");
         Context ctx(co);
 
-        PerfEvent e;
-        e.startCounters();
+        //PerfEvent e;
+        //e.startCounters();
 
         Timer timer;
         ctx.csv(input_pattern)
@@ -2197,39 +2197,38 @@ TEST(BasicInvocation, FlightAggTest) {
                 .show();
         nocf_time = timer.time();
 
-        e.stopCounters();
-        e.printReport(std::cout, 1); // use n as scale factor
+        //e.stopCounters();
+        //e.printReport(std::cout, 1); // use n as scale factor
         std::cout<<"processing of "<<input_pattern<<" without constant-folding took: "<<nocf_time<<std::endl;
     }
 
-    // single file w. constant-folding!
-    {
-        ContextOptions co = ContextOptions::defaults();
-        co.set("tuplex.executorCount", "0");
-	    co.set("tuplex.sample.maxDetectionRows", "20");
-
-        // activate constant-folding for hashing optimization!
-        co.set("tuplex.optimizer.constantFoldingOptimization", "true");
-        Context ctx(co);
-
-        PerfEvent e;
-        e.startCounters();
-
-
-        Timer timer;
-        ctx.csv(input_pattern)
-                .selectColumns(std::vector<std::string>({"YEAR", "MONTH", "ARR_DELAY"}))
-                .aggregateByKey(UDF("lambda a, b: a + b"),
-                                UDF("lambda a, row: a + row['ARR_DELAY']"),
-                                Row(0), std::vector<std::string>({"YEAR", "MONTH"}))
-                .show();
-        cf_time = timer.time();
-
-        e.stopCounters();
-        e.printReport(std::cout, 1); // use n as scale factor
-        std::cout<<"processing of "<<input_pattern<<" with constant-folding took: "<<cf_time<<std::endl;
-    }
-
+//    // single file w. constant-folding!
+//    {
+//        ContextOptions co = ContextOptions::defaults();
+//        co.set("tuplex.executorCount", "0");
+//	    co.set("tuplex.sample.maxDetectionRows", "20");
+//
+//        // activate constant-folding for hashing optimization!
+//        co.set("tuplex.optimizer.constantFoldingOptimization", "true");
+//        Context ctx(co);
+//
+//        //PerfEvent e;
+//        //e.startCounters();
+//
+//
+//        Timer timer;
+//        ctx.csv(input_pattern)
+//                .selectColumns(std::vector<std::string>({"YEAR", "MONTH", "ARR_DELAY"}))
+//                .aggregateByKey(UDF("lambda a, b: a + b"),
+//                                UDF("lambda a, row: a + row['ARR_DELAY']"),
+//                                Row(0), std::vector<std::string>({"YEAR", "MONTH"}))
+//                .show();
+//        cf_time = timer.time();
+//
+//        //e.stopCounters();
+//        //e.printReport(std::cout, 1); // use n as scale factor
+//        std::cout<<"processing of "<<input_pattern<<" with constant-folding took: "<<cf_time<<std::endl;
+//    }
 
 
     timings.push_back(make_tuple(input_pattern, cf_time, nocf_time));

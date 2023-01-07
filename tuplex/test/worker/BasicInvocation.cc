@@ -2148,11 +2148,13 @@ TEST(BasicInvocation, TestAllFlightFiles) {
     cout<<"Test done."<<endl;
 }
 
-TEST(BasicInvocation, BasicAggTest) {
+TEST(BasicInvocation, MicroConstantFoldedAggregation) {
     using namespace std;
     using namespace tuplex;
 
-    size_t N = 100000;
+    std::cout<<"Micro Benchmark: Replacing hashmap aggregateByKey with direct aggregate for constant key:"<<std::endl;
+
+    size_t N = 1000000;
     int64_t* data = new int64_t[N * 3];
     for(unsigned i = 0; i < N; ++i) {
         data[3 * i + 0] = 2012;
@@ -2160,7 +2162,12 @@ TEST(BasicInvocation, BasicAggTest) {
         data[3 * i + 2] = 1;
     }
 
-    {
+    size_t N_runs = 10;
+    std::cout<<"data generated."<<std::endl;
+    cout<<"Benchmarking with N="<<N<<", runs="<<N_runs<<endl;
+    std::vector<std::tuple<size_t, size_t, std::string, double>> timings;
+
+    for(unsigned run = 0; run < N_runs; ++run) {
         Timer timer;
         int64_t count = 0;
         std::vector<std::tuple<int64_t, int64_t, int64_t>> bad_rows;
@@ -2172,10 +2179,17 @@ TEST(BasicInvocation, BasicAggTest) {
             else
                 count += data[3 * i + 2];
         }
-        std::cout<<"specialized code took: "<<timer.time()<<" res: "<<count<<" expected: "<<N<<std::endl;
+
+        // now compute over bad rows
+        // (ignore for now, data matches...)
+
+        double t = timer.time();
+        timings.push_back(make_tuple(N, run, "constant-folded",t));
+        std::cout<<"run: "<<run<<" specialized code took: "<<t<<"s res: "<<count<<" expected: "<<N<<std::endl;
     }
 
-    {
+
+    for(unsigned run = 0; run < N_runs; ++run) {
         Timer timer;
         int64_t count = 0;
         auto hm = hashmap_new();
@@ -2206,9 +2220,19 @@ TEST(BasicInvocation, BasicAggTest) {
         hashmap_get(hm, reinterpret_cast<const char*>(key), 2 * sizeof(int64_t), (void **)(&bucket));
         assert(bucket);
         count = *(int64_t*)bucket;
-        std::cout<<"general code took: "<<timer.time()<<" res: "<<count<<" expected: "<<N<<std::endl;
+        double t = timer.time();
+        timings.push_back(make_tuple(N, run, "hashmap",t));
+        std::cout<<"run: "<<run<<" with hashmap took: "<<t<<"s res: "<<count<<" expected: "<<N<<std::endl;
     }
 
+    // print as CSV table
+    std::stringstream ss;
+    ss<<"N,run,mode,time_in_s\n";
+    for(auto t : timings) {
+        ss<<std::get<0>(t)<<","<<std::get<1>(t)<<","<<std::get<2>(t)<<","<<std::get<3>(t)<<"\n";
+    }
+
+    cout<<"CSV results:\n----\n"<<ss.str()<<endl;
 }
 
 TEST(BasicInvocation, FlightAggTest) {

@@ -2235,7 +2235,7 @@ TEST(BasicInvocation, MicroConstantFoldedAggregation) {
     cout<<"CSV results:\n----\n"<<ss.str()<<endl;
 }
 
-TEST(BasicInvocation, FlightAggTest) {
+TEST(BasicInvocation, FlightConstAggBenchmark) {
     // row['ARR_DELAY']
     using namespace std;
     using namespace tuplex;
@@ -2330,8 +2330,8 @@ TEST(BasicInvocation, FlightAggTest) {
 
                 //e.stopCounters();
                 //e.printReport(std::cout, 1); // use n as scale factor
-                std::cout<<"Run "<<(i+1)<<"/"<<N_runs<<" took "<<nocf_time<<"s (with constant-folding)"<<std::endl;
-                timings.emplace_back(input_pattern, "with-constant-folding", i, nocf_time);
+                std::cout<<"Run "<<(i+1)<<"/"<<N_runs<<" took "<<cf_time<<"s (with constant-folding)"<<std::endl;
+                timings.emplace_back(input_pattern, "with-constant-folding", i, cf_time);
             }
         }
     }

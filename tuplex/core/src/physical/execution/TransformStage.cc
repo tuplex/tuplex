@@ -429,34 +429,90 @@ namespace tuplex {
         return final_length;
     }
 
-    static size_t appendBucketAsPartition(std::vector<std::pair<const char *, size_t>> &rows,
-                                          const uint8_t *buffer,
-                                          uint64_t keylen,
-                                          const char *key,
-                                          const python::Type &keyType,
-                                          const python::Type &aggType) {
-        Serializer s;
+    /*!
+     *
+     * @param rows
+     * @param buffer
+     * @param keylen
+     * @param key
+     * @param target_row_type the target row type to be desired when serializing to buffer (given row is keyType ... bucketType)
+     * @param keyType the key type (first columns)
+     * @param bucketType the bucket type (remaining columns after key columns)
+     * @return bytes that were serialized to rows.
+     */
+    static size_t appendHashedRowAsMemoryToArray(std::vector<std::pair<uint8_t*, size_t>> &rows,
+                                                 const uint8_t *buffer,
+                                                 uint64_t keylen,
+                                                 const char *key,
+                                                 const python::Type& target_row_type,
+                                                 const python::Type &key_type,
+                                                 const python::Type &bucket_type) noexcept {
+        // Serializer s;
 
-        // get the key
-        if(keyType.isOptionType() && key == nullptr) {
+        // sanity checks
+        assert(target_row_type.isTupleType());
+        auto num_columns_given = python::Type::propagateToTupleType(key_type).parameters().size() + python::Type::propagateToTupleType(bucket_type).parameters().size();
+        auto num_columns_desired = python::Type::propagateToTupleType(target_row_type).parameters().size();
+        assert(num_columns_given == num_columns_desired); // this is actually a must! can't upcast else...
+
+        // use row storage for this (to perform upcast if necessary)
+        std::vector<Field> fields;
+
+        // get the key & append as fields
+        if(key_type.isOptionType() && key == nullptr) {
             assert(keylen == 0);
-            if(keyType == python::Type::STRING) s.append(option<std::string>::none);
-            else throw std::runtime_error("unsupported key type");
-        }
-        else if (keyType == python::Type::STRING) s.append(std::string(key, keylen - 1));
-        else if(keyType == python::Type::makeOptionType(python::Type::STRING)) s.append(option<std::string>(std::string(key, keylen-1)));
-        else if(keyType.isTupleType()) {
-            appendBucketToSerializer(s, reinterpret_cast<const uint8_t *>(key), keylen, keyType);
-        }
-        else throw std::runtime_error("unsupported key type");
+            if(key_type == python::Type::STRING)
+                fields.push_back(Field(option<std::string>::none));
+                //s.append(option<std::string>::none);
+            else throw std::runtime_error("unsupported key type " + key_type.desc() + " in appendHashedRowAsMemoryToArray");
+        } else if (key_type == python::Type::STRING) {
+            // s.append(std::string(key, keylen - 1));
+            auto value = std::string(key, keylen - 1);
+            fields.push_back(Field(value));
+        } else if(key_type == python::Type::makeOptionType(python::Type::STRING)) {
+            // s.append(option<std::string>(std::string(key, keylen-1)));
+            auto value = std::string(key, keylen - 1);
+            fields.push_back(Field(value).makeOptional());
+        } else if(key_type.isTupleType()) {
+            // deserialize via key type and append all fields!
+            Row key_row = Row::fromMemory(Schema(Schema::MemoryLayout::ROW, key_type), reinterpret_cast<const uint8_t *>(key), keylen);
+            //appendBucketToSerializer(s, reinterpret_cast<const uint8_t *>(key), keylen, key_type);
+            for(unsigned i = 0; i < key_row.getNumColumns(); ++i) {
+                fields.push_back(key_row.get(i));
+            }
 
+        } else throw std::runtime_error("unsupported key type");
+
+        // append buffer?
         if(buffer) {
-            // get the aggregated values
-            appendBucketToSerializer(s, buffer, aggType);
+            // decode buffer as bucket
+            int64_t bucket_size = *(int64_t*)buffer;
+            const uint8_t* bucket = buffer + 8;
 
-            // save the row
-            return appendRow(s, rows);
+            // deserialize using bucket type
+            Row bucket_row = Row::fromMemory(Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(bucket_type)), bucket, bucket_size);
+
+            for(unsigned i = 0; i < bucket_row.getNumColumns(); ++i) {
+                fields.push_back(bucket_row.get(i));
+            }
+//            // get the aggregated values
+//            appendBucketToSerializer(s, buffer, aggType);
+//
+//            // save the row
+//            return appendRow(s, rows);
         }
+
+        // create row & upcast to deired output format
+        Row row = Row::from_vector(fields);
+        row = row.upcastedRow(target_row_type);
+
+        // serialize & append
+        auto serialized_size = row.serializedLength();
+        auto final_val = new uint8_t [serialized_size];
+        auto sanity_check = row.serializeToMemory(final_val, serialized_size);
+        assert(sanity_check == serialized_size);
+        rows.emplace_back(final_val, serialized_size);
+
         return 0;
     }
 
@@ -481,7 +537,7 @@ namespace tuplex {
 
     static std::vector<Partition*> convertHashTableToPartitionsAggByKey(const TransformStage::HashResult& result,
                                                                         const Schema &schema, const Context &context) {
-        std::vector<std::pair<const char*, size_t>> unique_rows;
+        std::vector<std::pair<uint8_t*, size_t>> unique_rows;
         size_t total_serialized_size = 0;
         const map_t &hashtable = result.hash_map;
 
@@ -500,11 +556,17 @@ namespace tuplex {
             if(rc != MAP_OK) {
                 std::cerr<<"internal error"<<std::endl;
             }
-            total_serialized_size += appendBucketAsPartition(unique_rows, bucket, keylen, key, result.keyType, result.bucketType);
+            total_serialized_size += appendHashedRowAsMemoryToArray(unique_rows, bucket, keylen, key,
+                                                                    schema.getRowType(),
+                                                                    result.keyType,
+                                                                    result.bucketType);
         }
 
         if(result.keyType.isOptionType() && result.null_bucket != nullptr) {
-            total_serialized_size += appendBucketAsPartition(unique_rows, result.null_bucket, 0, nullptr, result.keyType, result.bucketType);
+            total_serialized_size += appendHashedRowAsMemoryToArray(unique_rows, result.null_bucket, 0, nullptr,
+                                                                    schema.getRowType(),
+                                                                    result.keyType,
+                                                                    result.bucketType);
         }
 
         // construct return partition
@@ -514,6 +576,15 @@ namespace tuplex {
             memcpy(data_region, pr.first, pr.second);
             data_region += pr.second;
         }
+
+        // free allocated memory of rows.
+        for(auto& pr : unique_rows) {
+            delete pr.first;
+            pr.first = nullptr;
+            pr.second = 0;
+        }
+        unique_rows.clear();
+
         p->setBytesWritten(total_serialized_size);
         p->setNumRows(unique_rows.size());
 

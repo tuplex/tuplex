@@ -126,10 +126,10 @@ namespace tuplex {
                     // always emit general-case exceptions
                     // if normal <-> general are incompatible, serialize as NormalCaseViolationError that requires interpreter!
                     if(serialize_exception_in_tuplex_format) {
-                        _env->debugPrint(builder, "serializing exception row in tuplex format.");
+                        // _env->debugPrint(builder, "serializing exception row in tuplex format.");
                         // add here exception block for pipeline errors, serialize tuple etc...
                         auto serialized_row = serializedExceptionRow(builder, ft, exception_serialization_format());
-                        _env->debugPrint(builder, "exception rows serialized to buffer.");
+                        // _env->debugPrint(builder, "exception rows serialized to buffer.");
                         // debug print
                         logger.debug("CellSourceTaskBuilder: input row type in which exceptions from pipeline are stored that are **not** parse-exceptions is " + ft.getTupleType().desc());
                         std::unordered_map<ExceptionSerializationFormat, std::string> name_lookup{{ExceptionSerializationFormat::GENERALCASE, "general"},

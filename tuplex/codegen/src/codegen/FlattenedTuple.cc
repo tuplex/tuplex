@@ -542,8 +542,8 @@ namespace tuplex {
 
             auto original_start_ptr = ptr;
 
-            _env->debugPrint(builder, "starting serialization of tuple:");
-            this->print(builder);
+            // _env->debugPrint(builder, "starting serialization of tuple:");
+            // this->print(builder);
 
             // serialize fixed size + varlen fields out
             Value *lastPtr = ptr;
@@ -578,7 +578,7 @@ namespace tuplex {
                 varlenBasePtr = builder.CreateGEP(varlenBasePtr, _env->i32Const(sizeof(int64_t) * bitmap.size()), "varlenbaseptr");
             }
 
-            _env->printValue(builder, builder.CreatePtrDiff(varlenBasePtr, original_start_ptr), "varlen pointer start offset is: ");
+            // _env->printValue(builder, builder.CreatePtrDiff(varlenBasePtr, original_start_ptr), "varlen pointer start offset is: ");
 
             // step 2: serialize fields
             // go through elements
@@ -594,10 +594,10 @@ namespace tuplex {
                 bool is_option_field = types[i].isOptionType();
                 auto fieldType = types[i].withoutOption();
 
-                _env->printValue(builder, builder.CreatePtrDiff(lastPtr, original_start_ptr), "writing field of type "
-                + types[i].desc() + ", current field (no=" + std::to_string(i) + "/" + std::to_string(numElements()) + ") offset=");
-                _env->printValue(builder, builder.CreatePtrDiff(varlenBasePtr, original_start_ptr), "varbaseptr offset=");
-                _env->printValue(builder, varlenSize, "varlen_size=");
+                // _env->printValue(builder, builder.CreatePtrDiff(lastPtr, original_start_ptr), "writing field of type "
+                // + types[i].desc() + ", current field (no=" + std::to_string(i) + "/" + std::to_string(numElements()) + ") offset=");
+                // _env->printValue(builder, builder.CreatePtrDiff(varlenBasePtr, original_start_ptr), "varbaseptr offset=");
+                // _env->printValue(builder, varlenSize, "varlen_size=");
 
                 if(is_option_field)
                     assert(is_null && is_not_null);
@@ -1399,7 +1399,7 @@ namespace tuplex {
                 auto from_type = paramsOld[i];
                 auto to_type = paramsNew[i];
                 auto from = SerializableValue(val, size, is_null);
-                _env->debugPrint(builder, "upcasting " + from_type.desc() + " -> " + to_type.desc() + "(col=" + std::to_string(i) + ")");
+                // _env->debugPrint(builder, "upcasting " + from_type.desc() + " -> " + to_type.desc() + " (col=" + std::to_string(i) + ")");
                 auto to = _env->upcastValue(builder, from, from_type, to_type);
                 ft.assign(i, to.val, to.size, to.is_null);
             }

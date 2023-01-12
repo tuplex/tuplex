@@ -278,6 +278,12 @@ namespace tuplex {
             auto ecOpID = builder.CreateZExtOrTrunc(pip_res.exceptionOperatorID, env.i64Type());
             auto numRowsCreated = builder.CreateZExtOrTrunc(pip_res.numProducedRows, env.i64Type());
 
+            // if ecCode is not 0 (success), set to GENERALCASEVIOLATION so interpreter can decode correctly with general case schema
+            auto success_code = env.i64Const(ecToI64(ExceptionCode::SUCCESS));
+            ecCode = builder.CreateSelect(builder.CreateICmpEQ(ecCode, success_code),
+                                          success_code, env.i64Const(ecToI64(ExceptionCode::GENERALCASEVIOLATION)));
+
+
             // env.printValue(builder, ecCode, "slow pip ec= ");
 
             // use provided return code.

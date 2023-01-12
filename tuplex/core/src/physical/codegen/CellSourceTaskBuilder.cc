@@ -129,6 +129,11 @@ namespace tuplex {
                         // _env->debugPrint(builder, "serializing exception row in tuplex format.");
                         // add here exception block for pipeline errors, serialize tuple etc...
                         auto serialized_row = serializedExceptionRow(builder, ft, exception_serialization_format());
+
+                        // force exception code to be generalcaseviolation so everything is being decoded properly>
+                        // -> true exception code will be again produced by general-case (or interpreter)
+                        ecCode = _env->i64Const(ecToI64(ExceptionCode::GENERALCASEVIOLATION)); // <-- hack
+
                         // _env->debugPrint(builder, "exception rows serialized to buffer.");
                         // debug print
                         logger.debug("CellSourceTaskBuilder: input row type in which exceptions from pipeline are stored that are **not** parse-exceptions is " + ft.getTupleType().desc());

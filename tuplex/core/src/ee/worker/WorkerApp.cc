@@ -510,7 +510,7 @@ namespace tuplex {
         Timer fastPathTimer;
         // process data (single-threaded or via thread pool!)
         if(_numThreads <= 1) {
-            std::cout<<"setting runtime memory"<<std::endl;
+            logger().info("setting runtime memory for single-threaded execution");
             runtime::setRunTimeMemory(_settings.runTimeMemory, _settings.runTimeMemoryDefaultBlockSize);
 
             try {

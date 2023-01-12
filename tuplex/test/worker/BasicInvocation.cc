@@ -668,7 +668,7 @@ TEST(BasicInvocation, ProperFlightsTest) {
 
     string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
 
-    input_pattern = "s3://tuplex-public/data/flights_on_time_performance_2009_01.10k.csv"; //"../resources/hyperspecialization/flights/*.sample";
+    //input_pattern = "s3://tuplex-public/data/flights_on_time_performance_2009_01.10k.csv"; //"../resources/hyperspecialization/flights/*.sample";
     // get full data stats
     // input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv";
 
@@ -1584,10 +1584,10 @@ TEST(BasicInvocation, FlightsHyper) {
     string input_pattern = cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv," + cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_12.csv";
     // --- end use this for final PR ---
 
-    // !!! use compatible files for inference when issuing queries, else there'll be errors.
-    input_pattern = flights_root + "flights_on_time_performance_2003_01.csv," + flights_root + "flights_on_time_performance_2003_12.csv";
-
-
+//    // !!! use compatible files for inference when issuing queries, else there'll be errors.
+//    input_pattern = flights_root + "flights_on_time_performance_2003_01.csv," + flights_root + "flights_on_time_performance_2003_12.csv";
+//
+//
     input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2002_01.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_11.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_12.csv";
 
     auto test_path = input_pattern;

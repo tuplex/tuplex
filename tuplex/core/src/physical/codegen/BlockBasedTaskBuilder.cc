@@ -175,6 +175,7 @@ namespace tuplex {
                             logger.debug("general-case input row type of block-based builder is: " + _inputRowTypeGeneralCase.desc());
 
                             // serialize!
+                            _env->debugPrint(builder, "serializing converted tuple to memory");
                             auto serialized_row = ft.serializeToMemory(builder);
                             return serialized_row;
                         } else {

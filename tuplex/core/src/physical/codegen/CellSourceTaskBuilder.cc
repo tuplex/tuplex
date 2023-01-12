@@ -117,20 +117,25 @@ namespace tuplex {
                     // --> when using hyperspecialiation, should always use that option.
                     logger.debug("UDF exceptions are emitted in general case format " + _inputRowTypeGeneralCase.desc());
 
-
-                    bool serialize_exception_in_tuplex_format = false;
+                    // need to option to have SEPARATE general-case format established (?) for exeception handling.
+                    logger.warn("make the boolean here " + std::string(__FILE__) + ":" + std::to_string(__LINE__) + " an option:");
+                    bool serialize_exception_in_tuplex_format = true; // <-- make this an option!
                     if(!isNormalCaseAndGeneralCaseCompatible()) // check: when cases are not compatible, always false...
                         serialize_exception_in_tuplex_format = false;
 
                     // always emit general-case exceptions
                     // if normal <-> general are incompatible, serialize as NormalCaseViolationError that requires interpreter!
                     if(serialize_exception_in_tuplex_format) {
+                        _env->debugPrint(builder, "serializing exception row in tuplex format.");
                         // add here exception block for pipeline errors, serialize tuple etc...
                         auto serialized_row = serializedExceptionRow(builder, ft, exception_serialization_format());
-
+                        _env->debugPrint(builder, "exception rows serialized to buffer.");
                         // debug print
                         logger.debug("CellSourceTaskBuilder: input row type in which exceptions from pipeline are stored that are **not** parse-exceptions is " + ft.getTupleType().desc());
-                        logger.debug("I.e., when creating resolve tas ks for this pipeline - set exceptionRowType to this type.");
+                        std::unordered_map<ExceptionSerializationFormat, std::string> name_lookup{{ExceptionSerializationFormat::GENERALCASE, "general"},
+                                                                                                     {ExceptionSerializationFormat::NORMALCASE, "normal"}};
+                        logger.debug("serializing exceptions in " + name_lookup.at(exception_serialization_format()) + " exception row format");
+                        logger.debug("I.e., when creating resolve tasks for this pipeline - set exceptionRowType to this type.");
                         outputRowNumber = builder.CreateLoad(outputRowNumberVar);
                         llvm::BasicBlock *curBlock = builder.GetInsertBlock();
                         auto bbException = exceptionBlock(builder, userData, ecCode, ecOpID, outputRowNumber,

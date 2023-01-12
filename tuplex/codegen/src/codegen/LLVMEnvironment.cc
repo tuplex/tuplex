@@ -2654,7 +2654,9 @@ namespace tuplex {
                 retVal.size = i64Const(1);
                 retVal.is_null = i1Const(false);
             } else {
-                Logger::instance().logger("codegen").warn("Requested dummy for type " + type.desc() + " but not yet implemented");
+                std::string err_msg = "Requested dummy for type " + type.desc() + " but not yet implemented";
+                Logger::instance().logger("codegen").error(err_msg);
+                throw std::runtime_error(err_msg);
             }
             return retVal;
         }

@@ -70,6 +70,14 @@ namespace tuplex {
 
             // encode i1 arrays as 64bit bitmaps to easily store!
             std::vector<llvm::Value*> getBitmap(llvm::IRBuilder<> &builder) const;
+
+            // print write info
+            inline void printWriteInfo(llvm::IRBuilder<>& builder, llvm::Value* target_ptr, llvm::Value* base_ptr, llvm::Value* size) {
+#ifndef NDEBUG
+                _env->printValue(builder, builder.CreatePtrDiff(target_ptr, base_ptr), "Writing to offset position=");
+                _env->printValue(builder, size, "Writing num_bytes=");
+#endif
+            }
         public:
             FlattenedTuple(LLVMEnvironment *env) : _env(env), _forceZeroTerminatedStrings(false) {}
 
@@ -149,7 +157,7 @@ namespace tuplex {
             inline python::Type fieldType(int index) const { return getFieldTypes()[index]; }
 
 #ifndef NDEBUG
-            void print(llvm::IRBuilder<>& builder);
+            void print(llvm::IRBuilder<>& builder) const;
 #endif
 
             /*!
@@ -355,6 +363,11 @@ namespace tuplex {
                                                    const std::map<int, int>& mapping) {
             auto& logger = Logger::instance().logger("codegen");
             assert(normal_tuple.getTupleType() == normal_case);
+
+            if(normal_case == general_case)
+                return normal_tuple;
+
+            logger.debug("Converting normal case tuple of type " + normal_case.desc() + " to general case tuple of type " + general_case.desc());
 
             // could be the case that fast path/normal case requires less columns than general case
             // (never the other way round!)

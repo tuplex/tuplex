@@ -530,6 +530,8 @@ namespace tuplex {
             return serializationSize;
         }
 
+
+
         llvm::Value* FlattenedTuple::serialize(llvm::IRBuilder<>& builder, llvm::Value *ptr) const {
             using namespace llvm;
             using namespace std;
@@ -539,6 +541,9 @@ namespace tuplex {
             bool hasVarField = !getTupleType().withoutOptionsRecursive().isFixedSizeType();
 
             auto original_start_ptr = ptr;
+
+            _env->debugPrint(builder, "starting serialization of tuple:");
+            this->print(builder);
 
             // serialize fixed size + varlen fields out
             Value *lastPtr = ptr;
@@ -573,17 +578,26 @@ namespace tuplex {
                 varlenBasePtr = builder.CreateGEP(varlenBasePtr, _env->i32Const(sizeof(int64_t) * bitmap.size()), "varlenbaseptr");
             }
 
+            _env->printValue(builder, builder.CreatePtrDiff(varlenBasePtr, original_start_ptr), "varlen pointer start offset is: ");
+
             // step 2: serialize fields
             // go through elements
             int serialized_idx = 0; // index of serialized fields
-            for(int i = 0; i < numElements(); ++i) {
+            for(unsigned i = 0; i < numElements(); ++i) {
                 // is varlenfield? == llvm pointer type
                 auto field = _tree.get(i).val;
                 auto size = _tree.get(i).size;
                 auto is_null = _tree.get(i).is_null;
-                auto is_not_null = is_null ? _env->i1neg(builder, is_null) : nullptr;
+                auto is_not_null = is_null ? _env->i1neg(builder, is_null) : _env->i1Const(true);
+                if(!is_null)
+                    is_null = _env->i1Const(false);
                 bool is_option_field = types[i].isOptionType();
                 auto fieldType = types[i].withoutOption();
+
+                _env->printValue(builder, builder.CreatePtrDiff(lastPtr, original_start_ptr), "writing field of type "
+                + types[i].desc() + ", current field (no=" + std::to_string(i) + "/" + std::to_string(numElements()) + ") offset=");
+                _env->printValue(builder, builder.CreatePtrDiff(varlenBasePtr, original_start_ptr), "varbaseptr offset=");
+                _env->printValue(builder, varlenSize, "varlen_size=");
 
                 if(is_option_field)
                     assert(is_null && is_not_null);
@@ -615,7 +629,7 @@ namespace tuplex {
                         field = _env->strConst(builder, "");
                 }
                 if(!size)
-                    size = _env->i64Const(0);
+                    size = _env->i64Const(8);
 
                 // structured dict and regular dictionaries (JSON)
                 if(fieldType.isDictionaryType() && fieldType != python::Type::EMPTYDICT) {
@@ -776,22 +790,26 @@ namespace tuplex {
                         // store within output
                         Value *store = builder.CreateStore(boolVal, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), false);
                         lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)), "outptr");
-                    }
-                    else if(python::Type::I64 == fieldType) {
+                    } else if(python::Type::I64 == fieldType) {
                         // option trick
                         if(is_option_field) {
-                            field = builder.CreateMul(field, builder.CreateZExt(is_not_null, Type::getInt64Ty(context)));
+                            field = builder.CreateMul(field, builder.CreateZExt(is_not_null, Type::getInt64Ty(context)), "", true);
                         }
-
+                        assert(field->getType() == _env->i64Type());
                         // store within output
                         Value *store = builder.CreateStore(field, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), false);
                         lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)), "outptr");
                     } else if(python::Type::F64 == fieldType) {
                         // option trick
                         if(is_option_field) {
-                            field = builder.CreateFMul(field, builder.CreateSIToFP(builder.CreateZExt(is_not_null, Type::getInt64Ty(context)), _env->doubleType()));
-                        }
+                            assert(is_not_null);
 
+                            // zero field via select
+                            field = builder.CreateSelect(is_not_null, field, _env->f64Const(0.0));
+
+                            // multiplication results in issue with llvm 9.0.1
+                        }
+                        assert(field->getType() == _env->doubleType());
                         // store within output
                         Value *store = builder.CreateStore(field, builder.CreateBitCast(lastPtr, Type::getDoublePtrTy(context, 0)), false);
                         lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(double)), "outptr");
@@ -1227,12 +1245,12 @@ namespace tuplex {
 
         codegen::SerializableValue FlattenedTuple::serializeToMemory(llvm::IRBuilder<> &builder) const {
 
-            // _env->debugPrint(builder, "entering serialize to memory");
+             _env->debugPrint(builder, "entering serialize to memory");
 
             auto buf_size = getSize(builder);
 
              // debug
-            // _env->debugPrint(builder, "buf_size to serialize is: ", buf_size);
+             _env->debugPrint(builder, "buf_size to serialize is: ", buf_size);
 
             // debug print
             auto buf = _env->malloc(builder, buf_size);
@@ -1288,7 +1306,7 @@ namespace tuplex {
 
 
 #ifndef NDEBUG
-        void FlattenedTuple::print(llvm::IRBuilder<> &builder) {
+        void FlattenedTuple::print(llvm::IRBuilder<> &builder) const {
             // print tuple out for debug purposes
             using namespace  std;
 
@@ -1372,7 +1390,7 @@ namespace tuplex {
                 throw std::runtime_error("types have different number of elements");
 
             auto num_params = paramsNew.size();
-            for(int i = 0; i < num_params; ++i) {
+            for(unsigned i = 0; i < num_params; ++i) {
                 auto val = this->get(i);
                 auto size = this->getSize(i);
                 auto is_null = this->getIsNull(i);
@@ -1381,6 +1399,7 @@ namespace tuplex {
                 auto from_type = paramsOld[i];
                 auto to_type = paramsNew[i];
                 auto from = SerializableValue(val, size, is_null);
+                _env->debugPrint(builder, "upcasting " + from_type.desc() + " -> " + to_type.desc() + "(col=" + std::to_string(i) + ")");
                 auto to = _env->upcastValue(builder, from, from_type, to_type);
                 ft.assign(i, to.val, to.size, to.is_null);
             }

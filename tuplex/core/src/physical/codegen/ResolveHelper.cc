@@ -244,6 +244,47 @@ namespace tuplex {
             builder.SetInsertPoint(bIsNot);
         }
 
+        // env, builder, pip_input_row_type, pipFunc, ecCode, rowNo, userData, dataPtr, dataSize
+        void handleGeneralCaseExceptionsFromTuplexMemory(LLVMEnvironment& env,
+                                                llvm::IRBuilder<>& builder,
+                                                const python::Type& general_case_input_row_type,
+                                                llvm::Function* pipeline_func,
+                                                llvm::Value* ecCode,
+                                                llvm::Value* rowNumber,
+                                                llvm::Value* userData,
+                                                llvm::Value* buf,
+                                                llvm::Value* buf_size) {
+            using namespace llvm;
+
+            assert(buf && buf->getType() == env.i8ptrType());
+            assert(buf_size && buf_size->getType() == env.i64Type());
+
+            auto& ctx = builder.getContext();
+
+            // make sure pipeline func and row type are compatible
+            // @TODO
+
+            // no check on types (could save explicitly what format it is!)
+
+            // all good, now handle everything here.
+            FlattenedTuple ft(&env);
+            ft.init(general_case_input_row_type);
+            ft.deserializationCode(builder, buf);
+
+            auto pip_res = PipelineBuilder::call(builder, pipeline_func, ft, userData, rowNumber); // no intermediate support right now.
+
+            // create if based on resCode to go into exception block
+            ecCode = builder.CreateZExtOrTrunc(pip_res.resultCode, env.i64Type());
+            auto ecOpID = builder.CreateZExtOrTrunc(pip_res.exceptionOperatorID, env.i64Type());
+            auto numRowsCreated = builder.CreateZExtOrTrunc(pip_res.numProducedRows, env.i64Type());
+
+            // env.printValue(builder, ecCode, "slow pip ec= ");
+
+            // use provided return code.
+            env.freeAll(builder);
+            builder.CreateRet(ecCode);
+        }
+
         // new version, require explicitly stored format information.
         llvm::Function* createProcessExceptionRowWrapper(LLVMEnvironment& env,
                                                          const python::Type& pip_input_row_type,
@@ -337,14 +378,16 @@ namespace tuplex {
                                                    input_op, ecCode, rowNo, userData, dataPtr, dataSize);
 
 
-            // debug
-#ifndef NDEBUG
-            env.printValue(builder, ecCode, "general path, got exception code (unhandled): ");
-#endif
+            auto general_case_input_row_type = pip_input_row_type;
+            logger.debug("Assuming exceptions are given as general case rows with schema=" + general_case_input_row_type.desc());
+            handleGeneralCaseExceptionsFromTuplexMemory(env, builder, pip_input_row_type, pipFunc, ecCode, rowNo, userData, dataPtr, dataSize);
 
-            // no success, return original ecCode
-            env.freeAll(builder);
-            builder.CreateRet(ecCode);
+            // check if current block is not terminated, if so end function with original ecCode and free all runtime memory before.
+            if(blockOpen(builder.GetInsertBlock())) {
+                // no success, return original ecCode
+                env.freeAll(builder);
+                builder.CreateRet(ecCode);
+            }
 
             // erase (empty) blocks with no predecessor and successor
             for(auto it = func->begin(); it != func->end(); ++it) {

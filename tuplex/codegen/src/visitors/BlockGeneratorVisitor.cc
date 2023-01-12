@@ -25,26 +25,6 @@ using namespace llvm;
 //@Todo
 #warning "give the generated function for its first argument the attributes sret and noalias as described in https://media.readthedocs.org/pdf/mapping-high-level-constructs-to-llvm-ir/latest/mapping-high-level-constructs-to-llvm-ir.pdf p.18"
 
-
-bool blockContainsRet(llvm::BasicBlock *bb) {
-    assert(bb);
-    return llvm::isa<llvm::ReturnInst>(bb->back());
-}
-
-// for both condbr or br
-bool blockContainsBr(llvm::BasicBlock *bb) {
-    assert(bb);
-    return llvm::isa<llvm::BranchInst>(bb->back());
-}
-
-// block is open when there is no ret nor br instruction
-bool blockOpen(llvm::BasicBlock *bb) {
-    if (!bb)
-        return false;
-
-    return !blockContainsRet(bb) && !blockContainsBr(bb);
-}
-
 // @TODO: refactor this and make the expression check more elegant...
 
 namespace tuplex {

@@ -1245,12 +1245,12 @@ namespace tuplex {
 
         codegen::SerializableValue FlattenedTuple::serializeToMemory(llvm::IRBuilder<> &builder) const {
 
-             _env->debugPrint(builder, "entering serialize to memory");
+             // _env->debugPrint(builder, "entering serialize to memory");
 
             auto buf_size = getSize(builder);
 
              // debug
-             _env->debugPrint(builder, "buf_size to serialize is: ", buf_size);
+             // _env->debugPrint(builder, "buf_size to serialize is: ", buf_size);
 
             // debug print
             auto buf = _env->malloc(builder, buf_size);

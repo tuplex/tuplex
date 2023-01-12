@@ -675,6 +675,30 @@ namespace tuplex {
             }
             return true;
         }
+
+        inline bool blockContainsRet(llvm::BasicBlock *bb) {
+            assert(bb);
+            if(bb->empty())
+                return false;
+            return llvm::isa<llvm::ReturnInst>(bb->back());
+        }
+
+        // for both condbr or br
+        inline bool blockContainsBr(llvm::BasicBlock *bb) {
+            assert(bb);
+            if(bb->empty())
+                return false;
+            return llvm::isa<llvm::BranchInst>(bb->back());
+        }
+
+        // block is open when there is no ret nor br instruction
+        inline bool blockOpen(llvm::BasicBlock *bb) {
+            if (!bb)
+                return false;
+            if(bb->empty())
+                return true;
+            return !blockContainsRet(bb) && !blockContainsBr(bb);
+        }
     }
 }
 

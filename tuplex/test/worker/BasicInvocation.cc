@@ -711,6 +711,8 @@ TEST(BasicInvocation, ProperFlightsTest) {
     //     EXPECT_EQ(ref_row_counts[uri.basename()], number_of_rows);
     // }
 
+    bool resolve_with_interpreter_only = false;
+
     // local worker mode for easier debugging
     ContextOptions co = ContextOptions::defaults();
     co.set("tuplex.backend", "worker");
@@ -724,6 +726,7 @@ TEST(BasicInvocation, ProperFlightsTest) {
     co.set("tuplex.experimental.hyperspecialization", "false"); // first check that THIS is correct.
     co.set("tuplex.experimental.s3PreCacheSize", "1G");
     co.set("tuplex.inputSplitSize", "2GB");
+    co.set("tuplex.resolveWithInterpreterOnly", boolToString(resolve_with_interpreter_only));
 
     auto co_hyper = co;
     co_hyper.set("tuplex.experimental.hyperspecialization", "true");

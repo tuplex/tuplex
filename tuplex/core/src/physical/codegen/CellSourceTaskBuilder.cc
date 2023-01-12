@@ -132,6 +132,10 @@ namespace tuplex {
 
                         // force exception code to be generalcaseviolation so everything is being decoded properly>
                         // -> true exception code will be again produced by general-case (or interpreter)
+                        logger.warn("serializing exceptions in general-case format leads to exception root "
+                                    "information being lost here, b.c. exception code is reset to "
+                                    "general-case violation. Hence, resolve code or fallback code must "
+                                    "restore correcy exception code for display.");
                         ecCode = _env->i64Const(ecToI64(ExceptionCode::GENERALCASEVIOLATION)); // <-- hack
 
                         // _env->debugPrint(builder, "exception rows serialized to buffer.");

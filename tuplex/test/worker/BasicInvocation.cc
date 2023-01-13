@@ -2563,26 +2563,26 @@ TEST(BasicInvocation, WorkshopPaperLocalExperiment) {
 
         cout<<"general took: "<<timer.time()<<"s"<<endl;
     }
+it ad
+    // 2. starting hyper-specialized processing experiment (using worker!)
 
-//    // 2. starting hyper-specialized processing experiment (using worker!)
-//
-//    auto tstage_hyper = create_flights_pipeline(input_pattern, "./hyper_processing/", true);
-//
-//
-//
-//
-//
-//
-//    for(const auto& path : paths) {
-//        Timer timer;
-//        cout<<"Testing "<<basename(path.toString())<<"...";
-//        cout.flush();
-//        int rc = checkHyperSpecialization(path, tstage_hyper, tstage_general, num_threads, spillURI);
-//        std::string hyper_ok = rc & 0x1 ? "OK" : "FAILED";
-//        std::string general_ok = rc & 0x2 ? "OK" : "FAILED";
-//        std::string validation_ok = rc & 0x4 ? "OK" : "FAILED";
-//        cout<<"  hyper: "<<hyper_ok<<" general: "<<general_ok<<" validation: "<<validation_ok<<" took: "<<timer.time()<<"s"<<endl;
-//    }
+    auto tstage_hyper = create_flights_pipeline(input_pattern, "./hyper_processing/", true);
+
+
+
+
+
+
+    for(const auto& path : paths) {
+        Timer timer;
+        cout<<"Testing "<<basename(path.toString())<<"...";
+        cout.flush();
+        int rc = checkHyperSpecialization(path, tstage_hyper, tstage_general, num_threads, spillURI);
+        std::string hyper_ok = rc & 0x1 ? "OK" : "FAILED";
+        std::string general_ok = rc & 0x2 ? "OK" : "FAILED";
+        std::string validation_ok = rc & 0x4 ? "OK" : "FAILED";
+        cout<<"  hyper: "<<hyper_ok<<" general: "<<general_ok<<" validation: "<<validation_ok<<" took: "<<timer.time()<<"s"<<endl;
+    }
 
     cout<<"Experiment done."<<endl;
 }

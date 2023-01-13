@@ -20,6 +20,12 @@
 namespace tuplex {
     namespace codegen {
 
+        enum class ExceptionSerializationMode {
+            SERIALIZE_MISMATCH_ALWAYS_AS_BAD_PARSE=1,
+            SERIALIZE_AS_GENERAL_CASE=2,
+            SERIALIZE_AS_NORMAL_CASE=4,
+        };
+
         // to create BlockBasedPipelines, i.e. they take an input buffer
         // then deserialize somehow (aka parsing) and call a pipeline.
         class BlockBasedTaskBuilder {
@@ -31,7 +37,19 @@ namespace tuplex {
             llvm::Function *createFunction();
 
             ExceptionSerializationFormat exception_serialization_format() const {
-                return _serializeExceptionsAsGeneralCase ? ExceptionSerializationFormat::GENERALCASE : ExceptionSerializationFormat::NORMALCASE;
+                switch(_exceptionSerializationMode) {
+                    case ExceptionSerializationMode::SERIALIZE_MISMATCH_ALWAYS_AS_BAD_PARSE: {
+                        return ExceptionSerializationFormat::STRING_CELLS;
+                    }
+                    case ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE: {
+                        return ExceptionSerializationFormat::GENERALCASE;
+                    }
+                    default:
+                        return ExceptionSerializationFormat::NORMALCASE;
+                }
+
+                // old
+                // return _serializeExceptionsAsGeneralCase ? ExceptionSerializationFormat::GENERALCASE : ExceptionSerializationFormat::NORMALCASE;
             }
 
             /*!
@@ -140,7 +158,8 @@ namespace tuplex {
             std::map<int, int> _normalToGeneralMapping;
 
             bool _normalAndGeneralCompatible;
-            bool _serializeExceptionsAsGeneralCase;
+            // bool _serializeExceptionsAsGeneralCase;
+            ExceptionSerializationMode _exceptionSerializationMode;
         public:
             BlockBasedTaskBuilder() = delete;
 
@@ -158,20 +177,22 @@ namespace tuplex {
                                   const python::Type& generalCaseInputRowType,
                                   const std::map<int, int>& normalToGeneralMapping,
                                   const std::string &name,
-                                  bool serializeExceptionsAsGeneralCase) : _env(env), _inputRowType(inputRowType),
+                                  const ExceptionSerializationMode& except_mode) : _env(env), _inputRowType(inputRowType),
                                                              _inputRowTypeGeneralCase(generalCaseInputRowType),
                                                              _normalToGeneralMapping(normalToGeneralMapping),
                                                              _desiredFuncName(name),
                                                              _intermediate(nullptr),
                                                              _intermediateType(python::Type::UNKNOWN),
                                                              _normalAndGeneralCompatible(false),
-                                                             _serializeExceptionsAsGeneralCase(serializeExceptionsAsGeneralCase) {
+                                                            _exceptionSerializationMode(except_mode) {
                 // check that upcasting is true or there is a valid mapping when sizes differ!
 //                assert((_inputRowType.parameters().size() != _inputRowTypeGeneralCase.parameters().size()
 //                && !_normalToGeneralMapping.empty() && _normalToGeneralMapping.size() == _inputRowType.parameters().size()) ||
 //                canUpcastToRowType(_inputRowType, _inputRowTypeGeneralCase));
                 _normalAndGeneralCompatible = checkCaseCompatibility(_inputRowType, _inputRowTypeGeneralCase, _normalToGeneralMapping);
-                if(isNormalCaseAndGeneralCaseCompatible() && _inputRowType != _inputRowTypeGeneralCase && _serializeExceptionsAsGeneralCase) {
+                if(isNormalCaseAndGeneralCaseCompatible() &&
+                _inputRowType != _inputRowTypeGeneralCase &&
+                (_exceptionSerializationMode == ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE)) {
                     Logger::instance().logger("codegen").debug("emitting auto-upcast for exceptions");
                 }
 
@@ -188,7 +209,7 @@ namespace tuplex {
                 }
             }
 
-            inline python::Type exceptionsRowType() const { return _serializeExceptionsAsGeneralCase ? _inputRowTypeGeneralCase : _inputRowType; }
+            // inline python::Type exceptionsRowType() const { return _serializeExceptionsAsGeneralCase ? _inputRowTypeGeneralCase : _inputRowType; }
 
             LLVMEnvironment &env() { return *_env; }
 

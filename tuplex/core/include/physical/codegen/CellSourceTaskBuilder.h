@@ -96,7 +96,7 @@ namespace tuplex {
              * @param restrictedGeneralCaseInputRowType the (restricted) detected general case row type of the file
              * @param normalCaseColumnsToSerialize if empty vector, all rows get serialized. If not, indicates which columns should be serialized. Length must match rowType.
              * @param name Name of the function to generate++
-             * @param serializeExceptionAsGeneralCase if true, upcasts exceptions to generalCaseInputRowType. If false, uses inputRowType.
+             * @param except_mode specify how exceptions should be serialized.
              * @param operatorID ID of the operator for exception handling.
              * @param null_values array of strings that should be interpreted as null values
              * @param checks array of checks to perform and else issue a normalcaseviolation
@@ -109,7 +109,7 @@ namespace tuplex {
                                            const std::vector<bool> &generalCaseColumnsToSerialize,
                                            const std::map<int, int>& normalToGeneralMapping,
                                            const std::string &name,
-                                           bool serializeExceptionsAsGeneralCase,
+                                           const ExceptionSerializationMode& except_mode,
                                            int64_t operatorID,
                                            const std::vector<std::string>& null_values=std::vector<std::string>{""},
                                            const std::vector<NormalCaseCheck>& checks={}) : BlockBasedTaskBuilder::BlockBasedTaskBuilder(env,
@@ -120,7 +120,7 @@ namespace tuplex {
                                                                                                                      generalCaseInputRowType),
                                                                                                               normalToGeneralMapping,
                                                                                                               name,
-                                                                                                              serializeExceptionsAsGeneralCase),
+                                                                                                              except_mode),
                                                                  _operatorID(operatorID),
                                                                  _fileInputRowType(normalCaseRowType),
                                                                  _fileInputRowTypeGeneralCase(generalCaseInputRowType),

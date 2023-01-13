@@ -2539,7 +2539,7 @@ TEST(BasicInvocation, WorkshopPaperLocalExperiment) {
 
         auto app = make_unique<WorkerApp>(WorkerSettings());
 
-        paths = {URI(flights_root + "/flights_on_time_performance_2013_03.csv")};
+        // paths = {URI(flights_root + "/flights_on_time_performance_2013_03.csv")};
 
         // local WorkerApp
         // start worker within same process to easier debug...
@@ -2579,7 +2579,7 @@ TEST(BasicInvocation, WorkshopPaperLocalExperiment) {
 
         auto app = make_unique<WorkerApp>(WorkerSettings());
 
-        paths = {URI(flights_root + "/flights_on_time_performance_2013_03.csv")};
+        // paths = {URI(flights_root + "/flights_on_time_performance_2013_03.csv")};
 
         // local WorkerApp
         // start worker within same process to easier debug...

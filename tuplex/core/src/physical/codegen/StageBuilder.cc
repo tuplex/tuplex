@@ -917,9 +917,13 @@ namespace tuplex {
             // TODO: need to optimize this..., i.e. more efficient when false.
             // --> yet, for now always emit general-case exceptions!
             // keep the smaller normal-case exception format. (note this option has not been properly tested throughout code base)
-            bool emitGeneralCaseExceptionRows = true; // <-- need to fix this!
 
-            // make sure upcasting is posible
+            // set here exception serialization mode (general case rows? yes or no?)
+            auto exceptionSerializationMode = ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE;
+
+            bool emitGeneralCaseExceptionRows = (int)exceptionSerializationMode & (int)ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE; // <-- need to fix this!
+
+            // make sure upcasting is possible
             if(emitGeneralCaseExceptionRows) {
                 auto normal_case_output_type = pathContext.outputSchema.getRowType();
                 auto general_case_output_type = generalCaseOutputRowType;
@@ -967,7 +971,7 @@ namespace tuplex {
                                                                                pathContext.columnsToRead,
                                                                                normalToGeneralMapping,
                                                                                funcStageName,
-                                                                               emitGeneralCaseExceptionRows,
+                                                                               exceptionSerializationMode,
                                                                                ctx.inputNodeID,
                                                                                null_values,
                                                                                delimiter,
@@ -1008,7 +1012,7 @@ namespace tuplex {
                                                                              generalCaseColumnsToRead,
                                                                              normalToGeneralMapping,
                                                                              funcStageName,
-                                                                             emitGeneralCaseExceptionRows,
+                                                                             exceptionSerializationMode,
                                                                              ctx.inputNodeID,
                                                                              null_values,
                                                                              pathContext.checks);
@@ -1027,7 +1031,7 @@ namespace tuplex {
                                                                            generalCaseInputRowType,
                                                                            normalToGeneralMapping,
                                                                            funcStageName,
-                                                                           emitGeneralCaseExceptionRows,
+                                                                           exceptionSerializationMode,
                                                                            pathContext.checks);
                         break;
                     }
@@ -1042,7 +1046,7 @@ namespace tuplex {
                                                                          unwrap_first_level,
                                                                          normalToGeneralMapping,
                                                                          funcStageName,
-                                                                         emitGeneralCaseExceptionRows);
+                                                                         exceptionSerializationMode);
                         break;
                     }
 
@@ -1067,7 +1071,7 @@ namespace tuplex {
                                                                    generalCaseInputRowType,
                                                                    normalToGeneralMapping,
                                                                    funcStageName,
-                                                                   emitGeneralCaseExceptionRows,
+                                                                   exceptionSerializationMode,
                                                                    pathContext.checks);
             }
 

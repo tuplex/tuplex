@@ -2563,25 +2563,45 @@ TEST(BasicInvocation, WorkshopPaperLocalExperiment) {
 
         cout<<"general took: "<<timer.time()<<"s"<<endl;
     }
-it ad
+
     // 2. starting hyper-specialized processing experiment (using worker!)
+    {
+        cout<<">>> Starting hyper processing experiment"<<endl;
+        cout<<"  input pattern: "<<input_pattern<<endl;
+        cout<<"  "<<pluralize(paths.size(), "path")<<endl;
 
-    auto tstage_hyper = create_flights_pipeline(input_pattern, "./hyper_processing/", true);
-
-
-
-
-
-
-    for(const auto& path : paths) {
         Timer timer;
-        cout<<"Testing "<<basename(path.toString())<<"...";
-        cout.flush();
-        int rc = checkHyperSpecialization(path, tstage_hyper, tstage_general, num_threads, spillURI);
-        std::string hyper_ok = rc & 0x1 ? "OK" : "FAILED";
-        std::string general_ok = rc & 0x2 ? "OK" : "FAILED";
-        std::string validation_ok = rc & 0x4 ? "OK" : "FAILED";
-        cout<<"  hyper: "<<hyper_ok<<" general: "<<general_ok<<" validation: "<<validation_ok<<" took: "<<timer.time()<<"s"<<endl;
+
+        auto test_output_path = "./hyper_processing/";
+
+        auto spillURI = URI(std::string("general_spill_folder"));
+        auto tstage_hyper = create_flights_pipeline(input_pattern, "./hyper_processing/", true);
+
+        auto app = make_unique<WorkerApp>(WorkerSettings());
+
+        paths = {URI(flights_root + "/flights_on_time_performance_2013_03.csv")};
+
+        // local WorkerApp
+        // start worker within same process to easier debug...
+
+        std::cout<<" --- Hyper processing --- "<<std::endl;
+        for(const auto& input_uri : paths) {
+            vfs = VirtualFileSystem::fromURI(input_uri);
+            uint64_t input_file_size = 0;
+            vfs.file_size(input_uri, input_file_size);
+
+            auto output_uri = URI(tstage_hyper->outputURI().toString() + "/" + basename(input_uri.toString()));
+            auto json_message_general = transformStageToReqMessage(tstage_hyper, input_uri.toPath(),
+                                                                   input_file_size, output_uri.toString(),
+                                                                   false,
+                                                                   num_threads,
+                                                                   spillURI.toString());
+            app->processJSONMessage(json_message_general);
+        }
+
+        app->shutdown();
+
+        cout<<"hyper took: "<<timer.time()<<"s"<<endl;
     }
 
     cout<<"Experiment done."<<endl;

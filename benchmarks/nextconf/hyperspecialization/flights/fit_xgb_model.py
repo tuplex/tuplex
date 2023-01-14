@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # requirements: pip3 install scikit-learn xgboost pandas
 import argparse
+import os.path
+
 import pandas as pd
 import glob
 import re
@@ -10,6 +12,8 @@ from tqdm import tqdm
 import numpy as np
 import xgboost as xgb
 import logging
+
+from sklearn.metrics import mean_absolute_error
 
 
 # initialize logging
@@ -59,6 +63,13 @@ def tree_parser(tree, i):
                 + "".join([string_parser(tree.split('\n')[i])
                            for i in range(len(tree.split('\n')) - 1)]))
 
+def replace_indices(text):
+    def replace_func(m):
+        return 'x[{}]'.format(m[1])
+    regex = r"x\['(\d+)']"
+    new_text, n_occurences = re.subn(regex, replace_func, text, )
+    return new_text
+
 def model_to_py(base_score, model, out_file):
     trees = model.get_dump()
     result = ["import math\n\n"
@@ -66,6 +77,8 @@ def model_to_py(base_score, model, out_file):
 
     for i in range(len(trees)):
         result.append(tree_parser(trees[i], i))
+
+    result = [replace_indices(t) for t in result]
 
     with open(out_file, 'w') as the_file:
         the_file.write("".join(result) + "\ndef xgb_predict(x):\n    predict = "
@@ -154,6 +167,36 @@ def extract_feature_vector(row):
 
     return features
 
+def fit_model(df_X, df_y, delay_type, py_filename):
+
+    df_y_sel = df_y[~df_y[delay_type].isnull()]
+
+    df_Xy_sel = pd.concat((df_X, df_y_sel), axis=1, join='inner')
+
+    X = df_Xy_sel[df_X.columns]
+    y = df_Xy_sel[delay_type]
+
+    logging.info(f'starting model fit for delay_type={delay_type}')
+    base_score = np.mean(y)
+    model = xgb.XGBRegressor(objective='reg:squarederror',
+                         tree_method='hist',
+                         base_score=base_score,
+                         eval_metric=mean_absolute_error,
+                         max_depth=3,
+                         eta=0.8,
+                         gamma=3,
+                         n_estimators=10)
+
+    model.fit(X, y, eval_set=[(X, y)])
+
+    m_score = model.score(X, y)
+    logging.info(f'Fit done with score {m_score}')
+    logging.info("model fit done, converting model to python code")
+
+
+    model_to_py(base_score, model.get_booster(), py_filename)
+    logging.info(f'saved model to: {py_filename}')
+
 def main():
 
     # parse args and set params
@@ -164,53 +207,79 @@ def main():
     parser.add_argument('--data-root', default=DEFAULT_DATA_ROOT, help='root folder for flights data')
     args = parser.parse_args()
 
-
+    # vars
+    X_path = 'flights_prepped_X.csv'
+    y_path = 'flights_prepped_y.csv'
     data_root = args.data_root
 
     logging.info('Flights XGB model file generator')
 
-    paths = glob.glob(data_root + '*.csv.sample') + glob.glob(data_root + '*.csv')
+    if not os.path.exists('flights_prepped_X.csv') or not os.path.exists('flights_prepped_y.csv'):
 
-    logging.info(f'Found {len(paths)} paths to train model(s) on.')
-    if len(paths) == 0:
-        logging.info('No files found, abort.')
-        sys.exit(0)
+        paths = glob.glob(data_root + '*.csv.sample') + glob.glob(data_root + '*.csv')
+
+        logging.info(f'Found {len(paths)} paths to train model(s) on.')
+        if len(paths) == 0:
+            logging.info('No files found, abort.')
+            sys.exit(0)
 
 
-    logging.info('Loading data...')
-    df = pd.DataFrame()
-    for path in tqdm(paths):
-        # skip years before 2003
-        year = int(path.split('_')[-2])
-        if year < 2003:
-            continue
-        df = pd.concat((df, pd.read_csv(path, encoding='latin1')))
+        logging.info('Loading data...')
+        df = pd.DataFrame()
+        for path in tqdm(paths):
+            # skip years before 2003
+            year = int(path.split('_')[-2])
+            if year < 2003:
+                continue
+            df = pd.concat((df, pd.read_csv(path, encoding='latin1')))
 
-    # restrict df
-    logging.info('restricting dataframe')
-    df = df[(df['ARR_DELAY'] >= 0.0)]
+        # restrict df
+        logging.info('restricting dataframe')
+        df = df[(df['ARR_DELAY'] >= 0.0)]
 
-    # get feature vector
-    logging.info('Transforming into features')
-    df['features'] = df.apply(lambda x: np.array(extract_feature_vector(x)), axis=1)
+        # get feature vector
+        logging.info('Transforming into features')
+        df['features'] = df.apply(lambda x: np.array(extract_feature_vector(x)), axis=1)
 
-    delay_names = [name for name in list(df.columns) if '_DELAY' in name]
-    df_prep = df[delay_names + ['features']]
+        delay_names = [name for name in list(df.columns) if '_DELAY' in name]
+        df_prep = df[delay_names + ['features']]
 
-    logging.info('Converting into prepared dataframe for training')
-    df_final = pd.DataFrame([pd.Series(x) for x in df_prep.features])
+        logging.info('Converting into prepared dataframe for training')
+        df_final = pd.DataFrame([pd.Series(x) for x in df_prep.features])
 
-    # save X, y
-    logging.info('Saving to flights_prepped_X.csv')
-    df_final.to_csv('flights_prepped_X.csv', index=None)
-    logging.info('Saving to flights_prepped_y.csv')
-    df_prep[delay_names].to_csv('flights_prepped_y.csv', index=None)
+        # save X, y
+        logging.info(f'Saving to {X_path}')
+        df_final.to_csv(X_path, index=None)
+        logging.info(f'Saving to {y_path}')
+        df_prep[delay_names].to_csv(y_path, index=None)
+
+        logging.info('saving prepared dataset done')
+
+    logging.info('fitting model')
+
+
+
     logging.info('done')
 
 
-    # logging.info('Fitting models')
-    # fit_model('NAS_DELAY')
+    logging.info('Fitting models')
 
+    df_X = pd.read_csv(X_path, header=0)
+    df_y = pd.read_csv(y_path, header=0)
+
+    delay_types = ['DEP_DELAY', 'CARRIER_DELAY', 'WEATHER_DELAY',
+                   'NAS_DELAY', 'SECURITY_DELAY', 'LATE_AIRCRAFT_DELAY']
+
+    for delay_type in delay_types:
+        logging.info(f'Creating model for {delay_type}')
+
+        # where to store model
+        py_filename = 'xgb_' + delay_type.lower() + ".py"
+
+        fit_model(df_X, df_y, delay_type, py_filename)
+
+        logging.info('Done.')
+    logging.info('Script done...!')
 
 if __name__ == '__main__':
     main()

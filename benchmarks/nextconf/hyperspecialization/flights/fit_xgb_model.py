@@ -12,8 +12,11 @@ from tqdm import tqdm
 import numpy as np
 import xgboost as xgb
 import logging
+import time
 
 from sklearn.metrics import mean_absolute_error
+import multiprocessing
+from multiprocessing import Pool
 
 
 # initialize logging
@@ -21,7 +24,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 DEFAULT_DATA_ROOT = '../../../../tuplex/test/resources/hyperspecialization/flights_all/'
-
+OUTPUT_DIR = 'model'
 
 def string_parser(s):
     if len(re.findall(r":leaf=", s)) == 0:
@@ -197,6 +200,34 @@ def fit_model(df_X, df_y, delay_type, py_filename):
     model_to_py(base_score, model.get_booster(), py_filename)
     logging.info(f'saved model to: {py_filename}')
 
+def preprocess_file(input_path, X_path, y_path):
+    logging.info(f"loading {input_path}")
+    df = pd.read_csv(input_path, encoding='latin1')
+
+    # restrict df
+    logging.info('restricting dataframe')
+    df = df[(df['ARR_DELAY'] >= 0.0)]
+
+    # get feature vector
+    logging.info('Transforming into features')
+    df['features'] = df.apply(lambda x: np.array(extract_feature_vector(x)), axis=1)
+
+    delay_names = [name for name in list(df.columns) if '_DELAY' in name]
+    df_prep = df[delay_names + ['features']]
+
+    logging.info('Converting into prepared dataframe for training')
+    df_final = pd.DataFrame([pd.Series(x) for x in df_prep.features])
+
+    # save X, y
+    logging.info(f'Saving to {X_path}')
+    df_final.to_csv(X_path, index=None)
+    logging.info(f'Saving to {y_path}')
+    df_prep[delay_names].to_csv(y_path, index=None)
+
+# multi processing limitations
+def pool_func(t):
+    return preprocess_file(t[0], t[1], t[2])
+
 def main():
 
     # parse args and set params
@@ -205,16 +236,22 @@ def main():
         description='Generates XGB model for flights dataset to predict delay components',
         epilog='(c) L. Spiegelberg 2023)')
     parser.add_argument('--data-root', default=DEFAULT_DATA_ROOT, help='root folder for flights data')
+    parser.add_argument('-o', '--output-dir', default=OUTPUT_DIR, help='output directory for prepped files and model files')
     args = parser.parse_args()
 
     # vars
-    X_path = 'flights_prepped_X.csv'
-    y_path = 'flights_prepped_y.csv'
     data_root = args.data_root
+    output_dir = (args.output_dir + '/').replace('//', '/')
+    X_path = os.path.join(output_dir, 'flights_prepped_X.csv')
+    y_path = os.path.join(output_dir, 'flights_prepped_y.csv')
 
     logging.info('Flights XGB model file generator')
 
-    if not os.path.exists('flights_prepped_X.csv') or not os.path.exists('flights_prepped_y.csv'):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+        logging.info('Created output dir {}'.format(output_dir))
+
+    if not os.path.exists(X_path) or not os.path.exists(y_path):
 
         paths = glob.glob(data_root + '*.csv.sample') + glob.glob(data_root + '*.csv')
 
@@ -223,41 +260,58 @@ def main():
             logging.info('No files found, abort.')
             sys.exit(0)
 
-
         logging.info('Loading data...')
         df = pd.DataFrame()
+
+        paths_to_process = []
+        part_no = 0
         for path in tqdm(paths):
             # skip years before 2003
             year = int(path.split('_')[-2])
             if year < 2003:
                 continue
-            df = pd.concat((df, pd.read_csv(path, encoding='latin1')))
 
-        # restrict df
-        logging.info('restricting dataframe')
-        df = df[(df['ARR_DELAY'] >= 0.0)]
+            tmp_X, tmp_y = X_path + f".part{part_no}", y_path + f".part{part_no}"
 
-        # get feature vector
-        logging.info('Transforming into features')
-        df['features'] = df.apply(lambda x: np.array(extract_feature_vector(x)), axis=1)
+            paths_to_process.append((path, tmp_X, tmp_y))
+            part_no += 1
 
-        delay_names = [name for name in list(df.columns) if '_DELAY' in name]
-        df_prep = df[delay_names + ['features']]
+        cpu_count = multiprocessing.cpu_count()
+        logging.info(f"Processing in parallel {len(paths_to_process)} files with {cpu_count} processes")
 
-        logging.info('Converting into prepared dataframe for training')
-        df_final = pd.DataFrame([pd.Series(x) for x in df_prep.features])
+        #preprocess_file(path, X_path + f".part{part_no}", y_path + f".part{part_no}")
+        tstart = time.time()
 
-        # save X, y
-        logging.info(f'Saving to {X_path}')
-        df_final.to_csv(X_path, index=None)
-        logging.info(f'Saving to {y_path}')
-        df_prep[delay_names].to_csv(y_path, index=None)
+        with Pool(cpu_count) as p:
+            res = p.map(pool_func,
+                        paths_to_process)
+        logging.info(f'multi took {time.time() - tstart}s')
+        logging.info("combining part results...")
 
+        # combine X
+        logging.info('combining X')
+        df_X = pd.DataFrame()
+        for t in tqdm(paths_to_process):
+            df_X = pd.concat((df_X, pd.read_csv(t[1], header=0)))
+        df_X.to_csv(X_path, index=None)
+        del df_X
+
+        # combine Y
+        logging.info('combining y')
+        df_y = pd.DataFrame()
+        for t in tqdm(paths_to_process):
+            df_y = pd.concat((df_y, pd.read_csv(t[2], header=0)))
+        df_y.to_csv(y_path, index=None)
+        del df_y
+
+        logging.info('Removing files...')
+        for t in tqdm(paths_to_process):
+            os.remove(t[1])
+            os.remove(t[2])
+        logging.info('part files removed')
         logging.info('saving prepared dataset done')
 
     logging.info('fitting model')
-
-
 
     logging.info('done')
 

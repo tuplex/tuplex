@@ -204,9 +204,14 @@ def preprocess_file(input_path, X_path, y_path):
     logging.info(f"loading {input_path}")
     df = pd.read_csv(input_path, encoding='latin1')
 
+    # skip if both parts exist
+    if os.path.exists(X_path) and os.path.exists(y_path):
+        logging.info(f'skipping {X_path}/{y_path}, they already exist')
+        return True
+
     # restrict df
     logging.info('restricting dataframe')
-    df = df[(df['ARR_DELAY'] >= 0.0)]
+    df = df[(df['ARR_DELAY'] >= 0.0)].fillna(0.0)
 
     # get feature vector
     logging.info('Transforming into features')

@@ -311,12 +311,7 @@ def main():
         logging.info('part files removed')
         logging.info('saving prepared dataset done')
 
-    logging.info('fitting model')
-
-    logging.info('done')
-
-
-    logging.info('Fitting models')
+    logging.info('Fitting models::')
 
     df_X = pd.read_csv(X_path, header=0)
     df_y = pd.read_csv(y_path, header=0)
@@ -328,7 +323,7 @@ def main():
         logging.info(f'Creating model for {delay_type}')
 
         # where to store model
-        py_filename = 'xgb_' + delay_type.lower() + ".py"
+        py_filename = os.path.join(output_dir, 'xgb_' + delay_type.lower() + ".py")
 
         fit_model(df_X, df_y, delay_type, py_filename)
 

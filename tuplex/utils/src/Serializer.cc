@@ -46,7 +46,7 @@ namespace tuplex {
 
         // is buffer initialized?
         if (!_buffer) {
-            _bufferCapacity += std::max((int) _growthConstant, (int) numBytes);
+            _bufferCapacity += std::max(_growthConstant, numBytes);
             _bufferSize = 0;
             _buffer = malloc(_bufferCapacity);
             if (!_buffer) {
@@ -56,7 +56,7 @@ namespace tuplex {
         } else {
             // check if numBytes can be accommodated, if not realloc!
             if (_bufferSize + numBytes > _bufferCapacity) {
-                _bufferCapacity += std::max((int) _growthConstant, (int) numBytes);
+                _bufferCapacity += std::max(_growthConstant, numBytes);
                 _buffer = realloc(_buffer, _bufferCapacity);
             }
         }

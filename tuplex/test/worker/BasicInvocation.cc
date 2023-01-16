@@ -165,8 +165,6 @@ namespace tuplex {
         // use higher buf, to avoid spilling
         buf_spill_size = 128 * 1024 * 1024; // 128MB
 
-	buf_spill_size = 10 * 1024 * 1024; // 10G
-
         req.set_type(messages::MessageType::MT_TRANSFORM);
         assert(tstage);
         auto pb_stage = tstage->to_protobuf();
@@ -1555,7 +1553,8 @@ namespace tuplex {
 
     std::string message_for_path(const std::string& json_message,
                                  const URI& input_uri,
-                                 const URI& output_uri) {
+                                 const URI& output_uri,
+                                 size_t buffer_size = memStringToSize("10G")) {
 
         // modify input/output path
         // transform to message
@@ -1577,6 +1576,11 @@ namespace tuplex {
             j["inputURIS"] = input_uri_arr;
             j["inputSizes"] = input_sizes_arr;
             j["baseOutputURI"] = output_uri.toPath();
+
+            // update memory size in settings
+            j["settings"]["normalBufferSize"] = buffer_size;
+            j["settings"]["exceptionBufferSize"] = buffer_size;
+
             return j.dump();
         } catch(const nlohmann::json::exception& e) {
             std::cerr<<"parsing JSON resulted in exception "<<e.what();
@@ -1625,6 +1629,12 @@ namespace tuplex {
         }
         return ss.str();
     }
+
+    std::string get_hostname() {
+        char hostname[HOST_NAME_MAX];
+        gethostname(hostname, HOST_NAME_MAX);
+        return hostname;
+    }
 }
 
 TEST(BasicInvocation, GithubSensititivity) {
@@ -1640,8 +1650,13 @@ TEST(BasicInvocation, GithubSensititivity) {
     // config params
     unsigned NUM_RUNS = 4;
     string data_root = github_test_pattern;
-    // bbsn00
-    data_root = "/hot/data/github_daily/*.json";
+
+    auto hostname = get_hostname();
+
+    // bbsn00 (HACK)
+    if("bbsn00" == hostname)
+        data_root = "/hot/data/github_daily/*.json";
+
     unsigned NUM_THREADS = 0; // single thread
     auto sampling_mode = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
     // to be sure, use ALL_FILES sampling mode

@@ -13,6 +13,7 @@
 
 // this file holds common definitions for tuplex
 #include <string>
+#include <vector>
 
 namespace tuplex {
     enum class FileFormat {
@@ -55,6 +56,29 @@ namespace tuplex {
         SINGLETHREADED = 128,
         MULTITHREADED = 256
     };
+
+    inline std::string samplingModeToString(const SamplingMode& m) {
+        std::string s;
+        std::vector<std::string> names({"FIRST_ROWS", "LAST_ROWS",
+                                        "RANDOM_ROWS", "FIRST_FILE",
+                                        "LAST_FILE", "RANDOM_FILE",
+                                        "ALL_FILES", "SINGLE_THREADED",
+                                        "MULTI_THREADED"});
+        for(unsigned i = 0 ; i < names.size(); ++i) {
+            auto flag = 0x1 << i;
+            if(m & flag) {
+                if(s.empty())
+                    s = names[i];
+                else
+                    s += "|" + names[i];
+            }
+        }
+
+        if(s.empty())
+            return "UNKNOWN";
+
+        return s;
+    }
 
     static const SamplingMode DEFAULT_SAMPLING_MODE = static_cast<SamplingMode>(SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE);
 

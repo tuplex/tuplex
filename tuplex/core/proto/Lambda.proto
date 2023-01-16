@@ -93,12 +93,12 @@ message TransformStage {
 
 message WorkerSettings {
     optional uint32 numThreads = 1;
-    optional uint32 normalBufferSize = 2;
-    optional uint32 exceptionBufferSize = 3;
-    optional uint32 hashBufferSize = 4;
+    optional uint64 normalBufferSize = 2;
+    optional uint64 exceptionBufferSize = 3;
+    optional uint64 hashBufferSize = 4;
     optional string spillRootURI = 5;
-    optional uint32 runTimeMemoryPerThread = 6;
-    optional uint32 runTimeMemoryPerThreadBlockSize = 7;
+    optional uint64 runTimeMemoryPerThread = 6;
+    optional uint64 runTimeMemoryPerThreadBlockSize = 7;
     optional bool allowNumericTypeUnification = 8;
     optional bool useInterpreterOnly = 9;
     optional bool useCompiledGeneralCase = 10;

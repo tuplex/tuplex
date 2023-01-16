@@ -282,10 +282,10 @@ namespace tuplex {
         // sometimes the codegen & passes won't work together!
         // ==> checkout https://blog.regehr.org/archives/1603 super helpful
 
-        //optimizePipelineI(*mod);
+        optimizePipelineI(*mod);
 
         // use level 2 because it's faster than 3 and produces pretty much the same result anyways...
-        Optimize(*mod, 2, 0);
+        // Optimize(*mod, 2, 0);
 
         // check out https://github.com/apache/impala/blob/master/be/src/codegen/llvm-codegen.cc
 

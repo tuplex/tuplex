@@ -1566,6 +1566,23 @@ namespace tuplex {
         return json_message;
     }
 
+    std::string detailed_bitcode_stats(const std::string& bitCode) {
+        if(bitCode.empty())
+            return "";
+
+        std::stringstream  ss;
+        bool include_detailed_counts = true;
+
+        llvm::LLVMContext context;
+        auto mod = codegen::bitCodeToModule(context, bitCode);
+
+        char name[] = "inst count";
+        InstructionCounts inst_count(*name);
+        inst_count.runOnModule(*mod);
+        ss<<inst_count.formattedStats(include_detailed_counts);
+        return ss.str();
+    }
+
 }
 
 TEST(BasicInvocation, GithubSensititivity) {
@@ -1614,6 +1631,46 @@ TEST(BasicInvocation, GithubSensititivity) {
 
     auto tstage_global = create_github_stage(input_pattern, "dummy", enable_nvo, options, false, sampling_mode);
     auto tstage_hyper = create_github_stage(input_pattern, "dummy", enable_nvo, options, false, sampling_mode);
+
+    // Run optimizer over code (to reduce number of basic blocks)
+    cout<<"Running LLVM optimizer to reduce complexity"<<endl;
+    {
+
+        LLVMOptimizer opt;
+        cout<<"GLOBAL LLVM stats:"<<endl;
+        cout<<"Detailed module stats before opt:\n- fast path:\n"
+            <<detailed_bitcode_stats(tstage_global->fastPathBitCode())
+            <<"\n"
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_global->slowPathBitCode())
+            <<endl;
+        Timer timer;
+        tstage_global->optimizeBitCode(opt);
+        cout<<"optimized global stage LLVM IR in "<<timer.time()<<"s"<<endl;
+        cout<<"Detailed module stats after opt:\n- fast path:\n"
+            <<detailed_bitcode_stats(tstage_global->fastPathBitCode())
+            <<"\n"
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_global->slowPathBitCode())
+            <<endl;
+    }
+
+    {
+        cout<<"HYPER LLVM stats:"<<endl;
+        cout<<"Detailed module stats before opt:\n- fast path:\n"
+            <<detailed_bitcode_stats(tstage_hyper->fastPathBitCode())
+            <<"\n"
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_hyper->slowPathBitCode())
+            <<endl;
+        Timer timer;
+        LLVMOptimizer opt;
+        tstage_hyper->optimizeBitCode(opt);
+        cout<<"optimized hyper stage LLVM IR in "<<timer.time()<<"s"<<endl;
+        cout<<"Detailed module stats after opt:\n- fast path:\n"
+            <<detailed_bitcode_stats(tstage_hyper->fastPathBitCode())
+            <<"\n"
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_hyper->slowPathBitCode())
+            <<endl;
+    }
+
 
     // now transform to JSON messages to pass to worker app
     auto global_json_message = transformStageToReqMessage(tstage_global, "input_dummy",

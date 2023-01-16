@@ -1312,4 +1312,19 @@ namespace tuplex {
     }
 #endif
 
+    void TransformStage::optimizeBitCode(LLVMOptimizer& opt) {
+        if(!_fastCodePath.irBitCode.empty()) {
+            llvm::LLVMContext ctx;
+            auto mod = codegen::bitCodeToModule(ctx, _fastCodePath.irBitCode);
+            opt.optimizeModule(*mod.get());
+            _fastCodePath.irBitCode = codegen::moduleToBitCodeString(*mod.get());
+        }
+
+        if(!_slowCodePath.irBitCode.empty()) {
+            llvm::LLVMContext ctx;
+            auto mod = codegen::bitCodeToModule(ctx, _slowCodePath.irBitCode);
+            opt.optimizeModule(*mod.get());
+            _slowCodePath.irBitCode = codegen::moduleToBitCodeString(*mod.get());
+        }
+    }
 }

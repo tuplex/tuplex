@@ -165,6 +165,7 @@ namespace tuplex {
         // use higher buf, to avoid spilling
         buf_spill_size = 128 * 1024 * 1024; // 128MB
 
+	buf_spill_size = 10 * 1024 * 1024; // 10G
 
         req.set_type(messages::MessageType::MT_TRANSFORM);
         assert(tstage);
@@ -1637,13 +1638,16 @@ TEST(BasicInvocation, GithubSensititivity) {
     static const string github_test_pattern = "../resources/hyperspecialization/github_daily/*.json.sample";
 
     // config params
-    unsigned NUM_RUNS = 1;
+    unsigned NUM_RUNS = 4;
     string data_root = github_test_pattern;
+    // bbsn00
+    data_root = "/hot/data/github_daily/*.json";
     unsigned NUM_THREADS = 0; // single thread
     auto sampling_mode = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
     // to be sure, use ALL_FILES sampling mode
     sampling_mode = sampling_mode | SamplingMode::ALL_FILES; // <-- global should have the right schema.
     bool enable_nvo = true;
+    string memory = "32G";
 
     string local_work_dir = "./github_sensitivity_experiment";
 
@@ -1656,6 +1660,8 @@ TEST(BasicInvocation, GithubSensititivity) {
     ws.useCompiledGeneralPath = true;
     ws.useInterpreterOnly = false;
     ws.useOptimizer = true;
+    ws.normalBufferSize = memStringToSize(memory);
+    ws.exceptionBufferSize = memStringToSize(memory);
 
     // get paths via glob
     auto vfs = VirtualFileSystem::fromURI(data_root);

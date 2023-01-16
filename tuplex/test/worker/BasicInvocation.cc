@@ -1673,7 +1673,7 @@ TEST(BasicInvocation, GithubSensititivity) {
     python::unlockGIL();
 
     auto tstage_global = create_github_stage(input_pattern, "dummy", enable_nvo, options, false, sampling_mode);
-    auto tstage_hyper = create_github_stage(input_pattern, "dummy", enable_nvo, options, false, sampling_mode);
+    auto tstage_hyper = create_github_stage(input_pattern, "dummy", enable_nvo, options, true, sampling_mode);
 
     // Run optimizer over code (to reduce number of basic blocks)
     cout<<"Running LLVM optimizer to reduce complexity"<<endl;

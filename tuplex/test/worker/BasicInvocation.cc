@@ -1566,6 +1566,20 @@ namespace tuplex {
         return json_message;
     }
 
+    std::string input_uri_from_message(const std::string& json_message) {
+        try {
+            auto j = nlohmann::json::parse(json_message);
+
+            return j["inputURIS"][0].get<std::string>();
+
+        } catch(const nlohmann::json::exception& e) {
+            std::cerr<<"parsing JSON resulted in exception "<<e.what();
+            throw e;
+        }
+
+        return "";
+    }
+
     std::string detailed_bitcode_stats(const std::string& bitCode) {
         if(bitCode.empty())
             return "";
@@ -1583,6 +1597,14 @@ namespace tuplex {
         return ss.str();
     }
 
+    std::string timings_to_str(const std::vector<std::tuple<std::string, std::string, unsigned, double, std::string>>& timings) {
+        std::stringstream ss;
+        ss<<"mode,path,run,time,stats\n";
+        for(auto t : timings) {
+            ss<<std::get<0>(t)<<","<<std::get<1>(t)<<","<<std::get<2>(t)<<","<<std::get<3>(t)<<","<<quote(std::get<4>(t))<<"\n";
+        }
+        return ss.str();
+    }
 }
 
 TEST(BasicInvocation, GithubSensititivity) {
@@ -1600,6 +1622,8 @@ TEST(BasicInvocation, GithubSensititivity) {
     string data_root = github_test_pattern;
     unsigned NUM_THREADS = 0; // single thread
     auto sampling_mode = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
+    // to be sure, use ALL_FILES sampling mode
+    sampling_mode = sampling_mode | SamplingMode::ALL_FILES; // <-- global should have the right schema.
     bool enable_nvo = true;
 
     string local_work_dir = "./github_sensitivity_experiment";
@@ -1712,26 +1736,47 @@ TEST(BasicInvocation, GithubSensititivity) {
         pos++;
     }
 
-    // process hyper messages
-    cout<<"HYPER processing::"<<endl;
-    Timer timer;
-    for(const auto& json_message : hyper_messages) {
-        app->processJSONMessage(json_message);
-    }
-    cout<<"Hyper took "<<timer.time()<<"s for "<<pluralize(hyper_messages.size(), "message")<<endl;
+    vector<tuple<string, string, unsigned, double, string>> timings;
+    string output_path = local_work_dir + "/results.csv";
 
-    cout<<"GLOBAL processing::"<<endl;
-    timer.reset();
-    for(const auto& json_message : global_messages) {
-        app->processJSONMessage(json_message);
+    for(unsigned run = 0; run < NUM_RUNS; ++run) {
+        // process hyper messages
+        cout<<"HYPER processing::"<<endl;
+        Timer timer;
+        for(const auto& json_message : hyper_messages) {
+
+            auto input_path = input_uri_from_message(json_message);
+            Timer msg_timer;
+            app->processJSONMessage(json_message);
+            timings.emplace_back("hyper", input_path, run, msg_timer.time(), app->jsonStats());
+
+            // save intermediate to file
+            stringToFile(URI(output_path), timings_to_str(timings));
+            cout<<"-- processed file"<<endl;
+        }
+        cout<<"Hyper took "<<timer.time()<<"s for "<<pluralize(hyper_messages.size(), "message")<<endl;
+
+        cout<<"GLOBAL processing::"<<endl;
+        timer.reset();
+        for(const auto& json_message : global_messages) {
+            auto input_path = input_uri_from_message(json_message);
+            Timer msg_timer;
+            app->processJSONMessage(json_message);
+            timings.emplace_back("global", input_path, run, msg_timer.time(), app->jsonStats());
+
+            // save intermediate to file
+            stringToFile(URI(output_path), timings_to_str(timings));
+            cout<<"-- processed file"<<endl;
+        }
+        cout<<"Global took "<<timer.time()<<"s for "<<pluralize(global_messages.size(), "message")<<endl;
     }
-    cout<<"Global took "<<timer.time()<<"s for "<<pluralize(global_messages.size(), "message")<<endl;
 
     //
     app->shutdown();
 
-
-
+    // print results as CSV
+    cout<<"CSV results::\n"<<endl;
+    cout<<timings_to_str(timings)<<endl;
     // later: use multi-threading as well and see how speed up changes.
 
 

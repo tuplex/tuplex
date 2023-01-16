@@ -44,6 +44,7 @@
 #include <logical/LogicalOptimizer.h>
 
 #include "PerfEvent.hpp"
+#include "logical/LogicalPlan.h"
 
 // dummy so linking works
 namespace tuplex {
@@ -78,20 +79,38 @@ tuplex::TransformStage* create_github_stage(const std::string& test_path, const 
     mop->setOutputColumns(std::vector<std::string>{"type", "repo_id", "year"});
     auto sop = std::shared_ptr<LogicalOperator>(mop);
     auto fop = std::make_shared<FileOutputOperator>(sop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
-    builder.addFileInput(jsonop);
-    builder.addOperator(wop1);
-    builder.addOperator(wop2);
-    builder.addOperator(filter_op);
-    builder.addOperator(sop);
-    builder.addFileOutput(fop);
 
+    // optimize operator chain
+    auto options = ContextOptions::defaults();
+    auto opt = std::make_unique<LogicalOptimizer>(options);
+    auto opt_action = opt->optimize(fop, true);
 
-//    // disable constant=folding opt for JSON
-//    co.set("tuplex.optimizer.constantFoldingOptimization", "false");
-//    co.set("tuplex.optimizer.filterPushdown", "true");
+    // create operator chain
+    std::vector<std::shared_ptr<LogicalOperator>> ops;
+    auto node = opt_action;
+    while(node) {
+        ops.push_back(node);
+        node = node->parent();
+    }
+    std::reverse(ops.begin(), ops.end());
 
-    // non hyper mode
-    // return builder.build();
+    // now add to builder
+    for(auto op : ops) {
+        if(op->type() == LogicalOperatorType::FILEINPUT)
+            builder.addFileInput(std::dynamic_pointer_cast<FileInputOperator>(op));
+        else if(op->type() == LogicalOperatorType::FILEOUTPUT)
+            builder.addFileOutput(std::dynamic_pointer_cast<FileOutputOperator>(op));
+        else
+            builder.addOperator(op);
+    }
+
+    // // can add also manually ops from before (no logical opt performed!)
+    // builder.addFileInput(jsonop);
+    // builder.addOperator(wop1);
+    // builder.addOperator(wop2);
+    // builder.addOperator(filter_op);
+    // builder.addOperator(sop);
+    // builder.addFileOutput(fop);
 
     if(hyper_mode)
         // hyper mode!

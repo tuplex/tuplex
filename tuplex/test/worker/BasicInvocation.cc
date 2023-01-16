@@ -44,6 +44,7 @@
 #include <logical/LogicalOptimizer.h>
 
 #include "PerfEvent.hpp"
+#include "logical/LogicalPlan.h"
 
 // dummy so linking works
 namespace tuplex {
@@ -51,6 +52,71 @@ namespace tuplex {
         ContainerInfo info;
         return info;
     }
+}
+
+tuplex::TransformStage* create_github_stage(const std::string& test_path, const std::string& test_output_path,
+                                            bool enable_nvo, const tuplex::ContextOptions& co,
+                                            bool hyper_mode,
+                                            const tuplex::SamplingMode& sm = tuplex::DEFAULT_SAMPLING_MODE) {
+    using namespace tuplex;
+    using namespace std;
+
+    bool enable_cf = false;
+    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, enable_cf, false);
+
+    auto jsonop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromJSON(test_path, true, true, co, sm));
+
+    auto repo_id_code = "def extract_repo_id(row):\n"
+                        "\tif 2012 <= row['year'] <= 2014:\n"
+                        "\t\treturn row['repository']['id']\n"
+                        "\telse:\n"
+                        "\t\treturn row['repo']['id']\n";
+
+    auto wop1 = std::shared_ptr<LogicalOperator>(new WithColumnOperator(jsonop, jsonop->columns(), "year", UDF("lambda x: int(x['created_at'].split('-')[0])")));
+    auto wop2 = std::shared_ptr<LogicalOperator>(new WithColumnOperator(wop1, wop1->columns(), "repo_id", UDF(repo_id_code)));
+    auto filter_op = std::shared_ptr<LogicalOperator>(new FilterOperator(wop2, UDF("lambda x: x['type'] == 'ForkEvent'"), wop2->columns()));
+    auto mop = new MapOperator(filter_op, UDF("lambda t: (t['type'],t['repo_id'],t['year'])"), filter_op->columns());
+    mop->setOutputColumns(std::vector<std::string>{"type", "repo_id", "year"});
+    auto sop = std::shared_ptr<LogicalOperator>(mop);
+    auto fop = std::make_shared<FileOutputOperator>(sop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
+
+    // optimize operator chain
+    auto options = ContextOptions::defaults();
+    auto opt = std::make_unique<LogicalOptimizer>(options);
+    auto opt_action = opt->optimize(fop, true);
+
+    // create operator chain
+    std::vector<std::shared_ptr<LogicalOperator>> ops;
+    auto node = opt_action;
+    while(node) {
+        ops.push_back(node);
+        node = node->parent();
+    }
+    std::reverse(ops.begin(), ops.end());
+
+    // now add to builder
+    for(auto op : ops) {
+        if(op->type() == LogicalOperatorType::FILEINPUT)
+            builder.addFileInput(std::dynamic_pointer_cast<FileInputOperator>(op));
+        else if(op->type() == LogicalOperatorType::FILEOUTPUT)
+            builder.addFileOutput(std::dynamic_pointer_cast<FileOutputOperator>(op));
+        else
+            builder.addOperator(op);
+    }
+
+    // // can add also manually ops from before (no logical opt performed!)
+    // builder.addFileInput(jsonop);
+    // builder.addOperator(wop1);
+    // builder.addOperator(wop2);
+    // builder.addOperator(filter_op);
+    // builder.addOperator(sop);
+    // builder.addFileOutput(fop);
+
+    if(hyper_mode)
+        // hyper mode!
+        return builder.encodeForSpecialization(nullptr, nullptr, true, false, true);
+    else
+        return builder.build();
 }
 
 std::string find_worker() {
@@ -98,7 +164,6 @@ namespace tuplex {
 
         // use higher buf, to avoid spilling
         buf_spill_size = 128 * 1024 * 1024; // 128MB
-
 
         req.set_type(messages::MessageType::MT_TRANSFORM);
         assert(tstage);
@@ -438,56 +503,6 @@ TEST(BasicInvocation, HashOutput) {
     auto app = make_unique<WorkerApp>(WorkerSettings());
     app->processJSONMessage(json_message);
     app->shutdown();
-}
-
-
-tuplex::TransformStage* create_github_stage(const std::string& test_path, const std::string& test_output_path,
-                                            bool enable_nvo, const tuplex::ContextOptions& co,
-                                            bool hyper_mode) {
-    using namespace tuplex;
-    using namespace std;
-
-    bool enable_cf = false;
-    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, enable_cf, false);
-
-    auto sm = DEFAULT_SAMPLING_MODE;
-    sm = SamplingMode::ALL_FILES | SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS;
-
-    auto jsonop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromJSON(test_path, true, true, co, sm));
-
-    auto repo_id_code = "def extract_repo_id(row):\n"
-                        "\tif 2012 <= row['year'] <= 2014:\n"
-                        "\t\treturn row['repository']['id']\n"
-                        "\telse:\n"
-                        "\t\treturn row['repo']['id']\n";
-
-    auto wop1 = std::shared_ptr<LogicalOperator>(new WithColumnOperator(jsonop, jsonop->columns(), "year", UDF("lambda x: int(x['created_at'].split('-')[0])")));
-    auto wop2 = std::shared_ptr<LogicalOperator>(new WithColumnOperator(wop1, wop1->columns(), "repo_id", UDF(repo_id_code)));
-    auto filter_op = std::shared_ptr<LogicalOperator>(new FilterOperator(wop2, UDF("lambda x: x['type'] == 'ForkEvent'"), wop2->columns()));
-    auto mop = new MapOperator(filter_op, UDF("lambda t: (t['type'],t['repo_id'],t['year'])"), filter_op->columns());
-    mop->setOutputColumns(std::vector<std::string>{"type", "repo_id", "year"});
-    auto sop = std::shared_ptr<LogicalOperator>(mop);
-    auto fop = std::make_shared<FileOutputOperator>(sop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
-    builder.addFileInput(jsonop);
-    builder.addOperator(wop1);
-    builder.addOperator(wop2);
-    builder.addOperator(filter_op);
-    builder.addOperator(sop);
-    builder.addFileOutput(fop);
-
-
-//    // disable constant=folding opt for JSON
-//    co.set("tuplex.optimizer.constantFoldingOptimization", "false");
-//    co.set("tuplex.optimizer.filterPushdown", "true");
-
-    // non hyper mode
-    // return builder.build();
-
-    if(hyper_mode)
-        // hyper mode!
-        return builder.encodeForSpecialization(nullptr, nullptr, true, false, true);
-    else
-        return builder.build();
 }
 
 int64_t csv_dummy_row_functor(void* userData, int64_t num_cells, char **cells, int64_t* cell_sizes) {
@@ -1503,6 +1518,316 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
     return tstage;
 }
 
+namespace tuplex {
+    DataSet& github_pipeline(Context& ctx, const std::string& pattern) {
+        // in order to extract repo -> for 2012 till 2014 incl. repo key is called repository!
+        // => unknown key will trigger badparseinput exception.
+
+        auto repo_id_code = "def extract_repo_id(row):\n"
+                            "\tif 2012 <= row['year'] <= 2014:\n"
+                            "\t\treturn row['repository']['id']\n"
+                            "\telse:\n"
+                            "\t\treturn row['repo']['id']\n";
+
+        return ctx.json(pattern)
+                  .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+                  .withColumn("repo_id", UDF(repo_id_code))
+                  .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+                  .selectColumns(std::vector<std::string>({"type", "repo_id", "year"}));
+    }
+
+    void init_aws_for_this_test() {
+        // need to init AWS SDK...
+#ifdef BUILD_WITH_AWS
+        {
+            // init AWS SDK to get access to S3 filesystem
+            auto& logger = Logger::instance().logger("aws");
+            auto aws_credentials = AWSCredentials::get();
+            auto options = ContextOptions::defaults();
+            Timer timer;
+            bool aws_init_rc = initAWS(aws_credentials, options.AWS_NETWORK_SETTINGS(), options.AWS_REQUESTER_PAY());
+            logger.debug("initialized AWS SDK in " + std::to_string(timer.time()) + "s");
+        }
+#endif
+    }
+
+    std::string message_for_path(const std::string& json_message,
+                                 const URI& input_uri,
+                                 const URI& output_uri,
+                                 size_t buffer_size = memStringToSize("10G")) {
+
+        // modify input/output path
+        // transform to message
+
+
+        // parse message & update
+        try {
+            auto j = nlohmann::json::parse(json_message);
+
+            // query file size b.c. message needs this (reuse basically)
+            auto vfs = VirtualFileSystem::fromURI(input_uri);
+            uint64_t input_file_size = 0;
+            vfs.file_size(input_uri, input_file_size);
+
+            auto input_uri_arr = nlohmann::json::array();
+            input_uri_arr.push_back(input_uri.toPath());
+            auto input_sizes_arr = nlohmann::json::array();
+            input_sizes_arr.push_back(input_file_size);
+            j["inputURIS"] = input_uri_arr;
+            j["inputSizes"] = input_sizes_arr;
+            j["baseOutputURI"] = output_uri.toPath();
+
+            // update memory size in settings
+            j["settings"]["normalBufferSize"] = buffer_size;
+            j["settings"]["exceptionBufferSize"] = buffer_size;
+
+            return j.dump();
+        } catch(const nlohmann::json::exception& e) {
+            std::cerr<<"parsing JSON resulted in exception "<<e.what();
+            throw e;
+        }
+
+        return json_message;
+    }
+
+    std::string input_uri_from_message(const std::string& json_message) {
+        try {
+            auto j = nlohmann::json::parse(json_message);
+
+            return j["inputURIS"][0].get<std::string>();
+
+        } catch(const nlohmann::json::exception& e) {
+            std::cerr<<"parsing JSON resulted in exception "<<e.what();
+            throw e;
+        }
+
+        return "";
+    }
+
+    std::string detailed_bitcode_stats(const std::string& bitCode) {
+        if(bitCode.empty())
+            return "";
+
+        std::stringstream  ss;
+        bool include_detailed_counts = true;
+
+        llvm::LLVMContext context;
+        auto mod = codegen::bitCodeToModule(context, bitCode);
+
+        char name[] = "inst count";
+        InstructionCounts inst_count(*name);
+        inst_count.runOnModule(*mod);
+        ss<<inst_count.formattedStats(include_detailed_counts);
+        return ss.str();
+    }
+
+    std::string timings_to_str(const std::vector<std::tuple<std::string, std::string, unsigned, double, std::string>>& timings) {
+        std::stringstream ss;
+        ss<<"mode,path,run,time,stats\n";
+        for(auto t : timings) {
+            ss<<std::get<0>(t)<<","<<std::get<1>(t)<<","<<std::get<2>(t)<<","<<std::get<3>(t)<<","<<quote(std::get<4>(t))<<"\n";
+        }
+        return ss.str();
+    }
+
+    std::string get_hostname() {
+        char hostname[HOST_NAME_MAX];
+        gethostname(hostname, HOST_NAME_MAX);
+        return hostname;
+    }
+}
+
+TEST(BasicInvocation, GithubSensititivity) {
+    // goal of this experiment is to use first row/last row/first file/last file
+    // to get the global schema and THEN hyperspecialize for each file to get a sense of
+    // a speedup factor due to hyperspecialization and plot it out.
+
+    using namespace std;
+    using namespace tuplex;
+
+    static const string github_test_pattern = "../resources/hyperspecialization/github_daily/*.json.sample";
+
+    // config params
+    unsigned NUM_RUNS = 4;
+    string data_root = github_test_pattern;
+
+    auto hostname = get_hostname();
+
+    // bbsn00 (HACK)
+    if("bbsn00" == hostname)
+        data_root = "/hot/data/github_daily/*.json";
+
+    unsigned NUM_THREADS = 0; // single thread
+    auto sampling_mode = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
+    // to be sure, use ALL_FILES sampling mode
+    sampling_mode = sampling_mode | SamplingMode::ALL_FILES; // <-- global should have the right schema.
+    bool enable_nvo = true;
+    string memory = "32G";
+
+    string local_work_dir = "./github_sensitivity_experiment";
+
+    // worker settings (from config params)
+    auto ws = WorkerSettings();
+    ws.numThreads = NUM_THREADS;
+    ws.spillRootURI = URI(local_work_dir + "/local_worker_spill/");
+    ws.useConstantFolding = true;
+    ws.useFilterPromotion = true;
+    ws.useCompiledGeneralPath = true;
+    ws.useInterpreterOnly = false;
+    ws.useOptimizer = true;
+    ws.normalBufferSize = memStringToSize(memory);
+    ws.exceptionBufferSize = memStringToSize(memory);
+
+    // get paths via glob
+    auto vfs = VirtualFileSystem::fromURI(data_root);
+    auto paths = vfs.glob(data_root);
+
+    cout<<"Found "<<pluralize(paths.size(), "path")<<" from pattern "<<data_root<<endl;
+    ASSERT_FALSE(paths.empty());
+
+    init_aws_for_this_test();
+
+    // create a hyper and non-hyper version
+    auto input_pattern = data_root;
+    ContextOptions options = ContextOptions::defaults();
+    python::initInterpreter();
+    python::unlockGIL();
+
+    auto tstage_global = create_github_stage(input_pattern, "dummy", enable_nvo, options, false, sampling_mode);
+    auto tstage_hyper = create_github_stage(input_pattern, "dummy", enable_nvo, options, true, sampling_mode);
+
+    // Run optimizer over code (to reduce number of basic blocks)
+    cout<<"Running LLVM optimizer to reduce complexity"<<endl;
+    {
+
+        LLVMOptimizer opt;
+        cout<<"GLOBAL LLVM stats:"<<endl;
+        cout<<"Detailed module stats before opt:\n- fast path:\n"
+            <<detailed_bitcode_stats(tstage_global->fastPathBitCode())
+            <<"\n"
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_global->slowPathBitCode())
+            <<endl;
+        Timer timer;
+        tstage_global->optimizeBitCode(opt);
+        cout<<"optimized global stage LLVM IR in "<<timer.time()<<"s"<<endl;
+        cout<<"Detailed module stats after opt:\n- fast path:\n"
+            <<detailed_bitcode_stats(tstage_global->fastPathBitCode())
+            <<"\n"
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_global->slowPathBitCode())
+            <<endl;
+    }
+
+    {
+        cout<<"HYPER LLVM stats:"<<endl;
+        cout<<"Detailed module stats before opt:\n- fast path:\n"
+            <<detailed_bitcode_stats(tstage_hyper->fastPathBitCode())
+            <<"\n"
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_hyper->slowPathBitCode())
+            <<endl;
+        Timer timer;
+        LLVMOptimizer opt;
+        tstage_hyper->optimizeBitCode(opt);
+        cout<<"optimized hyper stage LLVM IR in "<<timer.time()<<"s"<<endl;
+        cout<<"Detailed module stats after opt:\n- fast path:\n"
+            <<detailed_bitcode_stats(tstage_hyper->fastPathBitCode())
+            <<"\n"
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_hyper->slowPathBitCode())
+            <<endl;
+    }
+
+
+    // now transform to JSON messages to pass to worker app
+    auto global_json_message = transformStageToReqMessage(tstage_global, "input_dummy",
+                                                          0, "output_dummy",
+                                                          ws.useInterpreterOnly,
+                                                          NUM_THREADS,
+                                                          ws.spillRootURI.toPath());
+    auto hyper_json_message = transformStageToReqMessage(tstage_hyper, "input_dummy",
+                                                          0, "output_dummy",
+                                                          ws.useInterpreterOnly,
+                                                          NUM_THREADS,
+                                                          ws.spillRootURI.toPath());
+    python::lockGIL();
+    python::closeInterpreter();
+
+    // @TODO:
+    // -> use single-threaded to mask effects but invoke using worker app
+    // local WorkerApp
+    // start worker within same process to easier debug...
+    auto app = make_unique<WorkerApp>(ws);
+
+    // process messages (first hyper)
+    vector<string> hyper_messages;
+    vector<string> global_messages;
+    unsigned pos = 0;
+    std::sort(paths.begin(), paths.end(), [](const URI& a, const URI& b) {
+        auto path_a = a.toPath();
+        auto path_b = b.toPath();
+        return lexicographical_compare(path_a.begin(), path_a.end(), path_b.begin(), path_b.end());
+    });
+
+    for(const auto& path : paths) {
+        string hyper_output_uri = local_work_dir + "/hyper/" + path.basename();
+        hyper_messages.push_back(message_for_path(hyper_json_message, path, hyper_output_uri));
+
+        string global_output_uri = local_work_dir + "/general/" + path.basename();
+        global_messages.push_back(message_for_path(global_json_message, path, global_output_uri));
+
+        pos++;
+    }
+
+    vector<tuple<string, string, unsigned, double, string>> timings;
+    string output_path = local_work_dir + "/results.csv";
+
+    for(unsigned run = 0; run < NUM_RUNS; ++run) {
+        // process hyper messages
+        cout<<"HYPER processing::"<<endl;
+        Timer timer;
+        for(const auto& json_message : hyper_messages) {
+
+            auto input_path = input_uri_from_message(json_message);
+            Timer msg_timer;
+            app->processJSONMessage(json_message);
+            timings.emplace_back("hyper", input_path, run, msg_timer.time(), app->jsonStats());
+
+            // save intermediate to file
+            stringToFile(URI(output_path), timings_to_str(timings));
+            cout<<"-- processed file"<<endl;
+        }
+        cout<<"Hyper took "<<timer.time()<<"s for "<<pluralize(hyper_messages.size(), "message")<<endl;
+
+        cout<<"GLOBAL processing::"<<endl;
+        timer.reset();
+        for(const auto& json_message : global_messages) {
+            auto input_path = input_uri_from_message(json_message);
+            Timer msg_timer;
+            app->processJSONMessage(json_message);
+            timings.emplace_back("global", input_path, run, msg_timer.time(), app->jsonStats());
+
+            // save intermediate to file
+            stringToFile(URI(output_path), timings_to_str(timings));
+            cout<<"-- processed file"<<endl;
+        }
+        cout<<"Global took "<<timer.time()<<"s for "<<pluralize(global_messages.size(), "message")<<endl;
+    }
+
+    //
+    app->shutdown();
+
+    // print results as CSV
+    cout<<"CSV results::\n"<<endl;
+    cout<<timings_to_str(timings)<<endl;
+    // later: use multi-threading as well and see how speed up changes.
+
+
+    // each output line should be:
+
+
+    #warning "implement this with github query!"
+
+    #warning "Further todo: implement updated flights query (prob. linear regression on facors should do, could else use XGB as fitted"
+}
+
 TEST(BasicInvocation, FlightsTestSpecialization) {
     using namespace std;
     using namespace tuplex;
@@ -2507,9 +2832,14 @@ TEST(BasicInvocation, WorkshopPaperLocalExperiment) {
     string input_pattern = cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_01.csv," + cwd_path.string() + "/../resources/hyperspecialization/2003/flights_on_time_performance_2003_12.csv";
     // --- end use this for final PR ---
 
+    input_pattern = flights_root + "/flights_on_time*.csv";
+
+    // use local
+    input_pattern = cwd_path.string() + "/../resources/hyperspecialization/flights_all/*.csv.sample";
+
     // find all flight files in root
     vfs = VirtualFileSystem::fromURI(URI(flights_root));
-    auto paths = vfs.globAll(flights_root + "/flights_on_time*.csv");
+    auto paths = vfs.globAll(input_pattern);
     std::sort(paths.begin(), paths.end(), [](const URI& a, const URI& b) {
         auto a_str = a.toString();
         auto b_str = b.toString();

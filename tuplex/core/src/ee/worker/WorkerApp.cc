@@ -171,6 +171,9 @@ namespace tuplex {
     int WorkerApp::processJSONMessage(const std::string &message) {
         auto& logger = this->logger();
 
+        // do this first.
+        resetThreadEnvironments();
+
         // logger.info("JSON request: " + message);
 
         // parse JSON into protobuf
@@ -2904,7 +2907,20 @@ namespace tuplex {
         ss<<",\"except\":"<<_statistics.back().numExceptionOutputRows;
         ss<<"}";
 
+        // go over timing dict (should be reset)
+        ss<<",\"timings\":{";
+        unsigned counter = 0;
+        for(auto kv : _timeDict) {
+            ss<<"\""<<kv.first<<"\":"<<kv.second;
+            if(counter != _timeDict.size() - 1)
+                ss<<",";
+            counter++;
+        }
+        ss<<"}";
 
+        // save whether hyper was active or not
+        std::string hyper_active = useHyperSpecialization(req) ? "true" : "false";
+        ss<<",\"hyper_active\":"<<hyper_active;
 
         ss<<"}";
 
@@ -2917,8 +2933,6 @@ namespace tuplex {
         <<noexcept_in<<" (normal) + "<<except_in<<" (except) . is this true? "
         <<boolalpha<<(_codePathStats.inputRowCount.load() == noexcept_in + except_in)<<endl;
 #endif
-
-
 
         return ss.str();
     }

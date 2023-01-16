@@ -82,6 +82,15 @@ class AggregateTest : public PyTest {};
 //    }
 //}
 
+TEST_F(AggregateTest, UniqueAirports) {
+    using namespace tuplex;
+    auto opt = testOptions();
+    Context context(opt);
+
+    // get unique airports (dest and origin) --> flatMap would work well here!!!
+
+}
+
 TEST_F(AggregateTest, StrUniqueTest) {
     using namespace tuplex;
     auto opt = testOptions();

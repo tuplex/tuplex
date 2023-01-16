@@ -445,6 +445,12 @@ namespace tuplex {
         bool use_hyper() const { return !_encodedData.empty(); }
 
         /*!
+         * optimize internal bitcode stored
+         * @param opt optimizer to use
+         */
+        void optimizeBitCode(LLVMOptimizer& opt);
+
+        /*!
          * compile code of this stage via LLVM JIT
          * @param jit JIT instance
          * @param optimizer optional instance of optimizer to run over code first. No optimization run when set to 0

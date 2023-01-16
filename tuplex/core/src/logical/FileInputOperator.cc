@@ -376,7 +376,7 @@ namespace tuplex {
         else
             _rowsSample = multithreadedSample(mode, outNames, sample_limit);
 
-        logger.info("Extracting row sample took " + std::to_string(timer.time()) + "s");
+        logger.info("Extracting row sample took " + std::to_string(timer.time()) + "s (sampling mode=" + samplingModeToString(mode) + ")");
     }
 
     void FileInputOperator::fillFileCache(SamplingMode mode) {

@@ -1336,6 +1336,172 @@ TEST(BasicInvocation, FileSplitting) {
 //
 //    shutdownAWS();
 //}
+namespace tuplex {
+    TransformStage* create_flights_stage(const std::string& test_path,
+                                         const std::string& test_output_path,
+                                         bool build_for_hyper,
+                                         const tuplex::SamplingMode& mode = tuplex::DEFAULT_SAMPLING_MODE) {
+
+        using namespace tuplex;
+        using namespace std;
+
+        auto udf_code = "def fill_in_delays(row):\n"
+                        "    # want to fill in data for missing carrier_delay, weather delay etc.\n"
+                        "    # only need to do that prior to 2003/06\n"
+                        "    \n"
+                        "    year = row['YEAR']\n"
+                        "    month = row['MONTH']\n"
+                        "    arr_delay = row['ARR_DELAY']\n"
+                        "    \n"
+                        "    if year == 2003 and month < 6 or year < 2003:\n"
+                        "        # fill in delay breakdown using model and complex logic\n"
+                        "        if arr_delay is None:\n"
+                        "            # stays None, because flight arrived early\n"
+                        "            # if diverted though, need to add everything to div_arr_delay\n"
+                        "            return {'year' : year, 'month' : month,\n"
+                        "                    'day' : row['DAY_OF_MONTH'],\n"
+                        "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                        "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                        "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                        "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                        "                    'distance' : row['DISTANCE'],\n"
+                        "                    'dep_delay' : row['DEP_DELAY'],\n"
+                        "                    'arr_delay': None,\n"
+                        "                    'carrier_delay' : None,\n"
+                        "                    'weather_delay': None,\n"
+                        "                    'nas_delay' : None,\n"
+                        "                    'security_delay': None,\n"
+                        "                    'late_aircraft_delay' : None}\n"
+                        "        elif arr_delay < 0.:\n"
+                        "            # stays None, because flight arrived early\n"
+                        "            # if diverted though, need to add everything to div_arr_delay\n"
+                        "            return {'year' : year, 'month' : month,\n"
+                        "                    'day' : row['DAY_OF_MONTH'],\n"
+                        "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                        "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                        "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                        "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                        "                    'distance' : row['DISTANCE'],\n"
+                        "                    'dep_delay' : row['DEP_DELAY'],\n"
+                        "                    'arr_delay': row['ARR_DELAY'],\n"
+                        "                    'carrier_delay' : None,\n"
+                        "                    'weather_delay': None,\n"
+                        "                    'nas_delay' : None,\n"
+                        "                    'security_delay': None,\n"
+                        "                    'late_aircraft_delay' : None}\n"
+                        "        elif arr_delay < 5.:\n"
+                        "            # it's an ontime flight, just attribute any delay to the carrier\n"
+                        "            carrier_delay = arr_delay\n"
+                        "            # set the rest to 0\n"
+                        "            # ....\n"
+                        "            return {'year' : year, 'month' : month,\n"
+                        "                    'day' : row['DAY_OF_MONTH'],\n"
+                        "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                        "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                        "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                        "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                        "                    'distance' : row['DISTANCE'],\n"
+                        "                    'dep_delay' : row['DEP_DELAY'],\n"
+                        "                    'arr_delay': row['ARR_DELAY'],\n"
+                        "                    'carrier_delay' : carrier_delay,\n"
+                        "                    'weather_delay': None,\n"
+                        "                    'nas_delay' : None,\n"
+                        "                    'security_delay': None,\n"
+                        "                    'late_aircraft_delay' : None}\n"
+                        "        else:\n"
+                        "            # use model to determine everything and set into (join with weather data?)\n"
+                        "            # i.e., extract here a couple additional columns & use them for features etc.!\n"
+                        "            crs_dep_time = float(row['CRS_DEP_TIME'])\n"
+                        "            crs_arr_time = float(row['CRS_ARR_TIME'])\n"
+                        "            crs_elapsed_time = float(row['CRS_ELAPSED_TIME'])\n"
+                        "            carrier_delay = 1024 + 2.7 * crs_dep_time - 0.2 * crs_elapsed_time\n"
+                        "            weather_delay = 2000 + 0.09 * carrier_delay * (carrier_delay - 10.0)\n"
+                        "            nas_delay = 3600 * crs_dep_time / 10.0\n"
+                        "            security_delay = 7200 / crs_dep_time\n"
+                        "            late_aircraft_delay = (20 + 1.0) / (2.0 + crs_dep_time)\n"
+                        "            return {'year' : year, 'month' : month,\n"
+                        "                    'day' : row['DAY_OF_MONTH'],\n"
+                        "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                        "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                        "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                        "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                        "                    'distance' : row['DISTANCE'],\n"
+                        "                    'dep_delay' : row['DEP_DELAY'],\n"
+                        "                    'arr_delay': row['ARR_DELAY'],\n"
+                        "                    'carrier_delay' : carrier_delay,\n"
+                        "                    'weather_delay': weather_delay,\n"
+                        "                    'nas_delay' : nas_delay,\n"
+                        "                    'security_delay': security_delay,\n"
+                        "                    'late_aircraft_delay' : late_aircraft_delay}\n"
+                        "    else:\n"
+                        "        # just return it as is\n"
+                        "        return {'year' : year, 'month' : month,\n"
+                        "                'day' : row['DAY_OF_MONTH'],\n"
+                        "                'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                        "                'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                        "                'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                        "                'dest': row['DEST_AIRPORT_ID'],\n"
+                        "                'distance' : row['DISTANCE'],\n"
+                        "                'dep_delay' : row['DEP_DELAY'],\n"
+                        "                'arr_delay': row['ARR_DELAY'],\n"
+                        "                'carrier_delay' : row['CARRIER_DELAY'],\n"
+                        "                'weather_delay':row['WEATHER_DELAY'],\n"
+                        "                'nas_delay' : row['NAS_DELAY'],\n"
+                        "                'security_delay': row['SECURITY_DELAY'],\n"
+                        "                'late_aircraft_delay' : row['LATE_AIRCRAFT_DELAY']}";
+
+
+        // create a simple TransformStage reading in a file & saving it. Then, execute via Worker!
+        // Note: This one is unoptimized, i.e. no projection pushdown, filter pushdown etc.
+        TransformStage *tstage = nullptr;
+
+        // try {
+        ContextOptions co = ContextOptions::defaults();
+        auto enable_nvo = true; // test later with true! --> important for everything to work properly together!
+        co.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", enable_nvo ? "true" : "false");
+        co.set("tuplex.optimizer.constantFoldingOptimization", "true");
+        co.set("tuplex.optimizer.constantFoldingOptimization", "false");
+        co.set("tuplex.sample.maxDetectionMemory", "32KB");
+        codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
+        auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path, co,
+                                                                                   option<bool>::none,
+                                                                                   option<char>::none, option<char>::none,
+                                                                                   std::vector<std::string>({""}), {}, {}, {}, mode));
+        auto mapop = std::make_shared<MapOperator>(csvop, UDF(udf_code), csvop->columns());
+        auto fop = std::make_shared<FileOutputOperator>(mapop, test_output_path, UDF(""), "csv", FileFormat::OUTFMT_CSV, defaultCSVOutputOptions());
+
+
+        // optimize operators (projection pushdown!)
+        auto logical_opt = std::make_unique<LogicalOptimizer>(co);
+        auto opt_action = logical_opt->optimize(fop, true);
+
+        // create operator chain
+        std::vector<std::shared_ptr<LogicalOperator>> ops;
+        auto node = opt_action;
+        while(node) {
+            ops.push_back(node);
+            node = node->parent();
+        }
+        std::reverse(ops.begin(), ops.end());
+
+        // now add to builder
+        for(auto op : ops) {
+            if(op->type() == LogicalOperatorType::FILEINPUT)
+                builder.addFileInput(std::dynamic_pointer_cast<FileInputOperator>(op));
+            else if(op->type() == LogicalOperatorType::FILEOUTPUT)
+                builder.addFileOutput(std::dynamic_pointer_cast<FileOutputOperator>(op));
+            else
+                builder.addOperator(op);
+        }
+
+        if(!build_for_hyper)
+            tstage = builder.build();
+        else
+            tstage = builder.encodeForSpecialization(nullptr, nullptr, true, false, true);
+
+        return tstage;
+    }
+}
 
 tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, const std::string& test_output_path, bool build_for_hyper, const tuplex::SamplingMode& mode = tuplex::DEFAULT_SAMPLING_MODE) {
 
@@ -1826,6 +1992,187 @@ TEST(BasicInvocation, GithubSensititivity) {
     #warning "implement this with github query!"
 
     #warning "Further todo: implement updated flights query (prob. linear regression on facors should do, could else use XGB as fitted"
+}
+
+TEST(BasicInvocation, FlightsSensititivity) {
+    // goal of this experiment is to use first row/last row/first file/last file
+    // to get the global schema and THEN hyperspecialize for each file to get a sense of
+    // a speedup factor due to hyperspecialization and plot it out.
+
+    using namespace std;
+    using namespace tuplex;
+
+    static const string flights_test_pattern = "../resources/hyperspecialization/flights_all/*.csv.sample";
+
+    // config params
+    unsigned NUM_RUNS = 4;
+    string data_root = flights_test_pattern;
+
+    auto hostname = get_hostname();
+
+    // bbsn00 (HACK)
+    if("bbsn00" == hostname)
+        data_root = "/hot/data/flights_all/*.json";
+
+    unsigned NUM_THREADS = 0; // single thread
+    auto sampling_mode = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
+    // to be sure, use ALL_FILES sampling mode
+    sampling_mode = sampling_mode | SamplingMode::ALL_FILES; // <-- global should have the right schema.
+    bool enable_nvo = true;
+    string memory = "32G";
+
+    string local_work_dir = "./flights_sensitivity_experiment";
+
+    // worker settings (from config params)
+    auto ws = WorkerSettings();
+    ws.numThreads = NUM_THREADS;
+    ws.spillRootURI = URI(local_work_dir + "/local_worker_spill/");
+    ws.useConstantFolding = true;
+    ws.useFilterPromotion = true;
+    ws.useCompiledGeneralPath = true;
+    ws.useInterpreterOnly = false;
+    ws.useOptimizer = true;
+    ws.normalBufferSize = memStringToSize(memory);
+    ws.exceptionBufferSize = memStringToSize(memory);
+
+    // get paths via glob
+    auto vfs = VirtualFileSystem::fromURI(data_root);
+    auto paths = vfs.glob(data_root);
+
+    cout<<"Found "<<pluralize(paths.size(), "path")<<" from pattern "<<data_root<<endl;
+    ASSERT_FALSE(paths.empty());
+
+    init_aws_for_this_test();
+
+    // create a hyper and non-hyper version
+    auto input_pattern = data_root;
+    ContextOptions options = ContextOptions::defaults();
+    python::initInterpreter();
+    python::unlockGIL();
+    auto tstage_global = create_flights_stage(input_pattern, "dummy", false, sampling_mode);
+    auto tstage_hyper = create_flights_stage(input_pattern, "dummy", true, sampling_mode);
+
+    // Run optimizer over code (to reduce number of basic blocks)
+    cout<<"Running LLVM optimizer to reduce complexity"<<endl;
+    {
+
+        LLVMOptimizer opt;
+        cout<<"GLOBAL LLVM stats:"<<endl;
+        cout<<"Detailed module stats before opt:\n- fast path:\n"
+            <<detailed_bitcode_stats(tstage_global->fastPathBitCode())
+            <<"\n"
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_global->slowPathBitCode())
+            <<endl;
+        Timer timer;
+        tstage_global->optimizeBitCode(opt);
+        cout<<"optimized global stage LLVM IR in "<<timer.time()<<"s"<<endl;
+        cout<<"Detailed module stats after opt:\n- fast path:\n"
+            <<detailed_bitcode_stats(tstage_global->fastPathBitCode())
+            <<"\n"
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_global->slowPathBitCode())
+            <<endl;
+    }
+
+    {
+        cout<<"HYPER LLVM stats:"<<endl;
+        cout<<"Detailed module stats before opt:\n- fast path:\n"
+            <<detailed_bitcode_stats(tstage_hyper->fastPathBitCode())
+            <<"\n"
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_hyper->slowPathBitCode())
+            <<endl;
+        Timer timer;
+        LLVMOptimizer opt;
+        tstage_hyper->optimizeBitCode(opt);
+        cout<<"optimized hyper stage LLVM IR in "<<timer.time()<<"s"<<endl;
+        cout<<"Detailed module stats after opt:\n- fast path:\n"
+            <<detailed_bitcode_stats(tstage_hyper->fastPathBitCode())
+            <<"\n"
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_hyper->slowPathBitCode())
+            <<endl;
+    }
+
+
+    // now transform to JSON messages to pass to worker app
+    auto global_json_message = transformStageToReqMessage(tstage_global, "input_dummy",
+                                                          0, "output_dummy",
+                                                          ws.useInterpreterOnly,
+                                                          NUM_THREADS,
+                                                          ws.spillRootURI.toPath());
+    auto hyper_json_message = transformStageToReqMessage(tstage_hyper, "input_dummy",
+                                                          0, "output_dummy",
+                                                          ws.useInterpreterOnly,
+                                                          NUM_THREADS,
+                                                          ws.spillRootURI.toPath());
+    python::lockGIL();
+    python::closeInterpreter();
+
+    // @TODO:
+    // -> use single-threaded to mask effects but invoke using worker app
+    // local WorkerApp
+    // start worker within same process to easier debug...
+    auto app = make_unique<WorkerApp>(ws);
+
+    // process messages (first hyper)
+    vector<string> hyper_messages;
+    vector<string> global_messages;
+    unsigned pos = 0;
+    std::sort(paths.begin(), paths.end(), [](const URI& a, const URI& b) {
+        auto path_a = a.toPath();
+        auto path_b = b.toPath();
+        return lexicographical_compare(path_a.begin(), path_a.end(), path_b.begin(), path_b.end());
+    });
+
+    for(const auto& path : paths) {
+        string hyper_output_uri = local_work_dir + "/hyper/" + path.basename();
+        hyper_messages.push_back(message_for_path(hyper_json_message, path, hyper_output_uri));
+
+        string global_output_uri = local_work_dir + "/general/" + path.basename();
+        global_messages.push_back(message_for_path(global_json_message, path, global_output_uri));
+
+        pos++;
+    }
+
+    vector<tuple<string, string, unsigned, double, string>> timings;
+    string output_path = local_work_dir + "/results.csv";
+
+    for(unsigned run = 0; run < NUM_RUNS; ++run) {
+        // process hyper messages
+        cout<<"HYPER processing::"<<endl;
+        Timer timer;
+        for(const auto& json_message : hyper_messages) {
+
+            auto input_path = input_uri_from_message(json_message);
+            Timer msg_timer;
+            app->processJSONMessage(json_message);
+            timings.emplace_back("hyper", input_path, run, msg_timer.time(), app->jsonStats());
+
+            // save intermediate to file
+            stringToFile(URI(output_path), timings_to_str(timings));
+            cout<<"-- processed file"<<endl;
+        }
+        cout<<"Hyper took "<<timer.time()<<"s for "<<pluralize(hyper_messages.size(), "message")<<endl;
+
+        cout<<"GLOBAL processing::"<<endl;
+        timer.reset();
+        for(const auto& json_message : global_messages) {
+            auto input_path = input_uri_from_message(json_message);
+            Timer msg_timer;
+            app->processJSONMessage(json_message);
+            timings.emplace_back("global", input_path, run, msg_timer.time(), app->jsonStats());
+
+            // save intermediate to file
+            stringToFile(URI(output_path), timings_to_str(timings));
+            cout<<"-- processed file"<<endl;
+        }
+        cout<<"Global took "<<timer.time()<<"s for "<<pluralize(global_messages.size(), "message")<<endl;
+    }
+
+    //
+    app->shutdown();
+
+    // print results as CSV
+    cout<<"CSV results::\n"<<endl;
+    cout<<timings_to_str(timings)<<endl;
 }
 
 TEST(BasicInvocation, FlightsTestSpecialization) {

@@ -2012,12 +2012,12 @@ TEST(BasicInvocation, FlightsSensititivity) {
 
     // bbsn00 (HACK)
     if("bbsn00" == hostname)
-        data_root = "/hot/data/flights_all/*.json";
+        data_root = "/hot/data/flights_all/*.csv";
 
     unsigned NUM_THREADS = 0; // single thread
     auto sampling_mode = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
     // to be sure, use ALL_FILES sampling mode
-    sampling_mode = sampling_mode | SamplingMode::ALL_FILES; // <-- global should have the right schema.
+    sampling_mode = sampling_mode | SamplingMode::ALL_FILES | SamplingMode::SINGLETHREADED; // <-- global should have the right schema.
     bool enable_nvo = true;
     string memory = "32G";
 

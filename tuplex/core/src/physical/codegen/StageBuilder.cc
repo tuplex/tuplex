@@ -55,43 +55,53 @@ namespace tuplex {
             return p;
         }
 
+//        StageBuilder::StageBuilder(int64_t stage_number,
+//                                   bool rootStage,
+//                                   bool allowUndefinedBehavior,
+//                                   bool generateParser,
+//                                   double normalCaseThreshold,
+//                                   bool sharedObjectPropagation,
+//                                   bool nullValueOptimization,
+//                                   bool constantFoldingOptimization,
+//                                   bool updateInputExceptions,
+//                                   bool generateSpecializedNormalCaseCodePath) : StageBuilder::StageBuilder(makeCP(allowUndefinedBehavior, sharedObjectPropagation, normalCaseThreshold),
+//                                                                                                            stage_number,
+//                                                                                                            rootStage,
+//                                                                                                            generateParser,
+//                                                                                                            nullValueOptimization,
+//                                                                                                            constantFoldingOptimization,
+//                                                                                                            updateInputExceptions,
+//                                                                                                            generateSpecializedNormalCaseCodePath) {
+//            Logger::instance().defaultLogger().warn("using deprecated StageBuilder ctor");
+//        }
+
+
+//        StageBuilder::StageBuilder(const CompilePolicy& policy,
+//                                   int64_t stage_number,
+//                                   bool rootStage,
+//                                   bool generateParser,
+//                                   bool nullValueOptimization,
+//                                   bool constantFoldingOptimization,
+//                                   bool updateInputExceptions,
+//                                   bool generateSpecializedNormalCaseCodePath)
+//                : _conf.policy(policy), _stageNumber(stage_number), _isRootStage(rootStage),
+//                  _generateParser(generateParser),
+//                  _nullValueOptimization(nullValueOptimization),
+//                  _constantFoldingOptimization(constantFoldingOptimization),
+//                  _updateInputExceptions(updateInputExceptions),
+//                  _inputNode(nullptr),
+//                  _outputLimit(std::numeric_limits<size_t>::max()),
+//                  _generateNormalCaseCodePath(generateSpecializedNormalCaseCodePath) {
+//        }
+
         StageBuilder::StageBuilder(int64_t stage_number,
                                    bool rootStage,
-                                   bool allowUndefinedBehavior,
-                                   bool generateParser,
-                                   double normalCaseThreshold,
-                                   bool sharedObjectPropagation,
-                                   bool nullValueOptimization,
-                                   bool constantFoldingOptimization,
-                                   bool updateInputExceptions,
-                                   bool generateSpecializedNormalCaseCodePath) : StageBuilder::StageBuilder(makeCP(allowUndefinedBehavior, sharedObjectPropagation, normalCaseThreshold),
-                                                                                                            stage_number,
-                                                                                                            rootStage,
-                                                                                                            generateParser,
-                                                                                                            nullValueOptimization,
-                                                                                                            constantFoldingOptimization,
-                                                                                                            updateInputExceptions,
-                                                                                                            generateSpecializedNormalCaseCodePath) {
-            Logger::instance().defaultLogger().warn("using deprecated StageBuilder ctor");
-        }
+                                   const StageBuilderConfiguration &conf) : _stageNumber(stage_number),
+                                   _isRootStage(rootStage),
+                                   _outputLimit(std::numeric_limits<size_t>::max()),
+                                   _outputDataSetID(-1),
+                                   _conf(conf) {
 
-
-        StageBuilder::StageBuilder(const CompilePolicy& policy,
-                                   int64_t stage_number,
-                                   bool rootStage,
-                                   bool generateParser,
-                                   bool nullValueOptimization,
-                                   bool constantFoldingOptimization,
-                                   bool updateInputExceptions,
-                                   bool generateSpecializedNormalCaseCodePath)
-                : _policy(policy), _stageNumber(stage_number), _isRootStage(rootStage),
-                  _generateParser(generateParser),
-                  _nullValueOptimization(nullValueOptimization),
-                  _constantFoldingOptimization(constantFoldingOptimization),
-                  _updateInputExceptions(updateInputExceptions),
-                  _inputNode(nullptr),
-                  _outputLimit(std::numeric_limits<size_t>::max()),
-                  _generateNormalCaseCodePath(generateSpecializedNormalCaseCodePath) {
         }
 
         inline std::string next_hashmap_name() {
@@ -816,7 +826,7 @@ namespace tuplex {
                     // ==> speed it up by normal case specialization
                     //                // generate separate function to write from main memory to file
 //                generateFileWriterCode(env, _funcFileWriteCallbackName, _funcExceptionCallback, _outputNodeID,
-//                                       _outputFileFormat, _fileOutputParameters["null_value"], _policy.allowUndefinedBehavior);
+//                                       _outputFileFormat, _fileOutputParameters["null_value"], _conf.policy.allowUndefinedBehavior);
                     break;
                 }
                 case EndPointMode::HASHTABLE: {
@@ -920,7 +930,6 @@ namespace tuplex {
 
             // set here exception serialization mode (general case rows? yes or no?)
             auto exceptionSerializationMode = ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE;
-
             bool emitGeneralCaseExceptionRows = (int)exceptionSerializationMode & (int)ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE; // <-- need to fix this!
 
             // make sure upcasting is possible
@@ -1231,25 +1240,25 @@ namespace tuplex {
                 UDFOperator *udfop = dynamic_cast<UDFOperator *>(node.get());
                 switch (node->type()) {
                     case LogicalOperatorType::MAP: {
-                        slowPip->mapOperation(node->getID(), udfop->getUDF(), _policy.normalCaseThreshold, ctx.allowUndefinedBehavior,
+                        slowPip->mapOperation(node->getID(), udfop->getUDF(), _conf.normalCaseThreshold, ctx.allowUndefinedBehavior,
                                               ctx.sharedObjectPropagation);
                         break;
                     }
                     case LogicalOperatorType::FILTER: {
-                        slowPip->filterOperation(node->getID(), udfop->getUDF(), _policy.normalCaseThreshold, ctx.allowUndefinedBehavior,
+                        slowPip->filterOperation(node->getID(), udfop->getUDF(), _conf.policy.normalCaseThreshold, ctx.allowUndefinedBehavior,
                                                  ctx.sharedObjectPropagation);
                         break;
                     }
                     case LogicalOperatorType::MAPCOLUMN: {
                         auto mop = dynamic_cast<MapColumnOperator *>(node.get());
                         slowPip->mapColumnOperation(node->getID(), mop->getColumnIndex(), udfop->getUDF(),
-                                                    _policy.normalCaseThreshold, ctx.allowUndefinedBehavior, ctx.sharedObjectPropagation);
+                                                    _conf.policy.normalCaseThreshold, ctx.allowUndefinedBehavior, ctx.sharedObjectPropagation);
                         break;
                     }
                     case LogicalOperatorType::WITHCOLUMN: {
                         auto wop = dynamic_cast<WithColumnOperator *>(node.get());
                         slowPip->withColumnOperation(node->getID(), wop->getColumnIndex(), udfop->getUDF(),
-                                                     _policy.normalCaseThreshold, ctx.allowUndefinedBehavior, ctx.sharedObjectPropagation);
+                                                     _conf.policy.normalCaseThreshold, ctx.allowUndefinedBehavior, ctx.sharedObjectPropagation);
                         break;
                     }
                     case LogicalOperatorType::CACHE:
@@ -1261,7 +1270,7 @@ namespace tuplex {
                     case LogicalOperatorType::RESOLVE: {
                         // ==> this means slow code path needs to be generated as well!
                         auto rop = std::dynamic_pointer_cast<ResolveOperator>(node);
-                        slowPip->addResolver(rop->ecCode(), rop->getID(), rop->getUDF(), _policy.normalCaseThreshold, ctx.allowUndefinedBehavior,
+                        slowPip->addResolver(rop->ecCode(), rop->getID(), rop->getUDF(), _conf.policy.normalCaseThreshold, ctx.allowUndefinedBehavior,
                                              ctx.sharedObjectPropagation);
                         resolvers_found = true;
                         break;
@@ -1375,9 +1384,9 @@ namespace tuplex {
                                 if (!slowPip->addAggregate(aop->getID(),
                                                            aop->aggregatorUDF(),
                                                        aop->getOutputSchema().getRowType(),
-                                                       this->_policy.normalCaseThreshold,
-                                                       _policy.allowUndefinedBehavior,
-                                                       _policy.sharedObjectPropagation)) {
+                                                       this->_conf.policy.normalCaseThreshold,
+                                                       _conf.policy.allowUndefinedBehavior,
+                                                       _conf.policy.sharedObjectPropagation)) {
                                     logger.error(formatBadAggNode(aop.get()));
                                     return ret;
                                 }
@@ -1450,7 +1459,7 @@ namespace tuplex {
                                                                             normalCaseType,
                                                                             normalToGeneralMapping,
                                                                             null_values,
-                                                                            _policy);
+                                                                            _conf.policy);
 
             ret.funcStageName = rowProcessFunc->getName();
 
@@ -1639,7 +1648,7 @@ namespace tuplex {
             // => https://llvm.org/doxygen/BitcodeWriter_8cpp_source.html#l04457
             // stage->_irCode = _irCode;
             // stage->_irResolveCode = _irResolveCode;
-            stage->_updateInputExceptions = _updateInputExceptions;
+            stage->_updateInputExceptions = _conf.updateInputExceptions;
 
             // if last op is CacheOperator, check whether normal/exceptional case should get cached separately
             // or an upcasting step should be performed.
@@ -1733,7 +1742,7 @@ namespace tuplex {
         TransformStage *StageBuilder::build(PhysicalPlan *plan, IBackend *backend) {
             auto& logger = Logger::instance().logger("codegen");
 
-            TransformStage *stage = new TransformStage(plan, backend, _stageNumber, _policy.allowUndefinedBehavior);
+            TransformStage *stage = new TransformStage(plan, backend, _stageNumber, _conf.policy.allowUndefinedBehavior);
 
             bool mem2mem = _inputMode == EndPointMode::MEMORY && _outputMode == EndPointMode::MEMORY;
 
@@ -1753,20 +1762,20 @@ namespace tuplex {
                 auto codeGenerationContext = createCodeGenerationContext();
 
                 // adjust settings
-                codeGenerationContext.nullValueOptimization = _nullValueOptimization;
-                codeGenerationContext.allowUndefinedBehavior = _policy.allowUndefinedBehavior;
-                codeGenerationContext.sharedObjectPropagation = _policy.sharedObjectPropagation;
+                codeGenerationContext.nullValueOptimization = _conf.nullValueOptimization;
+                codeGenerationContext.allowUndefinedBehavior = _conf.policy.allowUndefinedBehavior;
+                codeGenerationContext.sharedObjectPropagation = _conf.policy.sharedObjectPropagation;
 //                codeGenerationContext.normalCaseThreshold = ??
 
                 // need to set codeGenerationContext.normalToGeneralMapping here as well!
                 // 2. specialize fast path (if desired)
                 codeGenerationContext.slowPathContext = getGeneralPathContext();
-                if(_generateNormalCaseCodePath)
+                if(_conf.generateSpecializedNormalCaseCodePath)
                     codeGenerationContext.fastPathContext = specializePipeline(codeGenerationContext.slowPathContext,
                                                                                codeGenerationContext.normalToGeneralMapping,
-                                                                               _policy.normalCaseThreshold,
-                                                                               _nullValueOptimization,
-                                                                               _constantFoldingOptimization);
+                                                                               _conf.policy.normalCaseThreshold,
+                                                                               _conf.nullValueOptimization,
+                                                                               _conf.constantFoldingOptimization);
                 else
                     codeGenerationContext.fastPathContext = getGeneralPathContext();
 
@@ -1916,13 +1925,13 @@ namespace tuplex {
         CodeGenerationContext StageBuilder::createCodeGenerationContext() const {
             CodeGenerationContext ctx;
             // copy common attributes first
-            ctx.allowUndefinedBehavior = _policy.allowUndefinedBehavior;
-            ctx.sharedObjectPropagation = _policy.sharedObjectPropagation;
-            ctx.nullValueOptimization = _nullValueOptimization;
-            ctx.constantFoldingOptimization = _constantFoldingOptimization;
+            ctx.allowUndefinedBehavior = _conf.policy.allowUndefinedBehavior;
+            ctx.sharedObjectPropagation = _conf.policy.sharedObjectPropagation;
+            ctx.nullValueOptimization = _conf.nullValueOptimization;
+            ctx.constantFoldingOptimization = _conf.constantFoldingOptimization;
             ctx.isRootStage = _isRootStage;
-            ctx.generateParser = _generateParser;
-            ctx.normalCaseThreshold = _policy.normalCaseThreshold;
+            ctx.generateParser = _conf.generateParser;
+            ctx.normalCaseThreshold = _conf.policy.normalCaseThreshold;
 
             // output params
             ctx.outputMode = _outputMode;
@@ -1973,7 +1982,7 @@ namespace tuplex {
             // only allow for single operators/end modes etc.
             logger.info("hyper specialization encoding");
 
-            TransformStage *stage = new TransformStage(plan, backend, _stageNumber, _policy.allowUndefinedBehavior);
+            TransformStage *stage = new TransformStage(plan, backend, _stageNumber, _conf.policy.allowUndefinedBehavior);
             bool mem2mem = _inputMode == EndPointMode::MEMORY && _outputMode == EndPointMode::MEMORY;
 
             fillStageParameters(stage);

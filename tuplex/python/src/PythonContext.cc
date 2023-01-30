@@ -1583,6 +1583,10 @@ namespace tuplex {
                        python::PyString_FromString("tuplex.experimental.opportuneCompilation"),
                        python::boolToPython(co.USE_EXPERIMENTAL_OPPORTUNE_COMPILATION()));
 
+        PyDict_SetItem(dictObject,
+                       python::PyString_FromString("tuplex.experimental.alwaysTreatMismatchAsBadParse"),
+                       python::boolToPython(co.EXPERIMENTAL_ALWAYS_TREAT_MISMATCH_AS_BADPARSE()));
+
         // @TODO: move to optimizer
         PyDict_SetItem(dictObject,
                        python::PyString_FromString("tuplex.optimizer.selectionPushdown"),

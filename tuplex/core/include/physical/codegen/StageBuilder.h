@@ -20,6 +20,45 @@
 namespace tuplex {
     namespace codegen {
 
+        struct StageBuilderConfiguration {
+            CompilePolicy policy; // compiler policy for stage and UDFs
+            bool allowUndefinedBehavior;
+            bool generateParser; // whether to generate a parser
+            double normalCaseThreshold;
+            bool sharedObjectPropagation;
+            bool nullValueOptimization; // whether to use null value optimization
+            bool constantFoldingOptimization; // whether to apply constant folding or not
+            bool updateInputExceptions; // whether input exceptions indices need to be updated (change for experimental incremental exception handling)
+            bool generateSpecializedNormalCaseCodePath; // whether to emit specialized normal case code path or not
+
+            StageBuilderConfiguration() : policy(CompilePolicy()),
+            allowUndefinedBehavior(false),
+            generateParser(false),
+            normalCaseThreshold(0.9),
+            sharedObjectPropagation(true),
+            nullValueOptimization(true),
+            constantFoldingOptimization(true),
+            updateInputExceptions(false),
+            generateSpecializedNormalCaseCodePath(true) {}
+
+            // update with context option object
+            inline void applyOptions(const ContextOptions& co) {
+                policy = compilePolicyFromOptions(co);
+                allowUndefinedBehavior = co.UNDEFINED_BEHAVIOR_FOR_OPERATORS();
+                generateParser = co.OPT_GENERATE_PARSER();
+                normalCaseThreshold = co.NORMALCASE_THRESHOLD();
+                sharedObjectPropagation = co.OPT_SHARED_OBJECT_PROPAGATION();
+                nullValueOptimization = co.OPT_NULLVALUE_OPTIMIZATION();
+                constantFoldingOptimization = co.OPT_CONSTANTFOLDING_OPTIMIZATION();
+                // updateInputExceptions = false; // this is a weird setting, has to be done manually?
+                // generateSpecializedNormalCaseCodePath = true // also needs to be manually set.
+            }
+
+            StageBuilderConfiguration(const ContextOptions& co) : StageBuilderConfiguration::StageBuilderConfiguration() {
+                applyOptions(co);
+            }
+        };
+
         /*!
          * builder class to generate code for a transform stage
          */
@@ -27,37 +66,15 @@ namespace tuplex {
         public:
             StageBuilder() = delete;
 
-            // deprecated
-            StageBuilder(int64_t stage_number,
-                         bool rootStage,
-                         bool allowUndefinedBehavior,
-                         bool generateParser,
-                         double normalCaseThreshold,
-                         bool sharedObjectPropagation,
-                         bool nullValueOptimization,
-                         bool constantFoldingOptimization,
-                         bool updateInputExceptions,
-                         bool generateSpecializedNormalCaseCodePath=true);
-
             /*!
             * Create new StageBuilder
-            * @param policy compiler policy for stage and UDFs
             * @param stage_number number of the stage
             * @param rootStage whether is a root stage
-            * @param generateParser whether to generate a parser
-            * @param nullValueOptimization whether to use null value optimization
-            * @param constantFoldingOptimization whether to apply constant folding or not
-            * @param updateInputExceptions whether input exceptions indices need to be updated
-            * @param generateSpecializedNormalCaseCodePath whether to emit specialized normal case code path or not
+            * @param conf configuration switches to control behavior of StageBuilder
             */
-            StageBuilder(const CompilePolicy& policy,
-                         int64_t stage_number,
+            StageBuilder(int64_t stage_number,
                          bool rootStage,
-                         bool generateParser,
-                         bool nullValueOptimization,
-                         bool constantFoldingOptimization,
-                         bool updateInputExceptions,
-                         bool generateSpecializedNormalCaseCodePath=true);
+                         const StageBuilderConfiguration& conf=StageBuilderConfiguration());
 
             // builder functions
             void addMemoryInput(const Schema& schema, std::shared_ptr<LogicalOperator> node);
@@ -73,7 +90,7 @@ namespace tuplex {
              * change whether StageBuilder should generate null-value opt or not.
              * @param enable if true, enable NVO else no NVO.
              */
-            void setNullValueOptimization(bool enable) { _nullValueOptimization = enable;}
+            void setNullValueOptimization(bool enable) { _conf.nullValueOptimization = enable;}
 
             // saves output to a hashtable, requires caller to combine multiple hash tables later...
             void addHashTableOutput(std::shared_ptr<LogicalOperator> node,
@@ -143,13 +160,15 @@ namespace tuplex {
 
             // flags to influence code generation
             bool _isRootStage;
-            CompilePolicy _policy;
+            StageBuilderConfiguration _conf;
 
-            bool _generateParser;
-            bool _generateNormalCaseCodePath;
-            bool _nullValueOptimization;
-            bool _constantFoldingOptimization;
-            bool _updateInputExceptions;
+            //CompilePolicy _policy;
+            //
+            //bool _generateParser;
+            //bool _generateNormalCaseCodePath;
+            //bool _nullValueOptimization;
+            //bool _constantFoldingOptimization;
+            //bool _updateInputExceptions;
 
             std::vector<std::shared_ptr<LogicalOperator>> _operators;
 
@@ -199,7 +218,6 @@ namespace tuplex {
 
             Schema _normalCaseInputSchema; //! schema after applying normal case optimizations
             Schema _normalCaseOutputSchema; //! schema after applying normal case optimizations
-
 
             void fillStageParameters(TransformStage* stage);
 

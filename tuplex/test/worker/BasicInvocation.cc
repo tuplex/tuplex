@@ -62,7 +62,9 @@ tuplex::TransformStage* create_github_stage(const std::string& test_path, const 
     using namespace std;
 
     bool enable_cf = false;
-    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, enable_cf, false);
+    codegen::StageBuilderConfiguration conf;
+    conf.constantFoldingOptimization = enable_cf;
+    codegen::StageBuilder builder(0, true, conf); //(0, true, true, false, 0.9, true, enable_nvo, enable_cf, false);
 
     auto jsonop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromJSON(test_path, true, true, co, sm));
 
@@ -339,7 +341,8 @@ TEST(BasicInvocation, PurePythonMode) {
     // // disable llvm optimizers?
      co.set("tuplex.useLLVMOptimizer", "false");
 
-    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
+     codegen::StageBuilderConfiguration conf(co);
+    codegen::StageBuilder builder(0, true, conf); //;(0, true, true, false, 0.9, true, enable_nvo, true, false);
     auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path.toString(), co,
                                             option<bool>(true),
                                             option<char>(','), option<char>('"'),
@@ -463,7 +466,8 @@ TEST(BasicInvocation, HashOutput) {
     auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
     co.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", enable_nvo ? "true" : "false");
     co.set("tuplex.useInterpreterOnly", "false");
-    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
+    codegen::StageBuilderConfiguration conf(co);
+    codegen::StageBuilder builder(0, true, conf); //(0, true, true, false, 0.9, true, enable_nvo, true, false);
     auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path.toString(), co,
                                             option<bool>(true),
                                             option<char>(','), option<char>('"'),
@@ -1068,7 +1072,8 @@ TEST(BasicInvocation, CSVResamplingTest) {
 
     auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
     co.set("tuplex.optimizer.nullValueOptimization", enable_nvo ? "true" : "false");
-    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
+    codegen::StageBuilderConfiguration conf(co);
+    codegen::StageBuilder builder(0, true, conf); //(0, true, true, false, 0.9, true, enable_nvo, true, false);
     auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path.toString(), co,
                                        option<bool>(true),
                                                option<char>(','), option<char>('"'),
@@ -1192,7 +1197,8 @@ TEST(BasicInvocation, Worker) {
     ContextOptions co = ContextOptions::defaults();
     auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
     co.set("tuplex.optimizer.nullValueOptimization", enable_nvo ? "true" : "false");
-    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
+    codegen::StageBuilderConfiguration conf(co);
+    codegen::StageBuilder builder(0, true, conf); //(0, true, true, false, 0.9, true, enable_nvo, true, false);
     auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path.toString(), co,
                                        option<bool>(true),
                                                option<char>(','), option<char>('"'),
@@ -1462,7 +1468,8 @@ namespace tuplex {
         co.set("tuplex.optimizer.constantFoldingOptimization", "true");
         co.set("tuplex.optimizer.constantFoldingOptimization", "false");
         co.set("tuplex.sample.maxDetectionMemory", "32KB");
-        codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
+        codegen::StageBuilderConfiguration conf(co);
+        codegen::StageBuilder builder(0, true, conf); //(0, true, true, false, 0.9, true, enable_nvo, true, false);
         auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path, co,
                                                                                    option<bool>::none,
                                                                                    option<char>::none, option<char>::none,
@@ -1639,7 +1646,8 @@ tuplex::TransformStage* create_flights_pipeline(const std::string& test_path, co
         co.set("tuplex.optimizer.constantFoldingOptimization", "true");
         co.set("tuplex.optimizer.constantFoldingOptimization", "false");
         co.set("tuplex.sample.maxDetectionMemory", "32KB");
-        codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
+        codegen::StageBuilderConfiguration conf(co);
+        codegen::StageBuilder builder(0, true, conf); //(0, true, true, false, 0.9, true, enable_nvo, true, false);
         auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path, co,
                                                                                    option<bool>::none,
                                                                                    option<char>::none, option<char>::none,
@@ -1797,6 +1805,13 @@ namespace tuplex {
     }
 
     std::string get_hostname() {
+#ifndef HOST_NAME_MAX
+    #ifdef MAXHOSTNAMELEN
+        #define HOST_NAME_MAX MAXHOSTNAMELEN
+    #else
+        #define HOST_NAME_MAX 256
+    #endif
+#endif
         char hostname[HOST_NAME_MAX];
         gethostname(hostname, HOST_NAME_MAX);
         return hostname;
@@ -2586,7 +2601,8 @@ namespace tuplex {
         ContextOptions co = ContextOptions::defaults();
         auto enable_nvo = true; // test later with true! --> important for everything to work properly together!
         co.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", enable_nvo ? "true" : "false");
-        codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
+        codegen::StageBuilderConfiguration conf(co);
+        codegen::StageBuilder builder(0, true, conf); //(0, true, true, false, 0.9, true, enable_nvo, true, false);
         auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(pattern, co,
                                                                                    option<bool>(true),
                                                                                    option<char>(','), option<char>('"'),
@@ -3358,7 +3374,8 @@ TEST(BasicInvocation, VerboseLogging) {
     auto enable_nvo = false; // test later with true! --> important for everything to work properly together!
     co.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", enable_nvo ? "true" : "false");
     co.set("tuplex.useInterpreterOnly", "true");
-    codegen::StageBuilder builder(0, true, true, false, 0.9, true, enable_nvo, true, false);
+    codegen::StageBuilderConfiguration conf(co);
+    codegen::StageBuilder builder(0, true, conf); //(0, true, true, false, 0.9, true, enable_nvo, true, false);
     auto csvop = std::shared_ptr<FileInputOperator>(FileInputOperator::fromCsv(test_path.toString(), co,
                                                                                option<bool>(true),
                                                                                option<char>(','), option<char>('"'),

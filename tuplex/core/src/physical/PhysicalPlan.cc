@@ -243,13 +243,11 @@ namespace tuplex {
         bool updateInputExceptions = hasFilter && hasInputExceptions && _context.getOptions().OPT_MERGE_EXCEPTIONS_INORDER();
 
         // create transform-stage via builder pattern
-        auto builder = codegen::StageBuilder(compilePolicyFromOptions(_context.getOptions()),
-                                             _num_stages++,
+        codegen::StageBuilderConfiguration conf(_context.getOptions());
+        conf.updateInputExceptions = updateInputExceptions;
+        auto builder = codegen::StageBuilder(_num_stages++,
                                              isRootStage,
-                                             _context.getOptions().OPT_GENERATE_PARSER(),
-                                             _context.getOptions().OPT_NULLVALUE_OPTIMIZATION(),
-                                             _context.getOptions().OPT_CONSTANTFOLDING_OPTIMIZATION(),
-                                             updateInputExceptions);
+                                             conf);
         // start code generation
         // first, add input
         assert(!ops.empty());

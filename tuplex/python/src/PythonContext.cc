@@ -1519,163 +1519,168 @@ namespace tuplex {
         assert(PyGILState_Check()); // make sure this thread holds the GIL!
         PyObject* dictObject = PyDict_New();
 
+        try {
+            // bool options
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.useLLVMOptimizer"),
+                           python::boolToPython(co.USE_LLVM_OPTIMIZER()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.autoUpcast"),
+                           python::boolToPython(co.AUTO_UPCAST_NUMBERS()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.allowUndefinedBehavior"),
+                           python::boolToPython(co.UNDEFINED_BEHAVIOR_FOR_OPERATORS()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.codeStats"),
+                           python::boolToPython(co.OPT_DETAILED_CODE_STATS()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.generateParser"),
+                           python::boolToPython(co.OPT_GENERATE_PARSER()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.nullValueOptimization"),
+                           python::boolToPython(co.OPT_NULLVALUE_OPTIMIZATION()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.filterPushdown"),
+                           python::boolToPython(co.OPT_FILTER_PUSHDOWN()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.sharedObjectPropagation"),
+                           python::boolToPython(co.OPT_SHARED_OBJECT_PROPAGATION()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.mergeExceptionsInOrder"),
+                           python::boolToPython(co.OPT_MERGE_EXCEPTIONS_INORDER()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.operatorReordering"),
+                           python::boolToPython(co.OPT_OPERATOR_REORDERING()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.filterPromotion"),
+                           python::boolToPython(co.OPT_FILTER_PROMOTION()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.interleaveIO"),
+                           python::boolToPython(co.INTERLEAVE_IO()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.resolveWithInterpreterOnly"),
+                           python::boolToPython(co.RESOLVE_WITH_INTERPRETER_ONLY()));
 
-        // bool options
-        PyDict_SetItem(dictObject,
-                python::PyString_FromString("tuplex.useLLVMOptimizer"),
-                python::boolToPython(co.USE_LLVM_OPTIMIZER()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.autoUpcast"),
-                       python::boolToPython(co.AUTO_UPCAST_NUMBERS()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.allowUndefinedBehavior"),
-                       python::boolToPython(co.UNDEFINED_BEHAVIOR_FOR_OPERATORS()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.codeStats"),
-                       python::boolToPython(co.OPT_DETAILED_CODE_STATS()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.generateParser"),
-                       python::boolToPython(co.OPT_GENERATE_PARSER()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.nullValueOptimization"),
-                       python::boolToPython(co.OPT_NULLVALUE_OPTIMIZATION()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.filterPushdown"),
-                       python::boolToPython(co.OPT_FILTER_PUSHDOWN()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.sharedObjectPropagation"),
-                       python::boolToPython(co.OPT_SHARED_OBJECT_PROPAGATION()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.mergeExceptionsInOrder"),
-                       python::boolToPython(co.OPT_MERGE_EXCEPTIONS_INORDER()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.operatorReordering"),
-                       python::boolToPython(co.OPT_OPERATOR_REORDERING()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.filterPromotion"),
-                       python::boolToPython(co.OPT_FILTER_PROMOTION()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.interleaveIO"),
-                       python::boolToPython(co.INTERLEAVE_IO()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.resolveWithInterpreterOnly"),
-                       python::boolToPython(co.RESOLVE_WITH_INTERPRETER_ONLY()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.network.verifySSL"),
+                           python::boolToPython(co.NETWORK_VERIFY_SSL()));
 
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.network.verifySSL"),
-                       python::boolToPython(co.NETWORK_VERIFY_SSL()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.redirectToPythonLogging"),
+                           python::boolToPython(co.REDIRECT_TO_PYTHON_LOGGING()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.useInterpreterOnly"),
+                           python::boolToPython(co.PURE_PYTHON_MODE()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.lambdaInvokeOthers"),
+                           python::boolToPython(co.AWS_LAMBDA_SELF_INVOCATION()));
 
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.redirectToPythonLogging"),
-                       python::boolToPython(co.REDIRECT_TO_PYTHON_LOGGING()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.useInterpreterOnly"),
-                       python::boolToPython(co.PURE_PYTHON_MODE()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.aws.lambdaInvokeOthers"),
-                       python::boolToPython(co.AWS_LAMBDA_SELF_INVOCATION()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.experimental.hyperspecialization"),
+                           python::boolToPython(co.USE_EXPERIMENTAL_HYPERSPECIALIZATION()));
 
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.experimental.hyperspecialization"),
-                       python::boolToPython(co.USE_EXPERIMENTAL_HYPERSPECIALIZATION()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.experimental.opportuneCompilation"),
+                           python::boolToPython(co.USE_EXPERIMENTAL_OPPORTUNE_COMPILATION()));
 
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.experimental.opportuneCompilation"),
-                       python::boolToPython(co.USE_EXPERIMENTAL_OPPORTUNE_COMPILATION()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.experimental.forceBadParseExceptFormat"),
+                           python::boolToPython(co.EXPERIMENTAL_FORCE_BAD_PARSE_EXCEPT_FORMAT()));
 
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.experimental.forceBadParseExceptFormat"),
-                       python::boolToPython(co.EXPERIMENTAL_FORCE_BAD_PARSE_EXCEPT_FORMAT()));
-
-        // @TODO: move to optimizer
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.selectionPushdown"),
-                       python::boolToPython(co.OPT_SELECTION_PUSHDOWN()));
+            // @TODO: move to optimizer
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.selectionPushdown"),
+                           python::boolToPython(co.OPT_SELECTION_PUSHDOWN()));
 
 
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.webui.enable"),
-                       python::boolToPython(co.USE_WEBUI()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.webui.enable"),
+                           python::boolToPython(co.USE_WEBUI()));
 
-        // int options
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.executorCount"),
-                       PyLong_FromLongLong(co.EXECUTOR_COUNT()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.sample.maxDetectionRows"),
-                       PyLong_FromLongLong(co.SAMPLE_MAX_DETECTION_ROWS()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.webui.port"),
-                       PyLong_FromLongLong(co.WEBUI_PORT()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.webui.mongodb.port"),
-                       PyLong_FromLongLong(co.WEBUI_DATABASE_PORT()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.webui.exceptionDisplayLimit"),
-                       PyLong_FromLongLong(co.WEBUI_EXCEPTION_DISPLAY_LIMIT()));
+            // int options
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.executorCount"),
+                           PyLong_FromLongLong(co.EXECUTOR_COUNT()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.sample.maxDetectionRows"),
+                           PyLong_FromLongLong(co.SAMPLE_MAX_DETECTION_ROWS()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.webui.port"),
+                           PyLong_FromLongLong(co.WEBUI_PORT()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.webui.mongodb.port"),
+                           PyLong_FromLongLong(co.WEBUI_DATABASE_PORT()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.webui.exceptionDisplayLimit"),
+                           PyLong_FromLongLong(co.WEBUI_EXCEPTION_DISPLAY_LIMIT()));
 
-        // aws options
+            // aws options
 #ifdef BUILD_WITH_AWS
-        //                      {"tuplex.aws.requestTimeout", "600"},
-        //                     {"tuplex.aws.connectTimeout", "1"},
-        //                     {"tuplex.aws.maxConcurrency", "100"},
-        //                     {"tuplex.aws.httpThreadCount", std::to_string(std::min(8u, std::thread::hardware_concurrency()))},
-        //                     {"tuplex.aws.region", "us-east-1"},
-        //                     {"tuplex.aws.lambdaMemory", "1536"},
-        //                     {"tuplex.aws.lambdaTimeout", "600"},
-        //                     {"tuplex.aws.requesterPay", "false"},
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.aws.requestTimeout"),
-                       PyLong_FromLongLong(co.AWS_REQUEST_TIMEOUT()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.aws.connectTimeout"),
-                       PyLong_FromLongLong(co.AWS_CONNECT_TIMEOUT()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.aws.maxConcurrency"),
-                       PyLong_FromLongLong(co.AWS_MAX_CONCURRENCY()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.aws.httpThreadCount"),
-                       PyLong_FromLongLong(co.AWS_NUM_HTTP_THREADS()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.aws.lambdaMemory"),
-                       PyLong_FromLongLong(co.AWS_LAMBDA_MEMORY()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.aws.lambdaTimeout"),
-                       PyLong_FromLongLong(co.AWS_LAMBDA_TIMEOUT()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.aws.requesterPay"),
-                       python::boolToPython(co.AWS_REQUESTER_PAY()));
+            //                      {"tuplex.aws.requestTimeout", "600"},
+            //                     {"tuplex.aws.connectTimeout", "1"},
+            //                     {"tuplex.aws.maxConcurrency", "100"},
+            //                     {"tuplex.aws.httpThreadCount", std::to_string(std::min(8u, std::thread::hardware_concurrency()))},
+            //                     {"tuplex.aws.region", "us-east-1"},
+            //                     {"tuplex.aws.lambdaMemory", "1536"},
+            //                     {"tuplex.aws.lambdaTimeout", "600"},
+            //                     {"tuplex.aws.requesterPay", "false"},
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.requestTimeout"),
+                           PyLong_FromLongLong(co.AWS_REQUEST_TIMEOUT()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.connectTimeout"),
+                           PyLong_FromLongLong(co.AWS_CONNECT_TIMEOUT()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.maxConcurrency"),
+                           PyLong_FromLongLong(co.AWS_MAX_CONCURRENCY()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.httpThreadCount"),
+                           PyLong_FromLongLong(co.AWS_NUM_HTTP_THREADS()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.lambdaMemory"),
+                           PyLong_FromLongLong(co.AWS_LAMBDA_MEMORY()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.lambdaTimeout"),
+                           PyLong_FromLongLong(co.AWS_LAMBDA_TIMEOUT()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.requesterPay"),
+                           python::boolToPython(co.AWS_REQUESTER_PAY()));
 #endif
 
-        // float options
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.normalcaseThreshold"),
-                       PyFloat_FromDouble(co.NORMALCASE_THRESHOLD()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optionalThreshold"),
-                       PyFloat_FromDouble(co.OPTIONAL_THRESHOLD()));
+            // float options
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.normalcaseThreshold"),
+                           PyFloat_FromDouble(co.NORMALCASE_THRESHOLD()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optionalThreshold"),
+                           PyFloat_FromDouble(co.OPTIONAL_THRESHOLD()));
 
-        // boost python has problems with the code below. I.e. somehow the nested structure does not
-        // get correctly copied. Hence, there is a hack for these two in options() in Context.py
-        // // list options
-        // PyObject* list = nullptr;
-        // auto vSeparators = co.CSV_SEPARATORS();
-        // list = PyList_New(vSeparators.size());
-        // for(unsigned i = 0; i < vSeparators.size(); ++i) {
-        //     //PyList_SET_ITEM(list, i, python::PyString_FromChar(vSeparators[i]));
-        //     PyList_SetItem(list, i, python::PyString_FromString(","));
-        // }
-        // PyDict_SetItem(dictObject,
-        //                python::PyString_FromString("tuplex.csv.separators"),
-        //                list);
-        // auto vComments = co.CSV_COMMENTS();
-        // list = PyList_New(vComments.size());
-        // for(unsigned i = 0; i < vComments.size(); ++i) {
-        //     PyList_SET_ITEM(list, i, python::PyString_FromChar(vComments[i]));
-        // }
-        // PyDict_SetItem(dictObject,
-        //                python::PyString_FromString("tuplex.csv.comments"),
-        //                list);
+            // boost python has problems with the code below. I.e. somehow the nested structure does not
+            // get correctly copied. Hence, there is a hack for these two in options() in Context.py
+            // // list options
+            // PyObject* list = nullptr;
+            // auto vSeparators = co.CSV_SEPARATORS();
+            // list = PyList_New(vSeparators.size());
+            // for(unsigned i = 0; i < vSeparators.size(); ++i) {
+            //     //PyList_SET_ITEM(list, i, python::PyString_FromChar(vSeparators[i]));
+            //     PyList_SetItem(list, i, python::PyString_FromString(","));
+            // }
+            // PyDict_SetItem(dictObject,
+            //                python::PyString_FromString("tuplex.csv.separators"),
+            //                list);
+            // auto vComments = co.CSV_COMMENTS();
+            // list = PyList_New(vComments.size());
+            // for(unsigned i = 0; i < vComments.size(); ++i) {
+            //     PyList_SET_ITEM(list, i, python::PyString_FromChar(vComments[i]));
+            // }
+            // PyDict_SetItem(dictObject,
+            //                python::PyString_FromString("tuplex.csv.comments"),
+            //                list);
+        } catch (const std::out_of_range& e) {
+            std::stringstream err_stream;
+            err_stream<<"Failed converting option key, details: "<<e.what();
+            Logger::instance().defaultLogger().error(err_stream.str());
+        }
 
         // strings
         // i.e. for the rest

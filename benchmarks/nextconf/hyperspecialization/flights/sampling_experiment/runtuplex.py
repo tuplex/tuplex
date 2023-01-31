@@ -165,7 +165,7 @@ if __name__ == '__main__':
             "tuplex.redirectToPythonLogging": True,
             "resolveWithInterpreterOnly": False,
             "csv.selectionPushdown": True,
-            "experimental.forceBadParseExceptFormat": args.use_internal_format}
+            "experimental.forceBadParseExceptFormat": args.use_internal_fmt}
 
     if os.path.exists('tuplex_config.json'):
         with open('tuplex_config.json') as fp:

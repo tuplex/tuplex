@@ -312,7 +312,8 @@ namespace tuplex {
                                              "tuplex.experimental.s3PreCacheSize",
                                              "tuplex.useLLVMOptimizer",
                                              "tuplex.sample.maxDetectionRows",
-                                             "tuplex.optimizer.constantFoldingOptimization"});
+                                             "tuplex.optimizer.constantFoldingOptimization",
+                                             "tuplex.experimental.forceBadParseExceptFormat"});
         auto& m_map = *(ws->mutable_other());
         for(const auto& key : other_keys)
             m_map[key] = _options.get(key);

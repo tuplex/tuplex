@@ -118,8 +118,9 @@ namespace tuplex {
                     logger.debug("UDF exceptions are emitted in general case format " + _inputRowTypeGeneralCase.desc());
 
                     // need to option to have SEPARATE general-case format established (?) for exeception handling.
-                    logger.warn("make the boolean here " + std::string(__FILE__) + ":" + std::to_string(__LINE__) + " an option:");
-                    bool serialize_exception_in_tuplex_format = true; // <-- make this an option!
+                    // logger.warn("make the boolean here " + std::string(__FILE__) + ":" + std::to_string(__LINE__) + " an option:");
+                    bool serialize_exception_in_tuplex_format = exception_serialization_format() == ExceptionSerializationFormat::GENERALCASE
+                                                                || exception_serialization_format() == ExceptionSerializationFormat::NORMALCASE; // <-- make this an option!
                     if(!isNormalCaseAndGeneralCaseCompatible()) // check: when cases are not compatible, always false...
                         serialize_exception_in_tuplex_format = false;
 

@@ -165,7 +165,7 @@ if __name__ == '__main__':
             "tuplex.redirectToPythonLogging": True,
             "resolveWithInterpreterOnly": False,
             "csv.selectionPushdown": True,
-            ""}
+            "experimental.forceBadParseExceptFormat": args.use_internal_format}
 
     if os.path.exists('tuplex_config.json'):
         with open('tuplex_config.json') as fp:
@@ -202,7 +202,7 @@ if __name__ == '__main__':
         tstart = time.time()
         ctx.csv(input_pattern, sampling_mode=sm).map(fill_in_delays).tocsv(s3_output_path)
         job_time = time.time() - tstart
-        row = {'sampling_mode': str(sm), 'job_time': job_time, 'metrics': ctx.metrics.as_dict()}
+        row = {'sampling_mode': str(sm), 'job_time': job_time, 'metrics': ctx.metrics.as_dict(), 'options': ctx.options()}
         print('--- done ---')
         print(row)
         rows.append(row)
@@ -219,4 +219,4 @@ if __name__ == '__main__':
     print(ctx.options())
     print(m.as_json())
     # print stats as last line
-    print(json.dumps({"startupTime" : startup_time, "jobTime" : job_time}))
+    print(json.dumps({"startupTime": startup_time, "jobTime": job_time}))

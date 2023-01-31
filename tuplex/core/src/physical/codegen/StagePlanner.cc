@@ -1054,8 +1054,13 @@ namespace tuplex {
 
     // HACK: magical experiment function!!!
     // HACK!
-    bool hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size,
-                         double nc_threshold, size_t sample_limit, bool enable_cf) {
+    // bool hyperspecialize(TransformStage *stage, const URI& uri, size_t file_size,
+    //                         double nc_threshold, size_t sample_limit, bool enable_cf)
+    bool hyperspecialize(TransformStage *stage,
+                         const URI& uri,
+                         size_t file_size,
+                         size_t sample_limit,
+                         const codegen::StageBuilderConfiguration& conf=codegen::StageBuilderConfiguration()) {
         auto& logger = Logger::instance().logger("hyper specializer");
         // run hyperspecialization using planner, yay!
         assert(stage);
@@ -1110,6 +1115,7 @@ namespace tuplex {
 
         // force resampling b.c. of thin layer
         Timer samplingTimer;
+        bool enable_cf = conf.constantFoldingOptimization;
         if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
             auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode); assert(fop);
             fop->setInputFiles({uri}, {file_size}, true, sample_limit);
@@ -1129,10 +1135,11 @@ namespace tuplex {
         }
 
         // node need to find some smart way to QUICKLY detect whether the optimization can be applied or should be rather skipped...
-        codegen::StagePlanner planner(inputNode, operators, nc_threshold);
+        codegen::StagePlanner planner(inputNode, operators, conf.policy.normalCaseThreshold);
         planner.enableAll();
         planner.disableAll();
-        planner.enableNullValueOptimization();
+        if(conf.nullValueOptimization)
+            planner.enableNullValueOptimization();
         planner.enableDelayedParsingOptimization();
         if(enable_cf)
             planner.enableConstantFoldingOptimization();
@@ -1224,13 +1231,14 @@ namespace tuplex {
         TransformStage::StageCodePath fast_code_path;
         try {
             fast_code_path = codegen::StageBuilder::generateFastCodePath(ctx,
-                                                                              ctx.fastPathContext,
-                                                                              generalCaseInputRowType,
-                                                                              ctx.slowPathContext.columnsToRead,
-                                                                              generalCaseOutputRowType,
-                                                                              ctx.slowPathContext.columns(),
-                                                                              planner.normalToGeneralMapping(),
-                                                                              stage->number());
+                                                                         ctx.fastPathContext,
+                                                                         generalCaseInputRowType,
+                                                                         ctx.slowPathContext.columnsToRead,
+                                                                         generalCaseOutputRowType,
+                                                                         ctx.slowPathContext.columns(),
+                                                                         planner.normalToGeneralMapping(),
+                                                                         stage->number(),
+                                                                         conf.exceptionSerializationMode);
         } catch(const std::exception& e) {
             std::stringstream ss;
             ss<<"Exception occurred during fast code generation in hyperspecialization, details: ";

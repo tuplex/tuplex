@@ -119,6 +119,8 @@ def fill_in_delays(row):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Flights hyper specialization sampling experiment')
+    parser.add_argument('--internal-fmt', dest='use_internal_fmt',
+                        help='if active, use the internal tuplec storage format for exceptions, no CSV format optimization', action='store_true')
     args = parser.parse_args()
 
     if not 'AWS_ACCESS_KEY_ID' in os.environ or 'AWS_SECRET_ACCESS_KEY' not in os.environ:
@@ -162,7 +164,8 @@ if __name__ == '__main__':
             "optimizer.nullValueOptimization": False,
             "tuplex.redirectToPythonLogging": True,
             "resolveWithInterpreterOnly": False,
-            "csv.selectionPushdown" : True}
+            "csv.selectionPushdown": True,
+            ""}
 
     if os.path.exists('tuplex_config.json'):
         with open('tuplex_config.json') as fp:

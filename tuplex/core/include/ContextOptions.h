@@ -88,7 +88,7 @@ namespace tuplex {
         bool USE_EXPERIMENTAL_OPPORTUNE_COMPILATION() const { return stringToBool(_store.at("tuplex.experimental.opportuneCompilation")); }
         size_t USE_EXPERIMENTAL_S3_PRECACHE_SIZE() const { return memStringToSize(_store.at("tuplex.experimental.s3PreCacheSize")); }
 
-        bool EXPERIMENTAL_ALWAYS_TREAT_MISMATCH_AS_BADPARSE() const { return stringToBool(_store.at("tuplex.experimental.alwaysTreatMismatchAsBadParse")); }
+        bool EXPERIMENTAL_FORCE_BAD_PARSE_EXCEPT_FORMAT() const { return stringToBool(_store.at("tuplex.experimental.forceBadParseExceptFormat")); }
 
         std::string AWS_LAMBDA_INVOCATION_STRATEGY() const { return _store.at("tuplex.aws.lambdaInvocationStrategy"); }
 

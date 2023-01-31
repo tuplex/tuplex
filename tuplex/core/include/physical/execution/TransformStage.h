@@ -17,6 +17,7 @@
 #include <utils/ExceptionInfo.h>
 #include "physical/PhysicalStage.h"
 #include "jit/LLVMOptimizer.h"
+#include "physical/codegen/StageBuilderConfiguration.h"
 #include <logical/ParallelizeOperator.h>
 #include <logical/MapOperator.h>
 #include <logical/MapColumnOperator.h>
@@ -86,8 +87,13 @@ namespace tuplex {
         ~TransformStage() override = default;
 
         friend class ::tuplex::codegen::StageBuilder;
-        friend bool hyperspecialize(TransformStage *stage, const URI& uri,
-                                    size_t file_size, double nc_threshold, size_t sample_limit, bool enable_cf);
+//        friend bool hyperspecialize(TransformStage *stage, const URI& uri,
+//                                    size_t file_size, double nc_threshold, size_t sample_limit, bool enable_cf);
+        friend bool hyperspecialize(TransformStage *stage,
+                             const URI& uri,
+                             size_t file_size,
+                             size_t sample_limit,
+                             const codegen::StageBuilderConfiguration& conf);
 
         std::vector<Partition*> inputPartitions() const { return _inputPartitions; }
 

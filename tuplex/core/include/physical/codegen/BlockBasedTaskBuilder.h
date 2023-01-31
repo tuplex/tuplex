@@ -20,12 +20,6 @@
 namespace tuplex {
     namespace codegen {
 
-        enum class ExceptionSerializationMode {
-            SERIALIZE_MISMATCH_ALWAYS_AS_BAD_PARSE=1,
-            SERIALIZE_AS_GENERAL_CASE=2,
-            SERIALIZE_AS_NORMAL_CASE=4,
-        };
-
         // to create BlockBasedPipelines, i.e. they take an input buffer
         // then deserialize somehow (aka parsing) and call a pipeline.
         class BlockBasedTaskBuilder {

@@ -1584,8 +1584,8 @@ namespace tuplex {
                        python::boolToPython(co.USE_EXPERIMENTAL_OPPORTUNE_COMPILATION()));
 
         PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.experimental.alwaysTreatMismatchAsBadParse"),
-                       python::boolToPython(co.EXPERIMENTAL_ALWAYS_TREAT_MISMATCH_AS_BADPARSE()));
+                       python::PyString_FromString("tuplex.experimental.forceBadParseExceptFormat"),
+                       python::boolToPython(co.EXPERIMENTAL_FORCE_BAD_PARSE_EXCEPT_FORMAT()));
 
         // @TODO: move to optimizer
         PyDict_SetItem(dictObject,

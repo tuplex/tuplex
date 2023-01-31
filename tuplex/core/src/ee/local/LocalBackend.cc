@@ -844,9 +844,9 @@ namespace tuplex {
             auto files = tstage->input_files();
             auto uri_str = std::get<0>(files.front());
             auto uri_size = std::get<1>(files.front());
-            hyperspecialize(tstage, uri_str, uri_size, _options.NORMALCASE_THRESHOLD(), _options.SAMPLE_MAX_DETECTION_ROWS());
+            codegen::StageBuilderConfiguration conf(_options);
+            hyperspecialize(tstage, uri_str, uri_size, _options.SAMPLE_MAX_DETECTION_ROWS(), conf);
         }
-
 
         // special case: skip stage, i.e. empty code and mem2mem
         if(tstage->fastPathCode().empty() &&  !tstage->fileInputMode() && !tstage->fileOutputMode()) {

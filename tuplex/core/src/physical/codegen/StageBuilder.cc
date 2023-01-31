@@ -463,6 +463,7 @@ namespace tuplex {
                                                                          const std::vector<std::string>& general_case_columns,
                                                                          const std::map<int, int>& normalToGeneralMapping,
                                                                          int stageNo,
+                                                                         const ExceptionSerializationMode& except_mode,
                                                                          const std::string& env_name) {
             using namespace std;
             auto &logger = Logger::instance().logger("codegen");
@@ -929,8 +930,7 @@ namespace tuplex {
             // keep the smaller normal-case exception format. (note this option has not been properly tested throughout code base)
 
             // set here exception serialization mode (general case rows? yes or no?)
-            auto exceptionSerializationMode = ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE;
-            bool emitGeneralCaseExceptionRows = (int)exceptionSerializationMode & (int)ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE; // <-- need to fix this!
+            bool emitGeneralCaseExceptionRows = (int)except_mode & (int)ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE; // <-- need to fix this!
 
             // make sure upcasting is possible
             if(emitGeneralCaseExceptionRows) {
@@ -942,7 +942,6 @@ namespace tuplex {
                     throw std::runtime_error(err_message);
                 }
             }
-
 
             // step 2. build connector to data source, i.e. generated parser or simply iterating over stuff
             std::shared_ptr<codegen::BlockBasedTaskBuilder> tb;
@@ -980,7 +979,7 @@ namespace tuplex {
                                                                                pathContext.columnsToRead,
                                                                                normalToGeneralMapping,
                                                                                funcStageName,
-                                                                               exceptionSerializationMode,
+                                                                               except_mode,
                                                                                ctx.inputNodeID,
                                                                                null_values,
                                                                                delimiter,
@@ -1021,7 +1020,7 @@ namespace tuplex {
                                                                              generalCaseColumnsToRead,
                                                                              normalToGeneralMapping,
                                                                              funcStageName,
-                                                                             exceptionSerializationMode,
+                                                                             except_mode,
                                                                              ctx.inputNodeID,
                                                                              null_values,
                                                                              pathContext.checks);
@@ -1040,7 +1039,7 @@ namespace tuplex {
                                                                            generalCaseInputRowType,
                                                                            normalToGeneralMapping,
                                                                            funcStageName,
-                                                                           exceptionSerializationMode,
+                                                                           except_mode,
                                                                            pathContext.checks);
                         break;
                     }
@@ -1055,7 +1054,7 @@ namespace tuplex {
                                                                          unwrap_first_level,
                                                                          normalToGeneralMapping,
                                                                          funcStageName,
-                                                                         exceptionSerializationMode);
+                                                                         except_mode);
                         break;
                     }
 
@@ -1080,7 +1079,7 @@ namespace tuplex {
                                                                    generalCaseInputRowType,
                                                                    normalToGeneralMapping,
                                                                    funcStageName,
-                                                                   exceptionSerializationMode,
+                                                                   except_mode,
                                                                    pathContext.checks);
             }
 
@@ -1240,7 +1239,7 @@ namespace tuplex {
                 UDFOperator *udfop = dynamic_cast<UDFOperator *>(node.get());
                 switch (node->type()) {
                     case LogicalOperatorType::MAP: {
-                        slowPip->mapOperation(node->getID(), udfop->getUDF(), _conf.normalCaseThreshold, ctx.allowUndefinedBehavior,
+                        slowPip->mapOperation(node->getID(), udfop->getUDF(), _conf.policy.normalCaseThreshold, ctx.allowUndefinedBehavior,
                                               ctx.sharedObjectPropagation);
                         break;
                     }
@@ -1665,9 +1664,7 @@ namespace tuplex {
          */
         CodeGenerationContext::CodePathContext specializePipeline(const CodeGenerationContext::CodePathContext& general_path_ctx,
                                                                   std::map<int, int>& normalToGeneralMapping,
-                                                                  double nc_threshold,
-                                                                  bool enableNVO=true,
-                                                                  bool enableCF=true) {
+                                                                  const StageBuilderConfiguration& conf) {
 
             using namespace std;
             auto& logger = Logger::instance().logger("physical planner");
@@ -1695,11 +1692,11 @@ namespace tuplex {
 //            }
 
             // node need to find some smart way to QUICKLY detect whether the optimization can be applied or should be rather skipped...
-            codegen::StagePlanner planner(inputNode, operators, nc_threshold);
+            codegen::StagePlanner planner(inputNode, operators, conf.policy.normalCaseThreshold);
             planner.disableAll();
-            if(enableNVO)
+            if(conf.nullValueOptimization)
                 planner.enableNullValueOptimization();
-            if(enableCF)
+            if(conf.constantFoldingOptimization)
                 planner.enableConstantFoldingOptimization();
             planner.optimize();
 
@@ -1773,9 +1770,7 @@ namespace tuplex {
                 if(_conf.generateSpecializedNormalCaseCodePath)
                     codeGenerationContext.fastPathContext = specializePipeline(codeGenerationContext.slowPathContext,
                                                                                codeGenerationContext.normalToGeneralMapping,
-                                                                               _conf.policy.normalCaseThreshold,
-                                                                               _conf.nullValueOptimization,
-                                                                               _conf.constantFoldingOptimization);
+                                                                               _conf);
                 else
                     codeGenerationContext.fastPathContext = getGeneralPathContext();
 
@@ -1851,7 +1846,8 @@ namespace tuplex {
                                                             codeGenerationContext.slowPathContext.outputSchema.getRowType(),
                                                             codeGenerationContext.slowPathContext.columns(),
                                                             codeGenerationContext.normalToGeneralMapping,
-                                                            number());
+                                                            number(),
+                                                            _conf.exceptionSerializationMode);
                 stage->_normalCaseColumnsToKeep = boolArrayToIndices<unsigned>(codeGenerationContext.fastPathContext.columnsToRead);
                 stage->_slowCodePath = slowCodePath_f.get();
 
@@ -2031,7 +2027,8 @@ namespace tuplex {
                                                                 ctx.slowPathContext.outputSchema.getRowType(),
                                                                 ctx.slowPathContext.columns(),
                                                                 ctx.normalToGeneralMapping,
-                                                                number());
+                                                                number(),
+                                                                _conf.exceptionSerializationMode);
                     stage->_normalCaseColumnsToKeep = boolArrayToIndices<unsigned>(ctx.fastPathContext.columnsToRead);
                 }
 

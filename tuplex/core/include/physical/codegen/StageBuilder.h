@@ -12,6 +12,7 @@
 #define TUPLEX_STAGEBUILDER_H
 
 #include "physical/execution/TransformStage.h"
+#include "StageBuilderConfiguration.h"
 
 // include all logical ops here
 #include <logical/Operators.h>
@@ -19,45 +20,6 @@
 
 namespace tuplex {
     namespace codegen {
-
-        struct StageBuilderConfiguration {
-            CompilePolicy policy; // compiler policy for stage and UDFs
-            bool allowUndefinedBehavior;
-            bool generateParser; // whether to generate a parser
-            double normalCaseThreshold;
-            bool sharedObjectPropagation;
-            bool nullValueOptimization; // whether to use null value optimization
-            bool constantFoldingOptimization; // whether to apply constant folding or not
-            bool updateInputExceptions; // whether input exceptions indices need to be updated (change for experimental incremental exception handling)
-            bool generateSpecializedNormalCaseCodePath; // whether to emit specialized normal case code path or not
-
-            StageBuilderConfiguration() : policy(CompilePolicy()),
-            allowUndefinedBehavior(false),
-            generateParser(false),
-            normalCaseThreshold(0.9),
-            sharedObjectPropagation(true),
-            nullValueOptimization(true),
-            constantFoldingOptimization(true),
-            updateInputExceptions(false),
-            generateSpecializedNormalCaseCodePath(true) {}
-
-            // update with context option object
-            inline void applyOptions(const ContextOptions& co) {
-                policy = compilePolicyFromOptions(co);
-                allowUndefinedBehavior = co.UNDEFINED_BEHAVIOR_FOR_OPERATORS();
-                generateParser = co.OPT_GENERATE_PARSER();
-                normalCaseThreshold = co.NORMALCASE_THRESHOLD();
-                sharedObjectPropagation = co.OPT_SHARED_OBJECT_PROPAGATION();
-                nullValueOptimization = co.OPT_NULLVALUE_OPTIMIZATION();
-                constantFoldingOptimization = co.OPT_CONSTANTFOLDING_OPTIMIZATION();
-                // updateInputExceptions = false; // this is a weird setting, has to be done manually?
-                // generateSpecializedNormalCaseCodePath = true // also needs to be manually set.
-            }
-
-            StageBuilderConfiguration(const ContextOptions& co) : StageBuilderConfiguration::StageBuilderConfiguration() {
-                applyOptions(co);
-            }
-        };
 
         /*!
          * builder class to generate code for a transform stage
@@ -146,6 +108,7 @@ namespace tuplex {
                                                                       const std::vector<std::string>& general_case_columns,
                                                                       const std::map<int, int>& normalToGeneralMapping,
                                                                       int stageNo,
+                                                                      const ExceptionSerializationMode& except_mode,
                                                                       const std::string& env_name="tuplex_fastCodePath"); // file2mem always
 
         private:

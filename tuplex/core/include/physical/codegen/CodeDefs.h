@@ -16,6 +16,13 @@
 namespace tuplex {
 
     namespace codegen {
+
+        enum class ExceptionSerializationMode {
+            SERIALIZE_MISMATCH_ALWAYS_AS_BAD_PARSE=1,
+            SERIALIZE_AS_GENERAL_CASE=2,
+            SERIALIZE_AS_NORMAL_CASE=4,
+        };
+
         // (1) typedefs
         // for building customizable/hackable transform stages with code generated task code (One task = iterating over one partition)
         // several functions are needed. Following are some typedefs to allow for easier handling

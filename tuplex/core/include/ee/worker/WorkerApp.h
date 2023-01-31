@@ -138,12 +138,17 @@ namespace tuplex {
         size_t sampleLimitCount; // <-- limit count imposed on resampling
 
         double normalCaseThreshold; ///! used for hyperspecialziation
+        codegen::ExceptionSerializationMode exceptionSerializationMode;
+
 
         // use some defaults...
         WorkerSettings() : numThreads(1), normalBufferSize(WORKER_DEFAULT_BUFFER_SIZE),
         exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE),
         useInterpreterOnly(false), useCompiledGeneralPath(true),
-        opportuneGeneralPathCompilation(true), useFilterPromotion(false), useConstantFolding(false), s3PreCacheSize(0) {
+        opportuneGeneralPathCompilation(true),
+        useFilterPromotion(false), useConstantFolding(false),
+        s3PreCacheSize(0),
+        exceptionSerializationMode(codegen::ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE) {
 
             // set some options from defaults...
             auto opt = ContextOptions::defaults();
@@ -170,7 +175,8 @@ namespace tuplex {
         s3PreCacheSize(other.s3PreCacheSize),
         useOptimizer(other.useOptimizer),
         sampleLimitCount(other.sampleLimitCount),
-        normalCaseThreshold(other.normalCaseThreshold) {}
+        normalCaseThreshold(other.normalCaseThreshold),
+        exceptionSerializationMode(other.exceptionSerializationMode) {}
 
         inline bool operator == (const WorkerSettings& other) const {
 
@@ -209,6 +215,8 @@ namespace tuplex {
                 return false;
             if(s3PreCacheSize != other.s3PreCacheSize)
                 return false;
+            if(exceptionSerializationMode != other.exceptionSerializationMode)
+                return false;
             return true;
         }
 
@@ -235,6 +243,7 @@ namespace tuplex {
         os << "\"useFilterPromotion\":"<<boolToString(ws.useFilterPromotion)<<", ";
         os << "\"useConstantFolding\":"<<boolToString(ws.useConstantFolding)<<", ";
         os << "\"normalCaseThreshold\":"<<ws.normalCaseThreshold<<", ";
+        os << "\"exceptionSerializationMode\":"<<(int)ws.exceptionSerializationMode<<", ";
         os << "\"s3PreCacheSize\":"<<ws.s3PreCacheSize;
         os << "}";
         return os;

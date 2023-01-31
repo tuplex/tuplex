@@ -256,6 +256,7 @@ namespace tuplex {
                      {"tuplex.redirectToPythonLogging", "false"},
                      {"tuplex.experimental.hyperspecialization", "false"},
                      {"tuplex.experimental.opportuneCompilation", "true"},
+                     {"tuplex.experimental.forceBadParseExceptFormat", "false"},
                      {"tuplex.experimental.s3PreCacheSize", "0"}};
 #else
         // DEBUG options
@@ -320,6 +321,7 @@ namespace tuplex {
                      {"tuplex.redirectToPythonLogging", "false"},
                      {"tuplex.experimental.hyperspecialization", "false"},
                      {"tuplex.experimental.opportuneCompilation", "true"},
+                     {"tuplex.experimental.forceBadParseExceptFormat", "false"},
                      {"tuplex.experimental.s3PreCacheSize", "0"}}; // experimental feature, deactivate for now.
 #endif
 

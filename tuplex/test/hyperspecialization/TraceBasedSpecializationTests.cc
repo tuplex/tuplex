@@ -233,6 +233,7 @@ TEST_F(SamplingTest, FlightsSpecializedVsGeneralValueImputation) {
 
     // opt.set("tuplex.backend", "lambda");
     opt.set("tuplex.experimental.hyperspecialization", "true");
+    opt.set("tuplex.experimental.forceBadParseExceptFormat", "true"); // switch between internal/csv format.
     Context ctx(opt);
 
     // specialize access with columns vs. non-columns
@@ -363,7 +364,10 @@ auto code = "def fill_in_delays(row):\n"
     // this file here should get folded!
     // => i.e. no expensive code is required!
 //    auto& ds = ctx.csv(non_null_based_file).map(UDF(code));
-    auto& ds = ctx.csv(null_based_file).map(UDF(code));
+//    auto& ds = ctx.csv(null_based_file).map(UDF(code));
+
+    string input_pattern =  "s3://tuplex-public/data/flights_all/flights_on_time_performance_2002*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004*.csv";
+    auto& ds = ctx.csv(input_pattern).map(UDF(code));
 
     ds.tocsv("test_output.csv");
 

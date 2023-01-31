@@ -184,6 +184,11 @@ namespace tuplex {
                     }
                     break;
                 }
+//                case ExceptionSerializationFormat::STRING_CELLS: {
+//                    // convert each value to strings and save them like that!
+//
+//                    break;
+//                }
                 default:
                     throw std::runtime_error("This function only supports normalcase/generalcase exception formats");
             }

@@ -114,7 +114,7 @@ def fill_in_delays(row):
                 'weather_delay':row['WEATHER_DELAY'],
                 'nas_delay' : row['NAS_DELAY'],
                 'security_delay': row['SECURITY_DELAY'],
-                'late_aircraft_delay' : row['LATE_AIRCRAFT_DELAY']}
+                'late_aircraft_delay': row['LATE_AIRCRAFT_DELAY']}
 
 
 if __name__ == '__main__':

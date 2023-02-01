@@ -132,6 +132,9 @@ if __name__ == '__main__':
                         help="deactivate constant-folding optimization explicitly.")
     parser.add_argument('--no-nvo', dest='no_nvo', action="store_true",
                         help="deactivate null value optimization explicitly.")
+    parser.add_argument('--internal-fmt', dest='use_internal_fmt',
+                        help='if active, use the internal tuplec storage format for exceptions, no CSV format optimization',
+                        action='store_true')
     args = parser.parse_args()
 
     if not 'AWS_ACCESS_KEY_ID' in os.environ or 'AWS_SECRET_ACCESS_KEY' not in os.environ:
@@ -208,7 +211,8 @@ if __name__ == '__main__':
             "optimizer.nullValueOptimization": True,
             "resolveWithInterpreterOnly": False,
             "optimizer.constantFoldingOptimization": use_constant_folding,
-            "optimizer.selectionPushdown" : True}
+            "optimizer.selectionPushdown" : True,
+            "experimental.forceBadParseExceptFormat": not args.use_internal_fmt}
 
     if os.path.exists('tuplex_config.json'):
         with open('tuplex_config.json') as fp:

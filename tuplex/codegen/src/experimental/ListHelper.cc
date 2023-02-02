@@ -334,12 +334,12 @@ namespace tuplex {
                     auto idx_nulls = CreateStructGEP(builder, list_ptr, struct_opt_index);
                     auto ptr = builder.CreateLoad(idx_nulls);
                     auto idx_null = builder.CreateGEP(ptr, idx);
-                    ret.is_null = builder.CreateLoad(idx_null);
+                    ret.is_null = builder.CreateTrunc(builder.CreateLoad(idx_null), env.i1Type()); // could be == i8(0) as well
                 } else {
                     auto idx_nulls = CreateStructGEP(builder, list_ptr, struct_opt_index);
                     auto ptr = idx_nulls;
                     auto idx_null = builder.CreateGEP(ptr, idx);
-                    ret.is_null = builder.CreateLoad(idx_null);
+                    ret.is_null = builder.CreateTrunc(builder.CreateLoad(idx_null), env.i1Type()); // could be == i8(0) as well
                 }
 
                 // jump now according to block!

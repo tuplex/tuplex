@@ -3135,80 +3135,109 @@ namespace tuplex {
                 }
                 std::reverse(vals.begin(), vals.end());
 
-                // Allocate space for the list (TODO: check if this is the correct way to do this)
-                // check if the block of builder is the entry block, if not add alloc to entry block
-                // entry block has no predecessor
-                llvm::Value *listAlloc = _env->CreateFirstBlockAlloca(builder, llvmType, "BGV_listAlloc");
-                llvm::Value* listSize = _env->i64Const(8);
-                auto elementType = list->getInferredType().elementType();
-                if(elementType.isSingleValued()) {
-                    builder.CreateStore(_env->i64Const(list->_elements.size()), listAlloc);
-                } else if(elementType == python::Type::I64 || elementType == python::Type::F64 || elementType == python::Type::BOOLEAN
-                || elementType == python::Type::STRING || elementType.isTupleType() || elementType.isDictionaryType()) {
-                    // load the list with its initial size
-                    auto list_capacity_ptr = CreateStructGEP(builder, listAlloc, 0);
-                    builder.CreateStore(_env->i64Const(list->_elements.size()), list_capacity_ptr);
-                    auto list_len_ptr = CreateStructGEP(builder, listAlloc,  1);
-                    builder.CreateStore(_env->i64Const(list->_elements.size()), list_len_ptr);
+                // new: use list helper functions
+                // create list ptr (in any case!)
+                auto num_elements = vals.size();
+                auto list_type = list->getInferredType();
+                auto list_llvm_type = _env->getOrCreateListType(list_type);
+                auto list_ptr = _env->CreateFirstBlockAlloca(builder, list_llvm_type);
+                list_init_empty(*_env, builder, list_ptr, list_type);
 
-                    // load the initial values ------
-                    // get the byte-size of the elements TODO: is there a better way to do this?
-                    size_t element_byte_size = 8; // f64, i64
-                    if (elementType == python::Type::BOOLEAN)
-                        element_byte_size = 1; // single character elements
-                    // allocate the array
-                    llvm::Value *malloc_size = nullptr;
-                    if(elementType.isTupleType() && elementType.isFixedSizeType()) {
-                        // if tuple is fixed size, store the actual tuple struct
-                        // if tuple has varlen field, store a pointer to the tuple
-                        auto ft = FlattenedTuple::fromLLVMStructVal(_env, builder, vals[0].val, elementType);
-                        malloc_size = builder.CreateMul(ft.getSize(builder), _env->i64Const(list->_elements.size()));
-                    } else {
-                        malloc_size = _env->i64Const(element_byte_size * list->_elements.size());
-                    }
-                    auto list_arr_malloc = builder.CreatePointerCast(_env->malloc(builder, malloc_size), llvmType->getStructElementType(2));
-                    // store the values
-                    for(size_t i = 0; i < vals.size(); i++) {
-                        auto list_el = builder.CreateGEP(list_arr_malloc, _env->i32Const(i));
-                        if(elementType.isTupleType() && !elementType.isFixedSizeType()) {
-                            // list_el has type struct.tuple**
-                            auto el_tuple = _env->CreateFirstBlockAlloca(builder, _env->pythonToLLVMType(elementType), "tuple_alloc");
-                            builder.CreateStore(vals[i].val, el_tuple);
-                            builder.CreateStore(el_tuple, list_el);
-                        } else {
-                            builder.CreateStore(vals[i].val, list_el);
+                bool initialize_elements_as_null = true; //false;
+                list_reserve_capacity(*_env, builder, list_ptr, list_type, _env->i64Const(num_elements), initialize_elements_as_null);
+                list_store_size(*_env, builder, list_ptr, list_type, _env->i64Const(num_elements));
+
+                // loop over vals & store them
+                for(unsigned i = 0; i < vals.size(); ++i) {
+                    // upcast to list element type
+                    auto el = vals[i];
+                    auto el_type = list->_elements[i]->getInferredType();
+                    if(el_type != list_type.elementType()) {
+                        if(!python::canUpcastType(el_type, list_type.elementType())) {
+                            fatal_error("Can't upcast element " + std::to_string(i) + " within list from type " + el_type.desc() + " to type " + list_type.elementType().desc());
                         }
+                        el = upCastReturnType(builder, el, el_type, list_type.elementType());
                     }
-                    // store the new array back into the array pointer
-                    auto list_arr = CreateStructGEP(builder, listAlloc, 2);
-                    builder.CreateStore(list_arr_malloc, list_arr);
-
-                    // set the serialized size (i64/f64/bool are fixed sized!)
-                    listSize = _env->i64Const(8 * list->_elements.size() + 8);  // TODO: are booleans serialized as 1 or 8 bytes?
-
-                    // if string values, store the lengths as well
-                    if(elementType == python::Type::STRING || elementType.isDictionaryType()) {
-                        listSize = _env->i64Const(8 * list->_elements.size() + 8); // length field, size array
-                        // allocate the size array
-                        auto list_sizearr_malloc = builder.CreatePointerCast(_env->malloc(builder, _env->i64Const(8 * list->_elements.size())), llvmType->getStructElementType(3));
-                        // store the lengths
-                        for(size_t i = 0; i < vals.size(); i++) {
-                            auto list_el = builder.CreateGEP(list_sizearr_malloc, _env->i32Const(i));
-                            builder.CreateStore(vals[i].size, list_el);
-                            listSize = builder.CreateAdd(listSize, vals[i].size);
-                        }
-                        // store the new array back into the array pointer
-                        auto list_sizearr = CreateStructGEP(builder, listAlloc, 3);
-                        builder.CreateStore(list_sizearr_malloc, list_sizearr);
-                    }
+                    list_store_value(*_env, builder, list_ptr, list_type, _env->i64Const(i), el);
                 }
+                _lfb->setLastBlock(builder.GetInsertBlock());
+                addInstruction(list_ptr);
 
-                // TODO:
-                // --> change to passing around the pointer to the list, not the semi-loaded struct
-                // ---> THIS WILL HAVE IMPLICATIONS WHEREVER LISTS ARE USED.
-                // also listSize here is wrong. The listSize should be stored as part of the pointer. You can either pass 8 as listsize or null.
-
-                addInstruction(builder.CreateLoad(listAlloc), listSize);
+                // old
+//                // Allocate space for the list (TODO: check if this is the correct way to do this)
+//                // check if the block of builder is the entry block, if not add alloc to entry block
+//                // entry block has no predecessor
+//                llvm::Value *listAlloc = _env->CreateFirstBlockAlloca(builder, llvmType, "BGV_listAlloc");
+//                llvm::Value* listSize = _env->i64Const(8);
+//                auto elementType = list->getInferredType().elementType();
+//                if(elementType.isSingleValued()) {
+//                    builder.CreateStore(_env->i64Const(list->_elements.size()), listAlloc);
+//                } else if(elementType == python::Type::I64 || elementType == python::Type::F64 || elementType == python::Type::BOOLEAN
+//                || elementType == python::Type::STRING || elementType.isTupleType() || elementType.isDictionaryType()) {
+//                    // load the list with its initial size
+//                    auto list_capacity_ptr = CreateStructGEP(builder, listAlloc, 0);
+//                    builder.CreateStore(_env->i64Const(list->_elements.size()), list_capacity_ptr);
+//                    auto list_len_ptr = CreateStructGEP(builder, listAlloc,  1);
+//                    builder.CreateStore(_env->i64Const(list->_elements.size()), list_len_ptr);
+//
+//                    // load the initial values ------
+//                    // get the byte-size of the elements TODO: is there a better way to do this?
+//                    size_t element_byte_size = 8; // f64, i64
+//                    if (elementType == python::Type::BOOLEAN)
+//                        element_byte_size = 1; // single character elements
+//                    // allocate the array
+//                    llvm::Value *malloc_size = nullptr;
+//                    if(elementType.isTupleType() && elementType.isFixedSizeType()) {
+//                        // if tuple is fixed size, store the actual tuple struct
+//                        // if tuple has varlen field, store a pointer to the tuple
+//                        auto ft = FlattenedTuple::fromLLVMStructVal(_env, builder, vals[0].val, elementType);
+//                        malloc_size = builder.CreateMul(ft.getSize(builder), _env->i64Const(list->_elements.size()));
+//                    } else {
+//                        malloc_size = _env->i64Const(element_byte_size * list->_elements.size());
+//                    }
+//                    auto list_arr_malloc = builder.CreatePointerCast(_env->malloc(builder, malloc_size), llvmType->getStructElementType(2));
+//                    // store the values
+//                    for(size_t i = 0; i < vals.size(); i++) {
+//                        auto list_el = builder.CreateGEP(list_arr_malloc, _env->i32Const(i));
+//                        if(elementType.isTupleType() && !elementType.isFixedSizeType()) {
+//                            // list_el has type struct.tuple**
+//                            auto el_tuple = _env->CreateFirstBlockAlloca(builder, _env->pythonToLLVMType(elementType), "tuple_alloc");
+//                            builder.CreateStore(vals[i].val, el_tuple);
+//                            builder.CreateStore(el_tuple, list_el);
+//                        } else {
+//                            builder.CreateStore(vals[i].val, list_el);
+//                        }
+//                    }
+//                    // store the new array back into the array pointer
+//                    auto list_arr = CreateStructGEP(builder, listAlloc, 2);
+//                    builder.CreateStore(list_arr_malloc, list_arr);
+//
+//                    // set the serialized size (i64/f64/bool are fixed sized!)
+//                    listSize = _env->i64Const(8 * list->_elements.size() + 8);  // TODO: are booleans serialized as 1 or 8 bytes?
+//
+//                    // if string values, store the lengths as well
+//                    if(elementType == python::Type::STRING || elementType.isDictionaryType()) {
+//                        listSize = _env->i64Const(8 * list->_elements.size() + 8); // length field, size array
+//                        // allocate the size array
+//                        auto list_sizearr_malloc = builder.CreatePointerCast(_env->malloc(builder, _env->i64Const(8 * list->_elements.size())), llvmType->getStructElementType(3));
+//                        // store the lengths
+//                        for(size_t i = 0; i < vals.size(); i++) {
+//                            auto list_el = builder.CreateGEP(list_sizearr_malloc, _env->i32Const(i));
+//                            builder.CreateStore(vals[i].size, list_el);
+//                            listSize = builder.CreateAdd(listSize, vals[i].size);
+//                        }
+//                        // store the new array back into the array pointer
+//                        auto list_sizearr = CreateStructGEP(builder, listAlloc, 3);
+//                        builder.CreateStore(list_sizearr_malloc, list_sizearr);
+//                    }
+//                }
+//
+//                // TODO:
+//                // --> change to passing around the pointer to the list, not the semi-loaded struct
+//                // ---> THIS WILL HAVE IMPLICATIONS WHEREVER LISTS ARE USED.
+//                // also listSize here is wrong. The listSize should be stored as part of the pointer. You can either pass 8 as listsize or null.
+//
+//                addInstruction(builder.CreateLoad(listAlloc), listSize);
             }
         }
 

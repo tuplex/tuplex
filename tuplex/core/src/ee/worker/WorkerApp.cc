@@ -311,6 +311,13 @@ namespace tuplex {
 
         // only transform stage yet supported, in the future support other stages as well!
         auto tstage = TransformStage::from_protobuf(req.stage());
+
+        // update initial received schemas for stage
+        _stage_normal_input_type = tstage->normalCaseInputSchema().getRowType();
+        _stage_normal_output_type = tstage->normalCaseOutputSchema().getRowType();
+        _stage_general_input_type = tstage->inputSchema().getRowType();
+        _stage_general_output_type = tstage->outputSchema().getRowType();
+
         URI outputURI = outputURIFromReq(req);
         auto parts = partsFromMessage(req);
 
@@ -368,6 +375,10 @@ namespace tuplex {
                     logger().info("specialized normal-case type " + _hyperspecializedNormalCaseRowType.desc() + " is different than given normal-case type " + _normalCaseRowType.desc() + ".");
                     _ncAndHyperNCIncompatible = true;
                 }
+
+                // update normal in / out
+                _stage_normal_input_type = tstage->normalCaseInputSchema().getRowType();
+                _stage_normal_output_type = tstage->normalCaseOutputSchema().getRowType();
 
                 // !!! need to use LLVM optimizers !!! Else, there's no difference.
                 logger().info("-- hyperspecialization took " + std::to_string(timer.time()) + "s");

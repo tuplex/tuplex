@@ -274,6 +274,180 @@ namespace tuplex {
             }
         }
 
+        SerializableValue list_load_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
+                              llvm::Value* list_ptr,
+                              const python::Type& list_type,
+                              llvm::Value* idx) {
+            using namespace llvm;
+            using namespace std;
+
+            SerializableValue ret;
+
+            assert(list_ptr);
+            assert(idx && idx->getType() == env.i64Type());
+
+            assert(list_type.isListType());
+            if(python::Type::EMPTYLIST == list_type)
+                throw std::runtime_error("there's no value to be loaded from an empty list");
+
+            // cf. now getOrCreateListType(...) ==> different layouts depending on element type.
+            // init accordingly.
+            auto elementType = list_type.elementType();
+            auto elements_optional = elementType.isOptionType();
+            if(elements_optional)
+                elementType = elementType.getReturnType();
+
+            // if optional elements are used, only store if optional indicator is true!
+            BasicBlock* bElementIsNotNull = nullptr;
+            BasicBlock* bLoadDone = nullptr;
+            if(elements_optional) {
+                unsigned struct_opt_index = -1;
+                if(elementType.isSingleValued()) {
+                    // nothing gets stored, ignore.
+                    struct_opt_index = 2;
+                } else if(elementType == python::Type::I64
+                          || elementType == python::Type::F64
+                          || elementType == python::Type::BOOLEAN) {
+                    struct_opt_index = 3;
+                } else if(elementType == python::Type::STRING
+                          || elementType == python::Type::PYOBJECT) {
+                    struct_opt_index = 4;
+                } else if(elementType.isStructuredDictionaryType()) {
+                    struct_opt_index = 3;
+                } else if(elementType.isListType()) {
+                    struct_opt_index = 3;
+                } else if(elementType.isTupleType()) {
+                    struct_opt_index = 3;
+                } else {
+                    throw std::runtime_error("Unsupported list element type: " + list_type.desc());
+                }
+
+                // create blocks
+                auto& ctx = env.getContext();
+                auto F = builder.GetInsertBlock()->getParent();
+
+                bElementIsNotNull = BasicBlock::Create(ctx, "load_element", F);
+                bLoadDone = BasicBlock::Create(ctx, "load_done", F);
+
+                // need to ALWAYS store null
+                auto idx_nulls = CreateStructGEP(builder, list_ptr, struct_opt_index);
+                auto ptr = builder.CreateLoad(idx_nulls);
+                auto idx_null = builder.CreateGEP(ptr, idx);
+                ret.is_null = builder.CreateLoad(idx_null);
+
+                // jump now according to block!
+                builder.CreateCondBr(ret.is_null, bLoadDone, bElementIsNotNull);
+                builder.SetInsertPoint(bElementIsNotNull);
+            }
+
+
+            if(elementType.isSingleValued()) {
+                // nothing to load, keep as is.
+            } else if(elementType == python::Type::I64
+                      || elementType == python::Type::F64
+                      || elementType == python::Type::BOOLEAN) {
+
+                auto idx_values = CreateStructGEP(builder, list_ptr, 2);
+                llvm::Type* llvm_element_type = env.pythonToLLVMType(elementType);
+
+                auto ptr = builder.CreateLoad(idx_values);
+                auto idx_value = builder.CreateGEP(ptr, idx);
+                ret.val = builder.CreateLoad(idx_value);
+            } else if(elementType == python::Type::STRING
+                      || elementType == python::Type::PYOBJECT) {
+                auto idx_values = CreateStructGEP(builder, list_ptr, 2);
+                auto idx_sizes = CreateStructGEP(builder, list_ptr, 3);
+
+                auto ptr_values = builder.CreateLoad(idx_values);
+                auto ptr_sizes = builder.CreateLoad(idx_sizes);
+
+                auto idx_value = builder.CreateGEP(ptr_values, idx);
+                auto idx_size = builder.CreateGEP(ptr_sizes, idx);
+
+                ret.val = builder.CreateLoad(idx_value);
+                ret.size = builder.CreateLoad(idx_size);
+            } else if(elementType.isStructuredDictionaryType()) {
+                // pointer to the structured dict type!
+
+                // this is quite simple, store a HEAP allocated pointer.
+                auto idx_capacity = CreateStructGEP(builder, list_ptr, 0); assert(idx_capacity->getType() == env.i64ptrType());
+                builder.CreateStore(env.i64Const(0), idx_capacity);
+
+                auto llvm_element_type = env.getOrCreateStructuredDictType(elementType);
+                auto idx_values = CreateStructGEP(builder, list_ptr, 2);
+
+                // load pointer
+                auto ptr = builder.CreateLoad(idx_values);
+                auto idx_value = builder.CreateGEP(ptr, idx);
+
+                ret.val = builder.CreateLoad(idx_value);
+            } else if(elementType.isListType()) {
+                // pointers to the list type!
+                // similar to above - yet, keep it here extra for more control...
+                // a list consists of 3 fields: capacity, size and a pointer to the members
+                auto idx_capacity = CreateStructGEP(builder, list_ptr, 0); assert(idx_capacity->getType() == env.i64ptrType());
+                builder.CreateStore(env.i64Const(0), idx_capacity);
+
+                auto llvm_element_type = env.getOrCreateListType(elementType);
+                auto idx_values = CreateStructGEP(builder, list_ptr, 2);
+
+                // load pointer
+                auto ptr = builder.CreateLoad(idx_values);
+                auto idx_value = builder.CreateGEP(ptr, idx);
+
+                ret.val = builder.CreateLoad(idx_value);
+            } else if(elementType.isTupleType()) {
+                throw std::runtime_error("tuple-load not yet supported, fix with code below");
+
+                // below is store code:
+//                // pointers to the list type!
+//                // similar to above - yet, keep it here extra for more control...
+//                // a list consists of 3 fields: capacity, size and a pointer to the members
+//                auto idx_capacity = CreateStructGEP(builder, list_ptr, 0); assert(idx_capacity->getType() == env.i64ptrType());
+//                builder.CreateStore(env.i64Const(0), idx_capacity);
+//
+//                auto llvm_element_type = env.getOrCreateTupleType(elementType);
+//
+//                auto ptr_values = CreateStructLoad(builder, list_ptr, 2); // this should be a pointer
+//                auto tuple = value.val;
+//
+//                // load FlattenedTuple from value (this ensures it is a heap ptr)
+//                FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(&env, builder, tuple, elementType);
+//
+//                // this here works.
+//                // auto heap_ptr = ft.loadToPtr(builder);
+//
+//                // must be a heap ptr, else invalid.
+//                auto heap_ptr = ft.loadToHeapPtr(builder);
+//
+//                // // debug:
+//                // env.printValue(builder, idx, "storing tuple of type " + elementType.desc() + " at index: ");
+//                // env.printValue(builder, ft.getSize(builder), "tuple size is: ");
+//                // env.printValue(builder, heap_ptr, "pointer to store: ");
+//
+//                // store pointer --> should be HEAP allocated pointer. (maybe add attributes to check?)
+//                auto target_idx = builder.CreateGEP(ptr_values, idx);
+//
+//                // store the heap ptr.
+//                builder.CreateStore(heap_ptr, target_idx, true);
+//
+//                // debug:
+//                // env.printValue(builder, builder.CreateLoad(target_idx), "pointer stored - post update: ");
+
+            } else {
+                throw std::runtime_error("Unsupported list element type: " + list_type.desc());
+            }
+
+            // connect blocks + create storage for null
+            if(elements_optional) {
+                assert(bLoadDone);
+                builder.CreateBr(bLoadDone);
+                builder.SetInsertPoint(bLoadDone);
+            }
+
+            return ret;
+        }
+
 
         void list_store_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
                               llvm::Value* list_ptr,

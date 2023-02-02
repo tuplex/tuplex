@@ -44,6 +44,17 @@ namespace tuplex {
          */
         extern void list_store_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* idx, const SerializableValue& value);
 
+        /*!
+         * loadas value (WITHOUT ANY CHECKS for mem safety) at index idx from list.
+         * @param env
+         * @param builder
+         * @param list_ptr
+         * @param list_type
+         * @param idx
+         * @return
+         */
+        extern SerializableValue list_load_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* idx);
+
         extern void list_store_size(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* size);
 
         /*!

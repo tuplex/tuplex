@@ -2232,6 +2232,49 @@ namespace tuplex {
                 // some debugging
                 auto num_list_elements = list_length(_env, builder, list_ptr, list_type);
                 _env.printValue(builder, num_list_elements, "got list of size: ");
+
+                // now create iteration & compare values
+                // generate loop to go over items.
+                auto loop_i = _env.CreateFirstBlockAlloca(builder, _env.i64Type());
+                builder.CreateStore(_env.i64Const(0), loop_i);
+
+                // start loop going over the size entries (--> this could be vectorized!)
+                auto& ctx = _env.getContext(); auto F = builder.GetInsertBlock()->getParent();
+                BasicBlock *bLoopHeader = BasicBlock::Create(ctx, "list_items_loop_header", F);
+                BasicBlock *bLoopBody = BasicBlock::Create(ctx, "list_items_loop_body", F);
+                BasicBlock *bLoopExit = BasicBlock::Create(ctx, "list_items_loop_done", F);
+
+                builder.CreateBr(bLoopHeader);
+
+                {
+                    // --- header ---
+                    builder.SetInsertPoint(bLoopHeader);
+                    // if i < len:
+                    auto loop_i_val = builder.CreateLoad(loop_i);
+                    auto loop_cond = builder.CreateICmpULT(loop_i_val, num_list_elements);
+                    builder.CreateCondBr(loop_cond, bLoopBody, bLoopExit);
+                }
+
+
+                {
+                    // --- body ---
+                    builder.SetInsertPoint(bLoopBody);
+                    auto loop_i_val = builder.CreateLoad(loop_i);
+
+                    // fetch element, compare return if good... i
+                    auto el = list_load_value(_env, builder, list_ptr, list_type, loop_i_val);
+
+                    // compare against needle:
+#warning "TODO: need to add in here compare to needle (semantic). Maybe write test func for this as well???"
+
+                    // inc. loop counter
+                    builder.CreateStore(builder.CreateAdd(_env.i64Const(1), loop_i_val), loop_i);
+                    builder.CreateBr(bLoopHeader);
+                }
+
+                builder.SetInsertPoint(bLoopExit);
+
+
                 builder.CreateRet(_env.i64Const(-1));
             }
 

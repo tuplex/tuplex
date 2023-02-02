@@ -534,7 +534,11 @@ namespace tuplex {
             addBuiltinTypeAttribute(python::Type::GENERICLIST, "index", [](const python::Type& callerType,
                                                                           const python::Type& parameterType) {
                 assert(callerType.isListType() && callerType != python::Type::GENERICLIST);
-                return python::Type::makeFunctionType(callerType, python::Type::I64);
+
+                // if parameter type is not compatible with callerType.elementType(), this should result automatically
+                // in a ValueError
+
+                return python::Type::makeFunctionType(callerType.elementType(), python::Type::I64);
             }, SymbolType::FUNCTION);
         }
 

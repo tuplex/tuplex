@@ -17,6 +17,7 @@
 #include <pcre2.h>
 #include <cmath>
 #include <experimental/StructDictHelper.h>
+#include "experimental/ListHelper.h"
 
 namespace tuplex {
     namespace codegen {
@@ -2208,6 +2209,41 @@ namespace tuplex {
             return {replaced_str, builder.CreateLoad(sizeVar)};
         }
 
+        SerializableValue FunctionRegistry::createListFindCall(llvm::IRBuilder<> &builder,
+                                                              const python::Type& list_type,
+                                                              const tuplex::codegen::SerializableValue &list,
+                                                              const tuplex::codegen::SerializableValue &needle) {
+
+            using namespace llvm;
+
+            auto list_ptr = list.val;
+
+            // create a function which performs the search on top of the list via linear search and comparison.
+            auto val_type = needle.val ? needle.val->getType() : _env.i64Type(); // dummy i64 type in case
+            auto FT = FunctionType::get(_env.i64Type(), {list_ptr->getType(), needle.val->getType(),
+                                                         _env.i64Type(), _env.i1Type()}, false);
+            auto func = llvm::Function::Create(FT, Function::InternalLinkage, "listIndex", _env.getModule().get());
+            {
+                auto bbEntry = BasicBlock::Create(_env.getContext(), "entry", func);
+                llvm::IRBuilder<> builder(bbEntry);
+                auto args = mapLLVMFunctionArgs(func, {"list_ptr", "val", "size", "is_null"});
+                auto list_ptr = args["list_ptr"];
+
+                // some debugging
+                auto num_list_elements = list_length(_env, builder, list_ptr, list_type);
+                _env.printValue(builder, num_list_elements, "got list of size: ");
+                builder.CreateRet(_env.i64Const(-1));
+            }
+
+            // create call to created func
+            auto val = needle.val ? needle.val : _env.i64Const(0);
+            auto size = needle.size ? needle.size : _env.i64Const(0);
+            auto is_null = needle.is_null ? needle.is_null : _env.i1Const(false);
+            auto ret = builder.CreateCall(func, {list_ptr, val, size, is_null});
+
+            return SerializableValue(ret, _env.i64Const(sizeof(int64_t)), _env.i1Const(false));
+        }
+
         SerializableValue FunctionRegistry::createStrFindCall(llvm::IRBuilder<> &builder,
                                                               const tuplex::codegen::SerializableValue &caller,
                                                               const tuplex::codegen::SerializableValue &needle) {
@@ -2250,6 +2286,14 @@ namespace tuplex {
 
                 return find_res;
             } else if(callerType.isListType()) {
+
+                // need to generate find call over list
+                auto find_res = createListFindCall(builder, callerType, caller, needle);
+                // check if result == -1
+                auto found = builder.CreateICmpEQ(find_res.val, _env.i64Const(-1));
+                lfb.addException(builder, ExceptionCode::VALUEERROR, found);
+
+                return find_res;
                 throw std::runtime_error("not yet implemented");
             } else {
                 throw std::runtime_error("requesting .index on unsupported type " + callerType.desc());

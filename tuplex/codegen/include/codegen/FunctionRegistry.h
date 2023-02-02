@@ -81,6 +81,10 @@ namespace tuplex {
             SerializableValue createUpperCall(llvm::IRBuilder<>& builder, const SerializableValue& caller);
             SerializableValue createSwapcaseCall(llvm::IRBuilder<>& builder, const SerializableValue& caller);
             SerializableValue createStrFindCall(llvm::IRBuilder<>& builder, const SerializableValue& caller, const SerializableValue& needle);
+            SerializableValue createListFindCall(llvm::IRBuilder<> &builder,
+                               const python::Type& list_type,
+                               const tuplex::codegen::SerializableValue &list,
+                               const tuplex::codegen::SerializableValue &needle);
             SerializableValue createReverseFindCall(llvm::IRBuilder<>& builder, const SerializableValue& caller, const SerializableValue& needle);
             SerializableValue createStripCall(llvm::IRBuilder<>& builder, const SerializableValue& caller, const std::vector<tuplex::codegen::SerializableValue>& args);
             SerializableValue createLStripCall(llvm::IRBuilder<>& builder, const SerializableValue& caller, const std::vector<tuplex::codegen::SerializableValue>& args);

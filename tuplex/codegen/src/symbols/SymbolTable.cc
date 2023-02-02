@@ -528,6 +528,17 @@ namespace tuplex {
 
         // for dict, list, tuple use generic type version!
 
+        // lists
+        {
+            // list index, returns integer index where element is at or produces ValueError.
+            addBuiltinTypeAttribute(python::Type::GENERICLIST, "index", [](const python::Type& callerType,
+                                                                          const python::Type& parameterType) {
+                assert(callerType.isListType() && callerType != python::Type::GENERICLIST);
+                return python::Type::makeFunctionType(callerType, python::Type::I64);
+            }, SymbolType::FUNCTION);
+        }
+
+        // dicts
         // for keys()/values() use generic dict and let symbol table create specialized type on the fly using
         // typer function
         /** TODO: finish implementing! (c++ lambda to get correct result) **/

@@ -2208,9 +2208,9 @@ namespace tuplex {
             return {replaced_str, builder.CreateLoad(sizeVar)};
         }
 
-        SerializableValue FunctionRegistry::createFindCall(llvm::IRBuilder<> &builder,
-                                                           const tuplex::codegen::SerializableValue &caller,
-                                                           const tuplex::codegen::SerializableValue &needle) {
+        SerializableValue FunctionRegistry::createStrFindCall(llvm::IRBuilder<> &builder,
+                                                              const tuplex::codegen::SerializableValue &caller,
+                                                              const tuplex::codegen::SerializableValue &needle) {
 
             // simple, use helper function
             // call strstr from runtime
@@ -2233,18 +2233,27 @@ namespace tuplex {
             return SerializableValue(res, _env.i64Const(sizeof(int64_t)));
         }
 
-        SerializableValue FunctionRegistry::createIndexCall(tuplex::codegen::LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, const SerializableValue& caller, const SerializableValue& needle) {
+        SerializableValue FunctionRegistry::createIndexCall(tuplex::codegen::LambdaFunctionBuilder& lfb,
+                                                            llvm::IRBuilder<>& builder, const python::Type& callerType,
+                                                            const SerializableValue& caller, const SerializableValue& needle) {
             using namespace llvm;
-            assert(caller.val->getType() == _env.i8ptrType());
-            assert(needle.val->getType() == _env.i8ptrType());
 
-            auto find_res = createFindCall(builder, caller, needle);
+            if(python::Type::STRING == callerType) {
+                assert(caller.val->getType() == _env.i8ptrType());
+                assert(needle.val->getType() == _env.i8ptrType());
 
-            // check if result == -1
-            auto found = builder.CreateICmpEQ(find_res.val, _env.i64Const(-1));
-            lfb.addException(builder, ExceptionCode::VALUEERROR, found);
+                auto find_res = createStrFindCall(builder, caller, needle);
 
-            return find_res;
+                // check if result == -1
+                auto found = builder.CreateICmpEQ(find_res.val, _env.i64Const(-1));
+                lfb.addException(builder, ExceptionCode::VALUEERROR, found);
+
+                return find_res;
+            } else if(callerType.isListType()) {
+                throw std::runtime_error("not yet implemented");
+            } else {
+                throw std::runtime_error("requesting .index on unsupported type " + callerType.desc());
+            }
         }
 
         SerializableValue FunctionRegistry::createReverseIndexCall(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, const SerializableValue& caller, const SerializableValue& needle) {
@@ -2633,7 +2642,7 @@ namespace tuplex {
                 if(args.size() != 1)
                     throw std::runtime_error("str.find is only implemented for the 1 arg version");
 
-                return createFindCall(builder, caller, args.front());
+                return createStrFindCall(builder, caller, args.front());
             }
 
             if(symbol == "rfind") {
@@ -2712,7 +2721,7 @@ namespace tuplex {
             }
 
             if (symbol == "index") {
-                return createIndexCall(lfb, builder, caller, args.front());
+                return createIndexCall(lfb, builder, callerType, caller, args.front());
             }
 
             if (symbol == "rindex") {

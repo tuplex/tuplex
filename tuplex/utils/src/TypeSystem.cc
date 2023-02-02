@@ -806,10 +806,11 @@ namespace python {
         if(t.isStructuredDictionaryType())
             return false; // has its own map...
 
+        // similar tp struct dict,
         if(t.isListType())
-            return recursive_contains_option(t.elementType());
+            return false; //recursive_contains_option(t.elementType());
         if(t.isDictionaryType() && !t.isStructuredDictionaryType())
-            return recursive_contains_option(t.keyType()) && recursive_contains_option(t.valueType());
+            return false; //    return recursive_contains_option(t.keyType()) && recursive_contains_option(t.valueType());
         if(t.isTupleType()) {
             for(const auto& p : t.parameters()) {
                 if(recursive_contains_option(p))

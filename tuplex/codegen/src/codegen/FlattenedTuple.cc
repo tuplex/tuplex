@@ -666,6 +666,7 @@ namespace tuplex {
 
                         // _env->printValue(builder, s_info.size, "actually serialized size: ");
 
+#ifndef NDEBUG
                          // print info
                          auto bitmap_pos_idx = 0;
                          if(struct_dict_has_bitmap(dict_type)) {
@@ -678,7 +679,7 @@ namespace tuplex {
                             // _env->printValue(builder, bitmap_val, "presence map: ");
                             bitmap_pos_idx += 8;
                         }
-
+#endif
                         // also varlensize needs to be output separately, so add
                         varlenSize = builder.CreateAdd(varlenSize, size);
                         lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)), "outptr");
@@ -702,8 +703,36 @@ namespace tuplex {
                 // special is empty dict, empty list and NULL. I.e. though they in principle are var fields, they are fixed size.
                 // ==> serialize them as 0 (later optimize this away). TODO: this comment is out of date, right? we have optimized the serialization away.
                 if(fieldType.isListType() && !fieldType.elementType().isSingleValued()) {
-                    // new version not yet implemented
-                    throw std::runtime_error("new version for list serialize not yet implemented");
+                    // new list version, similar to struct dict using its own helper functions
+                    auto list_type = types[i].withoutOption();
+
+                    // struct dicts are a var field (ignore the special case here)
+                    size = list_serialized_size(*_env, builder, field, list_type);
+
+                    // note: when null, don't serialize anything.
+                    if(types[i].isOptionType())
+                        size = builder.CreateSelect(_tree.get(i).is_null, _env->i64Const(0), size);
+
+                    // the offset is computed using how many varlen fields have been already serialized
+                    int64_t field_offset_in_bytes = (numSerializedElements + 1 - serialized_idx) * sizeof(int64_t);
+                    Value *offset = builder.CreateAdd(_env->i64Const(field_offset_in_bytes), varlenSize);
+
+                    // store offset + length
+                    // len | size
+                    auto info = pack_offset_and_size(builder, offset, size);
+                    builder.CreateStore(info, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), false);
+
+                    // write to i8 pointer
+                    Value *outptr = builder.CreateGEP(lastPtr, offset, "varoff");
+
+                    // write actual data to outptr
+                    auto s_info = list_serialize_to(*_env, builder, field, list_type, outptr);
+
+                    // also varlensize needs to be output separately, so add
+                    varlenSize = builder.CreateAdd(varlenSize, size);
+                    lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)), "outptr");
+                    serialized_idx++;
+                    continue; // field done.
                 } else if(fieldType != python::Type::EMPTYDICT && fieldType != python::Type::NULLVALUE && field->getType()->isPointerTy()) {
                     // assert that meaning is true.
                     assert(!fieldType.isFixedSizeType());

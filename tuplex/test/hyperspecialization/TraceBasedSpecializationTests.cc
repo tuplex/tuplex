@@ -35,6 +35,98 @@ namespace tuplex {
     }
 }
 
+// another pipeline try, is this here even compilable?
+TEST_F(SamplingTest, AnotherAttempt) {
+    using namespace std;
+    using namespace tuplex;
+
+    auto udf_code = "def extract_feature_vector(row):\n"
+                    "    carrier_list = [None, 'EA', 'UA', 'PI', 'NK', 'PS', 'AA', 'NW', 'EV', 'B6', 'HP', 'TW', 'DL', 'OO', 'F9', 'YV',\n"
+                    "                    'TZ', 'US',\n"
+                    "                    'MQ', 'OH', 'HA', 'ML (1)', 'XE', 'G4', 'YX', 'DH', 'AS', 'KH', 'QX', 'CO', 'FL', 'VX', 'PA (1)',\n"
+                    "                    'WN', '9E']\n"
+                    "\n"
+                    "    airport_list = [None, 'ABE', 'ABI', 'ABQ', 'ABR', 'ABY', 'ACK', 'ACT', 'ACV', 'ACY', 'ADK', 'ADQ', 'AEX', 'AGS',\n"
+                    "                    'AKN',\n"
+                    "                    'ALB', 'ALO', 'ALS', 'ALW', 'AMA', 'ANC', 'ANI', 'APF', 'APN', 'ART', 'ASE', 'ATL', 'ATW', 'ATY',\n"
+                    "                    'AUS', 'AVL', 'AVP', 'AZA', 'AZO', 'BDL', 'BET', 'BFF', 'BFI', 'BFL', 'BFM', 'BGM', 'BGR', 'BHM',\n"
+                    "                    'BIL', 'BIS', 'BJI', 'BKG', 'BLI', 'BLV', 'BMI', 'BNA', 'BOI', 'BOS', 'BPT', 'BQK', 'BQN', 'BRD',\n"
+                    "                    'BRO', 'BRW', 'BTM', 'BTR', 'BTV', 'BUF', 'BUR', 'BWI', 'BZN', 'CAE', 'CAK', 'CBM', 'CCR', 'CDB',\n"
+                    "                    'CDC', 'CDV', 'CEC', 'CGI', 'CHA', 'CHO', 'CHS', 'CIC', 'CID', 'CIU', 'CKB', 'CLD', 'CLE', 'CLL',\n"
+                    "                    'CLT', 'CMH', 'CMI', 'CMX', 'CNY', 'COD', 'COS', 'COU', 'CPR', 'CRP', 'CRW', 'CSG', 'CVG', 'CWA',\n"
+                    "                    'CYS', 'DAB', 'DAL', 'DAY', 'DBQ', 'DCA', 'DDC', 'DEC', 'DEN', 'DET', 'DFW', 'DHN', 'DIK', 'DLG',\n"
+                    "                    'DLH', 'DRO', 'DRT', 'DSM', 'DTW', 'DUT', 'DVL', 'EAR', 'EAT', 'EAU', 'ECP', 'EFD', 'EGE', 'EKO',\n"
+                    "                    'ELM', 'ELP', 'ENV', 'ERI', 'ESC', 'EUG', 'EVV', 'EWN', 'EWR', 'EYW', 'FAI', 'FAR', 'FAT', 'FAY',\n"
+                    "                    'FCA', 'FLG', 'FLL', 'FLO', 'FMN', 'FNL', 'FNT', 'FOD', 'FOE', 'FSD', 'FSM', 'FWA', 'GCC', 'GCK',\n"
+                    "                    'GCN', 'GEG', 'GFK', 'GGG', 'GJT', 'GLH', 'GNV', 'GPT', 'GRB', 'GRI', 'GRK', 'GRR', 'GSO', 'GSP',\n"
+                    "                    'GST', 'GTF', 'GTR', 'GUC', 'GUM', 'HDN', 'HGR', 'HHH', 'HIB', 'HKY', 'HLN', 'HNL', 'HOB', 'HOU',\n"
+                    "                    'HPN', 'HRL', 'HSV', 'HTS', 'HVN', 'HYA', 'HYS', 'IAD', 'IAG', 'IAH', 'ICT', 'IDA', 'IFP', 'ILE',\n"
+                    "                    'ILG', 'ILM', 'IMT', 'IND', 'INL', 'IPL', 'IPT', 'ISN', 'ISO', 'ISP', 'ITH', 'ITO', 'IYK', 'JAC',\n"
+                    "                    'JAN', 'JAX', 'JFK', 'JLN', 'JMS', 'JNU', 'JST', 'KOA', 'KSM', 'KTN', 'LAN', 'LAR', 'LAS', 'LAW',\n"
+                    "                    'LAX', 'LBB', 'LBE', 'LBF', 'LBL', 'LCH', 'LCK', 'LEX', 'LFT', 'LGA', 'LGB', 'LIH', 'LIT', 'LMT',\n"
+                    "                    'LNK', 'LNY', 'LRD', 'LSE', 'LWB', 'LWS', 'LYH', 'MAF', 'MAZ', 'MBS', 'MCI', 'MCN', 'MCO', 'MCW',\n"
+                    "                    'MDT', 'MDW', 'MEI', 'MEM', 'MFE', 'MFR', 'MGM', 'MHK', 'MHT', 'MIA', 'MIB', 'MKC', 'MKE', 'MKG',\n"
+                    "                    'MKK', 'MLB', 'MLI', 'MLU', 'MMH', 'MOB', 'MOD', 'MOT', 'MQT', 'MRY', 'MSN', 'MSO', 'MSP', 'MSY',\n"
+                    "                    'MTH', 'MTJ', 'MVY', 'MWH', 'MYR', 'OAJ', 'OAK', 'OGD', 'OGG', 'OGS', 'OKC', 'OMA', 'OME', 'ONT',\n"
+                    "                    'ORD', 'ORF', 'ORH', 'OTH', 'OTZ', 'OWB', 'OXR', 'PAE', 'PAH', 'PBG', 'PBI', 'PDX', 'PFN', 'PGD',\n"
+                    "                    'PGV', 'PHF', 'PHL', 'PHX', 'PIA', 'PIB', 'PIE', 'PIH', 'PIR', 'PIT', 'PLN', 'PMD', 'PNS', 'PPG',\n"
+                    "                    'PRC', 'PSC', 'PSE', 'PSG', 'PSM', 'PSP', 'PUB', 'PUW', 'PVD', 'PVU', 'PWM', 'RAP', 'RCA', 'RDD',\n"
+                    "                    'RDM', 'RDR', 'RDU', 'RFD', 'RHI', 'RIC', 'RIW', 'RKS', 'RNO', 'ROA', 'ROC', 'ROP', 'ROR', 'ROW',\n"
+                    "                    'RST', 'RSW', 'SAF', 'SAN', 'SAT', 'SAV', 'SBA', 'SBN', 'SBP', 'SCC', 'SCE', 'SCK', 'SDF', 'SEA',\n"
+                    "                    'SFB', 'SFO', 'SGF', 'SGU', 'SHD', 'SHR', 'SHV', 'SIT', 'SJC', 'SJT', 'SJU', 'SKA', 'SLC', 'SLE',\n"
+                    "                    'SLN', 'SMF', 'SMX', 'SNA', 'SOP', 'SPI', 'SPN', 'SPS', 'SRQ', 'STC', 'STL', 'STS', 'STT', 'STX',\n"
+                    "                    'SUN', 'SUX', 'SWF', 'SWO', 'SYR', 'TBN', 'TEX', 'TKI', 'TLH', 'TOL', 'TPA', 'TRI', 'TTN', 'TUL',\n"
+                    "                    'TUP', 'TUS', 'TVC', 'TVL', 'TWF', 'TXK', 'TYR', 'TYS', 'UCA', 'UIN', 'USA', 'UST', 'UTM', 'VCT',\n"
+                    "                    'VEL', 'VIS', 'VLD', 'VPS', 'WRG', 'WYS', 'XNA', 'XWA', 'YAK', 'YAP', 'YKM', 'YNG', 'YUM']\n"
+                    "\n"
+                    "    state_list = [None, 'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware',\n"
+                    "                  'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky',\n"
+                    "                  'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi',\n"
+                    "                  'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico',\n"
+                    "                  'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania',\n"
+                    "                  'Puerto Rico', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas',\n"
+                    "                  'U.S. Pacific Trust Territories and Possessions', 'U.S. Virgin Islands', 'Utah', 'Vermont',\n"
+                    "                  'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming']\n"
+                    "\n"
+                    "    # categorical variables\n"
+                    "    quarter = row['QUARTER']\n"
+                    "    month = row['MONTH']\n"
+                    "    day_of_month = row['DAY_OF_MONTH']\n"
+                    "    day_of_week = row['DAY_OF_WEEK']\n"
+                    "    carrier = carrier_list.index(row['OP_UNIQUE_CARRIER'])\n"
+                    "    origin_airport = airport_list.index(row['ORIGIN'])\n"
+                    "    dest_airport = airport_list.index(row['DEST'])\n"
+                    "\n"
+                    "    origin_state = state_list.index(row['ORIGIN_STATE_NM'])\n"
+                    "    dest_state = state_list.index(row['DEST_STATE_NM'])\n"
+                    "\n"
+                    "    # numerical variables\n"
+                    "    dep_delay = row['DEP_DELAY']\n"
+                    "    arr_delay = row['ARR_DELAY']\n"
+                    "\n"
+                    "    crs_arr_hour = float(int(row['CRS_ARR_TIME']) // 100)\n"
+                    "    crs_dep_hour = float(int(row['CRS_DEP_TIME']) // 100)\n"
+                    "    crs_arr_5min = float(int(row['CRS_ARR_TIME']) % 100 // 5)\n"
+                    "    crs_dep_5min = float(int(row['CRS_DEP_TIME']) % 100 // 5)\n"
+                    "\n"
+                    "    features = [float(quarter), float(month), float(day_of_month),\n"
+                    "                float(day_of_week), float(carrier), float(origin_state),\n"
+                    "                float(dest_state), dep_delay, arr_delay,\n"
+                    "                crs_arr_hour, crs_dep_hour,\n"
+                    "                crs_arr_5min, crs_dep_5min]\n"
+                    "\n"
+                    "    return features";
+
+    auto co = ContextOptions::defaults();
+    Context c(co);
+    c.csv("../resources/hyperspecialization/flights/flights_on_time_performance_2000_10.csv.sample")
+     .map(UDF(udf_code))
+     .map(UDF("lambda x: x[1]")).show();
+
+}
+
+
+
 // @TODO:
 // func traceFlightsPipeline(rows, pip) ....
 // func traceRows(...) ... --> convert rows to pyobjects & trace them then!

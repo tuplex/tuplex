@@ -2267,6 +2267,8 @@ namespace tuplex {
                     // compare against needle:
 #warning "TODO: need to add in here compare to needle (semantic). Maybe write test func for this as well???"
 
+                    // only needed via str for test function...
+
                     // inc. loop counter
                     builder.CreateStore(builder.CreateAdd(_env.i64Const(1), loop_i_val), loop_i);
                     builder.CreateBr(bLoopHeader);

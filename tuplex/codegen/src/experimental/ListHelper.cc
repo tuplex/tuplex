@@ -329,11 +329,18 @@ namespace tuplex {
                 bElementIsNotNull = BasicBlock::Create(ctx, "load_element", F);
                 bLoadDone = BasicBlock::Create(ctx, "load_done", F);
 
-                // need to ALWAYS store null
-                auto idx_nulls = CreateStructGEP(builder, list_ptr, struct_opt_index);
-                auto ptr = builder.CreateLoad(idx_nulls);
-                auto idx_null = builder.CreateGEP(ptr, idx);
-                ret.is_null = builder.CreateLoad(idx_null);
+                // load wether null or not
+                if(list_ptr->getType()->isPointerTy()) {
+                    auto idx_nulls = CreateStructGEP(builder, list_ptr, struct_opt_index);
+                    auto ptr = builder.CreateLoad(idx_nulls);
+                    auto idx_null = builder.CreateGEP(ptr, idx);
+                    ret.is_null = builder.CreateLoad(idx_null);
+                } else {
+                    auto idx_nulls = CreateStructGEP(builder, list_ptr, struct_opt_index);
+                    auto ptr = idx_nulls;
+                    auto idx_null = builder.CreateGEP(ptr, idx);
+                    ret.is_null = builder.CreateLoad(idx_null);
+                }
 
                 // jump now according to block!
                 builder.CreateCondBr(ret.is_null, bLoadDone, bElementIsNotNull);
@@ -358,14 +365,23 @@ namespace tuplex {
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
                 auto idx_sizes = CreateStructGEP(builder, list_ptr, 3);
 
-                auto ptr_values = builder.CreateLoad(idx_values);
-                auto ptr_sizes = builder.CreateLoad(idx_sizes);
+                if(list_ptr->getType()->isPointerTy()) {
+                    auto ptr_values = builder.CreateLoad(idx_values);
+                    auto ptr_sizes = builder.CreateLoad(idx_sizes);
 
-                auto idx_value = builder.CreateGEP(ptr_values, idx);
-                auto idx_size = builder.CreateGEP(ptr_sizes, idx);
+                    auto idx_value = builder.CreateGEP(ptr_values, idx);
+                    auto idx_size = builder.CreateGEP(ptr_sizes, idx);
 
-                ret.val = builder.CreateLoad(idx_value);
-                ret.size = builder.CreateLoad(idx_size);
+                    ret.val = builder.CreateLoad(idx_value);
+                    ret.size = builder.CreateLoad(idx_size);
+                } else {
+                    auto idx_value = builder.CreateGEP(idx_values, idx);
+                    auto idx_size = builder.CreateGEP(idx_sizes, idx);
+
+                    ret.val = builder.CreateLoad(idx_value);
+                    ret.size = builder.CreateLoad(idx_size);
+                }
+
             } else if(elementType.isStructuredDictionaryType()) {
                 // pointer to the structured dict type!
 

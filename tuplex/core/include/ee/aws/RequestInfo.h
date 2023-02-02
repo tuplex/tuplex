@@ -10,6 +10,8 @@
 
 #ifdef BUILD_WITH_AWS
 #include <Lambda.pb.h>
+#include "JSONUtils.h"
+
 #endif
 
 namespace tuplex {
@@ -55,6 +57,12 @@ namespace tuplex {
         size_t in_normal, in_general, in_fallback, in_unresolved;
         size_t out_normal, out_unresolved;
 
+        // types
+        python::Type normal_input_type;
+        python::Type normal_output_type;
+        python::Type general_input_type;
+        python::Type general_output_type;
+
         // time infos
         double fast_path_time, general_and_interpreter_time, compile_time, hyper_time;
 
@@ -78,6 +86,12 @@ namespace tuplex {
             in_general = response.rowstats().general();
             in_fallback = response.rowstats().interpreter();
             in_unresolved = response.rowstats().unresolved();
+
+            // decode types (from str)
+            normal_input_type   = python::Type::decode(response.rowstats().normal_input_schema());
+            normal_output_type  = python::Type::decode(response.rowstats().normal_output_schema());
+            general_input_type  = python::Type::decode(response.rowstats().general_input_schema());
+            general_output_type = python::Type::decode(response.rowstats().general_output_schema());
 
             out_normal = response.numrowswritten();
             out_unresolved = response.numexceptions();
@@ -112,6 +126,14 @@ namespace tuplex {
             ss<<",\"output_paths_taken\":{"
               <<"\"normal\":"<<out_normal<<","
               <<"\"unresolved\":"<<out_unresolved<<"}";
+            // schemas (allows to reason about hyperspecialization)
+            ss<<",\"input_schemas\":{"
+              <<"\"normal\":"<<escape_json_string(normal_input_type.encode())<<","
+              <<"\"general\":"<<escape_json_string(general_input_type.encode())<<"}";
+            ss<<",\"output_schemas\":{"
+              <<"\"normal\":"<<escape_json_string(normal_output_type.encode())<<","
+              <<"\"general\":"<<escape_json_string(general_output_type.encode())<<"}";
+
             // timing info
             ss<<",\"t_hyper\":"<<hyper_time;
             ss<<",\"t_compile\":"<<compile_time;

@@ -340,6 +340,17 @@ namespace tuplex {
             return _output_uris; // return where data has been written to (for response)
         }
 
+        // stage types
+        python::Type _stage_normal_input_type;
+        python::Type _stage_normal_output_type;
+        python::Type _stage_general_input_type;
+        python::Type _stage_general_output_type;
+
+        python::Type normalCaseInputType() const { return _stage_normal_input_type; }
+        python::Type normalCaseOutputType() const { return _stage_normal_output_type; }
+        python::Type generalCaseInputType() const { return _stage_general_input_type; }
+        python::Type generalCaseOutputType() const { return _stage_general_output_type; }
+
         // inherited variables
         WorkerSettings _settings;
         bool _globallyInitialized;

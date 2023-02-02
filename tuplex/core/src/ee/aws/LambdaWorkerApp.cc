@@ -1026,6 +1026,10 @@ namespace tuplex {
             path_stats->set_general(last.codePathStats.rowsOnGeneralPathCount);
             path_stats->set_interpreter(last.codePathStats.rowsOnInterpreterPathCount);
             path_stats->set_unresolved(last.codePathStats.unresolvedRowsCount);
+            path_stats->set_normal_input_schema(normalCaseInputType().encode());
+            path_stats->set_normal_output_schema(normalCaseOutputType().encode());
+            path_stats->set_general_input_schema(generalCaseInputType().encode());
+            path_stats->set_general_output_schema(generalCaseOutputType().encode());
             result.set_allocated_rowstats(path_stats);
 
         }

@@ -2231,12 +2231,16 @@ namespace tuplex {
                 // if rhs xor lhs is true -> false
                 auto xor_true = builder.CreateXor(rhs.is_null, lhs.is_null);
 
+                env.printValue(builder, xor_true, "is either rhs or lhs null: ");
+
                 auto& ctx = env.getContext(); auto F = builder.GetInsertBlock()->getParent();
                 BasicBlock *bbXorCase = BasicBlock::Create(ctx, "cmp_based_on_null_bit", F);
                 BasicBlock *bbValueComparison = BasicBlock::Create(ctx, "cmp_based_on_value", F);
                 BasicBlock *bbCompareDone = BasicBlock::Create(ctx, "cmp_done", F);
 
-                auto both_null = builder.CreateICmpEQ(rhs.is_null, lhs.is_null);
+                auto both_null = builder.CreateAnd(builder.CreateICmpEQ(rhs.is_null, env.i1Const(true)),
+                                                   builder.CreateICmpEQ(rhs.is_null, lhs.is_null));
+                env.printValue(builder, both_null, "are both rhs and lhs null: ");
                 auto cond = builder.CreateOr(both_null,
                                              xor_true);
                 builder.CreateCondBr(cond, bbXorCase, bbValueComparison);
@@ -2257,6 +2261,10 @@ namespace tuplex {
                                                          false);
                     auto strcmp_f = env.getModule()->getOrInsertFunction("strcmp", ft);
                     auto cmp_res = builder.CreateICmpEQ(builder.CreateCall(strcmp_f, {rhs.val, lhs.val}), env.i32Const(0));
+
+                    env.printValue(builder, rhs.val, "rhs value: ");
+                    env.printValue(builder, lhs.val, "lhs value: ");
+                    env.printValue(builder, cmp_res, "compare result: ");
 
                     builder.CreateStore(cmp_res, ret_var);
                 } else {
@@ -2323,6 +2331,9 @@ namespace tuplex {
                 BasicBlock *bLoopBody = BasicBlock::Create(ctx, "list_items_loop_body", F);
                 BasicBlock *bLoopExit = BasicBlock::Create(ctx, "list_items_loop_done", F);
 
+                _env.printValue(builder, needle.val, "searching for: ");
+                _env.printValue(builder, num_list_elements, "in list of #elements: ");
+
                 builder.CreateBr(bLoopHeader);
 
                 {
@@ -2350,7 +2361,7 @@ namespace tuplex {
                     // SerializableValue(builder.CreateLoad(item_var.val),
                     //                                                                                                          builder.CreateLoad(item_var.size),
                     //                                                                                                          builder.CreateLoad(item_var.is_null))
-
+                    _env.printValue(builder, loop_i_val, "i=");
                     // compare against needle:
                     auto cmp = equal_comparison(_env, builder, list_type.elementType(), el, needle_type, needle);
                     BasicBlock *bMatchFound = BasicBlock::Create(ctx, "item_match", F);

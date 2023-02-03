@@ -121,7 +121,7 @@ TEST_F(SamplingTest, AnotherAttempt) {
     Context c(co);
     c.csv("../resources/hyperspecialization/flights/flights_on_time_performance_2000_10.csv.sample")
      .map(UDF(udf_code))
-     .map(UDF("lambda x: (x[4], x[5])")).show();
+     .map(UDF("lambda x: (x[0], x[1], x[2], x[3], x[4], x[5])")).show();
 
 }
 

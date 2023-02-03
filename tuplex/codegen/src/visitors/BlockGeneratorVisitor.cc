@@ -4117,7 +4117,7 @@ namespace tuplex {
                     auto el = list_load_value(*_env, builder, list_ptr, list_type, index.val);
                     addInstruction(el.val, el.size, el.is_null);
                     _lfb->setLastBlock(builder.GetInsertBlock());
-                    
+
                     // old
 
 //                    auto elementType = value_type.elementType();

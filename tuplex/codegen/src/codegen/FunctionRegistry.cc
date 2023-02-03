@@ -2264,8 +2264,15 @@ namespace tuplex {
                 }
                 builder.CreateBr(bbCompareDone);
                 builder.SetInsertPoint(bbCompareDone);
+            } else if(python::Type::STRING == lhs_type && python::Type::STRING == rhs_type) {
+                FunctionType *ft = FunctionType::get(env.i32Type(), {env.i8ptrType(), env.i8ptrType()},
+                                                     false);
+                auto strcmp_f = env.getModule()->getOrInsertFunction("strcmp", ft);
+                auto cmp_res = builder.CreateICmpEQ(builder.CreateCall(strcmp_f, {rhs.val, lhs.val}), env.i32Const(0));
+
+                builder.CreateStore(cmp_res, ret_var);
             } else {
-                throw std::runtime_error("not yet implemented...");
+                throw std::runtime_error("comparing " + lhs_type.desc() + " == " + rhs_type.desc() + " not yet implemented...");
             }
 
             return builder.CreateLoad(ret_var);
@@ -2296,7 +2303,8 @@ namespace tuplex {
 
                 // some debugging
                 auto num_list_elements = list_length(_env, builder, list_ptr, list_type);
-                _env.printValue(builder, num_list_elements, "got list of size: ");
+
+                // _env.printValue(builder, num_list_elements, "got list of size: ");
 
                 // now create iteration & compare values
                 // generate loop to go over items.

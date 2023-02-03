@@ -86,6 +86,17 @@ TEST_F(DataFrameTest, PrefixNullTest) {
     }
 }
 
+TEST_F(DataFrameTest, ListIndex) {
+    using namespace tuplex;
+    using namespace std;
+
+    Context c(microTestOptions());
+
+    auto res = c.parallelize({Row("test"), Row("hello")}).map(UDF("lambda x: ['test', 'hello'].index(x)")).collectAsVector();
+    for(auto row : res)
+        cout<<row.toPythonString()<<endl;
+}
+
 TEST_F(DataFrameTest, PushdownWithSpecialization) {
     // use all basic operators in one query to make sure the specialization (rewriting works)
     // create test file containing 0s

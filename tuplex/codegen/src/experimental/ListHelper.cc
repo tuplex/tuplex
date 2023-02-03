@@ -351,16 +351,23 @@ namespace tuplex {
 
             if(elementType.isSingleValued()) {
                 // nothing to load, keep as is.
+                ret.is_null = env.i1Const(false);
             } else if(elementType == python::Type::I64
                       || elementType == python::Type::F64
                       || elementType == python::Type::BOOLEAN) {
 
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
                 llvm::Type* llvm_element_type = env.pythonToLLVMType(elementType);
-
-                auto ptr = builder.CreateLoad(idx_values);
-                auto idx_value = builder.CreateGEP(ptr, idx);
-                ret.val = builder.CreateLoad(idx_value);
+                if(list_ptr->getType()->isPointerTy()) {
+                    auto ptr = builder.CreateLoad(idx_values);
+                    auto idx_value = builder.CreateGEP(ptr, idx);
+                    ret.val = builder.CreateLoad(idx_value);
+                } else {
+                    auto idx_value = builder.CreateGEP(idx_values, idx);
+                    ret.val = builder.CreateLoad(idx_value);
+                }
+                ret.size = env.i64Const(sizeof(int64_t));
+                ret.is_null = env.i1Const(false);
             } else if(elementType == python::Type::STRING
                       || elementType == python::Type::PYOBJECT) {
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);

@@ -4100,39 +4100,59 @@ namespace tuplex {
                     _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1Const(true));
                     addInstruction(nullptr, nullptr);
                 } else {
-                    auto elementType = value_type.elementType();
-                    if(elementType.isSingleValued()) {
-                        auto indexcmp = _env->indexCheck(builder, index.val, value.val);
-                        _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp)); // error if index out of bounds
-                        if(elementType == python::Type::NULLVALUE) {
-                            addInstruction(nullptr, nullptr, _env->i1Const(true));
-                        } else if(elementType == python::Type::EMPTYTUPLE) {
-                            auto alloc = builder.CreateAlloca(_env->getEmptyTupleType(), 0, nullptr);
-                            auto load = builder.CreateLoad(alloc);
-                            addInstruction(load, _env->i64Const(sizeof(int64_t)));
-                        } else if(elementType == python::Type::EMPTYDICT || elementType == python::Type::EMPTYLIST) {
-                            addInstruction(nullptr, nullptr); // TODO: may want to actually construct an empty dictionary, look at LambdaFunction.cc::addReturn, in the !res case
-                        }
-                    } else {
-                        auto num_elements = builder.CreateExtractValue(value.val, {1});
+                    // new:
+                    auto list_ptr = value.val;
+                    auto list_type = value_type;
 
-                        // correct for negative indices (once)
-                        auto cmp = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, index.val, _env->i64Const(0));
-                        index = SerializableValue(builder.CreateSelect(cmp, builder.CreateAdd(index.val, num_elements), index.val), index.size);
+                    auto num_elements = list_length(*_env, builder, list_ptr, list_type);
+                    // correct for negative indices (once)
+                    auto cmp = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, index.val, _env->i64Const(0));
+                    index = SerializableValue(builder.CreateSelect(cmp, builder.CreateAdd(index.val, num_elements), index.val), index.size);
 
-                        // first perform index check, if it fails --> exception!
-                        auto indexcmp = _env->indexCheck(builder, index.val, num_elements);
-                        _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp));
+                    // first perform index check, if it fails --> exception!
+                    auto indexcmp = _env->indexCheck(builder, index.val, num_elements);
+                    _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp));
 
-                        // get the element
-                        auto subval = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(value.val, 2), index.val));
-                        llvm::Value* subsize = _env->i64Const(sizeof(int64_t)); // TODO: is this 8 for boolean as well?
-                        if(elementType == python::Type::STRING) {
-                            subsize = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(value.val, 3), index.val));
-                        }
+                    // load val and add
+                    auto el = list_load_value(*_env, builder, list_ptr, list_type, index.val);
+                    addInstruction(el.val, el.size, el.is_null);
+                    _lfb->setLastBlock(builder.GetInsertBlock());
+                    
+                    // old
 
-                        addInstruction(subval, subsize);
-                    }
+//                    auto elementType = value_type.elementType();
+//                    if(elementType.isSingleValued()) {
+//                        auto indexcmp = _env->indexCheck(builder, index.val, value.val);
+//                        _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp)); // error if index out of bounds
+//                        if(elementType == python::Type::NULLVALUE) {
+//                            addInstruction(nullptr, nullptr, _env->i1Const(true));
+//                        } else if(elementType == python::Type::EMPTYTUPLE) {
+//                            auto alloc = builder.CreateAlloca(_env->getEmptyTupleType(), 0, nullptr);
+//                            auto load = builder.CreateLoad(alloc);
+//                            addInstruction(load, _env->i64Const(sizeof(int64_t)));
+//                        } else if(elementType == python::Type::EMPTYDICT || elementType == python::Type::EMPTYLIST) {
+//                            addInstruction(nullptr, nullptr); // TODO: may want to actually construct an empty dictionary, look at LambdaFunction.cc::addReturn, in the !res case
+//                        }
+//                    } else {
+//                        auto num_elements = builder.CreateExtractValue(value.val, {1});
+//
+//                        // correct for negative indices (once)
+//                        auto cmp = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, index.val, _env->i64Const(0));
+//                        index = SerializableValue(builder.CreateSelect(cmp, builder.CreateAdd(index.val, num_elements), index.val), index.size);
+//
+//                        // first perform index check, if it fails --> exception!
+//                        auto indexcmp = _env->indexCheck(builder, index.val, num_elements);
+//                        _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp));
+//
+//                        // get the element
+//                        auto subval = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(value.val, 2), index.val));
+//                        llvm::Value* subsize = _env->i64Const(sizeof(int64_t)); // TODO: is this 8 for boolean as well?
+//                        if(elementType == python::Type::STRING) {
+//                            subsize = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(value.val, 3), index.val));
+//                        }
+//
+//                        addInstruction(subval, subsize);
+//                    }
                 }
             } else if (value.val->getType() == _env->getMatchObjectPtrType() &&
                        value_type == python::Type::MATCHOBJECT) {

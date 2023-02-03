@@ -2209,9 +2209,72 @@ namespace tuplex {
             return {replaced_str, builder.CreateLoad(sizeVar)};
         }
 
+        llvm::Value* equal_comparison(LLVMEnvironment& env,
+                                      llvm::IRBuilder<>& builder,
+                                      const python::Type& rhs_type,
+                                      const SerializableValue& rhs,
+                                      const python::Type& lhs_type,
+                                      const SerializableValue& lhs) {
+            using namespace llvm;
+
+            if(lhs_type != rhs_type)
+                throw std::runtime_error("not yet supported, compare between " + lhs_type.desc() + " == " + rhs_type.desc());
+
+            auto ret_var = env.CreateFirstBlockAlloca(builder, env.i1Type());
+            builder.CreateStore(env.i1Const(false), ret_var);
+
+            // option
+            if(lhs_type.isOptionType()) {
+                assert(rhs_type.isOptionType());
+                assert(rhs.is_null && lhs.is_null);
+
+                // if rhs xor lhs is true -> false
+                auto xor_true = builder.CreateXor(rhs.is_null, lhs.is_null);
+
+                auto& ctx = env.getContext(); auto F = builder.GetInsertBlock()->getParent();
+                BasicBlock *bbXorCase = BasicBlock::Create(ctx, "cmp_based_on_null_bit", F);
+                BasicBlock *bbValueComparison = BasicBlock::Create(ctx, "cmp_based_on_value", F);
+                BasicBlock *bbCompareDone = BasicBlock::Create(ctx, "cmp_done", F);
+
+                auto both_null = builder.CreateICmpEQ(rhs.is_null, lhs.is_null);
+                auto cond = builder.CreateOr(both_null,
+                                             xor_true);
+                builder.CreateCondBr(cond, bbXorCase, bbValueComparison);
+
+
+                builder.SetInsertPoint(bbXorCase);
+                builder.CreateStore(both_null, ret_var);
+                builder.CreateBr(bbCompareDone);
+
+                builder.SetInsertPoint(bbValueComparison);
+                // compare values as they're
+                auto el_type = rhs_type.withoutOption();
+                assert(rhs_type.withoutOption() == lhs_type.withoutOption());
+                if(python::Type::STRING == el_type) {
+                    // cmp using strcmp (could be done faster...)
+                    // need to compare using strcmp
+                    FunctionType *ft = FunctionType::get(env.i32Type(), {env.i8ptrType(), env.i8ptrType()},
+                                                         false);
+                    auto strcmp_f = env.getModule()->getOrInsertFunction("strcmp", ft);
+                    auto cmp_res = builder.CreateICmpEQ(builder.CreateCall(strcmp_f, {rhs.val, lhs.val}), env.i32Const(0));
+
+                    builder.CreateStore(cmp_res, ret_var);
+                } else {
+                    throw std::runtime_error("unsupported compare for type " + el_type.desc() + " ...");
+                }
+                builder.CreateBr(bbCompareDone);
+                builder.SetInsertPoint(bbCompareDone);
+            } else {
+                throw std::runtime_error("not yet implemented...");
+            }
+
+            return builder.CreateLoad(ret_var);
+        }
+
         SerializableValue FunctionRegistry::createListFindCall(llvm::IRBuilder<> &builder,
                                                               const python::Type& list_type,
                                                               const tuplex::codegen::SerializableValue &list,
+                                                              const python::Type& needle_type,
                                                               const tuplex::codegen::SerializableValue &needle) {
 
             using namespace llvm;
@@ -2228,6 +2291,8 @@ namespace tuplex {
                 llvm::IRBuilder<> builder(bbEntry);
                 auto args = mapLLVMFunctionArgs(func, {"list_ptr", "val", "size", "is_null"});
                 auto list_ptr = args["list_ptr"];
+                auto needle = SerializableValue(args["val"], args["size"], args["is_null"]);
+
 
                 // some debugging
                 auto num_list_elements = list_length(_env, builder, list_ptr, list_type);
@@ -2237,6 +2302,12 @@ namespace tuplex {
                 // generate loop to go over items.
                 auto loop_i = _env.CreateFirstBlockAlloca(builder, _env.i64Type());
                 builder.CreateStore(_env.i64Const(0), loop_i);
+
+                //// create item var
+                //auto el_type = list_type.elementType();
+                //SerializableValue item_var(_env.CreateFirstBlockAlloca(builder, _env.pythonToLLVMType(el_type)),
+                //                             _env.CreateFirstBlockAlloca(builder, _env.i64Type()),
+                //                             _env.CreateFirstBlockAlloca(builder, _env.i1Type()));
 
                 // start loop going over the size entries (--> this could be vectorized!)
                 auto& ctx = _env.getContext(); auto F = builder.GetInsertBlock()->getParent();
@@ -2264,9 +2335,23 @@ namespace tuplex {
                     // fetch element, compare return if good... i
                     auto el = list_load_value(_env, builder, list_ptr, list_type, loop_i_val);
 
-                    // compare against needle:
-#warning "TODO: need to add in here compare to needle (semantic). Maybe write test func for this as well???"
+                    //// store into var
+                    //builder.CreateStore(el.val, item_var.val);
+                    //builder.CreateStore(el.size, item_var.size);
+                    //builder.CreateStore(el.is_null, item_var.is_null);
+                    // SerializableValue(builder.CreateLoad(item_var.val),
+                    //                                                                                                          builder.CreateLoad(item_var.size),
+                    //                                                                                                          builder.CreateLoad(item_var.is_null))
 
+                    // compare against needle:
+                    auto cmp = equal_comparison(_env, builder, list_type.elementType(), el, needle_type, needle);
+                    BasicBlock *bMatchFound = BasicBlock::Create(ctx, "item_match", F);
+                    BasicBlock *bNoMatchFound = BasicBlock::Create(ctx, "item_nomatch", F);
+                    builder.CreateCondBr(cmp, bMatchFound, bNoMatchFound);
+
+                    builder.SetInsertPoint(bMatchFound);
+                    builder.CreateRet(loop_i_val);
+                    builder.SetInsertPoint(bNoMatchFound);
                     // only needed via str for test function...
 
                     // inc. loop counter
@@ -2316,7 +2401,9 @@ namespace tuplex {
 
         SerializableValue FunctionRegistry::createIndexCall(tuplex::codegen::LambdaFunctionBuilder& lfb,
                                                             llvm::IRBuilder<>& builder, const python::Type& callerType,
-                                                            const SerializableValue& caller, const SerializableValue& needle) {
+                                                            const SerializableValue& caller,
+                                                            const python::Type& needleType,
+                                                            const SerializableValue& needle) {
             using namespace llvm;
 
             if(python::Type::STRING == callerType) {
@@ -2333,7 +2420,7 @@ namespace tuplex {
             } else if(callerType.isListType()) {
 
                 // need to generate find call over list
-                auto find_res = createListFindCall(builder, callerType, caller, needle);
+                auto find_res = createListFindCall(builder, callerType, caller, needleType, needle);
                 // check if result == -1
                 auto found = builder.CreateICmpEQ(find_res.val, _env.i64Const(-1));
                 lfb.addException(builder, ExceptionCode::VALUEERROR, found);
@@ -2810,7 +2897,8 @@ namespace tuplex {
             }
 
             if (symbol == "index") {
-                return createIndexCall(lfb, builder, callerType, caller, args.front());
+                auto needle_type = argsType.parameters().front();
+                return createIndexCall(lfb, builder, callerType, caller, needle_type, args.front());
             }
 
             if (symbol == "rindex") {

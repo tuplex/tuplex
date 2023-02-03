@@ -84,6 +84,7 @@ namespace tuplex {
             SerializableValue createListFindCall(llvm::IRBuilder<> &builder,
                                const python::Type& list_type,
                                const tuplex::codegen::SerializableValue &list,
+                               const python::Type& needle_type,
                                const tuplex::codegen::SerializableValue &needle);
             SerializableValue createReverseFindCall(llvm::IRBuilder<>& builder, const SerializableValue& caller, const SerializableValue& needle);
             SerializableValue createStripCall(llvm::IRBuilder<>& builder, const SerializableValue& caller, const std::vector<tuplex::codegen::SerializableValue>& args);
@@ -185,7 +186,9 @@ namespace tuplex {
             SerializableValue createFloatCast(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
             SerializableValue createBoolCast(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
             SerializableValue createStrCast(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
-            SerializableValue createIndexCall(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, const python::Type& callerType, const SerializableValue& caller, const SerializableValue& needle);
+            SerializableValue createIndexCall(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, const python::Type& callerType,
+                                              const SerializableValue& caller, const python::Type& needleType,
+                                              const SerializableValue& needle);
             SerializableValue createReverseIndexCall(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, const SerializableValue& caller, const SerializableValue& needle);
             SerializableValue createCountCall(llvm::IRBuilder<> &builder, const SerializableValue &caller, const SerializableValue &needle);
             SerializableValue createStartswithCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder, const SerializableValue &caller, const SerializableValue &needle);

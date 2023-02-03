@@ -300,6 +300,7 @@ namespace tuplex {
             // if optional elements are used, only store if optional indicator is true!
             BasicBlock* bElementIsNotNull = nullptr;
             BasicBlock* bLoadDone = nullptr;
+            BasicBlock* bIsNullLastBlock = nullptr;
             if(elements_optional) {
                 unsigned struct_opt_index = -1;
                 if(elementType.isSingleValued()) {
@@ -329,7 +330,7 @@ namespace tuplex {
                 bElementIsNotNull = BasicBlock::Create(ctx, "load_element", F);
                 bLoadDone = BasicBlock::Create(ctx, "load_done", F);
 
-                // load wether null or not
+                // load whether null or not
                 if(list_ptr->getType()->isPointerTy()) {
                     auto idx_nulls = CreateStructGEP(builder, list_ptr, struct_opt_index);
                     auto ptr = builder.CreateLoad(idx_nulls);
@@ -343,10 +344,10 @@ namespace tuplex {
                 }
 
                 // jump now according to block!
+                bIsNullLastBlock = builder.GetInsertBlock();
                 builder.CreateCondBr(ret.is_null, bLoadDone, bElementIsNotNull);
                 builder.SetInsertPoint(bElementIsNotNull);
             }
-
 
             if(elementType.isSingleValued()) {
                 // nothing to load, keep as is.
@@ -457,8 +458,19 @@ namespace tuplex {
             // connect blocks + create storage for null
             if(elements_optional) {
                 assert(bLoadDone);
+                auto lastBlock = builder.GetInsertBlock();
                 builder.CreateBr(bLoadDone);
                 builder.SetInsertPoint(bLoadDone);
+
+                // update val/size with phi based
+                auto phi_val = builder.CreatePHI(ret.val->getType(), 2);
+                auto phi_size = builder.CreatePHI(env.i64Type(), 2);
+                phi_val->addIncoming(ret.val, lastBlock);
+                phi_val->addIncoming(env.nullConstant(ret.val->getType()), bIsNullLastBlock);
+                phi_size->addIncoming(ret.size, lastBlock);
+                phi_val->addIncoming(env.i64Const(0), bIsNullLastBlock);
+                ret.val = phi_val;
+                ret.size = phi_size;
             }
 
             return ret;

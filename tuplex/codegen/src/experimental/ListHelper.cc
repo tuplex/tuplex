@@ -468,7 +468,7 @@ namespace tuplex {
                 phi_val->addIncoming(ret.val, lastBlock);
                 phi_val->addIncoming(env.nullConstant(ret.val->getType()), bIsNullLastBlock);
                 phi_size->addIncoming(ret.size, lastBlock);
-                phi_val->addIncoming(env.i64Const(0), bIsNullLastBlock);
+                phi_size->addIncoming(env.i64Const(0), bIsNullLastBlock);
                 ret.val = phi_val;
                 ret.size = phi_size;
             }

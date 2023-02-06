@@ -118,11 +118,21 @@ TEST_F(SamplingTest, AnotherAttempt) {
                     "    return features";
 
     auto co = ContextOptions::defaults();
+    co.set("tuplex.backend", "lambda");
+    co.set("tuplex.aws.scratchDir", "s3://tuplex/scratch");
     Context c(co);
-    c.csv("../resources/hyperspecialization/flights/flights_on_time_performance_2000_10.csv.sample")
-     .map(UDF(udf_code))
-     .map(UDF("lambda x: (x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8], x[9], x[10], x[11], x[12])")).show();
 
+
+    // // test pipeline (local)
+    // c.csv("../resources/hyperspecialization/flights/flights_on_time_performance_2000_10.csv.sample")
+    //  .map(UDF(udf_code))
+    //  .map(UDF("lambda x: (x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8], x[9], x[10], x[11], x[12])")).show();
+
+    // test pipeline (transfer remote to local)
+    c.csv("s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv")
+            .map(UDF(udf_code))
+            .map(UDF("lambda x: (x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8], x[9], x[10], x[11], x[12])"))
+            .tocsv("./output-local/test.csv");
 }
 
 

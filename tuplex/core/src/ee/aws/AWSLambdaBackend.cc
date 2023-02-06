@@ -699,6 +699,7 @@ namespace tuplex {
                 break;
             }
             case AwsLambdaExecutionStrategy::TREE: {
+#warning "these requests here are deprecated..."
                 requests = createSelfInvokingRequests(tstage, optimizedBitcode, numThreads, uri_infos, spillURI,
                                                       buf_spill_size);
                 break;
@@ -761,6 +762,38 @@ namespace tuplex {
 
         // save request end! --> i.e. synchronization points!
         _endTimestamp = current_utc_timestamp();
+
+
+        // check if any remote files are required to be downloaded
+        if(!_remoteToLocalURIMapping.empty()) {
+            Timer fetchTimer;
+            logger().info("Downloading remote files to local machine.");
+
+            for(auto kv : _remoteToLocalURIMapping) {
+                logger().info("remote -> local: " + kv.first.toPath() + " -> " + kv.second.toPath());
+            }
+
+            for(auto task : _tasks) {
+                // check output uris and their mapping
+                for(auto output_uri : task.outputuris()) {
+                    logger().info("output uri: " + output_uri);
+
+                    // fetch file
+                    auto it = _remoteToLocalURIMapping.find(output_uri);
+                    if(it == _remoteToLocalURIMapping.end()) {
+                        logger().warn("could not find output uri " + output_uri + " in remote -> local mapping, skipping.");
+                    } else {
+                        // get basename of remote uri and map to local (join with parent)
+                        auto remote_basename = URI(it->first).basename();
+                        auto local_parent = it->second.parent();
+                        auto target_path = local_parent.join(remote_basename).toPath();
+                        logger().info("storing " + it->first.toPath() + " to " + target_path);
+                        VirtualFileSystem::s3DownloadFile(it->first, target_path);
+                    }
+                }
+            }
+            logger().info("Fetching files from remote took " + std::to_string(fetchTimer.time()) + "s");
+        }
 
         auto path = nextJobDumpPath("job");
         dumpAsJSON(path);
@@ -1058,7 +1091,24 @@ namespace tuplex {
                 } else if (tstage->outputMode() == EndPointMode::FILE) {
                     // create output URI based on taskNo
                     auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), taskNo, tstage->outputFormat());
-                    req.set_baseoutputuri(uri.toPath());
+                    auto remote_output_uri = uri.toPath();
+
+                    // is it a local file URI as target? if so, generate dummy uri under spill folder for this job & add mapping
+                    if(uri.isLocal()) {
+                        auto tmp_uri = scratchDir(hintsFromTransformStage(tstage)).join_path(
+                                "output.part" + fixedLength(taskNo, num_digits) + "_" +
+                                fixedLength(part_no, num_digits_part)).toString();
+
+                        remote_output_uri = tmp_uri;
+
+                        // add extension to mapping
+                        auto output_fmt = tstage->outputFormat();
+                        auto ext = defaultFileExtension(output_fmt);
+                        tmp_uri += "." + ext; // done in worker app, fix in the future.
+                        _remoteToLocalURIMapping[tmp_uri] = uri;
+                    }
+
+                    req.set_baseoutputuri(remote_output_uri);
                 } else if (tstage->outputMode() == EndPointMode::HASHTABLE) {
                     // there's two options now, either this is an end-stage (i.e., unique/aggregateByKey/...)
                     // or an intermediate stage where a temp hash-table is required.
@@ -1072,6 +1122,9 @@ namespace tuplex {
                 cur_size += splitSize;
             }
         }
+
+
+//#error "fix when local output uri is used that temp remote uri is generated and the lambda uses that, then download from remote uri to local"
 
         // old (not part based)
 //        // Note: for now, super simple: 1 request per file (this is inefficient, but whatever)
@@ -1756,6 +1809,9 @@ namespace tuplex {
     void AwsLambdaBackend::reset() {
         _tasks.clear();
         _infos.clear();
+
+        // reset path mapping
+        _remoteToLocalURIMapping.clear();
 
         // other reset? @TODO.
     }

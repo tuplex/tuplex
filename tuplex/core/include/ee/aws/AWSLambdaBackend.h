@@ -117,6 +117,9 @@ namespace tuplex {
 
         JobInfo _info;
 
+        // mapping of remote to local paths for result collection.
+        std::unordered_map<URI, URI> _remoteToLocalURIMapping;
+
         // web ui
         HistoryServerConnection _historyConn;
         std::shared_ptr<HistoryServerConnector> _historyServer;

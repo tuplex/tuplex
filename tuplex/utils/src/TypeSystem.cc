@@ -65,19 +65,29 @@ namespace python {
     Type TypeFactory::getByName(const std::string& name) {
         std::lock_guard<std::mutex> lock(_typeMapMutex);
 
-        auto it = std::find_if(_typeMap.begin(),
-                               _typeMap.end(),
-                               [name](const std::pair<const int, TypeEntry>& p) {
-                                   return p.second._desc.compare(name) == 0;
-                               });
-        if(it != _typeMap.end()) {
-            auto hash = it->first;
+        auto it = _typeMapByName.find(name);
+        if(it != _typeMapByName.end()) {
+            auto hash = _typeVec[it->second]._hash;
             Type t = Type();
             t._hash = hash;
             return t;
         } else {
-          return python::Type::UNKNOWN;
+            return python::Type::UNKNOWN;
         }
+
+        // auto it = std::find_if(_typeMap.begin(),
+        //                        _typeMap.end(),
+        //                        [name](const std::pair<const int, TypeEntry>& p) {
+        //                            return p.second._desc.compare(name) == 0;
+        //                        });
+        // if(it != _typeMap.end()) {
+        //     auto hash = it->first;
+        //     Type t = Type();
+        //     t._hash = hash;
+        //     return t;
+        // } else {
+        //   return python::Type::UNKNOWN;
+        // }
     }
 
     Type TypeFactory::registerOrGetType(const std::string &name,
@@ -91,20 +101,30 @@ namespace python {
                                         int64_t upper_bound,
                                         const std::string& constant) {
         const std::lock_guard<std::mutex> lock(_typeMapMutex);
-        auto it = std::find_if(_typeMap.begin(),
-                               _typeMap.end(),
-                               [name](const std::pair<const int, TypeEntry>& p) {
-                                   return p.second._desc.compare(name) == 0;
-                               });
+
+        // check map by name
+        auto it = _typeMapByName.find(name);
+//        auto it = std::find_if(_typeMap.begin(),
+//                               _typeMap.end(),
+//                               [name](const std::pair<const int, TypeEntry>& p) {
+//                                   return p.second._desc.compare(name) == 0;
+//                               });
         int hash = -1;
 
-        if(it != _typeMap.end()) {
-            hash = it->first;
+        if(it != _typeMapByName.end()) {
+            // hash = it->first;
+            hash = _typeVec[it->second]._hash;
         } else {
             // add new type to hashmap
             hash = _hash_generator++;
-            _typeMap[hash] = TypeEntry(name, at, params, retval, baseClasses,
-                                       isVarLen, kv_pairs, lower_bound, upper_bound, constant);
+//            _typeMap[hash] = TypeEntry(name, at, params, retval, baseClasses,
+//                                       isVarLen, kv_pairs, lower_bound, upper_bound, constant);
+            TypeEntry entry(name, at, params, retval, baseClasses,
+                      isVarLen, kv_pairs, lower_bound, upper_bound, constant);
+            entry._hash = hash;
+            _typeMap[hash] = _typeVec.size();
+            _typeMapByName[name] = _typeVec.size();
+            _typeVec.push_back(entry);
         }
 
         Type t = Type();
@@ -127,7 +147,8 @@ namespace python {
         {
             std::lock_guard<std::mutex> lock(_typeMapMutex);
             // 2.) already option? Optional[Optional[...]] = Optional[...]
-            if(TypeFactory::instance()._typeMap.at(type._hash)._type == AbstractType::OPTION)
+            auto& factory = TypeFactory::instance();
+            if(factory._typeVec[factory._typeMap.at(type._hash)]._type == AbstractType::OPTION)
                 return type;
         }
 
@@ -417,7 +438,7 @@ namespace python {
         assert(_hash >= 0);
         assert(_typeMap.find(_hash) != _typeMap.end());
 
-        return _typeMap.at(_hash)._desc;
+        return _typeVec[_typeMap.at(_hash)]._desc;
     }
 
     TypeFactory::~TypeFactory() {
@@ -503,7 +524,7 @@ namespace python {
         if(it == _typeMap.end())
             return false;
 
-        return it->second._type == AbstractType::FUNCTION;
+        return _typeVec[it->second]._type == AbstractType::FUNCTION;
     }
 
     bool TypeFactory::isOptionType(const python::Type &t) const {
@@ -512,7 +533,7 @@ namespace python {
         if(it == _typeMap.end())
             return false;
 
-        return it->second._type == AbstractType::OPTION;
+        return _typeVec[it->second]._type == AbstractType::OPTION;
     }
 
     bool TypeFactory::isDictionaryType(const Type &t) const {
@@ -521,7 +542,7 @@ namespace python {
         if(it == _typeMap.end())
             return false;
 
-        auto type = it->second._type;
+        auto type = _typeVec[it->second]._type;
         return type == AbstractType::DICTIONARY || t == Type::EMPTYDICT || t == Type::GENERICDICT || type == AbstractType::STRUCTURED_DICTIONARY;
     }
 
@@ -531,7 +552,7 @@ namespace python {
         if(it == _typeMap.end())
             return false;
 
-        auto type = it->second._type;
+        auto type = _typeVec[it->second]._type;
         return type == AbstractType::STRUCTURED_DICTIONARY;
     }
 
@@ -540,7 +561,7 @@ namespace python {
         if(it == _typeMap.end())
             return false;
 
-        return it->second._type == AbstractType::DICT_KEYS;
+        return _typeVec[it->second]._type == AbstractType::DICT_KEYS;
     }
 
     bool TypeFactory::isDictValuesType(const Type& t) const {
@@ -548,7 +569,7 @@ namespace python {
         if(it == _typeMap.end())
             return false;
 
-        return it->second._type == AbstractType::DICT_VALUES;
+        return _typeVec[it->second]._type == AbstractType::DICT_VALUES;
     }
 
     bool TypeFactory::isListType(const Type &t) const {
@@ -557,7 +578,7 @@ namespace python {
         if(it == _typeMap.end())
             return false;
 
-        auto type = it->second._type;
+        auto type = _typeVec[it->second]._type;
         return type == AbstractType::LIST || t == Type::EMPTYLIST;
     }
 
@@ -567,7 +588,7 @@ namespace python {
         if(it == _typeMap.end())
             return false;
 
-        return it->second._type == AbstractType::TUPLE;
+        return _typeVec[it->second]._type == AbstractType::TUPLE;
     }
 
     bool TypeFactory::isIteratorType(const Type &t) const {
@@ -576,14 +597,14 @@ namespace python {
         if(it == _typeMap.end())
             return false;
 
-        return it->second._type == AbstractType::ITERATOR || t == Type::EMPTYITERATOR;
+        return _typeVec[it->second]._type == AbstractType::ITERATOR || t == Type::EMPTYITERATOR;
     }
 
     Type TypeFactory::returnType(const python::Type &t) const {
         const std::lock_guard<std::mutex> lock(_typeMapMutex);
         auto it = _typeMap.find(t._hash);
         assert(it != _typeMap.end());
-        return it->second._ret;
+        return _typeVec[it->second]._ret;
     }
 
 
@@ -593,7 +614,7 @@ namespace python {
         assert(it != _typeMap.end());
         // exclude dictionary here, but internal reuse.
         assert(it->second._type == AbstractType::TUPLE || it->second._type == AbstractType::FUNCTION);
-        return it->second._params;
+        return _typeVec[it->second]._params;
     }
 
     std::vector<Type> Type::parameters() const {
@@ -607,7 +628,7 @@ namespace python {
         const std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
-        return it->second._struct_pairs;
+        return factory._typeVec[it->second]._struct_pairs;
     }
 
     Type Type::keyType() const {
@@ -624,7 +645,7 @@ namespace python {
             factory._typeMapMutex.lock();
             auto it = factory._typeMap.find(_hash);
             assert(it != factory._typeMap.end());
-            auto pairs = it->second._struct_pairs;
+            auto pairs = factory._typeVec[it->second]._struct_pairs;
             factory._typeMapMutex.unlock();
             assert(!pairs.empty()); // --> should be empty dict
             auto key_type = pairs.front().keyType;
@@ -645,7 +666,7 @@ namespace python {
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
         assert(it->second._params.size() == 2);
-        return it->second._params[0];
+        return factory._typeVec[it->second]._params[0];
     }
 
     bool Type::hasVariablePositionalArgs() const {
@@ -654,7 +675,7 @@ namespace python {
         std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
-        return it->second._isVarLen;
+        return factory._typeVec[it->second]._isVarLen;
     }
 
     Type Type::valueType() const {
@@ -669,7 +690,7 @@ namespace python {
             factory._typeMapMutex.lock();
             auto it = factory._typeMap.find(_hash);
             assert(it != factory._typeMap.end());
-            auto pairs = it->second._struct_pairs;
+            auto pairs = factory._typeVec[it->second]._struct_pairs;
             factory._typeMapMutex.unlock();
             assert(!pairs.empty()); // --> should be empty dict
             auto value_type = pairs.front().keyType;
@@ -688,7 +709,7 @@ namespace python {
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
         assert(it->second._params.size() == 2);
-        return it->second._params[1];
+        return factory._typeVec[it->second]._params[1];
     }
 
     Type Type::elementType() const {
@@ -699,7 +720,7 @@ namespace python {
             auto it = factory._typeMap.find(_hash);
             assert(it != factory._typeMap.end());
             assert(it->second._params.size() == 1);
-            return it->second._params[0];
+            return factory._typeVec[it->second]._params[0];
         } else {
             // option?
             assert(isOptionType());
@@ -716,7 +737,7 @@ namespace python {
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
         assert(it->second._params.size() == 1);
-        return it->second._params[0];
+        return factory._typeVec[it->second]._params[0];
     }
 
     std::string Type::constant() const {
@@ -726,7 +747,7 @@ namespace python {
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
         assert(it->second._params.size() == 1);
-        return it->second._constant_value;
+        return factory._typeVec[it->second]._constant_value;
     }
 
     Type Type::yieldType() const {
@@ -735,7 +756,7 @@ namespace python {
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
         assert(it->second._params.size() == 1);
-        return it->second._params[0];
+        return factory._typeVec[it->second]._params[0];
     }
 
     bool Type::isPrimitiveType() const {
@@ -843,7 +864,7 @@ namespace python {
 //            OPTIMIZED_RANGECOMPRESSION // range compression
         auto& factory = TypeFactory::instance();
         std::lock_guard<std::mutex> lock(factory._typeMapMutex);
-        const auto& entry = factory._typeMap.at(_hash);
+        const auto& entry = factory._typeVec[factory._typeMap.at(_hash)];
         switch(entry._type) {
             case TypeFactory::AbstractType::OPTIMIZED_CONSTANT:
             case TypeFactory::AbstractType::OPTIMIZED_DELAYEDPARSING:
@@ -858,7 +879,7 @@ namespace python {
     bool Type::isTypeObjectType() const {
         auto& factory = TypeFactory::instance();
         std::lock_guard<std::mutex> lock(factory._typeMapMutex);
-        const auto& entry = factory._typeMap.at(_hash);
+        const auto& entry = factory._typeVec[factory._typeMap.at(_hash)];
         return entry._type == TypeFactory::AbstractType::TYPE;
     }
 
@@ -1029,7 +1050,7 @@ namespace python {
         std::lock_guard<std::mutex> lock(_typeMapMutex);
         std::string res = "";
         for(auto it : _typeMap) {
-            res += "hash:" + std::to_string(it.first) + "   " + it.second.desc() + "\n";
+            res += "hash:" + std::to_string(it.first) + "   " + _typeVec[it.second].desc() + "\n";
         }
 
         return res;
@@ -1041,7 +1062,7 @@ namespace python {
         if(it == _typeMap.end())
             return false;
 
-        return it->second._type == AbstractType::OPTIMIZED_CONSTANT;
+        return _typeVec[it->second]._type == AbstractType::OPTIMIZED_CONSTANT;
     }
 
      bool Type::isEmptyType() const {
@@ -1067,8 +1088,8 @@ namespace python {
         for(const auto& keyval : _typeMap) {
             Type t;
             t._hash = keyval.first;
-            if(keyval.second._type == AbstractType::PRIMITIVE)
-                keywords[keyval.second._desc] = t;
+            if(_typeVec[keyval.second]._type == AbstractType::PRIMITIVE)
+                keywords[_typeVec[keyval.second]._desc] = t;
         }
         _typeMapMutex.unlock();
         // add both None and null as NULLVALUE
@@ -1551,7 +1572,7 @@ namespace python {
         std::deque<Type> q;
 
         // do not include this itself!
-        auto directBaseClasses = factory._typeMap.at(_hash)._baseClasses;
+        auto directBaseClasses = factory._typeVec[factory._typeMap.at(_hash)]._baseClasses;
         for(const auto& c : directBaseClasses)
             q.push_back(c);
 
@@ -1563,7 +1584,7 @@ namespace python {
             classes.insert(t);
             auto it = factory._typeMap.find(t._hash);
             assert(it != factory._typeMap.end());
-            auto more = it->second._baseClasses;
+            auto more = factory._typeVec[it->second]._baseClasses;
             if(!more.empty()) {
                 for(const auto& c : more)
                     q.push_back(c);
@@ -1610,7 +1631,7 @@ namespace python {
         std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         // slow linear search, is this good?
         for(const auto& keyval : factory._typeMap) {
-            if(keyval.second._desc == name) {
+            if(factory._typeVec[keyval.second]._desc == name) {
                 Type t;
                 t._hash = keyval.first;
                 return t;
@@ -2050,7 +2071,7 @@ namespace python {
             // do not use isPrimitiveType(), ... etc. here
             // because these functions are for semantics...!
             factory._typeMapMutex.lock();
-            const auto& entry = factory._typeMap.at(_hash);
+            const auto& entry = factory._typeVec[factory._typeMap.at(_hash)];
             auto abstract_type = entry._type;
             factory._typeMapMutex.unlock();
             switch(abstract_type) {

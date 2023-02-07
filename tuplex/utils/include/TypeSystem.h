@@ -506,22 +506,27 @@ namespace python {
                         _struct_pairs(kv_pairs),
                         _lower_bound(lower_bound),
                         _upper_bound(upper_bound),
-                        _constant_value(constant) {}
+                        _constant_value(constant),
+                        _hash(-1) {}
             TypeEntry(const TypeEntry& other) : _desc(other._desc), _type(other._type), _params(other._params),
             _ret(other._ret), _baseClasses(other._baseClasses), _isVarLen(other._isVarLen),
             _struct_pairs(other._struct_pairs),
-            _lower_bound(other._lower_bound), _upper_bound(other._upper_bound), _constant_value(other._constant_value) {}
+            _lower_bound(other._lower_bound), _upper_bound(other._upper_bound), _constant_value(other._constant_value), _hash(other._hash) {}
             std::string desc();
+
+            int _hash;
         };
 
         int _hash_generator;
 
         // need threadsafe hashmap here...
         // either tbb's or the one from folly...
-        std::unordered_map<int, TypeEntry> _typeMap;
+        std::vector<TypeEntry> _typeVec;
+        std::unordered_map<int, unsigned> _typeMap; // points to typeVec
+        std::unordered_map<std::string, unsigned> _typeMapByName; // points to typeVec
         mutable std::mutex _typeMapMutex;
 
-        TypeFactory() : _hash_generator(0)  {}
+        TypeFactory() : _hash_generator(0)  { _typeVec.reserve(256); }
         std::string getDesc(const int _hash) const;
         Type registerOrGetType(const std::string& name,
                                const AbstractType at,

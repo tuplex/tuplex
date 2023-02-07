@@ -18,6 +18,7 @@
 #include <Utils.h>
 
 #include <boost/algorithm/string.hpp>
+#include "../../core/include/physical/execution/csvmonkey.h"
 
 namespace tuplex {
 
@@ -1739,8 +1740,41 @@ parse_error:
         return rows;
     }
 
+
+    class FixedBufferCursor : public csvmonkey::StreamCursor {
+    private:
+        char *_buf;
+        char *_ptr;
+        char *_end_ptr;
+    public:
+        ~FixedBufferCursor() {
+            if(_buf)
+                delete [] _buf;
+            _buf = nullptr;
+            _end_ptr = nullptr;
+        }
+
+        FixedBufferCursor(const char* buf, size_t size) : _buf(nullptr), _end_ptr(nullptr) {
+            auto safe_size = size + 32;
+            _buf = new char[safe_size];
+            memcpy(_buf, buf, size);
+            _end_ptr = _buf + size;
+            _ptr = _buf;
+        }
+
+        const char* buf() { return _ptr; }
+
+        size_t size() { return _end_ptr - _ptr; }
+
+        void consume(size_t n) { _ptr += std::min(n, (size_t)(_end_ptr - _ptr)); }
+
+        bool fill() { return false; }
+
+    };
+
+    // new
     std::vector<Row> csv_parseRows(const char* buf, size_t buf_size, size_t expected_column_count, size_t range_start,
-                                   char delimiter, char quotechar, const std::vector<std::string>& null_values, size_t limit) {
+                                      char delimiter, char quotechar, const std::vector<std::string>& null_values, size_t limit) {
         auto sample_length = std::min(buf_size - 1, strlen(buf));
         auto end = buf + sample_length;
 
@@ -1759,18 +1793,90 @@ parse_error:
         std::vector<std::string> cells;
         size_t num_bytes = 0;
         const char* p = buf + start_offset;
-        while(p < end && (ec = parseRow(p, end, cells, num_bytes, delimiter, quotechar, false)) == ExceptionCode::SUCCESS) {
-            // convert cells to row
-            if(cells.size() >= expected_column_count) {
-                auto row = cellsToRow(cells, null_values);
-                v.push_back(row);
+
+        // use csvmonkey parser
+        FixedBufferCursor cursor(p, end - p);
+        csvmonkey::CsvReader<> reader(cursor, delimiter, quotechar);
+        auto &row = reader.row();
+
+        // quickly create null hashmap & bool hashmap
+        std::unordered_map<std::string, int8_t> value_map;
+        // use 0/1 for bool, -1 for null-value.
+        for(auto s : booleanTrueStrings())
+            value_map[s] = 1;
+        for(auto s : booleanFalseStrings())
+            value_map[s] = 0;
+        for(auto s : null_values)
+            value_map[s] = -1;
+
+        v.reserve(100);
+
+        std::vector<Field> fields;
+        fields.reserve(expected_column_count);
+        while(reader.read_row()) {
+            if(row.count != expected_column_count)
+                continue;
+            fields.clear();
+
+            for(unsigned i = 0; i < expected_column_count; ++i) {
+                auto cell = row.cells[i].as_str();
+                auto it = value_map.find(cell);
+                if(it != value_map.end()) {
+                    if(it->second < 0)
+                        fields.push_back(Field::null());
+                    else
+                        fields.push_back(Field(static_cast<bool>(it->second)));
+                } else {
+                    // int or float?
+                    int64_t i_val = 0;
+                    double d = 0;
+                    if(0 == tuplex::fast_atoi64(cell.c_str(), cell.c_str() + cell.size(), &i_val)) {
+                        fields.push_back(Field(i_val));
+                    } else if(0 == tuplex::fast_atod(cell.c_str(), cell.c_str() + cell.size(), &d)) {
+                        fields.push_back(Field(d));
+                    } else {
+                        fields.push_back(Field(cell));
+                    }
+                }
             }
-            cells.clear();
-            p += num_bytes;
-            if(v.size() >= limit)
-                break;
+            v.push_back(Row::from_vector(fields));
         }
         return v;
     }
+
+    // old
+//    std::vector<Row> csv_parseRows(const char* buf, size_t buf_size, size_t expected_column_count, size_t range_start,
+//                                   char delimiter, char quotechar, const std::vector<std::string>& null_values, size_t limit) {
+//        auto sample_length = std::min(buf_size - 1, strlen(buf));
+//        auto end = buf + sample_length;
+//
+//        size_t start_offset = 0;
+//        // range start != 0?
+//        if(0 != range_start) {
+//            start_offset = csvFindLineStart(buf, sample_length, expected_column_count, delimiter, quotechar);
+//            if(start_offset < 0)
+//                return {};
+//            sample_length -= std::min((size_t)start_offset, sample_length);
+//        }
+//
+//        // parse as rows using the settings detected.
+//        std::vector<Row> v;
+//        ExceptionCode ec;
+//        std::vector<std::string> cells;
+//        size_t num_bytes = 0;
+//        const char* p = buf + start_offset;
+//        while(p < end && (ec = parseRow(p, end, cells, num_bytes, delimiter, quotechar, false)) == ExceptionCode::SUCCESS) {
+//            // convert cells to row
+//            if(cells.size() >= expected_column_count) {
+//                auto row = cellsToRow(cells, null_values);
+//                v.push_back(row);
+//            }
+//            cells.clear();
+//            p += num_bytes;
+//            if(v.size() >= limit)
+//                break;
+//        }
+//        return v;
+//    }
 
 }

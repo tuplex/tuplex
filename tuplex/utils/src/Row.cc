@@ -111,6 +111,7 @@ namespace tuplex {
 
         // get types of rows & return then tuple type
         std::vector<python::Type> types;
+        types.reserve(_values.size());
         for(const auto& el: _values)
             types.push_back(el.getType());
 

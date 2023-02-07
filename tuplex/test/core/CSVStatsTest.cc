@@ -9,6 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include "gtest/gtest.h"
+#include "physical/execution/csvmonkey.h"
 #include <Context.h>
 #include <CSVStatistic.h>
 
@@ -175,4 +176,158 @@ TEST(CSVStats, FlightDetect) {
     std::cout<<csvstat.smallCellCandidates()<<std::endl;
 
     EXPECT_NE(csvstat.smallCellCandidates().size(), csvstat.columns().size());
+}
+
+namespace tuplex {
+
+class FixedBufferCursor : public csvmonkey::StreamCursor {
+private:
+    char *_buf;
+    char *_ptr;
+    char *_end_ptr;
+public:
+    ~FixedBufferCursor() {
+        if(_buf)
+            delete [] _buf;
+        _buf = nullptr;
+        _end_ptr = nullptr;
+    }
+
+    FixedBufferCursor(const char* buf, size_t size) : _buf(nullptr), _end_ptr(nullptr) {
+        auto safe_size = size + 32;
+        _buf = new char[safe_size];
+        memcpy(_buf, buf, size);
+        _end_ptr = _buf + size;
+        _ptr = _buf;
+    }
+
+    const char* buf() { return _ptr; }
+
+    size_t size() { return _end_ptr - _ptr; }
+
+    void consume(size_t n) { _ptr += std::min(n, (size_t)(_end_ptr - _ptr)); }
+
+    bool fill() { return false; }
+
+};
+
+
+    std::vector<Row> csv_parseRowsNEW(const char* buf, size_t buf_size, size_t expected_column_count, size_t range_start,
+                                   char delimiter, char quotechar, const std::vector<std::string>& null_values, size_t limit) {
+        auto sample_length = std::min(buf_size - 1, strlen(buf));
+        auto end = buf + sample_length;
+
+        size_t start_offset = 0;
+        // range start != 0?
+        if(0 != range_start) {
+            start_offset = csvFindLineStart(buf, sample_length, expected_column_count, delimiter, quotechar);
+            if(start_offset < 0)
+                return {};
+            sample_length -= std::min((size_t)start_offset, sample_length);
+        }
+
+        // parse as rows using the settings detected.
+        std::vector<Row> v;
+        ExceptionCode ec;
+        std::vector<std::string> cells;
+        size_t num_bytes = 0;
+        const char* p = buf + start_offset;
+
+        // use csvmonkey parser
+        FixedBufferCursor cursor(p, end - p);
+        csvmonkey::CsvReader<> reader(cursor, delimiter, quotechar);
+        auto &row = reader.row();
+        unsigned row_count = 0;
+
+        // quickly create null hashmap & bool hashmap
+        std::unordered_map<std::string, int8_t> value_map;
+        // use 0/1 for bool, -1 for null-value.
+        for(auto s : booleanTrueStrings())
+            value_map[s] = 1;
+        for(auto s : booleanFalseStrings())
+            value_map[s] = 0;
+        for(auto s : null_values)
+            value_map[s] = -1;
+
+        v.reserve(100);
+
+        std::vector<Field> fields;
+        fields.reserve(expected_column_count);
+        while(reader.read_row()) {
+            if(row.count != expected_column_count)
+                continue;
+            fields.clear();
+
+            for(unsigned i = 0; i < expected_column_count; ++i) {
+                auto cell = row.cells[i].as_str();
+                auto it = value_map.find(cell);
+                if(it != value_map.end()) {
+                    if(it->second < 0)
+                        fields.push_back(Field::null());
+                    else
+                        fields.push_back(Field(static_cast<bool>(it->second)));
+                } else {
+                    // int or float?
+                    int64_t i = 0;
+                    double d = 0;
+                    if(0 == tuplex::fast_atoi64(cell.c_str(), cell.c_str() + cell.size(), &i)) {
+                        fields.push_back(Field(i));
+                    } else if(0 == tuplex::fast_atod(cell.c_str(), cell.c_str() + cell.size(), &d)) {
+                        fields.push_back(Field(d));
+                    } else {
+                        fields.push_back(Field(cell));
+                    }
+                }
+            }
+            v.push_back(Row::from_vector(fields));
+            row_count++;
+        }
+        std::cout<<"read: "<<row_count<<" rows"<<std::endl;
+
+
+//        while(p < end && (ec = parseRow(p, end, cells, num_bytes, delimiter, quotechar, false)) == ExceptionCode::SUCCESS) {
+//            // convert cells to row
+//            if(cells.size() >= expected_column_count) {
+//                auto row = cellsToRow(cells, null_values);
+//                v.push_back(row);
+//            }
+//            cells.clear();
+//            p += num_bytes;
+//            if(v.size() >= limit)
+//                break;
+//        }
+        return v;
+    }
+}
+
+
+TEST(CSVStats, CSVParseRows) {
+    using namespace tuplex;
+    using namespace std;
+
+    string f_path = "../resources/hyperspecialization/flights_all/flights_on_time_performance_1987_10.csv.sample";
+
+    auto data_str = fileToString(f_path);
+    double old_time = 0.0;
+    double new_time = 0.0;
+    {
+        std::cout<<"OLD parse mode:"<<std::endl;
+        Timer timer;
+        auto rows = csv_parseRows(data_str.c_str(), data_str.size(), 110, 0,
+                                  ',', '"', std::vector<std::string>{"", "NULL"}, std::numeric_limits<size_t>::max());
+        old_time = timer.time();
+        std::cout<<"time to parse "<<pluralize(rows.size(), "row")<<": "<<timer.time()<<std::endl;
+        std::cout<<"time per row: "<<timer.time() / (1.0 * rows.size()) * 1000.0<<"ms"<<std::endl;
+    }
+    {
+        std::cout<<"NEW parse mode:"<<std::endl;
+        Timer timer;
+        auto rows = csv_parseRowsNEW(data_str.c_str(), data_str.size(), 110, 0,
+                                     ',', '"', std::vector<std::string>{"", "NULL"}, std::numeric_limits<size_t>::max());
+        new_time = timer.time();
+        std::cout<<"time to parse "<<pluralize(rows.size(), "row")<<": "<<timer.time()<<std::endl;
+        std::cout<<"time per row: "<<timer.time() / (1.0 * rows.size()) * 1000.0<<"ms"<<std::endl;
+    }
+
+    std::cout<<"NEW over old speedup factor: "<<old_time / new_time<<"x"<<std::endl;
 }

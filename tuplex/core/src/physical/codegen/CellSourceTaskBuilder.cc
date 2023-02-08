@@ -419,7 +419,7 @@ namespace tuplex {
                 }
                 std::stringstream ss;
                 if(check.type == CheckType::CHECK_CONSTANT) {
-                    ss<<"emitting constant check == "<<check.constant_type().constant()<<" for column "<<check.colNo<<"\n";
+                    ss<<"detected possible constant check == "<<check.constant_type().constant()<<" for column "<<check.colNo<<"\n";
                 } else {
                     ss<<"emitting unknown check for column "<<check.colNo<<"\n";
                 }
@@ -442,7 +442,6 @@ namespace tuplex {
                             // string type? direct compare
                             llvm::Value* check_cond = nullptr;
 
-
                             // emit code for check
                             auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
                             auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
@@ -450,6 +449,13 @@ namespace tuplex {
                             // what type of check is it?
                             // only support constant check yet
                             if(check.type == CheckType::CHECK_CONSTANT) {
+                                {
+                                    std::stringstream ss;
+                                    ss<<"general-case requires column, emit code for constant check == "
+                                      <<check.constant_type().constant()
+                                      <<" for column "<<check.colNo;
+                                    logger.info(ss.str());
+                                }
 
                                 auto const_type = check.constant_type();
                                 // performing check against string constant

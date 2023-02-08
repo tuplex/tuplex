@@ -128,11 +128,39 @@ TEST_F(SamplingTest, AnotherAttempt) {
     //  .map(UDF(udf_code))
     //  .map(UDF("lambda x: (x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8], x[9], x[10], x[11], x[12])")).show();
 
-    // test pipeline (transfer remote to local)
+//    // test pipeline (transfer remote to local)
+//    c.csv("s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv")
+//            .map(UDF(udf_code))
+//            .map(UDF("lambda x: (x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8], x[9], x[10], x[11], x[12])"))
+//            .tocsv("./output-local/test.csv");
+
+    string target_feature_code = "def assemble_row(row):\n"
+                               "    x = row['features']\n"
+                               "\n"
+                               "    return {\"f_quarter\": x[0],\n"
+                               "            \"f_month\": x[1],\n"
+                               "            \"f_day_of_month\": x[2],\n"
+                               "            \"f_day_of_week\": x[3],\n"
+                               "            \"f_carrier\": x[4],\n"
+                               "            \"f_origin_state\": x[5],\n"
+                               "            \"f_dest_state\": x[6],\n"
+                               "            \"f_dep_delay\": x[7],\n"
+                               "            \"f_arr_delay\": x[8],\n"
+                               "            \"f_crs_arr_hour\": x[9],\n"
+                               "            \"f_crs_dep_hour\": x[10],\n"
+                               "            \"f_crs_arr_5min\": x[11],\n"
+                               "            \"f_crs_dep_5min\": x[12],\n"
+                               "            \"t_carrier_delay\": row['CARRIER_DELAY'],\n"
+                               "            \"t_weather_delay\": row['WEATHER_DELAY'],\n"
+                               "            \"t_nas_delay\": row['NAS_DELAY'],\n"
+                               "            \"t_security_delay\": row['SECURITY_DELAY'],\n"
+                               "            \"t_late_aircraft_delay\": row['LATE_AIRCRAFT_DELAY']}\n";
+
+     // test pipeline (transfer remote to local)
     c.csv("s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv")
-            .map(UDF(udf_code))
-            .map(UDF("lambda x: (x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8], x[9], x[10], x[11], x[12])"))
-            .tocsv("./output-local/test.csv");
+     .withColumn("features", UDF(udf_code))
+     .map(UDF(target_feature_code))
+     .tocsv("./output-local/test.csv");
 }
 
 

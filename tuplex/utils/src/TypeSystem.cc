@@ -231,19 +231,39 @@ namespace python {
 
     // C++11 doesn't allow simple conversion to initializer_list, that's why this additional function is needed
     Type TypeFactory::createOrGetTupleType(const std::vector<Type>& args) {
-        std::string name = "";
-        name += "(";
-        for(auto arg : args) {
-            name += TypeFactory::instance().getDesc(arg._hash) + ",";
+
+        // new
+        std::stringstream ss;
+        ss<<'(';
+
+        // do it with one lock, not locking multiple times! (getDesc each acquires a lock)
+        {
+            std::lock_guard<std::mutex> lock(_typeMapMutex);
+            for(const auto& arg : args)
+                ss<<_typeVec[_typeMap.at(arg._hash)]._desc<<',';
         }
 
+        auto name = ss.str();
         // end string
         if(name[name.length() - 1] == ',')
             name[name.length() - 1] = ')';
         else
             name += ")";
-
         return registerOrGetType(name, AbstractType::TUPLE, args);
+
+        // old
+        //std::string name = "";
+        //name += "(";
+        //for(auto arg : args) {
+        //    name += TypeFactory::instance().getDesc(arg._hash) + ",";
+        //}
+        //
+        //// end string
+        //if(name[name.length() - 1] == ',')
+        //    name[name.length() - 1] = ')';
+        //else
+        //    name += ")";
+        // return registerOrGetType(name, AbstractType::TUPLE, args);
     }
 
     Type TypeFactory::createOrGetStructuredDictType(const std::vector<std::pair<boost::any, python::Type>> &pairs) {
@@ -613,7 +633,7 @@ namespace python {
         auto it = _typeMap.find(t._hash);
         assert(it != _typeMap.end());
         // exclude dictionary here, but internal reuse.
-        assert(it->second._type == AbstractType::TUPLE || it->second._type == AbstractType::FUNCTION);
+        assert(_typeVec[it->second]._type == AbstractType::TUPLE || _typeVec[it->second]._type == AbstractType::FUNCTION);
         return _typeVec[it->second]._params;
     }
 
@@ -665,7 +685,7 @@ namespace python {
         std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
-        assert(it->second._params.size() == 2);
+        assert(factory._typeVec[it->second]._params.size() == 2);
         return factory._typeVec[it->second]._params[0];
     }
 
@@ -708,7 +728,7 @@ namespace python {
         std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
-        assert(it->second._params.size() == 2);
+        assert(factory._typeVec[it->second]._params.size() == 2);
         return factory._typeVec[it->second]._params[1];
     }
 
@@ -719,7 +739,7 @@ namespace python {
             std::lock_guard<std::mutex> lock(factory._typeMapMutex);
             auto it = factory._typeMap.find(_hash);
             assert(it != factory._typeMap.end());
-            assert(it->second._params.size() == 1);
+            assert(factory._typeVec[it->second]._params.size() == 1);
             return factory._typeVec[it->second]._params[0];
         } else {
             // option?
@@ -736,7 +756,7 @@ namespace python {
         std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
-        assert(it->second._params.size() == 1);
+        assert(factory._typeVec[it->second]._params.size() == 1);
         return factory._typeVec[it->second]._params[0];
     }
 
@@ -746,7 +766,7 @@ namespace python {
         std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
-        assert(it->second._params.size() == 1);
+        assert(factory._typeVec[it->second]._params.size() == 1);
         return factory._typeVec[it->second]._constant_value;
     }
 
@@ -755,7 +775,7 @@ namespace python {
         auto& factory = TypeFactory::instance();
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
-        assert(it->second._params.size() == 1);
+        assert(factory._typeVec[it->second]._params.size() == 1);
         return factory._typeVec[it->second]._params[0];
     }
 

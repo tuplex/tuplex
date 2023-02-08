@@ -2093,10 +2093,11 @@ namespace python {
             factory._typeMapMutex.lock();
             const auto& entry = factory._typeVec[factory._typeMap.at(_hash)];
             auto abstract_type = entry._type;
+            auto entry_desc = entry._desc;
             factory._typeMapMutex.unlock();
             switch(abstract_type) {
                 case TypeFactory::AbstractType::PRIMITIVE: {
-                    return entry._desc;
+                    return entry_desc;
                 }
                 case TypeFactory::AbstractType::OPTION: {
                     return "Option[" + elementType().encode() + "]";
@@ -2119,7 +2120,7 @@ namespace python {
                     return "Dict[" + keyType().encode() + "," + valueType().encode() + "]";
                 }
                 case TypeFactory::AbstractType::STRUCTURED_DICTIONARY: {
-                    return entry._desc;
+                    return entry_desc;
                 }
                 case TypeFactory::AbstractType::FUNCTION: {
                     return "Function[" + getParamsType().encode() + "," + getReturnType().encode() + "]";

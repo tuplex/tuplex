@@ -74,6 +74,10 @@ namespace tuplex {
             auto id = (NIdentifier*)sub->_value.get();
             auto index = num->getI64();
 
+            // does id->_name match parameter name? if so, rewrite! (what about name re-assigns? make them work later...)
+            if(id->_name != _parameter) // <-- this is not 100% correct. I.e., should have proper set of names that correspond to parameter, handle case where name gets reassigned etc. Special attention to if case.. @TODO: make this more correct.
+                return sub;
+
             auto alt_index = projectedIdxToOriginalIdx(index);
             auto alt_name = _columnNames[alt_index];
 

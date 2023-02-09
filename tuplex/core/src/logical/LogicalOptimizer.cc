@@ -95,7 +95,12 @@ namespace tuplex {
             optimizeFilters(node);
         }
 
-        // @TODO: filter reordering!
+        // prune tree? (note for lambda x: true / lambda x: false the optimization will only work if constant-fold is active)
+        if(_options.OPT_CONSTANTFOLDING_OPTIMIZATION()) {
+            pruneConstantFilters(node);
+        }
+
+        // @TODO: filter reordering! -> could be also done in a specializing way!
 
         // this opt makes only sense when joins (or flatmap later) are involved...
         if(properties.hasJoin() && _options.OPT_OPERATOR_REORDERING())
@@ -210,6 +215,88 @@ namespace tuplex {
         Logger::instance().defaultLogger().debug("saving logical plan after filter breakup to PDF skipped.");
 #endif
 #endif
+    }
+
+    inline bool type_python_is_true(const python::Type& t) {
+        if(python::Type::EMPTYTUPLE == t
+           || python::Type::EMPTYLIST == t
+           || python::Type::EMPTYDICT == t
+           || python::Type::NULLVALUE == t)
+            return false;
+
+        // now only constants should work...
+        assert(t.isConstantValued());
+
+        auto ut = t.underlying();
+        if(python::Type::BOOLEAN == ut) {
+            if(t.constant() == "true") {
+                return true;
+            } else if(t.constant() == "false") {
+                return false;
+            } else {
+                throw std::runtime_error("unknown bool const "+ t.constant() + " saved in constant type. Internal error?");
+            }
+        } else if(python::Type::I64 == ut) {
+            if(stoi(t.constant()) == 0)
+                return false;
+            else
+                return true;
+        } else if(python::Type::STRING == ut) {
+            auto const_value = str_value_from_python_raw_value(t.constant());
+            return !const_value.empty();
+        } else {
+            throw std::runtime_error("unsupported type in type_python_is_true: " + t.desc());
+        }
+    }
+
+    void LogicalOptimizer::pruneConstantFilters(const std::shared_ptr<LogicalOperator>& node) {
+        // this optimization should be carried out after pushing down filters.
+
+        // filters may evaluate to be a constant, i.e. either false/true
+        // due to constant-folding
+
+        // if this happens, there are two scenarios:
+        // 1. filter evaluates to true -> keep elements, i.e. remove filter (it's always true)
+        // 2. filter evaluates to false -> remove all subsequent elements, remove filter. -> pipeline only has to perform check
+
+        // empty node? return
+        if(!node)
+            return;
+
+        if(node->type() == LogicalOperatorType::FILTER) {
+            std::cout<<"found filter"<<std::endl;
+            auto fop = std::dynamic_pointer_cast<FilterOperator>(node);
+            auto out_row_type = fop->getOutputSchema().getRowType();
+            if(out_row_type.isExceptionType()) {
+                return; // stop, no need to proceed further.
+            }
+            if(python::Type::UNKNOWN == out_row_type) {
+                throw std::runtime_error("filter operator has unknown return type, can't optimize nor prune beyond this point.");
+            }
+            assert(out_row_type.isTupleType());
+            assert(out_row_type.parameters().size() == 1);
+
+            auto ret_type = out_row_type.parameters().front();
+            // is it constant-valued?
+            if(ret_type.isConstantValued() || python::Type::EMPTYTUPLE == ret_type
+            || python::Type::EMPTYLIST == ret_type || python::Type::EMPTYDICT == ret_type
+            || python::Type::NULLVALUE == ret_type) {
+                // great! we found a special case!
+                // what's the verdict? is it true or false?
+                // (could use python here or directly decide)
+
+                bool always_true = type_python_is_true(ret_type);
+
+                throw std::runtime_error("nyimpl here pruning.");
+            } else {
+                // regular, continue walking the tree...
+            }
+        }
+
+        // regular walk
+        for(auto child : node->parents()) {
+            pruneConstantFilters(child);
+        }
     }
 
     void LogicalOptimizer::optimizeFilters(std::shared_ptr<LogicalOperator>& root) {

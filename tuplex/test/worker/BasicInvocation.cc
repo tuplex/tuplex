@@ -678,6 +678,65 @@ protected:
     }
 };
 
+TEST(BasicInvocation, ConstantFilterFold) {
+    using namespace tuplex;
+    using namespace std;
+
+    // local worker mode for easier debugging
+    ContextOptions co = ContextOptions::defaults();
+    co.set("tuplex.backend", "worker");
+
+    // activate optimizations
+    co.set("tuplex.optimizer.selectionPushdown", "true");
+    co.set("tuplex.optimizer.filterPushdown", "true");
+    co.set("tuplex.optimizer.constantFoldingOptimization", "true"); // run with constant folding on/off
+    co.set("tuplex.filterPromotion", "true");
+    co.set("tuplex.optimizer.nullValueOptimization", "true");
+    co.set("tuplex.experimental.hyperspecialization", "false"); // first check that THIS is correct.
+    co.set("tuplex.experimental.s3PreCacheSize", "1G");
+    co.set("tuplex.inputSplitSize", "2GB");
+
+    auto co_hyper = co;
+    co_hyper.set("tuplex.experimental.hyperspecialization", "true");
+
+
+    // use sampling mode first/last file, first/last rows
+    SamplingMode sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
+
+    // init runtime
+    auto rc_runtime = runtime::init(co.RUNTIME_LIBRARY().toPath());
+    ASSERT_TRUE(rc_runtime);
+
+    string input_pattern = "test.csv";
+    // create test file using random data
+    size_t N = 1000000;
+    stringstream ss;
+    ss<<"A,B\n";
+    for(unsigned i = 0; i < N; ++i) {
+        ss<<"42,"<<rand()% 100<<"\n";
+    }
+    stringToFile(input_pattern, ss.str());
+
+    double hyper_time = 0;
+    {
+        python::initInterpreter();
+        python::unlockGIL();
+        Context ctx(co_hyper);
+        auto udf_code = flights_code();
+
+        // i.e., idea is: does filter always evaluate to true? or does it always evaluate to false?
+        // -> if false based on check -> can remove in normal-path all subsequent operators.
+        // -> if true based on check -> can remove filter, and use all subsequent operators.
+
+        Timer timer;
+        ctx.csv(input_pattern, {}, option<bool>::none,
+                option<char>::none, '"', {""}, {}, {}, sm)
+                .tocsv("output.csv");
+        hyper_time = timer.time();
+        std::cout<<"hyper mode: "<<hyper_time<<std::endl;
+    }
+}
+
 // proper test for flight processing
 TEST(BasicInvocation, ProperFlightsTest) {
     using namespace tuplex;

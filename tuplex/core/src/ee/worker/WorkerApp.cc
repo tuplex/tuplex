@@ -430,7 +430,8 @@ namespace tuplex {
         cache.reset(_settings.s3PreCacheSize);
         std::vector<std::future<size_t>> futures;
         for(const auto& part : parts) {
-            futures.emplace_back(cache.putAsync(part.uri, part.rangeStart, part.rangeEnd));
+            if(part.uri.prefix() == "s3://")
+                futures.emplace_back(cache.putAsync(part.uri, part.rangeStart, part.rangeEnd));
         }
 
         size_t total_cached = 0;

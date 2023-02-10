@@ -125,7 +125,7 @@ namespace tuplex {
         }
 
         return node;
-    }
+ add    }
 
     void LogicalOptimizer::filterBreakup(const std::shared_ptr<LogicalOperator>& op) {
         if(!op) return;
@@ -266,17 +266,15 @@ namespace tuplex {
         if(node->type() == LogicalOperatorType::FILTER) {
             std::cout<<"found filter"<<std::endl;
             auto fop = std::dynamic_pointer_cast<FilterOperator>(node);
-            auto out_row_type = fop->getOutputSchema().getRowType();
-            if(out_row_type.isExceptionType()) {
+
+            auto ret_type = fop->getUDF().getAnnotatedAST().getReturnType();
+            if(ret_type.isExceptionType()) {
                 return; // stop, no need to proceed further.
             }
-            if(python::Type::UNKNOWN == out_row_type) {
+            if(python::Type::UNKNOWN == ret_type) {
                 throw std::runtime_error("filter operator has unknown return type, can't optimize nor prune beyond this point.");
             }
-            assert(out_row_type.isTupleType());
-            assert(out_row_type.parameters().size() == 1);
 
-            auto ret_type = out_row_type.parameters().front();
             // is it constant-valued?
             if(ret_type.isConstantValued() || python::Type::EMPTYTUPLE == ret_type
             || python::Type::EMPTYLIST == ret_type || python::Type::EMPTYDICT == ret_type
@@ -287,7 +285,39 @@ namespace tuplex {
 
                 bool always_true = type_python_is_true(ret_type);
 
-                throw std::runtime_error("nyimpl here pruning.");
+                if(always_true) {
+                    // true? remove filter! -> keep rest
+                    auto parent = fop->parent();
+                    for(auto& child : fop->children()) {
+                        child->setParent(parent);
+                    }
+                    // that's it, filter is removed.
+                    // can continue optimizing pipeline.
+
+                } else {
+                    // false? keep filter, remove the rest (except the output/first pipeline breaker).
+                    // i.e. remove everything after parents (except for
+                    // go through tree and stop only at output nodes
+                    std::queue<std::shared_ptr<LogicalOperator>> q;
+                    for(auto c : fop->children())
+                        q.push(c);
+                    std::vector<std::shared_ptr<LogicalOperator>> end_nodes;
+                    while(!q.empty()) {
+                        auto cur_node = q.front();
+                        q.pop();
+                        if(!cur_node->children().empty()) {
+                            for(auto c : fop->children())
+                                q.push(c);
+                        }
+                        if(cur_node->type() == LogicalOperatorType::TAKE || cur_node->type() == LogicalOperatorType::FILEOUTPUT)
+                            end_nodes.push_back(cur_node);
+                    }
+                    for(auto& end_node : end_nodes)
+                        end_node->setParent(fop);
+
+                    // no need to optimize further, pipeline has been removed already.
+                    return;
+                }
             } else {
                 // regular, continue walking the tree...
             }

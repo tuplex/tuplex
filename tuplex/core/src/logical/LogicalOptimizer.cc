@@ -48,6 +48,11 @@ namespace tuplex {
         // filter breakup and reorder!
         // @TODO.
 
+        // prune tree? (note for lambda x: true / lambda x: false the optimization will only work if constant-fold is active)
+        if(_options.OPT_CONSTANTFOLDING_OPTIMIZATION()) {
+            pruneConstantFilters(last_op);
+        }
+
         if(_options.OPT_SELECTION_PUSHDOWN()) {
             // pushdown
             // note: set dropOperators to true to get rid off not computed columns!!!
@@ -125,7 +130,7 @@ namespace tuplex {
         }
 
         return node;
- add    }
+    }
 
     void LogicalOptimizer::filterBreakup(const std::shared_ptr<LogicalOperator>& op) {
         if(!op) return;

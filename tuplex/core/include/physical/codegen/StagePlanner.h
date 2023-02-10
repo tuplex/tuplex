@@ -293,6 +293,7 @@ namespace tuplex {
                 opt.set("tuplex.optimizer.filterPushdown", "true");
                 opt.set("tuplex.optimizer.operatorReordering", "true");
                 opt.set("tuplex.optimizer.selectionPushdown", "true");
+                opt.set("tuplex.optimizer.constantFoldingOptimization", "true");
 
                 return opt;
             }

@@ -731,7 +731,7 @@ TEST(BasicInvocation, ConstantFilterFold) {
         Timer timer;
         ctx.csv(input_pattern, {}, option<bool>::none,
                 option<char>::none, '"', {""}, {}, {}, sm)
-                .filter(UDF("lambda x: True"))
+                .filter(UDF("lambda x: x['A'] == 0")) // <-- this is an always false condition based on constant sample
                 .tocsv("output.csv");
         hyper_time = timer.time();
         std::cout<<"hyper mode: "<<hyper_time<<std::endl;

@@ -264,7 +264,7 @@ namespace tuplex {
             return;
 
         if(node->type() == LogicalOperatorType::FILTER) {
-            std::cout<<"found filter"<<std::endl;
+            //std::cout<<"found filter"<<std::endl;
             auto fop = std::dynamic_pointer_cast<FilterOperator>(node);
 
             auto ret_type = fop->getUDF().getAnnotatedAST().getReturnType();

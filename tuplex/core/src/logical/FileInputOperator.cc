@@ -1451,6 +1451,11 @@ namespace tuplex {
                 assert(kv.second < col_types.size());
                 nc_col_types[kv.first] = col_types[kv.second];
             }
+
+            // special case: empty map & match -> i.e., default mapping.
+            if(m.empty() && nc_col_types.size() == col_types.size())
+                nc_col_types = col_types;
+
             _normalCaseRowType = python::Type::makeTupleType(nc_col_types);
         } else {
             _normalCaseRowType = python::Type::makeTupleType(col_types);

@@ -1530,6 +1530,13 @@ namespace tuplex {
     void UDF::optimizeConstants() {
         // run reduce expressions visitor to fold whatever is possible...
         _ast.reduceConstantTypes();
+
+        // rerun define types
+        // rerun types
+        bool silent = true;
+        bool removeBranches = true;
+        auto res = _ast.redefineTypes(_policy, silent, removeBranches);
+        assert(res); // <-- this should NOT fail.
     }
 
     bool UDF::hasWellDefinedTypes() const {

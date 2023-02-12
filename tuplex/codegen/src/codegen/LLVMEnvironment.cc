@@ -74,8 +74,7 @@ namespace tuplex {
                 return SerializableValue(nullptr, nullptr, is_null);
             } else if(ut == python::Type::BOOLEAN) {
                 bool b = stringToBool(constant_value);
-                //auto t = getBooleanType();
-                auto t = llvm::Type::getInt8Ty(ctx);
+                auto t = llvm::Type::getIntNTy(ctx, LLVM_BOOLEAN_TYPE_INTEGER_WIDTH);
                 auto bconst = llvm::Constant::getIntegerValue(t, llvm::APInt(t->getIntegerBitWidth(), b));
                 auto bconst_size =  llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, sizeof(int64_t)));
                 return SerializableValue(bconst, bconst_size, not_null);

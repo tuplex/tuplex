@@ -54,7 +54,7 @@ namespace tuplex {
         static void filterPushdown(const std::shared_ptr<LogicalOperator> &op);
 
         // optimize constant filters
-        static void pruneConstantFilters(const std::shared_ptr<LogicalOperator>& root);
+        static void pruneConstantFilters(const std::shared_ptr<LogicalOperator>& root, bool projectionPushdown);
 
         // operator reordering (i.e. pullup/pulldown re join cardinality)
         static void reorderDataProcessingOperators(std::shared_ptr<LogicalOperator>& root);

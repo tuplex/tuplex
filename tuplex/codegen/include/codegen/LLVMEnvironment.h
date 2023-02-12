@@ -11,6 +11,8 @@
 #ifndef TUPLEX_LLVMENVIRONMENT_H
 #define TUPLEX_LLVMENVIRONMENT_H
 
+#define LLVM_BOOLEAN_TYPE_INTEGER_WIDTH 64
+
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/SourceMgr.h"
@@ -507,7 +509,7 @@ namespace tuplex {
                 // some LLVM passes are broken with i8
                 // -> use i64 therefore.
                 // return llvm::IntegerType::get(_context, 8);
-                return llvm::IntegerType::get(_context, 64);
+                return llvm::IntegerType::get(_context, LLVM_BOOLEAN_TYPE_INTEGER_WIDTH);
             }
 
             inline llvm::Type *getBooleanPointerType() {

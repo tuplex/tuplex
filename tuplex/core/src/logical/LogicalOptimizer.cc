@@ -50,7 +50,7 @@ namespace tuplex {
 
         // prune tree? (note for lambda x: true / lambda x: false the optimization will only work if constant-fold is active)
         if(_options.OPT_CONSTANTFOLDING_OPTIMIZATION()) {
-            pruneConstantFilters(last_op);
+            pruneConstantFilters(last_op, _options.OPT_SELECTION_PUSHDOWN());
         }
 
         if(_options.OPT_SELECTION_PUSHDOWN()) {
@@ -102,7 +102,7 @@ namespace tuplex {
 
         // prune tree? (note for lambda x: true / lambda x: false the optimization will only work if constant-fold is active)
         if(_options.OPT_CONSTANTFOLDING_OPTIMIZATION()) {
-            pruneConstantFilters(node);
+            pruneConstantFilters(node, _options.OPT_SELECTION_PUSHDOWN());
         }
 
         // @TODO: filter reordering! -> could be also done in a specializing way!
@@ -254,7 +254,7 @@ namespace tuplex {
         }
     }
 
-    void LogicalOptimizer::pruneConstantFilters(const std::shared_ptr<LogicalOperator>& node) {
+    void LogicalOptimizer::pruneConstantFilters(const std::shared_ptr<LogicalOperator>& node, bool projectionPushdown) {
         // this optimization should be carried out after pushing down filters.
 
         // filters may evaluate to be a constant, i.e. either false/true
@@ -263,6 +263,8 @@ namespace tuplex {
         // if this happens, there are two scenarios:
         // 1. filter evaluates to true -> keep elements, i.e. remove filter (it's always true)
         // 2. filter evaluates to false -> remove all subsequent elements, remove filter. -> pipeline only has to perform check
+
+        projectionPushdown = false;
 
         // empty node? return
         if(!node)
@@ -317,8 +319,16 @@ namespace tuplex {
                         if(cur_node->type() == LogicalOperatorType::TAKE || cur_node->type() == LogicalOperatorType::FILEOUTPUT)
                             end_nodes.push_back(cur_node);
                     }
-                    for(auto& end_node : end_nodes)
+                    for(auto& end_node : end_nodes) {
                         end_node->setParent(fop);
+
+                        // special case for pushdown: keep only what filter requires,
+                        // all other columns are not need to be parsed anymore.
+                        auto cols_accessed = fop->getUDF().getAccessedColumns();
+                        if(projectionPushdown) {
+                            LogicalOptimizer::projectionPushdown(end_node, nullptr, cols_accessed);
+                        }
+                    }
 
                     // no need to optimize further, pipeline has been removed already.
                     return;
@@ -330,7 +340,7 @@ namespace tuplex {
 
         // regular walk
         for(auto child : node->parents()) {
-            pruneConstantFilters(child);
+            pruneConstantFilters(child, projectionPushdown);
         }
     }
 

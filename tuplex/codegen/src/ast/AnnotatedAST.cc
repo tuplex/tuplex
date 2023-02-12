@@ -408,6 +408,113 @@ namespace tuplex {
             }
         }
 
+        bool AnnotatedAST::redefineTypes(const codegen::CompilePolicy& policy, bool silentMode, bool removeBranches) {
+            _typingErrMessages.clear();
+            clearCompileErrors();
+            if(!_root)
+                return false;
+
+            _typesDefined = false;
+
+            auto table = SymbolTable::createFromEnvironment(&_globals);
+            if(!table) {
+                // e.g. modules missing etc.
+                // => use fallback mode!
+                Logger::instance().defaultLogger().info("Creating symbol table failed.");
+                return false;
+            }
+
+            // reuse type hints (no need for hinting again...)
+            // 2.2 run type annotator using the symbol table
+            TypeAnnotatorVisitor tav(*table, policy); // TODO: global variable or function parameter?
+            tav.setFailingMode(silentMode);
+            table->resetScope();
+            table->enterScope(); // enter builtin scope
+            table->enterScope(); // enter global scope
+            table->enterScope(); // enter module/function level scope
+
+            // TypeAnnotatorVisitor may throw an exception when fatal error is reached, hence surround with try/catch
+            try {
+                _root->accept(tav);
+                addCompileErrors(table->getCompileErrors());
+                addCompileErrors(tav.getCompileErrors());
+                // table->exitScope(); // leave module/function level scope
+                // table->exitScope();  // leave global scope
+                // table->exitScope(); // leave builtin scope
+
+                // did tav fail? if so remove branches & try again
+                if(removeBranches) {
+                    clearCompileErrors();
+                    RemoveDeadBranchesVisitor rdb;
+                    _root->accept(rdb);
+
+                    // run again
+                    table->clearCompileErrors();
+                    table->resetScope();
+                    tav.reset();
+                    tav.setFailingMode(silentMode);
+                    table->enterScope(); // enter builtin scope
+                    table->enterScope(); // enter global scope
+                    table->enterScope(); // enter module/function level scope
+                    _root->accept(tav);
+                    addCompileErrors(table->getCompileErrors());
+                    addCompileErrors(tav.getCompileErrors());
+                    table->resetScope();
+                }
+            } catch(const std::runtime_error& e) {
+                _typingErrMessages.push_back(e.what());
+                return false;
+            }
+
+            // fetch messages:
+            auto msgs = tav.getErrorMessages();
+            for(auto msg : msgs) {
+                _typingErrMessages.push_back(std::get<0>(msg));
+            }
+
+            // check whether there are any undefined identifiers. If so, log error and break
+            auto missingIdentifiers = toVector(tav.getMissingIdentifiers());
+            if(!missingIdentifiers.empty()) {
+                std::stringstream infoss;
+                infoss<<"\n";
+                for(const auto& el: missingIdentifiers)
+                    infoss<<el<<" ";
+                Logger::instance().logger("codegen").error("encountered undefined identifiers: " + infoss.str());
+                return false;
+            }
+
+            // failed? return false immediately!
+            if(tav.failed())
+                return false;
+
+
+#ifndef NDEBUG
+#ifdef GENERATE_PDFS
+            // print in debug mode graph
+            GraphVizGraph graph;
+            graph.createFromAST(_root.get(), true);
+            graph.saveAsPDF(std::to_string(g_func_counter++) + "_04_ast_with_types.pdf");
+#else
+            Logger::instance().defaultLogger().debug("writing type-annotated Python AST to PDF skipped.");
+#endif
+#endif
+
+            bool success = _root->getInferredType() != python::Type::UNKNOWN
+                           && _root->getInferredType() != python::Type::makeTupleType({python::Type::UNKNOWN});
+
+            // if it worked, seal AST and do not rerun typing
+            if(success) {
+                _typesDefined = true;
+
+                // update params in function nodes to final type result!
+                setFunctionType(_root.get(), _root->getInferredType());
+            }
+
+            // check whether top level has type != unknown
+            return success;
+
+        }
+
         bool AnnotatedAST::defineTypes(const codegen::CompilePolicy& policy, bool silentMode, bool removeBranches) {
 
             // reset err messages
@@ -648,7 +755,6 @@ namespace tuplex {
 #else
             //...
 #endif
-
         }
     }
 }

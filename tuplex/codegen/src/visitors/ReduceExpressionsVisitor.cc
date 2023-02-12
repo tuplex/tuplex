@@ -494,7 +494,6 @@ namespace tuplex {
                 op = nullptr;
                 _numReductions++;
                 return new NBoolean(op1 && op2);
-
             }
 
             case TokenType::OR: {

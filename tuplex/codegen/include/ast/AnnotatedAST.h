@@ -199,6 +199,14 @@ namespace tuplex {
              */
             bool defineTypes(const codegen::CompilePolicy& policy, bool silentMode=false, bool removeBranches=false);
 
+            /*!
+             * rerun TypeAnnotatorVisitor on AST, use partially available information already available for edge caes.
+             * @param policy
+             * @param silentMode
+             * @param removeBranches
+             * @return
+             */
+            bool redefineTypes(const codegen::CompilePolicy& policy, bool silentMode=false, bool removeBranches=false);
 
             /*!
              * for easier handling, function arguments may be auto unpacked. This annotates the (first) found function

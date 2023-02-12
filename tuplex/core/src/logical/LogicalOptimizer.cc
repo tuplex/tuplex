@@ -264,8 +264,6 @@ namespace tuplex {
         // 1. filter evaluates to true -> keep elements, i.e. remove filter (it's always true)
         // 2. filter evaluates to false -> remove all subsequent elements, remove filter. -> pipeline only has to perform check
 
-        projectionPushdown = false;
-
         // empty node? return
         if(!node)
             return;

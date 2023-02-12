@@ -1232,8 +1232,10 @@ namespace tuplex {
         _rewriteMap = rewriteMap;
 
         // no rewrite map, skip.
-        if(rewriteMap.empty())
+        if(rewriteMap.empty()) {
+            throw std::runtime_error("special acse: emptuy rewrite map means no columns should be parsed! fix this.");
             return true;
+        }
 
         // is UDF compilable? if not, can't rewrite (fallback)
         if(!isCompiled() && !empty())

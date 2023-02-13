@@ -1668,6 +1668,11 @@ namespace tuplex {
             auto num_columns = row.numElements();
             auto types = row.getFieldTypes();
 
+            // shortcut: no columns, return empty string!
+            if(0 == num_columns) {
+                return SerializableValue(env.strConst(builder, ""), env.i64Const(0), env.i1Const(false));
+            }
+
             // quote null value if necessary
             null_value = quote(null_value);
 
@@ -1727,6 +1732,9 @@ namespace tuplex {
                 } else if(t == python::Type::STRING) {
                     // fetch size and add, times 2 + 2 because of quoting
                     varSizeRequired = builder.CreateAdd(varSizeRequired, builder.CreateAdd(env.i64Const(2), builder.CreateMul(row.getSize(i), env.i64Const(2))));
+                } else if(t == python::Type::EMPTYTUPLE) {
+                    Logger::instance().logger("codegen").warn("unsupported CSV type ()");
+                    space_needed += 3;
                 } else {
                     throw std::runtime_error("unsupported type " + t.desc() + " in fast CSV writer");
                 }
@@ -1873,6 +1881,10 @@ namespace tuplex {
                         builder.CreateMemCpy(buf_ptr, 0, nullConst, 0, null_value.length());
                         buf_ptr = builder.CreateGEP(buf_ptr, env.i32Const(null_value.length()));
                     }
+                } else if(t.withoutOption() == python::Type::EMPTYTUPLE) {
+                    auto emptyTupleConst = env.strConst(builder, "()");
+                    builder.CreateMemCpy(buf_ptr, 0, emptyTupleConst, 0, env.i64Const(2));
+                    buf_ptr = builder.CreateGEP(buf_ptr, env.i32Const(2));
                 }
 
                 if(t.isOptionType()) {

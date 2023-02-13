@@ -607,10 +607,11 @@ namespace tuplex {
             cf.output_type = cg.getReturnType();
         }
 
-        if(0 == cf.input_type.parameters().size()) {
-            logger.error("code generation for user supplied function failed. Lambda function needs at least one parameter.");
-            return cf;
-        }
+        // is this really an error here?
+        // if(0 == cf.input_type.parameters().size()) {
+        //     logger.error("code generation for user supplied function failed. Lambda function needs at least one parameter.");
+        //     return cf;
+        // }
 
         // compile UDF to LLVM IR Code
         if(!cg.generateCode(&env, _policy)) {
@@ -1228,14 +1229,51 @@ namespace tuplex {
 
     }
 
+    std::unordered_map<size_t, size_t> UDF::defaultRewriteMap() const {
+        std::unordered_map<size_t, size_t> m;
+
+        auto input_row_type = getInputSchema().getRowType();
+        if(python::Type::UNKNOWN == input_row_type)
+            return m;
+
+        if(!input_row_type.isTupleType()) {
+            m[0] = 0;
+            return m;
+        }
+
+        auto num_input_columns = input_row_type.parameters().size();
+        for(unsigned i = 0; i < num_input_columns; ++i)
+            m[i] = i;
+        return m;
+    }
+
+    bool UDF::isDefaultRewriteMap(const std::unordered_map<size_t, size_t>& rewriteMap) {
+        auto m = defaultRewriteMap();
+        if(m.size() != rewriteMap.size())
+            return false;
+
+        // check that every pair of m is within rewriteMap and identical
+        for(auto kv : m) {
+            auto it = rewriteMap.find(kv.first);
+            if(it->second != kv.second)
+                return false;
+        }
+        return true;
+    }
+
     bool UDF::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
         _rewriteMap = rewriteMap;
 
-        // no rewrite map, skip.
-        if(rewriteMap.empty()) {
-            throw std::runtime_error("special acse: emptuy rewrite map means no columns should be parsed! fix this.");
+        // same as default Map? skip.
+        if(isDefaultRewriteMap(rewriteMap))
             return true;
-        }
+
+        // special case: rewrite to no params...
+        // // no rewrite map, skip.
+        // if(rewriteMap.empty()) {
+        //     throw std::runtime_error("special acse: emptuy rewrite map means no columns should be parsed! fix this.");
+        //     return true;
+        // }
 
         // is UDF compilable? if not, can't rewrite (fallback)
         if(!isCompiled() && !empty())

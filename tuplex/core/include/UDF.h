@@ -75,6 +75,9 @@ namespace tuplex {
          * @return
          */
         bool hasPythonObjectTyping() const;
+
+        // check if it's the default rewriteMap or not.
+        bool isDefaultRewriteMap(const std::unordered_map<size_t, size_t>& rewriteMap);
     public:
 
         UDF(const std::string& pythonLambdaStr,
@@ -261,6 +264,12 @@ namespace tuplex {
          * @return false if e.g. a non-existing column name is accessed.
          */
         bool rewriteDictAccessInAST(const std::vector<std::string>& columnNames, const std::string& parameterName="");
+
+        /*!
+         * returns rewrite map that won't change anything.
+         * @return
+         */
+        std::unordered_map<size_t, size_t> defaultRewriteMap() const;
 
         /*! rewrites UDF to use less params with the given mapping.
          * @param rewriteMap

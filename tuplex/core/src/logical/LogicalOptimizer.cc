@@ -48,6 +48,12 @@ namespace tuplex {
         // filter breakup and reorder!
         // @TODO.
 
+        // filter pushdown, put first (in order to eliminate as much as possible)
+        if(_options.OPT_FILTER_PUSHDOWN()) {
+            emitPartialFilters(last_op);
+            optimizeFilters(last_op);
+        }
+
         // prune tree? (note for lambda x: true / lambda x: false the optimization will only work if constant-fold is active)
         if(_options.OPT_CONSTANTFOLDING_OPTIMIZATION()) {
             pruneConstantFilters(last_op, _options.OPT_SELECTION_PUSHDOWN());
@@ -311,7 +317,7 @@ namespace tuplex {
                         auto cur_node = q.front();
                         q.pop();
                         if(!cur_node->children().empty()) {
-                            for(auto c : fop->children())
+                            for(auto& c : fop->children())
                                 q.push(c);
                         }
                         if(cur_node->type() == LogicalOperatorType::TAKE || cur_node->type() == LogicalOperatorType::FILEOUTPUT)
@@ -327,6 +333,7 @@ namespace tuplex {
                             LogicalOptimizer::projectionPushdown(end_node, nullptr, cols_accessed);
                         }
                     }
+                    fop->setChildren(end_nodes);
 
                     // no need to optimize further, pipeline has been removed already.
                     return;
@@ -337,7 +344,7 @@ namespace tuplex {
         }
 
         // regular walk
-        for(auto child : node->parents()) {
+        for(auto& child : node->parents()) {
             pruneConstantFilters(child, projectionPushdown);
         }
     }

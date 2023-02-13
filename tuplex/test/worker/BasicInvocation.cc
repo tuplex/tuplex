@@ -678,6 +678,97 @@ protected:
     }
 };
 
+TEST(BasicInvocation, FlightsConstantFilterFold) {
+    using namespace tuplex;
+    using namespace std;
+
+    cout<<">> starting flights (hyper) test"<<endl;
+
+    string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
+
+    input_pattern = "../resources/hyperspecialization/flights_all/*.csv.sample";
+
+    bool resolve_with_interpreter_only = false;
+
+    // local worker mode for easier debugging
+    ContextOptions co = ContextOptions::defaults();
+    co.set("tuplex.backend", "worker");
+
+    // activate optimizations
+    co.set("tuplex.optimizer.selectionPushdown", "true");
+    co.set("tuplex.optimizer.filterPushdown", "true");
+    co.set("tuplex.optimizer.constantFoldingOptimization", "true"); // run with constant folding on/off
+    co.set("tuplex.filterPromotion", "true");
+    co.set("tuplex.optimizer.nullValueOptimization", "true");
+    co.set("tuplex.experimental.hyperspecialization", "false"); // first check that THIS is correct.
+    co.set("tuplex.experimental.s3PreCacheSize", "1G");
+    co.set("tuplex.inputSplitSize", "2GB");
+    co.set("tuplex.resolveWithInterpreterOnly", boolToString(resolve_with_interpreter_only));
+
+    auto co_hyper = co;
+    co_hyper.set("tuplex.experimental.hyperspecialization", "true");
+
+
+    // use sampling mode first/last file, first/last rows
+    SamplingMode sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
+
+    // init runtime
+    auto rc_runtime = runtime::init(co.RUNTIME_LIBRARY().toPath());
+    ASSERT_TRUE(rc_runtime);
+
+
+    double hyper_time = 0;
+    double nohyper_time = 0;
+//    // non-hyper vs. hyper (there needs to be a runtime difference.
+//    {
+//        python::initInterpreter();
+//        python::unlockGIL();
+//        Context ctx(co);
+//        auto udf_code = flights_code();
+//
+//        Timer timer;
+//        ctx.csv(input_pattern, {}, option<bool>::none,
+//                option<char>::none, '"', {""}, {}, {}, sm)
+//                .map(UDF(udf_code))
+//                .filter(UDF("lambda x: 2001 <= x['YEAR'] <= 2004"))
+//                .tocsv("nohyper_local_worker_output.csv");
+//        nohyper_time = timer.time();
+//        std::cout<<"no-hyper mode: "<<nohyper_time<<std::endl;
+//    }
+
+    {
+        // bug: workerapp shutsdown interpreter -> needs to be fixed!
+        python::initInterpreter();
+        python::unlockGIL();
+        Context ctx(co_hyper);
+        auto udf_code = flights_code();
+
+        Timer timer;
+        ctx.csv(input_pattern, {}, option<bool>::none,
+                option<char>::none, '"', {""}, {}, {}, sm)
+                .map(UDF(udf_code))
+                .filter(UDF("lambda x: 2001 <= x['year'] <= 2004"))
+                .tocsv("hyper_local_worker_output.csv");
+        hyper_time = timer.time();
+        std::cout<<"hyper mode: "<<hyper_time<<std::endl;
+    }
+
+    // final:
+    std::cout<<"result:::"<<std::endl;
+    std::cout<<"   hyper: "<<hyper_time<<std::endl;
+    std::cout<<"no hyper: "<<nohyper_time<<std::endl;
+
+
+//    ctx.csv(input_pattern, {}, option<bool>::none,
+//            option<char>::none, '"', {""}, {}, {}, sm).map(UDF(udf_code)).tocsv("local_worker_output.csv");
+
+    // // let's use a simple pipeline to make sure everything works
+    // ctx.csv(input_pattern).selectColumns(std::vector<std::string>{"YEAR"}).tocsv("year_extract.csv");
+
+    python::lockGIL();
+    python::closeInterpreter();
+}
+
 TEST(BasicInvocation, ConstantFilterFold) {
     using namespace tuplex;
     using namespace std;

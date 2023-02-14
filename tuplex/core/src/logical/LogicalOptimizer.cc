@@ -294,6 +294,10 @@ namespace tuplex {
                 throw std::runtime_error("filter operator has unknown return type, can't optimize nor prune beyond this point.");
             }
 
+#ifndef NDEBUG
+            std::cout<<"ret type of filter is: "<<ret_type.desc()<<std::endl;
+#endif
+
             // is it constant-valued?
             if(ret_type.isConstantValued() || python::Type::EMPTYTUPLE == ret_type
             || python::Type::EMPTYLIST == ret_type || python::Type::EMPTYDICT == ret_type
@@ -1206,6 +1210,7 @@ namespace tuplex {
                     auto pickled_code = std::dynamic_pointer_cast<FilterOperator>(op)->getUDF().getPickledCode();
                     auto fop = std::shared_ptr<LogicalOperator>(new FilterOperator(grandparent, UDF(code, pickled_code), grandparent->columns()));
                     fop->setID(op->getID()); // clone with ID, important for exception tracking!
+
 #ifdef TRACE_LOGICAL_OPTIMIZATION
                     // debug:
                     std::cout<<"new filter input schema: "<<fop->getUDF().getInputSchema().getRowType().desc()<<std::endl;
@@ -1236,6 +1241,19 @@ namespace tuplex {
                     // remove old filter
                     op->setChildren({}); op->setParents({}); // no dependencies
 
+                    // need to retype fop again, b.c. of const-ness...
+                    auto parent_output_row_type = fop->parent()->getOutputSchema().getRowType();
+                    auto parent_output_columns = fop->parent()->columns();
+#ifndef NDEBUG
+                    std::cout<<"filter before retype: "<<fop->getInputSchema().getRowType().desc()<<" -> "<<((FilterOperator*)fop.get())->getUDF().getAnnotatedAST().getReturnType().desc()<<std::endl;
+#endif
+                    fop->retype(parent_output_row_type, parent_output_columns, false);
+#ifndef NDEBUG
+                    std::cout<<"filter after retype: "<<fop->getInputSchema().getRowType().desc()<<" -> "<<((FilterOperator*)fop.get())->getUDF().getAnnotatedAST().getReturnType().desc()<<std::endl;
+#endif
+#error "fix here the pushdown! I.e., the copy of the filter above is wrong. For the trivial case - need to preserve const return etc. i.e., here there's rewrite with wrong 'year'"
+
+
                     // // DEBUG
                     // for(auto child : children)
                     //     verifyLogicalPlan(child);
@@ -1243,6 +1261,8 @@ namespace tuplex {
 
                     // continue pushdown
                     filterPushdown(fop, ignoreConstantTypedColumns);
+                } else if(op->parent()->isDataSource()) {
+                    // ok, filter is directly after data source
                 } else {
                     // parent has more than one parent? ==> i.e. add filter to whichever grandparent where if it makes sense!
                     if(op->parent()->type() == LogicalOperatorType::JOIN) {
@@ -1320,6 +1340,10 @@ namespace tuplex {
 
         // get accessed columns in filter (important for checking with withColumn/mapColumn/join...)
         auto accessedColumns = op->getUDF().getAccessedColumns(ignoreConstantTypedColumns);
+
+        // special case: no columns accessed -> independent from parent!
+        if(accessedColumns.empty())
+            return false;
 
         switch(parent_operator_type) {
             case LogicalOperatorType::AGGREGATE: {

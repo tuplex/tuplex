@@ -969,9 +969,20 @@ namespace tuplex {
 
         if(ignoreConstantTypedColumns) {
             auto input_row_type = getInputSchema().getRowType();
+            assert(input_row_type.isTupleType());
+            if(_numInputColumns != 1 && input_row_type.parameters().size() == 1)
+                input_row_type = input_row_type.parameters().front();
 
+            assert(input_row_type.isTupleType());
+            std::vector<size_t> filtered_indices;
+            filtered_indices.reserve(_numInputColumns);
             // check column input types...
-            throw std::runtime_error("implement");
+            for(auto idx : indices) {
+                assert(idx < input_row_type.parameters().size());
+                if(!input_row_type.parameters()[idx].isConstantValued())
+                    filtered_indices.push_back(idx);
+            }
+            return filtered_indices;
         }
 
         return indices;

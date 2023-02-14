@@ -435,7 +435,17 @@ namespace tuplex {
 
             // TypeAnnotatorVisitor may throw an exception when fatal error is reached, hence surround with try/catch
             try {
+                // debug:
+#ifndef NDEBUG
+                if(_root && _root->type() == ASTNodeType::Function)
+                    std::cout<<"param list before retype: "<<((NFunction*)_root.get())->_parameters->getInferredType().desc()<<std::endl;
+#endif
+
                 _root->accept(tav);
+#ifndef NDEBUG
+                if(_root && _root->type() == ASTNodeType::Function)
+                    std::cout<<"param list after retype: "<<((NFunction*)_root.get())->_parameters->getInferredType().desc()<<std::endl;
+#endif
                 addCompileErrors(table->getCompileErrors());
                 addCompileErrors(tav.getCompileErrors());
                 // table->exitScope(); // leave module/function level scope

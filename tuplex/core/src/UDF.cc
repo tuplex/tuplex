@@ -1086,6 +1086,13 @@ namespace tuplex {
                         auto ptype = ftype.getParamsType();
                         assert(ptype.isTupleType());
                         assert(ptype.parameters().size() == 1);
+#ifndef NDEBUG
+                        if(paramList->getInferredType() != ptype) {
+                            std::cerr<<"assert failed with: "<<paramList->getInferredType().hash()
+                                     <<" != "<<ptype.hash()<<" , "<<paramList->getInferredType().desc()
+                                     <<" vs. "<<ptype.desc()<<std::endl;
+                        }
+#endif
                         assert(paramList->getInferredType() == ptype);
 
                         // single argument
@@ -1241,8 +1248,7 @@ namespace tuplex {
             return m;
         }
 
-        auto num_input_columns = input_row_type.parameters().size();
-        for(unsigned i = 0; i < num_input_columns; ++i)
+        for(unsigned i = 0; i < _numInputColumns; ++i)
             m[i] = i;
         return m;
     }

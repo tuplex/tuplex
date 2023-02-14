@@ -47,11 +47,13 @@ namespace tuplex {
         static void operatorPushup(const std::shared_ptr<LogicalOperator> &op);
 
         // filter breakup & pushdown optimization
-        static void emitPartialFilters(std::shared_ptr<LogicalOperator>& root);
-        static void filterBreakup(const std::shared_ptr<LogicalOperator>& op);
-        static void optimizeFilters(std::shared_ptr<LogicalOperator>& root);
-        static void pushdownFilterInJoin(std::shared_ptr<FilterOperator> fop, const std::shared_ptr<JoinOperator> &jop);
-        static void filterPushdown(const std::shared_ptr<LogicalOperator> &op);
+        static void emitPartialFilters(std::shared_ptr<LogicalOperator>& root, bool ignoreConstantTypedColumns);
+        static void filterBreakup(const std::shared_ptr<LogicalOperator>& op, bool ignoreConstantTypedColumns);
+        static void optimizeFilters(std::shared_ptr<LogicalOperator>& root, bool ignoreConstantTypedColumns);
+        static void pushdownFilterInJoin(std::shared_ptr<FilterOperator> fop,
+                                         const std::shared_ptr<JoinOperator> &jop,
+                                         bool ignoreConstantTypedColumns);
+        static void filterPushdown(const std::shared_ptr<LogicalOperator> &op, bool ignoreConstantTypedColumns);
 
         // optimize constant filters
         static void pruneConstantFilters(const std::shared_ptr<LogicalOperator>& root, bool projectionPushdown);
@@ -76,7 +78,8 @@ namespace tuplex {
         static std::vector<size_t> projectionPushdown(const std::shared_ptr<LogicalOperator>& op,
                                                const std::shared_ptr<LogicalOperator>& child = nullptr,
                                                std::vector<size_t> requiredCols=std::vector<size_t>(),
-                                               bool dropOperators=false);
+                                               bool dropOperators=false,
+                                               bool ignoreConstantTypedColumns=false);
         static void rewriteAllFollowingResolvers(std::shared_ptr<LogicalOperator> op, const std::unordered_map<size_t, size_t>& rewriteMap);
 
     };
@@ -87,15 +90,15 @@ namespace tuplex {
      * @param filter FilterOperator
      * @return true if it depends, false else. Also returns false if filter has no parent or is nullptr
      */
-    extern bool filterDependsOnParentOperator(FilterOperator* filter);
+    extern bool filterDependsOnParentOperator(FilterOperator* filter, bool ignoreConstantTypedColumns);
 
     /*!
      * check whether the UDF used in the filter depends on any columns produced by the parent operator.
      * @param filter FilterOperator
      * @return true if it depends, false else. Also returns false if filter has no parent or is nullptr
      */
-    inline bool filterDependsOnParentOperator(const std::shared_ptr<FilterOperator>& filter) {
-        return filterDependsOnParentOperator(filter.get());
+    inline bool filterDependsOnParentOperator(const std::shared_ptr<FilterOperator>& filter, bool ignoreConstantTypedColumns) {
+        return filterDependsOnParentOperator(filter.get(), ignoreConstantTypedColumns);
     }
 }
 

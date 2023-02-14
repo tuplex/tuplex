@@ -253,9 +253,11 @@ namespace tuplex {
 
         /*!
          * each UDF has a number of parameters. This here is to tell which columns are required for the computation
+         * @param ignoreConstantTypedColumns if true, then do not return indices of constant-typed columns
+         * (allows pushdown when checks are introduced in stage)
          * @return list of indices of columns that are accessed.
          */
-        std::vector<size_t> getAccessedColumns();
+        std::vector<size_t> getAccessedColumns(bool ignoreConstantTypedColumns=false);
 
         /*!
          * rewrites UDF in the sense that x['column1'] is converted to x[0] e.g.

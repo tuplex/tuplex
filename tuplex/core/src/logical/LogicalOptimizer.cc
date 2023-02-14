@@ -47,11 +47,12 @@ namespace tuplex {
 
         // filter breakup and reorder!
         // @TODO.
+         bool ignoreConstantTypedColumns = _options.OPT_CONSTANTFOLDING_OPTIMIZATION();
 
         // filter pushdown, put first (in order to eliminate as much as possible)
         if(_options.OPT_FILTER_PUSHDOWN()) {
-            emitPartialFilters(last_op);
-            optimizeFilters(last_op);
+            emitPartialFilters(last_op, ignoreConstantTypedColumns);
+            optimizeFilters(last_op, ignoreConstantTypedColumns);
         }
 
         // prune tree? (note for lambda x: true / lambda x: false the optimization will only work if constant-fold is active)
@@ -101,9 +102,11 @@ namespace tuplex {
         auto node = inplace ? root : shared_ptr<LogicalOperator>(root->clone());
         auto properties = PlanProperties::detect(node);
 
+        bool ignoreConstantTypedColumns = _options.OPT_CONSTANTFOLDING_OPTIMIZATION();
+
         if(_options.OPT_FILTER_PUSHDOWN()) {
-            emitPartialFilters(node);
-            optimizeFilters(node);
+            emitPartialFilters(node, ignoreConstantTypedColumns);
+            optimizeFilters(node, ignoreConstantTypedColumns);
         }
 
         // prune tree? (note for lambda x: true / lambda x: false the optimization will only work if constant-fold is active)
@@ -138,7 +141,7 @@ namespace tuplex {
         return node;
     }
 
-    void LogicalOptimizer::filterBreakup(const std::shared_ptr<LogicalOperator>& op) {
+    void LogicalOptimizer::filterBreakup(const std::shared_ptr<LogicalOperator>& op, bool ignoreConstantTypedColumns) {
         if(!op) return;
         if(op->type() == LogicalOperatorType::FILTER) {
             auto fop = std::dynamic_pointer_cast<FilterOperator>(op);
@@ -155,7 +158,7 @@ namespace tuplex {
             FilterBreakdownVisitor fbv;
             root->accept(fbv);
 
-            auto tmp = fop->getUDF().getAccessedColumns();
+            auto tmp = fop->getUDF().getAccessedColumns(ignoreConstantTypedColumns);
             std::set<size_t> accessed_columns(tmp.begin(), tmp.end());
             if(fbv.succeeded() && (accessed_columns.size() > 1)) { // don't break the filter if only one column is accessed
                 auto ranges = fbv.getRanges();
@@ -193,7 +196,7 @@ namespace tuplex {
         }
     }
 
-    void LogicalOptimizer::emitPartialFilters(std::shared_ptr<LogicalOperator> &root) {
+    void LogicalOptimizer::emitPartialFilters(std::shared_ptr<LogicalOperator> &root, bool ignoreConstantTypedColumns) {
 
         // optimize: break up filters
 
@@ -216,7 +219,7 @@ namespace tuplex {
 #endif
             // ==> could even lower some filters to parsers at some point!
             for(auto node : v_filters)
-                filterBreakup(node);
+                filterBreakup(node, ignoreConstantTypedColumns);
         }
 
 #ifndef NDEBUG
@@ -261,6 +264,11 @@ namespace tuplex {
     }
 
     void LogicalOptimizer::pruneConstantFilters(const std::shared_ptr<LogicalOperator>& node, bool projectionPushdown) {
+
+        // we're already in constant-folding mode here, so ok to ignore.
+        // -> requires stage-based checks for const-ness!
+        bool ignoreConstantTypedColumns = true;
+
         // this optimization should be carried out after pushing down filters.
 
         // filters may evaluate to be a constant, i.e. either false/true
@@ -328,9 +336,10 @@ namespace tuplex {
 
                         // special case for pushdown: keep only what filter requires,
                         // all other columns are not need to be parsed anymore.
-                        auto cols_accessed = fop->getUDF().getAccessedColumns();
+                        auto cols_accessed = fop->getUDF().getAccessedColumns(ignoreConstantTypedColumns);
                         if(projectionPushdown) {
-                            LogicalOptimizer::projectionPushdown(end_node, nullptr, cols_accessed);
+                            LogicalOptimizer::projectionPushdown(end_node, nullptr, cols_accessed,
+                                                                 true, ignoreConstantTypedColumns);
                         }
                     }
                     fop->setChildren(end_nodes);
@@ -349,7 +358,7 @@ namespace tuplex {
         }
     }
 
-    void LogicalOptimizer::optimizeFilters(std::shared_ptr<LogicalOperator>& root) {
+    void LogicalOptimizer::optimizeFilters(std::shared_ptr<LogicalOperator>& root, bool ignoreConstantTypedColumns) {
         // optimize:
         // ==> i.e. reorder filter predicates to bottom if possible!
         // @TODO: push all filters down
@@ -375,7 +384,7 @@ namespace tuplex {
 #endif
             // ==> could even lower some filters to parsers at some point!
             for(const auto &node : v_filters)
-                filterPushdown(node);
+                filterPushdown(node, ignoreConstantTypedColumns);
         }
 
 #ifndef NDEBUG
@@ -464,7 +473,7 @@ namespace tuplex {
                 // // this is similar to MapColumn but a bit more complicated, i.e. need to check which columns withcolumn accesses!
                 // auto wop = dynamic_cast<WithColumnOperator *>(parent);
                 // assert(wop);
-                // auto parentColsAccessed = wop->getUDF().getAccessedColumns();
+                // auto parentColsAccessed = wop->getUDF().getAccessedColumns(ignoreConstantTypedColumns);
                 // auto idx = wop->getColumnIndex();
                 // // check whether sets are disjoint and also index not used
                 // parentColsAccessed.push_back(idx); // just add to set for check
@@ -541,7 +550,8 @@ namespace tuplex {
     std::vector<size_t> LogicalOptimizer::projectionPushdown(const std::shared_ptr<LogicalOperator>& op,
                                            const std::shared_ptr<LogicalOperator>& child,
                                            std::vector<size_t> requiredCols,
-                                           bool dropOperators) {
+                                           bool dropOperators,
+                                           bool ignoreConstantTypedColumns) {
         using namespace std;
 
         if(!op)
@@ -566,7 +576,7 @@ namespace tuplex {
                 case LogicalOperatorType::WITHCOLUMN:
                 case LogicalOperatorType::FILTER: {
                     // UDF access of input...
-                    accCols = udfop->getUDF().getAccessedColumns();
+                    accCols = udfop->getUDF().getAccessedColumns(ignoreConstantTypedColumns);
                     break;
                 }
                 case LogicalOperatorType::MAPCOLUMN: {
@@ -581,7 +591,7 @@ namespace tuplex {
                     auto np = rop->getNormalParent(); assert(np);
 
                     if(np->type() != LogicalOperatorType::MAPCOLUMN) {
-                        accCols = udfop->getUDF().getAccessedColumns();
+                        accCols = udfop->getUDF().getAccessedColumns(ignoreConstantTypedColumns);
                     }
 
                     break;
@@ -613,7 +623,7 @@ namespace tuplex {
                         auto cur_op = op->children().front();
                         while(cur_op->type() == LogicalOperatorType::RESOLVE) {
                             auto rop = std::dynamic_pointer_cast<ResolveOperator>(cur_op); assert(rop);
-                            accCols = rop->getUDF().getAccessedColumns();
+                            accCols = rop->getUDF().getAccessedColumns(ignoreConstantTypedColumns);
                             for(auto c : accCols)
                                 cols.insert(c);
 
@@ -996,7 +1006,9 @@ namespace tuplex {
         return vector<size_t>();
     }
 
-    void LogicalOptimizer::pushdownFilterInJoin(std::shared_ptr<FilterOperator> fop, const std::shared_ptr<JoinOperator> &jop) {
+    void LogicalOptimizer::pushdownFilterInJoin(std::shared_ptr<FilterOperator> fop,
+                                                const std::shared_ptr<JoinOperator> &jop,
+                                                bool ignoreConstantTypedColumns) {
         using namespace std;
 
         assert(fop && jop);
@@ -1004,7 +1016,7 @@ namespace tuplex {
 
         auto idx = jop->outputKeyIndex();
         // fetch accessed columns
-        auto filterAccessedCols = fop->getUDF().getAccessedColumns();
+        auto filterAccessedCols = fop->getUDF().getAccessedColumns(ignoreConstantTypedColumns);
 
         // where to put filter for join?
         // if idx == filterAccessedCols ==> put on both sides
@@ -1072,8 +1084,8 @@ namespace tuplex {
             assert(jop->numChildren() == 1); // only filter before
             jop->setChildren(children);
 
-            filterPushdown(new_fop_left);
-            filterPushdown(new_fop_right);
+            filterPushdown(new_fop_left, ignoreConstantTypedColumns);
+            filterPushdown(new_fop_right, ignoreConstantTypedColumns);
         } else {
             bool allIndicesLessEqualKeyIndex = std::all_of(filterAccessedCols.begin(), filterAccessedCols.end(), [&](const size_t i) { return i <= idx; });
             bool allIndicesGreaterEqualKeyIndex = std::all_of(filterAccessedCols.begin(), filterAccessedCols.end(), [&](const size_t i) { return i >= idx; });
@@ -1149,7 +1161,7 @@ namespace tuplex {
 
             // assert(verifyLogicalPlan(jop));
 
-            filterPushdown(new_fop);
+            filterPushdown(new_fop, ignoreConstantTypedColumns);
         }
 
         // remove old filter
@@ -1157,7 +1169,7 @@ namespace tuplex {
         fop = nullptr;
     }
 
-    void LogicalOptimizer::filterPushdown(const std::shared_ptr<LogicalOperator> &op) {
+    void LogicalOptimizer::filterPushdown(const std::shared_ptr<LogicalOperator> &op, bool ignoreConstantTypedColumns) {
         if(!op)
             return;
 
@@ -1165,7 +1177,7 @@ namespace tuplex {
 #ifdef TRACE_LOGICAL_OPTIMIZATION
             std::cout<<"filter found!"<<std::endl;
 #endif
-            if(!filterDependsOnParentOperator(dynamic_cast<FilterOperator*>(op.get()))) {
+            if(!filterDependsOnParentOperator(dynamic_cast<FilterOperator*>(op.get()), ignoreConstantTypedColumns)) {
                 assert(op->parents().size() == 1); // filter has exactly one parent!
 #ifdef TRACE_LOGICAL_OPTIMIZATION
                 std::cout<<"push down filter in front of "<<op->parent()->name()<<std::endl;
@@ -1230,13 +1242,13 @@ namespace tuplex {
                     // // END DEBUG
 
                     // continue pushdown
-                    filterPushdown(fop);
+                    filterPushdown(fop, ignoreConstantTypedColumns);
                 } else {
                     // parent has more than one parent? ==> i.e. add filter to whichever grandparent where if it makes sense!
                     if(op->parent()->type() == LogicalOperatorType::JOIN) {
                         auto jop = std::dynamic_pointer_cast<JoinOperator>(op->parent()); assert(jop);
                         auto fop = std::dynamic_pointer_cast<FilterOperator>(op); assert(fop);
-                        pushdownFilterInJoin(fop, jop);
+                        pushdownFilterInJoin(fop, jop, ignoreConstantTypedColumns);
                     } else throw std::runtime_error("only operator for multiple grandparent supported yet is join!");
 
                     // go on with pushdown...
@@ -1253,11 +1265,12 @@ namespace tuplex {
 
             // traverse tree until filter is found...
             for(const auto &p : op->parents())
-                filterPushdown(p);
+                filterPushdown(p, ignoreConstantTypedColumns);
         }
     }
 
-    void LogicalOptimizer::rewriteAllFollowingResolvers(std::shared_ptr<LogicalOperator> op, const std::unordered_map<size_t, size_t>& rewriteMap) {
+    void LogicalOptimizer::rewriteAllFollowingResolvers(std::shared_ptr<LogicalOperator> op,
+                                                        const std::unordered_map<size_t, size_t>& rewriteMap) {
         // go over children (single!)
         if(!op)
             return;
@@ -1284,7 +1297,7 @@ namespace tuplex {
 
 
 
-    bool filterDependsOnParentOperator(FilterOperator* op) {
+    bool filterDependsOnParentOperator(FilterOperator* op, bool ignoreConstantTypedColumns) {
 
         auto& logger = Logger::instance().logger("logical optimizer");
 
@@ -1306,7 +1319,7 @@ namespace tuplex {
         // auto accessPaths = op->getUDF().getAccessedPaths();
 
         // get accessed columns in filter (important for checking with withColumn/mapColumn/join...)
-        auto accessedColumns = op->getUDF().getAccessedColumns();
+        auto accessedColumns = op->getUDF().getAccessedColumns(ignoreConstantTypedColumns);
 
         switch(parent_operator_type) {
             case LogicalOperatorType::AGGREGATE: {
@@ -1341,7 +1354,7 @@ namespace tuplex {
             case LogicalOperatorType::WITHCOLUMN: {
                 // this is similar to MapColumn but a bit more complicated, i.e. need to check which columns withcolumn accesses!
                 auto wop = dynamic_cast<WithColumnOperator*>(parent.get()); assert(wop);
-                auto parentColsAccessed = wop->getUDF().getAccessedColumns();
+                auto parentColsAccessed = wop->getUDF().getAccessedColumns(ignoreConstantTypedColumns);
                 auto idx = wop->getColumnIndex();
 
                 // Note: this requires adjustment of getting rid of unused params in UDFs when

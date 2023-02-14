@@ -937,7 +937,7 @@ namespace tuplex {
         }
     }
 
-    std::vector<size_t> UDF::getAccessedColumns() {
+    std::vector<size_t> UDF::getAccessedColumns(bool ignoreConstantTypedColumns) {
 
         // need valid input schema!
         assert(!(getInputSchema() == Schema::UNKNOWN));
@@ -965,7 +965,16 @@ namespace tuplex {
         auto root = getAnnotatedAST().getFunctionAST();
         LambdaAccessedColumnVisitor acv;
         root->accept(acv);
-        return acv.getAccessedIndices();
+        auto indices = acv.getAccessedIndices();
+
+        if(ignoreConstantTypedColumns) {
+            auto input_row_type = getInputSchema().getRowType();
+
+            // check column input types...
+            throw std::runtime_error("implement");
+        }
+
+        return indices;
     }
 
 

@@ -14,6 +14,9 @@ namespace tuplex {
     protected:
         ASTNode *replace(ASTNode *parent, ASTNode *node) override;
     };
+
+    // helper function to generate new ASTNode from type
+    extern ASTNode* astNodeFromConstType(const python::Type& t);
 }
 
 #endif //TUPLEX_REPLACECONSTANTTYPESVISITOR_H

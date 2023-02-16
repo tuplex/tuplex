@@ -76,7 +76,7 @@ namespace tuplex {
             if(!conf.columns.empty()) {
                 // update internal column names & rewrite UDF accordingly
                 _columnNames = conf.columns;
-                _udf.rewriteDictAccessInAST(_columnNames);
+                _udf.rewriteDictAccessInAST(_columnNames, "", conf.coltype_hints);
             }
 
             bool success = _udf.retype(conf.row_type);

@@ -10,6 +10,7 @@
 
 #include <UDF.h>
 #include "../../adapters/cpython/include/PythonHelpers.h"
+#include "visitors/ReplaceConstantTypesVisitor.h"
 
 
 #include <graphviz/GraphVizGraph.h>
@@ -19,6 +20,7 @@
 #include <visitors/ColumnRewriteVisitor.h>
 #include <tracing/TraceVisitor.h>
 #include <visitors/ApplyVisitor.h>
+#include <visitors/IReplaceParameterVisitor.h>
 
 #ifndef NDEBUG
 static int g_func_counter = 0;
@@ -1366,7 +1368,69 @@ namespace tuplex {
         return true;
     }
 
-    bool UDF::rewriteDictAccessInAST(const std::vector<std::string> &columnNames, const std::string& parameterName) {
+    std::unordered_map<std::string, python::Type> UDF::constantColumnMap() const {
+        std::unordered_map<std::string, python::Type> m;
+        // go through input columns and check whether they're constant, return array then.
+
+        auto input_row_type = getInputSchema().getRowType();
+        assert(input_row_type.isTupleType());
+        if(_numInputColumns != 1 && input_row_type.parameters().size() == 1)
+            input_row_type = input_row_type.parameters().front();
+
+        input_row_type = python::Type::propagateToTupleType(input_row_type);
+
+        for(unsigned i = 0; i < _columnNames.size(); ++i) {
+            assert(i < input_row_type.parameters().size());
+            auto col_type = input_row_type.parameters()[i];
+
+            if(col_type.isConstantValued())
+                m[_columnNames[i]] = col_type;
+        }
+
+        return m;
+    }
+
+
+    class ReplaceConstantColumnAccessesVisitor : public IReplaceParameterVisitor {
+    private:
+        std::string _parameter;
+        std::unordered_map<std::string, python::Type> _additional_type_hints; // additional hints for name -> col.
+    protected:
+        inline ASTNode* replaceAccess(NSubscription* sub) override {
+            if(!sub)
+                return nullptr;
+            auto id = (NIdentifier*)(sub->_value.get());
+            auto expr_type = sub->_expression->getInferredType();
+            std::string key = "";
+            if(sub->_expression->type() == ASTNodeType::String) {
+                key = ((NString*)(sub->_expression.get()))->value();
+            } else if(expr_type.isConstantValued() && expr_type.underlying() == python::Type::STRING) {
+                key = str_value_from_python_raw_value(expr_type.constant());
+            } else {
+                return sub;
+            }
+
+            // check if there's a match within type hints & it is constnt -> then ovveride
+            auto it = _additional_type_hints.find(key);
+            if(it != _additional_type_hints.end() && it->second.isConstantValued()) {
+                // replace sub with constant!
+                auto new_node = astNodeFromConstType(it->second);
+                if(new_node)
+                    return new_node;
+            }
+
+            return sub;
+        }
+    public:
+        ReplaceConstantColumnAccessesVisitor() = delete;
+        ReplaceConstantColumnAccessesVisitor(const std::string& parameter,
+                                             const std::unordered_map<std::string, python::Type>& coltype_hints) : IReplaceParameterVisitor(parameter),
+                                             _additional_type_hints(coltype_hints) {}
+    };
+
+    bool UDF::rewriteDictAccessInAST(const std::vector<std::string> &columnNames,
+                                     const std::string& parameterName,
+                                     const std::unordered_map<std::string, python::Type>& coltype_hints) {
         auto& logger = Logger::instance().logger("logical");
 
         // save
@@ -1411,10 +1475,20 @@ namespace tuplex {
 
         // got a param to rewrite?
         if(!parameter.empty()) {
+            // additional hints? -> rewrite constant accesses!
+            if(!coltype_hints.empty()) {
+                logger.debug("using additional coltypes to rewrite parameter access");
+                ReplaceConstantColumnAccessesVisitor rccav(parameter, coltype_hints) ;
+                root->accept(rccav);
+            }
+
             // are column names the same? If not, deoptimize first by rewriting numbers into columns
             if(!original_column_names.empty() && !vec_equal(columnNames, original_column_names)) {
                 logger.debug("column names differ, restoring column access via column names.");
-                ColumnRewriteVisitor crv(original_column_names, parameter, _rewriteMap, ColumnRewriteMode::INDEX_TO_NAME);
+                ColumnRewriteVisitor crv(original_column_names,
+                                         parameter,
+                                         _rewriteMap,
+                                         ColumnRewriteMode::INDEX_TO_NAME);
                 root->accept(crv);
                 if(crv.failed()) {
                     logger.error("failed to rewrite indices to names");

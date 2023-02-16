@@ -54,6 +54,7 @@ namespace tuplex {
         python::Type row_type; // new row type
         std::vector<std::string> columns;
         bool is_projected; // whether row_type/columns are projected
+        std::unordered_map<std::string, python::Type> coltype_hints; // optional additional column type hints overriding row_type, useful for retyping.
     };
 
     class LogicalOperator : public std::enable_shared_from_this<LogicalOperator> {

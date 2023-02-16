@@ -322,14 +322,14 @@ namespace tuplex {
                     // i.e. remove everything after parents (except for
                     // go through tree and stop only at output nodes
                     std::queue<std::shared_ptr<LogicalOperator>> q;
-                    for(auto c : fop->children())
+                    for(auto& c : fop->children())
                         q.push(c);
                     std::vector<std::shared_ptr<LogicalOperator>> end_nodes;
                     while(!q.empty()) {
                         auto cur_node = q.front();
                         q.pop();
                         if(!cur_node->children().empty()) {
-                            for(auto& c : fop->children())
+                            for(auto& c : cur_node->children())
                                 q.push(c);
                         }
                         if(cur_node->type() == LogicalOperatorType::TAKE || cur_node->type() == LogicalOperatorType::FILEOUTPUT)
@@ -1208,6 +1208,10 @@ namespace tuplex {
                     // create copy of filter ==> need to reparse UDF & Co because of column access!
                     auto code = std::dynamic_pointer_cast<FilterOperator>(op)->getUDF().getCode();
                     auto pickled_code = std::dynamic_pointer_cast<FilterOperator>(op)->getUDF().getPickledCode();
+
+                    // get constant map (for info)
+                    auto colname_map = std::dynamic_pointer_cast<FilterOperator>(op)->getUDF().constantColumnMap();
+
                     auto fop = std::shared_ptr<LogicalOperator>(new FilterOperator(grandparent, UDF(code, pickled_code), grandparent->columns()));
                     fop->setID(op->getID()); // clone with ID, important for exception tracking!
 
@@ -1247,12 +1251,16 @@ namespace tuplex {
 #ifndef NDEBUG
                     std::cout<<"filter before retype: "<<fop->getInputSchema().getRowType().desc()<<" -> "<<((FilterOperator*)fop.get())->getUDF().getAnnotatedAST().getReturnType().desc()<<std::endl;
 #endif
-                    fop->retype(parent_output_row_type, parent_output_columns, false);
+
+                    RetypeConfiguration conf;
+                    conf.row_type = parent_output_row_type;
+                    conf.columns = parent_output_columns;
+                    conf.is_projected = false;
+                    conf.coltype_hints = colname_map; // <-- overwrite hints when constants are pushed around.
+                    fop->retype(conf);
 #ifndef NDEBUG
                     std::cout<<"filter after retype: "<<fop->getInputSchema().getRowType().desc()<<" -> "<<((FilterOperator*)fop.get())->getUDF().getAnnotatedAST().getReturnType().desc()<<std::endl;
 #endif
-#error "fix here the pushdown! I.e., the copy of the filter above is wrong. For the trivial case - need to preserve const return etc. i.e., here there's rewrite with wrong 'year'"
-
 
                     // // DEBUG
                     // for(auto child : children)

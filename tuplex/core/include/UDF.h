@@ -263,9 +263,12 @@ namespace tuplex {
          * rewrites UDF in the sense that x['column1'] is converted to x[0] e.g.
          * @param columnNames vector of column names to use for rewriting.
          * @param parameterName which parameter to rewrite, empty string to rewrite single case UDF
+         * @param coltype_hints optional, additional type hints taking precedence for specific column names.
          * @return false if e.g. a non-existing column name is accessed.
          */
-        bool rewriteDictAccessInAST(const std::vector<std::string>& columnNames, const std::string& parameterName="");
+        bool rewriteDictAccessInAST(const std::vector<std::string>& columnNames,
+                                    const std::string& parameterName="",
+                                    const std::unordered_map<std::string, python::Type>& coltype_hints={});
 
         /*!
          * returns rewrite map that won't change anything.
@@ -277,6 +280,12 @@ namespace tuplex {
          * @param rewriteMap
          */
         bool rewriteParametersInAST(const std::unordered_map<size_t, size_t>& rewriteMap);
+
+        /*!
+         * fetch constant column map for rewrite (string columns only)
+         * @return map of constant columns
+         */
+        std::unordered_map<std::string, python::Type> constantColumnMap() const;
 
         /*!
          * resets AST and all meta information (i.e., whatever has been rewritten).

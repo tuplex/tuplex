@@ -7,7 +7,7 @@ NUM_RUNS=10
 TIMEOUT=3600
 
 # make results directory
-RESDIR=results_sampling
+RESDIR=results_sampling/perfile-badparse-fmt
 mkdir -p ${RESDIR}
 PYTHON=python3.9
 echo "benchmarking sampling times"

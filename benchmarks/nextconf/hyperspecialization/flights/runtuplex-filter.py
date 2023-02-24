@@ -236,7 +236,11 @@ if __name__ == '__main__':
     tstart = time.time()
     ### QUERY HERE ###
 
-    ctx.csv(input_pattern, sampling_mode=sm).map(fill_in_delays).tocsv(s3_output_path)
+    #debug
+    input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_1999_05.csv'
+
+    #ctx.csv(input_pattern, sampling_mode=sm).filter(lambda row: 2000 <= row['YEAR'] <= 2005).map(fill_in_delays).tocsv(s3_output_path)
+    ctx.csv(input_pattern, sampling_mode=sm).map(fill_in_delays).filter(lambda x: 2000 <= x['year'] <= 2005).tocsv(s3_output_path)
 
     ### END QUERY ###
     run_time = time.time() - tstart

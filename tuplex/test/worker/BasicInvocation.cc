@@ -829,6 +829,63 @@ TEST(BasicInvocation, ConstantFilterFold) {
     }
 }
 
+TEST(BasicInvocation, FlightHyperSingleFileWithFilter) {
+    // ctx.csv(input_pattern, sampling_mode=sm).map(fill_in_delays).filter(lambda x: 2000 <= x['year'] <= 2005).tocsv(s3_output_path)
+
+    using namespace tuplex;
+    using namespace std;
+
+    cout<<">> starting flights (hyper) test"<<endl;
+
+    string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
+    bool resolve_with_interpreter_only = false;
+
+    // local worker mode for easier debugging
+    ContextOptions co = ContextOptions::defaults();
+    co.set("tuplex.backend", "worker");
+    co.set("tuplex.backend", "lambda");
+
+    // activate optimizations
+    co.set("tuplex.optimizer.selectionPushdown", "true");
+    co.set("tuplex.optimizer.filterPushdown", "true");
+    co.set("tuplex.optimizer.constantFoldingOptimization", "true"); // run with constant folding on/off
+    co.set("tuplex.filterPromotion", "true");
+    co.set("tuplex.optimizer.nullValueOptimization", "true");
+    co.set("tuplex.experimental.hyperspecialization", "false"); // first check that THIS is correct.
+    co.set("tuplex.experimental.s3PreCacheSize", "1G");
+    co.set("tuplex.inputSplitSize", "2GB");
+    co.set("tuplex.resolveWithInterpreterOnly", boolToString(resolve_with_interpreter_only));
+
+    auto co_hyper = co;
+    co_hyper.set("tuplex.experimental.hyperspecialization", "true");
+
+    // use sampling mode first/last file, first/last rows
+    SamplingMode sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
+
+    // init runtime
+    auto rc_runtime = runtime::init(co.RUNTIME_LIBRARY().toPath());
+    ASSERT_TRUE(rc_runtime);
+
+    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1999_05.csv";
+
+    {
+        // bug: workerapp shutsdown interpreter -> needs to be fixed!
+        python::initInterpreter();
+        python::unlockGIL();
+        Context ctx(co_hyper);
+        auto udf_code = flights_code();
+
+        Timer timer;
+        ctx.csv(input_pattern, {}, option<bool>::none,
+                option<char>::none, '"', {""}, {}, {}, sm)
+                .map(UDF(udf_code))
+                .filter(UDF("lambda x: 2000 <= x['year'] <= 2005"))
+                .tocsv("hyper_local_worker_output.csv");
+        double hyper_time = timer.time();
+        std::cout<<"hyper mode: "<<hyper_time<<std::endl;
+    }
+}
+
 // proper test for flight processing
 TEST(BasicInvocation, ProperFlightsTest) {
     using namespace tuplex;

@@ -129,7 +129,7 @@ namespace tuplex {
                     if(serialize_exception_in_tuplex_format) {
                         // _env->debugPrint(builder, "serializing exception row in tuplex format.");
                         // add here exception block for pipeline errors, serialize tuple etc...
-                        auto serialized_row = serializedExceptionRow(builder, ft, exception_serialization_format());
+
 
                         // force exception code to be generalcaseviolation so everything is being decoded properly>
                         // -> true exception code will be again produced by general-case (or interpreter)
@@ -146,11 +146,24 @@ namespace tuplex {
                                                                                                      {ExceptionSerializationFormat::NORMALCASE, "normal"}};
                         logger.debug("serializing exceptions in " + name_lookup.at(exception_serialization_format()) + " exception row format");
                         logger.debug("I.e., when creating resolve tasks for this pipeline - set exceptionRowType to this type.");
-                        outputRowNumber = builder.CreateLoad(outputRowNumberVar);
+
                         llvm::BasicBlock *curBlock = builder.GetInsertBlock();
-                        auto bbException = exceptionBlock(builder, userData, ecCode, ecOpID, outputRowNumber,
-                                                          exception_serialization_format(),
-                                                          serialized_row.val, serialized_row.size);
+
+                        // new, use lazy func!
+                        auto bbException = exceptionBlock(builder, userData,
+                                                          ecCode, ecOpID,
+                                                          [this, ft, outputRowNumberVar](llvm::IRBuilder<>& builder) {
+                           ExceptionDetails except_details;
+
+                            // -> move this here into exception block! rtmalloc makes optimization else impossible...
+                            auto serialized_row = serializedExceptionRow(builder, ft, exception_serialization_format());
+                            except_details.badDataPtr = serialized_row.val;
+                            except_details.badDataLength = serialized_row.size;
+                            except_details.fmt = exception_serialization_format();
+                            except_details.rowNumber = builder.CreateLoad(outputRowNumberVar);
+                           return except_details;
+                        });
+
                         builder.CreateBr(bbNoException);
                         // add branching to previous block
                         builder.SetInsertPoint(curBlock);
@@ -160,19 +173,31 @@ namespace tuplex {
                         // -> this doesn't allow for proper resolved etc. logic. wrt to counting exceptions (i.e. requires slow path/interpreter path to exist!)
                         logger.warn("this requires slowpath/interpreter path to exist");
 
-                        outputRowNumber = builder.CreateLoad(outputRowNumberVar);
+
                         auto nc_ecCode = _env->i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT));
                         auto nc_ecOpID = _env->i64Const(_operatorID);
 
-                        // serialize as bad parse -> NOTE: the normal-case checks have passed. Hence, use dummies
-                        // _env->printValue(builder, ecCode, "cell source parse failed with code, serializing true data: ");
-                        auto serialized_row = serializeBadParseException(builder, cellsPtr, sizesPtr, true, true);
-
                         // important to get curBlock here.
                         llvm::BasicBlock *curBlock = builder.GetInsertBlock();
-                        auto bbException = exceptionBlock(builder, userData, nc_ecCode, nc_ecOpID, outputRowNumber,
-                                                          exception_serialization_format(),
-                                                          serialized_row.val, serialized_row.size);
+
+
+                        // new: use lazy func!
+                        // -> move except serialization into except block (rtmalloc difficult to optimize)
+
+                        auto bbException = exceptionBlock(builder, userData,
+                                                          nc_ecCode, nc_ecOpID,
+                                                          [this, &cellsPtr, &sizesPtr, outputRowNumberVar](llvm::IRBuilder<>& builder) {
+                            // serialize as bad parse -> NOTE: the normal-case checks have passed. Hence, use dummies
+                            // _env->printValue(builder, ecCode, "cell source parse failed with code, serializing true data: ");
+                            auto serialized_row = serializeBadParseException(builder, cellsPtr, sizesPtr, true, true);
+                            ExceptionDetails except_details;
+
+                            except_details.badDataPtr = serialized_row.val;
+                            except_details.badDataLength = serialized_row.size;
+                            except_details.fmt = exception_serialization_format();
+                            except_details.rowNumber = builder.CreateLoad(outputRowNumberVar);
+                            return except_details;
+                        });
                         builder.CreateBr(bbNoException);
                         // add branching to previous block
                         builder.SetInsertPoint(curBlock);

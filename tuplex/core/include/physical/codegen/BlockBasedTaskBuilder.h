@@ -101,6 +101,27 @@ namespace tuplex {
                                              llvm::Value *badDataPtr,
                                              llvm::Value *badDataLength);
 
+            struct ExceptionDetails {
+                llvm::Value* rowNumber;
+                ExceptionSerializationFormat fmt;
+                llvm::Value* badDataPtr;
+                llvm::Value* badDataLength;
+            };
+
+            /*!
+             * creates a new exceptionn block, but builds/serializes exception lazily! I.e., at start of exception block.
+             * @param builder
+             * @param userData
+             * @param exceptionCode
+             * @param exceptionOperatorID
+             * @param lazyExceptFunc
+             * @return new except basic block to link to.
+             */
+            llvm::BasicBlock *exceptionBlock(llvm::IRBuilder<>& builder,
+                                             llvm::Value* userData,
+                                             llvm::Value* exceptionCode,
+                                             llvm::Value* exceptionOperatorID,
+                                             std::function<ExceptionDetails(llvm::IRBuilder<>& builder)> lazyExceptFunc);
 
             inline void callExceptHandler(llvm::IRBuilder<> &builder,
                                              llvm::Value *userData,

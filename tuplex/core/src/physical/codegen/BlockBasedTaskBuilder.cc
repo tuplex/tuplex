@@ -196,19 +196,20 @@ namespace tuplex {
             return {};
         }
 
-        llvm::BasicBlock* BlockBasedTaskBuilder::exceptionBlock(llvm::IRBuilder<>& builder,
-                llvm::Value* userData,
-                llvm::Value *exceptionCode,
-                llvm::Value *exceptionOperatorID,
-                llvm::Value *rowNumber,
-                const ExceptionSerializationFormat& fmt,
-                llvm::Value *badDataPtr,
-                llvm::Value *badDataLength) {
+        llvm::BasicBlock *BlockBasedTaskBuilder::exceptionBlock(llvm::IRBuilder<> &builder, llvm::Value *userData,
+                                                                llvm::Value *exceptionCode,
+                                                                llvm::Value *exceptionOperatorID,
+                                                                std::function<ExceptionDetails(
+                                                                        llvm::IRBuilder<> &)> lazyExceptFunc) {
             // creates new exception block w. handlers and so on
             using namespace llvm;
             auto func = builder.GetInsertBlock()->getParent(); assert(func);
             BasicBlock* block = BasicBlock::Create(env().getContext(), "except", func);
             builder.SetInsertPoint(block); // first block
+
+            // lazy init details
+            auto except_details = lazyExceptFunc(builder);
+
             auto& context = env().getContext();
 
             if(!_exceptionHandlerName.empty()) {
@@ -233,7 +234,9 @@ namespace tuplex {
 
                     builder.CreateCondBr(ignoreCond, bbDone, bb);
                     builder.SetInsertPoint(bb);
-                    callExceptHandler(builder, userData, exceptionCode, exceptionOperatorID, rowNumber, fmt, badDataPtr, badDataLength);
+                    callExceptHandler(builder, userData, exceptionCode, exceptionOperatorID,
+                                      except_details.rowNumber, except_details.fmt,
+                                      except_details.badDataPtr, except_details.badDataLength);
                     builder.CreateBr(bbDone);
 
                     builder.SetInsertPoint(bbDone);
@@ -243,10 +246,31 @@ namespace tuplex {
                     // _env->debugPrint(builder, "row number of exception is: ", rowNumber);
 
                     // simple call to exception handler...
-                    callExceptHandler(builder, userData, exceptionCode, exceptionOperatorID, rowNumber, fmt, badDataPtr, badDataLength);
+                    callExceptHandler(builder, userData, exceptionCode, exceptionOperatorID,
+                                      except_details.rowNumber, except_details.fmt,
+                                      except_details.badDataPtr, except_details.badDataLength);
                 }
             }
             return block;
+        }
+
+        llvm::BasicBlock* BlockBasedTaskBuilder::exceptionBlock(llvm::IRBuilder<>& builder,
+                llvm::Value* userData,
+                llvm::Value *exceptionCode,
+                llvm::Value *exceptionOperatorID,
+                llvm::Value *rowNumber,
+                const ExceptionSerializationFormat& fmt,
+                llvm::Value *badDataPtr,
+                llvm::Value *badDataLength) {
+            return exceptionBlock(builder, userData, exceptionCode, exceptionOperatorID,
+                                  [=](llvm::IRBuilder<>& builder) {
+                ExceptionDetails except_details;
+                except_details.rowNumber = rowNumber;
+                except_details.fmt = fmt;
+                except_details.badDataPtr = badDataPtr;
+                except_details.badDataLength = badDataLength;
+                return except_details;
+            });
         }
 
         llvm::Value * BlockBasedTaskBuilder::initIntermediate(llvm::IRBuilder<> &builder) {

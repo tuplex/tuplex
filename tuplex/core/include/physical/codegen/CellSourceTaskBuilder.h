@@ -72,6 +72,11 @@ namespace tuplex {
                                                          llvm::Value* sizesPtr, bool use_dummies,
                                                          bool use_only_projected_general_case_columns) const;
 
+            SerializableValue serializeCellVector(llvm::IRBuilder<>& builder,
+                                                  const std::vector<llvm::Value*>& cells,
+                                                  const std::vector<llvm::Value*>& cell_sizes,
+                                                  llvm::Value* empty_str=nullptr) const;
+
             inline void exitWith(llvm::IRBuilder<>& builder, llvm::Value* ecCode) {
                 assert(ecCode);
                 if(ecCode->getType() != env().i64Type())

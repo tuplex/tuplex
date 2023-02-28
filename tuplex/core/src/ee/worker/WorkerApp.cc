@@ -19,6 +19,10 @@
 
 namespace tuplex {
 
+    int64_t dummy_cell_functor(void* userData, int64_t num_cells, char **cells , int64_t* cell_sizes) {
+        return 0;
+    }
+
     int WorkerApp::globalInit(bool skip) {
         // skip if already initialized.
         if(_globallyInitialized)
@@ -156,7 +160,7 @@ namespace tuplex {
         }
 
         // do not call free, but instead releaseRunTimeMemory
-        // runtime::releaseRunTimeMemory();
+         runtime::releaseRunTimeMemory();
 
 #ifdef BUILD_WITH_AWS
         // causes error!!!
@@ -1416,8 +1420,12 @@ namespace tuplex {
                     auto delimiter = tstage->csvInputDelimiter();
                     auto quotechar = tstage->csvInputQuotechar();
                     auto colsToKeep = indicesToBoolArray(tstage->generalCaseInputColumnsToKeep(), tstage->inputColumnCount()); //tstage->columnsToKeep();
+                    auto cell_functor = reinterpret_cast<codegen::cells_row_f>(syms->functor);
 
-                    auto csv = new CSVReader(userData, reinterpret_cast<codegen::cells_row_f>(syms->functor),
+                    // for errors, use this to fix...
+                    // cell_functor = dummy_cell_functor;
+
+                    auto csv = new CSVReader(userData, cell_functor,
                                              normalCaseEnabled,
                                              inputNodeID,
                                              reinterpret_cast<codegen::exception_handler_f>(exceptRowCallback),

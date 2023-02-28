@@ -787,49 +787,158 @@ namespace tuplex {
                 }
             }
 
+            return serializeCellVector(builder, cell_strs, cell_sizes);
 
-            size_t numCells = numGeneralCaseCells;
-            llvm::Value* buf_size = _env->i64Const(sizeof(int64_t) + numCells * sizeof(int64_t));
-            // add actual data sizes up.
+//            size_t numCells = numGeneralCaseCells;
+//            llvm::Value* buf_size = _env->i64Const(sizeof(int64_t) + numCells * sizeof(int64_t));
+//            // add actual data sizes up.
+//            llvm::Value* varlen_total_size = _env->i64Const(0);
+//            for(const auto& vsize : cell_sizes) {
+//                varlen_total_size = builder.CreateAdd(varlen_total_size, vsize);
+//            }
+//            buf_size = builder.CreateAdd(varlen_total_size, buf_size);
+//
+//            SerializableValue row;
+//            // alloc temp buffer (rtmalloc!)
+//            row.val = _env->malloc(builder, buf_size);
+//            row.size = buf_size;
+//
+//            // first 64bit is actual number of rows.
+//            llvm::Value* buf = row.val;
+//            builder.CreateStore(_env->i64Const(numCells), builder.CreatePointerCast(buf, _env->i64ptrType()));
+//            buf = builder.CreateGEP(buf, _env->i32Const(sizeof(int64_t)));
+//
+//            // store cells now incl. offsets...
+//            llvm::Value* acc_size = _env->i64Const(0);
+//            for(unsigned i = 0; i < numCells; ++i) {
+//                auto cell = cell_strs[i];
+//                auto cell_size = cell_sizes[i];
+//
+//                assert(cell && cell->getType() == _env->i8ptrType());
+//                assert(cell_size && cell_size->getType() == _env->i64Type());
+//
+//                // special case empty str?
+//                assert(cell && cell_size);
+//                // the offset is computed using how many varlen fields have been already serialized
+//                llvm::Value *offset = builder.CreateAdd(_env->i64Const(((int64_t)numCells - (int64_t)i) * sizeof(int64_t)), acc_size);
+//                // len | size
+//                llvm::Value *info = builder.CreateOr(builder.CreateZExt(offset, _env->i64Type()), builder.CreateShl(builder.CreateZExt(cell_size, _env->i64Type()), 32));
+//                builder.CreateStore(info, builder.CreateBitCast(buf, _env->i64ptrType()), false);
+//
+//                // perform memcpy
+//                auto dest_ptr = builder.CreateGEP(buf, offset);
+//                builder.CreateMemCpy(dest_ptr, 0, cell, 0, cell_size);
+//
+//                acc_size = builder.CreateAdd(acc_size, cell_size);
+//                buf = builder.CreateGEP(buf, _env->i32Const(sizeof(int64_t)));
+//            }
+//
+//            return row;
+        }
+
+        inline bool is_str_like_llvm_type(llvm::Type* type) {
+            if(!type)
+                return false;
+            if(type->isPointerTy() && type->getPointerElementType()->isIntegerTy(8))
+                return true; //i8ptrtype
+
+//            std::string str;
+//            llvm::raw_string_ostream os(str);
+//            type->print(os);
+//            os.flush();
+//            std::cout<<str<<std::endl;
+            return false;
+        }
+
+        SerializableValue
+        CellSourceTaskBuilder::serializeCellVector(llvm::IRBuilder<> &builder, const std::vector<llvm::Value *> &cells,
+                                                   const std::vector<llvm::Value *> &cell_sizes,
+                                                   llvm::Value *empty_str) const {
+            assert(cells.size() == cell_sizes.size());
+
+            // allocate space, if empty str is used -> allocate only single char!
+            auto num_cells = cells.size();
+            llvm::Value* buf_size = _env->i64Const(sizeof(int64_t) * (1 + num_cells)); // 8 bytes for number of cells + 8bytes for all cells!
+
+            _env->printValue(builder, buf_size, "fixed buf part in bytes: ");
+
+            // check how much varlength space is required!
+            size_t num_empty_str = 0;
             llvm::Value* varlen_total_size = _env->i64Const(0);
-            for(const auto& vsize : cell_sizes) {
-                varlen_total_size = builder.CreateAdd(varlen_total_size, vsize);
+            for(unsigned i = 0; i < num_cells; ++i) {
+                // nullptr cell? do not count for buffer size!
+                // -> 0 store.
+                if(!cells[i]) {
+                    num_empty_str++;
+                    continue;
+                }
+
+                if(cells[i] != empty_str) {
+                    varlen_total_size = builder.CreateAdd(varlen_total_size, cell_sizes[i]);
+                } else {
+                    num_empty_str++;
+                }
             }
-            buf_size = builder.CreateAdd(varlen_total_size, buf_size);
+            _env->printValue(builder, varlen_total_size, "total varlen bytes (excl. empty str) required: ");
+            buf_size = builder.CreateAdd(buf_size, varlen_total_size);
+            if(0 != num_empty_str)
+                buf_size = builder.CreateAdd(buf_size, _env->i64Const(1));
+            _env->printValue(builder, buf_size, "total bytes required (" + std::to_string(num_empty_str) + "x empty str): ");
 
             SerializableValue row;
-            // alloc temp buffer (rtmalloc!)
             row.val = _env->malloc(builder, buf_size);
             row.size = buf_size;
 
+            // store now everything
             // first 64bit is actual number of rows.
             llvm::Value* buf = row.val;
-            builder.CreateStore(_env->i64Const(numCells), builder.CreatePointerCast(buf, _env->i64ptrType()));
+            if(0 != num_empty_str) {
+                // store empty string (0) at end of buffer
+                auto idx = builder.CreateGEP(buf, builder.CreateSub(buf_size, _env->i64Const(1)));
+                builder.CreateStore(_env->i8Const('\0'), idx);
+            }
+
+            builder.CreateStore(_env->i64Const(num_cells), builder.CreatePointerCast(buf, _env->i64ptrType()));
             buf = builder.CreateGEP(buf, _env->i32Const(sizeof(int64_t)));
 
-            // store cells now incl. offsets...
+            // store general case cells now...
             llvm::Value* acc_size = _env->i64Const(0);
-            for(unsigned i = 0; i < numCells; ++i) {
-                auto cell = cell_strs[i];
-                auto cell_size = cell_sizes[i];
+            llvm::Value* empty_str_offset = nullptr;
+            for(unsigned pos = 0; pos < num_cells; ++pos) {
+                    auto cell = cells[pos];
+                    auto cell_size = cell_sizes[pos];
 
-                assert(cell && cell->getType() == _env->i8ptrType());
-                assert(cell_size && cell_size->getType() == _env->i64Type());
+                    bool regular_cell = cell && cell_size && cell != empty_str;
+                    // special case empty str?
+                    if(regular_cell) {
 
-                // special case empty str?
-                assert(cell && cell_size);
-                // the offset is computed using how many varlen fields have been already serialized
-                llvm::Value *offset = builder.CreateAdd(_env->i64Const(((int64_t)numCells - (int64_t)i) * sizeof(int64_t)), acc_size);
-                // len | size
-                llvm::Value *info = builder.CreateOr(builder.CreateZExt(offset, _env->i64Type()), builder.CreateShl(builder.CreateZExt(cell_size, _env->i64Type()), 32));
-                builder.CreateStore(info, builder.CreateBitCast(buf, _env->i64ptrType()), false);
+                        //assert(cell && is_str_like_llvm_type(cell->getType()));
+                        assert(cell_size && cell_size->getType() == _env->i64Type());
 
-                // perform memcpy
-                auto dest_ptr = builder.CreateGEP(buf, offset);
-                builder.CreateMemCpy(dest_ptr, 0, cell, 0, cell_size);
+                        // the offset is computed using how many varlen fields have been already serialized
+                        llvm::Value *offset = builder.CreateAdd(_env->i64Const(((int64_t)num_cells - (int64_t)pos) * sizeof(int64_t)), acc_size);
+                        // len | size
+                        llvm::Value *info = pack_offset_and_size(builder, offset, cell_size);
+                        builder.CreateStore(info, builder.CreateBitCast(buf, _env->i64ptrType()), false);
 
-                acc_size = builder.CreateAdd(acc_size, cell_size);
-                buf = builder.CreateGEP(buf, _env->i32Const(sizeof(int64_t)));
+                        // perform memcpy
+                        auto dest_ptr = builder.CreateGEP(buf, offset);
+                        builder.CreateMemCpy(dest_ptr, 0, cell, 0, cell_size);
+
+                        acc_size = builder.CreateAdd(acc_size, cell_size);
+                        buf = builder.CreateGEP(buf, _env->i32Const(sizeof(int64_t)));
+                    } else {
+                        // dummy: use empty string at the end of buffer
+                        // --> need to compute correct offset.
+                        auto remaining_cells_offset = _env->i64Const(((int64_t)num_cells - (int64_t)pos) * sizeof(int64_t));
+                        llvm::Value *offset = builder.CreateAdd(remaining_cells_offset, varlen_total_size);
+                        assert(offset->getType() == _env->i64Type());
+                        llvm::Value *info = pack_offset_and_size(builder, offset, _env->i64Const(1));
+                        builder.CreateStore(info, builder.CreateBitCast(buf, _env->i64ptrType()), false);
+
+                        // move buffer
+                        buf = builder.CreateGEP(buf, _env->i32Const(sizeof(int64_t)));
+                    }
             }
 
             return row;
@@ -851,7 +960,6 @@ namespace tuplex {
 
             std::vector<llvm::Value*> cell_strs;
             std::vector<llvm::Value*> cell_sizes;
-
 
 #ifndef NDEBUG
             // _env->debugPrint(builder, "CellSourceTaskBuilder: serializeBadParseException");
@@ -887,37 +995,21 @@ namespace tuplex {
             //            std::vector<bool> colsToSerialize,
             //            decltype(malloc) allocator) function)
 
-            size_t numCells = numGeneralCaseCells; //this->_columnsToSerialize.size();
-            llvm::Value* buf_size = _env->i64Const(sizeof(int64_t) + numCells * sizeof(int64_t));
-            // add actual data sizes up.
-            llvm::Value* varlen_total_size = _env->i64Const(0);
-            for(const auto& vsize : cell_sizes) {
-                varlen_total_size = builder.CreateAdd(varlen_total_size, vsize);
-            }
-            buf_size = builder.CreateAdd(varlen_total_size, buf_size);
-
-            // use a single empty string in addition when general/normal differ for the dummies.
-            llvm::Value* buf_size_without_empty_str = nullptr;
-            if(numGeneralCaseCells != numNormalCaseColsToSerialize) {
-                buf_size_without_empty_str = buf_size;
-                buf_size = builder.CreateAdd(buf_size, _env->i64Const(1));
-            }
-
-            SerializableValue row;
-            // alloc temp buffer (rtmalloc!)
-            row.val = _env->malloc(builder, buf_size);
-            row.size = buf_size;
-
-            // first 64bit is actual number of rows.
-            llvm::Value* buf = row.val;
-            if(buf_size_without_empty_str) {
-                // store empty string (0)
-                auto idx = builder.CreateGEP(buf, buf_size);
-                builder.CreateStore(_env->i8Const('\0'), idx);
-            }
-
-            builder.CreateStore(_env->i64Const(numGeneralCaseCells), builder.CreatePointerCast(buf, _env->i64ptrType()));
-            buf = builder.CreateGEP(buf, _env->i32Const(sizeof(int64_t)));
+//            size_t numCells = numGeneralCaseCells; //this->_columnsToSerialize.size();
+//            llvm::Value* buf_size = _env->i64Const(sizeof(int64_t) + numCells * sizeof(int64_t));
+//            // add actual data sizes up.
+//            llvm::Value* varlen_total_size = _env->i64Const(0);
+//            for(const auto& vsize : cell_sizes) {
+//                varlen_total_size = builder.CreateAdd(varlen_total_size, vsize);
+//            }
+//            buf_size = builder.CreateAdd(varlen_total_size, buf_size);
+//
+//            // use a single empty string in addition when general/normal differ for the dummies.
+//            llvm::Value* buf_size_without_empty_str = nullptr;
+//            if(numGeneralCaseCells != numNormalCaseColsToSerialize) {
+//                buf_size_without_empty_str = buf_size;
+//                buf_size = builder.CreateAdd(buf_size, _env->i64Const(1));
+//            }
 
             // convert normal-case to general-case cells
             std::vector<llvm::Value*> gen_cells(numGeneralCaseCells, nullptr);
@@ -972,11 +1064,11 @@ namespace tuplex {
                         }
 
                         // special case: constant normal check
-                        for(auto check : _checks) {
+                        for(const auto& check : _checks) {
                             if(i == check.colNo && check.type == CheckType::CHECK_CONSTANT) {
                                 std::string str_value = check.constant_type().constant();
                                 gen_cells[general_pos] = _env->strConst(builder, str_value);
-                                gen_cell_sizes[general_pos] = _env->i64Const(str_value.size());
+                                gen_cell_sizes[general_pos] = _env->i64Const(str_value.size() + 1);
                             }
                         }
                     }
@@ -984,66 +1076,9 @@ namespace tuplex {
                 }
             }
 
-            // store general case cells now...
-            general_pos = 0;
-            llvm::Value* acc_size = _env->i64Const(0);
-            llvm::Value* empty_str_offset = nullptr;
-            for(unsigned i = 0; i < _generalCaseColumnsToSerialize.size(); ++i) {
-                if(_generalCaseColumnsToSerialize[i]) {
-                    //   uint64_t info = (uint64_t)sizes[i] & 0xFFFFFFFF;
-                    //
-                    //                // offset = jump + acc size
-                    //                uint64_t offset = (numCellsToSerialize - normal_pos) * sizeof(int64_t) + acc_size;
-                    //                *(uint64_t*)buf = (info << 32u) | offset;
-                    //                memcpy(buf_ptr + sizeof(int64_t) * (numCellsToSerialize + 1) + acc_size, cells[i], sizes[i]);
-                    //
-                    //                // memcmp check?
-                    //                assert(memcmp(buf + offset, cells[i], sizes[i]) == 0);
-                    //
-                    //                buf += sizeof(int64_t);
-                    //                acc_size += sizes[i];
-                    //                normal_pos++;
-
-                    auto cell = gen_cells[general_pos];
-                    auto cell_size = gen_cell_sizes[general_pos];
-
-                    assert(cell && cell->getType() == _env->i8ptrType());
-                    assert(cell_size && cell_size->getType() == _env->i64Type());
-
-                    // special case empty str?
-                    if(cell && cell_size) {
-                        // the offset is computed using how many varlen fields have been already serialized
-                        llvm::Value *offset = builder.CreateAdd(_env->i64Const(((int64_t)numGeneralCaseCells - (int64_t)general_pos) * sizeof(int64_t)), acc_size);
-                        // len | size
-                        llvm::Value *info = builder.CreateOr(builder.CreateZExt(offset, _env->i64Type()), builder.CreateShl(builder.CreateZExt(cell_size, _env->i64Type()), 32));
-                        builder.CreateStore(info, builder.CreateBitCast(buf, _env->i64ptrType()), false);
-
-
-                        // perform memcpy
-                        auto dest_ptr = builder.CreateGEP(buf, offset);
-                        builder.CreateMemCpy(dest_ptr, 0, cell, 0, cell_size);
-
-                        acc_size = builder.CreateAdd(acc_size, cell_size);
-                        buf = builder.CreateGEP(buf, _env->i32Const(sizeof(int64_t)));
-                    } else {
-                        // dummy: use empty string at the end of buffer
-                        // --> need to compute correct offset.
-                        auto remaining_cells_offset = _env->i64Const(((int64_t)numGeneralCaseCells - (int64_t)general_pos) * sizeof(int64_t));
-                        llvm::Value *offset = builder.CreateAdd(remaining_cells_offset, varlen_total_size);
-                        assert(offset->getType() == _env->i64Type());
-                        llvm::Value *info = builder.CreateOr(builder.CreateZExt(offset, _env->i64Type()),
-                                                             builder.CreateShl(builder.CreateZExt(_env->i64Const(sizeof(char)), _env->i64Type()), 32));
-                        builder.CreateStore(info, builder.CreateBitCast(buf, _env->i64ptrType()), false);
-
-                        // move buffer
-                        buf = builder.CreateGEP(buf, _env->i32Const(sizeof(int64_t)));
-                    }
-
-                    general_pos++;
-                }
-            }
-
-            return row;
+            // ------
+            // now serialize!
+            return serializeCellVector(builder, gen_cells, gen_cell_sizes, empty_str);
         }
 
 

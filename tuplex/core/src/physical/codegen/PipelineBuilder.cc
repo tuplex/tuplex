@@ -1742,8 +1742,12 @@ namespace tuplex {
 
             // min-max with option type
             space_needed = std::max(space_needed, num_columns * (1 + null_value.length()));
+            auto output_buf_size = builder.CreateAdd(varSizeRequired, env.i64Const(space_needed));
 
-            auto buf = env.malloc(builder, builder.CreateAdd(varSizeRequired, env.i64Const(space_needed)));
+            // debug:
+            env.printValue(builder, output_buf_size);
+
+            auto buf = env.malloc(builder, output_buf_size);
             Value* buf_ptr = buf;
             auto& ctx = env.getContext();
             auto func = builder.GetInsertBlock()->getParent(); assert(func);
@@ -1914,6 +1918,9 @@ namespace tuplex {
 
             // compute buf_length via ptr diff
             auto buf_length = builder.CreateSub(builder.CreatePtrToInt(buf_ptr, env.i64Type()), builder.CreatePtrToInt(buf, env.i64Type()));
+
+            // debug:
+            env.printValue(builder, buf_length, "actual written size: ");
 
             return SerializableValue(buf, buf_length);
         }

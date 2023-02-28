@@ -688,10 +688,20 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
 
     input_pattern = "../resources/hyperspecialization/flights_all/*.csv.sample";
 
+    // test pattern
+    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1999_05.csv";
+
     bool resolve_with_interpreter_only = false;
 
     // local worker mode for easier debugging
     ContextOptions co = ContextOptions::defaults();
+
+    //co.set("tuplex.backend", "worker");
+
+    co.set("tuplex.backend", "lambda");
+    co.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
+
+    // use worker to detect issue
     co.set("tuplex.backend", "worker");
 
     // activate optimizations
@@ -765,8 +775,8 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
     // // let's use a simple pipeline to make sure everything works
     // ctx.csv(input_pattern).selectColumns(std::vector<std::string>{"YEAR"}).tocsv("year_extract.csv");
 
-    python::lockGIL();
-    python::closeInterpreter();
+    //python::lockGIL();
+    //python::closeInterpreter();
 }
 
 TEST(BasicInvocation, ConstantFilterFold) {
@@ -982,7 +992,8 @@ TEST(BasicInvocation, SingleMessageDebug) {
 
 
     // start worker within same process to easier debug...
-    auto app = make_unique<WorkerApp>(WorkerSettings());
+    auto ws = WorkerSettings();
+    auto app = make_unique<WorkerApp>(ws);
 
     // problematic for hyoer: s3://tuplex-public/data/github_daily/2020-10-15.json:1610612736-1879048192
 
@@ -1008,6 +1019,10 @@ TEST(BasicInvocation, SingleMessageDebug) {
     message_path = "/Users/leonhards/projects/tuplex-public/tuplex/cmake-build-debug/dist/bin/request_1.json";
 #endif
 #endif
+
+
+    // debug bad request here
+    message_path = "/home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_0.json";
 
     auto message = fileToString(URI(message_path));
 

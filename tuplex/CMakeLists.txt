@@ -500,7 +500,7 @@ set(CMAKE_CXX_FLAGS_TSAN
 
 # AddressSanitize
 set(CMAKE_C_FLAGS_ASAN
-        "-fsanitize=address -fsanitize-recover=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g3 -O1"
+        "-fsanitize=address -fsanitize-recover=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g3 -O1 "
         CACHE STRING "Flags used by the C compiler during AddressSanitizer builds."
         FORCE)
 set(CMAKE_CXX_FLAGS_ASAN
@@ -922,6 +922,8 @@ if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
         message(WARNING "GNU gold linker isn't available, using the default system linker.")
     endif()
 endif()
+
+ucm_add_linker_flags(-mllvm -asan-use-private-alias=1)
 
 # on MacOS, disable the warning message ranlib: no symbols found
 if(APPLE)

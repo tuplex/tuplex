@@ -184,7 +184,10 @@ namespace tuplex {
     }
 
     inline std::string boolToString(const bool b) {
-        return b ? "true" : "false";
+        if(b)
+            return std::string("true");
+        else
+            return std::string("false");
     }
 
     /*!

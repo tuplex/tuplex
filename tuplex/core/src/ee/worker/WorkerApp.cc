@@ -155,7 +155,8 @@ namespace tuplex {
             python::closeInterpreter();
         }
 
-        runtime::freeRunTimeMemory();
+        // do not call free, but instead releaseRunTimeMemory
+        // runtime::releaseRunTimeMemory();
 
 #ifdef BUILD_WITH_AWS
         // causes error!!!

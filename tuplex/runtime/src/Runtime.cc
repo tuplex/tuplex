@@ -92,7 +92,7 @@ static inline size_t alignHeapSize(size_t size) {
  * @param size
  * @return
  */
-static struct MemoryBlock *initMemoryBlock(const size_t size) {
+static struct MemoryBlock *initMemoryBlock(size_t size) {
 
     auto *node = (struct MemoryBlock *) malloc(sizeof(struct MemoryBlock));
 
@@ -105,6 +105,8 @@ static struct MemoryBlock *initMemoryBlock(const size_t size) {
     node->size = size;
     node->offset = 0;
     node->next = nullptr;
+
+    size = core::ceilToMultiple(size, HEAP_ALIGNMENT); // must be multiple of heap alignment
     node->mem = (uint8_t*)aligned_alloc(HEAP_ALIGNMENT, size);
 
     if (!node->mem) {

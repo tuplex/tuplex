@@ -72,7 +72,7 @@ namespace tuplex {
 
         S3File(S3FileSystemImpl &fs, const URI &uri, VirtualFileMode mode, Aws::S3::Model::RequestPayer requestPayer) : _s3fs(fs),
                                                                                                 VirtualFile::VirtualFile(uri, mode),
-                                                                                                _requestPayer(requestPayer), _bufferSize(5 * 1024 * 1024 + 100) {
+                                                                                                _requestPayer(requestPayer) {
             // 1024 * 1024 * 5 + 100; ///! for debug reasons, set 5MB + 100B buffer
 
             // in release mode use larger buffer
@@ -81,6 +81,10 @@ namespace tuplex {
 #endif
 
             init();
+        }
+
+        static size_t DEFAULT_INTERNAL_BUFFER_SIZE() {
+            return 5 * 1024 * 1024 + 100;
         }
 
         virtual ~S3File();
@@ -106,7 +110,7 @@ namespace tuplex {
 
         bool eof() const override;
 
-        size_t bufferSize() {
+        size_t bufferSize() const {
             return _bufferSize;
         }
 

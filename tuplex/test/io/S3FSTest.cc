@@ -11,6 +11,7 @@
 
 #include <AWSCommon.h>
 #include <VirtualFileSystem.h>
+#include <S3Cache.h>
 
 #ifndef S3_TEST_BUCKET
 // define dummy to compile
@@ -326,9 +327,9 @@ TEST_F(S3Tests, FileUploadLargerThanInternal) {
     // tests S3 writing capabilities
     using namespace tuplex;
 
-    EXPECT_GE(S3File::INTERNAL_BUFFER_SIZE(), 0);
+    EXPECT_GE(S3File::DEFAULT_INTERNAL_BUFFER_SIZE(), 0);
 
-    auto internal_buf_size = S3File::INTERNAL_BUFFER_SIZE();
+    auto internal_buf_size = S3File::DEFAULT_INTERNAL_BUFFER_SIZE();
 
     // write S3 file that's larger than internal size
     auto test_buf_size = 2 * internal_buf_size;
@@ -355,9 +356,9 @@ TEST_F(S3Tests, MimickError) {
     // tests S3 writing capabilities
     using namespace tuplex;
 
-    EXPECT_GE(S3File::INTERNAL_BUFFER_SIZE(), 0);
+    EXPECT_GE(S3File::DEFAULT_INTERNAL_BUFFER_SIZE(), 0);
 
-    auto internal_buf_size = S3File::INTERNAL_BUFFER_SIZE();
+    auto internal_buf_size = S3File::DEFAULT_INTERNAL_BUFFER_SIZE();
 
     // write S3 file that's larger than internal size
     size_t test_buf_size = 1.2 * internal_buf_size;
@@ -387,9 +388,9 @@ TEST_F(S3Tests, FileUploadMultiparts) {
     // tests S3 writing capabilities
     using namespace tuplex;
 
-    EXPECT_GE(S3File::INTERNAL_BUFFER_SIZE(), 0);
+    EXPECT_GE(S3File::DEFAULT_INTERNAL_BUFFER_SIZE(), 0);
 
-    auto internal_buf_size = S3File::INTERNAL_BUFFER_SIZE();
+    auto internal_buf_size = S3File::DEFAULT_INTERNAL_BUFFER_SIZE();
 
     // write S3 file that's larger than internal size
     size_t test_buf_size = 2 * internal_buf_size;

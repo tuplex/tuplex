@@ -31,6 +31,7 @@ namespace tuplex {
         _buffer = nullptr;
         _bufferPosition = 0;
         _bufferLength = 0;
+        _bufferSize = DEFAULT_INTERNAL_BUFFER_SIZE();
         _fileSize = 0;
         _bufferedAbsoluteFilePosition = 0;
         _filePosition = 0;
@@ -257,7 +258,7 @@ namespace tuplex {
         // only if larger than limit!
         if(_bufferLength < 5 * 1024 * 1024) { // the 5MB is an AWS limit.
 
-            // enough soace left to hold additional bytes?
+            // enough space left to hold additional bytes?
             if(_bufferLength + additional_space_required > _bufferSize) {
                 size_t new_buffer_size = _bufferLength + additional_space_required;
 
@@ -330,6 +331,9 @@ namespace tuplex {
                 assert(_bufferLength <= _bufferSize);
                 size_t bytes_to_write = std::min(remaining_bytes, _bufferSize - _bufferLength); // how much capacity is still available?
                 uploadAndResetBufferIfFull(bytes_to_write);
+                // reset counter
+                if(0 == bytes_to_write)
+                    bytes_to_write = std::min(remaining_bytes, _bufferSize - _bufferLength);
                 assert(bytes_to_write > 0);
                 auto rc = write(buf + pos, bytes_to_write);
                 if(rc != VirtualFileSystemStatus::VFS_OK) {

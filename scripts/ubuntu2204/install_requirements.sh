@@ -12,6 +12,15 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
+PREFIX=/opt
+mkdir -p $PREFIX
+mkdir -p $PREFIX/bin
+mkdir -p $PREFIX/include
+mkdir -p $PREFIX/lib
+mkdir -p $PREFIX/share
+WORKDIR=/tmp
+
+
 """ + workdir_setup() + """
 
 PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE:-python3}
@@ -97,7 +106,7 @@ mkdir -p ${WORKDIR}/yamlcpp && cd ${WORKDIR}/yamlcpp \
 && cd yaml-cpp \
 && git checkout tags/yaml-cpp-0.6.3 \
 && mkdir build && cd build \
-&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${prefix} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \
+&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \
 && make -j$(nproc) && make install
 
 echo ">> Installing ANTLR"

@@ -860,7 +860,7 @@ namespace tuplex {
             auto num_cells = cells.size();
             llvm::Value* buf_size = _env->i64Const(sizeof(int64_t) * (1 + num_cells)); // 8 bytes for number of cells + 8bytes for all cells!
 
-            _env->printValue(builder, buf_size, "fixed buf part in bytes: ");
+            // _env->printValue(builder, buf_size, "fixed buf part in bytes: ");
 
             // check how much varlength space is required!
             size_t num_empty_str = 0;
@@ -879,11 +879,14 @@ namespace tuplex {
                     num_empty_str++;
                 }
             }
-            _env->printValue(builder, varlen_total_size, "total varlen bytes (excl. empty str) required: ");
+
+            // _env->printValue(builder, varlen_total_size, "total varlen bytes (excl. empty str) required: ");
+
             buf_size = builder.CreateAdd(buf_size, varlen_total_size);
             if(0 != num_empty_str)
                 buf_size = builder.CreateAdd(buf_size, _env->i64Const(1));
-            _env->printValue(builder, buf_size, "total bytes required (" + std::to_string(num_empty_str) + "x empty str): ");
+
+            // _env->printValue(builder, buf_size, "total bytes required (" + std::to_string(num_empty_str) + "x empty str): ");
 
             SerializableValue row;
             row.val = _env->malloc(builder, buf_size);

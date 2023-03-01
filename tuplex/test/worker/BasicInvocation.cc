@@ -723,6 +723,10 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
     co.set("tuplex.inputSplitSize", "2GB");
     co.set("tuplex.resolveWithInterpreterOnly", boolToString(resolve_with_interpreter_only));
 
+    // tweak sample size here to fix everything
+    co.set("tuplex.sample.maxDetectionRows", "100000");
+    co.set("tuplex.sample.maxDetectionMemory", "1MB");
+
     auto co_hyper = co;
     co_hyper.set("tuplex.experimental.hyperspecialization", "true");
 

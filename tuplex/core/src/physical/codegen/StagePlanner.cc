@@ -1048,7 +1048,7 @@ namespace tuplex {
         std::vector<Row> StagePlanner::fetchInputSample() {
             if(!_inputNode)
                 return {};
-            return _inputNode->getSample(2000);
+            return _inputNode->getSample(10000); // 10k rows. -> should be stratified sample?
         }
     }
 

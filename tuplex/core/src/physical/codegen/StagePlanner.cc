@@ -120,7 +120,7 @@ namespace tuplex {
 
             // should have at least 100 samples to determine this...
             // check which columns could be constants and if so propagate that information!
-            logger.info("Performing constant folding optimization");
+            logger.info("Performing constant folding optimization (sample size=" + std::to_string(sample.size()) + ")");
 
             // first, need to detect which columns are required. This is important because of the checks.
             auto acc_cols_before_opt = this->get_accessed_columns();
@@ -655,7 +655,7 @@ namespace tuplex {
 
                 // perform only when input op is present (could do later, but requires sample!)
                 if(_inputNode && _inputNode->type() == LogicalOperatorType::FILEINPUT) {
-                    logger.info("performing Constant-Folding specialization");
+                    logger.info("Performing constant folding optimization (sample size=" + std::to_string(sample.size()) + ")");
                     optimized_operators = constantFoldingOptimization(sample);
 
                     // overwrite internal operators to apply subsequent optimizations

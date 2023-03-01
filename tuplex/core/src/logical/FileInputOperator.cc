@@ -1175,7 +1175,10 @@ namespace tuplex {
 
     // HACK !!!!
     void FileInputOperator::setInputFiles(const std::vector<URI> &uris, const std::vector<size_t> &uri_sizes,
-                                          bool resample, size_t sample_limit) {
+                                          bool resample, size_t sample_limit,
+                                          bool use_stratified_sampling,
+                                          size_t strata_size,
+                                          size_t samples_per_strata) {
         auto& logger = Logger::instance().logger("logical");
 
         assert(uris.size() == uri_sizes.size());
@@ -1205,9 +1208,13 @@ namespace tuplex {
                 // manipulate settings...
                 std::vector<std::vector<std::string>> namesCollection;
 
-                // fill row cache
-                std::vector<std::vector<std::string>>* namePtr = _json_unwrap_first_level ? &namesCollection : nullptr;
-                fillRowCache(sm, namePtr);
+                if(!use_stratified_sampling) {
+                    // fill row cache
+                    std::vector<std::vector<std::string>>* namePtr = _json_unwrap_first_level ? &namesCollection : nullptr;
+                    fillRowCache(sm, namePtr);
+                } else {
+                    throw std::runtime_error("stratified sampling for JSON not yet supported");
+                }
 
                 // detect new type
                 auto t = detectJsonTypesAndColumns(co, namesCollection);
@@ -1229,7 +1236,10 @@ namespace tuplex {
                 _normalCaseRowType = normalcase;
                 _generalCaseRowType = generalcase;
             } else {
+                if(!use_stratified_sampling)
                 fillRowCache(sm);
+                else
+                    throw std::runtime_error("stratified sampling not yet supported.");
             }
 
             _estimatedRowCount = estimateSampleBasedRowCount();
@@ -1287,19 +1297,6 @@ namespace tuplex {
                         indices_to_keep.push_back(last_idx);
                         num_columns_not_present_anymore++;
                     }
-
-//                    if (!indices_of_columns_before_resample[i]) {
-//
-//                        // update
-//                        oldIndexToNewIndex[i] = new_unprojected_col_types_normal.size(); // current size...
-//
-//                        new_unprojected_col_names.push_back(cols_before_resample[i]);
-//                        new_unprojected_col_types_normal.push_back(exception_type);
-//                        new_unprojected_col_types_general.push_back(exception_type);
-//                    } else {
-//                        // get the index
-//                        oldIndexToNewIndex[i] = indexInVector(cols_before_resample[i], inputColumns());
-//                    }
                 }
 
                 // mark any new columns as being serialized (automatically)
@@ -1337,10 +1334,6 @@ namespace tuplex {
 
                 // list which columns are now output
                 auto new_projected_columns = columns();
-
-
-                // // OR update also input columns
-                // this->_columnNames = new_unprojected_col_names;
 
                 // update types
                 _normalCaseRowType = python::Type::makeTupleType(new_unprojected_col_types_normal);

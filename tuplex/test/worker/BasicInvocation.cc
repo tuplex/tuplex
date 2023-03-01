@@ -691,11 +691,11 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
     // test pattern
     input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1999_05.csv";
 
-    // can use local files to test as well!
-    input_pattern = "/hot/data/flights_all/flights_on_time_performance_1999_05.csv";
-
-    // wrong column detected to be constant
-    input_pattern = "/hot/data/flights_all/flights_on_time_performance_2018_04.csv";
+//    // can use local files to test as well!
+//    input_pattern = "/hot/data/flights_all/flights_on_time_performance_1999_05.csv";
+//
+//    // wrong column detected to be constant
+//    input_pattern = "/hot/data/flights_all/flights_on_time_performance_2018_04.csv";
 
     std::cout<<"Testing over pattern: "<<input_pattern<<std::endl;
 
@@ -704,13 +704,11 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
     // local worker mode for easier debugging
     ContextOptions co = ContextOptions::defaults();
 
-    //co.set("tuplex.backend", "worker");
+     co.set("tuplex.backend", "lambda");
+     co.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
 
-    // co.set("tuplex.backend", "lambda");
-    // co.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
-
-    // use worker to detect issue
-    co.set("tuplex.backend", "worker");
+//    // use worker to detect issue
+//    co.set("tuplex.backend", "worker");
 
     // activate optimizations
     co.set("tuplex.optimizer.selectionPushdown", "true");
@@ -724,7 +722,7 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
     co.set("tuplex.resolveWithInterpreterOnly", boolToString(resolve_with_interpreter_only));
 
     // tweak sample size here to fix everything
-    co.set("tuplex.sample.maxDetectionRows", "100000");
+    co.set("tuplex.sample.maxDetectionRows", "10000");
     co.set("tuplex.sample.maxDetectionMemory", "1MB");
 
     auto co_hyper = co;

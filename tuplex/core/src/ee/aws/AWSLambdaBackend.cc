@@ -810,6 +810,12 @@ namespace tuplex {
             logger().info(ss.str());
         }
 
+        // generate here csv with information per file
+        {
+            auto csv_info = csvPerFileInfo();
+            logger().info("\nper-file information:\n" + csv_info + "\n");
+        }
+
         // @TODO: results sets etc.
         switch (tstage->outputMode()) {
             case EndPointMode::FILE: {
@@ -1510,6 +1516,114 @@ namespace tuplex {
         ss << "}\n";
     }
 
+    struct PerFileInfo {
+        std::string requestId;
+        size_t in_normal;
+        size_t in_general;
+        size_t in_fallback;
+        size_t in_unresolved;
+        size_t out_normal;
+        size_t out_unresolved;
+
+        inline std::string to_csv() const {
+            std::stringstream ss;
+            ss<<requestId<<","
+              <<in_normal<<","
+              <<in_general<<","
+              <<in_fallback<<","
+              <<in_unresolved<<","
+              <<out_normal<<","
+              <<out_unresolved;
+            return ss.str();
+        }
+
+        inline std::string header() const {
+            return "requestId,in_normal,in_general,in_fallback,in_unresolved,out_normal,out_unresolved";
+        }
+    };
+
+    std::string AwsLambdaBackend::csvPerFileInfo() {
+        using namespace std;
+
+        // settings etc.
+        bool hyper_mode_str = (_options.USE_EXPERIMENTAL_HYPERSPECIALIZATION() ? "true" : "false");
+
+        std::unordered_map<std::string, PerFileInfo> uri_map;
+
+        // 1. tasks
+        {
+            std::lock_guard<std::mutex> lock(_mutex);
+
+            int task_counter = 0;
+            for (const auto &task: _tasks) {
+                ContainerInfo info = task.container();
+
+                std::string log = "";
+                // log
+                for (const auto &r: task.resources()) {
+                    if (r.type() == static_cast<uint32_t>(ResourceType::LOG)) {
+                        log = decompress_string(r.payload());
+                        break;
+                    }
+                }
+
+               // invoked input uris
+                for (unsigned i = 0; i < task.inputuris_size(); ++i) {
+                    auto input_uri = task.inputuris(i);
+
+                    // clean from part
+                    URI uri;
+                    size_t rangeStart = 0, rangeEnd = 0;
+                    decodeRangeURI(input_uri, uri, rangeStart, rangeEnd);
+
+                    auto it = uri_map.find(uri.toPath());
+                    if(it != uri_map.end())
+                        uri_map[uri.toPath()] = PerFileInfo();
+
+                    auto& f_info = uri_map[uri.toPath()];
+                    f_info.requestId = info.requestId;
+
+                }
+
+                task_counter++;
+            }
+        }
+
+
+        // 2. requests & responses?
+        {
+            std::lock_guard<std::mutex> lock(_mutex);
+            for (unsigned i = 0; i < _infos.size(); ++i) {
+                auto &info = _infos[i];
+                // info has information as well
+
+                // find in map the info with requestid
+                for(auto& kv : uri_map) {
+                    if(kv.second.requestId == info.requestId) {
+                        // save now in normal etc.
+                        kv.second.in_normal = info.in_normal;
+                        kv.second.in_general = info.in_general;
+                        kv.second.in_fallback = info.in_fallback;
+                        kv.second.in_unresolved = info.in_unresolved;
+                        kv.second.out_normal = info.out_normal;
+                        kv.second.out_unresolved = info.out_unresolved;
+                    }
+                }
+            }
+        }
+
+        std::stringstream ss;
+        bool first_time = true;
+        for(auto kv : uri_map) {
+            if(first_time) {
+                first_time = false;
+                ss<<"uri,"<<kv.second.header()<<"\n";
+            }
+            ss<<kv.first<<","<<kv.second.to_csv()<<"\n";
+        }
+
+        return ss.str();
+    }
 
     void AwsLambdaBackend::dumpAsJSON(const std::string &json_path) {
         using namespace std;

@@ -197,6 +197,8 @@ namespace tuplex {
          */
         void dumpAsJSON(const std::string& json_path);
 
+        std::string csvPerFileInfo();
+
         size_t getMB100Ms();
         size_t getMBMs();
 

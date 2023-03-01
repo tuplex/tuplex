@@ -560,7 +560,8 @@ namespace tuplex {
 
         // HACK !!!
         void setInputFiles(const std::vector<URI>& uris, const std::vector<size_t>& uri_sizes,
-                           bool resample=false, size_t sample_limit=std::numeric_limits<size_t>::max());
+                           bool resample=false, size_t sample_limit=std::numeric_limits<size_t>::max(),
+                           bool use_stratified_sampling=false, size_t strata_size=8, size_t samples_per_strata=1);
 
         // HACK !!!
         static FileInputOperator* from_json(nlohmann::json obj) {

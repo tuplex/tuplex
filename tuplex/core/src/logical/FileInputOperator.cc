@@ -1616,6 +1616,10 @@ namespace tuplex {
                     // header? ignore first row!
                     if(_header && !rows.empty())
                         rows.erase(rows.begin());
+                } else {
+                    // always erase first row, b.c. could be faulty.
+                    // I.e., let's say first column is 1999 but by chance the read starts from 99. Then this would screw up estimation.
+                    rows.erase(rows.begin());
                 }
 
                 std::copy(rows.begin(), rows.end(), std::back_inserter(v));
@@ -1630,6 +1634,8 @@ namespace tuplex {
                     // header? ignore first row!
                     if(_header && !v.empty())
                         v.erase(v.begin());
+                } else {
+                    v.erase(v.begin());
                 }
             }
         }
@@ -1651,6 +1657,8 @@ namespace tuplex {
                 // header? ignore first row!
                 if(_header && !rows.empty())
                     rows.erase(rows.begin());
+            } else {
+                rows.erase(rows.begin());
             }
 
             std::copy(rows.begin(), rows.end(), std::back_inserter(v));

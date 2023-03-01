@@ -693,6 +693,12 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
 
     // can use local files to test as well!
     input_pattern = "/hot/data/flights_all/flights_on_time_performance_1999_05.csv";
+
+    input_pattern = "/hot/data/flights_all/flights_on_time_performance_2021_07.csv";
+
+    input_pattern = "/hot/data/flights_all/flights_on_time_performance_2000_03.csv";
+
+    input_pattern = "/hot/data/flights_all/flights_on_time_performance_2000_07.csv";
 //
 //    // wrong column detected to be constant
 //    input_pattern = "/hot/data/flights_all/flights_on_time_performance_2018_04.csv";

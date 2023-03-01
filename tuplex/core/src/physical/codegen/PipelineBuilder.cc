@@ -1744,8 +1744,8 @@ namespace tuplex {
             space_needed = std::max(space_needed, num_columns * (1 + null_value.length()));
             auto output_buf_size = builder.CreateAdd(varSizeRequired, env.i64Const(space_needed));
 
-            // debug:
-            env.printValue(builder, output_buf_size);
+            // // debug:
+            // env.printValue(builder, output_buf_size);
 
             auto buf = env.malloc(builder, output_buf_size);
             Value* buf_ptr = buf;
@@ -1919,8 +1919,8 @@ namespace tuplex {
             // compute buf_length via ptr diff
             auto buf_length = builder.CreateSub(builder.CreatePtrToInt(buf_ptr, env.i64Type()), builder.CreatePtrToInt(buf, env.i64Type()));
 
-            // debug:
-            env.printValue(builder, buf_length, "actual written size: ");
+            // // debug:
+            // env.printValue(builder, buf_length, "actual written size: ");
 
             return SerializableValue(buf, buf_length);
         }
@@ -2154,8 +2154,8 @@ namespace tuplex {
                     auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env.i64Const(i)), "s" + std::to_string(i));
                     auto val = parseI64(env, builder, valueErrorBlock, cellStr, cellSize, isnull);
 
-                    // debug:
-                    env.printValue(builder, val.val, "parsed i64: ");
+                    // // debug:
+                    // env.printValue(builder, val.val, "parsed i64: ");
 
                     ft->assign(i, val.val, val.size, isnull);
                 } else if(python::Type::F64 == t) {

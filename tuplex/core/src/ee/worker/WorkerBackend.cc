@@ -76,7 +76,7 @@ namespace tuplex {
         auto scratchDir = _options.AWS_SCRATCH_DIR();
         if(scratchDir.empty())
             scratchDir = _options.SCRATCH_DIR().toPath();
-        auto spillURI = _options.AWS_SCRATCH_DIR() + "/spill_folder";
+        auto spillURI = scratchDir + "/spill_folder";
         // perhaps also use:  - 64 * numThreads ==> smarter buffer scaling necessary.
         size_t buf_spill_size = (_options.AWS_LAMBDA_MEMORY() - 256) / numThreads * 1000 * 1024;
 

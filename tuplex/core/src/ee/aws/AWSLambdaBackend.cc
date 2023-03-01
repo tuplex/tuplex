@@ -1525,6 +1525,9 @@ namespace tuplex {
         size_t out_normal;
         size_t out_unresolved;
 
+        // for convenience
+        std::string log;
+
         inline std::string to_csv() const {
             std::stringstream ss;
             ss<<requestId<<","
@@ -1582,6 +1585,7 @@ namespace tuplex {
 
                     auto& f_info = uri_map[uri.toPath()];
                     f_info.requestId = info.requestId;
+                    f_info.log = log;
 
                 }
 
@@ -1614,12 +1618,16 @@ namespace tuplex {
 
         std::stringstream ss;
         bool first_time = true;
-        for(auto kv : uri_map) {
+        for(const auto& kv : uri_map) {
             if(first_time) {
                 first_time = false;
                 ss<<"uri,"<<kv.second.header()<<"\n";
             }
             ss<<kv.first<<","<<kv.second.to_csv()<<"\n";
+
+            // write to local dir for convenience
+            auto log_path = "./logs/" + URI(kv.first).basename()  + ".log.txt";
+            stringToFile(log_path, kv.second.log);
         }
 
         return ss.str();

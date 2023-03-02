@@ -684,17 +684,22 @@ TEST(BasicInvocation, FlightsConstantSamplingTest) {
 
     string input_pattern = "/hot/data/flights_all/*.csv";
 
+    input_pattern = "/hot/data/flights_all/flights_on_time_performance_2021_10.csv";
+
     auto vfs = VirtualFileSystem::fromURI(input_pattern);
     auto paths = vfs.globAll(input_pattern);
 
     std::cout<<"Found "<<pluralize(paths.size(), "file")<<" for pattern "<<input_pattern<<std::endl;
     ASSERT_FALSE(paths.empty());
 
+    auto sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
+    size_t sample_limit = 10000;
+
     auto co = ContextOptions::defaults();
     co.set("tuplex.sample.maxDetectionMemory", "256KB"); // result 1 setting
     co.set("tuplex.sample.maxDetectionMemory", "1MB"); // result 2 setting
-    auto sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
-    size_t sample_limit = 10000;
+    co.set("tuplex.sample.maxDetectionMemory", "16MB"); // result 3 setting + 30k rows
+    sample_limit = 30000;
 
     std::set<string> required_cols({"YEAR", "MONTH", "DAY_OF_MONTH", "OP_UNIQUE_CARRIER",
                                     "OP_CARRIER_FL_NUM", "ORIGIN_AIRPORT_ID", "DEST_AIRPORT_ID",
@@ -750,7 +755,6 @@ TEST(BasicInvocation, FlightsConstantSamplingTest) {
         cout<<ss.str()<<endl;
     }
 
-
     // print out summary
     for(auto res : const_results) {
         cout<<"path: "<<std::get<0>(res)<<"   "<<std::get<1>(res)<<endl;
@@ -794,6 +798,24 @@ TEST(BasicInvocation, FlightsConstantSamplingTest) {
     //23 paths have undesired behavior
 
     // result 2: with 1MB memory, 10k rows max
+    // bad path: flights_on_time_performance_1988_12.csv
+    //bad path: flights_on_time_performance_1991_09.csv
+    //bad path: flights_on_time_performance_1993_09.csv
+    //bad path: flights_on_time_performance_1994_05.csv
+    //bad path: flights_on_time_performance_1994_08.csv
+    //bad path: flights_on_time_performance_2003_10.csv
+    //bad path: flights_on_time_performance_2007_08.csv
+    //bad path: flights_on_time_performance_2012_05.csv
+    //bad path: flights_on_time_performance_2017_04.csv
+    //bad path: flights_on_time_performance_2017_05.csv
+    //bad path: flights_on_time_performance_2018_09.csv
+    //bad path: flights_on_time_performance_2021_03.csv
+    //bad path: flights_on_time_performance_2021_07.csv
+    //bad path: flights_on_time_performance_2021_10.csv
+    //
+    //14 paths have undesired behavior
+
+    // result 3: with 4MB memory, 20k rows max
 }
 
 TEST(BasicInvocation, FlightsConstantFilterFold) {

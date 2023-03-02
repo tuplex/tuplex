@@ -1616,19 +1616,30 @@ namespace tuplex {
             }
         }
 
+        // create version (sort after first entry!)
+        std::vector<std::tuple<std::string, std::string>> entries;
+        std::string header;
         std::stringstream ss;
         bool first_time = true;
         for(const auto& kv : uri_map) {
             if(first_time) {
                 first_time = false;
-                ss<<"uri,"<<kv.second.header()<<"\n";
+                header = "uri," + kv.second.header();
             }
-            ss<<kv.first<<","<<kv.second.to_csv()<<"\n";
+            entries.push_back(std::make_tuple(kv.first, kv.second.to_csv()));
 
             // write to local dir for convenience
             auto log_path = "./logs/" + URI(kv.first).basename()  + ".log.txt";
             stringToFile(log_path, kv.second.log);
         }
+
+        std::sort(entries.begin(), entries.end(), [](const std::tuple<std::string, std::string>& rhs, const std::tuple<std::string, std::string>& lhs) {
+           return std::get<0>(rhs) < std::get<0>(lhs);
+        });
+
+        ss<<header<<"\n";
+        for(auto entry : entries)
+            ss<<std::get<0>(entry)<<","<<std::get<1>(entry)<<"\n";
 
         return ss.str();
     }

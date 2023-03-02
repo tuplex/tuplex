@@ -689,7 +689,7 @@ TEST(BasicInvocation, StrataCSVSampling) {
     auto data = fileToString(input_pattern);
 
     Timer timer;
-    auto rows = csv_parseRowsStratified(data.c_str(), data.size(), 110, 0, ',', '"', {""}, 10, 128, 1);
+    auto rows = csv_parseRowsStratified(data.c_str(), data.size(), 110, 0, ',', '"', {""}, 10, 128, 1, 0, {0});
     cout<<"stratified sampling of "<<rows.size()<<" rows took "<<timer.time()<<" s"<<endl;
 }
 

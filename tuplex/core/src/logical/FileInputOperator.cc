@@ -371,10 +371,13 @@ namespace tuplex {
 
         Timer timer;
 
+        SamplingParameters params;
+        params.limit = sample_limit;
+
         if(mode & SamplingMode::SINGLETHREADED)
-            _rowsSample = sample(mode, outNames, sample_limit);
+            _rowsSample = sample(mode, outNames, params);
         else
-            _rowsSample = multithreadedSample(mode, outNames, sample_limit);
+            _rowsSample = multithreadedSample(mode, outNames, params);
 
         logger.info("Extracting row sample took " + std::to_string(timer.time()) + "s (sampling mode=" + samplingModeToString(mode) + ")");
     }
@@ -392,14 +395,17 @@ namespace tuplex {
                 return;
         }
 
+        SamplingParameters params;
+        params.limit = sample_limit_after_strata;
+        params.strata_size = strata_size;
+        params.samples_per_strata = samples_per_strata;
+        params.random_seed = random_seed;
+
         Timer timer;
-
-        // single-threaded for now (max-speed)
-        if(_fmt != FileFormat::OUTFMT_CSV)
-            throw std::runtime_error("only csv for stratified sampling supported yet.");
-
-       throw std::runtime_error("not yet implemented, needs probably better refactoring?");
-
+        if(mode & SamplingMode::SINGLETHREADED)
+            _rowsSample = sample(mode, outNames, params);
+        else
+            _rowsSample = multithreadedSample(mode, outNames, params);
         logger.info("Extracting stratified row sample took " + std::to_string(timer.time()) + "s (sampling mode=" + samplingModeToString(mode) + ")");
     }
 
@@ -538,7 +544,7 @@ namespace tuplex {
 
     std::vector<Row> FileInputOperator::multithreadedSample(const SamplingMode &mode,
                                                             std::vector<std::vector<std::string>>* outNames,
-                                                            size_t sample_limit) {
+                                                            const SamplingParameters& sampling_params) {
         using namespace std;
         auto &logger = Logger::instance().logger("fileinputoperator");
 
@@ -568,10 +574,12 @@ namespace tuplex {
             auto size = _sizes[idx];
             auto file_mode = perFileMode(mode);
             vector<vector<string>>* ptr = outNames ? &f_names[i] : nullptr; // only fetch column names if outNames is valid, else use nullptr to keep data nested.
-            f_rows[i] = std::async(std::launch::async, [this, file_mode, ptr, sample_limit](const URI& uri, size_t size) {
-                return sampleFile(uri, size, file_mode, ptr, sample_limit);
+            f_rows[i] = std::async(std::launch::async, [this, file_mode, ptr, sampling_params](const URI& uri, size_t size) {
+                return sampleFile(uri, size, file_mode, ptr, sampling_params);
             }, _fileURIs[idx], _sizes[idx]);
         }
+
+        auto sample_limit = sampling_params.limit;
 
         // combine rows now.
         vector<Row> res;
@@ -1486,7 +1494,7 @@ namespace tuplex {
 
     std::vector<Row> FileInputOperator::sample(const SamplingMode& mode,
                                                std::vector<std::vector<std::string>>* outNames,
-                                               size_t sample_limit) {
+                                               const SamplingParameters& sampling_params) {
         auto& logger = Logger::instance().logger("logical");
         if(_fileURIs.empty())
             return {};
@@ -1497,12 +1505,14 @@ namespace tuplex {
         // TODO: open questions -> limit per file? or total limit?
         // -> could configure that. It would affect sample quality...
 
+        auto sample_limit = sampling_params.limit;
+
         // check sampling mode, i.e. how files should be sample?
         std::set<unsigned> sampled_file_indices;
         if(mode & SamplingMode::ALL_FILES) {
             assert(_fileURIs.size() == _sizes.size());
             for(unsigned i = 0; i < _fileURIs.size() && v.size() < sample_limit; ++i) {
-                auto s = sampleFile(_fileURIs[i], _sizes[i], mode, outNames, sample_limit);
+                auto s = sampleFile(_fileURIs[i], _sizes[i], mode, outNames, sampling_params);
                 std::copy(s.begin(), s.end(), std::back_inserter(v));
                 sampled_file_indices.insert(i);
             }
@@ -1512,7 +1522,7 @@ namespace tuplex {
         if(mode & SamplingMode::FIRST_FILE
             && sampled_file_indices.find(0) == sampled_file_indices.end()
             && v.size() < sample_limit) {
-            auto s = sampleFile(_fileURIs.front(), _sizes.front(), mode, outNames, sample_limit);
+            auto s = sampleFile(_fileURIs.front(), _sizes.front(), mode, outNames, sampling_params);
             std::copy(s.begin(), s.end(), std::back_inserter(v));
             sampled_file_indices.insert(0);
         }
@@ -1521,7 +1531,7 @@ namespace tuplex {
         if(mode & SamplingMode::LAST_FILE
             && sampled_file_indices.find(_fileURIs.size() - 1) == sampled_file_indices.end()
             && v.size() < sample_limit) {
-            auto s = sampleFile(_fileURIs.back(), _sizes.back(), mode, outNames, sample_limit);
+            auto s = sampleFile(_fileURIs.back(), _sizes.back(), mode, outNames, sampling_params);
             std::copy(s.begin(), s.end(), std::back_inserter(v));
             sampled_file_indices.insert(_fileURIs.size() - 1);
         }
@@ -1538,7 +1548,7 @@ namespace tuplex {
             assert(!valid_indices.empty());
             auto random_idx = valid_indices[randi(0ul, valid_indices.size() - 1)];
             logger.debug("Sampling file (random) idx=" + std::to_string(random_idx));
-            auto s = sampleFile(_fileURIs[random_idx], _sizes[random_idx], mode, outNames, sample_limit);
+            auto s = sampleFile(_fileURIs[random_idx], _sizes[random_idx], mode, outNames, sampling_params);
             std::copy(s.begin(), s.end(), std::back_inserter(v));
             sampled_file_indices.insert(random_idx);
         }
@@ -1553,7 +1563,7 @@ namespace tuplex {
         return v;
     }
 
-    std::vector<Row> FileInputOperator::sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode, size_t sample_limit) {
+    std::vector<Row> FileInputOperator::sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode, const SamplingParameters& sampling_params) {
         auto& logger = Logger::instance().logger("logical");
         std::vector<Row> v;
         assert(mode & SamplingMode::FIRST_ROWS || mode & SamplingMode::LAST_ROWS || mode & SamplingMode::RANDOM_ROWS);
@@ -1563,6 +1573,8 @@ namespace tuplex {
             logger.debug("empty file, can't obtain sample from it");
             return {};
         }
+
+        auto sample_limit = sampling_params.limit;
 
         // decode range based uri (and adjust seeking accordingly!)
         // is the URI range based?
@@ -1609,14 +1621,26 @@ namespace tuplex {
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::FIRST_ROWS, true);
 
             auto limit = std::min(sample_limit, per_mode_limit);
-            // parse as rows using the settings detected.
-            v = csv_parseRows(sample.c_str(), sample.size(), expectedColumnCount,
-                              range_start, _delimiter, _quotechar, _null_values, limit);
-            sample_limit -= std::min(v.size(), limit);
 
-            // header? ignore first row!
-            if(0 == range_start && _header && !v.empty())
-                v.erase(v.begin());
+            if(sampling_params.use_stratified_sampling()) {
+                std::set<unsigned> skip_rows;
+                if((0 == range_start && _header) || 0 != range_start)
+                    skip_rows.insert(0);
+                v = csv_parseRowsStratified(sample.c_str(), sample.size(),
+                                            expectedColumnCount, range_start, _delimiter,
+                                            _quotechar, _null_values, limit,
+                                            sampling_params.strata_size, sampling_params.samples_per_strata,
+                                            sampling_params.random_seed, skip_rows);
+            } else {
+                // parse as rows using the settings detected.
+                v = csv_parseRows(sample.c_str(), sample.size(), expectedColumnCount,
+                                  range_start, _delimiter, _quotechar, _null_values, limit);
+                // header? ignore first row!
+                if(0 == range_start && _header && !v.empty())
+                    v.erase(v.begin());
+            }
+
+            sample_limit -= std::min(v.size(), limit);
         }
 
         if(m & SamplingMode::LAST_ROWS) {
@@ -1632,40 +1656,67 @@ namespace tuplex {
                 assert(offset <= sample.size());
                 auto sample_global_offset = file_offset + offset;
                 auto limit = std::min(sample_limit, per_mode_limit);
-                auto rows = csv_parseRows(sample.c_str() + offset, sample.size() - offset, expectedColumnCount,
-                                          sample_global_offset, _delimiter, _quotechar, _null_values, limit);
-                sample_limit -= std::min(v.size(), limit);
-                // offset = 0?
-                if(file_offset == 0) {
-                    // header? ignore first row!
-                    if(_header && !rows.empty())
-                        rows.erase(rows.begin());
+                std::vector<Row> rows;
+                if(sampling_params.use_stratified_sampling()) {
+                    std::set<unsigned> skip_rows;
+                    if(0 != sample_global_offset)
+                        skip_rows.insert(0);
+                    rows = csv_parseRowsStratified(sample.c_str(), sample.size(),
+                                            expectedColumnCount, range_start, _delimiter,
+                                            _quotechar, _null_values, limit,
+                                            sampling_params.strata_size, sampling_params.samples_per_strata,
+                                            sampling_params.random_seed, skip_rows);
                 } else {
-                    // always erase first row, b.c. could be faulty.
-                    // I.e., let's say first column is 1999 but by chance the read starts from 99. Then this would screw up estimation.
-                    rows.erase(rows.begin());
+                    rows = csv_parseRows(sample.c_str() + offset, sample.size() - offset, expectedColumnCount,
+                                         sample_global_offset, _delimiter, _quotechar, _null_values, limit);
+                    // offset = 0?
+                    if(file_offset == 0) {
+                        // header? ignore first row!
+                        if(_header && !rows.empty())
+                            rows.erase(rows.begin());
+                    } else {
+                        // always erase first row, b.c. could be faulty.
+                        // I.e., let's say first column is 1999 but by chance the read starts from 99. Then this would screw up estimation.
+                        rows.erase(rows.begin());
+                    }
                 }
 
+                sample_limit -= std::min(v.size(), std::min(limit, rows.size()));
                 std::copy(rows.begin(), rows.end(), std::back_inserter(v));
 
             } else {
-                auto limit = std::min(sample_limit, per_mode_limit);
-                v = csv_parseRows(sample.c_str(), sample.size(), expectedColumnCount, file_offset,
-                                  _delimiter, _quotechar, _null_values, limit);
-                sample_limit -= std::min(v.size(), limit);
-                // offset = 0?
-                if(file_offset == 0) {
-                    // header? ignore first row!
-                    if(_header && !v.empty())
-                        v.erase(v.begin());
+                if(sampling_params.use_stratified_sampling()) {
+                    auto limit = std::min(sample_limit, per_mode_limit);
+
+                    v = csv_parseRowsStratified(sample.c_str(), sample.size(),
+                                            expectedColumnCount, file_offset, _delimiter,
+                                            _quotechar, _null_values, limit,
+                                            sampling_params.strata_size, sampling_params.samples_per_strata,
+                                            sampling_params.random_seed, {0});
+                    sample_limit -= std::min(v.size(), limit);
                 } else {
-                    v.erase(v.begin());
+                    auto limit = std::min(sample_limit, per_mode_limit);
+                    v = csv_parseRows(sample.c_str(), sample.size(), expectedColumnCount, file_offset,
+                                      _delimiter, _quotechar, _null_values, limit);
+                    sample_limit -= std::min(v.size(), limit);
+                    // offset = 0?
+                    if(file_offset == 0) {
+                        // header? ignore first row!
+                        if(_header && !v.empty())
+                            v.erase(v.begin());
+                    } else {
+                        v.erase(v.begin());
+                    }
                 }
             }
         }
 
         // most complicated: random -> make sure no overlap with first/last rows
         if(m & SamplingMode::RANDOM_ROWS) {
+
+            if(sampling_params.use_stratified_sampling())
+                throw std::runtime_error("stratified for CSV with random not yet implemented");
+
             // @TODO: there could be overlap with first/last rows.
             size_t file_offset = 0;
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::RANDOM_ROWS, true, &file_offset);
@@ -1741,7 +1792,7 @@ namespace tuplex {
                                       size_t uri_size,
                                       const tuplex::SamplingMode &mode,
                                       std::vector<std::vector<std::string>>* outNames,
-                                      size_t sample_limit) {
+                                      const SamplingParameters& sampling_params) {
         auto& logger = Logger::instance().logger("logical");
         std::vector<Row> v;
         assert(mode & SamplingMode::FIRST_ROWS || mode & SamplingMode::LAST_ROWS || mode & SamplingMode::RANDOM_ROWS);
@@ -1750,6 +1801,8 @@ namespace tuplex {
             logger.debug("empty file, can't obtain sample from it");
             return {};
         }
+
+        auto sample_limit = sampling_params.limit;
 
         if(0 == sample_limit)
             return {};

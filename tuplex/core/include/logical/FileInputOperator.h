@@ -224,14 +224,27 @@ namespace tuplex {
         aligned_string loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode, bool use_cache=true, size_t* file_offset=nullptr);
         std::vector<size_t> translateOutputToInputIndices(const std::vector<size_t>& output_indices);
 
+        struct SamplingParameters {
+            size_t limit;
+            size_t strata_size;
+            size_t samples_per_strata;
+            int random_seed;
+
+            inline bool use_stratified_sampling() const {
+                return strata_size == 1 && samples_per_strata == 1;
+            }
+
+            SamplingParameters() : limit(std::numeric_limits<size_t>::max()), strata_size(1), samples_per_strata(1), random_seed(-1) {}
+        };
+
         // sampling functions
-        std::vector<Row> sample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames=nullptr, size_t sample_limit=std::numeric_limits<size_t>::max());
-        std::vector<Row> multithreadedSample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames, size_t sample_limit);
-        std::vector<Row> sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode, size_t sample_limit);
+        std::vector<Row> sample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames=nullptr, const SamplingParameters& sampling_params=SamplingParameters());
+        std::vector<Row> multithreadedSample(const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames, const SamplingParameters& sampling_params);
+        std::vector<Row> sampleCSVFile(const URI& uri, size_t uri_size, const SamplingMode& mode, const SamplingParameters& sampling_params);
         std::vector<Row> sampleTextFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         std::vector<Row> sampleORCFile(const URI& uri, size_t uri_size, const SamplingMode& mode);
         std::vector<Row> sampleJsonFile(const URI& uri, size_t uri_size, const SamplingMode& mode,
-                                        std::vector<std::vector<std::string>>* outNames, size_t sample_limit);
+                                        std::vector<std::vector<std::string>>* outNames, const SamplingParameters& sampling_params);
 
         /*!
          * samples a file according to internally stored file mode and a per-file sampling mode.
@@ -243,7 +256,7 @@ namespace tuplex {
          */
         inline std::vector<Row> sampleFile(const URI& uri, size_t uri_size,
                                            const SamplingMode& mode, std::vector<std::vector<std::string>>* outNames,
-                                           size_t sample_limit) {
+                                           const SamplingParameters& sampling_params) {
             auto& logger = Logger::instance().logger("logical");
             if(!(mode & SamplingMode::FIRST_ROWS) && !(mode & SamplingMode::LAST_ROWS) && !(mode & SamplingMode::RANDOM_ROWS)) {
                 logger.debug("no file sampling mode (first rows/last rows/random rows) specified. skip.");
@@ -252,7 +265,7 @@ namespace tuplex {
 
             switch(_fmt) {
                 case FileFormat::OUTFMT_CSV: {
-                    return sampleCSVFile(uri, uri_size, mode, sample_limit);
+                    return sampleCSVFile(uri, uri_size, mode, sampling_params);
                 }
                 case FileFormat::OUTFMT_TEXT: {
                     return sampleTextFile(uri, uri_size, mode);
@@ -261,7 +274,7 @@ namespace tuplex {
                     return sampleORCFile(uri, uri_size, mode);
                 }
                 case FileFormat::OUTFMT_JSON: {
-                    return sampleJsonFile(uri, uri_size, mode, outNames, sample_limit);
+                    return sampleJsonFile(uri, uri_size, mode, outNames, sampling_params);
                 }
                 default:
                     throw std::runtime_error("unsupported sampling of file format "+ std::to_string(static_cast<int>(this->_fmt)));

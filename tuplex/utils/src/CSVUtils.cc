@@ -1844,13 +1844,11 @@ parse_error:
         return v;
     }
 
-    std::vector<Row> csv_parseRowsStratified(const char* buf, size_t buf_size, size_t expected_column_count, size_t range_start,
-                                             char delimiter, char quotechar, const std::vector<std::string>& null_values,
-                                             size_t limit,
-                                             size_t strata_size,
-                                             size_t samples_per_strata,
-                                             int random_seed=-1,
-                                             bool skip_first_row=false) {
+    std::vector<Row>
+    csv_parseRowsStratified(const char *buf, size_t buf_size, size_t expected_column_count, size_t range_start,
+                            char delimiter, char quotechar, const std::vector<std::string> &null_values, size_t limit,
+                            size_t strata_size, size_t samples_per_strata, int random_seed,
+                            const std::set<unsigned int>& skip_rows) {
         auto sample_length = std::min(buf_size - 1, strlen(buf));
         auto end = buf + sample_length;
 
@@ -1901,11 +1899,19 @@ parse_error:
         std::sort(strata_indices.begin(), strata_indices.end());
         unsigned strata_pos = 0;
         while(reader.read_row()) {
-            if(row.count != expected_column_count)
+            if(row.count != expected_column_count) {
+                pos++;
                 continue;
+            }
+
+            // row to skip?
+            if(!skip_rows.empty() && skip_rows.find(pos) != skip_rows.end()) {
+                pos++;
+                continue;
+            }
 
             // was the right strata pos found?
-            if(pos == last_strata_start + strata_indices[strata_pos]) {
+            if(pos >= last_strata_start + strata_indices[strata_pos]) {
                 strata_pos++;
 
                 // was it the last strata?
@@ -1942,10 +1948,7 @@ parse_error:
                     }
                 }
 
-                if(skip_first_row)
-                    skip_first_row = false;
-                else
-                    v.push_back(Row::from_vector(fields));
+                v.push_back(Row::from_vector(fields));
 
                 // limit reached?
                 if(v.size() == limit)

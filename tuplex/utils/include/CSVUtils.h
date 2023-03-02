@@ -209,6 +209,28 @@ namespace tuplex {
      */
     extern std::vector<Row> csv_parseRows(const char* buf, size_t buf_size, size_t expected_column_count, size_t range_start,
                                           char delimiter, char quotechar, const std::vector<std::string>& null_values, size_t limit);
+
+    /*!
+     *
+     * @param buf
+     * @param buf_size
+     * @param expected_column_count
+     * @param range_start
+     * @param delimiter
+     * @param quotechar
+     * @param null_values
+     * @param limit
+     * @param strata_size
+     * @param samples_per_strata
+     * @param random_seed
+     * @param skip_rows indices of rows to skip (before sampling)
+     * @return
+     */
+    std::vector<Row>
+    csv_parseRowsStratified(const char *buf, size_t buf_size, size_t expected_column_count, size_t range_start,
+                            char delimiter, char quotechar, const std::vector<std::string> &null_values, size_t limit,
+                            size_t strata_size, size_t samples_per_strata, int random_seed,
+                            const std::set<unsigned int>& skip_rows={});
 }
 
 #endif //TUPLEX_CSVUTILS_H

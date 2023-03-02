@@ -210,7 +210,7 @@ namespace tuplex {
         return random_integer;
     }
 
-    std::vector<unsigned> sample_without_replacement(unsigned N, unsigned num_samples, int random_seed) {
+    inline std::vector<unsigned> sample_without_replacement(unsigned N, unsigned num_samples, int random_seed) {
         // from https://bastian.rieck.me/blog/posts/2017/selection_sampling/
         auto seed = random_seed < 0 ? static_cast<long unsigned int>(time(0)) : random_seed;
         std::default_random_engine e(seed);

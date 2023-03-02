@@ -699,7 +699,8 @@ TEST(BasicInvocation, FlightsConstantSamplingTest) {
 
     string input_pattern = "/hot/data/flights_all/*.csv";
 
-    input_pattern = "/hot/data/flights_all/flights_on_time_performance_2021_10.csv";
+    // change here for single file
+    // input_pattern = "/hot/data/flights_all/flights_on_time_performance_2021_10.csv";
 
     auto vfs = VirtualFileSystem::fromURI(input_pattern);
     auto paths = vfs.globAll(input_pattern);

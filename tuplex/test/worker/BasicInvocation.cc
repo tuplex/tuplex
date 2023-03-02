@@ -712,9 +712,6 @@ TEST(BasicInvocation, FlightsConstantSamplingTest) {
     std::shared_ptr<FileInputOperator> fop(FileInputOperator::fromCsv(input_pattern, co, option<bool>::none, ',', '"', {""}, {}, {}, {}, sm));
     for(const auto& path : paths) {
 
-        // reset
-        bad_paths.clear();
-
         cout<<"-- resampling file "<<path.toPath()<<endl;
 
         // perform now only sampling & ConstantDetection

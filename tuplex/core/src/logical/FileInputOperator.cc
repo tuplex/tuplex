@@ -379,6 +379,30 @@ namespace tuplex {
         logger.info("Extracting row sample took " + std::to_string(timer.time()) + "s (sampling mode=" + samplingModeToString(mode) + ")");
     }
 
+    void FileInputOperator::fillRowCacheWithStratifiedSamples(SamplingMode mode,
+                                                              std::vector<std::vector<std::string>> *outNames,
+                                                              size_t sample_limit_after_strata, size_t strata_size,
+                                                              size_t samples_per_strata, int random_seed) {
+        auto &logger = Logger::instance().logger("fileinputoperator");
+
+        {
+            std::lock_guard<std::mutex> lock(_sampleCacheMutex);
+            // based on samples stored, fill the row cache
+            if(_sampleCache.empty())
+                return;
+        }
+
+        Timer timer;
+
+        // single-threaded for now (max-speed)
+        if(_fmt != FileFormat::OUTFMT_CSV)
+            throw std::runtime_error("only csv for stratified sampling supported yet.");
+
+       throw std::runtime_error("not yet implemented, needs probably better refactoring?");
+
+        logger.info("Extracting stratified row sample took " + std::to_string(timer.time()) + "s (sampling mode=" + samplingModeToString(mode) + ")");
+    }
+
     void FileInputOperator::fillFileCache(SamplingMode mode) {
         auto &logger = Logger::instance().logger("fileinputoperator");
         Timer timer;
@@ -1178,7 +1202,8 @@ namespace tuplex {
                                           bool resample, size_t sample_limit,
                                           bool use_stratified_sampling,
                                           size_t strata_size,
-                                          size_t samples_per_strata) {
+                                          size_t samples_per_strata,
+                                          int random_seed) {
         auto& logger = Logger::instance().logger("logical");
 
         assert(uris.size() == uri_sizes.size());
@@ -1207,13 +1232,12 @@ namespace tuplex {
                 ContextOptions co = ContextOptions::defaults();
                 // manipulate settings...
                 std::vector<std::vector<std::string>> namesCollection;
-
+                std::vector<std::vector<std::string>>* namePtr = _json_unwrap_first_level ? &namesCollection : nullptr;
                 if(!use_stratified_sampling) {
                     // fill row cache
-                    std::vector<std::vector<std::string>>* namePtr = _json_unwrap_first_level ? &namesCollection : nullptr;
-                    fillRowCache(sm, namePtr);
+                    fillRowCache(sm, namePtr, sample_limit);
                 } else {
-                    throw std::runtime_error("stratified sampling for JSON not yet supported");
+                    fillRowCacheWithStratifiedSamples(sm, namePtr, sample_limit, strata_size, samples_per_strata, random_seed);
                 }
 
                 // detect new type
@@ -1237,9 +1261,9 @@ namespace tuplex {
                 _generalCaseRowType = generalcase;
             } else {
                 if(!use_stratified_sampling)
-                fillRowCache(sm);
+                    fillRowCache(sm, nullptr, sample_limit);
                 else
-                    throw std::runtime_error("stratified sampling not yet supported.");
+                    fillRowCacheWithStratifiedSamples(sm, nullptr, sample_limit, strata_size, samples_per_strata, random_seed);
             }
 
             _estimatedRowCount = estimateSampleBasedRowCount();

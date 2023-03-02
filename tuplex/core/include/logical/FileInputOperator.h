@@ -80,6 +80,10 @@ namespace tuplex {
         void fillRowCache(SamplingMode mode, std::vector<std::vector<std::string>>* outNames=nullptr,
                           size_t sample_limit=std::numeric_limits<size_t>::max());
 
+        void fillRowCacheWithStratifiedSamples(SamplingMode mode, std::vector<std::vector<std::string>>* outNames=nullptr,
+                                               size_t sample_limit_after_strata=std::numeric_limits<size_t>::max(),
+                                               size_t strata_size=128, size_t samples_per_strata=1, int random_seed=-1);
+
         size_t estimateTextFileRowCount(size_t sample_size, const SamplingMode& mode);
         size_t estimateSampleBasedRowCount();
 
@@ -561,7 +565,8 @@ namespace tuplex {
         // HACK !!!
         void setInputFiles(const std::vector<URI>& uris, const std::vector<size_t>& uri_sizes,
                            bool resample=false, size_t sample_limit=std::numeric_limits<size_t>::max(),
-                           bool use_stratified_sampling=false, size_t strata_size=8, size_t samples_per_strata=1);
+                           bool use_stratified_sampling=false, size_t strata_size=8, size_t samples_per_strata=1,
+                           int random_seed=-1);
 
         // HACK !!!
         static FileInputOperator* from_json(nlohmann::json obj) {

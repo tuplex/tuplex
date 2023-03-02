@@ -1844,6 +1844,119 @@ parse_error:
         return v;
     }
 
+    std::vector<Row> csv_parseRowsStratified(const char* buf, size_t buf_size, size_t expected_column_count, size_t range_start,
+                                             char delimiter, char quotechar, const std::vector<std::string>& null_values,
+                                             size_t limit,
+                                             size_t strata_size,
+                                             size_t samples_per_strata,
+                                             int random_seed=-1,
+                                             bool skip_first_row=false) {
+        auto sample_length = std::min(buf_size - 1, strlen(buf));
+        auto end = buf + sample_length;
+
+        size_t start_offset = 0;
+        // range start != 0?
+        if(0 != range_start) {
+            start_offset = csvFindLineStart(buf, sample_length, expected_column_count, delimiter, quotechar);
+            if(start_offset < 0)
+                return {};
+            sample_length -= std::min((size_t)start_offset, sample_length);
+        }
+
+        // parse as rows using the settings detected.
+        std::vector<Row> v;
+        ExceptionCode ec;
+        std::vector<std::string> cells;
+        size_t num_bytes = 0;
+        const char* p = buf + start_offset;
+
+        // use csvmonkey parser
+        FixedBufferCursor cursor(p, end - p);
+        csvmonkey::CsvReader<> reader(cursor, delimiter, quotechar);
+        auto &row = reader.row();
+
+        // quickly create null hashmap & bool hashmap
+        std::unordered_map<std::string, int8_t> value_map;
+        // use 0/1 for bool, -1 for null-value.
+        for(auto s : booleanTrueStrings())
+            value_map[s] = 1;
+        for(auto s : booleanFalseStrings())
+            value_map[s] = 0;
+        for(auto s : null_values)
+            value_map[s] = -1;
+
+        v.reserve(100);
+
+        // adjustments
+        if(strata_size < 1)
+            strata_size = 1;
+        if(samples_per_strata > strata_size)
+            samples_per_strata = strata_size;
+
+        std::vector<Field> fields;
+        fields.reserve(expected_column_count);
+        int64_t pos = 0;
+        int64_t last_strata_start = 0;
+        auto strata_indices = sample_without_replacement(strata_size, samples_per_strata, random_seed);
+        std::sort(strata_indices.begin(), strata_indices.end());
+        unsigned strata_pos = 0;
+        while(reader.read_row()) {
+            if(row.count != expected_column_count)
+                continue;
+
+            // was the right strata pos found?
+            if(pos == last_strata_start + strata_indices[strata_pos]) {
+                strata_pos++;
+
+                // was it the last strata?
+                if(strata_pos == strata_indices.size()) {
+                    // generate next random strata indices!
+                    strata_indices = sample_without_replacement(strata_size, samples_per_strata, random_seed);
+                    std::sort(strata_indices.begin(), strata_indices.end());
+                    last_strata_start += strata_size;
+                    strata_pos = 0;
+                }
+
+                // fetch the sample
+                fields.clear();
+
+                for(unsigned i = 0; i < expected_column_count; ++i) {
+                    auto cell = row.cells[i].as_str();
+                    auto it = value_map.find(cell);
+                    if(it != value_map.end()) {
+                        if(it->second < 0)
+                            fields.push_back(Field::null());
+                        else
+                            fields.push_back(Field(static_cast<bool>(it->second)));
+                    } else {
+                        // int or float?
+                        int64_t i_val = 0;
+                        double d = 0;
+                        if(0 == tuplex::fast_atoi64(cell.c_str(), cell.c_str() + cell.size(), &i_val)) {
+                            fields.push_back(Field(i_val));
+                        } else if(0 == tuplex::fast_atod(cell.c_str(), cell.c_str() + cell.size(), &d)) {
+                            fields.push_back(Field(d));
+                        } else {
+                            fields.push_back(Field(cell));
+                        }
+                    }
+                }
+
+                if(skip_first_row)
+                    skip_first_row = false;
+                else
+                    v.push_back(Row::from_vector(fields));
+
+                // limit reached?
+                if(v.size() == limit)
+                    return v;
+            }
+
+            pos++;
+        }
+        return v;
+    }
+
     // old
 //    std::vector<Row> csv_parseRows(const char* buf, size_t buf_size, size_t expected_column_count, size_t range_start,
 //                                   char delimiter, char quotechar, const std::vector<std::string>& null_values, size_t limit) {

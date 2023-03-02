@@ -210,6 +210,35 @@ namespace tuplex {
         return random_integer;
     }
 
+    std::vector<unsigned> sample_without_replacement(unsigned N, unsigned num_samples, int random_seed) {
+        // from https://bastian.rieck.me/blog/posts/2017/selection_sampling/
+        auto seed = random_seed < 0 ? static_cast<long unsigned int>(time(0)) : random_seed;
+        std::default_random_engine e(seed);
+
+        std::uniform_real_distribution<> U( 0, std::nextafter(1.0, std::numeric_limits<double>::max() ) );
+
+        std::vector<unsigned> selected;
+        selected.reserve(num_samples);
+
+        assert(num_samples <= N);
+
+        if(1 == num_samples) {
+            auto random_integer = randi((unsigned)0, N - 1);
+            selected.push_back(random_integer);
+            return selected;
+        }
+
+        for( unsigned t = 0; t < N; t++ ) {
+            if( (N-t) * U( e ) < num_samples - selected.size() )
+                selected.push_back(t);
+
+            if( selected.size() == num_samples )
+                break;
+        }
+
+        return selected;
+    }
+
     /*!
      * perform reservoir sampling over sample
      * @tparam T

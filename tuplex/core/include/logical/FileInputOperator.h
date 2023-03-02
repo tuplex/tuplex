@@ -231,7 +231,7 @@ namespace tuplex {
             int random_seed;
 
             inline bool use_stratified_sampling() const {
-                return strata_size == 1 && samples_per_strata == 1;
+                return !(strata_size == 1 && samples_per_strata == 1);
             }
 
             SamplingParameters() : limit(std::numeric_limits<size_t>::max()), strata_size(1), samples_per_strata(1), random_seed(-1) {}

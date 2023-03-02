@@ -678,6 +678,96 @@ protected:
     }
 };
 
+TEST(BasicInvocation, FlightsConstantSamplingTest) {
+    using namespace tuplex;
+    using namespace std;
+
+    string input_pattern = "/hot/data/flights_all/*.csv";
+
+    auto vfs = VirtualFileSystem::fromURI(input_pattern);
+    auto paths = vfs.globAll(input_pattern);
+
+    std::cout<<"Found "<<pluralize(paths.size(), "file")<<" for pattern "<<input_pattern<<std::endl;
+    ASSERT_FALSE(paths.empty());
+
+    auto co = ContextOptions::defaults();
+    co.set("tuplex.sample.maxDetectionMemory", "256KB");
+    auto sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
+    size_t sample_limit = 10000;
+
+    std::set<string> required_cols({"YEAR", "MONTH", "DAY_OF_MONTH", "OP_UNIQUE_CARRIER",
+                                    "OP_CARRIER_FL_NUM", "ORIGIN_AIRPORT_ID", "DEST_AIRPORT_ID",
+                                    "CRS_DEP_TIME", "DEP_DELAY", "CRS_ARR_TIME", "ARR_DELAY",
+                                    "CRS_ELAPSED_TIME", "DISTANCE", "CARRIER_DELAY", "WEATHER_DELAY",
+                                    "NAS_DELAY", "SECURITY_DELAY", "LATE_AIRCRAFT_DELAY"});
+
+    // there are only a couple columns to be ok with being marked as constant. Change sampling etc. else!
+    std::set<string> ok_cols({"YEAR", "MONTH", "CARRIER_DELAY", "WEATHER_DELAY",
+                                    "NAS_DELAY", "SECURITY_DELAY", "LATE_AIRCRAFT_DELAY"});
+
+    std::vector<tuple<string,string>> const_results;
+    std::set<string> bad_paths;
+
+    // now go through each file & sample & see what checks are generated
+    std::shared_ptr<FileInputOperator> fop(FileInputOperator::fromCsv(input_pattern, co, option<bool>::none, ',', '"', {""}, {}, {}, {}, sm));
+    for(const auto& path : paths) {
+
+        // reset
+        bad_paths.clear();
+
+        cout<<"-- resampling file "<<path.toPath()<<endl;
+
+        // perform now only sampling & ConstantDetection
+        uint64_t path_size = 0;
+        vfs.file_size(path, path_size);
+        fop->setInputFiles({path}, {path_size}, true, sample_limit);
+        auto sample = fop->getSample(sample_limit);
+
+        codegen::DetectionStats ds;
+        ds.detect(sample);
+
+        std::stringstream ss;
+        ss<<"Identified "<<pluralize(ds.constant_column_indices().size(), "column")<<" to be constant: "<<ds.constant_column_indices()<<endl;
+
+        // print out which rows are considered constant (and with which values!)
+        // --> note that these checks are done POST initial pushdown.
+        // i.e. use output columns. (previously: input columns)
+        std::string const_str;
+        for(auto idx : ds.constant_column_indices()) {
+            string column_name;
+            if(!fop->columns().empty())
+                column_name = fop->columns()[idx];
+            if(required_cols.find(column_name) != required_cols.end()) {
+                ss<<" - "<<column_name<<": "<<ds.constant_row.get(idx).desc()<<" : "<<ds.constant_row.get(idx).getType().desc()<<endl;
+                const_str += column_name + "=" + ds.constant_row.get(idx).desc() + " ";
+
+                // not ok?
+                if(ok_cols.find(column_name) != ok_cols.end())
+                    bad_paths.insert(path.basename());
+            }
+        }
+
+        const_results.push_back(std::make_tuple(path.basename(), const_str));
+
+        cout<<ss.str()<<endl;
+    }
+
+
+    // print out summary
+    for(auto res : const_results) {
+        cout<<"path: "<<std::get<0>(res)<<"   "<<std::get<1>(res)<<endl;
+    }
+    cout<<endl;
+    std::vector<string> sorted_bad_paths(bad_paths.begin(), bad_paths.end());
+    sort(sorted_bad_paths.begin(), sorted_bad_paths.end());
+    for(auto path : sorted_bad_paths) {
+        cout<<"bad path: "<<path<<endl;
+    }
+
+    if(!sorted_bad_paths.empty())
+        cout<<endl<<sorted_bad_paths.size()<<" paths have undesired behavior"<<endl;
+}
+
 TEST(BasicInvocation, FlightsConstantFilterFold) {
     using namespace tuplex;
     using namespace std;
@@ -699,6 +789,10 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
     input_pattern = "/hot/data/flights_all/flights_on_time_performance_2000_03.csv";
 
     input_pattern = "/hot/data/flights_all/flights_on_time_performance_2000_07.csv";
+
+    input_pattern = "/hot/data/flights_all/flights_on_time_performance_2021_03.csv";
+
+    input_pattern = "/hot/data/flights_all/flights_on_time_performance_2001_08.csv";
 //
 //    // wrong column detected to be constant
 //    input_pattern = "/hot/data/flights_all/flights_on_time_performance_2018_04.csv";
@@ -730,6 +824,7 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
     // tweak sample size here to fix everything
     co.set("tuplex.sample.maxDetectionRows", "10000");
     co.set("tuplex.sample.maxDetectionMemory", "1MB");
+    co.set("tuplex.sample.maxDetectionMemory", "256KB");
 
     auto co_hyper = co;
     co_hyper.set("tuplex.experimental.hyperspecialization", "true");

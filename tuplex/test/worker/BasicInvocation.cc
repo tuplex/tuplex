@@ -592,7 +592,7 @@ inline std::string flights_code() {
                     "            weather_delay = 2000 + 0.09 * carrier_delay * (carrier_delay - 10.0)\n"
                     "            nas_delay = 3600 * crs_dep_time / 10.0\n"
                     "            security_delay = 7200 / crs_dep_time\n"
-                    "            late_aircraft_delay = (20 + 1.0) / (2.0 + crs_dep_time)\n"
+                    "            late_aircraft_delay = (20 + crs_arr_time) / (1.0 + crs_dep_time)\n"
                     "            return {'year' : year, 'month' : month,\n"
                     "                    'day' : row['DAY_OF_MONTH'],\n"
                     "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
@@ -864,6 +864,8 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
     input_pattern = "/hot/data/flights_all/flights_on_time_performance_2021_03.csv";
 
     input_pattern = "/hot/data/flights_all/flights_on_time_performance_2001_08.csv";
+
+    input_pattern = "/hot/data/flights_all/flights_on_time_performance_2000_02.csv";
 //
 //    // wrong column detected to be constant
 //    input_pattern = "/hot/data/flights_all/flights_on_time_performance_2018_04.csv";
@@ -875,11 +877,18 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
     // local worker mode for easier debugging
     ContextOptions co = ContextOptions::defaults();
 
-//     co.set("tuplex.backend", "lambda");
-//     co.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
+     co.set("tuplex.backend", "lambda");
+     co.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
 
-    // use worker to detect issue
-    co.set("tuplex.backend", "worker");
+     // alone, this here works.
+     input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_02.csv";
+
+     // bad sampling:
+    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_02.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
+
+//    // use worker to detect issue
+//    co.set("tuplex.backend", "worker");
+
 
     // activate optimizations
     co.set("tuplex.optimizer.selectionPushdown", "true");
@@ -895,11 +904,16 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
     // tweak sample size here to fix everything
     co.set("tuplex.sample.maxDetectionRows", "10000");
     co.set("tuplex.sample.maxDetectionMemory", "1MB");
+
     co.set("tuplex.sample.maxDetectionMemory", "256KB");
 
     auto co_hyper = co;
     co_hyper.set("tuplex.experimental.hyperspecialization", "true");
 
+    // force bad parse format?
+    co_hyper.set("tuplex.experimental.forceBadParseExceptFormat", "true"); // <-- this could explain the exceptions?
+    co_hyper.set("tuplex.useLLVMOptimizer", "true");
+    co_hyper.set("tuplex.autoUpcast", "true");
 
     // use sampling mode first/last file, first/last rows
     SamplingMode sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
@@ -935,14 +949,25 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
         Context ctx(co_hyper);
         auto udf_code = flights_code();
 
+        // ctx.csv(input_pattern, sampling_mode=sm).map(fill_in_delays).filter(lambda x: 2000 <= x['year'] <= 2005).tocsv(s3_output_path)
+
         Timer timer;
         ctx.csv(input_pattern, {}, option<bool>::none,
                 option<char>::none, '"', {""}, {}, {}, sm)
                 .map(UDF(udf_code))
-                .filter(UDF("lambda x: 2001 <= x['year'] <= 2004"))
+                .filter(UDF("lambda x: 2000 <= x['year'] <= 2005"))
                 .tocsv("hyper_local_worker_output.csv");
         hyper_time = timer.time();
         std::cout<<"hyper mode: "<<hyper_time<<std::endl;
+        std::cout<<"context options:\n";//<<ctx.getOptions().toString()<<std::endl;
+        auto options = ctx.getOptions();
+        nlohmann::json j;
+        for(auto kv : options.store()) {
+            j[kv.first] = kv.second;
+        }
+        std::cout<<j.dump(2)<<std::endl;
+
+        std::cout<<"UDF::\n\n"<<udf_code<<std::endl;
     }
 
     // final:

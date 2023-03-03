@@ -877,17 +877,24 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
     // local worker mode for easier debugging
     ContextOptions co = ContextOptions::defaults();
 
+
+    // AWS Lambda settings
      co.set("tuplex.backend", "lambda");
      co.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
-
-     // alone, this here works.
-     input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_02.csv";
-
-     // bad sampling:
     input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_02.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
 
-//    // use worker to detect issue
-//    co.set("tuplex.backend", "worker");
+
+    // alone, this here works.
+    // use worker to detect issue
+    co.set("tuplex.backend", "worker");
+    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_02.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
+
+    input_pattern = "/hot/data/flights_all/flights_on_time_performance_1987_10.csv,/hot/data/flights_all/flights_on_time_performance_2000_02.csv,/hot/data/flights_all/flights_on_time_performance_2021_11.csv";
+    // --> 2000 file produces exceptions - why??? -> only in conjunction with the other files... - bad general case path?
+
+    // bad sampling:
+
+
 
 
     // activate optimizations

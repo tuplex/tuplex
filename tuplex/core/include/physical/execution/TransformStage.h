@@ -93,6 +93,8 @@ namespace tuplex {
                              const URI& uri,
                              size_t file_size,
                              size_t sample_limit,
+                             size_t strata_size,
+                             size_t samples_per_strata,
                              const codegen::StageBuilderConfiguration& conf);
 
         std::vector<Partition*> inputPartitions() const { return _inputPartitions; }

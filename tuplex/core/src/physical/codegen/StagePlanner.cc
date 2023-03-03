@@ -1060,6 +1060,8 @@ namespace tuplex {
                          const URI& uri,
                          size_t file_size,
                          size_t sample_limit,
+                         size_t strata_size=1,
+                         size_t samples_per_strata=1,
                          const codegen::StageBuilderConfiguration& conf=codegen::StageBuilderConfiguration()) {
         auto& logger = Logger::instance().logger("hyper specializer");
         // run hyperspecialization using planner, yay!
@@ -1118,7 +1120,7 @@ namespace tuplex {
         bool enable_cf = conf.constantFoldingOptimization;
         if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
             auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode); assert(fop);
-            fop->setInputFiles({uri}, {file_size}, true, sample_limit);
+            fop->setInputFiles({uri}, {file_size}, true, sample_limit, true, strata_size, samples_per_strata);
 
             if(fop->fileFormat() == FileFormat::OUTFMT_JSON) {
                 enable_cf = false;

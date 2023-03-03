@@ -315,6 +315,8 @@ namespace tuplex {
                                              "tuplex.experimental.s3PreCacheSize",
                                              "tuplex.useLLVMOptimizer",
                                              "tuplex.sample.maxDetectionRows",
+                                             "tuplex.sample.strataSize",
+                                             "tuplex.sample.samplesPerStrata",
                                              "tuplex.optimizer.constantFoldingOptimization",
                                              "tuplex.experimental.forceBadParseExceptFormat"});
         auto& m_map = *(ws->mutable_other());

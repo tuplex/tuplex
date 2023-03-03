@@ -210,6 +210,8 @@ namespace tuplex {
                      {"tuplex.runTimeLibrary", "tuplex_runtime"},
                      {"tuplex.sample.maxDetectionRows", "10000"},
                      {"tuplex.sample.maxDetectionMemory", "256KB"},
+                     {"tuplex.sample.strataSize", "1"},
+                     {"tuplex.sample.samplesPerStrata", "1"},
                      {"tuplex.csv.separators", "[',', ';', '|', '\t']"},
                      {"tuplex.csv.quotechar", "\""},
                      {"tuplex.csv.comments", "['#', '~']"},
@@ -275,6 +277,8 @@ namespace tuplex {
                      {"tuplex.runTimeLibrary", "tuplex_runtime"},
                      {"tuplex.sample.maxDetectionRows", "10000"},
                      {"tuplex.sample.maxDetectionMemory", "256KB"},
+                     {"tuplex.sample.strataSize", "1"},
+                     {"tuplex.sample.samplesPerStrata", "1"},
                      {"tuplex.csv.separators", "[',', ';', '|', '\t']"},
                      {"tuplex.csv.quotechar", "\""},
                      {"tuplex.csv.comments", "['#', '~']"},
@@ -662,6 +666,53 @@ namespace tuplex {
 
     size_t ContextOptions::SAMPLE_MAX_DETECTION_MEMORY() const {
         return memStringToSize(_store.at("tuplex.sample.maxDetectionMemory"));
+    }
+
+    size_t ContextOptions::SAMPLE_STRATA_SIZE() const {
+        auto& logger = Logger::instance().defaultLogger();
+        auto entry = _store.at("tuplex.sample.strataSize");
+        try {
+            auto size = std::stoi(entry);
+            if(size < 1)
+                return 1;
+            // limit to 10k?
+            // -> special case for empty rows...
+            static const auto MAX_STRATA_SIZE = 10000;
+            if(size > MAX_STRATA_SIZE) {
+                std::stringstream ss;
+                ss<<"Given strata size is "<<size<<" which exceeds MAX_STRATA_SIZE="<<MAX_STRATA_SIZE<<", setting to "<<MAX_STRATA_SIZE;
+                logger.warn(ss.str());
+                return MAX_STRATA_SIZE;
+            }
+            return size;
+        } catch(...) {
+            logger.error("invalid strata size: " + entry + ", setting to 1.");
+            return 1;
+        }
+    }
+
+    size_t ContextOptions::SAMPLE_SAMPLES_PER_STRATA() const {
+        auto& logger = Logger::instance().defaultLogger();
+        auto entry = _store.at("tuplex.sample.samplesPerStrata");
+        try {
+            auto size = std::stoi(entry);
+            auto strata_size = SAMPLE_STRATA_SIZE();
+            if(size > strata_size) {
+                std::stringstream ss;
+                ss<<"Given samples_per_strata is "<<size<<" but strata size is "<<strata_size<<", setting samples_per_strata to "<<strata_size;
+                logger.warn(ss.str());
+                return strata_size;
+            }
+
+            if(size < 1) {
+                logger.warn("samples_per_strata set to " + std::to_string(size) + " but at least 1 sample/strata required, setting to 1.");
+                return 1;
+            }
+            return size;
+        } catch(...) {
+            logger.error("invalid samples_per_strata: " + entry + ", setting to 1 sample/strata.");
+            return 1;
+        }
     }
 
     size_t ContextOptions::INPUT_SPLIT_SIZE() const {

@@ -845,7 +845,11 @@ namespace tuplex {
             auto uri_str = std::get<0>(files.front());
             auto uri_size = std::get<1>(files.front());
             codegen::StageBuilderConfiguration conf(_options);
-            hyperspecialize(tstage, uri_str, uri_size, _options.SAMPLE_MAX_DETECTION_ROWS(), conf);
+            hyperspecialize(tstage, uri_str, uri_size,
+                            _options.SAMPLE_MAX_DETECTION_ROWS(),
+                            _options.SAMPLE_STRATA_SIZE(),
+                            _options.SAMPLE_SAMPLES_PER_STRATA(),
+                            conf);
         }
 
         // special case: skip stage, i.e. empty code and mem2mem

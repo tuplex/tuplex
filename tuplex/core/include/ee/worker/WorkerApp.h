@@ -136,6 +136,8 @@ namespace tuplex {
         size_t s3PreCacheSize; // <-- whether to load S3 first and activate cache
         bool useOptimizer; // <-- whether to use optimizer for hyper or not
         size_t sampleLimitCount; // <-- limit count imposed on resampling
+        size_t strataSize;
+        size_t samplesPerStrata;
 
         double normalCaseThreshold; ///! used for hyperspecialziation
         codegen::ExceptionSerializationMode exceptionSerializationMode;
@@ -157,6 +159,8 @@ namespace tuplex {
             allowNumericTypeUnification = opt.AUTO_UPCAST_NUMBERS();
             normalCaseThreshold = opt.NORMALCASE_THRESHOLD();
             sampleLimitCount = std::numeric_limits<size_t>::max();
+            strataSize = 1;
+            samplesPerStrata = 1;
         }
 
         WorkerSettings(const WorkerSettings& other) : numThreads(other.numThreads),
@@ -176,7 +180,9 @@ namespace tuplex {
         useOptimizer(other.useOptimizer),
         sampleLimitCount(other.sampleLimitCount),
         normalCaseThreshold(other.normalCaseThreshold),
-        exceptionSerializationMode(other.exceptionSerializationMode) {}
+        exceptionSerializationMode(other.exceptionSerializationMode),
+        strataSize(other.strataSize),
+        samplesPerStrata(other.samplesPerStrata) {}
 
         inline bool operator == (const WorkerSettings& other) const {
 
@@ -217,6 +223,12 @@ namespace tuplex {
                 return false;
             if(exceptionSerializationMode != other.exceptionSerializationMode)
                 return false;
+
+            if(strataSize != other.strataSize)
+                return false;
+            if(samplesPerStrata != other.samplesPerStrata)
+                return false;
+
             return true;
         }
 
@@ -240,6 +252,8 @@ namespace tuplex {
         os << "\"opportuneGeneralPathCompilation\":"<<boolToString(ws.opportuneGeneralPathCompilation)<<", ";
         os << "\"useOptimizer\":"<<boolToString(ws.useOptimizer)<<", ";
         os << "\"sampleLimitCount\":"<<ws.sampleLimitCount<<", ";
+        os << "\"strataSize\""<<ws.strataSize<<", ";
+        os << "\"samplesPerStrata\""<<ws.samplesPerStrata<<", ";
         os << "\"useFilterPromotion\":"<<boolToString(ws.useFilterPromotion)<<", ";
         os << "\"useConstantFolding\":"<<boolToString(ws.useConstantFolding)<<", ";
         os << "\"normalCaseThreshold\":"<<ws.normalCaseThreshold<<", ";

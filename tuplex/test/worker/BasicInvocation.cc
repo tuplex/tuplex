@@ -715,6 +715,11 @@ TEST(BasicInvocation, FlightsConstantSamplingTest) {
     co.set("tuplex.sample.maxDetectionMemory", "256KB"); // result 1 setting
     co.set("tuplex.sample.maxDetectionMemory", "1MB"); // result 2 setting
     co.set("tuplex.sample.maxDetectionMemory", "16MB"); // result 3 setting + 30k rows
+    co.set("tuplex.sample.maxDetectionMemory", "32MB"); // result 4 setting + 30k rows --> maybe use 1024/1 for sampling? --> this works. use log(...) rule for sample size.
+
+    // set strata
+    co.set("tuplex.sample.strataSize", "1024");
+    co.set("tuplex.sample.samplesPerStrata", "1");
     sample_limit = 30000;
 
     std::set<string> required_cols({"YEAR", "MONTH", "DAY_OF_MONTH", "OP_UNIQUE_CARRIER",

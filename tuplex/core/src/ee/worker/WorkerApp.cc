@@ -369,6 +369,8 @@ namespace tuplex {
                                             uri,
                                             file_size,
                                             _settings.sampleLimitCount,
+                                            _settings.strataSize,
+                                            _settings.samplesPerStrata,
                                             conf);
             _hyperspecializedNormalCaseRowType = tstage->normalCaseInputSchema().getRowType(); // refactor?
             if(hyper_rc) {
@@ -1645,6 +1647,22 @@ namespace tuplex {
         } else {
             ws.sampleLimitCount = std::numeric_limits<size_t>::max();
         }
+        it = req.settings().other().find("tuplex.sample.strataSize");
+        if(it != req.settings().other().end()) {
+            ws.strataSize = std::stoull(it->second);
+        } else {
+            ws.strataSize = 1;
+        }
+        it = req.settings().other().find("tuplex.sample.samplesPerStrata");
+        if(it != req.settings().other().end()) {
+            ws.samplesPerStrata = std::stoull(it->second);
+        } else {
+            ws.samplesPerStrata = 1;
+        }
+
+        ws.strataSize = std::max(ws.strataSize, 1ul);
+        ws.samplesPerStrata = std::max(ws.samplesPerStrata, ws.strataSize);
+
         it = req.settings().other().find("tuplex.optimizer.constantFoldingOptimization");
         if(it != req.settings().other().end()) {
             ws.useConstantFolding = stringToBool(it->second);

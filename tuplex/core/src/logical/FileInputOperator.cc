@@ -695,7 +695,10 @@ namespace tuplex {
             _columnNames = _header ? csvstat.columns() : std::vector<std::string>();
 
             // now fill row cache to detect majority type (?)
-            fillRowCache(sampling_mode);
+            if(!co.USE_STRATIFIED_SAMPLING())
+                fillRowCache(sampling_mode, nullptr, co.SAMPLE_SIZE());
+            else
+                fillRowCacheWithStratifiedSamples(sampling_mode, nullptr, co.SAMPLE_SIZE(), co.SAMPLE_STRATA_SIZE(), co.SAMPLE_SAMPLES_PER_STRATA());
 
             // use sample to detect types
             bool use_independent_columns = true;

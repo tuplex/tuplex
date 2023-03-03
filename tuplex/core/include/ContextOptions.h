@@ -122,6 +122,11 @@ namespace tuplex {
         size_t SAMPLE_MAX_DETECTION_MEMORY() const; //! maximum bytes to use for schema inference for each file source (for each sampling request)
         size_t SAMPLE_MAX_DETECTION_ROWS() const; //! maximum number of rows to use for schema inference for each file source
 
+        size_t SAMPLE_STRATA_SIZE() const; // size of strata, if 1 no stratified sampling is used.
+        size_t SAMPLE_SAMPLES_PER_STRATA() const; // samples per strata, between 1 to SAMPLE_STRATA_SIZE().
+
+        bool USE_STRATIFIED_SAMPLING() const { return SAMPLE_STRATA_SIZE() != 1 || SAMPLE_SAMPLES_PER_STRATA() != SAMPLE_STRATA_SIZE(); }
+
         size_t SAMPLE_SIZE() const { return SAMPLE_MAX_DETECTION_MEMORY(); } // @TODO, change this setting name.
         double NORMALCASE_THRESHOLD() const; //! threshold for normalcase, between 0.0 and 1.0
         double OPTIONAL_THRESHOLD() const; //! threshold for detecting an optional field, between 0.0 and 1.0

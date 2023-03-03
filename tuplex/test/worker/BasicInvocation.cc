@@ -2612,7 +2612,7 @@ TEST(BasicInvocation, FlightsTestSpecialization) {
     auto vfs = VirtualFileSystem::fromURI(test_uri);
     size_t test_uri_size = 0;
     vfs.file_size(test_uri, reinterpret_cast<uint64_t &>(test_uri_size));
-    hyperspecialize(tstage, test_uri, test_uri_size, 200, codegen::StageBuilderConfiguration());
+    hyperspecialize(tstage, test_uri, test_uri_size, 200, 1, 1, codegen::StageBuilderConfiguration());
 }
 
 

@@ -861,7 +861,7 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
 
     input_pattern = "/hot/data/flights_all/flights_on_time_performance_2000_07.csv";
 
-    input_pattern = "/hot/data/flights_all/flights_on_time_performance_2021_03.csv";
+    input_pattern = "/hot/data/flights_all/flights_on_time_performance_\2021_03.csv";
 
     input_pattern = "/hot/data/flights_all/flights_on_time_performance_2001_08.csv";
 
@@ -993,6 +993,43 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
 
     //python::lockGIL();
     //python::closeInterpreter();
+}
+
+TEST(BasicInvocation, TestFIle) {
+    //
+    using namespace tuplex;
+    using namespace std;
+
+    auto uri = URI("file:///tmp/tuplex-cache-leonhards/driver/a2bef16c-7df3-4c3c-9369-d05e7430950e.prt");
+    auto path = uri.toString().substr(uri.prefix().length());
+    if(!fileExists(path)) {
+        throw std::runtime_error("could not find file under path " + path);
+    }
+
+    FILE *pFile = fopen(path.c_str(), "rb");
+    if(!pFile) {
+        handle_file_error("failed to load evicted partition from " + path);
+        return;
+    }
+
+    size_t bytes_read = 0;
+    size_t bytesWritten = 0;
+    // read from file
+    bytes_read = fread(&bytesWritten, 1, sizeof(uint64_t), pFile);
+    if(bytes_read != sizeof(uint64_t)) {
+        handle_file_error("file corrupted, could not read number of bytes written for partition."
+                          " Expected reading " + std::to_string(sizeof(uint64_t))
+                          + " bytes, but fread returned " + std::to_string(sizeof(bytes_read)));
+        fclose(pFile);
+        return;
+    }
+//    bytes_read = fread(_arena, _size, 1, pFile);
+//    if(bytes_read != _size) {
+//        handle_file_error("file corrupted, could not read data.");
+//        fclose(pFile);
+//        return;
+//    }
+    fclose(pFile);
 }
 
 TEST(BasicInvocation, ConstantFilterFold) {

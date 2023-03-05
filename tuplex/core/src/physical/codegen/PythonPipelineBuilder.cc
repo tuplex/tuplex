@@ -980,7 +980,7 @@ namespace tuplex {
             //exceptInnerCode(ss, _lastFunction._operatorID, "e", "", 1);
             ss << "return res" << std::endl;
             indent();
-            //writeLine(ss.str());
+            writeLine(ss.str());
             dedent();
         } else {
 

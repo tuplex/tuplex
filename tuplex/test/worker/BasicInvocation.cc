@@ -882,17 +882,19 @@ TEST(BasicInvocation, FlightsConstantFilterFold) {
      co.set("tuplex.backend", "lambda");
      co.set("tuplex.aws.scratchDir", "s3://tuplex-leonhard/scratch/flights-exp");
     input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_02.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
+    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv";
 
-
-    // alone, this here works.
-    // use worker to detect issue
-    co.set("tuplex.backend", "worker");
-    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_02.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
-
-    input_pattern = "/hot/data/flights_all/flights_on_time_performance_1987_10.csv,/hot/data/flights_all/flights_on_time_performance_2000_02.csv,/hot/data/flights_all/flights_on_time_performance_2021_11.csv";
-    // --> 2000 file produces exceptions - why??? -> only in conjunction with the other files... - bad general case path?
-
-    // bad sampling:
+    // // alone, this here works.
+    // // use worker to detect issue
+    // co.set("tuplex.backend", "worker");
+    // input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_02.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
+//
+    // //input_pattern = "/hot/data/flights_all/flights_on_time_performance_1987_10.csv,/hot/data/flights_all/flights_on_time_performance_2000_02.csv,/hot/data/flights_all/flights_on_time_performance_2021_11.csv";
+    // // --> 2000 file produces exceptions - why??? -> only in conjunction with the other files... - bad general case path?
+//
+    // // --> looks like a S3 read problem...
+//
+    // // bad sampling:
 
 
 
@@ -1294,6 +1296,9 @@ TEST(BasicInvocation, SingleMessageDebug) {
 
     // debug bad request here
     message_path = "/home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_0.json";
+
+    // bad request:
+    message_path = "/home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_158.json";
 
     auto message = fileToString(URI(message_path));
 

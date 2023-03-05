@@ -2731,10 +2731,10 @@ namespace tuplex {
 #endif
 
 #ifndef NDEBUG
-        // // to print python object
-        // Py_XINCREF(tuple);
-        // PyObject_Print(tuple, stdout, 0);
-        // std::cout<<std::endl;
+         // to print python object
+         Py_XINCREF(tuple);
+         PyObject_Print(tuple, stdout, 0);
+         std::cout<<std::endl;
 #endif
 
         // call pipFunctor
@@ -2779,12 +2779,12 @@ namespace tuplex {
                     ecCode = ecToI64(python::translatePythonExceptionType(exceptionType));
 
 #ifndef NDEBUG
-                    // // debug printing of exception and what the reason is...
-                    // // print res obj
-                    // Py_XINCREF(pcr.res);
-                    // std::cout<<"exception occurred while processing using python: "<<std::endl;
-                    // PyObject_Print(pcr.res, stdout, 0);
-                    // std::cout<<std::endl;
+                     // debug printing of exception and what the reason is...
+                     // print res obj
+                     Py_XINCREF(pcr.res);
+                     std::cout<<"exception occurred while processing using python: "<<std::endl;
+                     PyObject_Print(pcr.res, stdout, 0);
+                     std::cout<<std::endl;
 #endif
                     // deliver that result is exception
                     res.code = ecCode;

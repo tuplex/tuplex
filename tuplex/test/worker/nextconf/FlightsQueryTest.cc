@@ -90,7 +90,7 @@ namespace tuplex {
         else
             m["output_path"] = "./local-exp/global/output.csv";
 
-        m["backend"] = "worker";
+        m["tuplex.backend"] = "worker";
         m["input_path"] = "/hot/data/flights_all/flights*.csv";
 
         return m;

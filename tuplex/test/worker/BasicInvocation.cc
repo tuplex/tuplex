@@ -43,7 +43,7 @@
 #include <physical/codegen/StagePlanner.h>
 #include <logical/LogicalOptimizer.h>
 
-#include "PerfEvent.hpp"
+#include "nextconf/PerfEvent.hpp"
 #include "logical/LogicalPlan.h"
 #include "physical/execution/csvmonkey.h"
 

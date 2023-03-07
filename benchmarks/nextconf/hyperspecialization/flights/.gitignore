@@ -14,3 +14,5 @@ flights_prepped*.csv
 xgb_.py
 model/
 job/
+logs/
+preprocess/

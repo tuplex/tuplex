@@ -3,11 +3,9 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.12 FATAL_ERROR)
 # enable c++14
 SET(CMAKE_CXX_STANDARD 14)
 
-FILE(GLOB SRCS *.cc)
-
 include(GoogleTest)
 
-ADD_EXECUTABLE(testworker ${SRCS})
+ADD_EXECUTABLE(testworker main.cc BasicInvocation.cc nextconf/FlightsQueryTest.cc nextconf/GithubQueryTest.cc)
 target_include_directories(testworker PUBLIC "../../worker/include")
 # find_package(pybind11 REQUIRED)
 TARGET_LINK_LIBRARIES(testworker

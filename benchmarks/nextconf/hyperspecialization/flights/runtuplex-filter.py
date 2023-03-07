@@ -237,10 +237,14 @@ if __name__ == '__main__':
     ### QUERY HERE ###
 
     #debug
-    input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_1999_05.csv'
-
+    #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_1999_05.csv'
+    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_02.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv" 
     #ctx.csv(input_pattern, sampling_mode=sm).filter(lambda row: 2000 <= row['YEAR'] <= 2005).map(fill_in_delays).tocsv(s3_output_path)
     ctx.csv(input_pattern, sampling_mode=sm).map(fill_in_delays).filter(lambda x: 2000 <= x['year'] <= 2005).tocsv(s3_output_path)
+
+
+    # this here is the new workflow. simply filter out stuff
+    ctx.csv(input_pattern, sampling_mode=sm).withColumn("features", extr)
 
     ### END QUERY ###
     run_time = time.time() - tstart

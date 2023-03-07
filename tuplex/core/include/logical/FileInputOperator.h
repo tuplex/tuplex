@@ -135,6 +135,12 @@ namespace tuplex {
         }
 
         inline size_t reverseProjectToReadIndex(size_t projected_index) {
+#ifndef NDEBUG
+            if(projected_index >= outputColumnCount()) {
+                auto& logger = Logger::instance().logger("codegen");
+                logger.error("projected index " + std::to_string(projected_index) + " is greater equal than current number of output columns " + std::to_string(outputColumnCount()));
+            }
+#endif
             assert(projected_index < outputColumnCount());
 
             auto map = projectionMap();

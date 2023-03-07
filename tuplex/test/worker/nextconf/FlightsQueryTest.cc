@@ -79,6 +79,24 @@ namespace tuplex {
         return m;
     }
 
+    // use local worker test settings
+    std::unordered_map<std::string, std::string> localWorkerSettings(bool use_hyper) {
+        // couple changes
+        auto m = lambdaSettings(use_hyper);
+
+        // backend set to worker
+        if(use_hyper)
+            m["output_path"] = "./local-exp/hyper/output.csv";
+        else
+            m["output_path"] = "./local-exp/global/output.csv";
+
+        m["backend"] = "worker";
+        m["input_path"] = "/hot/data/flights_all/flights*.csv";
+
+        return m;
+    }
+
+
     TEST_F(FlightsQuery, CodeNotEmpty) {
         auto udf_extractFeatures = extractFeatureVectorCode();
         ASSERT_FALSE(udf_extractFeatures.empty());
@@ -91,12 +109,12 @@ namespace tuplex {
         using namespace std;
 
         // set input/output paths
-        auto exp_settings = lambdaSettings(true);
+        auto exp_settings = localWorkerSettings(true); //lambdaSettings(true);
         auto input_pattern = exp_settings["input_path"];
         auto output_path = exp_settings["output_path"];
         SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));
         ContextOptions co = ContextOptions::defaults();
-        for(auto kv : exp_settings)
+        for(const auto& kv : exp_settings)
             if(startsWith(kv.first, "tuplex."))
                 co.set(kv.first, kv.second);
 
@@ -109,9 +127,13 @@ namespace tuplex {
         // now perform query...
         auto& ds = ctx.csv(input_pattern, {}, option<bool>::none, option<char>::none, '"', {""}, {}, {}, sm);
 
-
+        // add function that normalizes features (f-mean) / std
+        // and then perform linear model for all of the variables in fill-in-delays function (adjusted)
+        // now create extract vec (but only for relevant years!)
+        ds.withColumn("features", UDF(extractFeatureVectorCode()))
+           .filter(UDF("lambda row: 2000 <= row['YEAR'] <= 2005"))
+           .map(UDF(extractAssembleRowCode())).tocsv(output_path);
     }
-
 }
 
 

@@ -240,10 +240,13 @@ namespace tuplex {
             // --> this requires pushdown to work before!
             auto acc_cols = acc_cols_before_opt;
             std::vector<NormalCaseCheck> projected_checks;
-            for(auto col_idx : acc_cols) {
-                auto original_col_idx =  inputNode->type() == LogicalOperatorType::FILEINPUT ?
-                        std::dynamic_pointer_cast<FileInputOperator>(inputNode)->reverseProjectToReadIndex(col_idx)
-                        : col_idx;
+            for(const auto& col_idx : acc_cols) {
+                // changed acc cols to retrieve original indices, below is commented old code:
+                //  auto original_col_idx =  inputNode->type() == LogicalOperatorType::FILEINPUT ?
+                //          std::dynamic_pointer_cast<FileInputOperator>(inputNode)->reverseProjectToReadIndex(col_idx)
+                //          : col_idx;
+                // new
+                auto original_col_idx = col_idx;
                for(const auto& check : checks) {
                    if(check.colNo == original_col_idx) {
                        projected_checks.emplace_back(check); // need to adjust internal colNo? => no, keep for now.
@@ -321,7 +324,20 @@ namespace tuplex {
             // so accCols should be sorted, now map to columns. Then check the position in accColsBefore
             // => look up what the original cols were!
             // => then push that down to reader/input node!
-            _normalToGeneralMapping = createNormalToGeneralMapping(accessed_columns, accessed_columns_before_opt);
+            std::vector<size_t> out_accessed_columns;
+            std::vector<size_t> out_accessed_columns_before_opt;
+            // project each when input op present
+            if(inputNode && inputNode->type() == LogicalOperatorType::FILEINPUT) {
+                auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode);
+                for(const auto& idx : accessed_columns)
+                    out_accessed_columns.emplace_back(fop->projectReadIndex(idx));
+                for(const auto& idx : accessed_columns_before_opt)
+                    out_accessed_columns_before_opt.emplace_back(fop->projectReadIndex(idx));
+            } else {
+                out_accessed_columns = accessed_columns;
+                out_accessed_columns_before_opt = accessed_columns_before_opt;
+            }
+            _normalToGeneralMapping = createNormalToGeneralMapping(out_accessed_columns, out_accessed_columns_before_opt);
 
             {
                 // print out new chain of types
@@ -1332,6 +1348,7 @@ namespace tuplex {
                                        bool dropOperators) {
 
             using namespace std;
+            auto& logger = Logger::instance().logger("logical");
 
             if(!op)
                 return requiredCols;
@@ -1383,6 +1400,23 @@ namespace tuplex {
                         throw std::runtime_error("unsupported UDFOperator in projection pushdown " + op->name());
                 }
 
+#ifndef NDEBUG
+                {
+                    std::stringstream ss;
+                    ss<<"operator "<<op->name()<<" accesses column indices: "<<accCols<<"\n";
+                    if(!op->inputColumns().empty()) {
+                        ss<<"\tequal to columns: ";
+                        for(unsigned idx : accCols) {
+                            if(idx >= op->inputColumns().size())
+                                ss<<"INVALID INDEX ";
+                            else
+                                ss<<op->inputColumns()[idx]<<" ";
+                        }
+                    }
+                    logger.debug(ss.str());
+                }
+#endif
+
                 // only a map operator selects a number of columns, i.e. the lowest map operator determines the pushdown!
                 // ==> because of nested maps, subselect from current requiredCols if they are not empty!
                 if(op->type() == LogicalOperatorType::MAP) {
@@ -1424,6 +1458,15 @@ namespace tuplex {
                     for(auto idx : accCols)
                         cols.insert(idx);
                     requiredCols = vector<size_t>(cols.begin(), cols.end());
+                }
+
+                // special case withColumn operator:
+                // if column to create is not overwriting an existing column, can drop it from required cols!
+                if(op->type() == LogicalOperatorType::WITHCOLUMN) {
+                    auto wop = std::dynamic_pointer_cast<WithColumnOperator>(op);
+                    if(wop->creates_new_column()) {
+                        requiredCols.erase(std::find(requiredCols.begin(), requiredCols.end(), wop->getColumnIndex()));
+                    }
                 }
 
                 // if dropping is not allowed, then mapColumn/withColumn will be executed
@@ -1549,139 +1592,141 @@ namespace tuplex {
 
                 return colsToKeep;
 
-            } else {
-                // make sure only one parent
-                assert(op->parents().size() <= 1);
-                // special case CacheOperator, exec with parent nullptr if child is not null
-                auto ret = op->type() == LogicalOperatorType::CACHE && child ?
-                           acc_helper(nullptr, op, requiredCols, dropOperators) :
-                           acc_helper(op->parent(), op, requiredCols, dropOperators);
-
-                // CSV operator? do rewrite here!
-                // ==> because it's a source node, use requiredCols!
-                if(op->type() == LogicalOperatorType::FILEINPUT) {
-                    // rewrite csv here
-                    auto csvop = std::dynamic_pointer_cast<FileInputOperator>(op);
-                    assert(csvop);
-                    auto inputRowType = csvop->getInputSchema().getRowType();
-                    vector<size_t> colsToSerialize;
-                    for (auto idx : requiredCols) {
-                        if (idx < inputRowType.parameters().size())
-                            colsToSerialize.emplace_back(idx);
-                    }
-                    sort(colsToSerialize.begin(), colsToSerialize.end());
-
-                    return colsToSerialize;
-                }
-
-                // list other input operators here...
-                // -> e.g. Parallelize, ... => could theoretically perform pushdown there as well
-                if(op->type() == LogicalOperatorType::PARALLELIZE || op->type() == LogicalOperatorType::CACHE) {
-                    // this is a source operator
-                    // => no pushdown implemented here yet. Therefore, require all columns
-                    python::Type rowtype;
-                    if(op->type() == LogicalOperatorType::PARALLELIZE) {
-                        auto pop = std::dynamic_pointer_cast<ParallelizeOperator>(op); assert(pop);
-                        rowtype = pop->getOutputSchema().getRowType();
-                    } else {
-                        auto cop = std::dynamic_pointer_cast<CacheOperator>(op); assert(cop);
-                        rowtype = cop->getOutputSchema().getRowType();
-                    }
-
-                    vector<size_t> colsToSerialize;
-                    assert(rowtype.isTupleType());
-                    for(auto i = 0; i < rowtype.parameters().size(); ++i)
-                        colsToSerialize.emplace_back(i);
-
-                    return colsToSerialize;
-                }
-
-                // make sure all source ops have been handled by above code!
-                assert(!op->isDataSource());
-
-                // b.c. of some special unrolling etc. could happen that ret is smaller than accCols!
-                // -> make sure all requiredCols are within ret!
-                std::set<size_t> col_set(ret.begin(), ret.end());
-                for(auto col : requiredCols) {
-                    col_set.insert(col);
-                }
-                ret = vector<size_t>(col_set.begin(), col_set.end());
-
-                // construct rewrite Map
-                unordered_map<size_t, size_t> rewriteMap;
-                if(!ret.empty()) {
-                    auto max_idx = *max_element(ret.begin(), ret.end()); // limit by max idx available
-                    unsigned counter = 0;
-                    for (unsigned i = 0; i <= max_idx; ++i) {
-                        if (std::find(ret.begin(), ret.end(), i) != ret.end()) {
-                            rewriteMap[i] = counter++;
-                        }
-                    }
-                }
-
-                // following would rewrite, yet this func only delivers the columns required
-                std::sort(ret.begin(), ret.end());
-//                // map stops rewrite, so rewrite map and then do not return anything!
-//                if(op->type() == LogicalOperatorType::MAP) {
-//                    // NOTE: rename ops continue rewrite mission!
-//                    auto mop = std::dynamic_pointer_cast<MapOperator>(op); assert(mop);
-//
-//                    if(!mop->getUDF().empty()) {
-//                        mop->rewriteParametersInAST(rewriteMap);
-//
-//                        // rewrite all ResolveOperators following (skip ignore)
-//                        // rewriteAllFollowingResolvers(op, rewriteMap);
-//
-//                        // non-empty UDF?
-//                        // simply return all indices, i.e. all columns are now to be kept!
-//                        // @TODO: can avoid rewrite if it's identity map!
-//                        auto numElements = mop->getOutputSchema().getRowType().parameters().size();
-//                        vector<size_t> colsToKeep;
-//                        for(int i = 0; i < numElements; ++i)
-//                            colsToKeep.emplace_back(i);
-//                        return colsToKeep;
-//                    } else {
-//
-//                        // empty UDF, i.e. need to update carried type...
-//                        // ==> create dummy rewriteMap to keep all indices!
-//                        mop->rewriteParametersInAST(rewriteMap);
-//
-//                        // else, return continue rewrite with requiredCols
-//                        return ret;
-//                    }
-//                }
-//                // UDF and NOT map?
-//                else if(hasUDF(op.get()) && op->type() != LogicalOperatorType::RESOLVE) {
-//                    auto udfop = std::dynamic_pointer_cast<UDFOperator>(op); assert(udfop);
-//
-//                    // special case withColumn: I.e. a new column is added, need to append to rewrite Map and reqCols!
-//                    if(op->type() == LogicalOperatorType::WITHCOLUMN) {
-//                        auto wop = std::dynamic_pointer_cast<WithColumnOperator>(op);
-//                        assert(wop);
-//
-//                        size_t colIdx = wop->getColumnIndex();
-//                        // in rewrite map?
-//                        if(rewriteMap.find(colIdx) == rewriteMap.end()) {
-//                            // now always append. Because it doesn't matter anymore!
-//                            auto new_idx = ret.size();
-//                            rewriteMap[colIdx] = new_idx;
-//                            // also append to ret, because further functions might rely on this added column!
-//                            ret.push_back(colIdx);
-//                        }
-//                    }
-//
-//                    udfop->rewriteParametersInAST(rewriteMap);
-//
-//                    // rewrite all resolvers which follow
-//                    // rewriteAllFollowingResolvers(op, rewriteMap);
-//                    return ret;
-//                }
-
-                return ret;
             }
 
-            // not initialized, important for rename...
-            return vector<size_t>();
+#ifndef NDEBUG
+            {
+                std::stringstream ss;
+                ss<<"operator "<<op->name()<<" required column indices: "<<requiredCols<<"\n";
+                if(!op->inputColumns().empty()) {
+                    ss<<"\tequal to columns: ";
+                    for(unsigned idx : requiredCols) {
+                        if(idx >= op->inputColumns().size())
+                            ss<<"INVALID INDEX ";
+                        else
+                            ss<<op->inputColumns()[idx]<<" ";
+                    }
+                }
+                logger.debug(ss.str());
+            }
+
+            logger.debug("----\n time to recurse!\n----");
+#endif
+
+
+            // make sure only one parent
+            assert(op->parents().size() <= 1);
+            // special case CacheOperator, exec with parent nullptr if child is not null
+            auto ret = op->type() == LogicalOperatorType::CACHE && child ?
+                       acc_helper(nullptr, op, requiredCols, dropOperators) :
+                       acc_helper(op->parent(), op, requiredCols, dropOperators);
+
+#ifndef NDEBUG
+            logger.debug("recursion done");
+            {
+                std::stringstream ss;
+                ss<<"operator "<<op->name()<<" returned required column indices: "<<ret<<"\n";
+                if(!op->inputColumns().empty()) {
+                    ss<<"\tequal to columns: ";
+                    for(unsigned idx : ret) {
+                        if(idx >= op->inputColumns().size())
+                            ss<<"INVALID INDEX ";
+                        else
+                            ss<<op->inputColumns()[idx]<<" ";
+                    }
+                }
+                logger.debug(ss.str());
+            }
+#endif
+
+            // CSV operator? do rewrite here!
+            // ==> because it's a source node, use requiredCols!
+            if(op->type() == LogicalOperatorType::FILEINPUT) {
+                // rewrite csv here
+                auto csvop = std::dynamic_pointer_cast<FileInputOperator>(op);
+
+#ifndef NDEBUG
+                logger.debug("input operator::");
+                {
+                    std::stringstream ss;
+                    ss<<"operator "<<op->name()<<" required output column indices: "<<ret<<"\n";
+                    if(!op->columns().empty()) {
+                        ss<<"\tequal to columns: ";
+                        for(unsigned idx : ret) {
+                            if(idx >= op->columns().size())
+                                ss<<"INVALID INDEX ";
+                            else
+                                ss<<op->columns()[idx]<<" ";
+                        }
+                    }
+                    logger.debug(ss.str());
+                }
+#endif
+
+                assert(csvop);
+                auto inputRowType = csvop->getInputSchema().getRowType();
+                vector<size_t> colsToSerialize;
+                for (auto idx : ret) {
+                    //if (idx < inputRowType.parameters().size())
+                    //    colsToSerialize.emplace_back(idx);
+                    // reverse project
+                    auto read_index = csvop->reverseProjectToReadIndex(idx); // output idx -> read index1
+                    colsToSerialize.emplace_back(read_index);
+                }
+                sort(colsToSerialize.begin(), colsToSerialize.end());
+
+                return colsToSerialize;
+            }
+
+            // list other input operators here...
+            // -> e.g. Parallelize, ... => could theoretically perform pushdown there as well
+            if(op->type() == LogicalOperatorType::PARALLELIZE || op->type() == LogicalOperatorType::CACHE) {
+                // this is a source operator
+                // => no pushdown implemented here yet. Therefore, require all columns
+                python::Type rowtype;
+                if(op->type() == LogicalOperatorType::PARALLELIZE) {
+                    auto pop = std::dynamic_pointer_cast<ParallelizeOperator>(op); assert(pop);
+                    rowtype = pop->getOutputSchema().getRowType();
+                } else {
+                    auto cop = std::dynamic_pointer_cast<CacheOperator>(op); assert(cop);
+                    rowtype = cop->getOutputSchema().getRowType();
+                }
+
+                vector<size_t> colsToSerialize;
+                assert(rowtype.isTupleType());
+                for(auto i = 0; i < rowtype.parameters().size(); ++i)
+                    colsToSerialize.emplace_back(i);
+
+                return colsToSerialize;
+            }
+
+            // make sure all source ops have been handled by above code!
+            assert(!op->isDataSource());
+
+            return ret;
+//            // b.c. of some special unrolling etc. could happen that ret is smaller than accCols!
+//            // -> make sure all requiredCols are within ret!
+//            std::set<size_t> col_set(ret.begin(), ret.end());
+//            for(auto col : requiredCols) {
+//                col_set.insert(col);
+//            }
+//            ret = vector<size_t>(col_set.begin(), col_set.end());
+//
+//            // construct rewrite Map (??) apply ??
+//            unordered_map<size_t, size_t> rewriteMap;
+//            if(!ret.empty()) {
+//                auto max_idx = *max_element(ret.begin(), ret.end()); // limit by max idx available
+//                unsigned counter = 0;
+//                for (unsigned i = 0; i <= max_idx; ++i) {
+//                    if (std::find(ret.begin(), ret.end(), i) != ret.end()) {
+//                        rewriteMap[i] = counter++;
+//                    }
+//                }
+//            }
+//
+//            // following would rewrite, yet this func only delivers the columns required
+//            std::sort(ret.begin(), ret.end());
+//            return ret;
         }
 
 
@@ -1710,7 +1755,7 @@ namespace tuplex {
             auto num_cols = node->getInputSchema().getRowType().parameters().size();
             for(unsigned i = 0; i < num_cols; ++i)
                 cols.emplace_back(i);
-            return acc_helper(node, nullptr, cols, false);
+            return acc_helper(node, nullptr, cols, false); // dropOperators should be true??
         }
     }
 }

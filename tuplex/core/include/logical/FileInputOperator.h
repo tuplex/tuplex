@@ -134,7 +134,7 @@ namespace tuplex {
             return python::Type::makeTupleType(col_types);
         }
 
-        inline size_t reverseProjectToReadIndex(size_t projected_index) {
+        inline size_t reverseProjectToReadIndex(size_t projected_index) const {
 #ifndef NDEBUG
             if(projected_index >= outputColumnCount()) {
                 auto& logger = Logger::instance().logger("codegen");
@@ -155,6 +155,17 @@ namespace tuplex {
                     return kv.first;
             }
             throw std::runtime_error("could not reverse project index");
+        }
+
+        inline size_t projectReadIndex(size_t read_index) const {
+            if(read_index >= inputColumnCount())
+                throw std::runtime_error("read_index is larger than number of input columns");
+            int idx = -1;
+            for(unsigned i = 0; i <= read_index; ++i) {
+                if(_columnsToSerialize[i])
+                    idx++;
+            }
+            return idx;
         }
     private:
         inline std::vector<std::string> projectColumns(const std::vector<std::string>& columns) const {

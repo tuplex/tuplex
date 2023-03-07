@@ -71,6 +71,29 @@ namespace tuplex {
 
         bool retype(const RetypeConfiguration& conf) override;
 
+        /*!
+         * check whether withColumn creates new column or overwrites existing one.
+         * @return whether it creates new column(true) or overwrites existing one (false)
+         */
+        inline bool creates_new_column() const {
+            auto input_schema = getInputSchema();
+            auto output_schema = getOutputSchema();
+            if(input_schema != Schema::UNKNOWN && output_schema != Schema::UNKNOWN) {
+                return input_schema.getRowType().parameters().size() < output_schema.getRowType().parameters().size();
+            }
+
+            auto columnNames = UDFOperator::inputColumns();
+            if(columnNames.empty()) {
+                return true; // no column names given -> always create new column
+            } else {
+                auto columnToMapIndex = indexInVector(_newColumn, columnNames);
+                if(columnToMapIndex < 0)
+                    return true;
+                else
+                    return false;
+            }
+        }
+
 #ifdef BUILD_WITH_CEREAL
         template<class Archive> void save(Archive &ar) const {
             ar(::cereal::base_class<UDFOperator>(this), _newColumn, _columnToMapIndex);

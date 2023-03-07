@@ -651,6 +651,15 @@ namespace tuplex {
                 requiredCols = vector<size_t>(cols.begin(), cols.end());
             }
 
+            // special case withColumn operator:
+            // if column to create is not overwriting an existing column, can drop it from required cols!
+            if(op->type() == LogicalOperatorType::WITHCOLUMN) {
+                auto wop = std::dynamic_pointer_cast<WithColumnOperator>(op);
+                if(wop->creates_new_column()) {
+                    requiredCols.erase(std::find(requiredCols.begin(), requiredCols.end(), wop->getColumnIndex()));
+                }
+            }
+
             // if dropping is not allowed, then mapColumn/withColumn will be executed
             if (!dropOperators &&
                 (op->type() == LogicalOperatorType::MAPCOLUMN || op->type() == LogicalOperatorType::WITHCOLUMN ||

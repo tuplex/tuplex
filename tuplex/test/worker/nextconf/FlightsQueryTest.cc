@@ -33,16 +33,14 @@ namespace tuplex {
 
 
         // shared settings
-        m["input_pattern"] = "s3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv";
-        auto sampling_mode = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
-        m["sampling_mode"] = std::to_string(sampling_mode);
+        m["input_path"] = "s3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv";
 
         // use stratified sampling
         m["tuplex.aws.httpThreadCount"] = std::to_string(410);
         m["tuplex.aws.maxConcurrency"] = std::to_string(410);
         m["tuplex.aws.lambdaMemory"] = "10000";
         m["tuplex.aws.lambdaThreads"] = "3";
-        m["tuplex.sample.maxDetectionMemory"] = "32MB";
+
         m["tuplex.autoUpcast"] = "True";
         m["tuplex.experimetal.hyperspecialization"] = boolToString(use_hyper);
         m["tuplex.executorCount"] = std::to_string(0);
@@ -61,6 +59,15 @@ namespace tuplex {
         m["tuplex.inputSplitSize"] = "2GB";
         m["tuplex.experimental.opportuneCompilation"] = "True";
         m["tuplex.aws.scratchDir"] = "s3://tuplex-leonhard/scratch/flights-exp";
+
+        // sampling settings incl.
+        // stratified sampling (to make things work & faster)
+        m["tuplex.sample.strataSize"] = "1024";
+        m["tuplex.sample.samplesPerStrata"]="1";
+        m["tuplex.sample.maxDetectionMemory"] = "32MB";
+        m["tuplex.sample.maxDetectionRows"] = "30000";
+        auto sampling_mode = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
+        m["sampling_mode"] = std::to_string(sampling_mode);
 
         // hyper vs. general specific settings
         if(use_hyper) {
@@ -87,6 +94,7 @@ namespace tuplex {
         auto exp_settings = lambdaSettings(true);
         auto input_pattern = exp_settings["input_path"];
         auto output_path = exp_settings["output_path"];
+        SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));
         ContextOptions co = ContextOptions::defaults();
         for(auto kv : exp_settings)
             if(startsWith(kv.first, "tuplex."))
@@ -99,6 +107,8 @@ namespace tuplex {
         stringToFile("context_settings.json", ctx.getOptions().toString());
 
         // now perform query...
+        auto& ds = ctx.csv(input_pattern, {}, option<bool>::none, option<char>::none, '"', {""}, {}, {}, sm);
+
 
     }
 

@@ -1661,7 +1661,7 @@ namespace tuplex {
         }
 
         ws.strataSize = std::max(ws.strataSize, 1ul);
-        ws.samplesPerStrata = std::max(ws.samplesPerStrata, ws.strataSize);
+        ws.samplesPerStrata = std::min(ws.samplesPerStrata, ws.strataSize);
 
         it = req.settings().other().find("tuplex.optimizer.constantFoldingOptimization");
         if(it != req.settings().other().end()) {

@@ -49,7 +49,7 @@ namespace tuplex {
         m["tuplex.aws.lambdaThreads"] = "3";
 
         m["tuplex.autoUpcast"] = "True";
-        m["tuplex.experimetal.hyperspecialization"] = boolToString(use_hyper);
+        m["tuplex.experimental.hyperspecialization"] = boolToString(use_hyper);
         m["tuplex.executorCount"] = std::to_string(0);
         m["tuplex.backend"] = "lambda";
         m["tuplex.webui.enable"] = "False";
@@ -61,7 +61,7 @@ namespace tuplex {
         m["tuplex.optimizer.nullValueOptimization"] = "True";
         m["tuplex.optimizer.constantFoldingOptimization"] = "True";
         m["tuplex.optimizer.selectionPushdown"] = "True";
-        m["tuplex.experimental.forceBasParseExceptFormat"] = "False";
+        m["tuplex.experimental.forceBadParseExceptFormat"] = "False";
         m["tuplex.resolveWithInterpreterOnly"] = "False";
         m["tuplex.inputSplitSize"] = "2GB";
         m["tuplex.experimental.opportuneCompilation"] = "True";

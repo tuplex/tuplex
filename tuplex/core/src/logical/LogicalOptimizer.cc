@@ -52,6 +52,7 @@ namespace tuplex {
         // filter pushdown, put first (in order to eliminate as much as possible)
         if(_options.OPT_FILTER_PUSHDOWN()) {
             emitPartialFilters(last_op, ignoreConstantTypedColumns);
+#error "need to fix here filter: I.e., when constant -> can push down flexible! make this more e"
             optimizeFilters(last_op, ignoreConstantTypedColumns);
         }
 

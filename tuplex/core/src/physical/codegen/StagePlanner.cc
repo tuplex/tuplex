@@ -285,7 +285,7 @@ namespace tuplex {
                 ss<<"retyping with parent's output schema: "<<lastParent->getOutputSchema().getRowType().desc()<<endl;
                 opt_op->retype(lastParent->getOutputSchema().getRowType(), true);
                 // after retype
-                ss<<op->name()<<" (after): "<<op->getInputSchema().getRowType().desc()<<" -> "<<op->getOutputSchema().getRowType().desc();
+                ss<<opt_op->name()<<" (after): "<<opt_op->getInputSchema().getRowType().desc()<<" -> "<<opt_op->getOutputSchema().getRowType().desc();
                 logger.debug(ss.str());
                 opt_ops.push_back(opt_op);
                 lastParent = opt_op;

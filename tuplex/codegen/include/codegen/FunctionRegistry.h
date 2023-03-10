@@ -97,6 +97,8 @@ namespace tuplex {
 
             SerializableValue createIntCast(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
 
+            SerializableValue createAbsCall(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
+
             SerializableValue createCapwordsCall(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, const SerializableValue& caller);
 
             SerializableValue

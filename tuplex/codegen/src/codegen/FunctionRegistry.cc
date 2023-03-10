@@ -127,6 +127,37 @@ namespace tuplex {
             }
         }
 
+        SerializableValue FunctionRegistry::createAbsCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
+                                                          python::Type argsType,
+                                                          const std::vector<tuplex::codegen::SerializableValue> &args) {
+            auto& logger = Logger::instance().logger("codegen");
+
+            // make sure args work
+            if(args.size() != 1) {
+                logger.error("no support for base in int(...) call yet");
+                return SerializableValue();
+            }
+
+            assert(argsType.isTupleType() && argsType.parameters().size() == 1);
+            auto type = argsType.parameters().front();
+            auto arg = args.front();
+
+            // abs of which type?
+            if(python::Type::I64 == type) {
+                assert(arg.val);
+                auto is_negative = builder.CreateICmpSLT(arg.val, _env.i64Const(0));
+                auto val = builder.CreateSelect(is_negative, builder.CreateSub(_env.i64Const(0), arg.val), arg.val);
+                return SerializableValue(val, _env.i64Const(sizeof(double)));
+            } else if(python::Type::F64 == type) {
+                assert(arg.val);
+                auto val = createUnaryIntrinsic(builder, llvm::Intrinsic::ID::fabs, arg.val);
+                return SerializableValue(val, _env.i64Const(sizeof(double)));
+            } else {
+                throw std::runtime_error("invalid type " + type.desc() + " for abs call");
+            }
+
+            return {};
+        }
 
         SerializableValue FunctionRegistry::createIntCast(tuplex::codegen::LambdaFunctionBuilder &lfb,
                                                           llvm::IRBuilder<> &builder, python::Type argsType,
@@ -1449,6 +1480,10 @@ namespace tuplex {
                 return createStrCast(lfb, builder, argsType, args);
             }
 
+            if(symbol == "abs") {
+                return createAbsCall(lfb, builder, argsType, args);
+            }
+
             // print
             if (symbol == "print") {
                 return createPrintCall(lfb, builder, argsType, args);
@@ -1560,6 +1595,10 @@ namespace tuplex {
                 return createCapwordsCall(lfb, builder, args[0]);
             }
 
+#ifndef NDEBUG
+            auto& logger = Logger::instance().logger("codegen");
+            logger.error("unsupported symbol '" + symbol + "' in function registry.");
+#endif
             return SerializableValue(nullptr, nullptr);
         }
 

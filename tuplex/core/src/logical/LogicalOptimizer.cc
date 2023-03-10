@@ -70,7 +70,7 @@ namespace tuplex {
             auto num_cols = last_op->getInputSchema().getRowType().parameters().size();
             for(unsigned i = 0; i < num_cols; ++i)
                 cols.emplace_back(i);
-            projectionPushdown(last_op, nullptr, cols);
+            projectionPushdown(last_op, nullptr, cols); // what about dropOperators??
         }
 
         // reconstruct array
@@ -132,7 +132,7 @@ namespace tuplex {
             auto num_cols = node->getInputSchema().getRowType().parameters().size();
             for(unsigned i = 0; i < num_cols; ++i)
                 cols.emplace_back(i);
-            projectionPushdown(node, nullptr, cols);
+            projectionPushdown(node, nullptr, cols); // what about drop operators?
 
             // note: could remove identity functions...
             // i.e. lambda x: x or lambda x: (x[0], x[1], ..., x[len(x) - 1]) same for def...
@@ -651,21 +651,23 @@ namespace tuplex {
                 requiredCols = vector<size_t>(cols.begin(), cols.end());
             }
 
-            // special case withColumn operator:
-            // if column to create is not overwriting an existing column, can drop it from required cols!
-            if(op->type() == LogicalOperatorType::WITHCOLUMN) {
-                auto wop = std::dynamic_pointer_cast<WithColumnOperator>(op);
-                if(wop->creates_new_column()) {
-                    requiredCols.erase(std::find(requiredCols.begin(), requiredCols.end(), wop->getColumnIndex()));
-                }
-            }
+//            // special case withColumn operator:
+//            // if column to create is not overwriting an existing column, can drop it from required cols!
+//            if(op->type() == LogicalOperatorType::WITHCOLUMN) {
+//                auto wop = std::dynamic_pointer_cast<WithColumnOperator>(op);
+//                if(wop->creates_new_column() && !requiredCols.empty()) {
+//                    auto it = std::find(requiredCols.begin(), requiredCols.end(), wop->getColumnIndex());
+//                    if(it != requiredCols.end())
+//                        requiredCols.erase(it);
+//                }
+//            }
 
             // if dropping is not allowed, then mapColumn/withColumn will be executed
             if (!dropOperators &&
                 (op->type() == LogicalOperatorType::MAPCOLUMN || op->type() == LogicalOperatorType::WITHCOLUMN ||
                  op->type() == LogicalOperatorType::FILTER || op->type() == LogicalOperatorType::RESOLVE)) {
                 set<size_t> cols(requiredCols.begin(), requiredCols.end());
-                for (auto idx : accCols)
+                for (const auto& idx : accCols)
                     cols.insert(idx);
                 requiredCols = vector<size_t>(cols.begin(), cols.end());
             }
@@ -719,8 +721,8 @@ namespace tuplex {
             auto numLeftColumnsBeforePushdown = jop->left()->columns().size();
 
             if(requiredCols.empty()) {
-                leftRet = projectionPushdown(jop->left(), jop, requiredCols);
-                rightRet = projectionPushdown(jop->right(), jop, requiredCols);
+                leftRet = projectionPushdown(jop->left(), jop, requiredCols, dropOperators, ignoreConstantTypedColumns);
+                rightRet = projectionPushdown(jop->right(), jop, requiredCols, dropOperators, ignoreConstantTypedColumns);
             } else {
                 // need to split traversal up
                 set<size_t> reqLeft;
@@ -768,8 +770,8 @@ namespace tuplex {
                 auto requiredLeftCols = vector<size_t>(reqLeft.begin(), reqLeft.end());
                 auto requiredRightCols = vector<size_t>(reqRight.begin(), reqRight.end());
 
-                leftRet = projectionPushdown(jop->left(), jop, requiredLeftCols);
-                rightRet = projectionPushdown(jop->right(), jop, requiredRightCols);
+                leftRet = projectionPushdown(jop->left(), jop, requiredLeftCols, dropOperators, ignoreConstantTypedColumns);
+                rightRet = projectionPushdown(jop->right(), jop, requiredRightCols, dropOperators, ignoreConstantTypedColumns);
             }
 
 
@@ -826,8 +828,8 @@ namespace tuplex {
             assert(op->parents().size() <= 1);
             // special case CacheOperator, exec with parent nullptr if child is not null
             auto ret = op->type() == LogicalOperatorType::CACHE && child ?
-                       projectionPushdown(nullptr, op, requiredCols) :
-                       projectionPushdown(op->parent(), op, requiredCols);
+                       projectionPushdown(nullptr, op, requiredCols, dropOperators, ignoreConstantTypedColumns) :
+                       projectionPushdown(op->parent(), op, requiredCols, dropOperators, ignoreConstantTypedColumns);
 
 #ifdef TRACE_LOGICAL_OPTIMIZATION
             cout<<"traverse done on "<<op->name();

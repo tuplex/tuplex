@@ -28,6 +28,13 @@ namespace tuplex {
         return code;
     }
 
+    std::string extractFillDelaysCode() {
+        std::string path = "../resources/python/nextconf/flights/fillDelays.py";
+        auto code = fileToString(path);
+        assert(!code.empty());
+        return code;
+    }
+
     std::unordered_map<std::string, std::string> lambdaSettings(bool use_hyper) {
         std::unordered_map<std::string, std::string> m;
 
@@ -121,8 +128,15 @@ namespace tuplex {
         // creater context according to settings
         Context ctx(co);
 
+        runtime::init(co.RUNTIME_LIBRARY().toPath());
+
         // dump settings
         stringToFile("context_settings.json", ctx.getOptions().toString());
+
+
+        // test:
+        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2021_11.csv"; // <-- file that doesn't get filtered out
+        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2021_11.csv"; // <-- file that doesn't get filtered out
 
         // now perform query...
         auto& ds = ctx.csv(input_pattern, {}, option<bool>::none, option<char>::none, '"', {""}, {}, {}, sm);
@@ -131,8 +145,9 @@ namespace tuplex {
         // and then perform linear model for all of the variables in fill-in-delays function (adjusted)
         // now create extract vec (but only for relevant years!)
         ds.withColumn("features", UDF(extractFeatureVectorCode()))
-           .filter(UDF("lambda row: 2000 <= row['YEAR'] <= 2005"))
-           .map(UDF(extractAssembleRowCode())).tocsv(output_path);
+          .map(UDF(extractFillDelaysCode()))
+          .filter(UDF("lambda row: 2000 <= row['year'] <= 2005"))
+          .tocsv(output_path);
     }
 }
 

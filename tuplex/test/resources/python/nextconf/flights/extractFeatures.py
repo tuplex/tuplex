@@ -44,11 +44,13 @@ def extract_feature_vector(row):
                   'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania',
                   'Puerto Rico', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas',
                   'U.S. Pacific Trust Territories and Possessions', 'U.S. Virgin Islands', 'Utah', 'Vermont',
-                  'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming']
+                  'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming']m ""
 
     # invalid -> return None feature vector.
     if row['CRS_ARR_TIME'] is None or row['CRS_DEP_TIME'] is None:
-        return [None] * 13
+        # this syntax here is not yet supported, use direct return
+        #return [None] * 13
+        return [None, None, None, None, None, None, None, None, None, None, None, None, None]
 
     # categorical variables
     quarter = row['QUARTER']

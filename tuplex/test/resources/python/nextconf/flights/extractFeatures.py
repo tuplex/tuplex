@@ -46,6 +46,10 @@ def extract_feature_vector(row):
                   'U.S. Pacific Trust Territories and Possessions', 'U.S. Virgin Islands', 'Utah', 'Vermont',
                   'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming']
 
+    # invalid -> return None feature vector.
+    if row['CRS_ARR_TIME'] is None or row['CRS_DEP_TIME'] is None:
+        return [None] * 13
+
     # categorical variables
     quarter = row['QUARTER']
     month = row['MONTH']

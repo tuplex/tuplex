@@ -52,7 +52,6 @@ namespace tuplex {
         // filter pushdown, put first (in order to eliminate as much as possible)
         if(_options.OPT_FILTER_PUSHDOWN()) {
             emitPartialFilters(last_op, ignoreConstantTypedColumns);
-#error "need to fix here filter: I.e., when constant -> can push down flexible! make this more e"
             optimizeFilters(last_op, ignoreConstantTypedColumns);
         }
 
@@ -1185,6 +1184,18 @@ namespace tuplex {
         fop = nullptr;
     }
 
+    static bool is_constant_valued_tuple(const python::Type& tuple) {
+        if(!tuple.isTupleType())
+            return false;
+        // all constants? create constant tuple!
+        bool all_constants = true;
+        for(const auto& t : tuple.parameters()) {
+            if(!t.isConstantValued() && !is_constant_valued_tuple(t))
+                all_constants = false;
+        }
+        return all_constants;
+    }
+
     void LogicalOptimizer::filterPushdown(const std::shared_ptr<LogicalOperator> &op, bool ignoreConstantTypedColumns) {
         if(!op)
             return;
@@ -1218,8 +1229,26 @@ namespace tuplex {
                     // @TODO: this here is rather slow because the whole compilation pipeline gets kicked off
                     // could optimize by remapping indices... => s
                     // create copy of filter ==> need to reparse UDF & Co because of column access!
-                    auto code = std::dynamic_pointer_cast<FilterOperator>(op)->getUDF().getCode();
-                    auto pickled_code = std::dynamic_pointer_cast<FilterOperator>(op)->getUDF().getPickledCode();
+                    auto current_fop = std::dynamic_pointer_cast<FilterOperator>(op);
+                    auto code = current_fop->getUDF().getCode();
+                    auto pickled_code = current_fop->getUDF().getPickledCode();
+
+                    // fix: is the filter with a constant result? -> then use dummy code lambda x: True or lambda x: False
+                    auto udf_output_row_type = current_fop->getUDF().getOutputSchema().getRowType();
+                    auto ret_type = (udf_output_row_type.isTupleType() && udf_output_row_type.parameters().size() == 1) ? udf_output_row_type.parameters().front() : udf_output_row_type;
+
+                    // use UDF?
+                    ret_type = current_fop->getUDF().getAnnotatedAST().getReturnType();
+
+                    if(ret_type.isConstantValued() || is_constant_valued_tuple(ret_type)
+                            || python::Type::EMPTYTUPLE == ret_type
+                            || python::Type::EMPTYLIST == ret_type || python::Type::EMPTYDICT == ret_type
+                            || python::Type::NULLVALUE == ret_type) {
+                        bool always_true = type_python_is_true(ret_type);
+
+                        code = always_true ? "lambda x: True" : "lambda x: False";
+                        pickled_code = ""; // -> serialize in UDF again...
+                    }
 
                     // get constant map (for info)
                     auto colname_map = std::dynamic_pointer_cast<FilterOperator>(op)->getUDF().constantColumnMap();

@@ -434,6 +434,16 @@ namespace python {
     }
 
     Type TypeFactory::createOrGetConstantValuedType(const Type& underlying, const std::string& constant) {
+
+        // note that constant is the ACTUAL value stored.
+//        // check that constant is valid python string in the string case
+//#ifndef NDEBUG
+//        if(python::Type::STRING == underlying) {
+//            if(constant.empty() || (constant[0] != '\'' && constant[0] != '"'))
+//                throw std::runtime_error("can only create string constant with properly escaped python string.");
+//        }
+//#endif
+
         std::string name;
         name += "_Constant[";
         name += TypeFactory::instance().getDesc(underlying._hash);
@@ -767,7 +777,21 @@ namespace python {
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
         assert(factory._typeVec[it->second]._params.size() == 1);
-        return factory._typeVec[it->second]._constant_value;
+        auto value = factory._typeVec[it->second]._constant_value;
+
+        // this here would be checks if not the actual value was stored.
+        // // string or option[string]? then unescape!
+        // auto underlying_type = factory._typeVec[it->second]._params[0];
+        // auto underlying_hash = underlying_type._hash;
+        // auto jt = factory._typeMap.find(underlying_hash);
+        // assert(jt != factory._typeMap.end());
+        // auto underlying_name = factory._typeVec[jt->second]._desc;
+        // if(python::Type::STRING == underlying_type || "Option[str]" == underlying_name) {
+        //     if(value == "null" || value == "None")
+        //         return value;
+        //     return str_value_from_python_raw_value(value);
+        // }
+        return value;
     }
 
     Type Type::yieldType() const {

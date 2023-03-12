@@ -29,7 +29,8 @@ namespace tuplex {
 
     void TypeAnnotatorVisitor::visit(NString *str) {
         if(_annotateWithConstantValues && !str->getInferredType().isConstantValued()) {
-            str->setInferredType(python::Type::makeConstantValuedType(python::Type::STRING, str->raw_value()));
+            // note that it is here always the ACTUAL VALUE that creates the constant. Not a python string escaped one.
+            str->setInferredType(python::Type::makeConstantValuedType(python::Type::STRING, str->value()));
         }
     }
 

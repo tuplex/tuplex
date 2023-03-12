@@ -29,7 +29,7 @@ antlr_target(Python3Grammar ${CMAKE_CURRENT_SOURCE_DIR}/grammar/Python3.g4 OUTPU
 
 # can be only static because of llvms
 add_library(libcodegen ${LIBRARY_MODE}
-        ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${ANTLR_Python3Grammar_CXX_OUTPUTS})
+        ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${ANTLR_Python3Grammar_CXX_OUTPUTS} include/codegen/ExceptionTrace.h)
 set_target_properties(libcodegen PROPERTIES PREFIX "")
 
 # find libraries for LLVM components that are intended to be used

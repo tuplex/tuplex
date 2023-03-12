@@ -503,7 +503,7 @@ namespace tuplex {
                                     // direct compare
                                     auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
 				                    // _env->debugPrint(builder, "Checking whether cellsize==", _env->i64Const(const_type.constant().size() + 1));
-                                    auto constant_value = str_value_from_python_raw_value(const_type.constant());
+                                    auto constant_value = const_type.constant(); // <-- constant has the actual value here!
                                     check_cond = builder.CreateICmpEQ(val.size, _env->i64Const(constant_value.size() + 1));
                                     check_cond = builder.CreateAnd(check_cond, _env->fixedSizeStringCompare(builder, val.val, constant_value));
                                 } else if(python::Type::NULLVALUE == elementType) {

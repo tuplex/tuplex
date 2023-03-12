@@ -680,3 +680,23 @@ TEST_F(DataSetTest, TypeOptionalList) {
     auto v = c.parallelize({Row(0), Row(1)}).map(UDF(udf_code)).collectAsVector();
     EXPECT_EQ(v.size(), 2);
 }
+
+TEST_F(DataSetTest, ListIndexOptionalStr) {
+    using namespace tuplex;
+
+    auto udf_code = "def foo(name):\n"
+                               "    carrier_list = [None, 'EA', 'UA', 'PI', 'NK', 'PS', 'AA', 'NW', 'EV', 'B6', 'HP', 'TW', 'DL', 'OO', 'F9', 'YV',\n"
+                               "                    'TZ', 'US',\n"
+                               "                    'MQ', 'OH', 'HA', 'ML (1)', 'XE', 'G4', 'YX', 'DH', 'AS', 'KH', 'QX', 'CO', 'FL', 'VX', 'PA (1)',\n"
+                               "                    'WN', '9E']\n"
+                               "    return carrier_list.index(name)";
+
+    Context c(microTestOptions());
+    auto v = c.parallelize({Row("UA"), Row("AA"), Row("9E"), Row("")}).map(UDF(udf_code)).collectAsVector();
+
+    // 2, 6, 34, ValueError should be the result
+    ASSERT_EQ(v.size(), 3);
+    EXPECT_EQ(v[0].getInt(0), 2);
+    EXPECT_EQ(v[0].getInt(0), 6);
+    EXPECT_EQ(v[0].getInt(0), 34);
+}

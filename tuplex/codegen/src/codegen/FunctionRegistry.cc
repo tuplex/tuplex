@@ -2351,9 +2351,9 @@ namespace tuplex {
                 // some debugging
                 auto num_list_elements = list_length(_env, builder, list_ptr, list_type);
 
-                _env.printValue(builder, num_list_elements, "got list of size: ");
-                if(needle.val)_env.printValue(builder, needle.val, "needle to search for: ");
-                if(needle.size)_env.printValue(builder, needle.size, "needle size: ");
+                // _env.printValue(builder, num_list_elements, "got list of size: ");
+                // if(needle.val)_env.printValue(builder, needle.val, "needle to search for: ");
+                // if(needle.size)_env.printValue(builder, needle.size, "needle size: ");
 
                 // now create iteration & compare values
                 // generate loop to go over items.
@@ -2402,11 +2402,11 @@ namespace tuplex {
                     // SerializableValue(builder.CreateLoad(item_var.val),
                     //                                                                                                          builder.CreateLoad(item_var.size),
                     //                                                                                                          builder.CreateLoad(item_var.is_null))
-                    _env.printValue(builder, loop_i_val, "i=");
-                    if(el.val)
-                        _env.printValue(builder, el.val, "element to compare: ");
-                    if(el.size)
-                        _env.printValue(builder, el.size, "element size: ");
+                    // _env.printValue(builder, loop_i_val, "i=");
+                    // if(el.val)
+                    //     _env.printValue(builder, el.val, "element to compare: ");
+                    // if(el.size)
+                    //     _env.printValue(builder, el.size, "element size: ");
                     // compare against needle:
                     auto cmp = equal_comparison(_env, builder, list_type.elementType(), el, needle_type, needle);
                     BasicBlock *bMatchFound = BasicBlock::Create(ctx, "item_match", F);

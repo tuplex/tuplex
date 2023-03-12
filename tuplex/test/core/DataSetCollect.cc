@@ -665,3 +665,18 @@ TEST_F(DataSetTest, MapColumnTypingBug) {
 
     EXPECT_GT(v.size(), 0);
 }
+
+TEST_F(DataSetTest, TypeOptionalList) {
+    using namespace tuplex;
+
+    Context c(microTestOptions());
+
+    auto udf_code = "def foo(x):\n"
+                    "        if x > 0:\n"
+                    "                return [1, 2, 3]\n"
+                    "        else:\n"
+                    "                return [None]";
+
+    auto v = c.parallelize({Row(0), Row(1)}).map(UDF(udf_code)).collectAsVector();
+    EXPECT_EQ(v.size(), 2);
+}

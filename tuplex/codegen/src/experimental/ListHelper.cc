@@ -1510,5 +1510,60 @@ namespace tuplex {
             return make_tuple(ptr, list_val);
         }
 
+        llvm::Value* list_upcast(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr,
+                                 const python::Type& list_type, const python::Type& target_list_type) {
+
+            // make sure current element and target element type are compatible!
+            assert(python::canUpcastType(list_type, target_list_type));
+
+            // check elements are ok
+            assert(list_type.isListType() && target_list_type.isListType());
+
+            auto el_type = list_type.elementType();
+            auto target_el_type = target_list_type.elementType();
+            assert(python::canUpcastType(el_type, target_el_type));
+
+            auto llvm_target_list_type = env.pythonToLLVMType(target_list_type);
+            auto target_list_ptr = env.CreateFirstBlockAlloca(builder, llvm_target_list_type);
+
+            // special case: empty list -> something?
+            if(list_type == python::Type::EMPTYLIST) {
+                // -> simply alloc empty list of target type and return
+                list_init_empty(env, builder, target_list_ptr, target_list_type);
+                return target_list_ptr;
+            }
+
+            // get list size of original list & alloc new list with target type!
+            auto list_size = list_length(env, builder, list_ptr, list_type);
+            list_reserve_capacity(env, builder, target_list_ptr, target_list_type, list_size);
+
+            // create loop to fill in values from old list into new list after upcast (should this be emitted as function to inline?)
+            auto& ctx = builder.getContext();
+            auto func = builder.GetInsertBlock()->getParent();
+            // create integer var
+            auto i_var =env.CreateFirstBlockAlloca(builder, env.i64Type());
+            builder.CreateStore(env.i64Const(0), i_var);
+            llvm::BasicBlock* bbLoopHeader = llvm::BasicBlock::Create(ctx, "list_upcast_loop_header", func);
+            llvm::BasicBlock* bbLoopBody = llvm::BasicBlock::Create(ctx, "list_upcast_loop_body", func);
+            llvm::BasicBlock* bbLoopDone = llvm::BasicBlock::Create(ctx, "list_upcast_loop_done", func);
+
+            builder.CreateBr(bbLoopHeader);
+            builder.SetInsertPoint(bbLoopHeader);
+            auto icmp = builder.CreateICmpSLT(builder.CreateLoad(i_var), list_size);
+            builder.CreateCondBr(icmp, bbLoopBody, bbLoopDone);
+
+            builder.SetInsertPoint(bbLoopBody);
+            // inc.
+            auto idx = builder.CreateLoad(i_var);
+            builder.CreateStore(builder.CreateAdd(idx, env.i64Const(1)), i_var);
+            // store element (after upcast)
+            auto src_el = list_load_value(env, builder, list_ptr, list_type, idx);
+            auto target_el = env.upcastValue(builder, src_el, el_type, target_el_type);
+            list_store_value(env, builder, target_list_ptr, target_list_type, idx, target_el);
+            builder.CreateBr(bbLoopHeader);
+
+            builder.SetInsertPoint(bbLoopDone);
+            return target_list_ptr;
+        }
     }
 }

@@ -50,6 +50,12 @@ def extract_feature_vector(row):
     if row['CRS_ARR_TIME'] is None or row['CRS_DEP_TIME'] is None:
         # this syntax here is not yet supported, use direct return
         #return [None] * 13
+
+        # this could be also problematic (list return type unification)
+
+        # use maybe 0.0 instead?
+        # => write quick test to fix lists...
+        #ERROR TODO FIX THIS UP
         return [None, None, None, None, None, None, None, None, None, None, None, None, None]
 
     # categorical variables

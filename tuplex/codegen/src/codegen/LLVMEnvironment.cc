@@ -2748,8 +2748,10 @@ namespace tuplex {
             // @TODO: List[a] to List[b] if a,b are compatible?
             // @TODO: Dict[a, b] to Dict[c, d] if upcast a to c works, and upcast b to d works?
             if(type.isListType() && targetType.isListType()) {
+                auto new_list_ptr = list_upcast(*this, builder, val.val, type, targetType);
+                return SerializableValue(new_list_ptr, nullptr);
                 // @TODO:
-                throw std::runtime_error("upcasting list type " + type.desc() + " to list type " + targetType.desc() + " not yet implemented");
+                //throw std::runtime_error("upcasting list type " + type.desc() + " to list type " + targetType.desc() + " not yet implemented");
             }
 
             if(type.isDictionaryType() && targetType.isDictionaryType()) {

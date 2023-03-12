@@ -717,12 +717,12 @@ namespace tuplex {
             const uint8_t *inPtr = inputPartition->lockRaw();
            _numInputRowsRead += static_cast<size_t>(*((int64_t*)inPtr));
 
-            // call functor
+            // call functor (note that logic changed here)
             auto bytesParsed = functor(this, inPtr, inSize, &num_normal_rows, &num_bad_rows, false);
 
-            assert(bytesParsed >= 0); // negative means ecCode! -> abort e.g. parse.
-            if(bytesParsed < 0)
-                throw std::runtime_error("add missing logic.");
+            //assert(bytesParsed >= 0); // negative means ecCode! -> abort e.g. parse.
+            //if(bytesParsed < 0)
+            //    throw std::runtime_error("add missing logic.");
 
             // save number of normal rows to output rows written if not writeTofile
             if(hasMemorySink())

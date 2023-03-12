@@ -84,6 +84,8 @@ namespace tuplex {
                                                       const python::Type& list_type,
                                                       std::function<llvm::Value*(LLVMEnvironment&, llvm::IRBuilder<>&, llvm::Value*, llvm::Value*)> f_item_size);
 
+        extern llvm::Value* list_upcast(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr,
+                                        const python::Type& list_type, const python::Type& target_list_type);
 
     }
 }

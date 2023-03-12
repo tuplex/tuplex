@@ -226,8 +226,8 @@ namespace tuplex {
                 return _func;
             }
 
-            // retValue might be also a pointer to a tuple type
-            if(res && res->getType()->isPointerTy() && res->getType()->getPointerElementType()->isStructTy()) {
+            // retValue might be also a pointer to a tuple type (need to check b.c. of list/dict also using pointers!)
+            if(res && output_type.isTupleType() && res->getType()->isPointerTy() && res->getType()->getPointerElementType()->isStructTy()) {
                 _fto = FlattenedTuple::fromLLVMStructVal(_env, builder, res, output_type);
                 res = _fto.getLoad(builder);
             }

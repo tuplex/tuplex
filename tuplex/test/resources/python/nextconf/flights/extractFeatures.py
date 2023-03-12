@@ -44,7 +44,7 @@ def extract_feature_vector(row):
                   'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania',
                   'Puerto Rico', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas',
                   'U.S. Pacific Trust Territories and Possessions', 'U.S. Virgin Islands', 'Utah', 'Vermont',
-                  'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming']m ""
+                  'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming']
 
     # invalid -> return None feature vector.
     if row['CRS_ARR_TIME'] is None or row['CRS_DEP_TIME'] is None:
@@ -55,7 +55,6 @@ def extract_feature_vector(row):
 
         # use maybe 0.0 instead?
         # => write quick test to fix lists...
-        #ERROR TODO FIX THIS UP
         return [None, None, None, None, None, None, None, None, None, None, None, None, None]
 
     # categorical variables

@@ -2490,11 +2490,11 @@ namespace tuplex {
 
                 // debug check
 #ifndef NDEBUG
-if(needle.val)
-                _env.printValue(builder, needle.val, "needle (for search in " + callerType.desc() + ": ");
-                if(needle.size)
-                    _env.printValue(builder, needle.size, "needle size: ");
-                _env.printValue(builder, find_res.val, "find ret: ");
+//if(needle.val)
+//                _env.printValue(builder, needle.val, "needle (for search in " + callerType.desc() + ": ");
+//                if(needle.size)
+//                    _env.printValue(builder, needle.size, "needle size: ");
+//                _env.printValue(builder, find_res.val, "find ret: ");
 #endif
 
                 lfb.addException(builder, ExceptionCode::VALUEERROR, found);

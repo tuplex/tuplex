@@ -1382,6 +1382,8 @@ namespace tuplex {
                 auto len = list_length(env, builder, list_ptr, list_type);
                 // store 1 byte?
                 opt_size = builder.CreateMul(env.i64Const(1), len);
+                // for efficiency, round up to multiple of 8. (alignment)
+                opt_size = env.roundUpToMultiple(builder, opt_size, sizeof(int64_t));
             }
 
             if(elementType.isSingleValued()) {
@@ -1394,13 +1396,18 @@ namespace tuplex {
             } else if(elementType == python::Type::I64
                       || elementType == python::Type::F64
                       || elementType == python::Type::BOOLEAN) {
-                // it's the size field + the size * sizeof(int64_t)
+                // it's the size field + the size * sizeof(int64_t) + opt_size
                 auto len = list_length(env, builder, list_ptr, list_type);
                 llvm::Value* l_size = builder.CreateAdd(env.i64Const(8), builder.CreateMul(env.i64Const(8), len));
+                if(elements_optional)
+                    l_size = builder.CreateAdd(l_size, opt_size);
                 l_size = builder.CreateAdd(l_size, opt_size);
                 return l_size;
             } else if(elementType == python::Type::STRING
                       || elementType == python::Type::PYOBJECT) {
+
+                if(elements_optional)
+                    throw std::runtime_error("Option[str] or Option[pyobject] serialization of list elements not yet supported");
 
                 // new
                 return list_serialized_size_str_like(env, builder, list_ptr, list_type);

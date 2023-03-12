@@ -306,6 +306,11 @@ namespace core {
         return((byte0 << 24) | (byte1 << 16) | (byte2 << 8) | (byte3 << 0));
     }
 
+    template<typename T> inline bool isPowerOfTwo(const T& t) {
+        // First t in the below expression is for the case when t is 0
+        return t && (!(t & (t - 1)));
+    }
+
     template<typename T> inline void make_set(std::vector<T>& vec) {
         std::set<T> s( vec.begin(), vec.end() );
         vec.assign( s.begin(), s.end() );

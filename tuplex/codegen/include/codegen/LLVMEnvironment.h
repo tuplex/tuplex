@@ -577,6 +577,27 @@ namespace tuplex {
                 }
             }
 
+
+            inline llvm::Value* roundUpToMultiple(llvm::IRBuilder<>& builder, llvm::Value* num, int64_t factor) {
+                // use following formula:
+                // num - 1 - (num - 1) % factor + factor
+
+                assert(num->getType() == i64Type());
+                assert(factor != 0);
+                // for power of 2, there is an even quicker formula:
+                // (num + factor - 1) & ~factor
+                if(core::isPowerOfTwo(factor)) {
+                    auto t = builder.CreateAdd(num, i64Const(factor - 1));
+                    int64_t t_factor = ~factor;
+                    return builder.CreateAnd(t, i64Const(t_factor));
+                } else {
+                    auto t = builder.CreateSub(num, i64Const(1));
+                    auto t2 = builder.CreateSRem(t, i64Const(factor));
+                    auto tt = builder.CreateSub(t, t2);
+                    return builder.CreateAdd(tt, i64Const(factor));
+                }
+            }
+
             /*!
              * Represents the [matchObject] struct in Runtime.h. This struct is used to hold a pcre2 ovector (e.g. the
              * indices of match groups) and the underlying subject string that the match was run over.

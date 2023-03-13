@@ -394,6 +394,8 @@ namespace tuplex {
      */
     extern PyObject* tupleFromParseException(const uint8_t* ebuf, size_t esize);
 
+    extern std::string pythonStringFromParseException(const uint8_t* ebuf, size_t esize);
+
 #ifndef NDEBUG
     // helper functions to quickly build up an exception reservoir
     extern void resetExceptionReservoir(size_t reservoirLimit);

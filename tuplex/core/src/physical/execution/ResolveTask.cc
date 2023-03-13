@@ -313,6 +313,26 @@ namespace tuplex {
         return tuple;
     }
 
+    std::string pythonStringFromParseException(const uint8_t* ebuf, size_t esize) {
+        int64_t num_cells = *(int64_t*)ebuf; ebuf += sizeof(int64_t);
+        std::stringstream ss; ss<<"(";
+        for(unsigned j = 0; j < num_cells; ++j) {
+            auto info = *(int64_t*)ebuf;
+            auto offset = info & 0xFFFFFFFF;
+            const char* cell = reinterpret_cast<const char *>(ebuf + offset);
+
+            // escape cell to python string
+            ss<<escape_to_python_str(cell);
+            if(j != num_cells - 1)
+                ss<<", ";
+
+            auto cell_size = info >> 32u;
+            ebuf += sizeof(int64_t);
+        }
+        ss<<")";
+        return ss.str();
+    }
+
     void ResolveTask::writePythonObjectToFallbackSink(PyObject *out_row) {
         assert(out_row);
 

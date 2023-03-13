@@ -1934,6 +1934,22 @@ namespace tuplex {
         // check if enough space is available
         auto& out_buf = env->exceptionBuf;
 
+#ifndef NDEBUG
+        // use following code snippet to "debug" what kind of rows violate normal-case. Helpful for processing.
+        // print row out when < 5
+        size_t max_debug_rows_to_print = 5;
+        if(env->numExceptionRows < max_debug_rows_to_print) {
+            if(exceptionCode == ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)) {
+                // serialization exception
+                std::stringstream ss;
+                ss<<"#"<<env->numExceptionRows<<": row="<<rowNumber<<" ec="<<exceptionCode<<"\n";
+                ss<<pythonStringFromParseException(input, dataLength);
+                logger().debug(ss.str());
+            }
+        }
+#endif
+
+
         // for speed reasons, serialize exception directly!
         size_t bufSize = 0;
         auto buf = serializeExceptionToMemory(exceptionCode, exceptionOperatorID, rowNumber, input, dataLength, &bufSize);

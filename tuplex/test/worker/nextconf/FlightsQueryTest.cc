@@ -136,7 +136,8 @@ namespace tuplex {
 
         // test:
         input_pattern = "/hot/data/flights_all/flights_on_time_performance_2021_11.csv"; // <-- file that does get filtered out
-        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2001_11.csv"; // <-- file that doesn't get filtered out, but doesn't require model
+        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2001_11.csv"; // <-- file that doesn't get filtered out, but does require model
+        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2004_11.csv"; // <-- file that doesn't get filtered out, but doesn't require model
 
         // now perform query...
         auto& ds = ctx.csv(input_pattern, {}, option<bool>::none, option<char>::none, '"', {""}, {}, {}, sm);

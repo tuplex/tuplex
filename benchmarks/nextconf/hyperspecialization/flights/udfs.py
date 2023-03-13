@@ -1,4 +1,3 @@
-import tuplex
 
 def extract_feature_vector(row):
     carrier_list = [None, 'EA', 'UA', 'PI', 'NK', 'PS', 'AA', 'NW', 'EV', 'B6', 'HP', 'TW', 'DL', 'OO', 'F9', 'YV',

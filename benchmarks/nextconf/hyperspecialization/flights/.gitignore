@@ -16,3 +16,7 @@ model/
 job/
 logs/
 preprocess/
+
+reference_implementation.log
+reference_output/
+

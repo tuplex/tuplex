@@ -269,7 +269,6 @@ if __name__ == '__main__':
     log_setup()
 
     input_pattern = '/hot/data/flights_all/flights*.csv'
-    input_pattern = '/hot/data/flights_all/flights*2003*.csv'
 
     logging.info('Reference implementation for Flights query')
     paths = sorted(glob.glob(input_pattern))

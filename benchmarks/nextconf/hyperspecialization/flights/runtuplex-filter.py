@@ -8,124 +8,10 @@ import json
 import os
 import glob
 import argparse
-
-# UDF to be hyper-specialized
-def fill_in_delays(row):
-    # want to fill in data for missing carrier_delay, weather delay etc.
-    # only need to do that prior to 2003/06
-
-    year = row['YEAR']
-    month = row['MONTH']
-    arr_delay = row['ARR_DELAY']
-
-    if year == 2003 and month < 6 or year < 2003:
-        # fill in delay breakdown using model and complex logic
-        if arr_delay is None:
-            # stays None, because flight arrived early
-            # if diverted though, need to add everything to div_arr_delay
-            return {'year' : year, 'month' : month,
-                    'day' : row['DAY_OF_MONTH'],
-                    'carrier': row['OP_UNIQUE_CARRIER'],
-                    'flightno' : row['OP_CARRIER_FL_NUM'],
-                    'origin': row['ORIGIN_AIRPORT_ID'],
-                    'dest': row['DEST_AIRPORT_ID'],
-                    'distance' : row['DISTANCE'],
-                    'dep_delay' : row['DEP_DELAY'],
-                    'arr_delay': None,
-                    'carrier_delay' : None,
-                    'weather_delay': None,
-                    'nas_delay' : None,
-                    'security_delay': None,
-                    'late_aircraft_delay' : None}
-        elif arr_delay < 0.:
-            # stays None, because flight arrived early
-            # if diverted though, need to add everything to div_arr_delay
-            return {'year' : year, 'month' : month,
-                    'day' : row['DAY_OF_MONTH'],
-                    'carrier': row['OP_UNIQUE_CARRIER'],
-                    'flightno' : row['OP_CARRIER_FL_NUM'],
-                    'origin': row['ORIGIN_AIRPORT_ID'],
-                    'dest': row['DEST_AIRPORT_ID'],
-                    'distance' : row['DISTANCE'],
-                    'dep_delay' : row['DEP_DELAY'],
-                    'arr_delay': row['ARR_DELAY'],
-                    'carrier_delay' : None,
-                    'weather_delay': None,
-                    'nas_delay' : None,
-                    'security_delay': None,
-                    'late_aircraft_delay' : None}
-        elif arr_delay < 5.:
-            # it's an ontime flight, just attribute any delay to the carrier
-            carrier_delay = arr_delay
-            # set the rest to 0
-            # ....
-            return {'year' : year, 'month' : month,
-                    'day' : row['DAY_OF_MONTH'],
-                    'carrier': row['OP_UNIQUE_CARRIER'],
-                    'flightno' : row['OP_CARRIER_FL_NUM'],
-                    'origin': row['ORIGIN_AIRPORT_ID'],
-                    'dest': row['DEST_AIRPORT_ID'],
-                    'distance' : row['DISTANCE'],
-                    'dep_delay' : row['DEP_DELAY'],
-                    'arr_delay': row['ARR_DELAY'],
-                    'carrier_delay' : carrier_delay,
-                    'weather_delay': None,
-                    'nas_delay' : None,
-                    'security_delay': None,
-                    'late_aircraft_delay' : None}
-        else:
-            # use model to determine everything and set into (join with weather data?)
-            # i.e., extract here a couple additional columns & use them for features etc.!
-            crs_dep_time = float(row['CRS_DEP_TIME'])
-            crs_arr_time = float(row['CRS_ARR_TIME'])
-            crs_elapsed_time = float(row['CRS_ELAPSED_TIME'])
-            carrier_delay = 1024 + 2.7 * crs_dep_time - 0.2 * crs_elapsed_time
-            weather_delay = 2000 + 0.09 * carrier_delay * (carrier_delay - 10.0)
-            nas_delay = 3600 * crs_dep_time / 10.0
-            security_delay = 7200 / crs_dep_time
-            late_aircraft_delay = (20 + crs_arr_time) / (1.0 + crs_dep_time)
-            return {'year' : year, 'month' : month,
-                    'day' : row['DAY_OF_MONTH'],
-                    'carrier': row['OP_UNIQUE_CARRIER'],
-                    'flightno' : row['OP_CARRIER_FL_NUM'],
-                    'origin': row['ORIGIN_AIRPORT_ID'],
-                    'dest': row['DEST_AIRPORT_ID'],
-                    'distance' : row['DISTANCE'],
-                    'dep_delay' : row['DEP_DELAY'],
-                    'arr_delay': row['ARR_DELAY'],
-                    'carrier_delay' : carrier_delay,
-                    'weather_delay': weather_delay,
-                    'nas_delay' : nas_delay,
-                    'security_delay': security_delay,
-                    'late_aircraft_delay' : late_aircraft_delay}
-    else:
-        # just return it as is
-        return {'year' : year, 'month' : month,
-                'day' : row['DAY_OF_MONTH'],
-                'carrier': row['OP_UNIQUE_CARRIER'],
-                'flightno' : row['OP_CARRIER_FL_NUM'],
-                'origin': row['ORIGIN_AIRPORT_ID'],
-                'dest': row['DEST_AIRPORT_ID'],
-                'distance' : row['DISTANCE'],
-                'dep_delay' : row['DEP_DELAY'],
-                'arr_delay': row['ARR_DELAY'],
-                'carrier_delay' : row['CARRIER_DELAY'],
-                'weather_delay':row['WEATHER_DELAY'],
-                'nas_delay' : row['NAS_DELAY'],
-                'security_delay': row['SECURITY_DELAY'],
-                'late_aircraft_delay' : row['LATE_AIRCRAFT_DELAY']}
-
+from .udfs import *
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Flights hyper specialization query')
-    # parser.add_argument('--path', type=str, dest='data_path', default='data/large100MB.csv',
-    #                     help='path or pattern to zillow data')
-    # parser.add_argument('--output-path', type=str, dest='output_path', default='tuplex_output/',
-    #                     help='specify path where to save output data files')
-    # parser.add_argument('--single-threaded', dest='single_threaded', action="store_true",
-    #                     help="whether to use a single thread for execution")
-    # parser.add_argument('--preload', dest='preload', action="store_true",
-    #                     help="whether to add a cache statement after the csv operator to separate IO costs out.")
     parser.add_argument('--no-hyper', dest='no_hyper', action="store_true",
                         help="deactivate hyperspecialization optimization explicitly.")
     parser.add_argument('--no-cf', dest='no_cf', action="store_true",
@@ -238,13 +124,13 @@ if __name__ == '__main__':
 
     #debug
     #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_1999_05.csv'
-    input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_02.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv" 
-    #ctx.csv(input_pattern, sampling_mode=sm).filter(lambda row: 2000 <= row['YEAR'] <= 2005).map(fill_in_delays).tocsv(s3_output_path)
-    ctx.csv(input_pattern, sampling_mode=sm).map(fill_in_delays).filter(lambda x: 2000 <= x['year'] <= 2005).tocsv(s3_output_path)
+    # input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_02.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv"
 
-
-    # this here is the new workflow. simply filter out stuff
-    ctx.csv(input_pattern, sampling_mode=sm).withColumn("features", extr)
+    ctx.csv(input_pattern, sampling_mode=sm) \
+        .withColumn("features", extract_feature_vector) \
+        .map(fill_in_delays) \
+        .filter(lambda x: 2000 <= x['year'] <= 2005) \
+        .tocsv(s3_output_path)
 
     ### END QUERY ###
     run_time = time.time() - tstart

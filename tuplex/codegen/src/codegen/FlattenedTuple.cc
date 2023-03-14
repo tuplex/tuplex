@@ -1334,7 +1334,6 @@ namespace tuplex {
         }
 
 
-#ifndef NDEBUG
         void FlattenedTuple::print(llvm::IRBuilder<> &builder) const {
             // print tuple out for debug purposes
             using namespace  std;
@@ -1353,7 +1352,6 @@ namespace tuplex {
                 if(isnull)_env->debugPrint(builder, "  " + cellStr + "is_null: ", isnull);
             }
         }
-#endif
 
         FlattenedTuple FlattenedTuple::fromRow(LLVMEnvironment *env, llvm::IRBuilder<>& builder, const Row &row) {
             FlattenedTuple ft(env);

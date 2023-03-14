@@ -156,9 +156,7 @@ namespace tuplex {
 
             inline python::Type fieldType(int index) const { return getFieldTypes()[index]; }
 
-#ifndef NDEBUG
             void print(llvm::IRBuilder<>& builder) const;
-#endif
 
             /*!
              * set using tuple index an element to a value.

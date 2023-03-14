@@ -798,7 +798,7 @@ namespace tuplex {
             std::vector<llvm::Value*> cell_strs;
             std::vector<llvm::Value*> cell_sizes;
 
-            _env->debugPrint(builder, "loading all general case cell strings");
+            // _env->debugPrint(builder, "loading all general case cell strings");
 
             for(int i = 0; i < cell_count; ++i) {
                 // should column be serialized? if so emit type logic!
@@ -808,8 +808,8 @@ namespace tuplex {
                     llvm::Value* cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, _env->i64Const(colNo)), "s" + std::to_string(colNo));
 
                     assert(cellStr && cellSize);
-                    _env->printValue(builder, cellStr, "cell" + std::to_string(colNo) + ": ");
-                    _env->printValue(builder, cellStr, "cell size " + std::to_string(colNo) + ": ");
+                    // _env->printValue(builder, cellStr, "cell" + std::to_string(colNo) + ": ");
+                    // _env->printValue(builder, cellStr, "cell size " + std::to_string(colNo) + ": ");
 
                     // zero terminate str
                     cellStr = _env->zeroTerminateString(builder, cellStr, cellSize);

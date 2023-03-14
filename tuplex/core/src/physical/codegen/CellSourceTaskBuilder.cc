@@ -820,7 +820,7 @@ namespace tuplex {
                 }
             }
 
-            _env->debugPrint(builder, "serializing all general case cell strings");
+            // _env->debugPrint(builder, "serializing all general case cell strings");
             return serializeCellVector(builder, cell_strs, cell_sizes);
         }
 

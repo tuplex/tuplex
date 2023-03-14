@@ -79,6 +79,13 @@ namespace tuplex {
                 // parse cell and assign.
                 auto cell = parse_string_cell(env, builder, bFailure, cell_type, input_op->null_values(), cell_str, cell_size);
 
+                //  if(cell.val)
+                //      env.printValue(builder, cell.val, "value= ");
+                //  if(cell.size)
+                //      env.printValue(builder, cell.size, "size=");
+                //  if(cell.is_null)
+                //      env.printValue(builder, cell.is_null, "isnull=");
+
                 // assign to tuple
                 ft.set(builder, {(int)i}, cell.val, cell.size, cell.is_null);
 
@@ -226,6 +233,7 @@ namespace tuplex {
 
             // process using pipeline
             //PipelineBuilder::call(builder, pip.build(), ft, userData, )
+            //env.printValue(builder, rowNumber, "got badparse string input exception for row=");
 
             auto pip_res = PipelineBuilder::call(builder, pipeline_func, ft, userData, rowNumber); // no intermediate support right now.
 

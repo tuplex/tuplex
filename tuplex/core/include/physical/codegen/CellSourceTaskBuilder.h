@@ -174,6 +174,11 @@ namespace tuplex {
         extern SerializableValue parse_string_cell(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::BasicBlock* bParseError,
                                             const python::Type& cell_type, const std::vector<std::string>& null_values,
                                             llvm::Value* cell_str, llvm::Value* cell_size);
+
+        extern SerializableValue serialize_cell_vector(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
+                                                       const std::vector<llvm::Value *> &cells,
+                                                       const std::vector<llvm::Value *> &cell_sizes,
+                                                       llvm::Value *empty_str);
     }
 }
 

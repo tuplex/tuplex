@@ -797,6 +797,17 @@ namespace tuplex {
             return true;
         }
 
+        bool PipelineBuilder::printRowOperation() {
+            using namespace std;
+            using namespace llvm;
+            auto& logger = Logger::instance().logger("PipelineBuilder");
+
+            IRBuilder<> builder(_lastBlock);
+            _lastRowResult.print(builder);
+            _lastBlock = builder.GetInsertBlock();
+            return true;
+        }
+
         bool PipelineBuilder::withColumnOperation(const int64_t operatorID, int columnToMapIndex,
                                                            const tuplex::UDF &udf, double normalCaseThreshold, bool allowUndefinedBehavior, bool sharedObjectPropagation) {
             using namespace std;
@@ -833,15 +844,15 @@ namespace tuplex {
             auto exceptionBlock = createExceptionBlock();
 
 
-            // debug
-            BasicBlock* bexceptStart = BasicBlock::Create(builder.getContext(), "debug", builder.GetInsertBlock()->getParent());
-            llvm::IRBuilder<> b(bexceptStart);
-            //  _env->printValue(b, b.CreateLoad(getPointerToVariable(b, "exceptionCode")), "withColumn failed with code=");
-            b.CreateBr(exceptionBlock);
+            // // debug
+            // BasicBlock* bexceptStart = BasicBlock::Create(builder.getContext(), "debug", builder.GetInsertBlock()->getParent());
+            // llvm::IRBuilder<> b(bexceptStart);
+            // _env->printValue(b, b.CreateLoad(getPointerToVariable(b, "exceptionCode")), "withColumn failed with code=");
+            // b.CreateBr(exceptionBlock);
+//
+            // auto outVal = cf.callWithExceptionHandler(builder, _lastRowResult, resVal, bexceptStart, getPointerToVariable(builder, "exceptionCode"));
 
-            auto outVal = cf.callWithExceptionHandler(builder, _lastRowResult, resVal, bexceptStart, getPointerToVariable(builder, "exceptionCode"));
-
-//            auto outVal = cf.callWithExceptionHandler(builder, _lastRowResult, resVal, exceptionBlock, getPointerToVariable(builder, "exceptionCode"));
+            auto outVal = cf.callWithExceptionHandler(builder, _lastRowResult, resVal, exceptionBlock, getPointerToVariable(builder, "exceptionCode"));
 
             SerializableValue resLoad;
             if(!cf.output_python_type.isTupleType() || cf.output_python_type == python::Type::EMPTYTUPLE) {
@@ -1957,6 +1968,8 @@ namespace tuplex {
 
             // new: codegen writer with fast itoa, dtoa functions
             auto csv_row = fast_csvwriter(builder, env(), row, null_value, newLineDelimited, delimiter, quotechar);
+
+            // _env->printValue(builder, csv_row.size, "Writing csv row of size=");
 
             // typedef int64_t(*write_row_f)(void*, uint8_t*, int64_t);
             auto& ctx = env().getContext();

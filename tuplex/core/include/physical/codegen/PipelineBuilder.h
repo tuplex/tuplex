@@ -312,6 +312,11 @@ namespace tuplex {
 
             // callback should be including nullbucket + hashmap...
 
+            /*!
+             * prints current row w. column names out (debug operation)
+             * @return
+             */
+            bool printRowOperation();
 
             // add operations
             /*!

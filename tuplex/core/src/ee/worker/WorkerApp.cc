@@ -2079,6 +2079,17 @@ namespace tuplex {
         if(!_settings.useCompiledGeneralPath)
             return nullptr;
 
+#ifndef NDEBUG
+        {
+            llvm::LLVMContext ctx;
+            auto slow_path_bit_code = stage->slowPathBitCode();
+            auto slow_path_mod = slow_path_bit_code.empty() ? nullptr : codegen::bitCodeToModule(ctx, slow_path_bit_code);
+            auto ir_code = codegen::moduleToString(*slow_path_mod.get());
+            Logger::instance().defaultLogger().debug("saved compiled general code path  to worker_general_resolver.py");
+            stringToFile(URI("worker_general_resolver.txt"), ir_code);
+        }
+#endif
+
         // perform actual compilation.
         Timer timer;
         auto syms = stage->compileSlowPath(*_compiler.get(), nullptr, false); // symbols should be known already...
@@ -2259,7 +2270,7 @@ namespace tuplex {
         // debug:
 #ifndef NDEBUG
         Logger::instance().defaultLogger().debug("saved interpreted code path (" + stage->pythonPipelineName() + ") to interpreted_resolver.py");
-        stringToFile(URI("interpreted_resolver.py"), stage->purePythonCode());
+        stringToFile(URI("worker_interpreted_resolver.py"), stage->purePythonCode());
 #endif
 
         bool is_first_unresolved_interpreter = true;
@@ -2285,7 +2296,7 @@ namespace tuplex {
             // try to resolve using compiled resolver...
             if(compiledResolver) {
                 // for hyper, force onto general case format.
-                rc = compiledResolver(env, ecRowNumber, ecCode, ecBuf, ecBufSize);
+                 rc = compiledResolver(env, ecRowNumber, ecCode, ecBuf, ecBufSize);
                 if(rc != ecToI32(ExceptionCode::SUCCESS)) {
                     // fallback is only required if normalcaseviolation or badparsestringinput, else it's considered a true exception
                     // to force reprocessing always onto fallback path, use rc = -1 here

@@ -1233,6 +1233,10 @@ namespace tuplex {
             int global_var_cnt = 0;
             auto num_operators = pathContext.operators.size();
             bool resolvers_found = false;
+
+            // // debug: check input row
+            // slowPip->printRowOperation();
+
             for (int i = 0; i < num_operators; ++i) {
                 auto node = pathContext.operators[i];
                 assert(node);

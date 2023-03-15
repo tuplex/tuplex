@@ -224,6 +224,8 @@ def pipeline_stage_0(input_row, parse_cells=False):
         res['outputRows'] += [csvSerialized]
         res['outputColumns'] = row.columns
     return res
+
+
 def process_path(path):
     logging.info(f"Processing {path}")
     os.makedirs(ref_output_dir, exist_ok=True)
@@ -238,7 +240,7 @@ def process_path(path):
     logging.info(f"File has {num_lines} lines")
     path_entry = {}
     with open(output_path, 'w') as out_f:
-        with open(path, 'r') as f:
+        with open(path, 'r', encoding='latin1') as f:
             reader = csv.reader(f, delimiter=',', quotechar='"')
             for csv_row in tqdm(reader, total=num_lines):
                 if header:

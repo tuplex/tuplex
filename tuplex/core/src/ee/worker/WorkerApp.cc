@@ -2333,6 +2333,15 @@ namespace tuplex {
                 fallbackRes.code = ecToI64(ExceptionCode::UNKNOWN);
                 python::lockGIL();
                 try {
+#ifdef NDEBUG
+                    auto err_stream_pointer = &err_stream;
+                    // only stream out first row as long as there is no unresolved.
+                    if(!is_first_unresolved_interpreter)
+                        err_stream_pointer = nullptr;
+#else
+                    auto err_stream_pointer = &err_stream;
+#endif
+
                     processRowUsingFallback(fallbackRes, interpretedResolver,
                                                                ecCode,
                                                                ecOperatorID,
@@ -2344,7 +2353,7 @@ namespace tuplex {
                                                                {},
                                                                _settings.allowNumericTypeUnification,
                                                                output_is_hashtable,
-                                                               &err_stream);
+                                                               err_stream_pointer);
                 } catch(const std::exception& e) {
                     logger().error(std::string("while processing fallback path, an internal exception occurred: ") + e.what());
                 } catch(...) {
@@ -2807,6 +2816,15 @@ namespace tuplex {
                     auto exceptionType = PyObject_Type(exceptionObject);
                     // can ignore input row.
                     ecCode = ecToI64(python::translatePythonExceptionType(exceptionType));
+
+                    // debug print first true exception row
+                    if(err_stream) {
+
+                        // incref and convert to string
+                        Py_XINCREF(pcr.res);
+                        auto res_as_str = python::PyString_AsString(pcr.res);
+                        *err_stream<<"first failing interpreter row exception details: \n"<<res_as_str;
+                    }
 
 #ifndef NDEBUG
                      // debug printing of exception and what the reason is...

@@ -10,15 +10,15 @@
 
 #include "gtest/gtest.h"
 
-#ifndef NDEBUG
-#include <mcheck.h>
-#endif
+//#ifndef NDEBUG
+//#include <mcheck.h>
+//#endif
 
 int main(int argc, char **argv) {
     // enable malloc tracing on linux
-#ifndef NDEBUG
-mtrace();
-#endif
+//#ifndef NDEBUG
+//mtrace();
+//#endif
 
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();

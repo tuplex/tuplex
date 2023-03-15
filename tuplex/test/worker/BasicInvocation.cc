@@ -1335,7 +1335,7 @@ TEST(BasicInvocation, SingleMessageDebug) {
     message_path = "/home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_0.json";
 
     // bad request:
-    message_path = "/home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1.json";
+    message_path = "/home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_150.json";
 
     auto message = fileToString(URI(message_path));
 

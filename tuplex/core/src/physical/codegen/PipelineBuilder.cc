@@ -1741,8 +1741,17 @@ namespace tuplex {
                 } else if(t == python::Type::NULLVALUE) {
                     space_needed += null_value.length();
                 } else if(t == python::Type::STRING) {
+                    // note that this here might be some random stuff when it's an option that is isnull...
+                    auto str_size_required = builder.CreateAdd(env.i64Const(2), builder.CreateMul(row.getSize(i), env.i64Const(2)));
+
+                    // if option was found, check if isnull -> then add null value as space!
+                    // if not, load size (note: this can be an arbitrary value...)
+                    if(foundOption) {
+                        str_size_required = builder.CreateSelect(row.getIsNull(i), env.i64Const(null_value.length()), str_size_required);
+                    }
+
                     // fetch size and add, times 2 + 2 because of quoting
-                    varSizeRequired = builder.CreateAdd(varSizeRequired, builder.CreateAdd(env.i64Const(2), builder.CreateMul(row.getSize(i), env.i64Const(2))));
+                    varSizeRequired = builder.CreateAdd(varSizeRequired, str_size_required);
                 } else if(t == python::Type::EMPTYTUPLE) {
                     Logger::instance().logger("codegen").warn("unsupported CSV type ()");
                     space_needed += 3;

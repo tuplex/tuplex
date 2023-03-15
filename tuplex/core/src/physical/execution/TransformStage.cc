@@ -914,8 +914,8 @@ namespace tuplex {
         auto slow_path_mod = slow_path_bit_code.empty() ? nullptr : codegen::bitCodeToModule(ctx, slow_path_bit_code);
 
 
-         // // annotate module
-         // codegen::annotateModuleWithInstructionPrint(*slow_path_mod);
+          // annotate module
+          codegen::annotateModuleWithInstructionPrint(*slow_path_mod);
 
         if(optimizer) {
             if (slow_path_mod) {

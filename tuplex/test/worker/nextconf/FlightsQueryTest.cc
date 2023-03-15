@@ -73,6 +73,7 @@ namespace tuplex {
         m["tuplex.sample.samplesPerStrata"]="1";
         m["tuplex.sample.maxDetectionMemory"] = "32MB";
         m["tuplex.sample.maxDetectionRows"] = "30000";
+
         auto sampling_mode = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
         m["sampling_mode"] = std::to_string(sampling_mode);
 
@@ -116,8 +117,7 @@ namespace tuplex {
         using namespace std;
 
         // set input/output paths
-        auto exp_settings = localWorkerSettings(true); //lambdaSettings(true);
-        exp_settings = lambdaSettings(true);
+        auto exp_settings = lambdaSettings(true);
         auto input_pattern = exp_settings["input_path"];
         auto output_path = exp_settings["output_path"];
         SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));
@@ -134,17 +134,6 @@ namespace tuplex {
         // dump settings
         stringToFile("context_settings.json", ctx.getOptions().toString());
 
-
-        // test:
-        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2021_11.csv"; // <-- file that does get filtered out
-        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2001_11.csv"; // <-- file that doesn't get filtered out, but does require model
-        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2004_11.csv"; // <-- file that doesn't get filtered out, but doesn't require model
-
-        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2003_01.csv"; // <-- this file should result in 552109 input AND output rows.
-
-        input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
-//        input_pattern = "/hot/data/flights_all/flights_on_time_performance_1987_10.csv,/hot/data/flights_all/flights_on_time_performance_2021_10.csv,/hot/data/flights_all/flights_on_time_performance_2021_11.csv";
-
         // now perform query...
         auto& ds = ctx.csv(input_pattern, {}, option<bool>::none, option<char>::none, '"', {""}, {}, {}, sm);
 
@@ -155,6 +144,51 @@ namespace tuplex {
           .map(UDF(extractFillDelaysCode()))
           .filter(UDF("lambda row: 2000 <= row['year'] <= 2005"))
           .tocsv(output_path);
+    }
+
+
+    TEST_F(FlightsQuery, ExpHereFullNewFilterQuery) {
+        using namespace std;
+
+        // set input/output paths
+        auto exp_settings = lambdaSettings(true);
+        auto input_pattern = exp_settings["input_path"];
+        auto output_path = exp_settings["output_path"];
+        SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));
+        ContextOptions co = ContextOptions::defaults();
+        for(const auto& kv : exp_settings)
+            if(startsWith(kv.first, "tuplex."))
+                co.set(kv.first, kv.second);
+
+        // creater context according to settings
+        Context ctx(co);
+
+        runtime::init(co.RUNTIME_LIBRARY().toPath());
+
+        // dump settings
+        stringToFile("context_settings.json", ctx.getOptions().toString());
+
+//
+//        // test:
+//        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2021_11.csv"; // <-- file that does get filtered out
+//        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2001_11.csv"; // <-- file that doesn't get filtered out, but does require model
+//        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2004_11.csv"; // <-- file that doesn't get filtered out, but doesn't require model
+//
+//        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2003_01.csv"; // <-- this file should result in 552109 input AND output rows.
+//
+//        input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
+////        input_pattern = "/hot/data/flights_all/flights_on_time_performance_1987_10.csv,/hot/data/flights_all/flights_on_time_performance_2021_10.csv,/hot/data/flights_all/flights_on_time_performance_2021_11.csv";
+
+        // now perform query...
+        auto& ds = ctx.csv(input_pattern, {}, option<bool>::none, option<char>::none, '"', {""}, {}, {}, sm);
+
+        // add function that normalizes features (f-mean) / std
+        // and then perform linear model for all of the variables in fill-in-delays function (adjusted)
+        // now create extract vec (but only for relevant years!)
+        ds.withColumn("features", UDF(extractFeatureVectorCode()))
+                .map(UDF(extractFillDelaysCode()))
+                .filter(UDF("lambda row: 2000 <= row['year'] <= 2005"))
+                .tocsv(output_path);
     }
 }
 

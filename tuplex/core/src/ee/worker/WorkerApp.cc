@@ -2784,7 +2784,8 @@ namespace tuplex {
             PyTuple_SET_ITEM(args, i + 1, py_intermediates[i]);
         }
 
-        auto kwargs = PyDict_New(); PyDict_SetItemString(kwargs, "parse_cells", parse_cells ? Py_True : Py_False);
+        auto kwargs = PyDict_New();
+        PyDict_SetItemString(kwargs, "parse_cells", python::boolToPython(parse_cells));
         auto pcr = python::callFunctionEx(func, args, kwargs);
 
         if(pcr.exceptionCode != ExceptionCode::SUCCESS) {

@@ -2770,10 +2770,10 @@ namespace tuplex {
 #endif
 
 #ifndef NDEBUG
-         // to print python object
-         Py_XINCREF(tuple);
-         PyObject_Print(tuple, stdout, 0);
-         std::cout<<std::endl;
+         // // to print python object
+         // Py_XINCREF(tuple);
+         // PyObject_Print(tuple, stdout, 0);
+         // std::cout<<std::endl;
 #endif
 
         // call pipFunctor
@@ -2825,6 +2825,17 @@ namespace tuplex {
                         Py_XINCREF(pcr.res);
                         auto res_as_str = python::PyString_AsString(pcr.res);
                         *err_stream<<"first failing interpreter row exception details: \n"<<res_as_str;
+                    }
+
+                    // just print everything for debugging:
+                    {
+                        Py_XINCREF(pcr.res);
+                        auto res_as_str = python::PyString_AsString(pcr.res);
+                        auto& logger = Logger::instance().logger("python");
+                        logger.warn("pcr res: " + res_as_str);
+                        Py_XINCREF(exceptionObject);
+                        auto exc_as_str = python::PyString_AsString(exceptionObject);
+                        logger.warn("exception obj: " + exc_as_str);
                     }
 
 #ifndef NDEBUG

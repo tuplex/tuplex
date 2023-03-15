@@ -8,7 +8,7 @@ import json
 import os
 import glob
 import argparse
-from .udfs import *
+from udfs import *
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Flights hyper specialization query')
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv'
     
     # use following as debug pattern
-    #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv'
+    input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv'
     #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2002*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004*.csv'
     sm_map = {'A' : tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS,
             'B': tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_ROWS | tuplex.dataset.SamplingMode.FIRST_ROWS,

@@ -205,7 +205,7 @@ namespace tuplex {
                 // worker config
                 auto ws = std::make_unique<messages::WorkerSettings>();
                 auto worker_spill_uri = spillURI + "/lam" + fixedPoint(i, num_digits) + "/" + fixedPoint(part_no, num_digits_part);
-                config_worker(ws.get(), numThreads, worker_spill_uri, buf_spill_size);
+                config_worker(ws.get(), _options, numThreads, worker_spill_uri, buf_spill_size);
                 req.set_allocated_settings(ws.release());
                 req.set_verboselogging(_options.AWS_VERBOSE_LOGGING());
 
@@ -298,16 +298,19 @@ namespace tuplex {
         return URI::INVALID;
     }
 
-    void WorkerBackend::config_worker(messages::WorkerSettings *ws, size_t numThreads, const URI &spillURI,
+    void config_worker(messages::WorkerSettings *ws,
+                                      const ContextOptions& options,
+                                      size_t numThreads,
+                                      const URI &spillURI,
                                       size_t buf_spill_size) {
         if(!ws)
             return;
         ws->set_numthreads(numThreads);
         ws->set_normalbuffersize(buf_spill_size);
         ws->set_exceptionbuffersize(buf_spill_size);
-        ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
-        ws->set_usecompiledgeneralcase(!_options.RESOLVE_WITH_INTERPRETER_ONLY());
-        ws->set_normalcasethreshold(_options.NORMALCASE_THRESHOLD());
+        ws->set_useinterpreteronly(options.PURE_PYTHON_MODE());
+        ws->set_usecompiledgeneralcase(!options.RESOLVE_WITH_INTERPRETER_ONLY());
+        ws->set_normalcasethreshold(options.NORMALCASE_THRESHOLD());
         ws->set_spillrooturi(spillURI.toString());
 
         // set other fields for some other option settings
@@ -321,7 +324,7 @@ namespace tuplex {
                                              "tuplex.experimental.forceBadParseExceptFormat"});
         auto& m_map = *(ws->mutable_other());
         for(const auto& key : other_keys)
-            m_map[key] = _options.get(key);
+            m_map[key] = options.get(key);
     }
 
     std::string find_worker() {

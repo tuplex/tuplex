@@ -61,8 +61,6 @@ namespace tuplex {
 
         void abortRequestsAndFailWith(int returnCode, const std::string& errorMessage);
 
-        void config_worker(messages::WorkerSettings* ws, size_t numThreads, const URI& spillURI, size_t buf_spill_size);
-
         /*!
          * generate a baseURI for a temporary file.
          * @param stageNo
@@ -83,6 +81,12 @@ namespace tuplex {
          */
         URI scratchDir(const std::vector<URI>& hints=std::vector<URI>{});
     };
+
+    extern void config_worker(messages::WorkerSettings *ws,
+                              const ContextOptions& options,
+                              size_t numThreads,
+                              const URI &spillURI,
+                              size_t buf_spill_size);
 }
 
 #endif //TUPLEX_WORKERBACKEND_H

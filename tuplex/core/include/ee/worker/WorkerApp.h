@@ -252,8 +252,8 @@ namespace tuplex {
         os << "\"opportuneGeneralPathCompilation\":"<<boolToString(ws.opportuneGeneralPathCompilation)<<", ";
         os << "\"useOptimizer\":"<<boolToString(ws.useOptimizer)<<", ";
         os << "\"sampleLimitCount\":"<<ws.sampleLimitCount<<", ";
-        os << "\"strataSize\""<<ws.strataSize<<", ";
-        os << "\"samplesPerStrata\""<<ws.samplesPerStrata<<", ";
+        os << "\"strataSize\":"<<ws.strataSize<<", ";
+        os << "\"samplesPerStrata\":"<<ws.samplesPerStrata<<", ";
         os << "\"useFilterPromotion\":"<<boolToString(ws.useFilterPromotion)<<", ";
         os << "\"useConstantFolding\":"<<boolToString(ws.useConstantFolding)<<", ";
         os << "\"normalCaseThreshold\":"<<ws.normalCaseThreshold<<", ";

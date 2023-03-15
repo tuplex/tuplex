@@ -43,6 +43,7 @@
 #include <iomanip>
 
 #include <utility>
+#include "ee/worker/WorkerBackend.h"
 
 namespace tuplex {
 
@@ -972,7 +973,7 @@ namespace tuplex {
         // worker config
         auto ws = std::make_unique<messages::WorkerSettings>();
         throw std::runtime_error("ERROR: need unique spill URIS");
-        config_worker(ws.get(), numThreads, spillURI, buf_spill_size);
+        config_worker(ws.get(), _options, numThreads, spillURI, buf_spill_size);
         req.set_allocated_settings(ws.release());
 
         // partNo offset
@@ -997,31 +998,6 @@ namespace tuplex {
 
         logger().info("Created " + pluralize(requests.size(), "LAMBDA request") + +".");
         return requests;
-    }
-
-    void AwsLambdaBackend::config_worker(messages::WorkerSettings *ws,
-                                         size_t numThreads,
-                                         const tuplex::URI &spillURI,
-                                         size_t buf_spill_size) {
-        if(!ws)
-            return;
-        ws->set_numthreads(numThreads);
-        ws->set_normalbuffersize(buf_spill_size);
-        ws->set_exceptionbuffersize(buf_spill_size);
-        ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
-        ws->set_usecompiledgeneralcase(!_options.RESOLVE_WITH_INTERPRETER_ONLY());
-        ws->set_normalcasethreshold(_options.NORMALCASE_THRESHOLD());
-        ws->set_spillrooturi(spillURI.toString());
-
-        // set other fields for some other option settings
-        std::vector<std::string> other_keys({"tuplex.experimental.opportuneCompilation",
-                                             "tuplex.experimental.s3PreCacheSize",
-                                             "tuplex.useLLVMOptimizer",
-                                             "tuplex.sample.maxDetectionRows",
-                                             "tuplex.optimizer.constantFoldingOptimization"});
-        auto& m_map = *(ws->mutable_other());
-        for(const auto& key : other_keys)
-            m_map[key] = _options.get(key);
     }
 
     std::vector<messages::InvocationRequest>
@@ -1082,7 +1058,7 @@ namespace tuplex {
                 // worker config
                 auto ws = std::make_unique<messages::WorkerSettings>();
                 auto worker_spill_uri = spillURI + "/lam" + fixedPoint(i, num_digits) + "/" + fixedPoint(part_no, num_digits_part);
-                config_worker(ws.get(), numThreads, worker_spill_uri, buf_spill_size);
+                config_worker(ws.get(), _options, numThreads, worker_spill_uri, buf_spill_size);
                 req.set_allocated_settings(ws.release());
                 req.set_verboselogging(_options.AWS_VERBOSE_LOGGING());
 

@@ -2378,20 +2378,23 @@ namespace tuplex {
 
                     // debug: print out result for first unresolved row.
                     if(is_first_unresolved_interpreter) {
-                        std::stringstream ss;
-                        ss<<"ec code: "<<fallbackRes.code<<" ";
-                        is_first_unresolved_interpreter = false;
-                        logger().info("first unresolved row ec code result is: " + ss.str());
-#ifndef NDEBUG
+
+                        // #ifndef NDEBUG
                         bool parse_cells = false;
                         PyObject* tuple = nullptr;
                         python::lockGIL();
                         std::tie(parse_cells, tuple) = decodeFallbackRow(i64ToEC(ecCode), ecBuf, ecBufSize,  stage->normalCaseInputSchema(),
                                                                          stage->inputSchema());
-                        PyObject_Print(tuple, stdout, 0);
-                        std::cout<<std::endl;
+                        //PyObject_Print(tuple, stdout, 0);
+                        // std::cout<<std::endl;
+                        auto row_as_str = python::PyString_AsString(tuple);
                         python::unlockGIL();
-#endif
+// #endif
+
+                        std::stringstream ss;
+                        ss<<"first row passed to interpreter, after ec="<<ecCode<<" has rc="<<fallbackRes.code<<"\n"<<row_as_str<<"\n";
+                        is_first_unresolved_interpreter = false;
+                        logger().info(ss.str());
                     }
 
                     // need to update ecCode and operator ID from fallback!

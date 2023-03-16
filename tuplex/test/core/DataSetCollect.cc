@@ -700,3 +700,28 @@ TEST_F(DataSetTest, ListIndexOptionalStr) {
     EXPECT_EQ(v[1].getInt(0), 6);
     EXPECT_EQ(v[2].getInt(0), 34);
 }
+
+TEST_F(DataSetTest, ListReturnUpcastNull) {
+    using namespace tuplex;
+    // this here fails for 13 elements, 9 elements. WHY?
+    auto udf_code = "def foo(x):\n"
+                    "    if x % 2 == 0:\n"
+                    "        return [None, None, None, None, None, None, None, None, None, None, None, None, None]\n"
+                    "    else:\n"
+                    "        return [1.0, 2.0, 3.141, 2.0, 1.0, 2.0, 3.141, 2.0, 0.0]";
+
+    auto co = microTestOptions();
+    co.set("useLLVMOptimizer", "false");
+    Context c(co);
+
+    // does this work? --> yes.
+    //auto v = c.parallelize({Row(0), Row(2)}).map(UDF(udf_code)).map(UDF("lambda x: x[11]")).collectAsVector();
+
+    // does this work? --> NO.
+    auto v = c.parallelize({Row(1)}).map(UDF(udf_code)).map(UDF("lambda x: x[11]")).collectAsVector();
+
+
+    /// this here causes crash...
+    // v = c.parallelize({Row(0), Row(1), Row(2)}).map(UDF(udf_code)).map(UDF("lambda x: x[11]")).collectAsVector();
+    ASSERT_EQ(v.size(), 3);
+}

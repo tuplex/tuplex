@@ -628,7 +628,7 @@ namespace tuplex {
                 //     std::cout<<"reading row: "<<line.str()<<std::endl;
                 // }
 
-                // std::cout<<"reading row no="<<rowNumber<<"..."<<std::endl;
+                 std::cout<<"reading row no="<<rowNumber<<"..."<<std::endl;
 
                 // call functor, note that b.c. parse has been done above - if the function
                 // comes from CellSourceTaskBuilder, it will NOT give the number of bytes parsed.

@@ -3158,7 +3158,9 @@ namespace tuplex {
                         }
                         el = upCastReturnType(builder, el, el_type, list_type.elementType());
                     }
+                    if(el.val)_env->printValue(builder, el.val, "storing value= ");
                     list_store_value(*_env, builder, list_ptr, list_type, _env->i64Const(i), el);
+                    if(el.val)_env->printValue(builder, el.val, "stored value= ");
                 }
                 _lfb->setLastBlock(builder.GetInsertBlock());
                 addInstruction(list_ptr);

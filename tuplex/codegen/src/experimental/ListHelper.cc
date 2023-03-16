@@ -172,6 +172,10 @@ namespace tuplex {
 
             // allocate new memory of size sizeof(int64_t) * capacity
             auto data_size = builder.CreateMul(env.i64Const(llvm_element_size), capacity);
+
+            // // multiple of alignment (8)
+            // data_size = env.roundUpToMultiple(builder, data_size, 8);
+
             auto data_ptr = builder.CreatePointerCast(env.malloc(builder, data_size), llvm_element_type->getPointerTo());
 
             if(initialize) {
@@ -554,7 +558,6 @@ namespace tuplex {
             if(elementType.isSingleValued()) {
                 // nothing gets stored, ignore.
             } else if(elementType == python::Type::I64
-                      || elementType == python::Type::F64
                       || elementType == python::Type::BOOLEAN) {
 
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
@@ -562,7 +565,21 @@ namespace tuplex {
                 assert(value.val && llvm_element_type == value.val->getType());
                 auto ptr = builder.CreateLoad(idx_values);
                 auto idx_value = builder.CreateGEP(ptr, idx);
-                builder.CreateStore(value.val, idx_value);
+                //builder.CreateStore(value.val, idx_value);
+                builder.CreateAlignedStore(value.val, idx_value, 8);
+            } else if(elementType == python::Type::F64) {
+                // special case because of LLVM compiler bug?
+                auto idx_values = CreateStructGEP(builder, list_ptr, 2);
+                auto ptr = builder.CreateBitCast(builder.CreateLoad(idx_values), env.i8ptrType());
+                auto byte_offset = builder.CreateMul(env.i64Const(sizeof(double)), idx);
+                auto target_ptr = builder.CreateInBoundsGEP(env.i8ptrType(), ptr, byte_offset);
+                auto double_ptr = builder.CreateBitOrPointerCast(target_ptr, env.doublePointerType());
+
+                env.printValue(builder, value.val, "storing value: ");
+                env.printValue(builder, idx, "at pos= ");
+                env.printValue(builder, double_ptr, "target ptr= ");
+
+                builder.CreateStore(value.val, double_ptr);
             } else if(elementType == python::Type::STRING
                       || elementType == python::Type::PYOBJECT) {
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);

@@ -149,7 +149,8 @@ namespace tuplex {
         tmb.setCodeModel(CodeModel::Large);
         tmb.setCPU(CPUStr);
         tmb.setRelocationModel(Reloc::Model::PIC_);
-        tmb.addFeatures(getFeatureList());
+        auto cpu_features = getFeatureList();
+        tmb.addFeatures(cpu_features);
 
         // do not perform codegen here, should be done separately
         tmb.setCodeGenOptLevel(CodeGenOpt::Less); // <-- use this to speed up compile.

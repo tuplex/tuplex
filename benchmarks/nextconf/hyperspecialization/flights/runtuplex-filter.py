@@ -69,7 +69,9 @@ def extract_feature_vector(row):
 
         # use maybe 0.0 instead?
         # => write quick test to fix lists...
-        return [None, None, None, None, None, None, None, None, None, None, None, None, None]
+        return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        # this here causes a bug...
+        #return [None, None, None, None, None, None, None, None, None, None, None, None, None]
 
     # categorical variables
     quarter = row['QUARTER']

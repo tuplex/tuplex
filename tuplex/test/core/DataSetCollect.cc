@@ -710,12 +710,24 @@ TEST_F(DataSetTest, ListReturnUpcastNull) {
 //                    "    else:\n"
 //                    "        return [1.0, 2.0, 3.141, 2.0, 1.0, 2.0, 3.141, 2.0, 0.0]";
 
+    // Does simple List[Option[f64]] work? -> yes. so issue is caused from if/else logic!
+//    auto udf_code = "def foo(x):\n"
+//                    "    return [None, 42.0]";
 
+// ok, so this here is a minimal example where stuff fails...
     auto udf_code = "def foo(x):\n"
                 "    if x % 2 == 0:\n"
-                "        return [2.3, 4.5]\n"
-                "    else:\n"
-                "        return [1.0, 2.0, 3.141, 2.0, 1.0, 2.0, 3.141, 2.0, 0.0]";
+                "        return [None]\n"
+                "\n"
+                "    return [42.0]";
+
+
+//    // this here seems also ok. -> so should work...!
+//    auto udf_code = "def foo(x):\n"
+//                "    if x % 2 == 0:\n"
+//                "        return [2.3, 4.5]\n"
+//                "    else:\n"
+//                "        return [1.0, 2.0, 3.141, 2.0, 1.0, 2.0, 3.141, 2.0, 0.0]";
 
 //    // so this here works. is the bug coming from the if statement?
 //    auto udf_code = "def foo(x):\n"

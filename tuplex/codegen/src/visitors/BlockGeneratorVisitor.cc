@@ -3895,7 +3895,7 @@ namespace tuplex {
                     sub->accept(av);
                     if(!codes_found.empty()) {
                         if(codes_found.size() != 1) {
-                            error("more than one code found (??)");
+                            error("more than one code found (?)");
                         }
                         _lfb->exitWithException(codes_found.front());
                         return;

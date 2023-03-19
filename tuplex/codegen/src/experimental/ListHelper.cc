@@ -284,6 +284,9 @@ namespace tuplex {
                 if(python::Type::NULLVALUE == element_type)
                     return SerializableValue(nullptr, nullptr, env.i1Const(true));
 
+                if(element_type.isConstantValued())
+                    return constantValuedTypeToLLVM(builder, element_type);m
+
                 throw std::runtime_error("list load of single-valued type " + element_type.desc() + " not yet supported");
             }
 

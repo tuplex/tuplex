@@ -2820,23 +2820,23 @@ namespace tuplex {
 
                     // debug print first true exception row
                     if(err_stream) {
-
                         // incref and convert to string
                         Py_XINCREF(pcr.res);
                         auto res_as_str = python::PyString_AsString(pcr.res);
                         *err_stream<<"first failing interpreter row exception details: \n"<<res_as_str;
                     }
 
-                    // just print everything for debugging:
-                    {
-                        Py_XINCREF(pcr.res);
-                        auto res_as_str = python::PyString_AsString(pcr.res);
-                        auto& logger = Logger::instance().logger("python");
-                        logger.warn("pcr res: " + res_as_str);
-                        Py_XINCREF(exceptionObject);
-                        auto exc_as_str = python::PyString_AsString(exceptionObject);
-                        logger.warn("exception obj: " + exc_as_str);
-                    }
+                    // @TODO: add here tooling to expose this better...
+                    // // just print everything for debugging:
+                    // {
+                    //     Py_XINCREF(pcr.res);
+                    //     auto res_as_str = python::PyString_AsString(pcr.res);
+                    //     auto& logger = Logger::instance().logger("python");
+                    //     logger.warn("pcr res: " + res_as_str);
+                    //     Py_XINCREF(exceptionObject);
+                    //     auto exc_as_str = python::PyString_AsString(exceptionObject);
+                    //     logger.warn("exception obj: " + exc_as_str);
+                    // }
 
 #ifndef NDEBUG
                      // debug printing of exception and what the reason is...

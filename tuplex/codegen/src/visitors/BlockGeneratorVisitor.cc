@@ -2393,6 +2393,7 @@ namespace tuplex {
 
             // convert condition value to i1 value according to python3 truth testing rules!
             auto ifcond = _env->truthValueTest(builder, cond, ifelse->_expression->getInferredType());
+            _lfb->setLastBlock(builder.GetInsertBlock());
 
             // special case: exceptions present
             if(exceptOnThen) {
@@ -2599,6 +2600,7 @@ namespace tuplex {
                 }
 
                 // ---------------------------------------------------------------------------------
+                std::stringstream ss;
 
                 // connect blocks via condition
                 builder.SetInsertPoint(entryBB);
@@ -2612,14 +2614,17 @@ namespace tuplex {
                         if (blockOpen(lastIfBB)) {
                             builder.SetInsertPoint(lastIfBB);
                             builder.CreateBr(exitBB);
+                            ss<<"connect "<<lastIfBB->getName().str()<<" -- CreateBr --> "<<exitBB->getName().str()<<"\n";
                         }
 
                         if (blockOpen(lastElseBB)) {
                             builder.SetInsertPoint(lastElseBB);
                             builder.CreateBr(exitBB);
+                            ss<<"connect "<<lastElseBB->getName().str()<<" -- CreateBr --> "<<exitBB->getName().str()<<"\n";
                         }
 
                         _lfb->setLastBlock(exitBB);
+                        ss<<"last block: "<<exitBB->getName().str()<<"\n";
                     }
 
                     // connect
@@ -2636,21 +2641,29 @@ namespace tuplex {
                     }
 
                     builder.CreateCondBr(ifcond, ifBB, exitBB);
+                    ss<<"connect "<<builder.GetInsertBlock()->getName().str()<<" -- CreateCondBr --> true: "<<ifBB->getName().str()<<"  false: "<<exitBB->getName().str()<<"\n";
 
                     // check if if contained ret, if not then connect to exitBB
                     if (blockOpen(lastIfBB)) {
                         builder.SetInsertPoint(lastIfBB);
                         builder.CreateBr(exitBB);
+                        ss<<"connect "<<lastIfBB->getName().str()<<" -- CreateBr --> "<<exitBB->getName().str()<<"\n";
                     }
 
                     _lfb->setLastBlock(exitBB);
+                    ss<<"last block: "<<exitBB->getName().str()<<"\n";
                 }
 
                 // statement done.
                 // @TODO: optimize to only address variables where things get assigned to in order to generate
                 // less LLVM IR. => Ease burden on compiler.
                 builder.SetInsertPoint(_lfb->getLastBlock());
+                if(_lfb->getLastBlock())
+                    ss<<"builder insert block is: "<<builder.GetInsertBlock()->getName().str()<<"\n";
+                else
+                    ss<<"builder insert block is: <nullptr>\n";
 
+                _logger.debug("NIfElse connect logic:\n" + ss.str());
                 // @TODO: also the exitBlock analysis!
             }
         }
@@ -3142,8 +3155,7 @@ namespace tuplex {
                 auto list_llvm_type = _env->getOrCreateListType(list_type);
                 auto list_ptr = _env->CreateFirstBlockAlloca(builder, list_llvm_type);
                 list_init_empty(*_env, builder, list_ptr, list_type);
-
-                bool initialize_elements_as_null = true; //false;
+                bool initialize_elements_as_null = false; // can skip this b.c. all elements are anyways going to be initialized.
                 list_reserve_capacity(*_env, builder, list_ptr, list_type, _env->i64Const(num_elements), initialize_elements_as_null);
                 list_store_size(*_env, builder, list_ptr, list_type, _env->i64Const(num_elements));
 
@@ -4327,6 +4339,8 @@ namespace tuplex {
             return true;
         }
 
+
+
         SerializableValue BlockGeneratorVisitor::upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue &val,
                                                                   const python::Type &type,
                                                                   const python::Type &targetType) {
@@ -4412,11 +4426,12 @@ namespace tuplex {
             // @TODO: List[a] to List[b] if a,b are compatible?
             // @TODO: Dict[a, b] to Dict[c, d] if upcast a to c works, and upcast b to d works?
             if(type.isListType() && targetType.isListType()) {
-                auto new_list_ptr = list_upcast(*_env, builder, val.val, type, targetType);
-                _lfb->setLastBlock(builder.GetInsertBlock());
-                return SerializableValue(new_list_ptr, nullptr);
-                // @TODO:
-                //error("upcasting list type " + type.desc() + " to list type " + targetType.desc() + " not yet implemented");
+                // upcast list incl. elements here if required.
+                auto list_type = type;
+                auto list_ptr = val.val;
+                auto target_list_type = targetType;
+                auto target_list_ptr = list_upcast(*_env, builder, list_ptr, list_type, target_list_type);
+                return SerializableValue(target_list_ptr, nullptr);
             }
 
             if(type.isDictionaryType() && targetType.isDictionaryType()) {
@@ -4560,7 +4575,7 @@ namespace tuplex {
 
             if(python::canUpcastType(deopt_target_type, deopt_func_return_type)) {
                 // ok, fits the globally agreed function return type!
-
+                _logger.debug("emit return type upcast  " + expression_type.desc() + " -> " + funcReturnType.desc());
                 // the retval popped could need extension to an option type!
                 retVal = upCastReturnType(builder, retVal, expression_type, funcReturnType);
                 _lfb->setLastBlock(builder.GetInsertBlock());

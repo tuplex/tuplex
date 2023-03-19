@@ -1136,41 +1136,49 @@ namespace tuplex {
                 auto v = value.val;
                 // special case isStructDict or isListType b.c. they may be represented through a lazy pointer
                 if(elementType.isListType() || elementType.isStructuredDictionaryType()) {
-                    if(v->getType() != structValIdx->getType()) {
-                        if(v->getType() == structValIdx->getType()->getPointerElementType()) {
-                            // load (special treatment for nested structures...)
-                            auto ptr = CreateFirstBlockAlloca(builder, v->getType());
 
-                            // store -> direct load?
-                            auto struct_type = v->getType();
-                            for(unsigned i = 0; i < struct_type->getStructNumElements(); ++i) {
-                                auto item = CreateStructLoad(builder, v, i);
-                                // what is the type?
-                                auto item_type = getLLVMTypeName(item->getType());
-                                // if(item->getType()->isStructTy()) {
-                                //     Logger::instance().logger("codegen").info("found struct type: " + item_type);
-                                // }
+                    // special case: list type of single-valued type. -> just store length as i64!
+                    if(elementType.isListType() && elementType.elementType().isSingleValued()) {
+                        // is it a pointer? then load and store i64, else store i64 directly
+                        assert(v->getType() == i64Type() || v->getType() == i64ptrType());
+                        if(v->getType() == i64ptrType())
+                            v = builder.CreateLoad(v);
 
-                                auto target_idx = CreateStructGEP(builder, ptr, i);
-                                builder.CreateStore(item, target_idx, is_volatile);
+                        builder.CreateStore(v, structValIdx);
+                    } else {
+                        if(v->getType() != structValIdx->getType()) {
+                            if(v->getType() == structValIdx->getType()->getPointerElementType()) {
+                                // load (special treatment for nested structures...)
+                                auto ptr = CreateFirstBlockAlloca(builder, v->getType());
+
+                                // store -> direct load?
+                                auto struct_type = v->getType();
+                                for(unsigned i = 0; i < struct_type->getStructNumElements(); ++i) {
+                                    auto item = CreateStructLoad(builder, v, i);
+                                    // what is the type?
+                                    auto item_type = getLLVMTypeName(item->getType());
+                                    // if(item->getType()->isStructTy()) {
+                                    //     Logger::instance().logger("codegen").info("found struct type: " + item_type);
+                                    // }
+
+                                    auto target_idx = CreateStructGEP(builder, ptr, i);
+                                    builder.CreateStore(item, target_idx, is_volatile);
+                                }
+
+                                v = ptr;
+
+                            } else {
+                                throw std::runtime_error("incompatible type " + getLLVMTypeName(v->getType()) + " found for storing data.");
                             }
-
-                            v = ptr;
-
-                        } else {
-                            throw std::runtime_error("incompatible type " + getLLVMTypeName(v->getType()) + " found for storing data.");
                         }
-                    }
-//
-//                    if(v->getType() == structValIdx->getType())
-//                        v = builder.CreateLoad(v); // load in order to store!
 
-                    // however, nested structs/aggs should be memcopied
-                    auto i8_src = builder.CreatePointerCast(v, i8ptrType());
-                    auto i8_dest = builder.CreatePointerCast(structValIdx, i8ptrType());
-                    auto& DL = _module->getDataLayout();
-                    auto struct_size = DL.getTypeAllocSize(v->getType()->getPointerElementType());
-                    builder.CreateMemCpy(i8_dest, 0, i8_src, 0, struct_size);
+                        // however, nested structs/aggs should be memcopied
+                        auto i8_src = builder.CreatePointerCast(v, i8ptrType());
+                        auto i8_dest = builder.CreatePointerCast(structValIdx, i8ptrType());
+                        auto& DL = _module->getDataLayout();
+                        auto struct_size = DL.getTypeAllocSize(v->getType()->getPointerElementType());
+                        builder.CreateMemCpy(i8_dest, 0, i8_src, 0, struct_size);
+                    }
                 } else {
                     // primitives can be stored
 

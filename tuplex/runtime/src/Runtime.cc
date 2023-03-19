@@ -82,11 +82,16 @@ public:
 // use thread local to index heap
 static thread_local MemoryHeap* heap = nullptr;
 
-static const size_t HEAP_ALIGNMENT = 16ul;
+//static const size_t HEAP_ALIGNMENT = 16ul;
+// use 64 byte alignment so SSE42 optimizations work...
+static const size_t HEAP_ALIGNMENT = 64ul;
 static inline size_t alignHeapSize(size_t size) {
     return (((size) + ((HEAP_ALIGNMENT) - 1)) & ~((HEAP_ALIGNMENT) - 1));
 }
 
+inline bool is_aligned(std::size_t alignment, const volatile void* ptr) noexcept {
+    return (reinterpret_cast<std::size_t>(ptr) & (alignment - 1)) == 0;
+}
 /*!
  * helper function to init a memory block
  * @param size
@@ -266,6 +271,10 @@ extern "C" void *rtmalloc(const size_t requested_size) noexcept {
     } else {
         assert(heap->lastBlock);
         uint8_t *memaddr = heap->lastBlock->mem + heap->lastBlock->offset;
+
+        // make sure addr is heap aligned
+        // cf. https://pzemtsov.github.io/2016/11/06/bug-story-alignment-on-x86.html
+        assert(is_aligned(HEAP_ALIGNMENT, memaddr));
 
         // inc offset
         heap->lastBlock->offset += size;

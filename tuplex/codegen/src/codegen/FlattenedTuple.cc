@@ -1119,13 +1119,14 @@ namespace tuplex {
                 int val_idx=-1, size_idx=-1, bitmap_idx=-1;
                 std::tie(val_idx, size_idx, bitmap_idx) = indices;
 
-                if(val_idx >= 0) {
-                    auto nc = _env->nullConstant(llvmType->getStructElementType(val_idx));
-                    cb.CreateStore(nc, cb.CreateStructGEP(tuple_ptr, val_idx));
-                }
-                if(size_idx >= 0) {
-                    cb.CreateStore(_env->i64Const(0), cb.CreateStructGEP(tuple_ptr, size_idx));
-                }
+                // is this causing the error?
+                // if(val_idx >= 0) {
+                //     auto nc = _env->nullConstant(llvmType->getStructElementType(val_idx));
+                //     cb.CreateStore(nc, cb.CreateStructGEP(tuple_ptr, val_idx));
+                // }
+                // if(size_idx >= 0) {
+                //     cb.CreateStore(_env->i64Const(0), cb.CreateStructGEP(tuple_ptr, size_idx));
+                // }
             }
 
             return tuple_ptr;

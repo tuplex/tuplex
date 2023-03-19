@@ -1695,6 +1695,13 @@ namespace tuplex {
 
             auto builder = _lfb->getLLVMBuilder();
 
+            {
+                // create dummy
+                auto temp = _env->CreateFirstBlockAlloca(builder, _env->doubleType());
+                builder.CreateStore(_env->f64Const(42.0), temp);
+                _env->printValue(builder, builder.CreateLoad(temp), "temp storage " + std::string(__FILE_NAME__) + ":" + std::to_string(__LINE__) + " : ");
+            }
+
             // retrieve parameters and types
             vector<tuple<string, python::Type>> paramInfo;
             auto paramNames = getFunctionParameters(func);
@@ -3126,6 +3133,16 @@ namespace tuplex {
                 auto builder = _lfb->getLLVMBuilder();
                 auto &context = _env->getContext();
 
+                _env->debugPrint(builder, "enter NList block generator block");
+
+                {
+                    // create dummy
+                    auto temp = _env->CreateFirstBlockAlloca(builder, _env->doubleType());
+                    builder.CreateStore(_env->f64Const(42.0), temp);
+                    _env->printValue(builder, builder.CreateLoad(temp), "temp storage " + std::string(__FILE_NAME__) + ":" + std::to_string(__LINE__) + " : ");
+                }
+
+
                 // fetch values from _blockStack
                 assert(_blockStack.size() >= list->_elements.size());
                 std::vector<SerializableValue> vals;
@@ -3143,10 +3160,33 @@ namespace tuplex {
                 auto list_llvm_type = _env->getOrCreateListType(list_type);
                 auto list_ptr = _env->CreateFirstBlockAlloca(builder, list_llvm_type);
                 list_init_empty(*_env, builder, list_ptr, list_type);
+                auto& DL = _env->getModule()->getDataLayout();
+                auto list_alloc_size = DL.getTypeAllocSize(list_llvm_type);
+                {
+                    // create dummy
+                    auto temp = _env->CreateFirstBlockAlloca(builder, _env->doubleType());
+                    builder.CreateStore(_env->f64Const(42.0), temp);
+                    _env->printValue(builder, builder.CreateLoad(temp), "temp storage " + std::to_string(__LINE__) + ": ");
+                }
 
                 bool initialize_elements_as_null = true; //false;
                 list_reserve_capacity(*_env, builder, list_ptr, list_type, _env->i64Const(num_elements), initialize_elements_as_null);
+
+                {
+                    // create dummy
+                    auto temp = _env->CreateFirstBlockAlloca(builder, _env->doubleType());
+                    builder.CreateStore(_env->f64Const(42.0), temp);
+                    _env->printValue(builder, builder.CreateLoad(temp), "temp storage " + std::to_string(__LINE__) + ": ");
+                }
+
                 list_store_size(*_env, builder, list_ptr, list_type, _env->i64Const(num_elements));
+
+                {
+                    // create dummy
+                    auto temp = _env->CreateFirstBlockAlloca(builder, _env->doubleType());
+                    builder.CreateStore(_env->f64Const(42.0), temp);
+                    _env->printValue(builder, builder.CreateLoad(temp), "temp storage " + std::to_string(__LINE__) + ": ");
+                }
 
                 // loop over vals & store them
                 for(unsigned i = 0; i < vals.size(); ++i) {
@@ -3163,6 +3203,8 @@ namespace tuplex {
                     list_store_value(*_env, builder, list_ptr, list_type, _env->i64Const(i), el);
                     if(el.val)_env->printValue(builder, el.val, "stored value= ");
                 }
+                _env->debugPrint(builder, "end NList block generator block");
+
                 _lfb->setLastBlock(builder.GetInsertBlock());
                 addInstruction(list_ptr);
 
@@ -4330,6 +4372,57 @@ namespace tuplex {
             return true;
         }
 
+        SerializableValue list_load_value_new(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* idx) {
+            SerializableValue ret;
+
+            // special cases: single valued elements
+            if(list_type.elementType().isSingleValued())
+                throw std::runtime_error("list load not yet supported");
+
+            // define struct load indices
+            int data_index = 2;
+            int nullmap_index = 3;
+            int size_idx = -1;
+
+            // adjust for certain types
+            auto element_type = list_type.elementType();
+            if(element_type == python::Type::STRING || element_type == python::Type::PYOBJECT) {
+                size_idx = 3;
+                nullmap_index = 4;
+            }
+            if(!element_type.isOptionType())
+                nullmap_index = -1;
+
+
+            // (1) fill value
+            auto data_ptr = CreateStructLoad(builder, list_ptr, data_index);
+            auto data_entry = builder.CreateLoad(builder.CreateGEP(data_ptr, idx));
+            ret.val = data_entry;
+
+
+            // (2) fill size
+            if(size_idx >= 0) {
+                auto size_ptr = CreateStructLoad(builder, list_ptr, size_idx);
+                ret.size = builder.CreateLoad(builder.CreateGEP(size_ptr, idx));
+            } else {
+                ret.size = env.i64Const(sizeof(double));
+            }
+
+            // (3) is null
+            // load whether entry is null (or not)
+            if(nullmap_index >= 1) {
+                auto nullmap_ptr = CreateStructLoad(builder, list_ptr, 3);
+                auto is_null = builder.CreateLoad(builder.CreateGEP(nullmap_ptr, idx));
+                ret.is_null = builder.CreateTrunc(is_null, env.i1Type());
+            } else {
+                ret.is_null = env.i1Const(false);
+            }
+
+            // @TODO: struct type, list in list loading...
+
+            return ret;
+        }
+
         SerializableValue BlockGeneratorVisitor::upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue &val,
                                                                   const python::Type &type,
                                                                   const python::Type &targetType) {
@@ -4415,8 +4508,39 @@ namespace tuplex {
             // @TODO: List[a] to List[b] if a,b are compatible?
             // @TODO: Dict[a, b] to Dict[c, d] if upcast a to c works, and upcast b to d works?
             if(type.isListType() && targetType.isListType()) {
+
+                // do not call upcast, return new list directly
+                _env->debugPrint(builder, "list target output type=" + targetType.desc());
+                auto target_list_type = targetType;
+                auto llvm_target_list_type =_env->pythonToLLVMType(target_list_type);
+                auto target_list_ptr = _env->CreateFirstBlockAlloca(builder, llvm_target_list_type);
+                list_init_empty(*_env, builder, target_list_ptr, target_list_type);
+                list_reserve_capacity(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(2));
+                list_store_size(*_env, builder,target_list_ptr, target_list_type, _env->i64Const(2));
+                list_store_value(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(0), SerializableValue(_env->f64Const(42.00), _env->i64Const(8), _env->i1Const(false)));
+
+                // so this here is wrong and causing the bug...???
+                // auto v1 = list_load_value(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(0));
+                // _env->printValue(builder, v1.val, "list item0=");
+
+                // fetch the double pointer
+                auto double_ptr = CreateStructLoad(builder, target_list_ptr, 2);
+                _env->printValue(builder, double_ptr, "address of double ptr: ");
+                auto first_entry = builder.CreateLoad(double_ptr);
+                _env->printValue(builder, first_entry, "first double entry: ");
+
+                auto v1 = list_load_value_new(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(0));
+                _env->printValue(builder, first_entry, "new list entry result: ");
+                // super weird...
+
+                list_store_value(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(1), SerializableValue(_env->f64Const(42.00), _env->i64Const(8), _env->i1Const(false)));
+
+                return SerializableValue(target_list_ptr, nullptr);
+
+                _env->debugPrint(builder, "enter list upcast within return");
                 auto new_list_ptr = list_upcast(*_env, builder, val.val, type, targetType);
                 _lfb->setLastBlock(builder.GetInsertBlock());
+                addInstruction(new_list_ptr); //??
                 return SerializableValue(new_list_ptr, nullptr);
                 // @TODO:
                 //error("upcasting list type " + type.desc() + " to list type " + targetType.desc() + " not yet implemented");

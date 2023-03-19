@@ -734,12 +734,27 @@ TEST_F(DataSetTest, ListReturnUpcastNull) {
 //    auto udf_code = "def foo(x):\n"
 //                    "    return [None, 42.0]";
 
-//// ok, so this here is a minimal example where stuff fails...
+    // ok, so this here is a minimal example where stuff fails...
+    auto udf_code = "def foo(x):\n"
+                "    if x % 2 == 0:\n"
+                "        return [1.0, 2.0, 3.0, 4.0]\n"
+                "    else:\n"
+                "        return [None]";
+
+    // this here also works...
 //    auto udf_code = "def foo(x):\n"
-//                "    if x % 2 == 0:\n"
-//                "        return [None]\n"
-//                "\n"
-//                "    return [42.0, 3.0]";
+//                    "    if x % 2 == 0:\n"
+//                    "        return [None, 42.0, 3.0]\n"
+//                    "\n"
+//                    "    return [None]";
+
+
+//// this here works.//
+//    auto udf_code = "def foo(x):\n"
+//                    "    if x % 2 == 0:\n"
+//                    "        return [None]\n"
+//                    "\n"
+//                    "    return [1,2,3]";
 
 // ok this works as well...
 // -> so upcast is the issue???
@@ -749,11 +764,11 @@ TEST_F(DataSetTest, ListReturnUpcastNull) {
 //                    "\n"
 //                    "    return [42.0, None, 3.0]";
 
-    auto udf_code = "def foo(x):\n"
-                    "    if x % 2 == 0:\n"
-                    "        return [None, None, None]\n"
-                    "\n"
-                    "    return [None, None, None]";
+//    auto udf_code = "def foo(x):\n"
+//                    "    if x % 2 == 0:\n"
+//                    "        return [None, None, None]\n"
+//                    "\n"
+//                    "    return [None, None, None]";
 
 //    auto udf_code = "def foo(x):\n"
 //                    "    return [7.0, 42.0, 3.0]";
@@ -777,9 +792,17 @@ TEST_F(DataSetTest, ListReturnUpcastNull) {
     // does this work? --> yes.
     //auto v = c.parallelize({Row(0), Row(2)}).map(UDF(udf_code)).map(UDF("lambda x: x[11]")).collectAsVector();
 
-    // does this work? --> NO.
-    auto v = c.parallelize({Row(1)}).map(UDF(udf_code)).map(UDF("lambda x: x[0]")).collectAsVector();
+    char buf[128];
+    memset(buf, 0, 128);
+    *((double*)buf) = 42.0;
+    std::cout<<"42.0 in hex is: ";
+    core::hexdump(std::cout, buf, 8);
+    std::cout<<std::endl;
 
+    // does this work? --> NO.
+    auto v = c.parallelize({Row(0)}).map(UDF(udf_code)).map(UDF("lambda x: x[0]")).collectAsVector();
+
+    ASSERT_FALSE(v.empty());
     std::cout<<"result:\n"<<v.front().toPythonString()<<std::endl;
     /// this here causes crash...
     // v = c.parallelize({Row(0), Row(1), Row(2)}).map(UDF(udf_code)).map(UDF("lambda x: x[11]")).collectAsVector();

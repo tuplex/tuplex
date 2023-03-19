@@ -146,22 +146,23 @@ namespace tuplex {
         // set optimized flags for host system
         auto& tmb = tmBuilder.get();
         tmb.setCodeGenOptLevel(CodeGenOpt::Aggressive);
-        tmb.setCodeModel(CodeModel::Large);
+//        tmb.setCodeModel(CodeModel::Large);
+        //tmb.setCodeModel(CodeModel::Small);
         tmb.setCPU(CPUStr);
         tmb.setRelocationModel(Reloc::Model::PIC_);
         auto cpu_features = getFeatureList();
 
-        // deactivate avx
-        for(auto& feature_name : cpu_features) {
-            if(feature_name.substr(1, 3) == "avx")
-                feature_name[0] = '-';
-        }
+//        // deactivate avx
+//        for(auto& feature_name : cpu_features) {
+//            if(feature_name.substr(1, 3) == "avx")
+//                feature_name[0] = '-';
+//        }
 
         tmb.addFeatures(cpu_features);
 
-        // do not perform codegen here, should be done separately
-        tmb.setCodeGenOptLevel(CodeGenOpt::Less); // <-- use this to speed up compile.
-
+//        // do not perform codegen here, should be done separately
+//        tmb.setCodeGenOptLevel(CodeGenOpt::Less); // <-- use this to speed up compile.
+        tmb.setCodeGenOptLevel(CodeGenOpt::Default); // <-- use O2/Os
 #ifdef BOOST_OS_LINUX
         // tmb.setCodeGenOptLevel(CodeGenOpt::None); // <-- use no codegen opt.
 #endif

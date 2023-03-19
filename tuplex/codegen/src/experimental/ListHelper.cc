@@ -576,38 +576,7 @@ namespace tuplex {
                 assert(value.val && llvm_element_type == value.val->getType());
                 auto ptr = builder.CreateLoad(idx_values);
                 auto idx_value = builder.CreateGEP(ptr, idx);
-                //builder.CreateStore(value.val, idx_value);
-                builder.CreateAlignedStore(value.val, idx_value, 8);
-            } else if(elementType == python::Type::F64) {
-//                // special case because of LLVM compiler bug?
-//                auto idx_values = CreateStructGEP(builder, list_ptr, 2);
-//                auto ptr = builder.CreateBitCast(builder.CreateLoad(idx_values), env.i8ptrType());
-//                auto byte_offset = builder.CreateMul(env.i64Const(sizeof(double)), idx);
-//                auto target_ptr = builder.CreateGEP(ptr, builder.CreateZExtOrTrunc(byte_offset, env.i32Type()));
-//                auto double_ptr = builder.CreateBitOrPointerCast(target_ptr, env.doublePointerType());
-//
-//                env.printValue(builder, builder.CreateLoad(double_ptr), "current value: ");
-//
-//                env.printValue(builder, value.val, "storing value: ");
-//                env.printValue(builder, idx, "at pos= ");
-//                env.printValue(builder, double_ptr, "target ptr= ");
-//
-//                auto dummy = env.CreateFirstBlockAlloca(builder, env.doubleType());
-//                builder.CreateStore(value.val, dummy);
-//                builder.CreateStore(builder.CreateLoad(dummy), double_ptr);
-//
-//                //builder.CreateStore(value.val, double_ptr); // <-- this causes an error
-//
-//                 // reload
-//                env.printValue(builder, builder.CreateLoad(double_ptr), "stored value: ");
-
-                 auto ptr = CreateStructLoad(builder, list_ptr, 2);
-                 auto ptr_type = env.getLLVMTypeName(ptr->getType());
-                 auto target_ptr = builder.CreateGEP(ptr, idx);
-                env.printValue(builder, builder.CreateLoad(target_ptr), "current value: ");
-                 builder.CreateStore(value.val, target_ptr);
-                env.printValue(builder, builder.CreateLoad(target_ptr), "value after store: ");
-
+                builder.CreateStore(value.val, idx_value);
             } else if(elementType == python::Type::STRING
                       || elementType == python::Type::PYOBJECT) {
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
@@ -1565,6 +1534,8 @@ namespace tuplex {
         llvm::Value* list_upcast(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr,
                                  const python::Type& list_type, const python::Type& target_list_type) {
 
+            env.debugPrint(builder, "enter list upcast function " + list_type.desc() + " -> " + target_list_type.desc());
+
             // make sure current element and target element type are compatible!
             assert(python::canUpcastType(list_type, target_list_type));
 
@@ -1587,6 +1558,7 @@ namespace tuplex {
 
             // get list size of original list & alloc new list with target type!
             auto list_size = list_length(env, builder, list_ptr, list_type);
+            list_init_empty(env, builder, target_list_ptr, target_list_type);
             list_reserve_capacity(env, builder, target_list_ptr, target_list_type, list_size);
 
             // create loop to fill in values from old list into new list after upcast (should this be emitted as function to inline?)
@@ -1598,9 +1570,7 @@ namespace tuplex {
             llvm::BasicBlock* bbLoopHeader = llvm::BasicBlock::Create(ctx, "list_upcast_loop_header", func);
             llvm::BasicBlock* bbLoopBody = llvm::BasicBlock::Create(ctx, "list_upcast_loop_body", func);
             llvm::BasicBlock* bbLoopDone = llvm::BasicBlock::Create(ctx, "list_upcast_loop_done", func);
-
-            env.debugPrint(builder, "enter list upcast function " + list_type.desc() + " -> " + target_list_type.desc());
-
+            env.debugPrint(builder, "go to loop header, entry for upcast");
             builder.CreateBr(bbLoopHeader);
             builder.SetInsertPoint(bbLoopHeader);
             auto icmp = builder.CreateICmpSLT(builder.CreateLoad(i_var), list_size);
@@ -1611,9 +1581,9 @@ namespace tuplex {
             auto idx = builder.CreateLoad(i_var);
             builder.CreateStore(builder.CreateAdd(idx, env.i64Const(1)), i_var);
             // store element (after upcast)
-            auto src_el = list_load_value(env, builder, list_ptr, list_type, idx);
-            auto target_el = env.upcastValue(builder, src_el, el_type, target_el_type);
-            list_store_value(env, builder, target_list_ptr, target_list_type, idx, target_el);
+//            auto src_el = list_load_value(env, builder, list_ptr, list_type, idx);
+//            auto target_el = env.upcastValue(builder, src_el, el_type, target_el_type);
+//            list_store_value(env, builder, target_list_ptr, target_list_type, idx, target_el);
             builder.CreateBr(bbLoopHeader);
 
             builder.SetInsertPoint(bbLoopDone);

@@ -150,6 +150,13 @@ namespace tuplex {
         tmb.setCPU(CPUStr);
         tmb.setRelocationModel(Reloc::Model::PIC_);
         auto cpu_features = getFeatureList();
+
+        // deactivate avx
+        for(auto& feature_name : cpu_features) {
+            if(feature_name.substr(1, 3) == "avx")
+                feature_name[0] = '-';
+        }
+
         tmb.addFeatures(cpu_features);
 
         // do not perform codegen here, should be done separately

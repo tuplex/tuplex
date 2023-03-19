@@ -701,6 +701,26 @@ TEST_F(DataSetTest, ListIndexOptionalStr) {
     EXPECT_EQ(v[2].getInt(0), 34);
 }
 
+
+TEST_F(DataSetTest, ListOfNulls) {
+    using namespace tuplex;
+
+    auto udf_code = "def foo(x):\n"
+                    "    if x % 2 == 0:\n"
+                    "        return [None, None]\n"
+                    "\n"
+                    "    return [None, None, None]";
+
+    auto co = microTestOptions();
+    co.set("useLLVMOptimizer", "false");
+    Context c(co);
+
+    auto v = c.parallelize({Row(0), Row(1)}).map(UDF(udf_code)).map(UDF("lambda x: x[1]")).collectAsVector();
+    ASSERT_EQ(v.size(), 2);
+    EXPECT_EQ(v[0].toPythonString(), "(None,)");
+    EXPECT_EQ(v[1].toPythonString(), "(None,)");
+}
+
 TEST_F(DataSetTest, ListReturnUpcastNull) {
     using namespace tuplex;
     // this here fails for 13 elements, 9 elements. WHY?
@@ -714,12 +734,29 @@ TEST_F(DataSetTest, ListReturnUpcastNull) {
 //    auto udf_code = "def foo(x):\n"
 //                    "    return [None, 42.0]";
 
-// ok, so this here is a minimal example where stuff fails...
+//// ok, so this here is a minimal example where stuff fails...
+//    auto udf_code = "def foo(x):\n"
+//                "    if x % 2 == 0:\n"
+//                "        return [None]\n"
+//                "\n"
+//                "    return [42.0, 3.0]";
+
+// ok this works as well...
+// -> so upcast is the issue???
+//    auto udf_code = "def foo(x):\n"
+//                    "    if x % 2 == 0:\n"
+//                    "        return [1.0, 2.0, None, 3.0]\n"
+//                    "\n"
+//                    "    return [42.0, None, 3.0]";
+
     auto udf_code = "def foo(x):\n"
-                "    if x % 2 == 0:\n"
-                "        return [None]\n"
-                "\n"
-                "    return [42.0]";
+                    "    if x % 2 == 0:\n"
+                    "        return [None, None, None]\n"
+                    "\n"
+                    "    return [None, None, None]";
+
+//    auto udf_code = "def foo(x):\n"
+//                    "    return [7.0, 42.0, 3.0]";
 
 
 //    // this here seems also ok. -> so should work...!

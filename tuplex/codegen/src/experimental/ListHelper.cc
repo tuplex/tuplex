@@ -499,6 +499,9 @@ namespace tuplex {
             assert(list_ptr);
             assert(idx && idx->getType() == env.i64Type());
 
+            // use i32 for idx because of LLVM bugs
+            idx = builder.CreateZExtOrTrunc(idx, env.i32Type());
+
             assert(list_type.isListType());
             if(python::Type::EMPTYLIST == list_type)
                 return; // nothing to do
@@ -1595,6 +1598,8 @@ namespace tuplex {
             llvm::BasicBlock* bbLoopHeader = llvm::BasicBlock::Create(ctx, "list_upcast_loop_header", func);
             llvm::BasicBlock* bbLoopBody = llvm::BasicBlock::Create(ctx, "list_upcast_loop_body", func);
             llvm::BasicBlock* bbLoopDone = llvm::BasicBlock::Create(ctx, "list_upcast_loop_done", func);
+
+            env.debugPrint(builder, "enter list upcast function " + list_type.desc() + " -> " + target_list_type.desc());
 
             builder.CreateBr(bbLoopHeader);
             builder.SetInsertPoint(bbLoopHeader);

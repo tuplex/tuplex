@@ -1208,6 +1208,7 @@ namespace tuplex {
                        || val->getType() == _env->getBooleanType()
                        || val->getType() == _env->getEmptyTupleType()
                        || val->getType()->isStructTy()
+                       || (val->getType() == _env->i64ptrType() && type.isListType() && type.elementType().isSingleValued()) // special case for List[null]
                        || (val->getType()->isPointerTy() && val->getType()->getPointerElementType()->isStructTy()));
 
 

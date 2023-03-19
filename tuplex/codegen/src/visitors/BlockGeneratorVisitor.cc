@@ -2393,6 +2393,7 @@ namespace tuplex {
 
             // convert condition value to i1 value according to python3 truth testing rules!
             auto ifcond = _env->truthValueTest(builder, cond, ifelse->_expression->getInferredType());
+            _lfb->setLastBlock(builder.GetInsertBlock());
 
             // special case: exceptions present
             if(exceptOnThen) {

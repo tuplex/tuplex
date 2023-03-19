@@ -86,19 +86,13 @@ def extract_feature_vector(row):
     dest_state = state_list.index(row['DEST_STATE_NM'])
 
     # numerical variables
-    dep_delay = 0.0 if row['DEP_DELAY'] is None else row['DEP_DELAY']
-    arr_delay = 0.0 if row['ARR_DELAY'] is None else row['ARR_DELAY']
+    dep_delay = row['DEP_DELAY']
+    arr_delay = row['ARR_DELAY']
 
     crs_arr_hour = float(int(row['CRS_ARR_TIME']) // 100)
     crs_dep_hour = float(int(row['CRS_DEP_TIME']) // 100)
     crs_arr_5min = float(int(row['CRS_ARR_TIME']) % 100 // 5)
     crs_dep_5min = float(int(row['CRS_DEP_TIME']) % 100 // 5)
-
-    # fill null
-    if dep_delay is None:
-        dep_delay = 0.0
-    if arr_delay is None:
-        arr_delay = 0.0
 
     features = [float(quarter), float(month), float(day_of_month),
                 float(day_of_week), float(carrier), float(origin_state),

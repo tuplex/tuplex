@@ -1695,13 +1695,6 @@ namespace tuplex {
 
             auto builder = _lfb->getLLVMBuilder();
 
-            {
-                // create dummy
-                auto temp = _env->CreateFirstBlockAlloca(builder, _env->doubleType());
-                builder.CreateStore(_env->f64Const(42.0), temp);
-                _env->printValue(builder, builder.CreateLoad(temp), "temp storage " + std::string(__FILE_NAME__) + ":" + std::to_string(__LINE__) + " : ");
-            }
-
             // retrieve parameters and types
             vector<tuple<string, python::Type>> paramInfo;
             auto paramNames = getFunctionParameters(func);
@@ -3145,16 +3138,6 @@ namespace tuplex {
                 auto builder = _lfb->getLLVMBuilder();
                 auto &context = _env->getContext();
 
-                _env->debugPrint(builder, "enter NList block generator block");
-
-                {
-                    // create dummy
-                    auto temp = _env->CreateFirstBlockAlloca(builder, _env->doubleType());
-                    builder.CreateStore(_env->f64Const(42.0), temp);
-                    _env->printValue(builder, builder.CreateLoad(temp), "temp storage " + std::string(__FILE_NAME__) + ":" + std::to_string(__LINE__) + " : ");
-                }
-
-
                 // fetch values from _blockStack
                 assert(_blockStack.size() >= list->_elements.size());
                 std::vector<SerializableValue> vals;
@@ -3172,33 +3155,9 @@ namespace tuplex {
                 auto list_llvm_type = _env->getOrCreateListType(list_type);
                 auto list_ptr = _env->CreateFirstBlockAlloca(builder, list_llvm_type);
                 list_init_empty(*_env, builder, list_ptr, list_type);
-                auto& DL = _env->getModule()->getDataLayout();
-                auto list_alloc_size = DL.getTypeAllocSize(list_llvm_type);
-                {
-                    // create dummy
-                    auto temp = _env->CreateFirstBlockAlloca(builder, _env->doubleType());
-                    builder.CreateStore(_env->f64Const(42.0), temp);
-                    _env->printValue(builder, builder.CreateLoad(temp), "temp storage " + std::to_string(__LINE__) + ": ");
-                }
-
-                bool initialize_elements_as_null = true; //false;
+                bool initialize_elements_as_null = false; // can skip this b.c. all elements are anyways going to be initialized.
                 list_reserve_capacity(*_env, builder, list_ptr, list_type, _env->i64Const(num_elements), initialize_elements_as_null);
-
-                {
-                    // create dummy
-                    auto temp = _env->CreateFirstBlockAlloca(builder, _env->doubleType());
-                    builder.CreateStore(_env->f64Const(42.0), temp);
-                    _env->printValue(builder, builder.CreateLoad(temp), "temp storage " + std::to_string(__LINE__) + ": ");
-                }
-
                 list_store_size(*_env, builder, list_ptr, list_type, _env->i64Const(num_elements));
-
-                {
-                    // create dummy
-                    auto temp = _env->CreateFirstBlockAlloca(builder, _env->doubleType());
-                    builder.CreateStore(_env->f64Const(42.0), temp);
-                    _env->printValue(builder, builder.CreateLoad(temp), "temp storage " + std::to_string(__LINE__) + ": ");
-                }
 
                 // loop over vals & store them
                 for(unsigned i = 0; i < vals.size(); ++i) {
@@ -3211,12 +3170,8 @@ namespace tuplex {
                         }
                         el = upCastReturnType(builder, el, el_type, list_type.elementType());
                     }
-                    if(el.val)_env->printValue(builder, el.val, "storing value= ");
                     list_store_value(*_env, builder, list_ptr, list_type, _env->i64Const(i), el);
-                    if(el.val)_env->printValue(builder, el.val, "stored value= ");
                 }
-                _env->debugPrint(builder, "end NList block generator block");
-
                 _lfb->setLastBlock(builder.GetInsertBlock());
                 addInstruction(list_ptr);
 

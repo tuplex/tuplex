@@ -1617,7 +1617,9 @@ namespace tuplex {
             auto target_list_ptr = m["out"];
 
             auto list_size = list_length(env, builder, list_ptr, list_type);
-            env.printValue(builder, list_size, "got input list of size=");
+
+            // debug:
+            // env.printValue(builder, list_size, "got input list of size=");
 
             list_init_empty(env, builder, target_list_ptr, target_list_type);
             list_reserve_capacity(env, builder, target_list_ptr, target_list_type, list_size);
@@ -1631,7 +1633,10 @@ namespace tuplex {
             llvm::BasicBlock* bbLoopHeader = llvm::BasicBlock::Create(ctx, "list_upcast_loop_header", func);
             llvm::BasicBlock* bbLoopBody = llvm::BasicBlock::Create(ctx, "list_upcast_loop_body", func);
             llvm::BasicBlock* bbLoopDone = llvm::BasicBlock::Create(ctx, "list_upcast_loop_done", func);
-            env.debugPrint(builder, "go to loop header, entry for upcast");
+
+            // debug
+            // env.debugPrint(builder, "go to loop header, entry for upcast");
+
             builder.CreateBr(bbLoopHeader);
             builder.SetInsertPoint(bbLoopHeader);
             auto icmp = builder.CreateICmpULT(builder.CreateLoad(i_var), list_size);
@@ -1640,20 +1645,17 @@ namespace tuplex {
             builder.SetInsertPoint(bbLoopBody);
             // inc.
             auto idx = builder.CreateLoad(i_var);
-            env.printValue(builder, idx, "i=");
+
+            // debug
+            // env.printValue(builder, idx, "i=");
 
             auto src_el = list_load_value(env, builder, list_ptr, list_type, idx);
             auto target_el = env.upcastValue(builder, src_el, el_type, target_el_type);
-
-            if(target_el.val)
-                env.printValue(builder, target_el.val, "upcasted val=");
             list_store_value(env, builder, target_list_ptr, target_list_type, idx, target_el);
-
 
             builder.CreateStore(builder.CreateAdd(idx, env.i64Const(1)), i_var);
             builder.CreateBr(bbLoopHeader);
             builder.SetInsertPoint(bbLoopDone);
-
 
             builder.CreateRet(env.i64Const(0));
             return func;

@@ -285,7 +285,7 @@ namespace tuplex {
                     return SerializableValue(nullptr, nullptr, env.i1Const(true));
 
                 if(element_type.isConstantValued())
-                    return constantValuedTypeToLLVM(builder, element_type);m
+                    return constantValuedTypeToLLVM(builder, element_type);
 
                 throw std::runtime_error("list load of single-valued type " + element_type.desc() + " not yet supported");
             }

@@ -4372,57 +4372,6 @@ namespace tuplex {
             return true;
         }
 
-        SerializableValue list_load_value_new(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* idx) {
-            SerializableValue ret;
-
-            // special cases: single valued elements
-            if(list_type.elementType().isSingleValued())
-                throw std::runtime_error("list load not yet supported");
-
-            // define struct load indices
-            int data_index = 2;
-            int nullmap_index = 3;
-            int size_idx = -1;
-
-            // adjust for certain types
-            auto element_type = list_type.elementType();
-            if(element_type == python::Type::STRING || element_type == python::Type::PYOBJECT) {
-                size_idx = 3;
-                nullmap_index = 4;
-            }
-            if(!element_type.isOptionType())
-                nullmap_index = -1;
-
-
-            // (1) fill value
-            auto data_ptr = CreateStructLoad(builder, list_ptr, data_index);
-            auto data_entry = builder.CreateLoad(builder.CreateGEP(data_ptr, idx));
-            ret.val = data_entry;
-
-
-            // (2) fill size
-            if(size_idx >= 0) {
-                auto size_ptr = CreateStructLoad(builder, list_ptr, size_idx);
-                ret.size = builder.CreateLoad(builder.CreateGEP(size_ptr, idx));
-            } else {
-                ret.size = env.i64Const(sizeof(double));
-            }
-
-            // (3) is null
-            // load whether entry is null (or not)
-            if(nullmap_index >= 1) {
-                auto nullmap_ptr = CreateStructLoad(builder, list_ptr, 3);
-                auto is_null = builder.CreateLoad(builder.CreateGEP(nullmap_ptr, idx));
-                ret.is_null = builder.CreateTrunc(is_null, env.i1Type());
-            } else {
-                ret.is_null = env.i1Const(false);
-            }
-
-            // @TODO: struct type, list in list loading...
-
-            return ret;
-        }
-
         SerializableValue BlockGeneratorVisitor::upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue &val,
                                                                   const python::Type &type,
                                                                   const python::Type &targetType) {
@@ -4529,7 +4478,7 @@ namespace tuplex {
                 auto first_entry = builder.CreateLoad(double_ptr);
                 _env->printValue(builder, first_entry, "first double entry: ");
 
-                auto v1 = list_load_value_new(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(0));
+                auto v1 = list_load_value(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(0));
                 _env->printValue(builder, first_entry, "new list entry result: ");
                 // super weird...
 

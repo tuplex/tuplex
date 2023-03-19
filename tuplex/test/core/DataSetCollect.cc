@@ -22,7 +22,7 @@ TEST_F(DataSetTest, MixedTransform) {
     ContextOptions co = testOptions();
     co.set("tuplex.partitionSize", "100B");
     co.set("tuplex.executorMemory", "1MB");
-    co.set("tuplex.useLLVMOptimizer", "false");
+    co.set("tuplex.useLLVMOptimizer", "true");
 
     Context c(co);
     Row row1(Tuple(10.0, "This"));

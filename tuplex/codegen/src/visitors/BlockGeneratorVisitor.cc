@@ -2607,6 +2607,7 @@ namespace tuplex {
                 }
 
                 // ---------------------------------------------------------------------------------
+                std::stringstream ss;
 
                 // connect blocks via condition
                 builder.SetInsertPoint(entryBB);
@@ -2620,14 +2621,17 @@ namespace tuplex {
                         if (blockOpen(lastIfBB)) {
                             builder.SetInsertPoint(lastIfBB);
                             builder.CreateBr(exitBB);
+                            ss<<"connect "<<lastIfBB->getName().str()<<" -- CreateBr --> "<<exitBB->getName().str()<<"\n";
                         }
 
                         if (blockOpen(lastElseBB)) {
                             builder.SetInsertPoint(lastElseBB);
                             builder.CreateBr(exitBB);
+                            ss<<"connect "<<lastElseBB->getName().str()<<" -- CreateBr --> "<<exitBB->getName().str()<<"\n";
                         }
 
                         _lfb->setLastBlock(exitBB);
+                        ss<<"last block: "<<exitBB->getName().str()<<"\n";
                     }
 
                     // connect
@@ -2644,21 +2648,29 @@ namespace tuplex {
                     }
 
                     builder.CreateCondBr(ifcond, ifBB, exitBB);
+                    ss<<"connect "<<builder.GetInsertBlock()->getName().str()<<" -- CreateCondBr --> true: "<<ifBB->getName().str()<<"  false: "<<exitBB->getName().str()<<"\n";
 
                     // check if if contained ret, if not then connect to exitBB
                     if (blockOpen(lastIfBB)) {
                         builder.SetInsertPoint(lastIfBB);
                         builder.CreateBr(exitBB);
+                        ss<<"connect "<<lastIfBB->getName().str()<<" -- CreateBr --> "<<exitBB->getName().str()<<"\n";
                     }
 
                     _lfb->setLastBlock(exitBB);
+                    ss<<"last block: "<<exitBB->getName().str()<<"\n";
                 }
 
                 // statement done.
                 // @TODO: optimize to only address variables where things get assigned to in order to generate
                 // less LLVM IR. => Ease burden on compiler.
                 builder.SetInsertPoint(_lfb->getLastBlock());
+                if(_lfb->getLastBlock())
+                    ss<<"builder insert block is: "<<builder.GetInsertBlock()->getName().str()<<"\n";
+                else
+                    ss<<"builder insert block is: <nullptr>\n";
 
+                _logger.debug("NIfElse connect logic:\n" + ss.str());
                 // @TODO: also the exitBlock analysis!
             }
         }
@@ -4372,6 +4384,74 @@ namespace tuplex {
             return true;
         }
 
+        llvm::Function* list_create_upcast_func(LLVMEnvironment& env, const python::Type& list_type, const python::Type& target_list_type) {
+            using namespace llvm;
+
+            assert(python::canUpcastType(list_type, target_list_type));
+            // check elements are ok
+            assert(list_type.isListType() && target_list_type.isListType());
+
+            auto el_type = list_type.elementType();
+            auto target_el_type = target_list_type.elementType();
+            assert(python::canUpcastType(el_type, target_el_type));
+
+            auto llvm_target_list_type = env.pythonToLLVMType(target_list_type);
+            auto llvm_list_type = env.pythonToLLVMType(list_type);
+            auto FT = FunctionType::get(env.i64Type(), {llvm_list_type->getPointerTo(0), llvm_target_list_type->getPointerTo(0)}, false);
+
+            auto funcName = "list_upcast_" + list_type.desc() + "_to_" + target_list_type.desc();
+            Function *func = Function::Create(FT, Function::InternalLinkage, funcName, env.getModule().get());
+
+            auto& ctx = func->getContext();
+            BasicBlock* bbEntry = BasicBlock::Create(ctx, "entry", func);
+            IRBuilder<> builder(bbEntry);
+            auto m = mapLLVMFunctionArgs(func, {"in", "out"});
+            auto list_ptr = m["in"];
+            auto target_list_ptr = m["out"];
+
+            auto list_size = list_length(env, builder, list_ptr, list_type);
+            env.printValue(builder, list_size, "got input list of size=");
+
+            list_init_empty(env, builder, target_list_ptr, target_list_type);
+            list_reserve_capacity(env, builder, target_list_ptr, target_list_type, list_size);
+            list_store_size(env, builder, target_list_ptr, target_list_type, list_size);
+
+            // create loop over elements now & store everything
+            // create loop to fill in values from old list into new list after upcast (should this be emitted as function to inline?)
+            // create integer var
+            auto i_var =env.CreateFirstBlockAlloca(builder, env.i64Type());
+            builder.CreateStore(env.i64Const(0), i_var);
+            llvm::BasicBlock* bbLoopHeader = llvm::BasicBlock::Create(ctx, "list_upcast_loop_header", func);
+            llvm::BasicBlock* bbLoopBody = llvm::BasicBlock::Create(ctx, "list_upcast_loop_body", func);
+            llvm::BasicBlock* bbLoopDone = llvm::BasicBlock::Create(ctx, "list_upcast_loop_done", func);
+            env.debugPrint(builder, "go to loop header, entry for upcast");
+            builder.CreateBr(bbLoopHeader);
+            builder.SetInsertPoint(bbLoopHeader);
+            auto icmp = builder.CreateICmpULT(builder.CreateLoad(i_var), list_size);
+            builder.CreateCondBr(icmp, bbLoopBody, bbLoopDone);
+
+            builder.SetInsertPoint(bbLoopBody);
+            // inc.
+            auto idx = builder.CreateLoad(i_var);
+            env.printValue(builder, idx, "i=");
+
+            auto src_el = list_load_value(env, builder, list_ptr, list_type, idx);
+            auto target_el = env.upcastValue(builder, src_el, el_type, target_el_type);
+
+            if(target_el.val)
+                env.printValue(builder, target_el.val, "upcasted val=");
+            list_store_value(env, builder, target_list_ptr, target_list_type, idx, target_el);
+
+
+            builder.CreateStore(builder.CreateAdd(idx, env.i64Const(1)), i_var);
+            builder.CreateBr(bbLoopHeader);
+            builder.SetInsertPoint(bbLoopDone);
+
+
+            builder.CreateRet(env.i64Const(0));
+            return func;
+        }
+
         SerializableValue BlockGeneratorVisitor::upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue &val,
                                                                   const python::Type &type,
                                                                   const python::Type &targetType) {
@@ -4458,41 +4538,60 @@ namespace tuplex {
             // @TODO: Dict[a, b] to Dict[c, d] if upcast a to c works, and upcast b to d works?
             if(type.isListType() && targetType.isListType()) {
 
+
+//                // create a new basicblock and check whether it works out
+//                BasicBlock* bbNext = BasicBlock::Create(_env->getContext(), "next_test", builder.GetInsertBlock()->getParent());
+//                builder.CreateBr(bbNext);
+//                builder.SetInsertPoint(bbNext);
+
+                // recreate list upcast here:
+                auto list_type = type;
+                auto list_ptr = val.val;
+                auto& env = *_env;
+                auto list_size = list_length(env, builder, list_ptr, list_type);
+                _env->printValue(builder, list_size, "input list size=");
+
                 // do not call upcast, return new list directly
                 _env->debugPrint(builder, "list target output type=" + targetType.desc());
                 auto target_list_type = targetType;
                 auto llvm_target_list_type =_env->pythonToLLVMType(target_list_type);
                 auto target_list_ptr = _env->CreateFirstBlockAlloca(builder, llvm_target_list_type);
                 list_init_empty(*_env, builder, target_list_ptr, target_list_type);
-                list_reserve_capacity(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(2));
-                list_store_size(*_env, builder,target_list_ptr, target_list_type, _env->i64Const(2));
-                list_store_value(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(0), SerializableValue(_env->f64Const(42.00), _env->i64Const(8), _env->i1Const(false)));
 
-                // so this here is wrong and causing the bug...???
-                // auto v1 = list_load_value(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(0));
-                // _env->printValue(builder, v1.val, "list item0=");
+                // create upcast func & fill in.
+                auto upcast_func = list_create_upcast_func(env, list_type, targetType);
+                builder.CreateCall(upcast_func, {val.val, target_list_ptr});
 
-                // fetch the double pointer
-                auto double_ptr = CreateStructLoad(builder, target_list_ptr, 2);
-                _env->printValue(builder, double_ptr, "address of double ptr: ");
-                auto first_entry = builder.CreateLoad(double_ptr);
-                _env->printValue(builder, first_entry, "first double entry: ");
+//                list_reserve_capacity(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(2));
+//                list_store_size(*_env, builder,target_list_ptr, target_list_type, _env->i64Const(2));
+//                list_store_value(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(0), SerializableValue(_env->f64Const(42.00), _env->i64Const(8), _env->i1Const(false)));
+//
+//                // so this here is wrong and causing the bug...???
+//                // auto v1 = list_load_value(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(0));
+//                // _env->printValue(builder, v1.val, "list item0=");
+//
+//                // fetch the double pointer
+//                auto double_ptr = CreateStructLoad(builder, target_list_ptr, 2);
+//                _env->printValue(builder, double_ptr, "address of double ptr: ");
+//                auto first_entry = builder.CreateLoad(double_ptr);
+//                _env->printValue(builder, first_entry, "first double entry: ");
+//
+//                auto v1 = list_load_value(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(0));
+//                _env->printValue(builder, first_entry, "new list entry result: ");
+//                // super weird...
+//
+//                list_store_value(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(1), SerializableValue(_env->f64Const(42.00), _env->i64Const(8), _env->i1Const(false)));
 
-                auto v1 = list_load_value(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(0));
-                _env->printValue(builder, first_entry, "new list entry result: ");
-                // super weird...
-
-                list_store_value(*_env, builder, target_list_ptr, target_list_type, _env->i64Const(1), SerializableValue(_env->f64Const(42.00), _env->i64Const(8), _env->i1Const(false)));
-
+                auto block_msg = "Current basic block name: " + builder.GetInsertBlock()->getName().str();
+                _logger.debug(block_msg);
+                _env->debugPrint(builder, block_msg);
                 return SerializableValue(target_list_ptr, nullptr);
 
-                _env->debugPrint(builder, "enter list upcast within return");
-                auto new_list_ptr = list_upcast(*_env, builder, val.val, type, targetType);
-                _lfb->setLastBlock(builder.GetInsertBlock());
-                addInstruction(new_list_ptr); //??
-                return SerializableValue(new_list_ptr, nullptr);
-                // @TODO:
-                //error("upcasting list type " + type.desc() + " to list type " + targetType.desc() + " not yet implemented");
+                // this here is what it actually should be (blocks / branches interfere!)
+                // _env->debugPrint(builder, "enter list upcast within return");
+                //auto new_list_ptr = list_upcast(*_env, builder, val.val, type, targetType);
+                //_lfb->setLastBlock(builder.GetInsertBlock());
+                //return SerializableValue(new_list_ptr, nullptr);
             }
 
             if(type.isDictionaryType() && targetType.isDictionaryType()) {
@@ -4636,7 +4735,7 @@ namespace tuplex {
 
             if(python::canUpcastType(deopt_target_type, deopt_func_return_type)) {
                 // ok, fits the globally agreed function return type!
-
+                _logger.debug("emit return type upcast  " + expression_type.desc() + " -> " + funcReturnType.desc());
                 // the retval popped could need extension to an option type!
                 retVal = upCastReturnType(builder, retVal, expression_type, funcReturnType);
                 _lfb->setLastBlock(builder.GetInsertBlock());

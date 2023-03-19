@@ -281,10 +281,15 @@ namespace tuplex {
         // NEW version
         SerializableValue list_load_value(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr, const python::Type& list_type, llvm::Value* idx) {
             SerializableValue ret;
+            auto element_type = list_type.elementType();
 
             // special cases: single valued elements
-            if(list_type.elementType().isSingleValued())
-                throw std::runtime_error("list load not yet supported");
+            if(element_type.isSingleValued()) {
+                if(python::Type::NULLVALUE == element_type)
+                    return SerializableValue(nullptr, nullptr, env.i1Const(true));
+
+                throw std::runtime_error("list load of single-valued type " + element_type.desc() + " not yet supported");
+            }
 
             // define struct load indices
             int data_index = 2;
@@ -292,7 +297,6 @@ namespace tuplex {
             int size_idx = -1;
 
             // adjust for certain types
-            auto element_type = list_type.elementType();
             if(element_type == python::Type::STRING || element_type == python::Type::PYOBJECT) {
                 size_idx = 3;
                 nullmap_index = 4;
@@ -1629,7 +1633,7 @@ namespace tuplex {
             env.debugPrint(builder, "go to loop header, entry for upcast");
             builder.CreateBr(bbLoopHeader);
             builder.SetInsertPoint(bbLoopHeader);
-            auto icmp = builder.CreateICmpSLT(builder.CreateLoad(i_var), list_size);
+            auto icmp = builder.CreateICmpULT(builder.CreateLoad(i_var), list_size);
             builder.CreateCondBr(icmp, bbLoopBody, bbLoopDone);
 
             builder.SetInsertPoint(bbLoopBody);

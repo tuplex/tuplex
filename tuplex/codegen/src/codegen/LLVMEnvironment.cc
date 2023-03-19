@@ -1157,10 +1157,6 @@ namespace tuplex {
                                     auto item = CreateStructLoad(builder, v, i);
                                     // what is the type?
                                     auto item_type = getLLVMTypeName(item->getType());
-                                    // if(item->getType()->isStructTy()) {
-                                    //     Logger::instance().logger("codegen").info("found struct type: " + item_type);
-                                    // }
-
                                     auto target_idx = CreateStructGEP(builder, ptr, i);
                                     builder.CreateStore(item, target_idx, is_volatile);
                                 }

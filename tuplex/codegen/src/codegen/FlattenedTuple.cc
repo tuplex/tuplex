@@ -1119,7 +1119,7 @@ namespace tuplex {
                 int val_idx=-1, size_idx=-1, bitmap_idx=-1;
                 std::tie(val_idx, size_idx, bitmap_idx) = indices;
 
-                // is this causing the error?
+                // explit null initialization of data, uncomment to perform
                 // if(val_idx >= 0) {
                 //     auto nc = _env->nullConstant(llvmType->getStructElementType(val_idx));
                 //     cb.CreateStore(nc, cb.CreateStructGEP(tuple_ptr, val_idx));

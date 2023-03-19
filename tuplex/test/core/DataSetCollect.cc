@@ -723,90 +723,24 @@ TEST_F(DataSetTest, ListOfNulls) {
 
 TEST_F(DataSetTest, ListReturnUpcastNull) {
     using namespace tuplex;
-    // this here fails for 13 elements, 9 elements. WHY?
-//    auto udf_code = "def foo(x):\n"
-//                    "    if x % 2 == 0:\n"
-//                    "        return [None, None, None, None, None, None, None, None, None, None, None, None, None]\n"
-//                    "    else:\n"
-//                    "        return [1.0, 2.0, 3.141, 2.0, 1.0, 2.0, 3.141, 2.0, 0.0]";
-
-    // Does simple List[Option[f64]] work? -> yes. so issue is caused from if/else logic!
-//    auto udf_code = "def foo(x):\n"
-//                    "    return [None, 42.0]";
-
-    // ok, so this here is a minimal example where stuff fails...
+    // test code
     auto udf_code = "def foo(x):\n"
-                "    if x % 2 == 0:\n"
-                "        return [1.0, 2.0, 3.0, 4.0]\n"
-                "    else:\n"
-                "        return [None]";
-
-    // this here also works...
-//    auto udf_code = "def foo(x):\n"
-//                    "    if x % 2 == 0:\n"
-//                    "        return [None, 42.0, 3.0]\n"
-//                    "\n"
-//                    "    return [None]";
-
-
-//// this here works.//
-//    auto udf_code = "def foo(x):\n"
-//                    "    if x % 2 == 0:\n"
-//                    "        return [None]\n"
-//                    "\n"
-//                    "    return [1,2,3]";
-
-// ok this works as well...
-// -> so upcast is the issue???
-//    auto udf_code = "def foo(x):\n"
-//                    "    if x % 2 == 0:\n"
-//                    "        return [1.0, 2.0, None, 3.0]\n"
-//                    "\n"
-//                    "    return [42.0, None, 3.0]";
-
-//    auto udf_code = "def foo(x):\n"
-//                    "    if x % 2 == 0:\n"
-//                    "        return [None, None, None]\n"
-//                    "\n"
-//                    "    return [None, None, None]";
-
-//    auto udf_code = "def foo(x):\n"
-//                    "    return [7.0, 42.0, 3.0]";
-
-
-//    // this here seems also ok. -> so should work...!
-//    auto udf_code = "def foo(x):\n"
-//                "    if x % 2 == 0:\n"
-//                "        return [2.3, 4.5]\n"
-//                "    else:\n"
-//                "        return [1.0, 2.0, 3.141, 2.0, 1.0, 2.0, 3.141, 2.0, 0.0]";
-
-//    // so this here works. is the bug coming from the if statement?
-//    auto udf_code = "def foo(x):\n"
-//                    "    return [1.0, 2.0, 3.141, 2.0, 1.0, 2.0, 3.141, 2.0, 0.0]";
-
-// check https://llvm.org/doxygen/CFGPrinter_8cpp_source.html#l00058 for printing issue.
+                    "    if x % 2 == 0:\n"
+                    "        return [None, None, None, None, None, None, None, None, None, None, None, None, None]\n"
+                    "    else:\n"
+                    "        return [1.0, 2.0, 3.141, 2.0, 1.0, 2.0, 3.141, 2.0, 0.0]";
 
     auto co = microTestOptions();
     co.set("useLLVMOptimizer", "false");
     Context c(co);
 
-    // does this work? --> yes.
-    //auto v = c.parallelize({Row(0), Row(2)}).map(UDF(udf_code)).map(UDF("lambda x: x[11]")).collectAsVector();
-
-    char buf[128];
-    memset(buf, 0, 128);
-    *((double*)buf) = 42.0;
-    std::cout<<"42.0 in hex is: ";
-    core::hexdump(std::cout, buf, 8);
-    std::cout<<std::endl;
-
     // does this work? --> NO.
-    auto v = c.parallelize({Row(0)}).map(UDF(udf_code)).map(UDF("lambda x: x[0]")).collectAsVector();
+    auto v = c.parallelize({Row(0), Row(1)})
+            .map(UDF(udf_code))
+            .map(UDF("lambda x: x[6]")).collectAsVector();
 
     ASSERT_FALSE(v.empty());
-    std::cout<<"result:\n"<<v.front().toPythonString()<<std::endl;
-    /// this here causes crash...
-    // v = c.parallelize({Row(0), Row(1), Row(2)}).map(UDF(udf_code)).map(UDF("lambda x: x[11]")).collectAsVector();
-    //ASSERT_EQ(v.size(), 3);
+    ASSERT_EQ(v.size(), 2);
+    EXPECT_EQ(v[0].toPythonString(), "(None,)");
+    EXPECT_EQ(v[1].toPythonString(), "(3.14100,)");
 }

@@ -2663,7 +2663,8 @@ namespace tuplex {
                 else
                     ss<<"builder insert block is: <nullptr>\n";
 
-                _logger.debug("NIfElse connect logic:\n" + ss.str());
+                // uncomment to print out information on ifelse logic
+                // _logger.debug("NIfElse connect logic:\n" + ss.str());
                 // @TODO: also the exitBlock analysis!
             }
         }

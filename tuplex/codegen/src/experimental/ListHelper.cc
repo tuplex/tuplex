@@ -172,10 +172,6 @@ namespace tuplex {
 
             // allocate new memory of size sizeof(int64_t) * capacity
             auto data_size = builder.CreateMul(env.i64Const(llvm_element_size), capacity);
-
-            // // multiple of alignment (8)
-            // data_size = env.roundUpToMultiple(builder, data_size, 8);
-
             auto data_ptr = builder.CreatePointerCast(env.malloc(builder, data_size), llvm_element_type->getPointerTo());
 
             if(initialize) {

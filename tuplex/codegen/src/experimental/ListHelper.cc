@@ -1678,6 +1678,8 @@ namespace tuplex {
             auto llvm_target_list_type = env.pythonToLLVMType(target_list_type);
             auto target_list_ptr = env.CreateFirstBlockAlloca(builder, llvm_target_list_type);
             list_init_empty(env, builder, target_list_ptr, target_list_type);
+            return target_list_ptr;
+
 
             // create upcast func & fill in. (@TODO: could cache this!)
             auto upcast_func = list_create_upcast_func(env, list_type, target_list_type);

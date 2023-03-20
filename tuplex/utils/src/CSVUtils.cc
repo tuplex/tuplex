@@ -1755,8 +1755,9 @@ parse_error:
         }
 
         FixedBufferCursor(const char* buf, size_t size) : _buf(nullptr), _end_ptr(nullptr) {
-            auto safe_size = size + 32;
+            auto safe_size = size + 64;
             _buf = new char[safe_size];
+            memset(_buf, 0, safe_size);
             memcpy(_buf, buf, size);
             _end_ptr = _buf + size;
             _ptr = _buf;

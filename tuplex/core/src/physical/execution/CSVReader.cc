@@ -632,7 +632,8 @@ namespace tuplex {
 
                 // call functor, note that b.c. parse has been done above - if the function
                 // comes from CellSourceTaskBuilder, it will NOT give the number of bytes parsed.
-
+                if(0 == rowNumber)
+                    std::cout<<"reading row=0..."<<std::endl;
                 int64_t bytes_read = _rowFunctor(_userData, rowNumber, cells, cell_sizes);
                 if(rowNumber % 1000 == 0)
                     std::cout<<"row "<<rowNumber<<" done, bytes read="<<bytes_read<<"."<<std::endl;

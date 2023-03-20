@@ -1228,6 +1228,12 @@ double rt_py_pow(double base, double exponent, int64_t* ecCode) {
     return res;
 }
 
+void llvm9_store_double(double* ptr, double value, int64_t idx) {
+    assert(ptr);
+    assert(idx >= 0);
+    ptr[idx] = value;
+}
+
 //#ifdef __cplusplus
 //}
 //#endif

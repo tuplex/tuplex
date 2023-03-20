@@ -179,7 +179,7 @@ namespace tuplex {
             auto s3_details = format_s3_outcome_error_message(outcome, uri);
 
             std::stringstream ss;
-            ss<<"S3 Filesystem error:\n"
+            ss<<"S3 Filesystem error for uri='"<<uri<<"':\n"
                <<"\tbuf pos: "<<_bufferPosition
                <<"\n\tbuf size: "<<_bufferSize
                <<"\n\tbuf length: "<<_bufferLength

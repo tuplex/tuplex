@@ -209,8 +209,8 @@ namespace tuplex {
 //
 //        input_pattern = "/hot/data/flights_all/flights_on_time_performance_2003_01.csv"; // <-- this file should result in 552109 input AND output rows.
 //
-//        input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
-////        input_pattern = "/hot/data/flights_all/flights_on_time_performance_1987_10.csv,/hot/data/flights_all/flights_on_time_performance_2021_10.csv,/hot/data/flights_all/flights_on_time_performance_2021_11.csv";
+        input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2001_09.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv";
+//        input_pattern = "/hot/data/flights_all/flights_on_time_performance_1987_10.csv,/hot/data/flights_all/flights_on_time_performance_2001_09.csv,/hot/data/flights_all/flights_on_time_performance_2021_11.csv";
 
         // now perform query...
         auto& ds = ctx.csv(input_pattern, {}, option<bool>::none, option<char>::none, '"', {""}, {}, {}, sm);

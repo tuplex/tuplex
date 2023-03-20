@@ -34,6 +34,8 @@ std::string proto_to_json(const tuplex::messages::InvocationResponse& r) {
 
 static tuplex::messages::InvocationResponse lambda_handler(invocation_request const& req) {
 
+    return lambda_main(req); // let lambda cpp runtime handle all of this...
+
     // for signals, do jmp_buf
     // why is this important?
     // ==> because ELSE we get billed for the additional lambda retries -.-

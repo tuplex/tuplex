@@ -3157,6 +3157,7 @@ namespace tuplex {
                 auto list_ptr = _env->CreateFirstBlockAlloca(builder, list_llvm_type);
                 list_init_empty(*_env, builder, list_ptr, list_type);
                 bool initialize_elements_as_null = false; // can skip this b.c. all elements are anyways going to be initialized.
+                initialize_elements_as_null = true; // -> do initialize to prevent errors!
                 list_reserve_capacity(*_env, builder, list_ptr, list_type, _env->i64Const(num_elements), initialize_elements_as_null);
                 list_store_size(*_env, builder, list_ptr, list_type, _env->i64Const(num_elements));
 

@@ -2354,6 +2354,7 @@ namespace tuplex {
                 // _env.printValue(builder, num_list_elements, "got list of size: ");
                 // if(needle.val)_env.printValue(builder, needle.val, "needle to search for: ");
                 // if(needle.size)_env.printValue(builder, needle.size, "needle size: ");
+                // if(needle.is_null)_env.printValue(builder, needle.is_null, "needle is_null: ");
 
                 // now create iteration & compare values
                 // generate loop to go over items.
@@ -2407,6 +2408,9 @@ namespace tuplex {
                     //     _env.printValue(builder, el.val, "element to compare: ");
                     // if(el.size)
                     //     _env.printValue(builder, el.size, "element size: ");
+                    // if(el.is_null)
+                    //     _env.printValue(builder, el.is_null, "element is_null: ");
+
                     // compare against needle:
                     auto cmp = equal_comparison(_env, builder, list_type.elementType(), el, needle_type, needle);
                     BasicBlock *bMatchFound = BasicBlock::Create(ctx, "item_match", F);

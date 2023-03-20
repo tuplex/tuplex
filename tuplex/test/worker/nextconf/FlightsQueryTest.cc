@@ -237,11 +237,11 @@ namespace tuplex {
             if(startsWith(kv.first, "tuplex."))
                 co.set(kv.first, kv.second);
 
+        // disable optimizer
+        //co.set("tuplex.useLLVMOptimizer", "false");
+
         // creater context according to settings
         Context ctx(co);
-
-        // disable optimizer
-        co.set("tuplex.useLLVMOptimizer", "false");
 
         runtime::init(co.RUNTIME_LIBRARY().toPath());
 
@@ -249,6 +249,9 @@ namespace tuplex {
         stringToFile("context_settings.json", ctx.getOptions().toString());
 
         input_pattern = "/hot/data/flights_all/flights_on_time_performance_1987_10.csv,/hot/data/flights_all/flights_on_time_performance_2001_09.csv,/hot/data/flights_all/flights_on_time_performance_2021_11.csv";
+
+        // full input pattern (all files)
+        input_pattern = "/hot/data/flights_all/flights_on_time_performance_*.csv";
 
         // now perform query...
         auto& ds = ctx.csv(input_pattern, {}, option<bool>::none, option<char>::none, '"', {""}, {}, {}, sm);

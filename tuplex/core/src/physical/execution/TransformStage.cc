@@ -900,7 +900,8 @@ namespace tuplex {
 
     std::shared_ptr<TransformStage::JITSymbols> TransformStage::compileSlowPath(JITCompiler &jit,
                                                                                 LLVMOptimizer *optimizer,
-                                                                                bool registerSymbols) const {
+                                                                                bool registerSymbols,
+                                                                                bool traceExecution) const {
         Timer timer;
         // JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
 
@@ -914,8 +915,9 @@ namespace tuplex {
         auto slow_path_mod = slow_path_bit_code.empty() ? nullptr : codegen::bitCodeToModule(ctx, slow_path_bit_code);
 
 
-        // // annotate module
-        // codegen::annotateModuleWithInstructionPrint(*slow_path_mod);
+        // annotate module if desired to trace execution flow!
+        if(traceExecution)
+            codegen::annotateModuleWithInstructionPrint(*slow_path_mod);
 
         if(optimizer) {
             if (slow_path_mod) {
@@ -967,7 +969,7 @@ namespace tuplex {
         return syms;
     }
 
-    std::shared_ptr<TransformStage::JITSymbols> TransformStage::compileFastPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols) const {
+    std::shared_ptr<TransformStage::JITSymbols> TransformStage::compileFastPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols, bool traceExecution) const {
         Timer timer;
         auto& logger = Logger::instance().defaultLogger();
 
@@ -1011,8 +1013,9 @@ namespace tuplex {
             timer.reset();
         }
 
-        // // annotate module (optimized
-        // codegen::annotateModuleWithInstructionPrint(*fast_path_mod);
+        // annotate module (optimized)
+        if(traceExecution)
+            codegen::annotateModuleWithInstructionPrint(*fast_path_mod);
 
         // step 2: register callback functions with compiler
 
@@ -1094,7 +1097,8 @@ namespace tuplex {
     std::shared_ptr<TransformStage::JITSymbols> TransformStage::compile(JITCompiler &jit,
                                                                         LLVMOptimizer *optimizer,
                                                                         bool excludeSlowPath,
-                                                                        bool registerSymbols) {
+                                                                        bool registerSymbols,
+                                                                        bool traceExecution) {
         auto& logger = Logger::instance().defaultLogger();
 
         // lazy compile
@@ -1103,10 +1107,10 @@ namespace tuplex {
 
         Timer timer;
         //JobMetrics& metrics = PhysicalStage::plan()->getContext().metrics();
-        auto fast_syms = compileFastPath(jit, optimizer, registerSymbols);
+        auto fast_syms = compileFastPath(jit, optimizer, registerSymbols, traceExecution);
         _syms->update(fast_syms);
         if (!excludeSlowPath) {
-            auto slow_syms = compileSlowPath(jit, optimizer, registerSymbols);
+            auto slow_syms = compileSlowPath(jit, optimizer, registerSymbols, traceExecution);
             _syms->update(slow_syms);
         }
 

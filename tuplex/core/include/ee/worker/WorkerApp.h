@@ -268,7 +268,7 @@ namespace tuplex {
     /// exchange could be via request response, files, shared memory? etc.
     class WorkerApp {
     public:
-        WorkerApp() : _logger(Logger::instance().logger("worker")), _threadEnvs(nullptr), _numThreads(0), _globallyInitialized(false), _syms(std::shared_ptr<TransformStage::JITSymbols>()) {
+        WorkerApp() : _logger(Logger::instance().logger("worker")), _threadEnvs(nullptr), _numThreads(0), _globallyInitialized(false), _syms(std::shared_ptr<TransformStage::JITSymbols>()), _messageCount(0) {
 #ifdef BUILD_WITH_CEREAL
             // init type system for decoding
             auto sym_table = SymbolTable::createFromEnvironment(nullptr);
@@ -312,6 +312,8 @@ namespace tuplex {
     protected:
 
         std::vector<MessageStatistic> _statistics; // statistics per message
+
+        size_t numProcessedMessages() const { return _messageCount; }
 
         tuplex::messages::InvocationRequest _currentMessage;
         virtual void storeInvokeRequest() {}
@@ -571,6 +573,7 @@ namespace tuplex {
         codegen::resolve_f getCompiledResolver(const TransformStage* stage);
 
         size_t _readerBufferSize;
+        size_t _messageCount;
 
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);
         static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);

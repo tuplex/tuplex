@@ -466,10 +466,10 @@ namespace tuplex {
          * @param registerSymbols whether to add task symbols to JIT compiler
          * @return a struct of all function pointers
          */
-        std::shared_ptr<JITSymbols> compile(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool excludeSlowPath=false, bool registerSymbols=true);
+        std::shared_ptr<JITSymbols> compile(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool excludeSlowPath=false, bool registerSymbols=true, bool traceExecution=false);
 
-        std::shared_ptr<JITSymbols> compileSlowPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool registerSymbols=true) const;
-        std::shared_ptr<JITSymbols> compileFastPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool registerSymbols=true) const;
+        std::shared_ptr<JITSymbols> compileSlowPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool registerSymbols=true, bool traceExecution=false) const;
+        std::shared_ptr<JITSymbols> compileFastPath(JITCompiler& jit, LLVMOptimizer *optimizer=nullptr, bool registerSymbols=true, bool traceExecution=false) const;
 
         EndPointMode outputMode() const override { return _outputMode; }
         EndPointMode inputMode() const override { return _inputMode; }

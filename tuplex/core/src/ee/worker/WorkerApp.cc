@@ -311,6 +311,8 @@ namespace tuplex {
     }
 
     int WorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
+        _messageCount++;
+
         // reset buffers
         resetThreadEnvironments();
 
@@ -1768,8 +1770,13 @@ namespace tuplex {
 //            auto syms = stage.compile(*_compiler, use_llvm_optimizer ? &opt : nullptr,
 //                                        true,
 //                                        false);
+
+            // for debugging enable tracing for the 2nd invocation!
+            bool traceExecution = numProcessedMessages() > 0;
             // do not register symbols
-            auto syms = stage.compileFastPath(*_compiler, use_llvm_optimizer ? &opt : nullptr, false);
+            auto syms = stage.compileFastPath(*_compiler,
+                                              use_llvm_optimizer ? &opt : nullptr,
+                                              false, traceExecution);
 
             {
                 // update internal symbols.

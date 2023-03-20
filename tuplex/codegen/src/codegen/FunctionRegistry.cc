@@ -2248,6 +2248,21 @@ namespace tuplex {
             return {replaced_str, builder.CreateLoad(sizeVar)};
         }
 
+        void check_is_not_nullptr(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* ptr, const std::string& message) {
+            using namespace llvm;
+            assert(ptr->getType()->isPointerTy());
+            auto icmp_nullptr = builder.CreateICmpEQ(ptr, env.nullConstant(ptr->getType()));
+            auto& ctx = builder.getContext();
+            BasicBlock *bbIsNull = BasicBlock::Create(ctx, "ptr_isnull", builder.GetInsertBlock()->getParent());
+            BasicBlock *bbCheckDone = BasicBlock::Create(ctx, "ptr_check_done", builder.GetInsertBlock()->getParent());
+            builder.CreateCondBr(icmp_nullptr, bbIsNull, bbCheckDone);
+            builder.SetInsertPoint(bbIsNull);
+            env.debugPrint(builder, message);
+            builder.CreateBr(bbCheckDone);
+            builder.SetInsertPoint(bbCheckDone);
+        }
+
+        // return true if rhs == lhs, false else.
         llvm::Value* equal_comparison(LLVMEnvironment& env,
                                       llvm::IRBuilder<>& builder,
                                       const python::Type& rhs_type,
@@ -2262,56 +2277,27 @@ namespace tuplex {
             auto ret_var = env.CreateFirstBlockAlloca(builder, env.i1Type());
             builder.CreateStore(env.i1Const(false), ret_var);
 
-            // option
-            if(lhs_type.isOptionType()) {
-                assert(rhs_type.isOptionType());
-                assert(rhs.is_null && lhs.is_null);
+            auto rhs_is_null = !rhs.is_null ? env.i1Const(false) : rhs.is_null;
+            auto lhs_is_null = !lhs.is_null ? env.i1Const(false) : lhs.is_null;
 
-                // if rhs xor lhs is true -> false
-                auto xor_true = builder.CreateXor(rhs.is_null, lhs.is_null);
+            // new
+            // if either is null is true then return true if both are true.
+            auto either_true = builder.CreateOr(rhs_is_null, lhs_is_null);
+            auto& ctx = env.getContext(); auto parent = builder.GetInsertBlock()->getParent();
+            BasicBlock* bbAtLeastOneNull = BasicBlock::Create(ctx, "either_or_both_null", parent);
+            BasicBlock* bbBothNotNull = BasicBlock::Create(ctx, "both_not_null", parent);
+            BasicBlock* bbCompareDone = BasicBlock::Create(ctx, "compare_done", parent);
 
-                // env.printValue(builder, xor_true, "is either rhs or lhs null: ");
+            builder.CreateCondBr(either_true, bbAtLeastOneNull, bbBothNotNull);
+            builder.SetInsertPoint(bbAtLeastOneNull);
+            auto both_null = builder.CreateAnd(rhs_is_null, lhs_is_null);
+            builder.CreateStore(both_null, ret_var, true);
+            builder.CreateBr(bbCompareDone);
 
-                auto& ctx = env.getContext(); auto F = builder.GetInsertBlock()->getParent();
-                BasicBlock *bbXorCase = BasicBlock::Create(ctx, "cmp_based_on_null_bit", F);
-                BasicBlock *bbValueComparison = BasicBlock::Create(ctx, "cmp_based_on_value", F);
-                BasicBlock *bbCompareDone = BasicBlock::Create(ctx, "cmp_done", F);
+            // value based comparison
+            builder.SetInsertPoint(bbBothNotNull);
 
-                auto both_null = builder.CreateAnd(builder.CreateICmpEQ(rhs.is_null, env.i1Const(true)),
-                                                   builder.CreateICmpEQ(rhs.is_null, lhs.is_null));
-                // env.printValue(builder, both_null, "are both rhs and lhs null: ");
-                auto cond = builder.CreateOr(both_null,
-                                             xor_true);
-                builder.CreateCondBr(cond, bbXorCase, bbValueComparison);
-
-
-                builder.SetInsertPoint(bbXorCase);
-                builder.CreateStore(both_null, ret_var);
-                builder.CreateBr(bbCompareDone);
-
-                builder.SetInsertPoint(bbValueComparison);
-                // compare values as they're
-                auto el_type = rhs_type.withoutOption();
-                assert(rhs_type.withoutOption() == lhs_type.withoutOption());
-                if(python::Type::STRING == el_type) {
-                    // cmp using strcmp (could be done faster...)
-                    // need to compare using strcmp
-                    FunctionType *ft = FunctionType::get(env.i32Type(), {env.i8ptrType(), env.i8ptrType()},
-                                                         false);
-                    auto strcmp_f = env.getModule()->getOrInsertFunction("strcmp", ft);
-                    auto cmp_res = builder.CreateICmpEQ(builder.CreateCall(strcmp_f, {rhs.val, lhs.val}), env.i32Const(0));
-
-                    // env.printValue(builder, rhs.val, "rhs value: ");
-                    // env.printValue(builder, lhs.val, "lhs value: ");
-                    // env.printValue(builder, cmp_res, "compare result: ");
-
-                    builder.CreateStore(cmp_res, ret_var);
-                } else {
-                    throw std::runtime_error("unsupported compare for type " + el_type.desc() + " ...");
-                }
-                builder.CreateBr(bbCompareDone);
-                builder.SetInsertPoint(bbCompareDone);
-            } else if(python::Type::STRING == lhs_type && python::Type::STRING == rhs_type) {
+            if(python::Type::STRING == lhs_type.withoutOption() && python::Type::STRING == rhs_type.withoutOption()) {
                 FunctionType *ft = FunctionType::get(env.i32Type(), {env.i8ptrType(), env.i8ptrType()},
                                                      false);
                 auto strcmp_f = env.getModule()->getOrInsertFunction("strcmp", ft);
@@ -2321,6 +2307,77 @@ namespace tuplex {
             } else {
                 throw std::runtime_error("comparing " + lhs_type.desc() + " == " + rhs_type.desc() + " not yet implemented...");
             }
+
+            builder.CreateBr(bbCompareDone);
+            // value based comparison end
+
+            builder.SetInsertPoint(bbCompareDone);
+
+            // old
+
+//            // option
+//            if(lhs_type.isOptionType()) {
+//                assert(rhs_type.isOptionType());
+//                assert(rhs.is_null && lhs.is_null);
+//
+//                // if rhs xor lhs is true -> false
+//                auto xor_true = builder.CreateXor(rhs.is_null, lhs.is_null);
+//
+//                // env.printValue(builder, xor_true, "is either rhs or lhs null: ");
+//
+//                auto& ctx = env.getContext(); auto F = builder.GetInsertBlock()->getParent();
+//                BasicBlock *bbXorCase = BasicBlock::Create(ctx, "cmp_based_on_null_bit", F);
+//                BasicBlock *bbValueComparison = BasicBlock::Create(ctx, "cmp_based_on_value", F);
+//                BasicBlock *bbCompareDone = BasicBlock::Create(ctx, "cmp_done", F);
+//
+//                auto both_null = builder.CreateAnd(builder.CreateICmpEQ(rhs.is_null, env.i1Const(true)),
+//                                                   builder.CreateICmpEQ(rhs.is_null, lhs.is_null));
+//                // env.printValue(builder, both_null, "are both rhs and lhs null: ");
+//                auto cond = builder.CreateOr(both_null,
+//                                             xor_true);
+//                builder.CreateCondBr(cond, bbXorCase, bbValueComparison);
+//
+//
+//                builder.SetInsertPoint(bbXorCase);
+//                builder.CreateStore(both_null, ret_var);
+//                builder.CreateBr(bbCompareDone);
+//
+//                builder.SetInsertPoint(bbValueComparison);
+//                // compare values as they're
+//                auto el_type = rhs_type.withoutOption();
+//                assert(rhs_type.withoutOption() == lhs_type.withoutOption());
+//                if(python::Type::STRING == el_type) {
+//                    // cmp using strcmp (could be done faster...)
+//                    // need to compare using strcmp
+//                    FunctionType *ft = FunctionType::get(env.i32Type(), {env.i8ptrType(), env.i8ptrType()},
+//                                                         false);
+//
+//                    // check_is_not_nullptr(env, builder, rhs.val, "rhs is nullptr"); // <-- changing this line affects ability of code to run...!
+//                    // check_is_not_nullptr(env, builder, lhs.val, "lhs is nullptr");
+//
+//                    auto strcmp_f = env.getModule()->getOrInsertFunction("strcmp", ft);
+//                    auto cmp_res = builder.CreateICmpEQ(builder.CreateCall(strcmp_f, {rhs.val, lhs.val}), env.i32Const(0));
+//
+//                    // env.printValue(builder, rhs.val, "rhs value: ");
+//                    // env.printValue(builder, lhs.val, "lhs value: ");
+//                    // env.printValue(builder, cmp_res, "compare result: ");
+//
+//                    builder.CreateStore(cmp_res, ret_var);
+//                } else {
+//                    throw std::runtime_error("unsupported compare for type " + el_type.desc() + " ...");
+//                }
+//                builder.CreateBr(bbCompareDone);
+//                builder.SetInsertPoint(bbCompareDone);
+//            } else if(python::Type::STRING == lhs_type && python::Type::STRING == rhs_type) {
+//                FunctionType *ft = FunctionType::get(env.i32Type(), {env.i8ptrType(), env.i8ptrType()},
+//                                                     false);
+//                auto strcmp_f = env.getModule()->getOrInsertFunction("strcmp", ft);
+//                auto cmp_res = builder.CreateICmpEQ(builder.CreateCall(strcmp_f, {rhs.val, lhs.val}), env.i32Const(0));
+//
+//                builder.CreateStore(cmp_res, ret_var);
+//            } else {
+//                throw std::runtime_error("comparing " + lhs_type.desc() + " == " + rhs_type.desc() + " not yet implemented...");
+//            }
 
             return builder.CreateLoad(ret_var);
         }

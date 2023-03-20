@@ -223,6 +223,50 @@ namespace tuplex {
                 .filter(UDF("lambda row: 2000 <= row['year'] <= 2005"))
                 .tocsv(output_path);
     }
+
+    TEST_F(FlightsQuery, NewFilterQueryLocalTest) {
+        using namespace std;
+
+        // set input/output paths
+        auto exp_settings = localWorkerSettings(true);
+        auto input_pattern = exp_settings["input_path"];
+        auto output_path = exp_settings["output_path"];
+        SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));
+        ContextOptions co = ContextOptions::defaults();
+        for(const auto& kv : exp_settings)
+            if(startsWith(kv.first, "tuplex."))
+                co.set(kv.first, kv.second);
+
+        // creater context according to settings
+        Context ctx(co);
+
+        // disable optimizer
+        co.set("tuplex.useLLVMOptimizer", "false");
+
+        runtime::init(co.RUNTIME_LIBRARY().toPath());
+
+        // dump settings
+        stringToFile("context_settings.json", ctx.getOptions().toString());
+
+        input_pattern = "/hot/data/flights_all/flights_on_time_performance_1987_10.csv,/hot/data/flights_all/flights_on_time_performance_2001_09.csv,/hot/data/flights_all/flights_on_time_performance_2021_11.csv";
+
+        // now perform query...
+        auto& ds = ctx.csv(input_pattern, {}, option<bool>::none, option<char>::none, '"', {""}, {}, {}, sm);
+
+
+        // for 2001_09 following is the error case:
+        // (_Constant[i64,value=3],_Constant[i64,value=9],i64,i64,str,i64,i64,str,str,i64,str,str,i64,Option[f64],i64,Option[f64],f64) (hash=1003)
+        // -> goes through with other ones, but fails here...
+        // why?
+
+        // add function that normalizes features (f-mean) / std
+        // and then perform linear model for all of the variables in fill-in-delays function (adjusted)
+        // now create extract vec (but only for relevant years!)
+        ds.withColumn("features", UDF(extractFeatureVectorCode()))
+                .map(UDF(extractFillDelaysCode()))
+                .filter(UDF("lambda row: 2000 <= row['year'] <= 2005"))
+                .tocsv(output_path);
+    }
 }
 
 

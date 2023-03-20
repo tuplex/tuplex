@@ -1773,8 +1773,10 @@ namespace tuplex {
 
             // for debugging enable tracing for the 2nd invocation!
             bool traceExecution = false;
-            if(numProcessedMessages() > 1 && _statistics.size() >= 1)
-                traceExecution = true;
+
+            // uncomment to trace errors on 2nd invocation
+            // if(numProcessedMessages() > 1 && _statistics.size() >= 1)
+            //     traceExecution = true;
             // do not register symbols
             auto syms = stage.compileFastPath(*_compiler,
                                               use_llvm_optimizer ? &opt : nullptr,

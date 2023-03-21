@@ -276,8 +276,10 @@ namespace tuplex {
         }
 
 
-        llvm::IRBuilder<> LambdaFunctionBuilder::addException(llvm::IRBuilder<> &builder, llvm::Value *ecCode,
-                                                              llvm::Value *condition) {
+        llvm::IRBuilder<> LambdaFunctionBuilder::addException(llvm::IRBuilder<> &builder,
+                                                              llvm::Value *ecCode,
+                                                              llvm::Value *condition,
+                                                              const std::string& exception_message) {
 
             // convert ecCode to i32 if possible
             if(ecCode->getType() != _env->i32Type()) {
@@ -316,9 +318,9 @@ namespace tuplex {
         }
 
         llvm::IRBuilder<> LambdaFunctionBuilder::addException(llvm::IRBuilder<> &builder, ExceptionCode ec,
-                                                              llvm::Value *condition) {
+                                                              llvm::Value *condition, const std::string& exception_message) {
             assert(condition && condition->getType() == _env->i1Type());
-            return addException(builder, _env->i32Const(ecToI32(ec)), condition);
+            return addException(builder, _env->i32Const(ecToI32(ec)), condition, exception_message);
         }
 
         LambdaFunction LambdaFunction::getFromEnvironment(LLVMEnvironment &env, const std::string &funcName) {

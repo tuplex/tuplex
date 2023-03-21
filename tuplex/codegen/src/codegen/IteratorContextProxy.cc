@@ -247,7 +247,7 @@ namespace tuplex {
             if(defaultArg.val) {
                 builder.CreateCondBr(exhausted, defaultArgBB, notExhaustedBB);
             } else {
-                lfb.addException(builder, ExceptionCode::STOPITERATION, exhausted);
+                lfb.addException(builder, ExceptionCode::STOPITERATION, exhausted, "@TODO add code point for this except here");
                 builder.CreateBr(notExhaustedBB);
             }
 

@@ -106,8 +106,8 @@ namespace tuplex {
 
             llvm::IRBuilder<> getLLVMBuilder() { assert(_body); return llvm::IRBuilder<>(_body); }
 
-            llvm::IRBuilder<> addException(llvm::IRBuilder<>& builder, ExceptionCode ec, llvm::Value *condition);
-            llvm::IRBuilder<> addException(llvm::IRBuilder<>& builder, llvm::Value* ecCode, llvm::Value *condition);
+            llvm::IRBuilder<> addException(llvm::IRBuilder<>& builder, ExceptionCode ec, llvm::Value *condition, const std::string& exception_message);
+            llvm::IRBuilder<> addException(llvm::IRBuilder<>& builder, llvm::Value* ecCode, llvm::Value *condition, const std::string& exception_message);
 
             inline LLVMEnvironment& env() const {
                 if(!_env)

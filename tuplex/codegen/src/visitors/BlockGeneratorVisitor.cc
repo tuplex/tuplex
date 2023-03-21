@@ -349,7 +349,7 @@ namespace tuplex {
                 auto iszero = type->isDoubleTy() ? builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, uR,
                                                                       _env->f64Const(0.0)) :
                               builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, uR, _env->i64Const(0));
-                _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, iszero);
+                _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, iszero, "ZeroDivisionError");
             } // normal code goes on
 
             // choose floating point or integer operation
@@ -538,7 +538,7 @@ namespace tuplex {
 
                 // _env->printValue(builder, is_zero, "null check result: "); // <-- without this, code with sigsev is generated...
 
-                _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, is_zero);
+                _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, is_zero, "ZeroDivisionError");
             } // normal code goes on
 
             return builder.CreateFDiv(uL, uR);
@@ -584,7 +584,7 @@ namespace tuplex {
                 auto iszero = type->isDoubleTy() ? builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, uR,
                                                                       _env->f64Const(0.0)) :
                               builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, uR, _env->i64Const(0));
-                _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, iszero);
+                _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, iszero, "ZeroDivisionError");
             } // normal code goes on
 
             // Python3 uses floored modulo
@@ -648,7 +648,7 @@ namespace tuplex {
             if (!_policy.allowUndefinedBehavior) {
                 // check if shift count is negative; return ValueError
                 auto negcount = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, uR, _env->i64Const(0));
-                _lfb->addException(builder, ExceptionCode::VALUEERROR, negcount);
+                _lfb->addException(builder, ExceptionCode::VALUEERROR, negcount, "ValueError for <<");
             }
             return builder.CreateShl(uL, uR);
         }
@@ -679,7 +679,7 @@ namespace tuplex {
             if (!_policy.allowUndefinedBehavior) {
                 // check if shift count is negative; return ValueError
                 auto negcount = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, uR, _env->i64Const(0));
-                _lfb->addException(builder, ExceptionCode::VALUEERROR, negcount);
+                _lfb->addException(builder, ExceptionCode::VALUEERROR, negcount, "ValueError for >>");
             }
             return builder.CreateAShr(uL, uR);
         }
@@ -1180,7 +1180,7 @@ namespace tuplex {
             } else if(tt == TokenType::IN && rightType.withoutOption().isListType()) {
                 // the in [list] operator has specific semantics for None on the left side
                 if(R_isnull) { // R can't be null
-                    _lfb->addException(builder, ExceptionCode::TYPEERROR, R_isnull);
+                    _lfb->addException(builder, ExceptionCode::TYPEERROR, R_isnull, "TypeError, can't have ... in None");
                 }
 
                 // kind of hacky for right now, because lists don't support optional types
@@ -1207,12 +1207,14 @@ namespace tuplex {
             } else {
                 // exception check left
                 if (L_isnull) {
-                    _lfb->addException(builder, ExceptionCode::TYPEERROR, L_isnull);
+                    _lfb->addException(builder, ExceptionCode::TYPEERROR, L_isnull, "TypeError, can't have None " +
+                            opToString(tt) + " ...");
                 }
 
                 // exception check right
                 if (R_isnull) {
-                    _lfb->addException(builder, ExceptionCode::TYPEERROR, R_isnull);
+                    _lfb->addException(builder, ExceptionCode::TYPEERROR, R_isnull, "TypeError, can't have ... " +
+                            opToString(tt) + " None");
                 }
 
                 auto resVal = compareInst(builder, L, leftType.withoutOption(), tt, R,
@@ -1460,7 +1462,7 @@ namespace tuplex {
                     // if base == 0 && exponent < 0 => ZeroDivisionError
                     auto base_is_zero_and_negative_exponent = builder.CreateAnd(builder.CreateICmpEQ(L, _env->i64Const(0)),
                                                                                      builder.CreateICmpSLT(R, _env->i64Const(0)));
-                    _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, base_is_zero_and_negative_exponent);
+                    _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, base_is_zero_and_negative_exponent, "ZeroDivisionError, base is zero and negative exponent");
 
                     // if exponent is 0, doesn't matter -> always 1 as result.
                     // => this gets handled by the runtime function.
@@ -1483,7 +1485,7 @@ namespace tuplex {
                     if(likelyPositiveExponent) {
                         // if exponent is negative -> normal case violation
                         auto exp_is_negative = builder.CreateICmpSLT(R, _env->i64Const(0));
-                        _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, exp_is_negative);
+                        _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, exp_is_negative, "normal-case error, exponent is negative");
                         // continue...
                         // normal case: positive or negative integer result
                         auto ret = builder.CreateCall(powi64_func, {L, R});
@@ -1491,7 +1493,7 @@ namespace tuplex {
                     } else {
                         // if exponent is non-negative -> normal case violation
                         auto exp_is_non_negative = builder.CreateICmpSGE(R, _env->i64Const(0));
-                        _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, exp_is_non_negative);
+                        _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, exp_is_non_negative, "normal-case error, exponent is non-negative");
                         // continue...
                         // normal case: positive or negative float result
                         auto exponent = builder.CreateNeg(R); // assumed to be negative, so use -R to get positive version.
@@ -1536,7 +1538,7 @@ namespace tuplex {
                 // call func
                 auto res = builder.CreateCall(pow_func, {L, R, pow_ec});
                 auto pow_ec_val = builder.CreateLoad(pow_ec);
-                _lfb->addException(builder, pow_ec_val, builder.CreateICmpNE(pow_ec_val, _env->i64Const(ecToI64(ExceptionCode::SUCCESS))));
+                _lfb->addException(builder, pow_ec_val, builder.CreateICmpNE(pow_ec_val, _env->i64Const(ecToI64(ExceptionCode::SUCCESS))), "pow function produced exception");
                 return res;
             }
 
@@ -1944,7 +1946,7 @@ namespace tuplex {
                 auto rhs_len = builder.CreateSub(rhs_block.size, _env->i64Const(1));
                 auto size_not_equal = builder.CreateICmpNE(_env->i64Const(lhs->_elements.size()), rhs_len);
 
-                _lfb->addException(builder, ExceptionCode::VALUEERROR, size_not_equal);
+                _lfb->addException(builder, ExceptionCode::VALUEERROR, size_not_equal, "ValueError, = with string had wrong numbers of vars");
             } else {
                 error("assigning tuple to invalid value");
             }
@@ -2113,7 +2115,7 @@ namespace tuplex {
                     error("tuple type as result of if-else expression not yet supported.");
 
                 // create exception when condition does not hold
-                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, _env->i1neg(builder, ifcond));
+                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, _env->i1neg(builder, ifcond), "normal-case error, else branch not taken");
 
                 // emit code for if block only
                 // in case of expression that's super simple
@@ -2140,7 +2142,7 @@ namespace tuplex {
                     error("tuple type as result of if-else expression not yet supported.");
 
                 // create exception when condition does hold
-                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, ifcond);
+                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, ifcond, "normal-case error, if-branch not taken.");
 
                 // now emit code for else block only
                 // in case of expression that's super simple
@@ -2401,10 +2403,10 @@ namespace tuplex {
                 // else exists?
                 if(ifelse->_else) {
                     // leave function when condition is true, else exec else branch!
-                    _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, ifcond);
+                    _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, ifcond, "normal-case error, if-branch not taken");
                     builder.SetInsertPoint(_lfb->getLastBlock());
 
-                    // generate if block code (regular)
+                    // generate else block code (regular)
                     ifelse->_else->accept(*this);
                 } else {
                     // condition is generated
@@ -2412,13 +2414,13 @@ namespace tuplex {
                     // if (cond)
                     //      throw non-normal-case
                     // ... # continue with other code
-                    _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, ifcond);
+                    _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, ifcond, "normal-case error, if-branch not taken, continue execution");
                 }
 
             } else if(exceptOnElse) {
                 // check with negated ifcond for exception, then continue generation
                 auto neg_ifcond = _env->i1neg(builder, ifcond);
-                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, neg_ifcond);
+                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, neg_ifcond, "normal-case error, else-branch not taken");
                 builder.SetInsertPoint(_lfb->getLastBlock());
 
                 // generate if block code (regular)
@@ -3829,7 +3831,7 @@ namespace tuplex {
                     cJSONGetObjectItem_prototype(_env->getContext(), _env->getModule().get()),
                     {value.val, key});
             // throw a keyerror if it is an invalid key
-            _lfb->addException(builder, ExceptionCode::KEYERROR, builder.CreateIsNull(cjson_val));
+            _lfb->addException(builder, ExceptionCode::KEYERROR, builder.CreateIsNull(cjson_val), "KeyError for subscriptCJSON");
 
             if (subType == python::Type::BOOLEAN) {
                 // BOOL: in type
@@ -3956,10 +3958,10 @@ namespace tuplex {
                 // add check
                 if (value_type.withoutOption().isDictionaryType()) {
                     // KeyError
-                    _lfb->addException(builder, ExceptionCode::KEYERROR, index.is_null);
+                    _lfb->addException(builder, ExceptionCode::KEYERROR, index.is_null, "KeyError for dict.[]");
                 } else {
                     // TypeError
-                    _lfb->addException(builder, ExceptionCode::TYPEERROR, index.is_null);
+                    _lfb->addException(builder, ExceptionCode::TYPEERROR, index.is_null, "TypeError for dict.[]");
                 }
             }
             // remove option from index_type
@@ -3969,7 +3971,7 @@ namespace tuplex {
                 // None can't be indexed, i.e. null check here!
                 assert(value.is_null);
 
-                _lfb->addException(builder, ExceptionCode::TYPEERROR, value.is_null);
+                _lfb->addException(builder, ExceptionCode::TYPEERROR, value.is_null, "TypeError, can't subscript None");
             }
             value_type = value_type.withoutOption();
 
@@ -4077,7 +4079,7 @@ namespace tuplex {
 
                 // first perform index check, if fails --> exception!
                 auto indexcmp = _env->indexCheck(builder, index.val, strlength);
-                _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp));
+                _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp), "IndexError for str.[]");
 
                 // normal code goes on (builder variable has been updated)
                 // copy out one char string here
@@ -4111,7 +4113,7 @@ namespace tuplex {
                 addInstruction(subval.val, subval.size);
             } else if(value_type.isListType()) {
                 if(value_type == python::Type::EMPTYLIST) {
-                    _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1Const(true));
+                    _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1Const(true), "IndexError on empty list []");
                     addInstruction(nullptr, nullptr);
                 } else {
                     // new:
@@ -4125,7 +4127,7 @@ namespace tuplex {
 
                     // first perform index check, if it fails --> exception!
                     auto indexcmp = _env->indexCheck(builder, index.val, num_elements);
-                    _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp));
+                    _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp), "IndexError on list");
 
                     // load val and add
                     auto el = list_load_value(*_env, builder, list_ptr, list_type, index.val);
@@ -4333,7 +4335,7 @@ namespace tuplex {
             auto field_present = struct_dict_load_present(*_env, builder, value.val, value_type, path);
             _lfb->setLastBlock(builder.GetInsertBlock());
             auto field_not_present = _env->i1neg(builder, field_present);
-            _lfb->addException(builder, ExceptionCode::KEYERROR, field_not_present);
+            _lfb->addException(builder, ExceptionCode::KEYERROR, field_not_present, "KeyError on struct dict [], element missing");
             // load entry
             if(out_ret)
                 *out_ret = struct_dict_load_value(*_env, builder, value.val, value_type, path);
@@ -4497,7 +4499,7 @@ namespace tuplex {
                     el_target = upCastReturnType(builder, el, el_type, el_target_type);
                 } else if(el_type.isOptionType() && el_target_type == python::Type::NULLVALUE) {
                     // only ok if el is null
-                    _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, _env->i1neg(builder, el.is_null));
+                    _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, _env->i1neg(builder, el.is_null), "normal-case violation in returnWithNullExtraction");
                     el_target = SerializableValue::None(builder);
                 } else if(el_type.isOptionType() &&
                           el_target_type.isOptionType() &&
@@ -4507,7 +4509,7 @@ namespace tuplex {
                         el_target = upCastReturnType(builder, el, el_type, el_target_type);
                     } else {
                         // can always upcast None to any option!
-                        _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, _env->i1neg(builder, el.is_null));
+                        _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, _env->i1neg(builder, el.is_null), "normal-case violation in returnWithNullExtraction");
                         el_target = SerializableValue::None(builder);
                     }
                 } else if(el_type == el_target_type) {
@@ -4697,7 +4699,7 @@ namespace tuplex {
                            type) {
                     // null check, exception required
                     if(args[i].is_null) {
-                        _lfb->addException(builder, ExceptionCode::TYPEERROR, args[i].is_null);
+                        _lfb->addException(builder, ExceptionCode::TYPEERROR, args[i].is_null, "TypeError when calling ?");
                     }
                 } else if(!python::canUpcastType(type, argType)) { // if option select doesn't work and neither upcasting, error.
                     // @TODO: what about downcasting? I.e. when function needs bool but i64 is given? try downcast option!
@@ -4768,11 +4770,11 @@ namespace tuplex {
                         assert(caller.is_null);
                         
                         // null check -> None.attr() is attribute error.
-                        _lfb->addException(builder, ExceptionCode::ATTRIBUTEERROR, caller.is_null);
+                        _lfb->addException(builder, ExceptionCode::ATTRIBUTEERROR, caller.is_null, "AttributeError for calling ." + attrName);
                         ret = _functionRegistry->createAttributeCall(*_lfb, builder, attrName, callerType.withoutOption(), argsType,
                                                                      retType, SerializableValue(caller.val, caller.size), args);
                     } else if(callerType == python::Type::NULLVALUE) {
-                        _lfb->addException(builder, ExceptionCode::ATTRIBUTEERROR, _env->i1Const(true));
+                        _lfb->addException(builder, ExceptionCode::ATTRIBUTEERROR, _env->i1Const(true), "AttributeError for calling ." + attrName);
                         ret = SerializableValue(); // default, to continue codegen.
                     } else if(callerType == python::Type::MODULE) {
                         auto& ann = attr->_attribute->annotation();
@@ -4940,7 +4942,7 @@ namespace tuplex {
 
             if (!_policy.allowUndefinedBehavior) { // zero stride isn't allowed
                 auto strideIsZero = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, stride, _env->i64Const(0));
-                _lfb->addException(builder, ExceptionCode::VALUEERROR, strideIsZero);
+                _lfb->addException(builder, ExceptionCode::VALUEERROR, strideIsZero, "ValueError, zero stride not allowed in string slice");
             }
 
             // branch based on whether stride is positive or negative
@@ -5135,7 +5137,7 @@ namespace tuplex {
                 if (!_policy.allowUndefinedBehavior) {
                     auto strideIsZero = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, stride,
                                                            _env->i64Const(0));
-                    _lfb->addException(builder, ExceptionCode::VALUEERROR, strideIsZero);
+                    _lfb->addException(builder, ExceptionCode::VALUEERROR, strideIsZero, "ValueError, 0 stride not allowed for tuple");
                 }
 
                 // get size of top level tuple
@@ -5248,7 +5250,7 @@ namespace tuplex {
 
                 // _env->debugPrint(builder, "throwing '" + message + "' exception if isnull is 1: ", val.is_null);
 
-                _lfb->addException(builder, ec, val.is_null);
+                _lfb->addException(builder, ec, val.is_null, "error for popWithNullCheck");
                 // normal code continues
             }
 
@@ -5297,7 +5299,7 @@ namespace tuplex {
             auto expr_type = as->_expression->getInferredType();
             auto test = _env->truthValueTest(builder, val, expr_type);
             auto cond = _env->i1neg(builder, test); // flip for assert
-            _lfb->addException(builder, ExceptionCode::ASSERTIONERROR, cond);
+            _lfb->addException(builder, ExceptionCode::ASSERTIONERROR, cond, "AssertionError in assert");
         }
 
         void BlockGeneratorVisitor::visit(NRaise* raise) {
@@ -5743,7 +5745,7 @@ namespace tuplex {
                     }
                 }
                 auto loopEnd = builder.CreateICmpEQ(loopCond, _env->i1Const(false));
-                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, loopEnd);
+                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, loopEnd, "normal-case error, for-stmt");
             }
 
             if(!exprType.isIteratorType()) {
@@ -5836,7 +5838,7 @@ namespace tuplex {
             } else {
                 // should skip loop body, thus add exception for entering loop body
                 _logger.debug("loop body optimized away, as attained in tracing for loop expression evaluates to an empty iterable in majority cases");
-                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, loopCond);
+                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, loopCond, "normal-case violation, loop body optimized away");
                 if(forStmt->suite_else) {
                     elseBB = llvm::BasicBlock::Create(_env->getContext(), "elseBB", parentFunc);
                     builder.CreateBr(elseBB);
@@ -6021,7 +6023,7 @@ namespace tuplex {
                 // convert condition value to i1
                 auto whileCond = _env->truthValueTest(builder, cond, whileStmt->expression->getInferredType());
                 auto loopEnds = _env->i1neg(builder, whileCond);
-                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, loopEnds);
+                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, loopEnds, "normal-case violation, loop ends");
                 builder.CreateStore(_env->i1Const(false), isFirstIterationPtr);
                 _lfb->setLastBlock(builder.GetInsertBlock());
                 // loop body
@@ -6069,7 +6071,7 @@ namespace tuplex {
                 if(typeChange) {
                     auto loopEnd = _env->i1neg(builder, whileCond);
                     auto isFirstIteration = builder.CreateLoad(isFirstIterationPtr);
-                    _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, builder.CreateAnd(isFirstIteration, loopEnd));
+                    _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, builder.CreateAnd(isFirstIteration, loopEnd), "normal-case violation, type change after first iteration detected");
                     builder.CreateStore(builder.CreateAnd(isFirstIteration, _env->i1Const(false)), isFirstIterationPtr);
                 }
 
@@ -6091,7 +6093,7 @@ namespace tuplex {
             } else {
                 // should skip loop body, thus add exception for entering loop body
                 _logger.debug("loop body optimized away, as attained in tracing while condition for first iteration not holds in majority cases");
-                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, whileCond);
+                _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, whileCond, "normal-case violation, loop-body optimized away");
                 if(whileStmt->suite_else) {
                     elseBB = llvm::BasicBlock::Create(_env->getContext(), "elseBB", parentFunc);
                     builder.CreateBr(elseBB);
@@ -6224,7 +6226,7 @@ namespace tuplex {
             builder.SetInsertPoint(bbBaseZero);
             if(exponent < 0) {
                 // always zero division error!
-                _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, base_is_zero); // always true
+                _lfb->addException(builder, ExceptionCode::ZERODIVISIONERROR, base_is_zero, "ZeroDivisionError in constant integer power, negative exponent"); // always true
             } else {
                 // result is always 0 if base == 0
                 // note: exponent == 0 handled above!

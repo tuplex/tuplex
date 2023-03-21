@@ -137,6 +137,7 @@ namespace tuplex {
                                     "information being lost here, b.c. exception code is reset to "
                                     "general-case violation. Hence, resolve code or fallback code must "
                                     "restore correcy exception code for display.");
+                        auto original_ecCode = ecCode;
                         ecCode = _env->i64Const(ecToI64(ExceptionCode::GENERALCASEVIOLATION)); // <-- hack
 
                         // _env->debugPrint(builder, "exception rows serialized to buffer.");
@@ -152,8 +153,11 @@ namespace tuplex {
                         // new, use lazy func!
                         auto bbException = exceptionBlock(builder, userData,
                                                           ecCode, ecOpID,
-                                                          [this, ft, outputRowNumberVar](llvm::IRBuilder<>& builder) {
+                                                          [this, original_ecCode, ft, outputRowNumberVar](llvm::IRBuilder<>& builder) {
                            ExceptionDetails except_details;
+
+                           // debug: print original ecCode
+                           env().printValue(builder, original_ecCode, "upcsast code to ec=8, original ecCode=");
 
                             // -> move this here into exception block! rtmalloc makes optimization else impossible...
                             auto serialized_row = serializedExceptionRow(builder, ft, exception_serialization_format());

@@ -215,7 +215,7 @@ namespace tuplex {
 
                 // Option II: always return ValueError as in python originally
                 auto cond = builder.CreateICmpNE(resCode, _env.i32Const(ecToI32(ExceptionCode::SUCCESS)));
-                lfb.addException(builder, ExceptionCode::VALUEERROR, cond);
+                lfb.addException(builder, ExceptionCode::VALUEERROR, cond, "ValueError when calling int(...) on str arg");
 
                 // changed builder, now return normal/positive result
                 return SerializableValue(builder.CreateLoad(value), i64Size);
@@ -319,7 +319,7 @@ namespace tuplex {
 
             builder.SetInsertPoint(keyDNEBlock);
             if(args.size() == 1) {
-                lfb.addException(builder, ExceptionCode::KEYERROR, llvm::ConstantInt::get(_env.getContext(), llvm::APInt(1, 1)));
+                lfb.addException(builder, ExceptionCode::KEYERROR, llvm::ConstantInt::get(_env.getContext(), llvm::APInt(1, 1)), "KeyError on CJSONPOPCall");
             }
             else if(args.size() == 2) {
                 builder.CreateStore(args[1].val, retval);
@@ -356,7 +356,7 @@ namespace tuplex {
             auto valobj = builder.CreateCast(llvm::Instruction::CastOps::IntToPtr, valobjload,
                                              _env.i8ptrType()); // child pointer
             auto nonempty_dict = builder.CreateIsNull(valobj);
-            lfb.addException(builder, ExceptionCode::KEYERROR, nonempty_dict);
+            lfb.addException(builder, ExceptionCode::KEYERROR, nonempty_dict, "KeyError on CJSONPopItemCall");
 
             // there is a value to return
             builder.CreateCall(cJSONDetachItemViaPointer_prototype(_env.getContext(), _env.getModule().get()),
@@ -426,7 +426,7 @@ namespace tuplex {
                 auto resCode = builder.CreateCall(func, {strBegin, strEnd, value});
 
                 auto cond = builder.CreateICmpNE(resCode, _env.i32Const(ecToI32(ExceptionCode::SUCCESS)));
-                lfb.addException(builder, ExceptionCode::VALUEERROR, cond);
+                lfb.addException(builder, ExceptionCode::VALUEERROR, cond, "ValueError on float(...) from str arg");
 
                 // changed builder, now return normal/positive result
                 return SerializableValue(builder.CreateLoad(value), f64Size);
@@ -1108,7 +1108,7 @@ namespace tuplex {
 
             // if either rel_tol or abs_tol are < 0, throw exception
             auto below_zero = builder.CreateOr(rel_tol_check, abs_tol_check);
-            lfb.addException(builder, ExceptionCode::VALUEERROR, below_zero);
+            lfb.addException(builder, ExceptionCode::VALUEERROR, below_zero, "ValueError on math.isclose");
 
             // check x and y types - bools and ints can be optimized!
             if (x_ty == python::Type::BOOLEAN && y_ty == python::Type::BOOLEAN) {
@@ -1673,7 +1673,7 @@ namespace tuplex {
                 assert(fillchar->val->getType() == _env.i8ptrType());
 
                 auto cond = builder.CreateICmpNE(fillchar->size, _env.i64Const(2)); // fillchar must be size 2, indicating length 1
-                lfb.addException(builder, ExceptionCode::TYPEERROR, cond);
+                lfb.addException(builder, ExceptionCode::TYPEERROR, cond, "TypeError for str.center");
 
                 fillchar_val = builder.CreateLoad(fillchar->val);
             }
@@ -1717,11 +1717,11 @@ namespace tuplex {
                 // first check inf, -inf which results in overflow error
                 auto overflow_cond = builder.CreateOr(builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, arg.val, _env.f64Const(INFINITY)),
                                                       builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, arg.val, _env.f64Const(-INFINITY)));
-                lfb.addException(builder, ExceptionCode::OVERFLOWERROR, overflow_cond);
+                lfb.addException(builder, ExceptionCode::OVERFLOWERROR, overflow_cond, "Overflow error for math.ceil");
 
                 // then check nan, which results in ValueError
                 auto nan_cond = builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, arg.val, _env.f64Const(NAN));
-                lfb.addException(builder, ExceptionCode::VALUEERROR, nan_cond);
+                lfb.addException(builder, ExceptionCode::VALUEERROR, nan_cond, "ValueError for math.ceil");
 
                 // call corresponding intrinsic
                 auto intrinsic = (qual_name == "math.ceil") ? (llvm::Intrinsic::ceil) : (llvm::Intrinsic::floor);
@@ -1799,7 +1799,7 @@ namespace tuplex {
             // no option type here supported!
             if(caller.is_null) {
                 // add exception for None.capitalize()
-                lfb.addException(builder, ExceptionCode::ATTRIBUTEERROR, caller.is_null);
+                lfb.addException(builder, ExceptionCode::ATTRIBUTEERROR, caller.is_null, "AttributeError on capwords");
             }
             assert(caller.val && caller.size);
 
@@ -1859,7 +1859,7 @@ namespace tuplex {
 
                     // perform check whether compile was successful, if not terminate.
                     auto bad_pattern = builder.CreateICmpEQ(compiled_pattern, _env.i8nullptr());
-                    lfb.addException(builder, ExceptionCode::RE_ERROR, bad_pattern);
+                    lfb.addException(builder, ExceptionCode::RE_ERROR, bad_pattern, "re.error on re.search");
                 }
 
                 // allocate space to hold the match data
@@ -2010,7 +2010,7 @@ namespace tuplex {
 
                 builder.SetInsertPoint(errorcheck_BB);
                 // error if the substitution resulted in an error
-                lfb.addException(builder, ExceptionCode::UNKNOWN, builder.CreateICmpSLT(builder.CreateLoad(res), _env.i32Const(0)));
+                lfb.addException(builder, ExceptionCode::UNKNOWN, builder.CreateICmpSLT(builder.CreateLoad(res), _env.i32Const(0)), "some re error on re.sub, substitution failed");
                 builder.CreateBr(return_BB);
 
                 builder.SetInsertPoint(return_BB);
@@ -2028,7 +2028,7 @@ namespace tuplex {
 
         SerializableValue FunctionRegistry::createRandomChoiceCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder, const python::Type &argType, const SerializableValue &arg) {
             if(argType == python::Type::STRING) {
-                lfb.addException(builder, ExceptionCode::INDEXERROR, builder.CreateICmpEQ(arg.size, _env.i64Const(1))); // index error if empty string
+                lfb.addException(builder, ExceptionCode::INDEXERROR, builder.CreateICmpEQ(arg.size, _env.i64Const(1)), "Index error for random.choice"); // index error if empty string
                 auto random_number = builder.CreateCall(uniformInt_prototype(_env.getContext(), _env.getModule().get()), {_env.i64Const(0), builder.CreateSub(arg.size, _env.i64Const(1))});
                 auto retstr = builder.CreatePointerCast(_env.malloc(builder, _env.i64Const(2)), _env.i8ptrType()); // create 1-char string
                 builder.CreateStore(builder.CreateLoad(builder.CreateGEP(arg.val, random_number)), retstr); // store the character
@@ -2037,7 +2037,7 @@ namespace tuplex {
             } else if(argType.isListType() && argType != python::Type::EMPTYLIST) {
                 auto elementType = argType.elementType();
                 if(elementType.isSingleValued()) {
-                    lfb.addException(builder, ExceptionCode::INDEXERROR, builder.CreateICmpEQ(arg.val, _env.i64Const(0))); // index error if empty list
+                    lfb.addException(builder, ExceptionCode::INDEXERROR, builder.CreateICmpEQ(arg.val, _env.i64Const(0)), "Index error for empty list"); // index error if empty list
                     if(elementType == python::Type::NULLVALUE) {
                         return {nullptr, nullptr, _env.i1Const(true)};
                     } else if(elementType == python::Type::EMPTYTUPLE) {
@@ -2049,7 +2049,7 @@ namespace tuplex {
                     }
                 } else {
                     auto num_elements = builder.CreateExtractValue(arg.val, {1});
-                    lfb.addException(builder, ExceptionCode::INDEXERROR, builder.CreateICmpEQ(num_elements, _env.i64Const(0))); // index error if empty list
+                    lfb.addException(builder, ExceptionCode::INDEXERROR, builder.CreateICmpEQ(num_elements, _env.i64Const(0)), "Index error for empty list"); // index error if empty list
                     auto random_number = builder.CreateCall(uniformInt_prototype(_env.getContext(), _env.getModule().get()), {_env.i64Const(0), num_elements});
 
                     auto subval = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(arg.val, 2), random_number));
@@ -2159,7 +2159,7 @@ namespace tuplex {
             if(argsType.parameters().size() == 1) {
                 if(argsType.parameters().front() == python::Type::EMPTYITERATOR) {
                     // always raise exception when next is called on empty iterator
-                    lfb.addException(builder, ExceptionCode::STOPITERATION, _env.i1Const(true));
+                    lfb.addException(builder, ExceptionCode::STOPITERATION, _env.i1Const(true), "@TODO: add code point for this except here");
                     return SerializableValue(_env.i64Const(0), _env.i64Const(8));
                 }
                 return _iteratorContextProxy->createIteratorNextCall(lfb, builder, argsType.parameters().front().yieldType(), args[0].val, SerializableValue(nullptr, nullptr), iteratorInfo);
@@ -2538,8 +2538,8 @@ namespace tuplex {
                 auto find_res = createStrFindCall(builder, caller, needle);
 
                 // check if result == -1
-                auto found = builder.CreateICmpEQ(find_res.val, _env.i64Const(-1));
-                lfb.addException(builder, ExceptionCode::VALUEERROR, found);
+                auto not_found = builder.CreateICmpEQ(find_res.val, _env.i64Const(-1));
+                lfb.addException(builder, ExceptionCode::VALUEERROR, not_found, "ValueError on str.index");
 
                 return find_res;
             } else if(callerType.isListType()) {
@@ -2547,7 +2547,7 @@ namespace tuplex {
                 // need to generate find call over list
                 auto find_res = createListFindCall(builder, callerType, caller, needleType, needle);
                 // check if result == -1
-                auto found = builder.CreateICmpEQ(find_res.val, _env.i64Const(-1));
+                auto not_found = builder.CreateICmpEQ(find_res.val, _env.i64Const(-1));
 
                 // debug check
 #ifndef NDEBUG
@@ -2558,7 +2558,7 @@ namespace tuplex {
 //                _env.printValue(builder, find_res.val, "find ret: ");
 #endif
 
-                lfb.addException(builder, ExceptionCode::VALUEERROR, found);
+                lfb.addException(builder, ExceptionCode::VALUEERROR, not_found, "ValueError on list.index, entry not found");
 
                 return find_res;
                 throw std::runtime_error("not yet implemented");
@@ -2575,8 +2575,8 @@ namespace tuplex {
             auto rfind_res = createReverseFindCall(builder, caller, needle);
 
             // check if result == -1
-            auto found = builder.CreateICmpEQ(rfind_res.val, _env.i64Const(-1));
-            lfb.addException(builder, ExceptionCode::VALUEERROR, found);
+            auto not_found = builder.CreateICmpEQ(rfind_res.val, _env.i64Const(-1));
+            lfb.addException(builder, ExceptionCode::VALUEERROR, not_found, "ValueError on list.rindex, value not found");
 
             return rfind_res;
         }
@@ -2716,7 +2716,7 @@ namespace tuplex {
             assert(delimiter.val->getType() == _env.i8ptrType());
 
             auto cond = builder.CreateICmpEQ(delimiter.size, _env.i64Const(1)); // empty string
-            lfb.addException(builder, ExceptionCode::VALUEERROR, cond); // error if the delimiter is an empty string
+            lfb.addException(builder, ExceptionCode::VALUEERROR, cond, "str.split ValueError, delimiter empty"); // error if the delimiter is an empty string
 
             auto lenArray = builder.CreateAlloca(_env.i64ptrType(), 0, nullptr);
             auto strArray = builder.CreateAlloca(llvm::PointerType::get(_env.i8ptrType(), 0), 0, nullptr);

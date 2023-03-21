@@ -220,7 +220,7 @@ namespace codegen {
                     assert(val->getType() == i1_type);
                     // need to flip condition.
                     auto neg_val = lfb.env().i1neg(builder, val);
-                    lfb.addException(builder, ExceptionCode::UNBOUNDLOCALERROR, neg_val);
+                    lfb.addException(builder, ExceptionCode::UNBOUNDLOCALERROR, neg_val, "@TODO: add here varname for message");
                     // update last block for lfb.
                     lfb.setLastBlock(builder.GetInsertBlock());
                 }

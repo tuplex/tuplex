@@ -337,9 +337,10 @@ namespace tuplex {
             // (3) is null
             // load whether entry is null (or not)
             if(nullmap_index >= 1) {
-                auto nullmap_ptr = CreateStructLoad(builder, list_ptr, 3);
+                auto nullmap_ptr = CreateStructLoad(builder, list_ptr, nullmap_index);
                 auto is_null = builder.CreateLoad(builder.CreateGEP(nullmap_ptr, idx));
-                ret.is_null = builder.CreateTrunc(is_null, env.i1Type());
+                assert(is_null->getType() == env.i8Type());
+                ret.is_null = builder.CreateICmpNE(is_null, env.i8Const(0));
             } else {
                 ret.is_null = env.i1Const(false);
             }

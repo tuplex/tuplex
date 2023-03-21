@@ -92,9 +92,21 @@ TEST_F(DataFrameTest, ListIndex) {
 
     Context c(microTestOptions());
 
-    auto res = c.parallelize({Row("test"), Row("hello")}).map(UDF("lambda x: ['test', 'hello'].index(x)")).collectAsVector();
-    for(auto row : res)
-        cout<<row.toPythonString()<<endl;
+    // List[str]
+    {
+        auto v = c.parallelize({Row("test"), Row("hello")}).map(UDF("lambda x: ['test', 'hello'].index(x)")).collectAsVector();
+        ASSERT_EQ(v.size(), 2);
+        EXPECT_EQ(v[0].toPythonString(), "(0,)");
+        EXPECT_EQ(v[1].toPythonString(), "(1,)");
+    }
+
+    // List[Option[str]]
+    {
+        auto v = c.parallelize({Row("test"), Row("hello")}).map(UDF("lambda x: ['test', None, 'hello'].index(x)")).collectAsVector();
+        ASSERT_EQ(v.size(), 2);
+        EXPECT_EQ(v[0].toPythonString(), "(0,)");
+        EXPECT_EQ(v[1].toPythonString(), "(2git ,)");
+    }
 }
 
 TEST_F(DataFrameTest, PushdownWithSpecialization) {

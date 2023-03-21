@@ -995,7 +995,7 @@ namespace tuplex {
             }
             python::Type t = python::Type::makeListType(elementType);
 
-+            list->setInferredType(t);
+            list->setInferredType(t);
         }
     }
 

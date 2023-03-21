@@ -410,8 +410,9 @@ namespace tuplex {
 
             // for debugging purposes (can uncomment)
             std::vector<std::string> normalToGeneralExceptSample;
+            std::unordered_map<int64_t, int64_t> normalToGeneralExceptCountPerEC;
             std::vector<std::string> generalToFallbackExceptSample;
-            static const size_t MAX_EXCEPT_SAMPLE=5;
+            static const size_t MAX_EXCEPT_SAMPLE = 5;
 
             ThreadEnv() : threadNo(0), app(nullptr), hashMap(nullptr), nullBucket(nullptr), numNormalRows(0), numExceptionRows(0), normalBuf(100),
                           exceptionBuf(100) {}
@@ -442,6 +443,7 @@ namespace tuplex {
 
                 // sample debug
                 normalToGeneralExceptSample.clear();
+                normalToGeneralExceptCountPerEC.clear();
                 generalToFallbackExceptSample.clear();
             }
         };
@@ -536,6 +538,9 @@ namespace tuplex {
 
         std::string exceptRowToString(int64_t ecRowNumber, const ExceptionCode& ecCode,
                                       const uint8_t* ecBuf, size_t ecBufSize, const python::Type& general_case_input_type);
+
+        void storeExceptSample(ThreadEnv* env, int64_t ecRowNumber, const ExceptionCode& ecCode,
+                               const uint8_t* ecBuf, size_t ecBufSize, const python::Type& general_case_input_type);
 
         /*!
          * thread-safe logger function

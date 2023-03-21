@@ -2252,6 +2252,18 @@ namespace tuplex {
         return ss.str();
     }
 
+    void
+    WorkerApp::storeExceptSample(ThreadEnv *env, int64_t ecRowNumber, const ExceptionCode &ecCode, const uint8_t *ecBuf,
+                                 size_t ecBufSize, const python::Type &general_case_input_type) {
+        // space still there?
+        if(env->normalToGeneralExceptCountPerEC[ecToI64(ecCode)] < ThreadEnv::MAX_EXCEPT_SAMPLE) {
+            auto except_row_str = exceptRowToString(ecRowNumber, ecCode, ecBuf, ecBufSize, general_case_input_type);
+            logger().debug(except_row_str);
+            env->normalToGeneralExceptSample.push_back(except_row_str);
+            env->normalToGeneralExceptCountPerEC[ecToI64(ecCode)]++;
+        }
+    }
+
     int64_t WorkerApp::resolveBuffer(int threadNo, Buffer &buf, size_t numRows, const TransformStage *stage,
                                      const std::shared_ptr<TransformStage::JITSymbols> &syms) {
 
@@ -2334,11 +2346,9 @@ namespace tuplex {
 
                 // debug, can remove lines from here...
                 // check if not enough samples stored, if so store row!
-                if(env->normalToGeneralExceptSample.size() < ThreadEnv::MAX_EXCEPT_SAMPLE) {
+                {
                     auto general_case_input_type = stage->inputSchema().getRowType();
-                    auto except_row_str = exceptRowToString(ecRowNumber, i64ToEC(ecCode), ecBuf, ecBufSize, general_case_input_type);
-                    logger().debug(except_row_str);
-                    env->normalToGeneralExceptSample.push_back(except_row_str);
+                    storeExceptSample(env, ecRowNumber, i64ToEC(ecCode), ecBuf, ecBufSize, general_case_input_type);
                 }
                 // ... to here
 

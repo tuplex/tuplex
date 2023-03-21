@@ -407,6 +407,12 @@ namespace tuplex {
             uint8_t* nullBucket;
             size_t hashOriginalPartNo; //! original part No
             std::vector<SpillInfo> spillFiles; //! files used for storing spilled buffers.
+
+            // for debugging purposes (can uncomment)
+            std::vector<std::string> normalToGeneralExceptSample;
+            std::vector<std::string> generalToFallbackExceptSample;
+            static const size_t MAX_EXCEPT_SAMPLE=5;
+
             ThreadEnv() : threadNo(0), app(nullptr), hashMap(nullptr), nullBucket(nullptr), numNormalRows(0), numExceptionRows(0), normalBuf(100),
                           exceptionBuf(100) {}
 
@@ -433,6 +439,10 @@ namespace tuplex {
                 nullBucket = nullptr; // empty bucket.
                 hashOriginalPartNo = 0;
                 spillFiles.clear();
+
+                // sample debug
+                normalToGeneralExceptSample.clear();
+                generalToFallbackExceptSample.clear();
             }
         };
 
@@ -523,6 +533,9 @@ namespace tuplex {
         int64_t resolveBuffer(int threadNo, Buffer& buf, size_t numRows,
                               const TransformStage* stage,
                               const std::shared_ptr<TransformStage::JITSymbols>& syms);
+
+        std::string exceptRowToString(int64_t ecRowNumber, const ExceptionCode& ecCode,
+                                      const uint8_t* ecBuf, size_t ecBufSize, const python::Type& general_case_input_type);
 
         /*!
          * thread-safe logger function

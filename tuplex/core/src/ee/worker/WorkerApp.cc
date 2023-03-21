@@ -2227,6 +2227,31 @@ namespace tuplex {
 
     static std::atomic_int rbuf_counter(0);
 
+
+    std::string
+    WorkerApp::exceptRowToString(int64_t ecRowNumber, const ExceptionCode &ecCode, const uint8_t *ecBuf, size_t ecBufSize, const python::Type& general_case_input_type) {
+        std::stringstream ss;
+
+        ss<<"normal -> general except | row: "<<ecRowNumber<<" ecCode: "<< ecToI64(ecCode)<<" size: "<<sizeToMemString(ecBufSize)<<" content: ";
+
+        // what exception code is it? -> special types require certain conversions...
+        switch(ecCode) {
+            case ExceptionCode::BADPARSE_STRING_INPUT: {
+                // bad parse row
+                ss<<pythonStringFromParseException(ecBuf, ecBufSize);
+                break;
+            }
+            default: {
+                // must be in general-case except format -> decode via that
+                Row row = Row::fromMemory(Schema(Schema::MemoryLayout::ROW, general_case_input_type), ecBuf, ecBufSize);
+                ss<<row.toPythonString();
+                break;
+            }
+        }
+
+        return ss.str();
+    }
+
     int64_t WorkerApp::resolveBuffer(int threadNo, Buffer &buf, size_t numRows, const TransformStage *stage,
                                      const std::shared_ptr<TransformStage::JITSymbols> &syms) {
 
@@ -2306,6 +2331,18 @@ namespace tuplex {
 
             // try to resolve using compiled resolver...
             if(compiledResolver) {
+
+                // debug, can remove lines from here...
+                // check if not enough samples stored, if so store row!
+                if(env->normalToGeneralExceptSample.size() < ThreadEnv::MAX_EXCEPT_SAMPLE) {
+                    auto general_case_input_type = stage->inputSchema().getRowType();
+                    auto except_row_str = exceptRowToString(ecRowNumber, i64ToEC(ecCode), ecBuf, ecBufSize, general_case_input_type);
+                    logger().debug(except_row_str);
+                    env->normalToGeneralExceptSample.push_back(except_row_str);
+                }
+                // ... to here
+
+
                 // for hyper, force onto general case format.
                  rc = compiledResolver(env, ecRowNumber, ecCode, ecBuf, ecBufSize);
                 if(rc != ecToI32(ExceptionCode::SUCCESS)) {

@@ -1681,12 +1681,25 @@ namespace tuplex {
         llvm::Value* list_upcast(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* list_ptr,
                                  const python::Type& list_type, const python::Type& target_list_type) {
             // function creation can be cached...
+            auto llvm_list_type = env.pythonToLLVMType(list_type);
             auto llvm_target_list_type = env.pythonToLLVMType(target_list_type);
             auto target_list_ptr = env.CreateFirstBlockAlloca(builder, llvm_target_list_type);
             list_init_empty(env, builder, target_list_ptr, target_list_type);
 
             // create upcast func & fill in. (@TODO: could cache this!)
             auto upcast_func = list_create_upcast_func(env, list_type, target_list_type);
+
+            // if list is not a real pointer, store in temp var!
+            if(!list_ptr->getType()->isPointerTy()) {
+                auto list_val = list_ptr;
+                list_ptr = env.CreateFirstBlockAlloca(builder, llvm_list_type);
+                builder.CreateStore(list_val, list_ptr);
+            }
+
+            // check args are fine
+            assert(list_ptr->getType() == llvm_list_type->getPointerTo());
+            assert(target_list_ptr->getType() == llvm_target_list_type->getPointerTo());
+
             builder.CreateCall(upcast_func, {list_ptr, target_list_ptr});
             return target_list_ptr;
         }

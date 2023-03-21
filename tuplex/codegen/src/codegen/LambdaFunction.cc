@@ -280,7 +280,6 @@ namespace tuplex {
                                                               llvm::Value *ecCode,
                                                               llvm::Value *condition,
                                                               const std::string& exception_message) {
-
             // convert ecCode to i32 if possible
             if(ecCode->getType() != _env->i32Type()) {
                 // debug check:
@@ -310,6 +309,10 @@ namespace tuplex {
 
             builder.CreateCondBr(condition, exceptionBB, normalBB);
             builder.SetInsertPoint(exceptionBB);
+
+            // debug print exception cause?
+            _env->printValue(builder, ecCode, exception_message + ", ec=");
+
             builder.CreateRet(builder.CreateZExt(ecCode, _env->i64Type()));
 
             builder.SetInsertPoint(normalBB);

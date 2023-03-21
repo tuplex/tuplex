@@ -2551,11 +2551,13 @@ namespace tuplex {
 
                 // debug check
 #ifndef NDEBUG
-//if(needle.val)
-//                _env.printValue(builder, needle.val, "needle (for search in " + callerType.desc() + ": ");
-//                if(needle.size)
-//                    _env.printValue(builder, needle.size, "needle size: ");
-//                _env.printValue(builder, find_res.val, "find ret: ");
+                if(needle.val)
+                    _env.printValue(builder, needle.val, "needle (for search in " + callerType.desc() + ": ");
+                if(needle.size)
+                    _env.printValue(builder, needle.size, "needle size: ");
+                if(needle.is_null)
+                    _env.printValue(builder, needle.is_null, "needle is_null: ");
+                _env.printValue(builder, find_res.val, "find ret: ");
 #endif
 
                 lfb.addException(builder, ExceptionCode::VALUEERROR, not_found, "ValueError on list.index, entry not found");

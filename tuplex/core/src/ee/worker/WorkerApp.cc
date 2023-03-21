@@ -144,6 +144,12 @@ namespace tuplex {
         _output_uris.clear();
 
         _timeDict.clear();
+
+        // reset default compile policy based on worker settings...
+        codegen::DEFAULT_COMPILE_POLICY.allowNumericTypeUnification = _settings.allowNumericTypeUnification;
+        codegen::DEFAULT_COMPILE_POLICY.normalCaseThreshold = _settings.normalCaseThreshold;
+        codegen::DEFAULT_COMPILE_POLICY.allowUndefinedBehavior = false; // not avail
+        codegen::DEFAULT_COMPILE_POLICY.sharedObjectPropagation = true; // not avail, but activate.
     }
 
     void WorkerApp::shutdown() {

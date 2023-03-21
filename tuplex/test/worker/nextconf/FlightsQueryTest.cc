@@ -271,6 +271,53 @@ namespace tuplex {
                 .tocsv(output_path);
     }
 
+    TEST_F(FlightsQuery, CarrierListFindLocalTest) {
+        using namespace std;
+
+        // set input/output paths
+        auto exp_settings = localWorkerSettings(true);
+        auto input_pattern = exp_settings["input_path"];
+        auto output_path = exp_settings["output_path"];
+        SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));
+        ContextOptions co = ContextOptions::defaults();
+        for(const auto& kv : exp_settings)
+            if(startsWith(kv.first, "tuplex."))
+                co.set(kv.first, kv.second);
+
+        // disable optimizer
+        //co.set("tuplex.useLLVMOptimizer", "false");
+
+        // creater context according to settings
+        Context ctx(co);
+
+        runtime::init(co.RUNTIME_LIBRARY().toPath());
+
+        // dump settings
+        stringToFile("context_settings.json", ctx.getOptions().toString());
+
+        input_pattern = "/hot/data/flights_all/flights_on_time_performance_1987_10.csv,/hot/data/flights_all/flights_on_time_performance_2001_09.csv,/hot/data/flights_all/flights_on_time_performance_2021_11.csv";
+
+        // now perform query...
+        auto& ds = ctx.csv(input_pattern, {}, option<bool>::none, option<char>::none, '"', {""}, {}, {}, sm);
+
+        auto extract_feature_vec_code = "def extract_feature_vector(row):\n"
+                                        "    carrier_list = [None, 'EA', 'UA', 'PI', 'NK', 'PS', 'AA', 'NW', 'EV', 'B6', 'HP', 'TW', 'DL', 'OO', 'F9', 'YV',\n"
+                                        "                    'TZ', 'US',\n"
+                                        "                    'MQ', 'OH', 'HA', 'ML (1)', 'XE', 'G4', 'YX', 'DH', 'AS', 'KH', 'QX', 'CO', 'FL', 'VX', 'PA (1)',\n"
+                                        "                    'WN', '9E']\n"
+                                        "\n"
+                                        "    carrier = carrier_list.index(row['OP_UNIQUE_CARRIER'])\n"
+                                        "    return [carrier, 0.0, 0.0, 0.0, 0.0,  0.0, 0.0, 0.0, 0.0,  0.0, 0.0, 0.0, 0.0, None]\n";
+
+        // add function that normalizes features (f-mean) / std
+        // and then perform linear model for all of the variables in fill-in-delays function (adjusted)
+        // now create extract vec (but only for relevant years!)
+        ds.withColumn("features", UDF(extract_feature_vec_code))
+                .map(UDF(extractFillDelaysCode()))
+                .filter(UDF("lambda row: 2000 <= row['year'] <= 2005"))
+                .tocsv(output_path);
+    }
+
     TEST_F(FlightsQuery, LocalTestAll) {
         using namespace std;
 

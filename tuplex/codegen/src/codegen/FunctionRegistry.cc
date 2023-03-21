@@ -2551,13 +2551,19 @@ namespace tuplex {
 
                 // debug check
 #ifndef NDEBUG
-                // if(needle.val)
-                //     _env.printValue(builder, needle.val, "needle (for search in " + callerType.desc() + ": ");
-                // if(needle.size)
-                //     _env.printValue(builder, needle.size, "needle size: ");
-                // if(needle.is_null)
-                //     _env.printValue(builder, needle.is_null, "needle is_null: ");
-                // _env.printValue(builder, find_res.val, "find ret: ");
+                // hack to trigger only on slow path
+                // auto mod_name = builder.GetInsertBlock()->getParent()->getParent()->getName().str();
+                // if(mod_name != "tuplex_fastCodePath") {
+                //     // print needle only if not is_null
+                //     auto val = needle.is_null ? builder.CreateSelect(needle.is_null, _env.strConst(builder, "<nullptr>"), needle.val) : needle.val;
+                //     assert(val);
+                //     _env.printValue(builder, val, "needle (for search in " + callerType.desc() + ": ");
+                //      if(needle.size)
+                //          _env.printValue(builder, needle.size, "needle size: ");
+                //      if(needle.is_null)
+                //          _env.printValue(builder, needle.is_null, "needle is_null: ");
+                //     _env.printValue(builder, find_res.val, "find ret: ");
+                // }
 #endif
 
                 lfb.addException(builder, ExceptionCode::VALUEERROR, not_found, "ValueError on list.index, entry not found");

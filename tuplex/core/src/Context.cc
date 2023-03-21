@@ -45,6 +45,9 @@ namespace tuplex {
         // ==> free blocks after that on context destruction...
         _options = options;
 
+        // this here is a bit of a hack, overwrite default compile policy with parameters...
+        codegen::DEFAULT_COMPILE_POLICY = compilePolicyFromOptions(options);
+
 #ifdef BUILD_WITH_AWS
         // init AWS SDK to get access to S3 filesystem
         auto aws_credentials = AWSCredentials::get();

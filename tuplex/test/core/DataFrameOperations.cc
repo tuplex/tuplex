@@ -105,7 +105,7 @@ TEST_F(DataFrameTest, ListIndex) {
         auto v = c.parallelize({Row("test"), Row("hello")}).map(UDF("lambda x: ['test', None, 'hello'].index(x)")).collectAsVector();
         ASSERT_EQ(v.size(), 2);
         EXPECT_EQ(v[0].toPythonString(), "(0,)");
-        EXPECT_EQ(v[1].toPythonString(), "(2git ,)");
+        EXPECT_EQ(v[1].toPythonString(), "(2,)");
     }
 }
 

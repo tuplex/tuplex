@@ -3,7 +3,7 @@
 # this file runs the central hyperspecialization vs. no hyperspecialization experiment
 
 # use 11 runs (in case of cold start) and a timeout after 60min
-NUM_RUNS=11 # 7 #4 #10
+NUM_RUNS=11 #1 # 7 #4 #10
 TIMEOUT=3600
 
 #-------------------------------------------------------------------------------------------------

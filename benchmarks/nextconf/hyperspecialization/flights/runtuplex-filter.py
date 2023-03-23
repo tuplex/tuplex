@@ -86,19 +86,13 @@ def extract_feature_vector(row):
     dest_state = state_list.index(row['DEST_STATE_NM'])
 
     # numerical variables
-    dep_delay = 0.0 if row['DEP_DELAY'] is None else row['DEP_DELAY']
-    arr_delay = 0.0 if row['ARR_DELAY'] is None else row['ARR_DELAY']
+    dep_delay = row['DEP_DELAY']
+    arr_delay = row['ARR_DELAY']
 
     crs_arr_hour = float(int(row['CRS_ARR_TIME']) // 100)
     crs_dep_hour = float(int(row['CRS_DEP_TIME']) // 100)
     crs_arr_5min = float(int(row['CRS_ARR_TIME']) % 100 // 5)
     crs_dep_5min = float(int(row['CRS_DEP_TIME']) % 100 // 5)
-
-    # fill null
-    if dep_delay is None:
-        dep_delay = 0.0
-    if arr_delay is None:
-        arr_delay = 0.0
 
     features = [float(quarter), float(month), float(day_of_month),
                 float(day_of_week), float(carrier), float(origin_state),
@@ -344,7 +338,7 @@ if __name__ == '__main__':
             conf = json.load(fp)
 
     conf['inputSplitSize'] = '2GB' #'256MB' #'128MB'
-    conf["tuplex.experimental.opportuneCompilation"] = True #False #True
+    conf["tuplex.experimental.opportuneCompilation"] = True #False #True #False #True
 
     if args.no_nvo:
         conf["optimizer.nullValueOptimization"] = False
@@ -362,12 +356,12 @@ if __name__ == '__main__':
 
     #debug
     #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_1999_05.csv'
-    # input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2000_02.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv"
+    #input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2001_09.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv"
 
     ctx.csv(input_pattern, sampling_mode=sm) \
         .withColumn("features", extract_feature_vector) \
         .map(fill_in_delays) \
-        .filter(lambda x: 2000 <= x['year'] <= 2005) \
+        .filter(lambda x: 2002 <= x['year'] <= 2005) \
         .tocsv(s3_output_path)
 
     ### END QUERY ###

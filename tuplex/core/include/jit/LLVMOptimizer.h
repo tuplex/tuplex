@@ -26,6 +26,13 @@ namespace tuplex {
     class LLVMOptimizer {
     private:
         MessageHandler& _logger;
+
+        /*!
+         * set target triple and target layout - else optimization fails.
+         * ALWAYS USE THIS FUNCTION before calling opt passes.
+         * @param mod
+         */
+        void attachHostMachineLayout(llvm::Module& mod);
     public:
 
         LLVMOptimizer();

@@ -552,6 +552,7 @@ namespace tuplex {
 
             try {
                 // single-threaded
+                logger().info("Single-threaded worker starting fast-path execution.");
                 for(unsigned i = 0; i < input_parts.size(); ++i) {
                    const auto& fp = input_parts[i];
                     size_t inputRowCount = 0;
@@ -607,7 +608,7 @@ namespace tuplex {
 
                     try {
                         for(const auto& part : parts) {
-                            logger().debug("thread (" + std::to_string(threadNo) + ") processing part");
+                            logger().debug("thread (" + std::to_string(threadNo) + ") processing part via fast-path");
                             size_t inputRowCount = 0;
                             processCodes[threadNo] = processSource(threadNo, tstage->fileInputOperatorID(), part, tstage, syms, &inputRowCount);
                             if(processCodes[threadNo] != WORKER_OK)

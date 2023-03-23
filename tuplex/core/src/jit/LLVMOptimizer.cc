@@ -50,6 +50,7 @@
 #include "llvm/Transforms/IPO/AlwaysInliner.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Utils/Cloning.h"
+#include "codegen/CodegenHelper.h"
 #include <algorithm>
 #include <memory>
 #include <Logger.h>
@@ -80,40 +81,42 @@ namespace tuplex {
         // perform first some dead code elimination to ease pressure on following passes
         fpm.add(createDeadCodeEliminationPass());
         fpm.add(createDeadStoreEliminationPass());
-        
-        
+
+
 //        // function-wise passes
         fpm.add(createSROAPass()); // break up aggregates
-        //fpm.add(createInstructionCombiningPass()); // <-- this pass here fails. It has all the powerful patterns though...
-        fpm.add(createReassociatePass());
-        fpm.add(createGVNPass());
-        fpm.add(createCFGSimplificationPass());
-        fpm.add(createAggressiveDCEPass());
-        fpm.add(createCFGSimplificationPass());
-
-        // added passes...
-        fpm.add(createPromoteMemoryToRegisterPass()); // mem2reg pass
-        fpm.add(createAggressiveDCEPass());
-
-        fpm.add(createSinkingPass());
-        fpm.add(createCFGSimplificationPass());
-        fpm.add(createAggressiveInstCombinerPass());
-
-        fpm.add(createAggressiveDCEPass());
-
-        // // try here instruction combining pass...
-        // buggy...
-        // fpm.add(createInstructionCombiningPass(true));
-
-        // custom added passes
-        // ==> Tuplex is memcpy heavy, i.e. optimize!
-        fpm.add(createMemCpyOptPass()); // !!! use this pass for sure !!! It's quite expensive first, but it pays off big time.
-
-        // create sel prep pass
-        fpm.add(createCodeGenPreparePass());
+//        //fpm.add(createInstructionCombiningPass()); // <-- this pass here fails. It has all the powerful patterns though...
+//        fpm.add(createReassociatePass());
+//        fpm.add(createGVNPass());
+//        fpm.add(createCFGSimplificationPass());
+//        fpm.add(createAggressiveDCEPass());
+//        fpm.add(createCFGSimplificationPass());
+//
+//        // added passes...
+//        fpm.add(createPromoteMemoryToRegisterPass()); // mem2reg pass
+//        fpm.add(createAggressiveDCEPass());
+//
+//        fpm.add(createSinkingPass());
+//        fpm.add(createCFGSimplificationPass());
+//        fpm.add(createAggressiveInstCombinerPass());
+//
+//        fpm.add(createAggressiveDCEPass());
+//
+//        // // try here instruction combining pass...
+//        // buggy...
+//        // fpm.add(createInstructionCombiningPass(true));
+//
+//        // custom added passes
+//        // ==> Tuplex is memcpy heavy, i.e. optimize!
+//        fpm.add(createMemCpyOptPass()); // !!! use this pass for sure !!! It's quite expensive first, but it pays off big time.
+//
+//        // create sel prep pass
+//        fpm.add(createCodeGenPreparePass());
     }
 
     void optimizePipelineI(llvm::Module& mod) {
+        // mod.setDataLayout(DataLayout::)
+
         // Step 1: optimize functions
         auto fpm = llvm::make_unique<legacy::FunctionPassManager>(&mod);
         assert(fpm.get());
@@ -125,21 +128,21 @@ namespace tuplex {
         for(Function& f: mod.getFunctionList())
             fpm->run(f);
 
-        // on current master, module optimizations are deactivated. Inlining seems to worsen things!
-         // Step 2: optimize over whole module
-         // Module passes (function inlining)
-         legacy::PassManager pm;
-         // inline functions now
-         pm.add(createGlobalDCEPass()); // remove dead globals
-         pm.add(createConstantMergePass()); // merge global constants
-         pm.add(createFunctionInliningPass(200)); // 250 is O3 threshold.
-         pm.add(createDeadArgEliminationPass());
-         pm.run(mod);
-
-         // run per function pass again
-        // run function passes over each function in the module
-        for(Function& f: mod.getFunctionList())
-            fpm->run(f);
+//        // on current master, module optimizations are deactivated. Inlining seems to worsen things!
+//         // Step 2: optimize over whole module
+//         // Module passes (function inlining)
+//         legacy::PassManager pm;
+//         // inline functions now
+//         pm.add(createGlobalDCEPass()); // remove dead globals
+//         pm.add(createConstantMergePass()); // merge global constants
+//         pm.add(createFunctionInliningPass(200)); // 250 is O3 threshold.
+//         pm.add(createDeadArgEliminationPass());
+//         pm.run(mod);
+//
+//         // run per function pass again
+//        // run function passes over each function in the module
+//        for(Function& f: mod.getFunctionList())
+//            fpm->run(f);
     }
 
     // // these are the default passes used
@@ -265,6 +268,9 @@ namespace tuplex {
             return llvmIR;
         }
 
+        attachHostMachineLayout(*mod);
+
+
         // Some interesting links for LLVM passes
         // @TODO: experiment a bit with this
         // other pass order:
@@ -298,15 +304,30 @@ namespace tuplex {
         return ir;
     }
 
+    void LLVMOptimizer::attachHostMachineLayout(llvm::Module &mod) {
+        // set data layout and triple of module to this machine (unless disabled)
+        // else terrible bugs happen:
+        // https://bugs.llvm.org/show_bug.cgi?id=45188
+        auto target_machine = tuplex::codegen::getOrCreateTargetMachine();
+        assert(target_machine);
+        auto DL = target_machine->createDataLayout();
+        _logger.info("LLVM optimizing for triple " + llvm::sys::getDefaultTargetTriple() + " and data layout: " + DL.getStringRepresentation());
+        mod.setDataLayout(DL.getStringRepresentation());
+        mod.setTargetTriple(llvm::sys::getDefaultTargetTriple());
+    }
+
     void LLVMOptimizer::optimizeModule(llvm::Module &mod) {
+        attachHostMachineLayout(mod);
+
         // OptLevel 3, SizeLevel 0
-       // Optimize(mod, 3, 0);
+        //Optimize(mod, 3, 0);
         
         // Optimize(mod, 2, 0);
 
+        //Optimize(mod, 2, 0);
+
         // // perform some basic passes (for fast opt) -> defer complex logic to general-case.
         optimizePipelineI(mod);
-
     }
 
     // use https://github.com/jmmartinez/easy-just-in-time/blob/master/runtime/Function.cpp

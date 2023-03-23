@@ -1690,12 +1690,12 @@ namespace tuplex {
             // create upcast func & fill in. (@TODO: could cache this!)
             auto upcast_func = list_create_upcast_func(env, list_type, target_list_type);
 
-            // if list is not a real pointer, store in temp var!
-            if(!list_ptr->getType()->isPointerTy()) {
-                auto list_val = list_ptr;
-                list_ptr = env.CreateFirstBlockAlloca(builder, llvm_list_type);
-                builder.CreateStore(list_val, list_ptr);
-            }
+            // // if list is not a real pointer, store in temp var!
+            // if(!list_ptr->getType()->isPointerTy()) {
+            //     auto list_val = list_ptr;
+            //     list_ptr = env.CreateFirstBlockAlloca(builder, llvm_list_type);
+            //     builder.CreateStore(list_val, list_ptr);
+            // }
 
             // check args are fine
             assert(list_ptr->getType() == llvm_list_type->getPointerTo());

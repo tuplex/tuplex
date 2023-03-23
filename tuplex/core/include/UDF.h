@@ -67,7 +67,7 @@ namespace tuplex {
         void logTypingErrors(bool print=true) const;
 
         static bool _compilationEnabled; // globally ??
-        const codegen::CompilePolicy& _policy; // how to compile UDF
+        codegen::CompilePolicy _policy; // how to compile UDF (this is a copy attribute!)
 
         /*!
          * checks whether any active branch has a PyObject typing => this would imply
@@ -117,7 +117,7 @@ namespace tuplex {
             _numInputColumns = other._numInputColumns;
             _columnNames = other._columnNames;
             _rewriteMap = other._rewriteMap;
-            const_cast<codegen::CompilePolicy&>(this->_policy) = other._policy;
+            _policy = other._policy;
             return *this;
         }
 
@@ -356,7 +356,7 @@ namespace tuplex {
         // cereal serialization functions
         template<class Archive> void serialize(Archive &ar) {
             ar(_ast, _isCompiled, _failed, _code, _pickledCode, _outputSchema, _inputSchema,
-               _dictAccessFound, _rewriteDictExecuted, _numInputColumns, _columnNames, _rewriteMap);
+               _dictAccessFound, _rewriteDictExecuted, _numInputColumns, _columnNames, _rewriteMap, _policy);
         }
 #endif
     };

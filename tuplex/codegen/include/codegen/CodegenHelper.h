@@ -23,6 +23,9 @@
 #include <llvm/Target/TargetMachine.h>
 //#endif
 
+// Note: would be great to use something like this to find bugs within LLVM IR generation
+// https://reviews.llvm.org/D40778#change-y6HwnUloCr6I
+
 
 // builder and codegen funcs
 #include <llvm/IR/IRBuilder.h>
@@ -62,6 +65,13 @@ namespace tuplex {
                     return false;
                 return true;
             }
+
+#ifdef BUILD_WITH_CEREAL
+            // cereal serialization functions
+            template<class Archive> void serialize(Archive &ar) {
+                ar(allowUndefinedBehavior, allowNumericTypeUnification, sharedObjectPropagation, normalCaseThreshold);
+            }
+#endif
         };
 
         static CompilePolicy DEFAULT_COMPILE_POLICY;

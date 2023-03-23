@@ -17,6 +17,7 @@ using namespace nlohmann;
 using namespace aws::lambda_runtime;
 
 static bool g_reused = false;
+static bool g_received_unrecoverable_signal = false;
 static tuplex::uniqueid_t g_id = tuplex::getUniqueID();
 uint64_t g_start_timestamp = 0;
 uint32_t g_num_requests_served = 0;
@@ -37,6 +38,12 @@ static tuplex::messages::InvocationResponse lambda_handler(invocation_request co
 //    auto response = lambda_main(req); // let lambda cpp runtime handle all of this...
 //    g_reused = true; // required for tracking whether lambda is reused or not.
 //    return response;
+
+    // unrecoverable signal?
+    if(g_received_unrecoverable_signal) {
+        std::cerr<<"Previous invocation recevied unrecoverable signal, shutting down this Lambda container via exit(0)."<<std::endl;
+        exit(1); // <- shutdown process with code 1
+    }
 
     // get beautiful stacktraces via: https://github.com/bombela/backward-cpp
 
@@ -65,6 +72,10 @@ static tuplex::messages::InvocationResponse lambda_handler(invocation_request co
     } else {
         // special exception code
         g_reused = true;
+
+        // next invocation will shutdown this lambda runtime.
+        g_received_unrecoverable_signal = true;
+
         return make_exception("Got signal " + std::to_string(sig) + ", traceback:\n" + getLastStackTrace());
     }
 }

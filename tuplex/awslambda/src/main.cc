@@ -24,6 +24,7 @@ uint32_t g_num_requests_served = 0;
 bool container_reused() { return g_reused; }
 extern tuplex::uniqueid_t container_id() { return g_id; }
 
+// use newer, google backward lib to install signals...
 
 
 std::string proto_to_json(const tuplex::messages::InvocationResponse& r) {
@@ -33,10 +34,11 @@ std::string proto_to_json(const tuplex::messages::InvocationResponse& r) {
 }
 
 static tuplex::messages::InvocationResponse lambda_handler(invocation_request const& req) {
+//    auto response = lambda_main(req); // let lambda cpp runtime handle all of this...
+//    g_reused = true; // required for tracking whether lambda is reused or not.
+//    return response;
 
-    auto response = lambda_main(req); // let lambda cpp runtime handle all of this...
-    g_reused = true; // required for tracking whether lambda is reused or not.
-    return response;
+    // get beautiful stacktraces via: https://github.com/bombela/backward-cpp
 
     // old manual tuplex way of getting a traceback.
     // for signals, do jmp_buf
@@ -63,7 +65,7 @@ static tuplex::messages::InvocationResponse lambda_handler(invocation_request co
     } else {
         // special exception code
         g_reused = true;
-        return make_exception("SIGSEV encountered");
+        return make_exception("Got signal " + std::to_string(sig) + ", traceback:\n" + getLastStackTrace());
     }
 }
 
@@ -95,12 +97,14 @@ int main() {
     Logger::init({std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>(), log_sink});
 
     // install sigsev handler to throw C++ exception which is caught in handler...
-    struct sigaction sigact;
-    sigact.sa_sigaction = sigsev_handler;
-    sigact.sa_flags = SA_RESTART | SA_SIGINFO;
+    tuplex::SignalHandling sh; // <-- tuplex modified version of original backward signalhandling.
 
-    // set sigabort too
-    sigaction(SIGABRT, &sigact, nullptr);
+//    struct sigaction sigact;
+//    sigact.sa_sigaction = sigsev_handler;
+//    sigact.sa_flags = SA_RESTART | SA_SIGINFO;
+//
+//    // set sigabort too
+//    sigaction(SIGABRT, &sigact, nullptr);
 
     // initialize LambdaWorkerApp
     init_app();
@@ -115,49 +119,51 @@ int main() {
         return 0;
     }
 
-    //    // old:
-    //    global_init();
-    //    reset_executor_setup();
-
-    // signal(SIGSEGV, sigsev_handler);
-    if(sigaction(SIGSEGV, &sigact, nullptr) != 0) {
-
-        run_handler([log_sink, log_id](invocation_request const& req) {
-            auto proto_msg = make_exception("could not add sigsev handler");
-            log_sink->add_to_proto_message(proto_msg, log_id);
-            log_sink->reset();
-            return invocation_response::success(proto_to_json(proto_msg),
-                                                "application/json");
-        });
-
-    } else {
-
-        // Lambda basically invokes multiple times the handler, hence can use this to cache results
-        // i.e. compiled code...
-
-        // init here globally things
-        // idea is to use a global class, LambdaApplication
-        // which has init, shutdown and invocation request...
-        // ==> need this too for correct stats & Co
-
-
-        // i.e. create the following way a class:
-        // Constructor setups apis, compiler, runtime etc.
-        // then, use a LRU cache (i.e. when putting a new unseen ir code function in)
-        // for compiled functions
-        // this avoids costly recompilation of functions!
-
-        // also, don't forget to reset stats counters for each invocation
-
-        run_handler([log_sink, log_id](invocation_request const& req) {
-            auto proto_msg = lambda_handler(req);
-            log_sink->add_to_proto_message(proto_msg, log_id);
-            log_sink->reset();
-            // add to json (?)
-            return invocation_response::success(proto_to_json(proto_msg),
-                                         "application/json");
-        });
-    }
+    run_handler([log_sink, log_id](invocation_request const& req) {
+        auto proto_msg = lambda_handler(req);
+        log_sink->add_to_proto_message(proto_msg, log_id);
+        log_sink->reset();
+        // add to json (?)
+        return invocation_response::success(proto_to_json(proto_msg),
+                                            "application/json");
+    });
+//
+//    //    // old:
+//    //    global_init();
+//    //    reset_executor_setup();
+//
+//    // signal(SIGSEGV, sigsev_handler);
+//    if(sigaction(SIGSEGV, &sigact, nullptr) != 0) {
+//
+//        run_handler([log_sink, log_id](invocation_request const& req) {
+//            auto proto_msg = make_exception("could not add sigsev handler");
+//            log_sink->add_to_proto_message(proto_msg, log_id);
+//            log_sink->reset();
+//            return invocation_response::success(proto_to_json(proto_msg),
+//                                                "application/json");
+//        });
+//
+//    } else {
+//
+//        // Lambda basically invokes multiple times the handler, hence can use this to cache results
+//        // i.e. compiled code...
+//
+//        // init here globally things
+//        // idea is to use a global class, LambdaApplication
+//        // which has init, shutdown and invocation request...
+//        // ==> need this too for correct stats & Co
+//
+//
+//        // i.e. create the following way a class:
+//        // Constructor setups apis, compiler, runtime etc.
+//        // then, use a LRU cache (i.e. when putting a new unseen ir code function in)
+//        // for compiled functions
+//        // this avoids costly recompilation of functions!
+//
+//        // also, don't forget to reset stats counters for each invocation
+//
+//
+//    }
 
     // flush buffers
     std::cout.flush();

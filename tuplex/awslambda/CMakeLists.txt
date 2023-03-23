@@ -41,7 +41,7 @@ include_directories("../worker/include")
 add_executable(${LAMBDA_NAME} "src/main.cc"
         "src/lambda_main.cc"
         "src/sighandler.cc"
-        "../core/src/ee/aws/LambdaWorkerApp.cc")
+        "../core/src/ee/aws/LambdaWorkerApp.cc" src/backward.h)
 
 # enable export symbols in debug for backtrace
 set_target_properties(${LAMBDA_NAME} PROPERTIES ENABLE_EXPORTS 1)

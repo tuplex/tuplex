@@ -85,33 +85,33 @@ namespace tuplex {
 
 //        // function-wise passes
         fpm.add(createSROAPass()); // break up aggregates
-//        //fpm.add(createInstructionCombiningPass()); // <-- this pass here fails. It has all the powerful patterns though...
-//        fpm.add(createReassociatePass());
-//        fpm.add(createGVNPass());
-//        fpm.add(createCFGSimplificationPass());
-//        fpm.add(createAggressiveDCEPass());
-//        fpm.add(createCFGSimplificationPass());
-//
-//        // added passes...
-//        fpm.add(createPromoteMemoryToRegisterPass()); // mem2reg pass
-//        fpm.add(createAggressiveDCEPass());
-//
-//        fpm.add(createSinkingPass());
-//        fpm.add(createCFGSimplificationPass());
-//        fpm.add(createAggressiveInstCombinerPass());
-//
-//        fpm.add(createAggressiveDCEPass());
-//
-//        // // try here instruction combining pass...
-//        // buggy...
-//        // fpm.add(createInstructionCombiningPass(true));
-//
-//        // custom added passes
-//        // ==> Tuplex is memcpy heavy, i.e. optimize!
-//        fpm.add(createMemCpyOptPass()); // !!! use this pass for sure !!! It's quite expensive first, but it pays off big time.
-//
-//        // create sel prep pass
-//        fpm.add(createCodeGenPreparePass());
+        //fpm.add(createInstructionCombiningPass()); // <-- this pass here fails. It has all the powerful patterns though...
+        fpm.add(createReassociatePass());
+//        fpm.add(createGVNPass()); // <-- this here is also buggy, don't use
+        fpm.add(createCFGSimplificationPass());
+        fpm.add(createAggressiveDCEPass());
+        fpm.add(createCFGSimplificationPass());
+
+        // added passes...
+        fpm.add(createPromoteMemoryToRegisterPass()); // mem2reg pass
+        fpm.add(createAggressiveDCEPass());
+
+        fpm.add(createSinkingPass());
+        fpm.add(createCFGSimplificationPass());
+        fpm.add(createAggressiveInstCombinerPass());
+
+        fpm.add(createAggressiveDCEPass());
+
+        // // try here instruction combining pass...
+        // buggy...
+        // fpm.add(createInstructionCombiningPass(true));
+
+        // custom added passes
+        // ==> Tuplex is memcpy heavy, i.e. optimize!
+        fpm.add(createMemCpyOptPass()); // !!! use this pass for sure !!! It's quite expensive first, but it pays off big time.
+
+        // create sel prep pass
+        fpm.add(createCodeGenPreparePass());
     }
 
     void optimizePipelineI(llvm::Module& mod) {

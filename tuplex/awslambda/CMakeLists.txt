@@ -53,6 +53,23 @@ target_link_libraries(${LAMBDA_NAME} PRIVATE AWS::aws-lambda-runtime
         ${AWSSDK_LINK_LIBRARIES} ${Boost_LIBRARIES} ${LibMagic_LIBRARIES} ${Protobuf_LIBRARIES} ${Python3_LIBRARIES})
 target_compile_features(${LAMBDA_NAME} PRIVATE "cxx_std_11")
 
+# add dw libs for more insight into debugging
+find_library(DW_LIB NAMES dw)
+if (NOT DW_LIB STREQUAL DW_LIB-NOTFOUND)
+    message("-- Enhanced stack-traces are enabled via libdw: ${DW_LIB}")
+    target_compile_definitions(${LAMBDA_NAME} PRIVATE "BACKWARD_HAS_DW=1")
+    target_link_libraries(${LAMBDA_NAME} PUBLIC "${DW_LIB}")
+else()
+    find_library(BFD_LIB NAMES bfd)
+    if (NOT BFD_LIB STREQUAL BFD_LIB-NOTFOUND)
+        message("-- Enhanced stack-traces are enabled via libbfd: ${BFD_LIB}")
+        target_compile_definitions(${LAMBDA_NAME} PRIVATE "BACKWARD_HAS_BFD=1")
+        target_link_libraries(${LAMBDA_NAME} PRIVATE "${BFD_LIB}")
+    endif()
+endif()
+
+# increase verbosity level
+target_compile_definitions(${LAMBDA_NAME} PRIVATE "AWS_LAMBDA_LOG=3")
 
 # @TODO: in order to reduce size of Lambda, strip JITCompiler away from codegen.
 # it bloats the size.

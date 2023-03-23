@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#(c) 2017-2022 Tuplex team
+#(c) 2017-2023 Tuplex team
 
 # this a script to install boost for specific python version to some folder
 PYTHON_EXECUTABLE=$1

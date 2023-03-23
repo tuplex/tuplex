@@ -287,6 +287,9 @@ namespace tuplex {
         // disable optimizer
         //co.set("tuplex.useLLVMOptimizer", "false");
 
+        // set auto upcast to false s.t. that correct list typing happens...
+        co.set("tuplex.autoUpcast", "false");
+
         // creater context according to settings
         Context ctx(co);
 

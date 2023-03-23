@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#(c) 2017-2022 Tuplex team
+#(c) 2017-2023 Tuplex team
 
 
 # install all build dependencies for tuplex (CentOS)
@@ -17,7 +17,7 @@ mkdir -p $PREFIX/lib
 echo ">> Files will be downloaded to ${WORKDIR}/tuplex-downloads"
 WORKDIR=$WORKDIR/tuplex-downloads
 mkdir -p $WORKDIR
-yum install -y libedit-devel libzip-devel   pkgconfig openssl-devel libxml2-devel zlib-devel    uuid libuuid-devel libffi-devel graphviz-devel   gflags-devel ncurses-devel   awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip ninja-build --skip-broken
+yum install -y libedit-devel libzip-devel elfutils-devel   pkgconfig openssl-devel libxml2-devel zlib-devel    uuid libuuid-devel libffi-devel graphviz-devel   gflags-devel ncurses-devel   awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip ninja-build --skip-broken
 
 # add github to known hosts
 mkdir -p /root/.ssh/ &&
@@ -73,14 +73,14 @@ cd ${WORKDIR}/aws \
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
 && make -j$(nproc) && make install
 
-# protobuf 3.12
-cd /tmp &&
-curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.12.0/protobuf-cpp-3.12.0.tar.gz &&
-tar xf protobuf-cpp-3.12.0.tar.gz &&
-pushd protobuf-3.12.0 &&
-./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" &&
-make -j4 && make install && ldconfig &&
-pushd
+echo ">> Installing PCRE2"
+mkdir -p ${WORKDIR}/pcre2 && cd ${WORKDIR}/pcre2 \
+&& curl -LO https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.39/pcre2-10.39.zip \
+&& unzip pcre2-10.39.zip \
+&& rm pcre2-10.39.zip \
+&& cd pcre2-10.39 \
+&& ./configure CFLAGS="-O2 -fPIC" --prefix=${PREFIX} --enable-jit=auto --disable-shared \
+&& make -j$(nproc) && make install
 
 echo ">> Installing protobuf"
 mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf \

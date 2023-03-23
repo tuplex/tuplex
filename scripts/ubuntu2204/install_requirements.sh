@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# (c) Tuplex team 2017-2022
-# auto-generated on 2022-09-20 14:15:28.012087
+# (c) Tuplex team 2017-2023
+# auto-generated on 2023-03-22 23:43:40.168391
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -11,15 +11,6 @@ if [[ $(id -u) -ne 0 ]]; then
 fi
 
 export DEBIAN_FRONTEND=noninteractive
-
-PREFIX=/opt
-mkdir -p $PREFIX
-mkdir -p $PREFIX/bin
-mkdir -p $PREFIX/include
-mkdir -p $PREFIX/lib
-mkdir -p $PREFIX/share
-WORKDIR=/tmp
-
 
 """ + workdir_setup() + """
 
@@ -33,7 +24,7 @@ echo ">> Installing apt dependencies"
 apt update -y
 
            apt-get install -y apt-utils dh-autoreconf libmagic-dev curl libxml2-dev vim build-essential libssl-dev zlib1g-dev libncurses5-dev \
-    libncursesw5-dev libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev \
+    libncursesw5-dev libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev libdw-dev \
     libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git libcurl4-openssl-dev python3-dev python3-pip openjdk-8-jre-headless
            
            ldconfig
@@ -106,7 +97,7 @@ mkdir -p ${WORKDIR}/yamlcpp && cd ${WORKDIR}/yamlcpp \
 && cd yaml-cpp \
 && git checkout tags/yaml-cpp-0.6.3 \
 && mkdir build && cd build \
-&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \
+&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${prefix} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \
 && make -j$(nproc) && make install
 
 echo ">> Installing ANTLR"

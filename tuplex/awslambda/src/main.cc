@@ -34,8 +34,11 @@ std::string proto_to_json(const tuplex::messages::InvocationResponse& r) {
 
 static tuplex::messages::InvocationResponse lambda_handler(invocation_request const& req) {
 
-    return lambda_main(req); // let lambda cpp runtime handle all of this...
+    auto response = lambda_main(req); // let lambda cpp runtime handle all of this...
+    g_reused = true; // required for tracking whether lambda is reused or not.
+    return response;
 
+    // old manual tuplex way of getting a traceback.
     // for signals, do jmp_buf
     // why is this important?
     // ==> because ELSE we get billed for the additional lambda retries -.-

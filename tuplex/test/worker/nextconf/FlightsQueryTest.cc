@@ -35,7 +35,7 @@ namespace tuplex {
         return code;
     }
 
-    std::unordered_map<std::string, std::string> lambdaSettings(bool use_hyper) {
+    static std::unordered_map<std::string, std::string> lambdaSettings(bool use_hyper) {
         std::unordered_map<std::string, std::string> m;
 
 
@@ -88,15 +88,15 @@ namespace tuplex {
     }
 
     // use local worker test settings
-    std::unordered_map<std::string, std::string> localWorkerSettings(bool use_hyper) {
+    static std::unordered_map<std::string, std::string> localWorkerSettings(bool use_hyper) {
         // couple changes
         auto m = lambdaSettings(use_hyper);
 
         // backend set to worker
         if(use_hyper)
-            m["output_path"] = "./local-exp/hyper/output.csv";
+            m["output_path"] = "./local-exp/hyper/flights/output.csv";
         else
-            m["output_path"] = "./local-exp/global/output.csv";
+            m["output_path"] = "./local-exp/global/flights/output.csv";
 
         m["tuplex.backend"] = "worker";
         m["input_path"] = "/hot/data/flights_all/flights*.csv";

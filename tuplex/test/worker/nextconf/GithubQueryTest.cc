@@ -8,3 +8,105 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 #include "TestUtils.h"
+
+// fetch github data via:
+// aws s3 cp s3://tuplex-public/data/github_daily ./github_daily --recursive
+
+
+namespace tuplex {
+    class GithubQuery : public tuplex::PyTest {
+    };
+
+    static std::unordered_map<std::string, std::string> lambdaSettings(bool use_hyper) {
+        std::unordered_map<std::string, std::string> m;
+
+
+        // shared settings
+        m["input_path"] = "s3://tuplex-public/data/github_daily/*.json";
+
+        // use stratified sampling
+        m["tuplex.aws.httpThreadCount"] = std::to_string(410);
+        m["tuplex.aws.maxConcurrency"] = std::to_string(410);
+        m["tuplex.aws.lambdaMemory"] = "10000";
+        m["tuplex.aws.lambdaThreads"] = "3";
+
+        m["tuplex.autoUpcast"] = "True";
+        m["tuplex.experimental.hyperspecialization"] = boolToString(use_hyper);
+        m["tuplex.executorCount"] = std::to_string(0);
+        m["tuplex.backend"] = "lambda";
+        m["tuplex.webui.enable"] = "False";
+        m["tuplex.driverMemory"] = "2G";
+        m["tuplex.partitionSize"] = "32MB";
+        m["tuplex.runTimeMemory"] = "32MB";
+        m["tuplex.useLLVMOptimizer"] = "True";
+        m["tuplex.optimizer.generateParser"] = "False";
+        m["tuplex.optimizer.nullValueOptimization"] = "True";
+        m["tuplex.optimizer.constantFoldingOptimization"] = "True";
+        m["tuplex.optimizer.selectionPushdown"] = "True";
+        m["tuplex.experimental.forceBadParseExceptFormat"] = "False";
+        m["tuplex.resolveWithInterpreterOnly"] = "False";
+        m["tuplex.inputSplitSize"] = "2GB";
+        m["tuplex.experimental.opportuneCompilation"] = "True";
+        m["tuplex.aws.scratchDir"] = "s3://tuplex-leonhard/scratch/github-exp";
+
+        // sampling settings incl.
+        // stratified sampling (to make things work & faster)
+        m["tuplex.sample.strataSize"] = "1024";
+        m["tuplex.sample.samplesPerStrata"]="1";
+        m["tuplex.sample.maxDetectionMemory"] = "32MB";
+        m["tuplex.sample.maxDetectionRows"] = "30000";
+
+        auto sampling_mode = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
+        m["sampling_mode"] = std::to_string(sampling_mode);
+
+        // hyper vs. general specific settings
+        if(use_hyper) {
+            m["output_path"] = "s3://tuplex-leonhard/experiments/github_hyper_new/hyper/";
+        } else {
+            m["output_path"] = "s3://tuplex-leonhard/experiments/github_hyper_new/global/";
+        }
+
+        return m;
+    }
+
+    // use local worker test settings
+    static std::unordered_map<std::string, std::string> localWorkerSettings(bool use_hyper) {
+        // couple changes
+        auto m = lambdaSettings(use_hyper);
+
+        // backend set to worker
+        if(use_hyper)
+            m["output_path"] = "./local-exp/hyper/github/output.csv";
+        else
+            m["output_path"] = "./local-exp/global/github/output.csv";
+
+        m["tuplex.backend"] = "worker";
+        m["input_path"] = "/hot/data/github_daily/*.json";
+
+        return m;
+    }
+
+
+    TEST_F(GithubQuery, BasicForkRequests) {
+        using namespace std;
+
+        // set input/output paths
+        auto exp_settings = lambdaSettings(true);
+        auto input_pattern = exp_settings["input_path"];
+        auto output_path = exp_settings["output_path"];
+        SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));
+        ContextOptions co = ContextOptions::defaults();
+        for(const auto& kv : exp_settings)
+            if(startsWith(kv.first, "tuplex."))
+                co.set(kv.first, kv.second);
+
+        // creater context according to settings
+        Context ctx(co);
+
+        runtime::init(co.RUNTIME_LIBRARY().toPath());
+
+        // dump settings
+        stringToFile("context_settings.json", ctx.getOptions().toString());
+
+    }
+}

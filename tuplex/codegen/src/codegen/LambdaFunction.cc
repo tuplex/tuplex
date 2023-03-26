@@ -310,9 +310,10 @@ namespace tuplex {
             builder.CreateCondBr(condition, exceptionBB, normalBB);
             builder.SetInsertPoint(exceptionBB);
 
-            // debug print exception cause?
+#ifndef NDEBUG
+            // // debug print exception cause?
             _env->printValue(builder, ecCode, exception_message + ", ec=");
-
+#endif
             builder.CreateRet(builder.CreateZExt(ecCode, _env->i64Type()));
 
             builder.SetInsertPoint(normalBB);

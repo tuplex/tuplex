@@ -52,7 +52,7 @@ plot_targets = []
 DEFAULT_RESULT_PATH = 'r5d.8xlarge'
 DEFAULT_OUTPUT_PATH = 'plots'
 DOCKER_IMAGE_TAG = 'tuplex/benchmarkii'
-DOCKER_CONTAINER_NAME = 'vldb22'
+DOCKER_CONTAINER_NAME = 'vldb23'
 
 # hidden config file to check compatibility of settings
 CONFIG_FILE='.config.json'
@@ -95,6 +95,32 @@ def retrieve_targets_to_run(name):
         if ename.lower() == name or ename.lower().startswith(name + '/'):
             targets.append(ename)
     return sorted(targets)
+
+def build_docker_image():
+    """build docker image, this may take a while"""
+    # --> could either download or build from scratch
+    assert DOCKER_IMAGE_TAG == 'tuplex/benchmarkii', 'support only for image ' + DOCKER_IMAGE_TAG
+    image_script_path = 'scripts/docker/benchmarkII/create-image.sh'
+
+    logging.info('Building docker image {} from scratch, invoking {}.'.format(DOCKER_IMAGE_TAG, image_script_path))
+    tstart_build = time.time()
+    script_abs_path = os.path.join('tuplex', image_script_path)
+
+    assert os.path.isfile(script_abs_path), 'Could not find script under ./{}'.format(script_abs_path)
+
+    cmd = ['bash', script_abs_path]
+    env = os.environ.copy()
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env)
+    for line in iter(p.stdout.readline, b''):
+        logging.info(line.decode().strip())
+    p.stdout.close()
+    p.wait()
+    build_time_in_s = time.time() - tstart_build
+    if 0 == p.returncode:
+        logging.info('Docker image successfully built in {:.1f}s'.format(build_time_in_s))
+    else:
+        logging.info(f'Building docker image failed with rc={p.returncode} in {build_time_in_s:.1f}s')
+        raise Exception('Building docker image failed')
 
 @click.command()
 @click.argument('target', type=click.Choice(sorted(list(set(meta_targets + experiment_targets))), case_sensitive=False))
@@ -232,13 +258,8 @@ def run(ctx, target, num_runs, detach, help):
         num_targets_run += 1
     logging.info('Done ({}/{} targets).'.format(num_targets_run, len(targets_to_run)))
 
-
-def start_container():
-    # docker client
+def find_image():
     dc = docker.from_env()
-
-    # check whether tuplex/benchmark image exists. If not run create-image script!
-    logging.info('Checking whether tuplex/benchmark image exists locally...')
     found_tags = [img.tags for img in dc.images.list() if len(img.tags) > 0]
     found_tags = [tags[0] for tags in found_tags]
 
@@ -249,8 +270,15 @@ def start_container():
     for tag in found_tags:
         if tag.startswith(DOCKER_IMAGE_TAG):
             found_image = True
+    return found_image
 
-    if found_image:
+def start_container():
+    # docker client
+    dc = docker.from_env()
+
+    # check whether tuplex/benchmark image exists. If not run create-image script!
+    logging.info('Checking whether tuplex/benchmark image exists locally...')
+    if find_image():
         # check if it's already running, if not start!
         containers = [c for c in dc.containers.list() if c.name == DOCKER_CONTAINER_NAME]
         if len(containers) >= 1:
@@ -268,18 +296,25 @@ def start_container():
                               tty=True, stdin_open=True, detach=True, volumes=volumes, remove=True)
             logging.info('Started docker container {} from image {}'.format(DOCKER_CONTAINER_NAME, DOCKER_IMAGE_TAG))
     else:
-        logging.error('Did not find docker image {}, consider building it!'.format(DOCKER_IMAGE_TAG))
-        raise Exception('Docker image not found')
+        # build image upon first invocation...
+        build_docker_image()
+        logging.info("attempting to start container...")
+
+        # check that image is there, if not fail!
+        if not find_image():
+            logging.error('Did not find docker image {}, consider building it!'.format(DOCKER_IMAGE_TAG))
+            raise Exception('Docker image not found')
+        start_container()
 
 @click.command()
 def start():
-    """start Viton VLDB'22 experimental container"""
+    """start Viton VLDB'23 experimental container"""
     start_container()
 
 
 @click.command()
 def stop():
-    """stop Viton VLDB'22 experimental container"""
+    """stop Viton VLDB'23 experimental container"""
 
     # docker client
     dc = docker.from_env()

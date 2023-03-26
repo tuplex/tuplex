@@ -91,7 +91,7 @@ namespace tuplex {
         using namespace std;
 
         // set input/output paths
-        auto exp_settings = lambdaSettings(true);
+        auto exp_settings = localWorkerSettings(true); // lambdaSettings(true);
         auto input_pattern = exp_settings["input_path"];
         auto output_path = exp_settings["output_path"];
         SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));
@@ -107,6 +107,20 @@ namespace tuplex {
 
         // dump settings
         stringToFile("context_settings.json", ctx.getOptions().toString());
+
+
+        // start pipeline incl. output
+        auto repo_id_code = "def extract_repo_id(row):\n"
+                            "\tif 2012 <= row['year'] <= 2014:\n"
+                            "\t\treturn row['repository']['id']\n"
+                            "\telse:\n"
+                            "\t\treturn row['repo']['id']\n";
+        ctx.json(input_pattern, true, true, sm)
+        .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+        .withColumn("repo_id", UDF(repo_id_code))
+        .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+        .map(UDF("lambda t: (t['type'],t['repo_id'],t['year'])"))
+        .tocsv(output_path);
 
     }
 }

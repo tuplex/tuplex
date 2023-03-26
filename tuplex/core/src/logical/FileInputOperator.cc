@@ -1938,7 +1938,11 @@ namespace tuplex {
 
             std::copy(rows.begin(), rows.end(), std::back_inserter(v));
         }
-
+        v.resize(std::min(v.size(), original_sample_limit));
+        if(outNames) {
+            outNames->resize(std::min(outNames->size(), original_sample_limit));
+            assert(outNames->size() <= original_sample_limit);
+        }
         assert(v.size() <= original_sample_limit);
 
         return v;

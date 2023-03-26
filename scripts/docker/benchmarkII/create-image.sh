@@ -16,6 +16,9 @@ cd "$( dirname -- "$SCRIPT_PATH"; )" > '/dev/null';
 SCRIPT_PATH="$( pwd; )";
 popd  > '/dev/null';
 
+set -e
+set -o pipefail
+
 while :; do
     case $1 in
         -u|--upload) UPLOAD="SET"
@@ -25,10 +28,10 @@ while :; do
     shift
 done
 
-pushd $SCRIPT_PATH || exit 1
+pushd $SCRIPT_PATH > /dev/null
 
 # build benchmark docker image
-docker build -t tuplex/benchmarkii . || popd && exit 1
+docker build -t tuplex/benchmarkii .
 
 # is upload set?
 if [[ "${UPLOAD}" == 'SET' ]]; then
@@ -36,4 +39,4 @@ if [[ "${UPLOAD}" == 'SET' ]]; then
   docker push tuplex/benchmarkii
 fi
 
-popd || exit 1
+popd > /dev/null

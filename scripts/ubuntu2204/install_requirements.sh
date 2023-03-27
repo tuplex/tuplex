@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2023
-# auto-generated on 2023-03-22 23:43:40.168391
+# auto-generated on 2023-03-26 21:45:55.922096
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 

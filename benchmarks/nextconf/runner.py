@@ -30,7 +30,7 @@ experiment_targets_description = {'all':'a meta target to run all experiments',
                                   'flights/hyper': 'runs the flights query in general sampling mode and hyperspecialized sampling on the lambdas'}
 # path_dict = {'flights/sampling': {'script': '-c \'python3.9 runtuplex.py\'', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights/sampling_experiment'},
 #              'flights/hyper': {'script': 'benchmark.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights'}}
-experiments_path_dict = {'flights/hyper': {'script': 'benchmark-filter.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights'}}
+experiments_path_dict = {'flights/hyper': {'script': 'benchmark-filter.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/filter'}}
 
 
 # make sure every target has a description!
@@ -238,6 +238,8 @@ def run(ctx, target, num_runs, detach, help):
         # get script
         benchmark_path = experiments_path_dict[target]['wd']
         benchmark_script = experiments_path_dict[target]['script']
+        benchmark_result_dir = experiments_path_dict[target]['result_dir']
+        benchmark_output_name = target.replace('/', '_')
 
         cmd = 'bash -c "cd {} && bash {}"'.format(benchmark_path, benchmark_script)
         env = {'NUM_RUNS': num_runs,
@@ -248,7 +250,7 @@ def run(ctx, target, num_runs, detach, help):
         logging.info('Starting benchmark using command: docker exec -i{}t {} {}'.format('d' if detach else '', DOCKER_CONTAINER_NAME,
                                                                                         cmd))
         exit_code, output = container.exec_run(cmd, stderr=True, stdout=True, detach=detach, environment=env)
-        
+
         # save output to log path
         with open(log_run_path, 'w') as fp:
             fp.write(output.decode() if isinstance(output, bytes) else output)
@@ -259,6 +261,22 @@ def run(ctx, target, num_runs, detach, help):
         logging.info('Output:\n{}'.format(output.decode() if isinstance(output, bytes) else output))
         if detach:
             logging.info('Started command in detached mode, to stop container use "stop" command')
+
+        # create tar out of result and copy back to machine
+        output_archive = benchmark_output_name + '.tar.gz'
+        cmd = 'bash -c "cd {} && tar cvzf {} *"'.format(benchmark_result_dir, output_archive)
+        exit_code, output = container.exec_run(cmd, stderr=True, stdout=True, detach=detach, environment=env)
+        if exit_code != 0:
+            logging.error("Failed creating result archive, details: " + str(output.decode()))
+            sys.exit(1)
+        # copy back
+        local_dest = os.path.join(local_result_dir, output_archive)
+        copy_from_container(container, os.path.join(benchmark_result_dir, output_archive), local_dest)
+
+        # remove file
+        cmd = 'bash -c "cd {} && rm {} *"'.format(benchmark_result_dir, output_archive)
+        exit_code, output = container.exec_run(cmd, stderr=True, stdout=True, detach=detach, environment=env)
+
         num_targets_run += 1
     logging.info('Done ({}/{} targets).'.format(num_targets_run, len(targets_to_run)))
 
@@ -535,6 +553,22 @@ def copy_to_container(container: 'Container', src: str, dst_dir: str):
         logging.error(p_stderr.decode())
         sys.exit(process.returncode)
     logging.info('Copied to container {} in {:.2f}s'.format(container.name, time.time() - tstart))
+
+def copy_from_container(container: 'Container', src: str, dst: str):
+    """ src shall be an absolute path """
+
+    tstart = time.time()
+
+    cmd = ['docker', 'cp', '{}:{}'.format(container.name, src), os.path.abspath(dst)]
+    logging.info('Running {}'.format(' '.join(cmd)))
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # set a timeout of 2 seconds to keep everything interactive
+    p_stdout, p_stderr = process.communicate(timeout=300)
+
+    if process.returncode != 0:
+        logging.error(p_stderr.decode())
+        sys.exit(process.returncode)
+    logging.info('Copied from container {} in {:.2f}s to {}'.format(container.name, time.time() - tstart, dst))
 
 def get_aws_env():
     session = boto3.Session()

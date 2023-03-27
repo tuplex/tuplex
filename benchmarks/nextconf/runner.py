@@ -21,11 +21,17 @@ except ModuleNotFoundError as e:
     sys.exit(1)
 
 # subtargets can be done via /
-experiment_targets = ['all', 'flights/sampling', 'flights/hyper']
+experiment_targets = ['all',
+                      'flights/sampling',
+                      'flights/hyper']
 
 experiment_targets_description = {'all':'a meta target to run all experiments',
                                   'flights/sampling': 'runs the flights query using different sampling schemes',
                                   'flights/hyper': 'runs the flights query in general sampling mode and hyperspecialized sampling on the lambdas'}
+# path_dict = {'flights/sampling': {'script': '-c \'python3.9 runtuplex.py\'', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights/sampling_experiment'},
+#              'flights/hyper': {'script': 'benchmark.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights'}}
+experiments_path_dict = {'flights/hyper': {'script': 'benchmark-filter.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights'}}
+
 
 # make sure every target has a description!
 for target in experiment_targets:
@@ -215,8 +221,6 @@ def run(ctx, target, num_runs, detach, help):
         # run individual targets
         # for these, the runbenchmark.sh scripts are used!
         # e.g., docker exec -e NUM_RUNS=1 sigmod21 bash -c 'cd /code/benchmarks/zillow/Z1/ && bash runbenchmark.sh'
-        path_dict = {'flights/sampling': {'script': '-c \'python3.9 runtuplex.py\'', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights/sampling_experiment'},
-                     'flights/hyper': {'script': 'benchmark.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights'}}
 
         # lowercase
         target = target.lower()
@@ -225,15 +229,15 @@ def run(ctx, target, num_runs, detach, help):
         log_run_path = os.path.join(local_result_dir, 'experiment-log.txt')
 
 
-        if not target in path_dict.keys():
+        if not target in experiments_path_dict.keys():
             logging.error('target {} not found, skip.'.format(target))
             continue
 
         os.makedirs(local_result_dir, exist_ok=True)
         
         # get script
-        benchmark_path = path_dict[target]['wd']
-        benchmark_script = path_dict[target]['script']
+        benchmark_path = experiments_path_dict[target]['wd']
+        benchmark_script = experiments_path_dict[target]['script']
 
         cmd = 'bash -c "cd {} && bash {}"'.format(benchmark_path, benchmark_script)
         env = {'NUM_RUNS': num_runs,
@@ -597,6 +601,14 @@ def deploy(ctx, cereal):
     if exit_code != 0:
         logging.error(output.decode())
         sys.exit(exit_code)
+
+    # jupyter install is broken, manual fix here.
+    cmd = ['pip', 'install', 'jupyter']
+    exit_code, output = container.exec_run(cmd)
+    if exit_code != 0:
+        logging.error(output.decode())
+        sys.exit(exit_code)
+
     cmd = ['python3.9', '/tmp/tuplex/setup.py', 'install']
     exit_code, output = container.exec_run(cmd)
     if exit_code != 0:

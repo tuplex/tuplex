@@ -375,7 +375,7 @@ def create_package_tar(dest_path, src_path, lambda_src_path=None):
 
 
 @click.command()
-@click.option('--cereal/--no-cereal', is_flag=True, default=False,
+@click.option('--cereal/--no-cereal', is_flag=True, default=True,
               help='whether to build tuplex and lambda using cereal as serialization library.')
 @click.pass_context
 def build(ctx, cereal):
@@ -422,7 +422,7 @@ def build(ctx, cereal):
     BUILD_SCRIPT_PATH = '/code/benchmarks/nextconf/build_scripts/build_tuplex.sh'
     cmd = ['docker', 'exec', '-e', CEREAL_FLAG, DOCKER_CONTAINER_NAME, 'bash', BUILD_SCRIPT_PATH]
 
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1)
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     for line in iter(p.stdout.readline, b''):
         logging.info(line.decode().strip())
     p.stdout.close()
@@ -567,7 +567,7 @@ def docker_exec(container: 'Container', cmd):
     logging.info('Completed command in {:.2f}s'.format(time.time() - tstart))
 
 @click.command()
-@click.option('--cereal/--no-cereal', is_flag=True, default=False,
+@click.option('--cereal/--no-cereal', is_flag=True, default=True,
               help='whether to build tuplex and lambda using cereal as serialization library.')
 @click.pass_context
 def deploy(ctx, cereal):

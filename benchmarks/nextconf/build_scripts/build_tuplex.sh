@@ -5,6 +5,9 @@
 export CC=gcc
 export CXX=g++
 
+set -e
+set -o pipefail
+
 CPU_COUNT=$(nproc)
 echo "Building using $CPU_COUNT cores"
 BUILD_WITH_CEREAL="${BUILD_WITH_CEREAL:-OFF}"

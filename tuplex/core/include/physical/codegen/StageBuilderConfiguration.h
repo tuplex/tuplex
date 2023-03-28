@@ -22,6 +22,7 @@ namespace tuplex {
             bool constantFoldingOptimization; // whether to apply constant folding or not
             bool updateInputExceptions; // whether input exceptions indices need to be updated (change for experimental incremental exception handling)
             bool generateSpecializedNormalCaseCodePath; // whether to emit specialized normal case code path or not
+            bool filterPromotion; // whether to propagate filters to become checks, i.e. manipulate the sample to be only rows that pass the filter.
 
             ExceptionSerializationMode exceptionSerializationMode;
 
@@ -33,6 +34,7 @@ namespace tuplex {
                                           constantFoldingOptimization(true),
                                           updateInputExceptions(false),
                                           generateSpecializedNormalCaseCodePath(true),
+                                          filterPromotion(false),
                                           exceptionSerializationMode(ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE) {}
 
             // update with context option object
@@ -43,6 +45,7 @@ namespace tuplex {
                 sharedObjectPropagation = co.OPT_SHARED_OBJECT_PROPAGATION();
                 nullValueOptimization = co.OPT_NULLVALUE_OPTIMIZATION();
                 constantFoldingOptimization = co.OPT_CONSTANTFOLDING_OPTIMIZATION();
+                filterPromotion = co.OPT_FILTER_PROMOTION();
 
                 // from options, infer
                 if(co.EXPERIMENTAL_FORCE_BAD_PARSE_EXCEPT_FORMAT())

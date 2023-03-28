@@ -237,6 +237,8 @@ namespace tuplex {
                 }
             }
 
+            void promoteFilters();
+
         private:
             std::shared_ptr<LogicalOperator> _inputNode;
             std::vector<std::shared_ptr<LogicalOperator>> _operators;

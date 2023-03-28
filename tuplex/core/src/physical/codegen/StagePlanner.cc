@@ -1154,6 +1154,10 @@ namespace tuplex {
 
         // node need to find some smart way to QUICKLY detect whether the optimization can be applied or should be rather skipped...
         codegen::StagePlanner planner(inputNode, operators, conf.policy.normalCaseThreshold);
+
+        if(conf.filterPromotion)
+            planner.promoteFilters();
+
         planner.enableAll();
         planner.disableAll();
         if(conf.nullValueOptimization)
@@ -1756,6 +1760,12 @@ namespace tuplex {
             for(unsigned i = 0; i < num_cols; ++i)
                 cols.emplace_back(i);
             return acc_helper(node, nullptr, cols, false); // dropOperators should be true??
+        }
+
+        void StagePlanner::promoteFilters() {
+            auto& logger = Logger::instance().logger("optimizer");
+
+            logger.debug("carrying out potential filter promotion");
         }
     }
 }

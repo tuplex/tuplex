@@ -444,6 +444,12 @@ namespace tuplex {
         size_t sampleSize() const;
 
         /*!
+         * how many rows are currently stored within sample.
+         * @return
+         */
+        size_t storedSampleRowCount() const;
+
+        /*!
          * gets the normal case schema (no projection!)
          * @return normal case schema
          */

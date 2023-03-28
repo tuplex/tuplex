@@ -1766,6 +1766,44 @@ namespace tuplex {
             auto& logger = Logger::instance().logger("optimizer");
 
             logger.debug("carrying out potential filter promotion");
+
+            if(!_inputNode) {
+                logger.warn("no input node, skip optimization.");
+                return;
+            }
+
+            size_t original_sample_size = 0;
+            if(_inputNode->type() == LogicalOperatorType::FILEINPUT) {
+                original_sample_size = std::dynamic_pointer_cast<FileInputOperator>(_inputNode)->storedSampleRowCount();
+            }
+
+            if(0 == original_sample_size) {
+                logger.debug("skip because empty original sample");
+            }
+
+            // check if there is at least one filter operator!
+            // -> carry then repeated filters out!
+            auto node = _inputNode;
+            while(node && !node->children().empty()) {
+                assert(node->children().size() == 1); // only single child yet supported...
+
+                logger.debug(node->name() + " has child: " + node->children().front()->name());
+
+                // is it a filter? can the filter be promoted?
+                if(node->type() == LogicalOperatorType::FILTER) {
+                    auto filter_node = std::dynamic_pointer_cast<FilterOperator>(node);
+                    // get sample! is it non-empty and smaller than the original sample size?
+                    auto samples_post_filter = filter_node->getSample(original_sample_size, true);
+                    logger.debug("sample size post-filter: " + pluralize(samples_post_filter.size(), "row"));
+                    if(!samples_post_filter.empty() && samples_post_filter.size() < original_sample_size) {
+                        logger.info("filter is candidate for promotion, reduced sample size from " + std::to_string(original_sample_size) + " -> " + std::to_string(samples_post_filter.size()));
+                    }
+                }
+
+                node = node->children().front();
+            }
+
+            logger.debug("filter promo done.");
         }
     }
 }

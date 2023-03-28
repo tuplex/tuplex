@@ -35,7 +35,20 @@ namespace tuplex {
 
         void setDataSet(DataSet* dsptr) override;
 
+        /*!
+         * returns sample from parent "as-is"
+         * @param num maximum number of samples to process
+         * @return sample
+         */
         std::vector<Row> getSample(const size_t num) const override;
+
+        /*!
+         * get sample but apply filter (i.e. remove rows that do not pass filter)
+         * @param num  maximum number of samples to process (output)
+         * @param applyFilter whether to apply filter or simply return sample from parent "as-is"
+         * @return sample
+         */
+        std::vector<Row> getSample(const size_t num, bool applyFilter) const;
 
         std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
 

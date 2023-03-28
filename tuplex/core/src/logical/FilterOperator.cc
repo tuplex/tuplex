@@ -89,6 +89,72 @@ namespace tuplex {
         return parent()->getSample(num);
     }
 
+    std::vector<Row> FilterOperator::getSample(const size_t num, bool applyFilter) const {
+        if(!applyFilter)
+            return getSample(num);
+
+        // get sample from parent & apply filter!
+        auto in_sample = parent()->getSample(num);
+        std::vector<Row> sample;
+        auto pickledCode = _udf.getPickledCode();
+        python::lockGIL();
+
+        auto func = python::deserializePickledFunction(python::getMainModule(), pickledCode.c_str(),
+                                                       pickledCode.length());
+        size_t numExceptions = 0;
+        for (const auto& row : in_sample) {
+
+            auto rowObj = python::rowToPython(row);
+            // call python function
+            ExceptionCode ec;
+            // first try using dict mode
+            // => should use python pipeline builder with its helper classes to process that...
+            auto pcr = !inputColumns().empty() ? python::callFunctionWithDictEx(func, rowObj, inputColumns()) :
+                       python::callFunctionEx(func, rowObj);
+            // if fails, call again without dict mode
+            if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
+                pcr = python::callFunctionEx(func, rowObj);
+            }
+
+            ec = pcr.exceptionCode;
+            auto pyobj_res = pcr.res;
+
+            // only append if success
+            if (ec != ExceptionCode::SUCCESS)
+                numExceptions++;
+            else {
+
+                bool filter_ret = false;
+                // what type is it? tuple or not?
+                if(PyTuple_Check(pyobj_res) && PyTuple_Size(pyobj_res) == 1) {
+                    auto item = PyTuple_GET_ITEM(pyobj_res, 0);
+                    filter_ret = PyObject_IsTrue(item);
+                } else {
+                    filter_ret = PyObject_IsTrue(pyobj_res);
+                }
+
+                if(filter_ret)
+                    sample.push_back(row);
+#ifndef NDEBUG
+                // Py_XINCREF(pyobj_res);
+                // auto res = python::pythonToRow(pyobj_res);
+                // // check what res is...
+                // std::cout<<res.toPythonString()<<std::endl;
+#endif
+
+                Py_XDECREF(pyobj_res);
+            }
+        }
+
+        if (numExceptions != 0)
+            Logger::instance().logger("physical planner").warn(
+                    "sampling map operator lead to " + std::to_string(numExceptions) + " exceptions");
+        python::unlockGIL();
+
+        return sample;
+    }
+
+
     std::shared_ptr<LogicalOperator> FilterOperator::clone(bool cloneParents) {
         auto copy = new FilterOperator(cloneParents ? parent()->clone() : nullptr, _udf,
                                        UDFOperator::columns(),

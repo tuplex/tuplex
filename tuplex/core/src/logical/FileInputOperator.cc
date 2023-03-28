@@ -2135,6 +2135,10 @@ namespace tuplex {
         return std::make_tuple(normalcasetype, generalcasetype);
     }
 
+    size_t FileInputOperator::storedSampleRowCount() const {
+        return _rowsSample.size();
+    }
+
     // this function is not accurate but rather an estimate. Can be easily improved.
     size_t FileInputOperator::sampleSize() const {
         size_t total_sample_size = 0;

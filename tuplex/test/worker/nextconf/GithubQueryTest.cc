@@ -49,6 +49,9 @@ namespace tuplex {
         m["tuplex.experimental.opportuneCompilation"] = "True";
         m["tuplex.aws.scratchDir"] = "s3://tuplex-leonhard/scratch/github-exp";
 
+        // for github use smaller split size
+        m["tuplex.inputSplitSize"] = "64MB"; // tiny tasks?
+
         // sampling settings incl.
         // stratified sampling (to make things work & faster)
         m["tuplex.sample.strataSize"] = "1024";
@@ -82,6 +85,9 @@ namespace tuplex {
 
         m["tuplex.backend"] = "worker";
         m["input_path"] = "/hot/data/github_daily/*.json";
+
+        // overwrite scratch dir (aws)
+        m["tuplex.aws.scratchDir"] = "./local-exp/scratch";
 
         return m;
     }
@@ -121,6 +127,45 @@ namespace tuplex {
         .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
         .map(UDF("lambda t: (t['type'],t['repo_id'],t['year'])"))
         .tocsv(output_path);
+    }
 
+    TEST_F(GithubQuery, ForkEventsExtended) {
+        using namespace std;
+
+        // set input/output paths
+        auto exp_settings = lambdaSettings(true); // localWorkerSettings(true); //
+        auto input_pattern = exp_settings["input_path"];
+        auto output_path = exp_settings["output_path"];
+        SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));
+        ContextOptions co = ContextOptions::defaults();
+        for(const auto& kv : exp_settings)
+            if(startsWith(kv.first, "tuplex."))
+                co.set(kv.first, kv.second);
+
+        // creater context according to settings
+        Context ctx(co);
+
+        runtime::init(co.RUNTIME_LIBRARY().toPath());
+
+        // dump settings
+        stringToFile("context_settings.json", ctx.getOptions().toString());
+
+
+        // start pipeline incl. output
+        auto repo_id_code = "def extract_repo_id(row):\n"
+                            "\tif 2012 <= row['year'] <= 2014:\n"
+                            "\t\treturn row['repository']['id']\n"
+                            "\telse:\n"
+                            "\t\treturn row['repo']['id']\n";
+        ctx.json(input_pattern, true, true, sm)
+                .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+                .withColumn("repo_id", UDF(repo_id_code))
+                .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+                .withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
+                .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
+                .selectColumns(vector<string>{"type", "repo_id", "year", "number_of_commits"})
+                .tocsv(output_path);
     }
 }
+
+

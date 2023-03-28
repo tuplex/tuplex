@@ -12,6 +12,19 @@ import argparse
 # note: this doesn't work yet! Fix in tuplex
 # from udfs import *
 
+def make_year_range(num_years):
+    """
+    helper function to create year range for year based experiment
+    """
+    if num_years <= 1:
+        return [2003]
+    start_year = max(1987, 2003 - (num_years - 1) // 2)
+    end_year = start_year + num_years
+
+    years = list(range(start_year, end_year))[:num_years]
+    assert len(years) == num_years and 2003 in years
+    return years
+
 def extract_feature_vector(row):
     carrier_list = [None, 'EA', 'UA', 'PI', 'NK', 'PS', 'AA', 'NW', 'EV', 'B6', 'HP', 'TW', 'DL', 'OO', 'F9', 'YV',
                     'TZ', 'US',
@@ -251,6 +264,7 @@ if __name__ == '__main__':
     parser.add_argument('--internal-fmt', dest='use_internal_fmt',
                         help='if active, use the internal tuplec storage format for exceptions, no CSV format optimization',
                         action='store_true')
+    parser.add_argument('--num-years', dest='num_years', choices=['auto'] + [str(year) for year in list(range(1, 2021-1987+2))], default='auto', help='if auto the range 2002-2005 will be used.')
     args = parser.parse_args()
 
     if not 'AWS_ACCESS_KEY_ID' in os.environ or 'AWS_SECRET_ACCESS_KEY' not in os.environ:
@@ -266,6 +280,18 @@ if __name__ == '__main__':
 
     # full dataset here (oO)
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv'
+
+    # manipulate inout pattern depending on files
+    # here are the default values (auto)
+    year_lower = 2002
+    year_upper = 2005
+    if args.num_years != 'auto':
+        num_years = int(args.num_years)
+        years = make_year_range(num_years)
+        print('-- Running with filter over years: {}'.format(', '.join(years)))
+        year_lower = min(years)
+        year_upper = max(years)
+    print(f"-- filter: lambda x: {year_lower} <= x['year'] <= {year_upper}")
     
     # use following as debug pattern
     #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv'
@@ -361,7 +387,7 @@ if __name__ == '__main__':
     ctx.csv(input_pattern, sampling_mode=sm) \
         .withColumn("features", extract_feature_vector) \
         .map(fill_in_delays) \
-        .filter(lambda x: 2002 <= x['year'] <= 2005) \
+        .filter(lambda x: year_lower <= x['year'] <= year_upper) \
         .tocsv(s3_output_path)
 
     ### END QUERY ###

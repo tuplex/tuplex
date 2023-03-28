@@ -196,7 +196,7 @@ namespace tuplex {
         return jsonTypeToPythonTypeNonRecursive(obj.type(), obj.raw_json_token());
     }
 
-    int64_t findNLJsonOffsetToNextLine(const char *buf, size_t buf_size) {
+    int64_t findNLJsonOffsetToNextLine(const char *buf, size_t buf_size, std::function<void()> free_callback=[](){}) {
         // we use ndjson, so finding a new line is as simple as searching forr '\n' or '\r\n', yet we can also be at
         // the beginning of a valid json object. Hence, basically try to parse and see whether it works!
         int64_t pos = 0;
@@ -222,6 +222,8 @@ namespace tuplex {
             auto json_obj = cJSON_ParseWithLengthOpts(buf + pos, limit_size, &end_ptr, false);
             if (json_obj) {
                 cJSON_free(json_obj);
+                // reset runtime memory b.c. cjson is hooked up to use runtime memory!
+                free_callback();
 
                 // needs to newline (else partial parse to end...)
                 if (*end_ptr == '\n' || *end_ptr == '\r' || *end_ptr == '\0')
@@ -232,6 +234,7 @@ namespace tuplex {
                 auto json_obj = cJSON_ParseWithLengthOpts(buf + pos, buf_size - pos, &end_ptr, false);
                 if (json_obj) {
                     cJSON_free(json_obj);
+                    free_callback();
 
                     // needs to newline (else partial parse to end...)
                     if (*end_ptr == '\n' || *end_ptr == '\r' || *end_ptr == '\0')
@@ -248,6 +251,7 @@ namespace tuplex {
             auto json_obj = cJSON_ParseWithLengthOpts(buf + pos, buf_size - pos, &end_ptr, false);
             if (json_obj) {
                 cJSON_free(json_obj);
+                free_callback();
 
                 // needs to newline (else partial parse to end...)
                 if (*end_ptr == '\n' || *end_ptr == '\r' || *end_ptr == '\0')
@@ -266,7 +270,7 @@ namespace tuplex {
      * @param buf_size size in bytes of buffer (not necessarily '\0' terminated)
      * @return offset from start of buf to first valid line entry, -1 if not found.
      */
-    int64_t findNLJsonStart(const char *buf, size_t buf_size) {
+    int64_t findNLJsonStart(const char *buf, size_t buf_size, std::function<void()> free_callback) {
         // we use ndjson, so finding a new line is as simple as searching forr '\n' or '\r\n', yet we can also be at
         // the beginning of a valid json object. Hence, basically try to parse and see whether it works!
         int64_t pos = 0;
@@ -283,6 +287,7 @@ namespace tuplex {
         auto json_obj = cJSON_ParseWithLengthOpts(buf, buf_size, &end_ptr, false);
         if(json_obj) {
             cJSON_free(json_obj);
+            free_callback();
 
             // needs to newline (else partial parse to end...)
             if(*end_ptr == '\n' || *end_ptr == '\r' || *end_ptr == '\0')
@@ -303,6 +308,7 @@ namespace tuplex {
                 json_obj = cJSON_ParseWithLengthOpts(ptr, buf_size_to_parse, &end_ptr, false);
                 if(json_obj) {
                     cJSON_free(json_obj);
+                    free_callback();
                     if(*end_ptr == '\n' || *end_ptr == '\r')
                         return buf - ptr;
                 }
@@ -318,6 +324,7 @@ namespace tuplex {
                 json_obj = cJSON_ParseWithLengthOpts(ptr, buf_size - pos + 1, &end_ptr, false);
                 if(json_obj) {
                     cJSON_free(json_obj);
+                    free_callback();
                     if(*end_ptr == '\n' || *end_ptr == '\r' || *end_ptr == '\0')
                         return ptr - buf;
                 }
@@ -712,7 +719,7 @@ namespace tuplex {
     void JsonStatistic::estimate(const char *start, size_t size, bool disableNullColumns) {
 
         // find start offset (limited to size)
-        auto start_offset = findNLJsonStart(start, size);
+        auto start_offset = findNLJsonStart(start, size, [](){});
         if(start_offset < 0)
             throw std::runtime_error("Could not find start of valid JSON document in buffer of size " + std::to_string(size));
 

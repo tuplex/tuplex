@@ -181,7 +181,10 @@ namespace tuplex {
                     int64_t maxOffset = 0;
                     while(maxOffset < remainingToParse) {
                         // get offset to next line.
-                        auto offset = findNLJsonOffsetToNextLine(p, endp - p);
+                        runtime::rtfree_all();
+                        auto offset = findNLJsonOffsetToNextLine(p, endp - p,[](){
+                            runtime::rtfree_all(); // --> free existing memory, so json find can exhaust memory if necessary.
+                        });
                         runtime::rtfree_all();
                         assert(offset >= 0);
                         // release fix

@@ -22,11 +22,12 @@ namespace tuplex {
      * finds the start of a valid newline-delimited JSON entry.
      * @param buf buffer
      * @param buf_size size in bytes of buffer (not necessarily '\0' terminated)
+     * @param free_callback hacky way to free memory for cjson runtime
      * @return offset from start of buf to first valid line entry, -1 if not found.
      */
-    int64_t findNLJsonStart(const char* buf, size_t buf_size);
+    int64_t findNLJsonStart(const char* buf, size_t buf_size, std::function<void()> free_callback=[](){});
 
-    int64_t findNLJsonOffsetToNextLine(const char *buf, size_t buf_size);
+    int64_t findNLJsonOffsetToNextLine(const char *buf, size_t buf_size, std::function<void()> free_callback);
 
     /*!
      * maps a single primitive value to a python type (non-recursing_

@@ -206,7 +206,7 @@ extern "C" void *rtmalloc(const size_t requested_size) noexcept {
         heap = new MemoryHeap();
 
     // debug: add safety buffer to prevent segfault??
-    size_t safety_buf = 8192; // 8kb safety buffer
+    size_t safety_buf = 0; // 8192; // 8kb safety buffer
 
     size_t size = alignHeapSize(requested_size + safety_buf); // align to nearest multiple of heap alignment
 

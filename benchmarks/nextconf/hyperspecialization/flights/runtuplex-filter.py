@@ -264,7 +264,7 @@ if __name__ == '__main__':
     parser.add_argument('--internal-fmt', dest='use_internal_fmt',
                         help='if active, use the internal tuplec storage format for exceptions, no CSV format optimization',
                         action='store_true')
-    parser.add_argument('--num-years', dest='num_years', choices=['auto'] + [str(year) for year in list(range(1, 2021-1987+2))], default='auto', help='if auto the range 2002-2005 will be used.')
+    parser.add_argument('--num-years', dest='num_years', action='store', choices=['auto'] + [str(year) for year in list(range(1, 2021-1987+2))], default='auto', help='if auto the range 2002-2005 will be used (equivalent to --num-years=4).')
     args = parser.parse_args()
 
     if not 'AWS_ACCESS_KEY_ID' in os.environ or 'AWS_SECRET_ACCESS_KEY' not in os.environ:
@@ -288,7 +288,7 @@ if __name__ == '__main__':
     if args.num_years != 'auto':
         num_years = int(args.num_years)
         years = make_year_range(num_years)
-        print('-- Running with filter over years: {}'.format(', '.join(years)))
+        print('-- Running with filter over years: {}'.format(', '.join([str(year) for year in years])))
         year_lower = min(years)
         year_upper = max(years)
     print(f"-- filter: lambda x: {year_lower} <= x['year'] <= {year_upper}")

@@ -142,6 +142,8 @@ def run(ctx, target, num_runs, detach, help):
     session = boto3.Session()
     credentials = session.get_credentials()
 
+    assert credentials, 'No AWS credentials found'
+
     # Credentials are refreshable, so accessing your access key / secret key
     # separately can lead to a race condition. Use this to get an actual matched
     # set.

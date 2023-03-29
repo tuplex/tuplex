@@ -27,7 +27,7 @@ for year in `seq 1 35`; do
   for ((r = 1; r <= NUM_RUNS; r++)); do
     LOG="${RESDIR}/flights-hyper-run-$r.txt"
     echo "running $r/${NUM_RUNS}"
-    timeout $TIMEOUT $PYTHON runtuplex-filter.py >$LOG 2>$LOG.stderr
+    timeout $TIMEOUT $PYTHON runtuplex-filter.py --num-years=${year} >$LOG 2>$LOG.stderr
     # copy temp aws_job.json result for analysis
     cp aws_job.json ${RESDIR}/"flights-hyper-run-$r.json"
   done
@@ -42,7 +42,7 @@ for year in `seq 1 35`; do
   for ((r = 1; r <= NUM_RUNS; r++)); do
     LOG="${RESDIR}/flights-hyper-nocf-run-$r.txt"
     echo "running $r/${NUM_RUNS}"
-    timeout $TIMEOUT $PYTHON runtuplex-filter.py --no-cf >$LOG 2>$LOG.stderr
+    timeout $TIMEOUT $PYTHON runtuplex-filter.py --num-years=${year} --no-cf >$LOG 2>$LOG.stderr
     # copy temp aws_job.json result for analysis
     cp aws_job.json ${RESDIR}/"flights-hyper-nocf-run-$r.json"
   done
@@ -57,7 +57,7 @@ for year in `seq 1 35`; do
   for ((r = 1; r <= NUM_RUNS; r++)); do
     LOG="${RESDIR}/flights-nohyper-nocf-run-$r.txt"
     echo "running $r/${NUM_RUNS}"
-    timeout $TIMEOUT $PYTHON runtuplex-filter.py --no-cf --no-hyper  >$LOG 2>$LOG.stderr
+    timeout $TIMEOUT $PYTHON runtuplex-filter.py --num-years=${year}  --no-cf --no-hyper  >$LOG 2>$LOG.stderr
     # copy temp aws_job.json result for analysis
     cp aws_job.json ${RESDIR}/"flights-nohyper-nocf-run-$r.json"
   done
@@ -71,7 +71,7 @@ for year in `seq 1 35`; do
   for ((r = 1; r <= NUM_RUNS; r++)); do
     LOG="${RESDIR}/flights-nohyper-run-$r.txt"
     echo "running $r/${NUM_RUNS}"
-    timeout $TIMEOUT $PYTHON runtuplex-filter.py --no-hyper >$LOG 2>$LOG.stderr
+    timeout $TIMEOUT $PYTHON runtuplex-filter.py --num-years=${year} --no-hyper >$LOG 2>$LOG.stderr
     # copy temp aws_job.json result for analysis
     cp aws_job.json ${RESDIR}/"flights-nohyper-run-$r.json"
   done

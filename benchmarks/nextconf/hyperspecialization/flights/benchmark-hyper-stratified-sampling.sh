@@ -32,7 +32,7 @@ for samples_per_strata in "${SAMPLES_ARR[@]}"; do
   for ((r = 1; r <= NUM_RUNS; r++)); do
     LOG="${RESDIR}/flights-hyper-run-$r.txt"
     echo "running $r/${NUM_RUNS}"
-    timeout $TIMEOUT $PYTHON runtuplex-filter.py --samples_per_strata=${samples_per_strata} >$LOG 2>$LOG.stderr
+    timeout $TIMEOUT $PYTHON runtuplex-filter.py --samples-per-strata=${samples_per_strata} >$LOG 2>$LOG.stderr
     # copy temp aws_job.json result for analysis
     cp aws_job.json ${RESDIR}/"flights-hyper-run-$r.json"
   done
@@ -47,7 +47,7 @@ for samples_per_strata in "${SAMPLES_ARR[@]}"; do
   for ((r = 1; r <= NUM_RUNS; r++)); do
     LOG="${RESDIR}/flights-hyper-nocf-run-$r.txt"
     echo "running $r/${NUM_RUNS}"
-    timeout $TIMEOUT $PYTHON runtuplex-filter.py --no-cf --samples_per_strata=${samples_per_strata} >$LOG 2>$LOG.stderr
+    timeout $TIMEOUT $PYTHON runtuplex-filter.py --no-cf --samples-per-strata=${samples_per_strata} >$LOG 2>$LOG.stderr
     # copy temp aws_job.json result for analysis
     cp aws_job.json ${RESDIR}/"flights-hyper-nocf-run-$r.json"
   done

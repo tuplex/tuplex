@@ -73,18 +73,9 @@ def extract_feature_vector(row):
                   'U.S. Pacific Trust Territories and Possessions', 'U.S. Virgin Islands', 'Utah', 'Vermont',
                   'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming']
 
-    # invalid -> return None feature vector.
+    # invalid -> return 0-based feature vector.
     if row['CRS_ARR_TIME'] is None or row['CRS_DEP_TIME'] is None:
-        # this syntax here is not yet supported, use direct return
-        #return [None] * 13
-
-        # this could be also problematic (list return type unification)
-
-        # use maybe 0.0 instead?
-        # => write quick test to fix lists...
         return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        # this here causes a bug...
-        #return [None, None, None, None, None, None, None, None, None, None, None, None, None]
 
     # categorical variables
     quarter = row['QUARTER']
@@ -264,6 +255,9 @@ if __name__ == '__main__':
     parser.add_argument('--internal-fmt', dest='use_internal_fmt',
                         help='if active, use the internal tuplec storage format for exceptions, no CSV format optimization',
                         action='store_true')
+    parser.add_argument('--samples-per-strata', dest='samples_per_strata', default=1, help='how many samples to use per strata')
+    parser.add_argument('--strata-size', dest='strata_size', default=1024,
+                        help='how many samples to use per strata')
     parser.add_argument('--num-years', dest='num_years', action='store', choices=['auto'] + [str(year) for year in list(range(1, 2021-1987+2))], default='auto', help='if auto the range 2002-2005 will be used (equivalent to --num-years=4).')
     args = parser.parse_args()
 
@@ -277,6 +271,8 @@ if __name__ == '__main__':
     use_constant_folding = not args.no_cf
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv'
     s3_output_path = 's3://tuplex-leonhard/experiments/flights_hyper'
+    strata_size = args.strata_size
+    samples_per_strata = args.samples_per_strata
 
     # full dataset here (oO)
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv'
@@ -328,7 +324,7 @@ if __name__ == '__main__':
     print('    hyperspecialization: {}'.format(use_hyper_specialization))
     print('    constant-folding: {}'.format(use_constant_folding))
     print('    null-value optimization: {}'.format(not args.no_nvo))
-
+    print('    strata: {} per {}'.format(samples_per_strata, strata_size))
     # load data
     tstart = time.time()
 
@@ -341,8 +337,8 @@ if __name__ == '__main__':
             "aws.httpThreadCount": 410,
             "aws.maxConcurrency": 410,
             'sample.maxDetectionMemory': '32MB',
-            'sample.strataSize':1024,
-            'sample.samplesPerStrata':1,
+            'sample.strataSize': strata_size,
+            'sample.samplesPerStrata': samples_per_strata,
             "aws.scratchDir": s3_scratch_dir,
             "autoUpcast":True,
             "experimental.hyperspecialization": use_hyper_specialization,

@@ -24,16 +24,18 @@ except ModuleNotFoundError as e:
 experiment_targets = ['all',
                       'flights/sampling',
                       'flights/hyper',
-                      'flights/years']
+                      'flights/years',
+                      'flights/stratified']
 
 experiment_targets_description = {'all':'a meta target to run all experiments',
                                   'flights/sampling': 'runs the flights query using different sampling schemes',
                                   'flights/hyper': 'runs the flights query in general sampling mode and hyperspecialized sampling on the lambdas',
-                                  'flights/years': 'runs flights query with varying filter predicate'}
-# path_dict = {'flights/sampling': {'script': '-c \'python3.9 runtuplex.py\'', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights/sampling_experiment'},
-#              'flights/hyper': {'script': 'benchmark.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights'}}
+                                  'flights/years': 'runs flights query with varying filter predicate',
+                                  'flights/stratified': 'runs flights query with varying samples per strata'}
+
 experiments_path_dict = {'flights/hyper': {'script': 'benchmark-filter.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/filter'},
-                         'flights/years': {'script': 'benchmark-all-years.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/years'}}
+                         'flights/years': {'script': 'benchmark-all-years.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/years'},
+                         'flights/stratified': {'script': 'benchmark-hyper-stratified-sampling.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/stratified-sampling'}}
 
 
 # make sure every target has a description!

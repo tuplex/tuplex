@@ -71,7 +71,7 @@ namespace tuplex {
         Schema _outputSchema;
         DataSet *_dataSet; // TODO: figure out dataset serialization!
 
-        void addThisToParents() {
+        inline void addThisToParents() {
             for(const auto &parent : _parents) {
                 if(!parent)
                     continue;
@@ -79,6 +79,12 @@ namespace tuplex {
                 if(parent.get() == this)
                     throw std::runtime_error("cycle encountered! invalid for operator graph.");
                 parent->_children.push_back(this);
+            }
+        }
+
+        inline void removeThisFromParents() {
+            for(auto& parent : _parents) {
+                parent->_children.erase(std::remove(parent->_children.begin(), parent->_children.end(), this), parent->_children.end());
             }
         }
 

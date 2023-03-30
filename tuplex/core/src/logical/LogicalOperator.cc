@@ -159,6 +159,9 @@ namespace tuplex {
                     child->_parents.push_back(parent);
                 }
             }
+
+            // remove this from parents
+            removeThisFromParents();
         }
 
         // disconnect this node.

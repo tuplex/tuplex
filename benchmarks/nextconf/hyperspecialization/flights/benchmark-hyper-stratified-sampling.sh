@@ -19,6 +19,7 @@ SAMPLES_ARR=(1 2 4 8 16 32 64 128 256 512 1024)
 for samples_per_strata in "${SAMPLES_ARR[@]}"; do
   echo "Running with ${samples_per_strata} samples per strata"
   RESDIR=experimental_results/stratified-sampling/${samples_per_strata}
+  mkdir -p ${RESDIR}
   echo "Storing results in ${RESDIR}"
 
   # rm job folder if it exists...

@@ -442,19 +442,23 @@ namespace tuplex {
 
             // sanity check, emit warning if check was given but col not read?
             for(const auto& check : _checks) {
-                if(check.colNo >= _generalCaseColumnsToSerialize.size())
-                    logger.warn("check has invalid column number");
-                else {
-                    if(!_generalCaseColumnsToSerialize[check.colNo])
-                        logger.warn("CellSourceTaskBuilder received check for col=" + std::to_string(check.colNo) + ", but column is eliminated in pushdown!");
-                }
-                std::stringstream ss;
-                if(check.type == CheckType::CHECK_CONSTANT) {
-                    ss<<"detected possible constant check == "<<check.constant_type().constant()<<" for column "<<check.colNo<<"\n";
+                if(check.isSingleColCheck()) {
+                    if(check.colNo() >= _generalCaseColumnsToSerialize.size())
+                        logger.warn("check has invalid column number");
+                    else {
+                        if(!_generalCaseColumnsToSerialize[check.colNo()])
+                            logger.warn("CellSourceTaskBuilder received check for col=" + std::to_string(check.colNo()) + ", but column is eliminated in pushdown!");
+                    }
+                    std::stringstream ss;
+                    if(check.type == CheckType::CHECK_CONSTANT) {
+                        ss<<"detected possible constant check == "<<check.constant_type().constant()<<" for column "<<check.colNo()<<"\n";
+                    } else {
+                        ss<<"emitting unknown check for column "<<check.colNo()<<"\n";
+                    }
+                    logger.info(ss.str());
                 } else {
-                    ss<<"emitting unknown check for column "<<check.colNo<<"\n";
+                    logger.info("found multi-col check (filter)");
                 }
-                logger.info(ss.str());
             }
 
             // Interesting questions re. checks: => these checks should be performed first. What is the optimal order of checks to perform?
@@ -469,80 +473,82 @@ namespace tuplex {
                 if(_generalCaseColumnsToSerialize[i]) {
                     // find all checks for that column
                     for(const auto& check : _checks) {
-                        if(check.colNo == i) {
-                            // string type? direct compare
-                            llvm::Value* check_cond = nullptr;
 
-                            // emit code for check
-                            auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
-                            auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
+                        if(check.isSingleColCheck()) {
+                            if(check.colNo() == i) {
+                                // string type? direct compare
+                                llvm::Value* check_cond = nullptr;
 
-                            // what type of check is it?
-                            // only support constant check yet
-                            if(check.type == CheckType::CHECK_CONSTANT) {
-                                {
-                                    std::stringstream ss;
-                                    ss<<"general-case requires column, emit code for constant check == "
-                                      <<check.constant_type().constant()
-                                      <<" for column "<<check.colNo;
-                                    logger.info(ss.str());
-                                }
+                                // emit code for check
+                                auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
+                                auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
 
-                                auto const_type = check.constant_type();
-                                // performing check against string constant
-                                assert(const_type.isConstantValued());
-                                auto elementType = const_type.underlying();
+                                // what type of check is it?
+                                // only support constant check yet
+                                if(check.type == CheckType::CHECK_CONSTANT) {
+                                    {
+                                        std::stringstream ss;
+                                        ss<<"general-case requires column, emit code for constant check == "
+                                          <<check.constant_type().constant()
+                                          <<" for column "<<check.colNo();
+                                        logger.info(ss.str());
+                                    }
 
-                                //  auto t = rowType.parameters()[rowTypePos];?
+                                    auto const_type = check.constant_type();
+                                    // performing check against string constant
+                                    assert(const_type.isConstantValued());
+                                    auto elementType = const_type.underlying();
+
+                                    //  auto t = rowType.parameters()[rowTypePos];?
 //                                assert(elementType == )
 
-                                auto value = const_type.constant();
-                                if(elementType.isOptionType()) {
-                                    // is the constant null? None?
-                                    if(value == "None" || value == "null")  {
-                                        elementType = python::Type::NULLVALUE;
-                                    } else
-                                        elementType = elementType.elementType();
-                                }
+                                    auto value = const_type.constant();
+                                    if(elementType.isOptionType()) {
+                                        // is the constant null? None?
+                                        if(value == "None" || value == "null")  {
+                                            elementType = python::Type::NULLVALUE;
+                                        } else
+                                            elementType = elementType.elementType();
+                                    }
 
-                                if(python::Type::STRING == elementType) {
-                                    // direct compare
-                                    auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
-				                    // _env->debugPrint(builder, "Checking whether cellsize==", _env->i64Const(const_type.constant().size() + 1));
-                                    auto constant_value = const_type.constant(); // <-- constant has the actual value here!
-                                    check_cond = builder.CreateICmpEQ(val.size, _env->i64Const(constant_value.size() + 1));
-                                    check_cond = builder.CreateAnd(check_cond, _env->fixedSizeStringCompare(builder, val.val, constant_value));
-                                } else if(python::Type::NULLVALUE == elementType) {
-                                    // special case: perform null check against array!
-                                    // null check (??)
-                                    auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
-                                    check_cond =  val.is_null;
-                                } else if(python::Type::BOOLEAN == elementType) {
-                                    auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
+                                    if(python::Type::STRING == elementType) {
+                                        // direct compare
+                                        auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
+                                        // _env->debugPrint(builder, "Checking whether cellsize==", _env->i64Const(const_type.constant().size() + 1));
+                                        auto constant_value = const_type.constant(); // <-- constant has the actual value here!
+                                        check_cond = builder.CreateICmpEQ(val.size, _env->i64Const(constant_value.size() + 1));
+                                        check_cond = builder.CreateAnd(check_cond, _env->fixedSizeStringCompare(builder, val.val, constant_value));
+                                    } else if(python::Type::NULLVALUE == elementType) {
+                                        // special case: perform null check against array!
+                                        // null check (??)
+                                        auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
+                                        check_cond =  val.is_null;
+                                    } else if(python::Type::BOOLEAN == elementType) {
+                                        auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
 
-                                    // compare value
-                                    auto c_val = parseBoolString(const_type.constant());
-                                    check_cond = builder.CreateICmpEQ(_env->boolConst(c_val), val.val);
-                                } else if(python::Type::I64 == elementType) {
+                                        // compare value
+                                        auto c_val = parseBoolString(const_type.constant());
+                                        check_cond = builder.CreateICmpEQ(_env->boolConst(c_val), val.val);
+                                    } else if(python::Type::I64 == elementType) {
 
-                                    // this check can be performed faster (if no leading 0s are assumed).
-                                    // i.e. use https://news.ycombinator.com/item?id=21019007 intrinsic.
-                                    // can also use that intrinsic for string comparison!
+                                        // this check can be performed faster (if no leading 0s are assumed).
+                                        // i.e. use https://news.ycombinator.com/item?id=21019007 intrinsic.
+                                        // can also use that intrinsic for string comparison!
 
-                                    auto const_string = value;
+                                        auto const_string = value;
 
-                                    auto sizePtr = builder.CreateGEP(sizesPtr, env().i64Const(i));
-                                    auto str_size = builder.CreateLoad(sizePtr);
-                                    // size correct?
-                                    auto size_ok = builder.CreateICmpEQ(str_size, env().i64Const(value.size() + 1));
-                                    auto ptr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)));
-                                    const auto& DL = env().getModule()->getDataLayout();
-                                    //const TargetLibraryInfo *TLI = nullptr; // <-- this may be wrong?
+                                        auto sizePtr = builder.CreateGEP(sizesPtr, env().i64Const(i));
+                                        auto str_size = builder.CreateLoad(sizePtr);
+                                        // size correct?
+                                        auto size_ok = builder.CreateICmpEQ(str_size, env().i64Const(value.size() + 1));
+                                        auto ptr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)));
+                                        const auto& DL = env().getModule()->getDataLayout();
+                                        //const TargetLibraryInfo *TLI = nullptr; // <-- this may be wrong?
 
-                                    //    if (!BaselineInfoImpl)
-                                    //     BaselineInfoImpl =
-                                    //         TargetLibraryInfoImpl(Triple(F.getParent()->getTargetTriple()));
-                                    //   return TargetLibraryInfo(*BaselineInfoImpl, &F);
+                                        //    if (!BaselineInfoImpl)
+                                        //     BaselineInfoImpl =
+                                        //         TargetLibraryInfoImpl(Triple(F.getParent()->getTargetTriple()));
+                                        //   return TargetLibraryInfo(*BaselineInfoImpl, &F);
 
 //                                    TargetLibraryAnalysis TLA;
 //                                    FunctionAnalysisManager DummyFAM;
@@ -562,56 +568,60 @@ namespace tuplex {
 //                                                                 DL,
 //                                                                 &TLI);
 
-                                    // should be optimized to bcmp
-                                    auto memcmpFunc = memcmp_prototype(env().getContext(), env().getModule().get());
-                                    auto n = env().i64Const(value.size());
-                                    auto cmp_ptr = env().strConst(builder, value);
-                                    assert(ptr);
-                                    assert(ptr->getType() == env().i8ptrType());
-                                    assert(cmp_ptr->getType() == env().i8ptrType());
-                                    auto cmp_ok = builder.CreateICmpEQ(env().i64Const(0), builder.CreateCall(memcmpFunc, {ptr, cmp_ptr, n}));
-                                    assert(cmp_ok);
-                                    assert(cmp_ok->getType() == env().i1Type());
-                                    check_cond = builder.CreateAnd(size_ok, cmp_ok);
+                                        // should be optimized to bcmp
+                                        auto memcmpFunc = memcmp_prototype(env().getContext(), env().getModule().get());
+                                        auto n = env().i64Const(value.size());
+                                        auto cmp_ptr = env().strConst(builder, value);
+                                        assert(ptr);
+                                        assert(ptr->getType() == env().i8ptrType());
+                                        assert(cmp_ptr->getType() == env().i8ptrType());
+                                        auto cmp_ok = builder.CreateICmpEQ(env().i64Const(0), builder.CreateCall(memcmpFunc, {ptr, cmp_ptr, n}));
+                                        assert(cmp_ok);
+                                        assert(cmp_ok->getType() == env().i1Type());
+                                        check_cond = builder.CreateAnd(size_ok, cmp_ok);
 
 
-                                    // #error "prevent expensive check here, simply compare length of string and value contents!"
-                                    // old code here: i.e., full parse...
-                                    // auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
+                                        // #error "prevent expensive check here, simply compare length of string and value contents!"
+                                        // old code here: i.e., full parse...
+                                        // auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
 //
-                                    // // compare value
-                                    // auto c_val = parseI64String(const_type.constant());
-                                    // check_cond = builder.CreateICmpEQ(_env->i64Const(c_val), val.val);
-                                } else if(python::Type::F64 == elementType) {
-                                    auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
+                                        // // compare value
+                                        // auto c_val = parseI64String(const_type.constant());
+                                        // check_cond = builder.CreateICmpEQ(_env->i64Const(c_val), val.val);
+                                    } else if(python::Type::F64 == elementType) {
+                                        auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
 
-                                    // compare value
-                                    auto c_val = parseF64String(const_type.constant());
-                                    // todo: compare maybe a with abs?
-                                    check_cond = builder.CreateFCmpOEQ(_env->f64Const(c_val), val.val);
+                                        // compare value
+                                        auto c_val = parseF64String(const_type.constant());
+                                        // todo: compare maybe a with abs?
+                                        check_cond = builder.CreateFCmpOEQ(_env->f64Const(c_val), val.val);
+                                    } else {
+                                        // fail check, because unsupported type
+                                        std::stringstream ss;
+                                        ss<<"unsupported type for check "<<elementType.desc()<<" found, fail normal check for all rows";
+                                        logger.error(ss.str());
+                                        check_cond = _env->i1Const(false);
+                                    }
+
+                                    // now perform check
+                                    // if !check -> normal_case violation!
+                                    // else, all good!
+
+                                    // // debug:
+                                    // _env->debugPrint(builder, "performing constant check for col=" + std::to_string(i) + " , " + check.constant_type().desc() + " (1=passed): ", check_cond);
+                                    // _env->debugPrint(builder, "cellStr", cellStr);
+                                    // _env->debugPrint(builder, "cellSize", cellSize);
+
                                 } else {
-                                    // fail check, because unsupported type
-                                    std::stringstream ss;
-                                    ss<<"unsupported type for check "<<elementType.desc()<<" found, fail normal check for all rows";
-                                    logger.error(ss.str());
-                                    check_cond = _env->i1Const(false);
+                                    logger.warn("unsupported check type encountered");
                                 }
-
-                                // now perform check
-                                // if !check -> normal_case violation!
-                                // else, all good!
-
-                                // // debug:
-                                // _env->debugPrint(builder, "performing constant check for col=" + std::to_string(i) + " , " + check.constant_type().desc() + " (1=passed): ", check_cond);
-                                // _env->debugPrint(builder, "cellStr", cellStr);
-                                // _env->debugPrint(builder, "cellSize", cellSize);
-
-                            } else {
-                                logger.warn("unsupported check type encountered");
+                                // append to all checks
+                                allChecksPassed = builder.CreateAnd(allChecksPassed, check_cond);
                             }
-                            // append to all checks
-                            allChecksPassed = builder.CreateAnd(allChecksPassed, check_cond);
+                        } else {
+                            // skip... emit multi-col checks separately...
                         }
+
                     }
                 }
             }
@@ -1062,7 +1072,7 @@ namespace tuplex {
 
                         // special case: constant normal check
                         for(const auto& check : _checks) {
-                            if(i == check.colNo && check.type == CheckType::CHECK_CONSTANT) {
+                            if(check.isSingleColCheck() && i == check.colNo() && check.type == CheckType::CHECK_CONSTANT) {
                                 std::string str_value = check.constant_type().constant();
                                 gen_cells[general_pos] = _env->strConst(builder, str_value);
                                 gen_cell_sizes[general_pos] = _env->i64Const(str_value.size() + 1);

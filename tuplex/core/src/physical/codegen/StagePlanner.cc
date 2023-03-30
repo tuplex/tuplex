@@ -248,8 +248,10 @@ namespace tuplex {
                 // new
                 auto original_col_idx = col_idx;
                for(const auto& check : checks) {
-                   if(check.colNo == original_col_idx) {
+                   if(check.isSingleColCheck() && check.colNo() == original_col_idx) {
                        projected_checks.emplace_back(check); // need to adjust internal colNo? => no, keep for now.
+                   } else {
+                       throw std::runtime_error("multi-col check not supported yet");
                    }
                }
             }
@@ -1762,6 +1764,30 @@ namespace tuplex {
             return acc_helper(node, nullptr, cols, false); // dropOperators should be true??
         }
 
+        static bool canPromoteFilterToCheck(const std::shared_ptr<FilterOperator>& fop) {
+            assert(fop->type() == LogicalOperatorType::FILTER);
+
+            // compiled?
+            if(!fop->getUDF().isCompiled())
+                return false;
+
+            // can promote if parent is input operator!
+            if(fop->parents().empty())
+                throw std::runtime_error("filter has no parent, can't check");
+
+            if(fop->parent()->isDataSource())
+                return true;
+
+            // can promote if all parents are filters!
+            std::shared_ptr<LogicalOperator> node = fop;
+            while(node->parent() && !node->parent()->isDataSource()) {
+                if(node->type() != LogicalOperatorType::FILTER)
+                    return false;
+                node = node->parent();
+            }
+            return true;
+        }
+
         void StagePlanner::promoteFilters() {
             auto& logger = Logger::instance().logger("optimizer");
 
@@ -1797,6 +1823,16 @@ namespace tuplex {
                     logger.debug("sample size post-filter: " + pluralize(samples_post_filter.size(), "row"));
                     if(!samples_post_filter.empty() && samples_post_filter.size() < original_sample_size) {
                         logger.info("filter is candidate for promotion, reduced sample size from " + std::to_string(original_sample_size) + " -> " + std::to_string(samples_post_filter.size()));
+
+                        // check that filter is only dependent on input operator, and not other operator (not yet supported)
+                        // if so, then add a new check for the filter. -> if the check passes (and filter=true), stay in normal case
+                        // can also remove filter from pipeline, because check is identical with filter, i.e. when check is true also filter will be true!
+                        // if check doesn't pass, no problem. Row anyway not processed, skip. no problem.
+                        // but set to
+                        if(canPromoteFilterToCheck(filter_node)) {
+                            // remove filter and add check!
+
+                        }
                     }
                 }
 

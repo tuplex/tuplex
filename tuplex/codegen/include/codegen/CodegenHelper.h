@@ -84,41 +84,54 @@ namespace tuplex {
             CHECK_NOTNULL,
             CHECK_DELAYEDPARSING,
             CHECK_INTEGER_RANGE,
-            CHECK_CONSTANT
+            CHECK_CONSTANT,
+            CHECK_FILTER // promoted filter, special case.
         };
 
         struct NormalCaseCheck {
-            size_t colNo; ///! the column number to check for
+
+            std::vector<size_t> colNos; ///! multiple columns
             CheckType type;
 
-            NormalCaseCheck() : colNo(0), type(CheckType::CHECK_UNKNOWN),
+            ///! the column number to check for
+            inline size_t colNo() const {
+                assert(isSingleColCheck());
+                return colNos.front();
+            }
+
+            inline bool isSingleColCheck() const {
+                return colNos.size() == 1;
+            }
+
+            NormalCaseCheck() : type(CheckType::CHECK_UNKNOWN),
             _constantType(python::Type::UNKNOWN),
             _iMin(std::numeric_limits<int64_t>::min()),
             _iMax(std::numeric_limits<int64_t>::max()) {}
 
-            NormalCaseCheck(const NormalCaseCheck& other) : colNo(other.colNo), type(other.type),
-            _constantType(other._constantType), _iMin(other._iMin), _iMax(other._iMax) {}
+            NormalCaseCheck(const NormalCaseCheck& other) : colNos(other.colNos), type(other.type),
+            _constantType(other._constantType), _iMin(other._iMin), _iMax(other._iMax), _serializedCheck(other._serializedCheck) {}
 
             NormalCaseCheck& operator = (const NormalCaseCheck& other) {
-                colNo = other.colNo;
+                colNos = other.colNos;
                 type = other.type;
                 // private members
                 _constantType = other._constantType;
                 _iMin = other._iMin;
                 _iMax = other._iMax;
+                _serializedCheck = other._serializedCheck;
                 return *this;
             }
 
             static NormalCaseCheck NullCheck(size_t colNo) {
                 NormalCaseCheck c;
-                c.colNo = colNo;
+                c.colNos.push_back(colNo);
                 c.type = CheckType::CHECK_NULL;
                 return c;
             }
 
             static NormalCaseCheck NotNullCheck(size_t colNo) {
                 NormalCaseCheck c;
-                c.colNo = colNo;
+                c.colNos.push_back(colNo);
                 c.type = CheckType::CHECK_NOTNULL;
                 return c;
             }
@@ -127,7 +140,7 @@ namespace tuplex {
                 assert(constType.isConstantValued());
 
                 NormalCaseCheck c;
-                c.colNo = colNo;
+                c.colNos.push_back(colNo);
                 c.type = CheckType::CHECK_CONSTANT;
                 c._constantType = constType; // required because of different formattings of types...
                 return c;
@@ -149,28 +162,30 @@ namespace tuplex {
 
 #ifdef BUILD_WITH_CEREAL
             template<class Archive> void serialize(Archive & ar) {
-                    ar(colNo, type, _constantType, _iMin, _iMax);
+                    ar(colNos, type, _constantType, _iMin, _iMax, _serializedCheck);
             }
 #endif
 
         // JSON serialization
         nlohmann::json to_json() const {
             nlohmann::json j;
-            j["colNo"] = colNo;
+            j["colNos"] = colNos;
             j["type"] = static_cast<int>(type);
             j["constantType"] = _constantType.desc();
             j["iMin"] = _iMin;
             j["iMax"] = _iMax;
+            j["check"] = _serializedCheck;
             return j;
         }
 
         static NormalCaseCheck from_json(nlohmann::json j) {
             NormalCaseCheck c;
-            c.colNo = j["colNo"].get<size_t>();
+            c.colNos = j["colNo"].get<std::vector<size_t>>();
             c.type = static_cast<CheckType>(j["colNo"].get<int>());
             c._constantType = python::decodeType(j["constantType"].get<std::string>());
             c._iMin = j["iMin"].get<int64_t>();
             c._iMax = j["iMax"].get<int64_t>();
+            c._serializedCheck = j["check"].get<std::string>();
             return c;
         }
 
@@ -178,6 +193,8 @@ namespace tuplex {
             python::Type _constantType;
             int64_t _iMin;
             int64_t _iMax;
+
+            std::string _serializedCheck;
         };
 
         // helper function to determine number of predecessors

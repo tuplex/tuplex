@@ -15,7 +15,11 @@ echo "Storing experimental result in ${RESDIR}, using ${NUM_RUNS} runs"
 mkdir -p ${RESDIR}
 PYTHON=python3.9
 
-SAMPLES_ARR=(1 2 4 8 16 32 64 128 256 512 1024)
+# below is a full check with 1024 doing sampling of all rows
+# SAMPLES_ARR=(1 2 4 8 16 32 64 128 256 512 1024)
+
+# for an experiment, this here is sufficient
+SAMPLES_ARR=(1 2 4 8 16 24 32 48 64)
 for samples_per_strata in "${SAMPLES_ARR[@]}"; do
   echo "Running with ${samples_per_strata} samples per strata"
   RESDIR=experimental_results/stratified-sampling/${samples_per_strata}

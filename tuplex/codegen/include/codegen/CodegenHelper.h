@@ -136,6 +136,14 @@ namespace tuplex {
                 return c;
             }
 
+            static NormalCaseCheck FilterCheck(const std::vector<size_t>& accessed_cols, const std::string& serialized_filter) {
+                NormalCaseCheck c;
+                c.colNos = accessed_cols;
+                c.type = CheckType::CHECK_FILTER;
+                c._serializedCheck = serialized_filter;
+                return c;
+            }
+
             static NormalCaseCheck ConstantCheck(size_t colNo, const python::Type& constType) {
                 assert(constType.isConstantValued());
 

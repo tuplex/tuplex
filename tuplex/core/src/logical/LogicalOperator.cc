@@ -146,4 +146,29 @@ namespace tuplex {
         python::unlockGIL();
         return v;
     }
+
+    std::shared_ptr<LogicalOperator> LogicalOperator::remove() {
+
+        // both parents and children? -> need to connect.
+        if(!_parents.empty() && !_children.empty()) {
+            // need to connect parents/children
+            // go over each parent and connect to each child
+            for(auto& parent : _parents) {
+                for(auto& child : _children) {
+                    parent->_children.push_back(child);
+                    child->_parents.push_back(parent);
+                }
+            }
+        }
+
+        // disconnect this node.
+        // has parents? disconnect.
+        if(!_parents.empty())
+            setParents({});
+        // has children? disconnect.
+        if(!_children.empty())
+            setChildren({});
+
+        return shared_from_this();
+    }
 }

@@ -231,6 +231,12 @@ namespace tuplex {
         int64_t getID() const { return _id; }
 
         /*!
+         * removes this operator from its parents and children connecting them properly.
+         * @return the operator as is, disconnected
+         */
+        virtual std::shared_ptr<LogicalOperator> remove();
+
+        /*!
          * retype operator
          * @param conf
          * @return true if retyping was successful, false if it couldn't be performed using the given configuration.

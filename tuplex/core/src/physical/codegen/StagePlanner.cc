@@ -1788,6 +1788,25 @@ namespace tuplex {
             return true;
         }
 
+        static codegen::NormalCaseCheck filterToCheck(const std::shared_ptr<FilterOperator>& fop) {
+            // serialize
+            std::string serialized_filter;
+#ifdef BUILD_WITH_CEREAL
+            std::ostringstream oss(std::stringstream::binary);
+            {
+                cereal::BinaryOutputArchive ar(oss);
+                ar(fop);
+                // ar going out of scope flushes everything
+            }
+            auto bytes_str = oss.str();
+            serialized_filter = bytes_str;
+#else
+            serialized_filter = fop->to_json();
+#endif
+            auto acc_cols = fop->getUDF().getAccessedColumns();
+            return NormalCaseCheck::FilterCheck(acc_cols, serialized_filter);
+        }
+
         void StagePlanner::promoteFilters() {
             auto& logger = Logger::instance().logger("optimizer");
 
@@ -1831,7 +1850,11 @@ namespace tuplex {
                         // but set to
                         if(canPromoteFilterToCheck(filter_node)) {
                             // remove filter and add check!
+                            filter_node->remove();
+                            // no need for parents etc.
+                            _checks.push_back(filterToCheck(filter_node));
 
+                            logger.debug("promoted filter to check: \n" + core::withLineNumbers(filter_node->getUDF().getCode()));
                         }
                     }
                 }

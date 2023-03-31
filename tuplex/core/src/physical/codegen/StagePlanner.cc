@@ -585,7 +585,8 @@ namespace tuplex {
             using namespace std;
 
             // clear checks
-            _checks.clear();
+            //_checks.clear();
+
             vector<shared_ptr<LogicalOperator>> optimized_operators = vec_prepend(_inputNode, _operators);
             auto& logger = Logger::instance().logger("specializing stage optimizer");
 

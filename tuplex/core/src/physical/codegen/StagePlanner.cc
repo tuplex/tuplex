@@ -1865,7 +1865,7 @@ namespace tuplex {
                         }
                     }
                 }
-                if(node)
+                if(node && node->getID() != _inputNode->getID())
                     operators_post_op.push_back(node);
 
                 // go on...

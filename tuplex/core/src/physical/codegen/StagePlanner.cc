@@ -1826,6 +1826,9 @@ namespace tuplex {
                 logger.debug("skip because empty original sample");
             }
 
+
+            std::vector<std::shared_ptr<LogicalOperator>> operators_post_op;
+
             // check if there is at least one filter operator!
             // -> carry then repeated filters out!
             auto node = _inputNode;
@@ -1833,6 +1836,8 @@ namespace tuplex {
                 assert(node->children().size() == 1); // only single child yet supported...
 
                 logger.debug(node->name() + " has child: " + node->children().front()->name());
+
+                auto next_node = node->children().front();
 
                 // is it a filter? can the filter be promoted?
                 if(node->type() == LogicalOperatorType::FILTER) {
@@ -1855,12 +1860,20 @@ namespace tuplex {
                             _checks.push_back(filterToCheck(filter_node));
 
                             logger.debug("promoted filter to check: \n" + core::withLineNumbers(filter_node->getUDF().getCode()));
+
+                            node = nullptr;
                         }
                     }
                 }
+                if(node)
+                    operators_post_op.push_back(node);
 
-                node = node->children().front();
+                // go on...
+                node = next_node;
             }
+            if(node)
+                operators_post_op.push_back(node);
+            _operators = operators_post_op;
 
             logger.debug("filter promo done.");
         }

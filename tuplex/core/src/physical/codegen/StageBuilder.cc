@@ -1054,7 +1054,8 @@ namespace tuplex {
                                                                          unwrap_first_level,
                                                                          normalToGeneralMapping,
                                                                          funcStageName,
-                                                                         except_mode);
+                                                                         except_mode,
+                                                                         pathContext.checks);
                         break;
                     }
 

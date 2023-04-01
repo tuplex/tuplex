@@ -20,7 +20,8 @@ namespace tuplex {
                                   bool unwrap_first_level,
                                   const std::map<int, int>& normalToGeneralMapping,
                                   const std::string &name,
-                                  const ExceptionSerializationMode& except_mode);
+                                  const ExceptionSerializationMode& except_mode,
+                                  const std::vector<NormalCaseCheck>& checks = std::vector<NormalCaseCheck>());
 
             llvm::Function* build(bool terminateEarlyOnFailureCode) override;
         private:

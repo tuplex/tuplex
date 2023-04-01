@@ -18,7 +18,8 @@ namespace tuplex {
                                                      bool unwrap_first_level,
                                                      const std::map<int, int>& normalToGeneralMapping,
                                                      const std::string &name,
-                                                     const ExceptionSerializationMode& except_mode): BlockBasedTaskBuilder(env,
+                                                     const ExceptionSerializationMode& except_mode,
+                                                     const std::vector<NormalCaseCheck>& checks): BlockBasedTaskBuilder(env,
                                                                                                                    normalCaseRowType,
                                                                                                                    generalCaseRowType,
                                                                                                                    normalToGeneralMapping,
@@ -31,6 +32,9 @@ namespace tuplex {
                                                      _unwrap_first_level(unwrap_first_level),
                                                      _functionName(name),
                                                      _inputOperatorID(input_operator_id) {
+
+            if(!checks.empty())
+                throw std::runtime_error("to be implemented!");
 
         }
 

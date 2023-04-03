@@ -104,6 +104,20 @@ namespace tuplex {
             return obj;
         }
 
+        inline static std::shared_ptr<FilterOperator> from_json(const std::shared_ptr<LogicalOperator>& parent, nlohmann::json json) {
+            auto columnNames = json["columnNames"].get<std::vector<std::string>>();
+            auto id = json["id"].get<int>();
+            auto code = json["udf"]["code"].get<std::string>();
+            // @TODO: avoid typing call?
+            // i.e. this will draw a sample too?
+            // or ok, because sample anyways need to get drawn??
+            UDF udf(code);
+
+            auto fop = new FilterOperator(parent, udf, columnNames);
+            fop->setID(id);
+            return std::shared_ptr<FilterOperator>(fop);
+        }
+
     private:
         bool _good;
     };

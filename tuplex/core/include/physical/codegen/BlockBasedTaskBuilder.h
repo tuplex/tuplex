@@ -160,6 +160,7 @@ namespace tuplex {
 
             bool isNormalCaseAndGeneralCaseCompatible() const { return _normalAndGeneralCompatible; }
 
+            std::vector<NormalCaseCheck> checks() const { return _checks; }
         private:
             std::shared_ptr<codegen::PipelineBuilder> _pipBuilder;
             std::string _desiredFuncName;
@@ -175,6 +176,8 @@ namespace tuplex {
             bool _normalAndGeneralCompatible;
             // bool _serializeExceptionsAsGeneralCase;
             ExceptionSerializationMode _exceptionSerializationMode;
+
+            std::vector<NormalCaseCheck> _checks;
         public:
             BlockBasedTaskBuilder() = delete;
 
@@ -186,20 +189,23 @@ namespace tuplex {
              * @param normalToGeneralMapping normal to general mapping, i.e. which column index in normal case corresponds to which column index in general case. If empty, means it's a 1:1 trivial mapping.
              * @param name how to call the function to be generated.
              * @param serializeExceptionAsGeneralCase if true, upcasts exceptions to generalCaseInputRowType. If false, uses inputRowType.
+             * @param checks optional normal case checks
              */
             BlockBasedTaskBuilder(const std::shared_ptr<LLVMEnvironment> &env,
                                   const python::Type& inputRowType,
                                   const python::Type& generalCaseInputRowType,
                                   const std::map<int, int>& normalToGeneralMapping,
                                   const std::string &name,
-                                  const ExceptionSerializationMode& except_mode) : _env(env), _inputRowType(inputRowType),
+                                  const ExceptionSerializationMode& except_mode,
+                                  const std::vector<NormalCaseCheck>& checks={}) : _env(env), _inputRowType(inputRowType),
                                                              _inputRowTypeGeneralCase(generalCaseInputRowType),
                                                              _normalToGeneralMapping(normalToGeneralMapping),
                                                              _desiredFuncName(name),
                                                              _intermediate(nullptr),
                                                              _intermediateType(python::Type::UNKNOWN),
                                                              _normalAndGeneralCompatible(false),
-                                                            _exceptionSerializationMode(except_mode) {
+                                                            _exceptionSerializationMode(except_mode),
+                                                            _checks(checks) {
                 // check that upcasting is true or there is a valid mapping when sizes differ!
 //                assert((_inputRowType.parameters().size() != _inputRowTypeGeneralCase.parameters().size()
 //                && !_normalToGeneralMapping.empty() && _normalToGeneralMapping.size() == _inputRowType.parameters().size()) ||

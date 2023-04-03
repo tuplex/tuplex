@@ -31,7 +31,6 @@ namespace tuplex {
             std::string _functionName; /// name of the LLVM function
 
             std::vector<std::string> _nullValues; /// strings that should be interpreted as null values.
-            std::vector<NormalCaseCheck> _checks; ///! normal case checks
             size_t numCells() const { return _fileInputRowType.parameters().size(); }
 
             FlattenedTuple cellsToTuple(llvm::IRBuilder<>& builder,
@@ -125,7 +124,8 @@ namespace tuplex {
                                                                                                                      generalCaseInputRowType),
                                                                                                               normalToGeneralMapping,
                                                                                                               name,
-                                                                                                              except_mode),
+                                                                                                              except_mode,
+                                                                                                              checks),
                                                                  _operatorID(operatorID),
                                                                  _fileInputRowType(normalCaseRowType),
                                                                  _fileInputRowTypeGeneralCase(generalCaseInputRowType),
@@ -134,7 +134,6 @@ namespace tuplex {
                                                                  _normalToGeneralMapping(normalToGeneralMapping),
                                                                  _functionName(name),
                                                                  _nullValues(null_values),
-                                                                 _checks(checks),
                                                                  _valueErrorBlock(nullptr),
                                                                  _nullErrorBlock(nullptr) {
 

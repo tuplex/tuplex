@@ -1855,6 +1855,12 @@ namespace tuplex {
                         // if check doesn't pass, no problem. Row anyway not processed, skip. no problem.
                         // but set to
                         if(canPromoteFilterToCheck(filter_node)) {
+
+                            // promote ONLY if there's a significant schema change with filter promotion.
+                            // else, there's no benefit.
+                            // @TODO:
+                            logger.debug("add here logic so no accidental promo happens for flights query...");
+
                             // remove filter and add check!
                             filter_node->remove();
                             // no need for parents etc.

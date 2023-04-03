@@ -72,6 +72,11 @@ namespace tuplex {
                                            bool unwrap_first_level,
                                            bool terminateEarlyOnLimitCode);
 
+            void generateChecks(llvm::IRBuilder<>& builder,
+                                llvm::Value* userData,
+                                llvm::Value* rowNumber,
+                                llvm::Value* parser);
+
             inline llvm::Value* incVar(llvm::IRBuilder<>& builder, llvm::Value* var, llvm::Value* what_to_add) {
                 llvm::Value* val = builder.CreateLoad(var);
                 val = builder.CreateAdd(val, what_to_add);

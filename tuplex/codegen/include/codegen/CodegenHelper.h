@@ -197,6 +197,8 @@ namespace tuplex {
             return c;
         }
 
+        std::string data() const { return _serializedCheck; }
+
         private:
             python::Type _constantType;
             int64_t _iMin;

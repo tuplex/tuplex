@@ -6,6 +6,7 @@
 #include <experimental/StructDictHelper.h>
 #include <experimental/ListHelper.h>
 #include <physical/experimental/JSONParseRowGenerator.h>
+#include <logical/FilterOperator.h>
 
 namespace tuplex {
     namespace codegen {
@@ -24,7 +25,8 @@ namespace tuplex {
                                                                                                                    generalCaseRowType,
                                                                                                                    normalToGeneralMapping,
                                                                                                                    name,
-                                                                                                                   except_mode),
+                                                                                                                   except_mode,
+                                                                                                                   checks),
                                                      _normalCaseRowType(normalCaseRowType),
                                                      _generalCaseRowType(generalCaseRowType),
                                                      _normal_case_columns(normal_case_columns),
@@ -32,10 +34,6 @@ namespace tuplex {
                                                      _unwrap_first_level(unwrap_first_level),
                                                      _functionName(name),
                                                      _inputOperatorID(input_operator_id) {
-
-            if(!checks.empty())
-                throw std::runtime_error("to be implemented!");
-
         }
 
         llvm::Function* JsonSourceTaskBuilder::build(bool terminateEarlyOnFailureCode) {
@@ -60,10 +58,12 @@ namespace tuplex {
 
             auto bufPtr = args["inPtr"];
             auto bufSize = args["inSize"];
+            auto userData = args["userData"];
 
             initVars(builder);
 
-            auto parsed_bytes = generateParseLoop(builder, bufPtr, bufSize, args["userData"], _normal_case_columns,
+            // full parse loop now
+            auto parsed_bytes = generateParseLoop(builder, bufPtr, bufSize, userData, _normal_case_columns,
                                                   _general_case_columns, _unwrap_first_level, terminateEarlyOnFailureCode);
 
 
@@ -88,6 +88,58 @@ namespace tuplex {
             builder.CreateRet(parsed_bytes);
 
             return func;
+        }
+
+        void
+        JsonSourceTaskBuilder::generateChecks(llvm::IRBuilder<> &builder,
+                                              llvm::Value *userData,
+                                              llvm::Value *rowNumber,
+                                              llvm::Value* parser) {
+            assert(rowNumber && rowNumber->getType() == _env->i64Type());
+            assert(parser && parser->getType() == _env->i8ptrType());
+
+
+            _env->printValue(builder, rowNumber, "normal-case check for row=");
+
+            // which checks are available?
+            auto checks = this->checks();
+
+            for(const auto& check : checks) {
+                if(check.type == CheckType::CHECK_FILTER) {
+                    // ok, this is supported
+                    logger().debug("found filter check, emitting code");
+
+                    // deserialize filter operator in order to generate check properly
+                    std::shared_ptr<FilterOperator> fop;
+#ifdef BUILD_WITH_CEREAL
+                    // use cereal deserialization
+                    {
+                        std::istringstream iss(check.data());
+                        cereal::BinaryInputArchive ar(iss);
+                        ar(fop);
+                    }
+#else
+                    auto fop = FileOutputOperator::from_json(nullptr, check.data())
+#endif
+                    logger().debug("deserialized operator " + fop->name());
+
+                    // which columns does filter operator require?
+                    // -> perform struct type rewrite specific for THIS filter
+                    auto acc_cols = fop->getUDF().getAccessedColumns(false);
+                    std::stringstream ss;
+                    ss<<"filter accesses following columns: "<<acc_cols<<"\n";
+                    ss<<"input row type: "<<_inputRowType.desc()<<"\n";
+
+                    // create reduced input type for quick parsing
+                    assert(_inputRowType.isTupleType());
+
+
+                    logger().debug(ss.str());
+                } else {
+                    throw std::runtime_error("Check not supported for JsonSourceTaskBuilder");
+                }
+            }
+
         }
 
         void JsonSourceTaskBuilder::initVars(llvm::IRBuilder<> &builder) {
@@ -180,6 +232,10 @@ namespace tuplex {
             builder.SetInsertPoint(bLoopBody);
             // generate here...
             // _env->debugPrint(builder, "parsed row");
+
+            // before parsing the full JSON, perform any checks required to speed up the process!
+            generateChecks(builder, userData, rowNumber(builder), parser);
+
 #ifdef JSON_PARSER_TRACE_MEMORY
              _env->printValue(builder, rowNumber(builder), "row no= ");
 #endif

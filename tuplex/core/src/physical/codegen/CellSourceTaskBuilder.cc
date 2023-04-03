@@ -435,13 +435,15 @@ namespace tuplex {
 
             auto& logger = Logger::instance().logger("codegen");
 
-            if(_checks.empty())
+            auto checks = this->checks();
+
+            if(checks.empty())
                 return;
 
-            logger.debug("CellSourceTaskBuilder with " + pluralize(_checks.size(), "check"));
+            logger.debug("CellSourceTaskBuilder with " + pluralize(checks.size(), "check"));
 
             // sanity check, emit warning if check was given but col not read?
-            for(const auto& check : _checks) {
+            for(const auto& check : checks) {
                 if(check.isSingleColCheck()) {
                     if(check.colNo() >= _generalCaseColumnsToSerialize.size())
                         logger.warn("check has invalid column number");
@@ -472,16 +474,16 @@ namespace tuplex {
                 // should column be serialized? if so emit type logic!
                 if(_generalCaseColumnsToSerialize[i]) {
                     // find all checks for that column
-                    for(const auto& check : _checks) {
+                    for(const auto& check : checks) {
 
                         if(check.isSingleColCheck()) {
                             if(check.colNo() == i) {
                                 // string type? direct compare
                                 llvm::Value* check_cond = nullptr;
 
-                                // emit code for check
-                                auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
-                                auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
+                                // // emit code for check
+                                // auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)), "x" + std::to_string(i));
+                                // auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env().i64Const(i)), "s" + std::to_string(i));
 
                                 // what type of check is it?
                                 // only support constant check yet
@@ -498,9 +500,6 @@ namespace tuplex {
                                     // performing check against string constant
                                     assert(const_type.isConstantValued());
                                     auto elementType = const_type.underlying();
-
-                                    //  auto t = rowType.parameters()[rowTypePos];?
-//                                assert(elementType == )
 
                                     auto value = const_type.constant();
                                     if(elementType.isOptionType()) {
@@ -543,30 +542,6 @@ namespace tuplex {
                                         auto size_ok = builder.CreateICmpEQ(str_size, env().i64Const(value.size() + 1));
                                         auto ptr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)));
                                         const auto& DL = env().getModule()->getDataLayout();
-                                        //const TargetLibraryInfo *TLI = nullptr; // <-- this may be wrong?
-
-                                        //    if (!BaselineInfoImpl)
-                                        //     BaselineInfoImpl =
-                                        //         TargetLibraryInfoImpl(Triple(F.getParent()->getTargetTriple()));
-                                        //   return TargetLibraryInfo(*BaselineInfoImpl, &F);
-
-//                                    TargetLibraryAnalysis TLA;
-//                                    FunctionAnalysisManager DummyFAM;
-//                                    auto F  = builder.GetInsertBlock()->getParent();
-//                                    auto TLI = TLA.run(*F, DummyFAM);
-//                                    auto M = builder.GetInsertBlock()->getParent()->getParent();
-//                                    auto BaselineInfoImpl = TargetLibraryInfoImpl(Triple(M->getTargetTriple()));
-//                                    auto TLI2 = TargetLibraryInfo(BaselineInfoImpl);
-//
-//                                    memcmp_prototype()
-//                                    // bcmp means simply compare memory, but no need to retrieve first pos of different byte.
-//                                    // -> cheaper to execute.
-//                                    auto cmp_ok = llvm::emitBCmp(ptr,
-//                                                                 env().strConst(builder, value),
-//                                                                 env().i64Const(value.size()),
-//                                                                 builder,
-//                                                                 DL,
-//                                                                 &TLI);
 
                                         // should be optimized to bcmp
                                         auto memcmpFunc = memcmp_prototype(env().getContext(), env().getModule().get());
@@ -579,15 +554,6 @@ namespace tuplex {
                                         assert(cmp_ok);
                                         assert(cmp_ok->getType() == env().i1Type());
                                         check_cond = builder.CreateAnd(size_ok, cmp_ok);
-
-
-                                        // #error "prevent expensive check here, simply compare length of string and value contents!"
-                                        // old code here: i.e., full parse...
-                                        // auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
-//
-                                        // // compare value
-                                        // auto c_val = parseI64String(const_type.constant());
-                                        // check_cond = builder.CreateICmpEQ(_env->i64Const(c_val), val.val);
                                     } else if(python::Type::F64 == elementType) {
                                         auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
 
@@ -620,6 +586,7 @@ namespace tuplex {
                             }
                         } else {
                             // skip... emit multi-col checks separately...
+                            throw std::runtime_error("Multi-col check not yet supported in cell source task builder");
                         }
 
                     }
@@ -633,40 +600,6 @@ namespace tuplex {
 
             builder.CreateCondBr(allChecksPassed, bbChecksPassed, bbChecksFailed);
             builder.SetInsertPoint(bbChecksFailed);
-
-//            // if configured as logging normal-case failures, the proper exception to produce for a failed check is parsed input.
-//            // else, if general-case exceptions are accepted, produce a normal-case violation
-//            if(exceptionsRowType() == _inputRowTypeGeneralCase) {
-//                // need to parse full row (with general case types!)
-//                auto generalcase_row = parseGeneralCaseRow(builder, cellsPtr, sizesPtr); // this should handle automatically bad parse.
-//                auto serialized_row = serializedExceptionRow(builder, generalcase_row, ExceptionSerializationFormat::GENERALCASE);
-//
-//                if(exceptionsRowType() != _inputRowTypeGeneralCase) {
-//                    // i.e., to solve this should introduce another ExceptionCode::NORMALCASECHECKFAILED which is then in
-//                    // the resolve path properly decoded as general-case exception.
-//                    throw std::runtime_error("failure here, need to make sure exceptions are always passed in as general case format! Else, the whole hyperspecialziation etc. thing makes no sense.");
-//                }
-//
-//                //// check failed?
-//                // _env->debugPrint("check failed. calling except handler with general-case row format...");
-//
-//                // directly generate call to handler -> no ignore checks necessary.
-//                // _env->debugPrint(builder, "normal checks didn't pass");
-//                callExceptHandler(builder, userData, _env->i64Const(ecToI64(ExceptionCode::NORMALCASEVIOLATION)),
-//                                  _env->i64Const(_operatorID), rowNumber, serialized_row.val, serialized_row.size);
-//
-//                // processing done, rest needs to be done via different path.
-//                builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
-//            } else {
-//                // bad parse exception! => get's matched/resolved first on fallback path.
-//                // DO NOT USE dummies here
-//                auto serialized_row = serializeBadParseException(builder, cellsPtr, sizesPtr, false);
-//                callExceptHandler(builder, userData, _env->i64Const(ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)),
-//                                  _env->i64Const(_operatorID), rowNumber, serialized_row.val, serialized_row.size);
-//
-//                // processing done, rest needs to be done via different path.
-//                builder.CreateRet(env().i64Const(ecToI64(ExceptionCode::SUCCESS)));
-//            }
 
             {
                 // let the slow path do the general-case matching, i.e. produce a bad parse exception.
@@ -1071,7 +1004,7 @@ namespace tuplex {
                         }
 
                         // special case: constant normal check
-                        for(const auto& check : _checks) {
+                        for(const auto& check : checks()) {
                             if(check.isSingleColCheck() && i == check.colNo() && check.type == CheckType::CHECK_CONSTANT) {
                                 std::string str_value = check.constant_type().constant();
                                 gen_cells[general_pos] = _env->strConst(builder, str_value);

@@ -1866,6 +1866,9 @@ namespace tuplex {
                             // no need for parents etc.
                             _checks.push_back(filterToCheck(filter_node));
 
+                            // manipulate input node sample!
+                            _inputNode->setSample(samples_post_filter);
+#error "fix here"
                             logger.debug("promoted filter to check: \n" + core::withLineNumbers(filter_node->getUDF().getCode()));
 
                             node = nullptr;

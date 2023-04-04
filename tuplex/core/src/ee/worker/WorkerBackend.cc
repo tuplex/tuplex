@@ -321,6 +321,7 @@ namespace tuplex {
                                              "tuplex.sample.strataSize",
                                              "tuplex.sample.samplesPerStrata",
                                              "tuplex.optimizer.constantFoldingOptimization",
+                                             "tuplex.optimizer.filterPromotion",
                                              "tuplex.experimental.forceBadParseExceptFormat"});
         auto& m_map = *(ws->mutable_other());
         for(const auto& key : other_keys)

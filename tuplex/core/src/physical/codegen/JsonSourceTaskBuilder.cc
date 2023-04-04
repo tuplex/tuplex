@@ -129,10 +129,28 @@ namespace tuplex {
                     std::stringstream ss;
                     ss<<"filter accesses following columns: "<<acc_cols<<"\n";
                     ss<<"input row type: "<<_inputRowType.desc()<<"\n";
+                    ss<<"input columns: "<<_normal_case_columns<<"\n";
+                    // these are empty
+                    ss<<"filter input columns: "<<fop->inputColumns()<<"\n";
+                    ss<<"filter input schema: "<<fop->getInputSchema().getRowType().desc()<<"\n";
+
+                    // retype filter operator
+
+                    std::vector<std::string> acc_column_names;
+                    std::vector<python::Type> acc_col_types;
+                    for(auto idx : acc_cols) {
+                        acc_column_names.push_back(_normal_case_columns[idx]);
+                        acc_col_types.push_back(_input_row_type.parameters()[idx]);
+                    }
+
+                    RetypeConfiguration conf;
+                    conf.columns = acc_column_names;
+                    conf.row_type = python::Type::makeTupleType(acc_col_types);
+                    conf.is_projected = true;
+                    auto ret = fop->retype(conf);
 
                     // create reduced input type for quick parsing
                     assert(_inputRowType.isTupleType());
-
 
                     logger().debug(ss.str());
                 } else {

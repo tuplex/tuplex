@@ -221,10 +221,22 @@ namespace tuplex {
                             "        return repo.get('id')\n"
                             "    else:\n"
                             "        return row['repo'].get('id')";
+
+        // // @TODO: this here should be the proper pipeline
+        // ctx.json(input_pattern, true, true, sm)
+        //         .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+        //         .withColumn("repo_id", UDF(repo_id_code))
+        //         .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+        //         .withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
+        //         .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
+        //         .selectColumns(vector<string>{"type", "repo_id", "year", "number_of_commits"})
+        //         .tocsv(output_path);
+
+        // fixed pipeline here b.c. canPromoteFilterCheck is incomplete yet...
         ctx.json(input_pattern, true, true, sm)
+                .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
                 .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
                 .withColumn("repo_id", UDF(repo_id_code))
-                .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
                 .withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
                 .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
                 .selectColumns(vector<string>{"type", "repo_id", "year", "number_of_commits"})

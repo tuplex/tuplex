@@ -153,10 +153,21 @@ namespace tuplex {
 
         // start pipeline incl. output
         auto repo_id_code = "def extract_repo_id(row):\n"
-                            "\tif 2012 <= row['year'] <= 2014:\n"
-                            "\t\treturn row['repository']['id']\n"
-                            "\telse:\n"
-                            "\t\treturn row['repo']['id']\n";
+                                       "    if 2012 <= row['year'] <= 2014:\n"
+                                       "        \n"
+                                       "        if row['type'] == 'FollowEvent':\n"
+                                       "            return row['payload']['target']['id']\n"
+                                       "        \n"
+                                       "        if row['type'] == 'GistEvent':\n"
+                                       "            return row['payload']['id']\n"
+                                       "        \n"
+                                       "        repo = row.get('repository')\n"
+                                       "        \n"
+                                       "        if repo is None:\n"
+                                       "            return None\n"
+                                       "        return repo.get('id')\n"
+                                       "    else:\n"
+                                       "        return row['repo'].get('id')";
         ctx.json(input_pattern, true, true, sm)
                 .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
                 .withColumn("repo_id", UDF(repo_id_code))
@@ -188,10 +199,21 @@ namespace tuplex {
 
         // start pipeline incl. output
         auto repo_id_code = "def extract_repo_id(row):\n"
-                            "\tif 2012 <= row['year'] <= 2014:\n"
-                            "\t\treturn row['repository']['id']\n"
-                            "\telse:\n"
-                            "\t\treturn row['repo']['id']\n";
+                            "    if 2012 <= row['year'] <= 2014:\n"
+                            "        \n"
+                            "        if row['type'] == 'FollowEvent':\n"
+                            "            return row['payload']['target']['id']\n"
+                            "        \n"
+                            "        if row['type'] == 'GistEvent':\n"
+                            "            return row['payload']['id']\n"
+                            "        \n"
+                            "        repo = row.get('repository')\n"
+                            "        \n"
+                            "        if repo is None:\n"
+                            "            return None\n"
+                            "        return repo.get('id')\n"
+                            "    else:\n"
+                            "        return row['repo'].get('id')";
         ctx.json(input_pattern, true, true, sm)
                 .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
                 .withColumn("repo_id", UDF(repo_id_code))

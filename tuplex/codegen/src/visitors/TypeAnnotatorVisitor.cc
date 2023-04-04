@@ -2212,7 +2212,7 @@ namespace tuplex {
 
         switch(node->type()) {
             case ASTNodeType::String: {
-                key = escape_to_python_str(static_cast<NString*>(node)->value());
+                key = static_cast<NString*>(node)->value();
                 return make_tuple(key, python::Type::STRING);
                 break;
             }

@@ -182,11 +182,15 @@ namespace tuplex {
         using namespace std;
 
         // set input/output paths
-        auto exp_settings = lambdaSettings(true); // localWorkerSettings(true); //
+        auto exp_settings = localWorkerSettings(true); //
         string input_pattern = "../resources/hyperspecialization/github_daily/*.json.sample";
         string output_path = "./local-exp/filter-promo/github/output";
         SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));
         ContextOptions co = ContextOptions::defaults();
+
+        for(const auto& kv : exp_settings)
+            if(startsWith(kv.first, "tuplex."))
+                co.set(kv.first, kv.second);
 
         bool use_hyper = true;
         co.set("tuplex.experimental.hyperspecialization", boolToString(use_hyper));
@@ -196,6 +200,8 @@ namespace tuplex {
 
         // creater context according to settings
         Context ctx(co);
+
+        runtime::init(co.RUNTIME_LIBRARY().toPath());
 
         // start pipeline incl. output
         auto repo_id_code = "def extract_repo_id(row):\n"

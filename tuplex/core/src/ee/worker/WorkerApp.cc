@@ -373,6 +373,7 @@ namespace tuplex {
             conf.policy.normalCaseThreshold = _settings.normalCaseThreshold;
             conf.constantFoldingOptimization = _settings.useConstantFolding;
             conf.exceptionSerializationMode = _settings.exceptionSerializationMode;
+            conf.filterPromotion = _settings.useFilterPromotion;
             bool hyper_rc = hyperspecialize(tstage,
                                             uri,
                                             file_size,

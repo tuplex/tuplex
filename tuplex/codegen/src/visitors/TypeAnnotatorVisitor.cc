@@ -1184,7 +1184,7 @@ namespace tuplex {
                 // lookup in kv pairs...
                 auto kv_pairs = type.get_struct_pairs();
                 auto it = std::find_if(kv_pairs.begin(), kv_pairs.end(), [&lookup_key](const python::StructEntry& entry) {
-                    return entry.key == lookup_key;
+                    return entry.key == escape_to_python_str(lookup_key);
                 });
                 if(it != kv_pairs.end()) {
                     sub->setInferredType(it->valueType);

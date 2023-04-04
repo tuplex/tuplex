@@ -3282,7 +3282,7 @@ namespace tuplex {
                                                      builder.CreateLoad(var.size),
                                                      builder.CreateLoad(var.is_null));
 
-                    _env.printValue(builder, ret_val.val, "value: ");
+                    // _env.printValue(builder, ret_val.val, "value: ");
                     return ret_val; // test...
                 }
 

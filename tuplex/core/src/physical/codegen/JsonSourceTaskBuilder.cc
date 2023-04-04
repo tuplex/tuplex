@@ -94,7 +94,9 @@ namespace tuplex {
         JsonSourceTaskBuilder::generateChecks(llvm::IRBuilder<> &builder,
                                               llvm::Value *userData,
                                               llvm::Value *rowNumber,
-                                              llvm::Value* parser) {
+                                              llvm::Value* parser,
+                                              llvm::BasicBlock* bbSkipRow,
+                                              llvm::BasicBlock* bbBadRow) {
             using namespace llvm;
 
             assert(rowNumber && rowNumber->getType() == _env->i64Type());
@@ -209,7 +211,7 @@ namespace tuplex {
                         }
 
                         env().printValue(builder, filterCond, "promoted filter res=");
-                        builder.CreateCondBr(filterCond, bbCheckPassed, bbCheckFailed);
+                        builder.CreateCondBr(filterCond, bbCheckPassed, bbSkipRow);
 
                         builder.SetInsertPoint(exceptionBlock);
                         env().printValue(builder, builder.CreateLoad(ecVar), "filter check failed with exception of ec=");
@@ -226,20 +228,13 @@ namespace tuplex {
 
                     // now what happens if filter passed or failed?
 
-                    // this is for testing purposes...
-                    BasicBlock* bbNext = BasicBlock::Create(ctx, "filter_check_" + std::to_string(fop->getID()) + "_done", builder.GetInsertBlock()->getParent());
-
-                    builder.SetInsertPoint(bbCheckPassed);
-                    env().debugPrint(builder, "promoted filter check passed.");
-                    builder.CreateBr(bbNext);
-
                     builder.SetInsertPoint(bbCheckFailed);
                     env().debugPrint(builder, "promoted filter check failed.");
-                    builder.CreateBr(bbNext);
+                    builder.CreateBr(bbBadRow);
 
-
-                    // leave in this block...
-                    builder.SetInsertPoint(bbNext);
+                    // continue on normal case path!
+                    builder.SetInsertPoint(bbCheckPassed);
+                    env().debugPrint(builder, "promoted filter check passed.");
 
                     // create reduced input type for quick parsing
                     assert(_inputRowType.isTupleType());
@@ -341,8 +336,9 @@ namespace tuplex {
             // generate here...
             // _env->debugPrint(builder, "parsed row");
 
-            // before parsing the full JSON, perform any checks required to speed up the process!
-            generateChecks(builder, userData, rowNumber(builder), parser);
+
+
+
 
 #ifdef JSON_PARSER_TRACE_MEMORY
              _env->printValue(builder, rowNumber(builder), "row no= ");
@@ -374,6 +370,20 @@ namespace tuplex {
             //
             //     builder.SetInsertPoint(bbKeep);
             // }
+
+            if(!checks().empty()) {
+                BasicBlock* bbSkipRow = BasicBlock::Create(_env->getContext(), "normal_row_skip", builder.GetInsertBlock()->getParent());
+                {
+                    llvm::IRBuilder<> builder(bbSkipRow);
+                    env().debugPrint(builder, "skip row b.c. of promoted filter");
+                    incVar(builder, _normalRowCountVar);
+                    builder.CreateBr(_freeStart);
+                }
+
+                // before parsing the full JSON, perform any checks required to speed up the process!
+                generateChecks(builder, userData, rowNumber(builder), parser, bbSkipRow, bbFallback);
+            }
+
 
 #ifdef JSON_PARSER_TRACE_MEMORY
             _env->debugPrint(builder, "try parsing as normal row...");

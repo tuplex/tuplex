@@ -95,9 +95,10 @@ namespace tuplex {
                                               llvm::Value *userData,
                                               llvm::Value *rowNumber,
                                               llvm::Value* parser) {
+            using namespace llvm;
+
             assert(rowNumber && rowNumber->getType() == _env->i64Type());
             assert(parser && parser->getType() == _env->i8ptrType());
-
 
             _env->printValue(builder, rowNumber, "normal-case check for row=");
 
@@ -140,7 +141,7 @@ namespace tuplex {
                     std::vector<python::Type> acc_col_types;
                     for(auto idx : acc_cols) {
                         acc_column_names.push_back(_normal_case_columns[idx]);
-                        acc_col_types.push_back(_input_row_type.parameters()[idx]);
+                        acc_col_types.push_back(_inputRowType.parameters()[idx]);
                     }
 
                     RetypeConfiguration conf;
@@ -148,11 +149,100 @@ namespace tuplex {
                     conf.row_type = python::Type::makeTupleType(acc_col_types);
                     conf.is_projected = true;
                     auto ret = fop->retype(conf);
+                    if(!ret) {
+                        std::stringstream err_stream;
+                        err_stream<<"failed to retype filter operator with columns="<<conf.columns<<", type="<<conf.row_type.desc();
+                        logger().error(err_stream.str());
+                        throw std::runtime_error(err_stream.str());
+                    }
+                    logger().debug(ss.str());
+
+
+                    // create two basic blocks: -> check passed, check failed
+                    auto& ctx = builder.getContext();
+                    BasicBlock* bbCheckPassed = BasicBlock::Create(ctx, "filter_check_" + std::to_string(fop->getID()) + "_passed", builder.GetInsertBlock()->getParent());
+                    BasicBlock* bbCheckFailed = BasicBlock::Create(ctx, "filter_check_" + std::to_string(fop->getID()) + "_failed", builder.GetInsertBlock()->getParent());
+
+                    if(_unwrap_first_level) {
+                        // first level are columns:
+                        // i.e., detect which columns are necessary and prune accordingly!
+                        // => only filter specific paths should be parsed!
+                        ss.str("");
+                        ss<<"filter requires "<<pluralize(conf.columns.size(), "column")<<": "<<conf.columns;
+                        logger().debug(ss.str());
+                        BasicBlock* bbFilterBadParse = BasicBlock::Create(ctx, "filter_" + std::to_string(fop->getID()) + "_bad_parse", builder.GetInsertBlock()->getParent());
+                        auto ft_filter = json_parseRow(env(), builder, conf.row_type, conf.columns, true, false, parser, bbFilterBadParse);
+
+                        // now call filter & determine whether good or bad
+                        if(!fop->getUDF().isCompiled())
+                            throw std::runtime_error("only compilable UDFs here supported!");
+                        auto cf = const_cast<UDF&>(fop->getUDF()).compile(env());
+                        if(!cf.good())
+                            throw std::runtime_error("failed compiling UDF for filter check");
+
+                        if(python::Type::BOOLEAN != cf.output_python_type)
+                            throw std::runtime_error("only filter with boolean output type yet supported in filter check");
+
+                        auto resVal = env().CreateFirstBlockAlloca(builder, cf.getLLVMResultType(env()));
+
+                        auto exceptionBlock = BasicBlock::Create(ctx, "filter_" + std::to_string(fop->getID()) + "_except", builder.GetInsertBlock()->getParent());
+                        auto ecVar = env().CreateFirstBlockAlloca(builder, env().i64Type(), "ecVar_filter");
+                        auto ft = cf.callWithExceptionHandler(builder, ft_filter, resVal, exceptionBlock, ecVar);
+                        // check type is correct
+                        auto expectedType = python::Type::BOOLEAN;
+                        llvm::Value* filterCond = nullptr; // i1 filter condition
+                        if(ft.getTupleType() != expectedType) {
+                            // perform truthValueTest on result
+                            // is it a tuple type?
+                            // keep everything!
+                            if(ft.numElements() > 1)
+                                filterCond = env().i1Const(true);
+                            else{
+                                auto ret_val = SerializableValue(ft.get(0), ft.getSize(0), ft.getIsNull(0)); // single value?
+                                filterCond = env().truthValueTest(builder, ret_val, cf.output_python_type);
+                            }
+                        } else {
+                            assert(ft.numElements() ==  1);
+                            auto compareVal = ft.get(0);
+                            assert(compareVal->getType() == env().getBooleanType());
+                            filterCond = builder.CreateICmpEQ(compareVal, env().boolConst(true));
+                        }
+
+                        env().printValue(builder, filterCond, "promoted filter res=");
+                        builder.CreateCondBr(filterCond, bbCheckPassed, bbCheckFailed);
+
+                        builder.SetInsertPoint(exceptionBlock);
+                        env().printValue(builder, builder.CreateLoad(ecVar), "filter check failed with exception of ec=");
+                        builder.CreateBr(bbCheckFailed);
+
+                        builder.SetInsertPoint(bbFilterBadParse);
+                        env().debugPrint(builder, "filter row parse failed");
+                        builder.CreateBr(bbCheckFailed);
+
+                    } else {
+                        logger().debug("filter check with non-unwrap of first level, prune struct type paths");
+                        throw std::runtime_error("non unwrap not yet supported for filter-promo");
+                    }
+
+                    // now what happens if filter passed or failed?
+
+                    // this is for testing purposes...
+                    BasicBlock* bbNext = BasicBlock::Create(ctx, "filter_check_" + std::to_string(fop->getID()) + "_done", builder.GetInsertBlock()->getParent());
+
+                    builder.SetInsertPoint(bbCheckPassed);
+                    env().debugPrint(builder, "promoted filter check passed.");
+                    builder.CreateBr(bbNext);
+
+                    builder.SetInsertPoint(bbCheckFailed);
+                    env().debugPrint(builder, "promoted filter check failed.");
+                    builder.CreateBr(bbNext);
+
+
+                    // leave in this block...
+                    builder.SetInsertPoint(bbNext);
 
                     // create reduced input type for quick parsing
                     assert(_inputRowType.isTupleType());
-
-                    logger().debug(ss.str());
                 } else {
                     throw std::runtime_error("Check not supported for JsonSourceTaskBuilder");
                 }

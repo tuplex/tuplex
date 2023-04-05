@@ -80,6 +80,10 @@ namespace tuplex {
         }
 #endif
 
+        // struct dict? is fine.
+        if(optType.isStructuredDictionaryType())
+            return optType;
+
         throw std::runtime_error("unsupported type " + optType.desc() + " encountered in "
                                  + std::string(__FILE__) + ":" + std::to_string(__LINE__));
     }

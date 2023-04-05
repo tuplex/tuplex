@@ -439,11 +439,12 @@ namespace tuplex {
                     for(auto& colType : _colTypes)
                         colType = unified_type.parameters();
                 } else {
-                    auto err_str = "sample object (type=" + sample_row_type.desc()
-                            + ") given doesn't match or can be unified with input row type (type="
-                            + _inputRowType.desc() + ")";
-
-                    PyErr_SetString(PyExc_TypeError, err_str.c_str());
+                    // leave as is? do not warn?
+                    // auto err_str = "sample object (type=" + sample_row_type.desc()
+                    //        + ") given doesn't match or can be unified with input row type (type="
+                    //        + _inputRowType.desc() + ")";
+                    //
+                    // PyErr_SetString(PyExc_TypeError, err_str.c_str());
                 }
             }
         }
@@ -808,6 +809,19 @@ namespace tuplex {
         assert(_evalStack.size() >= 1);
         auto ti_value = _evalStack.back(); _evalStack.pop_back();
         auto value = ti_value.value;
+
+#ifndef NDEBUG
+        // .get(...) fails on row, because it's a tuple - not the fancy Row object used else for tracing...
+        // -> use row object?
+        // need to define in tracer properly.
+#error "define here proper row object for tracing."
+
+        PyObject_Print(value, stdout, 0);
+        std::cout<<std::endl;
+        // what's the object?
+        Py_XINCREF(value);
+        auto value_str = python::PyString_AsString(value);
+#endif
 
         // fetch attribute from python function!
         auto res = PyObject_GetAttrString(value, attr.c_str());

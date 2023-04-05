@@ -232,6 +232,9 @@ namespace tuplex {
         //         .selectColumns(vector<string>{"type", "repo_id", "year", "number_of_commits"})
         //         .tocsv(output_path);
 
+        // single test-file here:
+        input_pattern = "../resources/hyperspecialization/github_daily/2012-10-15.json.sample";
+
         // fixed pipeline here b.c. canPromoteFilterCheck is incomplete yet...
         ctx.json(input_pattern, true, true, sm)
                 .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))

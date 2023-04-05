@@ -167,6 +167,11 @@ namespace tuplex {
             }
             return idx;
         }
+
+        /*!
+         * force set to sample (used by filter promo). Make friend maybe?
+         */
+        void setRowsSample(const std::vector<Row>& sample);
     private:
         inline std::vector<std::string> projectColumns(const std::vector<std::string>& columns) const {
             if(_columnsToSerialize.empty() || _columnNames.empty())

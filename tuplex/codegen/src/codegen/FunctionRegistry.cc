@@ -3123,9 +3123,27 @@ namespace tuplex {
             assert(!callerType.isOptionType());
 
             // only certain dicts yet supported
-            if(!callerType.isStructuredDictionaryType()) {
-                throw std::runtime_error("Only struct dict yet supported for dict.get");
+            if(!callerType.isStructuredDictionaryType() && callerType != python::Type::EMPTYDICT) {
+                throw std::runtime_error("Only struct dict or empty dict yet supported for dict.get");
             }
+
+            // special case empty dict. -> always return opt arg!
+            if(callerType == python::Type::EMPTYDICT) {
+                if(1 == argsTypes.size()) {
+                   if(python::Type::NULLVALUE == retType) {
+                       return SerializableValue(nullptr,
+                                         nullptr,
+                                         _env.i1Const(true));
+                   } else {
+                       return SerializableValue(_env.dummyValue(builder, retType).val,
+                                         _env.i64Const(0),
+                                         _env.i1Const(true));
+                   }
+                } else {
+                    throw std::runtime_error("only None as default supported yet for empty dict .get");
+                }
+            }
+
 
             assert(callerType.isStructuredDictionaryType());
 

@@ -1854,7 +1854,7 @@ namespace tuplex {
                         // can also remove filter from pipeline, because check is identical with filter, i.e. when check is true also filter will be true!
                         // if check doesn't pass, no problem. Row anyway not processed, skip. no problem.
                         // but set to
-                        if(canPromoteFilterToCheck(filter_node)) {
+                        if(canPromoteFilterToCheck(filter_node) && _inputNode && _inputNode->type() == LogicalOperatorType::FILEINPUT) {
 
                             // promote ONLY if there's a significant schema change with filter promotion.
                             // else, there's no benefit.
@@ -1867,8 +1867,8 @@ namespace tuplex {
                             _checks.push_back(filterToCheck(filter_node));
 
                             // manipulate input node sample!
-                            _inputNode->setSample(samples_post_filter);
-#error "fix here"
+                            std::dynamic_pointer_cast<FileInputOperator>(_inputNode)->setRowsSample(samples_post_filter);
+                            logger.debug("replaced samples in input operator with " + pluralize(_inputNode->getSample(original_sample_size).size(), "filtered sample"));
                             logger.debug("promoted filter to check: \n" + core::withLineNumbers(filter_node->getUDF().getCode()));
 
                             node = nullptr;

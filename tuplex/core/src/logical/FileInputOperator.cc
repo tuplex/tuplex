@@ -920,6 +920,14 @@ namespace tuplex {
 //        _optimizedNormalCaseRowType = _normalCaseRowType;
     }
 
+    void FileInputOperator::setRowsSample(const std::vector<Row> &sample) {
+        // remove cached data and replace
+        _rowsSample = sample;
+
+        // remove file cache
+        _sampleCache.clear();
+    }
+
     std::vector<Row> FileInputOperator::getSample(const size_t num) const {
         if(!_cachePopulated)
             const_cast<FileInputOperator*>(this)->fillFileCache(_samplingMode);

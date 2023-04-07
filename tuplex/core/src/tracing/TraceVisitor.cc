@@ -10,12 +10,14 @@
 
 #include <tracing/TraceVisitor.h>
 #include <stdexcept>
+#include "tracing/TraceRowObject.h"
 
 namespace tuplex {
 
-    void TraceVisitor::recordTrace(ASTNode *node, PyObject *args) {
+    void TraceVisitor::recordTrace(ASTNode *node, PyObject *args, const std::vector<std::string>& columns) {
         assert(node && args);
         _args = args;
+        _argsColumns = columns;
         _functionSeen = false;
         _evalStack.clear();
         _symbols.clear();
@@ -391,6 +393,27 @@ namespace tuplex {
 
             if(astArgs.size() == 1) {
                 auto id = dynamic_cast<NIdentifier*>(dynamic_cast<NParameter*>(astArgs.front())->_identifier.get());
+
+                // check whether it's a dictionary or tuple
+                // convert to appropriate tracerow object
+                if(PyTuple_Check(_args)) {
+                    // extract column names
+                    // std::cout<<"found tuple, converting to trace row object"<<std::endl;
+                    // set up from tuple
+                    std::vector<PyObject*> items;
+                    for(unsigned i = 0; i < PyTuple_Size(_args); ++i) {
+                        auto item = PyTuple_GET_ITEM(_args, i);
+                        Py_XINCREF(item);
+                        items.emplace_back(item);
+                    }
+                    Py_XDECREF(_args);
+                    _args = nullptr;
+                    _args = reinterpret_cast<PyObject*>(TraceRowObject::create(items, _argsColumns));
+
+                } else {
+                    // keep it as it is
+                }
+
                 _symbols.emplace_back(TraceItem::param(_args, id->_name));
                 extractedArgs.push_back(_args);
             } else {
@@ -408,7 +431,7 @@ namespace tuplex {
             // record input types for schema inference!
             std::vector<python::Type> types;
             for(auto a : extractedArgs) {
-                types.emplace_back(python::mapPythonClassToTuplexType(a, false));
+                types.emplace_back(mapPythonToTuplexType(a, false));
             }
             _colTypes.emplace_back(types);
         } else throw std::runtime_error("no nested functions supported in tracer yet!");
@@ -480,7 +503,7 @@ namespace tuplex {
         // @TODO: add annotation object (ptr) to astnodes!
 
         // record type
-        auto retType = python::mapPythonClassToTuplexType(_retValue.value, false);
+        auto retType = mapPythonToTuplexType(_retValue.value, false);
         if(retType.isTupleType() && !retType.parameters().empty()) {
             _retColTypes.emplace_back(retType.parameters());
         } else {
@@ -694,7 +717,7 @@ namespace tuplex {
         _evalStack.pop_back();
 
         // record type
-        auto retType = python::mapPythonClassToTuplexType(_retValue.value, false);
+        auto retType = mapPythonToTuplexType(_retValue.value, false);
         if(retType.isTupleType() && !retType.parameters().empty()) {
             _retColTypes.emplace_back(retType.parameters());
         } else {
@@ -777,7 +800,7 @@ namespace tuplex {
 
             // map arg type
             Py_XINCREF(ti_args[i].value);
-            arg_types.push_back(python::mapPythonClassToTuplexType(ti_args[i].value, false));
+            arg_types.push_back(mapPythonToTuplexType(ti_args[i].value, false));
         }
 
         auto res = PyObject_Call(ti_func.value, args, nullptr);
@@ -810,17 +833,17 @@ namespace tuplex {
         auto ti_value = _evalStack.back(); _evalStack.pop_back();
         auto value = ti_value.value;
 
-#ifndef NDEBUG
-        // .get(...) fails on row, because it's a tuple - not the fancy Row object used else for tracing...
-        // -> use row object?
-        // need to define in tracer properly.
-
-        PyObject_Print(value, stdout, 0);
-        std::cout<<std::endl;
-        // what's the object?
-        Py_XINCREF(value);
-        auto value_str = python::PyString_AsString(value);
-#endif
+//#ifndef NDEBUG
+//        // .get(...) fails on row, because it's a tuple - not the fancy Row object used else for tracing...
+//        // -> use row object?
+//        // need to define in tracer properly.
+//
+//        PyObject_Print(value, stdout, 0);
+//        std::cout<<std::endl;
+//        // what's the object?
+//        Py_XINCREF(value);
+//        auto value_str = python::PyString_AsString(value);
+//#endif
 
         // fetch attribute from python function!
         auto res = PyObject_GetAttrString(value, attr.c_str());
@@ -1078,7 +1101,7 @@ namespace tuplex {
             node->annotation().numTimesVisited++;
 
             // translate type
-            node->annotation().types.push_back(python::mapPythonClassToTuplexType(item.value, false));
+            node->annotation().types.push_back(mapPythonToTuplexType(item.value, false));
 
         }
         // add to instruction stack.
@@ -1451,5 +1474,15 @@ namespace tuplex {
             }
         }
         return counts;
+    }
+
+    python::Type TraceVisitor::mapPythonToTuplexType(PyObject *obj, bool autoUpcast) {
+
+        // special case, is TraceRowObject?
+        if(0 == strcmp(obj->ob_type->tp_name, "internal.TraceRow")) {
+            return ((TraceRowObject*)obj)->rowType(autoUpcast);
+        }
+
+        return python::mapPythonClassToTuplexType(obj, autoUpcast);
     }
 }

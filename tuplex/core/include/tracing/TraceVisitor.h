@@ -55,6 +55,8 @@ namespace tuplex {
         // symbols
         std::vector<TraceItem> _symbols;
 
+        std::vector<std::string> _argsColumns;
+
         // access paths to input parameters, encoded via strings...
         // works for now only via x, or x[0] or so
         // future: more complex stuff like x[0][2] or so!
@@ -70,6 +72,8 @@ namespace tuplex {
         MessageHandler& logger() { return Logger::instance().logger("tracer"); }
 
         void unpackFunctionParameters(const std::vector<ASTNode*> &astArgs);
+
+        python::Type mapPythonToTuplexType(PyObject* obj, bool autoUpcast);
 
         /*!
          * types of traced input arguments
@@ -120,8 +124,9 @@ namespace tuplex {
          * trace input over AST and record within tree what happened
          * @param node
          * @param args PyObject to trace
+         * @param columns
          */
-        void recordTrace(ASTNode* node, PyObject* args);
+        void recordTrace(ASTNode* node, PyObject* args, const std::vector<std::string>& columns={});
 
         python::Type majorityInputType() const;
         python::Type majorityOutputType() const;

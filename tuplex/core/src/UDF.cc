@@ -1586,7 +1586,7 @@ namespace tuplex {
         tv.setClosure(_ast.globals(), false);
 
         for(auto args : sample)
-            tv.recordTrace(funcNode, args);
+            tv.recordTrace(funcNode, args, _columnNames);
         // record the total number of samples (used to check in TypeAnnotatorVisitor if every sample corresponds to a normal case violation)
         funcNode->annotation().numTimesVisited = sample.size();
         addCompileErrors(tv.getCompileErrors());

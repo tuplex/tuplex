@@ -255,7 +255,7 @@ if __name__ == '__main__':
     parser.add_argument('--internal-fmt', dest='use_internal_fmt',
                         help='if active, use the internal tuplec storage format for exceptions, no CSV format optimization',
                         action='store_true')
-    parser.add_argument('--samples-per-strata', dest='samples_per_strata', default=1, help='how many samples to use per strata')
+    parser.add_argument('--samples-per-strata', dest='samples_per_strata', default=10, help='how many samples to use per strata')
     parser.add_argument('--strata-size', dest='strata_size', default=1024,
                         help='how many samples to use per strata')
     parser.add_argument('--num-years', dest='num_years', action='store', choices=['auto'] + [str(year) for year in list(range(1, 2021-1987+2))], default='auto', help='if auto the range 2002-2005 will be used (equivalent to --num-years=4).')

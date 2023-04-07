@@ -3124,7 +3124,7 @@ namespace tuplex {
 
             // only certain dicts yet supported
             if(!callerType.isStructuredDictionaryType() && callerType != python::Type::EMPTYDICT) {
-                throw std::runtime_error("Only struct dict or empty dict yet supported for dict.get");
+                throw std::runtime_error("Only struct dict or empty dict yet supported for dict.get. Requested " + callerType.desc() + ".get");
             }
 
             // special case empty dict. -> always return opt arg!

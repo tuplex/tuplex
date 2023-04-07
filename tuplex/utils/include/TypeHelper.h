@@ -84,6 +84,9 @@ namespace tuplex {
         if(optType.isStructuredDictionaryType())
             return optType;
 
+        if(optType == python::Type::ANY)
+            return python::Type::ANY;
+
         throw std::runtime_error("unsupported type " + optType.desc() + " encountered in "
                                  + std::string(__FILE__) + ":" + std::to_string(__LINE__));
     }

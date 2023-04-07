@@ -31,7 +31,7 @@ namespace tuplex {
             PyErr_SetString(PyExc_KeyError, ("could not find key '" + str_key + "' in row object").c_str());
         } else if(PyLong_Check(key)) {
             auto offset = PyLong_AsLong(key);
-            if(offset <= 0 || offset >= items.size())
+            if(offset < 0 || offset >= items.size())
                 PyErr_SetString(PyExc_KeyError, "invalid key");
             auto item = items[offset];
             Py_XINCREF(item);

@@ -50,6 +50,8 @@ namespace tuplex {
                 // make true, access found
                 _dictAccessFound = true;
 
+                assert(idx < _columnNames.size());
+
                 // only rewrite in non-dry mode
                 if(_rewrite) {
                     // special case: If there is a single column, do not use param[idx],

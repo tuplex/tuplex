@@ -814,7 +814,6 @@ namespace tuplex {
         // .get(...) fails on row, because it's a tuple - not the fancy Row object used else for tracing...
         // -> use row object?
         // need to define in tracer properly.
-#error "define here proper row object for tracing."
 
         PyObject_Print(value, stdout, 0);
         std::cout<<std::endl;

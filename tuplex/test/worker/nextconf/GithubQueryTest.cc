@@ -278,12 +278,14 @@ namespace tuplex {
         co.set("tuplex.experimental.hyperspecialization", boolToString(use_hyper));
 
 
-        // co.set("tuplex.optimizer.filterPromotion", "true");
+        co.set("tuplex.optimizer.filterPromotion", "true");
 
-        co.set("tuplex.optimizer.filterPromotion", "false");
+        // co.set("tuplex.optimizer.filterPromotion", "false"); // <-- seems to work.
 
         co.set("tuplex.optimizer.nullValueOptimization", "true");
         co.set("tuplex.optimizer.constantFoldingOptimization", "true");
+
+        co.set("tuplex.inputSplitSize", "2GB");
 
         // make testing faster...
         co.set("tuplex.resolveWithInterpreterOnly", "true");

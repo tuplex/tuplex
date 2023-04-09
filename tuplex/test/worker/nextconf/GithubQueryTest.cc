@@ -199,6 +199,9 @@ namespace tuplex {
         co.set("tuplex.optimizer.nullValueOptimization", "true");
         co.set("tuplex.optimizer.constantFoldingOptimization", "true");
 
+        // make testing faster...
+        co.set("tuplex.resolveWithInterpreterOnly", "true");
+
         // creater context according to settings
         Context ctx(co);
 

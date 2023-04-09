@@ -816,6 +816,11 @@ namespace tuplex {
             r_conf.is_projected = true;
             r_conf.row_type = input_row_type;
             r_conf.columns = input_column_names;
+
+            // perform quick sanity check
+            if(!r_conf.columns.empty())
+                assert(r_conf.row_type.parameters().size() == r_conf.columns.size());
+
             if(!fop->retype(r_conf, true))
                 throw std::runtime_error("failed to retype " + fop->name() + " operator."); // for input operator, ignore Option[str] compatibility which is set per default
             fop->useNormalCase(); // this forces output schema to be normalcase (i.e. overwrite internally output schema to be normal case schema)

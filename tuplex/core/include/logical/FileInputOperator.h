@@ -63,6 +63,7 @@ namespace tuplex {
         std::mutex _sampleCacheMutex;
         bool _cachePopulated;
         std::vector<Row> _rowsSample;
+        bool _isRowSampleProjected;
 
         /*!
          * project sample according to map set for this operator
@@ -171,7 +172,7 @@ namespace tuplex {
         /*!
          * force set to sample (used by filter promo). Make friend maybe?
          */
-        void setRowsSample(const std::vector<Row>& sample);
+        void setRowsSample(const std::vector<Row>& sample, bool is_projected=true);
     private:
         inline std::vector<std::string> projectColumns(const std::vector<std::string>& columns) const {
             if(_columnsToSerialize.empty() || _columnNames.empty())

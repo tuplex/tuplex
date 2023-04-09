@@ -65,7 +65,8 @@ namespace tuplex {
     FileInputOperator::FileInputOperator() : _fmt(FileFormat::OUTFMT_UNKNOWN), _json_unwrap_first_level(false),
                                              _json_treat_heterogenous_lists_as_tuples(true), _header(false),
                                              _sampling_time_s(0.0), _quotechar('\0'),
-                                             _delimiter('\0'), _samplingMode(SamplingMode::UNKNOWN) {}
+                                             _delimiter('\0'), _samplingMode(SamplingMode::UNKNOWN),
+                                             _isRowSampleProjected(false) {}
 
     void FileInputOperator::detectFiles(const std::string& pattern) {
         auto &logger = Logger::instance().logger("fileinputoperator");
@@ -374,6 +375,7 @@ namespace tuplex {
         SamplingParameters params;
         params.limit = sample_limit;
 
+        _isRowSampleProjected = false; // no projection, store raw samples!
         if(mode & SamplingMode::SINGLETHREADED)
             _rowsSample = sample(mode, outNames, params);
         else
@@ -402,6 +404,7 @@ namespace tuplex {
         params.random_seed = random_seed;
 
         Timer timer;
+        _isRowSampleProjected = false; // raw, fill with unprojected samples.
         if(mode & SamplingMode::SINGLETHREADED)
             _rowsSample = sample(mode, outNames, params);
         else
@@ -920,9 +923,10 @@ namespace tuplex {
 //        _optimizedNormalCaseRowType = _normalCaseRowType;
     }
 
-    void FileInputOperator::setRowsSample(const std::vector<Row> &sample) {
+    void FileInputOperator::setRowsSample(const std::vector<Row> &sample, bool is_projected) {
         // remove cached data and replace
         _rowsSample = sample;
+        _isRowSampleProjected = is_projected;
 
         // remove file cache
         _sampleCache.clear();
@@ -945,14 +949,19 @@ namespace tuplex {
             // select num random rows...
             // use https://en.wikipedia.org/wiki/Reservoir_sampling the optimal algorithm there to fetch the sample quickly...
             // i.e., https://www.geeksforgeeks.org/reservoir-sampling/
-            return projectSample(randomSampleFromReservoir(_rowsSample, num));
+            if(!_isRowSampleProjected)
+                return projectSample(randomSampleFromReservoir(_rowsSample, num));
+            else return randomSampleFromReservoir(_rowsSample, num);
         } else {
             // need to increase sample size!
             Logger::instance().defaultLogger().warn("requested " + std::to_string(num)
                                                     + " rows for sampling, but only "
                                                     + std::to_string(_rowsSample.size())
                                                     + " stored. Consider decreasing sample size. Returning all available rows.");
-            return projectSample(_rowsSample);
+            if(!_isRowSampleProjected)
+                return projectSample(_rowsSample);
+            else
+                return _rowsSample;
         }
     }
 
@@ -1144,6 +1153,7 @@ namespace tuplex {
                                                                              _generalCaseRowType(other._generalCaseRowType),
                                                                              _indexBasedHints(other._indexBasedHints),
                                                                              _rowsSample(other._rowsSample),
+                                                                             _isRowSampleProjected(other._isRowSampleProjected),
                                                                              _cachePopulated(other._cachePopulated),
                                                                              _samplingMode(other._samplingMode),
                                                                              _sampling_time_s(other._sampling_time_s),
@@ -1169,6 +1179,7 @@ namespace tuplex {
 
         _sampleCache = other._sampleCache;
         _rowsSample = other._rowsSample;
+        _isRowSampleProjected = other._isRowSampleProjected;
     }
 
     int64_t FileInputOperator::cost() const {
@@ -1240,6 +1251,7 @@ namespace tuplex {
             _cachePopulated = false;
             _sampleCache.clear();
             _rowsSample.clear(); // reset row samples!
+            _isRowSampleProjected = false;
 
             // restrict sampling mode
             auto sm = optimize_sampling_mode(_samplingMode, uris.size());

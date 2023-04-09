@@ -89,7 +89,7 @@ namespace python {
 
     void lockGIL() {
         gilMutex.lock(); // <-- acquire the managing lock. No other thread can lock the gil! => what if another thread tries to unlock? -> security concern...
-
+        // std::cout<<"-- lock GIL"<<std::endl;
         // what is the current thread id? is it the main thread? => then lock the gil via restore thread etc.
         // if not, need to use GILState_Ensure
         if(std::this_thread::get_id() == gil_main_thread_id) {
@@ -97,6 +97,7 @@ namespace python {
                 gilState = PyGILState_GetThisThreadState();
             assert(gilState);
             PyEval_RestoreThread(gilState); // acquires GIL!
+            gilState = nullptr;
         } else {
             assert(interpreterInitialized);
             gstate = PyGILState_Ensure();
@@ -104,7 +105,7 @@ namespace python {
         assert(PyGILState_Check());
         gil_id = std::this_thread::get_id();
         gil = true;
-        gilState = nullptr;
+
     }
 
     void unlockGIL() {
@@ -118,6 +119,7 @@ namespace python {
         }
         gil_id = std::thread::id();
         gil = false;
+        // std::cout<<"-- unlock GIL"<<std::endl;
         gilMutex.unlock();
     }
 

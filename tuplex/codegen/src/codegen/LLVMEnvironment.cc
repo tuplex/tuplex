@@ -2656,6 +2656,14 @@ namespace tuplex {
                 retVal.val = strConst(builder, "");
                 retVal.size = i64Const(1);
                 retVal.is_null = i1Const(false);
+            } else if(type.isListType()) {
+                // allocate list ptr and init with zero length!
+                auto llvm_list_type = getOrCreateListType(type);
+                auto list_ptr = CreateFirstBlockAlloca(builder, llvm_list_type, "dummy_list");
+                list_init_empty(*this, builder, list_ptr, type);
+                retVal.val = list_ptr;
+                retVal.size = i64Const(0);
+                retVal.is_null = i1Const(false);
             } else {
                 std::string err_msg = "Requested dummy for type " + type.desc() + " but not yet implemented";
                 Logger::instance().logger("codegen").error(err_msg);

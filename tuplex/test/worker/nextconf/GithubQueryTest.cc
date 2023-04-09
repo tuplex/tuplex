@@ -276,7 +276,12 @@ namespace tuplex {
 
         bool use_hyper = true;
         co.set("tuplex.experimental.hyperspecialization", boolToString(use_hyper));
-        co.set("tuplex.optimizer.filterPromotion", "true");
+
+
+        // co.set("tuplex.optimizer.filterPromotion", "true");
+
+        co.set("tuplex.optimizer.filterPromotion", "false");
+
         co.set("tuplex.optimizer.nullValueOptimization", "true");
         co.set("tuplex.optimizer.constantFoldingOptimization", "true");
 
@@ -321,6 +326,10 @@ namespace tuplex {
         // single test-file here:
         //input_pattern = "../resources/hyperspecialization/github_daily/2012-10-15.json.sample";
 
+
+        // check full data
+        input_pattern = "/hot/data/github_daily/*.json";
+
         // fixed pipeline here b.c. canPromoteFilterCheck is incomplete yet...
         ctx.json(input_pattern, true, true, sm)
                 .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
@@ -330,6 +339,9 @@ namespace tuplex {
                 .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
                 .selectColumns(vector<string>{"type", "repo_id", "year", "number_of_commits"})
                 .tocsv(output_path);
+
+        // perform sanity check with pure python solution that ouput number of rows is correct.
+        // std::cout<<v.size()<<std::endl;
 
     }
 }

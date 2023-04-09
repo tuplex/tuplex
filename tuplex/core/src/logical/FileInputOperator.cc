@@ -1634,9 +1634,10 @@ namespace tuplex {
 
 
         SamplingMode m = mode;
+        size_t sampling_size = std::min(range_size, _samplingSize);
 
         // if uri_size < file_size -> first rows only
-        if(uri_size <= _samplingSize)
+        if(uri_size <= sampling_size)
             m = SamplingMode::FIRST_ROWS;
 
         // check file sampling modes & then load the samples accordingly
@@ -1672,9 +1673,9 @@ namespace tuplex {
             auto sample = loadSample(_samplingSize, uri, uri_size, SamplingMode::LAST_ROWS, true, &file_offset);
             size_t offset = 0;
             if(!v.empty()) {
-                if(uri_size < 2 * _samplingSize) {
-                    offset = _samplingSize - (uri_size - _samplingSize);
-                    assert(offset <= _samplingSize);
+                if(uri_size < 2 * sampling_size) {
+                    offset = sampling_size - (uri_size - sampling_size);
+                    assert(offset <= sampling_size);
                 }
                 assert(offset <= sample.size());
                 auto sample_global_offset = file_offset + offset;
@@ -1864,9 +1865,10 @@ namespace tuplex {
 
         // sample in no unwrap mode -> unwrap later on demand. -> requires special treatment in resample.
 
+        size_t sampling_size = std::min(range_size, _samplingSize);
 
         // if uri_size < file_size -> first rows only
-        if(uri_size <= _samplingSize)
+        if(uri_size <= sampling_size)
             m = SamplingMode::FIRST_ROWS;
 
         // check file sampling modes & then load the samples accordingly
@@ -1896,9 +1898,9 @@ namespace tuplex {
             auto sample_length = std::min(sample.size() - 1, strlen(sample.c_str()));
             size_t offset = 0;
             if(!v.empty()) {
-                if(range_size < 2 * _samplingSize) {
-                    offset = _samplingSize - (range_size - _samplingSize);
-                    assert(offset <= _samplingSize);
+                if(range_size < 2 * sampling_size) {
+                    offset = sampling_size - (range_size - sampling_size);
+                    assert(offset <= sampling_size);
                 }
                 sample_length -= std::min(sample_length, offset);
                 if(0 == sample_length)

@@ -44,3 +44,11 @@ RUN eval "$(${PYENV_ROOT}/bin/pyenv init -)" && ${PYENV_ROOT}/bin/pyenv local ${
 RUN pyenv install 3.10.11
 RUN pyenv install 3.11.3
 RUN pyenv install 3.12.0a7
+
+
+# add script files & data to run benchmarks
+RUN mkdir -p /code/scripts
+ADD ./scripts/countprimes.py /code/scripts/countprimes.py
+ADD ./scripts/z2_query.py /code/scripts/z2_query.py
+RUN mkdir -p /data/zillow
+ADD .cache/large100MB.csv /data/zillow/large100MB.csv

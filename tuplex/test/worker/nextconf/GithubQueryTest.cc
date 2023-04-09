@@ -260,6 +260,67 @@ namespace tuplex {
         }
     }
 
+    TEST_F(GithubQuery, ForkEventsFilterPromoDebug2012) {
+        using namespace std;
+
+        // set input/output paths
+        auto exp_settings = localWorkerSettings(true); //
+        string input_pattern = "../resources/hyperspecialization/github_daily/2011*.json.sample,../resources/hyperspecialization/github_daily/2012*.json.sample,../resources/hyperspecialization/github_daily/2021*.json.sample";
+        string output_path = "./local-exp/filter-promo/github/output";
+        SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));
+        ContextOptions co = ContextOptions::defaults();
+
+        for(const auto& kv : exp_settings)
+            if(startsWith(kv.first, "tuplex."))
+                co.set(kv.first, kv.second);
+
+        bool use_hyper = true;
+        co.set("tuplex.experimental.hyperspecialization", boolToString(use_hyper));
+        co.set("tuplex.optimizer.filterPromotion", "true");
+        co.set("tuplex.optimizer.nullValueOptimization", "true");
+        co.set("tuplex.optimizer.constantFoldingOptimization", "true");
+
+        // make testing faster...
+        co.set("tuplex.resolveWithInterpreterOnly", "true");
+
+        // creater context according to settings
+        Context ctx(co);
+
+        runtime::init(co.RUNTIME_LIBRARY().toPath());
+
+        input_pattern = "../resources/hyperspecialization/github_daily/2012*.json.sample";
+
+        // start pipeline incl. output
+        auto repo_id_code = "def extract_repo_id(row):\n"
+                            "    if 2012 <= row['year'] <= 2014:\n"
+                            "        \n"
+                            "        if row['type'] == 'FollowEvent':\n"
+                            "            return row['payload']['target']['id']\n"
+                            "        \n"
+                            "        if row['type'] == 'GistEvent':\n"
+                            "            return row['payload']['id']\n"
+                            "        \n"
+                            "        # this here doesn't work, because no fancy typed row object yet\n"
+                            "        # repo = row.get('repository')\n"
+                            "        repo = row['repository']\n"
+                            "        \n"
+                            "        if repo is None:\n"
+                            "            return None\n"
+                            "        return repo.get('id')\n"
+                            "    else:\n"
+                            "        return row['repo'].get('id')";
+
+            // fixed pipeline here b.c. canPromoteFilterCheck is incomplete yet...
+            ctx.json(input_pattern, true, true, sm)
+                    .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+                    .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+                    .withColumn("repo_id", UDF(repo_id_code))
+                    .withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
+                    .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
+                    .selectColumns(vector<string>{"type", "repo_id", "year", "number_of_commits"})
+                    .tocsv(output_path);
+    }
+
     TEST_F(GithubQuery, ForkEventsFilterPromoAllSamples) {
         using namespace std;
 

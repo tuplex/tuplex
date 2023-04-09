@@ -248,15 +248,30 @@ def dictMode(paths, output_path):
 
     def extractZipcode(x):
         try:
-            return {'zipcode': '%05d' % int(float(x['postal_code'])), **x}
+            # this only works for python 3.5+, use old version here, see https://peps.python.org/pep-0448/
+            # return {'zipcode': '%05d' % int(float(x['postal_code'])), **x}
+            ans = x
+            ans['zipcode'] = '%05d' % int(float(x['postal_code']))
+            return ans
         except:
-            return {'zipcode': None, **x}
+            ans = x
+            ans['zipcode'] = None
+            return ans
+            #return {'zipcode': None, **x}
 
     def cleanCity(x):
         try:
-            return {**x, 'city': x['city'][0].upper() + x['city'][1:].lower()}
+            ans = x
+            ans['city'] = x['city'][0].upper() + x['city'][1:].lower()
+            return ans
+
+            #return {**x, 'city': x['city'][0].upper() + x['city'][1:].lower()}
         except:
-            return {**x, 'city': None}
+            ans = x
+            ans['city'] = None
+            return ans
+
+            #return {**x, 'city': None}
 
     def extractBd(x):
         try:
@@ -273,9 +288,16 @@ def dictMode(paths, output_path):
             else:
                 split_idx += 2
             r = s[split_idx:]
-            return {**x, 'bedrooms': int(r)}
+
+            ans = x
+            ans['bedrooms'] = int(r)
+            return ans
+            #return {**x, 'bedrooms': int(r)}
         except:
-            return {**x, 'bedrooms': None}
+            ans = x
+            ans['bedrooms'] = None
+            return ans
+            #return {**x, 'bedrooms': None}
 
     def extractBa(x):
         try:
@@ -293,9 +315,16 @@ def dictMode(paths, output_path):
                 split_idx += 2
             r = s[split_idx:]
             ba = math.ceil(2.0 * float(r)) / 2.0
-            return {**x, 'bathrooms': ba}
+
+            ans = x
+            ans['bathrooms'] = ba
+            return ans
+            #return {**x, 'bathrooms': ba}
         except:
-            return {**x, 'bathrooms': None}
+            ans = x
+            ans['bathrooms'] = None
+            return ans
+            #return {**x, 'bathrooms': None}
 
     def extractSqft(x):
         try:
@@ -312,9 +341,16 @@ def dictMode(paths, output_path):
                 split_idx += 5
             r = s[split_idx:]
             r = r.replace(',', '')
-            return {**x, 'sqft': int(r)}
+
+            ans = x
+            ans['sqft'] = int(r)
+            return ans
+            # return {**x, 'sqft': int(r)}
         except:
-            return {**x, 'sqft': None}
+            ans = x
+            ans['sqft'] = None
+            return ans
+            #return {**x, 'sqft': None}
 
     def extractOffer(x):
         try:
@@ -329,9 +365,17 @@ def dictMode(paths, output_path):
             if 'foreclose' in offer:
                 offer = 'foreclosed'
 
-            return {**x, 'offer': offer}
+            ans = x
+            ans['offer'] = offer
+            return ans
+
+            # return {**x, 'offer': offer}
         except:
-            return {**x, 'offer': None}
+            ans = x
+            ans['offer'] = None
+            return ans
+
+            # return {**x, 'offer': None}
 
     def extractType(x):
         try:
@@ -341,9 +385,18 @@ def dictMode(paths, output_path):
                 type = 'condo'
             if 'house' in t:
                 type = 'house'
-            return {**x, 'type': type}
+
+            ans = x
+            ans['type'] = type
+            return ans
+
+            #return {**x, 'type': type}
         except:
-            return {**x, 'type': None}
+            ans = x
+            ans['type'] = None
+            return ans
+
+            # return {**x, 'type': None}
 
     def extractPrice(x):
         try:
@@ -363,9 +416,17 @@ def dictMode(paths, output_path):
                 # take price from price column
                 price = int(price[1:].replace(',', ''))
 
-            return {**x, 'price': price}
+            ans = x
+            ans['price'] =  price
+            return ans
+
+            # return {**x, 'price': price}
         except:
-            return {**x, 'price': None}
+            ans = x
+            ans['price'] =  None
+            return ans
+
+            # return {**x, 'price': None}
 
     def selectCols(x):
         columns = ['url', 'zipcode', 'address', 'city', 'state', 'bedrooms', 'bathrooms', 'sqft', 'offer', 'type',
@@ -569,4 +630,5 @@ if __name__ == '__main__':
             stats['program'] = 'nuitka ({})'.format(py_executable)
     else:
         stats['program'] = py_executable
+    stats['version_info'] = str(sys.version_info)
     print(stats)

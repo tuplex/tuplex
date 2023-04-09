@@ -45,6 +45,9 @@ RUN pyenv install 3.10.11
 RUN pyenv install 3.11.3
 RUN pyenv install 3.12.0a7
 
+# fix argparse for python3.1
+RUN cd /tmp && wget https://www.piwheels.org/simple/setuptools/setuptools-0.9.8-py2.py3-none-any.whl#sha256=bf8e39b012d0146a4aeaf541353f5b9b9630bbcb5ac27505849ac896bcff2f6a
+RUN cd /tmp && git clone https://github.com/ThomasWaldmann/argparse.git && cd argparse && PYTHONPATH="/usr/lib/python3.1/dist-packages/"
 
 # add script files & data to run benchmarks
 RUN mkdir -p /code/scripts
@@ -52,3 +55,6 @@ ADD ./scripts/countprimes.py /code/scripts/countprimes.py
 ADD ./scripts/z2_query.py /code/scripts/z2_query.py
 RUN mkdir -p /data/zillow
 ADD .cache/large100MB.csv /data/zillow/large100MB.csv
+ADD .cache/large1GB.csv /data/zillow/large1GB.csv
+
+ADD ./scripts/benchmark.sh /code/benchmark.sh

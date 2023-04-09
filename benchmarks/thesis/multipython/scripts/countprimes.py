@@ -58,7 +58,8 @@ def run_pipeline():
              'py_executable': sys.executable,
              'job_time_map' : map_time,
              'job_time_for' : for_time,
-             'job_time_[]' :  exp_time}
+             'job_time_[]' :  exp_time,
+             'version_info': str(sys.version_info)}
     return stats
 
 if __name__ == '__main__':

@@ -1880,6 +1880,29 @@ namespace tuplex {
                             // @TODO:
                             logger.debug("add here logic so no accidental promo happens for flights query...");
 
+                            // get additional information about filter:
+                            // i.e., rowtype and which columns it accesses
+                            std::stringstream ss;
+                            ss<<"promoted filter operator, detailed info::\n";
+                            ss<<"filter input columns: "<<filter_node->inputColumns()<<"\n";
+                            ss<<"filter output columns: "<<filter_node->columns()<<"\n";
+                            ss<<"filter input schema: "<<filter_node->getInputSchema().getRowType().desc()<<"\n";
+
+                            // retype filter operator
+                            std::vector<std::string> acc_column_names;
+                            std::vector<python::Type> acc_col_types;
+                            auto acc_cols = filter_node->getUDF().getAccessedColumns(false);
+                            for(auto idx : acc_cols) {
+                                acc_column_names.push_back(filter_node->inputColumns()[idx]);
+                                acc_col_types.push_back(filter_node->getInputSchema().getRowType().parameters()[idx]);
+                            }
+
+                            // however, these here should show correct columns/types.
+                            ss<<"filter accessed input columns: "<<acc_column_names<<"\n";
+                            ss<<"filter accessed, condensed input schema: "<<python::Type::makeTupleType(acc_col_types).desc()<<"\n";
+                            logger.debug(ss.str());
+
+
                             // remove filter and add check!
                             filter_node->remove();
                             // no need for parents etc.

@@ -175,6 +175,19 @@ namespace tuplex {
                         BasicBlock* bbFilterBadParse = BasicBlock::Create(ctx, "filter_" + std::to_string(fop->getID()) + "_bad_parse", builder.GetInsertBlock()->getParent());
                         auto ft_filter = json_parseRow(env(), builder, conf.row_type, conf.columns, true, false, parser, bbFilterBadParse);
 
+                        // debug print:
+#ifndef NDEBUG
+                        for(unsigned i = 0; i < conf.columns.size(); ++i) {
+                            auto col_type = conf.row_type.parameters()[i];
+
+                            // what type?
+                            if(python::Type::STRING == col_type) {
+                                auto str_value = ft_filter.get(i);
+                                assert(str_value && str_value->getType() == env().i8ptrType());
+                                env().printValue(builder, str_value, conf.columns[i] + "= ");
+                            }
+                        }
+#endif
                         // now call filter & determine whether good or bad
                         if(!fop->getUDF().isCompiled())
                             throw std::runtime_error("only compilable UDFs here supported!");

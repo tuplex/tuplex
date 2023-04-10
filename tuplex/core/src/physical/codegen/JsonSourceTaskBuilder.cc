@@ -133,9 +133,9 @@ namespace tuplex {
                     ss<<"filter accesses following columns: "<<acc_cols<<"\n";
                     ss<<"input row type: "<<_inputRowType.desc()<<"\n";
                     ss<<"input columns: "<<_normal_case_columns<<"\n";
-                    // these are empty
-                    ss<<"filter input columns: "<<fop->inputColumns()<<"\n";
-                    ss<<"filter input schema: "<<fop->getInputSchema().getRowType().desc()<<"\n";
+                    // // these are empty b.c. no parent operator for check
+                    // ss<<"filter input columns: "<<fop->inputColumns()<<"\n";
+                    // ss<<"filter input schema: "<<fop->getInputSchema().getRowType().desc()<<"\n";
 
                     // retype filter operator
 
@@ -145,6 +145,10 @@ namespace tuplex {
                         acc_column_names.push_back(_normal_case_columns[idx]);
                         acc_col_types.push_back(_inputRowType.parameters()[idx]);
                     }
+
+                    // however, these here should show correct columns/types.
+                    ss<<"filter input columns: "<<acc_column_names<<"\n";
+                    ss<<"filter input schema: "<<python::Type::makeTupleType(acc_col_types).desc()<<"\n";
 
                     RetypeConfiguration conf;
                     conf.columns = acc_column_names;

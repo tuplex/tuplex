@@ -288,7 +288,8 @@ namespace tuplex {
 
         runtime::init(co.RUNTIME_LIBRARY().toPath());
 
-        input_pattern = "../resources/hyperspecialization/github_daily/2012*.json.sample";
+        // this here seems to work, so it's something about not getting the inference right...
+        // input_pattern = "../resources/hyperspecialization/github_daily/2012*.json.sample";
 
         // start pipeline incl. output
         auto repo_id_code = "def extract_repo_id(row):\n"

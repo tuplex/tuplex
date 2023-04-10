@@ -271,6 +271,7 @@ namespace tuplex {
              */
             std::vector<std::shared_ptr<LogicalOperator>> constantFoldingOptimization(const std::vector<Row>& sample);
 
+            bool retypeOperators();
 
             python::Type get_specialized_row_type(const std::shared_ptr<LogicalOperator>& inputNode, const DetectionStats& ds) const;
 

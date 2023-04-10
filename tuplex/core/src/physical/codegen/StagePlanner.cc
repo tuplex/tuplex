@@ -632,6 +632,18 @@ namespace tuplex {
 
             auto projectedColumns = _inputNode->columns();
 
+#ifndef NDEBUG
+            // check how many rows adhere to the normal-case type.
+            // (can upcast to normal-case type)
+            size_t num_passing = 0;
+            for(auto row: sample) {
+                if(python::canUpcastToRowType(deoptimizedType(row.getRowType()), deoptimizedType(majType)))
+                    num_passing++;
+            }
+            logger.debug("Of " + pluralize(sample.size(), "sample row") + ", " + std::to_string(num_passing) + " adhere to detected majority type.");
+#endif
+
+
             // the detected majority type here is BEFORE projection pushdown.
             // --> therefore restrict it to the type of the input operator.
             // std::cout<<"Majority detected row type is: "<<projectedMajType.desc()<<std::endl;
@@ -1832,6 +1844,8 @@ namespace tuplex {
                 logger.debug("skip because empty original sample");
             }
 
+            auto input_type_before_promo = _inputNode->getOutputSchema().getRowType();
+
 
             std::vector<std::shared_ptr<LogicalOperator>> operators_post_op;
 
@@ -1890,7 +1904,21 @@ namespace tuplex {
                 operators_post_op.push_back(node);
             _operators = operators_post_op;
 
+            // retype operators (important!)
+            logger.debug("retyping operators...");
+            retypeOperators();
+            auto input_type_after_promo = _inputNode->getOutputSchema().getRowType();
+            if(input_type_after_promo == input_type_before_promo) {
+                logger.debug("input row type didn't change due to promoted filter.");
+            } else {
+                logger.debug("input row type changed:\nwas before: " + input_type_before_promo.desc() + "\nis now: " + input_type_after_promo.desc());
+            }
             logger.debug("filter promo done.");
+        }
+
+        bool StagePlanner::retypeOperators() {
+
+            return false;
         }
     }
 }

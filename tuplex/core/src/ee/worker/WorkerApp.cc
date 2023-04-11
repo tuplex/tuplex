@@ -88,6 +88,9 @@ namespace tuplex {
         if(!_compiler)
             _compiler = std::make_shared<JITCompiler>();
 
+        if(!_fastCompiler)
+            _fastCompiler = std::make_shared<JITCompiler>(llvm::CodeGenOpt::None); // <-- no codegen opt to circumvent bug.
+
         initThreadEnvironments(_settings.numThreads);
 
         // init s3 cache if required
@@ -1721,54 +1724,62 @@ namespace tuplex {
             // -> per default, don't.
             if(!_compiler)
                 throw std::runtime_error("JITCompiler not initialized.");
-            assert(_compiler);
+            if(!_fastCompiler)
+                throw std::runtime_error("fast compiler not initialized.");
 
-            // register functions
-            // Note: only normal case for now, the other stuff is not interesting yet...
-            if(!stage.writeMemoryCallbackName().empty())
-                _compiler->registerSymbol(stage.writeMemoryCallbackName(), writeRowCallback);
-            if(!stage.exceptionCallbackName().empty())
-                _compiler->registerSymbol(stage.exceptionCallbackName(), exceptRowCallback);
-            if(!stage.writeFileCallbackName().empty())
-                _compiler->registerSymbol(stage.writeFileCallbackName(), writeRowCallback);
-            if(!stage.writeHashCallbackName().empty())
-                _compiler->registerSymbol(stage.writeHashCallbackName(), writeHashCallback);
+            // register symbols for each compiler
+            std::vector<JITCompiler*> compilers({_compiler.get(), _fastCompiler.get()});
+            for(JITCompiler* compiler : compilers) {
 
-            // slow path registration, for now dummies
-            if(!stage.resolveWriteCallbackName().empty())
-                _compiler->registerSymbol(stage.resolveWriteCallbackName(), slowPathRowCallback);
-            if(!stage.resolveExceptionCallbackName().empty())
-                _compiler->registerSymbol(stage.resolveExceptionCallbackName(), slowPathExceptCallback);
-            // @TODO: hashing callbacks...
+                assert(compiler);
+
+                // register functions
+                // Note: only normal case for now, the other stuff is not interesting yet...
+                if(!stage.writeMemoryCallbackName().empty())
+                    compiler->registerSymbol(stage.writeMemoryCallbackName(), writeRowCallback);
+                if(!stage.exceptionCallbackName().empty())
+                    compiler->registerSymbol(stage.exceptionCallbackName(), exceptRowCallback);
+                if(!stage.writeFileCallbackName().empty())
+                    compiler->registerSymbol(stage.writeFileCallbackName(), writeRowCallback);
+                if(!stage.writeHashCallbackName().empty())
+                    compiler->registerSymbol(stage.writeHashCallbackName(), writeHashCallback);
+
+                // slow path registration, for now dummies
+                if(!stage.resolveWriteCallbackName().empty())
+                    compiler->registerSymbol(stage.resolveWriteCallbackName(), slowPathRowCallback);
+                if(!stage.resolveExceptionCallbackName().empty())
+                    compiler->registerSymbol(stage.resolveExceptionCallbackName(), slowPathExceptCallback);
+                // @TODO: hashing callbacks...
+            }
 
             // in debug mode, validate module.
-        llvm::LLVMContext ctx;
-        auto mod = stage.fastPathBitCode().empty() ? nullptr : codegen::bitCodeToModule(ctx, stage.fastPathBitCode());
-        if(!mod) {
-            if(!stage.fastPathBitCode().empty()) {
-                logger().error("error parsing module for fast code path");
-            }
-            return nullptr;
-        } else {
-            logger().info("parsed llvm module from bitcode, " + mod->getName().str());
-
-            // run verify pass on module and print out any errors, before attempting to compile it
-            std::string moduleErrors;
-            llvm::raw_string_ostream os(moduleErrors);
-            if (verifyModule(*mod, &os)) {
-                os.flush();
-                logger().error("could not verify module from bitcode");
-                logger().error(moduleErrors);
-                logger().error(core::withLineNumbers(codegen::moduleToString(*mod)));
+            llvm::LLVMContext ctx;
+            auto mod = stage.fastPathBitCode().empty() ? nullptr : codegen::bitCodeToModule(ctx, stage.fastPathBitCode());
+            if(!mod) {
+                if(!stage.fastPathBitCode().empty()) {
+                    logger().error("error parsing module for fast code path");
+                }
+                return nullptr;
             } else {
-#ifndef NDEBUG
-                logger().info("module verified.");
-                // save
-                auto ir_code = codegen::moduleToString(*mod.get());
-                stringToFile("worker_fast_path.txt", ir_code);
-#endif
+                logger().info("parsed llvm module from bitcode, " + mod->getName().str());
+
+                // run verify pass on module and print out any errors, before attempting to compile it
+                std::string moduleErrors;
+                llvm::raw_string_ostream os(moduleErrors);
+                if (verifyModule(*mod, &os)) {
+                    os.flush();
+                    logger().error("could not verify module from bitcode");
+                    logger().error(moduleErrors);
+                    logger().error(core::withLineNumbers(codegen::moduleToString(*mod)));
+                } else {
+    #ifndef NDEBUG
+                    logger().info("module verified.");
+                    // save
+                    auto ir_code = codegen::moduleToString(*mod.get());
+                    stringToFile("worker_fast_path.txt", ir_code);
+    #endif
+                }
             }
-        }
 
             // perform actual compilation
             // -> do not compile slow path for now.
@@ -2104,14 +2115,36 @@ namespace tuplex {
             auto slow_path_bit_code = stage->slowPathBitCode();
             auto slow_path_mod = slow_path_bit_code.empty() ? nullptr : codegen::bitCodeToModule(ctx, slow_path_bit_code);
             auto ir_code = codegen::moduleToString(*slow_path_mod.get());
-            Logger::instance().defaultLogger().debug("saved compiled general code path  to worker_general_resolver.py");
-            stringToFile(URI("worker_general_resolver.txt"), ir_code);
+            std::string general_save_path = "worker_general_resolver.txt";
+            logger().debug("saved compiled general code path to " + general_save_path);
+            stringToFile(URI(general_save_path), ir_code);
+            logger().debug("size of general-case IR code is: " + sizeToMemString(ir_code.size()));
         }
 #endif
 
+        // determine which compiler to use based on store instruction threshold ( or general bitcode size?)
+        JITCompiler *compiler_to_use = nullptr;
+
+        compiler_to_use = _compiler.get();
+
+        // this is a hack/magic constant
+        logger().debug("slow path bitcode size: " + sizeToMemString(stage->slowPathBitCode().size()));
+
+        // more than 512KB? -> select fast (non-optimizing) compiler
+        auto bitcode_threshold_size = 512 * 1024; // 512KB
+        if(stage->slowPathBitCode().size() > bitcode_threshold_size) {
+            auto bitcode_size = stage->slowPathBitCode().size();
+            logger().info("large bitcode " + sizeToMemString(bitcode_size) + " encountered larger than threshold of "
+            + sizeToMemString(bitcode_threshold_size) + " for slow path, using fast compiler instead of optimizing-one.");
+            compiler_to_use = _fastCompiler.get();
+        }
+
+        if(!compiler_to_use)
+            throw std::runtime_error("invalid compiler pointer in getCompiledResolver");
+
         // perform actual compilation.
         Timer timer;
-        auto syms = stage->compileSlowPath(*_compiler.get(), nullptr, false); // symbols should be known already...
+        auto syms = stage->compileSlowPath(*compiler_to_use, nullptr, false); // symbols should be known already...
 
         // store syms internally (lock)
         {

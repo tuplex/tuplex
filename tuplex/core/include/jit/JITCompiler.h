@@ -270,7 +270,17 @@ namespace tuplex {
     // JIT compiler based on LLVM's ORCv2 JIT classes
     class JITCompiler {
     public:
-        JITCompiler();
+        /*!
+         * initialize JIT compiler. Because there are bugs in CombineDAG for large stores, control for high-number
+         * of stores the use of a slower JIT compiler. This is a workaround for the following LLVM bugs:
+         * https://github.com/llvm/llvm-project/issues/52858
+         * https://github.com/llvm/llvm-project/issues/53826
+         * https://github.com/llvm/llvm-project/issues/53826
+         * https://reviews.llvm.org/D65482
+         * effectively preventing use of large C-structs.
+         * @param codegen_opt_level
+         */
+        JITCompiler(const llvm::CodeGenOpt::Level& codegen_opt_level=llvm::CodeGenOpt::Default);
         ~JITCompiler();
 
         /*!

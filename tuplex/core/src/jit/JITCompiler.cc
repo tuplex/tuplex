@@ -113,7 +113,7 @@ namespace tuplex {
         return rc;
     }
 
-    JITCompiler::JITCompiler() {
+    JITCompiler::JITCompiler(const llvm::CodeGenOpt::Level& codegen_opt_level) {
         codegen::initLLVM(); // lazy initialization of LLVM backend.
 
         auto& logger = Logger::instance().logger("LLVM");
@@ -154,9 +154,10 @@ namespace tuplex {
 
         // // do not perform codegen here, should be done separately
         // tmb.setCodeGenOptLevel(CodeGenOpt::Less); // <-- use this to speed up compile.
-        tmb.setCodeGenOptLevel(CodeGenOpt::Default); // <-- use O2/Os
+        tmb.setCodeGenOptLevel(codegen_opt_level); // <-- use O2/Os
 #ifdef BOOST_OS_LINUX
         // tmb.setCodeGenOptLevel(CodeGenOpt::None); // <-- use no codegen opt.
+        //tmb.setCodeGenOptLevel(CodeGenOpt::Less); // <-- llvm8 bug in dagcombine.cpp
 #endif
 
         // tmb.setCodeGenOptLevel(CodeGenOpt::Aggressive);

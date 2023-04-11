@@ -371,6 +371,7 @@ namespace tuplex {
         WorkerSettings _settings;
         bool _globallyInitialized;
         std::shared_ptr<JITCompiler> _compiler;
+        std::shared_ptr<JITCompiler> _fastCompiler; // compiler with faster compile settings/less optimizations.
         MessageHandler& _logger;
 #ifdef BUILD_WITH_AWS
         Aws::SDKOptions _aws_options;

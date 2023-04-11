@@ -281,7 +281,7 @@ namespace tuplex {
         co.set("tuplex.optimizer.constantFoldingOptimization", "true");
 
         // make testing faster...
-        co.set("tuplex.resolveWithInterpreterOnly", "true");
+        // co.set("tuplex.resolveWithInterpreterOnly", "true");
 
         // creater context according to settings
         Context ctx(co);
@@ -407,6 +407,13 @@ namespace tuplex {
         // perform sanity check with pure python solution that ouput number of rows is correct.
         // std::cout<<v.size()<<std::endl;
 
+
+        // long compile times for general-case are due to:
+        // https://github.com/llvm/llvm-project/issues/52858
+        // https://github.com/llvm/llvm-project/issues/53826
+        // https://github.com/llvm/llvm-project/issues/53826
+        // this here is another issue...
+        // https://reviews.llvm.org/D65482
     }
 }
 

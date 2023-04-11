@@ -102,7 +102,7 @@ namespace tuplex {
             assert(rowNumber && rowNumber->getType() == _env->i64Type());
             assert(parser && parser->getType() == _env->i8ptrType());
 
-             _env->printValue(builder, rowNumber, "normal-case check for row=");
+            // _env->printValue(builder, rowNumber, "normal-case check for row=");
 
             // which checks are available?
             auto checks = this->checks();
@@ -227,15 +227,15 @@ namespace tuplex {
                             filterCond = builder.CreateICmpEQ(compareVal, env().boolConst(true));
                         }
 
-                         env().printValue(builder, filterCond, "promoted filter res=");
+                        // env().printValue(builder, filterCond, "promoted filter res=");
                         builder.CreateCondBr(filterCond, bbCheckPassed, bbSkipRow);
 
                         builder.SetInsertPoint(exceptionBlock);
-                         env().printValue(builder, builder.CreateLoad(ecVar), "filter check failed with exception of ec=");
+                        // env().printValue(builder, builder.CreateLoad(ecVar), "filter check failed with exception of ec=");
                         builder.CreateBr(bbCheckFailed);
 
                         builder.SetInsertPoint(bbFilterBadParse);
-                         env().debugPrint(builder, "filter row parse failed");
+                        // env().debugPrint(builder, "filter row parse failed");
                         builder.CreateBr(bbCheckFailed);
 
                     } else {
@@ -246,12 +246,12 @@ namespace tuplex {
                     // now what happens if filter passed or failed?
 
                     builder.SetInsertPoint(bbCheckFailed);
-                     env().debugPrint(builder, "promoted filter check failed.");
+                    // env().debugPrint(builder, "promoted filter check failed.");
                     builder.CreateBr(bbBadRow);
 
                     // continue on normal case path!
                     builder.SetInsertPoint(bbCheckPassed);
-                     env().debugPrint(builder, "promoted filter check passed.");
+                    // env().debugPrint(builder, "promoted filter check passed.");
 
                     // create reduced input type for quick parsing
                     assert(_inputRowType.isTupleType());

@@ -337,12 +337,13 @@ namespace tuplex {
                 co.set(kv.first, kv.second);
 
         bool use_hyper = true;
+        use_hyper = false;
         co.set("tuplex.experimental.hyperspecialization", boolToString(use_hyper));
 
 
         co.set("tuplex.optimizer.filterPromotion", "true");
 
-        // co.set("tuplex.optimizer.filterPromotion", "false"); // <-- seems to work.
+        co.set("tuplex.optimizer.filterPromotion", "false"); // <-- seems to work.
 
         co.set("tuplex.optimizer.nullValueOptimization", "true");
         co.set("tuplex.optimizer.constantFoldingOptimization", "true");
@@ -350,7 +351,7 @@ namespace tuplex {
         co.set("tuplex.inputSplitSize", "2GB");
 
         // make testing faster...
-        co.set("tuplex.resolveWithInterpreterOnly", "true");
+        co.set("tuplex.resolveWithInterpreterOnly", "false");
 
         // creater context according to settings
         Context ctx(co);

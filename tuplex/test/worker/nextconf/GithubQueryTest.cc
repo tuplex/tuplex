@@ -346,7 +346,10 @@ namespace tuplex {
         co.set("tuplex.optimizer.filterPromotion", "false"); // <-- seems to work.
 
         co.set("tuplex.optimizer.nullValueOptimization", "true");
-        co.set("tuplex.optimizer.constantFoldingOptimization", "true");
+
+        // deactivate, does not work for struct field yet.
+        // -> easy to fix though.
+        co.set("tuplex.optimizer.constantFoldingOptimization", "false");
 
         co.set("tuplex.inputSplitSize", "2GB");
 

@@ -598,92 +598,35 @@ namespace tuplex {
             std::vector<Row> sample = fetchInputSample();
             std::vector<std::string> sample_columns = _inputNode ? _inputNode->columns() : std::vector<std::string>();
 
-            // // columns, check for NAS_DELAY
-            // for(int i = 0; i < _inputNode->columns().size(); ++i) {
-            //     std::cout<<i<<": "<<_inputNode->columns()[i]<<std::endl;
-            // }
+            // retype using sample, need to do this initially.
+            retypeOperators(sample, sample_columns);
 
-            // @TODO: stats on types for sample. Use this to retype!
-            // --> important first step!
-            std::unordered_map<std::string, size_t> counts;
-            std::unordered_map<python::Type, size_t> t_counts;
-            for(const auto& row : sample) {
-                counts[row.getRowType().desc()]++;
-                t_counts[row.getRowType()]++;
-            }
-            // for(const auto& keyval : counts) {
-            //     std::cout<<keyval.second<<": "<<keyval.first<<std::endl;
-            // }
+            // check now whether filters can be promoted or not
+            if(_useFilterPromo) {
+                promoteFilters();
 
-            if(sample.empty()) {
-                logger.info("got empty sample, skipping optimization.");
-                return;
-            }
+                // want to redo typing if checks changed!
+                if(_checks.end() != std::find_if(_checks.begin(),
+                                                 _checks.end(),
+                                                 [](const NormalCaseCheck& check) {
+                    return check.type == CheckType::CHECK_FILTER;
+                })) {
+                    logger.info("retyping b.c. of promoted filter");
+                    auto input_type_before_promo = _inputNode->getOutputSchema().getRowType();
+                    sample = fetchInputSample();
+                    sample_columns = _inputNode ? _inputNode->columns() : std::vector<std::string>();
+                    retypeOperators(sample, sample_columns);
 
-            // detect majority type
-            // detectMajorityRowType(const std::vector<Row>& rows, double threshold, bool independent_columns)
-            auto majType = detectMajorityRowType(sample, _nc_threshold, true, _useNVO);
-            python::Type projectedMajType = majType;
-
-            assert(majType.isTupleType());
-            assert(projectedMajType.isTupleType());
-            size_t num_columns_before_pushdown = majType.parameters().size();
-            size_t num_columns_after_pushdown = projectedMajType.parameters().size();
-
-            auto projectedColumns = _inputNode->columns();
-
-#ifndef NDEBUG
-            // check how many rows adhere to the normal-case type.
-            // (can upcast to normal-case type)
-            size_t num_passing = 0;
-            for(auto row: sample) {
-                if(python::canUpcastToRowType(deoptimizedType(row.getRowType()), deoptimizedType(majType)))
-                    num_passing++;
-            }
-            logger.debug("Of " + pluralize(sample.size(), "sample row") + ", " + std::to_string(num_passing) + " adhere to detected majority type.");
-#endif
-
-
-            // the detected majority type here is BEFORE projection pushdown.
-            // --> therefore restrict it to the type of the input operator.
-            // std::cout<<"Majority detected row type is: "<<projectedMajType.desc()<<std::endl;
-
-            // if majType of sample is different from input node type input sample -> retype!
-            // also need to restrict type first!
-            logger.debug("performing Retyping");
-            optimized_operators = retypeUsingOptimizedInputSchema(projectedMajType, projectedColumns);
-
-            // overwrite internal operators to apply subsequent optimizations
-            _inputNode = _inputNode ? optimized_operators.front() : nullptr;
-            _operators = _inputNode ? vector<shared_ptr<LogicalOperator>>{optimized_operators.begin() + 1,
-                                                                          optimized_operators.end()}
-                                    : optimized_operators;
-
-
-            // run validation after forcing majority sample based type
-            validation_rc = validatePipeline();
-            logger.debug(std::string("post-specialization pipeline validation: ") + (validation_rc ? "ok" : "failed"));
-            assert(validation_rc);
-
-            // check what output type of optimized input_node is!
-            if(_inputNode) {
-                switch(_inputNode->type()) {
-                    case LogicalOperatorType::FILEINPUT: {
-                        auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
-                        // std::cout << "(unoptimized) output schema of input op: "
-                        //           << fop->getOutputSchema().getRowType().desc() << std::endl;
-                        // std::cout << "(optimized) output schema of input op: "
-                        //           << fop->getOptimizedOutputSchema().getRowType().desc() << std::endl;
-                        break;
+                    auto input_type_after_promo = _inputNode->getOutputSchema().getRowType();
+                    if(input_type_after_promo == input_type_before_promo) {
+                        logger.debug("input row type didn't change due to promoted filter.");
+                    } else {
+                        logger.debug("input row type changed:\nwas before: " + input_type_before_promo.desc() + "\nis now: " + input_type_after_promo.desc());
                     }
-                    default:
-                        break;
+                    logger.debug("filter promo done.");
                 }
             }
 
-            // check now whether filters can be promoted or not
-            if(_useFilterPromo)
-                promoteFilters();
 
             // perform sample based optimizations
             if(_useConstantFolding) {
@@ -1848,9 +1791,6 @@ namespace tuplex {
                 logger.debug("skip because empty original sample");
             }
 
-            auto input_type_before_promo = _inputNode->getOutputSchema().getRowType();
-
-
             std::vector<std::shared_ptr<LogicalOperator>> operators_post_op;
 
             // check if there is at least one filter operator!
@@ -1940,22 +1880,74 @@ namespace tuplex {
             if(node)
                 operators_post_op.push_back(node);
             _operators = operators_post_op;
-
-            // retype operators (important!)
-            logger.debug("retyping operators...");
-            retypeOperators();
-            auto input_type_after_promo = _inputNode->getOutputSchema().getRowType();
-            if(input_type_after_promo == input_type_before_promo) {
-                logger.debug("input row type didn't change due to promoted filter.");
-            } else {
-                logger.debug("input row type changed:\nwas before: " + input_type_before_promo.desc() + "\nis now: " + input_type_after_promo.desc());
-            }
-            logger.debug("filter promo done.");
         }
 
-        bool StagePlanner::retypeOperators() {
+        bool StagePlanner::retypeOperators(const std::vector<Row>& sample,
+                                           const std::vector<std::string>& sample_columns) {
+            auto& logger = Logger::instance().logger("specializing stage optimizer");
 
-            return false;
+            // @TODO: stats on types for sample. Use this to retype!
+            // --> important first step!
+            std::unordered_map<std::string, size_t> counts;
+            std::unordered_map<python::Type, size_t> t_counts;
+            for(const auto& row : sample) {
+                counts[row.getRowType().desc()]++;
+                t_counts[row.getRowType()]++;
+            }
+            // for(const auto& keyval : counts) {
+            //     std::cout<<keyval.second<<": "<<keyval.first<<std::endl;
+            // }
+
+            if(sample.empty()) {
+                logger.info("got empty sample, skipping optimization.");
+                return true;
+            }
+
+            // detect majority type
+            // detectMajorityRowType(const std::vector<Row>& rows, double threshold, bool independent_columns)
+            auto majType = detectMajorityRowType(sample, _nc_threshold, true, _useNVO);
+            python::Type projectedMajType = majType;
+
+            assert(majType.isTupleType());
+            assert(projectedMajType.isTupleType());
+            size_t num_columns_before_pushdown = majType.parameters().size();
+            size_t num_columns_after_pushdown = projectedMajType.parameters().size();
+
+            auto projectedColumns = _inputNode->columns();
+
+#ifndef NDEBUG
+            // check how many rows adhere to the normal-case type.
+            // (can upcast to normal-case type)
+            size_t num_passing = 0;
+            for(auto row: sample) {
+                if(python::canUpcastToRowType(deoptimizedType(row.getRowType()), deoptimizedType(majType)))
+                    num_passing++;
+            }
+            logger.debug("Of " + pluralize(sample.size(), "sample row") + ", " + std::to_string(num_passing) + " adhere to detected majority type.");
+#endif
+
+
+            // the detected majority type here is BEFORE projection pushdown.
+            // --> therefore restrict it to the type of the input operator.
+            // std::cout<<"Majority detected row type is: "<<projectedMajType.desc()<<std::endl;
+
+            // if majType of sample is different from input node type input sample -> retype!
+            // also need to restrict type first!
+            logger.debug("performing Retyping");
+            auto optimized_operators = retypeUsingOptimizedInputSchema(projectedMajType, projectedColumns);
+
+            // overwrite internal operators to apply subsequent optimizations
+            _inputNode = _inputNode ? optimized_operators.front() : nullptr;
+            _operators = _inputNode ? std::vector<std::shared_ptr<LogicalOperator>>{optimized_operators.begin() + 1,
+                                                                          optimized_operators.end()}
+                                    : optimized_operators;
+
+
+            // run validation after forcing majority sample based type
+            auto validation_rc = validatePipeline();
+            logger.debug(std::string("post-specialization pipeline validation: ") + (validation_rc ? "ok" : "failed"));
+            assert(validation_rc);
+            return validation_rc;
         }
     }
 }

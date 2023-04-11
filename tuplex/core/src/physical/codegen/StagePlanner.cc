@@ -681,6 +681,10 @@ namespace tuplex {
                 }
             }
 
+            // check now whether filters can be promoted or not
+            if(_useFilterPromo)
+                promoteFilters();
+
             // perform sample based optimizations
             if(_useConstantFolding) {
 
@@ -1175,13 +1179,13 @@ namespace tuplex {
         // node need to find some smart way to QUICKLY detect whether the optimization can be applied or should be rather skipped...
         codegen::StagePlanner planner(inputNode, operators, conf.policy.normalCaseThreshold);
 
-        if(conf.filterPromotion)
-            planner.promoteFilters();
 
         planner.enableAll();
         planner.disableAll();
         if(conf.nullValueOptimization)
             planner.enableNullValueOptimization();
+        if(conf.filterPromotion)
+            planner.enableFilterPromoOptimization();
         planner.enableDelayedParsingOptimization();
         if(enable_cf)
             planner.enableConstantFoldingOptimization();
@@ -1902,9 +1906,19 @@ namespace tuplex {
                             ss<<"filter accessed, condensed input schema: "<<python::Type::makeTupleType(acc_col_types).desc()<<"\n";
                             logger.debug(ss.str());
 
-
                             // remove filter and add check!
                             filter_node->remove();
+
+                            // retype now with input & make smaller
+                            RetypeConfiguration conf;
+                            conf.columns = _inputNode->columns();
+                            conf.row_type = _inputNode->getOutputSchema().getRowType();
+                            conf.is_projected = true;
+                            auto ret = filter_node->retype(conf);
+                            if(!ret) {
+                                throw std::runtime_error("did not succeed retyping filter supposed to be promoted to check");
+                            }
+
                             // no need for parents etc.
                             _checks.push_back(filterToCheck(filter_node));
 

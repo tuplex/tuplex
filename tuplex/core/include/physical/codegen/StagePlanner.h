@@ -129,7 +129,8 @@ namespace tuplex {
             StagePlanner(const std::shared_ptr<LogicalOperator>& inputNode,
                          const std::vector<std::shared_ptr<LogicalOperator>>& operators,
                          double nc_threshold) : _inputNode(inputNode),
-                         _operators(operators), _nc_threshold(nc_threshold), _useNVO(false), _useConstantFolding(false), _useDelayedParsing(false) {
+                         _operators(operators), _nc_threshold(nc_threshold),
+                         _useNVO(false), _useConstantFolding(false), _useDelayedParsing(false) {
                 assert(inputNode);
                 for(auto op : operators)
                     assert(op);
@@ -171,17 +172,20 @@ namespace tuplex {
                 enableNullValueOptimization();
                 enableConstantFoldingOptimization();
                 enableDelayedParsingOptimization();
+                enableFilterPromoOptimization();
             }
 
             void disableAll() {
                 _useNVO = false;
                 _useConstantFolding = false;
                 _useDelayedParsing = false;
+                _useFilterPromo = false;
             }
 
             void enableNullValueOptimization() { _useNVO = true; }
             void enableConstantFoldingOptimization() { _useConstantFolding = true; }
             void enableDelayedParsingOptimization() { _useDelayedParsing = true; }
+            void enableFilterPromoOptimization() { _useFilterPromo = true; }
 
             std::map<int, int> normalToGeneralMapping() const { return _normalToGeneralMapping; }
 
@@ -250,6 +254,7 @@ namespace tuplex {
             bool _useNVO;
             bool _useConstantFolding;
             bool _useDelayedParsing;
+            bool _useFilterPromo;
 
             // helper when normal-case is specialized to yield less rows than general case
             std::map<int, int> _normalToGeneralMapping;

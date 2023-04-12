@@ -25,17 +25,21 @@ experiment_targets = ['all',
                       'flights/sampling',
                       'flights/hyper',
                       'flights/years',
-                      'flights/stratified']
+                      'flights/stratified',
+                      'github/promo']
 
 experiment_targets_description = {'all':'a meta target to run all experiments',
                                   'flights/sampling': 'runs the flights query using different sampling schemes',
                                   'flights/hyper': 'runs the flights query in general sampling mode and hyperspecialized sampling on the lambdas',
                                   'flights/years': 'runs flights query with varying filter predicate',
-                                  'flights/stratified': 'runs flights query with varying samples per strata'}
+                                  'flights/stratified': 'runs flights query with varying samples per strata',
+                                  'github/promo': 'runs github query with filter promotion off/on'}
 
 experiments_path_dict = {'flights/hyper': {'script': 'benchmark-filter.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/filter'},
                          'flights/years': {'script': 'benchmark-all-years.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/years'},
-                         'flights/stratified': {'script': 'benchmark-hyper-stratified-sampling.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/stratified-sampling'}}
+                         'flights/stratified': {'script': 'benchmark-hyper-stratified-sampling.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/stratified-sampling'},
+                         'github/promo': {'script': 'benchmark.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/github', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/github/experimental_results/github'},
+                         }
 
 
 # make sure every target has a description!

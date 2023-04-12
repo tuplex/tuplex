@@ -516,6 +516,25 @@ namespace tuplex {
 
         static int64_t pythonCellFunctor(void* userData, int64_t row_number, char **cells, int64_t* cell_sizes);
 
+        struct JsonContextData {
+            void* userData;
+            std::vector<std::string> columns; // which columns to pass along (and in which order!)
+            bool unwrap_first_level;
+
+            JsonContextData():userData(nullptr), unwrap_first_level(false) {}
+        };
+
+        JsonContextData _jsonContext;
+        /*!
+         * functor for parsing json data in fallback mode
+         * @param jsonContext json Context (the var above)
+         * @param row_number which initial row number to use
+         * @param buffer char buffer containing json, can assume json starts from here
+         * @param bufferSize buffer size
+         * @return parsed bytes
+         */
+        static int64_t pythonJsonFunctor(void* jsonContext, int64_t row_number, char *buffer, int64_t bufferSize);
+
         int64_t processCellsInPython(int threadNo,
                                      PyObject* pipelineObject,
                                      const std::vector<PyObject*>& py_intermediates,

@@ -375,6 +375,10 @@ namespace tuplex {
             return _fileOutputParameters.at("quotechar")[0];
         }
 
+        inline bool jsonUnwrapFirstLevel() const {
+            return stringToBool(_fileInputParameters.at("unwrap_first_level"));
+        }
+
         std::vector<std::string> csvHeader() const;
 
         // file output specific params

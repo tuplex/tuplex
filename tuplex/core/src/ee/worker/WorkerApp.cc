@@ -1002,7 +1002,7 @@ namespace tuplex {
         assert(userData);
         auto ctx = static_cast<WorkerApp::PythonExecutionContext*>(userData);
         if(row_number < 10)
-		Logger::instance().defaultLogger().info("processing row " + std::to_string(row_number));
+		    Logger::instance().defaultLogger().info("processing row " + std::to_string(row_number));
         if(row_number > 0 && row_number % 100000 == 0)
             Logger::instance().defaultLogger().info("processed 100k rows...");
 
@@ -1012,6 +1012,17 @@ namespace tuplex {
                                               ctx->numInputColumns,
                                               cells,
                                               cell_sizes);
+    }
+
+
+    int64_t WorkerApp::pythonJsonFunctor(void *jsonContext, int64_t row_number, char *buffer, int64_t bufferSize) {
+        assert(jsonContext);
+        auto json_ctx = reinterpret_cast<JsonContextData*>(jsonContext);
+        assert(json_ctx->userData);
+        auto ctx = static_cast<WorkerApp::PythonExecutionContext*>(json_ctx->userData);
+
+        Logger::instance().defaultLogger().info("JSON fallback mode, starting with: " + std::to_string(row_number));
+        return 0;
     }
 
 
@@ -1293,8 +1304,14 @@ namespace tuplex {
                         text->setRange(part.rangeStart, part.rangeEnd);
                         reader.reset(text);
                     } else if(tstage->inputFormat() == FileFormat::OUTFMT_JSON) {
-                        auto json = new JsonReader(userData,
-                                                   reinterpret_cast<codegen::read_block_f>(pythonCellFunctor),
+
+                        // fill json Context
+                        _jsonContext.userData = userData;
+                        _jsonContext.columns = tstage->inputColumns();
+                        _jsonContext.unwrap_first_level = tstage->jsonUnwrapFirstLevel();
+
+                        auto json = new JsonReader((void*)&_jsonContext,
+                                                   reinterpret_cast<codegen::read_block_f>(pythonJsonFunctor),
                                                    _readerBufferSize);
                         json->setRange(part.rangeStart, part.rangeEnd);
                         reader.reset(json);

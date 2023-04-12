@@ -412,6 +412,7 @@ namespace tuplex {
         // single test-file here:
         //input_pattern = "../resources/hyperspecialization/github_daily/2012-10-15.json.sample";
 
+        stringToFile("extract_repo_id.py", repo_id_code);
 
         // check full data
         input_pattern = "/hot/data/github_daily/*.json";

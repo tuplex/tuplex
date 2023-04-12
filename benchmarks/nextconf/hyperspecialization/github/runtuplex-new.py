@@ -38,7 +38,7 @@ def github_pipeline(ctx, input_pattern, s3_output_path, sm):
        .withColumn('repo_id', extract_repo_id) \
        .withColumn('commits', lambda row: row['payload'].get('commits')) \
        .withColumn('number_of_commits', lambda row: len(row['commits']) if row['commits'] else 0) \
-       .select(['type', 'repo_id', 'year', 'number_of_commits']) \
+       .selectColumns(['type', 'repo_id', 'year', 'number_of_commits']) \
        .tocsv(s3_output_path)
 
 
@@ -71,7 +71,7 @@ if __name__ == '__main__':
     use_hyper_specialization = not args.no_hyper
     use_filter_promotion = not args.no_promo
     use_constant_folding = False # deactivate explicitly
-    input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv'
+    input_pattern = 's3://tuplex-public/data/github_daily/*.json'
     s3_output_path = 's3://tuplex-leonhard/experiments/github'
     strata_size = args.strata_size
     samples_per_strata = args.samples_per_strata

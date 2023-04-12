@@ -336,24 +336,39 @@ namespace tuplex {
             if(startsWith(kv.first, "tuplex."))
                 co.set(kv.first, kv.second);
 
-        bool use_hyper = true;
-        use_hyper = false;
-        co.set("tuplex.experimental.hyperspecialization", boolToString(use_hyper));
 
-
-        co.set("tuplex.optimizer.filterPromotion", "true");
-
+        // setting 1: no-hyper, no filter-promo
+        co.set("tuplex.experimental.hyperspecialization", boolToString(false));
         co.set("tuplex.optimizer.filterPromotion", "false"); // <-- seems to work.
-
         co.set("tuplex.optimizer.nullValueOptimization", "true");
-
         // deactivate, does not work for struct field yet.
         // -> easy to fix though.
         co.set("tuplex.optimizer.constantFoldingOptimization", "false");
-
         co.set("tuplex.inputSplitSize", "2GB");
+        co.set("tuplex.resolveWithInterpreterOnly", "false");
+        // -> works, should have
+        // num_input_rows                                              11012665
+        // num_output_rows                                               294195
+        // num_bad_rows                                                       0
 
-        // make testing faster...
+        // setting 2: hyper, no filter-promo
+        co.set("tuplex.experimental.hyperspecialization", boolToString(true));
+        co.set("tuplex.optimizer.filterPromotion", "false"); // <-- seems to work.
+        co.set("tuplex.optimizer.nullValueOptimization", "true");
+        // deactivate, does not work for struct field yet.
+        // -> easy to fix though.
+        co.set("tuplex.optimizer.constantFoldingOptimization", "false");
+        co.set("tuplex.inputSplitSize", "2GB");
+        co.set("tuplex.resolveWithInterpreterOnly", "false");
+
+        // setting 3: hyper, filter-promo
+        co.set("tuplex.experimental.hyperspecialization", boolToString(true));
+        co.set("tuplex.optimizer.filterPromotion", "true"); // <-- seems to work.
+        co.set("tuplex.optimizer.nullValueOptimization", "true");
+        // deactivate, does not work for struct field yet.
+        // -> easy to fix though.
+        co.set("tuplex.optimizer.constantFoldingOptimization", "false");
+        co.set("tuplex.inputSplitSize", "2GB");
         co.set("tuplex.resolveWithInterpreterOnly", "false");
 
         // creater context according to settings

@@ -58,6 +58,33 @@ namespace tuplex {
             setOutputSchema(this->parent()->getOutputSchema());
     }
 
+    std::shared_ptr<FilterOperator> FilterOperator::from_udf(const UDF &udf, const python::Type &row_type,
+                                                             const std::vector<std::string> &input_column_names) {
+        assert(row_type.isTupleType());
+        assert(!input_column_names.empty() && row_type.parameters().size() == input_column_names.size());
+
+        auto fop = std::shared_ptr<FilterOperator>(new FilterOperator(nullptr, udf, input_column_names));
+
+        auto schema = Schema(Schema::MemoryLayout::ROW, row_type);
+
+        // type
+        if(fop->_udf.isCompiled()) {
+
+            // rewrite dict access
+            if(!input_column_names.empty() && !fop->_udf.rewriteDictAccessInAST(input_column_names))
+                return nullptr;
+
+            if(!fop->_udf.hintInputSchema(schema))
+                return nullptr;
+        } else {
+            fop->_udf.setInputSchema(schema);
+            fop->_udf.setOutputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType({python::Type::BOOLEAN})));
+        }
+
+        return fop;
+    }
+
+
     bool FilterOperator::good() const {
         return _good && !_udf.getOutputSchema().getRowType().isIllDefined();
     }

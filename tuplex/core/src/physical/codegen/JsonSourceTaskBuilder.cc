@@ -154,13 +154,19 @@ namespace tuplex {
                     conf.columns = acc_column_names;
                     conf.row_type = python::Type::makeTupleType(acc_col_types);
                     conf.is_projected = true;
-                    auto ret = fop->retype(conf);
-                    if(!ret) {
-                        std::stringstream err_stream;
-                        err_stream<<"failed to retype filter operator with columns="<<conf.columns<<", type="<<conf.row_type.desc();
-                        logger().error(err_stream.str());
-                        throw std::runtime_error(err_stream.str());
-                    }
+
+                    // create filter op from scratch (avoid retyping etc., no parent needed)
+                    fop = FilterOperator::from_udf(fop->getUDF().removeTypes(), conf.row_type, conf.columns);
+                    if(!fop)
+                        throw std::runtime_error("failed to create filter operator properly!");
+
+                    // auto ret = fop->retype(conf);
+                    // if(!ret) {
+                    //     std::stringstream err_stream;
+                    //     err_stream<<"failed to retype filter operator with columns="<<conf.columns<<", type="<<conf.row_type.desc();
+                    //     logger().error(err_stream.str());
+                    //     throw std::runtime_error(err_stream.str());
+                    // }
                     logger().debug(ss.str());
 
 

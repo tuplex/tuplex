@@ -31,6 +31,15 @@ namespace tuplex {
         bool isActionable() override { return false; }
         bool isDataSource() override { return false; }
 
+        /*!
+         * construct filter op from UDF, no parent needed.
+         * @param udf
+         * @param row_type
+         * @param input_column_names
+         * @return filter operator or nullptr on failure.
+         */
+        static std::shared_ptr<FilterOperator> from_udf(const UDF& udf, const python::Type& row_type, const std::vector<std::string>& input_column_names);
+
         bool good() const override;
 
         void setDataSet(DataSet* dsptr) override;

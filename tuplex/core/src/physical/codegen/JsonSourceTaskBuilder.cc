@@ -156,7 +156,11 @@ namespace tuplex {
                     conf.is_projected = true;
 
                     // create filter op from scratch (avoid retyping etc., no parent needed)
-                    fop = FilterOperator::from_udf(fop->getUDF().removeTypes(), conf.row_type, conf.columns);
+                    UDF plain_udf(fop->getUDF().getCode(),
+                                  fop->getUDF().getPickledCode(),
+                                  fop->getUDF().getAnnotatedAST().globals(),
+                                  fop->getUDF().compilePolicy());
+                    fop = FilterOperator::from_udf(plain_udf, conf.row_type, conf.columns);
                     if(!fop)
                         throw std::runtime_error("failed to create filter operator properly!");
 

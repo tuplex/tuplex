@@ -1338,13 +1338,15 @@ TEST(BasicInvocation, SingleMessageDebug) {
     // github debug request
     message_path = "/home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_553.json";
 
+    message_path = "/home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1.json";
+
     auto message = fileToString(URI(message_path));
 
     // check individual messages that they work
     auto rc = app->processJSONMessage(message); // <-- second file is the critical one where something goes wrong...
 
-    // process again -> this causes error on Lambda???
-    app->processJSONMessage(message);
+    // // process again -> this causes error on Lambda???
+    // app->processJSONMessage(message);
 
     EXPECT_EQ(rc, WORKER_OK);
 }

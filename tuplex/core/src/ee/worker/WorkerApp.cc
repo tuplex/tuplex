@@ -407,6 +407,10 @@ namespace tuplex {
             }
             logger().info("fast code path size after hyperspecialization: " + sizeToMemString(tstage->fastPathBitCode().size()));
             markTime("hyperspecialization_time", timer.time());
+            if(tstage->fastPathBitCode().empty()) {
+                logger().error("there is no fast-code path, need fast code path to parse properly. Erroring out.");
+                return WORKER_ERROR_COMPILATION_FAILED;
+            }
         }
 
         // wait for old compile thread...

@@ -26,19 +26,22 @@ experiment_targets = ['all',
                       'flights/hyper',
                       'flights/years',
                       'flights/stratified',
-                      'github/promo']
+                      'github/promo',
+                      'github/global']
 
 experiment_targets_description = {'all':'a meta target to run all experiments',
                                   'flights/sampling': 'runs the flights query using different sampling schemes',
                                   'flights/hyper': 'runs the flights query in general sampling mode and hyperspecialized sampling on the lambdas',
                                   'flights/years': 'runs flights query with varying filter predicate',
                                   'flights/stratified': 'runs flights query with varying samples per strata',
-                                  'github/promo': 'runs github query with filter promotion off/on'}
+                                  'github/promo': 'runs github query with filter promotion off/on',
+                                  'github/global': 'runs github query, but only the global mode'}
 
 experiments_path_dict = {'flights/hyper': {'script': 'benchmark-filter.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/filter'},
                          'flights/years': {'script': 'benchmark-all-years.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/years'},
                          'flights/stratified': {'script': 'benchmark-hyper-stratified-sampling.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/stratified-sampling'},
                          'github/promo': {'script': 'benchmark.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/github', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/github/experimental_results/github'},
+                         'github/global': {'script': 'benchmark-only-global.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/github', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/github/experimental_results/github-global'},
                          }
 
 

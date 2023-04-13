@@ -533,7 +533,7 @@ namespace tuplex {
          * @param bufferSize buffer size
          * @return parsed bytes
          */
-        static int64_t pythonJsonFunctor(void* jsonContext, int64_t row_number, char *buffer, int64_t bufferSize);
+        static int64_t pythonJsonFunctor(void* jsonContext, char *buf, int64_t buf_size,  int64_t* out_normal_row_count, int64_t *out_bad_row_count, bool is_last_line);
 
         int64_t processCellsInPython(int threadNo,
                                      PyObject* pipelineObject,

@@ -116,6 +116,10 @@ namespace tuplex {
                 // fetch result
                 auto stats = app->jsonStats();
 
+                if(stats.empty()) {
+                    throw std::runtime_error("no statistics available, internal error?");
+                }
+
                 auto j_stats = nlohmann::json::parse(stats);
                 nlohmann::json j;
                 auto j_req = nlohmann::json::parse(json_buf);

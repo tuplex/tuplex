@@ -13,7 +13,9 @@
 #include "visitors/TypeAnnotatorVisitor.h"
 #include "AWSCommon.h"
 #include "bucket.h"
+#include <simdjson.h>
 #include <physical/execution/JsonReader.h>
+#include <JsonStatistic.h>
 #include <S3FileSystemImpl.h>
 #include <S3Cache.h>
 
@@ -348,7 +350,9 @@ namespace tuplex {
         // check settings, pure python mode?
         if(req.settings().has_useinterpreteronly() && req.settings().useinterpreteronly()) {
             logger().info("WorkerApp is processing everything in single-threaded python/fallback mode.");
-            return processTransformStageInPythonMode(tstage, parts, outputURI);
+            auto rc = processTransformStageInPythonMode(tstage, parts, outputURI);
+            _lastStat = jsonStat(req, tstage); // generate stats before returning.
+            return rc;
         }
 
         // using hyper-specialization?
@@ -471,6 +475,7 @@ namespace tuplex {
     int
     WorkerApp::processTransformStageInPythonMode(const TransformStage *tstage, const std::vector<FilePart> &input_parts,
                                                  const URI &output_uri) {
+        Timer timer;
         // make sure python code exists
         assert(tstage);
         auto pythonCode = tstage->purePythonCode();
@@ -531,6 +536,28 @@ namespace tuplex {
         _codePathStats.rowsOnNormalPathCount += numInputRowsProcessed - exception_row_count;
         _codePathStats.unresolvedRowsCount += exception_row_count;
         _codePathStats.inputRowCount += numInputRowsProcessed;
+
+        auto row_stats = get_row_stats(tstage);
+
+        auto numNormalRows = std::get<0>(row_stats);
+        auto numExceptionRows = std::get<1>(row_stats);
+        auto numHashRows = std::get<2>(row_stats);
+        auto normalBufSize = std::get<3>(row_stats);
+        auto exceptionBufSize = std::get<4>(row_stats);
+        auto hashMapSize = std::get<5>(row_stats);
+
+        MessageStatistic stat;
+        stat.totalTime = timer.time();
+        stat.numNormalOutputRows = numNormalRows;
+        stat.numExceptionOutputRows = numExceptionRows;
+        stat.codePathStats = _codePathStats;
+        _statistics.push_back(stat);
+
+        logger().info("Took " + std::to_string(timer.time()) + "s in total");
+        logger().info("Paths rows took: normal: " + std::to_string(_codePathStats.rowsOnNormalPathCount)
+                      + " general: " + std::to_string(_codePathStats.rowsOnGeneralPathCount)
+                      + " interpreter: " + std::to_string(_codePathStats.rowsOnInterpreterPathCount)
+                      + " unresolved: " + std::to_string(_codePathStats.unresolvedRowsCount));
 
         if(rc != WORKER_OK)
             return rc;
@@ -1008,21 +1035,67 @@ namespace tuplex {
 
         return ctx->app->processCellsInPython(ctx->threadNo,
                                               ctx->pipelineObject,
-                                              ctx->py_intermediates,row_number,
+                                              ctx->py_intermediates,
+                                              row_number,
                                               ctx->numInputColumns,
                                               cells,
                                               cell_sizes);
     }
 
 
-    int64_t WorkerApp::pythonJsonFunctor(void *jsonContext, int64_t row_number, char *buffer, int64_t bufferSize) {
+    int64_t WorkerApp::pythonJsonFunctor(void *jsonContext, char *buf, int64_t buf_size, int64_t *out_normal_row_count,
+                                         int64_t *out_bad_row_count, bool is_last_line) {
+        using namespace std;
         assert(jsonContext);
         auto json_ctx = reinterpret_cast<JsonContextData*>(jsonContext);
         assert(json_ctx->userData);
         auto ctx = static_cast<WorkerApp::PythonExecutionContext*>(json_ctx->userData);
+        assert(ctx);
 
-        Logger::instance().defaultLogger().info("JSON fallback mode, starting with: " + std::to_string(row_number));
-        return 0;
+        auto pipelineObject = ctx->pipelineObject;
+        auto py_intermediates = ctx->py_intermediates;
+
+        simdjson::ondemand::parser parser;
+        simdjson::ondemand::document_stream stream;
+        auto error = parser.iterate_many(buf, buf_size, std::min((size_t)buf_size, SIMDJSON_BATCH_SIZE)).get(stream);
+        if(error) {
+            stringstream err_stream; err_stream<<error;
+            throw std::runtime_error(err_stream.str());
+        }
+
+        const char* cells[1];
+        cells[0] = nullptr;
+        int64_t cell_sizes[1];
+        cell_sizes[0] = 0;
+        int64_t row_number = 0;
+        for(auto it = stream.begin(); it != stream.end(); ++it) {
+            auto doc = (*it);
+
+            // error? stop parse, return partial results
+            simdjson::ondemand::json_type doc_type;
+            doc.type().tie(doc_type, error);
+            if (error)
+                break;
+
+            // the full json string of a row can be obtained via
+            // std::cout << it.source() << std::endl;
+            string full_row;
+            {
+                stringstream ss;
+                ss<<it.source()<<std::endl;
+                full_row = ss.str();
+            }
+            cells[0] = full_row.c_str();
+            cell_sizes[0] = full_row.size();
+            auto rc = ctx->app->processCellsInPython(ctx->threadNo, pipelineObject, py_intermediates, row_number, 1,
+                                                     const_cast<char **>(cells), cell_sizes);
+            row_number++;
+        }
+
+        auto bytes_left = stream.truncated_bytes();
+        assert(bytes_left <= buf_size);
+        // return how many bytes were parsed.
+        return buf_size - bytes_left;
     }
 
 
@@ -1073,6 +1146,8 @@ namespace tuplex {
         bool returnAllAsPyObjects = false;
         bool outputAsNormalRow = false;
         bool outputAsGeneralRow = false;
+
+        _codePathStats.rowsOnInterpreterPathCount++;
 
         if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
             // this should not happen, bad internal error. codegen'ed python should capture everything.
@@ -3139,6 +3214,8 @@ namespace tuplex {
         ss<<"\"unresolved\":"<<_codePathStats.unresolvedRowsCount;
         ss<<"}";
 
+        assert(!_statistics.empty());
+
         // output path breakdown
         ss<<",\"output\":{";
         ss<<"\"normal\":"<<_statistics.back().numNormalOutputRows;
@@ -3148,7 +3225,7 @@ namespace tuplex {
         // go over timing dict (should be reset)
         ss<<",\"timings\":{";
         unsigned counter = 0;
-        for(auto kv : _timeDict) {
+        for(const auto& kv : _timeDict) {
             ss<<"\""<<kv.first<<"\":"<<kv.second;
             if(counter != _timeDict.size() - 1)
                 ss<<",";

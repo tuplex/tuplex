@@ -252,6 +252,8 @@ if __name__ == '__main__':
                         help="deactivate constant-folding optimization explicitly.")
     parser.add_argument('--no-nvo', dest='no_nvo', action="store_true",
                         help="deactivate null value optimization explicitly.")
+    parser.add_argument('--python-mode', dest='python_mode', action="store_true",
+                        help="process in pure python mode.")
     parser.add_argument('--internal-fmt', dest='use_internal_fmt',
                         help='if active, use the internal tuplec storage format for exceptions, no CSV format optimization',
                         action='store_true')
@@ -320,7 +322,7 @@ if __name__ == '__main__':
         s3_output_path += '/general'
 
     print('>>> running {} on {} -> {}'.format('tuplex', input_pattern, s3_output_path))
-
+    print('    running in interpreter mode: {}'.format(args.python_mode))
     print('    hyperspecialization: {}'.format(use_hyper_specialization))
     print('    constant-folding: {}'.format(use_constant_folding))
     print('    null-value optimization: {}'.format(not args.no_nvo))
@@ -353,6 +355,7 @@ if __name__ == '__main__':
             "resolveWithInterpreterOnly": False,
             "optimizer.constantFoldingOptimization": use_constant_folding,
             "optimizer.selectionPushdown" : True,
+            "useInterpreterOnly": args.python_mode,
             "experimental.forceBadParseExceptFormat": not args.use_internal_fmt}
 
     if os.path.exists('tuplex_config.json'):

@@ -328,12 +328,12 @@ namespace tuplex {
         std::string input_pattern = "/hot/data/flights_all/flights_on_time_performance_1987_10.csv,/hot/data/flights_all/flights_on_time_performance_2001_09.csv,/hot/data/flights_all/flights_on_time_performance_2021_11.csv";
 
         std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::string>>>> configs;
-//        configs.push_back(make_pair(string("hyper with constant folding"), vector<pair<string,string>>({
-//            make_pair("output_path", "./local-exp/hyper-with-cf/output.csv"),
-//            make_pair("tuplex.experimental.hyperspecialization", "true"),
-//            make_pair("tuplex.optimizer.constantFoldingOptimization", "true")
-//        })));
         configs.push_back(make_pair(string("hyper with constant folding"), vector<pair<string,string>>({
+            make_pair("output_path", "./local-exp/hyper-with-cf/output.csv"),
+            make_pair("tuplex.experimental.hyperspecialization", "true"),
+            make_pair("tuplex.optimizer.constantFoldingOptimization", "true")
+        })));
+        configs.push_back(make_pair(string("hyper without constant folding"), vector<pair<string,string>>({
                                                                                                                make_pair("output_path", "./local-exp/hyper-no-cf/output.csv"),
                                                                                                                make_pair("tuplex.experimental.hyperspecialization", "true"),
                                                                                                                make_pair("tuplex.optimizer.constantFoldingOptimization", "false")
@@ -418,6 +418,65 @@ namespace tuplex {
 //                .map(UDF(extractFillDelaysCode()))
 //                .filter(UDF("lambda row: 2000 <= row['year'] <= 2005"))
 //                .tocsv(output_path);
+    }
+
+    TEST_F(FlightsQuery, LocalTestAllPythonMode) {
+        using namespace std;
+
+        // use this input_pattern to test everything
+        std::string input_pattern = "/hot/data/flights_all/flights_on_time_performance_1987_10.csv,/hot/data/flights_all/flights_on_time_performance_2001_09.csv,/hot/data/flights_all/flights_on_time_performance_2021_11.csv";
+
+        std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::string>>>> configs;
+        configs.push_back(make_pair(string("hyper with constant folding"), vector<pair<string,string>>({
+            make_pair("output_path", "./local-exp/hyper-with-cf/output.csv"),
+            make_pair("tuplex.experimental.hyperspecialization", "true"),
+            make_pair("tuplex.optimizer.constantFoldingOptimization", "true")
+        })));
+        configs.push_back(make_pair(string("hyper without constant folding"), vector<pair<string,string>>({
+                                                                                                               make_pair("output_path", "./local-exp/hyper-no-cf/output.csv"),
+                                                                                                               make_pair("tuplex.experimental.hyperspecialization", "true"),
+                                                                                                               make_pair("tuplex.optimizer.constantFoldingOptimization", "false")
+                                                                                                       })));
+
+        ContextOptions co = ContextOptions::defaults();
+        runtime::init(co.RUNTIME_LIBRARY().toPath());
+
+        for(const auto& config: configs) {
+            cout<<"Running config: "<<config.first<<endl;
+            cout<<"-----------------------------------------------"<<endl;
+
+            // set input/output paths
+            auto exp_settings = localWorkerSettings(true);
+            for(auto kv : config.second)
+                exp_settings[kv.first] = kv.second;
+            auto output_path = exp_settings["output_path"];
+            SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));
+            for(const auto& kv : exp_settings)
+                if(startsWith(kv.first, "tuplex."))
+                    co.set(kv.first, kv.second);
+
+            // use pure python mode (& make sure it works!)
+            co.set("tuplex.useInterpreterOnly", "true");
+
+            // creater context according to settings
+            Context ctx(co);
+
+            // dump settings
+            stringToFile("context_settings.json", ctx.getOptions().toString());
+
+            // now perform query...
+            auto& ds = ctx.csv(input_pattern, {}, option<bool>::none,
+                               option<char>::none, '"', {""},
+                               {}, {}, sm);
+
+            // add function that normalizes features (f-mean) / std
+            // and then perform linear model for all of the variables in fill-in-delays function (adjusted)
+            // now create extract vec (but only for relevant years!)
+            ds.withColumn("features", UDF(extractFeatureVectorCode()))
+                    .map(UDF(extractFillDelaysCode()))
+                    .filter(UDF("lambda row: 2000 <= row['year'] <= 2005"))
+                    .tocsv(output_path);
+        }
     }
 }
 

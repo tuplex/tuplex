@@ -374,8 +374,8 @@ namespace tuplex {
         // [2023-04-12 12:04:55.841] [worker] [info] total input row count: 11012665
         // [2023-04-12 12:04:55.841] [worker] [info] total output row count: 294195
 
-        // setting 4: pure python mode (for establishing a baseline)
-        co.set("tuplex.useInterpreterOnly", "true");
+        // // setting 4: pure python mode (for establishing a baseline)
+        // co.set("tuplex.useInterpreterOnly", "true");
 
         // creater context according to settings
         Context ctx(co);

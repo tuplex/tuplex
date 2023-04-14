@@ -250,7 +250,7 @@ namespace tuplex {
                for(const auto& check : checks) {
                    if(check.isSingleColCheck() && check.colNo() == original_col_idx) {
                        projected_checks.emplace_back(check); // need to adjust internal colNo? => no, keep for now.
-                   } else {
+                   } else if(!check.isSingleColCheck()) {
                        throw std::runtime_error("multi-col check not supported yet");
                    }
                }

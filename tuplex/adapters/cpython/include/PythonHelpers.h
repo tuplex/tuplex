@@ -254,6 +254,14 @@ namespace python {
     extern tuplex::Row pythonToRow(PyObject* obj);
 
     /*!
+     * when processing samples, need to perform the automatic unwrapping of string-dict objects
+     * @param obj
+     * @param columns
+     * @return row (order according to columns).
+     */
+    extern tuplex::Row pythonToRowWithDictUnwrap(PyObject* obj, const std::vector<std::string>& columns);
+
+    /*!
      * converts a field to a python object
      * @param f
      * @return python object, nullptr if conversion failed

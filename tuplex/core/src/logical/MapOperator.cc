@@ -122,6 +122,8 @@ namespace tuplex {
         auto func = python::deserializePickledFunction(python::getMainModule(), pickledCode.c_str(),
                                                        pickledCode.length());
 
+        auto output_columns = columns();
+
         size_t numExceptions = 0;
         for (const auto& row : vSamples) {
 
@@ -144,7 +146,9 @@ namespace tuplex {
             if (ec != ExceptionCode::SUCCESS)
                 numExceptions++;
             else {
-                auto res = python::pythonToRow(pyobj_res);
+                // old: no dict unwrapping
+                // auto res = python::pythonToRow(pyobj_res);
+                auto res = python::pythonToRowWithDictUnwrap(pyobj_res, output_columns);
                 vRes.push_back(res);
             }
         }

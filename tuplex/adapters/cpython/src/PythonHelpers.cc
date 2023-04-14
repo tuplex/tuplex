@@ -766,6 +766,54 @@ namespace python {
         } else return Row(f);
     }
 
+    tuplex::Row pythonToRowWithDictUnwrap(PyObject* obj, const std::vector<std::string>& columns) {
+        using namespace tuplex;
+
+        if(columns.empty())
+            return pythonToRow(obj);
+        else {
+            // is it a dictionary?
+            if(PyDict_Check(obj)) {
+                PyObject *key = nullptr, *val = nullptr;
+                Py_ssize_t pos = 0;  // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
+                std::unordered_map<std::string, PyObject*> map;
+                Py_XINCREF(obj);
+                while(PyDict_Next(obj, &pos, &key, &val)) {
+                    if(PyUnicode_Check(key)) {
+                        // convert key to str
+                        Py_XINCREF(key);
+                        auto key_str = PyString_AsString(key);
+                        Py_XINCREF(key);
+
+                        map[key_str] = val;
+                    } else {
+                        // encode as dict
+                        return Row(pythonToField(obj));
+                    }
+                }
+
+                if(map.size() != columns.size())
+                    return pythonToRow(obj);
+                else {
+                    // check column names match
+                    for(unsigned i = 0; i < columns.size(); ++i) {
+                        auto it = map.find(columns[i]);
+                        if(it == map.end())
+                            return pythonToRow(obj);
+                    }
+                }
+                // check whether columns match up, and convert to row
+                std::vector<Field> fields;
+                for(unsigned i = 0; i < columns.size(); ++i)
+                    fields.push_back(pythonToField(map[columns[i]]));
+                return Row::from_vector(fields);
+
+            } else {
+                return pythonToRow(obj);
+            }
+        }
+    }
+
     PyObject* PyObj_FromCJSONKey(const char* serializedKey) {
         assert(serializedKey);
         assert(strlen(serializedKey) >= 2);

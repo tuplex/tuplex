@@ -1697,6 +1697,14 @@ namespace tuplex {
             //     builder.CreateStore(list_val, list_ptr);
             // }
 
+#ifndef NDEBUG
+            if(list_ptr->getType() == llvm_list_type->getPointerTo()) {""
+                std::cerr<<"list_ptr type is not expected type, "<<std::endl;
+                std::cerr<<"is: "<<env.getLLVMTypeName(list_ptr->getType())<<std::endl;
+                std::cerr<<"expected: "<<env.getLLVMTypeName(llvm_list_type->getPointerTo())<<std::endl;
+            }
+#endif
+
             // check args are fine
             assert(list_ptr->getType() == llvm_list_type->getPointerTo());
             assert(target_list_ptr->getType() == llvm_target_list_type->getPointerTo());

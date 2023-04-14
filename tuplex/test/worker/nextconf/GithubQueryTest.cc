@@ -441,6 +441,189 @@ namespace tuplex {
         // this here is another issue...
         // https://reviews.llvm.org/D65482
     }
+
+    TEST_F(GithubQuery, ForkEventsFilterPromoAllSamplesExtended) {
+        using namespace std;
+
+        // set input/output paths
+        auto exp_settings = localWorkerSettings(true); //
+        string input_pattern = "../resources/hyperspecialization/github_daily/*.json.sample";
+        string output_path = "./local-exp/filter-promo/github/output";
+        SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));
+        ContextOptions co = ContextOptions::defaults();
+
+        for(const auto& kv : exp_settings)
+            if(startsWith(kv.first, "tuplex."))
+                co.set(kv.first, kv.second);
+
+
+        // setting 1: no-hyper, no filter-promo
+        co.set("tuplex.experimental.hyperspecialization", boolToString(false));
+        co.set("tuplex.optimizer.filterPromotion", "false"); // <-- seems to work.
+        co.set("tuplex.optimizer.nullValueOptimization", "true");
+        // deactivate, does not work for struct field yet.
+        // -> easy to fix though.
+        co.set("tuplex.optimizer.constantFoldingOptimization", "false");
+        co.set("tuplex.inputSplitSize", "2GB");
+        co.set("tuplex.resolveWithInterpreterOnly", "false");
+        // -> works, should have
+        // num_input_rows                                              11012665
+        // num_output_rows                                               294195
+        // num_bad_rows                                                       0
+
+        // setting 2: hyper, no filter-promo
+        co.set("tuplex.experimental.hyperspecialization", boolToString(true));
+        co.set("tuplex.optimizer.filterPromotion", "false"); // <-- seems to work.
+        co.set("tuplex.optimizer.nullValueOptimization", "true");
+        // deactivate, does not work for struct field yet.
+        // -> easy to fix though.
+        co.set("tuplex.optimizer.constantFoldingOptimization", "false");
+        co.set("tuplex.inputSplitSize", "2GB");
+        co.set("tuplex.resolveWithInterpreterOnly", "false");
+
+        // setting 3: hyper, filter-promo
+        co.set("tuplex.experimental.hyperspecialization", boolToString(true));
+        co.set("tuplex.optimizer.filterPromotion", "true"); // <-- seems to work.
+        co.set("tuplex.optimizer.nullValueOptimization", "true");
+        // deactivate, does not work for struct field yet.
+        // -> easy to fix though.
+        co.set("tuplex.optimizer.constantFoldingOptimization", "false");
+        co.set("tuplex.inputSplitSize", "2GB");
+        co.set("tuplex.resolveWithInterpreterOnly", "false");
+        // result of this is:
+        // [2023-04-12 12:04:55.841] [worker] [info] total input row count: 11012665
+        // [2023-04-12 12:04:55.841] [worker] [info] total output row count: 294195
+
+        // // setting 4: pure python mode (for establishing a baseline)
+        // co.set("tuplex.useInterpreterOnly", "true");
+
+        // creater context according to settings
+        Context ctx(co);
+
+        runtime::init(co.RUNTIME_LIBRARY().toPath());
+
+        // start pipeline incl. output
+        auto repo_id_code = "def extract_repo_id(row):\n"
+                            "    if 2012 <= row['year'] <= 2014:\n"
+                            "        \n"
+                            "        if row['type'] == 'FollowEvent':\n"
+                            "            return row['payload']['target']['id']\n"
+                            "        \n"
+                            "        if row['type'] == 'GistEvent':\n"
+                            "            return row['payload']['id']\n"
+                            "        \n"
+                            "        # this here doesn't work, because no fancy typed row object yet\n"
+                            "        # repo = row.get('repository')\n"
+                            "        repo = row['repository']\n"
+                            "        \n"
+                            "        if repo is None:\n"
+                            "            return None\n"
+                            "        return repo.get('id')\n"
+                            "    else:\n"
+                            "        return row['repo'].get('id')\n";
+
+        auto extract_forkee = "def extract_forkee(row):\n"
+                              "    if 2011 == row['year']:\n"
+                              "        return row['actor']['login']\n"
+                              "    else:\n"
+                              "        return row['actor']\n";
+
+        auto extract_forkee_url = "def extract_forkee_url(row):\n"
+                                  "    if 2011 == row['year']:\n"
+                                  "        return row['actor']['url']\n"
+                                  "    elif row['year'] < 2015:\n"
+                                  "        return row['url']\n"
+                                  "    else:\n"
+                                  "        return row['actor']['url']";
+        auto extract_watchers = "def extract_watchers(row):\n"
+                                "    # before 2012-08-06 watchers are stargazers, and no stat about watchers is available!\n"
+                                "    month = int(row['created_at'].split('-')[1])\n"
+                                "    day = int(row['created_at'].split('-')[1])\n"
+                                "        \n"
+                                "    if 2011 == row['year']:\n"
+                                "        return None\n"
+                                "    elif row['year'] < 2015:\n"
+                                "        if row['year'] == 2012 and month * 100 + day < 806:\n"
+                                "            return None\n"
+                                "        else:\n"
+                                "            return row['repository']['watchers']\n"
+                                "    else:\n"
+                                "        row['payload']['forkee']['watchers_count']";
+        auto extract_stargazers = "def extract_stargazers(row):\n"
+                                  "    # before 2012-08-06 watchers are stargazers, and no stat about watchers is available!\n"
+                                  "    month = int(row['created_at'].split('-')[1])\n"
+                                  "    day = int(row['created_at'].split('-')[1])\n"
+                                  "        \n"
+                                  "    if 2011 == row['year']:\n"
+                                  "        return None\n"
+                                  "    elif row['year'] < 2015:\n"
+                                  "        if row['year'] == 2012 and month * 100 + day < 806:\n"
+                                  "            return row['repository']['watchers']\n"
+                                  "        else:\n"
+                                  "            return row['repository'].get('stargazers') \n"
+                                  "    else:\n"
+                                  "            return row['payload']['forkee']['stargazers_count']";
+        auto extract_forks = "def extract_forks(row):\n"
+                             "    if 2011 == row['year']:\n"
+                             "        return row['payload']['forkee']['forks']\n"
+                             "    elif row['year'] < 2015:\n"
+                             "        return row['repository']['forks']\n"
+                             "    else:\n"
+                             "        return row['payload']['forkee']['forks']";
+        auto extract_lang = "def extract_lang(row):\n"
+                            "    if 2011 == row['year']:\n"
+                            "        return row['payload']['forkee']['language']\n"
+                            "    elif row['year'] < 2015:\n"
+                            "        # no information collected...\n"
+                            "        return None\n"
+                            "    else:\n"
+                            "        return row['payload']['forkee']['language']";
+
+        // // @TODO: this here should be the proper pipeline
+        // ctx.json(input_pattern, true, true, sm)
+        //         .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+        //         .withColumn("repo_id", UDF(repo_id_code))
+        //         .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+        //         .withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
+        //         .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
+        //         .selectColumns(vector<string>{"type", "repo_id", "year", "number_of_commits"})
+        //         .tocsv(output_path);
+
+        // single test-file here:
+        //input_pattern = "../resources/hyperspecialization/github_daily/2012-10-15.json.sample";
+        std::stringstream udf_code_stream;
+        udf_code_stream<<"# code for UDFs used in github query\n";
+        udf_code_stream<<repo_id_code<<"\n";
+        udf_code_stream<<extract_forkee<<"\n";
+        udf_code_stream<<extract_forkee_url<<"\n";
+        udf_code_stream<<extract_watchers<<"\n";
+        udf_code_stream<<extract_stargazers<<"\n";
+        udf_code_stream<<extract_forks<<"\n";
+        udf_code_stream<<extract_lang<<"\n";
+
+        stringToFile("github_udfs.py", udf_code_stream.str());
+
+        // // check full data
+        // input_pattern = "/hot/data/github_daily/*.json";
+
+        // fixed pipeline here b.c. canPromoteFilterCheck is incomplete yet...
+        ctx.json(input_pattern, true, true, sm)
+                .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+                .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+                .withColumn("repo_id", UDF(repo_id_code))
+                .withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
+                .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
+                .withColumn("forkee", UDF(extract_forkee))
+                .withColumn("forkee_url", UDF(extract_forkee_url))
+                .withColumn("watchers", UDF(extract_watchers))
+                .withColumn("stargazers", UDF(extract_stargazers))
+                .withColumn("forks", UDF(extract_forks))
+                .withColumn("lang", UDF(extract_lang))
+                .selectColumns(vector<string>{"type", "repo_id", "year",
+                                              "number_of_commits", "lang", "forkee", "forkee_url",
+                                              "watchers", "stargazers", "forks"})
+                .tocsv(output_path);
+    }
 }
 
 

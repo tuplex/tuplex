@@ -219,7 +219,7 @@ namespace tuplex {
         }
 
         if(numExceptions != 0)
-            Logger::instance().logger("physical planner").debug("sampling mapColumn operator lead to "
+            Logger::instance().logger("physical planner").debug("sampling withColumn operator lead to "
             + std::to_string(numExceptions) + " exceptions");
 
         python::unlockGIL();

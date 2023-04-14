@@ -70,6 +70,8 @@ namespace std {
 
 #include <boost/filesystem.hpp>
 
+#include <regex>
+
 static_assert(__cplusplus >= 201402L, "need at least C++ 14 to compile this file");
 // check https://blog.galowicz.de/2016/02/20/short_file_macro/
 // for another cool macro
@@ -873,6 +875,37 @@ namespace tuplex {
 //        std::cerr<<stream.str()<<std::endl;
 //        std::cerr.flush();
 #endif
+    }
+
+    /*!
+     * extract timeout string for AWS Lambda.
+     * @param log
+     * @return string describing timeout in seconds (double format)
+     */
+    inline std::string extractTimeoutStr(const std::string& log) {
+        std::smatch m;
+        std::regex re("Task timed out after ([0-9]+\\.[0-9]+) seconds");
+        std::string s = log;
+        std::string output;
+        while (std::regex_search (s, m, re)) {
+            for (auto x:m)
+                output = x;
+            s = m.suffix().str();
+        }
+        return output;
+    }
+
+    inline std::string extractExitCodeStr(const std::string& log) {
+        std::smatch m;
+        std::regex re("Error: Runtime exited with error: exit status ([0-9]+)");
+        std::string s = log;
+        std::string output;
+        while (std::regex_search (s, m, re)) {
+            for (auto x:m)
+                output = x;
+            s = m.suffix().str();
+        }
+        return output;
     }
 }
 

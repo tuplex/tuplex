@@ -17,6 +17,9 @@
 #include <StringUtils.h>
 #include <Utils.h>
 
+// aws constants
+#define AWS_LAMBDA_MAXIMUM_TIMEOUT 900
+
 namespace tuplex {
 
     /*!
@@ -77,7 +80,12 @@ namespace tuplex {
         size_t AWS_NUM_HTTP_THREADS() const { return std::stoi(_store.at("tuplex.aws.httpThreadCount")); }
         std::string AWS_REGION() const { return _store.at("tuplex.aws.region"); }
         size_t AWS_LAMBDA_MEMORY() const { return std::stoi(_store.at("tuplex.aws.lambdaMemory")); } // 1536MB
-        size_t AWS_LAMBDA_TIMEOUT() const { return std::stoi(_store.at("tuplex.aws.lambdaTimeout"));  } // 5min?
+        size_t AWS_LAMBDA_TIMEOUT() const {
+            auto timeout_in_s = std::stoi(_store.at("tuplex.aws.lambdaTimeout"));
+            // limit is 15min (900s)
+            return std::min(timeout_in_s, AWS_LAMBDA_MAXIMUM_TIMEOUT);
+
+        } // 5min?
         std::string AWS_LAMBDA_THREAD_COUNT() const { return _store.at("tuplex.aws.lambdaThreads"); } // auto or number > 0
         bool AWS_LAMBDA_SELF_INVOCATION() const { return stringToBool(_store.at("tuplex.aws.lambdaInvokeOthers")); } // whether Lambdas should perform self-invocation to scale faster...
         bool AWS_REQUESTER_PAY() const { return stringToBool(_store.at("tuplex.aws.requesterPay")); }

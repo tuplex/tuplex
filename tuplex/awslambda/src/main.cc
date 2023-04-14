@@ -41,7 +41,7 @@ static tuplex::messages::InvocationResponse lambda_handler(invocation_request co
 
     // unrecoverable signal?
     if(g_received_unrecoverable_signal) {
-        std::cerr<<"Previous invocation recevied unrecoverable signal, shutting down this Lambda container via exit(0)."<<std::endl;
+        std::cerr<<"Previous invocation received unrecoverable signal, shutting down this Lambda container via exit(0)."<<std::endl;
         exit(1); // <- shutdown process with code 1
     }
 

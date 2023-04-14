@@ -336,6 +336,7 @@ if __name__ == '__main__':
             "backend": "lambda",
             "aws.lambdaMemory": lambda_size,
             "aws.lambdaThreads": lambda_threads,
+            "aws.lambdaTimeout": 900, # maximum allowed is 900s!
             "aws.httpThreadCount": 410,
             "aws.maxConcurrency": 410,
             'sample.maxDetectionMemory': '32MB',

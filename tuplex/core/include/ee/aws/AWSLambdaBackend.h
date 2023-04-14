@@ -29,6 +29,7 @@
 #include "AWSCommon.h"
 #include "ContainerInfo.h"
 #include "RequestInfo.h"
+#include "AWSLambdaInvocationService.h"
 #include <aws/core/Aws.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/core/utils/logging/DefaultLogSystem.h>
@@ -70,6 +71,8 @@ namespace tuplex {
         return AwsLambdaExecutionStrategy::UNKNOWN;
     }
 
+
+
     class AwsLambdaBackend : public IBackend {
     public:
         AwsLambdaBackend() = delete;
@@ -92,6 +95,7 @@ namespace tuplex {
         // AWS Lambda interface
         std::string _tag;
         std::shared_ptr<Aws::Lambda::LambdaClient> _client;
+        std::unique_ptr<AwsLambdaInvocationService> _service; // <-- use this to invoke lambdas
 
         // fetch values via options
         size_t _lambdaSizeInMB;
@@ -157,15 +161,15 @@ namespace tuplex {
          */
         URI scratchDir(const std::vector<URI>& hints=std::vector<URI>{});
 
-        // store for tasks done
-        std::mutex _mutex;
-        std::vector<messages::InvocationResponse> _tasks;
-        std::vector<RequestInfo> _infos;
+        // // store for tasks done
+        // std::mutex _mutex;
+        // std::vector<messages::InvocationResponse> _tasks;
+        // std::vector<RequestInfo> _infos;
 
         std::shared_ptr<Aws::Lambda::LambdaClient> makeClient();
 
-        std::atomic_int32_t _numPendingRequests; // how many tasks are open (atomic used for multi threaded execution)
-        std::atomic_int32_t _numRequests;
+        // std::atomic_int32_t _numPendingRequests; // how many tasks are open (atomic used for multi threaded execution)
+        // std::atomic_int32_t _numRequests;
         static void asyncLambdaCallback(const Aws::Lambda::LambdaClient* client,
                                         const Aws::Lambda::Model::InvokeRequest& req,
                                         const Aws::Lambda::Model::InvokeOutcome& outcome,
@@ -208,7 +212,7 @@ namespace tuplex {
             // old: Before Dec 2020, now costs changed.
             // return (double)getMB100Ms() / 10000.0;
         }
-        size_t numRequests() { return _numRequests; }
+        size_t numRequests() { assert(_service); return _service->numRequests(); }
 
         double lambdaCost() {
             double cost_per_request = 0.0000002;

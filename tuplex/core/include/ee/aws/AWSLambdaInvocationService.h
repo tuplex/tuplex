@@ -110,7 +110,7 @@ namespace tuplex {
 
         MessageHandler& logger() const { return Logger::instance().logger("LAMBDA"); }
 
-        size_t numRequests() { return _numRequests; }
+        size_t numRequests() const { return _numRequests; }
 
         inline void addCost(size_t billedDurationInMs, size_t memorySizeInMb) {
             _mbms += billedDurationInMs * memorySizeInMb;

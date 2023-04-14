@@ -206,7 +206,7 @@ namespace tuplex {
         }
         size_t numRequests() { assert(_service); return _service->numRequests(); }
 
-        double lambdaCost() {
+        inline double lambdaCost() const {
             double cost_per_request = 0.0000002;
 
             // depends on ARM or x86 architecture
@@ -220,7 +220,10 @@ namespace tuplex {
             if(_functionArchitecture == "arm64")
                 cost_per_gb_second = cost_per_gb_second_arm;
 
-            return usedGBSeconds() * cost_per_gb_second + (double)numRequests() * cost_per_request;
+            auto usedGBSeconds = _service->usedGBSeconds();
+            auto numRequests = _service->numRequests();
+
+            return usedGBSeconds * cost_per_gb_second + (double)numRequests * cost_per_request;
         }
 
         /*!

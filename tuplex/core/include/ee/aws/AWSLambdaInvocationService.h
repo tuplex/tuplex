@@ -38,9 +38,9 @@ namespace tuplex {
      enum class LambdaErrorCode {
         ERROR_UNKNOWN,
         ERROR_TIMEOUT,
-        ERROR_RESET,
         ERROR_RATE_LIMIT,
-        ERROR_RETRIES_EXHAUSTED
+        ERROR_RETRIES_EXHAUSTED,
+        ERROR_TASK
     };
 
     struct AwsLambdaRequest {
@@ -69,7 +69,8 @@ namespace tuplex {
     };
 
     struct AwsLambdaResponse {
-
+        messages::InvocationResponse response;
+        RequestInfo info;
     };
 
     class AwsLambdaInvocationService {
@@ -80,10 +81,10 @@ namespace tuplex {
         std::atomic_int32_t _numPendingRequests; // how many tasks are open (atomic used for multi threaded execution)
         std::atomic_int32_t _numRequests;
 
-        std::vector<AwsLambdaRequest> _pendingRequests;
-        std::vector<AwsLambdaRequest> _failedRequests;
-        std::vector<AwsLambdaRequest> _succeededRequests;
+        // cost tracking (do it here!)
+        std::atomic_uint64_t _mbms; // megabyte milliseconds.
 
+        //std::vector<AwsLambdaRequest> _pendingRequests; // <-- todo, check this that the task is removed.
         static void asyncLambdaCallback(const Aws::Lambda::LambdaClient *client,
                                         const Aws::Lambda::Model::InvokeRequest &aws_req,
                                         const Aws::Lambda::Model::InvokeOutcome &aws_outcome,
@@ -94,9 +95,11 @@ namespace tuplex {
         AwsLambdaInvocationService(const std::shared_ptr<Aws::Lambda::LambdaClient>& client,
                                    const std::string& function_name) : _client(client),
                                    _functionName(function_name),
-                                   _numPendingRequests(0), _numRequests(0) { assert(client); }
+                                   _numPendingRequests(0), _numRequests(0), _mbms(0) { assert(client); }
 
         void reset();
+
+        inline double usedGBSeconds() const { return (double)_mbms / 1000000.0; }
 
         /*!
          * stops all active requests and return number of requests that have been aborted
@@ -109,6 +112,11 @@ namespace tuplex {
 
         size_t numRequests() { return _numRequests; }
 
+        inline void addCost(size_t billedDurationInMs, size_t memorySizeInMb) {
+            _mbms += billedDurationInMs * memorySizeInMb;
+        }
+
+        void waitForRequests(size_t sleepInterval=100*1000);
 
         bool invokeAsync(const AwsLambdaRequest& req,
                          std::function<void(const AwsLambdaRequest&, const AwsLambdaResponse&)> onSuccess=[](const AwsLambdaRequest& req, const AwsLambdaResponse& resp) {},

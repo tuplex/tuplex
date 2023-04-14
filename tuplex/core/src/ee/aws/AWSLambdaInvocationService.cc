@@ -142,7 +142,9 @@ namespace tuplex {
             std::lock_guard<std::mutex> lock(_mutex);
             _numPendingRequests++;
             _numRequests++;
-            _pendingRequests.push_back(req);
+
+            // TOOD: change this.
+            // _pendingRequests.push_back(req);
         }
 
         // invoke now
@@ -255,6 +257,10 @@ namespace tuplex {
             info.tsRequestEnd = tsEnd;
             info.containerId = response.container().uuid();
 
+            // update cost info
+            lctx->getService()->addCost(info.billedDurationInMs, info.memorySizeInMb);
+
+
             if (response.status() == messages::InvocationResponse_Status_SUCCESS) {
 
                 // special case: timeout?
@@ -291,8 +297,8 @@ namespace tuplex {
 
                     // lambda may be shutdown b.c. of previous bad signal, check for string here.
                     // in this case, simply ignore - and reissue query.
-                    auto needleI = "Previous invocation recevied unrecoverable signal, shutting down this Lambda container via exit(0).";
-                    auto needleII = "Previous invocation received unrecoverable signal, shutting down this Lambda container via exit(0).";
+                    auto needleI = "Previous invocation recevied unrecoverable signal, shutting down this Lambda container via exit(0)."; // <-- do not correct typo here, this here is correct
+                    auto needleII = "Previous invocation received unrecoverable signal, shutting down this Lambda container via exit(0)."; // <-- corrected typo for updated LAMBDA
                     bool previous_failure_and_worker_shutdown = decoded_log.find(needleI) != std::string::npos || decoded_log.find(needleII) != std::string::npos;
 
                     // was it a timeout failure or a restore failure? if so, then invoke again.
@@ -329,23 +335,10 @@ namespace tuplex {
                         }
                     }
                 } else {
-                    ss << "LAMBDA task done in " << response.taskexecutiontime() << "s ";
-                    string container_status = response.container().reused() ? "reused" : "new";
-                    ss << "[" << statusCode << ", " << pluralize(response.numrowswritten(), "row")
-                       << ", " << pluralize(response.numexceptions(), "exception") << ", "
-                       << container_status << ", id: " << response.container().uuid() << "] ";
-
-                    // lock and move to vector
-                    {
-                        std::lock_guard<std::mutex> lock(backend->_mutex);
-                        backend->_tasks.push_back(response);
-                        backend->_infos.push_back(info);
-                    }
-
                     // did request fail on Lambda?
                     if (info.returnCode != 0) {
                         // stop execution
-                        backend->_numPendingRequests.fetch_add(-1, std::memory_order_release);
+                        service->_numPendingRequests.fetch_add(-1, std::memory_order_release);
 
                         // in dev mode, print out details which file caused the failure!
                         std::stringstream err_stream;
@@ -354,21 +347,21 @@ namespace tuplex {
                             err_stream << "s";
                         for (const auto &uri: req.body.inputuris())
                             err_stream << " " << uri.c_str();
-                        backend->logger().error(err_stream.str());
+                        auto err_message = err_stream.str();
 
-                        // abort the other requests (save the $)
-                        backend->abortRequestsAndFailWith(info.returnCode, info.errorMessage);
+                        lctx->fail(LambdaErrorCode::ERROR_TASK, err_message);
+
+                        // this here also should go into the backend b.c. it's managing what should happen
+                        // // abort the other requests (save the $)
+                        // backend->abortRequestsAndFailWith(info.returnCode, info.errorMessage);
                         return;
+                    } else {
+                        // worked, call callback!
+                        AwsLambdaResponse full_response;
+                        full_response.info = info;
+                        full_response.response = response;
+                        lctx->success(full_response);
                     }
-
-//                    // compute cost and print out
-//                    ss << "Cost so far: $";
-//                    double price = backend->lambdaCost();
-//                    if (price < 0.01)
-//                        ss.precision(4);
-//                    if (price < 0.0001)
-//                        ss.precision(6);
-//                    ss << std::fixed << price;
                 }
             } else {
                 // TODO: maybe still track the response info (e.g. reused, cost, etc.)
@@ -395,6 +388,27 @@ namespace tuplex {
 
         // decrease wait counter
         service->_numPendingRequests.fetch_add(-1);
+    }
+
+    void AwsLambdaInvocationService::waitForRequests(size_t sleepInterval) {
+        // wait for requests to be finished & check periodically PyErrCheckSignals for Ctrl+C
+
+        size_t pendingTasks = 0;
+        while ((pendingTasks = _numPendingRequests.load(std::memory_order_acquire)) > 0) {
+            // sleep
+            usleep(sleepInterval);
+
+            python::lockGIL();
+
+            if (PyErr_CheckSignals() != 0) {
+                // stop requests & cleanup @TODO: cleanup on S3 with requests...
+                if (_client)
+                    _client->DisableRequestProcessing();
+                _numPendingRequests.store(0); //, std::memory_order_acq_rel);
+            }
+
+            python::unlockGIL();
+        }
     }
 }
 

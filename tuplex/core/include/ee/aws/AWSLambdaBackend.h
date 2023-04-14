@@ -136,7 +136,7 @@ namespace tuplex {
                                                bool provisioned=false);
         size_t _functionConcurrency;
 
-        std::vector<messages::InvocationRequest> createSingleFileRequests(const TransformStage* tstage,
+        std::vector<AwsLambdaRequest> createSingleFileRequests(const TransformStage* tstage,
                                                                           const std::string& bitCode,
                                                                           const size_t numThreads,
                                                                           const std::vector<std::tuple<
@@ -150,6 +150,10 @@ namespace tuplex {
                                                                                   std::string, std::size_t>>& uri_infos,
                                                                           const std::string& spillURI, const size_t buf_spill_size);
 
+        // Lambda request callbacks
+        void onLambdaSuccess(const AwsLambdaRequest& req, const AwsLambdaResponse& resp);
+        void onLambdaFailure(const AwsLambdaRequest& req, LambdaErrorCode err_code, const std::string& err_msg);
+        void onLambdaRetry(const AwsLambdaRequest& req, LambdaErrorCode retry_code, const std::string& retry_msg, bool decreasesRetryCount);
 
         URI _scratchDir;
         bool _deleteScratchDirOnShutdown;
@@ -162,31 +166,19 @@ namespace tuplex {
         URI scratchDir(const std::vector<URI>& hints=std::vector<URI>{});
 
         // // store for tasks done
-        // std::mutex _mutex;
-        // std::vector<messages::InvocationResponse> _tasks;
-        // std::vector<RequestInfo> _infos;
-
+        std::mutex _mutex;
+        std::vector<AwsLambdaResponse> _tasks;
         std::shared_ptr<Aws::Lambda::LambdaClient> makeClient();
 
-        // std::atomic_int32_t _numPendingRequests; // how many tasks are open (atomic used for multi threaded execution)
-        // std::atomic_int32_t _numRequests;
-        static void asyncLambdaCallback(const Aws::Lambda::LambdaClient* client,
-                                        const Aws::Lambda::Model::InvokeRequest& req,
-                                        const Aws::Lambda::Model::InvokeOutcome& outcome,
-                                        const std::shared_ptr<const Aws::Client::AsyncCallerContext>& ctx);
-        void invokeAsync(const messages::InvocationRequest& req);
+        void invokeAsync(const AwsLambdaRequest& req);
 
         std::vector<URI> hintsFromTransformStage(const TransformStage* stage);
 
         inline MessageHandler logger() const { return _logger; }
 
-        void waitForRequests(size_t sleepInterval=100*1000);
+        // void abortRequestsAndFailWith(int returnCode, const std::string& errorMessage);
 
-        static messages::InvocationResponse parsePayload(const Aws::Lambda::Model::InvokeResult &result);
-
-        void abortRequestsAndFailWith(int returnCode, const std::string& errorMessage);
-
-        std::set<std::string> performWarmup(const std::vector<int>& countsToInvoke, size_t timeOutInMs=4000, size_t baseDelayInMs=75);
+        // std::set<std::string> performWarmup(const std::vector<int>& countsToInvoke, size_t timeOutInMs=4000, size_t baseDelayInMs=75);
 
         /*!
          * print extended lambda statistics out

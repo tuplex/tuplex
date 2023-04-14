@@ -314,111 +314,167 @@ namespace tuplex {
                           std::to_string(AWS_MINIMUM_UNRESERVED_CONCURRENCY) + " applies.");
             _functionConcurrency = AWS_MINIMUM_UNRESERVED_CONCURRENCY;
         }
-
     }
 
-//    void AwsLambdaBackend::invokeAsync(const messages::InvocationRequest &req) {
-//
-//      assert(_service);
-//      if(!_service->invokeAsync(req))
-//    }
+    void AwsLambdaBackend::invokeAsync(const AwsLambdaRequest &req) {
 
-    std::set<std::string> AwsLambdaBackend::performWarmup(const std::vector<int> &countsToInvoke,
-                                                          size_t timeOutInMs,
-                                                          size_t baseDelayInMs) {
+      assert(_service);
 
-        //            size_t numWarmingRequests = 50;
-        std::set<std::string> containerIds;
-        logger().info("Warming up containers...");
-        // do a single synced request (else reuse will occur!)
-        // Tuplex request
-        messages::InvocationRequest req;
-        req.set_type(messages::MessageType::MT_WARMUP);
+      // invoke using callbacks!
+      _service->invokeAsync(req, [this](const AwsLambdaRequest& req, const AwsLambdaResponse& resp) { onLambdaSuccess(req, resp); },
+                            [this](const AwsLambdaRequest& req, LambdaErrorCode code, const std::string& msg) { onLambdaFailure(req, code, msg); },
+                            [this](const AwsLambdaRequest& req, LambdaErrorCode code, const std::string& msg, bool b) { onLambdaRetry(req, code, msg, b); });
+    }
 
-        // specific warmup message contents
-        auto wm = std::make_unique<messages::WarmupMessage>();
-        wm->set_timeoutinms(timeOutInMs);
-        wm->set_basedelayinms(baseDelayInMs);
-        for (auto count: countsToInvoke)
-            wm->add_invocationcount(count);
-        req.set_allocated_warmup(wm.release());
+    void AwsLambdaBackend::onLambdaFailure(const AwsLambdaRequest &req, LambdaErrorCode err_code,
+                                           const std::string &err_msg) {
+        // abort all requests
+        _service->abortAllRequests(true);
 
-        // construct req object
-        Aws::Lambda::Model::InvokeRequest invoke_req;
-        invoke_req.SetFunctionName(_functionName.c_str());
-        invoke_req.SetInvocationType(Aws::Lambda::Model::InvocationType::RequestResponse);
-        // logtype to extract log data??
-        //req.SetLogtype(Aws::Lambda::Model::LogType::None);
-        invoke_req.SetLogType(Aws::Lambda::Model::LogType::Tail);
-        std::string json_buf;
-        google::protobuf::util::MessageToJsonString(req, &json_buf);
-        invoke_req.SetBody(stringToAWSStream(json_buf));
-        invoke_req.SetContentType("application/javascript");
+        // print failure as last message!
+        logger().error(err_msg);
+    }
 
-        // perform synced (!) invoke.
-        auto outcome = _client->Invoke(invoke_req);
-        if (outcome.IsSuccess()) {
-
-            // write response
-            auto &result = outcome.GetResult();
-            auto statusCode = result.GetStatusCode();
-            std::string version = result.GetExecutedVersion().c_str();
-            auto response = parsePayload(result);
-
-            auto log = result.GetLogResult();
-
-            if (response.status() == messages::InvocationResponse_Status_SUCCESS) {
-                // extract info
-                auto info = RequestInfo::parseFromLog(log.c_str());
-                info.fillInFromResponse(response);
-                std::stringstream ss;
-                auto &task = response;
-                if (task.type() == messages::MessageType::MT_WARMUP) {
-                    containerIds.insert(task.container().uuid());
-                    for (auto info: task.invokedcontainers())
-                        containerIds.insert(info.uuid());
-                }
-                ss << "Warmup request took " << response.taskexecutiontime() << " s, " << "initialized "
-                   << containerIds.size();
-                logger().info(ss.str());
-            } else {
-                logger().info("Message returned was weird.");
-            }
-
-            logger().info("Warming succeeded.");
-        } else {
-            // failed
-            logger().error("Warming request failed.");
-
-            auto &error = outcome.GetError();
-            auto statusCode = static_cast<int>(error.GetResponseCode());
-            std::string exceptionName = outcome.GetError().GetExceptionName().c_str();
-            std::string errorMessage = outcome.GetError().GetMessage().c_str();
-            // rate limit? => reissue request
-            if (statusCode == static_cast<int>(Aws::Http::HttpResponseCode::TOO_MANY_REQUESTS) || // i.e. 429
-                statusCode == static_cast<int>(Aws::Http::HttpResponseCode::INTERNAL_SERVER_ERROR)) {  // i.e. 500
-            } else {
-            }
+    void AwsLambdaBackend::onLambdaRetry(const AwsLambdaRequest &req, LambdaErrorCode retry_code,
+                                         const std::string &retry_msg, bool decreasesRetryCount) {
+        if(decreasesRetryCount) {
+            logger().info("LAMBDA retrying task, details: " + retry_msg);
         }
-//            for(unsigned i = 0; i < numWarmingRequests; ++i) {
-//
-//                // Tuplex request
-//                messages::InvocationRequest req;
-//                req.set_type(messages::MessageType::MT_WARMUP);
-//
-//                // specific warmup message contents
-//                auto wm = std::make_unique<messages::WarmupMessage>();
-//                wm->set_timeoutinms(timeOutInMs);
-//                wm->set_invocationcount(numLambdasToInvoke);
-//                req.set_allocated_warmup(wm.release());
-//
-//                invokeAsync(req);
-//            }
-//            waitForRequests();
-        logger().info("warmup done");
 
-        return containerIds;
+        // do not display silent retries unless in debug mode
+        else {
+            logger().debug("LAMBDA retrying task, because of " + retry_msg);
+        }
     }
+
+    void AwsLambdaBackend::onLambdaSuccess(const AwsLambdaRequest &req, const AwsLambdaResponse &resp) {
+
+        // message
+        std::stringstream  ss;
+
+        auto statusCode = 200; // should be that?
+
+         // this here should go into the success callback!
+         ss << "LAMBDA task done in " << resp.response.taskexecutiontime() << "s ";
+         std::string container_status = resp.response.container().reused() ? "reused" : "new";
+         ss << "[" << statusCode << ", " << pluralize(resp.response.numrowswritten(), "row")
+            << ", " << pluralize(resp.response.numexceptions(), "exception") << ", "
+            << container_status << ", id: " << resp.response.container().uuid() << "] ";
+
+        // compute cost and print out
+        ss << "Cost so far: $";
+        double price = lambdaCost();
+        if (price < 0.01)
+            ss.precision(4);
+        if (price < 0.0001)
+            ss.precision(6);
+        ss << std::fixed << price;
+
+        logger().info(ss.str());
+
+        // lock & save response!
+        {
+            std::lock_guard<std::mutex> lock(_mutex);
+            _tasks.push_back(resp);
+        }
+    }
+
+//    std::set<std::string> AwsLambdaBackend::performWarmup(const std::vector<int> &countsToInvoke,
+//                                                          size_t timeOutInMs,
+//                                                          size_t baseDelayInMs) {
+//
+//        //            size_t numWarmingRequests = 50;
+//        std::set<std::string> containerIds;
+//        logger().info("Warming up containers...");
+//        // do a single synced request (else reuse will occur!)
+//        // Tuplex request
+//        messages::InvocationRequest req;
+//        req.set_type(messages::MessageType::MT_WARMUP);
+//
+//        // specific warmup message contents
+//        auto wm = std::make_unique<messages::WarmupMessage>();
+//        wm->set_timeoutinms(timeOutInMs);
+//        wm->set_basedelayinms(baseDelayInMs);
+//        for (auto count: countsToInvoke)
+//            wm->add_invocationcount(count);
+//        req.set_allocated_warmup(wm.release());
+//
+//        // construct req object
+//        Aws::Lambda::Model::InvokeRequest invoke_req;
+//        invoke_req.SetFunctionName(_functionName.c_str());
+//        invoke_req.SetInvocationType(Aws::Lambda::Model::InvocationType::RequestResponse);
+//        // logtype to extract log data??
+//        //req.SetLogtype(Aws::Lambda::Model::LogType::None);
+//        invoke_req.SetLogType(Aws::Lambda::Model::LogType::Tail);
+//        std::string json_buf;
+//        google::protobuf::util::MessageToJsonString(req, &json_buf);
+//        invoke_req.SetBody(stringToAWSStream(json_buf));
+//        invoke_req.SetContentType("application/javascript");
+//
+//        // perform synced (!) invoke.
+//        auto outcome = _client->Invoke(invoke_req);
+//        if (outcome.IsSuccess()) {
+//
+//            // write response
+//            auto &result = outcome.GetResult();
+//            auto statusCode = result.GetStatusCode();
+//            std::string version = result.GetExecutedVersion().c_str();
+//            auto response = parsePayload(result);
+//
+//            auto log = result.GetLogResult();
+//
+//            if (response.status() == messages::InvocationResponse_Status_SUCCESS) {
+//                // extract info
+//                auto info = RequestInfo::parseFromLog(log.c_str());
+//                info.fillInFromResponse(response);
+//                std::stringstream ss;
+//                auto &task = response;
+//                if (task.type() == messages::MessageType::MT_WARMUP) {
+//                    containerIds.insert(task.container().uuid());
+//                    for (auto info: task.invokedcontainers())
+//                        containerIds.insert(info.uuid());
+//                }
+//                ss << "Warmup request took " << response.taskexecutiontime() << " s, " << "initialized "
+//                   << containerIds.size();
+//                logger().info(ss.str());
+//            } else {
+//                logger().info("Message returned was weird.");
+//            }
+//
+//            logger().info("Warming succeeded.");
+//        } else {
+//            // failed
+//            logger().error("Warming request failed.");
+//
+//            auto &error = outcome.GetError();
+//            auto statusCode = static_cast<int>(error.GetResponseCode());
+//            std::string exceptionName = outcome.GetError().GetExceptionName().c_str();
+//            std::string errorMessage = outcome.GetError().GetMessage().c_str();
+//            // rate limit? => reissue request
+//            if (statusCode == static_cast<int>(Aws::Http::HttpResponseCode::TOO_MANY_REQUESTS) || // i.e. 429
+//                statusCode == static_cast<int>(Aws::Http::HttpResponseCode::INTERNAL_SERVER_ERROR)) {  // i.e. 500
+//            } else {
+//            }
+//        }
+////            for(unsigned i = 0; i < numWarmingRequests; ++i) {
+////
+////                // Tuplex request
+////                messages::InvocationRequest req;
+////                req.set_type(messages::MessageType::MT_WARMUP);
+////
+////                // specific warmup message contents
+////                auto wm = std::make_unique<messages::WarmupMessage>();
+////                wm->set_timeoutinms(timeOutInMs);
+////                wm->set_invocationcount(numLambdasToInvoke);
+////                req.set_allocated_warmup(wm.release());
+////
+////                invokeAsync(req);
+////            }
+////            waitForRequests();
+//        logger().info("warmup done");
+//
+//        return containerIds;
+//    }
 
     std::string remove_non_digits(const std::string &s) {
         std::string res;
@@ -619,19 +675,19 @@ namespace tuplex {
         Timer timer;
 
         // create requests depending on execution strategy
-        vector<messages::InvocationRequest> requests;
+        vector<AwsLambdaRequest> requests;
         switch (stringToAwsExecutionStrategy(_options.AWS_LAMBDA_INVOCATION_STRATEGY())) {
             case AwsLambdaExecutionStrategy::DIRECT: {
                 requests = createSingleFileRequests(tstage, optimizedBitcode, numThreads, uri_infos, spillURI,
                                                     buf_spill_size);
                 break;
             }
-            case AwsLambdaExecutionStrategy::TREE: {
-#warning "these requests here are deprecated..."
-                requests = createSelfInvokingRequests(tstage, optimizedBitcode, numThreads, uri_infos, spillURI,
-                                                      buf_spill_size);
-                break;
-            }
+//            case AwsLambdaExecutionStrategy::TREE: {
+//#warning "these requests here are deprecated..."
+//                requests = createSelfInvokingRequests(tstage, optimizedBitcode, numThreads, uri_infos, spillURI,
+//                                                      buf_spill_size);
+//                break;
+//            }
             default:
                 logger().error("Unknown execution strategy");
                 break;
@@ -643,7 +699,7 @@ namespace tuplex {
             logger().debug("Emitting request files for easier debugging...");
             for(unsigned i = 0; i < requests.size(); ++i) {
                 std::string json_buf;
-                google::protobuf::util::MessageToJsonString(requests[i], &json_buf);
+                google::protobuf::util::MessageToJsonString(requests[i].body, &json_buf);
                 stringToFile(URI("request_" + std::to_string(i) + ".json"), json_buf);
             }
             logger().debug("Debug files written (" + pluralize(requests.size(), "file") + ").");
@@ -659,7 +715,8 @@ namespace tuplex {
         // TODO: check signals, allow abort...
 
         // wait till everything finished computing
-        waitForRequests();
+        assert(_service);
+        _service->waitForRequests();
         gatherStatistics();
 
         std::unordered_map<std::tuple<int64_t, ExceptionCode>, size_t> ecounts;
@@ -671,7 +728,7 @@ namespace tuplex {
             // aggregate stats over responses
             for (const auto &task: _tasks) {
                 // @TODO: response needs to contain exception info incl. traceback (?)
-                for (const auto &keyval: task.exceptioncounts()) {
+                for (const auto &keyval: task.response.exceptioncounts()) {
                     // decode from message
                     // auto key = std::get<0>(keyval.first) << 32 | std::get<1>(keyval.first);
                     // auto key = std::make_tuple(exceptionOperatorID, exceptionCode);
@@ -703,7 +760,7 @@ namespace tuplex {
 
             for(auto task : _tasks) {
                 // check output uris and their mapping
-                for(auto output_uri : task.outputuris()) {
+                for(auto output_uri : task.response.outputuris()) {
                     logger().info("output uri: " + output_uri);
 
                     // fetch file
@@ -757,7 +814,7 @@ namespace tuplex {
                 Timer timer;
                 vector<URI> output_uris;
                 for (const auto &task: _tasks) {
-                    for (const auto &uri: task.outputuris())
+                    for (const auto &uri: task.response.outputuris())
                         output_uris.push_back(uri);
                 }
                 // sort after part no @TODO
@@ -927,7 +984,7 @@ namespace tuplex {
         return requests;
     }
 
-    std::vector<messages::InvocationRequest>
+    std::vector<AwsLambdaRequest>
     AwsLambdaBackend::createSingleFileRequests(const TransformStage *tstage,
                                                const std::string &bitCode,
                                                const size_t numThreads,
@@ -935,10 +992,9 @@ namespace tuplex {
                                                const std::string &spillURI,
                                                const size_t buf_spill_size) {
 
-        std::vector<messages::InvocationRequest> requests;
+        std::vector<AwsLambdaRequest> requests;
 
-        size_t splitSize = 256 * 1024 * 1024; // 256MB split size for now.
-        splitSize = _options.INPUT_SPLIT_SIZE();
+        size_t splitSize = _options.INPUT_SPLIT_SIZE();
         size_t total_size = 0;
         for (auto info: uri_infos) {
             total_size += std::get<1>(info);
@@ -1025,68 +1081,18 @@ namespace tuplex {
                     auto temp_uri = tempStageURI(tstage->number());
                     req.set_baseoutputuri(temp_uri.toString());
                 } else throw std::runtime_error("unknown output endpoint in lambda backend");
-                requests.push_back(req);
+
+
+
+                AwsLambdaRequest aws_req;
+                aws_req.body = req;
+                aws_req.retriesLeft = 5;
+                requests.push_back(aws_req);
 
                 part_no++;
                 cur_size += splitSize;
             }
         }
-
-
-//#error "fix when local output uri is used that temp remote uri is generated and the lambda uses that, then download from remote uri to local"
-
-        // old (not part based)
-//        // Note: for now, super simple: 1 request per file (this is inefficient, but whatever)
-//        // @TODO: more sophisticated splitting of workload!
-//        Timer timer;
-//        int num_digits = ilog10c(uri_infos.size());
-//        for (int i = 0; i < uri_infos.size(); ++i) {
-//            auto info = uri_infos[i];
-//            messages::InvocationRequest req;
-//            req.set_type(messages::MessageType::MT_TRANSFORM);
-//            auto pb_stage = tstage->to_protobuf();
-//
-//            pb_stage->set_bitcode(bitCode);
-//
-//            req.set_allocated_stage(pb_stage.release());
-//
-//            // add request for this
-//            auto inputURI = std::get<0>(info);
-//            auto inputSize = std::get<1>(info);
-//            req.add_inputuris(inputURI);
-//            req.add_inputsizes(inputSize);
-//
-//            // worker config
-//            auto ws = std::make_unique<messages::WorkerSettings>();
-//            ws->set_numthreads(numThreads);
-//            ws->set_normalbuffersize(buf_spill_size);
-//            ws->set_exceptionbuffersize(buf_spill_size);
-//            ws->set_spillrooturi(spillURI + "/lam" + fixedPoint(i, num_digits) + "/");
-//            ws->set_useinterpreteronly(_options.PURE_PYTHON_MODE());
-//            ws->set_normalcasethreshold(_options.NORMALCASE_THRESHOLD());
-//            req.set_allocated_settings(ws.release());
-//
-//            req.set_verboselogging(_options.AWS_VERBOSE_LOGGING());
-//
-//            // output uri of job? => final one? parts?
-//            // => create temporary if output is local! i.e. to memory etc.
-//            int taskNo = i;
-//            if (tstage->outputMode() == EndPointMode::MEMORY) {
-//                // create temp file in scratch dir!
-//                req.set_baseoutputuri(scratchDir(hintsFromTransformStage(tstage)).join_path("output.part" + fixedLength(taskNo, num_digits)).toString());
-//            } else if (tstage->outputMode() == EndPointMode::FILE) {
-//                // create output URI based on taskNo
-//                auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), taskNo, tstage->outputFormat());
-//                req.set_baseoutputuri(uri.toPath());
-//            } else if (tstage->outputMode() == EndPointMode::HASHTABLE) {
-//                // there's two options now, either this is an end-stage (i.e., unique/aggregateByKey/...)
-//                // or an intermediate stage where a temp hash-table is required.
-//                // in any case, because compute is done on Lambda materialize hash-table as temp file.
-//                auto temp_uri = tempStageURI(tstage->number());
-//                req.set_baseoutputuri(temp_uri.toString());
-//            } else throw std::runtime_error("unknown output endpoint in lambda backend");
-//            requests.push_back(req);
-//        }
 
         logger().info("Created " + std::to_string(requests.size()) + " LAMBDA requests.");
 
@@ -1100,9 +1106,9 @@ namespace tuplex {
                                                                           _options(context.getOptions()),
                                                                           _logger(Logger::instance().logger(
                                                                                   "aws-lambda")), _tag("tuplex"),
-                                                                          _client(nullptr), _numPendingRequests(0),
-                                                                          _numRequests(0),
-                                                                          _startTimestamp(0), _endTimestamp(0) {
+                                                                          _client(nullptr),
+                                                                          _startTimestamp(0),
+                                                                          _endTimestamp(0) {
 
 
         _deleteScratchDirOnShutdown = false;
@@ -1151,6 +1157,9 @@ namespace tuplex {
         // init lambda client (Note: must be called AFTER aws init!)
         _client = makeClient();
 
+        // init invocation service
+        _service.reset(new AwsLambdaInvocationService(_client, functionName));
+
         if (_options.USE_WEBUI()) {
 
             TUPLEX_TRACE("initializing REST/Curl interface");
@@ -1162,27 +1171,6 @@ namespace tuplex {
                                                            _options.WEBUI_DATABASE_HOST(),
                                                            _options.WEBUI_DATABASE_PORT());
             TUPLEX_TRACE("connection established");
-        }
-    }
-
-    void AwsLambdaBackend::waitForRequests(size_t sleepInterval) {
-        // wait for requests to be finished & check periodically PyErrCheckSignals for Ctrl+C
-
-        size_t pendingTasks = 0;
-        while ((pendingTasks = _numPendingRequests.load(std::memory_order_acquire)) > 0) {
-            // sleep
-            usleep(sleepInterval);
-
-            python::lockGIL();
-
-            if (PyErr_CheckSignals() != 0) {
-                // stop requests & cleanup @TODO: cleanup on S3 with requests...
-                if (_client)
-                    _client->DisableRequestProcessing();
-                _numPendingRequests.store(0); //, std::memory_order_acq_rel);
-            }
-
-            python::unlockGIL();
         }
     }
 
@@ -1282,11 +1270,11 @@ namespace tuplex {
 
             int task_counter = 0;
             for (const auto &task: _tasks) {
-                ContainerInfo info = task.container();
+                ContainerInfo info = task.response.container();
 
                 std::string log = "";
                 // log
-                for (const auto &r: task.resources()) {
+                for (const auto &r: task.response.resources()) {
                     if (r.type() == static_cast<uint32_t>(ResourceType::LOG)) {
                         log = decompress_string(r.payload());
                         break;
@@ -1294,8 +1282,8 @@ namespace tuplex {
                 }
 
                // invoked input uris
-                for (unsigned i = 0; i < task.inputuris_size(); ++i) {
-                    auto input_uri = task.inputuris(i);
+                for (unsigned i = 0; i < task.response.inputuris_size(); ++i) {
+                    auto input_uri = task.response.inputuris(i);
 
                     // clean from part
                     URI uri;
@@ -1320,8 +1308,8 @@ namespace tuplex {
         // 2. requests & responses?
         {
             std::lock_guard<std::mutex> lock(_mutex);
-            for (unsigned i = 0; i < _infos.size(); ++i) {
-                auto &info = _infos[i];
+            for (unsigned i = 0; i < _tasks.size(); ++i) {
+                auto &info = _tasks[i].info;
                 // info has information as well
 
                 // find in map the info with requestid
@@ -1399,18 +1387,18 @@ namespace tuplex {
 
             int task_counter = 0;
             for (const auto &task: _tasks) {
-                ContainerInfo info = task.container();
+                ContainerInfo info = task.response.container();
                 ss << "{\"container\":" << info.asJSON() << ",\"invoked_containers\":[";
-                for (unsigned i = 0; i < task.invokedcontainers_size(); ++i) {
-                    info = task.invokedcontainers(i);
+                for (unsigned i = 0; i < task.response.invokedcontainers_size(); ++i) {
+                    info = task.response.invokedcontainers(i);
                     ss << info.asJSON();
-                    if (i != task.invokedcontainers_size() - 1)
+                    if (i != task.response.invokedcontainers_size() - 1)
                         ss << ",";
                 }
                 ss << "]";
 
                 // log
-                for (const auto &r: task.resources()) {
+                for (const auto &r: task.response.resources()) {
                     if (r.type() == static_cast<uint32_t>(ResourceType::LOG)) {
                         auto log = decompress_string(r.payload());
                         ss << ",\"log\":" << escape_for_json(log) << "";
@@ -1421,19 +1409,19 @@ namespace tuplex {
 
                 ss << ",\"invoked_requests\":[";
                 RequestInfo r_info;
-                for (unsigned i = 0; i < task.invokedrequests_size(); ++i) {
-                    r_info = task.invokedrequests(i);
+                for (unsigned i = 0; i < task.response.invokedrequests_size(); ++i) {
+                    r_info = task.response.invokedrequests(i);
                     ss << r_info.asJSON();
-                    if (i != task.invokedrequests_size() - 1)
+                    if (i != task.response.invokedrequests_size() - 1)
                         ss << ",";
                 }
                 ss << "]";
 
                 // invoked input uris
                 ss << ",\"input_uris\":[";
-                for (unsigned i = 0; i < task.inputuris_size(); ++i) {
-                    ss << "\"" << task.inputuris(i) << "\"";
-                    if (i != task.inputuris_size() - 1)
+                for (unsigned i = 0; i < task.response.inputuris_size(); ++i) {
+                    ss << "\"" << task.response.inputuris(i) << "\"";
+                    if (i != task.response.inputuris_size() - 1)
                         ss << ",";
                 }
 
@@ -1454,10 +1442,10 @@ namespace tuplex {
         ss << "\"requests\":[";
         {
             std::lock_guard<std::mutex> lock(_mutex);
-            for (unsigned i = 0; i < _infos.size(); ++i) {
-                auto &info = _infos[i];
+            for (unsigned i = 0; i < _tasks.size(); ++i) {
+                auto &info = _tasks[i].info;
                 ss << info.asJSON();
-                if (i != _infos.size() - 1)
+                if (i != _tasks.size() - 1)
                     ss << ",";
             }
         }
@@ -1496,18 +1484,18 @@ namespace tuplex {
 
             // aggregate stats over responses
             for (const auto &task: _tasks) {
-                total_num_output_rows += task.numrowswritten();
-                total_num_exceptions += task.numexceptions();
-                total_bytes_written += task.numbyteswritten();
+                total_num_output_rows += task.response.numrowswritten();
+                total_num_exceptions += task.response.numexceptions();
+                total_bytes_written += task.response.numbyteswritten();
 
-                total_normal_path += task.rowstats().normal();
-                total_general_path += task.rowstats().general();
-                total_interpreter_path += task.rowstats().interpreter();
-                total_unresolved += task.rowstats().unresolved();
+                total_normal_path += task.response.rowstats().normal();
+                total_general_path += task.response.rowstats().general();
+                total_interpreter_path += task.response.rowstats().interpreter();
+                total_unresolved += task.response.rowstats().unresolved();
 
-                awsInitTime.update(task.awsinittime());
-                taskExecutionTime.update(task.taskexecutiontime());
-                for (const auto &keyval: task.s3stats()) {
+                awsInitTime.update(task.response.awsinittime());
+                taskExecutionTime.update(task.response.taskexecutiontime());
+                for (const auto &keyval: task.response.s3stats()) {
                     auto key = keyval.first;
                     auto val = keyval.second;
 
@@ -1516,7 +1504,7 @@ namespace tuplex {
                         s3Stats[key] = RollingStats<size_t>();
                     s3Stats[key].update(val);
                 }
-                for (const auto &keyval: task.breakdowntimes()) {
+                for (const auto &keyval: task.response.breakdowntimes()) {
                     auto key = keyval.first;
                     auto val = keyval.second;
 
@@ -1526,9 +1514,9 @@ namespace tuplex {
                     breakdownTimings[key].update(val);
                 }
 
-                containerIDs.insert(task.container().uuid());
-                numReused += task.container().reused();
-                numNew += !task.container().reused();
+                containerIDs.insert(task.response.container().uuid());
+                numReused += task.response.container().reused();
+                numNew += !task.response.container().reused();
             }
 
             // print stage stats
@@ -1581,9 +1569,9 @@ namespace tuplex {
 
         // sum up billed mb ms
         size_t billed = 0;
-        for (auto info: _infos) {
-            size_t billedDurationInMs = info.billedDurationInMs;
-            size_t memorySizeInMb = info.memorySizeInMb;
+        for (const auto task: _tasks) {
+            size_t billedDurationInMs = task.info.billedDurationInMs;
+            size_t memorySizeInMb = task.info.memorySizeInMb;
             billed += billedDurationInMs / 100 * memorySizeInMb;
         }
         return billed;
@@ -1594,9 +1582,9 @@ namespace tuplex {
 
         // sum up billed mb ms
         size_t billed = 0;
-        for (auto info: _infos) {
-            size_t billedDurationInMs = info.billedDurationInMs;
-            size_t memorySizeInMb = info.memorySizeInMb;
+        for (const auto& task: _tasks) {
+            size_t billedDurationInMs = task.info.billedDurationInMs;
+            size_t memorySizeInMb = task.info.memorySizeInMb;
             billed += billedDurationInMs * memorySizeInMb;
         }
         return billed;
@@ -1664,7 +1652,6 @@ namespace tuplex {
 
     void AwsLambdaBackend::reset() {
         _tasks.clear();
-        _infos.clear();
 
         // reset path mapping
         _remoteToLocalURIMapping.clear();
@@ -1672,20 +1659,20 @@ namespace tuplex {
         // other reset? @TODO.
     }
 
-    void AwsLambdaBackend::abortRequestsAndFailWith(int returnCode, const std::string &errorMessage) {
-        logger().error("LAMBDA execution failed due to exit code " + std::to_string(returnCode) +
-                       " on one executor, details: " + errorMessage);
-
-        int numPending = std::max((int) _numPendingRequests, 0);
-        if (numPending > 0)
-            logger().info("Aborting " + pluralize(numPending, " pending request"));
-        else
-            logger().info("Aborting.");
-
-        _numPendingRequests = 0;
-        _client->DisableRequestProcessing();
-        logger().info("Shutdown remote execution.");
-        _client->EnableRequestProcessing();
-    }
+//    void AwsLambdaBackend::abortRequestsAndFailWith(int returnCode, const std::string &errorMessage) {
+//        logger().error("LAMBDA execution failed due to exit code " + std::to_string(returnCode) +
+//                       " on one executor, details: " + errorMessage);
+//
+//        int numPending = std::max((int) _numPendingRequests, 0);
+//        if (numPending > 0)
+//            logger().info("Aborting " + pluralize(numPending, " pending request"));
+//        else
+//            logger().info("Aborting.");
+//
+//        _numPendingRequests = 0;
+//        _client->DisableRequestProcessing();
+//        logger().info("Shutdown remote execution.");
+//        _client->EnableRequestProcessing();
+//    }
 }
 #endif

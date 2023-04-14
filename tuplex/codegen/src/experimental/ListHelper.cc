@@ -1690,18 +1690,20 @@ namespace tuplex {
             // create upcast func & fill in. (@TODO: could cache this!)
             auto upcast_func = list_create_upcast_func(env, list_type, target_list_type);
 
-            // // if list is not a real pointer, store in temp var!
-            // if(!list_ptr->getType()->isPointerTy()) {
-            //     auto list_val = list_ptr;
-            //     list_ptr = env.CreateFirstBlockAlloca(builder, llvm_list_type);
-            //     builder.CreateStore(list_val, list_ptr);
-            // }
+            // this is a hacky workaround... -> should be ptr, but no time to fix this...
+             // if list is not a real pointer, store in temp var!
+             if(!list_ptr->getType()->isPointerTy()) {
+                 auto list_val = list_ptr;
+                 list_ptr = env.CreateFirstBlockAlloca(builder, llvm_list_type);
+                 builder.CreateStore(list_val, list_ptr);
+             }
 
 #ifndef NDEBUG
-            if(list_ptr->getType() == llvm_list_type->getPointerTo()) {""
+            if(list_ptr->getType() != llvm_list_type->getPointerTo()) {
                 std::cerr<<"list_ptr type is not expected type, "<<std::endl;
                 std::cerr<<"is: "<<env.getLLVMTypeName(list_ptr->getType())<<std::endl;
                 std::cerr<<"expected: "<<env.getLLVMTypeName(llvm_list_type->getPointerTo())<<std::endl;
+                std::cerr<<"wrong load/alloc?"<<std::endl;
             }
 #endif
 

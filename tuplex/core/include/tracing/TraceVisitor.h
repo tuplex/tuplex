@@ -37,11 +37,13 @@ namespace tuplex {
             std::string name;
             size_t flags;
 
-            explicit TraceItem(PyObject* obj) : value(obj)   {}
+            explicit TraceItem(PyObject* obj) : value(obj), name(""), flags(0)   {}
+
             TraceItem(PyObject* obj, std::string n) : value(obj), name(std::move(n)), flags(0) {}
 
             static TraceItem param(PyObject* obj, const std::string n="") {
                 TraceItem ti(obj, n);
+                static_assert(TI_FLAGS_INPUT_PARAMETER != 0, "flag must not be 0");
                 ti.flags = TI_FLAGS_INPUT_PARAMETER;
                 return ti;
             }

@@ -11,6 +11,7 @@
 #include <List.h>
 #include <sstream>
 #include <string>
+#include <TypeHelper.h>
 
 namespace tuplex {
 
@@ -21,13 +22,37 @@ namespace tuplex {
         } else {
             _numElements = elements.size();
             _elements = new Field[_numElements];
-            for(int i = 0; i < _numElements; ++i) {
-                if(elements[i].getType() != elements[0].getType())
-                    throw std::runtime_error("List::init_from_vector called with elements"
-                                             " of nonuniform type, tried to set list element with field of type "
-                                             + elements[i].getType().desc() + " but list has assumed type of "
-                                             + elements[0].getType().desc());
-                _elements[i] = elements[i];
+
+            // two-way approach: First, check if homogenous
+            assert(!elements.empty());
+            auto el_type = elements[0].getType();
+            auto uni_type = el_type;
+            bool is_homogeneous = true;
+            for(unsigned i = 1; i < elements.size(); ++i) {
+                if(elements[i].getType() != el_type)
+                    is_homogeneous = false;
+                uni_type = unifyTypes(uni_type, elements[i].getType());
+            }
+
+            if(is_homogeneous) {
+                for(int i = 0; i < _numElements; ++i) {
+                    if(elements[i].getType() != elements[0].getType())
+                        throw std::runtime_error("List::init_from_vector called with elements"
+                                                 " of nonuniform type, tried to set list element with field of type "
+                                                 + elements[i].getType().desc() + " but list has assumed type of "
+                                                 + elements[0].getType().desc());
+                    _elements[i] = elements[i];
+                }
+            } else if(python::Type::UNKNOWN != uni_type) {
+                _listType = python::Type::makeListType(uni_type);
+                // cast each element up
+                for(unsigned i = 0; i < _numElements; ++i)
+                    _elements[i] = Field::upcastTo_unsafe(elements[i], uni_type);
+            } else {
+                // heterogenous list...
+                _listType = python::Type::makeListType(python::Type::PYOBJECT);
+                for(unsigned i = 0; i < _numElements; ++i)
+                    _elements[i] = elements[i];
             }
         }
     }
@@ -35,6 +60,7 @@ namespace tuplex {
     List::List(const List &other) {
         // deep copy needed
         _numElements = other._numElements;
+        _listType = other._listType;
 
         if(_numElements > 0) {
             _elements = new Field[_numElements];
@@ -46,7 +72,7 @@ namespace tuplex {
             _elements = nullptr;
     }
 
-    List& List::operator=(const List &other) {
+    List& List::operator = (const List &other) {
         // release mem
         if(_elements)
             delete [] _elements;
@@ -54,6 +80,7 @@ namespace tuplex {
 
         // deep copy needed
         _numElements = other._numElements;
+        _listType = other._listType;
 
         if(_numElements > 0) {
             _elements = new Field[_numElements];
@@ -92,7 +119,7 @@ namespace tuplex {
 
     python::Type List::getType() const {
         if(_numElements > 0)
-            return python::Type::makeListType(_elements[0].getType());
+            return _listType; //python::Type::makeListType(_elements[0].getType());
         else
             return python::Type::EMPTYLIST;
     }
@@ -114,6 +141,7 @@ namespace tuplex {
             if(a != b)
                 return false;
         }
+
         return true;
     }
 

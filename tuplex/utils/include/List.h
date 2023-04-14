@@ -27,14 +27,15 @@ namespace tuplex {
 
         Field* _elements;
         size_t _numElements;
+        python::Type _listType;
 
         void init_from_vector(const std::vector<tuplex::Field>& elements);
 
     public:
-        List() : _elements(nullptr), _numElements(0)    {}
+        List() : _elements(nullptr), _numElements(0), _listType(python::Type::EMPTYLIST)   {}
         ~List();
 
-        List(List&& other) : _numElements(other._numElements), _elements(other._elements) {
+        List(List&& other) : _numElements(other._numElements), _elements(other._elements), _listType(other._listType) {
             other._numElements = 0;
             other._elements = nullptr;
         }

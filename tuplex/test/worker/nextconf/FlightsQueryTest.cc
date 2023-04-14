@@ -282,7 +282,7 @@ namespace tuplex {
         //co.set("tuplex.useLLVMOptimizer", "false");
 
         // disable filter promo
-        co.set("tuplex.optimizer.filterPromotion", "false");
+        // co.set("tuplex.optimizer.filterPromotion", "false");
 
         // creater context according to settings
         Context ctx(co);

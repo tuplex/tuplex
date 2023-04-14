@@ -22,7 +22,11 @@ namespace tuplex {
             _numElements = elements.size();
             _elements = new Field[_numElements];
             for(int i = 0; i < _numElements; ++i) {
-                if(elements[i].getType() != elements[0].getType()) throw std::runtime_error("List::init_from_vector called with elements of nonuniform type.");
+                if(elements[i].getType() != elements[0].getType())
+                    throw std::runtime_error("List::init_from_vector called with elements"
+                                             " of nonuniform type, tried to set list element with field of type "
+                                             + elements[i].getType().desc() + " but list has assumed type of "
+                                             + elements[0].getType().desc());
                 _elements[i] = elements[i];
             }
         }

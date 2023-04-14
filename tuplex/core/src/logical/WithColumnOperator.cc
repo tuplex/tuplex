@@ -187,16 +187,17 @@ namespace tuplex {
                 std::cerr<<"HACK executed here, pls fix."<<std::endl;
                 continue;
             }
-
+            Py_XINCREF(rowObj);
             auto pcr = !inputColumns().empty() ? python::callFunctionWithDictEx(pFunc, rowObj, inputColumns()) :
                        python::callFunctionEx(pFunc, rowObj);
             ec = pcr.exceptionCode;
             auto pyobj_res = pcr.res;
 
             // only append if success
-            if(ec != ExceptionCode::SUCCESS)
+            if(ec != ExceptionCode::SUCCESS) {
                 numExceptions++;
-            else {
+                Py_XDECREF(rowObj);
+            } else {
                 assert(pyobj_res);
 
                 // now perform adding or replacing column

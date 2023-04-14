@@ -67,9 +67,9 @@ namespace tuplex {
         // // https://www.python.org/dev/peps/pep-0405/ for meaning of it. Per default, just use default behavior.
         // python::python_home_setup(python_home_dir);
 
-        logger().info("Initializing python interpreter version " + python::python_version(true, true));
-        python::initInterpreter();
-        python::unlockGIL();
+        // logger().info("Initializing python interpreter version " + python::python_version(true, true));
+        // python::initInterpreter();
+        // python::unlockGIL();
 
         _globallyInitialized = true;
         return WORKER_OK;
@@ -165,10 +165,10 @@ namespace tuplex {
             _resolverCompileThread.reset();
         }
 
-        if(python::isInterpreterRunning()) {
-            python::lockGIL();
-            python::closeInterpreter();
-        }
+        //if(python::isInterpreterRunning()) {
+        //    python::lockGIL();
+        //    python::closeInterpreter();
+        //}
 
         // do not call free, but instead releaseRunTimeMemory
          runtime::releaseRunTimeMemory();

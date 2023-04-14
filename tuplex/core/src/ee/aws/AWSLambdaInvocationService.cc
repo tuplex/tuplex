@@ -110,7 +110,7 @@ namespace tuplex {
 
     size_t AwsLambdaInvocationService::abortAllRequests(bool print) {
         // abort all active requests
-        int numPending = std::max((int) _numPendingRequests, 0);
+        int numPending = std::max((int) _numPendingRequests.load(), 0);
         if(print) {
             if (numPending > 0)
                 logger().info("Aborting " + pluralize(numPending, " pending request"));

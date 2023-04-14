@@ -162,6 +162,10 @@ namespace tuplex {
         // set aggressive timeout, so a good amount of Lambda tasks fail (timeout = 10s?)
         co.set("tuplex.aws.lambdaTimeout", "15"); // <-- this is the default setting.
 
+        // deactivate filter promo - causes issue for filter query? -> need to fix that!
+        co.set("tuplex.optimizer.filterPromotion", "false");
+
+
         // creater context according to settings
         Context ctx(co);
 

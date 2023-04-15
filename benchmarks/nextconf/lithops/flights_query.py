@@ -782,7 +782,7 @@ if __name__ == '__main__':
 
     args = []
     for path in s3paths:
-        output_suffix = 'experiments/flights_lithops/' + os.path.basename(path)
+        output_suffix = 'experiments/flights_lithops/' + os.path.basename(path['Key'])
         args.append((bucket_name, path['Key'], s3_output_bucket, output_suffix))
 
 

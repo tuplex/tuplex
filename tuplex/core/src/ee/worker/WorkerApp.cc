@@ -142,9 +142,19 @@ namespace tuplex {
     void WorkerApp::resetThreadEnvironments() {
         // reset codepath stats
         _codePathStats.reset();
+        size_t allocated_buf_capacity = 0;
         for(int i = 0; i < _numThreads; ++i) {
+            allocated_buf_capacity += _threadEnvs[i].normalBuf.capacity() + _threadEnvs[i].exceptionBuf.capacity();
             _threadEnvs[i].reset();
         }
+        // check now capacity again
+        size_t reset_buf_capacity = 0;
+        for(int i = 0; i < _numThreads; ++i) {
+            reset_buf_capacity += _threadEnvs[i].normalBuf.capacity() + _threadEnvs[i].exceptionBuf.capacity();
+        }
+        logger().info("Reset thread env buffer capacity from " + sizeToMemString(allocated_buf_capacity) + " to " +
+                              sizeToMemString(reset_buf_capacity));
+
 
         _output_uris.clear();
 
@@ -512,6 +522,11 @@ namespace tuplex {
             auto rc = processSourceInPython(0, tstage->fileInputOperatorID(),
                                             part, tstage, pipelineFunctionObj, false, &inputRowCount);
             logger().info("part processed, rc=" + std::to_string(rc));
+            logger().info("process RSS: " + std::to_string(getCurrentRSS()) + " peak RSS: " + std::to_string(getPeakRSS()) + ", running python gc...");
+            // run garbage collector frequently
+            python::runGC();
+            logger().info("post python gc RSS: " + std::to_string(getCurrentRSS()) + " peak RSS: " + std::to_string(getPeakRSS()));
+
             numInputRowsProcessed += inputRowCount;
             if(rc != WORKER_OK) {
                 python::unlockGIL();
@@ -1028,11 +1043,32 @@ namespace tuplex {
     int64_t WorkerApp::pythonCellFunctor(void *userData, int64_t row_number, char **cells, int64_t *cell_sizes) {
         assert(userData);
         auto ctx = static_cast<WorkerApp::PythonExecutionContext*>(userData);
-        if(row_number < 10)
-		    Logger::instance().defaultLogger().info("processing row " + std::to_string(row_number));
-        if(row_number > 0 && row_number % 100000 == 0)
-            Logger::instance().defaultLogger().info("processed 100k rows...");
+        auto logger = Logger::instance().defaultLogger();
 
+        // print out info to help debugging...
+        if(row_number < 10)
+		    logger.info("processing row " + std::to_string(row_number));
+        if(row_number > 0 && row_number % 100000 == 0) {
+            std::stringstream ss;
+            ss<<"processed 100k rows (RSS: "<<sizeToMemString(getCurrentRSS())<<", peak RSS: "<<sizeToMemString(getPeakRSS())<<")";
+            logger.info(ss.str());
+        }
+
+#ifndef NDEBUG
+        if(row_number > 0 && row_number % 10000 == 0) {
+            // run python gc every 10k rows
+            auto rss_before = getCurrentRSS();
+            python::runGC();
+            auto rss_after = getCurrentRSS();
+            std::stringstream ss;
+            ss<<"ran python garbage collector, freed "
+              <<sizeToMemString(rss_after > rss_before ? 0 : rss_before - rss_after)
+              <<" (rss before: "<<sizeToMemString(rss_before)<<", rss after: "<<sizeToMemString(rss_after)<<")";
+            logger.info(ss.str());
+        }
+#endif
+
+        // does this cause memory explosion?
         return ctx->app->processCellsInPython(ctx->threadNo,
                                               ctx->pipelineObject,
                                               ctx->py_intermediates,
@@ -1137,7 +1173,18 @@ namespace tuplex {
         }
 
         auto kwargs = PyDict_New(); PyDict_SetItemString(kwargs, "parse_cells", Py_True);
+
         auto pcr = python::callFunctionEx(pipelineObject, args, kwargs);
+
+        // // destruct all python objects obtained
+        // // -> pipeline should have been used, same goes for intermediates, same goes for kwargs
+        // // so only pcr needs to be decrefed
+        // Py_XDECREF(pcr.res); // <-- ok, this is important to be released
+        // Py_XDECREF(kwargs); // <-- these prob. weren't released either?
+        // // decred args
+        // Py_XDECREF(args);
+        // Py_XDECREF(kwargs);
+
 
         auto err_stream = &std::cerr;
         int64_t ecOperatorID = 0;
@@ -1208,14 +1255,15 @@ namespace tuplex {
                             // this i.e. the output of tocsv
                             // note that because it's a zero-terminated string, do not write everything!
                             int64_t rc = 0;
-                            if((rc = writeRow(threadNo, reinterpret_cast<const uint8_t *>(cptr), size)) != ecToI64(ExceptionCode::SUCCESS))
-                                return rc;
+                            if((rc = writeRow(threadNo, reinterpret_cast<const uint8_t *>(cptr), size)) != ecToI64(ExceptionCode::SUCCESS)) {
+                                // cleanup everything, this is important - else memory will explode.
+                                Py_XDECREF(pcr.res); pcr.res = nullptr; // <-- ok, this is important to be released
+                                Py_XDECREF(kwargs); // <-- these prob. weren't released either?
+                                Py_XDECREF(args);
+                                Py_XDECREF(kwargs);
 
-//                            res.buf.provideSpace(size);
-//                            memcpy(res.buf.ptr(), reinterpret_cast<const uint8_t *>(cptr), size);
-//                            res.buf.movePtr(size);
-//                            res.bufRowCount++;
-                            //mergeRow(reinterpret_cast<const uint8_t *>(cptr), strlen(cptr), BUF_FORMAT_NORMAL_OUTPUT); // don't write '\0'!
+                                return rc;
+                            }
                         } else {
                             throw std::runtime_error("not yet supported in pure python mode");
                             // there are three options where to store the result now
@@ -1265,7 +1313,7 @@ namespace tuplex {
 
 #ifndef NDEBUG
                     if(PyErr_Occurred()) {
-                        // print out the otber objects...
+                        // print out the other objects...
                         std::cout<<__FILE__<<":"<<__LINE__<<" python error not cleared properly!"<<std::endl;
                         PyErr_Print();
                         std::cout<<std::endl;
@@ -1277,6 +1325,13 @@ namespace tuplex {
                 }
             }
         }
+
+        // Regular exit, no issues.
+        // cleanup everything, this is important - else memory will explode.
+        Py_XDECREF(pcr.res); pcr.res = nullptr; // <-- ok, this is important to be released
+        Py_XDECREF(kwargs); // <-- these prob. weren't released either?
+        Py_XDECREF(args);
+        Py_XDECREF(kwargs);
 
         return 0;
     }
@@ -2149,7 +2204,6 @@ namespace tuplex {
 
         // slow path & fast path should have compatible output. => hence write it out regularly!
         env->app->writeRow(env->threadNo, buf, bufSize);
-        // env->app->logger().warn("slowPath writeRow called, not yet implemented");
         return 0;
     }
 

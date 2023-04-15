@@ -393,6 +393,9 @@ namespace tuplex {
             SpillInfo() : path(""), num_rows(0), file_size(0), originalPartNo(0), isExceptionBuf(false) {}
         };
 
+        // 1MB growth constant (avoid to frequent reallocs)
+#define DEFAULT_BUFFER_GROWTH_CONSTANT (1024 * 1024)
+
         // variables for each Thread
         struct ThreadEnv {
             size_t threadNo; //! which thread number
@@ -415,8 +418,10 @@ namespace tuplex {
             std::vector<std::string> generalToFallbackExceptSample;
             static const size_t MAX_EXCEPT_SAMPLE = 5;
 
-            ThreadEnv() : threadNo(0), app(nullptr), hashMap(nullptr), nullBucket(nullptr), numNormalRows(0), numExceptionRows(0), normalBuf(100),
-                          exceptionBuf(100) {}
+            ThreadEnv() : threadNo(0), app(nullptr), hashMap(nullptr), nullBucket(nullptr),
+                          numNormalRows(0), numExceptionRows(0),
+                          normalBuf(DEFAULT_BUFFER_GROWTH_CONSTANT),
+                          exceptionBuf(DEFAULT_BUFFER_GROWTH_CONSTANT) {}
 
           /*!
            * calculates how many bytes of storage the hashmap takes!

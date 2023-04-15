@@ -469,6 +469,7 @@ namespace tuplex {
 
         // use this input_pattern to test everything
         std::string input_pattern = "/hot/data/flights_all/flights_on_time_performance_1987_10.csv,/hot/data/flights_all/flights_on_time_performance_2001_09.csv,/hot/data/flights_all/flights_on_time_performance_2021_11.csv";
+        input_pattern = "/hot/data/flights_all/flights_on_time_performance_1987_10.csv,/hot/data/flights_all/flights_on_time_performance_2003_09.csv,/hot/data/flights_all/flights_on_time_performance_2021_11.csv";
 
         std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::string>>>> configs;
         configs.push_back(make_pair(string("hyper with constant folding"), vector<pair<string,string>>({

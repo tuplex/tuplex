@@ -61,11 +61,7 @@ namespace tuplex {
         Buffer& operator = (const Buffer& other) = delete;
 
         ~Buffer() {
-            if(_buffer)
-                free(_buffer);
-            _buffer = nullptr;
-            _bufferSize = 0;
-            _bufferCapacity = 0;
+            free_and_reset();
         }
 
         void provideSpace(const size_t numBytes);
@@ -77,6 +73,17 @@ namespace tuplex {
         size_t size() const { return _bufferSize; }
         size_t capacity() const { return _bufferCapacity; }
         void reset() { _bufferSize = 0; }
+
+        /*!
+         * reset buffer by actually releasing the memory.
+         */
+        inline void free_and_reset() {
+            if(_buffer)
+                free(_buffer);
+            _buffer = nullptr;
+            _bufferSize = 0;
+            _bufferCapacity = 0;
+        }
     };
 
     /*!

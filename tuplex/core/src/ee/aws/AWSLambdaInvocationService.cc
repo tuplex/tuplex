@@ -303,7 +303,7 @@ namespace tuplex {
 
                     // was it a timeout failure or a restore failure? if so, then invoke again.
                     if(previous_failure_and_worker_shutdown || timeout_info != "unknown") {
-                        service->logger().info("Invoking task again");
+                        // service->logger().info("Invoking task again");
                         // chose the right re-invocation strategy.
 
                         // timeout?

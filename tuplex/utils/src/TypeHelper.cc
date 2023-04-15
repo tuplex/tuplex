@@ -734,6 +734,11 @@ namespace tuplex {
 
         // depending on type, compare semantically...
         if(type == python::Type::STRING) {
+
+            // make sure it's a valid encoded python string!
+            assert(is_encoded_python_str(rhs));
+            assert(is_encoded_python_str(lhs));
+
             auto e_value = str_value_from_python_raw_value(rhs);
             auto k_value = str_value_from_python_raw_value(lhs);
             return e_value == k_value;

@@ -615,13 +615,15 @@ namespace tuplex {
                 .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
                 .withColumn("forkee", UDF(extract_forkee))
                 .withColumn("forkee_url", UDF(extract_forkee_url))
-                .withColumn("watchers", UDF(extract_watchers))
+                //.withColumn("watchers", UDF(extract_watchers))
                 .withColumn("stargazers", UDF(extract_stargazers))
                 .withColumn("forks", UDF(extract_forks))
                 .withColumn("lang", UDF(extract_lang))
                 .selectColumns(vector<string>{"type", "repo_id", "year",
                                               "number_of_commits", "lang", "forkee", "forkee_url",
-                                              "watchers", "stargazers", "forks"})
+                                              //"watchers",
+
+                                              "stargazers", "forks"})
                 .tocsv(output_path);
     }
 }

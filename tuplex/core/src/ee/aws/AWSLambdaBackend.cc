@@ -337,13 +337,16 @@ namespace tuplex {
 
     void AwsLambdaBackend::onLambdaRetry(const AwsLambdaRequest &req, LambdaErrorCode retry_code,
                                          const std::string &retry_msg, bool decreasesRetryCount) {
+
+        auto retries_left_str = req.retriesLeft == 1 ? "1 retry left" : std::to_string(req.retriesLeft) + " retries left";
+
         if(decreasesRetryCount) {
-            logger().info("LAMBDA retrying task, details: " + retry_msg);
+            logger().info("LAMBDA retrying task (" + retries_left_str + "), details: " + retry_msg);
         }
 
         // do not display silent retries unless in debug mode
         else {
-            logger().debug("LAMBDA retrying task, because of " + retry_msg);
+            logger().debug("LAMBDA retrying task (" + retries_left_str + "), because of " + retry_msg);
         }
     }
 

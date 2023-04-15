@@ -412,6 +412,14 @@ namespace tuplex {
     }
 }
 
+
+/*!
+ * check whether string adheres to python string format specification
+ * @param raw_string
+ * @return true/false
+ */
+extern bool is_encoded_python_str(const std::string& raw_string);
+
 /*!
  * desugars various python strings, won't work for formatted strings.
  * @param raw_string

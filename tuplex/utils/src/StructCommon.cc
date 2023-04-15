@@ -105,6 +105,15 @@ namespace tuplex {
             return dict_type;
 
         auto p = path.front();
+
+        // escape to python string (if needed), THIS IS A HACK
+        if(!is_encoded_python_str(p.first)) {
+#ifndef NDEBUG
+            Logger::instance().logger("codegen").warn("HACK: forced conversion to python string, something is wrong here...");
+#endif
+            p.first = escape_to_python_str(p.first);
+        }
+
         // this is done recursively
         for(const auto& kv_pair : dict_type.get_struct_pairs()) {
             // compare

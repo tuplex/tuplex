@@ -28,7 +28,8 @@ experiment_targets = ['all',
                       'flights/stratified',
                       'flights/baseline', # note that THIS query is quite expensive, literally costing $12 or so per run.
                       'github/promo',
-                      'github/global']
+                      'github/global',
+                      'github/baseline']
 
 experiment_targets_description = {'all':'a meta target to run all experiments',
                                   'flights/sampling': 'runs the flights query using different sampling schemes',
@@ -37,7 +38,8 @@ experiment_targets_description = {'all':'a meta target to run all experiments',
                                   'flights/stratified': 'runs flights query with varying samples per strata',
                                   'flights/baseline': 'runs flights query in pure python mode (slow and costly)',
                                   'github/promo': 'runs github query with filter promotion off/on',
-                                  'github/global': 'runs github query, but only the global mode'}
+                                  'github/global': 'runs github query, but only the global mode',
+                                  'github/baseline': 'runs github query in pure python mode (slow and costly)',}
 
 experiments_path_dict = {'flights/hyper': {'script': 'benchmark-filter.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/filter'},
                          'flights/years': {'script': 'benchmark-all-years.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/years'},
@@ -45,6 +47,7 @@ experiments_path_dict = {'flights/hyper': {'script': 'benchmark-filter.sh', 'wd'
                          'flights/baseline': {'script': 'benchmark-python.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/flights/baseline'},
                          'github/promo': {'script': 'benchmark.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/github', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/github/experimental_results/github'},
                          'github/global': {'script': 'benchmark-only-global.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/github', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/github/experimental_results/github-global'},
+                         'github/global': {'script': 'benchmark-python.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/github', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/github/experimental_results/github/baseline'},
                          }
 
 

@@ -47,7 +47,7 @@ experiments_path_dict = {'flights/hyper': {'script': 'benchmark-filter.sh', 'wd'
                          'flights/baseline': {'script': 'benchmark-python.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/flights/baseline'},
                          'github/promo': {'script': 'benchmark.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/github', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/github/experimental_results/github'},
                          'github/global': {'script': 'benchmark-only-global.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/github', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/github/experimental_results/github-global'},
-                         'github/global': {'script': 'benchmark-python.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/github', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/github/experimental_results/github/baseline'},
+                         'github/baseline': {'script': 'benchmark-python.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/github', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/github/experimental_results/github/baseline'},
                          }
 
 

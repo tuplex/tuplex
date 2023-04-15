@@ -485,6 +485,7 @@ namespace tuplex {
 
         ThreadEnv *_threadEnvs;
         size_t _numThreads;
+        std::atomic_int _numPythonExceptionsDisplayed;
 
         std::unordered_map<std::string, double> _timeDict;
 

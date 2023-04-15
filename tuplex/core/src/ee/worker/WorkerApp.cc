@@ -160,6 +160,9 @@ namespace tuplex {
 
         _timeDict.clear();
 
+        // reset display
+        _numPythonExceptionsDisplayed = 0;
+
         // reset default compile policy based on worker settings...
         codegen::DEFAULT_COMPILE_POLICY.allowNumericTypeUnification = _settings.allowNumericTypeUnification;
         codegen::DEFAULT_COMPILE_POLICY.normalCaseThreshold = _settings.normalCaseThreshold;
@@ -573,7 +576,7 @@ namespace tuplex {
                       + " general: " + std::to_string(_codePathStats.rowsOnGeneralPathCount)
                       + " interpreter: " + std::to_string(_codePathStats.rowsOnInterpreterPathCount)
                       + " unresolved: " + std::to_string(_codePathStats.unresolvedRowsCount));
-
+        logger().info("Memory usage: RSS " + sizeToMemString(getCurrentRSS()) + ", peak RSS: " + sizeToMemString(getPeakRSS()));
         if(rc != WORKER_OK)
             return rc;
         return WORKER_OK;
@@ -1225,6 +1228,18 @@ namespace tuplex {
                     auto exceptionType = PyObject_Type(exceptionObject);
                     // can ignore input row.
                     ecCode = ecToI64(python::translatePythonExceptionType(exceptionType));
+
+                    // add debug information here for low row number
+                    if(_numPythonExceptionsDisplayed < 10) {
+                        auto input_row = PyTuple_GET_ITEM(args, 0);
+                        Py_XINCREF(input_row);
+                        auto input_row_as_str = python::PyString_AsString(input_row);
+                        std::stringstream ss;
+                        ss<<"Fallback encountered exception, row number="<<row_number<<" exception="
+                          <<exceptionCodeToPythonClass(i64ToEC(ecCode))<<", data="<<input_row_as_str;
+                        logger().info(ss.str());
+                        _numPythonExceptionsDisplayed++;
+                    }
                 } else {
                     // normal, check type and either merge to normal set back OR onto python set together with row number?
                     auto resultRows = PyDict_GetItemString(pcr.res, "outputRows");

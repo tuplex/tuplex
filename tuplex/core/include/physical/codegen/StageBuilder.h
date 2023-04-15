@@ -243,7 +243,7 @@ namespace tuplex {
                 std::string pyAggregateFunctionName;
             };
 
-            static PythonCodePath generatePythonCode(const CodeGenerationContext& ctx, int stageNo); //! generates fallback pipeline in pure python. => i.e. special case here...
+            static PythonCodePath generatePythonCode(const CodeGenerationContext& ctx, int stageNo, bool pure_python_mode); //! generates fallback pipeline in pure python. => i.e. special case here...
 
             std::vector<int64_t> getOperatorIDsAffectedByResolvers(const std::vector<std::shared_ptr<LogicalOperator>> &operators);
         };

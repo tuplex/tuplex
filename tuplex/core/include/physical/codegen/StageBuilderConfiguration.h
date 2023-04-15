@@ -24,6 +24,8 @@ namespace tuplex {
             bool generateSpecializedNormalCaseCodePath; // whether to emit specialized normal case code path or not
             bool filterPromotion; // whether to propagate filters to become checks, i.e. manipulate the sample to be only rows that pass the filter.
 
+            bool pure_python_mode; // whether to generate only python code
+
             ExceptionSerializationMode exceptionSerializationMode;
 
             StageBuilderConfiguration() : policy(CompilePolicy()),
@@ -35,6 +37,7 @@ namespace tuplex {
                                           updateInputExceptions(false),
                                           generateSpecializedNormalCaseCodePath(true),
                                           filterPromotion(false),
+                                          pure_python_mode(false),
                                           exceptionSerializationMode(ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE) {}
 
             // update with context option object
@@ -46,6 +49,7 @@ namespace tuplex {
                 nullValueOptimization = co.OPT_NULLVALUE_OPTIMIZATION();
                 constantFoldingOptimization = co.OPT_CONSTANTFOLDING_OPTIMIZATION();
                 filterPromotion = co.OPT_FILTER_PROMOTION();
+                pure_python_mode = co.PURE_PYTHON_MODE();
 
                 // from options, infer
                 if(co.EXPERIMENTAL_FORCE_BAD_PARSE_EXCEPT_FORMAT())

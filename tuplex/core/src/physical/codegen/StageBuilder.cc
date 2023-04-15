@@ -110,7 +110,8 @@ namespace tuplex {
         }
 
         StageBuilder::PythonCodePath StageBuilder::generatePythonCode(const CodeGenerationContext& ctx,
-                                                        int stageNo) {
+                                                        int stageNo,
+                                                        bool pure_python_mode) {
 
             PythonCodePath path;
 
@@ -128,11 +129,17 @@ namespace tuplex {
                 auto fop = std::dynamic_pointer_cast<FileInputOperator>(ctx.slowPathContext.inputNode); assert(fop);
                 switch (ctx.inputFileFormat) {
                     case FileFormat::OUTFMT_CSV: {
+                        auto projection_map = fop->projectionMap();
+
+                        // when generating code for pure python mode - no projection needed. data comes in "as is"
+                        if(pure_python_mode)
+                            projection_map = {};
+
                         ppb.cellInput(ctx.slowPathContext.inputNode->getID(),
                                       fop->inputColumns(), fop->null_values(),
                                       fop->typeHints(),
                                       fop->inputColumnCount(),
-                                      fop->projectionMap());
+                                      projection_map);
                         break;
                     }
                     case FileFormat::OUTFMT_TEXT:
@@ -1822,7 +1829,7 @@ namespace tuplex {
                 slowCodePath_f.wait();
 #endif
 
-                auto py_path = generatePythonCode(codeGenerationContext, number());
+                auto py_path = generatePythonCode(codeGenerationContext, number(), _conf.pure_python_mode);
                 stage->_pyCode = py_path.pyCode;
                 stage->_pyPipelineName = py_path.pyPipelineName;
 
@@ -1995,7 +2002,7 @@ namespace tuplex {
                 stage->_slowCodePath = slow;
                 stage->_fastCodePath = fast;
             } else {
-                // normally code & specialization would happen here - yet in hyper-specializaiton mode this is postponed to the executor
+                // normally code & specialization would happen here - yet in hyper-specialization mode this is postponed to the executor
 
                 // basically just need to get general settings & general path and then encode that!
                 auto ctx = createCodeGenerationContext();
@@ -2005,7 +2012,7 @@ namespace tuplex {
 
                 // also important to encode into stage python code. Else, nowhere to be found!
                 if(gen_py_code) {
-                    auto py_path = generatePythonCode(ctx, number());
+                    auto py_path = generatePythonCode(ctx, number(), _conf.pure_python_mode);
                     stage->_pyCode = py_path.pyCode;
                     stage->_pyPipelineName = py_path.pyPipelineName;
                 }

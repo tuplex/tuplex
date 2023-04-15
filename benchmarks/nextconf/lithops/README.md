@@ -36,3 +36,5 @@ aws_s3:
     region_name: us-east-1
     storage_bucket: tuplex-lithops
 ```
+
+Check that it works via `lithops test -b aws_lambda -s aws_s3`

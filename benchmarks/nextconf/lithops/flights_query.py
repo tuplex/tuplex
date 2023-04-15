@@ -756,7 +756,7 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
 
     parser = argparse.ArgumentParser(description='Lithops flights query')
-    parser.add_argument('--smode', dest='mode', choices=['custom', 'viton'], default='custom')
+    parser.add_argument('--mode', dest='mode', choices=['custom', 'viton'], default='custom')
     args = parser.parse_args()
 
     mode = args.mode

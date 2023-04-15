@@ -329,7 +329,7 @@ namespace tuplex {
     void AwsLambdaBackend::onLambdaFailure(const AwsLambdaRequest &req, LambdaErrorCode err_code,
                                            const std::string &err_msg) {
         // abort all requests
-        _service->abortAllRequests(true);
+        _service->abortAllRequests(false);
 
         // print failure as last message!
         logger().error(err_msg);

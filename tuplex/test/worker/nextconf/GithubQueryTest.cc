@@ -55,7 +55,7 @@ namespace tuplex {
         // sampling settings incl.
         // stratified sampling (to make things work & faster)
         m["tuplex.sample.strataSize"] = "1024";
-        m["tuplex.sample.samplesPerStrata"]="1";
+        m["tuplex.sample.samplesPerStrata"]="10";
         m["tuplex.sample.maxDetectionMemory"] = "32MB";
         m["tuplex.sample.maxDetectionRows"] = "30000";
 

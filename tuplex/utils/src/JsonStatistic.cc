@@ -694,6 +694,276 @@ namespace tuplex {
         return rows;
     }
 
+    static std::tuple<Row, std::vector<std::string>> json_parseRowAndNames(simdjson::simdjson_result<simdjson::fallback::ondemand::document_reference> doc,
+                                                                    const std::string& full_row,
+                                                                    bool interpret_heterogenous_lists_as_tuples,
+                                                                    bool unwrap_rows,
+                                                                    std::vector<std::string>& column_names,
+                                                                    std::unordered_map<std::string, size_t>& column_index_lookup_table,
+                                                                    std::set<std::string>& column_names_set,
+                                                                    std::unordered_map<simdjson::ondemand::json_type, size_t>& line_types,
+                                                                    std::unordered_map<std::tuple<size_t, python::Type>, size_t>& type_counts,
+                                                                    bool is_first_row) {
+        using namespace std;
+
+        // result
+        Row ret_row;
+        vector<string> ret_column_names;
+
+        auto line_type = doc.type().value();
+        line_types[line_type]++;
+
+        std::vector<Field> fields;
+
+        // type of doc
+        switch(line_type) {
+            case simdjson::ondemand::json_type::object: {
+                auto obj = doc.get_object();
+
+                // key names == column names
+                vector<string> row_column_names;
+                vector<string> row_json_strings;
+                vector<python::Type> row_field_types;
+
+                // objects per line
+                for(auto field : obj) {
+                    // add to names
+                    auto sv_key = field.unescaped_key().value();
+                    std::string key = {sv_key.begin(), sv_key.end()};
+                    auto jt = column_names_set.find(key);
+                    if(jt == column_names_set.end()) {
+                        size_t cur_index = column_index_lookup_table.size();
+                        column_index_lookup_table[key] = cur_index;
+                        column_names.push_back(key);
+                        column_names_set.insert(key);
+                    }
+
+                    // perform type count (lookups necessary because can be ANY order)
+                    auto py_type = jsonTypeToPythonTypeNonRecursive(field.value().type(), field.value().raw_json_token());
+
+                    // generic types? -> recurse!
+                    if(py_type == python::Type::GENERICDICT || py_type == python::Type::GENERICLIST) {
+                        py_type = jsonTypeToPythonTypeRecursive(field.value(), interpret_heterogenous_lists_as_tuples);
+                    }
+
+                    // add to count array
+                    type_counts[std::make_tuple(column_index_lookup_table[key], py_type)]++;
+
+                    // save raw data for more info
+                    row_column_names.push_back(key);
+
+                    // fetch data for field (i.e., raw string)
+                    auto sv_value = simdjson::to_json_string(obj[key]).value();
+
+                    std::string str_value(sv_value.begin(), sv_value.end());
+
+                    row_json_strings.push_back(str_value);
+                    // cf. https://github.com/simdjson/simdjson/blob/master/doc/basics.md#direct-access-to-the-raw-string
+                    // --> however this works only for non-array/non-object data.
+                    row_field_types.push_back(py_type);
+                }
+
+                // output column names if desired & save row
+                ret_column_names = row_column_names;
+                vector<Field> fields;
+                for(unsigned i = 0; i < row_field_types.size(); ++i) {
+                    // can't be opt type -> primitives are parsed!
+                    assert(!row_field_types[i].isOptionType());
+                    if(row_field_types[i].isDictionaryType()) {
+                        // dict field?
+                        // simple, use json dict
+                        fields.push_back(Field::from_str_data(row_json_strings[i], row_field_types[i]));
+                    } else if(row_field_types[i].isListType()) {
+                        // list field -> need to parse into individual fields (homogenous) and then create proper List out of this.
+                        auto list_field = json_array_to_list(row_json_strings[i], row_field_types[i], interpret_heterogenous_lists_as_tuples);
+                        if(list_field.getType() == python::Type::NULLVALUE) {
+                            Logger::instance().defaultLogger().warn("Found non-conforming list, adding null as dummy-value.");
+                        }
+                        fields.push_back(list_field);
+                    } else {
+                        // convert primitive string to field
+                        fields.push_back(stringToField(row_json_strings[i], row_field_types[i]));
+                    }
+                }
+
+                if(unwrap_rows)
+                    ret_row = Row::from_vector(fields);
+                else {
+                    // push back as struct type
+                    std::string json_line = full_row;
+                    std::vector<python::StructEntry> kv_pairs;
+                    assert(fields.size() == row_column_names.size());
+                    for(unsigned i = 0; i < fields.size(); ++i) {
+                        python::StructEntry entry;
+                        entry.key = escape_to_python_str(row_column_names[i]);
+                        entry.keyType = python::Type::STRING;
+                        entry.valueType = fields[i].getType();
+                        kv_pairs.push_back(entry);
+                    }
+                    python::Type struct_type = python::Type::makeStructuredDictType(kv_pairs);
+                    Row struct_row({Field::from_str_data(json_line, struct_type)});
+                   ret_row = struct_row;
+                }
+
+                break;
+            }
+            case simdjson::ondemand::json_type::array: {
+                // unknown, i.e. error line.
+                // header? -> first line?
+
+                // @TODO: not yet fully implemented!!!
+                throw std::runtime_error("not yet fully implemented...");
+
+                if(is_first_row) {
+                    bool all_elements_strings = true;
+                    auto arr = doc.get_array();
+                    size_t pos = 0;
+                    for(auto field : arr) {
+                        if(field.type() != simdjson::ondemand::json_type::string)
+                            all_elements_strings = false;
+                        else {
+                            auto sv = field.get_string().value();
+                            auto name = std::string{sv.begin(), sv.end()};
+                            column_names.push_back(name);
+                        }
+
+                        // perform type count (lookups necessary because can be ANY order)
+                        auto py_type = jsonTypeToPythonTypeNonRecursive(field.value().type(), field.value().raw_json_token());
+                        // add to count array
+                        type_counts[std::make_tuple(pos, py_type)]++;
+                        pos++;
+                    }
+                }
+                break;
+            }
+            default: {
+                // basic element -> directly map type!
+                auto py_type = jsonTypeToPythonTypeNonRecursive(doc.type().value(), doc.raw_json_token());
+                break;
+            }
+        }
+        return make_tuple(ret_row, ret_column_names);
+    }
+
+    // this function is similar to the one above but with the added stratification logic!
+    std::vector<Row> parseRowsFromJSONStratified(const char* buf,
+                                                 size_t buf_size,
+                                                 std::vector<std::vector<std::string>>* outColumnNames,
+                                                 bool unwrap_rows,
+                                                 bool interpret_heterogenous_lists_as_tuples,
+                                                 size_t max_rows,
+                                                 size_t strata_size,
+                                                 size_t samples_per_strata,
+                                                 int random_seed,
+                                                 const std::set<unsigned int>& skip_rows) {
+        using namespace std;
+
+        if(0 == max_rows)
+            return {};
+
+        // assert(buf[buf_size - 1] == '\0');
+
+        // use simdjson as parser b.c. cJSON has issues with integers/floats.
+        // https://simdjson.org/api/2.0.0/md_doc_iterate_many.html
+        simdjson::ondemand::parser parser;
+        simdjson::ondemand::document_stream stream;
+        auto error = parser.iterate_many(buf, buf_size, std::min(buf_size, SIMDJSON_BATCH_SIZE)).get(stream);
+        if(error) {
+            stringstream err_stream; err_stream<<error;
+            throw std::runtime_error(err_stream.str());
+        }
+
+        // break up into Rows and detect things along the way.
+        std::vector<Row> rows;
+
+        // pass I: detect column names
+        // first: detect column names (ordered? as they are?)
+        std::vector<std::string> column_names;
+        std::unordered_map<std::string, size_t> column_index_lookup_table;
+        std::set<std::string> column_names_set;
+
+        // @TODO: test with corrupted files & make sure this doesn't fail...
+        std::unordered_map<simdjson::ondemand::json_type, size_t> line_types;
+
+        // counting tables for types
+        std::unordered_map<std::tuple<size_t, python::Type>, size_t> type_counts;
+
+        // adjustments for stratified sampling
+        if(strata_size < 1)
+            strata_size = 1;
+        if(samples_per_strata > strata_size)
+            samples_per_strata = strata_size;
+
+        int64_t pos = 0;
+        int64_t last_strata_start = 0;
+        auto strata_indices = sample_without_replacement(strata_size, samples_per_strata, random_seed);
+        std::sort(strata_indices.begin(), strata_indices.end());
+        unsigned strata_pos = 0;
+
+
+        // cf. Tree Walking and JSON Element Types in https://github.com/simdjson/simdjson/blob/master/doc/basics.md
+        // use scalar() => for simple numbers etc.
+
+        // anonymous row? I.e., simple value?
+        for(auto it = stream.begin(); it != stream.end() && rows.size() <= max_rows; ++it) {
+
+            // row to skip?
+            if(!skip_rows.empty() && skip_rows.find(pos) != skip_rows.end()) {
+                pos++;
+                continue;
+            }
+
+            // was the right strata pos found?
+            if(pos >= last_strata_start + strata_indices[strata_pos]) {
+                strata_pos++;
+
+                // was it the last strata?
+                if(strata_pos == strata_indices.size()) {
+                    // generate next random strata indices!
+                    strata_indices = sample_without_replacement(strata_size, samples_per_strata, random_seed);
+                    std::sort(strata_indices.begin(), strata_indices.end());
+                    last_strata_start += strata_size;
+                    strata_pos = 0;
+                }
+
+                // fetch the row (i.e. execute full JSON parsing logic)
+                auto doc = (*it);
+
+                // error? stop parse, return partial results
+                simdjson::ondemand::json_type doc_type;
+                doc.type().tie(doc_type, error);
+                if(error)
+                    break;
+
+                // the full json string of a row can be obtained via
+                // std::cout << it.source() << std::endl;
+                string full_row;
+                {
+                    stringstream ss;
+                    ss<<it.source()<<std::endl;
+                    full_row = ss.str();
+                }
+                auto first_row = 0 == pos;
+                auto t = json_parseRowAndNames(doc, full_row,
+                                               interpret_heterogenous_lists_as_tuples,
+                                               unwrap_rows, column_names,
+                                               column_index_lookup_table,
+                                               column_names_set, line_types,
+                                               type_counts, first_row);
+                if(outColumnNames)
+                    outColumnNames->push_back(std::get<1>(t));
+                rows.push_back(std::get<0>(t));
+
+                // limit reached?
+                if(rows.size() == max_rows)
+                    return rows;
+            }
+            pos++;
+        }
+
+        return rows;
+    }
+
     void JsonStatistic::walkJSONTree(std::unique_ptr<JSONTypeNode>& node, cJSON* json) {
         if(!json || !node)
             return;

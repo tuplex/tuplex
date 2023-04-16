@@ -1886,8 +1886,17 @@ namespace tuplex {
             }
 
             auto limit = std::min(sample_limit, per_mode_limit);
-            v = parseRowsFromJSON(sample.c_str() + start_offset, sample_length,
-                                  outNames, outNames, _json_treat_heterogenous_lists_as_tuples, limit);
+
+            if(sampling_params.use_stratified_sampling()) {
+                std::set<unsigned> skip_rows;
+                v = parseRowsFromJSONStratified(sample.c_str() + start_offset, sample_length,
+                                      outNames, outNames, _json_treat_heterogenous_lists_as_tuples, limit,
+                                      sampling_params.strata_size, sampling_params.samples_per_strata,
+                                      sampling_params.random_seed, skip_rows);
+            } else {
+                v = parseRowsFromJSON(sample.c_str() + start_offset, sample_length,
+                                      outNames, outNames, _json_treat_heterogenous_lists_as_tuples, limit);
+            }
             sample_limit -= std::min(v.size(), limit);
         }
 
@@ -1912,9 +1921,18 @@ namespace tuplex {
                     return v;
                 sample_length -= std::min((size_t)start_offset, sample_length);
                 auto limit = std::min(sample_limit, per_mode_limit);
-                auto rows = parseRowsFromJSON(sample.c_str() + offset + start_offset, sample_length,
-                                              outNames, outNames, _json_treat_heterogenous_lists_as_tuples,
-                                              limit);
+                std::vector<Row> rows;
+                if(sampling_params.use_stratified_sampling()) {
+                    std::set<unsigned> skip_rows;
+                    rows = parseRowsFromJSONStratified(sample.c_str() + offset + start_offset, sample_length,
+                                             outNames, outNames, _json_treat_heterogenous_lists_as_tuples,
+                                             limit, sampling_params.strata_size, sampling_params.samples_per_strata,
+                                                       sampling_params.random_seed, skip_rows);
+                } else {
+                    rows = parseRowsFromJSON(sample.c_str() + offset + start_offset, sample_length,
+                                             outNames, outNames, _json_treat_heterogenous_lists_as_tuples,
+                                             limit);
+                }
                 sample_limit -= std::min(rows.size(), limit);
                 std::copy(rows.begin(), rows.end(), std::back_inserter(v));
 
@@ -1926,9 +1944,18 @@ namespace tuplex {
                 sample_length -= std::min((size_t)start_offset, sample_length);
 
                 auto limit = std::min(sample_limit, per_mode_limit);
-                v = parseRowsFromJSON(sample.c_str() + start_offset, sample_length,
-                                      outNames, outNames, _json_treat_heterogenous_lists_as_tuples,
-                                      limit);
+                if(sampling_params.use_stratified_sampling()) {
+                    std::set<unsigned> skip_rows;
+                    v = parseRowsFromJSONStratified(sample.c_str() + start_offset, sample_length,
+                                          outNames, outNames, _json_treat_heterogenous_lists_as_tuples,
+                                          limit, sampling_params.strata_size, sampling_params.samples_per_strata,
+                                                    sampling_params.random_seed, skip_rows);
+                } else {
+                    v = parseRowsFromJSON(sample.c_str() + start_offset, sample_length,
+                                          outNames, outNames, _json_treat_heterogenous_lists_as_tuples,
+                                          limit);
+                }
+
                 sample_limit -= std::min(v.size(), limit);
             }
         }
@@ -1946,9 +1973,19 @@ namespace tuplex {
             sample_length -= std::min((size_t)start_offset, sample_length);
             // parse as rows using the settings detected.
             auto limit = std::min(sample_limit, per_mode_limit);
-            auto rows = parseRowsFromJSON(sample.c_str() + start_offset, sample_length,
-                                          outNames, outNames, _json_treat_heterogenous_lists_as_tuples,
-                                          limit);
+            std::vector<Row> rows;
+            if(sampling_params.use_stratified_sampling()) {
+                std::set<unsigned> skip_rows;
+                rows = parseRowsFromJSONStratified(sample.c_str() + start_offset, sample_length,
+                                         outNames, outNames, _json_treat_heterogenous_lists_as_tuples,
+                                         limit, sampling_params.strata_size, sampling_params.samples_per_strata,
+                                         sampling_params.random_seed, skip_rows);
+            } else {
+                rows = parseRowsFromJSON(sample.c_str() + start_offset, sample_length,
+                                         outNames, outNames, _json_treat_heterogenous_lists_as_tuples,
+                                         limit);
+            }
+
             sample_limit -= std::min(rows.size(), limit);
 
             // erase last row, b.c. it may be partial

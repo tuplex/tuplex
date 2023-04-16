@@ -67,6 +67,17 @@ namespace tuplex {
                                               bool interpret_heterogenous_lists_as_tuples=true,
                                               size_t max_rows= std::numeric_limits<size_t>::max());
 
+    extern std::vector<Row> parseRowsFromJSONStratified(const char* buf,
+                                              size_t buf_size,
+                                              std::vector<std::vector<std::string>>* outColumnNames,
+                                              bool unwrap_rows,
+                                              bool interpret_heterogenous_lists_as_tuples,
+                                              size_t max_rows,
+                                              size_t strata_size,
+                                              size_t samples_per_strata,
+                                              int random_seed,
+                                              const std::set<unsigned int>& skip_rows);
+
     inline std::vector<Row> parseRowsFromJSON(const std::string& s,
                                               std::vector<std::vector<std::string>>* outColumnNames=nullptr,
                                               bool unwrap_rows=true,

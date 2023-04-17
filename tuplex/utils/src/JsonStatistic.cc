@@ -694,7 +694,7 @@ namespace tuplex {
         return rows;
     }
 
-    static std::tuple<Row, std::vector<std::string>> json_parseRowAndNames(simdjson::simdjson_result<simdjson::fallback::ondemand::document_reference> doc,
+    static std::tuple<Row, std::vector<std::string>> json_parseRowAndNames(simdjson::simdjson_result<simdjson::ondemand::document_reference> doc,
                                                                     const std::string& full_row,
                                                                     bool interpret_heterogenous_lists_as_tuples,
                                                                     bool unwrap_rows,

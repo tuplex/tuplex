@@ -493,8 +493,17 @@ namespace tuplex {
 
         ASTAnnotation() : numTimesVisited(0), symbol(nullptr), iMin(0), iMax(0), negativeValueCount(0), positiveValueCount(0), iteratorInfo(nullptr), typeStableCount(0), typeChangedAndStableCount(0), typeChangedAndUnstableCount(0), zeroIterationCount(0), deoptException(ExceptionCode::SUCCESS) {}
         ASTAnnotation(const ASTAnnotation& other) : numTimesVisited(other.numTimesVisited), iMin(other.iMin), iMax(other.iMax),
-                                                    negativeValueCount(other.negativeValueCount), positiveValueCount(other.positiveValueCount), symbol(other.symbol), types(other.types), iteratorInfo(other.iteratorInfo), branchTakenSampleIndices(other.branchTakenSampleIndices),
-                                                    typeStableCount(other.typeStableCount), typeChangedAndStableCount(other.typeChangedAndStableCount), typeChangedAndUnstableCount(other.typeChangedAndUnstableCount), zeroIterationCount(other.zeroIterationCount), deoptException(other.deoptException) {}
+                                                    negativeValueCount(other.negativeValueCount),
+                                                    positiveValueCount(other.positiveValueCount),
+                                                    symbol(other.symbol), types(other.types),
+                                                    iteratorInfo(other.iteratorInfo),
+                                                    branchTakenSampleIndices(other.branchTakenSampleIndices),
+                                                    typeStableCount(other.typeStableCount),
+                                                    typeChangedAndStableCount(other.typeChangedAndStableCount),
+                                                    typeChangedAndUnstableCount(other.typeChangedAndUnstableCount),
+                                                    zeroIterationCount(other.zeroIterationCount),
+                                                    deoptException(other.deoptException),
+                                                    originalColumnName(other.originalColumnName) {}
 
         ///! how often was node visited? Helpful annotation for if-branches
         size_t numTimesVisited;
@@ -551,6 +560,8 @@ namespace tuplex {
         //! stores stabilized types when first iteration of loop gets unrolled to maintain type stability
         std::unordered_map<std::string, python::Type> stabilizedTypes; // key: variable name, value: type of the variable at the end of the loop
 
+        std::string originalColumnName; // this is a dummy before introducing a proper "row" dummy type, use this for rewriting
+
         inline python::Type majorityType() const {
             if(types.empty())
                 return python::Type::UNKNOWN;
@@ -574,7 +585,8 @@ namespace tuplex {
 
     #ifdef BUILD_WITH_CEREAL
         template <class Archive>
-        void serialize(Archive &ar) { ar(numTimesVisited, iMin, iMax, negativeValueCount, positiveValueCount, symbol, types, deoptException); }
+        void serialize(Archive &ar) { ar(numTimesVisited, iMin, iMax, negativeValueCount,
+                                         positiveValueCount, symbol, types, deoptException, originalColumnName); }
     #endif
 
     };

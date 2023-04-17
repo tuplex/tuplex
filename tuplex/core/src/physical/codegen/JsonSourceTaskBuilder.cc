@@ -198,7 +198,7 @@ namespace tuplex {
                             if(python::Type::STRING == col_type) {
                                 auto str_value = ft_filter.get(i);
                                 assert(str_value && str_value->getType() == env().i8ptrType());
-                                env().printValue(builder, str_value, conf.columns[i] + "= ");
+                                // env().printValue(builder, str_value, conf.columns[i] + "= ");
                             }
                         }
 #endif

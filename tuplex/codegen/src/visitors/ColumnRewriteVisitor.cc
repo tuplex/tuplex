@@ -58,8 +58,13 @@ namespace tuplex {
                     //               but just return param due to unpacking
                     if(_columnNames.size() == 1)
                         return id->clone();
-                    else
-                        return new NSubscription(id, new NNumber(static_cast<int64_t>(idx)));
+                    else {
+                        auto new_sub = new NSubscription(id, new NNumber(static_cast<int64_t>(idx)));
+
+                        // store in annotation original column name
+                        new_sub->annotation().originalColumnName = colName; // <-- actual value
+                        return new_sub;
+                    }
                 }
             }
         }
@@ -79,6 +84,11 @@ namespace tuplex {
             // does id->_name match parameter name? if so, rewrite! (what about name re-assigns? make them work later...)
             if(id->_name != _parameter) // <-- this is not 100% correct. I.e., should have proper set of names that correspond to parameter, handle case where name gets reassigned etc. Special attention to if case.. @TODO: make this more correct.
                 return sub;
+
+            // does an annotation exist?
+            if(sub->hasAnnotation() && !sub->annotation().originalColumnName.empty()) {
+                return new NSubscription(id, new NString(escape_to_python_str(sub->annotation().originalColumnName)));
+            }
 
             auto alt_index = projectedIdxToOriginalIdx(index);
             auto alt_name = _columnNames[alt_index];

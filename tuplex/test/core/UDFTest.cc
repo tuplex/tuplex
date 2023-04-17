@@ -333,9 +333,15 @@ TEST(UDF, RetypeWithChangedColumnOrder) {
     auto code = "lambda x: (x['A'], x['B'], x['C'], x['D'], x['E'])";
 
     // type first with right row type
+    // note that rewrite with colunm names changes order? -> should it?
+    // -> there should be a stable rewrite when it comes to column names!!!
+    // maybe introduce proper Row type!
+    // -> that would solve a bunch of issues...
+    // yeah, that's a good idea...
     UDF udf(code);
     udf.rewriteDictAccessInAST({"A", "B", "C", "D", "E"});
-    udf.retype(python::Type::makeTupleType({python::Type::I64, python::Type::NULLVALUE, python::Type::F64, python::Type::STRING, python::Type::BOOLEAN}));
+    auto row_type = python::Type::makeTupleType({python::Type::I64, python::Type::NULLVALUE, python::Type::F64, python::Type::STRING, python::Type::BOOLEAN});
+    udf.retype(row_type);
 
 
 }

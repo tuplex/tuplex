@@ -326,6 +326,20 @@ TEST(UDF, RetypeTest) {
     EXPECT_EQ(udf.getOutputSchema().getRowType().desc(), "(null)");
 }
 
+TEST(UDF, RetypeWithChangedColumnOrder) {
+    // perform some more complex retype scenarios (i.e., column names missing, order changed etc.)
+    // --> need to do this to avoid issues with retyping later on!
+
+    auto code = "lambda x: (x['A'], x['B'], x['C'], x['D'], x['E'])";
+
+    // type first with right row type
+    UDF udf(code);
+    udf.rewriteDictAccessInAST({"A", "B", "C", "D", "E"});
+    udf.retype(python::Type::makeTupleType({python::Type::I64, python::Type::NULLVALUE, python::Type::F64, python::Type::STRING, python::Type::BOOLEAN}));
+
+
+}
+
 TEST(UDF, InputColumnCount) {
     using namespace tuplex;
     using namespace std;

@@ -318,7 +318,10 @@ namespace tuplex {
             // fill sampling cache
             f->fillFileCache(sampling_mode);
             // now fill row cache (by parsing rows)
-            f->fillRowCache(sampling_mode, namePtr);
+            if(!co.USE_STRATIFIED_SAMPLING())
+                f->fillRowCache(sampling_mode, namePtr, co.SAMPLE_SIZE());
+            else
+                f->fillRowCacheWithStratifiedSamples(sampling_mode, namePtr, co.SAMPLE_SIZE(), co.SAMPLE_STRATA_SIZE(), co.SAMPLE_SAMPLES_PER_STRATA());
 
             // detect normal/general type
             auto t = f->detectJsonTypesAndColumns(co, nameCollection);

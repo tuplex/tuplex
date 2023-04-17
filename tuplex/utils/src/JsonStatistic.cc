@@ -10,6 +10,7 @@
 #endif
 
 #include <JSONUtils.h>
+#include <Random.h>
 
 namespace tuplex {
 

@@ -93,6 +93,11 @@ namespace tuplex {
         bool PURE_PYTHON_MODE() const { return stringToBool(_store.at("tuplex.useInterpreterOnly")); } // if set to true, then everything will be processed using the generated py-code only!
 
         bool USE_EXPERIMENTAL_HYPERSPECIALIZATION() const { return stringToBool(_store.at("tuplex.experimental.hyperspecialization")); }
+        /*!
+         * returns specialization unit size in bytes, 0 means no specialization unit size will be used and everything regularly executed.
+         * @return unit size in bytes
+         */
+        size_t EXPERIMENTAL_SPECIALIZATION_UNIT_SIZE() const { return memStringToSize(_store.at("tuplex.experimental.specializationUnitSize")); }
         bool USE_EXPERIMENTAL_OPPORTUNE_COMPILATION() const { return stringToBool(_store.at("tuplex.experimental.opportuneCompilation")); }
         size_t USE_EXPERIMENTAL_S3_PRECACHE_SIZE() const { return memStringToSize(_store.at("tuplex.experimental.s3PreCacheSize")); }
 

@@ -425,8 +425,15 @@ namespace tuplex {
             logger().info("fast code path size after hyperspecialization: " + sizeToMemString(tstage->fastPathBitCode().size()));
             markTime("hyperspecialization_time", timer.time());
             if(tstage->fastPathBitCode().empty()) {
+#ifndef NDEBUG
                 logger().error("there is no fast-code path, need fast code path to parse properly. Erroring out.");
                 return WORKER_ERROR_COMPILATION_FAILED;
+#else
+                logger().error("Hyper-specializastion could not produce a fast-path, using interpreter mode as fallback.");
+                auto rc = processTransformStageInPythonMode(tstage, parts, outputURI);
+                _lastStat = jsonStat(req, tstage); // generate stats before returning.
+                return rc;
+#endif
             }
         }
 
@@ -1860,6 +1867,12 @@ namespace tuplex {
             ws.exceptionSerializationMode = codegen::ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE;
         }
 
+        it = req.settings().other().find("tuplex.experimental.specializationUnitSize");
+        if(it != req.settings().other().end()) {
+            ws.specializationUnitSize = memStringToSize(it->second);
+        } else {
+            ws.specializationUnitSize = 0;
+        }
 
         ws.numThreads = std::max(1ul, ws.numThreads);
         return ws;

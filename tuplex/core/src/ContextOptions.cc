@@ -257,6 +257,7 @@ namespace tuplex {
                      {"tuplex.network.verifySSL", "false"},  // if default is going to be changed to true, ship cacert.pem from Amazon to avoid issues.
                      {"tuplex.redirectToPythonLogging", "false"},
                      {"tuplex.experimental.hyperspecialization", "false"},
+                     {"tuplex.experimental.specializationUnitSize", "0"},
                      {"tuplex.experimental.opportuneCompilation", "true"},
                      {"tuplex.experimental.forceBadParseExceptFormat", "false"},
                      {"tuplex.experimental.s3PreCacheSize", "0"}};
@@ -324,6 +325,7 @@ namespace tuplex {
                      {"tuplex.network.verifySSL", "false"},
                      {"tuplex.redirectToPythonLogging", "false"},
                      {"tuplex.experimental.hyperspecialization", "false"},
+                     {"tuplex.experimental.specializationUnitSize", "0"},
                      {"tuplex.experimental.opportuneCompilation", "true"},
                      {"tuplex.experimental.forceBadParseExceptFormat", "false"},
                      {"tuplex.experimental.s3PreCacheSize", "0"}}; // experimental feature, deactivate for now.

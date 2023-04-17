@@ -142,6 +142,7 @@ namespace tuplex {
         double normalCaseThreshold; ///! used for hyperspecialziation
         codegen::ExceptionSerializationMode exceptionSerializationMode;
 
+        size_t specializationUnitSize;
 
         // use some defaults...
         WorkerSettings() : numThreads(1), normalBufferSize(WORKER_DEFAULT_BUFFER_SIZE),
@@ -150,7 +151,8 @@ namespace tuplex {
         opportuneGeneralPathCompilation(true),
         useFilterPromotion(false), useConstantFolding(false),
         s3PreCacheSize(0),
-        exceptionSerializationMode(codegen::ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE) {
+        exceptionSerializationMode(codegen::ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE),
+        specializationUnitSize(0) {
 
             // set some options from defaults...
             auto opt = ContextOptions::defaults();
@@ -182,7 +184,8 @@ namespace tuplex {
         normalCaseThreshold(other.normalCaseThreshold),
         exceptionSerializationMode(other.exceptionSerializationMode),
         strataSize(other.strataSize),
-        samplesPerStrata(other.samplesPerStrata) {}
+        samplesPerStrata(other.samplesPerStrata),
+        specializationUnitSize(other.specializationUnitSize) {}
 
         inline bool operator == (const WorkerSettings& other) const {
 
@@ -228,6 +231,8 @@ namespace tuplex {
                 return false;
             if(samplesPerStrata != other.samplesPerStrata)
                 return false;
+            if(specializationUnitSize != other.specializationUnitSize)
+                return false;
 
             return true;
         }
@@ -258,7 +263,8 @@ namespace tuplex {
         os << "\"useConstantFolding\":"<<boolToString(ws.useConstantFolding)<<", ";
         os << "\"normalCaseThreshold\":"<<ws.normalCaseThreshold<<", ";
         os << "\"exceptionSerializationMode\":"<<(int)ws.exceptionSerializationMode<<", ";
-        os << "\"s3PreCacheSize\":"<<ws.s3PreCacheSize;
+        os << "\"s3PreCacheSize\":"<<ws.s3PreCacheSize<<",";
+        os << "\"specializationUnitSize\":"<<ws.specializationUnitSize;
         os << "}";
         return os;
     }

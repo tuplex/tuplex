@@ -326,7 +326,8 @@ namespace tuplex {
                                              "tuplex.sample.samplesPerStrata",
                                              "tuplex.optimizer.constantFoldingOptimization",
                                              "tuplex.optimizer.filterPromotion",
-                                             "tuplex.experimental.forceBadParseExceptFormat"});
+                                             "tuplex.experimental.forceBadParseExceptFormat",
+                                             "tuplex.experimental.specializationUnitSize"});
         auto& m_map = *(ws->mutable_other());
         for(const auto& key : other_keys)
             m_map[key] = options.get(key);

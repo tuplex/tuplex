@@ -962,6 +962,11 @@ namespace tuplex {
             pos++;
         }
 
+        // sanity check: is file < than strata? parse up to samples_per_strata rows from start then!
+        if(pos < strata_size && rows.empty()) {
+            return parseRowsFromJSON(buf, buf_size, outColumnNames, unwrap_rows, interpret_heterogenous_lists_as_tuples, std::min(max_rows, samples_per_strata));
+        }
+
         return rows;
     }
 

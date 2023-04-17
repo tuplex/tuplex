@@ -240,9 +240,10 @@ namespace tuplex {
         /*!
          * remove all internal schemas, type hints etc.
          * @param removeAnnotations whether to remove all annotations from AST nodes as well
+         * @param keep_column_annotation whether to keep column name annotation (for column rewrite)
          * @return self
          */
-        UDF& removeTypes(bool removeAnnotations=true);
+        UDF& removeTypes(bool removeAnnotations=true, bool keep_column_annotation=true);
 
         /*!
          * whether a schema was applied to the UDF or not. Doesn't tell whether the typing worked out successfully or not.

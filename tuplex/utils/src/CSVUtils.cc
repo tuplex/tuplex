@@ -1958,6 +1958,12 @@ parse_error:
 
             pos++;
         }
+
+        // sanity check: is file smaller than strata?
+        if(pos < strata_size && v.empty()) {
+            return csv_parseRows(buf, buf_size, expected_column_count, range_start, delimiter, quotechar, null_values, std::min(limit, samples_per_strata));
+        }
+
         return v;
     }
 

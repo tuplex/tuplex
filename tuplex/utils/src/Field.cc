@@ -490,11 +490,13 @@ namespace tuplex {
             if(t.isListType()) {
                 std::stringstream ss;
                 auto num_elements = j.size();
+                ss<<"[";
                 for(unsigned i = 0; i < num_elements; ++i) {
                     ss<<jsonToPython(j[i], t.elementType());
                     if(i != num_elements - 1)
                         ss<<", ";
                 }
+                ss<<"]";
                 return ss.str();
             } else if(t.isTupleType()) {
                 std::stringstream ss;
@@ -503,11 +505,15 @@ namespace tuplex {
                     throw std::runtime_error("invalid encoding, json array has " + pluralize(num_elements, "element")
                     + " but given tuple type " + t.desc() + " has only " + std::to_string(t.parameters().size()) + ".");
                 }
+                ss<<"(";
                 for(unsigned i = 0; i < num_elements; ++i) {
                     ss<<jsonToPython(j[i], t.parameters()[i]);
                     if(i != num_elements - 1)
                         ss<<", ";
                 }
+                if(num_elements == 1)
+                    ss<<",";
+                ss<<")";
                 return ss.str();
             } else {
                 throw std::runtime_error("invalid decoding type " + t.desc()); // maybe tuple ok as well?

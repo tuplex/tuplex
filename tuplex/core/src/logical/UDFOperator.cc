@@ -70,14 +70,14 @@ namespace tuplex {
 
         // remove types & rewrite
         try {
-            _udf.removeTypes(false);
-
             // first: check whether column names are different, if so apply!
             if(!conf.columns.empty()) {
                 // update internal column names & rewrite UDF accordingly
                 _columnNames = conf.columns;
                 _udf.rewriteDictAccessInAST(_columnNames, "", conf.coltype_hints);
             }
+
+            _udf.removeTypes(conf.remove_existing_annotations, true);
 
             bool success = _udf.retype(conf.row_type);
 

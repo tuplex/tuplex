@@ -603,6 +603,9 @@ namespace tuplex {
 
             // check now whether filters can be promoted or not
             if(_useFilterPromo) {
+
+                auto input_columns_before = _inputNode->columns();
+
                 promoteFilters();
 
                 // want to redo typing if checks changed!
@@ -623,6 +626,14 @@ namespace tuplex {
                     } else {
                         logger.debug("input row type changed:\nwas before: " + input_type_before_promo.desc() + "\nis now: " + input_type_after_promo.desc());
                     }
+
+                    // did column order change?
+                    if(!vec_equal(sample_columns, input_columns_before)) {
+                        std::stringstream ss;
+                        ss<<"input columns changed:\nbefore: "<<input_columns_before<<"\nafter: "<<sample_columns;
+                        logger.debug(ss.str());
+                    }
+
                     logger.debug("filter promo done.");
                 }
             }
@@ -775,6 +786,7 @@ namespace tuplex {
             r_conf.is_projected = true;
             r_conf.row_type = input_row_type;
             r_conf.columns = input_column_names;
+            r_conf.remove_existing_annotations = true; // remove all annotations (except the column restore ones?)
 
             // perform quick sanity check
             if(!r_conf.columns.empty())
@@ -793,6 +805,12 @@ namespace tuplex {
                 auto lastParent = opt_ops.empty() ? _inputNode : opt_ops.back();
                 if(!lastNode)
                     lastNode = lastParent; // set lastNode to parent to make join on fileop work!
+
+                // update RetypeConfiguration
+                r_conf.is_projected = true;
+                r_conf.row_type = last_rowtype;
+                r_conf.columns = last_columns;
+                r_conf.remove_existing_annotations = true; // remove all annotations (except the column restore ones?)
 
                 switch(node->type()) {
                     // handled above...
@@ -819,13 +837,13 @@ namespace tuplex {
                         auto oldInputType = op->getInputSchema().getRowType();
                         auto oldOutputType = op->getInputSchema().getRowType();
                         auto columns_before = op->columns();
-
+                        auto in_columns_before = op->inputColumns();
 
                         checkRowType(last_rowtype);
                         // set FIRST the parent. Why? because operators like ignore depend on parent schema
                         // therefore, this needs to get updated first.
                         op->setParent(lastParent); // need to call this before retype, so that columns etc. can be utilized.
-                        if(!op->retype(last_rowtype, last_columns, true))
+                        if(!op->retype(r_conf))
                             throw std::runtime_error("could not retype operator " + op->name());
                         opt_ops.push_back(op);
                         opt_ops.back()->setID(node->getID());
@@ -841,8 +859,11 @@ namespace tuplex {
 
 
                             // columns: before/after
+                            ss<<"input columns before:  "<<in_columns_before<<endl;
                             ss<<"output columns before: "<<columns_before<<endl;
-                            ss<<"output columns after: "<<op->columns()<<endl;
+                            ss<<"---"<<endl;
+                            ss<<"input columns after: "<<op->inputColumns()<<endl;
+                            ss<<"output columns after:  "<<op->columns()<<endl;
 
                             logger.debug(ss.str());
                         }
@@ -973,7 +994,7 @@ namespace tuplex {
                         // set FIRST the parent. Why? because operators like ignore depend on parent schema
                         // therefore, this needs to get updated first.
                         op->setParent(lastParent); // need to call this before retype, so that columns etc. can be utilized.
-                        if(!op->retype(last_rowtype, last_columns, true))
+                        if(!op->retype(r_conf))
                             throw std::runtime_error("could not retype operator " + op->name());
                         opt_ops.push_back(op);
                         opt_ops.back()->setID(node->getID());
@@ -1919,11 +1940,20 @@ namespace tuplex {
             // check how many rows adhere to the normal-case type.
             // (can upcast to normal-case type)
             size_t num_passing = 0;
+            std::vector<Row> majRows;
             for(auto row: sample) {
-                if(python::canUpcastToRowType(deoptimizedType(row.getRowType()), deoptimizedType(majType)))
+                if(python::canUpcastToRowType(deoptimizedType(row.getRowType()), deoptimizedType(majType))) {
                     num_passing++;
+                    majRows.push_back(row);
+                }
             }
+            std::stringstream sample_stream;
+            for(auto row: sample)
+                sample_stream<<row.toPythonString()<<"\n";
+            logger.debug("sample:\n" + sample_stream.str());
             logger.debug("Of " + pluralize(sample.size(), "sample row") + ", " + std::to_string(num_passing) + " adhere to detected majority type.");
+            for(unsigned i = 0; i < std::min(majRows.size(), 5ul); ++i)
+                std::cout<<majRows[i].toPythonString()<<std::endl;
 #endif
 
 

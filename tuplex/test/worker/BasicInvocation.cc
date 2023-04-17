@@ -1338,13 +1338,22 @@ TEST(BasicInvocation, SingleMessageDebug) {
     // github debug request
     message_path = "/home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_553.json";
 
+    // modified file for debugging, i.e. one with watchevents only!
+    // /home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/
+
+    // /home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/test.json instead of
+    // "/hot/data/github_daily/2012-10-15.json:0-213794112"
+    // {"inputURIS":["/home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/test.json"],"inputSizes":["213794112"],
     message_path = "/home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_1.json";
 
     auto message = fileToString(URI(message_path));
 
+    python::initInterpreter();
+    python::unlockGIL();
     // check individual messages that they work
     auto rc = app->processJSONMessage(message); // <-- second file is the critical one where something goes wrong...
-
+    python::lockGIL();
+    python::closeInterpreter();
     // // process again -> this causes error on Lambda???
     // app->processJSONMessage(message);
 

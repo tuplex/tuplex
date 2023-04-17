@@ -166,7 +166,7 @@ namespace tuplex {
     }
 
 
-    UDF& UDF::removeTypes(bool removeAnnotations) {
+    UDF& UDF::removeTypes(bool removeAnnotations, bool keep_column_annotation) {
 
         _hintedInputSchema = Schema::UNKNOWN;
         _inputSchema = Schema::UNKNOWN;
@@ -178,8 +178,18 @@ namespace tuplex {
 
         // annotations as well?
         if(removeAnnotations) {
-            ApplyVisitor av([](const ASTNode* node){ return true; }, [](ASTNode& node) {
-                node.removeAnnotation();
+            ApplyVisitor av([](const ASTNode* node){ return true; },
+                            [&keep_column_annotation](ASTNode& node) {
+                if(keep_column_annotation) {
+                    // check if there is an annotation
+                    std::string col_name = node.hasAnnotation() ? node.annotation().originalColumnName : "";
+                    node.removeAnnotation();
+                    // recreate annotation, but keep only name
+                    if(!col_name.empty())
+                        node.annotation().originalColumnName = col_name;
+                } else
+                    node.removeAnnotation();
+
             });
             _ast.getFunctionAST()->accept(av);
         }

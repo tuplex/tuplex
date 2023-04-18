@@ -22,6 +22,8 @@
 #include <string>
 #include <iostream>
 #include <Logger.h>
+#include "JSONUtils.h"
+
 #endif
 
 namespace tuplex {
@@ -280,7 +282,7 @@ namespace tuplex {
         } else if(python::Type::STRING == type) {
             std::string s;
             s = std::string(reinterpret_cast<char*>(_ptrValue));
-            return "'" + s + "'";
+            return escape_to_python_str(s);
         } else if(type.isTupleType()) {
             Tuple *t = (Tuple*) this->_ptrValue;
             return t->desc();
@@ -466,6 +468,62 @@ namespace tuplex {
 
         throw std::runtime_error("unknown type encountered for decoding.");
         return s;
+    }
+
+    std::string Field::toJsonString() const {
+
+        auto t = _type;
+
+        // what type? -> convert accordingly
+        if(t.isOptionType() && _isNull)
+            return "null";
+        else if(t.isOptionType())
+            t = t.withoutOption();
+
+        if(t == python::Type::NULLVALUE)
+            return "null";
+
+        if(t == python::Type::BOOLEAN)
+            return _iValue > 0 ? "true" : "false";
+
+        if(t == python::Type::I64)
+            return std::to_string(_iValue);
+
+        if(t == python::Type::F64)
+            return std::to_string(_dValue);
+
+        if(t == python::Type::STRING) {
+            std::string s = std::string(reinterpret_cast<const char*>(_ptrValue));
+            return escape_for_json(s);
+        }
+        if(t == python::Type::EMPTYDICT)
+            return "{}";
+        if(t == python::Type::EMPTYLIST || t == python::Type::EMPTYTUPLE)
+            return "[]";
+
+        if(t.isTupleType()) {
+            Tuple *t = (Tuple*) this->_ptrValue;
+            return t->toJsonString();
+        }
+
+        if(t.isListType()) {
+            List *l = (List*)this->_ptrValue;
+            assert(l);
+            return l->toJsonString();
+
+        }
+        if(t.isDictionaryType() || t == python::Type::GENERICDICT) {
+            // @TODO: update with concrete/correct typing -> conversion to python!
+            const char *dstr = reinterpret_cast<const char*>(_ptrValue);
+            if(!t.isStructuredDictionaryType())
+                return PrintCJSONDict(cJSON_Parse(dstr));
+            // should be JSON...
+            return dstr;
+        }
+
+
+        throw std::runtime_error("unsupported field type " + _type.desc() + " not yet supported in toJsonString conversion.");
+        return "";
     }
 
     std::string jsonToPython(const nlohmann::json& j, const python::Type& t) {

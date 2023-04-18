@@ -87,6 +87,21 @@ namespace tuplex {
         return ss.str();
     }
 
+    std::string Tuple::toJsonString() const {
+        std::stringstream ss;
+
+        ss<<"[";
+
+        if(_numElements > 0)
+            ss<<_elements[0].toJsonString();
+
+        for(int i = 1; i < _numElements; ++i) {
+            ss<<","<<_elements[i].toJsonString();
+        }
+        ss<<"]";
+        return ss.str();
+    }
+
 
     python::Type Tuple::getType() const {
         std::vector<python::Type> types;

@@ -9,6 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include "Row.h"
+#include "JSONUtils.h"
 
 namespace tuplex {
 
@@ -103,6 +104,35 @@ namespace tuplex {
         s += ")";
 
         return s;
+    }
+
+    std::string Row::toJsonString(const std::vector<std::string> &columns) const {
+        std::stringstream ss;
+        if(columns.empty()) {
+            // use []
+            ss<<"[";
+            for(unsigned i = 0; i < getNumColumns(); ++i) {
+                ss<<escape_for_json(columns[i])<<":"<<_values[i].toJsonString();
+                if(i != getNumColumns() - 1)
+                    ss<<",";
+            }
+            ss<<"]";
+        } else {
+            if(columns.size() != getNumColumns())
+                throw std::runtime_error("can not convert row to Json string, number of columns given ("
+                + std::to_string(columns.size()) + ") is different than stored number of fields ("
+                + std::to_string(getNumColumns()) + ")");
+
+            // use dictionary syntax
+            ss<<"{";
+            for(unsigned i = 0; i < getNumColumns(); ++i) {
+                ss<<escape_for_json(columns[i])<<":"<<_values[i].toJsonString();
+                if(i != getNumColumns() - 1)
+                    ss<<",";
+            }
+            ss<<"}";
+        }
+        return ss.str();
     }
 
     python::Type Row::getRowType() const {

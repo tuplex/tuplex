@@ -204,6 +204,12 @@ namespace tuplex {
             return desc();
         }
 
+        /*!
+         * convert field to Json representation
+         * @return
+         */
+        std::string toJsonString() const;
+
         bool isNull() const { return _isNull; }
 
         python::Type getType() const { return _type; }

@@ -1948,9 +1948,15 @@ namespace tuplex {
                 }
             }
             std::stringstream sample_stream;
-            for(auto row: sample)
-                sample_stream<<row.toPythonString()<<"\n";
-            logger.debug("sample:\n" + sample_stream.str());
+            for(const auto& row: sample) {
+                auto row_as_str = row.toJsonString(sample_columns); //row.toPythonString();
+                sample_stream<<row_as_str<<"\n";
+            }
+
+            std::string sample_dbg_save_path = "extracted_sample.ndjson";
+            stringToFile(sample_dbg_save_path, sample_stream.str());
+
+            logger.debug("saved obtained sample to " + sample_dbg_save_path + " as ndjson");
             logger.debug("Of " + pluralize(sample.size(), "sample row") + ", " + std::to_string(num_passing) + " adhere to detected majority type.");
             for(unsigned i = 0; i < std::min(majRows.size(), 5ul); ++i)
                 std::cout<<majRows[i].toPythonString()<<std::endl;

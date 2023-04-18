@@ -164,6 +164,12 @@ namespace tuplex {
         std::string toPythonString() const;
 
         /*!
+         * creates a representation as JSON string. If no columns are given, then the first level is represented as array
+         * @return Json string in the form o [...] if no columns are given, or {col: key, col:key, ...} if columns are given
+         */
+        std::string toJsonString(const std::vector<std::string>& columns={}) const;
+
+        /*!
          * returns for each column a string representing its contents. Can be used for display.
          * @return vector of strings of the row contents.
          */

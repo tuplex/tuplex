@@ -56,6 +56,8 @@ namespace tuplex {
 
         std::string desc() const;
 
+        std::string toJsonString() const;
+
         python::Type getType() const;
 
         size_t numElements() const { return _numElements; }

@@ -116,6 +116,20 @@ namespace tuplex {
         return ss.str();
     }
 
+    std::string List::toJsonString() const {
+        std::stringstream ss;
+
+        ss<<"[";
+
+        if(_numElements > 0)
+            ss<<_elements[0].toJsonString();
+
+        for(int i = 1; i < _numElements; ++i) {
+            ss<<","<<_elements[i].toJsonString();
+        }
+        ss<<"]";
+        return ss.str();
+    }
 
     python::Type List::getType() const {
         if(_numElements > 0)

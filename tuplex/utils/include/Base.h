@@ -442,7 +442,7 @@ inline std::string escape_to_python_str(const std::string& s) {
             res += tuplex::char2str('\\');
         res += tuplex::char2str(c);
     }
-    return res;
+    return "'" + res + "'";
 }
 
 #endif //TUPLEX_BASE_H

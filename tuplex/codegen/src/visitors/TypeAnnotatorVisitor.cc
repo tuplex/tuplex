@@ -1318,7 +1318,10 @@ namespace tuplex {
             // else python3 raises TypeError: string indices must be integers
             if(!(python::Type::BOOLEAN == index_type || python::Type::I64 == index_type)) {
                 sub->setInferredType(python::Type::UNKNOWN);
-                error("type error: string indices must be bool or int");
+                sub->setInferredType(get_exception_type(ExceptionCode::TYPEERROR));
+
+                // do NOT emit error here, rather this should be the correct python exception
+                // error("type error: string indices must be bool or int");
             } else {
                 // return type of indexing a string is always a string
                 sub->setInferredType(python::Type::STRING);
@@ -1328,8 +1331,9 @@ namespace tuplex {
             sub->setInferredType(python::Type::PYOBJECT);
         } else if(python::Type::EMPTYDICT == type) {
             // subscripting an empty dict will always yield a KeyError. I.e. warn and set generic object
-            error("subscripting an empty dictionary will always yield a KeyError. Please fix code");
-            sub->setInferredType(python::Type::UNKNOWN);
+            // error("subscripting an empty dictionary will always yield a KeyError. Please fix code");
+            // sub->setInferredType(python::Type::UNKNOWN);
+            sub->setInferredType(get_exception_type(ExceptionCode::KEYERROR));
         } else if(type.isDictionaryType()) {
             // special case: structured dict
             if(type.isStructuredDictionaryType()) {
@@ -1338,8 +1342,9 @@ namespace tuplex {
                 sub->setInferredType(type.valueType());
             }
         } else if(python::Type::EMPTYLIST == type) {
-            error("subscripting an empty list will always yield an IndexError. Please fix code");
-            sub->setInferredType(python::Type::UNKNOWN);
+            // error("subscripting an empty list will always yield an IndexError. Please fix code");
+            // sub->setInferredType(python::Type::UNKNOWN);
+            sub->setInferredType(get_exception_type(ExceptionCode::INDEXERROR));
         } else if(type.isListType()) {
             sub->setInferredType(type.elementType());
         } else if (python::Type::MATCHOBJECT == type) {

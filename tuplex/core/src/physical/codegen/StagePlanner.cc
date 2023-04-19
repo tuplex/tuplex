@@ -1124,6 +1124,14 @@ namespace tuplex {
         bool enable_cf = conf.constantFoldingOptimization;
         if(inputNode->type() == LogicalOperatorType::FILEINPUT) {
             auto fop = std::dynamic_pointer_cast<FileInputOperator>(inputNode); assert(fop);
+
+            // // debug: overwrite values!
+            // auto temp_uri = URI("/home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/bad_sample.ndjson");
+            // strata_size = 1;
+            // samples_per_strata = 1;
+            // VirtualFileSystem::fromURI(temp_uri).file_size(temp_uri, file_size);
+            // fop->setInputFiles({temp_uri}, {file_size}, true, sample_limit, true, strata_size, samples_per_strata);
+
             fop->setInputFiles({uri}, {file_size}, true, sample_limit, true, strata_size, samples_per_strata);
 
             if(fop->fileFormat() == FileFormat::OUTFMT_JSON) {

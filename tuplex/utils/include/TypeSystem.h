@@ -34,6 +34,8 @@
 #include "cereal/types/string.hpp"
 #include "cereal/types/common.hpp"
 #include "cereal/archives/binary.hpp"
+#include "ExceptionCodes.h"
+
 #endif
 
 namespace python {
@@ -860,6 +862,7 @@ namespace python {
         }
         return true;
     }
+
 }
 
 
@@ -876,5 +879,16 @@ namespace std {
     };
 
 }
+
+namespace tuplex {
+    inline python::Type get_exception_type(const ExceptionCode& ec) {
+        std::string name = "Exception";
+        name = exceptionCodeToPythonClass(ec);
+        auto t = python::TypeFactory::instance().getByName(name);
+        assert(t != python::Type::UNKNOWN);
+        return t;
+    }
+}
+
 
 #endif //TUPLEX_TYPES_H

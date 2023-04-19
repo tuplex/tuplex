@@ -37,8 +37,24 @@ namespace tuplex {
 
     void CodegenVisitor::visit(NParameter* p) {
         ApatheticVisitor::visit(p);
+    }
+
+    void CodegenVisitor::visit(NParameterList* param_list) {
+        ApatheticVisitor::visit(param_list);
+    }
+
+    void CodegenVisitor::visit(NFunction* func) {
 
     }
+
+    void CodegenVisitor::visit(NBinaryOp* op) {
+        ApatheticVisitor::visit(op);
+
+        // there should be now two operators on the stack -> retrieve and push
+        // note that precedence is important to restore the AST...
+        // can't blindly do it...
+    }
+
 
     // @TODO: fill in the rest here... -> that will take forever...
 

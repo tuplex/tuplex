@@ -685,14 +685,43 @@ namespace tuplex {
                                                     buf_spill_size);
                 break;
             }
-//            case AwsLambdaExecutionStrategy::TREE: {
-//#warning "these requests here are deprecated..."
+            case AwsLambdaExecutionStrategy::TREE: {
+
+                // configure
+                RequestConfig conf;
+
+                // check how large input data is in total
+                size_t total_size = 0;
+                for (auto info: uri_infos) {
+                    total_size += std::get<1>(info);
+                }
+
+                size_t max_lambda_parallelism = _options.AWS_MAX_CONCURRENCY();
+                size_t max_parallelism = numThreads * max_lambda_parallelism;
+                size_t chunk_lambda_size = total_size / max_lambda_parallelism;
+                size_t chunk_size = total_size / max_parallelism;
+                {
+                    std::stringstream ss;
+                    ss<<"found "<<sizeToMemString(total_size)
+                      <<" to process in total, with maximum parallelism of "<<max_parallelism
+                      <<" ("<<pluralize(max_lambda_parallelism, "lambda")
+                      <<") split into chunks of "<<sizeToMemString(chunk_size)<<" ("<<sizeToMemString(chunk_lambda_size)<<" per lambda).";
+                    logger().info(ss.str());
+                }
+
+                conf.maximum_lambda_process_size = chunk_lambda_size;
+                conf.spillURI = spillURI;
+
+                auto requests = createSpecializingSelfInvokeRequests(tstage, optimizedBitcode, numThreads, uri_infos, conf);
+
+                throw std::runtime_error("not yet supported");
 //                requests = createSelfInvokingRequests(tstage, optimizedBitcode, numThreads, uri_infos, spillURI,
 //                                                      buf_spill_size);
-//                break;
-//            }
+                break;
+            }
             default:
                 logger().error("Unknown execution strategy");
+                throw std::runtime_error("unknown invocation strategy '" + _options.AWS_LAMBDA_INVOCATION_STRATEGY() + "', abort");
                 break;
         }
         if (!requests.empty()) {
@@ -935,7 +964,7 @@ namespace tuplex {
         // when concurrency is < 200, use simple invocation strategy.
         // AWS EMR compatible setting.
 
-        // always should split into MORE parts than function concurrenct in order
+        // always should split into MORE parts than function concurrency in order
         // to max out everything...
         recursive_invocations = std::vector<size_t>{2 * _functionConcurrency - 1};
 
@@ -985,6 +1014,19 @@ namespace tuplex {
 
         logger().info("Created " + pluralize(requests.size(), "LAMBDA request") + +".");
         return requests;
+    }
+
+    std::vector<AwsLambdaRequest>
+    AwsLambdaBackend::createSpecializingSelfInvokeRequests(const TransformStage *tstage, const std::string &bitCode,
+                                                           const size_t numThreads,
+                                                           const std::vector<std::tuple<std::string, std::size_t>> &uri_infos,
+                                                           const RequestConfig &conf) {
+        // check config is valid
+        if(!conf.valid()) {
+            throw std::runtime_error("given request config is not valid.");
+        }
+
+        return {};
     }
 
     std::vector<AwsLambdaRequest>

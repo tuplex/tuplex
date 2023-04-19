@@ -143,6 +143,31 @@ namespace tuplex {
                                                                           std::string, std::size_t>>& uri_infos,
                                                                           const std::string& spillURI, const size_t buf_spill_size);
 
+        struct RequestConfig {
+            std::string spillURI;
+            size_t buf_spill_size;
+            size_t minimum_size_to_specialize; //! don't invoke hyperspecialization for small files
+            size_t specialization_unit_size; //! size on which to split files into individual specialization units,
+                                             //! i.e. if this is 1G and a file is 2G then two specializsaiton units are used.
+            size_t maximum_lambda_process_size; //! fine-grained block size what to process with a Lambda function
+
+            RequestConfig():buf_spill_size(0), minimum_size_to_specialize(0), specialization_unit_size(0), maximum_lambda_process_size(0) {}
+
+            inline bool valid() const {
+                if(0 == buf_spill_size || 0 == minimum_size_to_specialize || 0 == specialization_unit_size || 0 == maximum_lambda_process_size)
+                    return false;
+
+                return true;
+            }
+        };
+
+        std::vector<AwsLambdaRequest> createSpecializingSelfInvokeRequests(const TransformStage* tstage,
+                                                                           const std::string& bitCode,
+                                                                           const size_t numThreads,
+                                                                           const std::vector<std::tuple<
+                                                                                   std::string, std::size_t>>& uri_infos,
+                                                                                   const RequestConfig& conf);
+
         std::vector<messages::InvocationRequest> createSelfInvokingRequests(const TransformStage* tstage,
                                                                           const std::string& bitCode,
                                                                           const size_t numThreads,

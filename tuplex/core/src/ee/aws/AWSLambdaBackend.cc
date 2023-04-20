@@ -1701,6 +1701,10 @@ namespace tuplex {
         // reset path mapping
         _remoteToLocalURIMapping.clear();
 
+        // make sure to reset service and cost calculations there!
+        if(_service)
+            _service->reset();
+
         // other reset? @TODO.
     }
 

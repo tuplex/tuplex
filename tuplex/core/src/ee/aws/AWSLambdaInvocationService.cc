@@ -106,6 +106,9 @@ namespace tuplex {
 
         _numPendingRequests = 0;
         _numRequests = 0;
+
+        // reset cost counters as well!
+        _mbms = 0;
     }
 
     size_t AwsLambdaInvocationService::abortAllRequests(bool print) {

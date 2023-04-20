@@ -91,7 +91,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='CountPrimes')
     parser.add_argument('-m', '--mode', choices=["thread", "process"],
                         default="process", help='select scale mode for python.')
-    parser.add_argument('-p', '--parallelism', default=0, help='select scale mode for python.')
+    parser.add_argument('-p', '--parallelism', type=int, default=0, help='select scale mode for python.')
     args = parser.parse_args()
 
     print('>>> running {}'.format(os.path.basename(sys.executable)))

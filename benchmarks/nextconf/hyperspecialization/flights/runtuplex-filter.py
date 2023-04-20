@@ -251,6 +251,13 @@ def run_pipeline(ctx, year_lower, year_upper, sm):
         .filter(lambda x: year_lower <= x['year'] <= year_upper) \
         .tocsv(s3_output_path)
 
+# adjust settings for sampling experiment
+def adjust_settings_for_sampling_exp(settings):
+    settings['sample.maxDetectionMemory'] = '256KB'
+    settings['sample.strataSize'] = 1
+    settings['sample.samplesPerStrata'] = 1
+    return settings
+
 # adopted from sampling.runtuplex.py
 def run_sampling_experiment(ctx, year_lower, year_upper):
     available_modes = [mode for mode in tuplex.dataset.SamplingMode]
@@ -408,6 +415,10 @@ if __name__ == '__main__':
         conf["optimizer.nullValueOptimization"] = False
     else:
         conf["optimizer.nullValueOptimization"] = True
+
+    if args.experiment == 'sampling':
+        print('-- adjusting settings for sampling experiment (use Tuplex defaults)')
+        conf = adjust_settings_for_sampling_exp(conf)
 
     tstart = time.time()
     import tuplex

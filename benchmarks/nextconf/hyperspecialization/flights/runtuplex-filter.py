@@ -244,6 +244,50 @@ def fill_in_delays(row):
                 'security_delay': row['SECURITY_DELAY'],
                 'late_aircraft_delay' : row['LATE_AIRCRAFT_DELAY']}
 
+def run_pipeline(ctx, year_lower, year_upper, sm):
+    ctx.csv(input_pattern, sampling_mode=sm) \
+        .withColumn("features", extract_feature_vector) \
+        .map(fill_in_delays) \
+        .filter(lambda x: year_lower <= x['year'] <= year_upper) \
+        .tocsv(s3_output_path)
+
+# adjust settings for sampling experiment
+def adjust_settings_for_sampling_exp(settings):
+    settings['sample.maxDetectionMemory'] = '256KB'
+    settings['sample.strataSize'] = 1
+    settings['sample.samplesPerStrata'] = 1
+    return settings
+
+# adopted from sampling.runtuplex.py
+def run_sampling_experiment(ctx, year_lower, year_upper):
+    available_modes = [mode for mode in tuplex.dataset.SamplingMode]
+    print('Following sampling modes are supported: {}'.format(available_modes))
+
+    combos = [tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS,
+              tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS,
+              tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS,
+              tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS,
+              tuplex.dataset.SamplingMode.ALL_FILES | tuplex.dataset.SamplingMode.FIRST_ROWS,
+              tuplex.dataset.SamplingMode.ALL_FILES | tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS]
+    print('Testing sampling times for following modes: {}'.format(combos))
+
+    rows = []
+    for sm in combos:
+        print('--> Running with Sampling mode {}'.format(sm))
+        tstart = time.time()
+
+        # run pipeline
+        run_pipeline(ctx, year_lower, year_upper, sm)
+
+        job_time = time.time() - tstart
+        row = {'sampling_mode': str(sm), 'job_time': job_time, 'metrics': ctx.metrics.as_dict(), 'options': ctx.options()}
+        print('--- done ---')
+        print(row)
+        rows.append(row)
+
+    print('SAMPLING RESULTS::')
+    print(rows)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Flights hyper specialization query')
     parser.add_argument('--no-hyper', dest='no_hyper', action="store_true",
@@ -260,6 +304,7 @@ if __name__ == '__main__':
     parser.add_argument('--samples-per-strata', dest='samples_per_strata', default=10, help='how many samples to use per strata')
     parser.add_argument('--strata-size', dest='strata_size', default=1024,
                         help='how many samples to use per strata')
+    parser.add_argument('--experiment', choices=["normal", "sampling"], default='normal', help='select whether to run query as is, or run cycling through sampling modes')
     parser.add_argument('--num-years', dest='num_years', action='store', choices=['auto'] + [str(year) for year in list(range(1, 2021-1987+2))], default='auto', help='if auto the range 2002-2005 will be used (equivalent to --num-years=4).')
     args = parser.parse_args()
 
@@ -371,24 +416,29 @@ if __name__ == '__main__':
     else:
         conf["optimizer.nullValueOptimization"] = True
 
+    if args.experiment == 'sampling':
+        print('-- adjusting settings for sampling experiment (use Tuplex defaults)')
+        conf = adjust_settings_for_sampling_exp(conf)
+
     tstart = time.time()
     import tuplex
     ctx = tuplex.Context(conf)
 
     startup_time = time.time() - tstart
     print('Tuplex startup time: {}'.format(startup_time))
+
+    # check which experiment to use
+    if args.experiment == 'sampling':
+        run_sampling_experiment(ctx, year_lower, year_upper)
+        sys.exit(0)
+    else:
+        assert args.experiment == 'normal', 'experiment should be normal'
+        pass
+
     tstart = time.time()
     ### QUERY HERE ###
 
-    #debug
-    #input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_1999_05.csv'
-    #input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_1987_10.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2001_09.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2021_11.csv"
-
-    ctx.csv(input_pattern, sampling_mode=sm) \
-        .withColumn("features", extract_feature_vector) \
-        .map(fill_in_delays) \
-        .filter(lambda x: year_lower <= x['year'] <= year_upper) \
-        .tocsv(s3_output_path)
+    run_pipeline(ctx, year_lower, year_upper, sm)
 
     ### END QUERY ###
     run_time = time.time() - tstart

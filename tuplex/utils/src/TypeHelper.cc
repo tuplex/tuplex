@@ -601,11 +601,28 @@ namespace tuplex {
             return unifyTypes(deoptimizedType(a), deoptimizedType(b),
                               policy);
 
-        if(a == python::Type::NULLVALUE)
-            return python::Type::makeOptionType(b);
+        if(a == python::Type::NULLVALUE) {
+            if(policy.allowExceptionOptions)
+                return python::Type::makeOptionType(b);
+            else {
+                if(b.isExceptionType())
+                    return python::Type::UNKNOWN;
+                else
+                    return python::Type::makeOptionType(b);
+            }
+        }
 
-        if(b == python::Type::NULLVALUE)
-            return python::Type::makeOptionType(a);
+
+        if(b == python::Type::NULLVALUE) {
+            if(policy.allowExceptionOptions)
+                return python::Type::makeOptionType(a);
+            else {
+                if(a.isExceptionType())
+                    return python::Type::UNKNOWN;
+                else
+                    return python::Type::makeOptionType(a);
+            }
+        }
 
         // check for optional type
         bool makeOption = false;

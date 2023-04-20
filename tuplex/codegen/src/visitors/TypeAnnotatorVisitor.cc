@@ -1211,6 +1211,10 @@ namespace tuplex {
             }
         }
 
+        // do not process further if type is exception type.
+        if(sub->getInferredType().isExceptionType())
+            return;
+
         ApatheticVisitor::visit(sub);
 
         // there are only two valid typings yet allowed:
@@ -1349,6 +1353,9 @@ namespace tuplex {
             sub->setInferredType(type.elementType());
         } else if (python::Type::MATCHOBJECT == type) {
             sub->setInferredType(python::Type::STRING);
+        } else if(type.isExceptionType()) {
+            // if type is exception, do not further visit.
+            sub->setInferredType(type);
         } else {
             std::stringstream errMessage;
             errMessage<<"subscript operation [] is performed on unsupported type "<<type.desc();

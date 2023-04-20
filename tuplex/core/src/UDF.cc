@@ -1621,7 +1621,16 @@ namespace tuplex {
         // run type annotator on top of tree which has been equipped with annotations now
         auto res = hintInputSchema(Schema(Schema::MemoryLayout::ROW, inputSchema.getRowType()), false, false); // TODO: could do this directly in tracevisitor as well, but let's separate concerns here...
         if(!res) {
-            logger.error("type inference using traced sample failed. Details: Failed to annotate AST tree with tracing results.");
+            // gey typing error messages
+            std::stringstream  ss;
+            if(!_ast.typingErrMessages().empty()) {
+                ss<<"\n";
+                for(auto err : _ast.typingErrMessages()) {
+                    ss<<"  -- "<<err<<"\n";
+                }
+            }
+
+            logger.error("type inference using traced sample failed. Details: Failed to annotate AST tree with tracing results." + ss.str());
             return false;
         }
 

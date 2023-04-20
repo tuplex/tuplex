@@ -146,6 +146,46 @@ namespace tuplex {
           .tocsv(output_path);
     }
 
+    TEST_F(FlightsQuery, FullNewFilterQueryWithTuplexSettings) {
+        using namespace std;
+
+        // set input/output paths
+        auto exp_settings = localWorkerSettings(true); // lambdaSettings(true);
+        auto input_pattern = exp_settings["input_path"];
+        auto output_path = exp_settings["output_path"];
+        SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));
+        ContextOptions co = ContextOptions::defaults();
+        for(const auto& kv : exp_settings)
+            if(startsWith(kv.first, "tuplex."))
+                co.set(kv.first, kv.second);
+
+
+        // set sampling back to regular one & use just 256KB
+        // sampling Mode C
+        sm = SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE | SamplingMode::FIRST_ROWS;
+        co.set("tuplex.sample.strataSize", "1");
+        co.set("tuplex.sample.samplesPerStrata", "1");
+
+        // creater context according to settings
+        Context ctx(co);
+
+        runtime::init(co.RUNTIME_LIBRARY().toPath());
+
+        // dump settings
+        stringToFile("context_settings.json", ctx.getOptions().toString());
+
+        // now perform query...
+        auto& ds = ctx.csv(input_pattern, {}, option<bool>::none, option<char>::none, '"', {""}, {}, {}, sm);
+
+        // add function that normalizes features (f-mean) / std
+        // and then perform linear model for all of the variables in fill-in-delays function (adjusted)
+        // now create extract vec (but only for relevant years!)
+        ds.withColumn("features", UDF(extractFeatureVectorCode()))
+                .map(UDF(extractFillDelaysCode()))
+                .filter(UDF("lambda row: 2000 <= row['year'] <= 2005"))
+                .tocsv(output_path);
+    }
+
     TEST_F(FlightsQuery, FullNewFilterQueryWithTreeInvoke) {
         using namespace std;
 

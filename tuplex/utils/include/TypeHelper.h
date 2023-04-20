@@ -98,11 +98,13 @@ namespace tuplex {
         bool treatMissingDictKeysAsNone; ///! whether to treat missing (key, value) pairs as None when unifying structured dictionaries
         bool allowUnifyWithPyObject; ///! when any of a, b is pyobject -> unify to pyobject.
         bool unifyMissingDictKeys; ///! when unifying dictionaries, create a maybe pair if possible to unify types or not.
+        bool allowExceptionOptions; ///! whether to allow Option[Exception] objects or not
 
         TypeUnificationPolicy() : allowAutoUpcastOfNumbers(false),
         treatMissingDictKeysAsNone(false),
         allowUnifyWithPyObject(false),
-        unifyMissingDictKeys(false) {}
+        unifyMissingDictKeys(false),
+        allowExceptionOptions(false) {}
 
         static TypeUnificationPolicy defaultPolicy() { return TypeUnificationPolicy(); }
     };

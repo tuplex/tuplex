@@ -610,20 +610,22 @@ namespace tuplex {
         ctx.json(input_pattern, true, true, sm)
                 .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
                 .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
-                .withColumn("repo_id", UDF(repo_id_code))
-                .withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
-                .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
-                .withColumn("forkee", UDF(extract_forkee))
-                .withColumn("forkee_url", UDF(extract_forkee_url))
-                //.withColumn("watchers", UDF(extract_watchers))
-                .withColumn("stargazers", UDF(extract_stargazers))
-                .withColumn("forks", UDF(extract_forks))
-                .withColumn("lang", UDF(extract_lang))
-                .selectColumns(vector<string>{"type", "repo_id", "year",
-                                              "number_of_commits", "lang", "forkee", "forkee_url",
-                                              //"watchers",
-
-                                              "stargazers", "forks"})
+                //.withColumn("repo_id", UDF(repo_id_code))
+                //.withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
+                //.withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
+                //.withColumn("forkee", UDF(extract_forkee))
+                //.withColumn("forkee_url", UDF(extract_forkee_url))
+                .withColumn("watchers", UDF(extract_watchers))
+                //.withColumn("stargazers", UDF(extract_stargazers))
+                //.withColumn("forks", UDF(extract_forks))
+                //.withColumn("lang", UDF(extract_lang))
+                .selectColumns(vector<string>{"type", "year", "watchers"})
+//                .selectColumns(vector<string>{"type", "repo_id", "year",
+//                              "number_of_commits", "forkee", "forkee_url", "watchers"})
+                // .selectColumns(vector<string>{"type", "repo_id", "year",
+                //                              "number_of_commits", "lang", "forkee", "forkee_url",
+                //                              "watchers",
+                //                              "stargazers", "forks"})
                 .tocsv(output_path);
     }
 }

@@ -1747,7 +1747,17 @@ namespace tuplex {
                     // if option was found, check if isnull -> then add null value as space!
                     // if not, load size (note: this can be an arbitrary value...)
                     if(foundOption) {
-                        str_size_required = builder.CreateSelect(row.getIsNull(i), env.i64Const(null_value.length()), str_size_required);
+
+                        // fix bug with this
+                        if(!row.getIsNull(i)) {
+#ifndef NDEBUG
+                            Logger::instance().logger("codegen").warn("error in fast_csvwriter, got option but null field is not set. Need to correct");
+#endif
+                            // nothing happens
+                            assert(str_size_required);
+                        } else {
+                            str_size_required = builder.CreateSelect(row.getIsNull(i), env.i64Const(null_value.length()), str_size_required);
+                        }
                     }
 
                     // fetch size and add, times 2 + 2 because of quoting

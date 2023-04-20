@@ -220,7 +220,7 @@ namespace tuplex {
                 // changed builder, now return normal/positive result
                 return SerializableValue(builder.CreateLoad(value), i64Size);
             } else {
-                logger.error("not support for objects of type " + type.desc() + " in int(...) call");
+                logger.error("no support for objects of type " + type.desc() + " in int(...) call");
                 return SerializableValue();
             }
 

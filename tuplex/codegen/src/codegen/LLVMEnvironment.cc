@@ -2855,7 +2855,7 @@ namespace tuplex {
             } else if(python::Type::NULLVALUE == type) {
                 retVal.is_null = env.i1Const(true);
             } else {
-                throw std::runtime_error("not support to create dummy value for " + type.desc() + " yet.");
+                throw std::runtime_error("no support to create dummy value for " + type.desc() + " yet.");
             }
             return retVal;
         }

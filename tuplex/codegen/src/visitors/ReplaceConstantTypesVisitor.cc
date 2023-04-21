@@ -32,6 +32,11 @@ namespace tuplex {
             num->setInferredType(t);
             return num;
         } else if(python::Type::STRING == type) {
+
+            // hack
+            if(!is_encoded_python_str(value))
+                value = escape_to_python_str(value);
+
             // check that string is quoted with ''!
             if(value.empty() || value.front() != '\'' || value.back() != '\'')
                 throw std::runtime_error("make sure string constants are escaped using '' ");

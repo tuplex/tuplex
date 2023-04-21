@@ -165,6 +165,7 @@ namespace tuplex {
         sm = SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE | SamplingMode::FIRST_ROWS;
         co.set("tuplex.sample.strataSize", "1");
         co.set("tuplex.sample.samplesPerStrata", "1");
+        co.set("tuplex.sample.maxDetectionMemory", "256KB");
 
         // creater context according to settings
         Context ctx(co);

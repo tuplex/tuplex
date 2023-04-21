@@ -17,12 +17,30 @@ PYTHON=python3.9
 # rm job folder if it exists...
 [ -d job ] && rm -rf job
 
+
 ### Invoke script in sampling experiment mode ###
-echo "Benchmark different sampling modes using tuplex"
+echo "Benchmark different sampling modes using tuplex on small dataset (2002-2005)"
 for ((r = 1; r <= NUM_RUNS; r++)); do
-  LOG="${RESDIR}/flights-sampling-run-$r.txt"
+  LOG="${RESDIR}/flights-sampling-small-run-$r.txt"
   echo "running $r/${NUM_RUNS}"
-  timeout $TIMEOUT $PYTHON runtuplex-filter.py --experiment=sampling --no-hyper --no-cf >$LOG 2>$LOG.stderr
+  timeout $TIMEOUT $PYTHON runtuplex-filter.py --dataset=small --experiment=sampling --no-hyper --no-cf >$LOG 2>$LOG.stderr
+  # do not care about job file.
+  # copy temp aws_job.json result for analysis
+  # cp aws_job.json ${RESDIR}/"flights-hyper-run-$r.json"
+done
+# mv job folder
+mkdir -p $RESDIR/flights-hyper
+mv job/*.json $RESDIR/flights-hyper
+rm -rf job
+
+
+
+### Invoke script in sampling experiment mode ###
+echo "Benchmark different sampling modes using tuplex on full dataset (1987-2021)"
+for ((r = 1; r <= NUM_RUNS; r++)); do
+  LOG="${RESDIR}/flights-sampling-full-run-$r.txt"
+  echo "running $r/${NUM_RUNS}"
+  timeout $TIMEOUT $PYTHON runtuplex-filter.py --dataset=full --experiment=sampling --no-hyper --no-cf >$LOG 2>$LOG.stderr
   # do not care about job file.
   # copy temp aws_job.json result for analysis
   # cp aws_job.json ${RESDIR}/"flights-hyper-run-$r.json"

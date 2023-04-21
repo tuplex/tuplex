@@ -304,6 +304,7 @@ if __name__ == '__main__':
     parser.add_argument('--samples-per-strata', dest='samples_per_strata', default=10, help='how many samples to use per strata')
     parser.add_argument('--strata-size', dest='strata_size', default=1024,
                         help='how many samples to use per strata')
+    parser.add_argument('--dataset', choices=["small", "full"], default='full', help='select whether to use full (all years) or small (2002-2005) dataset')
     parser.add_argument('--experiment', choices=["normal", "sampling"], default='normal', help='select whether to run query as is, or run cycling through sampling modes')
     parser.add_argument('--num-years', dest='num_years', action='store', choices=['auto'] + [str(year) for year in list(range(1, 2021-1987+2))], default='auto', help='if auto the range 2002-2005 will be used (equivalent to --num-years=4).')
     args = parser.parse_args()
@@ -323,6 +324,11 @@ if __name__ == '__main__':
 
     # full dataset here (oO)
     input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv'
+
+    if args.dataset == 'small':
+        input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_2002_*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2003_*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2004_*.csv,s3://tuplex-public/data/flights_all/flights_on_time_performance_2005_*.csv'
+    else:
+        input_pattern = 's3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv'
 
     # manipulate inout pattern depending on files
     # here are the default values (auto)

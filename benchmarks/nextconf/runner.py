@@ -23,6 +23,7 @@ except ModuleNotFoundError as e:
 # subtargets can be done via /
 experiment_targets = ['all',
                       'flights/sampling',
+                      'flights/sampling-viton',
                       'flights/hyper',
                       'flights/years',
                       'flights/stratified',
@@ -33,6 +34,7 @@ experiment_targets = ['all',
 
 experiment_targets_description = {'all':'a meta target to run all experiments',
                                   'flights/sampling': 'runs the flights query using different sampling schemes',
+                                  'flights/sampling-viton': 'runs the flights query using different sampling schemes using viton with full cf',
                                   'flights/hyper': 'runs the flights query in general sampling mode and hyperspecialized sampling on the lambdas',
                                   'flights/years': 'runs flights query with varying filter predicate',
                                   'flights/stratified': 'runs flights query with varying samples per strata',
@@ -43,6 +45,7 @@ experiment_targets_description = {'all':'a meta target to run all experiments',
 
 experiments_path_dict = {'flights/hyper': {'script': 'benchmark-filter.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/filter'},
                          'flights/sampling': {'script': 'benchmark-sampling.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/filter-sampling'},
+                         'flights/sampling-viton': {'script': 'benchmark-sampling-viton.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/filter-sampling-viton'},
                          'flights/years': {'script': 'benchmark-all-years.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/years'},
                          'flights/stratified': {'script': 'benchmark-hyper-stratified-sampling.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/stratified-sampling'},
                          'flights/baseline': {'script': 'benchmark-python.sh', 'wd': '/code/benchmarks/nextconf/hyperspecialization/flights', 'result_dir': '/code/benchmarks/nextconf/hyperspecialization/flights/experimental_results/flights/baseline'},

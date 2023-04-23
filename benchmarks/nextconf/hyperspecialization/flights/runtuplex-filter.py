@@ -304,6 +304,8 @@ if __name__ == '__main__':
     parser.add_argument('--samples-per-strata', dest='samples_per_strata', default=10, help='how many samples to use per strata')
     parser.add_argument('--strata-size', dest='strata_size', default=1024,
                         help='how many samples to use per strata')
+    parser.add_argument('--fast-client-sampling',  dest='fast_client_sampling', action="store_true",
+                        help="whether to use fast client sampling, i.e. the original 256KB Tuplex uses.")
     parser.add_argument('--dataset', choices=["small", "full"], default='full', help='select whether to use full (all years) or small (2002-2005) dataset')
     parser.add_argument('--experiment', choices=["normal", "sampling"], default='normal', help='select whether to run query as is, or run cycling through sampling modes')
     parser.add_argument('--num-years', dest='num_years', action='store', choices=['auto'] + [str(year) for year in list(range(1, 2021-1987+2))], default='auto', help='if auto the range 2002-2005 will be used (equivalent to --num-years=4).')
@@ -372,12 +374,28 @@ if __name__ == '__main__':
     else:
         s3_output_path += '/general'
 
+    # specialize sampling modes
+    sampling_max_detection_rows = 10000
+    sampling_max_detection_memory = '32MB'
+    lam_sampling_max_detection_rows = sampling_max_detection_rows
+    lam_sampling_max_detection_memory = sampling_max_detection_memory
+    lam_strata_size = strata_size
+    lam_samples_per_strata = samples_per_strata
+
+    if args.fast_client_sampling:
+        print('-- using fast client sampling (Tuplex mode)')
+        sampling_max_detection_memory = '256KB'
+        # deactivate stratified sampling like in original experiment, but keep for lambdas.
+        samples_per_strata = 1
+        strata_size = 1
+
     print('>>> running {} on {} -> {}'.format('tuplex', input_pattern, s3_output_path))
     print('    running in interpreter mode: {}'.format(args.python_mode))
     print('    hyperspecialization: {}'.format(use_hyper_specialization))
     print('    constant-folding: {}'.format(use_constant_folding))
     print('    null-value optimization: {}'.format(not args.no_nvo))
-    print('    strata: {} per {}'.format(samples_per_strata, strata_size))
+    print('    client:: strata: {} per {}'.format(samples_per_strata, strata_size))
+    print('    lambda:: strata: {} per {}'.format(lam_samples_per_strata, lam_strata_size))
     # load data
     tstart = time.time()
 
@@ -390,9 +408,14 @@ if __name__ == '__main__':
             "aws.lambdaTimeout": 900, # maximum allowed is 900s!
             "aws.httpThreadCount": 410,
             "aws.maxConcurrency": 410,
-            'sample.maxDetectionMemory': '32MB',
+            'sample.maxDetectionRows': sampling_max_detection_rows,
+            'sample.maxDetectionMemory': sampling_max_detection_memory,
             'sample.strataSize': strata_size,
             'sample.samplesPerStrata': samples_per_strata,
+            'lambda.sample.maxDetectionRows': lam_sampling_max_detection_rows,
+            'lambda.sample.maxDetectionMemory': lam_sampling_max_detection_memory,
+            'lambda.sample.strataSize': lam_strata_size,
+            'lambda.sample.samplesPerStrata': lam_samples_per_strata,
             "aws.scratchDir": s3_scratch_dir,
             "autoUpcast":True,
             "experimental.hyperspecialization": use_hyper_specialization,

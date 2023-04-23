@@ -69,10 +69,16 @@ namespace tuplex {
 
         // sampling settings incl.
         // stratified sampling (to make things work & faster)
-        m["tuplex.sample.strataSize"] = "1024";
-        m["tuplex.sample.samplesPerStrata"]="1";
-        m["tuplex.sample.maxDetectionMemory"] = "32MB";
-        m["tuplex.sample.maxDetectionRows"] = "30000";
+        // m["tuplex.sample.strataSize"] = "1024";
+        // m["tuplex.sample.samplesPerStrata"]="1";
+        // m["tuplex.sample.maxDetectionMemory"] = "32MB";
+        // m["tuplex.sample.maxDetectionRows"] = "30000";
+
+        // use lambda settings & keep above settings original to Tuplex (cheap client-side sampling)
+        m["tuplex.lambda.sample.strataSize"] = "1024";
+        m["tuplex.lambda.sample.samplesPerStrata"]="1";
+        m["tuplex.lambda.sample.maxDetectionMemory"] = "32MB";
+        m["tuplex.lambda.sample.maxDetectionRows"] = "30000";
 
         auto sampling_mode = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE;
         m["sampling_mode"] = std::to_string(sampling_mode);

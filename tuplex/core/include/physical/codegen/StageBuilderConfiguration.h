@@ -26,6 +26,8 @@ namespace tuplex {
 
             bool pure_python_mode; // whether to generate only python code
 
+            size_t sampling_size; // re-sampling sample size
+
             ExceptionSerializationMode exceptionSerializationMode;
 
             StageBuilderConfiguration() : policy(CompilePolicy()),
@@ -38,7 +40,8 @@ namespace tuplex {
                                           generateSpecializedNormalCaseCodePath(true),
                                           filterPromotion(false),
                                           pure_python_mode(false),
-                                          exceptionSerializationMode(ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE) {}
+                                          exceptionSerializationMode(ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE),
+                                          sampling_size(0) {}
 
             // update with context option object
             inline void applyOptions(const ContextOptions& co) {
@@ -50,6 +53,7 @@ namespace tuplex {
                 constantFoldingOptimization = co.OPT_CONSTANTFOLDING_OPTIMIZATION();
                 filterPromotion = co.OPT_FILTER_PROMOTION();
                 pure_python_mode = co.PURE_PYTHON_MODE();
+                sampling_size = co.SAMPLE_MAX_DETECTION_MEMORY();
 
                 // from options, infer
                 if(co.EXPERIMENTAL_FORCE_BAD_PARSE_EXCEPT_FORMAT())

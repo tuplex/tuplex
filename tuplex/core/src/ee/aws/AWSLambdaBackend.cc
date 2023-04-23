@@ -1026,6 +1026,30 @@ namespace tuplex {
             throw std::runtime_error("given request config is not valid.");
         }
 
+        std::vector<AwsLambdaRequest> requests;
+
+        // now generation is quite simple. Go over files, and then check wrt to specialization size if they're large enough to get specialized on. Then issue appropriate number of requests.
+        for(auto uri_info : uri_infos) {
+            auto input_uri = std::get<0>(uri_info);
+            auto input_uri_size = std::get<1>(uri_info);
+
+            if(input_uri_size >= conf.minimum_size_to_specialize) {
+                // issue specialization query!
+
+                // how many queries to issue? could be that input uri needs to be split up into multiple files...!
+                // -> make sure each part is at least specialization unit size
+                assert(conf.specialization_unit_size >= conf.minimum_size_to_specialize);
+
+
+
+            } else {
+                // not large enough to warrant specialization. process in parallel
+
+            }
+        }
+
+        logger().info("Created " + std::to_string(requests.size()) + " LAMBDA requests.");
+
         return {};
     }
 

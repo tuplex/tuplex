@@ -321,9 +321,9 @@ namespace tuplex {
         std::vector<std::string> other_keys({"tuplex.experimental.opportuneCompilation",
                                              "tuplex.experimental.s3PreCacheSize",
                                              "tuplex.useLLVMOptimizer",
-                                             "tuplex.sample.maxDetectionRows",
-                                             "tuplex.sample.strataSize",
-                                             "tuplex.sample.samplesPerStrata",
+                                             // "tuplex.sample.maxDetectionRows",
+                                             // "tuplex.sample.strataSize",
+                                             // "tuplex.sample.samplesPerStrata",
                                              "tuplex.optimizer.constantFoldingOptimization",
                                              "tuplex.optimizer.filterPromotion",
                                              "tuplex.experimental.forceBadParseExceptFormat",
@@ -331,6 +331,13 @@ namespace tuplex {
         auto& m_map = *(ws->mutable_other());
         for(const auto& key : other_keys)
             m_map[key] = options.get(key);
+
+        // special case, remap sampling numbers
+        m_map["tuplex.sample.maxDetectionMemory"] = std::to_string(options.AWS_LAMBDA_SAMPLE_MAX_DETECTION_MEMORY());
+        m_map["tuplex.sample.maxDetectionRows"] = std::to_string(options.AWS_LAMBDA_SAMPLE_MAX_DETECTION_ROWS());
+        m_map["tuplex.sample.strataSize"] = std::to_string(options.AWS_LAMBDA_SAMPLE_STRATA_SIZE());
+        m_map["tuplex.sample.samplesPerStrata"] = std::to_string(options.AWS_LAMBDA_SAMPLE_SAMPLES_PER_STRATA());
+
     }
 
     std::string find_worker() {

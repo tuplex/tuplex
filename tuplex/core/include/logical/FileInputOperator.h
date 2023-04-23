@@ -135,6 +135,12 @@ namespace tuplex {
             return python::Type::makeTupleType(col_types);
         }
 
+        /*!
+         * set sampling size (i.e., for hyperspecializastion)
+         * @param sampling_size
+         */
+        void setSamplingSize(size_t sampling_size) { _samplingSize = sampling_size; }
+
         inline size_t reverseProjectToReadIndex(size_t projected_index) const {
 #ifndef NDEBUG
             if(projected_index >= outputColumnCount()) {

@@ -212,6 +212,10 @@ namespace tuplex {
                      {"tuplex.sample.maxDetectionMemory", "256KB"},
                      {"tuplex.sample.strataSize", "1"},
                      {"tuplex.sample.samplesPerStrata", "1"},
+                     {"tuplex.lambda.sample.maxDetectionRows", "auto"},
+                     {"tuplex.lambda.sample.maxDetectionMemory", "auto"},
+                     {"tuplex.lambda.sample.strataSize", "auto"},
+                     {"tuplex.lambda.sample.samplesPerStrata", "auto"},
                      {"tuplex.csv.separators", "[',', ';', '|', '\t']"},
                      {"tuplex.csv.quotechar", "\""},
                      {"tuplex.csv.comments", "['#', '~']"},
@@ -280,6 +284,10 @@ namespace tuplex {
                      {"tuplex.sample.maxDetectionMemory", "256KB"},
                      {"tuplex.sample.strataSize", "1"},
                      {"tuplex.sample.samplesPerStrata", "1"},
+                     {"tuplex.lambda.sample.maxDetectionRows", "auto"},
+                     {"tuplex.lambda.sample.maxDetectionMemory", "auto"},
+                     {"tuplex.lambda.sample.strataSize", "auto"},
+                     {"tuplex.lambda.sample.samplesPerStrata", "auto"},
                      {"tuplex.csv.separators", "[',', ';', '|', '\t']"},
                      {"tuplex.csv.quotechar", "\""},
                      {"tuplex.csv.comments", "['#', '~']"},
@@ -670,9 +678,13 @@ namespace tuplex {
         return memStringToSize(_store.at("tuplex.sample.maxDetectionMemory"));
     }
 
-    size_t ContextOptions::SAMPLE_STRATA_SIZE() const {
+    size_t ContextOptions::SAMPLE_MAX_DETECTION_ROWS() const {
+        auto val = _store.at("tuplex.sample.maxDetectionRows");
+        return std::stoull(val);
+    }
+
+    static size_t parse_strata_size(const std::string& entry) {
         auto& logger = Logger::instance().defaultLogger();
-        auto entry = _store.at("tuplex.sample.strataSize");
         try {
             auto size = std::stoi(entry);
             if(size < 1)
@@ -693,12 +705,15 @@ namespace tuplex {
         }
     }
 
-    size_t ContextOptions::SAMPLE_SAMPLES_PER_STRATA() const {
+    size_t ContextOptions::SAMPLE_STRATA_SIZE() const {
+        auto entry = _store.at("tuplex.sample.strataSize");
+        return parse_strata_size(entry);
+    }
+
+    static size_t parse_samples_per_strata(const std::string& entry, size_t strata_size) {
         auto& logger = Logger::instance().defaultLogger();
-        auto entry = _store.at("tuplex.sample.samplesPerStrata");
         try {
             auto size = std::stoi(entry);
-            auto strata_size = SAMPLE_STRATA_SIZE();
             if(size > strata_size) {
                 std::stringstream ss;
                 ss<<"Given samples_per_strata is "<<size<<" but strata size is "<<strata_size<<", setting samples_per_strata to "<<strata_size;
@@ -717,17 +732,52 @@ namespace tuplex {
         }
     }
 
+    size_t ContextOptions::SAMPLE_SAMPLES_PER_STRATA() const {
+        auto entry = _store.at("tuplex.sample.samplesPerStrata");
+        auto strata_size = SAMPLE_STRATA_SIZE();
+        return parse_samples_per_strata(entry, strata_size);
+    }
+
+    size_t ContextOptions::AWS_LAMBDA_SAMPLE_MAX_DETECTION_MEMORY() const {
+        auto entry = _store.at("tuplex.lambda.sample.maxDetectionMemory");
+        if("auto" == entry || "client" == entry)
+            return SAMPLE_MAX_DETECTION_MEMORY();
+        else
+            return memStringToSize(entry);
+    }
+
+    size_t ContextOptions::AWS_LAMBDA_SAMPLE_MAX_DETECTION_ROWS() const {
+        auto entry = _store.at("tuplex.lambda.sample.maxDetectionRows");
+        if("auto" == entry || "client" == entry)
+            return SAMPLE_MAX_DETECTION_ROWS();
+        else
+            return std::stoull(entry);
+    }
+
+    size_t ContextOptions::AWS_LAMBDA_SAMPLE_STRATA_SIZE() const {
+        auto entry = _store.at("tuplex.lambda.sample.strataSize");
+        if("auto" == entry || "client" == entry)
+            return SAMPLE_STRATA_SIZE();
+        else
+            return parse_strata_size(entry);
+    }
+
+    size_t ContextOptions::AWS_LAMBDA_SAMPLE_SAMPLES_PER_STRATA() const {
+        auto entry = _store.at("tuplex.lambda.sample.samplesPerStrata");
+        if("auto" == entry || "client" == entry)
+            return SAMPLE_SAMPLES_PER_STRATA();
+        else {
+            auto lambda_strata_size = AWS_LAMBDA_SAMPLE_STRATA_SIZE();
+            return parse_samples_per_strata(entry, lambda_strata_size);
+        }
+    }
+
     size_t ContextOptions::INPUT_SPLIT_SIZE() const {
         return memStringToSize(_store.at("tuplex.inputSplitSize"));
     }
 
     size_t ContextOptions::READ_BUFFER_SIZE() const {
         return memStringToSize(_store.at("tuplex.readBufferSize"));
-    }
-
-    size_t ContextOptions::SAMPLE_MAX_DETECTION_ROWS() const {
-        auto val = _store.at("tuplex.sample.maxDetectionRows");
-        return std::stoull(val);
     }
 
     char ContextOptions::CSV_QUOTECHAR() const {

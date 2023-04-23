@@ -132,11 +132,17 @@ namespace tuplex {
         std::vector<char> CSV_COMMENTS() const; //! characters used to identify comments in csv file
         std::vector<char> CSV_SEPARATORS() const; //! potential CSV separators to scan
         char CSV_QUOTECHAR() const; //! quote char used for csv
+
         size_t SAMPLE_MAX_DETECTION_MEMORY() const; //! maximum bytes to use for schema inference for each file source (for each sampling request)
         size_t SAMPLE_MAX_DETECTION_ROWS() const; //! maximum number of rows to use for schema inference for each file source
-
         size_t SAMPLE_STRATA_SIZE() const; // size of strata, if 1 no stratified sampling is used.
         size_t SAMPLE_SAMPLES_PER_STRATA() const; // samples per strata, between 1 to SAMPLE_STRATA_SIZE().
+
+        // the same sampling scheme, but with separate settings for each lambda. If set to "auto" or "client" will inherit from client setings.
+        size_t AWS_LAMBDA_SAMPLE_MAX_DETECTION_MEMORY() const; //! maximum bytes to use for schema inference for each file source (for each sampling request)
+        size_t AWS_LAMBDA_SAMPLE_MAX_DETECTION_ROWS() const; //! maximum number of rows to use for schema inference for each file source
+        size_t AWS_LAMBDA_SAMPLE_STRATA_SIZE() const; // size of strata, if 1 no stratified sampling is used.
+        size_t AWS_LAMBDA_SAMPLE_SAMPLES_PER_STRATA() const; // samples per strata, between 1 to SAMPLE_STRATA_SIZE().
 
         bool USE_STRATIFIED_SAMPLING() const { return SAMPLE_STRATA_SIZE() != 1 || SAMPLE_SAMPLES_PER_STRATA() != SAMPLE_STRATA_SIZE(); }
 

@@ -394,6 +394,25 @@ namespace tuplex {
             conf.constantFoldingOptimization = _settings.useConstantFolding;
             conf.exceptionSerializationMode = _settings.exceptionSerializationMode;
             conf.filterPromotion = _settings.useFilterPromotion;
+
+            // overwrite sampling size using settings
+            conf.sampling_size = _settings.samplingSize;
+
+            // print out quick info regarding sampling settings
+            {
+                std::stringstream  ss;
+                ss<<"hyperspecializing with sampling settings: "<<"size=";
+                if(0 == _settings.samplingSize) {
+                    ss<<"client (client) ";
+                } else {
+                    ss<<sizeToMemString(_settings.samplingSize)<<" ("<<_settings.samplingSize<<") ";
+                }
+                ss<<"maxrows="<<_settings.sampleLimitCount<<" ";
+                ss<<"stratasize="<<_settings.strataSize<<" ";
+                ss<<"samplesperstrata="<<_settings.samplesPerStrata<<" ";
+                logger().info(ss.str());
+            }
+
             bool hyper_rc = hyperspecialize(tstage,
                                             uri,
                                             file_size,
@@ -1827,6 +1846,14 @@ namespace tuplex {
         } else {
             ws.useFilterPromotion = false;
         }
+
+        it = req.settings().other().find("tuplex.sample.maxDetectionMemory");
+        if(it != req.settings().other().end()) {
+            ws.samplingSize = std::stoull(it->second);
+        } else {
+            ws.samplingSize = 0; // ignore, i.e. use whatever is serialized in operator.
+        }
+
         it = req.settings().other().find("tuplex.sample.maxDetectionRows");
         if(it != req.settings().other().end()) {
             ws.sampleLimitCount = std::stoull(it->second);

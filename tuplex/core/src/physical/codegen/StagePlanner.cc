@@ -1132,6 +1132,11 @@ namespace tuplex {
             // VirtualFileSystem::fromURI(temp_uri).file_size(temp_uri, file_size);
             // fop->setInputFiles({temp_uri}, {file_size}, true, sample_limit, true, strata_size, samples_per_strata);
 
+            // use sampling size provided
+            if(0 != conf.sampling_size)
+                fop->setSamplingSize(conf.sampling_size);
+
+            // resample
             fop->setInputFiles({uri}, {file_size}, true, sample_limit, true, strata_size, samples_per_strata);
 
             if(fop->fileFormat() == FileFormat::OUTFMT_JSON) {

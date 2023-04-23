@@ -135,6 +135,7 @@ namespace tuplex {
         bool opportuneGeneralPathCompilation; // <-- whether to kick off query optimization as early on as possible
         size_t s3PreCacheSize; // <-- whether to load S3 first and activate cache
         bool useOptimizer; // <-- whether to use optimizer for hyper or not
+        size_t samplingSize; // how many mb/kb to use for sampling.
         size_t sampleLimitCount; // <-- limit count imposed on resampling
         size_t strataSize;
         size_t samplesPerStrata;
@@ -152,7 +153,8 @@ namespace tuplex {
         useFilterPromotion(false), useConstantFolding(false),
         s3PreCacheSize(0),
         exceptionSerializationMode(codegen::ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE),
-        specializationUnitSize(0) {
+        specializationUnitSize(0),
+        samplingSize(0) {
 
             // set some options from defaults...
             auto opt = ContextOptions::defaults();
@@ -163,6 +165,7 @@ namespace tuplex {
             sampleLimitCount = std::numeric_limits<size_t>::max();
             strataSize = 1;
             samplesPerStrata = 1;
+            samplingSize = opt.AWS_LAMBDA_SAMPLE_MAX_DETECTION_MEMORY();
         }
 
         WorkerSettings(const WorkerSettings& other) : numThreads(other.numThreads),
@@ -185,7 +188,8 @@ namespace tuplex {
         exceptionSerializationMode(other.exceptionSerializationMode),
         strataSize(other.strataSize),
         samplesPerStrata(other.samplesPerStrata),
-        specializationUnitSize(other.specializationUnitSize) {}
+        specializationUnitSize(other.specializationUnitSize),
+        samplingSize(other.samplingSize) {}
 
         inline bool operator == (const WorkerSettings& other) const {
 
@@ -234,6 +238,9 @@ namespace tuplex {
             if(specializationUnitSize != other.specializationUnitSize)
                 return false;
 
+            if(samplingSize != other.samplingSize)
+                return false;
+
             return true;
         }
 
@@ -258,6 +265,7 @@ namespace tuplex {
         os << "\"useOptimizer\":"<<boolToString(ws.useOptimizer)<<", ";
         os << "\"sampleLimitCount\":"<<ws.sampleLimitCount<<", ";
         os << "\"strataSize\":"<<ws.strataSize<<", ";
+        os << "\"sampleSize\":"<<ws.samplingSize<<", ";
         os << "\"samplesPerStrata\":"<<ws.samplesPerStrata<<", ";
         os << "\"useFilterPromotion\":"<<boolToString(ws.useFilterPromotion)<<", ";
         os << "\"useConstantFolding\":"<<boolToString(ws.useConstantFolding)<<", ";

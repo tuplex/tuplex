@@ -309,6 +309,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', choices=["small", "full"], default='full', help='select whether to use full (all years) or small (2002-2005) dataset')
     parser.add_argument('--experiment', choices=["normal", "sampling"], default='normal', help='select whether to run query as is, or run cycling through sampling modes')
     parser.add_argument('--num-years', dest='num_years', action='store', choices=['auto'] + [str(year) for year in list(range(1, 2021-1987+2))], default='auto', help='if auto the range 2002-2005 will be used (equivalent to --num-years=4).')
+    parser.add_argument('--sampling-mode', dest='sampling_mode', default=None, action='store', choices=['A', 'B', 'C', 'D', 'E'], help='select sampling mode')
     args = parser.parse_args()
 
     if not 'AWS_ACCESS_KEY_ID' in os.environ or 'AWS_SECRET_ACCESS_KEY' not in os.environ:
@@ -355,17 +356,13 @@ if __name__ == '__main__':
             'F':tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS | tuplex.dataset.SamplingMode.ALL_FILES
             }
 
-    sm = sm_map['D'] #ism_map.get(args.sampling_mode, None)
-    sm = sm_map['B']
+    sm = sm_map.get(args.sampling_mode, 'D')
 
-    if use_hyper_specialization:
-        sm = sm_map['D']
-        #sm = tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.RANDOM_ROWS
-        #sm = sm_map['A'] 
-        #sm = sm | tuplex.dataset.SamplingMode.RANDOM_ROWS
-    else:
-        sm = sm_map['D']
-        #sm = sm_map['A']
+    # use 'D' as default mode
+    #if use_hyper_specialization:
+    #    sm = sm_map['D']
+    #else:
+    #    sm = sm_map['D']
 
     #sm = sm | tuplex.dataset.SamplingMode.RANDOM_ROWS
 
@@ -394,6 +391,7 @@ if __name__ == '__main__':
     print('    hyperspecialization: {}'.format(use_hyper_specialization))
     print('    constant-folding: {}'.format(use_constant_folding))
     print('    null-value optimization: {}'.format(not args.no_nvo))
+    print('    sampling mode: {} (={})'.format(args.sampling_mode, str(sm).replace('SamplingMode.', '')))
     print('    client:: strata: {} per {}'.format(samples_per_strata, strata_size))
     print('    lambda:: strata: {} per {}'.format(lam_samples_per_strata, lam_strata_size))
     # load data

@@ -82,7 +82,8 @@ namespace std {
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <mach/mach.h>
-
+#undef FALSE
+#undef TRUE
 #elif (defined(_AIX) || defined(__TOS__AIX__)) || (defined(__sun__) || defined(__sun) || defined(sun) && (defined(__SVR4) || defined(__svr4__)))
 #include <fcntl.h>
 #include <procfs.h>

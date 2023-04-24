@@ -32,6 +32,8 @@ extern "C" {
 }
 #elif defined(__MACH__)
 #include <mach/mach.h>
+#undef FALSE
+#undef TRUE
 #elif defined(__unix__)
 #include <semaphore.h>
 #endif

@@ -49,12 +49,20 @@ namespace tuplex {
             // note: there is NO UDF rewrite here, because single element is used.
             // ==> wrong usage should be indicated.
 
-            auto hintSchema = Schema(parentSchema.getMemoryLayout(), python::Type::propagateToTupleType(colTypes[_columnToMapIndex]));
-            if(!_udf.hintInputSchema(hintSchema))
-                throw std::runtime_error("could not hint input schema for mapColumn operator. Please check semantics!");
+            Schema udf_output_schema;
+
+            // schema already defined within udf? => use output schema!
+            if(_udf.getInputSchema() != Schema::UNKNOWN && _udf.getOutputSchema() != Schema::UNKNOWN)
+                udf_output_schema = _udf.getOutputSchema();
+            else {
+                auto hintSchema = Schema(parentSchema.getMemoryLayout(), python::Type::propagateToTupleType(colTypes[_columnToMapIndex]));
+                if(!_udf.hintInputSchema(hintSchema))
+                    throw std::runtime_error("could not hint input schema for mapColumn operator. Please check semantics!");
+                udf_output_schema = _udf.getOutputSchema();
+            }
 
             // check what type udf returns
-            auto udfResType = _udf.getOutputSchema().getRowType();
+            auto udfResType = udf_output_schema.getRowType();
 
             assert(udfResType.isTupleType());
             // single element? or multiple?
@@ -70,8 +78,6 @@ namespace tuplex {
         }
 
         auto retType = python::Type::makeTupleType(colTypes);
-
-        // Logger::instance().defaultLogger().info("detected type for " + name() + " operator is " + retType.desc());
 
         return Schema(parentSchema.getMemoryLayout(), retType);
     }

@@ -383,6 +383,9 @@ namespace tuplex {
 
         input_pattern = "/hot/data/flights_all/flights_on_time_performance_1987_10.csv,/hot/data/flights_all/flights_on_time_performance_2001_01.csv,/hot/data/flights_all/flights_on_time_performance_2021_11.csv";
 
+        // resource pattern
+        input_pattern = "../resources/hyperspecialization/flights_all/flights_*.csv.sample";
+
         //// full input pattern (all files)
         //input_pattern = "/hot/data/flights_all/flights_on_time_performance_*.csv";
 

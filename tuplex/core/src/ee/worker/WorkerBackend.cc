@@ -39,7 +39,7 @@ namespace tuplex {
 
         vector<tuple<std::string, size_t>> uri_infos;
         if(tstage->inputMode() != EndPointMode::FILE) {
-            throw std::runtime_error("only file mode yet supported");
+            // throw std::runtime_error("only file mode yet supported");
         } else {
             // simply decode uris from input partitions...
             uri_infos = decodeFileURIs(tstage->inputPartitions());
@@ -68,7 +68,7 @@ namespace tuplex {
         }
 
         if(stage->outputMode() != EndPointMode::FILE) {
-            throw std::runtime_error("only file mode yet supported");
+            // throw std::runtime_error("only file mode yet supported");
         }
 
         size_t numThreads = 1;

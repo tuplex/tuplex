@@ -17,8 +17,8 @@ namespace tuplex {
 
         _columnToMapIndex = indexInVector(columnName, columns);
         assert(_columnToMapIndex >= 0);
-
-        setOutputSchema(inferSchema(parent->getOutputSchema(), false));
+        if(parent)
+            setOutputSchema(inferSchema(parent->getOutputSchema(), false));
 
 //#ifndef NDEBUG
 //        Logger::instance().defaultLogger().info("detected output type for " + name() + " operator is " + schema().getRowType().desc());

@@ -137,7 +137,10 @@ namespace tuplex {
          * @return The indices of key columns in parent
          */
         std::vector<size_t> keyColsInParent() const { assert(aggType() == AggregateType::AGG_BYKEY); return _keyColsInParent; }
-        python::Type keyType() const { assert(aggType() == AggregateType::AGG_BYKEY); return _keyType; }
+        python::Type keyType() const {
+            // assert(aggType() == AggregateType::AGG_BYKEY);
+
+            return _keyType; }
         inline python::Type bucketType() const { return _aggregateOutputType; // ? is this correct ?
         }
 

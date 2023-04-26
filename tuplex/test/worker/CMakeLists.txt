@@ -5,7 +5,7 @@ SET(CMAKE_CXX_STANDARD 14)
 
 include(GoogleTest)
 
-ADD_EXECUTABLE(testworker main.cc BasicInvocation.cc nextconf/FlightsQueryTest.cc nextconf/GithubQueryTest.cc)
+ADD_EXECUTABLE(testworker main.cc BasicInvocation.cc nextconf/FlightsQueryTest.cc nextconf/GithubQueryTest.cc nextconf/ServiceRequestsQueryTest.cc)
 target_include_directories(testworker PUBLIC "../../worker/include")
 # find_package(pybind11 REQUIRED)
 TARGET_LINK_LIBRARIES(testworker

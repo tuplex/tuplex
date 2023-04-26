@@ -1025,75 +1025,75 @@ namespace tuplex {
                                                                           const ContextOptions& options,
                                                                           std::unordered_map<URI,URI>& remoteToLocalURIMapping
                                                                           ) {
-        assert(tstage);
-
-        messages::InvocationRequest req;
-        req.set_type(messages::MessageType::MT_TRANSFORM);
-        auto pb_stage = tstage->to_protobuf();
-
-        // auto rangeStart = cur_size;
-        // auto rangeEnd = std::min(cur_size + splitSize, uri_size);
-
-        // clamp rangeEnd
-        rangeEnd = std::min(rangeEnd, uri_size);
-
-        pb_stage->set_bitcode(bitCode);
-
-        req.set_allocated_stage(pb_stage.release());
-
-        // add request for this
-        auto inputURI = uri.toString();
-        auto inputSize = uri_size;
-        inputURI += ":" + std::to_string(rangeStart) + "-" + std::to_string(rangeEnd);
-        req.add_inputuris(inputURI);
-        req.add_inputsizes(inputSize);
-
-        // worker config
-        auto ws = std::make_unique<messages::WorkerSettings>();
-        auto worker_spill_uri = spillURI + "/lam" + fixedPoint(i, num_digits) + "/" + fixedPoint(part_no, num_digits_part);
-        config_worker(ws.get(), options, numThreads, worker_spill_uri, buf_spill_size);
-        req.set_allocated_settings(ws.release());
-        req.set_verboselogging(options.AWS_VERBOSE_LOGGING());
-
-        // output uri of job? => final one? parts?
-        // => create temporary if output is local! i.e. to memory etc.
-        int taskNo = i;
-        if (tstage->outputMode() == EndPointMode::MEMORY) {
-            // create temp file in scratch dir!
-            req.set_baseoutputuri(scratchDir(hintsFromTransformStage(tstage)).join_path(
-                    "output.part" + fixedLength(taskNo, num_digits) + "_" +
-                    fixedLength(part_no, num_digits_part)).toString());
-        } else if (tstage->outputMode() == EndPointMode::FILE) {
-            // create output URI based on taskNo
-            auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), taskNo, tstage->outputFormat());
-            auto remote_output_uri = uri.toPath();
-
-            // is it a local file URI as target? if so, generate dummy uri under spill folder for this job & add mapping
-            if(uri.isLocal()) {
-                auto tmp_uri = scratchDir(hintsFromTransformStage(tstage)).join_path(
-                        "output.part" + fixedLength(taskNo, num_digits) + "_" +
-                        fixedLength(part_no, num_digits_part)).toString();
-
-                remote_output_uri = tmp_uri;
-
-                // add extension to mapping
-                auto output_fmt = tstage->outputFormat();
-                auto ext = defaultFileExtension(output_fmt);
-                tmp_uri += "." + ext; // done in worker app, fix in the future.
-                remoteToLocalURIMapping[tmp_uri] = uri;
-            }
-
-            req.set_baseoutputuri(remote_output_uri);
-        } else if (tstage->outputMode() == EndPointMode::HASHTABLE) {
-            // there's two options now, either this is an end-stage (i.e., unique/aggregateByKey/...)
-            // or an intermediate stage where a temp hash-table is required.
-            // in any case, because compute is done on Lambda materialize hash-table as temp file.
-            auto temp_uri = tempStageURI(tstage->number());
-            req.set_baseoutputuri(temp_uri.toString());
-        } else throw std::runtime_error("unknown output endpoint in lambda backend");
+//        assert(tstage);
+//
+//        messages::InvocationRequest req;
+//        req.set_type(messages::MessageType::MT_TRANSFORM);
+//        auto pb_stage = tstage->to_protobuf();
+//
+//        // auto rangeStart = cur_size;
+//        // auto rangeEnd = std::min(cur_size + splitSize, uri_size);
+//
+//        // clamp rangeEnd
+//        rangeEnd = std::min(rangeEnd, uri_size);
+//
+//        pb_stage->set_bitcode(bitCode);
+//
+//        req.set_allocated_stage(pb_stage.release());
+//
+//        // add request for this
+//        auto inputURI = uri.toString();
+//        auto inputSize = uri_size;
+//        inputURI += ":" + std::to_string(rangeStart) + "-" + std::to_string(rangeEnd);
+//        req.add_inputuris(inputURI);
+//        req.add_inputsizes(inputSize);
+//
+//        // worker config
+//        auto ws = std::make_unique<messages::WorkerSettings>();
+//        auto worker_spill_uri = spillURI + "/lam" + fixedPoint(i, num_digits) + "/" + fixedPoint(part_no, num_digits_part);
+//        config_worker(ws.get(), options, numThreads, worker_spill_uri, buf_spill_size);
+//        req.set_allocated_settings(ws.release());
+//        req.set_verboselogging(options.AWS_VERBOSE_LOGGING());
+//
+//        // output uri of job? => final one? parts?
+//        // => create temporary if output is local! i.e. to memory etc.
+//        int taskNo = i;
+//        if (tstage->outputMode() == EndPointMode::MEMORY) {
+//            // create temp file in scratch dir!
+//            req.set_baseoutputuri(scratchDir(hintsFromTransformStage(tstage)).join_path(
+//                    "output.part" + fixedLength(taskNo, num_digits) + "_" +
+//                    fixedLength(part_no, num_digits_part)).toString());
+//        } else if (tstage->outputMode() == EndPointMode::FILE) {
+//            // create output URI based on taskNo
+//            auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), taskNo, tstage->outputFormat());
+//            auto remote_output_uri = uri.toPath();
+//
+//            // is it a local file URI as target? if so, generate dummy uri under spill folder for this job & add mapping
+//            if(uri.isLocal()) {
+//                auto tmp_uri = scratchDir(hintsFromTransformStage(tstage)).join_path(
+//                        "output.part" + fixedLength(taskNo, num_digits) + "_" +
+//                        fixedLength(part_no, num_digits_part)).toString();
+//
+//                remote_output_uri = tmp_uri;
+//
+//                // add extension to mapping
+//                auto output_fmt = tstage->outputFormat();
+//                auto ext = defaultFileExtension(output_fmt);
+//                tmp_uri += "." + ext; // done in worker app, fix in the future.
+//                remoteToLocalURIMapping[tmp_uri] = uri;
+//            }
+//
+//            req.set_baseoutputuri(remote_output_uri);
+//        } else if (tstage->outputMode() == EndPointMode::HASHTABLE) {
+//            // there's two options now, either this is an end-stage (i.e., unique/aggregateByKey/...)
+//            // or an intermediate stage where a temp hash-table is required.
+//            // in any case, because compute is done on Lambda materialize hash-table as temp file.
+//            auto temp_uri = tempStageURI(tstage->number());
+//            req.set_baseoutputuri(temp_uri.toString());
+//        } else throw std::runtime_error("unknown output endpoint in lambda backend");
 
         AwsLambdaRequest aws_req;
-        aws_req.body = req;
+//        aws_req.body = req;
         aws_req.retriesLeft = 5;
 
         return aws_req;
@@ -1145,7 +1145,8 @@ namespace tuplex {
                     } else {
                         // last part, issue and then that's it
                         request_uris.push_back(encodeRangeURI(input_uri, bytes_so_far, input_uri_size));
-                        create_tree_based_hyperspecialization_request(...)
+                        // create_tree_based_hyperspecialization_request(...)
+#warning "need to implement stuff here..."
                         break;
                         bytes_so_far = input_uri_size;
                     }
@@ -1155,14 +1156,15 @@ namespace tuplex {
             } else {
                 // not large enough to warrant specialization. process in parallel
                 // i.e. just keep query as is, do not issue specialization request.
-                create_tree_based_regular_request(...)
+                // create_tree_based_regular_request(...)
+#warning "need to implement stuff here..."
                 throw std::runtime_error("not yet supported");
             }
         }
 
         logger().info("Created " + std::to_string(requests.size()) + " LAMBDA requests.");
         // how many thereof are regular? how many hperspecialziing?
-        "thereof {} regular / {} specializing"
+        // "thereof {} regular / {} specializing"
 
         return {};
     }

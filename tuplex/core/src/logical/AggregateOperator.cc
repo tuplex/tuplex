@@ -36,8 +36,12 @@ namespace tuplex {
         copy->_aggregator = _aggregator;
         copy->_initialValue = _initialValue;
         copy->_keys = _keys;
-        copy->_keyColsInParent = keyColsInParent();
-        copy->_keyType = keyType();
+        // only invoke for aggType() == AggregateType::AGG_BYKEY
+        if(aggType() == AggregateType::AGG_BYKEY) {
+            copy->_keyColsInParent = keyColsInParent();
+            copy->_keyType = keyType();
+        }
+
         copy->_aggregateOutputType = _aggregateOutputType;
 
 //        // important to use here input column names, i.e. stored in base class UDFOperator!

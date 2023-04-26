@@ -262,6 +262,7 @@ namespace tuplex {
                      {"tuplex.redirectToPythonLogging", "false"},
                      {"tuplex.experimental.hyperspecialization", "false"},
                      {"tuplex.experimental.specializationUnitSize", "0"},
+                     {"tuplex.experimental.minimumSizeToSpecialize", "128MB"},
                      {"tuplex.experimental.opportuneCompilation", "true"},
                      {"tuplex.experimental.forceBadParseExceptFormat", "false"},
                      {"tuplex.experimental.s3PreCacheSize", "0"}};
@@ -334,6 +335,7 @@ namespace tuplex {
                      {"tuplex.redirectToPythonLogging", "false"},
                      {"tuplex.experimental.hyperspecialization", "false"},
                      {"tuplex.experimental.specializationUnitSize", "0"},
+                     {"tuplex.experimental.minimumSizeToSpecialize", "128MB"},
                      {"tuplex.experimental.opportuneCompilation", "true"},
                      {"tuplex.experimental.forceBadParseExceptFormat", "false"},
                      {"tuplex.experimental.s3PreCacheSize", "0"}}; // experimental feature, deactivate for now.

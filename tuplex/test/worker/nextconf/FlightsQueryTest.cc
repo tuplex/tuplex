@@ -210,6 +210,8 @@ namespace tuplex {
         // -> requires smarter invocation strategy
         co.set("tuplex.aws.lambdaInvocationStrategy", "tree");
 
+        co.set("tuplex.experimental.specializationUnitSize", "1GB");
+
         // creater context according to settings
         Context ctx(co);
 

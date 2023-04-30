@@ -133,12 +133,12 @@ namespace tuplex {
             // call python function
             // issue: when pushdown occurred, then this fails!
             // => SampleProcessor is really, really required!
-            ExceptionCode ec;
+            ExceptionCode ec = ExceptionCode::SUCCESS;
 
-            // HACK: skip for pushdown.
-            // this is bad, but let's get tplx208 done.
-            if(!inputColumns().empty() && row.getNumColumns() != inputColumns().size())
-                continue;
+            // // HACK: skip for pushdown.
+            // // this is bad, but let's get tplx208 done.
+            // if(!inputColumns().empty() && row.getNumColumns() != inputColumns().size())
+            //    continue;
 
             auto pcr = !inputColumns().empty() ? python::callFunctionWithDictEx(pFunc, rowObj, inputColumns()) :
                        python::callFunctionEx(pFunc, rowObj);

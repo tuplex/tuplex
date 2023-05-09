@@ -628,7 +628,15 @@ namespace tuplex {
         // compile UDF to LLVM IR Code
         if(!cg.generateCode(&env, _policy)) {
             // log error and abort processing.
-            logger.error("code generation for user supplied function " + cg.getFunctionName() + " failed.");
+
+            std::stringstream err_stream;
+            err_stream<<"code generation for user supplied function " + cg.getFunctionName() + " failed.";
+            err_stream<<"\nDetails:\n"
+                      <<"input row type:  "<<getInputSchema().getRowType().desc()<<"\n"
+                      <<"input columns:   "<<this->_columnNames<<"\n"
+                      <<"output row type: "<<getOutputSchema().getRowType().desc()<<"\n"
+                      <<"is compiled:     "<<std::boolalpha<<isCompiled();
+            logger.error(err_stream.str());
             cf.function = nullptr; // invalidate func
             return cf;
         }

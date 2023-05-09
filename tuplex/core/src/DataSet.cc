@@ -479,6 +479,15 @@ namespace tuplex {
         assert(_context);
         assert(this->_operator);
 
+
+        // check if parent always yielded exceptions, if so -> create error dataset
+        assert(this->_operator);
+        auto output_row_type = _operator->getOutputSchema().getRowType();
+        if(python::Type::UNKNOWN == output_row_type)
+            return _context->makeError("could not create selectColumns operator because parent operator has type unknown");
+        if(output_row_type.isExceptionType())
+            return _context->makeError("select columns on operator producing always " + output_row_type.desc() + " exceptions called.");
+
         // check first that each column name is returned, else return error message
         std::vector<std::string> missingColumns;
         for (const auto &cn : columnNames) {

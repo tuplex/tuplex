@@ -15,6 +15,8 @@ from helper import test_options
 
 import re
 
+from udf_from_import import f as udf_f
+
 class Test_Import(unittest.TestCase):
     def test_import(self):
         c = tuplex.Context(test_options())
@@ -42,6 +44,13 @@ class Test_Import(unittest.TestCase):
             .resolve(ZeroDivisionError, lambda x: re.search('\\d+', x[1]) != None) \
             .map(lambda x: int(x[NUM_COL_IDX])).collect()
         self.assertEqual(res, [123])
+
+    def test_external(self):
+        c = tuplex.Context(test_options())
+
+        res = c.parallelize([1, 2, 3, 4]).map(udf_f).collect()
+
+        self.assertEqual(res, [1, 4, 9, 16])
 
 if __name__ == '__main__':
     unittest.main()

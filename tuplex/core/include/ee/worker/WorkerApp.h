@@ -282,7 +282,9 @@ namespace tuplex {
     /// exchange could be via request response, files, shared memory? etc.
     class WorkerApp {
     public:
-        WorkerApp() : _logger(Logger::instance().logger("worker")), _threadEnvs(nullptr), _numThreads(0), _globallyInitialized(false), _syms(std::shared_ptr<TransformStage::JITSymbols>()), _messageCount(0) {
+        WorkerApp() : _logger(Logger::instance().logger("worker")), _threadEnvs(nullptr),
+        _numThreads(0), _globallyInitialized(false), _syms(std::shared_ptr<TransformStage::JITSymbols>()),
+        _messageCount(0), _inputOperatorID(-1) {
 #ifdef BUILD_WITH_CEREAL
             // init type system for decoding
             auto sym_table = SymbolTable::createFromEnvironment(nullptr);
@@ -335,6 +337,8 @@ namespace tuplex {
         void markTime(const std::string& label, double value) {
             _timeDict[label] = value;
         }
+
+        inline int64_t inputOperatorID() const { return _inputOperatorID; }
 
         WorkerSettings settingsFromMessage(const tuplex::messages::InvocationRequest& req);
 
@@ -632,6 +636,8 @@ namespace tuplex {
 
         size_t _readerBufferSize;
         size_t _messageCount;
+
+        int64_t _inputOperatorID;
 
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);
         static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);

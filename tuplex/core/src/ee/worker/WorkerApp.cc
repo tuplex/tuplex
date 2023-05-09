@@ -234,6 +234,7 @@ namespace tuplex {
         // currently message represents merely a transformstage/transformtask
         // @TODO: in the future this could change!
         auto tstage = TransformStage::from_protobuf(req.stage());
+        _inputOperatorID = tstage->fileInputOperatorID();
 
         for(unsigned i = 0; i < req.inputuris_size(); ++i) {
             logger.debug("input uri: " + req.inputuris(i) + " size: " + std::to_string(req.inputsizes(i)));
@@ -342,6 +343,7 @@ namespace tuplex {
 
         // only transform stage yet supported, in the future support other stages as well!
         auto tstage = TransformStage::from_protobuf(req.stage());
+        _inputOperatorID = tstage->fileInputOperatorID();
 
         // update initial received schemas for stage
         _stage_normal_input_type = tstage->normalCaseInputSchema().getRowType();
@@ -2179,6 +2181,14 @@ namespace tuplex {
                 // serialization exception
                 std::stringstream ss;
                 ss<<"#"<<env->numExceptionRows<<": row="<<rowNumber<<" ec="<<exceptionCode<<"\n";
+
+                // what type of error was it? schema mismatch of input operator or UDF error?
+                if(inputOperatorID() == exceptionOperatorID) {
+                    ss<<"(input schema mismatch, opID="<<exceptionOperatorID<<")\n";
+                } else {
+                    ss<<"(UDF error, opID="<<exceptionOperatorID<<")\n";
+                }
+
                 ss<<pythonStringFromParseException(input, dataLength);
                 logger().debug(ss.str());
             }

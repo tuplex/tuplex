@@ -356,7 +356,7 @@ if __name__ == '__main__':
             'F':tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS | tuplex.dataset.SamplingMode.ALL_FILES
             }
 
-    sm = sm_map.get(args.sampling_mode, 'D')
+    sm = sm_map.get(args.sampling_mode, sm_map['D'])
 
     # use 'D' as default mode
     #if use_hyper_specialization:
@@ -427,6 +427,7 @@ if __name__ == '__main__':
             "optimizer.nullValueOptimization": True,
             "resolveWithInterpreterOnly": False,
             "optimizer.constantFoldingOptimization": use_constant_folding,
+            "optimizer.filterPromotion": False,
             "optimizer.selectionPushdown" : True,
             "useInterpreterOnly": args.python_mode,
             "experimental.forceBadParseExceptFormat": not args.use_internal_fmt}

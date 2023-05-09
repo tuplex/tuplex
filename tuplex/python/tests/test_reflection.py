@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#----------------------------------------------------------------------------------------------------------------------#
+# ----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
 #                                       Tuplex: Blazing Fast Python Data Science                                       #
 #                                                                                                                      #
@@ -7,18 +7,25 @@
 #  (c) 2017 - 2021, Tuplex team                                                                                        #
 #  Created by Leonhard Spiegelberg first on 1/1/2021                                                                   #
 #  License: Apache 2.0                                                                                                 #
-#----------------------------------------------------------------------------------------------------------------------#
+# ----------------------------------------------------------------------------------------------------------------------#
 
 from unittest import TestCase
 
 from tuplex.utils.reflection import get_source, get_globals, supports_lambda_closure
 from notebook_utils import get_jupyter_function_code
 
-SOME_CONSTANT_TO_EXTRACT=42
+# check reflection on direct import
+import udf_direct_import
+
+# check reflection for import into namespace
+from udf_from_import import f as udf_f
+from udf_from_import import g as udf_g
+
+SOME_CONSTANT_TO_EXTRACT = 42
+
 
 ## tests for lambda functions
 class TestReflection(TestCase):
-
 
     def get_src(self, func, expected_src):
         # (1) file mode
@@ -81,11 +88,12 @@ class TestReflection(TestCase):
         self.get_src(lambda t: """hello
 world""", "lambda t: 'hello\\nworld'")
 
-
     def test_globalextract_func(self):
         g = 20
+
         def f(x):
             return x + g
+
         globs = get_globals(f)
         self.assertIn('g', globs)
 
@@ -158,6 +166,7 @@ class TestPythonFileMode(TestCase):
 
     def test_nested_function(self):
         """test whether functions defined via def ... are extracted correctly"""
+
         ## !!!! Leave this file formatted with tab == 4 spaces !!!!
         def nested_functionI(x, y):
             return x + y
@@ -195,6 +204,7 @@ class TestPythonFileMode(TestCase):
         for y in range(0, 10):
             def f(x, y):
                 return x + y
+
             code = get_source(f)
             self.assertEqual(code.replace('\t', ' ' * 4), "def f(x, y):\n    return x + y")
 
@@ -220,3 +230,23 @@ class TestPythonFileMode(TestCase):
         expected_src = 'def nested_function(x, y):\n\t"""\n\tThis function has some stupid docstring here' \
                        '\n\tArgs:\n\t\tx:\n\t\ty:\n\n\tReturns:\n\n\t"""\n\treturn x + y'
         self.cmp_code(get_source(nested_function), expected_src)
+
+    def test_other_module(self):
+        code = get_source(udf_direct_import.f)
+        ref_code = "lambda x: x * x"
+        self.assertEqual(code, ref_code)
+
+        code = get_source(udf_direct_import.g)
+        ref_code = "def g(x):\n" \
+                   "    return x + (x * 1)"
+        self.assertEqual(code, ref_code)
+
+    def test_other_from_module(self):
+        code = get_source(udf_f)
+        ref_code = "lambda x: x * x"
+        self.assertEqual(code, ref_code)
+
+        code = get_source(udf_g)
+        ref_code = "def g(x):\n" \
+                   "    return x + (x * 1)"
+        self.assertEqual(code, ref_code)

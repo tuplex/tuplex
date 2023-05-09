@@ -605,28 +605,85 @@ namespace tuplex {
 
         // // check full data
         // input_pattern = "/hot/data/github_daily/*.json";
+//
+//        // add functionality to debug/determine reason what went wrong?
+//        // fixed pipeline here b.c. canPromoteFilterCheck is incomplete yet...
+//        ctx.json(input_pattern, true, true, sm)
+//                .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+//                .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+//                        //.withColumn("repo_id", UDF(repo_id_code))
+//                        //.withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
+//                        //.withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
+//                        //.withColumn("forkee", UDF(extract_forkee))
+//                        //.withColumn("forkee_url", UDF(extract_forkee_url))
+//                .withColumn("watchers", UDF(extract_watchers))
+//                        //.withColumn("stargazers", UDF(extract_stargazers))
+//                        //.withColumn("forks", UDF(extract_forks))
+//                        //.withColumn("lang", UDF(extract_lang))
+//                .selectColumns(vector<string>{"type", "year", "watchers"})
+////                .selectColumns(vector<string>{"type", "repo_id", "year",
+////                              "number_of_commits", "forkee", "forkee_url", "watchers"})
+//                        // .selectColumns(vector<string>{"type", "repo_id", "year",
+//                        //                              "number_of_commits", "lang", "forkee", "forkee_url",
+//                        //                              "watchers",
+//                        //                              "stargazers", "forks"})
+//                .tocsv(output_path);
+
 
         // fixed pipeline here b.c. canPromoteFilterCheck is incomplete yet...
         ctx.json(input_pattern, true, true, sm)
                 .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
                 .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
-                //.withColumn("repo_id", UDF(repo_id_code))
-                //.withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
-                //.withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
-                //.withColumn("forkee", UDF(extract_forkee))
-                //.withColumn("forkee_url", UDF(extract_forkee_url))
+                .withColumn("repo_id", UDF(repo_id_code))
+                .withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
+                .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
+                .withColumn("forkee", UDF(extract_forkee))
+//                .withColumn("forkee_url", UDF(extract_forkee_url))
                 .withColumn("watchers", UDF(extract_watchers))
-                //.withColumn("stargazers", UDF(extract_stargazers))
-                //.withColumn("forks", UDF(extract_forks))
-                //.withColumn("lang", UDF(extract_lang))
+//                .withColumn("stargazers", UDF(extract_stargazers))
+//                .withColumn("forks", UDF(extract_forks))
+               // .withColumn("lang", UDF(extract_lang))
                 .selectColumns(vector<string>{"type", "year", "watchers"})
 //                .selectColumns(vector<string>{"type", "repo_id", "year",
 //                              "number_of_commits", "forkee", "forkee_url", "watchers"})
-                // .selectColumns(vector<string>{"type", "repo_id", "year",
-                //                              "number_of_commits", "lang", "forkee", "forkee_url",
-                //                              "watchers",
-                //                              "stargazers", "forks"})
+                 //.selectColumns(vector<string>{"type", "repo_id", "year",
+                 //                             "number_of_commits", "lang", "forkee", "forkee_url",
+                 //                             "watchers",
+                 //                             "stargazers", "forks"})
                 .tocsv(output_path);
+    }
+
+    TEST_F(GithubQuery, ExtractWatchersTest) {
+        auto input_row_type_str = "(Option[str],Option[Struct[(str,'avatar_url'=>str),(str,'display_login'=>str),(str,'gravatar_id'=>str),(str,'id'=>i64),(str,'login'=>str),(str,'url'=>str)]],Option[str],Option[Struct[(str,'action'=>str),(str,'before'=>str),(str,'comment'=>Struct[(str,'author_association'=>str),(str,'body'=>str),(str,'commit_id'=>str),(str,'created_at'=>str),(str,'html_url'=>str),(str,'id'=>i64),(str,'line'=>null),(str,'node_id'=>str),(str,'path'=>null),(str,'position'=>null),(str,'reactions'=>Struct[(str,'url'=>str),(str,'total_count'=>i64),(str,'+1'=>i64),(str,'-1'=>i64),(str,'laugh'=>i64),(str,'hooray'=>i64),(str,'confused'=>i64),(str,'heart'=>i64),(str,'rocket'=>i64),(str,'eyes'=>i64)]),(str,'updated_at'=>str),(str,'url'=>str),(str,'user'=>Struct[(str,'avatar_url'=>str),(str,'events_url'=>str),(str,'followers_url'=>str),(str,'following_url'=>str),(str,'gists_url'=>str),(str,'gravatar_id'=>str),(str,'html_url'=>str),(str,'id'=>i64),(str,'login'=>str),(str,'node_id'=>str),(str,'organizations_url'=>str),(str,'received_events_url'=>str),(str,'repos_url'=>str),(str,'site_admin'=>bool),(str,'starred_url'=>str),(str,'subscriptions_url'=>str),(str,'type'=>str),(str,'url'=>str)])]),(str,'commits'=>List[Struct[(str,'author'->Struct[(str,'name'->str),(str,'email'->str)]),(str,'distinct'=>bool),(str,'message'->str),(str,'sha'->str),(str,'url'->str)]]),(str,'distinct_size'=>i64),(str,'forkee'=>Struct[(str,'id'=>i64),(str,'node_id'=>str),(str,'name'=>str),(str,'full_name'=>str),(str,'private'=>bool),(str,'owner'=>Struct[(str,'login'=>str),(str,'id'=>i64),(str,'node_id'=>str),(str,'avatar_url'=>str),(str,'gravatar_id'=>str),(str,'url'=>str),(str,'html_url'=>str),(str,'followers_url'=>str),(str,'following_url'=>str),(str,'gists_url'=>str),(str,'starred_url'=>str),(str,'subscriptions_url'=>str),(str,'organizations_url'=>str),(str,'repos_url'=>str),(str,'events_url'=>str),(str,'received_events_url'=>str),(str,'type'=>str),(str,'site_admin'=>bool)]),(str,'html_url'=>str),(str,'description'=>str),(str,'fork'=>bool),(str,'url'=>str),(str,'forks_url'=>str),(str,'keys_url'=>str),(str,'collaborators_url'=>str),(str,'teams_url'=>str),(str,'hooks_url'=>str),(str,'issue_events_url'=>str),(str,'events_url'=>str),(str,'assignees_url'=>str),(str,'branches_url'=>str),(str,'tags_url'=>str),(str,'blobs_url'=>str),(str,'git_tags_url'=>str),(str,'git_refs_url'=>str),(str,'trees_url'=>str),(str,'statuses_url'=>str),(str,'languages_url'=>str),(str,'stargazers_url'=>str),(str,'contributors_url'=>str),(str,'subscribers_url'=>str),(str,'subscription_url'=>str),(str,'commits_url'=>str),(str,'git_commits_url'=>str),(str,'comments_url'=>str),(str,'issue_comment_url'=>str),(str,'contents_url'=>str),(str,'compare_url'=>str),(str,'merges_url'=>str),(str,'archive_url'=>str),(str,'downloads_url'=>str),(str,'issues_url'=>str),(str,'pulls_url'=>str),(str,'milestones_url'=>str),(str,'notifications_url'=>str),(str,'labels_url'=>str),(str,'releases_url'=>str),(str,'deployments_url'=>str),(str,'created_at'=>str),(str,'updated_at'=>str),(str,'pushed_at'=>str),(str,'git_url'=>str),(str,'ssh_url'=>str),(str,'clone_url'=>str),(str,'svn_url'=>str),(str,'homepage'=>str),(str,'size'=>i64),(str,'stargazers_count'=>i64),(str,'watchers_count'=>i64),(str,'language'=>null),(str,'has_issues'=>bool),(str,'has_projects'=>bool),(str,'has_downloads'=>bool),(str,'has_wiki'=>bool),(str,'has_pages'=>bool),(str,'forks_count'=>i64),(str,'mirror_url'=>null),(str,'archived'=>bool),(str,'disabled'=>bool),(str,'open_issues_count'=>i64),(str,'license'=>null),(str,'allow_forking'=>bool),(str,'is_template'=>bool),(str,'topics'=>[]),(str,'visibility'=>str),(str,'forks'=>i64),(str,'open_issues'=>i64),(str,'watchers'=>i64),(str,'default_branch'=>str),(str,'public'=>bool)]),(str,'head'=>str),(str,'issue'=>Struct[(str,'assignee'=>null),(str,'body'=>str),(str,'closed_at'=>Option[str]),(str,'comments'=>i64),(str,'created_at'=>str),(str,'html_url'=>str),(str,'id'=>i64),(str,'labels'=>List[Struct[(str,'name'->str),(str,'url'->str),(str,'color'->str)]]),(str,'milestone'=>Option[Struct[(str,'number'->i64),(str,'created_at'->str),(str,'due_on'->str),(str,'title'->str),(str,'creator'->Struct[(str,'gravatar_id'->str),(str,'avatar_url'->str),(str,'url'->str),(str,'id'->i64),(str,'login'->str)]),(str,'url'->str),(str,'open_issues'->i64),(str,'closed_issues'->i64),(str,'description'->str),(str,'state'->str)]]),(str,'number'=>i64),(str,'pull_request'=>Struct[(str,'diff_url'=>null),(str,'patch_url'=>null),(str,'html_url'=>null)]),(str,'state'=>str),(str,'title'=>str),(str,'updated_at'=>str),(str,'url'=>str),(str,'user'=>Struct[(str,'gravatar_id'=>str),(str,'avatar_url'=>str),(str,'url'=>str),(str,'id'=>i64),(str,'login'=>str)])]),(str,'legacy'=>Struct[(str,'comment_id'=>i64),(str,'head'=>str),(str,'issue_id'=>i64),(str,'push_id'=>i64),(str,'ref'=>str),(str,'shas'=>List[List[str]]),(str,'size'=>i64)]),(str,'push_id'=>i64),(str,'ref'=>str),(str,'size'=>i64)]],Option[Struct[(str,'id'=>i64),(str,'name'=>str),(str,'url'=>str)]],i64,i64,List[Struct[(str,'sha'->str),(str,'author'->Struct[(str,'name'->str),(str,'email'->str)]),(str,'url'->str),(str,'message'->str)]],i64,str)\n";
+        auto input_row_type = python::Type::decode(input_row_type_str);
+
+        auto extract_watchers = "def extract_watchers(row):\n"
+                                "    # before 2012-08-06 watchers are stargazers, and no stat about watchers is available!\n"
+                                "    month = int(row['created_at'].split('-')[1])\n"
+                                "    day = int(row['created_at'].split('-')[1])\n"
+                                "        \n"
+                                "    if 2011 == row['year']:\n"
+                                "        return None\n"
+                                "    elif row['year'] < 2015:\n"
+                                "        if row['year'] == 2012 and month * 100 + day < 806:\n"
+                                "            return None\n"
+                                "        else:\n"
+                                "            return row['repository']['watchers']\n"
+                                "    else:\n"
+                                "        row['payload']['forkee']['watchers_count']";
+
+        // compile function
+        UDF udf(extract_watchers);
+
+        EXPECT_NE(input_row_type, python::Type::UNKNOWN);
+        udf.re
+        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, input_row_type));
+
+        EXPECT_EQ(udf.getOutputSchema().getRowType().desc(), "(null)");
+
+        "def g(x):\n"
+        "    return x + (x * 1)"
+
     }
 }
 

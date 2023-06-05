@@ -63,7 +63,8 @@ namespace llvm {
         CallInst *CI = CallInst::Create(Callee, Ops, Name);
         if (FMFSource)
             CI->copyFastMathFlags(FMFSource);
-        builder.GetInsertBlock()->getInstList().insert(builder.GetInsertPoint(), CI);
+        //builder.GetInsertBlock()->getInstList().insert(builder.GetInsertPoint(), CI);
+        CI->insertInto(builder.GetInsertBlock(), builder.GetInsertBlock()->begin());
         builder.SetInstDebugLocation(CI);
         return CI;
     }

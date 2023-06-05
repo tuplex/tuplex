@@ -3,12 +3,12 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.12 FATAL_ERROR)
 # name of the lambda function
 set(LAMBDA_NAME tplxlam)
 
-# enable c++14
-set(CMAKE_CXX_STANDARD 14)
+# enable c++17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # enable c11
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
+#set(CMAKE_C_STANDARD 11)
+#set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # only compiles on Linux, check here
 if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")

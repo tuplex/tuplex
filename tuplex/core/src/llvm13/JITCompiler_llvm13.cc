@@ -205,7 +205,7 @@ namespace tuplex {
         for(auto it = _dylibs.rbegin(); it != _dylibs.rend(); ++it) {
             auto sym = _lljit->lookup(**it, Name);
             if(sym)
-                return reinterpret_cast<void*>(sym.get().getAddress());
+                return sym->toPtr<void*>(); //reinterpret_cast<void*>(sym..get().getAddress());
         }
 
         Logger::instance().logger("LLVM").error("could not find symbol " + Name + ". ");

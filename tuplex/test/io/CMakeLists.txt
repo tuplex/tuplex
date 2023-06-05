@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.12 FATAL_ERROR)
 
-# enable c++14
-SET(CMAKE_CXX_STANDARD 14)
+# enable c++17
+SET(CMAKE_CXX_STANDARD 17)
 
 FILE(GLOB SRCS *.cc)
 
@@ -9,7 +9,7 @@ include(GoogleTest)
 
 ADD_EXECUTABLE(testio ${SRCS} main.cc)
 
-message(STATUS "probutf (testio): ${Protobuf_LIBRARIES} ${Protobuf_LITE_LIBRARIES}")
+message(STATUS "Protobuf libraries (testio): ${Protobuf_LIBRARIES} ${Protobuf_LITE_LIBRARIES}")
 TARGET_LINK_LIBRARIES(testio
         libio
         libutils

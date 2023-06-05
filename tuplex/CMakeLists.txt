@@ -19,6 +19,18 @@ option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for
 option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
 option(USE_LD_GOLD "Use GNU gold linker" ON)
 
+# helper to check whether var exists and is valid
+function(ASSERT_VAR VARNAME)
+    if(DEFINED ${VARNAME})
+        string(COMPARE EQUAL "${${VARNAME}}" "" str_result)
+        if("${str_result}")
+            message(FATAL_ERROR "variable ${VARNAME} is empty string")
+        endif()
+    else()
+        message(FATAL_ERROR "expected variable ${VARNAME} to exist.")
+    endif()
+endfunction()
+
 # detect MacOS Version because at least 10.13 is required when building with AWS SDK
 if(APPLE)
     execute_process(COMMAND bash -c "sw_vers | grep -Eo '([0-9]{1,}\\.)+[0-9]{1,}' | head -1" OUTPUT_VARIABLE MACOSX_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -53,13 +65,15 @@ endif()
 # before writing additional cmake modules to put in cmake/, check the list of supported cmake standard modules
 # available here: https://cmake.org/cmake/help/latest/manual/cmake-modules.7.html#find-modules
 
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
 # top-level language specification
-# enable c++14
-set(CMAKE_CXX_STANDARD 14)
+# enable c++17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # enable c11
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
+#set(CMAKE_C_STANDARD 11)
+#set(CMAKE_C_STANDARD_REQUIRED ON)
 message(STATUS "Using language versions C++${CMAKE_CXX_STANDARD} and C${CMAKE_C_STANDARD}")
 # add cmake modules from cmake folder
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
@@ -82,19 +96,19 @@ if(IPO_SUPPORTED)
 else()
     message(WARNING "target does not support interprocedural optimization/link time optimization.")
 endif()
-# Check if ccache exists to speed up compilation when switching branches
-# taken from https://invent.kde.org/utilities/konsole/-/merge_requests/26?tab=diffs
-find_program(CCACHE_FOUND "ccache")
-set(CCACHE_SUPPORT ON CACHE BOOL "Enable ccache support")
-if (CCACHE_FOUND AND CCACHE_SUPPORT)
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" # GNU is GNU GCC
-            OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        # without this compiler messages in `make` backend would be uncolored
-        ucm_add_flags("-fdiagnostics-color=auto")
-    endif()
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "ccache")
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "ccache")
-endif()
+## Check if ccache exists to speed up compilation when switching branches
+## taken from https://invent.kde.org/utilities/konsole/-/merge_requests/26?tab=diffs
+#find_program(CCACHE_FOUND "ccache")
+#set(CCACHE_SUPPORT ON CACHE BOOL "Enable ccache support")
+#if (CCACHE_FOUND AND CCACHE_SUPPORT)
+#    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" # GNU is GNU GCC
+#            OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+#        # without this compiler messages in `make` backend would be uncolored
+#        ucm_add_flags("-fdiagnostics-color=auto")
+#    endif()
+#    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "ccache")
+#    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "ccache")
+#endif()
 
 set(CMAKE_MACOSX_RPATH 1) # fix for gtest warning
 
@@ -730,14 +744,127 @@ if(pcre2_FOUND)
     message(STATUS "Found pcre2 headers in ${PCRE2_INCLUDE_DIRS}")
 endif()
 
-add_subdirectory(utils)
-add_subdirectory(test)
-add_subdirectory(codegen)
-add_subdirectory(core)
-add_subdirectory(io)
-add_subdirectory(python)
-add_subdirectory(runtime)
-add_subdirectory(adapters)
+
+# find ZSTD / ZLIB
+include(ExternalProject)
+set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
+
+# For MacOS, check whether certain 3rd party libs are already installed via brew
+if(BREW_FOUND)
+    if(APPLE)
+        set(THIRDPARTY_CONFIGURE_COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}")
+
+        # Zstd
+        EXECUTE_PROCESS(COMMAND brew list zstd OUTPUT_VARIABLE BREW_ZSTD_LIST ERROR_VARIABLE BREW_ZSTD_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if(BREW_ZSTD_NOTFOUND)
+            message(STATUS "Could not find locally installed zstd, building third party")
+            set(ZSTD_VERSION "1.5.0")
+            set(ZSTD_HOME "${EXTERNAL_INSTALL_LOCATION}")
+            set(ZSTD_INCLUDE_DIR "${ZSTD_HOME}/include")
+            set(ZSTD_STATIC_LIB "${ZSTD_HOME}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}zstd${CMAKE_STATIC_LIBRARY_SUFFIX}")
+            set(ZSTD_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ZSTD_HOME}
+                    -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DZSTD_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
+
+            if (CMAKE_VERSION VERSION_GREATER "3.7")
+                set(ZSTD_CONFIGURE SOURCE_SUBDIR "build/cmake" CMAKE_ARGS ${ZSTD_CMAKE_ARGS})
+            else()
+                set(ZSTD_CONFIGURE CONFIGURE_COMMAND "${THIRDPARTY_CONFIGURE_COMMAND}" ${ZSTD_CMAKE_ARGS}
+                        "${CMAKE_CURRENT_BINARY_DIR}/zstd_ep-prefix/src/zstd_ep/build/cmake")
+            endif()
+
+            ExternalProject_Add (zstd_ep
+                    URL "https://github.com/facebook/zstd/archive/v${ZSTD_VERSION}.tar.gz"
+                    ${ZSTD_CONFIGURE}
+                    BUILD_BYPRODUCTS "${ZSTD_STATIC_LIB}")
+
+            set(ZSTD_LIBRARIES ${ZSTD_STATIC_LIB})
+
+            add_library(zstd INTERFACE)
+            target_link_libraries(zstd INTERFACE ${ZSTD_STATIC_LIB})
+            target_include_directories(zstd SYSTEM INTERFACE ${ZSTD_INCLUDE_DIR})
+
+            add_dependencies(zstd zstd_ep)
+            install(FILES "${ZSTD_STATIC_LIB}" DESTINATION "lib")
+            set(ZSTD_DEPENDS "zstd_ep")
+        else()
+            EXECUTE_PROCESS(COMMAND brew --prefix zstd OUTPUT_VARIABLE BREW_ZSTD_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+            set(ENV{ZSTD_HOME} ${BREW_ZSTD_DIR})
+            set(ZSTD_HOME ${BREW_ZSTD_DIR})
+            message(STATUS "Found locally installed zstd under $ENV{ZSTD_HOME}")
+            # set variables
+            file (TO_CMAKE_PATH "${ZSTD_HOME}" _zstd_path)
+            find_library (ZSTD_LIBRARY NAMES zstd HINTS
+                    ${_zstd_path}
+                    PATH_SUFFIXES "lib" "lib64")
+            if(ZSTD_LIBRARY)
+                message(STATUS "zstd lib: ${ZSTD_LIBRARY}")
+            endif()
+            find_library (ZSTD_STATIC_LIB NAMES ${CMAKE_STATIC_LIBRARY_PREFIX}${ZSTD_LIB_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX} HINTS
+                    ${_zstd_path}
+                    PATH_SUFFIXES "lib" "lib64")
+            if(ZSTD_LIBRARY)
+                set(ZSTD_LIBRARIES "${ZSTD_LIBRARY}")
+            elseif(ZSTD_STATIC_LIB)
+                set(ZSTD_LIBRARIES "${ZSTD_STATIC_LIB}")
+            endif()
+            message(STATUS "Zstd libraries: ${ZSTD_LIBRARIES}")
+        endif()
+
+        # Zlib
+        EXECUTE_PROCESS(COMMAND brew list zlib OUTPUT_VARIABLE BREW_ZLIB_LIST ERROR_VARIABLE BREW_ZLIB_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if(BREW_ZLIB_NOTFOUND)
+            message(STATUS "Could not find locally installed zlib, building third party")
+            set(ZLIB_VERSION "1.2.11")
+            set(ZLIB_HOME "${EXTERNAL_INSTALL_LOCATION}")
+            set(ZLIB_INCLUDE_DIR "${ZLIB_HOME}/include")
+            set(ZLIB_STATIC_LIB "${ZLIB_HOME}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX}")
+            set(ZLIB_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ZLIB_HOME}
+                    -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DZLIB_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
+            ExternalProject_Add (zlib_ep
+                    URL "http://zlib.net/fossils/zlib-${ZLIB_VERSION}.tar.gz"
+                    CMAKE_ARGS ${ZLIB_CMAKE_ARGS}
+                    BUILD_BYPRODUCTS "${ZLIB_STATIC_LIB}")
+
+            set(ZLIB_LIBRARIES ${ZLIB_STATIC_LIB})
+
+            add_library(zlib INTERFACE)
+            target_link_libraries(zlib INTERFACE ${ZLIB_STATIC_LIB})
+            target_include_directories(zlib SYSTEM INTERFACE ${ZLIB_INCLUDE_DIR})
+
+            add_dependencies(zlib zlib_ep)
+            install(FILES "${ZLIB_STATIC_LIB}" DESTINATION "lib")
+            set(ZLIB_DEPENDS "zlib_ep")
+        else()
+            EXECUTE_PROCESS(COMMAND brew --prefix zlib OUTPUT_VARIABLE BREW_ZLIB_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+            set(ENV{ZLIB_HOME} ${BREW_ZLIB_DIR})
+            set(ZLIB_HOME ${BREW_ZLIB_DIR})
+            message(STATUS "Found locally installed zlib under $ENV{ZLIB_HOME}")
+            # set variables
+            file (TO_CMAKE_PATH "${ZLIB_HOME}" _zlib_path)
+            find_library (ZLIB_LIBRARY NAMES z HINTS
+                    ${_zlib_path}
+                    PATH_SUFFIXES "lib" "lib64")
+            if(ZLIB_LIBRARY)
+                message(STATUS "zlib lib: ${ZLIB_LIBRARY}")
+            endif()
+            find_library (ZLIB_STATIC_LIB NAMES ${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX} HINTS
+                    ${_zlib_path}
+                    PATH_SUFFIXES "lib" "lib64")
+            if(ZLIB_LIBRARY)
+                set(ZLIB_LIBRARIES "${ZLIB_LIBRARY}")
+            elseif(ZLIB_STATIC_LIB)
+                set(ZLIB_LIBRARIES "${ZLIB_STATIC_LIB}")
+            endif()
+            message(STATUS "Zlib libraries: ${ZLIB_LIBRARIES}")
+        endif()
+    endif()
+endif()
+
+if (NOT APPLE)
+    message(STATUS "Adding byproducts to external project")
+    set(ZSTD_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libzstd.a)
+    set(ZLIB_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libz.a)
+endif()
 
 # following code is from https://github.com/OPM/opm-common/blob/master/cmake/Modules/UseSystemInfo.cmake
 # read property from the newer /etc/os-release
@@ -768,6 +895,19 @@ if(UNIX AND NOT APPLE)
         endif()
     endif()
 endif()
+
+# ncurses/curses lib for terminal manipulation
+find_package(Curses REQUIRED)
+
+# add subdirs here...
+add_subdirectory(utils)
+add_subdirectory(test)
+add_subdirectory(codegen)
+add_subdirectory(core)
+add_subdirectory(io)
+add_subdirectory(python)
+add_subdirectory(runtime)
+add_subdirectory(adapters)
 
 # can only build aws lambda on linux platform
 if(LINUX AND BUILD_WITH_AWS)

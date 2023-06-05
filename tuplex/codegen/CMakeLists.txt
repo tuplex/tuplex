@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.19 FATAL_ERROR)
 
-# enable c++14
-set(CMAKE_CXX_STANDARD 14)
+# enable c++17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ## external libraries
@@ -123,6 +123,9 @@ target_include_directories(libcodegen PUBLIC
         ${PCRE2_INCLUDE_DIRS}
         )
 
+# debug
+message(STATUS "Libraries: ${LLVM_SYSTEM_LIBS}")
+
 # Declare the library
 target_link_libraries(libcodegen
         libutils
@@ -131,5 +134,5 @@ target_link_libraries(libcodegen
         ${AWSSDK_LINK_LIBRARIES}
         ${PCRE2_LIBRARIES}
         ${LLVM_LIBRARIES}
-        ${LLVM_SYSTEM_LIBS}
+        #${LLVM_SYSTEM_LIBS}
         ${ZLIB_LIBRARIES})

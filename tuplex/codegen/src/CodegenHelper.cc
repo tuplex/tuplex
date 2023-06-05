@@ -44,6 +44,8 @@
 #include <llvm/Support/Host.h>
 #endif
 
+#include <llvm/Support/ManagedStatic.h>
+
 namespace tuplex {
     namespace codegen {
         // global var because often only references are passed around.

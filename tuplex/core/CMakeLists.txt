@@ -2,8 +2,8 @@
 # this build file builds the core component of the Tuplex project
 CMAKE_MINIMUM_REQUIRED(VERSION 3.12 FATAL_ERROR)
 
-# enable c++14
-set(CMAKE_CXX_STANDARD 14)
+# enable c++17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(YAMLCPP REQUIRED)
@@ -69,6 +69,10 @@ target_include_directories(libcore PUBLIC
 
 message(STATUS "Boost libraries are: ${Boost_LIBRARIES}")
 
+# make sure llvm dependencies exist
+ASSERT_VAR(ZLIB_LIBRARIES)
+ASSERT_VAR(ZSTD_LIBRARIES)
+
 # Declare the library
 target_link_libraries(libcore
         libcodegen
@@ -82,5 +86,7 @@ target_link_libraries(libcore
         Boost::thread
         Boost::system
         Boost::filesystem
-	util
+	    util
+        ${ZLIB_LIBRARIES}
+        ${ZSTD_LIBRARIES}
         )

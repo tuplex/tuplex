@@ -422,7 +422,7 @@ namespace tuplex {
 
 
             inline llvm::CallInst *CreateCall(llvm::FunctionType *FTy, llvm::Value *Callee,
-                                        llvm::ArrayRef<llvm::Value *> Args = llvm::None, const std::string &Name = "",
+                                        llvm::ArrayRef<llvm::Value *> Args = std::nullopt, const std::string &Name = "",
                                         llvm::MDNode *FPMathTag = nullptr) const {
                  assert(FTy);
                 return get_or_throw().CreateCall(FTy, Callee, Args, Name, FPMathTag);
@@ -434,7 +434,7 @@ namespace tuplex {
             //                Function *func = cast<Function>(_module->getOrInsertFunction(key, FT).getCallee());
             //#endif
 
-            inline llvm::CallInst* CreateCall(llvm::Value* func_value, llvm::ArrayRef<llvm::Value *> Args = llvm::None,
+            inline llvm::CallInst* CreateCall(llvm::Value* func_value, llvm::ArrayRef<llvm::Value *> Args = std::nullopt,
                                               const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) const {
                  if(llvm::isa<llvm::Function>(func_value))
                      throw std::runtime_error("trying to call a non-function llvm value");
@@ -443,13 +443,13 @@ namespace tuplex {
                                   FPMathTag);
             }
 
-            inline llvm::CallInst* CreateCall(llvm::Function* func, llvm::ArrayRef<llvm::Value *> Args = llvm::None,
+            inline llvm::CallInst* CreateCall(llvm::Function* func, llvm::ArrayRef<llvm::Value *> Args = std::nullopt,
                                               const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) const {
                 return CreateCall(func->getFunctionType(), func, Args, Name,
                                   FPMathTag);
             }
 
-            inline llvm::CallInst *CreateCall(llvm::FunctionCallee Callee, llvm::ArrayRef<llvm::Value *> Args = llvm::None,
+            inline llvm::CallInst *CreateCall(llvm::FunctionCallee Callee, llvm::ArrayRef<llvm::Value *> Args = std::nullopt,
                                         const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) const {
                 return CreateCall(Callee.getFunctionType(), Callee.getCallee(), Args, Name,
                                   FPMathTag);

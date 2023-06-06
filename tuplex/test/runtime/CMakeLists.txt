@@ -24,6 +24,7 @@ TARGET_LINK_LIBRARIES(testruntime
         ${GTest_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES}
         ${Python3_LIBRARIES}
+        ${CURSES_LIBRARY}
 )
 
 gtest_add_tests(TARGET testruntime TEST_PREFIX "")

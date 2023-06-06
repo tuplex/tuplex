@@ -48,6 +48,7 @@ TARGET_LINK_LIBRARIES(testwrappers
         ${GTest_LIBRARIES}
         libcpythonadapter
         ${Boost_LIBRARIES}
+        ${CURSES_LIBRARY}
         pybind11::embed
         )
 

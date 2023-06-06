@@ -22,6 +22,7 @@ TARGET_LINK_LIBRARIES(testio
         ${Protobuf_LIBRARIES}
         ${Protobuf_LITE_LIBRARIES}
         ${Protobuf_LIBRARIES}
+        ${CURSES_LIBRARY}
         protobuf::libprotobuf
         )
 

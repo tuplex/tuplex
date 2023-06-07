@@ -718,7 +718,7 @@ namespace tuplex {
                     // copy memory of i8 pointer
                     assert(field->getType()->isPointerTy());
                     assert(field->getType() == Type::getInt8PtrTy(context, 0));
-                    Value *outptr = builder.CreateGEP(lastPtr, offset, "varoff");
+                    Value *outptr = builder.MovePtrByBytes(lastPtr, offset, "varoff");
 
 
 #if LLVM_VERSION_MAJOR < 9
@@ -733,14 +733,14 @@ namespace tuplex {
                     if ((fieldType == python::Type::STRING ||
                          fieldType.isDictionaryType()) && _forceZeroTerminatedStrings) {
                         // write 0 for string
-                        auto lastCharPtr = builder.CreateGEP(outptr, builder.CreateSub(size, _env->i64Const(1)));
+                        auto lastCharPtr = builder.MovePtrByBytes(outptr, builder.CreateSub(size, _env->i64Const(1)));
                         builder.CreateStore(_env->i8Const('\0'), lastCharPtr);
                     }
 
                     // also varlensize needs to be output separately, so add
                     varlenSize = builder.CreateAdd(varlenSize, size);
 
-                    lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)), "outptr");
+                    lastPtr = builder.MovePtrByBytes(lastPtr, sizeof(int64_t), "outptr");
                 } else {
                     assert(fieldType.isFixedSizeType());
 

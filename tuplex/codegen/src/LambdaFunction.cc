@@ -222,7 +222,7 @@ namespace tuplex {
             }
 
             // retValue might be also a pointer to a tuple type
-            if(res && res->getType()->isPointerTy() && res->getType()->getPointerElementType()->isStructTy()) {
+            if(res && res->getType()->isPointerTy() && res->getType() != _env->i8ptrType()) {
                 _fto = FlattenedTuple::fromLLVMStructVal(_env, builder, res, output_type);
                 res = _fto.getLoad(builder);
             }

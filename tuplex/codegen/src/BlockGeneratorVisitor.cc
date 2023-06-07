@@ -425,7 +425,7 @@ namespace tuplex {
                 builder.CreateBr(retBlock);
 
                 builder.SetInsertPoint(retBlock);
-                auto ret = SerializableValue(builder.CreateLoad(retval), builder.CreateLoad(retsize));
+                auto ret = SerializableValue(builder.CreateLoad(_env->i8ptrType(), retval), builder.CreateLoad(_env->i64Type(), retsize));
                 _lfb->setLastBlock(retBlock);
                 return ret;
             } else {

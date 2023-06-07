@@ -1706,7 +1706,7 @@ namespace tuplex {
             auto new_val = builder.CreateCall(func, {caller.val, caller.size, res_size});
 
             // size doesn't change when applying lower to str
-            return SerializableValue(new_val, builder.CreateLoad(res_size));
+            return SerializableValue(new_val, builder.CreateLoad(_env.i64Type(), res_size));
         }
 
 

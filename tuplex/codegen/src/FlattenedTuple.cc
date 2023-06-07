@@ -267,6 +267,10 @@ namespace tuplex {
                     Value *ptr = builder.MovePtrByBytes(lastPtr, offset, twine); //builder.CreateGEP(_env->i8ptrType(), lastPtr, offset, twine);
                     assert(ptr->getType() == Type::getInt8PtrTy(context, 0));
                     if(type == python::Type::STRING || type == python::Type::PYOBJECT) {
+
+                        // debug print string:
+                        _env->printValue(builder, ptr, "decoded str= ");
+
                         _tree.set(i, codegen::SerializableValue(ptr, size, isnull));
                     } else if(type == python::Type::EMPTYDICT) {
                         throw std::runtime_error("Should not happen!");

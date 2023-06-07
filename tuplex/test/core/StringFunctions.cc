@@ -142,10 +142,10 @@ TEST_F(StringFunctions, IsDecimal) {
                            }).map(UDF("lambda a: a.isdecimal()")).collectAsVector();
 
     EXPECT_EQ(v.size(), 4);
-    EXPECT_EQ(v[0], false);
-    EXPECT_EQ(v[1], true);
-    EXPECT_EQ(v[2], false);
-    EXPECT_EQ(v[3], false);
+    EXPECT_EQ(v[0].getBoolean(0), false);
+    EXPECT_EQ(v[1].getBoolean(0), true);
+    EXPECT_EQ(v[2].getBoolean(0), false);
+    EXPECT_EQ(v[3].getBoolean(0), false);
 }
 
 /**

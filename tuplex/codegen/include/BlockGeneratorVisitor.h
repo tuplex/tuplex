@@ -124,7 +124,8 @@ namespace codegen {
 
                 if(val.val) {
                     // if tuples etc. are used, then there could be a pointer. When this happens, load & then assign
-                    if(val.val->getType() == ptr->getType()) {
+                    // make sure it's not string, which is a special case... --> opaque pointers make this check here difficult.
+                    if(val.val->getType() == ptr->getType() && type.withoutOptions() != python::Type::STRING) {
                         assert(llvm_type);
 
                         // load val

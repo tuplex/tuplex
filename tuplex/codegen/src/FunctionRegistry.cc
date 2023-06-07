@@ -2367,7 +2367,7 @@ namespace tuplex {
             };
 
             constructIfElse(isEmpty, isEmptyThunk, isDecimalThunk, res, lfb, builder);
-            return SerializableValue(builder.CreateLoad(res), _env.i64Const(sizeof(int64_t)));
+            return SerializableValue(builder.CreateLoad(_env.getBooleanType(), res), _env.i64Const(sizeof(int64_t)));
         }
 
 #warning "Doesn't support unicode strings"

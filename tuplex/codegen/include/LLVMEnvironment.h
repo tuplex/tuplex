@@ -91,7 +91,9 @@ namespace llvm {
         return createCallHelper(Fn, {V}, builder, Name, FMFSource);
     }
 
-    inline Value* CreateStructGEP(const tuplex::codegen::IRBuilder& builder, Value* ptr, unsigned int idx, const Twine& Name="") {
+    inline Value* CreateStructGEP(const tuplex::codegen::IRBuilder& builder,
+                                  Value* ptr,
+                                  unsigned int idx, const Twine& Name="") {
 #if LLVM_VERSION_MAJOR < 9
         // compatibility
         return builder.CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);

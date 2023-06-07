@@ -1635,13 +1635,16 @@ namespace tuplex {
             // get rid off option!
 
             // only string, bool, int, f64 so far supported!
-            ptr = env.CreateFirstBlockAlloca(builder, env.pythonToLLVMType(t.isOptionType() ? t.getReturnType() : t), name);
+            llvm_type = env.pythonToLLVMType(t.isOptionType() ? t.getReturnType() : t);
+            ptr = env.CreateFirstBlockAlloca(builder, llvm_type, name);
+
             // alloc size
             sizePtr = env.CreateFirstBlockAlloca(builder, env.i64Type(), name + "_size");
 
             // option type? then alloc isnull!
             nullPtr = t.isOptionType() ? env.CreateFirstBlockAlloca(builder, env.i1Type()) : nullptr;
 
+            this->type = t; // save original type.
             this->name = name;
         }
 

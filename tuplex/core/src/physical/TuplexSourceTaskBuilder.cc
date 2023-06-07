@@ -51,7 +51,13 @@ namespace tuplex {
                                                                  bool terminateEarlyOnLimitCode,
                                                                  llvm::Function *processRowFunc) {
             auto& context = env().getContext();
-            auto pip_res = PipelineBuilder::call(builder, processRowFunc, tuple, userData, builder.CreateLoad(rowNumberVar), initIntermediate(builder));
+            auto row_number = builder.CreateLoad(builder.getInt64Ty(), rowNumberVar);
+            auto pip_res = PipelineBuilder::call(builder,
+                                                 processRowFunc,
+                                                 tuple,
+                                                 userData,
+                                                 row_number,
+                                                 initIntermediate(builder));
 
             // create if based on resCode to go into exception block
             auto ecCode = builder.CreateZExtOrTrunc(pip_res.resultCode, env().i64Type());
@@ -62,8 +68,9 @@ namespace tuplex {
                 generateTerminateEarlyOnCode(builder, ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
 
             // add number of rows created to output row number variable
-            auto outputRowNumber = builder.CreateLoad(rowNumberVar);
-            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(rowNumberVar), numRowsCreated), rowNumberVar);
+            auto outputRowNumber = builder.CreateLoad(builder.getInt64Ty(), rowNumberVar);
+            builder.CreateStore(builder.CreateAdd(outputRowNumber, numRowsCreated),
+                                rowNumberVar);
 
             auto exceptionRaised = builder.CreateICmpNE(ecCode, env().i64Const(ecToI32(ExceptionCode::SUCCESS)));
 
@@ -79,7 +86,7 @@ namespace tuplex {
 
             // pipeline ok
             builder.SetInsertPoint(bbPipelineOK);
-            llvm::Value *normalRowCount = builder.CreateLoad(normalRowCountVar, "normalRowCount");
+            llvm::Value *normalRowCount = builder.CreateLoad(env().i64Type(), normalRowCountVar, "normalRowCount");
             builder.CreateStore(builder.CreateAdd(normalRowCount, env().i64Const(1)), normalRowCountVar);
 
             builder.CreateBr(bbPipelineDone);
@@ -120,7 +127,7 @@ namespace tuplex {
 
 
             // compute endptr from args
-            Value *endPtr = builder.CreateGEP(argInPtr, argInSize, "endPtr");
+            Value *endPtr = builder.CreateGEP(env().i8ptrType(), argInPtr, argInSize, "endPtr");
             Value *currentPtrVar = builder.CreateAlloca(env().i8ptrType(), 0, nullptr, "readPtrVar");
             // later use combi of normal & bad rows
             //Value *normalRowCountVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "normalRowCountVar");
@@ -133,23 +140,28 @@ namespace tuplex {
 
             Value *normalRowCountVar = argOutNormalRowCount;
             Value *badRowCountVar = argOutBadRowCount;
-            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(argOutBadRowCount),
-                                                  builder.CreateLoad(argOutNormalRowCount)), outRowCountVar);
+            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(env().i64Type(), argOutBadRowCount),
+                                                  builder.CreateLoad(env().i64Type(), argOutNormalRowCount)),
+                                outRowCountVar);
 
 
 
             // get num rows to read & process in loop
             Value *numRowsVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "numRowsVar");
             Value *input_ptr = builder.CreatePointerCast(argInPtr, env().i64Type()->getPointerTo(0));
-            builder.CreateStore(builder.CreateLoad(input_ptr), numRowsVar);
+            builder.CreateStore(builder.CreateLoad(env().i64Type(), input_ptr), numRowsVar);
             // store current input ptr
             Value *currentInputPtrVar = builder.CreateAlloca(env().i8ptrType(), 0, nullptr, "ptr");
-            builder.CreateStore(builder.CreateGEP(argInPtr, env().i32Const(sizeof(int64_t))), currentInputPtrVar);
+            builder.CreateStore(builder.CreateGEP(env().i8Type(), argInPtr, env().i32Const(sizeof(int64_t))), currentInputPtrVar);
 
 
             // variable for current row number...
             Value *rowVar = builder.CreateAlloca(env().i64Type(), 0, nullptr);
             builder.CreateStore(env().i64Const(0), rowVar);
+
+            // debug info basics:
+            env().printValue(builder, builder.CreateLoad(builder.getInt64Ty(), numRowsVar), "number of rows to process: ");
+
 
             BasicBlock* bbLoopCondition = BasicBlock::Create(context, "loop_cond", read_block_func);
             BasicBlock* bbLoopBody = BasicBlock::Create(context, "loop_body", read_block_func);
@@ -161,9 +173,9 @@ namespace tuplex {
             // --------------
             // loop condition
             builder.SetInsertPoint(bbLoopCondition);
-            Value *row = builder.CreateLoad(rowVar, "row");
+            Value *row = builder.CreateLoad(env().i64Type(), rowVar, "row");
             Value* nextRow = builder.CreateAdd(env().i64Const(1), row);
-            Value* numRows = builder.CreateLoad(numRowsVar, "numRows");
+            Value* numRows = builder.CreateLoad(env().i64Type(), numRowsVar, "numRows");
             builder.CreateStore(nextRow, rowVar, "row");
             auto cond = builder.CreateICmpSLT(nextRow, numRows);
             builder.CreateCondBr(cond, bbLoopBody, bbLoopDone);
@@ -175,9 +187,11 @@ namespace tuplex {
             // decode tuple from input ptr
             FlattenedTuple ft(_env.get());
             ft.init(_inputRowType);
-            Value* oldInputPtr = builder.CreateLoad(currentInputPtrVar, "ptr");
+            Value* oldInputPtr = builder.CreateLoad(env().i8ptrType(), currentInputPtrVar, "ptr");
             ft.deserializationCode(builder, oldInputPtr);
-            Value* newInputPtr = builder.CreateGEP(oldInputPtr, ft.getSize(builder)); // @TODO: maybe use inbounds
+            Value* newInputPtr = builder.CreateGEP(env().i8ptrType(),
+                                                   oldInputPtr,
+                                                   ft.getSize(builder)); // @TODO: maybe use inbounds
             builder.CreateStore(newInputPtr, currentInputPtrVar);
 
             // call function --> incl. exception handling
@@ -196,11 +210,11 @@ namespace tuplex {
                 writeIntermediate(builder, argUserData, _intermediateCallbackName);
             }
 
-            env().storeIfNotNull(builder, builder.CreateLoad(normalRowCountVar), argOutNormalRowCount);
-            env().storeIfNotNull(builder, builder.CreateLoad(badRowCountVar), argOutBadRowCount);
+            env().storeIfNotNull(builder, builder.CreateLoad(env().i64Type(), normalRowCountVar), argOutNormalRowCount);
+            env().storeIfNotNull(builder, builder.CreateLoad(env().i64Type(), badRowCountVar), argOutBadRowCount);
 
             // return bytes read
-            Value* curPtr = builder.CreateLoad(currentInputPtrVar, "ptr");
+            Value* curPtr = builder.CreateLoad(env().i8ptrType(), currentInputPtrVar, "ptr");
             Value* bytesRead = builder.CreateSub(builder.CreatePtrToInt(curPtr, env().i64Type()),
                                                  builder.CreatePtrToInt(argInPtr, env().i64Type()));
             builder.CreateRet(bytesRead);

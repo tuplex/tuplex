@@ -101,18 +101,20 @@ namespace tuplex {
             builder.SetInsertPoint(_initGlobalEntryBlock);
             _initGlobalRetValue = builder.CreateAlloca(i64Type());
             builder.CreateStore(i64Const(0), _initGlobalRetValue);
-            builder.CreateCondBr(builder.CreateICmpNE(builder.CreateLoad(_initGlobalRetValue), i64Const(0)), _initGlobalRetBlock, _initGlobalRetBlock);
+            builder.CreateCondBr(builder.CreateICmpNE(builder.CreateLoad(i64Type(), _initGlobalRetValue),
+                                                      i64Const(0)), _initGlobalRetBlock, _initGlobalRetBlock);
 
             builder.SetInsertPoint(_releaseGlobalEntryBlock);
             _releaseGlobalRetValue = builder.CreateAlloca(i64Type());
             builder.CreateStore(i64Const(0), _releaseGlobalRetValue);
-            builder.CreateCondBr(builder.CreateICmpNE(builder.CreateLoad(_releaseGlobalRetValue), i64Const(0)), _releaseGlobalRetBlock, _releaseGlobalRetBlock);
+            builder.CreateCondBr(builder.CreateICmpNE(builder.CreateLoad(i64Type(), _releaseGlobalRetValue),
+                                                      i64Const(0)), _releaseGlobalRetBlock, _releaseGlobalRetBlock);
 
             // create return statement
             builder.SetInsertPoint(_initGlobalRetBlock);
-            builder.CreateRet(builder.CreateLoad(_initGlobalRetValue));
+            builder.CreateRet(builder.CreateLoad(i64Type(), _initGlobalRetValue));
             builder.SetInsertPoint(_releaseGlobalRetBlock);
-            builder.CreateRet(builder.CreateLoad(_releaseGlobalRetValue));
+            builder.CreateRet(builder.CreateLoad(i64Type(), _releaseGlobalRetValue));
         }
 
         codegen::IRBuilder LLVMEnvironment::getInitGlobalBuilder(const std::string &block_name) {
@@ -125,7 +127,7 @@ namespace tuplex {
             auto retBuilder = codegen::IRBuilder(newBlock);
             // insert the new block in between the entry block and it's successor
             globalEntryTerminator->setSuccessor(1, newBlock);
-            auto loadInst = retBuilder.CreateLoad(_initGlobalRetValue);
+            auto loadInst = retBuilder.CreateLoad(i64Type(), _initGlobalRetValue);
             retBuilder.CreateCondBr(retBuilder.CreateICmpNE(loadInst, i64Const(0)), _initGlobalRetBlock, successorBlock);
 
             // return a builder
@@ -773,18 +775,20 @@ namespace tuplex {
                 return SerializableValue{ret, size, isnull};
             }
 
-
-
             // extract elements
             // auto structValIdx = builder.CreateStructGEP(tuplePtr, valueOffset);
-            auto structValIdx = CreateStructGEP(builder, tuplePtr, valueOffset);
-            value = builder.CreateLoad(structValIdx);
+            auto llvm_element_type = pythonToLLVMType(elementType);
+            auto llvm_struct_type = getOrCreateTupleType(tupleType);
+            auto structValIdx = builder.CreateStructGEP(tuplePtr, llvm_struct_type, valueOffset);
+            //CreateStructGEP(builder, tuplePtr, valueOffset);
+            value = builder.CreateLoad(llvm_element_type, structValIdx);
 
             // size existing? ==> only for varlen types
             if (!elementType.isFixedSizeType()) {
                 //  auto structSizeIdx = builder.CreateStructGEP(tuplePtr, sizeOffset);
-                auto structSizeIdx = CreateStructGEP(builder, tuplePtr, sizeOffset);
-                size = builder.CreateLoad(structSizeIdx);
+//                auto structSizeIdx = CreateStructGEP(builder, tuplePtr, sizeOffset);
+                auto structSizeIdx = builder.CreateStructGEP(tuplePtr, llvm_struct_type, sizeOffset);
+                size = builder.CreateLoad(i64Type(), structSizeIdx);
             } else {
                 // size from type
                 size = i64Size;
@@ -838,14 +842,17 @@ namespace tuplex {
 
             // extract elements
             // auto structValIdx = builder.CreateStructGEP(tuplePtr, valueOffset);
-            auto structValIdx = CreateStructGEP(builder, tuplePtr, valueOffset);
+            auto llvm_struct_type = getOrCreateTupleType(tupleType);
+            auto structValIdx = builder.CreateStructGEP(tuplePtr, llvm_struct_type, valueOffset);
+//            auto structValIdx = CreateStructGEP(builder, tuplePtr, valueOffset);
             if (value.val)
                 builder.CreateStore(value.val, structValIdx);
 
             // size existing? ==> only for varlen types
             if (!elementType.isFixedSizeType()) {
                 // auto structSizeIdx = builder.CreateStructGEP(tuplePtr, sizeOffset);
-                auto structSizeIdx = CreateStructGEP(builder, tuplePtr, sizeOffset);
+                // auto structSizeIdx = CreateStructGEP(builder, tuplePtr, sizeOffset);
+                auto structSizeIdx = builder.CreateStructGEP(tuplePtr, llvm_struct_type, sizeOffset);
                 if (value.size)
                     builder.CreateStore(value.size, structSizeIdx);
             }

@@ -152,7 +152,8 @@ namespace tuplex {
                                                                                      Type::getInt32Ty(context)}, false);
 
                 auto wrapperFunc = mod->getOrInsertFunction(_pythonInvokeName, wrapperFuncType);
-                auto outputVar = builder.CreateAlloca(Type::getInt8PtrTy(context, 0));
+                auto output_var_type = Type::getInt8PtrTy(context, 0); // use i8* type.
+                auto outputVar = builder.CreateAlloca(output_var_type);
                 auto outputSizeVar = builder.CreateAlloca(Type::getInt64Ty(context));
                 auto resCode = builder.CreateCall(wrapperFunc, {function_ptr,
                                                                 outputVar,
@@ -176,7 +177,7 @@ namespace tuplex {
 
                 // flatten out
                 ftr.init(output_type);
-                ftr.deserializationCode(builder, builder.CreateLoad(outputVar));
+                ftr.deserializationCode(builder, builder.CreateLoad(output_var_type, outputVar));
                 fto = ftr;
             }
 

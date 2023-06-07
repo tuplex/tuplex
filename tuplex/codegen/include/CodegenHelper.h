@@ -377,19 +377,44 @@ namespace tuplex {
                 return get_or_throw().CreateGEP(Ty, Ptr, IdxList, Name);
             }
 
+            // helper function to simulate GEP using bytes
+            inline llvm::Value *MovePtrByBytes(llvm::Value* Ptr, llvm::Value* num_bytes, const std::string &Name = "") const {
+                 assert(num_bytes->getType() == getInt64Ty() || num_bytes->getType() == getInt32Ty());
+                 assert(Ptr->getType()->isPointerTy());
+                 return get_or_throw().CreateGEP(getInt8Ty(), Ptr, {num_bytes}, Name);
+            }
+
+            inline llvm::Value *MovePtrByBytes(llvm::Value* Ptr, unsigned num_bytes, const std::string &Name = "") const {
+                 return MovePtrByBytes(Ptr, llvm::Constant::getIntegerValue(getInt64Ty(), llvm::APInt(64, num_bytes)), Name);
+           }
+
+
             inline llvm::Value *CreateStructGEP(llvm::Value *Ptr, unsigned Idx,
-                                   const std::string &Name = "") const {
+                                                const std::string &Name = "") const {
 #if LLVM_VERSION_MAJOR < 9
                 // compatibility
                 return get_or_throw().CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
 #else
                 //  return builder.CreateStructGEP(ptr, idx);
                 assert(Ptr->getType()->isPointerTy());
-                auto pointeetype = Ptr->getType()->getPointerElementType();
+                auto pointeetype = Ptr->getType()->getNonOpaquePointerElementType();
                 assert(pointeetype);
                 return get_or_throw().CreateStructGEP(pointeetype, Ptr, Idx, Name);
 #endif
-             }
+            }
+
+
+            inline llvm::Value *CreateStructGEP(llvm::Value *Ptr, llvm::Type* pointee_type, unsigned Idx,
+                                                const std::string &Name = "") const {
+#if LLVM_VERSION_MAJOR < 9
+                // compatibility
+                return get_or_throw().CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
+#else
+                assert(Ptr->getType()->isPointerTy());
+                assert(pointee_type);
+                return get_or_throw().CreateStructGEP(pointee_type, Ptr, Idx, Name);
+#endif
+            }
 
             inline llvm::Value *CreateFCmpONE(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
                                               llvm::MDNode *FPMathTag = nullptr) const {return get_or_throw().CreateFCmpONE(LHS, RHS, Name, FPMathTag); }

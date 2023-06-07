@@ -86,7 +86,7 @@ namespace tuplex {
 
 
             // helper functions to use variables via alloc/store in code
-            std::map<std::string, llvm::Value *> _variables;
+            std::map<std::string, std::tuple<llvm::Type*, llvm::Value *>> _variables;
 
             void addVariable(IRBuilder &builder, const std::string name, llvm::Type *type,
                              llvm::Value *initialValue = nullptr);
@@ -160,7 +160,7 @@ namespace tuplex {
             void assignWriteCallbackReturnValue(IRBuilder &builder, int64_t operatorID,
                                                 llvm::CallInst *callbackECVal);
         protected:
-            llvm::StructType* resultStructType() const {
+            [[nodiscard]] llvm::StructType* resultStructType() const {
                 return resultStructType(_env->getContext());
             }
             inline void createRet(IRBuilder& builder, llvm::Value* ecCode, llvm::Value* opID, llvm::Value* numRows) {
@@ -170,9 +170,10 @@ namespace tuplex {
                 auto nrows = builder.CreateZExtOrTrunc(numRows, env().i32Type());
 
                 // store into ret!
-                auto idx_rc = env().CreateStructGEP(builder, _args["result"], 0);
-                auto idx_id = env().CreateStructGEP(builder, _args["result"], 1);
-                auto idx_nrows = env().CreateStructGEP(builder, _args["result"], 2);
+                auto llvm_struct_type = resultStructType();
+                auto idx_rc = builder.CreateStructGEP(_args["result"], llvm_struct_type, 0);
+                auto idx_id = builder.CreateStructGEP(_args["result"], llvm_struct_type, 1);
+                auto idx_nrows = builder.CreateStructGEP(_args["result"], llvm_struct_type, 2);
 
                 builder.CreateStore(rc, idx_rc);
                 builder.CreateStore(id, idx_id);

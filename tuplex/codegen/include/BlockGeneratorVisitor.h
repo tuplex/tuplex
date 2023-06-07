@@ -75,9 +75,11 @@ namespace codegen {
             llvm::Value *ptr;
             llvm::Value *sizePtr;
             llvm::Value *nullPtr;
+            llvm::Type* llvm_type;
+            python::Type type;
             std::string name;
 
-            Variable() : ptr(nullptr), sizePtr(nullptr), nullPtr(nullptr), name("undefined") {}
+            Variable() : ptr(nullptr), sizePtr(nullptr), nullPtr(nullptr), llvm_type(nullptr), name("undefined") {}
 
             Variable(LLVMEnvironment& env, const codegen::IRBuilder& builder, const python::Type& t, const std::string& name);
 
@@ -110,9 +112,11 @@ namespace codegen {
                 //         assert(llvm::isa<llvm::Constant>(nullPtr));
                 // }
 
+                assert(type != python::Type::UNKNOWN && llvm_type);
+
                 // iterator slot may not have ptr yet
-                return codegen::SerializableValue(builder.CreateLoad(ptr), builder.CreateLoad(sizePtr),
-                        nullPtr ? builder.CreateLoad(nullPtr) : nullptr);
+                return codegen::SerializableValue(builder.CreateLoad(llvm_type, ptr), builder.CreateLoad(builder.getInt64Ty(), sizePtr),
+                        nullPtr ? builder.CreateLoad(builder.getInt1Ty(), nullPtr) : nullptr);
             }
 
             inline void store(const codegen::IRBuilder& builder, const codegen::SerializableValue& val) {
@@ -121,8 +125,10 @@ namespace codegen {
                 if(val.val) {
                     // if tuples etc. are used, then there could be a pointer. When this happens, load & then assign
                     if(val.val->getType() == ptr->getType()) {
+                        assert(llvm_type);
+
                         // load val
-                        auto tmp = builder.CreateLoad(val.val);
+                        auto tmp = builder.CreateLoad(llvm_type, val.val);
                         builder.CreateStore(tmp, ptr);
                     } else {
 #ifndef NDEBUG
@@ -181,7 +187,7 @@ namespace codegen {
 
             void generateUnboundLocalCheck(LambdaFunctionBuilder& lfb, codegen::IRBuilder& builder) {
                 assert(definedPtr);
-                auto val = builder.CreateLoad(definedPtr);
+                auto val = builder.CreateLoad(builder.getInt1Ty(), definedPtr);
                 auto c_val = llvm::dyn_cast<llvm::ConstantInt>(val);
                 if(c_val && c_val->getValue().getBoolValue()) {
                     // nothing todo, just remove the load instruction
@@ -205,7 +211,7 @@ namespace codegen {
                 if(!definedPtr)
                     return false;
 
-                auto val = builder.CreateLoad(definedPtr);
+                auto val = builder.CreateLoad(builder.getInt1Ty(), definedPtr);
                 auto c_val = llvm::dyn_cast<llvm::ConstantInt>(val);
                 if(c_val) {
                     val->eraseFromParent();

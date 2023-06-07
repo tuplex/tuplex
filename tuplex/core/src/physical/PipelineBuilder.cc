@@ -78,26 +78,26 @@ namespace tuplex {
 
         void PipelineBuilder::addVariable(IRBuilder &builder, const std::string name, llvm::Type *type,
                                                    llvm::Value *initialValue) {
-            _variables[name] = builder.CreateAlloca(type, 0, nullptr, name);
+            _variables[name] = std::make_tuple(type, builder.CreateAlloca(type, 0, nullptr, name));
 
             if(initialValue)
-                builder.CreateStore(initialValue, _variables[name]);
+                builder.CreateStore(initialValue, std::get<1>(_variables[name]));
         }
 
         llvm::Value* PipelineBuilder::getVariable(IRBuilder &builder, const std::string name) {
             assert(_variables.find(name) != _variables.end());
-            return builder.CreateLoad(_variables[name]);
+            return builder.CreateLoad(std::get<0>(_variables[name]), std::get<1>(_variables[name]));
         }
 
         llvm::Value* PipelineBuilder::getPointerToVariable(IRBuilder &builder, const std::string name) {
             assert(_variables.find(name) != _variables.end());
-            return _variables[name];
+            return std::get<1>(_variables[name]);
         }
 
         void PipelineBuilder::assignToVariable(IRBuilder &builder, const std::string name,
                                                         llvm::Value *newValue) {
             assert(_variables.find(name) != _variables.end());
-            builder.CreateStore(newValue, _variables[name]);
+            builder.CreateStore(newValue, std::get<1>(_variables[name]));
         }
 
         void PipelineBuilder::createFunction(const std::string& Name, const python::Type& intermediateOutputType) {
@@ -1803,9 +1803,13 @@ namespace tuplex {
             // load via StructGEP
             PipelineResult pr;
 
-            pr.resultCode = builder.CreateLoad(LLVMEnvironment::CreateStructGEP(builder, result_ptr, 0));
-            pr.exceptionOperatorID = builder.CreateLoad(LLVMEnvironment::CreateStructGEP(builder, result_ptr, 1));
-            pr.numProducedRows = builder.CreateLoad(LLVMEnvironment::CreateStructGEP(builder, result_ptr, 2));
+            auto llvm_struct_type = resultStructType(builder.getContext());
+
+            // note that result is 3x i32
+            pr.resultCode = builder.CreateLoad(builder.getInt32Ty(), builder.CreateStructGEP(result_ptr, llvm_struct_type, 0));
+            pr.exceptionOperatorID = builder.CreateLoad(builder.getInt32Ty(), builder.CreateStructGEP(result_ptr, llvm_struct_type, 1));
+            pr.numProducedRows = builder.CreateLoad(builder.getInt32Ty(), builder.CreateStructGEP(result_ptr, llvm_struct_type, 2));
+
             return pr;
         }
 

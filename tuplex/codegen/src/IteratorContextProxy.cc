@@ -48,9 +48,9 @@ namespace tuplex {
             if(iterableType == python::Type::RANGE) {
                 // initialize index to -step
                 auto startPtr = builder.CreateGEP(_env->getRangeObjectType(), iterableStruct, {_env->i32Const(0), _env->i32Const(0)});
-                auto start = builder.CreateLoad(startPtr);
+                auto start = builder.CreateLoad(_env->i64Type(), startPtr);
                 auto stepPtr = builder.CreateGEP(_env->getRangeObjectType(), iterableStruct, {_env->i32Const(0), _env->i32Const(2)});
-                auto step = builder.CreateLoad(stepPtr);
+                auto step = builder.CreateLoad(_env->i64Type(), stepPtr);
                 builder.CreateStore(builder.CreateSub(start, step), indexPtr);
             } else {
                 // initialize index to -1
@@ -125,9 +125,9 @@ namespace tuplex {
                 // rangeLength = (end - start - stepSign) // step + 1 , rangeLength is the number of integers within the range
                 // rangeLength = rangeLength & ~(rangeLength >> 63) , i.e. if rangeLength < 0, set it to 0
                 // reversedRange = range(start-step+rangeLength*step, start-step, -step)
-                auto start = builder.CreateLoad(builder.CreateGEP(_env->getRangeObjectType(), arg.val, {_env->i32Const(0), _env->i32Const(0)}));
-                auto end = builder.CreateLoad(builder.CreateGEP(_env->getRangeObjectType(), arg.val, {_env->i32Const(0), _env->i32Const(1)}));
-                auto step = builder.CreateLoad(builder.CreateGEP(_env->getRangeObjectType(), arg.val, {_env->i32Const(0), _env->i32Const(2)}));
+                auto start = builder.CreateLoad(_env->i64Type(), builder.CreateGEP(_env->getRangeObjectType(), arg.val, {_env->i32Const(0), _env->i32Const(0)}));
+                auto end = builder.CreateLoad(_env->i64Type(), builder.CreateGEP(_env->getRangeObjectType(), arg.val, {_env->i32Const(0), _env->i32Const(1)}));
+                auto step = builder.CreateLoad(_env->i64Type(), builder.CreateGEP(_env->getRangeObjectType(), arg.val, {_env->i32Const(0), _env->i32Const(2)}));
                 auto stepSign = builder.CreateOr(builder.CreateAShr(step, _env->i64Const(63)), _env->i64Const(1));
                 auto rangeLength = builder.CreateAdd(builder.CreateSDiv(builder.CreateSub(builder.CreateSub(end, start), stepSign), step), _env->i64Const(1));
                 rangeLength = builder.CreateAnd(rangeLength, builder.CreateNot(builder.CreateAShr(rangeLength, _env->i64Const(63))));

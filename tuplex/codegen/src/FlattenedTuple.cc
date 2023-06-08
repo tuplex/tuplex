@@ -288,16 +288,21 @@ namespace tuplex {
                         auto numElements = builder.CreateLoad(builder.getInt64Ty(), builder.CreateBitCast(ptr, Type::getInt64PtrTy(context, 0)), "list_num_elements");
                         llvm::Value* listSize = builder.CreateAlloca(Type::getInt64Ty(context));
                         builder.CreateStore(builder.CreateAdd(builder.CreateMul(numElements, _env->i64Const(8)), _env->i64Const(8)), listSize); // start list size as 8 * numElements + 8 ==> have to add string lengths for string case
+                        _env->printValue(builder, builder.CreateLoad(builder.getInt64Ty(), listSize), "(deserialized) list size is (line:"+std::to_string(__LINE__)+"): ");
 
                         // load the list with its initial size
-                        auto list_capacity_ptr = _env->CreateStructGEP(builder, listAlloc,  0);
+                        auto list_capacity_ptr = builder.CreateStructGEP(listAlloc, llvmType, 0); //_env->CreateStructGEP(builder, listAlloc,  0);
                         builder.CreateStore(numElements, list_capacity_ptr);
-                        auto list_len_ptr = _env->CreateStructGEP(builder, listAlloc,  1);
+                        auto list_len_ptr = builder.CreateStructGEP(listAlloc, llvmType, 1); //_env->CreateStructGEP(builder, listAlloc,  1);
                         builder.CreateStore(numElements, list_len_ptr);
+
+                        // check data
+                        _env->printValue(builder, numElements, "processing list of type " + type.desc() + " with num elements= ");
 
                         auto elementType = type.elementType();
                         if(elementType == python::Type::STRING) {
-                            auto offset_ptr = builder.CreateBitCast(builder.CreateGEP(ptr, _env->i64Const(sizeof(int64_t))), Type::getInt64PtrTy(context, 0)); // get pointer to i64 serialized array of offsets
+                            auto offset_ptr = builder.CreateBitCast(builder.MovePtrByBytes(ptr, sizeof(int64_t)),
+                                                                    Type::getInt64PtrTy(context, 0)); // get pointer to i64 serialized array of offsets
                             // need to point to each of the strings and calculate lengths
                             llvm::Function *func = builder.GetInsertBlock()->getParent();
                             assert(func);
@@ -321,28 +326,52 @@ namespace tuplex {
                             builder.CreateBr(loopCondition);
 
                             builder.SetInsertPoint(loopCondition);
-                            auto loopNotDone = builder.CreateICmpSLT(builder.CreateLoad(loopCounter), numElements);
+                            auto loopNotDone = builder.CreateICmpSLT(builder.CreateLoad(builder.getInt64Ty(), loopCounter),
+                                                                     numElements);
                             builder.CreateCondBr(loopNotDone, loopBodyEntry, after);
 
                             builder.SetInsertPoint(loopBodyEntry);
                             // store the pointer to the string
-                            auto curOffset = builder.CreateLoad(builder.CreateGEP(offset_ptr, builder.CreateLoad(loopCounter)));
-                            auto next_str_ptr = builder.CreateGEP(list_arr_malloc, builder.CreateLoad(loopCounter));
-                            auto curStrPtr = builder.CreateGEP(builder.CreateBitCast(builder.CreateGEP(offset_ptr, builder.CreateLoad(loopCounter)), Type::getInt8PtrTy(context, 0)), curOffset);
+                            auto curOffset = builder.CreateLoad(builder.getInt64Ty(),
+                                                                builder.CreateGEP(builder.getInt64Ty(),
+                                                                                  offset_ptr,
+                                                                                  builder.CreateLoad(builder.getInt64Ty(), loopCounter)));
+                            _env->printValue(builder, curOffset, "cur offset to read string from is: ");
+                            auto next_str_ptr = builder.CreateGEP(_env->i8ptrType(), list_arr_malloc, builder.CreateLoad(builder.getInt64Ty(), loopCounter));
+                            auto curStrPtr = builder.MovePtrByBytes(builder.CreateBitCast(builder.CreateGEP(builder.getInt64Ty(),
+                                                                                                       offset_ptr,
+                                                                                                       builder.CreateLoad(builder.getInt64Ty(),
+                                                                                                                          loopCounter)),
+                                                                                     Type::getInt8PtrTy(context, 0)),
+                                                               curOffset);
+                            _env->printValue(builder, curStrPtr, "current string to deserialize is: ");
                             builder.CreateStore(curStrPtr, next_str_ptr);
 
+                            _env->printValue(builder, builder.CreateLoad(_env->i8ptrType(), next_str_ptr), "saved string (recovered) is: ");
+
                             // set up to calculate the size based on offsets
-                            auto next_size_ptr = builder.CreateGEP(list_sizearr_malloc, builder.CreateLoad(loopCounter));
-                            auto lastElement = builder.CreateICmpEQ(builder.CreateLoad(loopCounter), builder.CreateSub(numElements, _env->i64Const(1)));
+                            auto next_size_ptr = builder.CreateGEP(builder.getInt64Ty(), list_sizearr_malloc, builder.CreateLoad(builder.getInt64Ty(), loopCounter));
+                            auto lastElement = builder.CreateICmpEQ(builder.CreateLoad(builder.getInt64Ty(), loopCounter),
+                                                                    builder.CreateSub(numElements, _env->i64Const(1)));
                             builder.CreateCondBr(lastElement, loopBodyLastEl, loopBodyReg);
 
                             builder.SetInsertPoint(loopBodyReg);
                             // get the next serialized offset
-                            auto nextOffset = builder.CreateLoad(builder.CreateGEP(offset_ptr, builder.CreateAdd(builder.CreateLoad(loopCounter), _env->i64Const(1))));
+                            auto offset_ptr_bytes_offset = builder.CreateMul(_env->i64Const(sizeof(int64_t)), builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), loopCounter),
+                                                                                                                                _env->i64Const(1)));
+                            auto nextOffset = builder.CreateLoad(builder.getInt64Ty(),
+                                                                 builder.MovePtrByBytes(offset_ptr,
+                                                                                   offset_ptr_bytes_offset));
+                            _env->printValue(builder, offset_ptr_bytes_offset, "offset bytes=");
+                            _env->printValue(builder, nextOffset, "nextOffset= ");
+                            _env->printValue(builder, curOffset, "curOffset= ");
                             auto curLenReg = builder.CreateSub(nextOffset, builder.CreateSub(curOffset, _env->i64Const(sizeof(uint64_t))));
                             // store it into the list
                             builder.CreateStore(curLenReg, next_size_ptr);
-                            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(listSize), curLenReg), listSize);
+                            _env->printValue(builder, curLenReg, "curLenReg= ");
+                            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), listSize), curLenReg), listSize);
+                            _env->printValue(builder, builder.CreateLoad(builder.getInt64Ty(), listSize), "(deserialized) list size is (line:"+std::to_string(__LINE__)+"): ");
+
                             builder.CreateBr(loopBodyEnd);
 
                             builder.SetInsertPoint(loopBodyLastEl);
@@ -350,23 +379,25 @@ namespace tuplex {
                             curLenLast = builder.CreateSub(curLenLast, curOffset);
                             // store it into the list
                             builder.CreateStore(curLenLast, next_size_ptr);
-                            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(listSize), curLenLast), listSize);
+                            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), listSize), curLenLast), listSize);
+                            _env->printValue(builder, builder.CreateLoad(builder.getInt64Ty(), listSize), "(deserialized) list size is (line:"+std::to_string(__LINE__)+"): ");
+
                             builder.CreateBr(loopBodyEnd);
 
                             builder.SetInsertPoint(loopBodyEnd);
                             // update the loop variable and return
-                            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(loopCounter), _env->i64Const(1)), loopCounter);
+                            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), loopCounter), _env->i64Const(1)), loopCounter);
                             builder.CreateBr(loopCondition);
 
                             builder.SetInsertPoint(after);
                             // store the malloc'd and populated array to the struct
-                            auto list_arr = _env->CreateStructGEP(builder, listAlloc, 2);
+                            auto list_arr = builder.CreateStructGEP(listAlloc, llvmType, 2); //_env->CreateStructGEP(builder, listAlloc, 2);
                             builder.CreateStore(list_arr_malloc, list_arr);
-                            auto list_sizearr = _env->CreateStructGEP(builder, listAlloc, 3);
+                            auto list_sizearr = builder.CreateStructGEP(listAlloc, llvmType, 3); //_env->CreateStructGEP(builder, listAlloc, 3);
                             builder.CreateStore(list_sizearr_malloc, list_sizearr);
                         }
                         else if(elementType == python::Type::BOOLEAN) {
-                            ptr = builder.CreateBitCast(builder.CreateGEP(ptr, _env->i64Const(sizeof(int64_t))), Type::getInt64PtrTy(context, 0)); // get pointer to i64 serialized array of booleans
+                            ptr = builder.CreateBitCast(builder.MovePtrByBytes(ptr, sizeof(int64_t)), Type::getInt64PtrTy(context, 0)); // get pointer to i64 serialized array of booleans
                             // need to copy the values out because serialized boolean = 8 bytes, but llvm boolean = 1 byte
                             llvm::Function *func = builder.GetInsertBlock()->getParent();
                             assert(func);
@@ -383,36 +414,48 @@ namespace tuplex {
                             builder.CreateBr(loopCondition);
 
                             builder.SetInsertPoint(loopCondition);
-                            auto loopNotDone = builder.CreateICmpSLT(builder.CreateLoad(loopCounter), numElements);
+                            auto loopNotDone = builder.CreateICmpSLT(builder.CreateLoad(builder.getInt64Ty(), loopCounter), numElements);
                             builder.CreateCondBr(loopNotDone, loopBody, after);
 
                             builder.SetInsertPoint(loopBody);
-                            auto list_el = builder.CreateGEP(list_arr_malloc, builder.CreateLoad(loopCounter)); // next list element
+                            auto list_el = builder.CreateGEP(_env->i64Type(), list_arr_malloc, builder.CreateLoad(loopCounter)); // next list element
                             // get the next serialized value
-                            auto serializedbool = builder.CreateLoad(builder.CreateGEP(ptr, builder.CreateLoad(loopCounter)));
+                            auto serializedbool = builder.CreateLoad(builder.CreateGEP(_env->i64Type(),
+                                                                                       ptr,
+                                                                                       builder.CreateLoad(builder.getInt64Ty(), loopCounter)));
                             auto truncbool = builder.CreateTrunc(serializedbool, boolType);
                             // store it into the list
                             builder.CreateStore(truncbool, list_el);
                             // update the loop variable and return
-                            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(loopCounter), _env->i64Const(1)), loopCounter);
+                            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), loopCounter), _env->i64Const(1)),
+                                                loopCounter);
                             builder.CreateBr(loopCondition);
 
                             builder.SetInsertPoint(after);
                             // store the malloc'd and populated array to the struct
-                            auto list_arr = _env->CreateStructGEP(builder, listAlloc, 2);
+                            auto list_arr = builder.CreateStructGEP(listAlloc, llvmType, 2); //_env->CreateStructGEP(builder, listAlloc, 2);
                             builder.CreateStore(list_arr_malloc, list_arr);
                         }
-                        else if(elementType == python::Type::I64 || elementType == python::Type::F64) {
+                        else if(elementType == python::Type::I64) {
                             // can just directly point to the serialized data
-                            auto list_arr = _env->CreateStructGEP(builder, listAlloc, 2);
-                            builder.CreateStore(builder.CreateBitCast(builder.CreateGEP(ptr, _env->i64Const(sizeof(int64_t))),
-                                    llvmType->getStructElementType(2)), list_arr);
+                            auto list_arr = builder.CreateStructGEP(listAlloc, llvmType, 2); //_env->CreateStructGEP(builder, listAlloc, 2);
+                            builder.CreateStore(builder.CreateBitCast(builder.CreateGEP(_env->i64Type(), ptr, _env->i64Const(sizeof(int64_t))),
+                                    _env->i64ptrType()), list_arr);
+                        }  else if(elementType == python::Type::F64) {
+                            // can just directly point to the serialized data
+                            auto list_arr = builder.CreateStructGEP(listAlloc, llvmType, 2); //_env->CreateStructGEP(builder, listAlloc, 2);
+                            builder.CreateStore(builder.CreateBitCast(builder.CreateGEP(_env->doubleType(), ptr, _env->i64Const(sizeof(int64_t))),
+                                                                      _env->doublePointerType()), list_arr);
                         } else {
                             Logger::instance().defaultLogger().error("unknown type '" + type.desc() + "' to be deserialized!");
                         }
 
+                        _env->printValue(builder, builder.CreateLoad(builder.getInt64Ty(), listSize), "(deserialized) list size is: ");
+
                         // set the deserialized list
-                        _tree.set(i, codegen::SerializableValue(builder.CreateLoad(listAlloc), builder.CreateLoad(listSize), isnull));
+                        _tree.set(i, codegen::SerializableValue(builder.CreateLoad(llvmType, listAlloc),
+                                                                builder.CreateLoad(builder.getInt64Ty(), listSize),
+                                                                isnull));
                     } else {
                         Logger::instance().defaultLogger().error("unknown type '" + type.desc() + "' to be deserialized!");
                     }
@@ -422,7 +465,8 @@ namespace tuplex {
                     if(python::Type::BOOLEAN == type) {
 
                         // load directly from memory
-                        Value *tmp = builder.CreateLoad(builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)));
+                        Value *tmp = builder.CreateLoad(builder.getInt64Ty(),
+                                                        builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)));
 
                         // cast to boolean type
                         Value *load = builder.CreateTrunc(tmp, boolType, twine);
@@ -431,7 +475,8 @@ namespace tuplex {
                     } else if(python::Type::I64 == type) {
 
                         // load directly from memory
-                        Value *load = builder.CreateLoad(_env->i64Type(), builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), twine);
+                        Value *load = builder.CreateLoad(_env->i64Type(),
+                                                         builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), twine);
                         _tree.set(i, codegen::SerializableValue(load, _env->i64Const(sizeof(int64_t)), isnull));
 
                     } else if(python::Type::F64 == type) {

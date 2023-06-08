@@ -232,7 +232,7 @@ namespace tuplex {
                     // Loop Block
                     builder.SetInsertPoint(loopBlock);
                     // decrement loop variable
-                    auto loopvarval = builder.CreateLoad(loopvar);
+                    auto loopvarval = builder.CreateLoad(_env->i64Type(), loopvar);
                     auto newloopvar = builder.CreateSub(loopvarval, _env->i64Const(1));
                     builder.CreateStore(newloopvar, loopvar);
                     // copy in memory
@@ -282,7 +282,8 @@ namespace tuplex {
 
                 // Overall Return Block (from lambda function)
                 builder.SetInsertPoint(retBlock);
-                auto ret = SerializableValue(builder.CreateLoad(retval), builder.CreateLoad(retsize));
+                auto ret = SerializableValue(builder.CreateLoad(_env->i8ptrType(), retval),
+                                             builder.CreateLoad(_env->i64Type(), retsize));
                 _lfb->setLastBlock(retBlock);
                 return ret;
             }
@@ -732,7 +733,7 @@ namespace tuplex {
             // allocate space
             bufVar = builder.CreateAlloca(_env->i8ptrType());
             builder.CreateStore(builder.malloc(allocSize), bufVar);
-            buf = builder.CreateLoad(bufVar);
+            buf = builder.CreateLoad(_env->i8ptrType(), bufVar);
 
             // insert standard snprintf arguments
             argsList.insert(argsList.begin(), fmtString.val);
@@ -762,14 +763,14 @@ namespace tuplex {
             // realloc with sizeWritten
             // store new malloc in bufVar
             builder.CreateStore(builder.malloc(sizeWritten), bufVar);
-            buf = builder.CreateLoad(bufVar);
+            buf = builder.CreateLoad(_env->i8ptrType(), bufVar);
             builder.CreateCall(snprintf_prototype(_env->getContext(), _env->getModule().get()), argsList);
 
             builder.CreateBr(bbNormal);
 
             _lfb->setLastBlock(bbNormal);
             builder.SetInsertPoint(bbNormal);
-            return SerializableValue(builder.CreateLoad(bufVar), sizeWritten);
+            return SerializableValue(builder.CreateLoad(_env->i8ptrType(), bufVar), sizeWritten);
         }
 
         llvm::Value *BlockGeneratorVisitor::numericCompareInst(const codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType,
@@ -2865,7 +2866,7 @@ namespace tuplex {
                 // empty tuple is represented by special type emptytuple.
                 // simply allocate this (dummy) type and return load of it
                 auto alloc = builder.CreateAlloca(_env->getEmptyTupleType());
-                auto load = builder.CreateLoad(alloc);
+                auto load = builder.CreateLoad(_env->getEmptyTupleType(), alloc);
 
                 // size of empty tuple is also 8 bytes (serialized size!)
                 addInstruction(load, _env->i64Const(sizeof(int64_t)));
@@ -3073,9 +3074,9 @@ namespace tuplex {
                 } else if(elementType == python::Type::I64 || elementType == python::Type::F64 || elementType == python::Type::BOOLEAN
                 || elementType == python::Type::STRING || elementType.isTupleType() || elementType.isDictionaryType()) {
                     // load the list with its initial size
-                    auto list_capacity_ptr = _env->CreateStructGEP(builder, listAlloc, 0);
+                    auto list_capacity_ptr = builder.CreateStructGEP(listAlloc, llvmType, 0); //_env->CreateStructGEP(builder, listAlloc, 0);
                     builder.CreateStore(_env->i64Const(list->_elements.size()), list_capacity_ptr);
-                    auto list_len_ptr = _env->CreateStructGEP(builder, listAlloc,  1);
+                    auto list_len_ptr = builder.CreateStructGEP(listAlloc, llvmType, 1); //_env->CreateStructGEP(builder, listAlloc,  1);
                     builder.CreateStore(_env->i64Const(list->_elements.size()), list_len_ptr);
 
                     // load the initial values ------
@@ -3093,10 +3094,13 @@ namespace tuplex {
                     } else {
                         malloc_size = _env->i64Const(element_byte_size * list->_elements.size());
                     }
+
+                    _env->printValue(builder, malloc_size, "size to allocate for list is (" + std::to_string(__LINE__) + "): ");
+
                     auto list_arr_malloc = builder.CreatePointerCast(builder.malloc(malloc_size), llvmType->getStructElementType(2));
                     // store the values
                     for(size_t i = 0; i < vals.size(); i++) {
-                        auto list_el = builder.CreateGEP(list_arr_malloc, _env->i32Const(i));
+                        auto list_el = builder.MovePtrByBytes(list_arr_malloc, i * element_byte_size); //builder.CreateGEP(list_arr_malloc, _env->i32Const(i));
                         if(elementType.isTupleType() && !elementType.isFixedSizeType()) {
                             // list_el has type struct.tuple**
                             auto el_tuple = _env->CreateFirstBlockAlloca(builder, _env->pythonToLLVMType(elementType), "tuple_alloc");
@@ -3107,7 +3111,7 @@ namespace tuplex {
                         }
                     }
                     // store the new array back into the array pointer
-                    auto list_arr = _env->CreateStructGEP(builder, listAlloc, 2);
+                    auto list_arr = builder.CreateStructGEP(listAlloc, llvmType, 2); //_env->CreateStructGEP(builder, listAlloc, 2);
                     builder.CreateStore(list_arr_malloc, list_arr);
 
                     // set the serialized size (i64/f64/bool are fixed sized!)
@@ -3116,26 +3120,30 @@ namespace tuplex {
                     // if string values, store the lengths as well
                     if(elementType == python::Type::STRING || elementType.isDictionaryType()) {
                         listSize = _env->i64Const(8 * list->_elements.size() + 8); // length field, size array
+                        auto malloc_size_for_sizes = _env->i64Const(8 * list->_elements.size());
+                        _env->printValue(builder, malloc_size_for_sizes, "size to allocate for list is (" + std::to_string(__LINE__) + "): ");
+
                         // allocate the size array
-                        auto list_sizearr_malloc = builder.CreatePointerCast(builder.malloc(_env->i64Const(8 * list->_elements.size())), llvmType->getStructElementType(3));
+                        auto list_sizes_arr_malloc = builder.CreatePointerCast(builder.malloc(malloc_size_for_sizes), llvmType->getStructElementType(3));
                         // store the lengths
                         for(size_t i = 0; i < vals.size(); i++) {
-                            auto list_el = builder.CreateGEP(list_sizearr_malloc, _env->i32Const(i));
-                            builder.CreateStore(vals[i].size, list_el);
+                            auto list_el_size = builder.MovePtrByBytes(list_sizes_arr_malloc, i * sizeof(int64_t)); // builder.CreateGEP(list_sizes_arr_malloc, _env->i32Const(i));
+                            builder.CreateStore(vals[i].size, list_el_size);
                             listSize = builder.CreateAdd(listSize, vals[i].size);
                         }
                         // store the new array back into the array pointer
-                        auto list_sizearr = _env->CreateStructGEP(builder, listAlloc, 3);
-                        builder.CreateStore(list_sizearr_malloc, list_sizearr);
+                        auto list_sizes_arr = builder.CreateStructGEP(listAlloc, llvmType, 3); //_env->CreateStructGEP(builder, listAlloc, 3);
+                        builder.CreateStore(list_sizes_arr_malloc, list_sizes_arr);
                     }
                 }
+tus
 
                 // TODO:
                 // --> change to passing around the pointer to the list, not the semi-loaded struct
                 // ---> THIS WILL HAVE IMPLICATIONS WHEREVER LISTS ARE USED.
                 // also listSize here is wrong. The listSize should be stored as part of the pointer. You can either pass 8 as listsize or null.
 
-                addInstruction(builder.CreateLoad(listAlloc), listSize);
+                addInstruction(builder.CreateLoad(llvmType, listAlloc), listSize);
             }
         }
 
@@ -4511,23 +4519,29 @@ namespace tuplex {
             else builder.CreateStore(processSliceIndex(builder, end, stringLen, stride), endpos);
 
             // check if start < end; else, return empty
-            auto nonemptyResPos = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, builder.CreateLoad(startpos),
-                                                     builder.CreateLoad(endpos));
+            auto nonemptyResPos = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT,
+                                                     builder.CreateLoad(builder.getInt64Ty(), startpos),
+                                                     builder.CreateLoad(builder.getInt64Ty(), endpos));
             builder.CreateCondBr(nonemptyResPos, positiveStrideBlk1, emptyBlock);
 
             // fall through block for previous branch
             builder.SetInsertPoint(positiveStrideBlk1);
             // special case: [x::1]
             auto strideIsOne = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, stride, _env->i64Const(1));
-            auto endIsStringLenPos = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, builder.CreateLoad(endpos),
+            auto endIsStringLenPos = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ,
+                                                        builder.CreateLoad(builder.getInt64Ty(), endpos),
                                                         stringLen);
             auto positiveSpecialCase = builder.CreateAnd(strideIsOne, endIsStringLenPos);
             builder.CreateCondBr(positiveSpecialCase, positiveStrideSpecial, validRangeBlk);
 
             // positive stride, special case
             builder.SetInsertPoint(positiveStrideSpecial);
-            builder.CreateStore(builder.CreateGEP(value.val, builder.CreateLoad(startpos)), retval);
-            builder.CreateStore(builder.CreateSub(value.size, builder.CreateLoad(startpos)), retsize);
+            builder.CreateStore(builder.MovePtrByBytes(value.val,
+                                                  builder.CreateLoad(builder.getInt64Ty(), startpos)),
+                                retval);
+            builder.CreateStore(builder.CreateSub(value.size,
+                                                  builder.CreateLoad(builder.getInt64Ty(), startpos)),
+                                retsize);
             builder.CreateBr(retBlock);
 
             // negative stride
@@ -4539,17 +4553,21 @@ namespace tuplex {
             else builder.CreateStore(processSliceIndex(builder, end, stringLen, stride), endpos);
 
             // check if start > end; else, return empty
-            auto nonemptyResNeg = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SGT, builder.CreateLoad(startpos),
-                                                     builder.CreateLoad(endpos));
+            auto nonemptyResNeg = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SGT,
+                                                     builder.CreateLoad(builder.getInt64Ty(), startpos),
+                                                     builder.CreateLoad(builder.getInt64Ty(), endpos));
             builder.CreateCondBr(nonemptyResNeg, validRangeBlk, emptyBlock);
 
             // valid range, do the loop
             builder.SetInsertPoint(validRangeBlk);
             // newstrlen = ceiling(end-start/stride)
-            auto diff = builder.CreateSub(builder.CreateLoad(endpos), builder.CreateLoad(startpos));
+            auto diff = builder.CreateSub(builder.CreateLoad(builder.getInt64Ty(), endpos),
+                                          builder.CreateLoad(builder.getInt64Ty(), startpos));
             auto newstrlen = _env->floorDivision(builder, diff, stride);
             auto hasnorem = builder.CreateICmpEQ(builder.CreateSRem(diff, stride), _env->i64Const(0));
-            newstrlen = builder.CreateSelect(hasnorem, newstrlen, builder.CreateAdd(newstrlen, _env->i64Const(1)));
+            newstrlen = builder.CreateSelect(hasnorem,
+                                             newstrlen,
+                                             builder.CreateAdd(newstrlen, _env->i64Const(1)));
             auto newlen = builder.CreateAdd(newstrlen, _env->i64Const(1));
             auto allocmem = builder.malloc(newlen); // allocate memory
             builder.CreateStore(_env->i8Const('\0'), builder.CreateGEP(builder.getInt8Ty(),
@@ -4557,7 +4575,7 @@ namespace tuplex {
                                                                        newstrlen)); // null terminate the result
             builder.CreateStore(newlen, retsize); // save resulting size
             builder.CreateStore(allocmem, retval); // save resulting pointer
-            builder.CreateStore(builder.CreateLoad(startpos), looppos); // start loop
+            builder.CreateStore(builder.CreateLoad(builder.getInt64Ty(), startpos), looppos); // start loop
             builder.CreateStore(_env->i64Const(0), newstrpos);
             builder.CreateBr(loopEntryBlock);
 
@@ -4565,18 +4583,20 @@ namespace tuplex {
             builder.SetInsertPoint(loopEntryBlock);
             auto enterloop = builder.CreateSelect(
                     strideIsPositive,
-                    builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, builder.CreateLoad(looppos),
-                                       builder.CreateLoad(endpos)),
-                    builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SGT, builder.CreateLoad(looppos),
-                                       builder.CreateLoad(endpos)));
+                    builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT,
+                                       builder.CreateLoad(builder.getInt64Ty(), looppos),
+                                       builder.CreateLoad(builder.getInt64Ty(), endpos)),
+                    builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SGT,
+                                       builder.CreateLoad(builder.getInt64Ty(), looppos),
+                                       builder.CreateLoad(builder.getInt64Ty(), endpos)));
             builder.CreateCondBr(enterloop, loopBlock, retBlock);
 
             // loop block
             builder.SetInsertPoint(loopBlock);
-            auto newstrposval = builder.CreateLoad(newstrpos);
-            auto loopposval = builder.CreateLoad(looppos);
+            auto newstrposval = builder.CreateLoad(builder.getInt64Ty(), newstrpos);
+            auto loopposval = builder.CreateLoad(builder.getInt64Ty(), looppos);
             auto charptr = builder.CreateGEP(builder.getInt8Ty(), value.val, loopposval);
-            builder.CreateStore(builder.CreateLoad(charptr),
+            builder.CreateStore(builder.CreateLoad(builder.getInt8Ty(), charptr),
                                 builder.CreateGEP(builder.getInt8Ty(), allocmem, newstrposval));
             builder.CreateStore(builder.CreateAdd(newstrposval, _env->i64Const(1)), newstrpos);
             builder.CreateStore(builder.CreateAdd(loopposval, stride), looppos);
@@ -4592,7 +4612,8 @@ namespace tuplex {
 
             // Overall Return Block (from lambda function)
             builder.SetInsertPoint(retBlock);
-            auto ret = SerializableValue(builder.CreateLoad(retval), builder.CreateLoad(retsize));
+            auto ret = SerializableValue(builder.CreateLoad(_env->i8ptrType(), retval),
+                                         builder.CreateLoad(builder.getInt64Ty(), retsize));
             _lfb->setLastBlock(retBlock);
             return ret;
         }
@@ -4669,7 +4690,7 @@ namespace tuplex {
             builder.CreateBr(retBlock);
 
             builder.SetInsertPoint(retBlock);
-            auto retval = builder.CreateLoad(ret);
+            auto retval = builder.CreateLoad(builder.getInt64Ty(), ret);
             return retval;
         }
 

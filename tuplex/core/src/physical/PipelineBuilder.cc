@@ -1870,6 +1870,12 @@ namespace tuplex {
             return true;
         }
 
+        inline std::tuple<llvm::Value*, llvm::Value*> decodeSingleCell(LLVMEnvironment& env, IRBuilder& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr, unsigned i) {
+            auto cellStr = builder.CreateLoad(env.i8ptrType(), builder.CreateGEP(env.i8ptrType(), cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
+            auto cellSize = builder.CreateLoad(env.i64Type(), builder.CreateGEP(env.i64ptrType(), sizesPtr, env.i64Const(i)), "s" + std::to_string(i));
+            return std::make_tuple(cellStr, cellSize);
+        }
+
         std::shared_ptr<FlattenedTuple> decodeCells(LLVMEnvironment& env, IRBuilder& builder,
                                                     const python::Type& rowType,
                                                     llvm::Value* numCells, llvm::Value* cellsPtr, llvm::Value* sizesPtr,
@@ -1918,48 +1924,52 @@ namespace tuplex {
                     isnull = env.compareToNullValues(builder, val, null_values, true);
                 } else if(t != python::Type::NULLVALUE) {
                     // null check, i.e. raise NULL value exception!
-                    auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
+                    auto val = builder.CreateLoad(env.i8ptrType(),
+                                                  builder.CreateGEP(env.i8ptrType(), cellsPtr, env.i64Const(i)),
+                                                  "x" + std::to_string(i));
                     auto null_check = env.compareToNullValues(builder, val, null_values, true);
 
                     // if positive, exception!
                     // else continue!
-                    BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(), "col" + std::to_string(i) + "_null_check_passed", builder.GetInsertBlock()->getParent());
+                    BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(),
+                                                                       "col" + std::to_string(i) + "_null_check_passed",
+                                                                       builder.GetInsertBlock()->getParent());
                     builder.CreateCondBr(null_check, nullErrorBlock, bbNullCheckPassed);
                     builder.SetInsertPoint(bbNullCheckPassed);
                 }
 
                 t = t.withoutOptions();
 
+                llvm::Value* cellStr = nullptr, *cellSize = nullptr;
+
                 // values?
                 if(python::Type::STRING == t) {
                     // fill in
-                    auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env.i64Const(i)),
+                    auto val = builder.CreateLoad(env.i8ptrType(), builder.CreateGEP(env.i8ptrType(),
+                                                                                     cellsPtr, env.i64Const(i)),
                                                   "x" + std::to_string(i));
-                    auto size = builder.CreateLoad(builder.CreateGEP(sizesPtr, env.i64Const(i)),
+                    auto size = builder.CreateLoad(env.i64Type(), builder.CreateGEP(env.i64ptrType(), sizesPtr, env.i64Const(i)),
                                                    "s" + std::to_string(i));
                     ft->assign(i, val, size, isnull);
                 } else if(python::Type::BOOLEAN == t) {
                     // conversion code here
-                    auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
-                    auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env.i64Const(i)), "s" + std::to_string(i));
+                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
                     auto val = parseBoolean(env, builder, valueErrorBlock, cellStr, cellSize, isnull);
                     ft->assign(i, val.val, val.size, isnull);
                 } else if(python::Type::I64 == t) {
                     // conversion code here
-                    auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
-                    auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env.i64Const(i)), "s" + std::to_string(i));
+                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
                     auto val = parseI64(env, builder, valueErrorBlock, cellStr, cellSize, isnull);
                     ft->assign(i, val.val, val.size, isnull);
                 } else if(python::Type::F64 == t) {
                     // conversion code here
-                    auto cellStr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
-                    auto cellSize = builder.CreateLoad(builder.CreateGEP(sizesPtr, env.i64Const(i)), "s" + std::to_string(i));
+                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
                     auto val = parseF64(env, builder, valueErrorBlock, cellStr, cellSize, isnull);
                     ft->assign(i, val.val, val.size, isnull);
                 } else if(python::Type::NULLVALUE == t) {
                     // perform null check only, & set null element depending on result
-                    auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
-                    isnull = env.compareToNullValues(builder, val, null_values, true);
+                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
+                    isnull = env.compareToNullValues(builder, cellStr, null_values, true);
 
                     // if not null, exception! ==> i.e. ValueError!
                     BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(), "col" + std::to_string(i) + "_value_check_passed", builder.GetInsertBlock()->getParent());
@@ -2044,12 +2054,12 @@ namespace tuplex {
 #endif
 
                 // decode into noCells, cellsPtr, sizesPtr etc.
-                auto noCells = builder.CreateLoad(builder.CreatePointerCast(dataPtr, env.i64ptrType()));
+                auto noCells = builder.CreateLoad(env.i64Type(), builder.CreatePointerCast(dataPtr, env.i64ptrType()));
 
 #ifndef NDEBUG
                 // env.debugPrint(builder, "parsed #cells: ", noCells);
 #endif
-                dataPtr = builder.CreateGEP(dataPtr, env.i32Const(sizeof(int64_t)));
+                dataPtr = builder.MovePtrByBytes(dataPtr, sizeof(int64_t));
                 // heap alloc arrays, could be done on stack as well but whatever
                 auto cellsPtr = builder.CreatePointerCast(
                         env.malloc(builder, env.i64Const(num_columns * sizeof(uint8_t*))),
@@ -2058,15 +2068,15 @@ namespace tuplex {
                                                           env.i64ptrType());
                 for (unsigned i = 0; i < num_columns; ++i) {
                     // decode size + offset & store accordingly!
-                    auto info = builder.CreateLoad(builder.CreatePointerCast(dataPtr, env.i64ptrType()));
+                    auto info = builder.CreateLoad(env.i64Type(), builder.CreatePointerCast(dataPtr, env.i64ptrType()));
                     // truncation yields lower 32 bit (= offset)
                     Value *offset = builder.CreateTrunc(info, Type::getInt32Ty(context));
                     // right shift by 32 yields size
                     Value *size = builder.CreateLShr(info, 32);
 
-                    builder.CreateStore(size, builder.CreateGEP(sizesPtr, env.i32Const(i)));
-                    builder.CreateStore(builder.CreateGEP(dataPtr, offset),
-                                        builder.CreateGEP(cellsPtr, env.i32Const(i)));
+                    builder.CreateStore(size, builder.MovePtrByBytes(sizesPtr, i));
+                    builder.CreateStore(builder.MovePtrByBytes(dataPtr, offset),
+                                        builder.CreateGEP(env.i8ptrType(), cellsPtr, env.i32Const(i)));
 
 #ifndef NDEBUG
                      // env.debugPrint(builder, "cell("  + std::to_string(i) + ") size: ", size);
@@ -2074,7 +2084,7 @@ namespace tuplex {
                      // env.debugPrint(builder, "cell " + std::to_string(i) + ": ", builder.CreateLoad(builder.CreateGEP(cellsPtr, env.i32Const(i))));
 #endif
 
-                    dataPtr = builder.CreateGEP(dataPtr, env.i32Const(sizeof(int64_t)));
+                    dataPtr = builder.MovePtrByBytes(dataPtr, sizeof(int64_t));
                 }
 
                 auto ft = decodeCells(env, builder, exceptionalType, noCells, cellsPtr, sizesPtr, bbStringDecodeFailed,
@@ -2122,7 +2132,7 @@ namespace tuplex {
                 auto resultOpID = builder.CreateZExtOrTrunc(res.exceptionOperatorID, env.i64Type());
                 auto resultNumRowsCreated = builder.CreateZExtOrTrunc(res.numProducedRows, env.i64Type());
                 env.freeAll(builder);
-                 builder.CreateRet(resultCode);
+                builder.CreateRet(resultCode);
             }
 
 

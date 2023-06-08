@@ -184,7 +184,7 @@ namespace tuplex {
                 lfb.addException(builder, ExceptionCode::VALUEERROR, cond);
 
                 // changed builder, now return normal/positive result
-                return SerializableValue(builder.CreateLoad(value), i64Size);
+                return SerializableValue(builder.CreateLoad(_env.i64Type(), value), i64Size);
             } else {
                 logger.error("not support for objects of type " + type.desc() + " in int(...) call");
                 return SerializableValue();
@@ -223,7 +223,7 @@ namespace tuplex {
                 // STRING: 32 bytes offset
                 auto valaddr = builder.CreateGEP(cjson_val, _env.i64Const(32));
                 auto valptr = builder.CreatePointerCast(valaddr, llvm::Type::getInt64PtrTy(_env.getContext()));
-                auto valload = builder.CreateLoad(valptr);
+                auto valload = builder.CreateLoad(_env.i64Type(), valptr);
                 val = builder.CreateCast(llvm::Instruction::CastOps::IntToPtr, valload, _env.i8ptrType());
                 auto len = builder.CreateCall(strlen_prototype(_env.getContext(), _env.getModule().get()), {val});
                 size = builder.CreateAdd(len, _env.i64Const(1));
@@ -269,12 +269,16 @@ namespace tuplex {
             // local variables
             auto retsize = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr);
             llvm::Value* retval = nullptr;
+            llvm::Type* llvm_retval_type = nullptr;
             // allocate retval properly
-            if(retType == python::Type::BOOLEAN) retval = builder.CreateAlloca(_env.getBooleanType(), 0, nullptr);
-            else if(retType == python::Type::STRING) retval = builder.CreateAlloca(_env.i8ptrType(), 0, nullptr);
-            else if(retType == python::Type::I64) retval = builder.CreateAlloca(_env.i64Type(), 0, nullptr);
-            else if(retType == python::Type::F64) retval = builder.CreateAlloca(_env.doubleType(), 0, nullptr);
+            if(retType == python::Type::BOOLEAN) llvm_retval_type = _env.getBooleanType();
+            else if(retType == python::Type::STRING) llvm_retval_type = _env.i8ptrType();
+            else if(retType == python::Type::I64) llvm_retval_type = _env.i64Type();
+            else if(retType == python::Type::F64) llvm_retval_type = _env.doubleType();
             else throw "Invalid return type for dict.pop(): " + retType.desc();
+
+            assert(llvm_retval_type);
+            retval = builder.CreateAlloca(llvm_retval_type, 0, nullptr);
 
             auto keyExists = builder.CreateIsNotNull(cjson_val);
             builder.CreateCondBr(keyExists, keyExistBlock, keyDNEBlock);
@@ -294,7 +298,7 @@ namespace tuplex {
             builder.CreateBr(retBlock);
 
             builder.SetInsertPoint(retBlock);
-            auto ret = SerializableValue(builder.CreateLoad(retval), builder.CreateLoad(retsize));
+            auto ret = SerializableValue(builder.CreateLoad(llvm_retval_type, retval), builder.CreateLoad(_env.i64Type(), retsize));
             lfb.setLastBlock(retBlock);
             return ret;
         }
@@ -318,7 +322,7 @@ namespace tuplex {
             // retrieve child pointer
             auto valobjaddr = builder.CreateGEP(caller.val, _env.i64Const(16));
             auto valobjptr = builder.CreatePointerCast(valobjaddr, llvm::Type::getInt64PtrTy(_env.getContext()));
-            auto valobjload = builder.CreateLoad(valobjptr);
+            auto valobjload = builder.CreateLoad(_env.i64Type(), valobjptr);
             auto valobj = builder.CreateCast(llvm::Instruction::CastOps::IntToPtr, valobjload,
                                              _env.i8ptrType()); // child pointer
             auto nonempty_dict = builder.CreateIsNull(valobj);
@@ -331,7 +335,7 @@ namespace tuplex {
             // get key of removed item
             auto keyaddr = builder.CreateGEP(valobj, _env.i64Const(56));
             auto keyptr = builder.CreatePointerCast(keyaddr, llvm::Type::getInt64PtrTy(_env.getContext()));
-            auto keyload = builder.CreateLoad(keyptr);
+            auto keyload = builder.CreateLoad(_env.i64Type(), keyptr);
             auto keystr = builder.CreateCast(llvm::Instruction::CastOps::IntToPtr, keyload,
                                           _env.i8ptrType()); // key string
             auto key = dictionaryKeyCast(_env.getContext(), _env.getModule().get(), builder, keystr, retType.parameters()[0]);
@@ -2162,7 +2166,7 @@ namespace tuplex {
             auto i8nullptr = llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(_env.i8ptrType()));
             auto empty_cond = builder.CreateICmpEQ(strstr_res, i8nullptr);
 
-            auto res = builder.CreateSelect(empty_cond, _env.i64Const(-1), builder.CreatePtrDiff(strstr_res, caller.val));
+            auto res = builder.CreateSelect(empty_cond, _env.i64Const(-1), builder.CreatePtrDiff(_env.i8Type(), strstr_res, caller.val));
 
             return SerializableValue(res, _env.i64Const(sizeof(int64_t)));
         }
@@ -2233,7 +2237,7 @@ namespace tuplex {
             };
 
             constructIfElse(greaterCond, isGreater, startsWithRes, res, lfb, builder);
-            return SerializableValue(builder.CreateLoad(res), _env.i64Const(sizeof(int64_t)));
+            return SerializableValue(builder.CreateLoad(_env.getBooleanType(), res), _env.i64Const(sizeof(int64_t)));
         }
 
         SerializableValue FunctionRegistry::createEndswithCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
@@ -2256,13 +2260,13 @@ namespace tuplex {
                 auto memcmpFunc = memcmp_prototype(_env.getContext(), _env.getModule().get());
                 auto n = builder.CreateSub(suffix.size, _env.i64Const(1));
 
-                auto callerStart = builder.CreateGEP(caller.val, builder.CreateSub(caller.size, suffix.size));
+                auto callerStart = builder.MovePtrByBytes(caller.val, builder.CreateSub(caller.size, suffix.size));
                 auto memcmpRes = builder.CreateICmpEQ(_env.i64Const(0), builder.CreateCall(memcmpFunc, {callerStart, suffix.val, n}));
                 return _env.upcastToBoolean(builder, memcmpRes);
             };
 
             constructIfElse(greaterCond, isGreater, endsWithRes, res, lfb, builder);
-            return SerializableValue(builder.CreateLoad(res), _env.i64Const(sizeof(int64_t)));
+            return SerializableValue(builder.CreateLoad(_env.getBooleanType(), res), _env.i64Const(sizeof(int64_t)));
         }
 
         SerializableValue FunctionRegistry::createReverseFindCall(
@@ -2310,7 +2314,7 @@ namespace tuplex {
 
             auto replaced_str = builder.CreateCall(replace_func, {caller.val, from.val, to.val, sizeVar});
 
-            return SerializableValue(replaced_str, builder.CreateLoad(sizeVar));
+            return SerializableValue(replaced_str, builder.CreateLoad(_env.i64Type(), sizeVar));
         }
 
         SerializableValue FunctionRegistry::createJoinCall(const codegen::IRBuilder& builder, const tuplex::codegen::SerializableValue &caller, const tuplex::codegen::SerializableValue &list) {
@@ -2322,7 +2326,7 @@ namespace tuplex {
                                                 {caller.val, caller.size, builder.CreateExtractValue(list.val, {1}),
                                                  builder.CreateExtractValue(list.val, {2}),
                                                  builder.CreateExtractValue(list.val, {3}), sizeVar});
-            return {joinedStr, builder.CreateLoad(sizeVar)};
+            return {joinedStr, builder.CreateLoad(_env.i64Type(), sizeVar)};
         }
 
         SerializableValue FunctionRegistry::createSplitCall(LambdaFunctionBuilder& lfb, const codegen::IRBuilder& builder, const tuplex::codegen::SerializableValue &caller, const tuplex::codegen::SerializableValue &delimiter) {
@@ -2339,13 +2343,14 @@ namespace tuplex {
                                                 {caller.val, caller.size, delimiter.val, delimiter.size,
                                                  strArray, lenArray, listLen});
 
-            auto res = _env.CreateFirstBlockAlloca(builder, _env.createOrGetListType(
-                    python::Type::makeListType(python::Type::STRING)));
-            builder.CreateStore(builder.CreateLoad(listLen), builder.CreateStructGEP(res, 0));
-            builder.CreateStore(builder.CreateLoad(listLen), builder.CreateStructGEP(res, 1));
-            builder.CreateStore(builder.CreateLoad(strArray), builder.CreateStructGEP(res, 2));
-            builder.CreateStore(builder.CreateLoad(lenArray), builder.CreateStructGEP(res, 3));
-            return {builder.CreateLoad(res), listSerializedSize};
+            auto llvm_list_type = _env.createOrGetListType(
+                    python::Type::makeListType(python::Type::STRING));
+            auto res = _env.CreateFirstBlockAlloca(builder, llvm_list_type);
+            builder.CreateStore(builder.CreateLoad(_env.i64Type(), listLen), builder.CreateStructGEP(res, 0));
+            builder.CreateStore(builder.CreateLoad(_env.i64Type(), listLen), builder.CreateStructGEP(res, 1));
+            builder.CreateStore(builder.CreateLoad(llvm::PointerType::get(_env.i8ptrType(), 0), strArray), builder.CreateStructGEP(res, 2));
+            builder.CreateStore(builder.CreateLoad(_env.i64ptrType(), lenArray), builder.CreateStructGEP(res, 3));
+            return {builder.CreateLoad(llvm_list_type, res), listSerializedSize};
         }
 
 #warning "Doesn't support unicode strings"
@@ -2389,7 +2394,7 @@ namespace tuplex {
             };
 
             constructIfElse(isEmpty, isEmptyThunk, isDigitThunk, res, lfb, builder);
-            return SerializableValue(builder.CreateLoad(res), _env.i64Const(sizeof(int64_t)));
+            return SerializableValue(builder.CreateLoad(_env.getBooleanType(), res), _env.i64Const(sizeof(int64_t)));
         }
 
 #warning "Doesn't support unicode strings"
@@ -2411,7 +2416,7 @@ namespace tuplex {
             };
 
             constructIfElse(isEmpty, isEmptyThunk, isAlphaThunk, res, lfb, builder);
-            return SerializableValue(builder.CreateLoad(res), _env.i64Const(sizeof(int64_t)));
+            return SerializableValue(builder.CreateLoad(_env.getBooleanType(), res), _env.i64Const(sizeof(int64_t)));
         }
 
 #warning "Doesn't support unicode strings"
@@ -2430,7 +2435,7 @@ namespace tuplex {
             };
 
             constructIfElse(isEmpty, isEmptyThunk, isAlNumThunk, res, lfb, builder);
-            return SerializableValue(builder.CreateLoad(res), _env.i64Const(sizeof(int64_t)));
+            return SerializableValue(builder.CreateLoad(_env.getBooleanType(), res), _env.i64Const(sizeof(int64_t)));
         }
 
 
@@ -2453,7 +2458,7 @@ namespace tuplex {
             // create call
             auto strip_res = builder.CreateCall(strip_func, {caller.val, chars, res_size});
 
-            return SerializableValue(strip_res, builder.CreateAdd(builder.CreateLoad(res_size), _env.i64Const(1)));
+            return SerializableValue(strip_res, builder.CreateAdd(builder.CreateLoad(_env.i64Type(), res_size), _env.i64Const(1)));
         }
 
         SerializableValue FunctionRegistry::createLStripCall(const codegen::IRBuilder& builder, const SerializableValue &caller,
@@ -2475,7 +2480,7 @@ namespace tuplex {
             // create call
             auto strip_res = builder.CreateCall(strip_func, {caller.val, chars, res_size});
 
-            return SerializableValue(strip_res, builder.CreateAdd(builder.CreateLoad(res_size), _env.i64Const(1)));
+            return SerializableValue(strip_res, builder.CreateAdd(builder.CreateLoad(_env.i64Type(), res_size), _env.i64Const(1)));
         }
 
         SerializableValue FunctionRegistry::createRStripCall(const codegen::IRBuilder& builder, const SerializableValue &caller,
@@ -2497,7 +2502,7 @@ namespace tuplex {
             // create call
             auto strip_res = builder.CreateCall(strip_func, {caller.val, chars, res_size});
 
-            return SerializableValue(strip_res, builder.CreateAdd(builder.CreateLoad(res_size), _env.i64Const(1)));
+            return SerializableValue(strip_res, builder.CreateAdd(builder.CreateLoad(_env.i64Type(), res_size), _env.i64Const(1)));
         }
 
         void FunctionRegistry::constructIfElse(llvm::Value *condition, std::function<llvm::Value*(void)> ifCase,

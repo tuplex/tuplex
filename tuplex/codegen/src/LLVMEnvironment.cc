@@ -1507,7 +1507,7 @@ namespace tuplex {
                 // create str const by extracting string data
                 str_const = *((int64_t *) (str.c_str() + pos));
 
-                auto val = builder.CreateLoad(builder.CreatePointerCast(builder.CreateGEP(ptr, i32Const(pos)), i64ptrType()));
+                auto val = builder.CreateLoad(i64Type(), builder.CreatePointerCast(builder.MovePtrByBytes(ptr, pos), i64ptrType()));
 
                 auto comp = builder.CreateICmpEQ(val, i64Const(str_const));
                 cond = builder.CreateAnd(cond, comp);
@@ -1521,7 +1521,7 @@ namespace tuplex {
 
                 // create str const by extracting string data
                 str_const = *((uint32_t *) (str.c_str() + pos));
-                auto val = builder.CreateLoad(builder.CreatePointerCast(builder.CreateGEP(ptr, i32Const(pos)), i32ptrType()));
+                auto val = builder.CreateLoad(i32Type(), builder.CreatePointerCast(builder.MovePtrByBytes(ptr, pos), i32ptrType()));
                 auto comp = builder.CreateICmpEQ(val, i32Const(str_const));
                 cond = builder.CreateAnd(cond, comp);
 
@@ -1532,7 +1532,7 @@ namespace tuplex {
             // only 0, 1, 2, 3 bytes left.
             // do 8 bit compares
             for (int i = 0; i < numBytes; ++i) {
-                auto val = builder.CreateLoad(builder.CreateGEP(ptr, i32Const(pos)));
+                auto val = builder.CreateLoad(i8Type(), builder.MovePtrByBytes(ptr, pos));
                 auto comp = builder.CreateICmpEQ(val, i8Const(str.c_str()[pos]));
                 cond = builder.CreateAnd(cond, comp);
                 pos++;
@@ -1559,7 +1559,7 @@ namespace tuplex {
             auto str_size = CreateFirstBlockAlloca(builder, i64Type());
             auto str = builder.CreateCall(floatfmt_func, {value, str_size});
 
-            return SerializableValue(str, builder.CreateLoad(str_size));
+            return SerializableValue(str, builder.CreateLoad(i64Type(), str_size));
         }
 
         SerializableValue LLVMEnvironment::i64ToString(const codegen::IRBuilder& builder, llvm::Value *value) {
@@ -1991,7 +1991,7 @@ namespace tuplex {
             std::vector<Type*> argtypes{env.i8ptrType(), env.i8ptrType(), env.i64ptrType()};
             FunctionType *FT = FunctionType::get(Type::getInt32Ty(ctx), argtypes, false);
             auto conv_func = env.getModule().get()->getOrInsertFunction("fast_atoi64", FT);
-            auto cellEnd = builder.CreateGEP(str, builder.CreateSub(strSize, env.i64Const(1)));
+            auto cellEnd = builder.MovePtrByBytes(str, builder.CreateSub(strSize, env.i64Const(1)));
             auto resCode = builder.CreateCall(conv_func, {str, cellEnd, i64_val});
 
             auto parseSuccessCond = builder.CreateICmpEQ(resCode, env.i32Const(ecToI32(ExceptionCode::SUCCESS)));
@@ -2001,7 +2001,9 @@ namespace tuplex {
             // parse done, load result var
             builder.SetInsertPoint(bbParseDone);
             // load val & return result
-            return SerializableValue(builder.CreateLoad(i64_val), env.i64Const(sizeof(int64_t)), isnull);
+            return SerializableValue(builder.CreateLoad(builder.getInt64Ty(), i64_val),
+                                     env.i64Const(sizeof(int64_t)),
+                                     isnull);
         }
 
         SerializableValue parseF64(LLVMEnvironment& env, IRBuilder &builder, llvm::BasicBlock *bbFailed,

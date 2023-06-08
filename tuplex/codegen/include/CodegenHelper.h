@@ -618,17 +618,20 @@ namespace tuplex {
 
             inline llvm::Value *CreateIsNotNull(llvm::Value *Arg, const std::string &Name = "") const { return get_or_throw().CreateIsNotNull(Arg, Name); }
 
+            inline llvm::Value *CreatePtrDiff(llvm::Type *ElemTy, llvm::Value *LHS, llvm::Value *RHS,
+                                              const std::string &Name = "") const {
+                assert(LHS->getType() == RHS->getType() && LHS->getType()->isPointerTy());
+                assert(ElemTy);
+                return get_or_throw().CreatePtrDiff(ElemTy, LHS, RHS, Name);
+            }
+
             inline llvm::Value *CreatePtrDiff(llvm::Value *LHS, llvm::Value *RHS,
                                  const std::string &Name = "") const {
-#if LLVM_VERSION_MAJOR > 13
-                 assert(LHS->getType() == RHS->getType() && LHS->getType()->isPointerTy());
-                 llvm::Type* ElemTy = LHS->getType()->getPointerElementType();
-                 assert(ElemTy);
-                return get_or_throw().CreatePtrDiff(ElemTy, LHS, RHS, Name);
-#else
-                 return get_or_throw().CreatePtrDiff(LHS, RHS, Name);
-#endif
-             }
+                assert(LHS->getType() == RHS->getType() && LHS->getType()->isPointerTy());
+                llvm::Type *ElemTy = LHS->getType()->getPointerElementType();
+                assert(ElemTy);
+                return CreatePtrDiff(ElemTy, LHS, RHS, Name);
+            }
 
 
             llvm::Value *CreateRetVoid() const {

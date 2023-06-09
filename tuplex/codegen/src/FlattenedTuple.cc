@@ -183,7 +183,7 @@ namespace tuplex {
                     auto bitmapElement = builder.CreateLoad(_env->i64Type(), builder.CreateBitCast(lastPtr, _env->i64ptrType()), "bitmap_part");
                     bitmap.emplace_back(bitmapElement);
                     // set
-                    lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)));
+                    lastPtr = builder.MovePtrByBytes(lastPtr, sizeof(int64_t));
                 }
             }
 
@@ -1184,6 +1184,140 @@ namespace tuplex {
                 ft.set(builder, idx, val.val, val.size, val.is_null);
             }
             return ft;
+        }
+
+        inline std::tuple<llvm::Value*, llvm::Value*> decodeSingleCell(LLVMEnvironment& env, IRBuilder& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr, unsigned i) {
+            auto cellStr = builder.CreateLoad(env.i8ptrType(), builder.CreateGEP(env.i8ptrType(), cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
+            auto cellSize = builder.CreateLoad(env.i64Type(), builder.CreateGEP(env.i64ptrType(), sizesPtr, env.i64Const(i)), "s" + std::to_string(i));
+            return std::make_tuple(cellStr, cellSize);
+        }
+
+        std::shared_ptr<FlattenedTuple> decodeCells(LLVMEnvironment& env, IRBuilder& builder,
+                                                    const python::Type& rowType,
+                                                    size_t numCells,
+                                                    llvm::Value* cellsPtr,
+                                                    llvm::Value* sizesPtr,
+                                                    llvm::BasicBlock* nullErrorBlock,
+                                                    llvm::BasicBlock* valueErrorBlock,
+                                                    const std::vector<std::string>& null_values) {
+            using namespace llvm;
+            using namespace std;
+            auto ft = make_shared<FlattenedTuple>(&env);
+
+            ft->init(rowType);
+            assert(rowType.isTupleType());
+            assert(nullErrorBlock);
+            assert(valueErrorBlock);
+
+            assert(cellsPtr->getType() == env.i8ptrType()->getPointerTo()); // i8** => array of char* pointers
+            assert(sizesPtr->getType() == env.i64ptrType()); // i64* => array of int64_t
+
+            auto cellRowType = rowType;
+            // if single tuple element, just use that... (i.e. means pipeline interprets first arg as tuple...)
+            assert(cellRowType.isTupleType());
+            if(cellRowType.parameters().size() == 1 && cellRowType.parameters().front().isTupleType()
+               && cellRowType.parameters().front().parameters().size() > 1)
+                cellRowType = cellRowType.parameters().front();
+
+            assert(cellRowType.parameters().size() == ft->flattenedTupleType().parameters().size()); /// this must hold!
+
+            // check type & assign
+            for(int i = 0; i < cellRowType.parameters().size(); ++i) {
+                auto t = cellRowType.parameters()[i];
+
+                llvm::Value* isnull = nullptr;
+
+                // option type? do NULL value interpretation
+                if(t.isOptionType()) {
+                    auto cellStr = builder.CreateLoad(env.i8ptrType(), builder.CreateGEP(env.i8ptrType(), cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
+                    isnull = env.compareToNullValues(builder, cellStr, null_values, true);
+                } else if(t != python::Type::NULLVALUE) {
+                    // null check, i.e. raise NULL value exception!
+                    auto val = builder.CreateLoad(env.i8ptrType(),
+                                                  builder.CreateGEP(env.i8ptrType(), cellsPtr, env.i64Const(i)),
+                                                  "x" + std::to_string(i));
+                    auto null_check = env.compareToNullValues(builder, val, null_values, true);
+
+                    // if positive, exception!
+                    // else continue!
+                    BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(),
+                                                                       "col" + std::to_string(i) + "_null_check_passed",
+                                                                       builder.GetInsertBlock()->getParent());
+                    builder.CreateCondBr(null_check, nullErrorBlock, bbNullCheckPassed);
+                    builder.SetInsertPoint(bbNullCheckPassed);
+                }
+
+                t = t.withoutOptions();
+
+                llvm::Value* cellStr = nullptr, *cellSize = nullptr;
+
+                // values?
+                if(python::Type::STRING == t) {
+                    // fill in
+                    auto val = builder.CreateLoad(env.i8ptrType(), builder.CreateGEP(env.i8ptrType(),
+                                                                                     cellsPtr, env.i64Const(i)),
+                                                  "x" + std::to_string(i));
+                    auto size = builder.CreateLoad(env.i64Type(), builder.CreateGEP(env.i64ptrType(), sizesPtr, env.i64Const(i)),
+                                                   "s" + std::to_string(i));
+                    ft->assign(i, val, size, isnull);
+                } else if(python::Type::BOOLEAN == t) {
+                    // conversion code here
+                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
+                    auto val = parseBoolean(env, builder, valueErrorBlock, cellStr, cellSize, isnull);
+                    ft->assign(i, val.val, val.size, isnull);
+                } else if(python::Type::I64 == t) {
+                    // conversion code here
+                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
+                    auto val = parseI64(env, builder, valueErrorBlock, cellStr, cellSize, isnull);
+                    ft->assign(i, val.val, val.size, isnull);
+                } else if(python::Type::F64 == t) {
+                    // conversion code here
+                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
+                    auto val = parseF64(env, builder, valueErrorBlock, cellStr, cellSize, isnull);
+                    ft->assign(i, val.val, val.size, isnull);
+                } else if(python::Type::NULLVALUE == t) {
+                    // perform null check only, & set null element depending on result
+                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
+                    isnull = env.compareToNullValues(builder, cellStr, null_values, true);
+
+                    // if not null, exception! ==> i.e. ValueError!
+                    BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(), "col" + std::to_string(i) + "_value_check_passed", builder.GetInsertBlock()->getParent());
+                    builder.CreateCondBr(isnull, bbNullCheckPassed, valueErrorBlock);
+                    builder.SetInsertPoint(bbNullCheckPassed);
+                    ft->assign(i, nullptr, nullptr, env.i1Const(true)); // set NULL (should be ignored)
+                } else {
+                    // NOTE: only flat, primitives yet supported. I.e. there can't be lists/dicts within a cell...
+                    throw std::runtime_error("unsupported type " + t.desc() + " in decodeCells encountered");
+                }
+            }
+
+            return ft;
+        }
+
+        std::shared_ptr<FlattenedTuple> decodeCells(LLVMEnvironment& env, IRBuilder& builder,
+                                                    const python::Type& rowType,
+                                                    llvm::Value* numCells,
+                                                    llvm::Value* cellsPtr,
+                                                    llvm::Value* sizesPtr,
+                                                    llvm::BasicBlock* cellCountMismatchErrorBlock,
+                                                    llvm::BasicBlock* nullErrorBlock,
+                                                    llvm::BasicBlock* valueErrorBlock,
+                                                    const std::vector<std::string>& null_values) {
+            using namespace llvm;
+
+            auto num_parameters = (uint64_t)rowType.parameters().size();
+
+            assert(cellCountMismatchErrorBlock);
+
+            // check numCells
+            auto func = builder.GetInsertBlock()->getParent(); assert(func);
+            BasicBlock* bbCellNoOk = BasicBlock::Create(env.getContext(), "noCellsOK", func);
+            auto cell_match_cond = builder.CreateICmpEQ(numCells, llvm::ConstantInt::get(numCells->getType(), num_parameters));
+            builder.CreateCondBr(cell_match_cond, bbCellNoOk, cellCountMismatchErrorBlock);
+            builder.SetInsertPoint(bbCellNoOk);
+
+            return decodeCells(env, builder, rowType, num_parameters, cellsPtr,
+                               sizesPtr, nullErrorBlock, valueErrorBlock, null_values);
         }
     }
 }

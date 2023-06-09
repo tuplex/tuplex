@@ -31,7 +31,7 @@ namespace tuplex {
 
             size_t numCells() const { return _fileInputRowType.parameters().size(); }
 
-            FlattenedTuple cellsToTuple(IRBuilder& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr);
+            std::shared_ptr<FlattenedTuple> cellsToTuple(IRBuilder& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr);
 
             llvm::BasicBlock* _valueErrorBlock;
             llvm::BasicBlock* _nullErrorBlock;

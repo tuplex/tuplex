@@ -92,7 +92,7 @@ namespace tuplex {
             ftAgg.deserializationCode(builder, args["agg"]);
 
             FlattenedTuple ftOther(env); ftOther.init(aggType);
-            ftOther.deserializationCode(builder, builder.CreateLoad(args["out"]));
+            ftOther.deserializationCode(builder, builder.CreateLoad(env->i8ptrType(), args["out"]));
 
             // compile the UDF now and call it.
             auto combinedType = python::Type::makeTupleType({aggType, aggType}); // this should be compatible to input type of aggUDF!
@@ -114,17 +114,17 @@ namespace tuplex {
 
             auto exceptionBlock = BasicBlock::Create(env->getContext(), "except", func);
             IRBuilder eb(exceptionBlock);
-            eb.CreateRet(eb.CreateLoad(exceptionVar));
+            eb.CreateRet(eb.CreateLoad(builder.getInt64Ty(), exceptionVar));
 
             auto ftOut = cf.callWithExceptionHandler(builder, ftin, resultVar, exceptionBlock, exceptionVar);
 
             // if it's variably allocated, free out after combine and realloc...
             if(aggType.isFixedSizeType()) {
                 // simply overwrite output!
-                ftOut.serialize(builder, builder.CreateLoad(args["out"]));
+                ftOut.serialize(builder, builder.CreateLoad(env->i8ptrType(), args["out"]));
             } else {
                 // free & alloc new output!
-                Value* ptr = builder.CreateLoad(args["out"]);
+                Value* ptr = builder.CreateLoad(env->i8ptrType(), args["out"]);
                 Value* size = ftOut.getSize(builder);
                 if(allocator == malloc) {
                     env->cfree(builder, ptr);
@@ -141,7 +141,7 @@ namespace tuplex {
                 builder.CreateStore(size, args["out_size"]);
             }
 
-            builder.CreateRet(builder.CreateLoad(exceptionVar));
+            builder.CreateRet(builder.CreateLoad(builder.getInt64Ty(), exceptionVar));
             return func;
         }
 
@@ -168,7 +168,7 @@ namespace tuplex {
 
             // pull the row out of the input buffer
             auto buf_offset = env->i64Const(8);
-            auto out_row_buf = builder.CreateGEP(builder.CreateLoad(args["out"]), buf_offset);
+            auto out_row_buf = builder.MovePtrByBytes(builder.CreateLoad(env->i8ptrType(), args["out"]), buf_offset);
 
             // do not touch row, this is externally handled.
 
@@ -209,7 +209,7 @@ namespace tuplex {
 
             auto exceptionBlock = BasicBlock::Create(env->getContext(), "except", func);
             IRBuilder eb(exceptionBlock);
-            eb.CreateRet(eb.CreateLoad(exceptionVar));
+            eb.CreateRet(eb.CreateLoad(builder.getInt64Ty(), exceptionVar));
 
             auto ftOut = cf.callWithExceptionHandler(builder, ftin, resultVar, exceptionBlock, exceptionVar);
 
@@ -219,7 +219,7 @@ namespace tuplex {
                 ftOut.serialize(builder, out_row_buf);
             } else {
                 // free & alloc new output!
-                Value* ptr = builder.CreateLoad(args["out"]);
+                Value* ptr = builder.CreateLoad(env->i8ptrType(), args["out"]);
                 Value* size = ftOut.getSize(builder);
                 if(allocator == malloc) {
                     env->cfree(builder, ptr);
@@ -231,14 +231,14 @@ namespace tuplex {
                 }
 
                 // serialize to ptr
-                auto buf_ptr = builder.CreateGEP(ptr, buf_offset);
+                auto buf_ptr = builder.MovePtrByBytes(ptr, buf_offset);
                 auto size_ptr = builder.CreatePointerCast(ptr, env->i64ptrType());
                 builder.CreateStore(size, size_ptr);
                 ftOut.serialize(builder, buf_ptr);
                 builder.CreateStore(ptr, args["out"]);
             }
 
-            builder.CreateRet(builder.CreateLoad(exceptionVar));
+            builder.CreateRet(builder.CreateLoad(builder.getInt64Ty(), exceptionVar));
             return func;
         }
     }

@@ -419,6 +419,14 @@ namespace tuplex {
             inline llvm::Value *CreateFCmpONE(llvm::Value *LHS, llvm::Value *RHS, const std::string &Name = "",
                                               llvm::MDNode *FPMathTag = nullptr) const {return get_or_throw().CreateFCmpONE(LHS, RHS, Name, FPMathTag); }
 
+            inline llvm::Value *CreateConstInBoundsGEP2_64(llvm::Value *Ptr, llvm::Type* Ty, uint64_t Idx0,
+                                                           uint64_t Idx1, const std::string &Name = "") const {
+                using namespace llvm;
+
+                assert(Ty); // can't be nullptr, will trigger an error else...
+                return get_or_throw().CreateConstGEP2_64(Ty, Ptr, Idx0, Idx1, Name);
+            }
+
             inline llvm::Value *CreateConstInBoundsGEP2_64(llvm::Value *Ptr, uint64_t Idx0,
                                               uint64_t Idx1, const std::string &Name = "") const {
                 using namespace llvm;
@@ -435,8 +443,7 @@ namespace tuplex {
                  // match
                  assert(cast<PointerType>(Ptr->getType()->getScalarType())->isOpaqueOrPointeeTypeMatches(Ty));
 #endif
-                 assert(Ty); // can't be nullptr, will trigger an error else...
-                 return get_or_throw().CreateConstGEP2_64(Ty, Ptr, Idx0, Idx1, Name);
+                 return CreateConstInBoundsGEP2_64(Ptr, Ty, Idx0, Idx1, Name);
              }
 
             inline llvm::Value *CreatePtrToInt(llvm::Value *V, llvm::Type *DestTy,

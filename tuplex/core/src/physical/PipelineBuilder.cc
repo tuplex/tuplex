@@ -1870,121 +1870,6 @@ namespace tuplex {
             return true;
         }
 
-        inline std::tuple<llvm::Value*, llvm::Value*> decodeSingleCell(LLVMEnvironment& env, IRBuilder& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr, unsigned i) {
-            auto cellStr = builder.CreateLoad(env.i8ptrType(), builder.CreateGEP(env.i8ptrType(), cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
-            auto cellSize = builder.CreateLoad(env.i64Type(), builder.CreateGEP(env.i64ptrType(), sizesPtr, env.i64Const(i)), "s" + std::to_string(i));
-            return std::make_tuple(cellStr, cellSize);
-        }
-
-        std::shared_ptr<FlattenedTuple> decodeCells(LLVMEnvironment& env, IRBuilder& builder,
-                                                    const python::Type& rowType,
-                                                    llvm::Value* numCells, llvm::Value* cellsPtr, llvm::Value* sizesPtr,
-                                                    llvm::BasicBlock* exceptionBlock,
-                                                    const std::vector<std::string>& null_values) {
-            using namespace llvm;
-            using namespace std;
-            auto ft = make_shared<FlattenedTuple>(&env);
-
-            ft->init(rowType);
-            assert(rowType.isTupleType());
-            assert(exceptionBlock);
-
-            assert(cellsPtr->getType() == env.i8ptrType()->getPointerTo()); // i8** => array of char* pointers
-            assert(sizesPtr->getType() == env.i64ptrType()); // i64* => array of int64_t
-
-            // check numCells
-            auto func = builder.GetInsertBlock()->getParent(); assert(func);
-            BasicBlock* bbCellNoOk = BasicBlock::Create(env.getContext(), "noCellsOK", func);
-            auto cell_match_cond = builder.CreateICmpEQ(numCells, llvm::ConstantInt::get(numCells->getType(), (uint64_t)rowType.parameters().size()));
-            builder.CreateCondBr(cell_match_cond, bbCellNoOk, exceptionBlock);
-
-            BasicBlock* nullErrorBlock = exceptionBlock;
-            BasicBlock* valueErrorBlock = exceptionBlock;
-
-
-            auto cellRowType = rowType;
-            // if single tuple element, just use that... (i.e. means pipeline interprets first arg as tuple...)
-            assert(cellRowType.isTupleType());
-            if(cellRowType.parameters().size() == 1 && cellRowType.parameters().front().isTupleType()
-               && cellRowType.parameters().front().parameters().size() > 1)
-                cellRowType = cellRowType.parameters().front();
-
-            assert(cellRowType.parameters().size() == ft->flattenedTupleType().parameters().size()); /// this must hold!
-
-            builder.SetInsertPoint(bbCellNoOk);
-            // check type & assign
-            for(int i = 0; i < cellRowType.parameters().size(); ++i) {
-                auto t = cellRowType.parameters()[i];
-
-                llvm::Value* isnull = nullptr;
-
-                // option type? do NULL value interpretation
-                if(t.isOptionType()) {
-                    auto val = builder.CreateLoad(builder.CreateGEP(cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
-                    isnull = env.compareToNullValues(builder, val, null_values, true);
-                } else if(t != python::Type::NULLVALUE) {
-                    // null check, i.e. raise NULL value exception!
-                    auto val = builder.CreateLoad(env.i8ptrType(),
-                                                  builder.CreateGEP(env.i8ptrType(), cellsPtr, env.i64Const(i)),
-                                                  "x" + std::to_string(i));
-                    auto null_check = env.compareToNullValues(builder, val, null_values, true);
-
-                    // if positive, exception!
-                    // else continue!
-                    BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(),
-                                                                       "col" + std::to_string(i) + "_null_check_passed",
-                                                                       builder.GetInsertBlock()->getParent());
-                    builder.CreateCondBr(null_check, nullErrorBlock, bbNullCheckPassed);
-                    builder.SetInsertPoint(bbNullCheckPassed);
-                }
-
-                t = t.withoutOptions();
-
-                llvm::Value* cellStr = nullptr, *cellSize = nullptr;
-
-                // values?
-                if(python::Type::STRING == t) {
-                    // fill in
-                    auto val = builder.CreateLoad(env.i8ptrType(), builder.CreateGEP(env.i8ptrType(),
-                                                                                     cellsPtr, env.i64Const(i)),
-                                                  "x" + std::to_string(i));
-                    auto size = builder.CreateLoad(env.i64Type(), builder.CreateGEP(env.i64ptrType(), sizesPtr, env.i64Const(i)),
-                                                   "s" + std::to_string(i));
-                    ft->assign(i, val, size, isnull);
-                } else if(python::Type::BOOLEAN == t) {
-                    // conversion code here
-                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
-                    auto val = parseBoolean(env, builder, valueErrorBlock, cellStr, cellSize, isnull);
-                    ft->assign(i, val.val, val.size, isnull);
-                } else if(python::Type::I64 == t) {
-                    // conversion code here
-                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
-                    auto val = parseI64(env, builder, valueErrorBlock, cellStr, cellSize, isnull);
-                    ft->assign(i, val.val, val.size, isnull);
-                } else if(python::Type::F64 == t) {
-                    // conversion code here
-                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
-                    auto val = parseF64(env, builder, valueErrorBlock, cellStr, cellSize, isnull);
-                    ft->assign(i, val.val, val.size, isnull);
-                } else if(python::Type::NULLVALUE == t) {
-                    // perform null check only, & set null element depending on result
-                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
-                    isnull = env.compareToNullValues(builder, cellStr, null_values, true);
-
-                    // if not null, exception! ==> i.e. ValueError!
-                    BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(), "col" + std::to_string(i) + "_value_check_passed", builder.GetInsertBlock()->getParent());
-                    builder.CreateCondBr(isnull, bbNullCheckPassed, valueErrorBlock);
-                    builder.SetInsertPoint(bbNullCheckPassed);
-                    ft->assign(i, nullptr, nullptr, env.i1Const(true)); // set NULL (should be ignored)
-                } else {
-                    // NOTE: only flat, primitives yet supported. I.e. there can't be lists/dicts within a cell...
-                    throw std::runtime_error("unsupported type " + t.desc() + " in decodeCells encountered");
-                }
-            }
-
-            return ft;
-        }
-
         llvm::Function* createProcessExceptionRowWrapper(PipelineBuilder& pip,
                 const std::string& name, const python::Type& normalCaseType,
                 const std::vector<std::string>& null_values) {
@@ -2650,11 +2535,7 @@ namespace tuplex {
            // fetch aggregate value
            FlattenedTuple ftAgg = FlattenedTuple::fromLLVMStructVal(_env.get(), builder, intermediateOutputPtr(), aggType);
 
-           // debug code
-           auto x0 = builder.CreateStructGEP(intermediateOutputPtr(), 0);
-           auto x1 = builder.CreateLoad(x0);
-
-           // // compile aggregation function and add it in.
+           // compile aggregation function and add it in.
 
             // new combined flattened tuple to pass to function
             auto combinedType = python::Type::makeTupleType({aggType, _lastRowResult.getTupleType()}); // this should be compatible to input type of aggUDF!

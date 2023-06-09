@@ -692,6 +692,10 @@ namespace tuplex {
             auto& ctx = builder.getContext();
             auto elementType = tupleType.parameters()[index];
 
+            // get mapped llvm types
+            auto llvm_element_without_option_type = pythonToLLVMType(elementType.withoutOptions());
+            auto llvm_tuple_type = getOrCreateTupleType(tupleType);
+
             // special types (not serialized in memory, i.e. constants to be constructed from typing)
             if(python::Type::NULLVALUE == elementType)
                 return SerializableValue(nullptr, nullptr, llvm::Constant::getIntegerValue(llvm::Type::getInt1Ty(ctx), llvm::APInt(1, true)));
@@ -747,9 +751,11 @@ namespace tuplex {
                 // i1 array extract (easier)
                 // LLVM 9 API here...
                 // auto structBitmapIdx = builder.CreateStructGEP(tuplePtr, 0); // bitmap comes first!
-                auto structBitmapIdx = CreateStructGEP(builder, tuplePtr, 0); // bitmap comes first!
-                auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0, bitmapPos);
-                isnull = builder.CreateLoad(bitmapIdx);
+                auto structBitmapIdx = builder.CreateStructGEP(tuplePtr, llvm_tuple_type, 0); // bitmap comes first!
+                auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx,
+                                                                    llvm_tuple_type->getStructElementType(0),
+                                                                    0, bitmapPos);
+                isnull = builder.CreateLoad(builder.getInt1Ty(), bitmapIdx);
             }
 
             // remove option
@@ -777,17 +783,15 @@ namespace tuplex {
 
             // extract elements
             // auto structValIdx = builder.CreateStructGEP(tuplePtr, valueOffset);
-            auto llvm_element_type = pythonToLLVMType(elementType);
-            auto llvm_struct_type = getOrCreateTupleType(tupleType);
-            auto structValIdx = builder.CreateStructGEP(tuplePtr, llvm_struct_type, valueOffset);
+            auto structValIdx = builder.CreateStructGEP(tuplePtr, llvm_tuple_type, valueOffset);
             //CreateStructGEP(builder, tuplePtr, valueOffset);
-            value = builder.CreateLoad(llvm_element_type, structValIdx);
+            value = builder.CreateLoad(llvm_element_without_option_type, structValIdx);
 
             // size existing? ==> only for varlen types
             if (!elementType.isFixedSizeType()) {
                 //  auto structSizeIdx = builder.CreateStructGEP(tuplePtr, sizeOffset);
 //                auto structSizeIdx = CreateStructGEP(builder, tuplePtr, sizeOffset);
-                auto structSizeIdx = builder.CreateStructGEP(tuplePtr, llvm_struct_type, sizeOffset);
+                auto structSizeIdx = builder.CreateStructGEP(tuplePtr, llvm_tuple_type, sizeOffset);
                 size = builder.CreateLoad(i64Type(), structSizeIdx);
             } else {
                 // size from type
@@ -812,6 +816,8 @@ namespace tuplex {
             auto &ctx = builder.getContext();
             auto elementType = tupleType.parameters()[index];
 
+            auto llvm_tuple_type = getOrCreateTupleType(tupleType);
+
             // special types which don't need to be stored because the type determines the value
             if (elementType.isSingleValued())
                 return;
@@ -833,8 +839,10 @@ namespace tuplex {
 
                 // i1 array logic
                 // auto structBitmapIdx = builder.CreateStructGEP(tuplePtr, 0); // bitmap comes first!
-                auto structBitmapIdx = CreateStructGEP(builder, tuplePtr, 0ull); // bitmap comes first!
-                auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx, 0ull, bitmapPos);
+                auto structBitmapIdx = builder.CreateStructGEP(tuplePtr, llvm_tuple_type, 0ull); // bitmap comes first!
+                auto bitmapIdx = builder.CreateConstInBoundsGEP2_64(structBitmapIdx,
+                                                                    llvm_tuple_type->getStructElementType(0),
+                                                                    0ull, bitmapPos);
                 builder.CreateStore(value.is_null, bitmapIdx);
             }
 
@@ -846,8 +854,7 @@ namespace tuplex {
 
             // extract elements
             // auto structValIdx = builder.CreateStructGEP(tuplePtr, valueOffset);
-            auto llvm_struct_type = getOrCreateTupleType(tupleType);
-            auto structValIdx = builder.CreateStructGEP(tuplePtr, llvm_struct_type, valueOffset);
+            auto structValIdx = builder.CreateStructGEP(tuplePtr, llvm_tuple_type, valueOffset);
 //            auto structValIdx = CreateStructGEP(builder, tuplePtr, valueOffset);
             if (value.val)
                 builder.CreateStore(value.val, structValIdx);
@@ -856,7 +863,7 @@ namespace tuplex {
             if (!elementType.isFixedSizeType()) {
                 // auto structSizeIdx = builder.CreateStructGEP(tuplePtr, sizeOffset);
                 // auto structSizeIdx = CreateStructGEP(builder, tuplePtr, sizeOffset);
-                auto structSizeIdx = builder.CreateStructGEP(tuplePtr, llvm_struct_type, sizeOffset);
+                auto structSizeIdx = builder.CreateStructGEP(tuplePtr, llvm_tuple_type, sizeOffset);
                 if (value.size)
                     builder.CreateStore(value.size, structSizeIdx);
             }
@@ -2035,7 +2042,7 @@ namespace tuplex {
             std::vector<Type*> argtypes{env.i8ptrType(), env.i8ptrType(), env.doubleType()->getPointerTo()};
             FunctionType *FT = FunctionType::get(Type::getInt32Ty(ctx), argtypes, false);
             auto conv_func = env.getModule().get()->getOrInsertFunction("fast_atod", FT);
-            auto cellEnd = builder.CreateGEP(str, builder.CreateSub(strSize, env.i64Const(1)));
+            auto cellEnd = builder.MovePtrByBytes(str, builder.CreateSub(strSize, env.i64Const(1)));
             auto resCode = builder.CreateCall(conv_func, {str, cellEnd, f64_val});
 
             auto parseSuccessCond = builder.CreateICmpEQ(resCode, env.i32Const(ecToI32(ExceptionCode::SUCCESS)));
@@ -2045,7 +2052,8 @@ namespace tuplex {
             // parse done, load result var
             builder.SetInsertPoint(bbParseDone);
             // load val & return result
-            return SerializableValue(builder.CreateLoad(f64_val), env.i64Const(sizeof(double)), isnull);
+            return SerializableValue(builder.CreateLoad(env.doubleType(), f64_val),
+                                     env.i64Const(sizeof(double)), isnull);
         }
 
         llvm::Value* LLVMEnvironment::isInteger(const codegen::IRBuilder& builder, llvm::Value* value, llvm::Value* eps) {

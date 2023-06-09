@@ -311,6 +311,36 @@ namespace tuplex {
                 return _flattenedTupleType;
             }
         };
+
+        extern std::shared_ptr<FlattenedTuple> decodeCells(LLVMEnvironment& env, IRBuilder& builder,
+                                                           const python::Type& rowType,
+                                                           size_t numCells,
+                                                           llvm::Value* cellsPtr,
+                                                           llvm::Value* sizesPtr,
+                                                           llvm::BasicBlock* nullErrorBlock,
+                                                           llvm::BasicBlock* valueErrorBlock,
+                                                           const std::vector<std::string>& null_values);
+
+        extern std::shared_ptr<FlattenedTuple> decodeCells(LLVMEnvironment& env, IRBuilder& builder,
+                                                    const python::Type& rowType,
+                                                    llvm::Value* numCells,
+                                                    llvm::Value* cellsPtr,
+                                                    llvm::Value* sizesPtr,
+                                                    llvm::BasicBlock* cellCountMismatchErrorBlock,
+                                                    llvm::BasicBlock* nullErrorBlock,
+                                                    llvm::BasicBlock* valueErrorBlock,
+                                                    const std::vector<std::string>& null_values);
+
+        inline std::shared_ptr<FlattenedTuple> decodeCells(LLVMEnvironment& env, IRBuilder& builder,
+                                                           const python::Type& rowType,
+                                                           llvm::Value* numCells,
+                                                           llvm::Value* cellsPtr,
+                                                           llvm::Value* sizesPtr,
+                                                           llvm::BasicBlock* exceptionBlock,
+                                                           const std::vector<std::string>& null_values) {
+            return decodeCells(env, builder, rowType, numCells, cellsPtr, sizesPtr,
+                               exceptionBlock, exceptionBlock, exceptionBlock, null_values);
+        }
     }
 }
 

@@ -3136,7 +3136,6 @@ namespace tuplex {
                         builder.CreateStore(list_sizes_arr_malloc, list_sizes_arr);
                     }
                 }
-tus
 
                 // TODO:
                 // --> change to passing around the pointer to the list, not the semi-loaded struct

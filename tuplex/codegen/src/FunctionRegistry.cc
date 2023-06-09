@@ -1573,7 +1573,7 @@ namespace tuplex {
                 auto cond = builder.CreateICmpNE(fillchar->size, _env.i64Const(2)); // fillchar must be size 2, indicating length 1
                 lfb.addException(builder, ExceptionCode::TYPEERROR, cond);
 
-                fillchar_val = builder.CreateLoad(fillchar->val);
+                fillchar_val = builder.CreateLoad(builder.getInt8Ty(), fillchar->val);
             }
 
             FunctionType *ft = FunctionType::get(_env.i8ptrType(), {_env.i8ptrType(), _env.i64Type(), _env.i64Type(), llvm::Type::getInt64PtrTy(_env.getContext(), 0), _env.i8Type()}, false);
@@ -1581,7 +1581,7 @@ namespace tuplex {
             auto func = _env.getModule()->getOrInsertFunction("strCenter", ft);
             auto res_size = _env.CreateFirstBlockAlloca(builder, _env.i64Type());
             auto new_val = builder.CreateCall(func, {caller.val, caller.size, casted_width_val, res_size, fillchar_val});
-            return SerializableValue(new_val, builder.CreateLoad(res_size));
+            return SerializableValue(new_val, builder.CreateLoad(builder.getInt64Ty(), res_size));
         }
 
         SerializableValue FunctionRegistry::createLowerCall(const codegen::IRBuilder& builder,
@@ -2346,10 +2346,10 @@ namespace tuplex {
             auto llvm_list_type = _env.createOrGetListType(
                     python::Type::makeListType(python::Type::STRING));
             auto res = _env.CreateFirstBlockAlloca(builder, llvm_list_type);
-            builder.CreateStore(builder.CreateLoad(_env.i64Type(), listLen), builder.CreateStructGEP(res, 0));
-            builder.CreateStore(builder.CreateLoad(_env.i64Type(), listLen), builder.CreateStructGEP(res, 1));
-            builder.CreateStore(builder.CreateLoad(llvm::PointerType::get(_env.i8ptrType(), 0), strArray), builder.CreateStructGEP(res, 2));
-            builder.CreateStore(builder.CreateLoad(_env.i64ptrType(), lenArray), builder.CreateStructGEP(res, 3));
+            builder.CreateStore(builder.CreateLoad(_env.i64Type(), listLen), builder.CreateStructGEP(res, llvm_list_type, 0));
+            builder.CreateStore(builder.CreateLoad(_env.i64Type(), listLen), builder.CreateStructGEP(res, llvm_list_type, 1));
+            builder.CreateStore(builder.CreateLoad(_env.i8ptrType(), strArray), builder.CreateStructGEP(res, llvm_list_type, 2));
+            builder.CreateStore(builder.CreateLoad(_env.i64ptrType(), lenArray), builder.CreateStructGEP(res, llvm_list_type, 3));
             return {builder.CreateLoad(llvm_list_type, res), listSerializedSize};
         }
 

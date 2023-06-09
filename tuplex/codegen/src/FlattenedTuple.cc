@@ -641,7 +641,7 @@ namespace tuplex {
                     builder.CreateStore(info, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), false);
 
                     // get pointer to output space
-                    Value *outptr = builder.CreateGEP(lastPtr, offset, "list_varoff");
+                    Value *outptr = builder.MovePtrByBytes(lastPtr, offset, "list_varoff");
 
                     auto llvmType = _env->createOrGetListType(fieldType);
 
@@ -649,7 +649,7 @@ namespace tuplex {
                     auto listLen = builder.CreateExtractValue(field,  {1});
                     auto listLenSerialPtr = builder.CreateBitCast(outptr, Type::getInt64PtrTy(context, 0));
                     builder.CreateStore(listLen, listLenSerialPtr);
-                    outptr = builder.CreateGEP(outptr, _env->i64Const(sizeof(int64_t))); // advance
+                    outptr = builder.MovePtrByBytes(outptr, sizeof(int64_t)); // advance
                     auto elementType = fieldType.elementType();
                     if(elementType == python::Type::STRING) {
                         outptr = builder.CreateBitCast(outptr, Type::getInt64PtrTy(context, 0)); // get offset array pointer
@@ -671,17 +671,20 @@ namespace tuplex {
                         builder.CreateBr(loopCondition);
 
                         builder.SetInsertPoint(loopCondition);
-                        auto loopNotDone = builder.CreateICmpSLT(builder.CreateLoad(loopCounter), listLen);
+                        auto loopNotDone = builder.CreateICmpSLT(builder.CreateLoad(builder.getInt64Ty(), loopCounter), listLen);
                         builder.CreateCondBr(loopNotDone, loopBody, after);
 
                         builder.SetInsertPoint(loopBody);
                         // store the serialized size
-                        auto serialized_size_ptr = builder.CreateGEP(outptr, builder.CreateLoad(loopCounter)); // get pointer to location for serialized value
-                        builder.CreateStore(builder.CreateLoad(curStrOffset), serialized_size_ptr); // store the current offset to the location
+                        auto serialized_size_ptr = builder.MovePtrByBytes(outptr, builder.CreateMul(_env->i64Const(sizeof(int64_t)), builder.CreateLoad(builder.getInt64Ty(), loopCounter))); // get pointer to location for serialized value
+                        builder.CreateStore(builder.CreateLoad(builder.getInt64Ty(), curStrOffset), serialized_size_ptr); // store the current offset to the location
+
+
+
                         // store the serialized string
-                        auto cur_size = builder.CreateLoad(builder.CreateGEP(list_size_arr, builder.CreateLoad(loopCounter))); // get size of current string
-                        auto cur_str = builder.CreateLoad(builder.CreateGEP(list_arr, builder.CreateLoad(loopCounter))); // get current string pointer
-                        auto serialized_str_ptr = builder.CreateGEP(builder.CreateBitCast(serialized_size_ptr, Type::getInt8PtrTy(context, 0)), builder.CreateLoad(curStrOffset));
+                        auto cur_size = builder.CreateLoad(builder.getInt64Ty(), builder.CreateGEP(builder.getInt64Ty(), list_size_arr, builder.CreateLoad(builder.getInt64Ty(), loopCounter))); // get size of current string
+                        auto cur_str = builder.CreateLoad(_env->i8ptrType(), builder.CreateGEP(_env->i8ptrType(), list_arr, builder.CreateLoad(builder.getInt64Ty(), loopCounter))); // get current string pointer
+                        auto serialized_str_ptr = builder.MovePtrByBytes(builder.CreateBitCast(serialized_size_ptr, Type::getInt8PtrTy(context, 0)), builder.CreateLoad(builder.getInt64Ty(), curStrOffset));
 #if LLVM_VERSION_MAJOR < 9
                         builder.CreateMemCpy(serialized_str_ptr, cur_str, cur_size, 0, true);
 #else
@@ -689,10 +692,16 @@ namespace tuplex {
                         // new API allows src and dest alignment separately
                         builder.CreateMemCpy(serialized_str_ptr, 0, cur_str, 0, cur_size, true);
 #endif
+                        // debug:
+                        _env->printValue(builder, cur_size, "cur_size=");
+                        _env->printValue(builder, cur_str, "cur_str=");
+                        _env->printValue(builder, serialized_size_ptr, "serialized str ptr=");
+
+
                         // update the loop variables and return
-                        builder.CreateStore(builder.CreateSub(builder.CreateLoad(curStrOffset), _env->i64Const(sizeof(uint64_t))), curStrOffset); // curStrOffset -= 8
-                        builder.CreateStore(builder.CreateAdd(builder.CreateLoad(curStrOffset), cur_size), curStrOffset); // curStrOffset += cur_str_len
-                        builder.CreateStore(builder.CreateAdd(builder.CreateLoad(loopCounter), _env->i64Const(1)), loopCounter); // loopCounter += 1
+                        builder.CreateStore(builder.CreateSub(builder.CreateLoad(builder.getInt64Ty(), curStrOffset), _env->i64Const(sizeof(uint64_t))), curStrOffset); // curStrOffset -= 8
+                        builder.CreateStore(builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), curStrOffset), cur_size), curStrOffset); // curStrOffset += cur_str_len
+                        builder.CreateStore(builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), loopCounter), _env->i64Const(1)), loopCounter); // loopCounter += 1
                         builder.CreateBr(loopCondition);
 
                         builder.SetInsertPoint(after); // point builder to the ending block
@@ -712,7 +721,7 @@ namespace tuplex {
                         builder.CreateBr(loopCondition);
 
                         builder.SetInsertPoint(loopCondition);
-                        auto loopNotDone = builder.CreateICmpSLT(builder.CreateLoad(loopCounter), listLen);
+                        auto loopNotDone = builder.CreateICmpSLT(builder.CreateLoad(builder.getInt64Ty(), loopCounter), listLen);
                         builder.CreateCondBr(loopNotDone, loopBody, after);
 
                         builder.SetInsertPoint(loopBody);
@@ -741,7 +750,7 @@ namespace tuplex {
 
                     // update running variables
                     varlenSize = builder.CreateAdd(varlenSize, size);
-                    lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)), "outptr");
+                    lastPtr = builder.MovePtrByBytes(lastPtr, sizeof(int64_t), "outptr");
                 } else if(fieldType != python::Type::EMPTYDICT && fieldType != python::Type::NULLVALUE && field->getType()->isPointerTy()) {
                     // assert that meaning is true.
                     assert(!fieldType.isFixedSizeType());

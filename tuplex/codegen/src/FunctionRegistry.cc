@@ -1184,7 +1184,7 @@ namespace tuplex {
                 // return value stored in val
                 builder.SetInsertPoint(bb_done);
                 lfb.setLastBlock(bb_done);
-                auto resVal = _env.upcastToBoolean(builder, builder.CreateLoad(val));
+                auto resVal = _env.upcastToBoolean(builder, builder.CreateLoad(_env.getBooleanType(), val));
                 auto resSize = _env.i64Const(sizeof(int64_t));
 
                 return SerializableValue(resVal, resSize);
@@ -1270,7 +1270,7 @@ namespace tuplex {
                 builder.SetInsertPoint(bb_done);
                 lfb.setLastBlock(bb_done);
                 // return the value that was stored in val
-                auto resVal = builder.CreateLoad(val);
+                auto resVal = builder.CreateLoad(_env.getBooleanType(), val);
                 auto resSize = _env.i64Const(sizeof(int64_t));
 
                 return SerializableValue(resVal, resSize);
@@ -1630,7 +1630,7 @@ namespace tuplex {
             } else {
                 // in python functions hold integer as result.
                 // hence upcast boolean
-                assert(arg.val->getType() == _env.i64Type() || arg.val->getType() == _env.getBooleanType());statu
+                assert(arg.val->getType() == _env.i64Type() || arg.val->getType() == _env.getBooleanType());
                 if(arg.val->getType() == _env.getBooleanType()) {
                     return SerializableValue(builder.CreateZExtOrTrunc(arg.val, _env.i64Type()), _env.i64Const(sizeof(int64_t)));
                 } else {

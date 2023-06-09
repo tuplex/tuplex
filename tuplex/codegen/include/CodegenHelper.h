@@ -521,6 +521,13 @@ namespace tuplex {
                  return get_or_throw().CreateUnaryIntrinsic(ID, V, FMFSource, Name);
              }
 
+            inline llvm::Value *CreateBinaryIntrinsic(llvm::Intrinsic::ID ID, llvm::Value *LHS,
+                                                     llvm::Value* RHS,
+                                                     llvm::Instruction *FMFSource = nullptr,
+                                                     const std::string &Name = "") const {
+                return get_or_throw().CreateBinaryIntrinsic(ID, LHS, RHS, FMFSource, Name);
+            }
+
 
             inline llvm::Value* CreateFCmp(llvm::CmpInst::Predicate P, llvm::Value *LHS, llvm::Value *RHS,
                                const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) const {

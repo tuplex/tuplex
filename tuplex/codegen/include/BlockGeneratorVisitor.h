@@ -240,7 +240,7 @@ namespace codegen {
                 VariableRealization r;
                 r.name = name;
                 r.type = slot.type;
-                r.defined = builder.CreateLoad(slot.definedPtr);
+                r.defined = builder.CreateLoad(builder.getInt1Ty(), slot.definedPtr);
                 r.val = slot.var.load(builder);
 
                 r.original_ptr = SerializableValue(slot.var.ptr, slot.var.sizePtr, slot.var.nullPtr);

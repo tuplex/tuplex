@@ -87,7 +87,8 @@ protected:
         }
 
         // create dummy struct
-       auto arr = builder.CreateAlloca(ArrayType::get(env->i8ptrType(), num_cols));
+        auto arr_type = ArrayType::get(env->i8ptrType(), num_cols);
+       auto arr = builder.CreateAlloca(arr_type);
 
         // store in struct and then retrieve via column arg!
         for(int i = 0; i < num_cols; ++i) {
@@ -106,10 +107,10 @@ protected:
             if(dummy->getType()->isIntegerTy())
                 dummy = builder.CreateIntToPtr(dummy, env->i8ptrType());
 
-            builder.CreateStore(dummy, builder.CreateGEP(arr, {env->i32Const(0), env->i32Const(i)}));
+            builder.CreateStore(dummy, builder.CreateGEP(arr_type, arr, {env->i32Const(0), env->i32Const(i)}));
         }
 
-        auto val = builder.CreateLoad(builder.CreateGEP(arr, {env->i32Const(0), argMap["column"]}));
+        auto val = builder.CreateLoad(env->i8ptrType(), builder.CreateGEP(arr_type, arr, {env->i32Const(0), argMap["column"]}));
 
 ////        Value *retval = val;
 ////
@@ -159,13 +160,13 @@ protected:
 
 
         codegen::IRBuilder builder(bNumBytes);
-        builder.CreateRet(builder.CreateLoad(builder.CreateGEP(vLineStartArgs[0], {env->i32Const(0),env->i32Const(0)})));
+        builder.CreateRet(builder.CreateLoad(builder.getInt64Ty(), builder.CreateGEP(gen.resultType(), vLineStartArgs[0], {env->i32Const(0),env->i32Const(0)})));
 
         builder.SetInsertPoint(bLineStart);
-        builder.CreateRet(builder.CreateLoad(builder.CreateGEP(vLineStartArgs[0], {env->i32Const(0),env->i32Const(1)})));
+        builder.CreateRet(builder.CreateLoad(i8ptr_type, builder.CreateGEP(gen.resultType(), vLineStartArgs[0], {env->i32Const(0),env->i32Const(1)})));
 
         builder.SetInsertPoint(bLineEnd);
-        builder.CreateRet(builder.CreateLoad(builder.CreateGEP(vLineEndArgs[0], {env->i32Const(0),env->i32Const(2)})));
+        builder.CreateRet(builder.CreateLoad(i8ptr_type, builder.CreateGEP(gen.resultType(), vLineEndArgs[0], {env->i32Const(0),env->i32Const(2)})));
 
 
         // magical retrieve column function

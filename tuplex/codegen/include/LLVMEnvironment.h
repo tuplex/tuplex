@@ -794,12 +794,11 @@ namespace tuplex {
              * @param builder
              * @param ptr pointer variable
              */
-            inline void storeNULL(const codegen::IRBuilder& builder, llvm::Value* ptr) {
+            inline void storeNULL(const codegen::IRBuilder& builder, llvm::Type* type, llvm::Value* ptr) {
                 assert(ptr->getType()->isPointerTy());
 
                 // set respective nullptr or null value
-                auto elType = ptr->getType()->getPointerElementType();
-                builder.CreateStore(nullConstant(elType), ptr);
+                builder.CreateStore(nullConstant(type), ptr);
             }
 
             /*!

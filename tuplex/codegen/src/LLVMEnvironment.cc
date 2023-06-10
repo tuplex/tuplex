@@ -1443,7 +1443,7 @@ namespace tuplex {
             assert(size->getType() == i64Type());
 
             // if no copy, simply zero terminate
-            auto lastCharPtr = builder.CreateGEP(str, builder.CreateSub(size, i64Const(1)));
+            auto lastCharPtr = builder.MovePtrByBytes(str, builder.CreateSub(size, i64Const(1)));
             if (!copy) {
                 builder.CreateStore(i8Const('\0'), lastCharPtr);
                 return str;
@@ -1454,7 +1454,7 @@ namespace tuplex {
                 BasicBlock *bbNext = BasicBlock::Create(_context, "next", func);
 
                 // check whether non-zero terminated
-                auto lastChar = builder.CreateLoad(lastCharPtr);
+                auto lastChar = builder.CreateLoad(builder.getInt8Ty(), lastCharPtr);
 
                 // if non-zero, rtmalloc, copy and zero terminate!
                 auto lastCharIsZeroCond = builder.CreateICmpEQ(lastChar, i8Const('\0'));
@@ -1473,13 +1473,13 @@ namespace tuplex {
                 builder.CreateMemCpy(new_ptr, 0, str, 0, size, true);
 #endif
                 builder.CreateStore(i8Const(0),
-                                    builder.CreateGEP(new_ptr, builder.CreateSub(size, i64Const(1)))); // zero terminate
+                                    builder.MovePtrByBytes(new_ptr, builder.CreateSub(size, i64Const(1)))); // zero terminate
 
                 builder.CreateBr(bbNext);
 
                 // load variable
                 builder.SetInsertPoint(bbNext);
-                auto val = builder.CreateLoad(var);
+                auto val = builder.CreateLoad(i8ptrType(), var);
                 return val;
             }
         }

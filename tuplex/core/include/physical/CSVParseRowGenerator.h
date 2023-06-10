@@ -104,7 +104,7 @@ namespace tuplex {
             void updateLookAhead(IRBuilder &builder);
 
             inline llvm::Value *lookahead(IRBuilder &builder) {
-                return builder.CreateLoad(_currentLookAheadVar);
+                return builder.CreateLoad(builder.getInt8Ty(), _currentLookAheadVar);
             }
 
             /*!
@@ -115,10 +115,11 @@ namespace tuplex {
             inline llvm::Value *currentChar(IRBuilder &builder) {
                 auto ptr = currentPtr(builder);
                 auto i8ptr_type = llvm::Type::getInt8PtrTy(_env->getContext(), 0);
-                assert(ptr->getType() == i8ptr_type);
-                assert(_endPtr->getType() == i8ptr_type);
+                // assert(ptr->getType() == i8ptr_type);
+                // assert(_endPtr->getType() == i8ptr_type);
+                assert(ptr->getType()->isPointerTy());
                 return builder.CreateSelect(builder.CreateICmpUGE(ptr, _endPtr), _env->i8Const(_escapechar),
-                                            builder.CreateLoad(ptr));
+                                            builder.CreateLoad(builder.getInt8Ty(), ptr));
             }
 
             llvm::Value *clampWithStartPtr(IRBuilder &builder, llvm::Value *ptr) {
@@ -146,10 +147,10 @@ namespace tuplex {
                 assert(howManyChars->getType() == _env->i32Type());
 
                 // change ptr
-                auto ptr = builder.CreateLoad(_currentPtrVar);
+                auto ptr = builder.CreateLoad(_env->i8ptrType(), _currentPtrVar);
 
                 // clamp with endptr
-                auto clamped_ptr = clampWithEndPtr(builder, builder.CreateGEP(ptr, howManyChars));
+                auto clamped_ptr = clampWithEndPtr(builder, builder.MovePtrByBytes(ptr, howManyChars));
 
                 builder.CreateStore(clamped_ptr, _currentPtrVar);
                 // important also to update look ahead!
@@ -164,31 +165,34 @@ namespace tuplex {
 
 
             inline void saveCellBegin(IRBuilder &builder, int32_t offset = 0) {
-                builder.CreateStore(builder.CreateGEP(builder.CreateLoad(_currentPtrVar), _env->i32Const(offset)),
+                builder.CreateStore(builder.MovePtrByBytes(builder.CreateLoad(_env->i8ptrType(), _currentPtrVar), offset),
                                     _cellBeginVar);
             }
 
             inline void saveCellEnd(IRBuilder &builder, int32_t offset = 0) {
-                auto ptr = builder.CreateGEP(builder.CreateLoad(_currentPtrVar), _env->i32Const(offset));
+                auto ptr = builder.MovePtrByBytes(builder.CreateLoad(_env->i8ptrType(), _currentPtrVar),
+                                                  offset);
                 auto clamped_ptr = clampWithEndPtr(builder, clampWithStartPtr(builder, ptr));
 
                 // also clamp with cell begin
-                auto cb = builder.CreateLoad(_cellBeginVar);
+                auto cb = builder.CreateLoad(_env->i8ptrType(), _cellBeginVar);
                 auto final_ptr = builder.CreateSelect(builder.CreateICmpULT(clamped_ptr, cb), cb, clamped_ptr);
 
                 builder.CreateStore(final_ptr, _cellEndVar);
             }
 
             inline void saveLineBegin(IRBuilder &builder) {
-                builder.CreateStore(builder.CreateLoad(_currentPtrVar), _lineBeginVar);
+                builder.CreateStore(builder.CreateLoad(_env->i8ptrType(), _currentPtrVar), _lineBeginVar);
             }
 
             inline void saveLineEnd(IRBuilder &builder) {
-                builder.CreateStore(clampWithEndPtr(builder, builder.CreateLoad(_currentPtrVar)), _lineEndVar);
+                builder.CreateStore(clampWithEndPtr(builder,
+                                                    builder.CreateLoad(_env->i8ptrType(), _currentPtrVar)),
+                                    _lineEndVar);
             }
 
             inline llvm::Value *currentPtr(IRBuilder &builder) {
-                return builder.CreateLoad(_currentPtrVar);
+                return builder.CreateLoad(_env->i8ptrType(), _currentPtrVar);
             }
 
             inline llvm::Value *numParsedBytes(IRBuilder &builder) {

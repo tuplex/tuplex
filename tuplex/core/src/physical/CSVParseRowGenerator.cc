@@ -96,12 +96,11 @@ namespace tuplex {
         }
 
         void CSVParseRowGenerator::updateLookAhead(IRBuilder& builder) {
-            auto ptr = builder.CreateLoad(_currentPtrVar);
+            auto ptr = builder.CreateLoad(_env->i8ptrType(), _currentPtrVar);
             auto lessThanEnd = builder.CreateICmpULT(ptr, _endPtr);
-            auto la = builder.CreateSelect(lessThanEnd, builder.CreateLoad(builder.CreateGEP(ptr, _env->i32Const(1))),
+            auto la = builder.CreateSelect(lessThanEnd, builder.CreateLoad(_env->i8Type(), builder.MovePtrByBytes(ptr, 1)),
                                            _env->i8Const(_escapechar));
             builder.CreateStore(la, _currentLookAheadVar);
-
         }
 
         llvm::Value *CSVParseRowGenerator::newlineCondition(IRBuilder& builder, llvm::Value *curChar) {
@@ -126,9 +125,10 @@ namespace tuplex {
             //  __m128i _v = (__m128i)vq;
             // const char *buf = "Hello world";
             // size_t pos = _mm_cmpistri(_v, _mm_loadu_si128((__m128i*)buf), 0);
-            auto v16qi_val = builder.CreateAlloca(v16qi_type(context));
+            auto llvm_v16_type = v16qi_type(context);
+            auto v16qi_val = builder.CreateAlloca(llvm_v16_type);
             uint64_t idx = 0ul;
-            llvm::Value *whereToStore = builder.CreateLoad(v16qi_val);
+            llvm::Value *whereToStore = builder.CreateLoad(llvm_v16_type, v16qi_val);
             whereToStore = builder.CreateInsertElement(whereToStore, _env->i8Const(c1), idx++);
             whereToStore = builder.CreateInsertElement(whereToStore, _env->i8Const(c2), idx++);
             whereToStore = builder.CreateInsertElement(whereToStore, _env->i8Const(c3), idx++);
@@ -146,17 +146,17 @@ namespace tuplex {
             auto &context = _env->getContext();
             using namespace llvm;
 
-            assert(ptr->getType() == Type::getInt8PtrTy(context, 0));
+            // assert(ptr->getType() == Type::getInt8PtrTy(context, 0));
 
-
+            auto llvm_v16_type = v16qi_type(context);
 
             // unsafe version: this requires that there are 15 zeroed bytes after endptr at least
-            auto val = builder.CreateLoad(spanner);
+            auto val = builder.CreateLoad(llvm_v16_type, spanner);
             auto casted_ptr = builder.CreateBitCast(ptr, v16qi_type(context)->getPointerTo(0));
 
             Function *pcmpistri128func = Intrinsic::getDeclaration(_env->getModule().get(),
                                                                    LLVMIntrinsic::x86_sse42_pcmpistri128);
-            auto res = builder.CreateCall(pcmpistri128func, {val, builder.CreateLoad(casted_ptr), _env->i8Const(0)});
+            auto res = builder.CreateCall(pcmpistri128func, {val, builder.CreateLoad(llvm_v16_type, casted_ptr), _env->i8Const(0)});
             return res;
 
             //  // safe version, i.e. when 16 byte border is not guaranteed.
@@ -316,7 +316,7 @@ namespace tuplex {
             //        thus return doublequote error here
             // (3) else:
             //     => continue skipping
-            auto curChar = builder.CreateLoad(currentPtr(builder));
+            auto curChar = builder.CreateLoad(builder.getInt8Ty(), currentPtr(builder));
 
             auto isEndOfFile = builder.CreateICmpEQ(curChar, _env->i8Const(_escapechar));
             builder.CreateCondBr(isEndOfFile, bQuotedCellDQError, bQuotedCellDQCheck);
@@ -348,7 +348,7 @@ namespace tuplex {
             //     i.e. condition used here is to check whether next char is in {',', '\n', '\r', '\0'}
             //     ------------------------------------------------------------------------
             builder.SetInsertPoint(bQuotedCellEndCheck);
-            auto lastChar = builder.CreateLoad(currentPtr(builder));
+            auto lastChar = builder.CreateLoad(builder.getInt8Ty(), currentPtr(builder));
             auto nextChar = lookahead(builder);
 
             auto isNewLine = newlineCondition(builder, nextChar);
@@ -408,9 +408,9 @@ namespace tuplex {
             builder.SetInsertPoint(bEmptyInput);
             // fill result code
             assert(_resultPtr);
-            auto idx0 = builder.CreateGEP(_resultPtr, {_env->i32Const(0), _env->i32Const(0)});
-            auto idx1 = builder.CreateGEP(_resultPtr, {_env->i32Const(0), _env->i32Const(1)});
-            auto idx2 = builder.CreateGEP(_resultPtr, {_env->i32Const(0), _env->i32Const(2)});
+            auto idx0 = builder.CreateGEP(resultType(), _resultPtr, {_env->i32Const(0), _env->i32Const(0)});
+            auto idx1 = builder.CreateGEP(resultType(), _resultPtr, {_env->i32Const(0), _env->i32Const(1)});
+            auto idx2 = builder.CreateGEP(resultType(), _resultPtr, {_env->i32Const(0), _env->i32Const(2)});
             builder.CreateStore(_env->i64Const(0), idx0);
             builder.CreateStore(llvm::ConstantPointerNull::get(Type::getInt8PtrTy(context, 0)), idx1);
             builder.CreateStore(llvm::ConstantPointerNull::get(Type::getInt8PtrTy(context, 0)), idx2);
@@ -452,7 +452,7 @@ namespace tuplex {
 
             // newline setup
             builder.SetInsertPoint(bNewlineSkipCond);
-            auto isNewline = newlineCondition(builder, builder.CreateLoad(currentPtr(builder)));
+            auto isNewline = newlineCondition(builder, builder.CreateLoad(builder.getInt8Ty(), currentPtr(builder)));
             builder.CreateCondBr(isNewline, bNewlineSkipBody, bNewLine);
 
             // newline skip
@@ -474,10 +474,9 @@ namespace tuplex {
             builder.SetInsertPoint(bNewCell);
 
             // check lookahead and decide whether to parse unquoted or quoted cell!
-            auto isQuote = builder.CreateICmpEQ(builder.CreateLoad(currentPtr(builder)), _env->i8Const(_quotechar));
+            auto isQuote = builder.CreateICmpEQ(builder.CreateLoad(builder.getInt8Ty(), currentPtr(builder)),
+                                                _env->i8Const(_quotechar));
             builder.CreateCondBr(isQuote, bQuotedCellBegin, bUnquotedCellBegin);
-
-
 
             //  vars to use
             llvm::Value *spannerResult = nullptr;
@@ -507,7 +506,7 @@ namespace tuplex {
             // logic is: if cellNo <= numCells, then store it in prepared vector
             saveCurrentCell(builder);
             // update cell counter
-            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(_cellNoVar), _env->i32Const(1)), _cellNoVar);
+            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(builder.getInt32Ty(), _cellNoVar), _env->i32Const(1)), _cellNoVar);
             // serialize end...
 
 
@@ -552,7 +551,7 @@ namespace tuplex {
             BasicBlock *bCorrectNoOfCells = BasicBlock::Create(context, "correct_no_of_cells", _func);
             BasicBlock *bWrongNoOfCells = BasicBlock::Create(context, "wrong_no_of_cells", _func);
 
-            auto correctNoOfCellCond = builder.CreateICmpEQ(_env->i32Const(numCells()), builder.CreateLoad(_cellNoVar));
+            auto correctNoOfCellCond = builder.CreateICmpEQ(_env->i32Const(numCells()), builder.CreateLoad(builder.getInt32Ty(), _cellNoVar));
             builder.CreateCondBr(correctNoOfCellCond, bCorrectNoOfCells, bWrongNoOfCells);
 
 
@@ -563,7 +562,8 @@ namespace tuplex {
 
             // select return code
             auto retCode = builder.CreateSelect(
-                    builder.CreateICmpULT(builder.CreateLoad(_cellNoVar), _env->i32Const(numCells())),
+                    builder.CreateICmpULT(builder.CreateLoad(builder.getInt32Ty(), _cellNoVar),
+                                          _env->i32Const(numCells())),
                     _env->i32Const(ecToI32(ExceptionCode::CSV_UNDERRUN)),
                     _env->i32Const(ecToI32(ExceptionCode::CSV_OVERRUN)));
             builder.CreateRet(retCode);
@@ -579,7 +579,7 @@ namespace tuplex {
             auto &context = _env->getContext();
 
             // get current cellNo
-            auto curCellNo = builder.CreateLoad(_cellNoVar);
+            auto curCellNo = builder.CreateLoad(builder.getInt32Ty(), _cellNoVar);
 
             // check if less than equal number of saved cells
             auto canStore = builder.CreateICmpUGE(_env->i32Const(numCells()), curCellNo);
@@ -595,13 +595,13 @@ namespace tuplex {
             builder.SetInsertPoint(bCanStore);
 
             // make sure indexvar is not larger than the rest!!!
-            auto curIdx = builder.CreateLoad(_storeIndexVar);
+            auto curIdx = builder.CreateLoad(builder.getInt32Ty(), _storeIndexVar);
             // set to vector
-            auto idxBegin = builder.CreateGEP(_storedCellBeginsVar, curIdx);
-            auto idxEnd = builder.CreateGEP(_storedCellEndsVar, curIdx);
+            auto idxBegin = builder.CreateGEP(_env->i8ptrType(), _storedCellBeginsVar, curIdx);
+            auto idxEnd = builder.CreateGEP(_env->i8ptrType(), _storedCellEndsVar, curIdx);
 
-            builder.CreateStore(builder.CreateLoad(_cellBeginVar), idxBegin);
-            builder.CreateStore(builder.CreateLoad(_cellEndVar), idxEnd);
+            builder.CreateStore(builder.CreateLoad(_env->i8ptrType(), _cellBeginVar), idxBegin);
+            builder.CreateStore(builder.CreateLoad(_env->i8ptrType(), _cellEndVar), idxEnd);
             builder.CreateStore(builder.CreateAdd(curIdx, _env->i32Const(1)), _storeIndexVar);
             builder.CreateBr(bDone);
 
@@ -623,9 +623,9 @@ namespace tuplex {
             assert(numParsedBytes->getType() == _env->i64Type());
 
             // in any case, fill how many bytes have been parsed + line start/line end
-            auto idx0 = builder.CreateGEP(_resultPtr, {_env->i32Const(0), _env->i32Const(0)});
-            auto idx1 = builder.CreateGEP(_resultPtr, {_env->i32Const(0), _env->i32Const(1)});
-            auto idx2 = builder.CreateGEP(_resultPtr, {_env->i32Const(0), _env->i32Const(2)});
+            auto idx0 = builder.CreateGEP(resultType(), _resultPtr, {_env->i32Const(0), _env->i32Const(0)});
+            auto idx1 = builder.CreateGEP(resultType(), _resultPtr, {_env->i32Const(0), _env->i32Const(1)});
+            auto idx2 = builder.CreateGEP(resultType(), _resultPtr, {_env->i32Const(0), _env->i32Const(2)});
 
             builder.CreateStore(numParsedBytes, idx0);
             builder.CreateStore(lineStart, idx1);
@@ -635,18 +635,19 @@ namespace tuplex {
             auto numBitmapElements = bitmapBitCount() / 64;
 
             for (int i = 0; i < numBitmapElements; ++i) {
-                auto idx = builder.CreateGEP(_resultPtr, {_env->i32Const(0), _env->i32Const(3), _env->i32Const(i)});
+                auto idx = builder.CreateGEP(resultType(), _resultPtr,
+                                             {_env->i32Const(0), _env->i32Const(3), _env->i32Const(i)});
                 builder.CreateStore(_env->i64Const(0), idx);
             }
 
             // store nullptr, 0 in error buf
             auto num_struct_elements = resultType()->getStructNumElements();
-            auto idx_buf_length = _env->CreateStructGEP(builder, _resultPtr, num_struct_elements -2);
-            auto idx_buf = _env->CreateStructGEP(builder, _resultPtr, num_struct_elements - 1);
+            auto idx_buf_length = builder.CreateStructGEP(_resultPtr, resultType(), num_struct_elements - 2);
+            auto idx_buf = builder.CreateStructGEP(_resultPtr, resultType(), num_struct_elements - 1);
             assert(idx_buf_length->getType() == _env->i64ptrType());
             assert(idx_buf->getType() == _env->i8ptrType()->getPointerTo());
-            _env->storeNULL(builder, idx_buf_length);
-            _env->storeNULL(builder, idx_buf);
+            _env->storeNULL(builder, resultType()->getStructElementType(num_struct_elements - 2), idx_buf_length);
+            _env->storeNULL(builder, resultType()->getStructElementType(num_struct_elements - 1), idx_buf);
         }
 
 
@@ -656,12 +657,12 @@ namespace tuplex {
             assert(0 <= column && column < _cellDescs.size());
 
             if (val) {
-                auto idxVal = builder.CreateGEP(_resultPtr, {_env->i32Const(0), _env->i32Const(3 + 1 + 2 * column)});
+                auto idxVal = builder.CreateGEP(resultType(), _resultPtr, {_env->i32Const(0), _env->i32Const(3 + 1 + 2 * column)});
                 builder.CreateStore(val, idxVal);
             }
 
             if (size) {
-                auto idxSize = builder.CreateGEP(_resultPtr,
+                auto idxSize = builder.CreateGEP(resultType(), _resultPtr,
                                                  {_env->i32Const(0), _env->i32Const(3 + 1 + 2 * column + 1)});
                 builder.CreateStore(size, idxSize);
             }
@@ -669,9 +670,9 @@ namespace tuplex {
             // store bit in bitmap
             if (isnull) {
                 // fetch byte, load val
-                auto idxQword = builder.CreateGEP(_resultPtr,
+                auto idxQword = builder.CreateGEP(resultType(), _resultPtr,
                                                   {_env->i32Const(0), _env->i32Const(3), _env->i32Const(column / 64)});
-                auto qword = builder.CreateLoad(idxQword);
+                auto qword = builder.CreateLoad(builder.getInt64Ty(), idxQword);
                 auto new_qword = builder.CreateOr(qword, builder.CreateShl(builder.CreateZExt(isnull, _env->i64Type()),
                                                                            _env->i64Const(column % 64)));
 
@@ -711,9 +712,9 @@ namespace tuplex {
 
                 // extract bitmap bit!
                 // fetch byte, load val
-                auto idxQword = builder.CreateGEP(result,
+                auto idxQword = builder.CreateGEP(resultType(), result,
                                                   {_env->i32Const(0), _env->i32Const(3), _env->i32Const(column / 64)});
-                auto qword = builder.CreateLoad(idxQword);
+                auto qword = builder.CreateLoad(builder.getInt64Ty(), idxQword);
 
                 isnull = builder.CreateICmpNE(builder.CreateAnd(qword, _env->i64Const(1UL << (static_cast<uint64_t>(column) % 64))),
                                               _env->i64Const(0));
@@ -731,8 +732,8 @@ namespace tuplex {
             }
 
             // _env->debugPrint(builder, "get val");
-            val = builder.CreateLoad(
-                    builder.CreateGEP(result, {_env->i32Const(0), _env->i32Const(val_idx)}));
+            val = builder.CreateLoad(_env->i8ptrType(),
+                    builder.CreateGEP(resultType(), result, {_env->i32Const(0), _env->i32Const(val_idx)}));
             // _env->debugPrint(builder, "get size");
 
 #ifdef TRACE_PARSER
@@ -740,8 +741,8 @@ namespace tuplex {
             Logger::instance().logger("codegen").debug(_env->printStructType(result->getType()));
 #endif
 
-            size = builder.CreateLoad(
-                    builder.CreateGEP(result, {_env->i32Const(0), _env->i32Const(size_idx)}));
+            size = builder.CreateLoad(builder.getInt64Ty(),
+                    builder.CreateGEP(resultType(), result, {_env->i32Const(0), _env->i32Const(size_idx)}));
 
             // _env->printValue(builder, val, "got value: ");
             // _env->printValue(builder, size, "got size: ");
@@ -801,8 +802,8 @@ namespace tuplex {
             auto &context = _env->getContext();
             auto i8ptr_type = Type::getInt8PtrTy(context, 0);
 
-            auto lineStart = builder.CreateLoad(_lineBeginVar);
-            auto lineEnd = builder.CreateLoad(_lineEndVar);
+            auto lineStart = builder.CreateLoad(i8ptr_type, _lineBeginVar);
+            auto lineEnd = builder.CreateLoad(i8ptr_type, _lineEndVar);
 
             auto ret_size_ptr = _env->CreateFirstBlockAlloca(builder, _env->i64Type());
 
@@ -833,26 +834,28 @@ namespace tuplex {
                         //BasicBlock *bIsNullValue = BasicBlock::Create(context, "cell" + std::to_string(i) + "_is_null", _func);
                         //BasicBlock *bNotNull = BasicBlock::Create(context, "cell" + std::to_string(i) + "_not_null", _func);
 
-                        llvm::Value *cellBegin = builder.CreateLoad(
-                                builder.CreateGEP(_storedCellBeginsVar, _env->i32Const(pos)));
-                        llvm::Value *cellEnd = builder.CreateLoad(
-                                builder.CreateGEP(_storedCellEndsVar, _env->i32Const(pos)));
+                        llvm::Value *cellBegin = builder.CreateLoad(i8ptr_type,
+                                builder.CreateGEP(i8ptr_type, _storedCellBeginsVar, _env->i32Const(pos)));
+                        llvm::Value *cellEnd = builder.CreateLoad(i8ptr_type,
+                                builder.CreateGEP(i8ptr_type, _storedCellEndsVar, _env->i32Const(pos)));
                         auto cellEndIncl = cellEnd;
                         // cellEnd is the char included. Many functions need though the one without the end.
-                        auto cellEndExcl = builder.CreateGEP(cellEnd, _env->i32Const(1));
+                        auto cellEndExcl = builder.MovePtrByBytes(cellEnd, 1);
 
                         // special case: single digit/single char values.
                         // i.e. we know it is not a null value. Hence, add +1 to cellEnd to allow for conversion
                         cellEnd = builder.CreateSelect(builder.CreateICmpEQ(cellBegin, cellEnd),
                                                        clampWithEndPtr(builder,
-                                                                       builder.CreateGEP(cellEnd, _env->i32Const(1))),
+                                                                       cellEndExcl),
                                                        cellEnd);
 
                         // // uncomment following lines to display which cell is saved
                         // // debug:
                         //  _env->debugPrint(builder, "cell ", _env->i64Const(i));
                         //  _env->debugCellPrint(builder, cellBegin, cellEnd);
-                        auto normalizedStr = builder.CreateCall(normalizeFunc, {_env->i8Const(_quotechar), cellBegin, cellEndIncl, ret_size_ptr});
+                        auto normalizedStr = builder.CreateCall(normalizeFunc, {_env->i8Const(_quotechar),
+                                                                                cellBegin, cellEndIncl,
+                                                                                ret_size_ptr});
 
                         //_env->debugPrint(builder, "column " + std::to_string(i) + " normalized str: ", normalizedStr);
                         //_env->debugPrint(builder, "column " + std::to_string(i) + " normalized str isnull: ", _env->compareToNullValues(builder, normalizedStr, _null_values));
@@ -867,11 +870,12 @@ namespace tuplex {
                         auto valueIsNull = _env->compareToNullValues(builder, normalizedStr, _null_values, true);
 
                         // allocate vars where to store parse result or dummy
-                        Value* valPtr = _env->CreateFirstBlockAlloca(builder, _env->pythonToLLVMType(type.withoutOptions()), "col" + std::to_string(pos));
+                        auto llvm_val_type = _env->pythonToLLVMType(type.withoutOptions());
+                        Value* valPtr = _env->CreateFirstBlockAlloca(builder, llvm_val_type, "col" + std::to_string(pos));
                         Value* sizePtr = _env->CreateFirstBlockAlloca(builder, _env->i64Type(), "col" + std::to_string(pos) + "_size");
                         // null them
-                        _env->storeNULL(builder, valPtr);
-                        _env->storeNULL(builder, sizePtr);
+                        _env->storeNULL(builder, llvm_val_type, valPtr);
+                        _env->storeNULL(builder, _env->i64Type(), sizePtr);
 
                         // hack: nullable string, store empty string!
                         if(type.withoutOptions() == python::Type::STRING) {
@@ -924,7 +928,7 @@ namespace tuplex {
                         } else if(python::Type::STRING == type.withoutOptions()) {
                             // super simple, just store result!
                             builder.CreateStore(normalizedStr, valPtr);
-                            builder.CreateStore(builder.CreateLoad(ret_size_ptr), sizePtr);
+                            builder.CreateStore(builder.CreateLoad(builder.getInt64Ty(), ret_size_ptr), sizePtr);
                             builder.CreateBr(bbParseDone);
                         } else if(python::Type::NULLVALUE == type.withoutOptions()) {
 
@@ -942,7 +946,7 @@ namespace tuplex {
                         _env->debugPrint(builder, "column " + std::to_string(i) + " size: ", builder.CreateLoad(sizePtr));
                         _env->debugPrint(builder, "column " + std::to_string(i) + " isnull: ", valueIsNull);
 #endif
-                        storeValue(builder, pos, builder.CreateLoad(valPtr), builder.CreateLoad(sizePtr), valueIsNull);
+                        storeValue(builder, pos, builder.CreateLoad(llvm_val_type, valPtr), builder.CreateLoad(builder.getInt64Ty(), sizePtr), valueIsNull);
 
                         pos++;
                     }
@@ -1024,7 +1028,6 @@ namespace tuplex {
             // this is for null value optimization
             // super simple, just store result!
 
-
             vector<Value*> cells; // dequoted i8*
             vector<Value*> cell_sizes; // i64
 
@@ -1034,17 +1037,17 @@ namespace tuplex {
 
                 // should cell be serialized?
                 if (desc.willBeSerialized) {
-                    llvm::Value *cellBegin = builder.CreateLoad(
-                            builder.CreateGEP(_storedCellBeginsVar, _env->i32Const(pos)));
-                    llvm::Value *cellEnd = builder.CreateLoad(
-                            builder.CreateGEP(_storedCellEndsVar, _env->i32Const(pos)));
+                    llvm::Value *cellBegin = builder.CreateLoad(_env->i8ptrType(),
+                            builder.CreateGEP(_env->i8ptrType(), _storedCellBeginsVar, _env->i32Const(pos)));
+                    llvm::Value *cellEnd = builder.CreateLoad(_env->i8ptrType(),
+                            builder.CreateGEP(_env->i8ptrType(), _storedCellEndsVar, _env->i32Const(pos)));
                     auto cellEndIncl = cellEnd;
 
                     auto normalizedStr = builder.CreateCall(normalizeFunc,
                                                             {_env->i8Const(_quotechar), cellBegin, cellEndIncl,
                                                              ret_size_ptr});
                     cells.push_back(normalizedStr);
-                    cell_sizes.push_back(builder.CreateLoad(ret_size_ptr));
+                    cell_sizes.push_back(builder.CreateLoad(builder.getInt64Ty(), ret_size_ptr));
                     pos++;
                 }
             }
@@ -1079,7 +1082,7 @@ namespace tuplex {
             auto lastPtr = buf;
             // store num_cells!
             builder.CreateStore(_env->i64Const(cells.size()), builder.CreateBitCast(lastPtr, _env->i64ptrType()));
-            lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)));
+            lastPtr = builder.MovePtrByBytes(lastPtr, sizeof(int64_t));
             Value* acc_size = _env->i64Const(0);
             for(int i = 0; i < cells.size(); ++i) {
 
@@ -1099,20 +1102,20 @@ namespace tuplex {
 
                 // copy cell content
                 //     memcpy(buf_ptr + sizeof(int64_t) * (numCells + 1) + acc_size, cells[i], sizes[i]);
-                auto cell_idx = builder.CreateGEP(buf, builder.CreateAdd(acc_size, _env->i64Const(sizeof(int64_t) * (cells.size() + 1))));
+                auto cell_idx = builder.CreateGEP(_env->i8ptrType(), buf, builder.CreateAdd(acc_size, _env->i64Const(sizeof(int64_t) * (cells.size() + 1))));
                 builder.CreateMemCpy(cell_idx, 0, cells[i], 0, cell_sizes[i]);
 
                 //     buf += sizeof(int64_t);
                 //     acc_size += sizes[i];
-                lastPtr = builder.CreateGEP(lastPtr, _env->i32Const(sizeof(int64_t)));
+                lastPtr = builder.MovePtrByBytes(lastPtr, sizeof(int64_t));
                 acc_size = builder.CreateAdd(acc_size, cell_sizes[i]);
             }
 
 
             // store buf + buf_size into ret struct
             auto num_struct_elements = resultType()->getStructNumElements();
-            auto idx_buf_length = _env->CreateStructGEP(builder, _resultPtr, num_struct_elements -2);
-            auto idx_buf = _env->CreateStructGEP(builder, _resultPtr, num_struct_elements - 1);
+            auto idx_buf_length = builder.CreateStructGEP(_resultPtr, resultType(), num_struct_elements -2);
+            auto idx_buf = builder.CreateStructGEP(_resultPtr, resultType(), num_struct_elements - 1);
             assert(idx_buf_length->getType() == _env->i64ptrType());
             assert(idx_buf->getType() == _env->i8ptrType()->getPointerTo());
             builder.CreateStore(buf, idx_buf);

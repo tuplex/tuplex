@@ -118,8 +118,10 @@ namespace tuplex {
                 // assert(ptr->getType() == i8ptr_type);
                 // assert(_endPtr->getType() == i8ptr_type);
                 assert(ptr->getType()->isPointerTy());
-                return builder.CreateSelect(builder.CreateICmpUGE(ptr, _endPtr), _env->i8Const(_escapechar),
+                auto ans =  builder.CreateSelect(builder.CreateICmpUGE(ptr, _endPtr), _env->i8Const(_escapechar),
                                             builder.CreateLoad(builder.getInt8Ty(), ptr));
+                _env->printValue(builder, ans, "cur char is=");
+                return ans;
             }
 
             llvm::Value *clampWithStartPtr(IRBuilder &builder, llvm::Value *ptr) {
@@ -149,10 +151,16 @@ namespace tuplex {
                 // change ptr
                 auto ptr = builder.CreateLoad(_env->i8ptrType(), _currentPtrVar);
 
+
                 // clamp with endptr
                 auto clamped_ptr = clampWithEndPtr(builder, builder.MovePtrByBytes(ptr, howManyChars));
 
+                _env->printValue(builder, howManyChars, "consuming num bytes=");
+                _env->printValue(builder, ptr, "current ptr=");
+                _env->printValue(builder, clamped_ptr, "new ptr=");
+
                 builder.CreateStore(clamped_ptr, _currentPtrVar);
+
                 // important also to update look ahead!
                 updateLookAhead(builder);
             }
@@ -207,7 +215,7 @@ namespace tuplex {
                 // shall be stored or not according to descs
                 assert(cellNo->getType() == _env->i32Type());
 
-                llvm::Value *cond = nullptr; //t rue
+                llvm::Value *cond = nullptr; // true
                 for (int i = 0; i < _cellDescs.size(); ++i) {
                     if (_cellDescs[i].willBeSerialized) {
                         if (!cond) {
@@ -233,7 +241,7 @@ namespace tuplex {
                 return std::max((size_t) 1, serializedType().parameters().size());
             }
 
-            void fillResultCode(IRBuilder &builder, bool errorOccured);
+            void fillResultCode(IRBuilder &builder, bool errorOccurred);
 
             /*!
              * generates i1 to check whether curChar is '\n' or '\r'

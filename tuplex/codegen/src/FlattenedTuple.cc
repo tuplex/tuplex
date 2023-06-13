@@ -810,6 +810,8 @@ namespace tuplex {
                             boolVal = builder.CreateZExt(boolVal, Type::getInt64Ty(context));
                         }
 
+                        _env->printValue(builder, boolVal, "serializing in flattened tuple bool value=");
+
                         // store within output
                         Value *store = builder.CreateStore(boolVal, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), false);
                         lastPtr = builder.MovePtrByBytes(lastPtr, sizeof(int64_t), "outptr");

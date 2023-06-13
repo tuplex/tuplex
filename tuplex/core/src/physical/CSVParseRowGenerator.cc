@@ -15,7 +15,7 @@
 #include <StringUtils.h>
 #include <RuntimeInterface.h>
 
-//#define TRACE_PARSER
+#define TRACE_PARSER
 
 namespace tuplex {
 
@@ -96,7 +96,7 @@ namespace tuplex {
         }
 
         void CSVParseRowGenerator::updateLookAhead(IRBuilder& builder) {
-            auto ptr = builder.CreateLoad(_env->i8ptrType(), _currentPtrVar);
+            auto ptr = currentPtr(builder);
             auto lessThanEnd = builder.CreateICmpULT(ptr, _endPtr);
             auto la = builder.CreateSelect(lessThanEnd, builder.CreateLoad(_env->i8Type(), builder.MovePtrByBytes(ptr, 1)),
                                            _env->i8Const(_escapechar));
@@ -263,6 +263,7 @@ namespace tuplex {
 
 
             builder.SetInsertPoint(bUnquotedCellEnd);
+            _env->debugPrint(builder, "unquoted cell done, saving end ptr=", currentPtr(builder));
             saveCellEnd(builder, 0);
             builder.CreateBr(bCellDone);
         }
@@ -366,6 +367,7 @@ namespace tuplex {
             //     to cell end
             //     ------------------------------------------------------------------------
             builder.SetInsertPoint(bQuotedCellEnd);
+            _env->debugPrint(builder, "quoted cell done, saving end ptr=", currentPtr(builder));
             saveCellEnd(builder, -1);
             builder.CreateBr(bCellDone);
         }
@@ -581,12 +583,16 @@ namespace tuplex {
             // get current cellNo
             auto curCellNo = builder.CreateLoad(builder.getInt32Ty(), _cellNoVar);
 
+            _env->printValue(builder, curCellNo, "\n---\nsaving current cell no=");
+
             // check if less than equal number of saved cells
             auto canStore = builder.CreateICmpUGE(_env->i32Const(numCells()), curCellNo);
 
             // note: also add condition which cells shall be stored:
             // this is to subselect what cells to store
             canStore = builder.CreateAnd(canStore, storageCondition(builder, curCellNo));
+
+            _env->printValue(builder, canStore, "can store cell:");
 
             BasicBlock *bCanStore = BasicBlock::Create(context, "saveCell", _func);
             BasicBlock *bDone = BasicBlock::Create(context, "savedCell", _func);
@@ -600,13 +606,22 @@ namespace tuplex {
             auto idxBegin = builder.CreateGEP(_env->i8ptrType(), _storedCellBeginsVar, curIdx);
             auto idxEnd = builder.CreateGEP(_env->i8ptrType(), _storedCellEndsVar, curIdx);
 
-            builder.CreateStore(builder.CreateLoad(_env->i8ptrType(), _cellBeginVar), idxBegin);
-            builder.CreateStore(builder.CreateLoad(_env->i8ptrType(), _cellEndVar), idxEnd);
+            auto cell_begin = builder.CreateLoad(_env->i8ptrType(), _cellBeginVar);
+            auto cell_end = builder.CreateLoad(_env->i8ptrType(), _cellEndVar);
+            // debug print:
+            _env->printValue(builder, curIdx, "saving cell no=");
+            _env->printValue(builder, cell_begin, "cell begin=");
+            _env->printValue(builder, cell_end, "cell end=");
+
+            builder.CreateStore(cell_begin, idxBegin);
+            builder.CreateStore(cell_end, idxEnd);
             builder.CreateStore(builder.CreateAdd(curIdx, _env->i32Const(1)), _storeIndexVar);
             builder.CreateBr(bDone);
 
             // update for new commands
             builder.SetInsertPoint(bDone);
+
+            _env->debugPrint(builder, "---\n");
         }
 
 
@@ -797,7 +812,7 @@ namespace tuplex {
         }
 
         // @Todo: maybe rename this
-        void CSVParseRowGenerator::fillResultCode(IRBuilder& builder, bool errorOccured) {
+        void CSVParseRowGenerator::fillResultCode(IRBuilder& builder, bool errorOccurred) {
             using namespace llvm;
             auto &context = _env->getContext();
             auto i8ptr_type = Type::getInt8PtrTy(context, 0);
@@ -824,7 +839,7 @@ namespace tuplex {
 
             // in the case of no error, generate serialization code with short circuit error handling
             size_t pos = 0;
-            if (!errorOccured) {
+            if (!errorOccurred) {
                 for (unsigned i = 0; i < _cellDescs.size(); ++i) {
                     auto desc = _cellDescs[i];
 
@@ -851,14 +866,21 @@ namespace tuplex {
 
                         // // uncomment following lines to display which cell is saved
                         // // debug:
-                        //  _env->debugPrint(builder, "cell ", _env->i64Const(i));
-                        //  _env->debugCellPrint(builder, cellBegin, cellEnd);
+                          _env->debugPrint(builder, "serializing cell no=" + std::to_string(i) + " to pos=" + std::to_string(pos));
+                          _env->debugCellPrint(builder, cellBegin, cellEndIncl);
                         auto normalizedStr = builder.CreateCall(normalizeFunc, {_env->i8Const(_quotechar),
-                                                                                cellBegin, cellEndIncl,
+                                                                                cellBegin, cellEnd,
                                                                                 ret_size_ptr});
 
-                        //_env->debugPrint(builder, "column " + std::to_string(i) + " normalized str: ", normalizedStr);
-                        //_env->debugPrint(builder, "column " + std::to_string(i) + " normalized str isnull: ", _env->compareToNullValues(builder, normalizedStr, _null_values));
+                        _env->debugPrint(builder, "column " + std::to_string(i) + " normalized str: ", normalizedStr);
+                        _env->debugPrint(builder, "column " + std::to_string(i) + " normalized str isnull: ", _env->compareToNullValues(builder, normalizedStr, _null_values));
+
+                        // update cellEnd/cellBegin with normalizedStr and size
+                        auto normalizedStr_size = builder.CreateLoad(builder.getInt64Ty(), ret_size_ptr);
+                        _env->debugPrint(builder, "column " + std::to_string(i) + " normalized str size: ", normalizedStr_size);
+
+                        cellBegin = normalizedStr;
+                        cellEnd = builder.MovePtrByBytes(cellBegin, builder.CreateSub(normalizedStr_size, _env->i64Const(1)));
 
                         auto type = desc.type;
 
@@ -900,7 +922,14 @@ namespace tuplex {
                                                          Type::getInt8PtrTy(context, 0)}; // bool is implemented as i8*
                             FunctionType *FT = FunctionType::get(Type::getInt32Ty(context), argtypes, false);
                             auto func = _env->getModule()->getOrInsertFunction("fast_atob", FT);
-                            auto resCode = builder.CreateCall(func, {cellBegin, cellEnd, valPtr});
+                            auto i8_tmp_ptr = _env->CreateFirstBlockAlloca(builder, builder.getInt8Ty()); // could be single, lazy var
+                            auto resCode = builder.CreateCall(func, {cellBegin, cellEnd, i8_tmp_ptr});
+
+                            // cast to proper internal boolean type.
+                            auto i8_tmp_val = builder.CreateLoad(builder.getInt8Ty(), i8_tmp_ptr);
+                            auto casted_val = _env->upcastToBoolean(builder, i8_tmp_val);
+                            builder.CreateStore(casted_val, valPtr);
+
                             builder.CreateStore(_env->i64Const(sizeof(int64_t)), sizePtr);
                             auto parseOK = builder.CreateICmpEQ(resCode, _env->i32Const(ecToI32(ExceptionCode::SUCCESS)));
                             builder.CreateCondBr(parseOK, bbParseDone, bbValueError);
@@ -942,12 +971,18 @@ namespace tuplex {
 #ifdef TRACE_PARSER
                         // debug
                         _env->debugPrint(builder, "column " + std::to_string(i) + " normalized str: ", normalizedStr);
-                        _env->debugPrint(builder, "column " + std::to_string(i) + " value: ", builder.CreateLoad(valPtr));
-                        _env->debugPrint(builder, "column " + std::to_string(i) + " size: ", builder.CreateLoad(sizePtr));
+                        _env->debugPrint(builder, "column " + std::to_string(i) + " value: ", builder.CreateLoad(llvm_val_type, valPtr));
+                        _env->debugPrint(builder, "column " + std::to_string(i) + " size: ", builder.CreateLoad(builder.getInt64Ty(), sizePtr));
                         _env->debugPrint(builder, "column " + std::to_string(i) + " isnull: ", valueIsNull);
 #endif
-                        storeValue(builder, pos, builder.CreateLoad(llvm_val_type, valPtr), builder.CreateLoad(builder.getInt64Ty(), sizePtr), valueIsNull);
-
+                        storeValue(builder,
+                                   pos,
+                                   builder.CreateLoad(llvm_val_type, valPtr),
+                                   builder.CreateLoad(builder.getInt64Ty(), sizePtr),
+                                   valueIsNull);
+#ifdef TRACE_PARSER
+                        _env->debugPrint(builder, "onto pos=" + std::to_string(pos + 1));
+#endif
                         pos++;
                     }
                 }

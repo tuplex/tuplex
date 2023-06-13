@@ -384,7 +384,7 @@ namespace tuplex {
                  return get_or_throw().CreateGEP(getInt8Ty(), Ptr, {num_bytes}, Name);
             }
 
-            inline llvm::Value *MovePtrByBytes(llvm::Value* Ptr, unsigned num_bytes, const std::string &Name = "") const {
+            inline llvm::Value *MovePtrByBytes(llvm::Value* Ptr, int64_t num_bytes, const std::string &Name = "") const {
                  return MovePtrByBytes(Ptr, llvm::Constant::getIntegerValue(getInt64Ty(), llvm::APInt(64, num_bytes)), Name);
            }
 

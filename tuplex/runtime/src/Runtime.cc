@@ -809,8 +809,6 @@ char* csvNormalize(const char quotechar, const char* start, const char* end, int
     char* res = (char*)rtmalloc(size);
     // memset(res, 0, size);
 
-#warning "might be wrong for strings which actually need to be dequoted :/ ?"
-
     // copy over unless quote char!
     const char* ptr = start;
     int i = 0;
@@ -821,11 +819,16 @@ char* csvNormalize(const char quotechar, const char* start, const char* end, int
         ptr++;
     }
 
-    // important, set last to 0
-    res[i++] = '\0';
+    // important, set last to 0 (if not 0)
+    if('\0' != res[i])
+        res[i++] = '\0';
+
+    // adjust length (find first non-'\0' char)
+    while(i > 0 && res[i - 1] == '\0')
+        --i;
 
     if(ret_size)
-        *ret_size = size;
+        *ret_size = i + 1;
 
     return res;
 }

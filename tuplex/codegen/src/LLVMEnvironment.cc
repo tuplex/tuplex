@@ -1089,6 +1089,8 @@ namespace tuplex {
 
             std::string pointer_stars = "";
             while(stype->isPointerTy()) {
+                if(stype->isOpaquePointerTy())
+                    return "ptr";
                 stype = stype->getPointerElementType();
                 pointer_stars += "*";
             }
@@ -1148,6 +1150,9 @@ namespace tuplex {
 
             // check if t is pointer type to struct type
             if (t->isPointerTy()) {
+                if(t->isOpaquePointerTy())
+                    return "ptr";
+
                 // recurse:
                 return getLLVMTypeName(t->getPointerElementType()) + "*";
             }
@@ -1264,7 +1269,7 @@ namespace tuplex {
 
         llvm::Type *LLVMEnvironment::pythonToLLVMType(const python::Type &t) {
             if (t == python::Type::BOOLEAN)
-                return getBooleanType(); // i64 maybe in the future?
+                return getBooleanType();
             if (t == python::Type::I64)
                 return Type::getInt64Ty(_context);
             if (t == python::Type::F64)

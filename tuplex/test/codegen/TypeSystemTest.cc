@@ -343,3 +343,38 @@ TEST(TypeSys, ConstantEncodeDecode) {
     auto c1_res = python::Type::decode(str_c1);
     EXPECT_EQ(c1, c1_res);
 }
+
+TEST(TypeSys, RowTypeCreation) {
+    // check that creation, encoding/decoding works.
+
+    auto pt_types = python::primitiveTypes();
+
+    // create some dummy names (there can be no duplicates?)
+    std::vector<std::string> names;
+    for(unsigned i = 0; i < pt_types.size(); ++i) {
+        names.push_back("x_'" + std::to_string(i) + "'");
+    }
+
+    ASSERT_FALSE(pt_types.empty());
+
+    for(unsigned i = 0; i < pt_types.size(); ++i) {
+        auto subset = std::vector<python::Type>(pt_types.begin(), pt_types.begin() + i);
+        auto names_subset = std::vector<std::string>(names.begin(), names.begin() + i);
+
+        // test 1: no names
+        {
+            auto row_type = python::Type::makeRowType(subset);
+            auto encoded_str = row_type.encode();
+            auto decoded_type = python::Type::decode(encoded_str);
+            EXPECT_EQ(row_type, decoded_type);
+        }
+
+        // test 2: with names
+        {
+            auto row_type = python::Type::makeRowType(subset, names_subset);
+            auto encoded_str = row_type.encode();
+            auto decoded_type = python::Type::decode(encoded_str);
+            EXPECT_EQ(row_type, decoded_type);
+        }
+    }
+}

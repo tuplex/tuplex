@@ -77,6 +77,8 @@ namespace python {
         static const Type EMPTYITERATOR; //! special type for empty iterator
         static const Type TYPEOBJECT; // the type of a type object. -> i.e. generic type.
 
+        static const Type EMPTYROW; // empty row (i.e., no columns)
+
         // define two special types, used in the inference to describe bounds
         // any is a subtype of everything
         static const Type ANY;
@@ -265,6 +267,14 @@ namespace python {
         static Type makeDictionaryType(const python::Type& keyType, const python::Type& valType);
 
         static Type makeListType(const python::Type &elementType);
+
+        /*!
+        * create new row type (positional indexed row). This is an internal row helper type
+        * @param column_types the types of each column in the row
+        * @param column_names (optional) column names
+        * @return new type for this specific row.
+        */
+        static Type makeRowType(const std::vector<python::Type>& column_types, const std::vector<std::string>& column_names={});
 
         /*!
          * creates a typeobject for underlying type type. I.e. str itself is a type object referring to string.
@@ -471,6 +481,7 @@ namespace python {
             OPTION, // for nullable
             ITERATOR,
             TYPE, // for type objects...
+            ROW, // special case for internal row types...
             OPTIMIZED_CONSTANT, // constant value
             OPTIMIZED_DELAYEDPARSING, // dummy types to allow for certain optimizations
             OPTIMIZED_RANGECOMPRESSION // range compression
@@ -594,6 +605,16 @@ namespace python {
         Type createOrGetRangeCompressedIntegerType(int64_t lower_bound, int64_t upper_bound);
 
         Type createOrGetTypeObjectType(const Type& underlying);
+
+        // special type for a row (string keys/integer positions -> type)
+
+        /*!
+         * create new row type (positional indexed row). This is an internal row helper type
+         * @param column_types the types of each column in the row
+         * @param column_names (optional) column names
+         * @return new type for this specific row.
+         */
+        Type createOrGetRowType(const std::vector<python::Type>& column_types, const std::vector<std::string>& column_names={});
 
         Type getByName(const std::string& name);
 

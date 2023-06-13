@@ -55,6 +55,8 @@ namespace python {
     const Type Type::EMPTYITERATOR = python::TypeFactory::instance().createOrGetPrimitiveType("emptyiterator");
     const Type Type::TYPEOBJECT = python::TypeFactory::instance().registerOrGetType("type", python::TypeFactory::AbstractType::TYPE, std::vector<Type>{}, python::Type::VOID);
 
+    // special case, empty row
+    const Type Type::EMPTYROW = python::TypeFactory::instance().createOrGetRowType({});
     // builtin exception types
     // --> class system
 
@@ -189,6 +191,52 @@ namespace python {
             params.push_back(param);
 
         return registerOrGetType(name, AbstractType::FUNCTION, params, ret);
+    }
+
+    Type TypeFactory::createOrGetRowType(const std::vector<python::Type>& column_types, const std::vector<std::string>& column_names) {
+        if(column_names.empty()) {
+           // no column names, simple tuple-like row type
+           std::stringstream ss;
+           ss<<"Row[";
+           for(unsigned i = 0; i < column_types.size(); ++i) {
+               ss<<column_types[i].desc();
+               if(i != column_types.size() - 1)
+                   ss<<",";
+           }
+           ss<<"]";
+           auto name = ss.str();
+
+           return registerOrGetType(name, AbstractType::ROW, column_types);
+        } else {
+            assert(column_types.size() == column_names.size());
+
+            // create strurt pairs
+            std::vector<StructEntry> kv_pairs;
+            kv_pairs.reserve(column_types.size());
+
+            std::stringstream ss;
+            ss<<"Row[";
+            for(unsigned i = 0; i < column_types.size(); ++i) {
+
+                StructEntry entry;
+                entry.key = column_names[i];
+                entry.valueType = column_types[i];
+                entry.keyType = python::Type::STRING;
+
+                kv_pairs.push_back(entry);
+
+                if(!column_names[i].empty())
+                    ss<<escape_to_python_str(column_names[i])<<"->";
+                ss<<column_types[i].desc();
+                if(i != column_types.size() - 1)
+                    ss<<",";
+            }
+            ss<<"]";
+            auto name = ss.str();
+
+            return registerOrGetType(name, AbstractType::ROW, column_types,
+                                     python::Type::VOID, {}, false, kv_pairs);
+        }
     }
 
     Type TypeFactory::createOrGetDictionaryType(const Type &key, const Type &val) {
@@ -1042,6 +1090,10 @@ namespace python {
         return python::TypeFactory::instance().createOrGetIteratorType(yieldType);
     }
 
+    Type Type::makeRowType(const std::vector<python::Type>& column_types, const std::vector<std::string>& column_names) {
+        return python::TypeFactory::instance().createOrGetRowType(column_types, column_names);
+    }
+
     Type makeDelayedParsingType(const python::Type& underlying) {
         return python::TypeFactory::instance().createOrGetDelayedParsingType(underlying);
     }
@@ -1771,6 +1823,9 @@ namespace python {
         keywords["bool"] = python::Type::BOOLEAN;
         keywords["boolean"] = python::Type::BOOLEAN;
 
+        // special case, empty row
+        keywords["Row[]"] = python::Type::EMPTYROW;
+
         for(const auto& kv : keywords) {
             min_keyword_length = std::min(min_keyword_length, kv.first.length());
             max_keyword_length = std::max(max_keyword_length, kv.first.length());
@@ -1862,7 +1917,7 @@ namespace python {
                 }
 
                 // if in struct compound mode -> push pairs
-                if(!compoundStack.empty() && compoundStack.top() == "Struct") {
+                if(!compoundStack.empty() && (compoundStack.top() == "Struct" || compoundStack.top() == "Row")) {
                     // edit last pair.
                     assert(!kvStack.empty());
                     assert(!kvStack.top().empty());
@@ -1934,6 +1989,12 @@ namespace python {
                 } else {
                     throw std::runtime_error("invalid pair found.");
                 }
+
+                // special case Row -> push new pair!
+                if(!compoundStack.empty() && compoundStack.top() == "Row") {
+                    kvStack.top().emplace_back();
+                }
+
                 // save onto last pair the string value!
                 assert(!kvStack.empty());
                 assert(!kvStack.top().empty());
@@ -1969,6 +2030,23 @@ namespace python {
                     auto underlying_type = topVec[0];
                     t = TypeFactory::instance().createOrGetConstantValuedType(underlying_type, json_constant_value);
                     json_constant_value = "";
+                } else if("Row" == compound_type) {
+                    auto kv_pairs = kvStack.top();
+                    kvStack.pop();
+
+                    // no key pairs? -> no string names given for row. Only integer indexing.
+                    if(kv_pairs.empty()) {
+                        t = TypeFactory::instance().createOrGetRowType(topVec);
+                    } else {
+                        assert(topVec.size() == kv_pairs.size());
+
+                        // retrieve names
+                        std::vector<std::string> names;
+                        for(unsigned i = 0l; i < topVec.size(); ++i) {
+                            names.push_back(kv_pairs[i].key);
+                        }
+                        t = TypeFactory::instance().createOrGetRowType(topVec, names);
+                    }
                 } else {
                     if(err_stream)
                         *err_stream << "Unknown compound type '" << compound_type << "' encountered, can't create compound type. Returning unknown.";
@@ -2054,6 +2132,13 @@ namespace python {
                 kvStack.push({}); // new pair entry!
                 numOpenSqBrackets++;
                 pos += strlen("Struct[");
+            } else if(s.substr(pos, strlen("Row[")).compare("Row[") == 0) {
+                // similar decode to "Struct"
+                expressionStack.push(std::vector<python::Type>());
+                compoundStack.push("Row");
+                kvStack.push({}); // new pair entry!
+                numOpenSqBrackets++;
+                pos += strlen("Row[");
             } else if(s[pos] == ',' || s[pos] == ' ' || s[pos] == '\t' || s[pos] == '\n') {
                 // skip ,
                 pos++;
@@ -2143,7 +2228,8 @@ namespace python {
                 case TypeFactory::AbstractType::DICTIONARY: {
                     return "Dict[" + keyType().encode() + "," + valueType().encode() + "]";
                 }
-                case TypeFactory::AbstractType::STRUCTURED_DICTIONARY: {
+                case TypeFactory::AbstractType::STRUCTURED_DICTIONARY:
+                case TypeFactory::AbstractType::ROW: {
                     return entry_desc;
                 }
                 case TypeFactory::AbstractType::FUNCTION: {
@@ -2159,8 +2245,8 @@ namespace python {
                      return s;
                 }
                 default: {
-                    //Logger::instance().defaultLogger().error("Unknown type " + desc() + " encountered, can't encode. Using unknown.");
-#ifdef NDEBUG
+#ifndef NDEBUG
+                    // Logger::instance().defaultLogger().error("Unknown type " + desc() + " encountered, can't encode. Using unknown.");
                     std::cerr<<"Unknown type " + desc() + " encountered, can't encode. Using unknown."<<std::endl;
 #endif
                     return Type::UNKNOWN.encode();

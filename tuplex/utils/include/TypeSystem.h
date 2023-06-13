@@ -136,6 +136,7 @@ namespace python {
         bool isTypeObjectType() const;
         bool isDictKeysType() const;
         bool isDictValuesType() const;
+        bool isRowType() const;
 
         inline bool isGeneric() const {
             if(_hash == python::Type::PYOBJECT._hash ||
@@ -258,6 +259,32 @@ namespace python {
 
         // helper functions
         std::vector<StructEntry> get_struct_pairs() const;
+
+        /*!
+         * returns column names of rowtype
+         * @return
+         */
+        std::vector<std::string> get_column_names() const;
+
+        /*!
+         * get a specific column type for an integer key (negative allowed
+         * @param index
+         * @return the type or INDEXERROR if invalid index for row type
+         */
+        python::Type get_column_type(int64_t index) const;
+
+        /*!
+         * similat to the integer version, but checks for keys
+         * @param key
+         * @return the type or INDEXERROR if invalid
+         */
+        python::Type get_column_type(const std::string& key) const;
+
+        /*!
+         * checks for row type whether there are column names or not
+         * @return
+         */
+        bool has_column_names() const;
 
         static Type makeTupleType(std::initializer_list<Type> L);
         static Type makeTupleType(std::vector<Type> v);
@@ -562,6 +589,7 @@ namespace python {
         bool isListType(const Type& t) const;
         bool isIteratorType(const Type& t) const;
         bool isConstantValued(const Type& t) const;
+        bool isRowType(const Type& t) const;
 
         std::vector<Type> parameters(const Type& t) const;
         Type returnType(const Type& t) const;

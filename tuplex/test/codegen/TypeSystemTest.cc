@@ -367,6 +367,17 @@ TEST(TypeSys, RowTypeCreation) {
             auto encoded_str = row_type.encode();
             auto decoded_type = python::Type::decode(encoded_str);
             EXPECT_EQ(row_type, decoded_type);
+
+            EXPECT_TRUE(row_type.isRowType());
+
+            EXPECT_FALSE(row_type.has_column_names());
+
+            EXPECT_EQ(row_type.get_column_names().size(), 0);
+
+            for(unsigned i = 0; i < subset.size(); ++i) {
+                EXPECT_EQ(row_type.get_column_type(i), subset[i]);
+                EXPECT_EQ(row_type.get_column_type(- subset.size() + (int)i), subset[i]);
+            }
         }
 
         // test 2: with names
@@ -375,6 +386,21 @@ TEST(TypeSys, RowTypeCreation) {
             auto encoded_str = row_type.encode();
             auto decoded_type = python::Type::decode(encoded_str);
             EXPECT_EQ(row_type, decoded_type);
+
+            EXPECT_TRUE(row_type.isRowType());
+
+            if(!subset.empty())
+                EXPECT_TRUE(row_type.has_column_names());
+
+            auto names = row_type.get_column_names();
+            ASSERT_EQ(names.size(), names_subset.size());
+
+            for(unsigned i = 0; i < subset.size(); ++i) {
+                EXPECT_EQ(names[i], names_subset[i]);
+                EXPECT_EQ(row_type.get_column_type(names_subset[i]), subset[i]);
+                EXPECT_EQ(row_type.get_column_type(i), subset[i]);
+                EXPECT_EQ(row_type.get_column_type(- subset.size() + (int)i), subset[i]);
+            }
         }
     }
 }

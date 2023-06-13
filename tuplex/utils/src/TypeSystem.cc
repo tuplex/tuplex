@@ -569,6 +569,10 @@ namespace python {
         return TypeFactory::instance().isStructuredDictionaryType(*this);
     }
 
+    bool Type::isRowType() const {
+        return TypeFactory::instance().isRowType(*this);
+    }
+
     bool Type::isListType() const {
         return TypeFactory::instance().isListType(*this);
     }
@@ -632,6 +636,16 @@ namespace python {
 
         auto type = _typeVec[it->second]._type;
         return type == AbstractType::STRUCTURED_DICTIONARY;
+    }
+
+    bool TypeFactory::isRowType(const python::Type &t) const {
+        std::lock_guard<std::mutex> lock(_typeMapMutex);
+        auto it = _typeMap.find(t._hash);
+        if(it == _typeMap.end())
+            return false;
+
+        auto type = _typeVec[it->second]._type;
+        return type == AbstractType::ROW;
     }
 
     bool TypeFactory::isDictKeysType(const Type& t) const {
@@ -707,6 +721,78 @@ namespace python {
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
         return factory._typeVec[it->second]._struct_pairs;
+    }
+
+
+    std::vector<std::string> Type::get_column_names() const {
+        assert(isRowType());
+        auto& factory = TypeFactory::instance();
+
+        const std::lock_guard<std::mutex> lock(factory._typeMapMutex);
+        auto it = factory._typeMap.find(_hash);
+        assert(it != factory._typeMap.end());
+        auto kv_pairs = factory._typeVec[it->second]._struct_pairs;
+        std::vector<std::string> names;
+        for(const auto& entry : kv_pairs)
+            names.push_back(entry.key);
+        return names;
+    }
+
+    python::Type Type::get_column_type(const std::string &key) const {
+        assert(isRowType());
+        auto& factory = TypeFactory::instance();
+        auto index_error_type = factory.getByName("IndexError");
+
+
+        const std::lock_guard<std::mutex> lock(factory._typeMapMutex);
+        auto it = factory._typeMap.find(_hash);
+        assert(it != factory._typeMap.end());
+        auto kv_pairs = factory._typeVec[it->second]._struct_pairs;
+
+        // search within names
+        if(kv_pairs.empty())
+            return index_error_type;
+
+        // case-sensitive match
+        for(const auto& entry : kv_pairs)
+            if(entry.key == key)
+                return entry.valueType;
+
+        return index_error_type;
+    }
+
+    python::Type Type::get_column_type(int64_t index) const {
+        assert(isRowType());
+        auto& factory = TypeFactory::instance();
+        auto index_error_type = factory.getByName("IndexError");
+
+
+        const std::lock_guard<std::mutex> lock(factory._typeMapMutex);
+        auto it = factory._typeMap.find(_hash);
+        assert(it != factory._typeMap.end());
+        auto params = factory._typeVec[it->second]._params;
+
+        // correct negative indices once
+        if(index < 0)
+            index += params.size();
+
+        // invalid index?
+        if(index < 0 || index >= params.size())
+            return index_error_type;
+
+        return params[index];
+    }
+
+    bool Type::has_column_names() const {
+        assert(isRowType());
+        auto& factory = TypeFactory::instance();
+        const std::lock_guard<std::mutex> lock(factory._typeMapMutex);
+        auto it = factory._typeMap.find(_hash);
+        assert(it != factory._typeMap.end());
+        auto kv_pairs = factory._typeVec[it->second]._struct_pairs;
+
+        // check if names exist or not
+        return !kv_pairs.empty();
     }
 
     Type Type::keyType() const {

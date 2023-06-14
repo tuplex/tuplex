@@ -1027,13 +1027,14 @@ namespace tuplex {
             return llvm::Type::getDoubleTy(ctx);
         }
 
-        /*!
-         * returns the underlying string of a global variable, created e.g. via env->strConst.
-         * May throw exception if value is not a constantexpr
-         * @param value
-         * @return string or empty string if extraction failed.
-         */
-        extern std::string globalVariableToString(llvm::Value* value);
+        // deprecated because of opaque pointer change in llvm15+.
+        // /*!
+        //  * returns the underlying string of a global variable, created e.g. via env->strConst.
+        //  * May throw exception if value is not a constantexpr
+        //  * @param value
+        //  * @return string or empty string if extraction failed.
+        //  */
+        // extern std::string globalVariableToString(llvm::Value* value);
 
         /*!
          * renames function args and returns them as hashmap for easy access. Order of names in vector corresponds to order of args

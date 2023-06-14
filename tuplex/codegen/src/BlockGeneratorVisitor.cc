@@ -4788,7 +4788,7 @@ namespace tuplex {
 
                 if (ft_new_type == python::Type::EMPTYTUPLE) {
                     auto alloc = builder.CreateAlloca(_env->getEmptyTupleType(), 0, nullptr);
-                    auto load = builder.CreateLoad(alloc);
+                    auto load = builder.CreateLoad(_env->getEmptyTupleType(), alloc);
 
                     // size of empty tuple is also 8 bytes (serialized size!)
                     return {load, _env->i64Const(sizeof(int64_t))};

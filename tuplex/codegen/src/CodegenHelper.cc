@@ -518,19 +518,20 @@ namespace tuplex {
             return inst_count.formattedStats(include_detailed_counts);
         }
 
-        std::string globalVariableToString(llvm::Value* value) {
-            using namespace llvm;
-            assert(value);
-
-            if(!value || !dyn_cast<ConstantExpr>(value))
-                throw std::runtime_error("value is not a constant expression");
-            auto *CE = dyn_cast<ConstantExpr>(value);
-            StringRef Str;
-            if(getConstantStringInfo(CE, Str)) {
-                return Str.str();
-            }
-            return "";
-        }
+        // deprecated, doesn't work anymore with llvm15+
+//        std::string globalVariableToString(llvm::Value* value) {
+//            using namespace llvm;
+//            assert(value);
+//
+//            if(!value || !dyn_cast<ConstantExpr>(value))
+//                throw std::runtime_error("value is not a constant expression");
+//            auto *CE = dyn_cast<ConstantExpr>(value);
+//            StringRef Str;
+//            if(getConstantStringInfo(CE, Str)) {
+//                return Str.str();
+//            }
+//            return "";
+//        }
 
 
         /// If generating a bc file on darwin, we have to emit a

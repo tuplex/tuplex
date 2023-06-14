@@ -883,8 +883,9 @@ namespace tuplex {
                 // empty tuple will result in constants
                 // i.e. set the value to a load of the empty tuple special type and the size to sizeof(int64_t)
                 assert(_env);
-                auto alloc = builder.CreateAlloca(_env->getEmptyTupleType(), 0, nullptr);
-                auto load = builder.CreateLoad(alloc);
+                auto llvm_empty_tuple_type = _env->getEmptyTupleType();
+                auto alloc = builder.CreateAlloca(llvm_empty_tuple_type, 0, nullptr);
+                auto load = builder.CreateLoad(llvm_empty_tuple_type, alloc);
                 set(builder, {iElement}, load, _env->i64Const(sizeof(int64_t)), _env->i1Const(false));
             } else if(elementType == python::Type::NULLVALUE) {
                 set(builder, {iElement}, nullptr, nullptr, _env->i1Const(true));
@@ -1057,9 +1058,6 @@ namespace tuplex {
                 }
                 if(val->getType() == llvm::Type::getDoubleTy(context))
                     assert(type == python::Type::F64);
-                if(val->getType() == _env->getBooleanType()) {
-                    assert(type == python::Type::BOOLEAN);
-                }
 
                 if(val->getType()->isStructTy()) {
                     if (val->getType() == _env->getEmptyTupleType())

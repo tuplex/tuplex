@@ -53,8 +53,20 @@
 
 #include "InstructionCountPass.h"
 
+// hashing for vector<llvm::Type*>
+namespace std {
+    template<> struct hash<std::vector<llvm::Type*>> {
+        size_t operator()(std::vector<llvm::Type*> const& v) const {
+            size_t seed = 0;
+            for(const auto& el: v)
+                hash_combine(seed, el);
+            return seed;
+        }
+    };
+}
 
-// helper to enable llvm6 and llvm9 comaptibility // --> force onto llvm9+ for now.
+
+// helper to enable llvm6 and llvm9 compatibility // --> force onto llvm9+ for now.
 namespace llvm {
     inline CallInst *createCallHelper(Function *Callee, ArrayRef<Value*> Ops,
                                       const tuplex::codegen::IRBuilder& builder,
@@ -176,13 +188,17 @@ namespace tuplex {
         private:
             llvm::LLVMContext _context;
             std::unique_ptr<llvm::Module> _module;
-            std::map<python::Type, llvm::Type *> _generatedTupleTypes;
-            std::map<python::Type, llvm::Type *> _generatedListTypes;
+            std::unordered_map<python::Type, llvm::Type *> _generatedTupleTypes;
+            std::unordered_map<python::Type, llvm::Type *> _generatedListTypes;
             // use llvm struct member types for map key since iterators with the same yieldType may have different llvm structs
-            std::map<std::vector<llvm::Type *>, llvm::Type *> _generatedIteratorTypes;
+            std::unordered_map<std::vector<llvm::Type *>, llvm::Type *> _generatedIteratorTypes;
             // string: function name; BlockAddress*: BlockAddress* to be filled in an iterator struct
-            std::map<std::string, llvm::BlockAddress *> _generatedIteratorUpdateIndexFunctions;
-            std::map<llvm::Type *, python::Type> _typeMapping;
+            std::unordered_map<std::string, llvm::BlockAddress *> _generatedIteratorUpdateIndexFunctions;
+            std::unordered_map<llvm::Type *, python::Type> _typeMapping;
+
+            // track string constants (globals), avoid duplicates and allow to retrieve the string value from a ptr.
+            std::unordered_map<std::string, llvm::Value*> _stringMap;
+
             llvm::Type *createTupleStructType(const python::Type &type, const std::string &twine = "tuple");
 
             void init(const std::string &moduleName = "tuplex");
@@ -565,8 +581,30 @@ namespace tuplex {
             inline llvm::Value* strConst(const codegen::IRBuilder& builder, const std::string& s) {
                 assert(builder.GetInsertBlock()->getParent()); // make sure block has a parent, else pretty bad bugs could happen...
 
-                auto sconst = builder.CreateGlobalStringPtr(s);
-                return builder.CreatePointerCast(sconst, llvm::Type::getInt8PtrTy(_context, 0));
+                // because of opaque pointer change in llvm15+, track constants using internal map
+                auto it = _stringMap.find(s);
+                if(it == _stringMap.end()) {
+                    auto sconst = builder.CreateGlobalStringPtr(s);
+                    auto ptr = builder.CreatePointerCast(sconst, llvm::Type::getInt8PtrTy(_context, 0));
+                    _stringMap[s] = ptr;
+                    return ptr;
+                } else {
+                    return it->second;
+                }
+            }
+
+            inline std::string globalVariableToString(llvm::Value* ptr) const {
+                assert(ptr && ptr->getType()->isPointerTy());
+
+                // find in map, throw exception if not found
+                auto it = std::find_if(_stringMap.begin(), _stringMap.end(), [ptr](const std::pair<std::string, llvm::Value*>& p) {
+                    return p.second == ptr;
+                });
+
+                if(it != _stringMap.end())
+                    return it->first;
+
+                throw std::runtime_error("could not find llvm ptr in string map");
             }
 
             /*!

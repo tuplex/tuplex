@@ -1741,7 +1741,7 @@ namespace tuplex {
                 llvm::Value* compiled_pattern;
                 bool global_pattern = llvm::isa<llvm::ConstantExpr>(args[0].val) && _sharedObjectPropagation;
                 if(global_pattern) {
-                    auto pattern_str = globalVariableToString(args[0].val);
+                    auto pattern_str = _env.globalVariableToString(args[0].val);
                     llvm::Value* gVar = _env.addGlobalRegexPattern("re_search", pattern_str);
                     compiled_pattern = builder.CreateLoad(gVar);
                 } else {
@@ -1844,7 +1844,7 @@ namespace tuplex {
                 llvm::Value* compiled_pattern;
                 bool global_pattern = llvm::isa<llvm::ConstantExpr>(args[0].val) && _sharedObjectPropagation;
                 if(global_pattern) {
-                    auto pattern_str = globalVariableToString(args[0].val);
+                    auto pattern_str = _env.globalVariableToString(args[0].val);
                     llvm::Value* gVar = _env.addGlobalRegexPattern("re_sub", pattern_str);
                     compiled_pattern = builder.CreateLoad(gVar);
                 } else {

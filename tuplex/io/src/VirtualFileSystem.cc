@@ -535,7 +535,7 @@ COPY_FAILURE:
         return rc;
     }
 
-    void stringToFile(const URI& uri, const std::string content) {
+    void stringToFile(const URI& uri, const std::string& content) {
         auto vfs = VirtualFileSystem::fromURI(uri);
 
         auto file = vfs.open_file(uri, VirtualFileMode::VFS_OVERWRITE);
@@ -545,6 +545,19 @@ COPY_FAILURE:
         }
 
         file->write(content.c_str(), content.length());
+        file->close();
+    }
+
+    void bufferToFile(const URI& uri, const void* buffer, size_t buffer_size) {
+        auto vfs = VirtualFileSystem::fromURI(uri);
+
+        auto file = vfs.open_file(uri, VirtualFileMode::VFS_OVERWRITE);
+        if(!file) {
+            Logger::instance().defaultLogger().error("could not open file " + uri.toString());
+            return;
+        }
+
+        file->write(buffer, buffer_size);
         file->close();
     }
 

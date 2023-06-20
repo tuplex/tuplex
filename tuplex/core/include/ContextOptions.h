@@ -101,7 +101,7 @@ namespace tuplex {
         size_t EXPERIMENTAL_MINIMUM_SIZE_TO_SPECIALIZE() const { return memStringToSize(_store.at("tuplex.experimental.minimumSizeToSpecialize")); }
         bool USE_EXPERIMENTAL_OPPORTUNE_COMPILATION() const { return stringToBool(_store.at("tuplex.experimental.opportuneCompilation")); }
         size_t USE_EXPERIMENTAL_S3_PRECACHE_SIZE() const { return memStringToSize(_store.at("tuplex.experimental.s3PreCacheSize")); }
-
+        bool EXPERIMENTAL_INTERCHANGE_CODE_VIA_OBJECT_FILES() const { return stringToBool(_store.at("tuplex.experimental.interchangeWithObjectFiles"));}
         bool EXPERIMENTAL_FORCE_BAD_PARSE_EXCEPT_FORMAT() const { return stringToBool(_store.at("tuplex.experimental.forceBadParseExceptFormat")); }
 
         std::string AWS_LAMBDA_INVOCATION_STRATEGY() const { return _store.at("tuplex.aws.lambdaInvocationStrategy"); }

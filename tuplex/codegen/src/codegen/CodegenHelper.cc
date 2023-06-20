@@ -38,6 +38,7 @@
 #endif
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/IR/Constant.h>
+#include <llvm/Support/CodeGen.h>
 
 namespace tuplex {
     namespace codegen {
@@ -791,6 +792,52 @@ namespace tuplex {
                 }
                 // std::cout<<"Annotated "<<pluralize(num_blocks, "basic block")<<", "<<pluralize(num_instructions, "instruction")<<std::endl;
             }
+        }
+
+
+        std::vector<uint8_t> compileToObjectFile(llvm::Module& mod,
+                                                 const std::string& target_triple,
+                                                 const std::string& cpu) {
+            std::string error;
+            auto target = llvm::TargetRegistry::lookupTarget(target_triple, error);
+
+            // lookup target and throw exception else
+            if (!target) {
+                throw std::runtime_error("could not find target " + target_triple + ", details: " + error);
+            }
+
+            std::string CPU = "generic";
+            std::string Features = "";
+
+            if(Features.empty()) {
+                // lookup features?
+            }
+
+            llvm::TargetOptions opt;
+            auto RM = llvm::Optional<llvm::Reloc::Model>();
+
+            // use position independent code
+            RM = llvm::Reloc::PIC_;
+            auto TargetMachine = target->createTargetMachine(target_triple, CPU, Features, opt, RM);
+
+            if(!TargetMachine)
+                throw std::runtime_error("failed to create target machine for CPU=" + CPU + ", features="=Features);
+
+            // check: https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl08.html
+            mod.setDataLayout(TargetMachine->createDataLayout());
+            mod.setTargetTriple(target_triple);
+
+            llvm::legacy::PassManager pass;
+            auto FileType = llvm::LLVMTargetMachine::CGFT_ObjectFile;
+            llvm::SmallVector<char, 0> buffer;
+            llvm::raw_svector_ostream dest(buffer);
+            if (TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
+                throw std::runtime_error("TargetMachine can't emit a file of this type");
+            }
+
+            pass.run(mod);
+
+            return std::vector<uint8_t>(buffer.begin(), buffer.end());
         }
     }
 }

@@ -38,6 +38,7 @@
 #include <Base.h>
 
 #include <nlohmann/json.hpp>
+#include <cstddef>
 
 namespace tuplex {
     namespace codegen {
@@ -736,6 +737,15 @@ namespace tuplex {
                 return true;
             return !blockContainsRet(bb) && !blockContainsBr(bb);
         }
+
+        /*!
+         * create an object file from an existing module
+         * @param mod
+         * @return buffer of bytes holding result (writing to disk will create a .o file).
+         */
+        extern std::vector<uint8_t> compileToObjectFile(llvm::Module& mod,
+                                                        const std::string& target_triple=llvm::sys::getDefaultTargetTriple(),
+                                                        const std::string& cpu="generic");
     }
 }
 

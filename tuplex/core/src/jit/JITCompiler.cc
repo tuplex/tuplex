@@ -16,6 +16,8 @@
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/SourceMgr.h>
 
+#include <llvm/Object/ObjectFile.h>
+
 #include <llvm/Support/TargetSelect.h>
 #include <thread>
 #include <Timer.h>
@@ -411,6 +413,53 @@ namespace tuplex {
         //     throw std::runtime_error("compilation failed, " + errToString(err));
 
         // // another reference: https://doxygen.postgresql.org/llvmjit_8c_source.html
+
+        return true;
+    }
+
+    bool JITCompiler::compileObjectBuffer(const std::string &object_buffer, std::string dylib_name) {
+
+        using namespace llvm;
+        using namespace llvm::orc;
+
+        // create memory buffer
+        auto mem_buffer = llvm::MemoryBuffer::getMemBuffer(object_buffer);
+
+        if(!mem_buffer)
+            throw std::runtime_error("could not create memory buffer");
+
+        auto obj_file = llvm::object::ObjectFile::createObjectFile(*mem_buffer,
+                                                                   llvm::file_magic::unknown);
+        if(!obj_file)
+            throw std::runtime_error("could not create object file from memory contents");
+
+        // create for this module own jitlib
+        auto& ES = _lljit->getExecutionSession();
+        if(dylib_name.empty())
+            dylib_name = "object";
+
+        auto& jitlib = ES.createJITDylib(dylib_name);
+        const auto& DL = _lljit->getDataLayout();
+        MangleAndInterner Mangle(ES, DL);
+
+        // link with host process symbols....
+        auto ProcessSymbolsGenerator =
+                DynamicLibrarySearchGenerator::GetForCurrentProcess(
+                        DL.getGlobalPrefix());
+
+        // check whether successful
+        if(!ProcessSymbolsGenerator)
+            throw std::runtime_error("failed to create linker to host process " + errToString(ProcessSymbolsGenerator.takeError()));
+        jitlib.setGenerator(std::move(*ProcessSymbolsGenerator));
+
+        // define symbols from custom symbols for this jitlib
+        for(auto keyval: _customSymbols)
+            auto rc = jitlib.define(absoluteSymbols({{Mangle(keyval.first), keyval.second}}));
+
+        _dylibs.push_back(&jitlib); // save reference for search
+        auto err = _lljit->addObjectFile(jitlib, std::move(mem_buffer)); //_lljit->addIRModule(jitlib, std::move(tsm.get()));
+        if(err)
+            throw std::runtime_error("compilation failed, " + errToString(err));
 
         return true;
     }

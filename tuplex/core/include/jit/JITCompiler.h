@@ -300,6 +300,13 @@ namespace tuplex {
         bool compile(std::unique_ptr<llvm::Module> mod);
 
         /*!
+         * compile object file contents
+         * @param object_buffer
+         * @return whether compile succeeded or not
+         */
+        bool compileObjectBuffer(const std::string& object_buffer, std::string dylib_name="");
+
+        /*!
          * registers symbol with Name as new addressable for linking
          * @param Name for which to link
          * @param addr of Symbol

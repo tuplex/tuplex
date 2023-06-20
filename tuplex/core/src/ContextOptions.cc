@@ -261,6 +261,7 @@ namespace tuplex {
                      {"tuplex.network.verifySSL", "false"},  // if default is going to be changed to true, ship cacert.pem from Amazon to avoid issues.
                      {"tuplex.redirectToPythonLogging", "false"},
                      {"tuplex.experimental.hyperspecialization", "false"},
+                     {"tuplex.experimental.interchangeWithObjectFiles", "false"},
                      {"tuplex.experimental.specializationUnitSize", "0"},
                      {"tuplex.experimental.minimumSizeToSpecialize", "128MB"},
                      {"tuplex.experimental.opportuneCompilation", "true"},
@@ -334,6 +335,7 @@ namespace tuplex {
                      {"tuplex.network.verifySSL", "false"},
                      {"tuplex.redirectToPythonLogging", "false"},
                      {"tuplex.experimental.hyperspecialization", "false"},
+                     {"tuplex.experimental.interchangeWithObjectFiles", "false"},
                      {"tuplex.experimental.specializationUnitSize", "0"},
                      {"tuplex.experimental.minimumSizeToSpecialize", "128MB"},
                      {"tuplex.experimental.opportuneCompilation", "true"},

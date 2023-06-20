@@ -17,6 +17,8 @@
 #include <ContextOptions.h>
 #include <jit/RuntimeInterface.h>
 
+#include <VirtualFileSystem.h>
+
 // bitmap test
 // simple tests for compiled stuff
 
@@ -555,6 +557,36 @@ TEST(LLVMENV, combineAggregate) {
     EXPECT_EQ(s, 8);
 }
 
+namespace tuplex {
+    namespace codegen {
+        llvm::Function *createTestAddFunction(LLVMEnvironment *env, const std::string &name, int64_t i_const,
+                                              decltype(malloc) allocator) {
+            using namespace llvm;
+
+            auto& logger = Logger::instance().logger("codegen");
+
+            assert(env);
+            assert(allocator == malloc || allocator == runtime::rtmalloc); // only two supported alloc functions. Could support any in future...
+
+            // create new function
+            // the pointers point to the raw, serialized data representing a value of type aggType
+            auto func_type = FunctionType::get(env->i64Type(), {env->i64Type()}, false);
+            auto func = Function::Create(func_type, Function::ExternalLinkage, name, env->getModule().get());
+
+            // set arg names
+            auto args = mapLLVMFunctionArgs(func, {"x"});
+
+            auto body = BasicBlock::Create(env->getContext(), "body", func);
+            IRBuilder<> builder(body);
+
+            auto ret = builder.CreateAdd(args["x"], env->i64Const(i_const));
+
+            builder.CreateRet(ret);
+            return func;
+        }
+    }
+}
+
 TEST(LLVMENV, combineAggregateVariable) {
     using namespace llvm;
     using namespace std;
@@ -600,4 +632,50 @@ TEST(LLVMENV, combineAggregateVariable) {
 
     Row resC = Row::fromMemory(rowA.getSchema(), aggA, aggA_size);
     EXPECT_EQ(resC.getString(0), "Hello world!");
+}
+
+TEST(LLVMENV, ObjectFile) {
+    // compile simple function to object file, load and execute. Then reload and check
+    using namespace llvm;
+    using namespace std;
+    using namespace tuplex;
+    using namespace tuplex::codegen;
+
+    auto jit = make_shared<JITCompiler>();
+
+    // init runtime memory
+    runtime::init(ContextOptions::defaults().RUNTIME_LIBRARY().toPath());
+
+    // test for a couple values to check both correctness and that reload works
+    vector<int64_t> test_values({1, 42, 56, 99, -10});
+    for(const auto& test_val : test_values) {
+        auto env = make_shared<LLVMEnvironment>();
+
+        // build basic add function (for testing)
+        auto func = createTestAddFunction(env.get(), "add", test_val, runtime::rtmalloc);
+
+        // emit object file (to string)
+        auto obj_buf = compileToObjectFile(*env->getModule().get());
+
+        ASSERT_FALSE(obj_buf.empty());
+
+        // write to file
+        auto file_path = URI("tests/llvmenv/objectfile/test.o");
+        bufferToFile(file_path, &obj_buf[0], obj_buf.size());
+
+        // compile buffer
+        auto object_buf = fileToString(file_path);
+        bool rc = jit->compileObjectBuffer(object_buf);
+
+        EXPECT_TRUE(rc);
+
+        // get function (add) and call it
+        auto fun = reinterpret_cast<int64_t(*)(int64_t)>(jit->getAddrOfSymbol("add"));
+
+        ASSERT_TRUE(fun);
+
+        int64_t x = 1;
+        auto i_rc = fun(x);
+        EXPECT_EQ(i_rc, x + test_val);
+    }
 }

@@ -231,7 +231,15 @@ namespace tuplex {
      * @param uri where to save
      * @param content content to write
      */
-    extern void stringToFile(const URI& uri, const std::string content);
+    extern void stringToFile(const URI& uri, const std::string& content);
+
+    /*!
+     * quick helper to save contents of a buffer to file
+     * @param uri where to save
+     * @param buffer pointer to memory
+     * @param buffer_size number of bytes to write
+     */
+    extern void bufferToFile(const URI& uri, const void* buffer, size_t buffer_size);
 
     /*!
      * quick helper to load file contents

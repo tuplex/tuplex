@@ -1803,11 +1803,11 @@ parse_error:
         // quickly create null hashmap & bool hashmap
         std::unordered_map<std::string, int8_t> value_map;
         // use 0/1 for bool, -1 for null-value.
-        for(auto s : booleanTrueStrings())
+        for(const auto& s : booleanTrueStrings())
             value_map[s] = 1;
-        for(auto s : booleanFalseStrings())
+        for(const auto& s : booleanFalseStrings())
             value_map[s] = 0;
-        for(auto s : null_values)
+        for(const auto& s : null_values)
             value_map[s] = -1;
 
         v.reserve(100);

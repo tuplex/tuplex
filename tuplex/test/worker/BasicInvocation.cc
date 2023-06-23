@@ -1032,6 +1032,49 @@ TEST(BasicInvocation, TestFIle) {
     fclose(pFile);
 }
 
+TEST(BasicInvocation, ShippingObjectFile) {
+    using namespace tuplex;
+    using namespace std;
+
+    // local worker mode for easier debugging
+    ContextOptions co = ContextOptions::defaults();
+    co.set("tuplex.backend", "worker");
+
+    // activate shipping code as object file
+    co.set("tuplex.experimental.interchangeWithObjectFiles", "true"); // maybe change to interchange format -> ir, object?
+
+
+    string input_pattern = "test.csv";
+    string output_path = "output.csv";
+    // create test file using random data
+    size_t N = 1000000;
+    stringstream ss;
+    ss<<"A,B\n";
+    for(unsigned i = 0; i < N; ++i) {
+        ss<<"42,"<<rand()% 100<<"\n";
+    }
+    stringToFile(input_pattern, ss.str());
+
+    {
+        python::initInterpreter();
+        python::unlockGIL();
+        Context ctx(co);
+
+        // invoke worker backend
+        ctx.csv(input_pattern, {}, option<bool>::none,
+                option<char>::none, '"', {""}, {}, {})
+                .filter(UDF("lambda x: x['A'] == 0")) // <-- this is an always false condition based on constant sample
+                .tocsv(output_path);
+
+        python::lockGIL();
+        python::closeInterpreter();
+    }
+
+    // read output
+    auto res = fileToString(output_path);
+    std::cout<<res<<std::endl;
+}
+
 TEST(BasicInvocation, ConstantFilterFold) {
     using namespace tuplex;
     using namespace std;

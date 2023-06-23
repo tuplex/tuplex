@@ -229,6 +229,10 @@ TEST(CSVUtils, SampleParse) {
     buffer << t.rdbuf();
     std::string sample = buffer.str();
 
-    auto rows = csv_parseRows(sample.c_str(), sample.size(), 110, 0, ',', '"', std::vector<std::string>{""}, 20000);
+    ASSERT_FALSE(sample.empty());
+
+    auto rows = csv_parseRows(sample.c_str(), sample.size(),
+                              110, 0, ',', '"',
+                              std::vector<std::string>{""}, 20000);
     ASSERT_TRUE(rows.size() > 0);
 }

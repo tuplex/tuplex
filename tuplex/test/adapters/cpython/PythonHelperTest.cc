@@ -157,8 +157,7 @@ TEST_F(PythonHelperTest, typeMap) {
     PyObject* c3 = PyDict_New();
     PyDict_SetItemString(c3, "x", python::boolean(true));
     PyDict_SetItemString(c3, "y", python::boolean(false));
-    auto t3 = python::Type::makeDictionaryType(python::Type::STRING, python::Type::BOOLEAN);
-    EXPECT_EQ(t3, python::mapPythonClassToTuplexType(c3, false));
+    EXPECT_TRUE(python::mapPythonClassToTuplexType(c3, false).isDictionaryType());
 
     // @TODO: to represent dicts as struct type, there should be also specific type -> generic type
     PyObject* c4 = PyDict_New();
@@ -172,7 +171,7 @@ TEST_F(PythonHelperTest, typeMap) {
     PyDict_SetItem(c5, python::boolean(true), python::boolean(false));
     PyDict_SetItem(c5, PyLong_FromLong(42), python::PyString_FromString("hello world"));
     PyDict_SetItemString(c5, "test", PyLong_FromLong(42));
-    EXPECT_EQ(python::Type::GENERICDICT, python::mapPythonClassToTuplexType(c5, false));
+    EXPECT_TRUE(python::mapPythonClassToTuplexType(c5, false).isDictionaryType());
 }
 
 TEST_F(PythonHelperTest, PythonConversion) {

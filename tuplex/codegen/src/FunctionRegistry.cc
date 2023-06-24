@@ -110,6 +110,9 @@ namespace tuplex {
                 auto obj_size = builder.CreateCall(
                         cJSONGetArraySize_prototype(_env.getContext(), _env.getModule().get()),
                         {args.front().val});
+
+                _env.printValue(builder, obj_size, "dict len=");
+
                 return SerializableValue(obj_size, i64Size);
             } else if(argType.isListType() || argType == python::Type::GENERICLIST) {
                 if(argType == python::Type::EMPTYLIST) {

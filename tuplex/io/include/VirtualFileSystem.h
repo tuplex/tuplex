@@ -72,6 +72,11 @@ namespace tuplex {
                                                        bool requesterPay=false);
 
         /*!
+         * removes S3 file system
+         */
+        static void removeS3FileSystem();
+
+        /*!
          * returns key/value store with transfer statistics for S3 system. Empty if no S3 system was added.
          * @return
          */

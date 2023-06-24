@@ -134,7 +134,7 @@ TEST_F(LoopTest, CodegenTestListDict) {
                            }).map(UDF(func)).collectAsVector();
 
     ASSERT_EQ(v.size(), 1);
-    EXPECT_EQ(v[0], Row(27));
+    EXPECT_EQ(v[0].toPythonString(), Row(27).toPythonString());
 }
 
 TEST_F(LoopTest, CodegenTestRange) {

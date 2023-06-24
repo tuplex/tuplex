@@ -1340,24 +1340,40 @@ namespace tuplex {
             }
 
             // call hash callback! see i64_hash_row_f/str_hash_row_f in CodeDefs.h for signature
+            auto llvm_cbool_type = ctypeToLLVM<bool>(ctx);
             if(hashtableWidth == 8) {
                 FunctionType *hashCallback_type = FunctionType::get(Type::getVoidTy(ctx),
                                                                     {ctypeToLLVM<void *>(ctx),
-                                                                     ctypeToLLVM<int64_t>(ctx), ctypeToLLVM<bool>(ctx),
-                                                                     ctypeToLLVM<bool>(ctx), ctypeToLLVM<uint8_t *>(ctx),
-                                                                     ctypeToLLVM<int64_t>(ctx)}, false);
+                                                                     ctypeToLLVM<int64_t>(ctx),
+                                                                     llvm_cbool_type,
+                                                                     llvm_cbool_type,
+                                                                     ctypeToLLVM<uint8_t *>(ctx),
+                                                                     ctypeToLLVM<int64_t>(ctx)},
+                                                                     false);
                 auto callback_func = env().getModule()->getOrInsertFunction(callbackName, hashCallback_type);
                 builder.CreateCall(callback_func,
-                                   {_argUserData, key, keyNull, _env->boolConst(bucketize), bucket, bucketSize});
+                                   {_argUserData,
+                                    key,
+                                    builder.CreateZExtOrTrunc(keyNull, llvm_cbool_type),
+                                    builder.CreateZExtOrTrunc(_env->boolConst(bucketize), llvm_cbool_type),
+                                    bucket,
+                                    bucketSize});
             } else {
                 FunctionType *hashCallback_type = FunctionType::get(Type::getVoidTy(ctx),
                                                                     {ctypeToLLVM<void *>(ctx),
-                                                                     ctypeToLLVM<uint8_t *>(ctx), ctypeToLLVM<int64_t>(ctx),
-                                                                     ctypeToLLVM<bool>(ctx), ctypeToLLVM<uint8_t *>(ctx),
+                                                                     ctypeToLLVM<uint8_t *>(ctx),
+                                                                     ctypeToLLVM<int64_t>(ctx),
+                                                                     llvm_cbool_type,
+                                                                     ctypeToLLVM<uint8_t *>(ctx),
                                                                      ctypeToLLVM<int64_t>(ctx)}, false);
                 auto callback_func = env().getModule()->getOrInsertFunction(callbackName, hashCallback_type);
                 builder.CreateCall(callback_func,
-                                   {_argUserData, key, keySize, _env->boolConst(bucketize), bucket, bucketSize});
+                                   {_argUserData,
+                                    key,
+                                    keySize,
+                                    builder.CreateZExtOrTrunc(_env->boolConst(bucketize), llvm_cbool_type),
+                                    bucket,
+                                    bucketSize});
                 // NEW: hashmap handles key dup
                 // call free on the key
                 _env->cfree(builder, key); // should be NULL safe.
@@ -1627,7 +1643,7 @@ namespace tuplex {
                     builder.SetInsertPoint(bbNone);
                     if(!null_value.empty()) {
                         builder.CreateMemCpy(buf_ptr, 0, nullConst, 0, env.i64Const(null_value.length()));
-                        nullBufVal = builder.CreateGEP(buf_ptr, env.i32Const(null_value.length()));
+                        nullBufVal = builder.MovePtrByBytes(buf_ptr, null_value.length());
                     } else nullBufVal = buf_ptr;
 
                     builder.CreateBr(bbNext);
@@ -1644,11 +1660,11 @@ namespace tuplex {
                     builder.CreateCondBr(boolCond, bbTrue, bbFalse);
                     builder.SetInsertPoint(bbTrue);
                     builder.CreateMemCpy(buf_ptr, 0, trueConst, 0, env.i64Const(trueValue.length()));
-                    auto true_buf_ptr = builder.CreateGEP(buf_ptr, env.i32Const(trueValue.length()));
+                    auto true_buf_ptr = builder.MovePtrByBytes(buf_ptr, trueValue.length());
                     builder.CreateBr(bbDone);
                     builder.SetInsertPoint(bbFalse);
                     builder.CreateMemCpy(buf_ptr, 0, falseConst, 0, env.i64Const(falseValue.length()));
-                    auto false_buf_ptr = builder.CreateGEP(buf_ptr, env.i32Const(falseValue.length()));
+                    auto false_buf_ptr = builder.MovePtrByBytes(buf_ptr, falseValue.length());
                     builder.CreateBr(bbDone);
 
                     builder.SetInsertPoint(bbDone);
@@ -1661,13 +1677,13 @@ namespace tuplex {
                     auto ft = i64toa_prototype(ctx, env.getModule().get());
                     // NOTE: must be <= 20
                     auto bytes_written = builder.CreateCall(ft, {val, buf_ptr});
-                    buf_ptr = builder.CreateGEP(buf_ptr, bytes_written);
+                    buf_ptr = builder.MovePtrByBytes(buf_ptr, bytes_written);
                 } else if(t.withoutOptions() == python::Type::F64) {
                     // call ryu fast double to str function with fixed precision
                     auto ft = d2fixed_prototype(ctx, env.getModule().get());
                     // NOTE: must be <= 310 + max_float_precision
                     auto bytes_written = builder.CreateCall(ft, {val, env.i32Const(max_float_precision), buf_ptr});
-                    buf_ptr = builder.CreateGEP(buf_ptr, bytes_written);
+                    buf_ptr = builder.MovePtrByBytes(buf_ptr, bytes_written);
                 } else if(t.withoutOptions() == python::Type::STRING) {
                     // Note by directly copying over without the additional rtmalloc, higher speed could be achieved as well...
                     // use SSE42 instructions to quickly check if quoting is necessary
@@ -1677,11 +1693,11 @@ namespace tuplex {
                     size = builder.CreateLoad(quotedSize);
                     auto length = builder.CreateSub(size, env.i64Const(1));
                     builder.CreateMemCpy(buf_ptr, 0, val, 0, length);
-                    buf_ptr = builder.CreateGEP(buf_ptr, length);
+                    buf_ptr = builder.MovePtrByBytes(buf_ptr, length);
                 } else if(t.withoutOptions() == python::Type::NULLVALUE) {
                     if(!null_value.empty()) {
                         builder.CreateMemCpy(buf_ptr, 0, nullConst, 0, env.i64Const(null_value.length()));
-                        buf_ptr = builder.CreateGEP(buf_ptr, env.i32Const(null_value.length()));
+                        buf_ptr = builder.MovePtrByBytes(buf_ptr, null_value.length());
                     }
                 }
 
@@ -1700,14 +1716,14 @@ namespace tuplex {
                 // store delimiter if not last column
                 if(i != num_columns - 1) {
                     builder.CreateStore(env.i8Const(delimiter), buf_ptr);
-                    buf_ptr = builder.CreateGEP(buf_ptr, env.i32Const(1)); // move by 1 byte
+                    buf_ptr = builder.MovePtrByBytes(buf_ptr, 1); // move by 1 byte
                 }
             }
 
             // newline delimited?
             if(newLineDelimited) {
                 builder.CreateStore(env.i8Const('\n'), buf_ptr);
-                buf_ptr = builder.CreateGEP(buf_ptr, env.i32Const(1)); // move by 1 byte
+                buf_ptr = builder.MovePtrByBytes(buf_ptr, 1); // move by 1 byte
             }
 
             // compute buf_length via ptr diff

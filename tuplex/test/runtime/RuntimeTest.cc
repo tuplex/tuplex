@@ -396,7 +396,7 @@ std::string gen_random_string(int length) {
     std::string s(length, ' ');
     // 33 - 126 incl.
     std::default_random_engine gen;
-    std::uniform_int_distribution<char> u_dist(33,126);
+    std::uniform_int_distribution<int> u_dist(33,126);
     for(int i = 0; i < length; ++i)
         s[i] = u_dist(gen);
     s[length - 1] = 0;

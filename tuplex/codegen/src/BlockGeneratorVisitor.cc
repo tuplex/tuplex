@@ -3718,26 +3718,26 @@ namespace tuplex {
                 return {val, nullptr};
             } else if (subType == python::Type::STRING) {
                 // STRING: 32 bytes offset
-                auto valaddr = builder.CreateGEP(cjson_val, _env->i64Const(32));
+                auto valaddr = builder.MovePtrByBytes(cjson_val, _env->i64Const(32));
                 auto valptr = builder.CreatePointerCast(valaddr, llvm::Type::getInt64PtrTy(_env->getContext()));
-                auto valload = builder.CreateLoad(valptr);
+                auto valload = builder.CreateLoad(builder.getInt64Ty(), valptr);
                 auto val = builder.CreateCast(Instruction::CastOps::IntToPtr, valload, _env->i8ptrType());
                 auto len = builder.CreateCall(strlen_prototype(_env->getContext(), _env->getModule().get()), {val});
                 return {val, builder.CreateAdd(len, _env->i64Const(1))};
             } else if (subType == python::Type::I64) {
                 // Integer: 40 bytes offset
-                auto valaddr = builder.CreateGEP(cjson_val, _env->i64Const(40));
+                auto valaddr = builder.MovePtrByBytes(cjson_val, _env->i64Const(40));
                 auto valptr = builder.CreatePointerCast(valaddr, llvm::Type::getInt64PtrTy(_env->getContext()));
                 return {builder.CreateLoad(llvm::Type::getInt64Ty(_env->getContext()), valptr),
                         _env->i64Const(sizeof(int64_t))};
             } else if (subType == python::Type::F64) {
                 // Double: 48 bytes offset
-                auto valaddr = builder.CreateGEP(cjson_val, _env->i64Const(48));
+                auto valaddr = builder.MovePtrByBytes(cjson_val, _env->i64Const(48));
                 auto valptr = builder.CreatePointerCast(valaddr, llvm::Type::getDoublePtrTy(_env->getContext()));
                 return {builder.CreateLoad(llvm::Type::getDoubleTy(_env->getContext()), valptr),
                         _env->i64Const(sizeof(double))};
             } else {
-                // throw error for non primitive value type
+                // throw error for non-primitive value type
                 addInstruction(logErrorV("Unsupported dictionary value type: " + subType.desc()));
                 return {};
             }
@@ -5219,9 +5219,13 @@ namespace tuplex {
             auto builder = _lfb->getIRBuilder();
             auto num_stack_before = _blockStack.size();
             auto exprType = forStmt->expression->getInferredType();
+            auto llvm_expr_type = _env->pythonToLLVMType(exprType);
             auto targetType = forStmt->target->getInferredType();
             auto targetASTType = forStmt->target->type();
             std::vector<std::pair<NIdentifier*, python::Type>> loopVal;
+
+            assert(llvm_expr_type);
+
             if(targetASTType == ASTNodeType::Identifier) {
                 auto id = static_cast<NIdentifier*>(forStmt->target);
                 loopVal.emplace_back(id, id->getInferredType());
@@ -5270,6 +5274,11 @@ namespace tuplex {
                 } else {
                     end = builder.CreateExtractValue(exprAlloc.val, {1});
                 }
+
+                _env->printValue(builder, start, "loop over list, start=");
+                _env->printValue(builder, step, "loop over list, step=");
+                _env->printValue(builder, end, "loop over list, stop=");
+
             } else if(exprType == python::Type::STRING) {
                 start = _env->i64Const(0);
                 step = _env->i64Const(1);
@@ -5377,7 +5386,10 @@ namespace tuplex {
                 }
             } else {
                 // expression is list, string or range. Check if curr exceeds end.
-                curr = builder.CreateLoad(currPtr);
+                curr = builder.CreateLoad(builder.getInt64Ty(), currPtr);
+
+                _env->printValue(builder, curr, "loop curr=");
+
                 if(exprType == python::Type::RANGE) {
                     // step can be negative in range. Check if curr * stepSign < end * stepSign
                     // positive step -> stepSign = 1, negative step -> stepSign = -1
@@ -5443,16 +5455,29 @@ namespace tuplex {
                                                                          const std::vector<std::pair<NIdentifier *, python::Type>> &loopVal,
                                                                          const SerializableValue &exprAlloc,
                                                                          llvm::Value *curr) {
+
+            auto llvm_expr_type = _env->pythonToLLVMType(exprType);
+
             auto builder = _lfb->getIRBuilder();
             if(exprType.isListType()) {
                 if(exprType != python::Type::EMPTYLIST) {
-                    auto currVal = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(exprAlloc.val, {2}), curr));
+                    auto element_type = exprType.elementType();
+                    auto llvm_element_type = _env->pythonToLLVMType(element_type);
+
+                    assert(llvm_element_type);
+
+                    auto currVal = builder.CreateLoad(llvm_element_type,
+                                                      builder.CreateGEP(llvm_element_type, builder.CreateExtractValue(exprAlloc.val, {2}), curr));
+                    _env->printValue(builder, currVal, "currVal in loop body=");
+
                     if(targetType == python::Type::I64 || targetType == python::Type::F64) {
                         // loop variable is of type i64 or f64 (has size 8)
                         addInstruction(currVal, _env->i64Const(8));
                     } else if(targetType == python::Type::STRING || targetType.isDictionaryType()) {
                         // loop variable is of type string or dictionary (need to extract size)
-                        auto currSize = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(exprAlloc.val, {3}), curr));
+                        auto currSize = builder.CreateLoad(builder.getInt64Ty(),
+                                                           builder.CreateGEP(_env->i64ptrType(),
+                                                                             builder.CreateExtractValue(exprAlloc.val, {3}), curr));
                         addInstruction(currVal, currSize);
                     } else if(targetType == python::Type::BOOLEAN) {
                         // loop variable is of type bool (has size 1)
@@ -5480,10 +5505,10 @@ namespace tuplex {
             } else if(exprType == python::Type::STRING) {
                 // target is a single character
                 // allocate new string (1-byte character with a 1-byte null terminator)
-                auto currCharPtr = builder.CreateGEP(exprAlloc.val, curr);
+                auto currCharPtr = builder.MovePtrByBytes(exprAlloc.val, curr);
                 auto currSize = _env->i64Const(2);
                 auto currVal = builder.CreatePointerCast(builder.malloc(currSize), _env->i8ptrType());
-                builder.CreateStore(builder.CreateLoad(currCharPtr), currVal);
+                builder.CreateStore(builder.CreateLoad(builder.getInt8Ty(), currCharPtr), currVal);
                 auto nullCharPtr = builder.CreateGEP(_env->i8Type(), currVal, _env->i32Const(1));
                 builder.CreateStore(_env->i8Const(0), nullCharPtr);
                 addInstruction(currVal, currSize);

@@ -138,9 +138,16 @@ typedef int32_t* ptr_t;
 
 // cJSON / AWS SDK fix
 #ifdef BUILD_WITH_AWS
+#include <aws/core/VersionConfig.h>
 #include <aws/core/external/cjson/cJSON.h>
+
+#ifndef AWS_SDK_VERSION_MAJOR
+#error "need to include files defining AWS SDK version"
+#endif
+
 // newer AWS SDK version shadowed symbols, hence need to add defines to fix this
-#if (AWS_SDK_VERSION_MAJOR >= 1 && AWS_SDK_VERSION_MINOR >= 9 && AWS_SDK_VERSION_PATCH >= 134)
+// version must be >= 1.9.134
+#if (AWS_SDK_VERSION_MAJOR == 1 && AWS_SDK_VERSION_MINOR == 9 && AWS_SDK_VERSION_PATCH >= 134) || (AWS_SDK_VERSION_MAJOR == 1 && AWS_SDK_VERSION_MINOR > 9) || (AWS_SDK_VERSION_MAJOR > 1)
 
 #define cJSON_Hooks cJSON_AS4CPP_Hooks
 

@@ -8,12 +8,8 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
+#include <Base.h>
 #include <FunctionRegistry.h>
-#ifdef BUILD_WITH_AWS
-#include <aws/core/external/cjson/cJSON.h>
-#else
-#include <cJSON.h>
-#endif
 #include <pcre2.h>
 #include <cmath>
 

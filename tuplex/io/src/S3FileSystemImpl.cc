@@ -524,10 +524,19 @@ namespace tuplex {
         else
             _requestPayer = Aws::S3::Model::RequestPayer::NOT_SET;
 
+        // AWS SDK 1.10 introduces endpoint config
+#if (1 == AWS_SDK_VERSION_MAJOR && 10 > AWS_SDK_VERSION_MINOR)
+
         _client = std::make_shared<S3::S3Client>(Auth::AWSCredentials(credentials.access_key.c_str(),
                                                                       credentials.secret_key.c_str(),
                                                                       credentials.session_token.c_str()), config);
-
+#else
+        auto s3_endpoint_provider = Aws::MakeShared<Aws::S3::S3EndpointProvider>("TUPLEX");
+        _client = std::make_shared<S3::S3Client>(Auth::AWSCredentials(credentials.access_key.c_str(),
+                                                                      credentials.secret_key.c_str(),
+                                                                      credentials.session_token.c_str()),
+                                                 s3_endpoint_provider, config);
+#endif
         // set counters to zero
         _putRequests = 0;
         _initMultiPartUploadRequests = 0;
@@ -709,8 +718,8 @@ namespace tuplex {
     }
 
     void S3FileSystemImpl::initTransferThreadPool(size_t numThreads) {
-        // there's a typo in older AWS SDK versions
-#if AWS_SDK_VERSION_PATCH < 309
+        // there's a typo in older AWS SDK versions prior to 1.9.309
+#if (AWS_SDK_VERSION_MINOR == 9 && AWS_SDK_VERSION_PATCH < 309)
         auto overflow_policy = Aws::Utils::Threading::OverflowPolicy::QUEUE_TASKS_EVENLY_ACCROSS_THREADS;
 #else
         auto overflow_policy = Aws::Utils::Threading::OverflowPolicy::QUEUE_TASKS_EVENLY_ACROSS_THREADS;

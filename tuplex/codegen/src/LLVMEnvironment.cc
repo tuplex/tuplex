@@ -145,7 +145,7 @@ namespace tuplex {
             auto retBuilder = codegen::IRBuilder(newBlock);
             // insert the new block in between the entry block and it's successor
             globalEntryTerminator->setSuccessor(1, newBlock);
-            auto loadInst = retBuilder.CreateLoad(_releaseGlobalRetValue);
+            auto loadInst = retBuilder.CreateLoad(i64Type(), _releaseGlobalRetValue);
             retBuilder.CreateCondBr(retBuilder.CreateICmpNE(loadInst, i64Const(0)), _releaseGlobalRetBlock, successorBlock);
 
             // return a builder
@@ -1775,9 +1775,9 @@ namespace tuplex {
             initGlobalBuilder.CreateStore(match_context, matchContextVar);
             initGlobalBuilder.CreateStore(compile_context, compileContextVar);
 
-            auto generalContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.CreatePtrDiff(general_context, i8nullptr()), i64Const(0));
-            auto matchContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.CreatePtrDiff(match_context, i8nullptr()), i64Const(0));
-            auto compileContextFailed = initGlobalBuilder.CreateICmpEQ(initGlobalBuilder.CreatePtrDiff(compile_context, i8nullptr()), i64Const(0));
+            auto generalContextFailed = initGlobalBuilder.CreateICmpEQ(general_context, i8nullptr());
+            auto matchContextFailed = initGlobalBuilder.CreateICmpEQ(match_context, i8nullptr());
+            auto compileContextFailed = initGlobalBuilder.CreateICmpEQ(compile_context, i8nullptr());
             auto initFailed = initGlobalBuilder.CreateOr(generalContextFailed,
                                                          initGlobalBuilder.CreateOr(matchContextFailed,compileContextFailed));
             initGlobalBuilder.CreateStore(initGlobalBuilder.CreateIntCast(initFailed, i64Type(), false), _initGlobalRetValue);

@@ -172,7 +172,7 @@ namespace tuplex {
                 auto value = builder.CreateAlloca(_env.i64Type(), 0, nullptr);
 
                 auto strBegin = args.front().val;
-                auto strEnd = builder.CreateGEP(strBegin, builder.CreateSub(args.front().size, _env.i64Const(1)));
+                auto strEnd = builder.MovePtrByBytes(strBegin, builder.CreateSub(args.front().size, _env.i64Const(1)));
                 auto resCode = builder.CreateCall(func, {strBegin, strEnd, value});
 
                 // Option I: use internal Tuplex codes
@@ -391,14 +391,14 @@ namespace tuplex {
                 auto value = builder.CreateAlloca(_env.doubleType(), 0, nullptr);
 
                 auto strBegin = args.front().val;
-                auto strEnd = builder.CreateGEP(strBegin, builder.CreateSub(args.front().size, _env.i64Const(1)));
+                auto strEnd = builder.MovePtrByBytes(strBegin, builder.CreateSub(args.front().size, _env.i64Const(1)));
                 auto resCode = builder.CreateCall(func, {strBegin, strEnd, value});
 
                 auto cond = builder.CreateICmpNE(resCode, _env.i32Const(ecToI32(ExceptionCode::SUCCESS)));
                 lfb.addException(builder, ExceptionCode::VALUEERROR, cond);
 
                 // changed builder, now return normal/positive result
-                return SerializableValue(builder.CreateLoad(value), f64Size);
+                return SerializableValue(builder.CreateLoad(_env.doubleType(), value), f64Size);
             } else {
                 logger.error("objects of type " + type.desc() + " are not supported in float(...) call");
                 return SerializableValue();
@@ -559,7 +559,7 @@ namespace tuplex {
                 // make call
                 auto replaced_str = builder.CreateCall(floatfmt_func, valargs);
 
-                return {replaced_str, builder.CreateLoad(sizeVar)};
+                return {replaced_str, builder.CreateLoad(builder.getInt64Ty(), sizeVar)};
             }
 
 
@@ -610,7 +610,7 @@ namespace tuplex {
             auto snprintf_func = snprintf_prototype(_env.getContext(), _env.getModule().get());
 
             //{csvRow, fmtSize, env().strConst(builder, fmtString), ...}
-            spf_args[0] = builder.CreateLoad(bufVar); spf_args[1] = fmtSize; spf_args[2] = _env.strConst(builder, fmtString);
+            spf_args[0] = builder.CreateLoad(_env.i8ptrType(), bufVar); spf_args[1] = fmtSize; spf_args[2] = _env.strConst(builder, fmtString);
             auto charsRequired = builder.CreateCall(snprintf_func, spf_args);
             auto sizeWritten = builder.CreateAdd(builder.CreateZExt(charsRequired, _env.i64Type()), _env.i64Const(1));
 
@@ -625,7 +625,7 @@ namespace tuplex {
             // realloc with sizeWritten
             // store new malloc in bufVar
             builder.CreateStore(_env.malloc(builder, sizeWritten), bufVar);
-            spf_args[0] = builder.CreateLoad(bufVar);
+            spf_args[0] = builder.CreateLoad(_env.i8ptrType(), bufVar);
             spf_args[1] = sizeWritten;
             builder.CreateCall(snprintf_func, spf_args);
 
@@ -635,7 +635,7 @@ namespace tuplex {
             // lfb builder set last block too!
             lfb.setLastBlock(bbCastDone);
             builder.SetInsertPoint(bbCastDone);
-            return SerializableValue(builder.CreateLoad(bufVar), sizeWritten);
+            return SerializableValue(builder.CreateLoad(_env.i8ptrType(), bufVar), sizeWritten);
         }
 
         codegen::SerializableValue createMathSinCall(const codegen::IRBuilder& builder, const python::Type &argsType,
@@ -1879,8 +1879,8 @@ namespace tuplex {
 
                 builder.SetInsertPoint(substitute_BB);
                 // allocate output space
-                builder.CreateStore(builder.CreateLoad(cur_result_size), result_size); // result_size = cur_result_size
-                builder.CreateStore(builder.CreatePointerCast(_env.malloc(builder, builder.CreateLoad(cur_result_size)), _env.i8ptrType()), result_buffer); // result_buffer = (char*)malloc(result_size);
+                builder.CreateStore(builder.CreateLoad(builder.getInt64Ty(), cur_result_size), result_size); // result_size = cur_result_size
+                builder.CreateStore(builder.CreatePointerCast(_env.malloc(builder, builder.CreateLoad(builder.getInt64Ty(), cur_result_size)), _env.i8ptrType()), result_buffer); // result_buffer = (char*)malloc(result_size);
                 // run the substitution
                 auto num_matches = builder.CreateCall(
                         pcre2Substitute_prototype(_env.getContext(), _env.getModule().get()),
@@ -2143,7 +2143,7 @@ namespace tuplex {
             // make call
             auto replaced_str = builder.CreateCall(strFormat_func, valargs);
 
-            return {replaced_str, builder.CreateLoad(sizeVar)};
+            return {replaced_str, builder.CreateLoad(builder.getInt64Ty(), sizeVar)};
         }
 
         SerializableValue FunctionRegistry::createFindCall(const codegen::IRBuilder& builder,

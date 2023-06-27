@@ -2295,9 +2295,9 @@ namespace tuplex {
             _lfb->setLastBlock(exitBB);
             builder.SetInsertPoint(exitBB);
             // push result to stack
-            codegen::SerializableValue result(builder.CreateLoad(result_var),
-                                              builder.CreateLoad(result_size),
-                                              builder.CreateLoad(result_isnull));
+            codegen::SerializableValue result(builder.CreateLoad(restype_llvm, result_var),
+                                              builder.CreateLoad(builder.getInt64Ty(), result_size),
+                                              builder.CreateLoad(builder.getInt1Ty(), result_isnull));
 
             _blockStack.push_back(result);
         }
@@ -3907,12 +3907,12 @@ namespace tuplex {
                                                         llvm::Type::getInt8PtrTy(context,
                                                                                  0)); // indexing string will return one char string!
                 // do via load & store, no need for memcpy here yet
-                auto charAtIndex = builder.CreateLoad(builder.CreateGEP(value.val, index.val));
+                auto charAtIndex = builder.CreateLoad(builder.getInt8Ty(), builder.MovePtrByBytes(value.val, index.val));
                 assert(charAtIndex->getType() == llvm::Type::getInt8Ty(context));
 
                 // store charAtIndex at ptr
                 builder.CreateStore(charAtIndex, newstr);
-                builder.CreateStore(_env->i8Const(0), builder.CreateGEP(newstr, _env->i32Const(1)));
+                builder.CreateStore(_env->i8Const(0), builder.MovePtrByBytes(newstr, 1));
 
                 // add serializedValue
                 addInstruction(newstr, _env->i64Const(2));

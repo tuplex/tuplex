@@ -16,6 +16,8 @@
 namespace tuplex {
     namespace codegen {
 
+
+
         // helper functions:
 
         // a function is constructed in the following standard way in Tuplex:
@@ -1722,19 +1724,8 @@ namespace tuplex {
             auto& logger = Logger::instance().logger("codegen");
 
             if(args.size() == 2) {
-                llvm::Value *general_context, *match_context, *compile_context;
-                if(_sharedObjectPropagation) {
-                    // create runtime contexts that are allocated on regular heap: general, compile, match (in order to pass rtmalloc/rtfree)
-                    auto contexts = _env.addGlobalPCRE2RuntimeContexts();
-                    general_context = builder.CreateLoad(_env.i8ptrType(), std::get<0>(contexts));
-                    match_context = builder.CreateLoad(_env.i8ptrType(), std::get<1>(contexts));
-                    compile_context = builder.CreateLoad(_env.i8ptrType(), std::get<2>(contexts));
-                } else {
-                    // create runtime contexts for the row
-                    general_context = builder.CreateCall(pcre2GetLocalGeneralContext_prototype(_env.getContext(), _env.getModule().get()));
-                    match_context = builder.CreateCall(pcre2MatchContextCreate_prototype(_env.getContext(), _env.getModule().get()), {general_context});
-                    compile_context = builder.CreateCall(pcre2CompileContextCreate_prototype(_env.getContext(), _env.getModule().get()), {general_context});
-                }
+                llvm::Value *general_context = nullptr, *match_context = nullptr, *compile_context = nullptr;
+                std::tie(general_context, match_context, compile_context) = loadPCRE2Contexts(builder);
 
                 // get the compiled pattern
                 llvm::Value* compiled_pattern;
@@ -1836,19 +1827,8 @@ namespace tuplex {
             auto& logger = Logger::instance().logger("codegen");
 
             if(args.size() == 3) {
-                llvm::Value *general_context, *match_context, *compile_context;
-                if(_sharedObjectPropagation) {
-                    // create runtime contexts that are allocated on regular heap: general, compile, match (in order to pass rtmalloc/rtfree)
-                    auto contexts = _env.addGlobalPCRE2RuntimeContexts();
-                    general_context = builder.CreateLoad(std::get<0>(contexts));
-                    match_context = builder.CreateLoad(std::get<1>(contexts));
-                    compile_context = builder.CreateLoad(std::get<2>(contexts));
-                } else {
-                    // create runtime contexts for the row
-                    general_context = builder.CreateCall(pcre2GetLocalGeneralContext_prototype(_env.getContext(), _env.getModule().get()));
-                    match_context = builder.CreateCall(pcre2MatchContextCreate_prototype(_env.getContext(), _env.getModule().get()), {general_context});
-                    compile_context = builder.CreateCall(pcre2CompileContextCreate_prototype(_env.getContext(), _env.getModule().get()), {general_context});
-                }
+                llvm::Value *general_context = nullptr, *match_context = nullptr, *compile_context = nullptr;
+                std::tie(general_context, match_context, compile_context) = loadPCRE2Contexts(builder);
 
                 // get the compiled pattern
                 llvm::Value* compiled_pattern;
@@ -1905,30 +1885,35 @@ namespace tuplex {
                             match_context, // match context
                             repl.val, // replacement
                             builder.CreateSub(repl.size, _env.i64Const(1)), // repl length
-                            builder.CreateLoad(result_buffer), // result buffer
+                            builder.CreateLoad(_env.i8ptrType(), result_buffer), // result buffer
                             result_size
                         });
                 builder.CreateStore(num_matches, res);
-                auto ran_out_of_memory = builder.CreateICmpEQ(builder.CreateLoad(res), _env.i32Const(PCRE2_ERROR_NOMEMORY));
+                auto ran_out_of_memory = builder.CreateICmpEQ(builder.CreateLoad(builder.getInt32Ty(), res), _env.i32Const(PCRE2_ERROR_NOMEMORY));
                 builder.CreateCondBr(ran_out_of_memory, realloc_output_BB, return_BB);
 
                 builder.SetInsertPoint(realloc_output_BB);
-                builder.CreateStore(builder.CreateMul(builder.CreateLoad(cur_result_size), _env.i64Const(2)), cur_result_size); // double cur_result_size
+                builder.CreateStore(builder.CreateMul(builder.CreateLoad(builder.getInt64Ty(), cur_result_size),
+                                                      _env.i64Const(2)), cur_result_size); // double cur_result_size
                 // TODO: should we error here if the potential output buffer gets too large?
                 builder.CreateBr(substitute_BB); // try substituting again
 
                 builder.SetInsertPoint(errorcheck_BB);
                 // error if the substitution resulted in an error
-                lfb.addException(builder, ExceptionCode::UNKNOWN, builder.CreateICmpSLT(builder.CreateLoad(res), _env.i32Const(0)));
+                lfb.addException(builder, ExceptionCode::UNKNOWN,
+                                 builder.CreateICmpSLT(builder.CreateLoad(builder.getInt32Ty(), res),
+                                                       _env.i32Const(0)));
                 builder.CreateBr(return_BB);
 
                 builder.SetInsertPoint(return_BB);
-                builder.CreateStore(_env.i8Const(0), builder.CreateGEP(builder.CreateLoad(result_buffer), builder.CreateLoad(result_size))); // include null terminator
+                builder.CreateStore(_env.i8Const(0), builder.MovePtrByBytes(builder.CreateLoad(_env.i8ptrType(), result_buffer),
+                                                                            builder.CreateLoad(builder.getInt64Ty(), result_size))); // include null terminator
                 lfb.setLastBlock(return_BB);
 
                 // return the match object
                 // TODO: should we reallocate the buffer to be exactly the correct size? pcre2_substitute * does * make sure to include space for a null terminator
-                return SerializableValue(builder.CreateLoad(result_buffer), builder.CreateAdd(builder.CreateLoad(result_size), _env.i64Const(1)));
+                return SerializableValue(builder.CreateLoad(_env.i8ptrType(), result_buffer),
+                                         builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), result_size), _env.i64Const(1)));
             }
 
             logger.error("no support for re.sub flags");

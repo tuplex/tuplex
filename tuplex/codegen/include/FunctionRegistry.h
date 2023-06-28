@@ -217,6 +217,24 @@ namespace tuplex {
                                                                  llvm::Value *res,
                                                                  tuplex::codegen::LambdaFunctionBuilder &lfb,
                                                                  const codegen::IRBuilder& builder);
+
+
+            inline std::tuple<llvm::Value*, llvm::Value*, llvm::Value*> loadPCRE2Contexts(const IRBuilder& builder) {
+                if(_sharedObjectPropagation) {
+                    // create runtime contexts that are allocated on regular heap: general, compile, match (in order to pass rtmalloc/rtfree)
+                    auto contexts = _env.addGlobalPCRE2RuntimeContexts();
+                    auto general_context = builder.CreateLoad(_env.i8ptrType(), std::get<0>(contexts));
+                    auto match_context = builder.CreateLoad(_env.i8ptrType(), std::get<1>(contexts));
+                    auto compile_context = builder.CreateLoad(_env.i8ptrType(), std::get<2>(contexts));
+                    return std::make_tuple(general_context, match_context, compile_context);
+                } else {
+                    // create runtime contexts for the row
+                    auto general_context = builder.CreateCall(pcre2GetLocalGeneralContext_prototype(_env.getContext(), _env.getModule().get()));
+                    auto match_context = builder.CreateCall(pcre2MatchContextCreate_prototype(_env.getContext(), _env.getModule().get()), {general_context});
+                    auto compile_context = builder.CreateCall(pcre2CompileContextCreate_prototype(_env.getContext(), _env.getModule().get()), {general_context});
+                    return std::make_tuple(general_context, match_context, compile_context);
+                }
+            }
         };
     }
 }

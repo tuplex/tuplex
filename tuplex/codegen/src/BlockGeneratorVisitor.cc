@@ -3972,14 +3972,33 @@ namespace tuplex {
                 }
             } else if (value.val->getType() == _env->getMatchObjectPtrType() &&
                        value_type == python::Type::MATCHOBJECT) {
-                auto ovector = builder.CreateLoad(builder.CreateGEP(value.val, {_env->i32Const(0), _env->i32Const(0)}));
-                auto subject = builder.CreateLoad(builder.CreateGEP(value.val, {_env->i32Const(0), _env->i32Const(1)}));
-                auto subject_len = builder.CreateLoad(builder.CreateGEP(value.val, {_env->i32Const(0), _env->i32Const(2)}));
+                _env->printValue(builder, index.val, "indexing matchobject with index=");
+
+                auto ind = builder.CreateMul(_env->i64Const(2), index.val);
+                _env->printValue(builder, ind, "ind=");
+
+                // // new code:
+                // auto x0 = builder.CreateLoad(_env->getMatchObjectType(), value.val);
+                // auto x1 = builder.CreateInBoundsGEP(x0, _env->getMatchObjectType(), ind);
+                // auto x2 = builder.CreateLoad(builder.getInt64Ty(), x1);
+                // _env->printValue(builder, x2, "start=");
+
+                auto match_object = value.val;
+
+                _env->printValue(builder, match_object, "match object=");
+                auto ovector = builder.CreateLoad(_env->i64ptrType(), builder.CreateStructGEP(match_object, _env->getMatchObjectType(), 0));
+                _env->printValue(builder, value.val, "ovector=");
+                auto subject = builder.CreateLoad(_env->i8ptrType(), builder.CreateStructGEP(match_object, _env->getMatchObjectType(), 1));
+                _env->printValue(builder, subject, "subject=");
+                auto subject_len = builder.CreateLoad(_env->i64Type(), builder.CreateStructGEP(match_object, _env->getMatchObjectType(), 2));
+                _env->printValue(builder, subject_len, "subject_len=");
 
                 // TODO: add some boundary checking here, probably with _env->indexCheck (remember that 0 is a valid choice)
-                auto ind = builder.CreateMul(_env->i64Const(2), index.val);
-                auto start = builder.CreateLoad(llvm::Type::getInt64Ty(_env->getContext()), builder.CreateGEP(ovector, ind));
-                auto end = builder.CreateLoad(llvm::Type::getInt64Ty(_env->getContext()), builder.CreateGEP(ovector, builder.CreateAdd(ind, _env->i64Const(1))));
+                auto start = builder.CreateLoad(builder.getInt64Ty(), builder.CreateGEP(builder.getInt64Ty(), ovector, ind));
+                auto end = builder.CreateLoad(builder.getInt64Ty(), builder.CreateGEP(builder.getInt64Ty(), ovector, builder.CreateAdd(ind, _env->i64Const(1))));
+
+                _env->printValue(builder, start, "start=");
+                _env->printValue(builder, end, "end=");
 
                 auto ret = stringSliceInst({subject, subject_len}, start, end, _env->i64Const(1));
                 addInstruction(ret.val, ret.size);

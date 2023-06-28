@@ -1776,16 +1776,16 @@ namespace tuplex {
             initGlobalBuilder.CreateStore(compile_context, compileContextVar);
 
             auto generalContextFailed = initGlobalBuilder.CreateICmpEQ(general_context, i8nullptr());
-            auto matchContextFailed = initGlobalBuilder.CreateICmpEQ(match_context, i8nullptr());
+            auto matchContextFailed = initGlobalBuilder.CreateICmpEQ(match_context,  i8nullptr());
             auto compileContextFailed = initGlobalBuilder.CreateICmpEQ(compile_context, i8nullptr());
             auto initFailed = initGlobalBuilder.CreateOr(generalContextFailed,
                                                          initGlobalBuilder.CreateOr(matchContextFailed,compileContextFailed));
             initGlobalBuilder.CreateStore(initGlobalBuilder.CreateIntCast(initFailed, i64Type(), false), _initGlobalRetValue);
 
             // create release code
-            releaseGlobalBuilder.CreateCall(pcre2ReleaseGlobalGeneralContext_prototype(_context, _module.get()), {releaseGlobalBuilder.CreateLoad(generalContextVar)});
-            releaseGlobalBuilder.CreateCall(pcre2ReleaseGlobalMatchContext_prototype(_context, _module.get()), {releaseGlobalBuilder.CreateLoad(matchContextVar)});
-            releaseGlobalBuilder.CreateCall(pcre2ReleaseGlobalCompileContext_prototype(_context, _module.get()), {releaseGlobalBuilder.CreateLoad(compileContextVar)});
+            releaseGlobalBuilder.CreateCall(pcre2ReleaseGlobalGeneralContext_prototype(_context, _module.get()), {releaseGlobalBuilder.CreateLoad(i8ptrType(), generalContextVar)});
+            releaseGlobalBuilder.CreateCall(pcre2ReleaseGlobalMatchContext_prototype(_context, _module.get()), {releaseGlobalBuilder.CreateLoad(i8ptrType(), matchContextVar)});
+            releaseGlobalBuilder.CreateCall(pcre2ReleaseGlobalCompileContext_prototype(_context, _module.get()), {releaseGlobalBuilder.CreateLoad(i8ptrType(), compileContextVar)});
             releaseGlobalBuilder.CreateStore(i64Const(0), _releaseGlobalRetValue);
 
             // cache the creation
@@ -1939,7 +1939,8 @@ namespace tuplex {
             auto& ctx = env.getContext();
             auto func = builder.GetInsertBlock()->getParent(); assert(func);
 
-            Value* bool_val = env.CreateFirstBlockAlloca(builder, env.getBooleanType());
+            auto cbool_type = codegen::ctypeToLLVM<bool>(builder.getContext());
+            Value* bool_val = env.CreateFirstBlockAlloca(builder, cbool_type);
             builder.CreateStore(env.boolConst(false), bool_val);
 
             // all the basicblocks
@@ -1970,7 +1971,9 @@ namespace tuplex {
             // parse done, load result var
             builder.SetInsertPoint(bbParseDone);
             // load val & return result
-            return SerializableValue(builder.CreateLoad(bool_val), env.i64Const(sizeof(int64_t)), isnull);
+            return SerializableValue(builder.CreateZExtOrTrunc(builder.CreateLoad(cbool_type, bool_val), env.getBooleanType()),
+                                     env.i64Const(sizeof(int64_t)),
+                                     isnull);
         }
 
         SerializableValue parseI64(LLVMEnvironment& env, IRBuilder &builder, llvm::BasicBlock *bbFailed,

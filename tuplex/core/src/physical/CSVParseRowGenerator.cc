@@ -747,7 +747,7 @@ namespace tuplex {
             }
 
             // _env->debugPrint(builder, "get val");
-            val = builder.CreateLoad(_env->i8ptrType(),
+            val = builder.CreateLoad(resultType()->getStructElementType(val_idx),
                     builder.CreateGEP(resultType(), result, {_env->i32Const(0), _env->i32Const(val_idx)}));
             // _env->debugPrint(builder, "get size");
 
@@ -1165,11 +1165,11 @@ namespace tuplex {
                 throw std::runtime_error("result is not pointer of resulttype in " __FILE__);
 
             auto num_struct_elements = resultType()->getStructNumElements();
-            auto idx_buf_length = _env->CreateStructGEP(builder, result, num_struct_elements -2);
-            auto idx_buf = _env->CreateStructGEP(builder, result, num_struct_elements - 1);
+            auto idx_buf_length = builder.CreateStructGEP(result, resultType(), num_struct_elements - 2);
+            auto idx_buf = builder.CreateStructGEP(result, resultType(), num_struct_elements - 1);
             assert(idx_buf_length->getType() == _env->i64ptrType());
             assert(idx_buf->getType() == _env->i8ptrType()->getPointerTo());
-            return SerializableValue(builder.CreateLoad(idx_buf), builder.CreateLoad(idx_buf_length));
+            return SerializableValue(builder.CreateLoad(_env->i8ptrType(), idx_buf), builder.CreateLoad(builder.getInt64Ty(), idx_buf_length));
         }
     }
 }

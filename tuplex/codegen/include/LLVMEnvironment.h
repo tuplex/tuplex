@@ -459,12 +459,17 @@ namespace tuplex {
             /*!
              * Represents the [matchObject] struct in Runtime.h. This struct is used to hold a pcre2 ovector (e.g. the
              * indices of match groups) and the underlying subject string that the match was run over.
-             * @return  matchObject struct pointer llvm::Type
+             * @return  matchObject struct llvm::Type
              */
-            inline llvm::Type *getMatchObjectPtrType() {
-                return llvm::PointerType::get(llvm::StructType::get(_context, {llvm::Type::getInt64PtrTy(_context, 0),
+
+            inline llvm::Type *getMatchObjectType() {
+                return llvm::StructType::get(_context, {llvm::Type::getInt64PtrTy(_context, 0),
                                                         llvm::Type::getInt8PtrTy(_context, 0),
-                                                        llvm::Type::getInt64Ty(_context)}), 0);
+                                                        llvm::Type::getInt64Ty(_context)});
+            }
+
+            inline llvm::Type *getMatchObjectPtrType() {
+                return llvm::PointerType::get(getMatchObjectType(), 0);
             }
 
             /*!

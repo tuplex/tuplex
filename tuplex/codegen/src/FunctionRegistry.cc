@@ -1726,9 +1726,9 @@ namespace tuplex {
                 if(_sharedObjectPropagation) {
                     // create runtime contexts that are allocated on regular heap: general, compile, match (in order to pass rtmalloc/rtfree)
                     auto contexts = _env.addGlobalPCRE2RuntimeContexts();
-                    general_context = builder.CreateLoad(std::get<0>(contexts));
-                    match_context = builder.CreateLoad(std::get<1>(contexts));
-                    compile_context = builder.CreateLoad(std::get<2>(contexts));
+                    general_context = builder.CreateLoad(_env.i8ptrType(), std::get<0>(contexts));
+                    match_context = builder.CreateLoad(_env.i8ptrType(), std::get<1>(contexts));
+                    compile_context = builder.CreateLoad(_env.i8ptrType(), std::get<2>(contexts));
                 } else {
                     // create runtime contexts for the row
                     general_context = builder.CreateCall(pcre2GetLocalGeneralContext_prototype(_env.getContext(), _env.getModule().get()));
@@ -1742,7 +1742,7 @@ namespace tuplex {
                 if(global_pattern) {
                     auto pattern_str = _env.globalVariableToString(args[0].val);
                     llvm::Value* gVar = _env.addGlobalRegexPattern("re_search", pattern_str);
-                    compiled_pattern = builder.CreateLoad(gVar);
+                    compiled_pattern = builder.CreateLoad(_env.i8ptrType(), gVar);
                 } else {
                     // allocate some error space
                     auto errornumber = builder.CreateAlloca(builder.getInt32Ty());
@@ -1782,8 +1782,12 @@ namespace tuplex {
                              _env.i64Const(0), _env.i32Const(0), match_data, match_context});
                 }
 
+                _env.printValue(builder, num_matches, "matching has num_matches=");
+
                 // None if the match failed
                 auto did_not_match = builder.CreateICmpSLT(num_matches, _env.i32Const(0));
+
+                _env.printValue(builder, did_not_match, "did_not_match=");
 
                 // get the correct return size/val
                 auto retval = builder.CreateAlloca(_env.getMatchObjectPtrType(), 0, nullptr);
@@ -1803,7 +1807,9 @@ namespace tuplex {
                 builder.CreateBr(return_BB);
 
                 builder.SetInsertPoint(did_match_BB);
-                builder.CreateStore(builder.CreateCall(wrapPCRE2MatchObject_prototype(_env.getContext(), _env.getModule().get()), {match_data, args[1].val, args[1].size}), retval);
+                builder.CreateStore(builder.CreateCall(wrapPCRE2MatchObject_prototype(_env.getContext(),
+                                                                                      _env.getModule().get()),
+                                                       {match_data, args[1].val, args[1].size}), retval);
                 builder.CreateStore(_env.i64Const(sizeof(uint8_t*)), retsize);
                 builder.CreateBr(return_BB);
 
@@ -1811,7 +1817,12 @@ namespace tuplex {
                 lfb.setLastBlock(return_BB);
 
                 // return the match object
-                return SerializableValue(builder.CreateLoad(retval), builder.CreateLoad(retsize), did_not_match);
+                auto ans = SerializableValue(retval,
+                                         builder.CreateLoad(builder.getInt64Ty(), retsize),
+                                         did_not_match);
+                _env.printValue(builder, ans.size, "returning match object with size=");
+
+                return ans;
             }
 
             logger.error("no support for re.search flags");

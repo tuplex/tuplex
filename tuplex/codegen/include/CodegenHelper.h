@@ -522,6 +522,10 @@ namespace tuplex {
                                  Ptr, IdxList, Name);
             }
 
+            inline llvm::Value* CreateInBoundsGEP(llvm::Value* Ptr, llvm::Type* pointee_type, llvm::Value* Idx) {
+                 return get_or_throw().CreateInBoundsGEP(pointee_type, Ptr, {Idx});
+             }
+
             inline llvm::Value *CreateUnaryIntrinsic(llvm::Intrinsic::ID ID, llvm::Value *V,
                                                                          llvm::Instruction *FMFSource = nullptr,
                                                                          const std::string &Name = "") const {

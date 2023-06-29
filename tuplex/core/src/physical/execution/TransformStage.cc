@@ -911,7 +911,7 @@ namespace tuplex {
         auto& logger = Logger::instance().defaultLogger();
 
         llvm::LLVMContext ctx;
-        auto slow_path_bit_code = slowPathBitCode();
+        auto slow_path_bit_code = slowPathCode();
         auto slow_path_mod = slow_path_bit_code.empty() ? nullptr : codegen::bitCodeToModule(ctx, slow_path_bit_code);
 
 
@@ -976,7 +976,7 @@ namespace tuplex {
         auto syms = std::make_shared<JITSymbols>();
 
         llvm::LLVMContext ctx;
-        auto fast_path_bit_code = fastPathBitCode();
+        auto fast_path_bit_code = fastPathCode();
         if(fast_path_bit_code.empty()) {
             logger.info("empty bitcode found, skip");
             return nullptr;
@@ -1287,7 +1287,7 @@ namespace tuplex {
         msg->set_persistseparatecases(_persistSeparateCases);
         msg->set_updateinputexceptions(_updateInputExceptions);
 
-        // serialize fast/slow path IF non empty
+        // serialize fast/slow path IF non-empty
         if(!_fastCodePath.empty())
             msg->set_allocated_fastpath(_fastCodePath.to_protobuf());
         if(!_slowCodePath.empty())
@@ -1321,18 +1321,23 @@ namespace tuplex {
 #endif
 
     void TransformStage::optimizeBitCode(LLVMOptimizer& opt) {
-        if(!_fastCodePath.irBitCode.empty()) {
-            llvm::LLVMContext ctx;
-            auto mod = codegen::bitCodeToModule(ctx, _fastCodePath.irBitCode);
-            opt.optimizeModule(*mod.get());
-            _fastCodePath.irBitCode = codegen::moduleToBitCodeString(*mod.get());
-        }
+        optimizeIRInCodePath(opt, _fastCodePath);
+        optimizeIRInCodePath(opt, _slowCodePath);
+    }
 
-        if(!_slowCodePath.irBitCode.empty()) {
-            llvm::LLVMContext ctx;
-            auto mod = codegen::bitCodeToModule(ctx, _slowCodePath.irBitCode);
-            opt.optimizeModule(*mod.get());
-            _slowCodePath.irBitCode = codegen::moduleToBitCodeString(*mod.get());
-        }
+    void TransformStage::optimizeIRInCodePath(LLVMOptimizer &opt, StageCodePath &path) {
+        // skip non-existing path
+        if(path.code.empty())
+            return;
+
+        // skip opt for non llvm IR formats
+        if(path.codeFormat != codegen::CodeFormat::LLVM_IR_BITCODE && path.codeFormat != codegen::CodeFormat::LLVM_IR)
+            return;
+
+        llvm::LLVMContext ctx;
+        auto mod = path.codeFormat == codegen::CodeFormat::LLVM_IR_BITCODE ? codegen::bitCodeToModule(ctx, path.code) : codegen::stringToModule(ctx, path.code);
+        opt.optimizeModule(*mod);
+        _fastCodePath.code = codegen::moduleToBitCodeString(*mod);
+        _fastCodePath.codeFormat = codegen::CodeFormat::LLVM_IR_BITCODE;
     }
 }

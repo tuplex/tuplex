@@ -1129,7 +1129,9 @@ namespace tuplex {
             ret.funcStageName = func->getName();
             // remove non-existing symbols
             removeMissingSymbols(*env->getModule(), ret);
-            ret.irBitCode = codegen::moduleToBitCodeString(*env->getModule()); // trafo stage takes ownership of module
+
+            ret.codeFormat = codegen::CodeFormat::LLVM_IR_BITCODE;
+            ret.code = codegen::moduleToBitCodeString(*env->getModule()); // trafo stage takes ownership of module
 
             // @TODO: lazy & fast codegen of the different paths + lowering of them
             // generate interpreter fallback path (always) --> probably do that lazily or parallelize it...
@@ -1481,7 +1483,9 @@ namespace tuplex {
 
             // remove unused symbols, i.e. a simple pass over the module should do.
             removeMissingSymbols(*env->getModule(), ret);
-            ret.irBitCode = codegen::moduleToBitCodeString(*env->getModule()); // transform stage takes ownership of module
+
+            ret.codeFormat = codegen::CodeFormat::LLVM_IR_BITCODE;
+            ret.code = codegen::moduleToBitCodeString(*env->getModule()); // trafo stage takes ownership of module
 
             return ret;
         }
@@ -1876,8 +1880,10 @@ namespace tuplex {
 
             // DEBUG, write out generated trafo code...
 #ifndef NDEBUG
-            stringToFile(URI("fastpath_transform_stage_" + std::to_string(_stageNumber) + ".txt"), stage->fastPathCode());
-            stringToFile(URI("slowpath_transform_stage_" + std::to_string(_stageNumber) + ".txt"), stage->slowPathCode());
+            stringToFile(URI("fastpath_transform_stage_" + std::to_string(_stageNumber) + ".txt"),
+                         stage->fastPathIRCode());
+            stringToFile(URI("slowpath_transform_stage_" + std::to_string(_stageNumber) + ".txt"),
+                         stage->slowPathIRCode());
 #endif
             if(metrics)
                 metrics->setGenerateLLVMTime(timer.time());

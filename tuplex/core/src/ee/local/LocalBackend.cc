@@ -853,7 +853,7 @@ namespace tuplex {
         }
 
         // special case: skip stage, i.e. empty code and mem2mem
-        if(tstage->fastPathCode().empty() &&  !tstage->fileInputMode() && !tstage->fileOutputMode()) {
+        if(tstage->fastPathIRCode().empty() && !tstage->fileInputMode() && !tstage->fileOutputMode()) {
             tstage->setMemoryResult(tstage->inputPartitions(), tstage->generalPartitions(), tstage->fallbackPartitions(),
                                     tstage->partitionGroups());
             // skip stage

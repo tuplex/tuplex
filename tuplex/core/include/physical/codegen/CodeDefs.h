@@ -17,6 +17,13 @@ namespace tuplex {
 
     namespace codegen {
 
+        enum class CodeFormat {
+            LLVM_IR_BITCODE=0,
+            LLVM_IR = 1,
+            OBJECT_CODE=2
+        };
+
+
         enum class ExceptionSerializationMode {
             SERIALIZE_MISMATCH_ALWAYS_AS_BAD_PARSE=1,
             SERIALIZE_AS_GENERAL_CASE=2,

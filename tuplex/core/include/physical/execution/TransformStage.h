@@ -38,6 +38,7 @@
 #ifdef BUILD_WITH_AWS
 // include protobuf serialization of TrafoStage for Lambda executor
 #include <Lambda.pb.h>
+
 #endif
 
 namespace tuplex {
@@ -276,47 +277,56 @@ namespace tuplex {
                         ecounts);
         }
 
-        std::string fastPathBitCode() const {
-            return _fastCodePath.irBitCode;//_fastPathIRBitCode;
+        std::string fastPathCode() const {
+            return _fastCodePath.code;
         }
 
-        std::string slowPathBitCode() const {
-            return _slowCodePath.irBitCode;//_slowPathIRBitCode;
+        std::string slowPathCode() const {
+            return _slowCodePath.code;
         }
 
-        std::string& fastPathBitCode() {
-            return _fastCodePath.irBitCode;//_fastPathIRBitCode;
-        }
-
-        std::string& slowPathBitCode() {
-            return _slowCodePath.irBitCode;//_slowPathIRBitCode;
-        }
+        codegen::CodeFormat fastPathCodeFormat() const { return _fastCodePath.codeFormat; }
+        codegen::CodeFormat slowPathCodeFormat() const { return _slowCodePath.codeFormat; }
 
         Schema generalCaseInputSchema() const {
             return this->_generalCaseInputSchema;
         }
 
         // Retrieve fast path IR code
-        std::string fastPathCode() const {
-            if(fastPathBitCode().empty())
+        std::string fastPathIRCode() const {
+            if(fastPathCode().empty())
                 return "";
+
+            if(fastPathCodeFormat() == codegen::CodeFormat::LLVM_IR)
+                return _fastCodePath.code;
+
+            // check that code is in IR bitcode format, else decompile necessary
+            if(fastPathCodeFormat() != codegen::CodeFormat::LLVM_IR_BITCODE)
+                throw std::runtime_error("code must be in LLVM IR bitcode or LLVM IR format");
 
             // parse bit code & convert
             llvm::LLVMContext ctx;
-            auto mod = codegen::bitCodeToModule(ctx, fastPathBitCode());
+            auto mod = codegen::bitCodeToModule(ctx, fastPathCode());
             if(!mod)
                 return "";
             return codegen::moduleToString(*mod.get());
         }
 
         // Retrieve slow path IR code
-        std::string slowPathCode() const {
-            if(slowPathBitCode().empty())
+        std::string slowPathIRCode() const {
+            if(slowPathCode().empty())
                 return "";
+
+            if(slowPathCodeFormat() == codegen::CodeFormat::LLVM_IR)
+                return _slowCodePath.code;
+
+            // check that code is in IR bitcode format, else decompile necessary
+            if(slowPathCodeFormat() != codegen::CodeFormat::LLVM_IR_BITCODE)
+                throw std::runtime_error("code must be in LLVM IR bitcode or LLVM IR format");
 
             // parse bit code & convert
             llvm::LLVMContext ctx;
-            auto mod = codegen::bitCodeToModule(ctx, slowPathBitCode());
+            auto mod = codegen::bitCodeToModule(ctx, slowPathCode());
             if(!mod)
                 return "";
             return codegen::moduleToString(*mod.get());
@@ -598,7 +608,8 @@ namespace tuplex {
             };
 
             Type type;
-            std::string irBitCode; //! llvm IR bitcode for fast/slow path
+            codegen::CodeFormat codeFormat;
+            std::string code; //! code for fast/slow path, could be either llvm IR or object code
             std::string initStageFuncName;  //! init function for a stage (sets up globals & Co) fast/slow path
             std::string releaseStageFuncName; //! release function for a stage (releases globals & Co) fast/slow path
 
@@ -618,25 +629,26 @@ namespace tuplex {
             StageCodePath() = default;
 
             inline bool empty() const {
-                return irBitCode.empty();
+                return code.empty();
             }
 
             // protobuf serialization
 #ifdef BUILD_WITH_AWS
 
-            StageCodePath(const messages::CodePath& p) : irBitCode(p.irbitcode()), initStageFuncName(p.initstagefuncname()),
-            releaseStageFuncName(p.releasestagefuncname()), funcStageName(p.funcstagename()),
-            funcProcessRowName(p.funcprocessrowname()), writeFileCallbackName(p.writefilecallbackname()),
-            writeMemoryCallbackName(p.writememorycallbackname()), writeHashCallbackName(p.writehashcallbackname()),
-            writeExceptionCallbackName(p.writeexceptioncallbackname()), writeAggregateCallbackName(p.writeaggregatecallbackname()),
-            aggregateInitFuncName(p.aggregateinitfuncname()), aggregateCombineFuncName(p.aggregatecombinefuncname()),
-            aggregateAggregateFuncName(p.aggregateaggregatefuncname()) {
+            StageCodePath(const messages::CodePath& p) : codeFormat(static_cast<codegen::CodeFormat>(p.codeformat())), code(p.code()), initStageFuncName(p.initstagefuncname()),
+                                                         releaseStageFuncName(p.releasestagefuncname()), funcStageName(p.funcstagename()),
+                                                         funcProcessRowName(p.funcprocessrowname()), writeFileCallbackName(p.writefilecallbackname()),
+                                                         writeMemoryCallbackName(p.writememorycallbackname()), writeHashCallbackName(p.writehashcallbackname()),
+                                                         writeExceptionCallbackName(p.writeexceptioncallbackname()), writeAggregateCallbackName(p.writeaggregatecallbackname()),
+                                                         aggregateInitFuncName(p.aggregateinitfuncname()), aggregateCombineFuncName(p.aggregatecombinefuncname()),
+                                                         aggregateAggregateFuncName(p.aggregateaggregatefuncname()) {
             }
 
             inline void fill(messages::CodePath* c) const {
                 if(!c)
                     return;
-                c->set_irbitcode(irBitCode); // DO NOT USE c_str() here!
+                c->set_codeformat(static_cast<messages::CodeFormat>(codeFormat));
+                c->set_code(code); // DO NOT USE c_str() here!
                 c->set_initstagefuncname(initStageFuncName.c_str());
                 c->set_releasestagefuncname(releaseStageFuncName.c_str());
 
@@ -767,6 +779,8 @@ namespace tuplex {
         bool hasOutputLimit() const {
             return _outputLimit < std::numeric_limits<size_t>::max();
         }
+
+        void optimizeIRInCodePath(LLVMOptimizer &opt, StageCodePath &path);
     };
 }
 #endif //TUPLEX_TRANSFORMSTAGE_H

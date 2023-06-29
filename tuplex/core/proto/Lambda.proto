@@ -27,25 +27,32 @@ enum SerializationFormat {
     SF_CEREAL = 1;
 }
 
-message CodePath {
-    bytes irBitCode = 1;
-    string initStageFuncName = 2;
-    string releaseStageFuncName = 3;
-    string funcStageName = 4;
-    string funcProcessRowName = 5;
-    string writeFileCallbackName = 6;
-    string writeMemoryCallbackName = 7;
-    string writeHashCallbackName = 8;
-    string writeExceptionCallbackName = 9;
-    string writeAggregateCallbackName = 10;
+enum CodeFormat {
+    LLVM_IR_BITCODE = 0;
+    LLVM_IR = 1;
+    OBJECT_CODE = 2;
+}
 
-    string aggregateInitFuncName = 11;
-    string aggregateCombineFuncName = 12;
-    string aggregateAggregateFuncName = 13;
+message CodePath {
+    CodeFormat codeFormat = 1;
+    bytes code = 2;
+    string initStageFuncName = 3;
+    string releaseStageFuncName = 4;
+    string funcStageName = 5;
+    string funcProcessRowName = 6;
+    string writeFileCallbackName = 7;
+    string writeMemoryCallbackName = 8;
+    string writeHashCallbackName = 9;
+    string writeExceptionCallbackName = 10;
+    string writeAggregateCallbackName = 11;
+
+    string aggregateInitFuncName = 12;
+    string aggregateCombineFuncName = 13;
+    string aggregateAggregateFuncName = 14;
 }
 
 message TransformStage {
-    bytes bitcode = 1;
+    uint32 stageID = 1;
     repeated string inputColumns = 2;
     repeated string outputColumns = 3;
 

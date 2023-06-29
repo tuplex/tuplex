@@ -145,6 +145,8 @@ namespace tuplex {
 
         size_t specializationUnitSize;
 
+        bool useObjectFileAsInterchangeFormat;
+
         // use some defaults...
         WorkerSettings() : numThreads(1), normalBufferSize(WORKER_DEFAULT_BUFFER_SIZE),
         exceptionBufferSize(WORKER_EXCEPTION_BUFFER_SIZE), hashBufferSize(WORKER_HASH_BUFFER_SIZE),
@@ -154,7 +156,7 @@ namespace tuplex {
         s3PreCacheSize(0),
         exceptionSerializationMode(codegen::ExceptionSerializationMode::SERIALIZE_AS_GENERAL_CASE),
         specializationUnitSize(0),
-        samplingSize(0) {
+        samplingSize(0), useObjectFileAsInterchangeFormat(false) {
 
             // set some options from defaults...
             auto opt = ContextOptions::defaults();
@@ -189,7 +191,8 @@ namespace tuplex {
         strataSize(other.strataSize),
         samplesPerStrata(other.samplesPerStrata),
         specializationUnitSize(other.specializationUnitSize),
-        samplingSize(other.samplingSize) {}
+        samplingSize(other.samplingSize),
+        useObjectFileAsInterchangeFormat(other.useObjectFileAsInterchangeFormat) {}
 
         inline bool operator == (const WorkerSettings& other) const {
 
@@ -241,6 +244,9 @@ namespace tuplex {
             if(samplingSize != other.samplingSize)
                 return false;
 
+            if(useObjectFileAsInterchangeFormat != other.useObjectFileAsInterchangeFormat)
+                return false;
+
             return true;
         }
 
@@ -272,7 +278,8 @@ namespace tuplex {
         os << "\"normalCaseThreshold\":"<<ws.normalCaseThreshold<<", ";
         os << "\"exceptionSerializationMode\":"<<(int)ws.exceptionSerializationMode<<", ";
         os << "\"s3PreCacheSize\":"<<ws.s3PreCacheSize<<",";
-        os << "\"specializationUnitSize\":"<<ws.specializationUnitSize;
+        os << "\"specializationUnitSize\":"<<ws.specializationUnitSize<<",";
+        os << "\"useObjectFileAsInterchangeFormat\":"<<boolToString(ws.useObjectFileAsInterchangeFormat);
         os << "}";
         return os;
     }
@@ -395,6 +402,10 @@ namespace tuplex {
         Aws::SDKOptions _aws_options;
 #endif
 
+
+        void registerSymbolsFromStageWithCompilers(TransformStage& stage);
+
+        void validateBitCode(const std::string& bitcode);
 
         inline bool has_python_resolver() const { return _has_python_resolver; }
 

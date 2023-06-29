@@ -69,6 +69,10 @@ namespace tuplex {
         inline URI tempStageURI(int stageNo) const {
             return URI(_options.SCRATCH_DIR().toString() + "/temporary_stage_output/" + "stage_" + std::to_string(stageNo));
         }
+
+        std::string optimizeAndSerializePlanAsBitcode(const TransformStage* stage) const;
+
+        std::string optimizeAndSerializePlanAsObjectFile(const TransformStage* stage) const;
     private:
         URI _scratchDir;
         bool _deleteScratchDirOnShutdown;

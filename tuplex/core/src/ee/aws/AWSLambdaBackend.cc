@@ -627,20 +627,22 @@ namespace tuplex {
             Timer timer;
             bool optimized_ir = false;
             // optimize in parallel???
-            if (!tstage->fastPathBitCode().empty()) {
+            if (!tstage->fastPathCode().empty()) {
+
+                assert(tstage->fastPathCodeFormat() == codegen::CodeFormat::LLVM_IR_BITCODE);
                 llvm::LLVMContext ctx;
                 LLVMOptimizer opt;
-                auto mod = codegen::bitCodeToModule(ctx, tstage->fastPathBitCode());
+                auto mod = codegen::bitCodeToModule(ctx, tstage->fastPathCode());
                 opt.optimizeModule(*mod);
                 optimizedBitcode = codegen::moduleToBitCodeString(*mod);
                 optimized_ir = true;
-            } else if (!tstage->slowPathBitCode().empty()) {
+            } else if (!tstage->slowPathCode().empty()) {
                 // todo...
             }
             if (optimized_ir)
                 logger().info("client-side LLVM IR optimization of took " + std::to_string(timer.time()) + "s");
         } else {
-            optimizedBitcode = tstage->fastPathBitCode();
+            optimizedBitcode = tstage->fastPathCode();
         }
 
         if (stage->outputMode() == EndPointMode::MEMORY) {
@@ -977,7 +979,6 @@ namespace tuplex {
         for (auto count: recursive_invocations)
             pb_stage->add_invocationcount(count);
 
-        pb_stage->set_bitcode(bitCode);
         req.set_allocated_stage(pb_stage.release());
 
         // add request for this
@@ -1211,8 +1212,6 @@ namespace tuplex {
 
                 auto rangeStart = cur_size;
                 auto rangeEnd = std::min(cur_size + splitSize, uri_size);
-
-                pb_stage->set_bitcode(bitCode);
 
                 req.set_allocated_stage(pb_stage.release());
 

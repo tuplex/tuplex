@@ -384,7 +384,7 @@ namespace tuplex {
             size_t file_size = req.inputsizes(0);
             logger().info("-- specializing to " + uri);
 
-            std::string irCodeBefore = tstage->fastPathBitCode();
+            std::string irCodeBefore = tstage->fastPathCode();
             logger().info("fast code path size before hyperspecialization: " + sizeToMemString(irCodeBefore.size()));
 
             // check if specialized normal-case type is different from current normal case type
@@ -443,9 +443,9 @@ namespace tuplex {
                 logger().warn("-- hyperspecialization failed in " + std::to_string(timer.time())
                               + "s, using original, provided fast code path.");
             }
-            logger().info("fast code path size after hyperspecialization: " + sizeToMemString(tstage->fastPathBitCode().size()));
+            logger().info("fast code path size after hyperspecialization: " + sizeToMemString(tstage->fastPathCode().size()));
             markTime("hyperspecialization_time", timer.time());
-            if(tstage->fastPathBitCode().empty()) {
+            if(tstage->fastPathCode().empty()) {
 #ifndef NDEBUG
                 logger().error("there is no fast-code path, need fast code path to parse properly. Erroring out.");
                 return WORKER_ERROR_COMPILATION_FAILED;
@@ -810,7 +810,7 @@ namespace tuplex {
             auto pythonPipelineName = tstage->pythonPipelineName();
             ss<<"has interpreter path: "<<((pythonCode.empty() || pythonPipelineName.empty()) ? "no" : "yes")
               <<" has compiled fallback path: "
-              <<(tstage->slowPathBitCode().empty() ? "no" : "yes");
+              <<(tstage->slowPathCode().empty() ? "no" : "yes");
             logger().info(ss.str());
         }
 
@@ -1903,8 +1903,76 @@ namespace tuplex {
             ws.specializationUnitSize = 0;
         }
 
+        it = req.settings().other().find("tuplex.experimental.interchangeWithObjectFiles");
+        if(it != req.settings().other().end()) {
+            ws.useObjectFileAsInterchangeFormat = stringToBool(it->second);
+        } else {
+            ws.useObjectFileAsInterchangeFormat = false;
+        }
+
         ws.numThreads = std::max(1ul, ws.numThreads);
         return ws;
+    }
+
+    void WorkerApp::registerSymbolsFromStageWithCompilers(tuplex::TransformStage &stage) {
+        // -> per default, don't.
+        if(!_compiler)
+            throw std::runtime_error("JITCompiler not initialized.");
+        if(!_fastCompiler)
+            throw std::runtime_error("fast compiler not initialized.");
+
+        // register symbols for each compiler
+        std::vector<JITCompiler*> compilers({_compiler.get(), _fastCompiler.get()});
+        for(JITCompiler* compiler : compilers) {
+
+            assert(compiler);
+
+            // register functions
+            // Note: only normal case for now, the other stuff is not interesting yet...
+            if(!stage.writeMemoryCallbackName().empty())
+                compiler->registerSymbol(stage.writeMemoryCallbackName(), writeRowCallback);
+            if(!stage.exceptionCallbackName().empty())
+                compiler->registerSymbol(stage.exceptionCallbackName(), exceptRowCallback);
+            if(!stage.writeFileCallbackName().empty())
+                compiler->registerSymbol(stage.writeFileCallbackName(), writeRowCallback);
+            if(!stage.writeHashCallbackName().empty())
+                compiler->registerSymbol(stage.writeHashCallbackName(), writeHashCallback);
+
+            // slow path registration, for now dummies
+            if(!stage.resolveWriteCallbackName().empty())
+                compiler->registerSymbol(stage.resolveWriteCallbackName(), slowPathRowCallback);
+            if(!stage.resolveExceptionCallbackName().empty())
+                compiler->registerSymbol(stage.resolveExceptionCallbackName(), slowPathExceptCallback);
+            // @TODO: hashing callbacks...
+        }
+    }
+
+    void WorkerApp::validateBitCode(const std::string &bitcode) {
+        llvm::LLVMContext ctx;
+        auto mod = bitcode.empty() ? nullptr : codegen::bitCodeToModule(ctx, bitcode);
+        if(!mod) {
+            if(!bitcode.empty())
+                throw std::runtime_error("error parsing module for fast code path");
+        } else {
+            logger().info("parsed llvm module from bitcode, " + mod->getName().str());
+
+            // run verify pass on module and print out any errors, before attempting to compile it
+            std::string moduleErrors;
+            llvm::raw_string_ostream os(moduleErrors);
+            if (verifyModule(*mod, &os)) {
+                os.flush();
+                logger().error("could not verify module from bitcode");
+                logger().error(moduleErrors);
+                logger().error(core::withLineNumbers(codegen::moduleToString(*mod)));
+            } else {
+#ifndef NDEBUG
+                logger().info("module verified.");
+                // save
+                auto ir_code = codegen::moduleToString(*mod.get());
+                stringToFile("worker_fast_path.txt", ir_code);
+#endif
+            }
+        }
     }
 
     std::shared_ptr<TransformStage::JITSymbols> WorkerApp::compileTransformStage(TransformStage &stage, bool use_llvm_optimizer) {
@@ -1912,7 +1980,7 @@ namespace tuplex {
         use_llvm_optimizer = _settings.useOptimizer;
 
         // 1. check fast code path
-        auto bitCode = stage.fastPathBitCode() + stage.slowPathBitCode();
+        auto bitCode = stage.fastPathCode() + stage.slowPathCode();
 
         if(bitCode.empty()) {
             logger().error("no bitcode found, empty stage?");
@@ -1929,74 +1997,20 @@ namespace tuplex {
 
         try {
             // compile transform stage, depending on worker settings use optimizer before or not!
-            // -> per default, don't.
-            if(!_compiler)
-                throw std::runtime_error("JITCompiler not initialized.");
-            if(!_fastCompiler)
-                throw std::runtime_error("fast compiler not initialized.");
-
-            // register symbols for each compiler
-            std::vector<JITCompiler*> compilers({_compiler.get(), _fastCompiler.get()});
-            for(JITCompiler* compiler : compilers) {
-
-                assert(compiler);
-
-                // register functions
-                // Note: only normal case for now, the other stuff is not interesting yet...
-                if(!stage.writeMemoryCallbackName().empty())
-                    compiler->registerSymbol(stage.writeMemoryCallbackName(), writeRowCallback);
-                if(!stage.exceptionCallbackName().empty())
-                    compiler->registerSymbol(stage.exceptionCallbackName(), exceptRowCallback);
-                if(!stage.writeFileCallbackName().empty())
-                    compiler->registerSymbol(stage.writeFileCallbackName(), writeRowCallback);
-                if(!stage.writeHashCallbackName().empty())
-                    compiler->registerSymbol(stage.writeHashCallbackName(), writeHashCallback);
-
-                // slow path registration, for now dummies
-                if(!stage.resolveWriteCallbackName().empty())
-                    compiler->registerSymbol(stage.resolveWriteCallbackName(), slowPathRowCallback);
-                if(!stage.resolveExceptionCallbackName().empty())
-                    compiler->registerSymbol(stage.resolveExceptionCallbackName(), slowPathExceptCallback);
-                // @TODO: hashing callbacks...
-            }
+            registerSymbolsFromStageWithCompilers(stage);
 
             // in debug mode, validate module.
-            llvm::LLVMContext ctx;
-            auto mod = stage.fastPathBitCode().empty() ? nullptr : codegen::bitCodeToModule(ctx, stage.fastPathBitCode());
-            if(!mod) {
-                if(!stage.fastPathBitCode().empty()) {
-                    logger().error("error parsing module for fast code path");
-                }
-                return nullptr;
-            } else {
-                logger().info("parsed llvm module from bitcode, " + mod->getName().str());
-
-                // run verify pass on module and print out any errors, before attempting to compile it
-                std::string moduleErrors;
-                llvm::raw_string_ostream os(moduleErrors);
-                if (verifyModule(*mod, &os)) {
-                    os.flush();
-                    logger().error("could not verify module from bitcode");
-                    logger().error(moduleErrors);
-                    logger().error(core::withLineNumbers(codegen::moduleToString(*mod)));
-                } else {
-    #ifndef NDEBUG
-                    logger().info("module verified.");
-                    // save
-                    auto ir_code = codegen::moduleToString(*mod.get());
-                    stringToFile("worker_fast_path.txt", ir_code);
-    #endif
-                }
-            }
-
+#ifndef NDEBUG
+            if(!stage.fastPathCode().empty() && stage.fastPathCodeFormat() == codegen::CodeFormat::LLVM_IR_BITCODE)
+                validateBitCode(stage.fastPathCode());
+            if(!stage.slowPathCode().empty() && stage.slowPathCodeFormat() == codegen::CodeFormat::LLVM_IR_BITCODE)
+                validateBitCode(stage.slowPathCode());
+#endif
             // perform actual compilation
             // -> do not compile slow path for now.
             // -> do not register symbols, because that has been done manually above.
 
             LLVMOptimizer opt;
-//            auto syms = stage.compile(*_compiler, use_llvm_optimizer ? &opt : nullptr,
-//                                        true,
-//                                        false);
 
             // for debugging enable tracing for the 2nd invocation!
             bool traceExecution = false;
@@ -2318,7 +2332,7 @@ namespace tuplex {
     codegen::resolve_f WorkerApp::getCompiledResolver(const TransformStage* stage) {
         logger().info("compiling slow code path.");
 
-        if(_settings.useInterpreterOnly || stage->slowPathBitCode().empty())
+        if(_settings.useInterpreterOnly || stage->slowPathCode().empty())
             return nullptr;
 
         if(!_settings.useCompiledGeneralPath)
@@ -2327,7 +2341,7 @@ namespace tuplex {
 #ifndef NDEBUG
         {
             llvm::LLVMContext ctx;
-            auto slow_path_bit_code = stage->slowPathBitCode();
+            auto slow_path_bit_code = stage->slowPathCode();
             auto slow_path_mod = slow_path_bit_code.empty() ? nullptr : codegen::bitCodeToModule(ctx, slow_path_bit_code);
             auto ir_code = codegen::moduleToString(*slow_path_mod.get());
             std::string general_save_path = "worker_general_resolver.txt";
@@ -2343,12 +2357,12 @@ namespace tuplex {
         compiler_to_use = _compiler.get();
 
         // this is a hack/magic constant
-        logger().debug("slow path bitcode size: " + sizeToMemString(stage->slowPathBitCode().size()));
+        logger().debug("slow path bitcode size: " + sizeToMemString(stage->slowPathCode().size()));
 
         // more than 512KB? -> select fast (non-optimizing) compiler
         auto bitcode_threshold_size = 512 * 1024; // 512KB
-        if(stage->slowPathBitCode().size() > bitcode_threshold_size) {
-            auto bitcode_size = stage->slowPathBitCode().size();
+        if(stage->slowPathCode().size() > bitcode_threshold_size) {
+            auto bitcode_size = stage->slowPathCode().size();
             logger().info("large bitcode " + sizeToMemString(bitcode_size) + " encountered larger than threshold of "
             + sizeToMemString(bitcode_threshold_size) + " for slow path, using fast compiler instead of optimizing-one.");
             compiler_to_use = _fastCompiler.get();

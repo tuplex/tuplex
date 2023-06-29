@@ -749,9 +749,9 @@ namespace tuplex {
 ////                }
 ////                // if not, compile given code & process using both compile code & fallback
 ////                // compile ONLY fast code path!
-////                if(tstage->fastPathBitCode().empty())
-////                    logger().warn("Weird, no fastPathBitCode??");
-////                logger().info("compiling fast path only (" + sizeToMemString(tstage->fastPathBitCode().size()) + ")");
+////                if(tstage->fastPathCode().empty())
+////                    logger().warn("Weird, no fastPathCode??");
+////                logger().info("compiling fast path only (" + sizeToMemString(tstage->fastPathCode().size()) + ")");
 ////
 ////                // Note: this requires to register symbols!
 ////                // JIT session error: Symbols not found: { fast_memOut_Stage_0, fast_except_Stage_0 }

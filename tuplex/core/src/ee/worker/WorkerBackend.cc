@@ -30,6 +30,51 @@ namespace tuplex {
 
     }
 
+    std::string WorkerBackend::optimizeAndSerializePlanAsBitcode(const TransformStage* stage) const {
+        std::string bitcode;
+
+        // optimize at client @TODO: optimize for target triple?
+        if (_options.USE_LLVM_OPTIMIZER()) {
+            Timer timer;
+            bool optimized_ir = false;
+            // optimize in parallel???
+            if (!stage->fastPathCode().empty()) {
+                llvm::LLVMContext ctx;
+                LLVMOptimizer opt;
+                auto mod = codegen::bitCodeToModule(ctx, stage->fastPathCode());
+                opt.optimizeModule(*mod);
+                bitcode = codegen::moduleToBitCodeString(*mod);
+                optimized_ir = true;
+            } else if (!stage->slowPathCode().empty()) {
+                // todo...
+                throw std::runtime_error("not yet implemented");
+            }
+            if (optimized_ir)
+                logger().info("client-side LLVM IR optimization of took " + std::to_string(timer.time()) + "s");
+        } else {
+            bitcode = stage->fastPathCode();
+        }
+
+        return bitcode;
+    }
+
+    std::string WorkerBackend::optimizeAndSerializePlanAsObjectFile(const tuplex::TransformStage *stage) const {
+        llvm::LLVMContext ctx;
+        auto mod = codegen::bitCodeToModule(ctx, stage->fastPathCode());
+
+        // use LLVM optimizer?
+        if(_options.USE_LLVM_OPTIMIZER()) {
+            Timer timer;
+            LLVMOptimizer opt;
+            opt.optimizeModule(*mod);
+            logger().info("client-side LLVM IR optimization of took " + std::to_string(timer.time()) + "s");
+        }
+
+        auto object_code = codegen::compileToObjectFile(*mod);
+
+        return std::string(object_code.begin(), object_code.end());
+    }
+
     void WorkerBackend::execute(PhysicalStage* stage) {
         using namespace std;
 
@@ -46,26 +91,14 @@ namespace tuplex {
         }
 
         std::string optimizedBitcode = "";
-        // optimize at client @TODO: optimize for target triple?
-        if (_options.USE_LLVM_OPTIMIZER()) {
-            Timer timer;
-            bool optimized_ir = false;
-            // optimize in parallel???
-            if (!tstage->fastPathBitCode().empty()) {
-                llvm::LLVMContext ctx;
-                LLVMOptimizer opt;
-                auto mod = codegen::bitCodeToModule(ctx, tstage->fastPathBitCode());
-                opt.optimizeModule(*mod);
-                optimizedBitcode = codegen::moduleToBitCodeString(*mod);
-                optimized_ir = true;
-            } else if (!tstage->slowPathBitCode().empty()) {
-                // todo...
-            }
-            if (optimized_ir)
-                logger().info("client-side LLVM IR optimization of took " + std::to_string(timer.time()) + "s");
-        } else {
-            optimizedBitcode = tstage->fastPathBitCode();
-        }
+
+        // wip, use either object file or bitcode to ship plan to executor
+        if(_options.EXPERIMENTAL_INTERCHANGE_CODE_VIA_OBJECT_FILES())
+            // compile to object code
+            optimizedBitcode = optimizeAndSerializePlanAsObjectFile(tstage);
+        else
+            optimizedBitcode = optimizeAndSerializePlanAsBitcode(tstage);
+
 
         if(stage->outputMode() != EndPointMode::FILE) {
             // throw std::runtime_error("only file mode yet supported");
@@ -86,7 +119,8 @@ namespace tuplex {
 
         logger().info("Setting buffer size for each thread to " + sizeToMemString(buf_spill_size));
 
-        auto requests = createSingleFileRequests(tstage, optimizedBitcode, numThreads, uri_infos, spillURI,
+        auto requests = createSingleFileRequests(tstage, optimizedBitcode,
+                                                 numThreads, uri_infos, spillURI,
                                             buf_spill_size);
 
         if (!requests.empty()) {
@@ -194,8 +228,6 @@ namespace tuplex {
 
                 auto rangeStart = cur_size;
                 auto rangeEnd = std::min(cur_size + splitSize, uri_size);
-
-                pb_stage->set_bitcode(bitCode);
 
                 req.set_allocated_stage(pb_stage.release());
 
@@ -327,7 +359,8 @@ namespace tuplex {
                                              "tuplex.optimizer.constantFoldingOptimization",
                                              "tuplex.optimizer.filterPromotion",
                                              "tuplex.experimental.forceBadParseExceptFormat",
-                                             "tuplex.experimental.specializationUnitSize"});
+                                             "tuplex.experimental.specializationUnitSize",
+                                             "tuplex.experimental.interchangeWithObjectFiles"});
         auto& m_map = *(ws->mutable_other());
         for(const auto& key : other_keys)
             m_map[key] = options.get(key);
@@ -337,7 +370,6 @@ namespace tuplex {
         m_map["tuplex.sample.maxDetectionRows"] = std::to_string(options.AWS_LAMBDA_SAMPLE_MAX_DETECTION_ROWS());
         m_map["tuplex.sample.strataSize"] = std::to_string(options.AWS_LAMBDA_SAMPLE_STRATA_SIZE());
         m_map["tuplex.sample.samplesPerStrata"] = std::to_string(options.AWS_LAMBDA_SAMPLE_SAMPLES_PER_STRATA());
-
     }
 
     std::string find_worker() {

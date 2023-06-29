@@ -172,7 +172,6 @@ namespace tuplex {
         assert(tstage);
         auto pb_stage = tstage->to_protobuf();
 
-        pb_stage->set_bitcode(tstage->fastPathBitCode());
         req.set_allocated_stage(pb_stage.release());
 
         // add input file to request
@@ -1043,6 +1042,9 @@ TEST(BasicInvocation, ShippingObjectFile) {
     // activate shipping code as object file
     co.set("tuplex.experimental.interchangeWithObjectFiles", "true"); // maybe change to interchange format -> ir, object?
 
+    // init runtime
+    auto rc_runtime = runtime::init(co.RUNTIME_LIBRARY().toPath());
+    ASSERT_TRUE(rc_runtime);
 
     string input_pattern = "test.csv";
     string output_path = "output.csv";
@@ -2422,35 +2424,35 @@ TEST(BasicInvocation, GithubSensititivity) {
         LLVMOptimizer opt;
         cout<<"GLOBAL LLVM stats:"<<endl;
         cout<<"Detailed module stats before opt:\n- fast path:\n"
-            <<detailed_bitcode_stats(tstage_global->fastPathBitCode())
+            <<detailed_bitcode_stats(tstage_global->fastPathCode())
             <<"\n"
-            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_global->slowPathBitCode())
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_global->slowPathCode())
             <<endl;
         Timer timer;
         tstage_global->optimizeBitCode(opt);
         cout<<"optimized global stage LLVM IR in "<<timer.time()<<"s"<<endl;
         cout<<"Detailed module stats after opt:\n- fast path:\n"
-            <<detailed_bitcode_stats(tstage_global->fastPathBitCode())
+            <<detailed_bitcode_stats(tstage_global->fastPathCode())
             <<"\n"
-            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_global->slowPathBitCode())
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_global->slowPathCode())
             <<endl;
     }
 
     {
         cout<<"HYPER LLVM stats:"<<endl;
         cout<<"Detailed module stats before opt:\n- fast path:\n"
-            <<detailed_bitcode_stats(tstage_hyper->fastPathBitCode())
+            <<detailed_bitcode_stats(tstage_hyper->fastPathCode())
             <<"\n"
-            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_hyper->slowPathBitCode())
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_hyper->slowPathCode())
             <<endl;
         Timer timer;
         LLVMOptimizer opt;
         tstage_hyper->optimizeBitCode(opt);
         cout<<"optimized hyper stage LLVM IR in "<<timer.time()<<"s"<<endl;
         cout<<"Detailed module stats after opt:\n- fast path:\n"
-            <<detailed_bitcode_stats(tstage_hyper->fastPathBitCode())
+            <<detailed_bitcode_stats(tstage_hyper->fastPathCode())
             <<"\n"
-            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_hyper->slowPathBitCode())
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_hyper->slowPathCode())
             <<endl;
     }
 
@@ -2612,35 +2614,35 @@ TEST(BasicInvocation, FlightsSensititivity) {
         LLVMOptimizer opt;
         cout<<"GLOBAL LLVM stats:"<<endl;
         cout<<"Detailed module stats before opt:\n- fast path:\n"
-            <<detailed_bitcode_stats(tstage_global->fastPathBitCode())
+            <<detailed_bitcode_stats(tstage_global->fastPathCode())
             <<"\n"
-            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_global->slowPathBitCode())
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_global->slowPathCode())
             <<endl;
         Timer timer;
         tstage_global->optimizeBitCode(opt);
         cout<<"optimized global stage LLVM IR in "<<timer.time()<<"s"<<endl;
         cout<<"Detailed module stats after opt:\n- fast path:\n"
-            <<detailed_bitcode_stats(tstage_global->fastPathBitCode())
+            <<detailed_bitcode_stats(tstage_global->fastPathCode())
             <<"\n"
-            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_global->slowPathBitCode())
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_global->slowPathCode())
             <<endl;
     }
 
     {
         cout<<"HYPER LLVM stats:"<<endl;
         cout<<"Detailed module stats before opt:\n- fast path:\n"
-            <<detailed_bitcode_stats(tstage_hyper->fastPathBitCode())
+            <<detailed_bitcode_stats(tstage_hyper->fastPathCode())
             <<"\n"
-            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_hyper->slowPathBitCode())
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_hyper->slowPathCode())
             <<endl;
         Timer timer;
         LLVMOptimizer opt;
         tstage_hyper->optimizeBitCode(opt);
         cout<<"optimized hyper stage LLVM IR in "<<timer.time()<<"s"<<endl;
         cout<<"Detailed module stats after opt:\n- fast path:\n"
-            <<detailed_bitcode_stats(tstage_hyper->fastPathBitCode())
+            <<detailed_bitcode_stats(tstage_hyper->fastPathCode())
             <<"\n"
-            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_hyper->slowPathBitCode())
+            <<"- slow path:\n"<<detailed_bitcode_stats(tstage_hyper->slowPathCode())
             <<endl;
     }
 
@@ -2988,11 +2990,11 @@ namespace tuplex {
 
             // print slowpath to file
             llvm::LLVMContext llvm_ctx;
-            auto mod = codegen::bitCodeToModule(llvm_ctx, tstage_general->slowPathBitCode());
+            auto mod = codegen::bitCodeToModule(llvm_ctx, tstage_general->slowPathCode());
             stringToFile("general_slowpath.txt", codegen::moduleToString(*mod.get()));
             // codegen::annotateModuleWithInstructionPrint(*mod.get());
             // debug, overwrite slowpath with newly annotated module!
-            tstage_general->slowPathBitCode() = codegen::moduleToBitCodeString(*mod.get());
+            tstage_general->slowPathCode() = codegen::moduleToBitCodeString(*mod.get());
         }
 
 

@@ -439,13 +439,18 @@ namespace tuplex {
                         else if(elementType == python::Type::I64) {
                             // can just directly point to the serialized data
                             auto list_arr = builder.CreateStructGEP(listAlloc, llvmType, 2); //_env->CreateStructGEP(builder, listAlloc, 2);
-                            builder.CreateStore(builder.CreateBitCast(builder.CreateGEP(_env->i64Type(), ptr, _env->i64Const(sizeof(int64_t))),
-                                    _env->i64ptrType()), list_arr);
+                            auto data_ptr = builder.CreateBitCast(builder.MovePtrByBytes(ptr, _env->i64Const(sizeof(int64_t))),
+                                                                  _env->i64ptrType());
+
+                            builder.CreateStore(data_ptr, list_arr);
                         }  else if(elementType == python::Type::F64) {
                             // can just directly point to the serialized data
                             auto list_arr = builder.CreateStructGEP(listAlloc, llvmType, 2); //_env->CreateStructGEP(builder, listAlloc, 2);
-                            builder.CreateStore(builder.CreateBitCast(builder.CreateGEP(_env->doubleType(), ptr, _env->i64Const(sizeof(int64_t))),
-                                                                      _env->doublePointerType()), list_arr);
+
+                            auto data_ptr = builder.CreateBitCast(builder.MovePtrByBytes(ptr, _env->i64Const(sizeof(int64_t))),
+                                                                  _env->doublePointerType());
+
+                            builder.CreateStore(data_ptr, list_arr);
                         } else {
                             Logger::instance().defaultLogger().error("unknown type '" + type.desc() + "' to be deserialized!");
                         }

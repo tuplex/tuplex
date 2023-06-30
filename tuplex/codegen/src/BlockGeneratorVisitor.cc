@@ -3179,27 +3179,28 @@ namespace tuplex {
             assert(_lfb);
             auto builder = _lfb->getIRBuilder();
             auto &context = _env->getContext();
-            auto rangeStructPtr = _env->CreateFirstBlockAlloca(builder, _env->getRangeObjectType(), "range");
+            auto llvm_range_object_type = _env->getRangeObjectType();
+            auto rangeStructPtr = _env->CreateFirstBlockAlloca(builder, llvm_range_object_type, "range");
 
             // store the data in
             if(args.size() == 1) {
-                auto elPtr = _env->CreateStructGEP(builder, rangeStructPtr, 0);
+                auto elPtr = builder.CreateStructGEP(rangeStructPtr, llvm_range_object_type, 0);
                 builder.CreateStore(_env->i64Const(0), elPtr);
-                elPtr = _env->CreateStructGEP(builder, rangeStructPtr, 1);
+                elPtr = builder.CreateStructGEP(rangeStructPtr, llvm_range_object_type, 1);
                 builder.CreateStore(args[0].val, elPtr); // stop is the argument
-                elPtr = _env->CreateStructGEP(builder, rangeStructPtr, 2);
+                elPtr = builder.CreateStructGEP(rangeStructPtr, llvm_range_object_type, 2);
                 builder.CreateStore(_env->i64Const(1), elPtr);
             } else if(args.size() == 2) {
                 for(int i = 0; i < 2; ++i) {
-                    auto elPtr = _env->CreateStructGEP(builder, rangeStructPtr, i);
+                    auto elPtr = builder.CreateStructGEP(rangeStructPtr, llvm_range_object_type, i);
                     builder.CreateStore(args[i].val, elPtr);
                 }
-                auto elPtr = _env->CreateStructGEP(builder, rangeStructPtr, 2);
+                auto elPtr = builder.CreateStructGEP(rangeStructPtr, llvm_range_object_type, 2);
                 builder.CreateStore(_env->i64Const(1), elPtr);
             } else {
                 assert(args.size() == 3);
                 for(int i = 0; i < 3; ++i) {
-                    auto elPtr = _env->CreateStructGEP(builder, rangeStructPtr, i);
+                    auto elPtr = builder.CreateStructGEP(rangeStructPtr, llvm_range_object_type, i);
                     builder.CreateStore(args[i].val, elPtr);
                 }
             }
@@ -3288,10 +3289,11 @@ namespace tuplex {
 
                 llvm::Value *start, *stop, *step;
                 if(iterType == python::Type::RANGE) {
+                    auto llvm_range_object_type = _env->getRangeObjectType();
                     // get range parameters
-                    start = builder.CreateLoad(_env->CreateStructGEP(builder, iter.val, 0));
-                    stop = builder.CreateLoad(_env->CreateStructGEP(builder, iter.val, 1));
-                    step = builder.CreateLoad(_env->CreateStructGEP(builder, iter.val, 2));
+                    start = builder.CreateLoad(llvm_range_object_type->getStructElementType(0), builder.CreateStructGEP(iter.val, llvm_range_object_type, 0));
+                    stop = builder.CreateLoad(llvm_range_object_type->getStructElementType(1), builder.CreateStructGEP(iter.val, llvm_range_object_type, 1));
+                    step = builder.CreateLoad(llvm_range_object_type->getStructElementType(2), builder.CreateStructGEP(iter.val, llvm_range_object_type, 2));
                 } else if(iterType == python::Type::STRING) {
                     start = _env->i64Const(0);
                     stop = builder.CreateSub(iter.size, _env->i64Const(1));
@@ -3328,9 +3330,9 @@ namespace tuplex {
                     builder.CreateStore(builder.CreateAdd(builder.CreateMul(numiters, _env->i64Const(8)), _env->i64Const(8)), listSize);
 
                     // load the list with its initial size
-                    auto list_capacity_ptr = _env->CreateStructGEP(builder, listAlloc, 0);
+                    auto list_capacity_ptr = builder.CreateStructGEP(listAlloc, listLLVMType, 0);
                     builder.CreateStore(numiters, list_capacity_ptr);
-                    auto list_len_ptr = _env->CreateStructGEP(builder, listAlloc, 1);
+                    auto list_len_ptr = builder.CreateStructGEP(listAlloc, listLLVMType, 1);
                     builder.CreateStore(numiters, list_len_ptr);
 
                     // allocate the array
@@ -3342,7 +3344,7 @@ namespace tuplex {
                             listLLVMType->getStructElementType(2));
 
                     // store the new array back into the array pointer
-                    auto list_arr = _env->CreateStructGEP(builder, listAlloc, 2);
+                    auto list_arr = builder.CreateStructGEP(listAlloc, listLLVMType, 2);
                     builder.CreateStore(list_arr_malloc, list_arr);
 
                     llvm::Value* list_sizearr_malloc;
@@ -3353,7 +3355,7 @@ namespace tuplex {
                                 listLLVMType->getStructElementType(3));
 
                         // store the new array back into the array pointer
-                        auto list_sizearr = _env->CreateStructGEP(builder, listAlloc, 3);
+                        auto list_sizearr = builder.CreateStructGEP(listAlloc, listLLVMType, 3);
                         builder.CreateStore(list_sizearr_malloc, list_sizearr);
                     }
 
@@ -3366,10 +3368,10 @@ namespace tuplex {
                         auto newtargetstr = builder.CreatePointerCast(builder.malloc(_env->i64Const(2)),
                                                                       _env->i8ptrType());
                         // do via load & store, no need for memcpy here yet
-                        auto startChar = builder.CreateLoad(builder.CreateGEP(iter.val, start));
+                        auto startChar = builder.CreateLoad(builder.getInt8Ty(), builder.CreateGEP(builder.getInt8Ty(), iter.val, start));
                         builder.CreateStore(startChar, newtargetstr); // store charAtIndex at ptr
                         builder.CreateStore(_env->i8Const(0),
-                                            builder.CreateGEP(newtargetstr, _env->i32Const(1))); // null terminate
+                                            builder.CreateGEP(builder.getInt8Ty(), newtargetstr, _env->i32Const(1))); // null terminate
                         builder.CreateStore(newtargetstr, target.val);
                         builder.CreateStore(_env->i64Const(2), target.size);
                     } else if(iterType.isListType()) {
@@ -3428,7 +3430,8 @@ namespace tuplex {
                     auto loopVar = builder.CreatePHI(_env->i64Type(), 2);
                     loopVar->addIncoming(_env->i64Const(0), startBB); // start the loop variable at 0
 
-                    auto list_el = builder.CreateGEP(list_arr_malloc, loopVar);
+                    auto llvm_element_type = _env->pythonToLLVMType(elementType);
+                    auto list_el = builder.CreateGEP(llvm_element_type, list_arr_malloc, loopVar);
                     _lfb->setLastBlock(bodyBlock1);
 
                     // -------
@@ -3449,16 +3452,16 @@ namespace tuplex {
 
                     // if string values, store the lengths as well
                     if (elementType == python::Type::STRING) {
-                        auto list_len_el = builder.CreateGEP(list_sizearr_malloc, loopVar);
+                        auto list_len_el = builder.CreateGEP(llvm_element_type, list_sizearr_malloc, loopVar);
                         builder.CreateStore(expression.size, list_len_el);
-                        builder.CreateStore(builder.CreateAdd(builder.CreateLoad(listSize), expression.size), listSize);
+                        builder.CreateStore(builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), listSize), expression.size), listSize);
                     }
 
                     auto nextLoopVar = builder.CreateAdd(loopVar, _env->i64Const(1));
                     loopVar->addIncoming(nextLoopVar, builder.GetInsertBlock()); // add nextloopvar as a phi node input to the loopvar
 
                     if(iterType == python::Type::RANGE) {
-                        builder.CreateStore(builder.CreateAdd(builder.CreateLoad(target.val), step),
+                        builder.CreateStore(builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), target.val), step),
                                             target.val); // target += step
                     } else if(iterType == python::Type::STRING) {
                         // TODO: can I just keep modifying the same string here, instead of allocating new ones?
@@ -3466,10 +3469,10 @@ namespace tuplex {
                         auto newtargetstr = builder.CreatePointerCast(builder.malloc(_env->i64Const(2)),
                                                                       _env->i8ptrType());
                         // do via load & store, no need for memcpy here yet
-                        auto startChar = builder.CreateLoad(builder.CreateGEP(iter.val, nextLoopVar));
+                        auto startChar = builder.CreateLoad(builder.getInt8Ty(), builder.CreateGEP(builder.getInt8Ty(), iter.val, nextLoopVar));
                         builder.CreateStore(startChar, newtargetstr); // store charAtIndex at ptr
                         builder.CreateStore(_env->i8Const(0),
-                                            builder.CreateGEP(newtargetstr, _env->i32Const(1))); // null terminate
+                                            builder.CreateGEP(builder.getInt8Ty(), newtargetstr, _env->i32Const(1))); // null terminate
                         builder.CreateStore(newtargetstr, target.val);
                         builder.CreateStore(_env->i64Const(2), target.size);
                     } else if(iterType.isListType()) {
@@ -3497,7 +3500,7 @@ namespace tuplex {
                     builder.SetInsertPoint(retBlock);
                     _lfb->setLastBlock(retBlock);
                 }
-                addInstruction(builder.CreateLoad(listAlloc), builder.CreateLoad(listSize));
+                addInstruction(builder.CreateLoad(listLLVMType, listAlloc), builder.CreateLoad(builder.getInt64Ty(), listSize));
             } else {
                 throw std::runtime_error("Unsupported iterable in list comprehension codegen: " + iterType.desc());
             }

@@ -1920,13 +1920,74 @@ namespace tuplex {
             return SerializableValue();
         }
 
+        void debugPrintListValue(LLVMEnvironment& env, const codegen::IRBuilder& builder,
+                                 const python::Type& listType, llvm::Value* list) {
+            assert(listType.isListType());
+
+            if(python::Type::EMPTYLIST == listType) {
+                env.debugPrint(builder, "empty list ()");
+                return;
+            }
+
+            auto elementType = listType.elementType();
+            auto capacity = builder.CreateExtractValue(list, {0});
+            auto num_elements = builder.CreateExtractValue(list, {1});
+            env.printValue(builder, capacity, "found list of type " + listType.desc() + " with capacity=");
+            env.printValue(builder, num_elements, "found list of type " + listType.desc() + " with num_elements=");
+
+            // loop over elements
+            auto counter_var = env.CreateFirstBlockAlloca(builder, builder.getInt64Ty());
+            builder.CreateStore(env.i64Const(0), counter_var);
+
+            using namespace llvm;
+            auto& ctx = builder.getContext();
+            auto bbLoopHeader = BasicBlock::Create(ctx, "loop_header", builder.GetInsertBlock()->getParent());
+            auto bbLoopBody = BasicBlock::Create(ctx, "loop_body", builder.GetInsertBlock()->getParent());
+            auto bbLoopExit = BasicBlock::Create(ctx, "loop_exit", builder.GetInsertBlock()->getParent());
+
+            env.debugPrint(builder, "-- list elements --");
+            builder.CreateBr(bbLoopHeader);
+
+            // loop header
+            builder.SetInsertPoint(bbLoopHeader);
+            auto loop_cond = builder.CreateICmpSLT(builder.CreateLoad(builder.getInt64Ty(), counter_var), num_elements);
+            builder.CreateCondBr(loop_cond, bbLoopBody, bbLoopExit);
+
+            // loop body
+
+            builder.SetInsertPoint(bbLoopBody);
+            auto counter = builder.CreateLoad(builder.getInt64Ty(), counter_var);
+
+            // print list element:
+            env.printValue(builder, counter, "i=");
+
+            auto llvm_element_type = env.pythonToLLVMType(elementType);
+            auto elementsPtr = builder.CreateExtractValue(list, {2});
+
+            // manual extract
+            auto t0 = builder.CreateLoad(builder.getInt64Ty(),
+                                         builder.MovePtrByBytes(elementsPtr, builder.CreateMul(env.i64Const(8), counter)));
+            env.printValue(builder, t0, "t0: ");
+
+
+            auto x0 = builder.CreateLoad(llvm_element_type, builder.CreateGEP(llvm_element_type, elementsPtr, counter));
+            env.printValue(builder, x0, "element: ");
+
+            builder.CreateStore(builder.CreateAdd(counter, env.i64Const(1)), counter_var);
+            builder.CreateBr(bbLoopHeader);
+
+            // loop exit
+            builder.SetInsertPoint(bbLoopExit);
+            env.debugPrint(builder, "-- end --");
+        }
+
         SerializableValue FunctionRegistry::createRandomChoiceCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder& builder, const python::Type &argType, const SerializableValue &arg) {
             if(argType == python::Type::STRING) {
                 lfb.addException(builder, ExceptionCode::INDEXERROR, builder.CreateICmpEQ(arg.size, _env.i64Const(1))); // index error if empty string
                 auto random_number = builder.CreateCall(uniformInt_prototype(_env.getContext(), _env.getModule().get()), {_env.i64Const(0), builder.CreateSub(arg.size, _env.i64Const(1))});
                 auto retstr = builder.CreatePointerCast(_env.malloc(builder, _env.i64Const(2)), _env.i8ptrType()); // create 1-char string
-                builder.CreateStore(builder.CreateLoad(builder.CreateGEP(arg.val, random_number)), retstr); // store the character
-                builder.CreateStore(_env.i8Const(0), builder.CreateGEP(retstr, _env.i32Const(1))); // write a null terminator
+                builder.CreateStore(builder.CreateLoad(builder.getInt8Ty(), builder.MovePtrByBytes(arg.val, random_number)), retstr); // store the character
+                builder.CreateStore(_env.i8Const(0), builder.MovePtrByBytes(retstr, _env.i32Const(1))); // write a null terminator
                 return {retstr, _env.i64Const(2)};
             } else if(argType.isListType() && argType != python::Type::EMPTYLIST) {
                 auto elementType = argType.elementType();
@@ -1936,20 +1997,43 @@ namespace tuplex {
                         return {nullptr, nullptr, _env.i1Const(true)};
                     } else if(elementType == python::Type::EMPTYTUPLE) {
                         auto alloc = builder.CreateAlloca(_env.getEmptyTupleType(), 0, nullptr);
-                        auto load = builder.CreateLoad(alloc);
+                        auto load = builder.CreateLoad(_env.getEmptyTupleType(), alloc);
                         return {load, _env.i64Const(sizeof(int64_t))};
                     } else if(elementType == python::Type::EMPTYDICT) {
                         return {_env.strConst(builder, "{}"), _env.i64Const(strlen("{}") + 1)};
                     }
                 } else {
+
+                    // use this helper to print out list...
+                    // debugPrintListValue(_env, builder, argType, arg.val);
+
                     auto num_elements = builder.CreateExtractValue(arg.val, {1});
                     lfb.addException(builder, ExceptionCode::INDEXERROR, builder.CreateICmpEQ(num_elements, _env.i64Const(0))); // index error if empty list
                     auto random_number = builder.CreateCall(uniformInt_prototype(_env.getContext(), _env.getModule().get()), {_env.i64Const(0), num_elements});
 
-                    auto subval = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(arg.val, 2), random_number));
+                    _env.printValue(builder, num_elements, argType.desc() +" has num elements=");
+                    _env.printValue(builder, random_number, "rand index to retrieve=");
+
+                    auto llvm_element_type = _env.pythonToLLVMType(elementType);
+                    auto elementsPtr = builder.CreateExtractValue(arg.val, {2});
+                    _env.printValue(builder, elementsPtr, "elements=");
+                    auto x0 = builder.CreateLoad(llvm_element_type, elementsPtr);
+
+                    auto subval = builder.CreateLoad(llvm_element_type,
+                                                     builder.CreateGEP(llvm_element_type, elementsPtr, random_number));
+
+                    // alt
+                    _env.printValue(builder, builder.CreateLoad(llvm_element_type, builder.CreateGEP(llvm_element_type->getPointerTo(), builder.CreateExtractValue(arg.val, {2}), random_number)), "alt=");
+
+                    //auto list_llvm_type = _env.pythonToLLVMType(argType);
+                    //_env.printValue(builder, builder.CreateLoad(llvm_element_type, builder.CreateGEP(llvm_element_type, builder.CreateStructGEP(arg.val, list_llvm_type, 2), random_number)), "alt=");
+
+
+                    _env.printValue(builder, subval, "value retrieved=");
                     llvm::Value* subsize = _env.i64Const(sizeof(int64_t));
                     if(elementType == python::Type::STRING) {
-                        subsize = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(arg.val, 3), random_number));
+                        subsize = builder.CreateLoad(builder.getInt64Ty(),
+                                                     builder.CreateGEP(builder.getInt64Ty(), builder.CreateExtractValue(arg.val, 3), random_number));
                     }
                     return {subval, subsize};
                 }

@@ -258,18 +258,17 @@ namespace tuplex {
                     Value *size = builder.CreateTrunc(builder.CreateLShr(varInfo, 32, "varsize"), Type::getInt32Ty(context));
                     size = builder.CreateZExtOrTrunc(size, Type::getInt64Ty(context));
 
-                    // debug print
-                    _env->printValue(builder, varInfo, "var info=");
-                    _env->printValue(builder, offset, "var type offset=");
-                    _env->printValue(builder, size, "var type size=");
+                    // // debug print
+                    // _env->printValue(builder, varInfo, "var info=");
+                    // _env->printValue(builder, offset, "var type offset=");
+                    // _env->printValue(builder, size, "var type size=");
 
                     // add offset to get starting point of varlen argument's memory region
                     Value *ptr = builder.MovePtrByBytes(lastPtr, offset, twine); //builder.CreateGEP(_env->i8ptrType(), lastPtr, offset, twine);
                     assert(ptr->getType() == Type::getInt8PtrTy(context, 0));
                     if(type == python::Type::STRING || type == python::Type::PYOBJECT) {
-
-                        // debug print string:
-                        _env->printValue(builder, ptr, "decoded str= ");
+                        // // debug print string:
+                        // _env->printValue(builder, ptr, "decoded str= ");
 
                         _tree.set(i, codegen::SerializableValue(ptr, size, isnull));
                     } else if(type == python::Type::EMPTYDICT) {

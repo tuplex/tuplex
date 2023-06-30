@@ -798,9 +798,9 @@ namespace tuplex {
                 size = i64Size;
             }
 
-            // debug print
-            printValue(builder, value, "val of type " + elementType.desc() + " is: ");
-            printValue(builder, size, "size for val of type " + elementType.desc() + " is: ");
+            // // debug print
+            // printValue(builder, value, "val of type " + elementType.desc() + " is: ");
+            // printValue(builder, size, "size for val of type " + elementType.desc() + " is: ");
 
             return SerializableValue(value, size, isnull);
         }

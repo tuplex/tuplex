@@ -23,6 +23,18 @@ namespace tuplex {
             OBJECT_CODE=2
         };
 
+        inline std::string codeFormatToStr(const CodeFormat& fmt) {
+            switch(fmt) {
+                case CodeFormat::LLVM_IR_BITCODE:
+                    return "llvm bc";
+                case CodeFormat::LLVM_IR:
+                    return "llvm ir";
+                case CodeFormat::OBJECT_CODE:
+                    return "object";
+            }
+            return "unknown";
+        }
+
 
         enum class ExceptionSerializationMode {
             SERIALIZE_MISMATCH_ALWAYS_AS_BAD_PARSE=1,

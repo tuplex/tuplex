@@ -1035,6 +1035,16 @@ TEST(BasicInvocation, ShippingObjectFile) {
     using namespace tuplex;
     using namespace std;
 
+    // change cwd & create dir to avoid conflicts!
+    auto testName = std::string(::testing::UnitTest::GetInstance()->current_test_info()->test_case_name()) + std::string(::testing::UnitTest::GetInstance()->current_test_info()->name());
+    auto scratchDir = "/tmp/" + testName;
+    auto cwd_path = boost::filesystem::current_path();
+    auto desired_cwd = cwd_path.string() + "/tests/" + testName;
+    // create dir if it doesn't exist
+    auto vfs = VirtualFileSystem::fromURI("file://");
+    vfs.create_dir(desired_cwd);
+    boost::filesystem::current_path(desired_cwd);
+
     // local worker mode for easier debugging
     ContextOptions co = ContextOptions::defaults();
     co.set("tuplex.backend", "worker");
@@ -1052,6 +1062,7 @@ TEST(BasicInvocation, ShippingObjectFile) {
     size_t N = 1000000;
     stringstream ss;
     ss<<"A,B\n";
+    ss<<"42,9\n"; // <-- single line to make sure test passes
     for(unsigned i = 0; i < N; ++i) {
         ss<<"42,"<<rand()% 100<<"\n";
     }
@@ -1065,16 +1076,19 @@ TEST(BasicInvocation, ShippingObjectFile) {
         // invoke worker backend
         ctx.csv(input_pattern, {}, option<bool>::none,
                 option<char>::none, '"', {""}, {}, {})
-                .filter(UDF("lambda x: x['A'] == 0")) // <-- this is an always false condition based on constant sample
+                .filter(UDF("lambda x: x['B'] > 0 and x['B'] < 10")) // <-- this is an always false condition based on constant sample
                 .tocsv(output_path);
 
         python::lockGIL();
         python::closeInterpreter();
     }
 
-    // read output
+    // read output (no reorg implemented yet)
+    output_path = "output.part0.csv.csv";
     auto res = fileToString(output_path);
     std::cout<<res<<std::endl;
+
+    EXPECT_TRUE(!res.empty());
 }
 
 TEST(BasicInvocation, ConstantFilterFold) {

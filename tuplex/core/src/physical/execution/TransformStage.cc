@@ -907,28 +907,58 @@ namespace tuplex {
 
         // lazy compile
         auto syms = std::make_shared<JITSymbols>();
-
         auto& logger = Logger::instance().defaultLogger();
 
+
+        auto slow_path_code = slowPathCode();
+
+        // skip empty
+        if(slow_path_code.empty()) {
+            logger.info("skip slow-code compilation (no code)");
+            return nullptr;
+        }
+
+        // load to LLVM module for IR formats.
         llvm::LLVMContext ctx;
-        auto slow_path_bit_code = slowPathCode();
-        auto slow_path_mod = slow_path_bit_code.empty() ? nullptr : codegen::bitCodeToModule(ctx, slow_path_bit_code);
+        std::unique_ptr<llvm::Module> slow_path_mod;
+        switch(fastPathCodeFormat()) {
+            case codegen::CodeFormat::LLVM_IR_BITCODE: {
+                slow_path_mod = codegen::bitCodeToModule(ctx, slow_path_code);
+                if(!slow_path_mod)
+                    throw std::runtime_error("invalid slow path LLVM bitcode");
+                break;
+            }
+            case codegen::CodeFormat::LLVM_IR: {
+                slow_path_mod = codegen::stringToModule(ctx, slow_path_code);
+                if(!slow_path_mod)
+                    throw std::runtime_error("invalid slow path LLVM IR");
+                break;
+            }
+            case codegen::CodeFormat::OBJECT_CODE: {
+                // ok, handled below.
+                break;
+            }
+            default:
+                throw std::runtime_error("invalid code format detected, can't parse to module.");
+                break;
+        }
 
+        // IR formats require compilation
+        if(slow_path_mod) {
+            // annotate module if desired to trace execution flow!
+            if(traceExecution)
+                codegen::annotateModuleWithInstructionPrint(*slow_path_mod);
 
-        // annotate module if desired to trace execution flow!
-        if(traceExecution)
-            codegen::annotateModuleWithInstructionPrint(*slow_path_mod);
-
-        if(optimizer) {
-            if (slow_path_mod) {
-                Timer pathTimer;
-                pathTimer.reset();
-                optimizer->optimizeModule(*slow_path_mod.get());
+            if(optimizer) {
+                if (slow_path_mod) {
+                    Timer pathTimer;
+                    pathTimer.reset();
+                    optimizer->optimizeModule(*slow_path_mod);
+                }
             }
         }
 
-        logger.debug("Registering symbols...");
-
+        // step 2: Register slow code symbols
         // compile & link with resolve tasks
         if(registerSymbols && !resolveWriteCallbackName().empty())
             jit.registerSymbol(resolveWriteCallbackName(), ResolveTask::mergeRowCallback());
@@ -954,13 +984,19 @@ namespace tuplex {
             }
         }
 
-        // compile slow code path if desired
-        if(slow_path_mod && !jit.compile(std::move(slow_path_mod)))
-            throw std::runtime_error("could not compile slow code for stage " + std::to_string(number()));
-        Timer llvmLowerTimer;
+        // Step3: compile slow code path if desired, or load object code
+        if(slow_path_mod) {
+            if(!jit.compile(std::move(slow_path_mod)))
+                throw std::runtime_error("could not compile slow code for stage " + std::to_string(number()));
+        } else {
+            if(!jit.compileObjectBuffer(slow_path_code))
+                throw std::runtime_error("Could not load slow-code path from object code for stage " + std::to_string(number()));
+        }
+
+
+        // Step4: retrieve symbols (triggers actual lowering in JIT)
         if(!syms->resolveFunctor)
             syms->resolveFunctor = !resolveWriteCallbackName().empty() ? reinterpret_cast<codegen::resolve_f>(jit.getAddrOfSymbol(resolveRowName())) : nullptr;
-
         if(!syms->_slowCodePath.initStageFunctor)
             syms->_slowCodePath.initStageFunctor = reinterpret_cast<codegen::init_stage_f>(jit.getAddrOfSymbol(_slowCodePath.initStageFuncName));
         if(!syms->_slowCodePath.releaseStageFunctor)
@@ -971,98 +1007,91 @@ namespace tuplex {
 
     std::shared_ptr<TransformStage::JITSymbols> TransformStage::compileFastPath(JITCompiler &jit, LLVMOptimizer *optimizer, bool registerSymbols, bool traceExecution) const {
         Timer timer;
+
         auto& logger = Logger::instance().defaultLogger();
-
         auto syms = std::make_shared<JITSymbols>();
+        auto fast_path_code = fastPathCode();
 
-        llvm::LLVMContext ctx;
-        auto fast_path_bit_code = fastPathCode();
-        if(fast_path_bit_code.empty()) {
-            logger.info("empty bitcode found, skip");
+        if(fast_path_code.empty()) {
+            logger.info("empty code found, skip");
             return nullptr;
         }
 
-        auto fast_path_mod = codegen::bitCodeToModule(ctx, fast_path_bit_code);
-        if(!fast_path_mod)
-            throw std::runtime_error("invalid fast path bitcode");
-
-#ifndef NDEBUG
-        auto func_names = codegen::extractFunctionNames(fast_path_mod.get());
-        {
-            std::stringstream ss;
-            ss<<pluralize(func_names.size(), "function")<<" in module "<<fast_path_mod->getName().str()<<":\n";
-            ss<<func_names;
-            logger.debug(ss.str());
-        }
-#endif
-
-        // step 1: run optimizer if desired
-        if(optimizer) {
-            Timer pathTimer;
-            optimizer->optimizeModule(*fast_path_mod.get());
-
-            double llvm_optimization_time = timer.time();
-            // metrics.setLLVMOptimizationTime(llvm_optimization_time);
-            logger.info("TransformStage - Optimization via LLVM passes took " + std::to_string(llvm_optimization_time) + " ms");
-
-#ifndef NDEBUG
-            auto opt_code = codegen::moduleToString(*fast_path_mod);
-            stringToFile(URI("fastpath_transform_stage_" + std::to_string(number()) + "_optimized.txt"), opt_code);
-#endif
-
-            timer.reset();
-        }
-
-        // annotate module (optimized)
-        if(traceExecution)
-            codegen::annotateModuleWithInstructionPrint(*fast_path_mod);
-
-        // step 2: register callback functions with compiler
-
-        // does stage have an output limit? If so, limit normal case and file output.
-        if(registerSymbols && !writeMemoryCallbackName().empty())
-            jit.registerSymbol(writeMemoryCallbackName(), TransformTask::writeRowCallback(hasOutputLimit()));
-        if(registerSymbols && !exceptionCallbackName().empty())
-            jit.registerSymbol(exceptionCallbackName(), TransformTask::exceptionCallback(false)); // <-- no limit on exceptions.
-        if(registerSymbols && !writeFileCallbackName().empty())
-            jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(hasOutputLimit()));
-        if(registerSymbols && outputMode() == EndPointMode::HASHTABLE && !_fastCodePath.writeHashCallbackName.empty()) {
-            logger.debug("change problematic logic here...");
-            // constant key?
-            logger.debug("change the misleading hashtable key byte width indicator here...");
-
-            auto hashtableKeyByteWidth = codegen::hashtableKeyWidth(normalCaseHashKeyType());
-
-            if (hashtableKeyByteWidth == 0) {
-                if(_fastCodePath.aggregateAggregateFuncName.empty())
-                    throw std::runtime_error("makes no sense when constant key...");
-                else jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeConstantKeyedHashTableAggregateCallback());
-            } else if (hashtableKeyByteWidth == 8) {
-                if(_fastCodePath.aggregateAggregateFuncName.empty())
-                    jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeInt64HashTableCallback());
-                else jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeInt64HashTableAggregateCallback());
-            } else {
-                assert(hashtableKeyByteWidth == 0xFFFFFFFF);
-                if(_fastCodePath.aggregateAggregateFuncName.empty())
-                    jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeStringHashTableCallback());
-                else jit.registerSymbol(_fastCodePath.writeHashCallbackName, TransformTask::writeStringHashTableAggregateCallback());
+        // load to LLVM module for IR formats.
+        llvm::LLVMContext ctx;
+        std::unique_ptr<llvm::Module> fast_path_mod;
+        switch(fastPathCodeFormat()) {
+            case codegen::CodeFormat::LLVM_IR_BITCODE: {
+                fast_path_mod = codegen::bitCodeToModule(ctx, fast_path_code);
+                if(!fast_path_mod)
+                    throw std::runtime_error("invalid fast path LLVM bitcode");
+                break;
             }
+            case codegen::CodeFormat::LLVM_IR: {
+                fast_path_mod = codegen::stringToModule(ctx, fast_path_code);
+                if(!fast_path_mod)
+                    throw std::runtime_error("invalid fast path LLVM IR");
+                break;
+            }
+            case codegen::CodeFormat::OBJECT_CODE: {
+                // ok, handled below.
+                break;
+            }
+            default:
+                throw std::runtime_error("invalid code format detected, can't parse to module.");
+                break;
         }
-        assert(!_fastCodePath.initStageFuncName.empty() && !_fastCodePath.releaseStageFuncName.empty());
-        if(registerSymbols && !_fastCodePath.aggregateCombineFuncName.empty())
-            jit.registerSymbol(aggCombineCallbackName(), TransformTask::aggCombineCallback());
 
-        logger.info("syms registered (or skipped), compile now");
+        // IR formats require compilation
+        if(fast_path_mod) {
+#ifndef NDEBUG
+            auto func_names = codegen::extractFunctionNames(fast_path_mod.get());
+            {
+                std::stringstream ss;
+                ss<<pluralize(func_names.size(), "function")<<" in module "<<fast_path_mod->getName().str()<<":\n";
+                ss<<func_names;
+                logger.debug(ss.str());
+            }
+#endif
 
-        // 3. compile code
-        // @TODO: use bitcode or llvm Module for more efficiency...
-        if(!jit.compile(std::move(fast_path_mod)))
-            throw std::runtime_error("could not compile fast code for stage " + std::to_string(number()));
-        std::stringstream ss;
+            // step 1: run optimizer if desired
+            if(optimizer) {
+                Timer pathTimer;
+                optimizer->optimizeModule(*fast_path_mod.get());
+
+                double llvm_optimization_time = timer.time();
+                // metrics.setLLVMOptimizationTime(llvm_optimization_time);
+                logger.info("TransformStage - Optimization via LLVM passes took " + std::to_string(llvm_optimization_time) + " ms");
+
+#ifndef NDEBUG
+                auto opt_code = codegen::moduleToString(*fast_path_mod);
+                stringToFile(URI("fastpath_transform_stage_" + std::to_string(number()) + "_optimized.txt"), opt_code);
+#endif
+
+                timer.reset();
+            }
+
+            // annotate module (optimized)
+            if(traceExecution)
+                codegen::annotateModuleWithInstructionPrint(*fast_path_mod);
+        }
+
+        // step 2: register (default) callback functions with compiler if desired
+        if(registerSymbols)
+            registerCodePathSymbols(jit, _fastCodePath);
+
+        // 3. compile code if necessary or load objects
+        if(fast_path_mod) {
+            if(!jit.compile(std::move(fast_path_mod)))
+                throw std::runtime_error("could not compile fast code for stage " + std::to_string(number()));
+        } else {
+            // load object code
+            assert(fastPathCodeFormat() == codegen::CodeFormat::OBJECT_CODE);
+            if(!jit.compileObjectBuffer(fast_path_code))
+                throw std::runtime_error("could not load object code to process for stage " + std::to_string(number()));
+        }
 
         // fetch symbols (this actually triggers the compilation first with register alloc etc.)
-        Timer llvmLowerTimer;
-        if(!syms->functor)
         if(!syms->functor && !_updateInputExceptions)
             syms->functor = reinterpret_cast<codegen::read_block_f>(jit.getAddrOfSymbol(funcName()));
         if(!syms->functorWithExp && _updateInputExceptions)
@@ -1092,6 +1121,40 @@ namespace tuplex {
         }
 
         return syms;
+    }
+
+    void TransformStage::registerCodePathSymbols(JITCompiler &jit,
+                             const StageCodePath &path) const {
+
+        // register names ad connect to callbacks.
+        if(!writeMemoryCallbackName().empty())
+            jit.registerSymbol(writeMemoryCallbackName(), TransformTask::writeRowCallback(hasOutputLimit()));
+        if(!exceptionCallbackName().empty())
+            jit.registerSymbol(exceptionCallbackName(), TransformTask::exceptionCallback(false)); // <-- no limit on exceptions.
+        if(!writeFileCallbackName().empty())
+            jit.registerSymbol(writeFileCallbackName(), TransformTask::writeRowCallback(hasOutputLimit()));
+        if(outputMode() == EndPointMode::HASHTABLE && !path.writeHashCallbackName.empty()) {
+
+            auto hashtableKeyByteWidth = codegen::hashtableKeyWidth(normalCaseHashKeyType());
+
+            if (hashtableKeyByteWidth == 0) {
+                if(path.aggregateAggregateFuncName.empty())
+                    throw std::runtime_error("makes no sense when constant key...");
+                else jit.registerSymbol(path.writeHashCallbackName, TransformTask::writeConstantKeyedHashTableAggregateCallback());
+            } else if (hashtableKeyByteWidth == 8) {
+                if(path.aggregateAggregateFuncName.empty())
+                    jit.registerSymbol(path.writeHashCallbackName, TransformTask::writeInt64HashTableCallback());
+                else jit.registerSymbol(path.writeHashCallbackName, TransformTask::writeInt64HashTableAggregateCallback());
+            } else {
+                assert(hashtableKeyByteWidth == 0xFFFFFFFF);
+                if(path.aggregateAggregateFuncName.empty())
+                    jit.registerSymbol(path.writeHashCallbackName, TransformTask::writeStringHashTableCallback());
+                else jit.registerSymbol(path.writeHashCallbackName, TransformTask::writeStringHashTableAggregateCallback());
+            }
+        }
+        assert(!path.initStageFuncName.empty() && !path.releaseStageFuncName.empty());
+        if(!path.aggregateCombineFuncName.empty())
+            jit.registerSymbol(aggCombineCallbackName(), TransformTask::aggCombineCallback());
     }
 
     std::shared_ptr<TransformStage::JITSymbols> TransformStage::compile(JITCompiler &jit,
@@ -1339,5 +1402,29 @@ namespace tuplex {
         opt.optimizeModule(*mod);
         _fastCodePath.code = codegen::moduleToBitCodeString(*mod);
         _fastCodePath.codeFormat = codegen::CodeFormat::LLVM_IR_BITCODE;
+    }
+
+    void TransformStage::compileToObjectCode(const std::string &target_triple, const std::string &cpu) {
+        compileCodePathToObjectFile(_fastCodePath, target_triple, cpu);
+        compileCodePathToObjectFile(_slowCodePath, target_triple, cpu);
+    }
+
+    void TransformStage::compileCodePathToObjectFile(StageCodePath& path, const std::string &target_triple, const std::string &cpu) {
+
+        // skip non-existing path
+        if(path.code.empty())
+            return;
+
+        // skip opt for non llvm IR formats
+        if(path.codeFormat != codegen::CodeFormat::LLVM_IR_BITCODE && path.codeFormat != codegen::CodeFormat::LLVM_IR)
+            return;
+
+        llvm::LLVMContext ctx;
+        auto mod = path.codeFormat == codegen::CodeFormat::LLVM_IR_BITCODE ? codegen::bitCodeToModule(ctx, path.code) : codegen::stringToModule(ctx, path.code);
+
+
+        auto object_code = codegen::compileToObjectFile(*mod);
+        path.code = std::string(object_code.begin(), object_code.end());
+        path.codeFormat = codegen::CodeFormat::OBJECT_CODE;
     }
 }

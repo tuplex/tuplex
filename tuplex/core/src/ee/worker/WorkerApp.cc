@@ -370,6 +370,18 @@ namespace tuplex {
             return rc;
         }
 
+        // print how code is received
+        {
+            std::stringstream ss;
+            if(!req.stage().fastpath().code().empty())
+                ss<<"fast path ("<<codegen::codeFormatToStr(static_cast<codegen::CodeFormat>(req.stage().fastpath().codeformat()))<<") ";
+            if(!req.stage().slowpath().code().empty())
+                ss<<"slow path ("<<codegen::codeFormatToStr(static_cast<codegen::CodeFormat>(req.stage().slowpath().codeformat()))<<") ";
+            auto msg = ss.str();
+            if(!msg.empty())
+                logger().info("Got " + msg);
+        }
+
         // using hyper-specialization?
         if(useHyperSpecialization(req)) {
 
@@ -2339,7 +2351,7 @@ namespace tuplex {
             return nullptr;
 
 #ifndef NDEBUG
-        {
+        if(stage->slowPathCodeFormat() == codegen::CodeFormat::LLVM_IR_BITCODE) {
             llvm::LLVMContext ctx;
             auto slow_path_bit_code = stage->slowPathCode();
             auto slow_path_mod = slow_path_bit_code.empty() ? nullptr : codegen::bitCodeToModule(ctx, slow_path_bit_code);
@@ -2363,7 +2375,7 @@ namespace tuplex {
         auto bitcode_threshold_size = 512 * 1024; // 512KB
         if(stage->slowPathCode().size() > bitcode_threshold_size) {
             auto bitcode_size = stage->slowPathCode().size();
-            logger().info("large bitcode " + sizeToMemString(bitcode_size) + " encountered larger than threshold of "
+            logger().info("large code " + sizeToMemString(bitcode_size) + " encountered larger than threshold of "
             + sizeToMemString(bitcode_threshold_size) + " for slow path, using fast compiler instead of optimizing-one.");
             compiler_to_use = _fastCompiler.get();
         }

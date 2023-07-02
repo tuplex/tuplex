@@ -48,8 +48,9 @@ namespace tuplex {
 
         MessageHandler& _logger;
 
+        void prepareTransformStage(TransformStage& stage, const std::string& target_triple, const std::string& cpu);
+
         std::vector<messages::InvocationRequest> createSingleFileRequests(const TransformStage* tstage,
-                                                                          const std::string& bitCode,
                                                                           const size_t numThreads,
                                                                           const std::vector<std::tuple<std::string, std::size_t>>& uri_infos,
                                                                           const std::string& spillURI,
@@ -70,9 +71,6 @@ namespace tuplex {
             return URI(_options.SCRATCH_DIR().toString() + "/temporary_stage_output/" + "stage_" + std::to_string(stageNo));
         }
 
-        std::string optimizeAndSerializePlanAsBitcode(const TransformStage* stage) const;
-
-        std::string optimizeAndSerializePlanAsObjectFile(const TransformStage* stage) const;
     private:
         URI _scratchDir;
         bool _deleteScratchDirOnShutdown;

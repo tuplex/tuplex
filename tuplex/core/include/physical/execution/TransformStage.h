@@ -473,6 +473,13 @@ namespace tuplex {
         void optimizeBitCode(LLVMOptimizer& opt);
 
         /*!
+         * replaces code in internally stored code paths with object code by compiling to target triple/cpu
+         * @param target_triple
+         * @param cpu
+         */
+        void compileToObjectCode(const std::string& target_triple, const std::string& cpu);
+
+        /*!
          * compile code of this stage via LLVM JIT
          * @param jit JIT instance
          * @param optimizer optional instance of optimizer to run over code first. No optimization run when set to 0
@@ -781,6 +788,10 @@ namespace tuplex {
         }
 
         void optimizeIRInCodePath(LLVMOptimizer &opt, StageCodePath &path);
+
+        static void compileCodePathToObjectFile(StageCodePath& path, const std::string& target_triple, const std::string& cpu);
+
+        void registerCodePathSymbols(JITCompiler &jit, const StageCodePath &path) const;
     };
 }
 #endif //TUPLEX_TRANSFORMSTAGE_H

@@ -30,49 +30,29 @@ namespace tuplex {
 
     }
 
-    std::string WorkerBackend::optimizeAndSerializePlanAsBitcode(const TransformStage* stage) const {
-        std::string bitcode;
 
-        // optimize at client @TODO: optimize for target triple?
-        if (_options.USE_LLVM_OPTIMIZER()) {
-            Timer timer;
-            bool optimized_ir = false;
-            // optimize in parallel???
-            if (!stage->fastPathCode().empty()) {
-                llvm::LLVMContext ctx;
-                LLVMOptimizer opt;
-                auto mod = codegen::bitCodeToModule(ctx, stage->fastPathCode());
-                opt.optimizeModule(*mod);
-                bitcode = codegen::moduleToBitCodeString(*mod);
-                optimized_ir = true;
-            } else if (!stage->slowPathCode().empty()) {
-                // todo...
-                throw std::runtime_error("not yet implemented");
-            }
-            if (optimized_ir)
-                logger().info("client-side LLVM IR optimization of took " + std::to_string(timer.time()) + "s");
-        } else {
-            bitcode = stage->fastPathCode();
-        }
+    void WorkerBackend::prepareTransformStage(tuplex::TransformStage &stage, const std::string &target_triple,
+                                              const std::string &cpu) {
+        // convert if necessary bitcode -> object via compilation & update everything.
 
-        return bitcode;
-    }
-
-    std::string WorkerBackend::optimizeAndSerializePlanAsObjectFile(const tuplex::TransformStage *stage) const {
-        llvm::LLVMContext ctx;
-        auto mod = codegen::bitCodeToModule(ctx, stage->fastPathCode());
-
-        // use LLVM optimizer?
+        // optimize if desired
         if(_options.USE_LLVM_OPTIMIZER()) {
             Timer timer;
             LLVMOptimizer opt;
-            opt.optimizeModule(*mod);
-            logger().info("client-side LLVM IR optimization of took " + std::to_string(timer.time()) + "s");
+            stage.optimizeBitCode(opt);
+            std::stringstream ss;
+            ss<<"Client-side optimization via LLVM took "<<timer.time()<<"s";
+            logger().info(ss.str());
         }
 
-        auto object_code = codegen::compileToObjectFile(*mod);
-
-        return std::string(object_code.begin(), object_code.end());
+        // now convert to object file if format is bitcode (or ir)
+        if(_options.EXPERIMENTAL_INTERCHANGE_CODE_VIA_OBJECT_FILES()) {
+            Timer timer;
+            stage.compileToObjectCode(target_triple, cpu);
+            std::stringstream ss;
+            ss<<"Client-side compilation to native code for cpu="<<cpu<<", triple="<<target_triple<<" took "<<timer.time()<<"s";
+            logger().info(ss.str());
+        }
     }
 
     void WorkerBackend::execute(PhysicalStage* stage) {
@@ -90,15 +70,9 @@ namespace tuplex {
             uri_infos = decodeFileURIs(tstage->inputPartitions());
         }
 
-        std::string optimizedBitcode = "";
-
-        // wip, use either object file or bitcode to ship plan to executor
-        if(_options.EXPERIMENTAL_INTERCHANGE_CODE_VIA_OBJECT_FILES())
-            // compile to object code
-            optimizedBitcode = optimizeAndSerializePlanAsObjectFile(tstage);
-        else
-            optimizedBitcode = optimizeAndSerializePlanAsBitcode(tstage);
-
+        std::string target_triple = llvm::sys::getDefaultTargetTriple();
+        std::string cpu = "native"; // <-- native target cpu
+        prepareTransformStage(*tstage, target_triple, cpu);
 
         if(stage->outputMode() != EndPointMode::FILE) {
             // throw std::runtime_error("only file mode yet supported");
@@ -119,7 +93,7 @@ namespace tuplex {
 
         logger().info("Setting buffer size for each thread to " + sizeToMemString(buf_spill_size));
 
-        auto requests = createSingleFileRequests(tstage, optimizedBitcode,
+        auto requests = createSingleFileRequests(tstage,
                                                  numThreads, uri_infos, spillURI,
                                             buf_spill_size);
 
@@ -189,7 +163,7 @@ namespace tuplex {
     }
 
     std::vector<messages::InvocationRequest>
-    WorkerBackend::createSingleFileRequests(const TransformStage *tstage, const std::string &bitCode,
+    WorkerBackend::createSingleFileRequests(const TransformStage *tstage,
                                             const size_t numThreads,
                                             const std::vector<std::tuple<std::string, std::size_t>> &uri_infos,
                                             const std::string &spillURI, const size_t buf_spill_size) {

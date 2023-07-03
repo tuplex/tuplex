@@ -113,7 +113,7 @@ namespace tuplex {
                     logger().debug("found filter check, emitting code");
 
                     // deserialize filter operator in order to generate check properly
-                    std::shared_ptr<FilterOperator> fop;
+                    std::shared_ptr<FilterOperator> fop = nullptr;
 #ifdef BUILD_WITH_CEREAL
                     // use cereal deserialization
                     {
@@ -122,7 +122,7 @@ namespace tuplex {
                         ar(fop);
                     }
 #else
-                    auto fop = FileOutputOperator::from_json(nullptr, check.data())
+                    fop = FilterOperator::from_json(nullptr, check.data());
 #endif
                     logger().debug("deserialized operator " + fop->name());
 

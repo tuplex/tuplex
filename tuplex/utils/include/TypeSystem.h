@@ -11,6 +11,8 @@
 #ifndef TUPLEX_TYPESYSTEM_H
 #define TUPLEX_TYPESYSTEM_H
 
+#include "ExceptionCodes.h"
+
 #include <initializer_list>
 #include <string>
 #include <vector>
@@ -34,8 +36,6 @@
 #include "cereal/types/string.hpp"
 #include "cereal/types/common.hpp"
 #include "cereal/archives/binary.hpp"
-#include "ExceptionCodes.h"
-
 #endif
 
 namespace python {

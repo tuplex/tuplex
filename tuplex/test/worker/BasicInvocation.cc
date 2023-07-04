@@ -3981,3 +3981,39 @@ TEST(BasicInvocation, VerboseLogging) {
     cout<<"Invoked worker check done."<<endl;
     cout<<"Test done."<<endl;
 }
+
+
+TEST(BasicInvocation, EnvironmentMessage) {
+    using namespace std;
+    using namespace tuplex;
+
+    auto worker_path = find_worker();
+
+    ASSERT_FALSE(worker_path.empty());
+
+    // transform to message
+
+    ::tuplex::messages::InvocationRequest req;
+    req.set_type(tuplex::messages::MessageType::MT_ENVIRONMENTINFO);
+
+
+    // transfrom to json
+    std::string json_message;
+    google::protobuf::util::MessageToJsonString(req, &json_message);
+    // save to file
+    auto msg_file = URI("test_message.json");
+    stringToFile(msg_file, json_message);
+
+    // invoke worker with that message
+    Timer timer;
+    auto cmd = worker_path + " -m " + msg_file.toPath();
+    auto res_stdout = runCommand(cmd);
+    auto worker_invocation_duration = timer.time();
+    cout<<res_stdout<<endl;
+    cout<<"Invoking worker took: "<<worker_invocation_duration<<"s"<<endl;
+
+    // check result contents
+    cout<<"Checking worker results..."<<endl;
+    cout<<"Invoked worker check done."<<endl;
+    cout<<"Test done."<<endl;
+}

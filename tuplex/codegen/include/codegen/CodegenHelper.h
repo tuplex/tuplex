@@ -746,6 +746,13 @@ namespace tuplex {
         extern std::vector<uint8_t> compileToObjectFile(llvm::Module& mod,
                                                         const std::string& target_triple=llvm::sys::getDefaultTargetTriple(),
                                                         const std::string& cpu="generic");
+
+        extern nlohmann::json compileEnvironmentAsJson();
+
+        /*!
+         * return information about compiling for a target machine as JSON.
+         */
+        extern std::string compileEnvironmentAsJsonString();
     }
 }
 

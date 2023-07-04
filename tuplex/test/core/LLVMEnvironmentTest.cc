@@ -679,3 +679,11 @@ TEST(LLVMENV, ObjectFile) {
         EXPECT_EQ(i_rc, x + test_val);
     }
 }
+
+TEST(LLVMENV, CPUEnvString) {
+    using namespace tuplex::codegen;
+
+    auto info = compileEnvironmentAsJsonString();
+    std::cout<<"CPU info:\n"<<info<<std::endl;
+    ASSERT_TRUE(info.size() > 10);
+}

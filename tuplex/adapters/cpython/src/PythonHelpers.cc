@@ -2129,21 +2129,13 @@ namespace python {
         return false;
       }
 
-      // import cloudpickle for serialized functions
-      PyObject *cloudpickleModule = PyImport_ImportModule("cloudpickle");
-      if(!cloudpickleModule) {
+      std::string version_string;
+      if(!cloudpickleVersion(version_string)) {
           err<<"could not find cloudpickle module, please install via `pip3 install \""<<desired_version<<"\"`.";
           if(os)
-            *os<<err.str();
+              *os<<err.str();
           return false;
       }
-
-      PyModule_AddObject(mainModule, "cloudpickle", cloudpickleModule);
-      auto versionObj =  PyObject_GetAttr(cloudpickleModule, PyString_FromString("__version__"));
-      if(!versionObj)
-        return false;
-
-      auto version_string = PyString_AsString(versionObj);
 
       auto version = extract_version(version_string);
 #if (PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 10)
@@ -2183,5 +2175,26 @@ namespace python {
         auto arg = PyTuple_New(1);
         PyTuple_SET_ITEM(arg, 0, PyLong_FromLong(2)); // specify here collect level, 2 for full!
         PyObject_CallObject(gc_collect, arg);
+    }
+
+    bool cloudpickleVersion(std::string& version_string) {
+        std::stringstream err;
+
+        auto mainModule = getMainModule();
+        if(!mainModule)
+            return false;
+
+        // import cloudpickle for serialized functions
+        PyObject *cloudpickleModule = PyImport_ImportModule("cloudpickle");
+        if(!cloudpickleModule)
+            return false;
+
+        PyModule_AddObject(mainModule, "cloudpickle", cloudpickleModule);
+        auto versionObj =  PyObject_GetAttr(cloudpickleModule, PyString_FromString("__version__"));
+        if(!versionObj)
+            return false;
+
+        version_string = PyString_AsString(versionObj);
+        return true;
     }
 }

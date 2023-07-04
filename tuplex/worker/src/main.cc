@@ -68,9 +68,14 @@ int main(int argc, char* argv[]) {
         cerr<<"Failed to initialize logging"<<endl;
         return 1;
     }
-    auto&logger = Logger::instance().defaultLogger();
+    auto& logger = Logger::instance().defaultLogger();
 
-    Logger::instance().defaultLogger().info("Starting Tuplex worker process");
+    logger.info("Starting Tuplex worker process");
+
+    python::initInterpreter();
+    python::unlockGIL();
+
+    logger.info("Initialized Python interpreter");
 
     // init Worker with default settings
     auto app = make_unique<WorkerApp>(WorkerSettings());
@@ -94,6 +99,11 @@ int main(int argc, char* argv[]) {
         }
         app->shutdown();
     }
+
+
+    python::lockGIL();
+    python::closeInterpreter();
+    logger.info(("Shutdown python interpreter."));
 
     if(0 == rc)
         Logger::instance().defaultLogger().info("Terminating Tuplex worker process normally with exit code 0.");

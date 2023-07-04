@@ -351,6 +351,12 @@ namespace tuplex {
 
         virtual int processMessage(const tuplex::messages::InvocationRequest& req);
 
+        /*!
+         * fetch information about worker environment as single JSON message (right now LLVM information)
+         * @return
+         */
+        virtual int processEnvironmentInfoMessage();
+
         int processTransformStage(TransformStage* tstage,
                                           const std::shared_ptr<TransformStage::JITSymbols>& syms,
                                           const std::vector<FilePart>& input_parts,

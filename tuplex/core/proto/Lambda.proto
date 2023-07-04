@@ -20,6 +20,7 @@ enum MessageType {
     MT_UNKNOWN = 0;
     MT_WARMUP = 1;
     MT_TRANSFORM = 2;
+    MT_ENVIRONMENTINFO = 3;
 }
 
 enum SerializationFormat {

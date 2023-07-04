@@ -431,6 +431,14 @@ namespace python {
     extern bool cloudpickleCompatibility(std::ostream* os=nullptr);
 
     extern PyObject* json_string_to_pyobject(const std::string& s, const python::Type& type);
+
+    /*!
+     * extract version string, if cloudpickle is not found or version extract fails, return false
+     * @param version_string
+     * @param os optional output error stream
+     * @return
+     */
+    extern bool cloudpickleVersion(std::string& version_string);
 }
 
 

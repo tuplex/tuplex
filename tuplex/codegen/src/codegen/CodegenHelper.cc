@@ -839,5 +839,56 @@ namespace tuplex {
 
             return std::vector<uint8_t>(buffer.begin(), buffer.end());
         }
+
+        std::string compileEnvironmentAsJsonString() {
+            return compileEnvironmentAsJson().dump();
+        }
+
+        nlohmann::json compileEnvironmentAsJson() {
+            // target triple, CPU arch, CPU features
+
+            // make sure to init llvm first, else target detect won't work.
+            initLLVM();
+
+            nlohmann::json j;
+
+            std::string target_triple = llvm::sys::getProcessTriple();
+
+            // unknown in target triple? => replace with generic
+            if(target_triple.find("unknown") != std::string::npos)
+                target_triple = llvm::sys::getDefaultTargetTriple();
+
+            std::string cpu = llvm::sys::getHostCPUName();
+            std::string features = getLLVMFeatureStr();
+
+            j["llvmVersion"] = LLVM_VERSION_STRING;
+            j["targetTriple"] = target_triple;
+            j["cpu"] = cpu;
+            j["cpuCores"] = llvm::sys::getHostNumPhysicalCores();
+            j["cpuFeatures"] = features;
+
+            // get data layout
+            llvm::TargetOptions opt;
+            auto RM = llvm::Optional<llvm::Reloc::Model>();
+
+            // use position independent code
+            RM = llvm::Reloc::PIC_;
+            std::string error;
+            auto target = llvm::TargetRegistry::lookupTarget(target_triple, error);
+
+            // lookup target and throw exception else
+            if (!target) {
+                throw std::runtime_error("could not find target " + target_triple + ", details: " + error);
+            }
+            auto TargetMachine = target->createTargetMachine(target_triple, cpu, features, opt, RM);
+
+            if(!TargetMachine)
+                throw std::runtime_error("failed to create target machine for CPU=" + cpu + ", features="=features);
+
+            // check: https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl08.html
+            j["dataLayout"] = TargetMachine->createDataLayout().getStringRepresentation();
+
+            return j;
+        }
     }
 }

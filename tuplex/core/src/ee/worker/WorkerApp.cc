@@ -200,9 +200,6 @@ namespace tuplex {
     int WorkerApp::processJSONMessage(const std::string &message) {
         auto& logger = this->logger();
 
-        // do this first.
-        resetThreadEnvironments();
-
         // logger.info("JSON request: " + message);
 
         // parse JSON into protobuf
@@ -214,6 +211,13 @@ namespace tuplex {
         }
 
         _currentMessage = req;
+
+        // shortcut for special messages
+        if(req.type() == messages::MessageType::MT_ENVIRONMENTINFO)
+            return processEnvironmentInfoMessage();
+
+        // do this first.
+        resetThreadEnvironments();
 
         // get worker settings from message, if they differ from current setup -> reinitialize worker!
         {
@@ -335,8 +339,28 @@ namespace tuplex {
         return parts;
     }
 
+    int WorkerApp::processEnvironmentInfoMessage() {
+
+        // query llvm
+        auto j = codegen::compileEnvironmentAsJson();
+
+        // add python specific information
+        j["python"] = PY_VERSION;
+        std::string version_string = "unknown";
+        python::lockGIL();
+        python::cloudpickleVersion(version_string);
+        python::unlockGIL();
+        j["cloudpickleVersion"] = version_string;
+
+        return WORKER_OK;
+    }
+
     int WorkerApp::processMessage(const tuplex::messages::InvocationRequest& req) {
         _messageCount++;
+
+        if(req.type() == messages::MessageType::MT_ENVIRONMENTINFO) {
+            return processEnvironmentInfoMessage();
+        }
 
         // reset buffers
         resetThreadEnvironments();

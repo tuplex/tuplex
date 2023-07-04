@@ -789,11 +789,11 @@ namespace tuplex {
                         // add to lookup map for slow case
                         _hashmap_vars[jop->getID()] = make_tuple(hash_map_global, null_bucket_global);
 
-                        isBuilder.CreateStore(isBuilder.CreateLoad(
-                                isBuilder.CreateGEP(isArgs["hashmaps"], env->i32Const(global_var_cnt))),
+                        isBuilder.CreateStore(isBuilder.CreateLoad(env->i8ptrType(),
+                                isBuilder.CreateGEP(env->i8ptrType(), isArgs["hashmaps"], env->i32Const(global_var_cnt))),
                                               hash_map_global);
-                        isBuilder.CreateStore(isBuilder.CreateLoad(
-                                isBuilder.CreateGEP(isArgs["null_buckets"], env->i32Const(global_var_cnt))),
+                        isBuilder.CreateStore(isBuilder.CreateLoad(env->i8ptrType(),
+                                isBuilder.CreateGEP(env->i8ptrType(), isArgs["null_buckets"], env->i32Const(global_var_cnt))),
                                               null_bucket_global);
 
                         rsBuilder.CreateStore(env->i8nullptr(), hash_map_global);

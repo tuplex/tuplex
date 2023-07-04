@@ -74,10 +74,10 @@ namespace tuplex {
 
             auto numColumns = parseRowType.parameters().size();
             for(int col = 0; col < numColumns; ++col) {
-                _env->debugPrint(builder, "get col result for column " + std::to_string(col));
+                // _env->debugPrint(builder, "get col result for column " + std::to_string(col));
                 auto val = _parseRowGen->getColumnResult(builder, col, parseResult);
 
-                _env->debugPrint(builder, "set column " + std::to_string(col));
+                // _env->debugPrint(builder, "set column " + std::to_string(col));
                 ft.set(builder, {col}, val.val, val.size, val.is_null);
 
 #ifdef TRACE_PARSER
@@ -137,7 +137,7 @@ namespace tuplex {
             env().debugCellPrint(builder, lineStart, lineEnd);
 #endif
 
-            env().debugPrint(builder, "creating FlattenedTuple from csv result");
+            // env().debugPrint(builder, "creating FlattenedTuple from csv result");
 
             // create whatever needs to be done with this row... (iterator style)
             // other option would be to write this to internal memory format & then spit out another processor...
@@ -146,7 +146,7 @@ namespace tuplex {
             // load from csv (if csv input was given, make this later more flexible! better class + refactoring necessary!!!)
             auto ft = createFlattenedTupleFromCSVParseResult(builder, parseResult, _inputRowType);
 
-            env().debugPrint(builder, "FlattenedTuple created.");
+            // env().debugPrint(builder, "FlattenedTuple created.");
 
             //        // serialize to CSV if option was added
             //        // else serialize to memory
@@ -373,11 +373,9 @@ namespace tuplex {
 #endif
 
             // process row here -- BEGIN
-            env().debugPrint(builder, "process row");
             processRow(builder, argUserData, builder.CreateLoad(env().i32Type(), parseCodeVar),
                        resStructVar, normalRowCountVar, badRowCountVar, outputRowNumberVar,
                        nullptr, nullptr, terminateEarlyOnLimitCode, pipFunc);
-            env().debugPrint(builder, "row done.");
             // end process row here -- END
 
 #ifdef TRACE_PARSER

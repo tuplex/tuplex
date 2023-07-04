@@ -15,7 +15,7 @@
 #include <StringUtils.h>
 #include <RuntimeInterface.h>
 
-#define TRACE_PARSER
+// #define TRACE_PARSER
 
 namespace tuplex {
 
@@ -263,7 +263,7 @@ namespace tuplex {
 
 
             builder.SetInsertPoint(bUnquotedCellEnd);
-            _env->debugPrint(builder, "unquoted cell done, saving end ptr=", currentPtr(builder));
+            // _env->debugPrint(builder, "unquoted cell done, saving end ptr=", currentPtr(builder));
             saveCellEnd(builder, 0);
             builder.CreateBr(bCellDone);
         }
@@ -367,7 +367,7 @@ namespace tuplex {
             //     to cell end
             //     ------------------------------------------------------------------------
             builder.SetInsertPoint(bQuotedCellEnd);
-            _env->debugPrint(builder, "quoted cell done, saving end ptr=", currentPtr(builder));
+            // _env->debugPrint(builder, "quoted cell done, saving end ptr=", currentPtr(builder));
             saveCellEnd(builder, -1);
             builder.CreateBr(bCellDone);
         }
@@ -583,7 +583,7 @@ namespace tuplex {
             // get current cellNo
             auto curCellNo = builder.CreateLoad(builder.getInt32Ty(), _cellNoVar);
 
-            _env->printValue(builder, curCellNo, "\n---\nsaving current cell no=");
+            // _env->printValue(builder, curCellNo, "\n---\nsaving current cell no=");
 
             // check if less than equal number of saved cells
             auto canStore = builder.CreateICmpUGE(_env->i32Const(numCells()), curCellNo);
@@ -592,7 +592,7 @@ namespace tuplex {
             // this is to subselect what cells to store
             canStore = builder.CreateAnd(canStore, storageCondition(builder, curCellNo));
 
-            _env->printValue(builder, canStore, "can store cell:");
+            // _env->printValue(builder, canStore, "can store cell:");
 
             BasicBlock *bCanStore = BasicBlock::Create(context, "saveCell", _func);
             BasicBlock *bDone = BasicBlock::Create(context, "savedCell", _func);
@@ -608,10 +608,11 @@ namespace tuplex {
 
             auto cell_begin = builder.CreateLoad(_env->i8ptrType(), _cellBeginVar);
             auto cell_end = builder.CreateLoad(_env->i8ptrType(), _cellEndVar);
-            // debug print:
-            _env->printValue(builder, curIdx, "saving cell no=");
-            _env->printValue(builder, cell_begin, "cell begin=");
-            _env->printValue(builder, cell_end, "cell end=");
+
+            // // debug print:
+            // _env->printValue(builder, curIdx, "saving cell no=");
+            // _env->printValue(builder, cell_begin, "cell begin=");
+            // _env->printValue(builder, cell_end, "cell end=");
 
             builder.CreateStore(cell_begin, idxBegin);
             builder.CreateStore(cell_end, idxEnd);
@@ -621,7 +622,7 @@ namespace tuplex {
             // update for new commands
             builder.SetInsertPoint(bDone);
 
-            _env->debugPrint(builder, "---\n");
+            // _env->debugPrint(builder, "---\n");
         }
 
 
@@ -866,18 +867,18 @@ namespace tuplex {
 
                         // // uncomment following lines to display which cell is saved
                         // // debug:
-                          _env->debugPrint(builder, "serializing cell no=" + std::to_string(i) + " to pos=" + std::to_string(pos));
-                          _env->debugCellPrint(builder, cellBegin, cellEndIncl);
+                        //  _env->debugPrint(builder, "serializing cell no=" + std::to_string(i) + " to pos=" + std::to_string(pos));
+                        //  _env->debugCellPrint(builder, cellBegin, cellEndIncl);
                         auto normalizedStr = builder.CreateCall(normalizeFunc, {_env->i8Const(_quotechar),
                                                                                 cellBegin, cellEnd,
                                                                                 ret_size_ptr});
 
-                        _env->debugPrint(builder, "column " + std::to_string(i) + " normalized str: ", normalizedStr);
-                        _env->debugPrint(builder, "column " + std::to_string(i) + " normalized str isnull: ", _env->compareToNullValues(builder, normalizedStr, _null_values));
+                        // _env->debugPrint(builder, "column " + std::to_string(i) + " normalized str: ", normalizedStr);
+                        // _env->debugPrint(builder, "column " + std::to_string(i) + " normalized str isnull: ", _env->compareToNullValues(builder, normalizedStr, _null_values));
 
                         // update cellEnd/cellBegin with normalizedStr and size
                         auto normalizedStr_size = builder.CreateLoad(builder.getInt64Ty(), ret_size_ptr);
-                        _env->debugPrint(builder, "column " + std::to_string(i) + " normalized str size: ", normalizedStr_size);
+                        // _env->debugPrint(builder, "column " + std::to_string(i) + " normalized str size: ", normalizedStr_size);
 
                         cellBegin = normalizedStr;
                         cellEnd = builder.MovePtrByBytes(cellBegin, builder.CreateSub(normalizedStr_size, _env->i64Const(1)));

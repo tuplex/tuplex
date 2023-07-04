@@ -159,10 +159,6 @@ namespace tuplex {
             Value *rowVar = builder.CreateAlloca(env().i64Type(), 0, nullptr);
             builder.CreateStore(env().i64Const(0), rowVar);
 
-            // debug info basics:
-            env().printValue(builder, builder.CreateLoad(builder.getInt64Ty(), numRowsVar), "number of rows to process: ");
-
-
             BasicBlock* bbLoopCondition = BasicBlock::Create(context, "loop_cond", read_block_func);
             BasicBlock* bbLoopBody = BasicBlock::Create(context, "loop_body", read_block_func);
             BasicBlock* bbLoopDone = BasicBlock::Create(context, "loop_done", read_block_func);

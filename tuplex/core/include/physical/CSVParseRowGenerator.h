@@ -120,7 +120,7 @@ namespace tuplex {
                 assert(ptr->getType()->isPointerTy());
                 auto ans =  builder.CreateSelect(builder.CreateICmpUGE(ptr, _endPtr), _env->i8Const(_escapechar),
                                             builder.CreateLoad(builder.getInt8Ty(), ptr));
-                _env->printValue(builder, ans, "cur char is=");
+                // _env->printValue(builder, ans, "cur char is=");
                 return ans;
             }
 
@@ -155,9 +155,9 @@ namespace tuplex {
                 // clamp with endptr
                 auto clamped_ptr = clampWithEndPtr(builder, builder.MovePtrByBytes(ptr, howManyChars));
 
-                _env->printValue(builder, howManyChars, "consuming num bytes=");
-                _env->printValue(builder, ptr, "current ptr=");
-                _env->printValue(builder, clamped_ptr, "new ptr=");
+                // _env->printValue(builder, howManyChars, "consuming num bytes=");
+                // _env->printValue(builder, ptr, "current ptr=");
+                // _env->printValue(builder, clamped_ptr, "new ptr=");
 
                 builder.CreateStore(clamped_ptr, _currentPtrVar);
 

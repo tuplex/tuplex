@@ -1690,7 +1690,7 @@ namespace tuplex {
                     // copy over everything but need to quote first
                     auto func = quoteForCSV_prototype(env.getContext(), env.getModule().get());
                     val = builder.CreateCall(func, {val, size, quotedSize, env.i8Const(delimiter), env.i8Const(quotechar)});
-                    size = builder.CreateLoad(quotedSize);
+                    size = builder.CreateLoad(builder.getInt64Ty(), quotedSize);
                     auto length = builder.CreateSub(size, env.i64Const(1));
                     builder.CreateMemCpy(buf_ptr, 0, val, 0, length);
                     buf_ptr = builder.MovePtrByBytes(buf_ptr, length);
@@ -2087,13 +2087,14 @@ namespace tuplex {
             using namespace llvm;
             auto& context = builder.getContext();
 
-            // numIterations should be i32!
+            // numIterations should be i64!
+            numIterations = builder.CreateZExtOrTrunc(numIterations, _env->i64Type());
             assert(numIterations);
-            assert(numIterations->getType() == _env->i32Type());
+            assert(numIterations->getType() == _env->i64Type());
 
             // start loop here
-            auto loopVar = _env->CreateFirstBlockAlloca(builder, _env->i32Type(), "loop_i");
-            builder.CreateStore(_env->i32Const(0), loopVar);
+            auto loopVar = _env->CreateFirstBlockAlloca(builder, _env->i64Type(), "loop_i");
+            builder.CreateStore(_env->i64Const(0), loopVar);
             BasicBlock* bbLoopCondition = BasicBlock::Create(context, "loop_cond", builder.GetInsertBlock()->getParent());
             BasicBlock* bbLoopBody = BasicBlock::Create(context, "loop_body", builder.GetInsertBlock()->getParent());
 
@@ -2101,9 +2102,9 @@ namespace tuplex {
             builder.SetInsertPoint(bbLoopCondition);
 
             // loopVar < num_rows_to_join
-            auto cond = builder.CreateICmpNE(builder.CreateLoad(loopVar), numIterations);
+            auto cond = builder.CreateICmpNE(builder.CreateLoad(builder.getInt64Ty(), loopVar), numIterations);
             //_env->debugPrint(builder, "loop var is: ", builder.CreateLoad(loopVar));
-            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(loopVar), _env->i32Const(1)), loopVar); // update loop var...
+            builder.CreateStore(builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), loopVar), _env->i64Const(1)), loopVar); // update loop var...
             builder.CreateCondBr(cond, bbLoopBody, leaveBlock()); // loop done, i.e. pipeline ended
 
             builder.SetInsertPoint(bbLoopBody);
@@ -2251,11 +2252,11 @@ namespace tuplex {
 
             builder.SetInsertPoint(bbBucketResult);
             // there should be at least one row (omit weird loop for now b.c. more difficult...)
-            auto bucketPtr = builder.CreateLoad(bucketPtrVar);
-            auto row_length = builder.CreateLoad(builder.CreatePointerCast(bucketPtr, _env->i32ptrType()));
-            auto row_ptr = builder.CreateGEP(bucketPtr, _env->i32Const(sizeof(int32_t)));
+            auto bucketPtr = builder.CreateLoad(_env->i8ptrType(), bucketPtrVar);
+            auto row_length = builder.CreateLoad(_env->i32Type(), builder.CreatePointerCast(bucketPtr, _env->i32ptrType()));
+            auto row_ptr = builder.MovePtrByBytes(bucketPtr, sizeof(int32_t));
             // update bucketPtr Var with sizeof(int32_t) + data length
-            builder.CreateStore(builder.CreateGEP(bucketPtr, builder.CreateAdd(row_length, _env->i32Const(sizeof(int32_t)))), bucketPtrVar);
+            builder.CreateStore(builder.MovePtrByBytes(bucketPtr, builder.CreateAdd(row_length, _env->i32Const(sizeof(int32_t)))), bucketPtrVar);
 
             // _env->debugPrint(builder, "decoding in-bucket row with length : ", row_length);
 
@@ -2350,8 +2351,8 @@ namespace tuplex {
             // _env->debugPrint(builder, "start join of " + leftRowType.desc() + " and " + rightRowType.desc());
 
             // hashmap & nullbucket should be i8**ptrs
-            hash_map = builder.CreateLoad(hash_map);
-            null_bucket = builder.CreateLoad(null_bucket);
+            hash_map = builder.CreateLoad(_env->i8ptrType(), hash_map);
+            null_bucket = builder.CreateLoad(_env->i8ptrType(), null_bucket);
             assert(hash_map->getType() == _env->i8ptrType());
             assert(null_bucket->getType() == _env->i8ptrType());
 
@@ -2449,7 +2450,7 @@ namespace tuplex {
             }
 
             // condition on bucket_value, i.e. if bucket != nullptr, then there's a match!
-            auto found_val = builder.CreateICmpNE(builder.CreateLoad(bucket_value), _env->i8nullptr());
+            auto found_val = builder.CreateICmpNE(builder.CreateLoad(_env->i8ptrType(), bucket_value), _env->i8nullptr());
 
 #ifndef NDEBUG
             // _env->debugPrint(builder, "match found: ", found_val);
@@ -2466,8 +2467,8 @@ namespace tuplex {
                 // bucket is valid, so extract num rows found
                 // (cf. TransformTask for in-bucket data structure)
                 //uint64_t info = (num_rows << 32ul) | bucket_size;
-                auto bucket = builder.CreateLoad(bucket_value);
-                auto info = builder.CreateLoad(builder.CreatePointerCast(bucket, _env->i64ptrType()));
+                auto bucket = builder.CreateLoad(_env->i8ptrType(), bucket_value);
+                auto info = builder.CreateLoad(_env->i64Type(), builder.CreatePointerCast(bucket, _env->i64ptrType()));
                 // truncation yields lower 32 bit (= bucket_size)
                 auto bucket_size = builder.CreateTrunc(info, _env->i32Type(), "bucket_size");
                 // right shift by 32 yields size (= num_rows)
@@ -2476,7 +2477,7 @@ namespace tuplex {
 
                 // var for bucket ptr
                 auto bucketPtrVar = _env->CreateFirstBlockAlloca(builder, _env->i8ptrType(), "bucket_ptr");
-                builder.CreateStore(builder.CreateGEP(bucket, _env->i32Const(sizeof(int64_t))), bucketPtrVar); // offset bucket by 8 bytes / 64 bit
+                builder.CreateStore(builder.MovePtrByBytes(bucket, sizeof(int64_t)), bucketPtrVar); // offset bucket by 8 bytes / 64 bit
 
                 createInnerJoinBucketLoop(builder, num_rows_to_join, bucketPtrVar, buildRight, buildBucketType,
                                           resultType, probeKeyIndex);
@@ -2498,15 +2499,15 @@ namespace tuplex {
                 // bucket is valid, so extract num rows found
                 // (cf. TransformTask for in-bucket data structure)
                 //uint64_t info = (num_rows << 32ul) | bucket_size;
-                auto bucket = builder.CreateLoad(bucket_value);
-                auto info = builder.CreateLoad(builder.CreatePointerCast(bucket, _env->i64ptrType()));
+                auto bucket = builder.CreateLoad(_env->i8ptrType(), bucket_value);
+                auto info = builder.CreateLoad(_env->i64Type(), builder.CreatePointerCast(bucket, _env->i64ptrType()));
                 // truncation yields lower 32 bit (= bucket_size)
                 auto bucket_size = builder.CreateTrunc(info, _env->i32Type(), "bucket_size");
                 // right shift by 32 yields size (= num_rows)
                 auto bucket_num_rows_to_join = builder.CreateLShr(info, 32, "num_rows_to_join");
                 bucket_num_rows_to_join = builder.CreateTrunc(bucket_num_rows_to_join, _env->i32Type());
 
-                builder.CreateStore(builder.CreateGEP(bucket, _env->i32Const(sizeof(int64_t))), bucketPtrVar); // offset bucket by 8 bytes / 64 bit
+                builder.CreateStore(builder.MovePtrByBytes(bucket, sizeof(int64_t)), bucketPtrVar); // offset bucket by 8 bytes / 64 bit
 
                 builder.CreateBr(bbNext);
 

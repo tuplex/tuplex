@@ -101,7 +101,7 @@ protected:
 
                 auto d = builder.CreateAlloca(env->doubleType());
                 builder.CreateStore(dummy, d);
-                dummy = builder.CreateLoad(builder.CreateBitOrPointerCast(d, env->i64ptrType()));
+                dummy = builder.CreateLoad(builder.getInt64Ty(), builder.CreateBitOrPointerCast(d, env->i64ptrType()));
             }
 
             if(dummy->getType()->isIntegerTy())

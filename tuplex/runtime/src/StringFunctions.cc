@@ -11,7 +11,9 @@
 #include <Runtime.h>
 #include <cctype>
 #include <cassert>
+#ifdef __x86_64__
 #include <immintrin.h>
+#endif
 #include <stdexcept>
 #include <cassert>
 #include <algorithm>

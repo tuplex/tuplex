@@ -97,3 +97,50 @@ file(COPY resources DESTINATION ${DIST_DIR})
 # copy resources folder one more time (little hack, but this is where ctest needs the files)
 # it uses build/test as working directory
 file(COPY resources DESTINATION ${CMAKE_BINARY_DIR}/test)
+
+# newer gtest >= 1.13 needs abseil
+if(GTest_VERSION VERSION_GREATER_EQUAL 1.13)
+    # find abseil & amend libs
+    find_package(absl REQUIRED)
+
+    set(protobuf_ABSL_USED_TARGETS
+            absl::absl_check
+            absl::absl_log
+            absl::algorithm
+            absl::base
+            absl::bind_front
+            absl::bits
+            absl::btree
+            absl::cleanup
+            absl::cord
+            absl::core_headers
+            absl::debugging
+            absl::die_if_null
+            absl::dynamic_annotations
+            absl::flags
+            absl::flat_hash_map
+            absl::flat_hash_set
+            absl::function_ref
+            absl::hash
+            absl::layout
+            absl::log_initialize
+            absl::log_severity
+            absl::memory
+            absl::node_hash_map
+            absl::node_hash_set
+            absl::optional
+            absl::span
+            absl::status
+            absl::statusor
+            absl::strings
+            absl::synchronization
+            absl::time
+            absl::type_traits
+            absl::utility
+            absl::variant
+            )
+
+#    list(APPEND GTest_LIBRARIES absl::base absl::strings)
+     set(GTest_LIBRARIES "${GTest_LIBRARIES} ${protobuf_ABSL_USED_TARGETS}")
+    message(STATUS "Gtest libs: ${GTest_LIBRARIES}")
+endif()

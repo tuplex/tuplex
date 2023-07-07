@@ -99,7 +99,26 @@ set(ANTLR4_WITH_STATIC_CRT OFF)
 include(ExternalAntlr4Cpp)
 include_directories(${ANTLR4_INCLUDE_DIRS})
 set(ANTLR_EXECUTABLE ${CMAKE_CURRENT_SOURCE_DIR}/tools/antlr-4.8-complete.jar)
-find_package(ANTLR REQUIRED)
+find_package(ANTLR ${ANTLR4Runtime_VERSION})
+
+# if package fails, try to download proper antlr4 tool
+if(NOT ANTLR_FOUND)
+    set(ANTLR_TOOL_URL "https://www.antlr.org/download/antlr-${ANTLR4Runtime_VERSION}-complete.jar")
+
+    file(DOWNLOAD ${ANTLR_TOOL_URL} ${CMAKE_CURRENT_SOURCE_DIR}/tools/antlr-${ANTLR4Runtime_VERSION}-complete.jar SHOW_PROGRESS)
+    set(ANTLR_EXECUTABLE ${CMAKE_CURRENT_SOURCE_DIR}/tools/antlr-${ANTLR4Runtime_VERSION}-complete.jar)
+    # run again, this time in required mode
+    find_package(ANTLR ${ANTLR4Runtime_VERSION} REQUIRED)
+endif()
+
+
+# check that antlr and antlr target version are compatible -> if not, abort.
+message(STATUS "Antlr4 runtime version ${ANTLR4Runtime_VERSION}")
+message(STATUS "Antlr4 version ${ANTLR4_VERSION}")
+
+if(NOT ANTLR4Runtime_VERSION VERSION_EQUAL ANTLR4_VERSION)
+    message(FATAL_ERROR "Antlr versions not compatible, runtime is ${ANTLR4Runtime_VERSION} but antlr tool is ${ANTLR4_VERSION}")
+endif()
 
 antlr_target(Python3Grammar ${CMAKE_CURRENT_SOURCE_DIR}/grammar/Python3.g4 OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/managed PACKAGE antlr4 LISTENER VISITOR)
 

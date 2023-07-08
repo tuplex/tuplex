@@ -506,13 +506,16 @@ namespace tuplex {
                 auto nullRes = createStrCast(lfb, builder, python::Type::propagateToTupleType(python::Type::NULLVALUE), vector<SerializableValue>{SerializableValue()});
                 builder.CreateStore(nullRes.val, valVar);
                 builder.CreateStore(nullRes.size, sizeVar);
+
                 builder.CreateBr(bbDone);
 
                 // string block
                 builder.SetInsertPoint(bbNotNull);
+
                 auto res = createStrCast(lfb, builder, python::Type::makeTupleType({type.withoutOptions()}), args);
                 builder.CreateStore(res.val, valVar);
                 builder.CreateStore(res.size, sizeVar);
+
                 builder.CreateBr(bbDone);
 
                 // set insert point
@@ -520,7 +523,8 @@ namespace tuplex {
 
                 // phi nodes as result
                 lfb.setLastBlock(bbDone);
-                return SerializableValue(builder.CreateLoad(valVar), builder.CreateLoad(sizeVar));
+                return SerializableValue(builder.CreateLoad(_env.i8ptrType(), valVar),
+                                         builder.CreateLoad(builder.getInt64Ty(), sizeVar));
             }
 
 
@@ -591,8 +595,8 @@ namespace tuplex {
                 fmtSize = builder.CreateAdd(fmtSize, _env.i64Const(5));
 
             } else if(python::Type::I64 == type) {
-                fmtString += "%lld";
-                fmtSize = builder.CreateAdd(fmtSize, _env.i64Const(20)); // roughly estimate formatted size with 20 bytes
+                fmtString += "%" PRId64; // for portability, do not use %lld but the macro
+                fmtSize = builder.CreateAdd(fmtSize, _env.i64Const(21)); // roughly estimate formatted size with 21 bytes
             } else if(python::Type::STRING == type) {
                 throw runtime_error("case should be short-circuited above");
             } else {
@@ -607,8 +611,9 @@ namespace tuplex {
             BasicBlock *bbCastDone = BasicBlock::Create(_env.getContext(), "castDone_block", builder.GetInsertBlock()->getParent());
             BasicBlock *bbLargerBuf = BasicBlock::Create(_env.getContext(), "strformat_realloc", builder.GetInsertBlock()->getParent());
 
-            auto bufVar = builder.CreateAlloca(_env.i8ptrType());
+            auto bufVar = _env.CreateFirstBlockAlloca(builder, _env.i8ptrType());
             builder.CreateStore(_env.malloc(builder, fmtSize), bufVar);
+
             auto snprintf_func = snprintf_prototype(_env.getContext(), _env.getModule().get());
 
             //{csvRow, fmtSize, env().strConst(builder, fmtString), ...}

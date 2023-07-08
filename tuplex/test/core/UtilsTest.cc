@@ -64,6 +64,7 @@ TEST(URI, equal) {
     EXPECT_FALSE(uriA == uriD);
 }
 
+#ifdef __x86_64__
 TEST(SSEInit, v16qi_replacement) {
     __v16qi vq = {'\n', '\r', '\0', '\0'};
     auto ref = (__m128i) vq;
@@ -89,3 +90,4 @@ TEST(SSEInit, v16qi_replacement) {
     std::cout<<"byte 0: "<<_mm_extract_epi32(ref, 3)<<std::endl;
     EXPECT_EQ(_mm_extract_epi32(test, 3), _mm_extract_epi32(ref, 3));
 }
+#endif

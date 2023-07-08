@@ -343,12 +343,14 @@ int i64toa_sse2(int64_t value, char* buffer) {
 #include <cstring>
 #include <cstdint>
 
+#include <inttypes.h>
+
 // general fallback solution
 int i64toa_sse2(int64_t value, char* buffer) {
     // note: the buffer has to have at least size 21 bytes, in order to fit -9223372036854775807 (smallest 64bit integer).
     // assume input is 21 bytes.
 
-    snprintf(buffer, 21, "%lld", value);
+    snprintf(buffer, 21, "%" PRId64, value);
     return strlen(buffer);
 }
 
@@ -356,7 +358,7 @@ int u64toa_sse2(uint64_t value, char* buffer) {
     // note: the buffer has to have at least size 21 bytes, in order to fit 18446744073709551615 (largest 64bit unsigned integer).
     // assume input is 21 bytes.
 
-    snprintf(buffer, 21, "%llu", value);
+    snprintf(buffer, 21, "%" PRIu64, value);
     return strlen(buffer);
 }
 

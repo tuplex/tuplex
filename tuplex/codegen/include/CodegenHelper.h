@@ -1006,8 +1006,18 @@ namespace tuplex {
             return llvm::Type::getInt64Ty(ctx);
         }
 
+        template<> inline llvm::Type* ctypeToLLVM<size_t>(llvm::LLVMContext& ctx) {
+            static_assert(sizeof(size_t) == 8, "size_t must be 8 bytes");
+            return llvm::Type::getInt64Ty(ctx);
+        }
+
         template<> inline llvm::Type* ctypeToLLVM<char*>(llvm::LLVMContext& ctx) {
             static_assert(sizeof(char*) == 8, "char* must be 8 byte");
+            return llvm::Type::getInt8Ty(ctx)->getPointerTo(0);
+        }
+
+        template<> inline llvm::Type* ctypeToLLVM<const char*>(llvm::LLVMContext& ctx) {
+            static_assert(sizeof(const char*) == 8, "const char* must be 8 byte");
             return llvm::Type::getInt8Ty(ctx)->getPointerTo(0);
         }
 

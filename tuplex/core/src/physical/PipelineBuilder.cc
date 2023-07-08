@@ -1420,7 +1420,7 @@ namespace tuplex {
                     fmtSize = builder.CreateAdd(fmtSize, env.i64Const(5));
 
                 } else if(python::Type::I64 == type) {
-                    fmtString += "%lld";
+                    fmtString += "%" PRId64;
                     fmtSize = builder.CreateAdd(fmtSize, env.i64Const(20)); // roughly estimate formatted size with 20 bytes
                 } else if(python::Type::F64 == type) {
                     fmtString += "%f";

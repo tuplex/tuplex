@@ -350,7 +350,6 @@ TEST_F(DataSetTest, SingleColWithCol) {
     ASSERT_EQ(res.size(), 2);
     EXPECT_EQ(res[0].toPythonString(), Row(0, "0_str").toPythonString());
     EXPECT_EQ(res[1].toPythonString(), Row(option<int64_t>::none, "None_str").toPythonString());
-
 }
 
 TEST_F(DataSetTest, StrConvEmptyTuple) {

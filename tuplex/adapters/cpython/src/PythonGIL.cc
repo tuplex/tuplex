@@ -29,11 +29,10 @@ namespace python {
         ss.flush();
         auto thread_id = ss.str();
         int64_t id = -1;
-#ifndef LINUX
-        sscanf(thread_id.c_str(), "%lld", &id);
-#else
-        sscanf(thread_id.c_str(), "%ld", &id);
-#endif
+
+        // use macro for portable way to scan %lld.
+        sscanf(thread_id.c_str(), "%" PRId64, &id);
+
         return id;
     }
 

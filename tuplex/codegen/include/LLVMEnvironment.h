@@ -1018,7 +1018,9 @@ namespace tuplex {
             using namespace llvm;
             using namespace tuplex::codegen;
 
-            FunctionType *snprintf_type = FunctionType::get(ctypeToLLVM<int>(ctx), {ctypeToLLVM<char*>(ctx)}, true);
+            FunctionType *snprintf_type = FunctionType::get(ctypeToLLVM<int>(ctx), {ctypeToLLVM<char*>(ctx),
+                                                                                    ctypeToLLVM<size_t>(ctx),
+                                                                                    ctypeToLLVM<const char*>(ctx)}, true);
 
 #if LLVM_VERSION_MAJOR < 9
             Function* func = cast<Function>(mod->getOrInsertFunction("snprintf", snprintf_type));

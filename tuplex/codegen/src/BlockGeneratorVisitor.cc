@@ -1920,8 +1920,8 @@ namespace tuplex {
                 } else if (inferredType == python::Type::STRING) {
                     // index into string
                     auto rhs_char = builder.malloc(_env->i64Const(2));
-                    builder.CreateStore(builder.CreateLoad(builder.CreateGEP(rhs_block.val, _env->i64Const(i))), rhs_char);
-                    builder.CreateStore(_env->i8Const(0), builder.CreateGEP(rhs_char, _env->i64Const(1)));
+                    builder.CreateStore(builder.CreateLoad(builder.getInt8Ty(), builder.MovePtrByBytes(rhs_block.val, i)), rhs_char);
+                    builder.CreateStore(_env->i8Const(0), builder.MovePtrByBytes(rhs_char, 1));
                     val = SerializableValue(rhs_char, _env->i64Const(2));
                     valueType = python::Type::STRING;
                 } else {
@@ -2951,7 +2951,7 @@ namespace tuplex {
                     value = builder.CreateCall(
                             cJSONCreateString_prototype(_env->getContext(), _env->getModule().get()),
                             {vals[i].val});
-                } else if (vals[i].val->getType()->isIntegerTy(8) && valtype == python::Type::BOOLEAN) {
+                } else if ( valtype == python::Type::BOOLEAN) {
                     value = builder.CreateCall(
                             cJSONCreateBool_prototype(_env->getContext(), _env->getModule().get()),
                             {upCast(builder, vals[i].val, _env->i64Type())});

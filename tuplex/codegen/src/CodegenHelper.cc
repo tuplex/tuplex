@@ -433,8 +433,8 @@ namespace tuplex {
             auto i_char = llvm::Constant::getIntegerValue(llvm::Type::getInt8Ty(ctx), llvm::APInt(8, 'i'));
             auto f_char = llvm::Constant::getIntegerValue(llvm::Type::getInt8Ty(ctx), llvm::APInt(8, 'f'));
 
-            auto typechar = builder.CreateLoad(val);
-            auto keystr = builder.CreateGEP(val, llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, 2)));
+            auto typechar = builder.CreateLoad(builder.getInt8Ty(), val);
+            auto keystr = builder.MovePtrByBytes(val, llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, 2)));
             auto keylen = builder.CreateCall(strlen_prototype(ctx, mod), {keystr});
             if(keyType == python::Type::STRING) {
 //                lfb.addException(builder, ExceptionCode::UNKNOWN, builder.CreateICmpEQ(typechar, s_char));
@@ -443,39 +443,39 @@ namespace tuplex {
 //                lfb.addException(builder, ExceptionCode::UNKNOWN, builder.CreateICmpEQ(typechar, b_char));
                 auto value = builder.CreateAlloca(llvm::Type::getInt8Ty(ctx), 0, nullptr);
                 auto strBegin = keystr;
-                auto strEnd = builder.CreateGEP(strBegin, keylen);
+                auto strEnd = builder.MovePtrByBytes(strBegin, keylen);
                 auto resCode = builder.CreateCall(fastatob_prototype(ctx, mod), {strBegin, strEnd, value});
                 auto cond = builder.CreateICmpNE(resCode, llvm::Constant::getIntegerValue(llvm::Type::getInt32Ty(ctx),
                                                                                           llvm::APInt(32,
                                                                                                       ecToI32(ExceptionCode::SUCCESS))));
 //                lfb.addException(builder, ExceptionCode::VALUEERROR, cond);
-                return SerializableValue(builder.CreateLoad(value),
+                return SerializableValue(builder.CreateZExtOrTrunc(builder.CreateLoad(llvm::Type::getInt8Ty(ctx), value), builder.getInt64Ty()),
                         llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx),
                                 llvm::APInt(64, sizeof(int64_t))));
             } else if (keyType == python::Type::I64) {
 //                lfb.addException(builder, ExceptionCode::UNKNOWN, builder.CreateICmpEQ(typechar, i_char));
                 auto value = builder.CreateAlloca(llvm::Type::getInt64Ty(ctx), 0, nullptr);
                 auto strBegin = keystr;
-                auto strEnd = builder.CreateGEP(strBegin, keylen);
+                auto strEnd = builder.MovePtrByBytes(strBegin, keylen);
                 auto resCode = builder.CreateCall(fastatoi_prototype(ctx, mod), {strBegin, strEnd, value});
                 auto cond = builder.CreateICmpNE(resCode, llvm::Constant::getIntegerValue(llvm::Type::getInt32Ty(ctx),
                                                                                           llvm::APInt(32,
                                                                                                       ecToI32(ExceptionCode::SUCCESS))));
 //                lfb.addException(builder, ExceptionCode::VALUEERROR, cond);
-                return SerializableValue(builder.CreateLoad(value),
+                return SerializableValue(builder.CreateLoad(llvm::Type::getInt64Ty(ctx), value),
                                          llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx),
                                                                          llvm::APInt(64, sizeof(int64_t))));
             } else if (keyType == python::Type::F64) {
 //                lfb.addException(builder, ExceptionCode::UNKNOWN, builder.CreateICmpEQ(typechar, f_char));
                 auto value = builder.CreateAlloca(llvm::Type::getDoubleTy(ctx), 0, nullptr);
                 auto strBegin = keystr;
-                auto strEnd = builder.CreateGEP(strBegin, keylen);
+                auto strEnd = builder.MovePtrByBytes(strBegin, keylen);
                 auto resCode = builder.CreateCall(fastatod_prototype(ctx, mod), {strBegin, strEnd, value});
                 auto cond = builder.CreateICmpNE(resCode, llvm::Constant::getIntegerValue(llvm::Type::getInt32Ty(ctx),
                                                                                           llvm::APInt(32,
                                                                                                       ecToI32(ExceptionCode::SUCCESS))));
 //                lfb.addException(builder, ExceptionCode::VALUEERROR, cond);
-                return SerializableValue(builder.CreateLoad(value),
+                return SerializableValue(builder.CreateLoad(llvm::Type::getDoubleTy(ctx), value),
                                          llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx),
                                                                          llvm::APInt(64, sizeof(double))));
             } else {

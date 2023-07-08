@@ -222,7 +222,7 @@ namespace tuplex {
             }
             else if(retType == python::Type::STRING) {
                 // STRING: 32 bytes offset
-                auto valaddr = builder.CreateGEP(cjson_val, _env.i64Const(32));
+                auto valaddr = builder.MovePtrByBytes(cjson_val, _env.i64Const(32));
                 auto valptr = builder.CreatePointerCast(valaddr, llvm::Type::getInt64PtrTy(_env.getContext()));
                 auto valload = builder.CreateLoad(_env.i64Type(), valptr);
                 val = builder.CreateCast(llvm::Instruction::CastOps::IntToPtr, valload, _env.i8ptrType());
@@ -231,14 +231,14 @@ namespace tuplex {
             }
             else if(retType == python::Type::I64) {
                 // Integer: 40 bytes offset
-                auto valaddr = builder.CreateGEP(cjson_val, _env.i64Const(40));
+                auto valaddr = builder.MovePtrByBytes(cjson_val, _env.i64Const(40));
                 auto valptr = builder.CreatePointerCast(valaddr, llvm::Type::getInt64PtrTy(_env.getContext()));
                 val = builder.CreateLoad(llvm::Type::getInt64Ty(_env.getContext()), valptr);
                 size = _env.i64Const(8);
             }
             else if(retType == python::Type::F64) {
                 // Double: 48 bytes offset
-                auto valaddr = builder.CreateGEP(cjson_val, _env.i64Const(48));
+                auto valaddr = builder.MovePtrByBytes(cjson_val, _env.i64Const(48));
                 auto valptr = builder.CreatePointerCast(valaddr, llvm::Type::getDoublePtrTy(_env.getContext()));
                 val = builder.CreateLoad(llvm::Type::getDoubleTy(_env.getContext()), valptr);
                 size = _env.i64Const(8);
@@ -310,18 +310,21 @@ namespace tuplex {
             auto retsize = builder.CreateAlloca(builder.getInt64Ty(), 0, nullptr);
             llvm::Value *retval = nullptr;
             // allocate retval properly
+            llvm::Type* retval_llvm_type = nullptr;
             if (retType.parameters()[1] == python::Type::BOOLEAN)
-                retval = builder.CreateAlloca(_env.getBooleanType(), 0, nullptr);
+                retval_llvm_type = _env.getBooleanType();
             else if (retType.parameters()[1] == python::Type::STRING)
-                retval = builder.CreateAlloca(_env.i8ptrType(), 0, nullptr);
+                retval_llvm_type = _env.i8ptrType();
             else if (retType.parameters()[1] == python::Type::I64)
-                retval = builder.CreateAlloca(_env.i64Type(), 0, nullptr);
+                retval_llvm_type = _env.i64Type();
             else if (retType.parameters()[1] == python::Type::F64)
-                retval = builder.CreateAlloca(_env.doubleType(), 0, nullptr);
+                retval_llvm_type =_env.doubleType();
             else throw std::runtime_error("Invalid return type for dict.pop(): " + retType.parameters()[1].desc());
 
+            retval = _env.CreateFirstBlockAlloca(builder,retval_llvm_type);
+
             // retrieve child pointer
-            auto valobjaddr = builder.CreateGEP(caller.val, _env.i64Const(16));
+            auto valobjaddr = builder.MovePtrByBytes(caller.val, _env.i64Const(16));
             auto valobjptr = builder.CreatePointerCast(valobjaddr, llvm::Type::getInt64PtrTy(_env.getContext()));
             auto valobjload = builder.CreateLoad(_env.i64Type(), valobjptr);
             auto valobj = builder.CreateCast(llvm::Instruction::CastOps::IntToPtr, valobjload,
@@ -334,7 +337,7 @@ namespace tuplex {
                                {caller.val, valobj});
             getValueFromcJSON(builder, valobj, retType.parameters()[1], retval, retsize);
             // get key of removed item
-            auto keyaddr = builder.CreateGEP(valobj, _env.i64Const(56));
+            auto keyaddr = builder.MovePtrByBytes(valobj, _env.i64Const(56));
             auto keyptr = builder.CreatePointerCast(keyaddr, llvm::Type::getInt64PtrTy(_env.getContext()));
             auto keyload = builder.CreateLoad(_env.i64Type(), keyptr);
             auto keystr = builder.CreateCast(llvm::Instruction::CastOps::IntToPtr, keyload,
@@ -344,7 +347,7 @@ namespace tuplex {
             FlattenedTuple ft(&_env);
             ft.init(retType);
             ft.setElement(builder, 0, key.val, key.size, key.is_null);
-            ft.setElement(builder, 1, builder.CreateLoad(retval), builder.CreateLoad(retsize), nullptr); // non-null result!
+            ft.setElement(builder, 1, builder.CreateLoad(retval_llvm_type, retval), builder.CreateLoad(builder.getInt64Ty(), retsize), nullptr); // non-null result!
 
             auto ret = ft.getLoad(builder);
             assert(ret->getType()->isStructTy());

@@ -14,10 +14,14 @@
 #include <RuntimeInterface.h>
 #include <ExceptionCodes.h>
 
-// use simde -> sse4.2 instructions
-// #include <nmmintrin.h>
+// use simd intrinsics or ARM Neon translation layer
+#if (defined __x86_64__)
+#include <nmmintrin.h>
+#elif (defined __arm64__)
 #include <third_party/sse2neon/sse2neon.h>
-
+#else
+#error "unsupported platform for intrinsics"
+#endif
 
 namespace tuplex {
 

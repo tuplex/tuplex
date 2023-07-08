@@ -104,7 +104,7 @@ find_package(ANTLR ${ANTLR4Runtime_VERSION})
 # if package fails, try to download proper antlr4 tool
 if(NOT ANTLR_FOUND)
     set(ANTLR_TOOL_URL "https://www.antlr.org/download/antlr-${ANTLR4Runtime_VERSION}-complete.jar")
-
+    message(STATUS "Downloading compatible ANTLR tool from ${ANTLR_TOOL_URL}")
     file(DOWNLOAD ${ANTLR_TOOL_URL} ${CMAKE_CURRENT_SOURCE_DIR}/tools/antlr-${ANTLR4Runtime_VERSION}-complete.jar SHOW_PROGRESS)
     set(ANTLR_EXECUTABLE ${CMAKE_CURRENT_SOURCE_DIR}/tools/antlr-${ANTLR4Runtime_VERSION}-complete.jar)
     # run again, this time in required mode

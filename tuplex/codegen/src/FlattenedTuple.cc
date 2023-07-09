@@ -359,8 +359,8 @@ namespace tuplex {
                             auto offset_ptr_bytes_offset = builder.CreateMul(_env->i64Const(sizeof(int64_t)), builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), loopCounter),
                                                                                                                                 _env->i64Const(1)));
                             auto nextOffset = builder.CreateLoad(builder.getInt64Ty(),
-                                                                 builder.MovePtrByBytes(offset_ptr,
-                                                                                   offset_ptr_bytes_offset));
+                                                                 builder.CreateBitCast(builder.MovePtrByBytes(builder.CreateBitCast(offset_ptr, _env->i8ptrType()),
+                                                                                   offset_ptr_bytes_offset), _env->i64ptrType()));
                             _env->printValue(builder, offset_ptr_bytes_offset, "offset bytes=");
                             _env->printValue(builder, nextOffset, "nextOffset= ");
                             _env->printValue(builder, curOffset, "curOffset= ");
@@ -680,8 +680,10 @@ namespace tuplex {
 
                         builder.SetInsertPoint(loopBody);
                         // store the serialized size
-                        auto serialized_size_ptr = builder.MovePtrByBytes(outptr, builder.CreateMul(_env->i64Const(sizeof(int64_t)), builder.CreateLoad(builder.getInt64Ty(), loopCounter))); // get pointer to location for serialized value
-                        builder.CreateStore(builder.CreateLoad(builder.getInt64Ty(), curStrOffset), serialized_size_ptr); // store the current offset to the location
+                        auto serialized_size_ptr = builder.MovePtrByBytes(builder.CreateBitCast(outptr, _env->i8ptrType()),
+                                                                          builder.CreateMul(_env->i64Const(sizeof(int64_t)),
+                                                                                            builder.CreateLoad(builder.getInt64Ty(), loopCounter))); // get pointer to location for serialized value
+                        builder.CreateStore(builder.CreateLoad(builder.getInt64Ty(), curStrOffset), builder.CreateBitCast(serialized_size_ptr, _env->i64ptrType())); // store the current offset to the location
 
 
 
@@ -1261,7 +1263,7 @@ namespace tuplex {
                     auto val = builder.CreateLoad(env.i8ptrType(), builder.CreateGEP(env.i8ptrType(),
                                                                                      cellsPtr, env.i64Const(i)),
                                                   "x" + std::to_string(i));
-                    auto size = builder.CreateLoad(env.i64Type(), builder.CreateGEP(env.i64ptrType(), sizesPtr, env.i64Const(i)),
+                    auto size = builder.CreateLoad(env.i64Type(), builder.CreateGEP(env.i64Type(), sizesPtr, env.i64Const(i)),
                                                    "s" + std::to_string(i));
                     ft->assign(i, val, size, isnull);
                 } else if(python::Type::BOOLEAN == t) {

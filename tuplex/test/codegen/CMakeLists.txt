@@ -70,9 +70,9 @@ message(STATUS "zstd libs: ${ZSTD_LIBRARIES}")
 TARGET_LINK_LIBRARIES(testcodegen
         libcodegen
         ${GTest_LIBRARIES}
-        ${ZSTD_LIBRARIES}
-        ${ZLIB_LIBRARIES}
-        ${CURSES_LIBRARY}
+        #${ZSTD_LIBRARIES}
+        #${ZLIB_LIBRARIES}
+        #${CURSES_LIBRARY}
         runtime
         )
 

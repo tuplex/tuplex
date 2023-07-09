@@ -1975,7 +1975,7 @@ namespace tuplex {
                     // right shift by 32 yields size
                     Value *size = builder.CreateLShr(info, 32);
 
-                    builder.CreateStore(size, builder.MovePtrByBytes(sizesPtr, i));
+                    builder.CreateStore(size, builder.CreateGEP(builder.getInt64Ty(), sizesPtr, {env.i64Const(i)}));
                     builder.CreateStore(builder.MovePtrByBytes(dataPtr, offset),
                                         builder.CreateGEP(env.i8ptrType(), cellsPtr, env.i32Const(i)));
 

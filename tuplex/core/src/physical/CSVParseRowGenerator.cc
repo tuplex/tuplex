@@ -111,10 +111,11 @@ namespace tuplex {
         }
 
         llvm::Value *
-        CSVParseRowGenerator::generateCellSpannerCode(IRBuilder& builder, char c1, char c2, char c3, char c4) {
+        CSVParseRowGenerator::generateCellSpannerCode(IRBuilder& builder, const std::string& name, char c1, char c2, char c3, char c4) {
             auto &context = _env->getContext();
             using namespace llvm;
 
+#ifdef SSE42_MODE
             // look into godbolt
             // for following code...
             //  char c1 = ',';
@@ -126,28 +127,201 @@ namespace tuplex {
             // const char *buf = "Hello world";
             // size_t pos = _mm_cmpistri(_v, _mm_loadu_si128((__m128i*)buf), 0);
             auto llvm_v16_type = v16qi_type(context);
-            auto v16qi_val = builder.CreateAlloca(llvm_v16_type);
+            auto v16qi_val = builder.CreateAlloca(llvm_v16_type, name);
             uint64_t idx = 0ul;
             llvm::Value *whereToStore = builder.CreateLoad(llvm_v16_type, v16qi_val);
             whereToStore = builder.CreateInsertElement(whereToStore, _env->i8Const(c1), idx++);
             whereToStore = builder.CreateInsertElement(whereToStore, _env->i8Const(c2), idx++);
             whereToStore = builder.CreateInsertElement(whereToStore, _env->i8Const(c3), idx++);
             whereToStore = builder.CreateInsertElement(whereToStore, _env->i8Const(c4), idx++);
-            for (int i = 4; i < 16; ++i)
+            for (unsigned i = 4; i < 16; ++i)
                 whereToStore = builder.CreateInsertElement(whereToStore, _env->i8Const(0), idx++);
 
             builder.CreateStore(whereToStore, v16qi_val);
             return v16qi_val;
+#else
+            // generate fallback function
+            return generateFallbackSpannerFunction(*_env, name, c1, c2, c3, c4);
+#endif
         }
 
+        llvm::Function *CSVParseRowGenerator::generateFallbackSpannerFunction(tuplex::codegen::LLVMEnvironment &env,
+                                                                              const std::string &name, char c1, char c2,
+                                                                              char c3, char c4) {
+            auto &context = _env->getContext();
+            using namespace llvm;
+
+            // generate lookup array as global var
+            // ::memset(charset_, 0, sizeof charset_);
+            //            charset_[(unsigned) c1] = 1;
+            //            charset_[(unsigned) c2] = 1;
+            //            charset_[(unsigned) c3] = 1;
+            //            charset_[(unsigned) c4] = 1;
+            //            charset_[0] = 1;
+
+            char charset[256];
+            memset(charset, 0, sizeof(charset));
+            charset[(unsigned) c1] = 1;
+            charset[(unsigned) c2] = 1;
+            charset[(unsigned) c3] = 1;
+            charset[(unsigned) c4] = 1;
+            charset[0] = 1;
+
+            auto charset_type = llvm::ArrayType::get(env.i8Type(), 256);
+            auto g_charset = env.getModule()->getOrInsertGlobal(name + "_charset", charset_type);
+            std::string g_name = g_charset->getName().str();
+            auto g_var = env.getModule()->getNamedGlobal(g_name);
+            g_var->setLinkage(llvm::GlobalValue::PrivateLinkage); // <-- no need to expose global
+            g_var->setInitializer(ConstantDataArray::getRaw(llvm::StringRef(charset, 256), 256, env.i8Type()));
+
+            // in func, perform
+            // auto p = (const unsigned char *)s;
+            //            auto e = p + 16;
+            //
+            //            do {
+            //                if(charset_[p[0]]) {
+            //                    break;
+            //                }
+            //                if(charset_[p[1]]) {
+            //                    p++;
+            //                    break;
+            //                }
+            //                if(charset_[p[2]]) {
+            //                    p += 2;
+            //                    break;
+            //                }
+            //                if(charset_[p[3]]) {
+            //                    p += 3;
+            //                    break;
+            //                }
+            //                p += 4;
+            //            } while(p < e);
+            //
+            //            if(! *p) {
+            //                return 16; // PCMPISTRI reports NUL encountered as no match.
+            //            }
+            //
+            //            return p - (const unsigned char *)s;
+
+            auto FT = FunctionType::get(ctypeToLLVM<int>(context), {env.i8ptrType()}, false);
+            auto func = getOrInsertFunction(*env.getModule(), name, FT);
+
+            auto bbEntry = BasicBlock::Create(context, "entry", func);
+            IRBuilder builder(bbEntry);
+
+            auto m = mapLLVMFunctionArgs(func, {"ptr"});
+
+            // check if nullptr, if so return 16. Else, run loop
+            auto cond_is_nullptr = builder.CreateICmpEQ(m["ptr"], env.nullConstant(env.i8ptrType()));
+
+            auto bbIsNullPtr = BasicBlock::Create(context, "is_nullptr", func);
+            auto bbIsPtr = BasicBlock::Create(context, "is_not_null", func);
+            builder.CreateCondBr(cond_is_nullptr, bbIsNullPtr, bbIsPtr);
+
+            builder.SetInsertPoint(bbIsNullPtr);
+            builder.CreateRet(builder.CreateZExtOrTrunc(env.i32Const(16), ctypeToLLVM<int>(context)));
+
+            builder.SetInsertPoint(bbIsPtr);
+
+            auto start_ptr = m["ptr"];
+            auto ptr = env.CreateFirstBlockVariable(builder, env.i8nullptr());
+            builder.CreateStore(start_ptr, ptr);
+            auto end_ptr = builder.MovePtrByBytes(start_ptr, 16);
+
+
+            auto bbLoopBody = BasicBlock::Create(context, "loop_body", func);
+            auto bbLoopExit = BasicBlock::Create(context, "loop_done", func);
+            builder.CreateBr(bbLoopBody);
+
+            builder.SetInsertPoint(bbLoopBody);
+            auto p = builder.CreateLoad(env.i8ptrType(), ptr); // value of ptr var
+
+            // if(charset[p[0]]) {
+            // break;
+            // }
+
+            // p[0] is same as loading ptr twice
+            auto p_idx = builder.CreateLoad(env.i8Type(), p);
+            auto charset_p0 = builder.CreateLoad(env.i8Type(), builder.CreateInBoundsGEP(g_var, env.i8Type(), p_idx));
+            auto cond_p0 = builder.CreateICmpNE(charset_p0, env.i8Const(0));
+            auto bbNextIf = BasicBlock::Create(context, "next_if", func);
+            builder.CreateCondBr(cond_p0, bbLoopExit, bbNextIf);
+
+            builder.SetInsertPoint(bbNextIf);
+            // if(charset_[p[1]]) {
+            //     p++;
+            //     break;
+            // }
+            p_idx = builder.CreateLoad(env.i8Type(), builder.MovePtrByBytes(p, 1));
+            auto charset_p1 = builder.CreateLoad(env.i8Type(), builder.CreateInBoundsGEP(g_var, env.i8Type(), p_idx));
+            auto cond_p1 = builder.CreateICmpNE(charset_p1, env.i8Const(0));
+            bbNextIf = BasicBlock::Create(context, "next_if", func);
+            auto bbIf = BasicBlock::Create(context, "if", func);
+            builder.CreateCondBr(cond_p1, bbIf, bbNextIf);
+
+            builder.SetInsertPoint(bbIf);
+            builder.CreateStore(builder.MovePtrByBytes(p, 1), ptr);
+            builder.CreateBr(bbLoopExit);
+
+            builder.SetInsertPoint(bbNextIf);
+            // if(charset_[p[2]]) {
+            //                    p += 2;
+            //                    break;
+            //                }
+            p_idx = builder.CreateLoad(env.i8Type(), builder.MovePtrByBytes(p, 2));
+            auto charset_p2 = builder.CreateLoad(env.i8Type(), builder.CreateInBoundsGEP(g_var, env.i8Type(), p_idx));
+            auto cond_p2 = builder.CreateICmpNE(charset_p2, env.i8Const(0));
+            bbNextIf = BasicBlock::Create(context, "next_if", func);
+            bbIf = BasicBlock::Create(context, "if", func);
+            builder.CreateCondBr(cond_p2, bbIf, bbNextIf);
+
+            builder.SetInsertPoint(bbIf);
+            builder.CreateStore(builder.MovePtrByBytes(p, 2), ptr);
+
+            builder.CreateBr(bbLoopExit);
+
+            builder.SetInsertPoint(bbNextIf);
+            //  if(charset_[p[3]]) {
+            //                    p += 3;
+            //                    break;
+            //                }
+            p_idx = builder.CreateLoad(env.i8Type(), builder.MovePtrByBytes(p, 3));
+            auto charset_p3 = builder.CreateLoad(env.i8Type(), builder.CreateInBoundsGEP(g_var, env.i8Type(), p_idx));
+            auto cond_p3 = builder.CreateICmpNE(charset_p3, env.i8Const(0));
+            bbNextIf = BasicBlock::Create(context, "next_if", func);
+            bbIf = BasicBlock::Create(context, "if", func);
+            builder.CreateCondBr(cond_p3, bbIf, bbNextIf);
+
+            builder.SetInsertPoint(bbIf);
+            builder.CreateStore(builder.MovePtrByBytes(p, 3), ptr);
+            builder.CreateBr(bbLoopExit);
+
+            builder.SetInsertPoint(bbNextIf);
+            // p += 4;
+            builder.CreateStore(builder.MovePtrByBytes(p, 4), ptr);
+
+            // loop cond, go back or exit
+            p = builder.CreateLoad(env.i8ptrType(), ptr);
+            auto loop_cond = builder.CreateICmpULT(p, end_ptr);
+            builder.CreateCondBr(loop_cond, bbLoopBody, bbLoopExit);
+
+
+            // return p - (const unsigned char *)s;
+            builder.SetInsertPoint(bbLoopExit);
+            p = builder.CreateLoad(env.i8ptrType(), ptr);
+            auto ret = builder.CreatePtrDiff(env.i8Type(), p, start_ptr);
+
+            builder.CreateRet(builder.CreateZExtOrTrunc(ret, ctypeToLLVM<int>(context)));
+
+            return func;
+        }
 
         llvm::Value *
         CSVParseRowGenerator::executeSpanner(IRBuilder& builder, llvm::Value *spanner, llvm::Value *ptr) {
             auto &context = _env->getContext();
             using namespace llvm;
 
-            // assert(ptr->getType() == Type::getInt8PtrTy(context, 0));
-
+#if (defined SSE42_MODE)
             auto llvm_v16_type = v16qi_type(context);
 
             // unsafe version: this requires that there are 15 zeroed bytes after endptr at least
@@ -157,6 +331,11 @@ namespace tuplex {
             Function *pcmpistri128func = Intrinsic::getDeclaration(_env->getModule().get(),
                                                                    LLVMIntrinsic::x86_sse42_pcmpistri128);
             auto res = builder.CreateCall(pcmpistri128func, {val, builder.CreateLoad(llvm_v16_type, casted_ptr), _env->i8Const(0)});
+#else
+            auto func = llvm::cast<Function>(spanner);
+            assert(func);
+            auto res = builder.CreateCall(func, {ptr});
+#endif
             return res;
 
             //  // safe version, i.e. when 16 byte border is not guaranteed.
@@ -234,13 +413,8 @@ namespace tuplex {
 
             builder.SetInsertPoint(bUnquotedCellBeginSkipEntry);
 
-            // use fallback or SSE4.2.? change this here...
-#ifdef SSE42_MODE
-            // call spanner
+            // call spanner to search for delimiters
             auto spannerResult = executeSpanner(builder, _unquotedSpanner, currentPtr(builder));
-#else
-#error "backup solution needs to be added."
-#endif
 
             consume(builder, spannerResult);
             auto curChar = currentChar(builder);// safe version
@@ -297,13 +471,9 @@ namespace tuplex {
             //     Quoted Cell skip entry block [execute spanner till " or \0 is found]
             //     ------------------------------------------------------------------------
             builder.SetInsertPoint(bQuotedCellBeginSkipEntry);
-            // use fallback or SSE4.2.? change this here...
-#ifdef SSE42_MODE
-            // call spanner
+
+            // call spanner to search for delimiters
             auto spannerResult = executeSpanner(builder, _quotedSpanner, currentPtr(builder));
-#else
-#error "fallback needs to be implemented"
-#endif
 
             // consume result
             consume(builder, spannerResult);
@@ -433,12 +603,9 @@ namespace tuplex {
             _storedCellBeginsVar = builder.CreateAlloca(i8ptr_type, 0, _env->i32Const(numCellsToSerialize()));
             _storedCellEndsVar = builder.CreateAlloca(i8ptr_type, 0, _env->i32Const(numCellsToSerialize()));
 
-#ifdef SSE42_MODE
-            _quotedSpanner = generateCellSpannerCode(builder, _quotechar, _escapechar);
-            _unquotedSpanner = generateCellSpannerCode(builder, _delimiter, '\r', '\n', _escapechar);
-#else
-#error "fallback missing here"
-#endif
+            // create masks or functions
+            _quotedSpanner = generateCellSpannerCode(builder, "quoted_spanner", _quotechar, _escapechar);
+            _unquotedSpanner = generateCellSpannerCode(builder, "unquoted_spanner", _delimiter, '\r', '\n', _escapechar);
 
             // setup current ptr and look ahead
             builder.CreateStore(_inputPtr, _currentPtrVar);

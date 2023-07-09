@@ -19,8 +19,10 @@
 #include <Base.h>
 #include <Utils.h>
 
-// Todo: make this a little bit better
+// define SSE42 only for x86_64. Tuplex requires at least cpu with sse42 features.
+#ifdef __x86_64
 #define SSE42_MODE
+#endif
 
 namespace tuplex {
 
@@ -88,10 +90,9 @@ namespace tuplex {
             llvm::Value *_storedCellBeginsVar; // i8* array
             llvm::Value *_storedCellEndsVar; // i8* array
 
-#ifdef SSE42_MODE
+            // in SSE4.2 mode this a vector mask, else it's the fallback function
             llvm::Value *_quotedSpanner;
             llvm::Value *_unquotedSpanner;
-#endif
 
             size_t numCells() const { return _cellDescs.size(); }
 
@@ -251,14 +252,12 @@ namespace tuplex {
              */
             llvm::Value *newlineCondition(IRBuilder &builder, llvm::Value *curChar);
 
-#ifdef SSE42_MODE
-
             llvm::Value *
-            generateCellSpannerCode(IRBuilder &builder, char c1 = 0, char c2 = 0, char c3 = 0, char c4 = 0);
+            generateCellSpannerCode(IRBuilder &builder, const std::string& name, char c1 = 0, char c2 = 0, char c3 = 0, char c4 = 0);
 
             llvm::Value *executeSpanner(IRBuilder &builder, llvm::Value *spanner, llvm::Value *ptr);
 
-#endif
+            llvm::Function* generateFallbackSpannerFunction(LLVMEnvironment& env, const std::string& name="fallback_spanner", char c1 = 0, char c2 = 0, char c3 = 0, char c4 = 0);
 
             // NEW: code-gen null value check (incl. quoting!)
             llvm::Value *isCellNullValue(IRBuilder &builder, llvm::Value *cellBegin, llvm::Value *cellEndIncl) {

@@ -1192,7 +1192,7 @@ namespace tuplex {
 
         inline std::tuple<llvm::Value*, llvm::Value*> decodeSingleCell(LLVMEnvironment& env, IRBuilder& builder, llvm::Value* cellsPtr, llvm::Value* sizesPtr, unsigned i) {
             auto cellStr = builder.CreateLoad(env.i8ptrType(), builder.CreateGEP(env.i8ptrType(), cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
-            auto cellSize = builder.CreateLoad(env.i64Type(), builder.CreateGEP(env.i64ptrType(), sizesPtr, env.i64Const(i)), "s" + std::to_string(i));
+            auto cellSize = builder.CreateLoad(env.i64Type(), builder.CreateGEP(env.i64Type(), sizesPtr, env.i64Const(i)), "s" + std::to_string(i));
             return std::make_tuple(cellStr, cellSize);
         }
 

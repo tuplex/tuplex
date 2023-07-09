@@ -127,7 +127,7 @@ namespace tuplex {
 
 
             // compute endptr from args
-            Value *endPtr = builder.CreateGEP(env().i8ptrType(), argInPtr, argInSize, "endPtr");
+            Value *endPtr = builder.MovePtrByBytes(argInPtr, argInSize, "endPtr");
             Value *currentPtrVar = builder.CreateAlloca(env().i8ptrType(), 0, nullptr, "readPtrVar");
             // later use combi of normal & bad rows
             //Value *normalRowCountVar = builder.CreateAlloca(env().i64Type(), 0, nullptr, "normalRowCountVar");

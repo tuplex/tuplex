@@ -194,7 +194,7 @@ namespace tuplex {
                 auto strisempty = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLE, str.size, _env->i64Const(1));
                 if (num_is_bool) {
                     // branch on whether we return an empty string (or the original)
-                    auto mulbyfalse = builder.CreateICmpEQ(num, _env->i8Const(0));
+                    auto mulbyfalse = builder.CreateICmpEQ(num, _env->boolConst(false));
                     auto retemptystr = builder.CreateOr(strisempty, mulbyfalse);
                     builder.CreateCondBr(retemptystr, emptyBlock, origBlock);
                 } else {
@@ -1504,7 +1504,7 @@ namespace tuplex {
 
                 // call func
                 auto res = builder.CreateCall(pow_func, {L, R, pow_ec});
-                auto pow_ec_val = builder.CreateLoad(pow_ec);
+                auto pow_ec_val = builder.CreateLoad(builder.getInt64Ty(), pow_ec);
                 _lfb->addException(builder, pow_ec_val, builder.CreateICmpNE(pow_ec_val, _env->i64Const(ecToI64(ExceptionCode::SUCCESS))));
                 return res;
             }

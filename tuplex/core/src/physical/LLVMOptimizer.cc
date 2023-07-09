@@ -231,9 +231,14 @@ namespace tuplex {
 
         // Create the pass manager.
         // This one corresponds to a typical -O2 optimization pipeline.
-        ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(OptimizationLevel::O2);
+#if (LLVM_VERSION_MAJOR < 14)
+        auto opt_level = llvm::PassBuilder::OptimizationLevel::O2;
+#else
+        auto opt_level = OptimizationLevel::O2;
+#endif
+        ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(opt_level);
 
-        // Optimize the IR!
+        // Optimize the IR!F
         MPM.run(M, MAM);
 
 //      llvm::PassManagerBuilder Builder;

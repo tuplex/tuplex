@@ -1089,8 +1089,10 @@ namespace tuplex {
 
             std::string pointer_stars = "";
             while(stype->isPointerTy()) {
+#if (LLVM_VERSION_MAJOR > 14)
                 if(stype->isOpaquePointerTy())
                     return "ptr";
+#endif
                 stype = stype->getPointerElementType();
                 pointer_stars += "*";
             }
@@ -1150,9 +1152,10 @@ namespace tuplex {
 
             // check if t is pointer type to struct type
             if (t->isPointerTy()) {
+#if (LLVM_VERSION_MAJOR > 14)
                 if(t->isOpaquePointerTy())
                     return "ptr";
-
+#endif
                 // recurse:
                 return getLLVMTypeName(t->getPointerElementType()) + "*";
             }

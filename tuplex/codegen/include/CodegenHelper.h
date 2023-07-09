@@ -81,9 +81,9 @@ namespace tuplex {
             IRBuilder firstBlockBuilder(bool insertAtEnd=true) const;
 
             // CreateAlloca (Type *Ty, unsigned AddrSpace, Value *ArraySize=nullptr, const Twine &Name=""
-//            inline llvm::Value* CreateAlloca(llvm::Type *type, const std::string& name="") {
-//                return get_or_throw().CreateAlloca(type, 0, nullptr, name);
-//            }
+            inline llvm::Value* CreateAlloca(llvm::Type *type, const std::string& name="") {
+                return get_or_throw().CreateAlloca(type, 0, nullptr, name);
+            }
 
              inline llvm::Value* CreateAlloca(llvm::Type *type, unsigned AddrSpace, llvm::Value* ArraySize=nullptr, const std::string& name="") const {
                  assert(type);
@@ -394,6 +394,11 @@ namespace tuplex {
 #if LLVM_VERSION_MAJOR < 9
                 // compatibility
                 return get_or_throw().CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
+#elif LLVM_VERSION_MAJOR < 15
+                assert(Ptr->getType()->isPointerTy());
+                auto pointeetype = Ptr->getType()->getPointerElementType();
+                assert(pointeetype);
+                return get_or_throw().CreateStructGEP(pointeetype, Ptr, Idx, Name);
 #else
                 //  return builder.CreateStructGEP(ptr, idx);
                 assert(Ptr->getType()->isPointerTy());
@@ -454,7 +459,13 @@ namespace tuplex {
 
 
             inline llvm::CallInst *CreateCall(llvm::FunctionType *FTy, llvm::Value *Callee,
-                                        llvm::ArrayRef<llvm::Value *> Args = std::nullopt, const std::string &Name = "",
+
+#if (LLVM_VERSION_MAJOR >= 10)
+                                        llvm::ArrayRef<llvm::Value *> Args = std::nullopt,
+#else
+                    llvm::ArrayRef<llvm::Value *> Args = {},
+#endif
+                                        const std::string &Name = "",
                                         llvm::MDNode *FPMathTag = nullptr) const {
                  assert(FTy);
                 return get_or_throw().CreateCall(FTy, Callee, Args, Name, FPMathTag);
@@ -466,7 +477,12 @@ namespace tuplex {
             //                Function *func = cast<Function>(_module->getOrInsertFunction(key, FT).getCallee());
             //#endif
 
-            inline llvm::CallInst* CreateCall(llvm::Value* func_value, llvm::ArrayRef<llvm::Value *> Args = std::nullopt,
+            inline llvm::CallInst* CreateCall(llvm::Value* func_value,
+#if (LLVM_VERSION_MAJOR >= 10)
+                    llvm::ArrayRef<llvm::Value *> Args = std::nullopt,
+#else
+                                              llvm::ArrayRef<llvm::Value *> Args = {},
+#endif
                                               const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) const {
                  if(llvm::isa<llvm::Function>(func_value))
                      throw std::runtime_error("trying to call a non-function llvm value");
@@ -475,13 +491,23 @@ namespace tuplex {
                                   FPMathTag);
             }
 
-            inline llvm::CallInst* CreateCall(llvm::Function* func, llvm::ArrayRef<llvm::Value *> Args = std::nullopt,
+            inline llvm::CallInst* CreateCall(llvm::Function* func,
+#if (LLVM_VERSION_MAJOR >= 10)
+                    llvm::ArrayRef<llvm::Value *> Args = std::nullopt,
+#else
+                                              llvm::ArrayRef<llvm::Value *> Args = {},
+#endif
                                               const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) const {
                 return CreateCall(func->getFunctionType(), func, Args, Name,
                                   FPMathTag);
             }
 
-            inline llvm::CallInst *CreateCall(llvm::FunctionCallee Callee, llvm::ArrayRef<llvm::Value *> Args = std::nullopt,
+            inline llvm::CallInst *CreateCall(llvm::FunctionCallee Callee,
+#if (LLVM_VERSION_MAJOR >= 10)
+                    llvm::ArrayRef<llvm::Value *> Args = std::nullopt,
+#else
+                                              llvm::ArrayRef<llvm::Value *> Args = {},
+#endif
                                         const std::string &Name = "", llvm::MDNode *FPMathTag = nullptr) const {
                 return CreateCall(Callee.getFunctionType(), Callee.getCallee(), Args, Name,
                                   FPMathTag);
@@ -640,7 +666,11 @@ namespace tuplex {
                                               const std::string &Name = "") const {
                 assert(LHS->getType() == RHS->getType() && LHS->getType()->isPointerTy());
                 assert(ElemTy);
+#if (LLVM_VERSION_MAJOR < 14)
+                return get_or_throw().CreatePtrDiff(LHS, RHS, Name);
+#else
                 return get_or_throw().CreatePtrDiff(ElemTy, LHS, RHS, Name);
+#endif
             }
 
             inline llvm::Value *CreatePtrDiff(llvm::Value *LHS, llvm::Value *RHS,

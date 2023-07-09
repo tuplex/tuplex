@@ -2126,7 +2126,7 @@ namespace tuplex {
             // retrieve the block address to resume
             auto blockAddrPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
                                                   {i32Const(0), i32Const(0)});
-            auto blockAddr = builder.CreateLoad(blockAddrPtr);
+            auto blockAddr = builder.CreateLoad(iteratorContextType, blockAddrPtr);
             // indirect branch to block updateIndexBB or endBB
             auto indirectBr = builder.CreateIndirectBr(blockAddr, 2);
             indirectBr->addDestination(updateIndexBB);
@@ -2141,13 +2141,13 @@ namespace tuplex {
                                                  {i32Const(0), i32Const(2)});
                 auto rangeAlloc = builder.CreateLoad(rangePtr);
                 auto stepPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(2)});
-                auto step = builder.CreateLoad(stepPtr);
-                builder.CreateStore(builder.CreateAdd(builder.CreateLoad(indexPtr), step), indexPtr);
+                auto step = builder.CreateLoad(getRangeObjectType(), stepPtr);
+                builder.CreateStore(builder.CreateAdd(builder.CreateLoad(iteratorContextType, indexPtr), step), indexPtr);
             } else {
                 if(reverse) {
-                    builder.CreateStore(builder.CreateSub(builder.CreateLoad(indexPtr), i32Const(1)), indexPtr);
+                    builder.CreateStore(builder.CreateSub(builder.CreateLoad(iteratorContextType, indexPtr), i32Const(1)), indexPtr);
                 } else {
-                    builder.CreateStore(builder.CreateAdd(builder.CreateLoad(indexPtr), i32Const(1)), indexPtr);
+                    builder.CreateStore(builder.CreateAdd(builder.CreateLoad(iteratorContextType, indexPtr), i32Const(1)), indexPtr);
                 }
             }
             builder.CreateBr(loopCondBB);
@@ -2164,9 +2164,9 @@ namespace tuplex {
                     } else {
                         auto listPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
                                                          {i32Const(0), i32Const(2)});
-                        auto listAlloc = builder.CreateLoad(listPtr);
+                        auto listAlloc = builder.CreateLoad(iteratorContextType->getStructElementType(2), listPtr);
                         auto listLengthPtr = builder.CreateGEP(pythonToLLVMType(iterableType), listAlloc, {i32Const(0), i32Const(1)});
-                        iterableLength = builder.CreateLoad(listLengthPtr);
+                        iterableLength = builder.CreateLoad(builder.getInt64Ty(), listLengthPtr);
                     }
                 } else if(iterableType == python::Type::STRING || iterableType.isTupleType()) {
                     auto iterableLengthPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),

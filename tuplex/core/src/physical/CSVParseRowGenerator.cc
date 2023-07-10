@@ -1305,7 +1305,7 @@ namespace tuplex {
 
                 // copy cell content
                 //     memcpy(buf_ptr + sizeof(int64_t) * (numCells + 1) + acc_size, cells[i], sizes[i]);
-                auto cell_idx = builder.CreateGEP(_env->i8ptrType(), buf, builder.CreateAdd(acc_size, _env->i64Const(sizeof(int64_t) * (cells.size() + 1))));
+                auto cell_idx = builder.MovePtrByBytes(buf, builder.CreateAdd(acc_size, _env->i64Const(sizeof(int64_t) * (cells.size() + 1))));
                 builder.CreateMemCpy(cell_idx, 0, cells[i], 0, cell_sizes[i]);
 
                 //     buf += sizeof(int64_t);

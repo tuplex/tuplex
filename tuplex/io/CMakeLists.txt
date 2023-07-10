@@ -24,8 +24,8 @@ if(BUILD_WITH_ORC)
     find_package(Protobuf REQUIRED)
     get_filename_component(Protobuf_HOME "${Protobuf_INCLUDE_DIRS}" DIRECTORY)
 
-    include(ExternalProject)
-    set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
+#    include(ExternalProject)
+#    set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
 
     # For MacOS, check whether certain 3rd party libs are already installed via brew
     if(BREW_FOUND)
@@ -145,13 +145,13 @@ if(BUILD_WITH_ORC)
     if (NOT APPLE)
         message(STATUS "Adding byproducts to external project")
         set(SNAPPY_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a)
-        set(ZSTD_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libzstd.a)
-        set(ZLIB_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libz.a)
+        #set(ZSTD_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libzstd.a)
+        #set(ZLIB_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libz.a)
         set(LZ4_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/liblz4.a)
         set(ORC_THIRD_PARTY_LIBS
             ${SNAPPY_LIBRARIES}
-            ${ZSTD_LIBRARIES}
-            ${ZLIB_LIBRARIES}
+            #${ZSTD_LIBRARIES}
+            #${ZLIB_LIBRARIES}
             ${LZ4_LIBRARIES})
     endif()
 
@@ -174,12 +174,16 @@ if(BUILD_WITH_ORC)
             UPDATE_COMMAND "" # Disable update step: clones the project only once
             BUILD_BYPRODUCTS ${EXTERNAL_INSTALL_LOCATION}/lib/liborc.a ${ORC_THIRD_PARTY_LIBS}
             )
-    ExternalProject_Add_StepDependencies(orc build ${SNAPPY_DEPENDS} ${LZ4_DEPENDS} ${ZSTD_DEPENDS} ${ZLIB_DEPENDS})
+    ExternalProject_Add_StepDependencies(orc build ${SNAPPY_DEPENDS} ${LZ4_DEPENDS}
+            ${ZSTD_DEPENDS}
+            #${ZLIB_DEPENDS}
+            )
     set(orc_INCLUDE_DIR ${EXTERNAL_INSTALL_LOCATION}/include)
     ExternalProject_Get_Property(orc binary_dir)
     set(orc_LIBRARY ${EXTERNAL_INSTALL_LOCATION}/lib/liborc.a)
 
     add_library(liborc STATIC IMPORTED)
+    target_link_libraries(liborc INTERFACE ${SNAPPY_LIBRARIES} ${LZ4_LIBRARIES})
     set_target_properties(liborc PROPERTIES IMPORTED_LOCATION ${orc_LIBRARY})
 
     add_dependencies(liborc orc)
@@ -187,8 +191,8 @@ if(BUILD_WITH_ORC)
 
     set(ORC_LIBRARIES
             ${SNAPPY_LIBRARIES}
-            ${ZSTD_LIBRARIES}
-            ${ZLIB_LIBRARIES}
+            #${ZSTD_LIBRARIES}
+            #${ZLIB_LIBRARIES}
             ${LZ4_LIBRARIES}
             liborc)
 endif()

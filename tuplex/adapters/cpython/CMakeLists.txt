@@ -19,8 +19,8 @@ target_include_directories(libcpythonadapter PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR}
         ${Python3_INCLUDE_DIRS}
-        ${Protobuf_LIBRARIES}
-        ${Protobuf_LITE_LIBRARIES}
+        #${Protobuf_LIBRARIES}
+        #${Protobuf_LITE_LIBRARIES}
         )
 
 # Declare the library

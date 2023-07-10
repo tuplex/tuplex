@@ -31,6 +31,11 @@ function(ASSERT_VAR VARNAME)
     endif()
 endfunction()
 
+# ninja fixes for multiple zstd generators
+if(CMAKE_GENERATOR STREQUAL "Ninja")
+    message(STATUS "Using ninja generator, if fails use -w dupbuild=err")
+endif()
+
 # detect MacOS Version because at least 10.13 is required when building with AWS SDK
 if(APPLE)
     execute_process(COMMAND bash -c "sw_vers | grep -Eo '([0-9]{1,}\\.)+[0-9]{1,}' | head -1" OUTPUT_VARIABLE MACOSX_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)

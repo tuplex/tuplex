@@ -65,7 +65,8 @@ endif()
 # before writing additional cmake modules to put in cmake/, check the list of supported cmake standard modules
 # available here: https://cmake.org/cmake/help/latest/manual/cmake-modules.7.html#find-modules
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
+# uncomment to get verbose cmake output
+# set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # top-level language specification
 # enable c++17
@@ -324,7 +325,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     endif ()
 
     # add flags so link order does not matter...
-    add_link_options("-Wl,--start-group")
+    # add_link_options("-Wl,--start-group")
 endif()
 
 
@@ -791,92 +792,22 @@ endif()
 include(ExternalProject)
 set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
 
-# For MacOS, check whether certain 3rd party libs are already installed via brew
-if(BREW_FOUND)
-    if(APPLE)
-        set(THIRDPARTY_CONFIGURE_COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}")
+# external libs to build / download
+set(ZLIB_VERSION "1.2.11") # which zlib version to use
+set(ZSTD_VERSION "1.5.0") # which zstd version to use
+set(BUILD_AND_DOWNLOAD_ZLIB True)
+set(BUILD_AND_DOWNLOAD_ZSTD True)
 
-        # Zstd
-        EXECUTE_PROCESS(COMMAND brew list zstd OUTPUT_VARIABLE BREW_ZSTD_LIST ERROR_VARIABLE BREW_ZSTD_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
-        if(BREW_ZSTD_NOTFOUND)
-            message(STATUS "Could not find locally installed zstd, building third party")
-            set(ZSTD_VERSION "1.5.0")
-            set(ZSTD_HOME "${EXTERNAL_INSTALL_LOCATION}")
-            set(ZSTD_INCLUDE_DIR "${ZSTD_HOME}/include")
-            set(ZSTD_STATIC_LIB "${ZSTD_HOME}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}zstd${CMAKE_STATIC_LIBRARY_SUFFIX}")
-            set(ZSTD_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ZSTD_HOME}
-                    -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DZSTD_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
+# find zlib first via cmake
+find_package(ZLIB 1.2.11)
+if(ZLIB_FOUND)
 
-            if (CMAKE_VERSION VERSION_GREATER "3.7")
-                set(ZSTD_CONFIGURE SOURCE_SUBDIR "build/cmake" CMAKE_ARGS ${ZSTD_CMAKE_ARGS})
-            else()
-                set(ZSTD_CONFIGURE CONFIGURE_COMMAND "${THIRDPARTY_CONFIGURE_COMMAND}" ${ZSTD_CMAKE_ARGS}
-                        "${CMAKE_CURRENT_BINARY_DIR}/zstd_ep-prefix/src/zstd_ep/build/cmake")
-            endif()
-
-            ExternalProject_Add (zstd_ep
-                    URL "https://github.com/facebook/zstd/archive/v${ZSTD_VERSION}.tar.gz"
-                    ${ZSTD_CONFIGURE}
-                    BUILD_BYPRODUCTS "${ZSTD_STATIC_LIB}")
-
-            set(ZSTD_LIBRARIES ${ZSTD_STATIC_LIB})
-
-            add_library(zstd INTERFACE)
-            target_link_libraries(zstd INTERFACE ${ZSTD_STATIC_LIB})
-            target_include_directories(zstd SYSTEM INTERFACE ${ZSTD_INCLUDE_DIR})
-
-            add_dependencies(zstd zstd_ep)
-            install(FILES "${ZSTD_STATIC_LIB}" DESTINATION "lib")
-            set(ZSTD_DEPENDS "zstd_ep")
-        else()
-            EXECUTE_PROCESS(COMMAND brew --prefix zstd OUTPUT_VARIABLE BREW_ZSTD_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
-            set(ENV{ZSTD_HOME} ${BREW_ZSTD_DIR})
-            set(ZSTD_HOME ${BREW_ZSTD_DIR})
-            message(STATUS "Found locally installed zstd under $ENV{ZSTD_HOME}")
-            # set variables
-            file (TO_CMAKE_PATH "${ZSTD_HOME}" _zstd_path)
-            find_library (ZSTD_LIBRARY NAMES zstd HINTS
-                    ${_zstd_path}
-                    PATH_SUFFIXES "lib" "lib64")
-            if(ZSTD_LIBRARY)
-                message(STATUS "zstd lib: ${ZSTD_LIBRARY}")
-            endif()
-            find_library (ZSTD_STATIC_LIB NAMES ${CMAKE_STATIC_LIBRARY_PREFIX}${ZSTD_LIB_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX} HINTS
-                    ${_zstd_path}
-                    PATH_SUFFIXES "lib" "lib64")
-            if(ZSTD_LIBRARY)
-                set(ZSTD_LIBRARIES "${ZSTD_LIBRARY}")
-            elseif(ZSTD_STATIC_LIB)
-                set(ZSTD_LIBRARIES "${ZSTD_STATIC_LIB}")
-            endif()
-            message(STATUS "Zstd libraries: ${ZSTD_LIBRARIES}")
-        endif()
-
+else()
+    # check if apple and brewed version is available, if not download & build
+    if(APPLE AND BREW_FOUND)
         # Zlib
-        EXECUTE_PROCESS(COMMAND brew list zlib OUTPUT_VARIABLE BREW_ZLIB_LIST ERROR_VARIABLE BREW_ZLIB_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
-        if(BREW_ZLIB_NOTFOUND)
-            message(STATUS "Could not find locally installed zlib, building third party")
-            set(ZLIB_VERSION "1.2.11")
-            set(ZLIB_HOME "${EXTERNAL_INSTALL_LOCATION}")
-            set(ZLIB_INCLUDE_DIR "${ZLIB_HOME}/include")
-            set(ZLIB_STATIC_LIB "${ZLIB_HOME}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX}")
-            set(ZLIB_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ZLIB_HOME}
-                    -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DZLIB_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
-            ExternalProject_Add (zlib_ep
-                    URL "http://zlib.net/fossils/zlib-${ZLIB_VERSION}.tar.gz"
-                    CMAKE_ARGS ${ZLIB_CMAKE_ARGS}
-                    BUILD_BYPRODUCTS "${ZLIB_STATIC_LIB}")
-
-            set(ZLIB_LIBRARIES ${ZLIB_STATIC_LIB})
-
-            add_library(zlib INTERFACE)
-            target_link_libraries(zlib INTERFACE ${ZLIB_STATIC_LIB})
-            target_include_directories(zlib SYSTEM INTERFACE ${ZLIB_INCLUDE_DIR})
-
-            add_dependencies(zlib zlib_ep)
-            install(FILES "${ZLIB_STATIC_LIB}" DESTINATION "lib")
-            set(ZLIB_DEPENDS "zlib_ep")
-        else()
+        EXECUTE_PROCESS(COMMAND brew list zlib OUTPUT_VARIABLE BREW_ZLIB_LIST RESULT_VARIABLE BREW_ZLIB_FOUND ERROR_VARIABLE BREW_ZLIB_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if(BREW_ZLIB_FOUND)
             EXECUTE_PROCESS(COMMAND brew --prefix zlib OUTPUT_VARIABLE BREW_ZLIB_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
             set(ENV{ZLIB_HOME} ${BREW_ZLIB_DIR})
             set(ZLIB_HOME ${BREW_ZLIB_DIR})
@@ -900,12 +831,103 @@ if(BREW_FOUND)
             message(STATUS "Zlib libraries: ${ZLIB_LIBRARIES}")
         endif()
     endif()
+
+    if(NOT ZLIB_LIBRARY)
+        message(STATUS "Could not find locally installed zlib, building third party")
+        set(ZLIB_HOME "${EXTERNAL_INSTALL_LOCATION}")
+        set(ZLIB_INCLUDE_DIR "${ZLIB_HOME}/include")
+        set(ZLIB_STATIC_LIB "${ZLIB_HOME}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX}")
+        set(ZLIB_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ZLIB_HOME}
+                -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DZLIB_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
+        ExternalProject_Add (zlib_ep
+                URL "http://zlib.net/fossils/zlib-${ZLIB_VERSION}.tar.gz"
+                CMAKE_ARGS ${ZLIB_CMAKE_ARGS}
+                BUILD_BYPRODUCTS "${ZLIB_STATIC_LIB}")
+
+        set(ZLIB_LIBRARIES ${ZLIB_STATIC_LIB})
+
+        add_library(zlib INTERFACE)
+        target_link_libraries(zlib INTERFACE ${ZLIB_STATIC_LIB})
+        target_include_directories(zlib SYSTEM INTERFACE ${ZLIB_INCLUDE_DIR})
+
+        add_dependencies(zlib zlib_ep)
+        install(FILES "${ZLIB_STATIC_LIB}" DESTINATION "lib")
+        set(ZLIB_DEPENDS "zlib_ep")
+    endif()
 endif()
 
-if (NOT APPLE)
-    message(STATUS "Adding byproducts to external project")
-    set(ZSTD_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libzstd.a)
-    set(ZLIB_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libz.a)
+# zstd has no cmake standarad module, so manually search for it
+find_package(ZSTD "${ZSTD_VERSION}")
+if(ZSTD_FOUND)
+    if(ZSTD_LIBRARY)
+        set(ZSTD_LIBRARIES "${ZSTD_LIBRARY}")
+    elseif(ZSTD_STATIC_LIB)
+        set(ZSTD_LIBRARIES "${ZSTD_STATIC_LIB}")
+    endif()
+else()
+
+    # check if brewed by chance, if not fetch
+    if(APPLE AND BREW_FOUND)
+        set(THIRDPARTY_CONFIGURE_COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}")
+
+        # Zstd
+        EXECUTE_PROCESS(COMMAND brew list zstd OUTPUT_VARIABLE BREW_ZSTD_LIST RESULT_VARIABLE BREW_ZSTD_FOUND ERROR_VARIABLE BREW_ZSTD_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if(BREW_ZSTD_FOUND)
+            EXECUTE_PROCESS(COMMAND brew --prefix zstd OUTPUT_VARIABLE BREW_ZSTD_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+            set(ENV{ZSTD_HOME} ${BREW_ZSTD_DIR})
+            set(ZSTD_HOME ${BREW_ZSTD_DIR})
+            message(STATUS "Found locally installed zstd under $ENV{ZSTD_HOME}")
+            # set variables
+            file (TO_CMAKE_PATH "${ZSTD_HOME}" _zstd_path)
+            find_library (ZSTD_LIBRARY NAMES zstd HINTS
+                    ${_zstd_path}
+                    PATH_SUFFIXES "lib" "lib64")
+            if(ZSTD_LIBRARY)
+                message(STATUS "zstd lib: ${ZSTD_LIBRARY}")
+            endif()
+            find_library (ZSTD_STATIC_LIB NAMES ${CMAKE_STATIC_LIBRARY_PREFIX}${ZSTD_LIB_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX} HINTS
+                    ${_zstd_path}
+                    PATH_SUFFIXES "lib" "lib64")
+            if(ZSTD_LIBRARY)
+                set(ZSTD_LIBRARIES "${ZSTD_LIBRARY}")
+            elseif(ZSTD_STATIC_LIB)
+                set(ZSTD_LIBRARIES "${ZSTD_STATIC_LIB}")
+            endif()
+            message(STATUS "Zstd libraries: ${ZSTD_LIBRARIES}")
+            set(BUILD_AND_DOWNLOAD_ZLIB False)
+        endif()
+    endif()
+
+    if(NOT ZSTD_LIBRARY)
+        message(STATUS "Building Zstd locally as 3rd party dependency.")
+        set(ZSTD_HOME "${EXTERNAL_INSTALL_LOCATION}")
+        set(ZSTD_INCLUDE_DIR "${ZSTD_HOME}/include")
+        set(ZSTD_STATIC_LIB "${ZSTD_HOME}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}zstd${CMAKE_STATIC_LIBRARY_SUFFIX}")
+        set(ZSTD_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ZSTD_HOME}
+                -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DZSTD_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
+
+        if (CMAKE_VERSION VERSION_GREATER "3.7")
+            set(ZSTD_CONFIGURE SOURCE_SUBDIR "build/cmake" CMAKE_ARGS ${ZSTD_CMAKE_ARGS})
+        else()
+            set(ZSTD_CONFIGURE CONFIGURE_COMMAND "${THIRDPARTY_CONFIGURE_COMMAND}" ${ZSTD_CMAKE_ARGS}
+                    "${CMAKE_CURRENT_BINARY_DIR}/zstd_ep-prefix/src/zstd_ep/build/cmake")
+        endif()
+
+        ExternalProject_Add (zstd_ep
+                URL "https://github.com/facebook/zstd/archive/v${ZSTD_VERSION}.tar.gz"
+                ${ZSTD_CONFIGURE}
+                BUILD_BYPRODUCTS "${ZSTD_STATIC_LIB}")
+
+        set(ZSTD_LIBRARIES ${ZSTD_STATIC_LIB})
+
+        add_library(zstd INTERFACE)
+        target_link_libraries(zstd INTERFACE ${ZSTD_STATIC_LIB})
+        target_include_directories(zstd SYSTEM INTERFACE ${ZSTD_INCLUDE_DIR})
+
+        add_dependencies(zstd zstd_ep)
+        install(FILES "${ZSTD_STATIC_LIB}" DESTINATION "lib")
+        set(ZSTD_DEPENDS "zstd_ep")
+    endif()
 endif()
 
 # following code is from https://github.com/OPM/opm-common/blob/master/cmake/Modules/UseSystemInfo.cmake

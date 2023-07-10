@@ -77,12 +77,6 @@ if(BUILD_WITH_AWS)
     find_package(Protobuf REQUIRED)
 endif()
 
-add_subdirectory(codegen)
-add_subdirectory(io)
-add_subdirectory(runtime)
-add_subdirectory(adapters)
-add_subdirectory(utils)
-
 # these require python, so only if embed is active!
 if(Python3_Embed_FOUND)
     add_subdirectory(core)
@@ -144,3 +138,10 @@ if(GTest_VERSION VERSION_GREATER_EQUAL 1.13)
      set(GTest_LIBRARIES "${GTest_LIBRARIES} ${protobuf_ABSL_USED_TARGETS}")
     message(STATUS "Gtest libs: ${GTest_LIBRARIES}")
 endif()
+
+# add subdirs after above config is done
+add_subdirectory(codegen)
+add_subdirectory(io)
+add_subdirectory(runtime)
+add_subdirectory(adapters)
+add_subdirectory(utils)

@@ -154,4 +154,6 @@ target_link_libraries(libcodegen
         ${PCRE2_LIBRARIES}
         ${LLVM_LIBRARIES}
         #${LLVM_SYSTEM_LIBS}
-        ${ZLIB_LIBRARIES})
+        ${ZLIB_LIBRARIES}
+        ${CURSES_LIBRARIES}
+        )

@@ -2031,7 +2031,8 @@ namespace tuplex {
                                                      builder.CreateGEP(llvm_element_type, elementsPtr, random_number));
 
                     // alt
-                    _env.printValue(builder, builder.CreateLoad(llvm_element_type, builder.CreateGEP(llvm_element_type->getPointerTo(), builder.CreateExtractValue(arg.val, {2}), random_number)), "alt=");
+                    _env.printValue(builder, builder.CreateLoad(llvm_element_type,
+                                                                builder.CreateGEP(llvm_element_type, builder.CreateExtractValue(arg.val, {2}), random_number)), "alt=");
 
                     //auto list_llvm_type = _env.pythonToLLVMType(argType);
                     //_env.printValue(builder, builder.CreateLoad(llvm_element_type, builder.CreateGEP(llvm_element_type, builder.CreateStructGEP(arg.val, list_llvm_type, 2), random_number)), "alt=");

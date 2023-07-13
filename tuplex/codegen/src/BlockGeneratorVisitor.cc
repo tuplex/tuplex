@@ -3103,13 +3103,17 @@ namespace tuplex {
                     for(size_t i = 0; i < vals.size(); i++) {
                         //auto list_el = builder.MovePtrByBytes(builder.CreateBitCast(list_arr_malloc, _env->i8ptrType()),
                         //                                      i * element_byte_size); //builder.CreateGEP(list_arr_malloc, _env->i32Const(i));
-                        auto list_el = builder.CreateInBoundsGEP(list_arr_malloc, llvm_element_type, _env->i64Const(i));
+
                         if(elementType.isTupleType() && !elementType.isFixedSizeType()) {
+                            // tuples are stored as pointers.
+                            auto list_el = builder.CreateInBoundsGEP(list_arr_malloc, llvm_element_type->getPointerTo(), _env->i64Const(i));
+
                             // list_el has type struct.tuple**
                             auto el_tuple = _env->CreateFirstBlockAlloca(builder, _env->pythonToLLVMType(elementType), "tuple_alloc");
                             builder.CreateStore(vals[i].val, el_tuple);
                             builder.CreateStore(el_tuple, list_el);
                         } else {
+                            auto list_el = builder.CreateInBoundsGEP(list_arr_malloc, llvm_element_type, _env->i64Const(i));
                             builder.CreateStore(vals[i].val, list_el);
                         }
                     }
@@ -3130,7 +3134,7 @@ namespace tuplex {
                         auto list_sizes_arr_malloc = builder.CreatePointerCast(builder.malloc(malloc_size_for_sizes), llvmType->getStructElementType(3));
                         // store the lengths
                         for(size_t i = 0; i < vals.size(); i++) {
-                            auto list_el_size = builder.MovePtrByBytes(list_sizes_arr_malloc, i * sizeof(int64_t)); // builder.CreateGEP(list_sizes_arr_malloc, _env->i32Const(i));
+                            auto list_el_size = builder.CreateGEP(builder.getInt64Ty(), list_sizes_arr_malloc, _env->i64Const(i)); // builder.CreateGEP(list_sizes_arr_malloc, _env->i32Const(i));
                             builder.CreateStore(vals[i].size, list_el_size);
                             listSize = builder.CreateAdd(listSize, vals[i].size);
                         }
@@ -3455,7 +3459,7 @@ namespace tuplex {
 
                     // if string values, store the lengths as well
                     if (elementType == python::Type::STRING) {
-                        auto list_len_el = builder.CreateGEP(llvm_element_type, list_sizearr_malloc, loopVar);
+                        auto list_len_el = builder.CreateGEP(builder.getInt64Ty(), list_sizearr_malloc, loopVar);
                         builder.CreateStore(expression.size, list_len_el);
                         builder.CreateStore(builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), listSize), expression.size), listSize);
                     }
@@ -5168,7 +5172,9 @@ namespace tuplex {
 
             Variable var;
             var.name = name;
-            var.ptr = env.createNullInitializedGlobal(name + "_val", env.pythonToLLVMType(t));
+            var.type = t;
+            var.llvm_type = env.pythonToLLVMType(t);
+            var.ptr = env.createNullInitializedGlobal(name + "_val", var.llvm_type);
             var.sizePtr = env.createNullInitializedGlobal(name + "_size", env.i64Type());
 
             if(t.isOptionType() || t == python::Type::NULLVALUE) {
@@ -5489,6 +5495,10 @@ namespace tuplex {
 
                     assert(llvm_element_type);
 
+                    // tuples are stored as pointer
+                    if(element_type.isTupleType() && !element_type.isFixedSizeType())
+                        llvm_element_type = llvm_element_type->getPointerTo();
+
                     auto currVal = builder.CreateLoad(llvm_element_type,
                                                       builder.CreateGEP(llvm_element_type, builder.CreateExtractValue(exprAlloc.val, {2}), curr));
                     _env->printValue(builder, currVal, "currVal in loop body=");
@@ -5499,7 +5509,7 @@ namespace tuplex {
                     } else if(targetType == python::Type::STRING || targetType.isDictionaryType()) {
                         // loop variable is of type string or dictionary (need to extract size)
                         auto currSize = builder.CreateLoad(builder.getInt64Ty(),
-                                                           builder.CreateGEP(_env->i64ptrType(),
+                                                           builder.CreateGEP(builder.getInt64Ty(),
                                                                              builder.CreateExtractValue(exprAlloc.val, {3}), curr));
                         addInstruction(currVal, currSize);
                     } else if(targetType == python::Type::BOOLEAN) {

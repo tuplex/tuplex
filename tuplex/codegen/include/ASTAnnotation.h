@@ -370,6 +370,20 @@ struct IteratorInfo {
     std::string iteratorName; // from which built-in function the iterator was generated, currently can be "iter", "zip", "enumerate".
     python::Type argsType; // concrete type of arguments of the iterator generating function.
     std::vector<std::shared_ptr<IteratorInfo>> argsIteratorInfo; // pointers to IteratorInfo of each argument.
+
+    IteratorInfo() = default;
+
+    IteratorInfo(const std::string& name,
+                 const python::Type& type,
+                 const std::vector<std::shared_ptr<IteratorInfo>>& iteratorInfo={}) : iteratorName(name), argsType(type), argsIteratorInfo(iteratorInfo) {
+#ifndef NDEBUG
+        // make sure no cyclic reference
+        for(auto p : argsIteratorInfo) {
+            assert(p.get() != this);
+        }
+        assert(!name.empty());
+#endif
+    }
 };
 
 // simple class used to annotate ast nodes

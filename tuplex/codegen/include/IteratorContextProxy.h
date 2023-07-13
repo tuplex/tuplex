@@ -192,6 +192,70 @@ namespace tuplex {
              */
             void incrementIteratorIndex(const codegen::IRBuilder& builder, llvm::Value *iterator, const std::shared_ptr<IteratorInfo> &iteratorInfo, int offset);
         };
+
+        /*!
+         * create iteratorcontext info type depending on iteratorInfo.
+         * @param env
+         * @param iteratorInfo
+         * @return corresponding llvm::Type
+         */
+        extern llvm::Type* createIteratorContextTypeFromIteratorInfo(LLVMEnvironment& env, const IteratorInfo& iteratorInfo);
+    }
+
+    namespace codegen {
+        // interface to generate various iterators
+        class IIterator {
+        public:
+            IIterator(LLVMEnvironment& env) : _env(env) {}
+
+            virtual SerializableValue initContext(LambdaFunctionBuilder &lfb,
+                                                  const codegen::IRBuilder &builder,
+                                                  const SerializableValue& iterable,
+                                                  const python::Type &iterableType,
+                                                  const std::shared_ptr<IteratorInfo> &iteratorInfo) = 0;
+
+            virtual llvm::Value* updateIndex(const codegen::IRBuilder& builder,
+                                     llvm::Value *iterator,
+                                     const python::Type& iterableType,
+                                     const std::shared_ptr<IteratorInfo> &iteratorInfo) = 0;
+
+            virtual SerializableValue nextElement(const codegen::IRBuilder& builder,
+                                          const python::Type &yieldType,
+                                          llvm::Value *iterator,
+                                          const python::Type& iterableType,
+                                          const std::shared_ptr<IteratorInfo> &iteratorInfo) = 0;
+
+            virtual std::string name() const = 0;
+        protected:
+            LLVMEnvironment& _env;
+        };
+
+        // code generation for iter(...)
+        class SequenceIterator : public IIterator {
+        public:
+            SequenceIterator(LLVMEnvironment& env) : IIterator(env) {}
+
+            SerializableValue initContext(LambdaFunctionBuilder &lfb,
+                                          const codegen::IRBuilder &builder,
+                                          const SerializableValue& iterable,
+                                          const python::Type &iterableType,
+                                          const std::shared_ptr<IteratorInfo> &iteratorInfo) override;
+
+            virtual llvm::Value* updateIndex(const codegen::IRBuilder& builder,
+                                             llvm::Value *iterator,
+                                             const python::Type& iterableType,
+                                             const std::shared_ptr<IteratorInfo> &iteratorInfo) override;
+
+            virtual SerializableValue nextElement(const codegen::IRBuilder& builder,
+                                                  const python::Type &yieldType,
+                                                  llvm::Value *iterator,
+                                                  const python::Type& iterableType,
+                                                  const std::shared_ptr<IteratorInfo> &iteratorInfo) override;
+
+
+            std::string name() const override;
+
+        };
     }
 }
 

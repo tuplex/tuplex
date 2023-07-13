@@ -3069,6 +3069,7 @@ namespace tuplex {
                 llvm::Value *listAlloc = _env->CreateFirstBlockAlloca(builder, llvmType, "BGV_listAlloc");
                 llvm::Value* listSize = _env->i64Const(8);
                 auto elementType = list->getInferredType().elementType();
+                auto llvm_element_type = _env->pythonToLLVMType(elementType);
                 if(elementType.isSingleValued()) {
                     builder.CreateStore(_env->i64Const(list->_elements.size()), listAlloc);
                 } else if(elementType == python::Type::I64 || elementType == python::Type::F64 || elementType == python::Type::BOOLEAN
@@ -3100,7 +3101,9 @@ namespace tuplex {
                     auto list_arr_malloc = builder.CreatePointerCast(builder.malloc(malloc_size), llvmType->getStructElementType(2));
                     // store the values
                     for(size_t i = 0; i < vals.size(); i++) {
-                        auto list_el = builder.MovePtrByBytes(list_arr_malloc, i * element_byte_size); //builder.CreateGEP(list_arr_malloc, _env->i32Const(i));
+                        //auto list_el = builder.MovePtrByBytes(builder.CreateBitCast(list_arr_malloc, _env->i8ptrType()),
+                        //                                      i * element_byte_size); //builder.CreateGEP(list_arr_malloc, _env->i32Const(i));
+                        auto list_el = builder.CreateInBoundsGEP(list_arr_malloc, llvm_element_type, _env->i64Const(i));
                         if(elementType.isTupleType() && !elementType.isFixedSizeType()) {
                             // list_el has type struct.tuple**
                             auto el_tuple = _env->CreateFirstBlockAlloca(builder, _env->pythonToLLVMType(elementType), "tuple_alloc");
@@ -3596,10 +3599,8 @@ namespace tuplex {
             // process string value, i.e. removing quotes and so on.
             auto val = str->value();
 
-            auto sconst = builder.CreateGlobalStringPtr(val);
-            auto sptr = builder.CreatePointerCast(sconst,
-                                                  llvm::Type::getInt8PtrTy(_env->getContext(), 0)); // need gep to cast
-            // from [n x i8]* to i8* type
+            // create const via LLVMenv, to track as global and reduce overlap (string internalize in the future).
+            auto sptr = _env->strConst(builder, val);
 
             // size is determined via strlength + 1
             auto ssize = _env->i64Const(val.length() + 1);

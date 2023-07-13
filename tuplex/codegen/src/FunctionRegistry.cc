@@ -2096,7 +2096,13 @@ namespace tuplex {
                 // iter() call on a iterator. Simply return the iterator as it is.
                 return args.front();
             }
-            return _iteratorContextProxy->initIterContext(lfb, builder, argType, args.front());
+
+            // initialize sequence iterator
+            SequenceIterator it(_env);
+            auto it_info = std::shared_ptr<IteratorInfo>(new IteratorInfo("iter", argsType, {}));
+            return it.initContext(lfb, builder, args.front(), argType, it_info);
+            // old:
+            // return _iteratorContextProxy->initIterContext(lfb, builder, argType, args.front());
         }
 
         SerializableValue FunctionRegistry::createReversedCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder &builder,
@@ -2124,14 +2130,16 @@ namespace tuplex {
                                                           const std::vector<tuplex::codegen::SerializableValue> &args,
                                                           const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             python::Type argType = argsType.parameters().front();
-            auto *ils = new IteratorContextProxy(&_env);
+            IteratorContextProxy ils(&_env);
+
+            assert(argsType == iteratorInfo->argsType); // this must hold
 
             if(argsType.parameters().size() == 1) {
-                return ils->initEnumerateContext(lfb, builder, args[0], _env.i64Const(0), iteratorInfo);
+                return ils.initEnumerateContext(lfb, builder, args[0], _env.i64Const(0), iteratorInfo);
             }
 
             if(argsType.parameters().size() == 2) {
-                return ils->initEnumerateContext(lfb, builder, args[0], args[1].val, iteratorInfo);
+                return ils.initEnumerateContext(lfb, builder, args[0], args[1].val, iteratorInfo);
             }
 
             Logger::instance().defaultLogger().error("enumerate() takes 1 or 2 arguments");

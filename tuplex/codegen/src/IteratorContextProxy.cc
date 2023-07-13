@@ -211,8 +211,9 @@ namespace tuplex {
             if(!(iterableType.isIteratorType() || iterableType.isListType() || iterableType.isTupleType() || iterableType == python::Type::RANGE || iterableType == python::Type::STRING)) {
                 throw std::runtime_error("unsupported iterable type" + iterableType.desc());
             }
-            auto argIteratorInfo = iteratorInfo->argsIteratorInfo.front();
-            llvm::Type *iteratorContextType = _env->createOrGetEnumerateIteratorType(iterableType, argIteratorInfo);
+
+            auto iteratorContextType = createIteratorContextTypeFromIteratorInfo(*_env, *iteratorInfo);
+
             auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder, iteratorContextType, "enumerate_iterator_alloc");
             auto startValPtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env->i32Const(0), _env->i32Const(0)});
             builder.CreateStore(startVal, startValPtr);
@@ -229,7 +230,8 @@ namespace tuplex {
             return SerializableValue(iteratorContextStruct, _env->i64Const(dl->getTypeAllocSize(iteratorContextType)));
         }
 
-        SerializableValue IteratorContextProxy::createIteratorNextCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder& builder,
+        SerializableValue IteratorContextProxy::createIteratorNextCall(LambdaFunctionBuilder &lfb,
+                                                                       const codegen::IRBuilder& builder,
                                                                    const python::Type &yieldType,
                                                                    llvm::Value *iterator,
                                                                    const SerializableValue &defaultArg,
@@ -278,6 +280,19 @@ namespace tuplex {
                                                                llvm::Value *iterator,
                                                                const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             using namespace llvm;
+
+            assert(iteratorInfo);
+
+            // new:
+            if(iteratorInfo->iteratorName == "iter") {
+                SequenceIterator it(*_env);
+                auto iterablesType = iteratorInfo->argsType;
+                return it.updateIndex(builder, iterator, iterablesType, iteratorInfo);
+            }
+
+            // old:
+            // iterator is a pointer to
+
 
             llvm::Type *iteratorContextType = iterator->getType()->getPointerElementType();
             std::string funcName;
@@ -340,6 +355,15 @@ namespace tuplex {
                                                                    const python::Type &yieldType,
                                                                    llvm::Value *iterator,
                                                                    const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+
+            // use same dispatch here as in update index to the new class structure
+            if(iteratorInfo->iteratorName == "iter") {
+                SequenceIterator it(*_env);
+                auto iterablesType = iteratorInfo->argsType;
+                return it.nextElement(builder, yieldType, iterator, iterablesType, iteratorInfo);
+            }
+
+            // old code:
             using namespace llvm;
 
             llvm::Type *iteratorContextType = iterator->getType()->getPointerElementType();
@@ -617,6 +641,260 @@ namespace tuplex {
             } else {
                 builder.CreateStore(builder.CreateAdd(currIndex, _env->i32Const(offset)), indexPtr);
             }
+        }
+
+        // helper to retrieve iteratorcontexttype from iteratorInfo
+        llvm::Type* createIteratorContextTypeFromIteratorInfo(LLVMEnvironment& env, const IteratorInfo& iteratorInfo) {
+            // coupled with FunctionRegistry
+            if(iteratorInfo.iteratorName == "enumerate") {
+                auto argIteratorInfo = iteratorInfo.argsIteratorInfo.front();
+                auto iterableType = iteratorInfo.argsType;
+                llvm::Type *iteratorContextType = env.createOrGetEnumerateIteratorType(iterableType, argIteratorInfo);
+                return iteratorContextType;
+            }
+
+            if(iteratorInfo.iteratorName == "iter") {
+                auto iterableType = iteratorInfo.argsType;
+                llvm::Type *iteratorContextType = env.createOrGetIterIteratorType(iterableType);
+                return iteratorContextType;
+            }
+
+            throw std::runtime_error("invalid iterator info for iterator " + iteratorInfo.iteratorName + " given, can't deduce llvm type.");
+        }
+
+        SerializableValue
+        SequenceIterator::initContext(tuplex::codegen::LambdaFunctionBuilder &lfb,
+                                      const codegen::IRBuilder &builder,
+                                      const SerializableValue& iterable,
+                                      const python::Type& iterableType,
+                                      const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+            using namespace llvm;
+
+            // empty sequence? -> return dummy value
+            if(iterableType == python::Type::EMPTYLIST ||
+               iterableType == python::Type::EMPTYTUPLE ||
+               iterableType == python::Type::EMPTYDICT) {
+                // use dummy value for empty iterator
+                return SerializableValue(_env.i64Const(0), _env.i64Const(8));
+            }
+
+            if(!(iterableType.isListType() ||
+                 iterableType.isTupleType() ||
+                 iterableType == python::Type::RANGE ||
+                 iterableType == python::Type::STRING)) {
+                throw std::runtime_error("unsupported iterable type " + iterableType.desc() + " for iterator " + name());
+            }
+
+            // mapping of python type -> llvm type.
+            auto llvm_iterable_type = _env.pythonToLLVMType(iterableType);
+            assert(iterable.val->getType() == llvm_iterable_type);
+
+            llvm::Type *iteratorContextType = _env.createOrGetIterIteratorType(iterableType);
+            auto initBBAddr = _env.createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(builder, iterableType,
+                                                                                              false);
+            auto iteratorContextStruct = _env.CreateFirstBlockAlloca(builder, iteratorContextType, "iter_iterator_alloc");
+            llvm::Value *iterableStruct = nullptr;
+            if(iterableType.isListType() || iterableType.isTupleType()) {
+                // TODO: need to change this when codegen for lists gets updated
+                iterableStruct = _env.CreateFirstBlockAlloca(builder, llvm_iterable_type, "iter_arg_alloc");
+            } else {
+                iterableStruct = iterable.val;
+            }
+
+            // initialize block address in iterator struct to initBB
+            auto blockAddrPtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env.i32Const(0), _env.i32Const(0)});
+            builder.CreateStore(initBBAddr, blockAddrPtr);
+
+            // initialize index
+            auto indexPtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env.i32Const(0), _env.i32Const(1)});
+            if(iterableType == python::Type::RANGE) {
+                // initialize index to -step
+                auto startPtr = builder.CreateGEP(_env.getRangeObjectType(), iterableStruct, {_env.i32Const(0), _env.i32Const(0)});
+                auto start = builder.CreateLoad(_env.i64Type(), startPtr);
+                auto stepPtr = builder.CreateGEP(_env.getRangeObjectType(), iterableStruct, {_env.i32Const(0), _env.i32Const(2)});
+                auto step = builder.CreateLoad(_env.i64Type(), stepPtr);
+                builder.CreateStore(builder.CreateSub(start, step), indexPtr);
+            } else {
+                // initialize index to -1
+                builder.CreateStore(_env.i32Const(-1), indexPtr);
+            }
+
+            // store pointer to iterable struct
+            auto iterablePtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env.i32Const(0), _env.i32Const(2)});
+            if(iterableType.isListType() || iterableType.isTupleType()) {
+                // copy original struct
+                builder.CreateStore(iterable.val, iterableStruct);
+            }
+            builder.CreateStore(iterableStruct, iterablePtr);
+
+            // store length for string or tuple
+            if(iterableType == python::Type::STRING) {
+                auto iterableLengthPtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env.i32Const(0), _env.i32Const(3)});
+                builder.CreateStore(builder.CreateSub(iterable.size, _env.i64Const(1)), iterableLengthPtr);
+            } else if(iterableType.isTupleType()) {
+                auto iterableLengthPtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env.i32Const(0), _env.i32Const(3)});
+                builder.CreateStore(_env.i64Const(iterableType.parameters().size()), iterableLengthPtr);
+            }
+
+            // this is problematic for cross-compilation, need to set target layout BEFORE compiling.
+            auto& DL = _env.getModule()->getDataLayout();
+            return SerializableValue(iteratorContextStruct, _env.i64Const(DL.getTypeAllocSize(iteratorContextType)));
+        }
+
+        SerializableValue
+        SequenceIterator::nextElement(const codegen::IRBuilder &builder,
+                                      const python::Type &yieldType,
+                                      llvm::Value *iterator,
+                                      const python::Type& iterableType,
+                                      const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+            // fetch element from current context state
+
+            using namespace llvm;
+
+            auto llvm_iterator_context_type = _env.createOrGetIterIteratorType(iterableType); //createIteratorContextTypeFromIteratorInfo(_env, *iteratorInfo.get());
+            std::string funcName;
+            auto iteratorName = iteratorInfo->iteratorName;
+
+            auto iterablesType = iteratorInfo->argsType;
+            auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
+
+            if(iterablesType.isIteratorType()) {
+                // iter() call on an iterator, ignore the outer iter and call again
+                assert(argsIteratorInfo.front());
+
+                // dispatch here again
+                return {};
+                //return getIteratorNextElement(builder, yieldType, iterator, argsIteratorInfo.front());
+            }
+
+            // get current element value and size of current value
+            llvm::Value *retVal = nullptr, *retSize = nullptr;
+            auto indexPtr = builder.CreateStructGEP(iterator, llvm_iterator_context_type, 1);
+            auto index = builder.CreateLoad(builder.getInt32Ty(), indexPtr); // <- index should be i32
+#warning :f
+            auto iterableAllocPtr = builder.CreateGEP(llvm_iterator_context_type, iterator, {_env.i32Const(0), _env.i32Const(2)});
+            auto iterableAlloc = builder.CreateLoad(iterableAllocPtr);
+            if(iterablesType.isListType()) {
+                auto valArrayPtr = builder.CreateGEP(_env.createOrGetListType(iterablesType), iterableAlloc, {_env.i32Const(0), _env.i32Const(2)});
+                auto valArray = builder.CreateLoad(valArrayPtr);
+                auto currValPtr = builder.CreateGEP(valArray, index);
+                retVal = builder.CreateLoad(currValPtr);
+                if(yieldType == python::Type::I64 || yieldType == python::Type::F64 || yieldType == python::Type::BOOLEAN) {
+                    // note: list internal representation currently uses 1 byte for bool (although this field is never used)
+                    retSize = _env.i64Const(8);
+                } else if(yieldType == python::Type::STRING || yieldType.isDictionaryType()) {
+                    auto sizeArrayPtr = builder.CreateGEP(_env.createOrGetListType(iterablesType), iterableAlloc, {_env.i32Const(0), _env.i32Const(3)});
+                    auto sizeArray = builder.CreateLoad(sizeArrayPtr);
+                    auto currSizePtr = builder.CreateGEP(sizeArray, index);
+                    retSize = builder.CreateLoad(currSizePtr);
+                } else if(yieldType.isTupleType()) {
+                    if(!yieldType.isFixedSizeType()) {
+                        // retVal is a pointer to tuple struct
+                        retVal = builder.CreateLoad(retVal);
+                    }
+                    auto ft = FlattenedTuple::fromLLVMStructVal(&_env, builder, retVal, yieldType);
+                    retSize = ft.getSize(builder);
+                }
+            } else if(iterablesType == python::Type::STRING) {
+                auto currCharPtr = builder.CreateGEP(_env.i8Type(), iterableAlloc, index);
+                // allocate new string (1-byte character with a 1-byte null terminator)
+                retSize = _env.i64Const(2);
+                retVal = builder.CreatePointerCast(_env.malloc(builder, retSize), _env.i8ptrType());
+                builder.CreateStore(builder.CreateLoad(currCharPtr), retVal);
+                auto nullCharPtr = builder.CreateGEP(_env.i8Type(), retVal, _env.i32Const(1));
+                builder.CreateStore(_env.i8Const(0), nullCharPtr);
+            } else if(iterablesType == python::Type::RANGE) {
+                retVal = index;
+                retSize = _env.i64Const(8);
+            } else if(iterablesType.isTupleType()) {
+                // only works with homogenous tuple
+                auto tupleLength = iterablesType.parameters().size();
+
+                // create array & index
+                auto array = builder.CreateAlloca(_env.pythonToLLVMType(yieldType), 0, _env.i64Const(tupleLength));
+                auto sizes = builder.CreateAlloca(_env.i64Type(), 0, _env.i64Const(tupleLength));
+
+                // store the elements into the array
+                std::vector<python::Type> tupleType(tupleLength, yieldType);
+                FlattenedTuple flattenedTuple = FlattenedTuple::fromLLVMStructVal(&_env, builder, iterableAlloc, python::Type::makeTupleType(tupleType));
+
+                std::vector<SerializableValue> elements;
+                std::vector<llvm::Type *> elementTypes;
+                for (int i = 0; i < tupleLength; ++i) {
+                    auto load = flattenedTuple.getLoad(builder, {i});
+                    elements.push_back(load);
+                    elementTypes.push_back(load.val->getType());
+                }
+
+                // fill in array elements
+                for (int i = 0; i < tupleLength; ++i) {
+                    builder.CreateStore(elements[i].val, builder.CreateGEP(array, _env.i32Const(i)));
+                    builder.CreateStore(elements[i].size, builder.CreateGEP(sizes, _env.i32Const(i)));
+                }
+
+                // load from array
+                retVal = builder.CreateLoad(builder.CreateGEP(array, builder.CreateTrunc(index, _env.i32Type())));
+                retSize = builder.CreateLoad(builder.CreateGEP(sizes, builder.CreateTrunc(index, _env.i32Type())));
+            }
+            return SerializableValue(retVal, retSize);
+        }
+
+        llvm::Value *SequenceIterator::updateIndex(const codegen::IRBuilder &builder,
+                                                   llvm::Value *iterator,
+                                                   const python::Type& iterableType,
+                                                   const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+            using namespace llvm;
+
+            assert(iteratorInfo);
+            auto iteratorName = iteratorInfo->iteratorName;
+            auto iterablesType = iteratorInfo->argsType;
+            auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
+
+            if(iterablesType.isIteratorType()) {
+                // iter() call on an iterator, ignore the outer iter and call again
+                assert(argsIteratorInfo.front());
+
+                // do dispatch here to whichever type of iterator it is...
+                return nullptr;
+                //return updateIteratorIndex(builder, iterator, argsIteratorInfo.front());
+            }
+
+            std::string funcName;
+            std::string prefix;
+            auto iterable_name = _env.iterator_name_from_type(iterablesType);
+            if(iterable_name.empty()) {
+                throw std::runtime_error("Iterator struct for " + iterablesType.desc()
+                                         + " does not have the corresponding LLVM UpdateIteratorIndex function");
+            } else if(iterablesType == python::Type::RANGE) {
+                // special case range -> it's one structure (for all!)
+                funcName = "range_iterator_update";
+            } else {
+                if(!strEndsWith(iterable_name, "_"))
+                    iterable_name += "_";
+                funcName = iterable_name + prefix + "iterator_update";
+            }
+
+            auto llvm_iterator_context_type = _env.createOrGetIterIteratorType(iterableType);//createIteratorContextTypeFromIteratorInfo(_env, *iteratorInfo.get());
+
+            // function type: i1(*struct.iterator)
+            FunctionType *ft = llvm::FunctionType::get(llvm::Type::getInt1Ty(_env.getContext()),
+                                                       {llvm::PointerType::get(llvm_iterator_context_type, 0)}, false);
+
+            auto& logger = Logger::instance().logger("codegen");
+            logger.debug("iterator context type: " + _env.getLLVMTypeName(llvm_iterator_context_type));
+            logger.debug("ft type: " + _env.getLLVMTypeName(ft));
+            logger.debug("iterator type: " + _env.getLLVMTypeName(iterator->getType()));
+
+            // ok, update is something crazy fancy here: mod.getOrInsertFunction(name, FT).getCallee()->getType()->getPointerElementType()->isFunctionTy()
+
+            auto nextFunc_value = llvm::getOrInsertCallable(*_env.getModule(), funcName, ft);
+            llvm::FunctionCallee nextFunc_callee(ft, nextFunc_value);
+            auto exhausted = builder.CreateCall(nextFunc_callee, iterator);
+            return exhausted;
+        }
+
+        std::string SequenceIterator::name() const {
+            return "";
         }
     }
 }

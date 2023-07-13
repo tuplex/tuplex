@@ -200,7 +200,7 @@ namespace tuplex {
             std::unordered_map<llvm::Type *, python::Type> _typeMapping;
 
             // track string constants (globals), avoid duplicates and allow to retrieve the string value from a ptr.
-            std::unordered_map<std::string, llvm::Value*> _stringMap;
+            std::unordered_multimap<std::string, llvm::Value*> _stringMap;
 
             llvm::Type *createTupleStructType(const python::Type &type, const std::string &twine = "tuple");
 
@@ -594,7 +594,11 @@ namespace tuplex {
                 if(it == _stringMap.end()) {
                     auto sconst = builder.CreateGlobalStringPtr(s);
                     auto ptr = builder.CreatePointerCast(sconst, llvm::Type::getInt8PtrTy(_context, 0));
-                    _stringMap[s] = ptr;
+                    _stringMap.insert(std::make_pair(s, ptr));
+
+                    // save const as well to allow lookup for both raw pointer values
+                    if(sconst != ptr)
+                        _stringMap.insert(std::make_pair(s, sconst));
                     return ptr;
                 } else {
                     return it->second;
@@ -612,7 +616,7 @@ namespace tuplex {
                 if(it != _stringMap.end())
                     return it->first;
 
-                throw std::runtime_error("could not find llvm ptr in string map");
+                throw std::runtime_error("could not find llvm ptr in global variable string map");
             }
 
             /*!

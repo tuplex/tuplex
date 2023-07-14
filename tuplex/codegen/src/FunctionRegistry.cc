@@ -2434,7 +2434,8 @@ namespace tuplex {
             lfb.addException(builder, ExceptionCode::VALUEERROR, cond); // error if the delimiter is an empty string
 
             auto lenArray = builder.CreateAlloca(_env.i64ptrType(), 0, nullptr);
-            auto strArray = builder.CreateAlloca(llvm::PointerType::get(_env.i8ptrType(), 0), 0, nullptr);
+            auto llvm_i8ptrptr_type = llvm::PointerType::get(_env.i8ptrType(), 0);
+            auto strArray = builder.CreateAlloca(llvm_i8ptrptr_type, 0, nullptr);
             auto listLen = builder.CreateAlloca(_env.i64Type());
             auto listSerializedSize = builder.CreateCall(strSplit_prototype(_env.getContext(), _env.getModule().get()),
                                                 {caller.val, caller.size, delimiter.val, delimiter.size,
@@ -2443,10 +2444,18 @@ namespace tuplex {
             auto llvm_list_type = _env.createOrGetListType(
                     python::Type::makeListType(python::Type::STRING));
             auto res = _env.CreateFirstBlockAlloca(builder, llvm_list_type);
-            builder.CreateStore(builder.CreateLoad(_env.i64Type(), listLen), builder.CreateStructGEP(res, llvm_list_type, 0));
-            builder.CreateStore(builder.CreateLoad(_env.i64Type(), listLen), builder.CreateStructGEP(res, llvm_list_type, 1));
-            builder.CreateStore(builder.CreateLoad(_env.i8ptrType(), strArray), builder.CreateStructGEP(res, llvm_list_type, 2));
-            builder.CreateStore(builder.CreateLoad(_env.i64ptrType(), lenArray), builder.CreateStructGEP(res, llvm_list_type, 3));
+
+            auto list_length = builder.CreateLoad(_env.i64Type(), listLen);
+            auto values = builder.CreateLoad(llvm_i8ptrptr_type, strArray);
+            auto sizes = builder.CreateLoad(_env.i64ptrType(), lenArray);
+            auto idx_capacity = builder.CreateStructGEP(res, llvm_list_type, 0);
+            auto idx_length = builder.CreateStructGEP(res, llvm_list_type, 1);
+            auto idx_values_array = builder.CreateStructGEP(res, llvm_list_type, 2);
+            auto idx_sizes_array = builder.CreateStructGEP(res, llvm_list_type, 3);
+            builder.CreateStore(list_length, idx_capacity);
+            builder.CreateStore(list_length, idx_length);
+            builder.CreateStore(values, idx_values_array);
+            builder.CreateStore(sizes, idx_sizes_array);
             return {builder.CreateLoad(llvm_list_type, res), listSerializedSize};
         }
 

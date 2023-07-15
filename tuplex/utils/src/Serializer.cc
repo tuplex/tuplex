@@ -1359,7 +1359,7 @@ namespace tuplex {
         assert(phys_col < (inferLength(_buffer) - sizeof(int64_t)) / sizeof(int64_t)); // sharper bound because of varlen
         // get offset: offset is in the lower 32bit, the upper are the size of the var entry
         int64_t offset = *((int64_t *) ((uint8_t *) _buffer + sizeof(int64_t) * phys_col + calcBitmapSize(_requiresBitmap)));
-        int64_t len = ((offset & (0xFFFFFFFFl << 32)) >> 32) - 1;
+        int64_t len = ((offset & (0xFFFFFFFFl << 32)) >> 32);
         assert(len > 0);
         offset = offset & 0xFFFFFFFF;
 

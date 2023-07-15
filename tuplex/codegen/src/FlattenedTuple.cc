@@ -403,9 +403,16 @@ namespace tuplex {
                             BasicBlock *loopCondition = BasicBlock::Create(context, "list_loop_condition", func);
                             BasicBlock *loopBody = BasicBlock::Create(context, "list_loop_body", func);
                             BasicBlock *after = BasicBlock::Create(context, "list_after", func);
+
+                            // how much space to reserve for list elements
+                            auto& DL = _env->getModule()->getDataLayout();
+                            auto llvm_element_type = _env->getBooleanType();
+                            int64_t dl_element_size = static_cast<int64_t>(DL.getTypeAllocSize(llvm_element_type));
+                            auto alloc_size = builder.CreateMul(numElements, _env->i64Const(dl_element_size));
+
                             // allocate the array
-                            auto list_arr_malloc = builder.CreatePointerCast(_env->malloc(builder, numElements),
-                                                                             llvmType->getStructElementType(2));
+                            auto list_arr_malloc = builder.CreatePointerCast(_env->malloc(builder, alloc_size),
+                                                                             llvm_element_type->getPointerTo());
 
                             // read the elements
                             auto loopCounter = builder.CreateAlloca(Type::getInt64Ty(context));
@@ -417,12 +424,19 @@ namespace tuplex {
                             builder.CreateCondBr(loopNotDone, loopBody, after);
 
                             builder.SetInsertPoint(loopBody);
-                            auto list_el = builder.CreateGEP(_env->i64Type(), list_arr_malloc, builder.CreateLoad(loopCounter)); // next list element
+                            auto loop_i = builder.CreateLoad(builder.getInt64Ty(), loopCounter);
+                            auto list_el = builder.CreateGEP(_env->i64Type(), list_arr_malloc, loop_i); // next list element
                             // get the next serialized value
-                            auto serializedbool = builder.CreateLoad(builder.CreateGEP(_env->i64Type(),
+                            auto serializedbool = builder.CreateLoad(builder.getInt64Ty(),
+                                                                     builder.CreateGEP(_env->i64Type(),
                                                                                        ptr,
-                                                                                       builder.CreateLoad(builder.getInt64Ty(), loopCounter)));
-                            auto truncbool = builder.CreateTrunc(serializedbool, boolType);
+                                                                                       loop_i));
+                            auto truncbool = builder.CreateZExtOrTrunc(serializedbool, boolType);
+
+                            // print
+                            _env->printValue(builder, loop_i, "list element no= ");
+                            _env->printValue(builder, truncbool, "element value: ");
+
                             // store it into the list
                             builder.CreateStore(truncbool, list_el);
                             // update the loop variable and return
@@ -598,8 +612,8 @@ namespace tuplex {
                 auto fieldType = types[i].withoutOptions();
 
                  // debug
-                 // if(field) _env->debugPrint(builder, "serializing field " + std::to_string(i) + ": ", field);
-                 // if(size)_env->debugPrint(builder, "serializing field size" + std::to_string(i) + ": ", size);
+                  if(field) _env->debugPrint(builder, "serializing field " + std::to_string(i) + ": ", field);
+                  if(size)_env->debugPrint(builder, "serializing field size" + std::to_string(i) + ": ", size);
 
                  // do not need to serialize: EmptyTuple, EmptyDict, EmptyList??, NULLVALUE
 
@@ -639,10 +653,14 @@ namespace tuplex {
                 if(fieldType.isListType() && !fieldType.elementType().isSingleValued()) {
                     assert(!fieldType.isFixedSizeType());
                     // the offset is computed using how many varlen fields have been already serialized
-                    Value *offset = builder.CreateAdd(_env->i64Const((numSerializedElements + 1 - serialized_idx) * sizeof(int64_t)), varlenSize);
+                    int64_t fixed_offset = (static_cast<int64_t>(numSerializedElements) + 1 - serialized_idx) * static_cast<int64_t>(sizeof(int64_t));
+                    Value *offset = builder.CreateAdd(_env->i64Const(fixed_offset), varlenSize);
                     // len | size
                     Value *info = builder.CreateOr(builder.CreateZExt(offset, Type::getInt64Ty(context)), builder.CreateShl(builder.CreateZExt(size, Type::getInt64Ty(context)), 32));
                     builder.CreateStore(info, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), false);
+
+                    _env->printValue(builder, varlenSize, "current acc varlensize=");
+                    _env->printValue(builder, offset, "serializing list (tuple element "+ std::to_string(i) + ") to offset=");
 
                     // get pointer to output space
                     Value *outptr = builder.MovePtrByBytes(lastPtr, offset, "list_varoff");
@@ -731,12 +749,19 @@ namespace tuplex {
                         builder.CreateCondBr(loopNotDone, loopBody, after);
 
                         builder.SetInsertPoint(loopBody);
-                        Value* list_el = builder.CreateLoad(builder.CreateGEP(list_arr, builder.CreateLoad(loopCounter))); // next list element
-                        list_el = builder.CreateZExt(list_el, Type::getInt64Ty(context)); // upcast to 8 bytes
-                        auto serialized_ptr = builder.CreateGEP(outptr, builder.CreateLoad(loopCounter)); // get pointer to location for serialized value
+                        auto loop_i = builder.CreateLoad(loopCounter);
+                        Value* list_el = builder.CreateLoad(_env->getBooleanType(), builder.CreateGEP(_env->getBooleanType(), list_arr, loop_i)); // next list element
+                        list_el = builder.CreateZExtOrTrunc(list_el, Type::getInt64Ty(context)); // upcast to 8 bytes
+                        auto byte_offset = builder.CreateMul(_env->i64Const(sizeof(int64_t)), loop_i);
+
+                        _env->printValue(builder, byte_offset, "serializing to byte offset=");
+                        _env->printValue(builder, list_el, "serializing element: ");
+
+                        auto serialized_ptr = builder.MovePtrByBytes(builder.CreateBitCast(outptr, _env->i8ptrType()), byte_offset); // get pointer to location for serialized value
+                        serialized_ptr = builder.CreateBitCast(serialized_ptr, _env->i64ptrType());
                         builder.CreateStore(list_el, serialized_ptr); // store the boolean into the serialization space
                         // update the loop variable and return
-                        builder.CreateStore(builder.CreateAdd(builder.CreateLoad(loopCounter), _env->i64Const(1)), loopCounter);
+                        builder.CreateStore(builder.CreateAdd(loop_i, _env->i64Const(1)), loopCounter);
                         builder.CreateBr(loopCondition);
 
                         builder.SetInsertPoint(after); // point builder to the ending block
@@ -754,6 +779,7 @@ namespace tuplex {
                         throw std::runtime_error("unknown list type " + fieldType.desc() + " to be serialized!");
                     }
 
+                    _env->printValue(builder, size, "serialized list " + fieldType.desc() + " of size= ");
                     // update running variables
                     varlenSize = builder.CreateAdd(varlenSize, size);
                     lastPtr = builder.MovePtrByBytes(lastPtr, sizeof(int64_t), "outptr");

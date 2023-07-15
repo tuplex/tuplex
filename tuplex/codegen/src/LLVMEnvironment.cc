@@ -43,20 +43,16 @@ void _cellPrint(char *start, char *end) {
 namespace tuplex {
     namespace codegen {
 
-        static llvm::CallInst* callCFunction(const codegen::IRBuilder& builder, const std::string& name, llvm::FunctionType* FT, const std::vector<llvm::Value*>& args) {
+        static llvm::CallInst* callCFunction(const codegen::IRBuilder& builder,
+                                             const std::string& name, llvm::FunctionType* FT,
+                                             const std::vector<llvm::Value*>& args) {
             // multi LLVM version compatible calling helper
             assert(builder.GetInsertBlock());
             assert(builder.GetInsertBlock()->getParent());
             assert(builder.GetInsertBlock()->getParent()->getParent());
             auto mod = builder.GetInsertBlock()->getParent()->getParent();
 
-#if LLVM_VERSION_MAJOR < 9
-            auto func = mod->getOrInsertFunction(name.c_str(), FT);
-#elif LLVM_VERSION_MAJOR == 9
-            auto func = mod->getOrInsertFunction(name.c_str(), FT).getCallee();
-#else
-            auto func = mod->getOrInsertFunction(name.c_str(), FT);
-#endif
+            auto func = getOrInsertFunction(mod, name, FT);
             return builder.CreateCall(func, args);
         }
 
@@ -1823,13 +1819,7 @@ namespace tuplex {
             FunctionType *hmap_func_type = FunctionType::get(Type::getInt32Ty(_context),
                                                              {i8ptrType(), i8ptrType(), i64Type(),
                                                               i8ptrType()->getPointerTo(0)}, false);
-#if LLVM_VERSION_MAJOR < 9
-            auto hmap_get_func = env->getModule()->getOrInsertFunction("hashmap_get", hmap_func_type);
-#elif LLVM_VERSION_MAJOR == 9
-            auto hmap_get_func = getModule()->getOrInsertFunction("hashmap_get", hmap_func_type).getCallee();
-#else
-            auto hmap_get_func = getModule()->getOrInsertFunction("hashmap_get", hmap_func_type);
-#endif
+            auto hmap_get_func = getOrInsertFunction(*getModule(), "hashmap_get", hmap_func_type);
             auto in_hash_map = builder.CreateCall(hmap_get_func, {hashmap, key, key_size, returned_bucket});
             auto found_val = builder.CreateICmpEQ(in_hash_map, i32Const(0));
 

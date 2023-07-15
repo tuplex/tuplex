@@ -1989,7 +1989,7 @@ namespace tuplex {
                 }
 
                 auto ft = decodeCells(env, builder, exceptionalType, noCells, cellsPtr, sizesPtr, bbStringDecodeFailed,
-                                      null_values);
+                                      null_values, {});
 
                 // call pipeline & return its code
                 auto res = PipelineBuilder::call(builder, pipFunc, *ft, args["userData"], args["rowNumber"]);

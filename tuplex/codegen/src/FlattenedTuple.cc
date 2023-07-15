@@ -1205,7 +1205,8 @@ namespace tuplex {
                                                     llvm::Value* sizesPtr,
                                                     llvm::BasicBlock* nullErrorBlock,
                                                     llvm::BasicBlock* valueErrorBlock,
-                                                    const std::vector<std::string>& null_values) {
+                                                    const std::vector<std::string>& null_values,
+                                                    const std::vector<size_t>& cell_indices) {
             using namespace llvm;
             using namespace std;
             auto ft = make_shared<FlattenedTuple>(&env);
@@ -1227,27 +1228,37 @@ namespace tuplex {
 
             assert(cellRowType.parameters().size() == ft->flattenedTupleType().parameters().size()); /// this must hold!
 
+            // check, if rowType.size() != numCells, cell_indices must provide valid mapping.
+            if(cellRowType.parameters().size() != numCells) {
+                assert(cell_indices.size() == cellRowType.parameters().size());
+                for(auto idx : cell_indices)
+                    assert(idx < numCells);
+            }
+
             // check type & assign
             for(int i = 0; i < cellRowType.parameters().size(); ++i) {
                 auto t = cellRowType.parameters()[i];
 
+                // mapping from cellPtrs -> tuple
+                auto original_idx = cell_indices.empty() ? i : cell_indices[i];
+                auto llvm_original_idx = env.i64Const(i);
                 llvm::Value* isnull = nullptr;
 
                 // option type? do NULL value interpretation
                 if(t.isOptionType()) {
-                    auto cellStr = builder.CreateLoad(env.i8ptrType(), builder.CreateGEP(env.i8ptrType(), cellsPtr, env.i64Const(i)), "x" + std::to_string(i));
+                    auto cellStr = builder.CreateLoad(env.i8ptrType(), builder.CreateGEP(env.i8ptrType(), cellsPtr, llvm_original_idx), "x" + std::to_string(original_idx));
                     isnull = env.compareToNullValues(builder, cellStr, null_values, true);
                 } else if(t != python::Type::NULLVALUE) {
                     // null check, i.e. raise NULL value exception!
                     auto val = builder.CreateLoad(env.i8ptrType(),
-                                                  builder.CreateGEP(env.i8ptrType(), cellsPtr, env.i64Const(i)),
-                                                  "x" + std::to_string(i));
+                                                  builder.CreateGEP(env.i8ptrType(), cellsPtr, llvm_original_idx),
+                                                  "x" + std::to_string(original_idx));
                     auto null_check = env.compareToNullValues(builder, val, null_values, true);
 
                     // if positive, exception!
                     // else continue!
                     BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(),
-                                                                       "col" + std::to_string(i) + "_null_check_passed",
+                                                                       "col" + std::to_string(original_idx) + "_null_check_passed",
                                                                        builder.GetInsertBlock()->getParent());
                     builder.CreateCondBr(null_check, nullErrorBlock, bbNullCheckPassed);
                     builder.SetInsertPoint(bbNullCheckPassed);
@@ -1261,33 +1272,33 @@ namespace tuplex {
                 if(python::Type::STRING == t) {
                     // fill in
                     auto val = builder.CreateLoad(env.i8ptrType(), builder.CreateGEP(env.i8ptrType(),
-                                                                                     cellsPtr, env.i64Const(i)),
+                                                                                     cellsPtr, llvm_original_idx),
                                                   "x" + std::to_string(i));
-                    auto size = builder.CreateLoad(env.i64Type(), builder.CreateGEP(env.i64Type(), sizesPtr, env.i64Const(i)),
+                    auto size = builder.CreateLoad(env.i64Type(), builder.CreateGEP(env.i64Type(), sizesPtr, llvm_original_idx),
                                                    "s" + std::to_string(i));
                     ft->assign(i, val, size, isnull);
                 } else if(python::Type::BOOLEAN == t) {
                     // conversion code here
-                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
+                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, original_idx);
                     auto val = parseBoolean(env, builder, valueErrorBlock, cellStr, cellSize, isnull);
                     ft->assign(i, val.val, val.size, isnull);
                 } else if(python::Type::I64 == t) {
                     // conversion code here
-                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
+                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, original_idx);
                     auto val = parseI64(env, builder, valueErrorBlock, cellStr, cellSize, isnull);
                     ft->assign(i, val.val, val.size, isnull);
                 } else if(python::Type::F64 == t) {
                     // conversion code here
-                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
+                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, original_idx);
                     auto val = parseF64(env, builder, valueErrorBlock, cellStr, cellSize, isnull);
                     ft->assign(i, val.val, val.size, isnull);
                 } else if(python::Type::NULLVALUE == t) {
                     // perform null check only, & set null element depending on result
-                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, i);
+                    std::tie(cellStr, cellSize) = decodeSingleCell(env, builder, cellsPtr, sizesPtr, original_idx);
                     isnull = env.compareToNullValues(builder, cellStr, null_values, true);
 
                     // if not null, exception! ==> i.e. ValueError!
-                    BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(), "col" + std::to_string(i) + "_value_check_passed", builder.GetInsertBlock()->getParent());
+                    BasicBlock* bbNullCheckPassed = BasicBlock::Create(builder.getContext(), "col" + std::to_string(original_idx) + "_value_check_passed", builder.GetInsertBlock()->getParent());
                     builder.CreateCondBr(isnull, bbNullCheckPassed, valueErrorBlock);
                     builder.SetInsertPoint(bbNullCheckPassed);
                     ft->assign(i, nullptr, nullptr, env.i1Const(true)); // set NULL (should be ignored)
@@ -1308,7 +1319,8 @@ namespace tuplex {
                                                     llvm::BasicBlock* cellCountMismatchErrorBlock,
                                                     llvm::BasicBlock* nullErrorBlock,
                                                     llvm::BasicBlock* valueErrorBlock,
-                                                    const std::vector<std::string>& null_values) {
+                                                    const std::vector<std::string>& null_values,
+                                                    const std::vector<size_t>& cell_indices) {
             using namespace llvm;
 
             auto num_parameters = (uint64_t)rowType.parameters().size();
@@ -1323,7 +1335,7 @@ namespace tuplex {
             builder.SetInsertPoint(bbCellNoOk);
 
             return decodeCells(env, builder, rowType, num_parameters, cellsPtr,
-                               sizesPtr, nullErrorBlock, valueErrorBlock, null_values);
+                               sizesPtr, nullErrorBlock, valueErrorBlock, null_values, cell_indices);
         }
     }
 }

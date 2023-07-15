@@ -128,8 +128,16 @@ namespace tuplex {
 
             assert(_columnsToSerialize.size() == _fileInputRowType.parameters().size());
 
+
+            // create mapping of target_idx -> original_idx
+            std::vector<size_t> index_mapping;
+            for(unsigned i = 0; i < _columnsToSerialize.size(); ++i) {
+                if(_columnsToSerialize[i])
+                    index_mapping.emplace_back(i);
+            }
+
             return decodeCells(*_env, builder, rowType, numCells(),
-                                  cellsPtr, sizesPtr, nullErrorBlock(builder), valueErrorBlock(builder), _nullValues);
+                                  cellsPtr, sizesPtr, nullErrorBlock(builder), valueErrorBlock(builder), _nullValues, index_mapping);
 
 
 //            FlattenedTuple ft(&env());

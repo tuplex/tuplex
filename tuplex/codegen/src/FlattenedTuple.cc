@@ -1258,7 +1258,7 @@ namespace tuplex {
 
                 // mapping from cellPtrs -> tuple
                 auto original_idx = cell_indices.empty() ? i : cell_indices[i];
-                auto llvm_original_idx = env.i64Const(i);
+                auto llvm_original_idx = env.i64Const(static_cast<int64_t>(original_idx));
                 llvm::Value* isnull = nullptr;
 
                 // option type? do NULL value interpretation

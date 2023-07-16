@@ -287,16 +287,13 @@ namespace tuplex {
                         auto numElements = builder.CreateLoad(builder.getInt64Ty(), builder.CreateBitCast(ptr, Type::getInt64PtrTy(context, 0)), "list_num_elements");
                         llvm::Value* listSize = builder.CreateAlloca(Type::getInt64Ty(context));
                         builder.CreateStore(builder.CreateAdd(builder.CreateMul(numElements, _env->i64Const(8)), _env->i64Const(8)), listSize); // start list size as 8 * numElements + 8 ==> have to add string lengths for string case
-                        _env->printValue(builder, builder.CreateLoad(builder.getInt64Ty(), listSize), "(deserialized) list size is (line:"+std::to_string(__LINE__)+"): ");
+                        // _env->printValue(builder, builder.CreateLoad(builder.getInt64Ty(), listSize), "(deserialized) list size is (line:"+std::to_string(__LINE__)+"): ");
 
                         // load the list with its initial size
                         auto list_capacity_ptr = builder.CreateStructGEP(listAlloc, llvmType, 0); //_env->CreateStructGEP(builder, listAlloc,  0);
                         builder.CreateStore(numElements, list_capacity_ptr);
                         auto list_len_ptr = builder.CreateStructGEP(listAlloc, llvmType, 1); //_env->CreateStructGEP(builder, listAlloc,  1);
                         builder.CreateStore(numElements, list_len_ptr);
-
-                        // check data
-                        _env->printValue(builder, numElements, "processing list of type " + type.desc() + " with num elements= ");
 
                         auto elementType = type.elementType();
                         if(elementType == python::Type::STRING) {
@@ -335,7 +332,7 @@ namespace tuplex {
                                                                 builder.CreateGEP(builder.getInt64Ty(),
                                                                                   offset_ptr,
                                                                                   builder.CreateLoad(builder.getInt64Ty(), loopCounter)));
-                            _env->printValue(builder, curOffset, "cur offset to read string from is: ");
+                            // _env->printValue(builder, curOffset, "cur offset to read string from is: ");
                             auto next_str_ptr = builder.CreateGEP(_env->i8ptrType(), list_arr_malloc, builder.CreateLoad(builder.getInt64Ty(), loopCounter));
                             auto curStrPtr = builder.MovePtrByBytes(builder.CreateBitCast(builder.CreateGEP(builder.getInt64Ty(),
                                                                                                        offset_ptr,
@@ -343,10 +340,10 @@ namespace tuplex {
                                                                                                                           loopCounter)),
                                                                                      Type::getInt8PtrTy(context, 0)),
                                                                curOffset);
-                            _env->printValue(builder, curStrPtr, "current string to deserialize is: ");
+                            // _env->printValue(builder, curStrPtr, "current string to deserialize is: ");
                             builder.CreateStore(curStrPtr, next_str_ptr);
 
-                            _env->printValue(builder, builder.CreateLoad(_env->i8ptrType(), next_str_ptr), "saved string (recovered) is: ");
+                            // _env->printValue(builder, builder.CreateLoad(_env->i8ptrType(), next_str_ptr), "saved string (recovered) is: ");
 
                             // set up to calculate the size based on offsets
                             auto next_size_ptr = builder.CreateGEP(builder.getInt64Ty(), list_sizearr_malloc, builder.CreateLoad(builder.getInt64Ty(), loopCounter));
@@ -361,15 +358,15 @@ namespace tuplex {
                             auto nextOffset = builder.CreateLoad(builder.getInt64Ty(),
                                                                  builder.CreateBitCast(builder.MovePtrByBytes(builder.CreateBitCast(offset_ptr, _env->i8ptrType()),
                                                                                    offset_ptr_bytes_offset), _env->i64ptrType()));
-                            _env->printValue(builder, offset_ptr_bytes_offset, "offset bytes=");
-                            _env->printValue(builder, nextOffset, "nextOffset= ");
-                            _env->printValue(builder, curOffset, "curOffset= ");
+                            // _env->printValue(builder, offset_ptr_bytes_offset, "offset bytes=");
+                            // _env->printValue(builder, nextOffset, "nextOffset= ");
+                            // _env->printValue(builder, curOffset, "curOffset= ");
                             auto curLenReg = builder.CreateSub(nextOffset, builder.CreateSub(curOffset, _env->i64Const(sizeof(uint64_t))));
                             // store it into the list
                             builder.CreateStore(curLenReg, next_size_ptr);
-                            _env->printValue(builder, curLenReg, "curLenReg= ");
+                            // _env->printValue(builder, curLenReg, "curLenReg= ");
                             builder.CreateStore(builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), listSize), curLenReg), listSize);
-                            _env->printValue(builder, builder.CreateLoad(builder.getInt64Ty(), listSize), "(deserialized) list size is (line:"+std::to_string(__LINE__)+"): ");
+                            // _env->printValue(builder, builder.CreateLoad(builder.getInt64Ty(), listSize), "(deserialized) list size is (line:"+std::to_string(__LINE__)+"): ");
 
                             builder.CreateBr(loopBodyEnd);
 
@@ -379,7 +376,7 @@ namespace tuplex {
                             // store it into the list
                             builder.CreateStore(curLenLast, next_size_ptr);
                             builder.CreateStore(builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), listSize), curLenLast), listSize);
-                            _env->printValue(builder, builder.CreateLoad(builder.getInt64Ty(), listSize), "(deserialized) list size is (line:"+std::to_string(__LINE__)+"): ");
+                            // _env->printValue(builder, builder.CreateLoad(builder.getInt64Ty(), listSize), "(deserialized) list size is (line:"+std::to_string(__LINE__)+"): ");
 
                             builder.CreateBr(loopBodyEnd);
 
@@ -433,10 +430,6 @@ namespace tuplex {
                                                                                        loop_i));
                             auto truncbool = builder.CreateZExtOrTrunc(serializedbool, boolType);
 
-                            // print
-                            _env->printValue(builder, loop_i, "list element no= ");
-                            _env->printValue(builder, truncbool, "element value: ");
-
                             // store it into the list
                             builder.CreateStore(truncbool, list_el);
                             // update the loop variable and return
@@ -467,8 +460,6 @@ namespace tuplex {
                         } else {
                             Logger::instance().defaultLogger().error("unknown type '" + type.desc() + "' to be deserialized!");
                         }
-
-                        _env->printValue(builder, builder.CreateLoad(builder.getInt64Ty(), listSize), "(deserialized) list size is: ");
 
                         // set the deserialized list
                         _tree.set(i, codegen::SerializableValue(builder.CreateLoad(llvmType, listAlloc),
@@ -611,9 +602,9 @@ namespace tuplex {
                 auto size = _tree.get(i).size;
                 auto fieldType = types[i].withoutOptions();
 
-                 // debug
-                  if(field) _env->debugPrint(builder, "serializing field " + std::to_string(i) + ": ", field);
-                  if(size)_env->debugPrint(builder, "serializing field size" + std::to_string(i) + ": ", size);
+                // // debug
+                //  if(field) _env->debugPrint(builder, "serializing field " + std::to_string(i) + ": ", field);
+                //  if(size)_env->debugPrint(builder, "serializing field size" + std::to_string(i) + ": ", size);
 
                  // do not need to serialize: EmptyTuple, EmptyDict, EmptyList??, NULLVALUE
 

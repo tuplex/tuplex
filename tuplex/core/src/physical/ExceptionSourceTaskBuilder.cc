@@ -294,12 +294,30 @@ namespace tuplex {
             // curGeneralNumRows = *((int64_t*)curGeneralPtr);
             // curGeneralPtr += sizeof(int64_t);
             builder.SetInsertPoint(bbNextGeneralPartition);
+
+            // generalIndexOffset += 1
             builder.CreateStore(builder.CreateAdd(builder.CreateLoad(builder.getInt64Ty(), generalIndexOffset), env().i64Const(1)), generalIndexOffset);
+
+            // *generalRowOffset = 0
+            // *generalByteOffset = 0
             builder.CreateStore(env().i64Const(0), generalRowOffset);
             builder.CreateStore(env().i64Const(0), generalByteOffset);
-            builder.CreateStore(builder.CreateLoad(builder.getInt64Ty(), builder.CreateGEP(builder.getInt64Ty(), generalPartitions, builder.CreateLoad(builder.getInt64Ty(), generalIndexOffset))), curGeneralPtr);
-            builder.CreateStore(builder.CreateLoad(builder.getInt64Ty(), builder.CreatePointerCast(builder.CreateLoad(env().i8ptrType(), curGeneralPtr), env().i64ptrType())), curGeneralNumRows);
-            builder.CreateStore(builder.MovePtrByBytes(builder.CreateLoad(env().i8ptrType(), curGeneralPtr), builder.CreateAdd(env().i64Const(sizeof(int64_t)), builder.CreateLoad(builder.getInt64Ty(), generalByteOffset))), curGeneralPtr);
+
+            // curGeneralPtr = generalPartitions[*generalIndexOffset]
+            llvm::Value* generalIndexOffsetValue = builder.CreateLoad(builder.getInt64Ty(), generalIndexOffset);
+            llvm::Value* generalPartitionsElement = builder.CreateLoad(env().i64ptrType(), builder.CreateGEP(env().i64ptrType(), builder.CreateBitCast(generalPartitions, _env->i64ptrType()->getPointerTo()), generalIndexOffsetValue));
+            generalPartitionsElement = builder.CreateBitCast(generalPartitionsElement, env().i8ptrType());
+            builder.CreateStore(generalPartitionsElement, curGeneralPtr);
+
+            // curGeneralNumRows = *((int64_t*)curGeneralPtr);
+            auto curGeneralNumRowsValue = builder.CreateLoad(builder.getInt64Ty(), builder.CreatePointerCast(builder.CreateLoad(env().i8ptrType(), curGeneralPtr), env().i64ptrType()));
+            builder.CreateStore(curGeneralNumRowsValue, curGeneralNumRows);
+
+            // curGeneralPtr += sizeof(int64_t); // <-- is this accurate?
+            auto new_general_ptr = builder.MovePtrByBytes(builder.CreateLoad(env().i8ptrType(), curGeneralPtr),
+                                                          builder.CreateAdd(env().i64Const(sizeof(int64_t)), builder.CreateLoad(builder.getInt64Ty(), generalByteOffset)));
+            //new_general_ptr = builder.CreateBitCast(new_general_ptr, env().i64ptrType());
+            builder.CreateStore( new_general_ptr, curGeneralPtr);
             builder.CreateBr(bbUpdateGeneralCond);
 
             // Update fallback cond

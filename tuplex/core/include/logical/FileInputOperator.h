@@ -58,6 +58,9 @@ namespace tuplex {
 
         // TODO: Refactor constructors
 
+        // project row according to which column should get serialized.
+        Row projectRow(const Row& row) const;
+
         // CSV Constructor
         FileInputOperator(const std::string& pattern,
                           const ContextOptions& co,

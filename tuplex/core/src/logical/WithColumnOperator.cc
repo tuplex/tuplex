@@ -63,6 +63,10 @@ namespace tuplex {
             return Schema::UNKNOWN;
         }
 
+        // could be exception, return then immediately
+        if(udfRetRowType.isExceptionType())
+            return Schema(Schema::MemoryLayout::ROW, udfRetRowType);
+
 
         assert(udfRetRowType.isTupleType());
         if(udfRetRowType.parameters().size() == 1)
@@ -213,6 +217,11 @@ namespace tuplex {
         // infer schema with given type
         auto schema = inferSchema(Schema(oldOut.getMemoryLayout(), rowTypes.front()));
         if(schema == Schema::UNKNOWN) {
+
+            std::cerr<<"inferring failed..."<<std::endl;
+            // debug again...
+            auto s = inferSchema(Schema(oldOut.getMemoryLayout(), rowTypes.front()));
+
             return false;
         } else {
             setSchema(schema);

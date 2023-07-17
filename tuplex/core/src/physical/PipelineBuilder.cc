@@ -1988,6 +1988,12 @@ namespace tuplex {
                     dataPtr = builder.MovePtrByBytes(dataPtr, sizeof(int64_t));
                 }
 
+                // adjust single-tuple type
+                assert(exceptionalType.isTupleType());
+                if(exceptionalType.parameters().size() == 1 && exceptionalType.parameters().front().isTupleType()) {
+                    exceptionalType = exceptionalType.parameters().front();
+                }
+
                 auto ft = decodeCells(env, builder, exceptionalType, noCells, cellsPtr, sizesPtr, bbStringDecodeFailed,
                                       null_values, {});
 

@@ -1707,6 +1707,12 @@ namespace tuplex {
                 builder.CreateStore(_env->i1Const(true), slot.definedPtr); // params are always defined!!!
                 slot.var = Variable(*_env, builder, type, name);
 
+                // special case tuple: may have been passed as ptr
+                if(type.isTupleType() && param.val && param.val->getType()->isPointerTy()) {
+                    auto llvm_tuple_type = _env->getOrCreateTupleType(type);
+                    param.val = builder.CreateLoad(llvm_tuple_type, param.val);
+                }
+
                 // store param into var
                 slot.var.store(builder, param);
                 _variableSlots[name] = slot;

@@ -144,6 +144,13 @@ namespace codegen {
 
                     // LLVM9 pointer type check
                     if(passByValue()) {
+#ifndef NDEBUG
+                        if(val.val->getType()->getPointerTo() != ptr->getType()) {
+                            std::stringstream err;
+                            err<<"attempting to store value of LLVM type "<<env->getLLVMTypeName(val.val->getType())<<" to slot expecting LLVM type "<<env->getLLVMTypeName(ptr->getType());
+                            Logger::instance().logger("codegen").error(err.str());
+                        }
+#endif
                         assert(val.val->getType()->getPointerTo() == ptr->getType());
                     } else {
 

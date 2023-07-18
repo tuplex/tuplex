@@ -1156,6 +1156,8 @@ namespace tuplex {
         }
 #endif
 
+        extern bool validateModule(const llvm::Module& mod);
+
     }
 }
 

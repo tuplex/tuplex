@@ -2117,9 +2117,14 @@ namespace tuplex {
             // redirect based on the block address in the iterator struct
             builder.SetInsertPoint(entryBB);
             // retrieve the block address to resume
-            auto blockAddrPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
-                                                  {i32Const(0), i32Const(0)});
-            auto blockAddr = builder.CreateLoad(iteratorContextType, blockAddrPtr);
+            auto blockAddrPtr = builder.CreateStructGEP(func->arg_begin(), iteratorContextType, 0);
+            assert(iteratorContextType->getStructElementType(0) == i8ptrType()); // <-- generic i8* pointer
+
+            // convert pointer
+            auto llvm_context_ptr_type = iteratorContextType->getPointerTo();
+            blockAddrPtr = builder.CreateBitCast(blockAddrPtr, llvm_context_ptr_type->getPointerTo());
+
+            auto blockAddr = builder.CreateLoad(llvm_context_ptr_type, blockAddrPtr);
             // indirect branch to block updateIndexBB or endBB
             auto indirectBr = builder.CreateIndirectBr(blockAddr, 2);
             indirectBr->addDestination(updateIndexBB);
@@ -2127,20 +2132,22 @@ namespace tuplex {
 
             // increment index in iterator struct
             builder.SetInsertPoint(updateIndexBB);
-            auto indexPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
-                                                  {i32Const(0), i32Const(1)});
+
+            // index type (i64 for range_iterator, i32 for others)
+            auto llvm_index_type = iterableType == python::Type::RANGE ? i64Type() : i32Type();
+            auto indexPtr = builder.CreateStructGEP(func->arg_begin(), iteratorContextType, 1);
+            assert(indexPtr->getType() == i32ptrType() || (iterableType == python::Type::RANGE && indexPtr->getType() == i64Type())); // for range i64, should unify this
             if(iterableType == python::Type::RANGE) {
-                auto rangePtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
-                                                 {i32Const(0), i32Const(2)});
-                auto rangeAlloc = builder.CreateLoad(rangePtr);
+                auto rangePtr = builder.CreateStructGEP(func->arg_begin(), iteratorContextType, 2); //builder.CreateGEP(iteratorContextType, func->arg_begin(), {i32Const(0), i32Const(2)});
+                auto rangeAlloc = builder.CreateLoad(getRangeObjectType(), rangePtr);
                 auto stepPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(2)});
-                auto step = builder.CreateLoad(getRangeObjectType(), stepPtr);
-                builder.CreateStore(builder.CreateAdd(builder.CreateLoad(iteratorContextType, indexPtr), step), indexPtr);
+                auto step = builder.CreateLoad(llvm_index_type, stepPtr);
+                builder.CreateStore(builder.CreateAdd(builder.CreateLoad(llvm_index_type, indexPtr), step), indexPtr);
             } else {
                 if(reverse) {
-                    builder.CreateStore(builder.CreateSub(builder.CreateLoad(iteratorContextType, indexPtr), i32Const(1)), indexPtr);
+                    builder.CreateStore(builder.CreateSub(builder.CreateLoad(llvm_index_type, indexPtr), i32Const(1)), indexPtr);
                 } else {
-                    builder.CreateStore(builder.CreateAdd(builder.CreateLoad(iteratorContextType, indexPtr), i32Const(1)), indexPtr);
+                    builder.CreateStore(builder.CreateAdd(builder.CreateLoad(llvm_index_type, indexPtr), i32Const(1)), indexPtr);
                 }
             }
             builder.CreateBr(loopCondBB);
@@ -2167,8 +2174,8 @@ namespace tuplex {
                     iterableLength = builder.CreateLoad(iterableLengthPtr);
                 }
             }
-            // retrieve current index (i64 for range_iterator, i32 for others)
-            auto currIndex = builder.CreateLoad(indexPtr);
+            // retrieve current index
+            auto currIndex = builder.CreateZExtOrTrunc(builder.CreateLoad(llvm_index_type, indexPtr), builder.getInt64Ty());
             llvm::Value *loopContinue;
             if(iterableType == python::Type::RANGE) {
                 auto rangePtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
@@ -2185,9 +2192,10 @@ namespace tuplex {
                 loopContinue = builder.CreateICmpSLT(builder.CreateMul(currIndex, stepSign), builder.CreateMul(end, stepSign));
             } else {
                 if(reverse) {
-                    loopContinue = builder.CreateICmpSGE(currIndex, i32Const(0));
+                    loopContinue = builder.CreateICmpSGE(currIndex, i64Const(0));
                 } else {
-                    loopContinue = builder.CreateICmpSLT(builder.CreateZExt(currIndex, i64Type()), iterableLength);
+                    assert(iterableLength->getType() == i64Type());
+                    loopContinue = builder.CreateICmpSLT(currIndex, iterableLength);
                 }
             }
             builder.CreateCondBr(loopContinue, loopBB, loopExitBB);

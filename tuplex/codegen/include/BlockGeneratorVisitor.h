@@ -114,8 +114,18 @@ namespace codegen {
 
                 assert(type != python::Type::UNKNOWN && llvm_type);
 
+                // special case iterator: Load here a pointer (because it points to a concrete iter and not a value, i.e. implement here pass-by-ref sermantics.)
+                // TODO: need to do the same for lists and other objects
+                // only load immutable elements directly -> TODO: extend this here! -> maybe refactor better to capture object properties?
+                llvm::Value* value = nullptr;
+                if(!type.isSingleValued() && (type.isListType() || type.isDictionaryType() || type.isIteratorType())) {
+                    value = builder.CreateLoad(llvm_type->getPointerTo(), ptr);
+                } else {
+                    value = builder.CreateLoad(llvm_type, ptr);
+                }
+
                 // iterator slot may not have ptr yet
-                return codegen::SerializableValue(builder.CreateLoad(llvm_type, ptr), builder.CreateLoad(builder.getInt64Ty(), sizePtr),
+                return codegen::SerializableValue(value, builder.CreateLoad(builder.getInt64Ty(), sizePtr),
                         nullPtr ? builder.CreateLoad(builder.getInt1Ty(), nullPtr) : nullptr);
             }
 

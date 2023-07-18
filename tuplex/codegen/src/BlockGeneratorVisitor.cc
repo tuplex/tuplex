@@ -5962,6 +5962,9 @@ namespace tuplex {
                                                                const SerializableValue &val,
                                                                const python::Type &targetType,
                                                                const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+
+            auto llvm_type = _env->createOrGetIteratorType(iteratorInfo);
+
             if (targetType != slot->type) {
                 // set curr slot to iteratorType if it's not.
                 slot->type = targetType;
@@ -5971,7 +5974,7 @@ namespace tuplex {
             if(targetType == python::Type::EMPTYITERATOR) {
                 newPtrType = _env->i64Type();
             } else {
-                newPtrType = llvm::PointerType::get(_env->createOrGetIteratorType(iteratorInfo), 0);
+                newPtrType = llvm_type->getPointerTo();
             }
 
             if(!slot->var.ptr || slot->var.ptr->getType() != newPtrType) {
@@ -5979,7 +5982,14 @@ namespace tuplex {
                 // may need to update ptr later even if current slot type is iteratorType
                 slot->var.ptr = _env->CreateFirstBlockAlloca(builder, newPtrType, slot->var.name);
             }
+
+            // check type compatibility
+            assert(val.val->getType() == newPtrType); // <-- must hold!
+
             slot->var.store(builder, val);
+
+            // set correct types (llvm type etc.)
+            slot->var.llvm_type = llvm_type; // <-- this is the raw type, yet store correct type as pointer (b.c. needs to point to a concrete iter struct).
         }
     }
 }

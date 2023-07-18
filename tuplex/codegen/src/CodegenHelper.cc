@@ -601,8 +601,32 @@ namespace tuplex {
                 Buffer.push_back(0);
         }
 
+        bool validateModule(const llvm::Module& mod) {
+            // check if module is ok, if not print out issues & throw exception
+
+            // run verify pass on module and print out any errors, before attempting to compile it
+            std::string moduleErrors = "";
+            llvm::raw_string_ostream os(moduleErrors);
+            if(llvm::verifyModule(mod, &os)) {
+                std::stringstream errStream;
+                os.flush();
+                auto llvmIR = moduleToString(mod);
+
+                errStream<<"could not verify module:\n>>>>>>>>>>>>>>>>>\n"<<core::withLineNumbers(llvmIR)<<"\n<<<<<<<<<<<<<<<<<\n";
+                errStream<<moduleErrors;
+
+                throw std::runtime_error("failed to verify module (code: " + std::to_string(llvm::inconvertibleErrorCode().value()) + "), details: " + errStream.str());
+            }
+            return true;
+        }
+
         uint8_t* moduleToBitCode(const llvm::Module& module, size_t* bufSize) {
             using namespace llvm;
+
+            // in debug mode validate module first before writing it out
+#ifndef NDEBUG
+            validateModule(module);
+#endif
 
             SmallVector<char, 0> Buffer;
             Buffer.reserve(256 * 1014); // 256K
@@ -638,23 +662,9 @@ namespace tuplex {
         std::string moduleToBitCodeString(const llvm::Module& module) {
             using namespace llvm;
 
-            // in debug mode, verify module first
+            // in debug mode validate module first before writing it out
 #ifndef NDEBUG
-            {
-                // run verify pass on module and print out any errors, before attempting to compile it
-                std::string moduleErrors;
-                llvm::raw_string_ostream os(moduleErrors);
-                if (verifyModule(module, &os)) {
-                    os.flush();
-                    auto llvmIR = moduleToString(module);
-                    Logger::instance().logger("LLVM Backend").error("could not verify module:\n>>>>>>>>>>>>>>>>>\n"
-                                                                    + core::withLineNumbers(llvmIR)
-                                                                    + "\n<<<<<<<<<<<<<<<<<");
-                    Logger::instance().logger("LLVM Backend").error(moduleErrors);
-                    return "";
-                }
-            }
-
+            validateModule(module);
 #endif
 
             // iterate over functions

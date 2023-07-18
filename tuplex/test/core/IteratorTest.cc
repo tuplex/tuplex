@@ -4,6 +4,23 @@
 
 class IteratorTest : public PyTest {};
 
+TEST_F(IteratorTest, CodegenTestBasicListIterator) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    a = iter([x, 20, 30, 40])\n"
+                "    b1 = next(a)\n"
+                "    return b1";
+
+    auto v = c.parallelize({
+                                   Row(10)
+                           }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0].toPythonString(), Row(10).toPythonString());
+}
+
 TEST_F(IteratorTest, CodegenTestListIteratorI) {
     using namespace tuplex;
     Context c(microTestOptions());

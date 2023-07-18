@@ -1161,4 +1161,27 @@ namespace python {
         }
         return python::Type::UNKNOWN;
     }
+
+    bool Type::isImmutable() const {
+        // single valued objects are immutable
+        if(isSingleValued())
+            return true;
+
+        // primitives like bool, int, f64, string are immutable
+        if(python::Type::BOOLEAN == *this || python::Type::I64 == *this || python::Type::F64 == *this || python::Type::STRING == *this)
+            return true;
+
+        // tuples are immutable
+        if(isTupleType())
+            return true;
+
+        if(isIteratorType())
+            return true;
+
+        if(python::Type::MATCHOBJECT == *this || python::Type::RANGE == *this)
+            return true;
+
+        // everything else is mutable.
+        return false;
+    }
 }

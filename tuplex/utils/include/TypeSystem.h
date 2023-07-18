@@ -196,6 +196,12 @@ namespace python {
         bool isSubclass(const Type& derived) const;
 
         /*!
+         * whether type is immutable or not. If immutable, no assignment possible and values can be passed by value.
+         * @return
+         */
+        bool isImmutable() const;
+
+        /*!
          * retrieves a vector of all types which are base classes of this type
          * @return all types which are a base class
          */

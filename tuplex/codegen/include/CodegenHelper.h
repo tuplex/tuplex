@@ -515,7 +515,10 @@ namespace tuplex {
 
              inline llvm::LoadInst *CreateLoad(llvm::Type *Ty, llvm::Value *Ptr, const char *Name) const {
                  assert(Ty);
-#if LLVM_VERSION_MAJOR == 9
+#if LLVM_VERSION_MAJOR <= 9
+                 // check type compatibility
+                 assert(Ptr->getType() == Ty->getPointerTo());
+
                  return get_or_throw().CreateLoad(Ty, Ptr, Name);
 #elif LLVM_VERSION_MAJOR > 9
                  return get_or_throw().CreateAlignedLoad(Ty, Ptr, llvm::MaybeAlign(), Name);
@@ -526,7 +529,10 @@ namespace tuplex {
 
              inline llvm::LoadInst *CreateLoad(llvm::Type *Ty, llvm::Value *Ptr, const std::string &Name = "") const {
                  assert(Ty);
-#if LLVM_VERSION_MAJOR == 9
+#if LLVM_VERSION_MAJOR <= 9
+                 // check type compatibility
+                 assert(Ptr->getType() == Ty->getPointerTo());
+
                  return get_or_throw().CreateLoad(Ty, Ptr, Name);
 #elif LLVM_VERSION_MAJOR > 9
                  return get_or_throw().CreateAlignedLoad(Ty, Ptr, llvm::MaybeAlign(), Name);
@@ -535,8 +541,9 @@ namespace tuplex {
 #endif
              }
 
-             inline llvm::LoadInst *CreateLoad(llvm::Value *Ptr, const std::string& Name ="") const {
-                 assert(Ptr->getType()->getPointerElementType());
+            inline llvm::LoadInst *CreateLoad(llvm::Value *Ptr, const std::string& Name ="") const {
+                throw std::runtime_error("need to replace this call with typed call.");
+                assert(Ptr->getType()->getPointerElementType());
                 return CreateLoad(Ptr->getType()->getPointerElementType(), Ptr, Name);
             }
 

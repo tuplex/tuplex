@@ -687,17 +687,22 @@ namespace tuplex {
 
             // mapping of python type -> llvm type.
             auto llvm_iterable_type = _env.pythonToLLVMType(iterableType);
-            assert(iterable.val->getType() == llvm_iterable_type);
+
 
             llvm::Type *iteratorContextType = _env.createOrGetIterIteratorType(iterableType);
             auto initBBAddr = _env.createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(builder, iterableType,
                                                                                               false);
             auto iteratorContextStruct = _env.CreateFirstBlockAlloca(builder, iteratorContextType, "iter_iterator_alloc");
             llvm::Value *iterableStruct = nullptr;
-            if(iterableType.isListType() || iterableType.isTupleType()) {
-                // TODO: need to change this when codegen for lists gets updated
+
+            auto copy_iterable_by_value = iterableType.isTupleType() || python::Type::STRING == iterableType;
+
+            if(copy_iterable_by_value) { // <-- tuple is immutable, so storing a copy is fine!
+                assert(iterable.val->getType() == llvm_iterable_type);
+                // copy-by-value
                 iterableStruct = _env.CreateFirstBlockAlloca(builder, llvm_iterable_type, "iter_arg_alloc");
             } else {
+                // reference to the value to iterate over (copy-by-reference)
                 iterableStruct = iterable.val;
             }
 
@@ -721,9 +726,11 @@ namespace tuplex {
 
             // store pointer to iterable struct
             auto iterablePtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env.i32Const(0), _env.i32Const(2)});
-            if(iterableType.isListType() || iterableType.isTupleType()) {
+            if(copy_iterable_by_value) {
                 // copy original struct
                 builder.CreateStore(iterable.val, iterableStruct);
+            } else {
+                iterableStruct = iterable.val; // copy by reference
             }
             builder.CreateStore(iterableStruct, iterablePtr);
 
@@ -773,24 +780,27 @@ namespace tuplex {
             auto index = builder.CreateLoad(builder.getInt32Ty(), indexPtr); // <- index should be i32
 #warning :f
             auto iterableAllocPtr = builder.CreateGEP(llvm_iterator_context_type, iterator, {_env.i32Const(0), _env.i32Const(2)});
-            auto iterableAlloc = builder.CreateLoad(iterableAllocPtr);
+            auto iterableAlloc = builder.CreateLoad(llvm_iterator_context_type->getStructElementType(2), iterableAllocPtr);
             if(iterablesType.isListType()) {
-                auto valArrayPtr = builder.CreateGEP(_env.createOrGetListType(iterablesType), iterableAlloc, {_env.i32Const(0), _env.i32Const(2)});
-                auto valArray = builder.CreateLoad(valArrayPtr);
-                auto currValPtr = builder.CreateGEP(valArray, index);
-                retVal = builder.CreateLoad(currValPtr);
+                auto llvm_list_type = _env.createOrGetListType(iterablesType);
+                auto llvm_list_element_type = _env.pythonToLLVMType(iterablesType.elementType());
+                auto valArrayPtr = builder.CreateGEP(llvm_list_type, iterableAlloc, {_env.i32Const(0), _env.i32Const(2)});
+                auto valArray = builder.CreateLoad(llvm_list_type->getStructElementType(2), valArrayPtr);
+                auto currValPtr = builder.CreateGEP(llvm_list_element_type, valArray, index);
+                retVal = builder.CreateLoad(llvm_list_element_type, currValPtr);
                 if(yieldType == python::Type::I64 || yieldType == python::Type::F64 || yieldType == python::Type::BOOLEAN) {
                     // note: list internal representation currently uses 1 byte for bool (although this field is never used)
                     retSize = _env.i64Const(8);
                 } else if(yieldType == python::Type::STRING || yieldType.isDictionaryType()) {
-                    auto sizeArrayPtr = builder.CreateGEP(_env.createOrGetListType(iterablesType), iterableAlloc, {_env.i32Const(0), _env.i32Const(3)});
-                    auto sizeArray = builder.CreateLoad(sizeArrayPtr);
-                    auto currSizePtr = builder.CreateGEP(sizeArray, index);
-                    retSize = builder.CreateLoad(currSizePtr);
+                    auto sizeArrayPtr = builder.CreateGEP(llvm_list_type, iterableAlloc, {_env.i32Const(0), _env.i32Const(3)});
+                    auto sizeArray = builder.CreateLoad(_env.i64ptrType(), sizeArrayPtr);
+                    auto currSizePtr = builder.CreateGEP(builder.getInt64Ty(), sizeArray, index);
+                    retSize = builder.CreateLoad(builder.getInt64Ty(), currSizePtr);
                 } else if(yieldType.isTupleType()) {
                     if(!yieldType.isFixedSizeType()) {
+                        auto llvm_tuple_type = _env.getOrCreateTupleType(yieldType);
                         // retVal is a pointer to tuple struct
-                        retVal = builder.CreateLoad(retVal);
+                        retVal = builder.CreateLoad(llvm_tuple_type, retVal);
                     }
                     auto ft = FlattenedTuple::fromLLVMStructVal(&_env, builder, retVal, yieldType);
                     retSize = ft.getSize(builder);
@@ -800,13 +810,13 @@ namespace tuplex {
                 // allocate new string (1-byte character with a 1-byte null terminator)
                 retSize = _env.i64Const(2);
                 retVal = builder.CreatePointerCast(_env.malloc(builder, retSize), _env.i8ptrType());
-                builder.CreateStore(builder.CreateLoad(currCharPtr), retVal);
+                builder.CreateStore(builder.CreateLoad(builder.getInt8Ty(), currCharPtr), retVal);
                 auto nullCharPtr = builder.CreateGEP(_env.i8Type(), retVal, _env.i32Const(1));
                 builder.CreateStore(_env.i8Const(0), nullCharPtr);
             } else if(iterablesType == python::Type::RANGE) {
                 retVal = index;
                 retSize = _env.i64Const(8);
-            } else if(iterablesType.isTupleType()) {
+            } else if(iterablesType.isTupleType() && python::Type::EMPTYTUPLE != iterablesType) {
                 // only works with homogenous tuple
                 auto tupleLength = iterablesType.parameters().size();
 
@@ -826,15 +836,19 @@ namespace tuplex {
                     elementTypes.push_back(load.val->getType());
                 }
 
+                auto llvm_element_type = _env.pythonToLLVMType(iterablesType.parameters().front());
+
                 // fill in array elements
                 for (int i = 0; i < tupleLength; ++i) {
-                    builder.CreateStore(elements[i].val, builder.CreateGEP(array, _env.i32Const(i)));
-                    builder.CreateStore(elements[i].size, builder.CreateGEP(sizes, _env.i32Const(i)));
+                    builder.CreateStore(elements[i].val, builder.CreateGEP(llvm_element_type, array, _env.i32Const(i)));
+                    builder.CreateStore(elements[i].size, builder.CreateGEP(builder.getInt64Ty(), sizes, _env.i32Const(i)));
                 }
 
                 // load from array
-                retVal = builder.CreateLoad(builder.CreateGEP(array, builder.CreateTrunc(index, _env.i32Type())));
-                retSize = builder.CreateLoad(builder.CreateGEP(sizes, builder.CreateTrunc(index, _env.i32Type())));
+                retVal = builder.CreateLoad(llvm_element_type, builder.CreateGEP(llvm_element_type, array, builder.CreateTrunc(index, _env.i32Type())));
+                retSize = builder.CreateLoad(builder.getInt64Ty(), builder.CreateGEP(builder.getInt64Ty(), sizes, builder.CreateTrunc(index, _env.i32Type())));
+            } else {
+                throw std::runtime_error("unsupported iterables type: " + iterablesType.desc());
             }
             return SerializableValue(retVal, retSize);
         }

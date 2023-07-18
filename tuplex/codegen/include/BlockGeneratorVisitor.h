@@ -118,9 +118,11 @@ namespace codegen {
                 // TODO: need to do the same for lists and other objects
                 // only load immutable elements directly -> TODO: extend this here! -> maybe refactor better to capture object properties?
                 llvm::Value* value = nullptr;
-                if(!type.isSingleValued() && (type.isListType() || type.isDictionaryType() || type.isIteratorType())) {
+                if(!type.isImmutable() || type.isIteratorType()) {
+                    // load reference
                     value = builder.CreateLoad(llvm_type->getPointerTo(), ptr);
                 } else {
+                    // load value
                     value = builder.CreateLoad(llvm_type, ptr);
                 }
 

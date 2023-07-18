@@ -1637,7 +1637,15 @@ namespace tuplex {
 
             // only string, bool, int, f64 so far supported!
             llvm_type = env.pythonToLLVMType(t.isOptionType() ? t.getReturnType() : t);
-            ptr = env.CreateFirstBlockAlloca(builder, llvm_type, name);
+
+            // differentiate here between pass-by-value and pass-by-copy variables.
+            // pass-by-value should be all of Python's immutable objects.
+            // pass-by-reference should be all mutable objects.
+
+            if(t.isImmutable())
+                ptr = env.CreateFirstBlockAlloca(builder, llvm_type, name); // store value
+            else
+                ptr = env.CreateFirstBlockAlloca(builder, llvm_type->getPointerTo(), name); // store reference
 
             // alloc size
             sizePtr = env.CreateFirstBlockAlloca(builder, env.i64Type(), name + "_size");
@@ -3144,12 +3152,11 @@ namespace tuplex {
                     }
                 }
 
-                // TODO:
-                // --> change to passing around the pointer to the list, not the semi-loaded struct
-                // ---> THIS WILL HAVE IMPLICATIONS WHEREVER LISTS ARE USED.
-                // also listSize here is wrong. The listSize should be stored as part of the pointer. You can either pass 8 as listsize or null.
+                // use the list pointer, and pass NULL as list size.
+                addInstruction(listAlloc, nullptr);
 
-                addInstruction(builder.CreateLoad(llvmType, listAlloc), listSize);
+                // old:
+                // addInstruction(builder.CreateLoad(llvmType, listAlloc), listSize);
             }
         }
 

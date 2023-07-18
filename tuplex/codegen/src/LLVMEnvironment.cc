@@ -2171,7 +2171,7 @@ namespace tuplex {
                 } else if(iterableType == python::Type::STRING || iterableType.isTupleType()) {
                     auto iterableLengthPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
                                                                {i32Const(0), i32Const(3)});
-                    iterableLength = builder.CreateLoad(iterableLengthPtr);
+                    iterableLength = builder.CreateLoad(builder.getInt64Ty(), iterableLengthPtr);
                 }
             }
             // retrieve current index

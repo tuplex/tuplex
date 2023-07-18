@@ -732,7 +732,14 @@ namespace tuplex {
             } else {
                 iterableStruct = iterable.val; // copy by reference
             }
-            builder.CreateStore(iterableStruct, iterablePtr);
+
+            // special case string:
+            if(python::Type::STRING == iterableType) {
+                auto str_value = builder.CreateLoad(_env.i8ptrType(), iterableStruct);
+                builder.CreateStore(str_value, iterablePtr);
+            } else {
+                builder.CreateStore(iterableStruct, iterablePtr);
+            }
 
             // store length for string or tuple
             if(iterableType == python::Type::STRING) {

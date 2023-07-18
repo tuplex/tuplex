@@ -102,6 +102,14 @@ namespace tuplex {
 
             // StoreInst * 	CreateStore (Value *Val, Value *Ptr, bool isVolatile=false)
             inline llvm::Value* CreateStore(llvm::Value* Val, llvm::Value* Ptr, bool isVolatile=false) const {
+
+#ifndef NDEBUG
+                // pointer check
+                if(Val->getType()->getPointerTo() != Ptr->getType()) {
+                    throw std::runtime_error("attempting to store value of incompatible llvm type to llvm pointer");
+                }
+#endif
+
                 return get_or_throw().CreateStore(Val, Ptr, isVolatile);
             }
 

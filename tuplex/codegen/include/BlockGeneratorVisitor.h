@@ -79,7 +79,9 @@ namespace codegen {
             python::Type type;
             std::string name;
 
-            Variable() : ptr(nullptr), sizePtr(nullptr), nullPtr(nullptr), llvm_type(nullptr), name("undefined") {}
+            LLVMEnvironment* env;
+
+            Variable() : ptr(nullptr), sizePtr(nullptr), nullPtr(nullptr), llvm_type(nullptr), name("undefined"), env(nullptr) {}
 
             Variable(LLVMEnvironment& env, const codegen::IRBuilder& builder, const python::Type& t, const std::string& name);
 
@@ -118,12 +120,14 @@ namespace codegen {
                 // TODO: need to do the same for lists and other objects
                 // only load immutable elements directly -> TODO: extend this here! -> maybe refactor better to capture object properties?
                 llvm::Value* value = nullptr;
-                if(!type.isImmutable() || type.isIteratorType()) {
-                    // load reference
-                    value = builder.CreateLoad(llvm_type->getPointerTo(), ptr);
-                } else {
+                if(passByValue()) {
                     // load value
                     value = builder.CreateLoad(llvm_type, ptr);
+
+                } else {
+                    assert(!llvm_type->isPointerTy());
+                    // load reference
+                    value = builder.CreateLoad(llvm_type->getPointerTo(), ptr);
                 }
 
                 // iterator slot may not have ptr yet
@@ -135,27 +139,53 @@ namespace codegen {
                 assert(ptr && sizePtr);
 
                 if(val.val) {
-                    // if tuples etc. are used, then there could be a pointer. When this happens, load & then assign
-                    // make sure it's not string, which is a special case... --> opaque pointers make this check here difficult.
-                    if(val.val->getType() == ptr->getType() && type.withoutOptions() != python::Type::STRING) {
-                        assert(llvm_type);
 
-                        // load val
-                        auto tmp = builder.CreateLoad(llvm_type, val.val);
-                        builder.CreateStore(tmp, ptr);
+                    // new: -> simply store to pointer.
+
+                    // LLVM9 pointer type check
+                    if(passByValue()) {
+                        assert(val.val->getType()->getPointerTo() == ptr->getType());
                     } else {
+
+                        // debug checks
 #ifndef NDEBUG
-                        if(val.val->getType()->getPointerTo(0) != ptr->getType()) {
-                            auto err_msg = "trying to store value of type "
-                                           + LLVMEnvironment::getLLVMTypeName(val.val->getType())
-                                           + " to a pointer of type " + LLVMEnvironment::getLLVMTypeName(ptr->getType());
-                            throw std::runtime_error(err_msg);
+                        if(val.val->getType()->getPointerTo() != ptr->getType()) {
+                            std::stringstream err;
+                            err<<"attempting to store value of LLVM type "<<env->getLLVMTypeName(val.val->getType())<<" to slot expecting LLVM type "<<env->getLLVMTypeName(ptr->getType());
+                            Logger::instance().logger("codegen").error(err.str());
                         }
 #endif
 
-                        assert(val.val->getType()->getPointerTo(0) == ptr->getType());
-                        builder.CreateStore(val.val, ptr);
+                        assert(val.val->getType()->isPointerTy());
+                        assert(val.val->getType()->getPointerTo() == ptr->getType());
                     }
+
+                    builder.CreateStore(val.val, ptr, false);
+                    // special case for tuples potentially (?)
+
+
+                    // // old:
+                    // // if tuples etc. are used, then there could be a pointer. When this happens, load & then assign
+                    // // make sure it's not string, which is a special case... --> opaque pointers make this check here difficult.
+                    // if(val.val->getType() == ptr->getType() && type.withoutOptions() != python::Type::STRING) {
+                    //     assert(llvm_type);
+//
+                    //     // load val
+                    //     auto tmp = builder.CreateLoad(llvm_type, val.val);
+                    //     builder.CreateStore(tmp, ptr);
+                    // } else {
+#ifndef NDEBUG//
+                    //     if(val.val->getType()->getPointerTo(0) != ptr->getType()) {
+                    //         auto err_msg = "trying to store value of type "
+                    //                        + LLVMEnvironment::getLLVMTypeName(val.val->getType())
+                    //                        + " to a pointer of type " + LLVMEnvironment::getLLVMTypeName(ptr->getType());
+                    //         throw std::runtime_error(err_msg);
+                    //     }
+#endif//
+//
+                    //     assert(val.val->getType()->getPointerTo(0) == ptr->getType());
+                    //     builder.CreateStore(val.val, ptr);
+                    // }
                 }
 
                 if(val.size) {
@@ -186,6 +216,17 @@ namespace codegen {
                     assert(nullPtr);
                     builder.CreateStore(val.is_null, nullPtr);
                 }
+            }
+
+        private:
+            inline bool passByValue() const {
+                assert(type != python::Type::UNKNOWN);
+
+                if(type.isIteratorType())
+                    return false;
+
+                // dictionary type right now mapped to i8* already, so mapping is mutable.
+                return type.isImmutable() || type.isDictionaryType();
             }
         };
 

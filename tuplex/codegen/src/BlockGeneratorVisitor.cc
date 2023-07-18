@@ -1638,23 +1638,28 @@ namespace tuplex {
             // only string, bool, int, f64 so far supported!
             llvm_type = env.pythonToLLVMType(t.isOptionType() ? t.getReturnType() : t);
 
+            this->type = t; // save original type.
+            this->name = name;
+
+            this->env = &env;
+
             // differentiate here between pass-by-value and pass-by-copy variables.
             // pass-by-value should be all of Python's immutable objects.
             // pass-by-reference should be all mutable objects.
 
-            if(t.isImmutable())
+            if (passByValue()) {
                 ptr = env.CreateFirstBlockAlloca(builder, llvm_type, name); // store value
-            else
+            } else {
+                // make sure llvm_type is not a pointer type, this would be wrong mapping
+                assert(!llvm_type->isPointerTy());
                 ptr = env.CreateFirstBlockAlloca(builder, llvm_type->getPointerTo(), name); // store reference
+            }
 
             // alloc size
             sizePtr = env.CreateFirstBlockAlloca(builder, env.i64Type(), name + "_size");
 
             // option type? then alloc isnull!
             nullPtr = t.isOptionType() ? env.CreateFirstBlockAlloca(builder, env.i1Type()) : nullptr;
-
-            this->type = t; // save original type.
-            this->name = name;
         }
 
         void BlockGeneratorVisitor::declareVariables(ASTNode* func) {
@@ -5183,6 +5188,7 @@ namespace tuplex {
             var.llvm_type = env.pythonToLLVMType(t);
             var.ptr = env.createNullInitializedGlobal(name + "_val", var.llvm_type);
             var.sizePtr = env.createNullInitializedGlobal(name + "_size", env.i64Type());
+            var.env = &env;
 
             if(t.isOptionType() || t == python::Type::NULLVALUE) {
                 assert(value.is_null);

@@ -1181,6 +1181,10 @@ namespace python {
         if(python::Type::MATCHOBJECT == *this || python::Type::RANGE == *this)
             return true;
 
+        // decide based on element type.
+        if(isOptionType())
+            return getReturnType().isImmutable();
+
         // everything else is mutable.
         return false;
     }

@@ -73,6 +73,10 @@ namespace tuplex {
                 delete TM;
             TM = nullptr;
 
+            // register default range type
+            auto rtype = getRangeObjectType();
+            assert(rtype);
+
             // setup defaults in typeMapping (ignore bool)
             _typeMapping[llvm::Type::getDoubleTy(_context)] = python::Type::F64;
             _typeMapping[llvm::Type::getInt64Ty(_context)] = python::Type::I64;
@@ -2136,10 +2140,10 @@ namespace tuplex {
             // index type (i64 for range_iterator, i32 for others)
             auto llvm_index_type = iterableType == python::Type::RANGE ? i64Type() : i32Type();
             auto indexPtr = builder.CreateStructGEP(func->arg_begin(), iteratorContextType, 1);
-            assert(indexPtr->getType() == i32ptrType() || (iterableType == python::Type::RANGE && indexPtr->getType() == i64Type())); // for range i64, should unify this
+            assert(indexPtr->getType() == i32ptrType() || (iterableType == python::Type::RANGE && indexPtr->getType() == i64ptrType())); // for range i64, should unify this
             if(iterableType == python::Type::RANGE) {
-                auto rangePtr = builder.CreateStructGEP(func->arg_begin(), iteratorContextType, 2); //builder.CreateGEP(iteratorContextType, func->arg_begin(), {i32Const(0), i32Const(2)});
-                auto rangeAlloc = builder.CreateLoad(getRangeObjectType(), rangePtr);
+                auto rangePtrPtr = builder.CreateStructGEP(func->arg_begin(), iteratorContextType, 2); //builder.CreateGEP(iteratorContextType, func->arg_begin(), {i32Const(0), i32Const(2)});
+                auto rangeAlloc = builder.CreateLoad(getRangeObjectType()->getPointerTo(), rangePtrPtr);
                 auto stepPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(2)});
                 auto step = builder.CreateLoad(llvm_index_type, stepPtr);
                 builder.CreateStore(builder.CreateAdd(builder.CreateLoad(llvm_index_type, indexPtr), step), indexPtr);
@@ -2178,16 +2182,16 @@ namespace tuplex {
             auto currIndex = builder.CreateZExtOrTrunc(builder.CreateLoad(llvm_index_type, indexPtr), builder.getInt64Ty());
             llvm::Value *loopContinue;
             if(iterableType == python::Type::RANGE) {
-                auto rangePtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
+                auto rangePtrPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
                                                   {i32Const(0), i32Const(2)});
-                auto rangeAlloc = builder.CreateLoad(rangePtr);
+                auto rangeAlloc = builder.CreateLoad(getRangeObjectType()->getPointerTo(), rangePtrPtr);
                 auto stepPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(2)});
-                auto step = builder.CreateLoad(stepPtr);
+                auto step = builder.CreateLoad(builder.getInt64Ty(), stepPtr);
                 // positive step -> stepSign = 1, negative step -> stepSign = -1
                 // stepSign = (step >> 63) | 1 , use arithmetic shift
                 auto stepSign = builder.CreateOr(builder.CreateAShr(step, i64Const(63)), i64Const(1));
                 auto endPtr = builder.CreateGEP(getRangeObjectType(), rangeAlloc, {i32Const(0), i32Const(1)});
-                auto end = builder.CreateLoad(endPtr);
+                auto end = builder.CreateLoad(builder.getInt64Ty(), endPtr);
                 // step can be negative in range. Check if curr * stepSign < end * stepSign
                 loopContinue = builder.CreateICmpSLT(builder.CreateMul(currIndex, stepSign), builder.CreateMul(end, stepSign));
             } else {

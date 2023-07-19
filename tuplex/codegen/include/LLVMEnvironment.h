@@ -480,7 +480,25 @@ namespace tuplex {
              * @return  range struct llvm::Type
              */
             inline llvm::Type *getRangeObjectType() {
-                return llvm::StructType::get(_context, {i64Type(), i64Type(), i64Type()});
+
+                if(!_module)
+                    return nullptr;
+
+                auto stype = _module->getTypeByName("range");
+
+                // lazy register range type
+                if(!stype) {
+                    // not registered yet, register now
+                    auto& ctx = _module->getContext();
+                    bool packed = false;
+                    std::vector<llvm::Type*> members{i64Type(), i64Type(), i64Type()};
+                    stype = llvm::StructType::create(ctx, members, "range", packed);
+                }
+
+                return stype;
+
+                // // old: anonymous type
+                // return llvm::StructType::get(_context, {i64Type(), i64Type(), i64Type()});
             }
 
             /*!

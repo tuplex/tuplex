@@ -784,7 +784,9 @@ namespace tuplex {
             // get current element value and size of current value
             llvm::Value *retVal = nullptr, *retSize = nullptr;
             auto indexPtr = builder.CreateStructGEP(iterator, llvm_iterator_context_type, 1);
-            auto index = builder.CreateLoad(builder.getInt32Ty(), indexPtr); // <- index should be i32
+            auto llvm_index_type = iterableType == python::Type::RANGE ? _env.i64Type() : _env.i32Type();
+            auto index = builder.CreateLoad(llvm_index_type, indexPtr); // <- index should be i32 or i64
+
 #warning :f
             auto iterableAllocPtr = builder.CreateGEP(llvm_iterator_context_type, iterator, {_env.i32Const(0), _env.i32Const(2)});
             auto iterableAlloc = builder.CreateLoad(llvm_iterator_context_type->getStructElementType(2), iterableAllocPtr);

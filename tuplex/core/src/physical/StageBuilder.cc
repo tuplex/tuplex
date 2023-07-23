@@ -1086,6 +1086,9 @@ namespace tuplex {
              LLVMContext test_ctx;
              auto test_mod = codegen::stringToModule(test_ctx, code);
 
+             // annotate module for debugging
+            annotateModuleWithInstructionPrint(*env->getModule(), false);
+
             // save into variables (allows to serialize stage etc.)
             // IR is generated. Save into stage.
             _funcStageName = func->getName().str();

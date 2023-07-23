@@ -259,17 +259,34 @@ namespace tuplex {
             builder.CreateBr(endBB);
 
             builder.SetInsertPoint(defaultArgBB);
+            _env->debugPrint(builder, "in default arg block");
             builder.CreateBr(endBB);
 
             builder.SetInsertPoint(endBB);
             lfb.setLastBlock(endBB);
-            if(defaultArg.val) {
-                auto retVal = builder.CreatePHI(_env->pythonToLLVMType(yieldType), 2);
+
+            auto llvm_yield_type = _env->pythonToLLVMType(yieldType);
+            auto default_yield_value = defaultArg.val;
+            auto default_yield_size = defaultArg.size;
+
+            // sometime size is nullptr fill with default (0)
+            if(!default_yield_size)
+                default_yield_size = _env->i64Const(0);
+
+            if(default_yield_value && !yieldType.isImmutable()) {
+                llvm_yield_type = llvm_yield_type->getPointerTo();
+//                if(default_yield_value)
+//                    default_yield_value = _env->nullConstant(defaultArg.val->getType());
+            }
+
+            if(default_yield_value) {
+                auto retVal = builder.CreatePHI(llvm_yield_type, 2);
                 auto retSize = builder.CreatePHI(_env->i64Type(), 2);
                 retVal->addIncoming(retValNotExhausted, notExhaustedBB);
                 retSize->addIncoming(retSizeNotExhausted, notExhaustedBB);
-                retVal->addIncoming(defaultArg.val, defaultArgBB);
-                retSize->addIncoming(defaultArg.size, defaultArgBB);
+                retVal->addIncoming(default_yield_value, defaultArgBB);
+                retSize->addIncoming(default_yield_size, defaultArgBB);
+                _env->debugPrint(builder, "has default value");
                 return SerializableValue(retVal, retSize);
             } else {
                 return SerializableValue(retValNotExhausted, retSizeNotExhausted);
@@ -688,6 +705,8 @@ namespace tuplex {
             // mapping of python type -> llvm type.
             auto llvm_iterable_type = _env.pythonToLLVMType(iterableType);
 
+            _env.debugPrint(builder, "init context for " + iterableType.desc());
+
 
             llvm::Type *iteratorContextType = _env.createOrGetIterIteratorType(iterableType);
             auto initBBAddr = _env.createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(builder, iterableType,
@@ -829,6 +848,8 @@ namespace tuplex {
                 // only works with homogenous tuple
                 auto tupleLength = iterablesType.parameters().size();
 
+                _env.printValue(builder, _env.i64Const(tupleLength), "data access into tuple with length=");
+
                 // create array & index
                 auto array = builder.CreateAlloca(_env.pythonToLLVMType(yieldType), 0, _env.i64Const(tupleLength));
                 auto sizes = builder.CreateAlloca(_env.i64Type(), 0, _env.i64Const(tupleLength));
@@ -845,7 +866,8 @@ namespace tuplex {
                     elementTypes.push_back(load.val->getType());
                 }
 
-                auto llvm_element_type = _env.pythonToLLVMType(iterablesType.parameters().front());
+                auto element_type = iterablesType.parameters().front();
+                auto llvm_element_type = _env.pythonToLLVMType(element_type);
 
                 // fill in array elements
                 for (int i = 0; i < tupleLength; ++i) {
@@ -853,8 +875,19 @@ namespace tuplex {
                     builder.CreateStore(elements[i].size, builder.CreateGEP(builder.getInt64Ty(), sizes, _env.i32Const(i)));
                 }
 
-                // load from array
-                retVal = builder.CreateLoad(llvm_element_type, builder.CreateGEP(llvm_element_type, array, builder.CreateTrunc(index, _env.i32Type())));
+                _env.printValue(builder, index, "retrieving tuple element with index=");
+
+                // special case: mutable element -> pass as pointer
+                if(element_type.isImmutable()) {
+                    // load from array
+                    retVal = builder.CreateLoad(llvm_element_type, builder.CreateGEP(llvm_element_type, array, builder.CreateTrunc(index, _env.i32Type())));
+                } else {
+                    // pass the pointer
+                    retVal = builder.CreateGEP(llvm_element_type, array, builder.CreateTrunc(index, _env.i32Type()));
+                    assert(retVal->getType()->isPointerTy());
+                }
+
+                // load size from array
                 retSize = builder.CreateLoad(builder.getInt64Ty(), builder.CreateGEP(builder.getInt64Ty(), sizes, builder.CreateTrunc(index, _env.i32Type())));
             } else {
                 throw std::runtime_error("unsupported iterables type: " + iterablesType.desc());

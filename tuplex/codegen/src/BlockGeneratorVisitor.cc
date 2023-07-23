@@ -3054,7 +3054,9 @@ namespace tuplex {
 
                 addInstruction(nullptr, nullptr);
             } else {
-                auto llvmType = _env->pythonToLLVMType(list->getInferredType());
+                auto list_type = list->getInferredType();
+                assert(list_type.isListType() || (list_type.isOptionType() && list_type.getReturnType().isListType()));
+                auto llvmType = _env->pythonToLLVMType(list_type);
 
                 // visit children, this should push as many nodes to the stack as this list has elements
                 ApatheticVisitor::visit(list);
@@ -3163,8 +3165,10 @@ namespace tuplex {
                     }
                 }
 
-                // use the list pointer, and pass NULL as list size.
-                addInstruction(listAlloc, nullptr);
+                _env->printValue(builder, listAlloc, "returning list with " + std::to_string(list->_elements.size()) + " elements");
+
+                // use the list pointer.
+                addInstruction(listAlloc, listSize); // <-- need to set list size here for serialization. Change that later.
 
                 // old:
                 // addInstruction(builder.CreateLoad(llvmType, listAlloc), listSize);

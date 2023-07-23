@@ -1173,6 +1173,13 @@ namespace tuplex {
 
         extern bool validateModule(const llvm::Module& mod);
 
+        /*!
+         * transform module by adding print statements to trace what is getting executed.
+         * @param mod the Module
+         * @param print_values whether to print values as well (or not)
+         */
+        extern void annotateModuleWithInstructionPrint(llvm::Module& mod, bool print_values=false);
+
     }
 }
 

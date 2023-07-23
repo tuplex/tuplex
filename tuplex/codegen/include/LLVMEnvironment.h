@@ -52,6 +52,7 @@
 #include <cfloat>
 
 #include "InstructionCountPass.h"
+#include "TupleTree.h"
 
 // hashing for vector<llvm::Type*>
 namespace std {
@@ -305,20 +306,27 @@ namespace tuplex {
              * creates (or returns already created) LLVM type for a tuple type
              * @param tupleType must be a tuple type
              * @param twine optional name for the type
-             * @return pointer to LLVM Type struct, nullptr if errors occured.
+             * @return pointer to LLVM Type struct, nullptr if errors occurred.
              */
             inline llvm::Type *getOrCreateTupleType(const python::Type &tupleType,
                                                     const std::string &twine = "tuple") {
                 assert(tupleType.isTupleType());
 
+                // flatten tuple type (no 1:1 mapping to LLVM types here!)
+                auto flattened_type = flattenedType(tupleType);
+
+                // special case empty tuple, map to empty tuple!
+                if(python::Type::EMPTYTUPLE == tupleType)
+                    flattened_type = python::Type::EMPTYTUPLE;
+
                 // check if already generated
-                auto it = _generatedTupleTypes.find(tupleType);
+                auto it = _generatedTupleTypes.find(flattened_type);
                 if (_generatedTupleTypes.end() != it)
                     return it->second;
                 else {
-                    llvm::Type *t = createTupleStructType(tupleType, twine);
+                    llvm::Type *t = createTupleStructType(flattened_type, twine);
                     std::string name = t->getStructName().str();
-                    _generatedTupleTypes[tupleType] = t;
+                    _generatedTupleTypes[flattened_type] = t;
                     return t;
                 }
             }

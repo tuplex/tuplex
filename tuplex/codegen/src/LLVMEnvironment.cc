@@ -292,15 +292,25 @@ namespace tuplex {
                     memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
                     numVarlenFields++;
                 } else if (python::Type::PYOBJECT == t) {
-                    memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
+
+                    // unknown, so pass-by reference
+                    auto llvm_pyobject_type = llvm::Type::getInt8PtrTy(ctx, 0);
+
+                    memberTypes.push_back(llvm_pyobject_type->getPointerTo());
                     numVarlenFields++;
                 } else if ((python::Type::GENERICDICT == t || t.isDictionaryType()) && t != python::Type::EMPTYDICT) { // dictionary
-                    memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
+
+                    // pass-by reference, so store pointer (@TODO)
+                    auto llvm_dict_type = llvm::Type::getInt8PtrTy(ctx, 0);
+                    memberTypes.push_back(llvm_dict_type);
                     numVarlenFields++;
                 } else if (t.isSingleValued()) {
                     // leave out. Not necessary to represent it in memory.
                 } else if(t.isListType()) {
-                    memberTypes.push_back(createOrGetListType(t));
+
+                    // pass-by reference, so store pointer. (@TODO)
+                    auto llvm_list_type = createOrGetListType(t);
+                    memberTypes.push_back(llvm_list_type);
                     if(!t.elementType().isSingleValued()) numVarlenFields++;
                 } else {
                     // nested tuple?
@@ -785,6 +795,7 @@ namespace tuplex {
             // auto structValIdx = builder.CreateStructGEP(tuplePtr, valueOffset);
             auto structValIdx = builder.CreateStructGEP(tuplePtr, llvm_tuple_type, valueOffset);
             //CreateStructGEP(builder, tuplePtr, valueOffset);
+
             value = builder.CreateLoad(llvm_element_without_option_type, structValIdx);
 
             // size existing? ==> only for varlen types
@@ -856,8 +867,16 @@ namespace tuplex {
             // auto structValIdx = builder.CreateStructGEP(tuplePtr, valueOffset);
             auto structValIdx = builder.CreateStructGEP(tuplePtr, llvm_tuple_type, valueOffset);
 //            auto structValIdx = CreateStructGEP(builder, tuplePtr, valueOffset);
-            if (value.val)
-                builder.CreateStore(value.val, structValIdx);
+            if (value.val) {
+                // special case: dict/list may be passed as pointer, load here accordingly
+                auto llvm_val_to_store = value.val;
+                auto llvm_element_type = pythonToLLVMType(elementType);
+                if(llvm_val_to_store->getType()->isPointerTy() && (elementType.isListType())) // exclude dict, because dict is right now represented as i8*
+                    llvm_val_to_store = builder.CreateLoad(llvm_element_type, llvm_val_to_store);
+
+                builder.CreateStore(llvm_val_to_store, structValIdx);
+            }
+
 
             // size existing? ==> only for varlen types
             if (!elementType.isFixedSizeType()) {
@@ -1222,12 +1241,12 @@ namespace tuplex {
                 casted_val = builder.CreateSelect(val, builder.CreateGlobalStringPtr("true"),
                                                   builder.CreateGlobalStringPtr("false"));
             } else if (val->getType() == Type::getInt8Ty(_context)) {
-                sconst = builder.CreateGlobalStringPtr(msg + " [i8] : %d\n");
+                sconst = builder.CreateGlobalStringPtr(msg + " [i8] : %" PRId64 "\n");
                 casted_val = builder.CreateSExt(val, i64Type()); // also extent to i64 (avoid weird printing errors).
             } else if (val->getType() == Type::getInt32Ty(_context)) {
-                sconst = builder.CreateGlobalStringPtr(msg + " [i32] : %d\n");
+                sconst = builder.CreateGlobalStringPtr(msg + " [i32] : %" PRId32 "\n");
             } else if (val->getType() == Type::getInt64Ty(_context)) {
-                sconst = builder.CreateGlobalStringPtr(msg + " [i64] : %lu\n");
+                sconst = builder.CreateGlobalStringPtr(msg + " [i64] : %" PRId64 "\n");
             } else if (val->getType() == Type::getDoubleTy(_context)) {
                 sconst = builder.CreateGlobalStringPtr(msg + " [f64] : %.12f\n");
             } else if (val->getType() == Type::getInt8PtrTy(_context, 0)) {

@@ -722,5 +722,121 @@ namespace tuplex {
             // assert(bc_str.length() == bc_size);
             // return bc_str;
         }
+
+        void annotateModuleWithInstructionPrint(llvm::Module& mod, bool print_values) {
+
+            auto printf_func = codegen::printf_prototype(mod.getContext(), &mod);
+
+            // lookup table for names (before modifying module!)
+            std::unordered_map<llvm::Instruction*, std::string> names;
+            for(auto& func : mod) {
+                for(auto& bb : func) {
+
+                    for(auto& inst : bb) {
+                        std::string inst_name;
+                        llvm::raw_string_ostream os(inst_name);
+                        inst.print(os);
+                        os.flush();
+
+                        // save instruction name in map
+                        auto inst_ptr = &inst;
+                        names[inst_ptr] = inst_name;
+
+                    }
+                }
+            }
+
+
+            // go over all functions in mod
+            for(auto& func : mod) {
+                // std::cout<<"Annotating "<<func.getName().str()<<std::endl;
+
+                // go over blocks
+                size_t num_blocks = 0;
+                size_t num_instructions = 0;
+                for(auto& bb : func) {
+
+                    auto printed_enter = false;
+
+                    for(auto& inst : bb) {
+                        // only call printf IFF not a branching instruction and not a ret instruction
+                        auto inst_ptr = &inst;
+
+                        // inst not found in names? -> skip!
+                        if(names.end() == names.find(inst_ptr))
+                            continue;
+
+                        auto inst_name = names.at(inst_ptr);
+                        if(!llvm::isa<llvm::BranchInst>(inst_ptr) && !llvm::isa<llvm::ReturnInst>(inst_ptr) && !llvm::isa<llvm::PHINode>(inst_ptr)) {
+                            llvm::IRBuilder<> builder(inst_ptr);
+                            llvm::Value *sConst = builder.CreateGlobalStringPtr(inst_name);
+
+                            // print enter instruction
+                            if(!printed_enter) {
+                                llvm::Value* str = builder.CreateGlobalStringPtr("enter basic block " + bb.getName().str() + " ::\n");
+                                builder.CreateCall(printf_func, {str});
+                                printed_enter = true;
+                            }
+
+                            // value trace format
+                            // bb= : %19 = load i64, i64* %exceptionCode : %19 = 42
+
+                            if(print_values) {
+
+                                llvm::Value* value_to_print = nullptr;
+                                std::string format = "bb=" + bb.getName().str() + " : " + inst_name;
+
+                                if(!inst_ptr->getNextNode()) {
+                                    // nothing to do, else print value as well.
+                                } else {
+                                    builder.SetInsertPoint(inst_ptr->getNextNode());
+
+                                    auto inst_number = splitToArray(inst_name, '=').front();
+                                    trim(inst_number);
+
+                                    if(inst_ptr->hasValueHandle()) {
+                                        // check what type of value it is and adjust printing accordingly
+                                        if(inst.getType() == builder.getInt8Ty()) {
+                                            static_assert(sizeof(int32_t) == 4);
+                                            value_to_print = builder.CreateZExtOrTrunc(inst_ptr, builder.getInt32Ty());
+                                            format += " : [i8] " + inst_number + " = %d";
+                                        } else if(inst.getType() == builder.getInt16Ty()) {
+                                            static_assert(sizeof(int32_t) == 4);
+                                            value_to_print = builder.CreateZExtOrTrunc(inst_ptr, builder.getInt32Ty());
+                                            format += " : [i16] " + inst_number + " = %d";
+                                        } else if(inst.getType() == builder.getInt32Ty()) {
+                                            value_to_print = inst_ptr;
+                                            format += " : [i32] " + inst_number + " = %d";
+                                        } else if(inst.getType() == builder.getInt64Ty()) {
+                                            value_to_print = inst_ptr;
+                                            format += " : [i64] " + inst_number + " = %" PRId64;
+                                        } else if(inst.getType()->isPointerTy()) {
+                                            value_to_print = inst_ptr;
+                                            format += " : [ptr] " + inst_number + " = %p";
+                                        }
+                                    }
+                                }
+
+                                // call func
+                                llvm::Value *sFormat = builder.CreateGlobalStringPtr(format + "\n");
+                                std::vector<llvm::Value*> llvm_args{sFormat};
+                                if(value_to_print)
+                                    llvm_args.push_back(value_to_print);
+                                builder.CreateCall(printf_func, llvm_args);
+                            } else {
+                                // Trace format:
+                                llvm::Value *sFormat = builder.CreateGlobalStringPtr("  %s\n");
+                                builder.CreateCall(printf_func, {sFormat, sConst});
+                            }
+
+                            num_instructions++;
+                        }
+                    }
+
+                    num_blocks++;
+                }
+                // std::cout<<"Annotated "<<pluralize(num_blocks, "basic block")<<", "<<pluralize(num_instructions, "instruction")<<std::endl;
+            }
+        }
     }
 }

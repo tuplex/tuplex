@@ -261,6 +261,26 @@ TEST_F(IteratorTest, CodegenTestTupleIteratorII) {
     EXPECT_EQ(v[0], Row("a", "b", "c", "d", "x", "x"));
 }
 
+TEST_F(IteratorTest, CodegenTestTupleIteratorIIISingleDefault) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    a = iter(x)\n"
+                "    b1 = next(a)\n"
+                "    b2 = next(a, [5, 6])\n"
+                "    return (b1, b2)";
+
+    auto v = c.parallelize({
+                                   Row(Tuple(List(1, 2)))
+                           }).map(UDF(func)).collectAsVector();
+
+    auto expected_row = Row(List(1, 2), List(5, 6));
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0].toPythonString(), expected_row.toPythonString());
+    EXPECT_EQ(v[0], expected_row);
+}
+
 TEST_F(IteratorTest, CodegenTestTupleIteratorIII) {
     using namespace tuplex;
     Context c(microTestOptions());
@@ -277,8 +297,10 @@ TEST_F(IteratorTest, CodegenTestTupleIteratorIII) {
         Row(List(1, 2), List(3, 4))
     }).map(UDF(func)).collectAsVector();
 
+    auto expected_row = Row(List(1, 2), List(3, 4), List(5, 6), List(7, 8));
     EXPECT_EQ(v.size(), 1);
-    EXPECT_EQ(v[0], Row(List(1, 2), List(3, 4), List(5, 6), List(7, 8)));
+    EXPECT_EQ(v[0].toPythonString(), expected_row.toPythonString());
+    EXPECT_EQ(v[0], expected_row);
 }
 
 TEST_F(IteratorTest, CodegenTestListReverseIterator) {

@@ -3541,7 +3541,13 @@ namespace tuplex {
                     builder.SetInsertPoint(retBlock);
                     _lfb->setLastBlock(retBlock);
                 }
-                addInstruction(builder.CreateLoad(listLLVMType, listAlloc), builder.CreateLoad(builder.getInt64Ty(), listSize));
+
+                // new: list pointer + size
+                addInstruction(listAlloc, builder.CreateLoad(builder.getInt64Ty(), listSize));
+
+                // // old: load list pointer
+                // addInstruction(builder.CreateLoad(listLLVMType, listAlloc),
+                //               builder.CreateLoad(builder.getInt64Ty(), listSize));
             } else {
                 throw std::runtime_error("Unsupported iterable in list comprehension codegen: " + iterType.desc());
             }

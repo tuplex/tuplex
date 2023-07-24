@@ -228,6 +228,12 @@ namespace tuplex {
             virtual std::string name() const = 0;
         protected:
             LLVMEnvironment& _env;
+
+            virtual SerializableValue currentElement(const IRBuilder& builder,
+                                                     const python::Type& iterableType,
+                                                     const python::Type& yieldType,
+                                                     llvm::Value* iterator,
+                                                     const std::shared_ptr<IteratorInfo>& iteratorInfo);
         };
 
         // code generation for iter(...)
@@ -255,6 +261,32 @@ namespace tuplex {
 
             std::string name() const override;
 
+        };
+
+
+        class ReversedIterator : public IIterator {
+        public:
+            ReversedIterator(LLVMEnvironment& env) : IIterator(env) {}
+
+            SerializableValue initContext(LambdaFunctionBuilder &lfb,
+                                          const codegen::IRBuilder &builder,
+                                          const SerializableValue& iterable,
+                                          const python::Type &iterableType,
+                                          const std::shared_ptr<IteratorInfo> &iteratorInfo) override;
+
+            virtual llvm::Value* updateIndex(const codegen::IRBuilder& builder,
+                                             llvm::Value *iterator,
+                                             const python::Type& iterableType,
+                                             const std::shared_ptr<IteratorInfo> &iteratorInfo) override;
+
+            virtual SerializableValue nextElement(const codegen::IRBuilder& builder,
+                                                  const python::Type &yieldType,
+                                                  llvm::Value *iterator,
+                                                  const python::Type& iterableType,
+                                                  const std::shared_ptr<IteratorInfo> &iteratorInfo) override;
+
+
+            std::string name() const override;
         };
     }
 }

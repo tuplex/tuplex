@@ -1080,14 +1080,14 @@ namespace tuplex {
             isBuilder.CreateRet(env->callGlobalsInit(isBuilder));
             rsBuilder.CreateRet(env->callGlobalsRelease(rsBuilder));
 
-             // print module for debug/dev purposes
-             auto code = codegen::moduleToString(*env->getModule());
-             std::cout<<core::withLineNumbers(code)<<std::endl;
-             LLVMContext test_ctx;
-             auto test_mod = codegen::stringToModule(test_ctx, code);
-
-             // annotate module for debugging
-            annotateModuleWithInstructionPrint(*env->getModule(), false);
+            //  // print module for debug/dev purposes
+            //  auto code = codegen::moduleToString(*env->getModule());
+            //  std::cout<<core::withLineNumbers(code)<<std::endl;
+            //  LLVMContext test_ctx;
+            //  auto test_mod = codegen::stringToModule(test_ctx, code);
+            //
+            //  // annotate module for debugging
+            // annotateModuleWithInstructionPrint(*env->getModule(), false);
 
             // save into variables (allows to serialize stage etc.)
             // IR is generated. Save into stage.

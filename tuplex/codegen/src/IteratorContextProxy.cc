@@ -92,11 +92,13 @@ namespace tuplex {
                 throw std::runtime_error("cannot reverse" + argType.desc());
             }
 
+            // @TODO: what about string? -> should perform better iterator testing.
+
             llvm::Type *iteratorContextType = _env->createOrGetReversedIteratorType(argType);
             auto initBBAddr = _env->createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(builder, argType,true);
             auto iteratorContextStruct = _env->CreateFirstBlockAlloca(builder, iteratorContextType, "reversed_iterator_alloc");
             llvm::Value *seqStruct = nullptr;
-            if(argType.isListType() || argType.isTupleType()) {
+            if(argType.isTupleType()) {
                 // TODO: need to change this when codegen for lists gets updated
                 seqStruct = _env->CreateFirstBlockAlloca(builder, arg.val->getType(), "reversed_arg_alloc");
             } else if(argType == python::Type::RANGE) {
@@ -113,7 +115,21 @@ namespace tuplex {
             auto indexPtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env->i32Const(0), _env->i32Const(1)});
             // initialize index to object length for list, tuple or string object
             if(argType.isListType()) {
-                builder.CreateStore(builder.CreateTrunc(builder.CreateExtractValue(arg.val, {1}), _env->i32Type()), indexPtr);
+
+                // what type is it? pointer or struct?
+#ifndef NDEBUG
+                if(!arg.val->getType()->isPointerTy()) {
+                    // old
+                    // builder.CreateStore(builder.CreateTrunc(builder.CreateExtractValue(arg.val, {1}), _env->i32Type()), indexPtr);
+                    throw std::runtime_error("make sure to pass in list as ptr");
+                }
+#endif
+                // new:
+                auto llvm_list_type = _env->createOrGetListType(argType);
+                auto list_len = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(arg.val, llvm_list_type, 1));
+                auto index_val = builder.CreateZExtOrTrunc(list_len, _env->i32Type());
+                builder.CreateStore(index_val, indexPtr);
+
             } else if(argType.isTupleType()) {
                 builder.CreateStore(_env->i32Const(argType.parameters().size()), indexPtr);
             } else if(argType == python::Type::STRING) {
@@ -147,7 +163,7 @@ namespace tuplex {
 
             // store pointer to iterable struct
             auto seqPtr = builder.CreateGEP(iteratorContextType, iteratorContextStruct, {_env->i32Const(0), _env->i32Const(2)});
-            if(argType.isListType() || argType.isTupleType()) {
+            if(argType.isTupleType()) {
                 // copy original struct
                 builder.CreateStore(arg.val, seqStruct);
             }
@@ -244,6 +260,9 @@ namespace tuplex {
             BasicBlock *endBB = BasicBlock::Create(_env->getContext(), "endBB", currBB->getParent());
 
             auto exhausted = updateIteratorIndex(builder, iterator, iteratorInfo);
+
+            _env->printValue(builder, exhausted, "iterator exhausted: ");
+
             // if a default value is provided, use phi nodes to choose from value based on index (iterator not exhausted) or default value (iterator exhausted)
             // else check for exception and return value based on index if iterator not exhausted
             if(defaultArg.val) {
@@ -286,7 +305,8 @@ namespace tuplex {
                 retSize->addIncoming(retSizeNotExhausted, notExhaustedBB);
                 retVal->addIncoming(default_yield_value, defaultArgBB);
                 retSize->addIncoming(default_yield_size, defaultArgBB);
-                _env->debugPrint(builder, "has default value");
+                _env->printValue(builder, retVal, "has default value: ");
+                _env->printValue(builder, retSize, "default value size: ");
                 return SerializableValue(retVal, retSize);
             } else {
                 return SerializableValue(retValNotExhausted, retSizeNotExhausted);
@@ -303,6 +323,12 @@ namespace tuplex {
             // new:
             if(iteratorInfo->iteratorName == "iter") {
                 SequenceIterator it(*_env);
+                auto iterablesType = iteratorInfo->argsType;
+                return it.updateIndex(builder, iterator, iterablesType, iteratorInfo);
+            }
+
+            if(iteratorInfo->iteratorName == "reversed") {
+                ReversedIterator it(*_env);
                 auto iterablesType = iteratorInfo->argsType;
                 return it.updateIndex(builder, iterator, iterablesType, iteratorInfo);
             }
@@ -373,9 +399,17 @@ namespace tuplex {
                                                                    llvm::Value *iterator,
                                                                    const std::shared_ptr<IteratorInfo> &iteratorInfo) {
 
+            // new
+
             // use same dispatch here as in update index to the new class structure
             if(iteratorInfo->iteratorName == "iter") {
                 SequenceIterator it(*_env);
+                auto iterablesType = iteratorInfo->argsType;
+                return it.nextElement(builder, yieldType, iterator, iterablesType, iteratorInfo);
+            }
+
+            if(iteratorInfo->iteratorName == "reversed") {
+                ReversedIterator it(*_env);
                 auto iterablesType = iteratorInfo->argsType;
                 return it.nextElement(builder, yieldType, iterator, iterablesType, iteratorInfo);
             }
@@ -676,6 +710,11 @@ namespace tuplex {
                 return iteratorContextType;
             }
 
+            if(iteratorInfo.iteratorName == "reversed") {
+                auto iterableType = iteratorInfo.argsType;
+                return env.createOrGetReversedIteratorType(iterableType);
+            }
+
             throw std::runtime_error("invalid iterator info for iterator " + iteratorInfo.iteratorName + " given, can't deduce llvm type.");
         }
 
@@ -775,38 +814,20 @@ namespace tuplex {
         }
 
         SerializableValue
-        SequenceIterator::nextElement(const codegen::IRBuilder &builder,
-                                      const python::Type &yieldType,
-                                      llvm::Value *iterator,
-                                      const python::Type& iterableType,
-                                      const std::shared_ptr<IteratorInfo> &iteratorInfo) {
-            // fetch element from current context state
-
+        IIterator::currentElement(const tuplex::codegen::IRBuilder &builder, const python::Type &iterableType,
+                                  const python::Type& yieldType,
+                                  llvm::Value* iterator, const std::shared_ptr<IteratorInfo>& iteratorInfo) {
             using namespace llvm;
 
-            auto llvm_iterator_context_type = _env.createOrGetIterIteratorType(iterableType); //createIteratorContextTypeFromIteratorInfo(_env, *iteratorInfo.get());
-            std::string funcName;
-            auto iteratorName = iteratorInfo->iteratorName;
+            auto llvm_iterator_context_type = createIteratorContextTypeFromIteratorInfo(_env, *iteratorInfo.get()); //_env.createOrGetIterIteratorType(iterableType); //createIteratorContextTypeFromIteratorInfo(_env, *iteratorInfo.get());
 
             auto iterablesType = iteratorInfo->argsType;
-            auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
-
-            if(iterablesType.isIteratorType()) {
-                // iter() call on an iterator, ignore the outer iter and call again
-                assert(argsIteratorInfo.front());
-
-                // dispatch here again
-                return {};
-                //return getIteratorNextElement(builder, yieldType, iterator, argsIteratorInfo.front());
-            }
 
             // get current element value and size of current value
             llvm::Value *retVal = nullptr, *retSize = nullptr;
             auto indexPtr = builder.CreateStructGEP(iterator, llvm_iterator_context_type, 1);
             auto llvm_index_type = iterableType == python::Type::RANGE ? _env.i64Type() : _env.i32Type();
             auto index = builder.CreateLoad(llvm_index_type, indexPtr); // <- index should be i32 or i64
-
-#warning :f
             auto iterableAllocPtr = builder.CreateGEP(llvm_iterator_context_type, iterator, {_env.i32Const(0), _env.i32Const(2)});
             auto iterableAlloc = builder.CreateLoad(llvm_iterator_context_type->getStructElementType(2), iterableAllocPtr);
             if(iterablesType.isListType()) {
@@ -892,7 +913,37 @@ namespace tuplex {
             } else {
                 throw std::runtime_error("unsupported iterables type: " + iterablesType.desc());
             }
+
+            // TODO: what about options?
             return SerializableValue(retVal, retSize);
+        }
+
+        SerializableValue
+        SequenceIterator::nextElement(const codegen::IRBuilder &builder,
+                                      const python::Type &yieldType,
+                                      llvm::Value *iterator,
+                                      const python::Type& iterableType,
+                                      const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+            // fetch element from current context state
+
+            using namespace llvm;
+
+
+            std::string funcName;
+            auto iteratorName = iteratorInfo->iteratorName;
+            auto iterablesType = iteratorInfo->argsType;
+            auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
+
+            if(iterablesType.isIteratorType()) {
+                // iter() call on an iterator, ignore the outer iter and call again
+                assert(argsIteratorInfo.front());
+
+                // dispatch here again
+                return {};
+                //return getIteratorNextElement(builder, yieldType, iterator, argsIteratorInfo.front());
+            }
+
+            return currentElement(builder, iterablesType, yieldType, iterator, iteratorInfo);
         }
 
         llvm::Value *SequenceIterator::updateIndex(const codegen::IRBuilder &builder,
@@ -950,6 +1001,82 @@ namespace tuplex {
         }
 
         std::string SequenceIterator::name() const {
+            return "";
+        }
+
+        SerializableValue
+        ReversedIterator::initContext(tuplex::codegen::LambdaFunctionBuilder &lfb, const codegen::IRBuilder &builder,
+                                      const tuplex::codegen::SerializableValue &iterable,
+                                      const python::Type &iterableType,
+                                      const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+            return {};
+        }
+
+        SerializableValue
+        ReversedIterator::nextElement(const codegen::IRBuilder &builder, const python::Type &yieldType,
+                                      llvm::Value *iterator, const python::Type &iterableType,
+                                      const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+
+            llvm::Type *iteratorContextType = iterator->getType()->getPointerElementType();
+            std::string funcName;
+            auto iteratorName = iteratorInfo->iteratorName;
+            auto iterablesType = iteratorInfo->argsType;
+            auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
+
+            assert(iteratorName == "reversed");
+
+            // simply fetch element at index
+            return currentElement(builder, iterableType, yieldType, iterator, iteratorInfo);
+        }
+
+        llvm::Value *ReversedIterator::updateIndex(const codegen::IRBuilder &builder, llvm::Value *iterator,
+                                                   const python::Type &iterableType,
+                                                   const std::shared_ptr<IteratorInfo> &iteratorInfo) {
+
+            using namespace llvm;
+            llvm::Type *iteratorContextType = iterator->getType()->getPointerElementType();
+            std::string funcName;
+            auto iteratorName = iteratorInfo->iteratorName;
+
+            auto iterablesType = iteratorInfo->argsType;
+            auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
+            std::string prefix;
+
+            if(iteratorName == "reversed") {
+                prefix = "reverse_";
+            }
+
+            auto iterable_name = _env.iterator_name_from_type(iterablesType);
+            if(iterable_name.empty()) {
+                throw std::runtime_error("Iterator struct " + _env.getLLVMTypeName(iteratorContextType)
+                                         + " does not have the corresponding LLVM UpdateIteratorIndex function");
+            } else if(iterablesType == python::Type::RANGE) {
+                // special case range -> it's one structure (for all!)
+                funcName = "range_iterator_update";
+            } else {
+                if(!strEndsWith(iterable_name, "_"))
+                    iterable_name += "_";
+                funcName = iterable_name + prefix + "iterator_update";
+            }
+
+            // function type: i1(*struct.iterator)
+            FunctionType *ft = llvm::FunctionType::get(llvm::Type::getInt1Ty(_env.getContext()),
+                                                       {llvm::PointerType::get(iteratorContextType, 0)}, false);
+
+            auto& logger = Logger::instance().logger("codegen");
+            logger.debug("iterator context type: " + _env.getLLVMTypeName(iteratorContextType));
+            logger.debug("ft type: " + _env.getLLVMTypeName(ft));
+            logger.debug("iterator type: " + _env.getLLVMTypeName(iterator->getType()));
+
+            // ok, update is something crazy fancy here: mod.getOrInsertFunction(name, FT).getCallee()->getType()->getPointerElementType()->isFunctionTy()
+
+            auto nextFunc_value = llvm::getOrInsertCallable(*_env.getModule(), funcName, ft);
+            llvm::FunctionCallee nextFunc_callee(ft, nextFunc_value);
+            auto exhausted = builder.CreateCall(nextFunc_callee, iterator);
+            return exhausted;
+        }
+
+        std::string ReversedIterator::name() const {
             return "";
         }
     }

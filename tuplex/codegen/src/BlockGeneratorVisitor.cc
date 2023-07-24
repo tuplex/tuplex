@@ -1713,6 +1713,18 @@ namespace tuplex {
                     param.val = builder.CreateLoad(llvm_tuple_type, param.val);
                 }
 
+                // lists can be modified, so declare via alloca -> allows for modification (closure!)
+                if(type != python::Type::EMPTYLIST && type.withoutOptions().isListType() && !param.val->getType()->isPointerTy()) {
+                    auto llvm_list_type = _env->createOrGetListType(type.withoutOptions());
+                    assert(llvm_list_type == param.val->getType());
+
+                    auto value = param.val;
+
+                    param.val = _env->CreateFirstBlockAlloca(builder, llvm_list_type);
+                    assert(param.val);
+                    builder.CreateStore(value, param.val); // <-- now a pointer!
+                }
+
                 // store param into var
                 slot.var.store(builder, param);
                 _variableSlots[name] = slot;

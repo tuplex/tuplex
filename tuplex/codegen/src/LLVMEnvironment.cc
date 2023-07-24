@@ -505,7 +505,9 @@ namespace tuplex {
             memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
             memberTypes.push_back(llvm::Type::getInt32Ty(_context));
             if(argType.isListType()) {
-                memberTypes.push_back(llvm::PointerType::get(createOrGetListType(argType), 0));
+                auto llvm_list_type = createOrGetListType(argType);
+                auto ref_type = llvm_list_type->getPointerTo();
+                memberTypes.push_back(ref_type); // list*
             } else if(argType == python::Type::STRING) {
                 memberTypes.push_back(llvm::Type::getInt8PtrTy(_context, 0));
             } else if(argType.isTupleType()) {
@@ -2197,8 +2199,8 @@ namespace tuplex {
                     iterableLength = builder.CreateLoad(builder.getInt64Ty(), iterableLengthPtr);
                 }
             }
-            // retrieve current index
-            auto currIndex = builder.CreateZExtOrTrunc(builder.CreateLoad(llvm_index_type, indexPtr), builder.getInt64Ty());
+            // retrieve current index, convert to i64. Important to use signed extend here (not ZExt!)
+            auto currIndex = builder.CreateSExt(builder.CreateLoad(llvm_index_type, indexPtr), builder.getInt64Ty());
             llvm::Value *loopContinue;
             if(iterableType == python::Type::RANGE) {
                 auto rangePtrPtr = builder.CreateGEP(iteratorContextType, func->arg_begin(),
@@ -2221,6 +2223,11 @@ namespace tuplex {
                     loopContinue = builder.CreateICmpSLT(currIndex, iterableLength);
                 }
             }
+
+            // debug:
+            printValue(builder, loopContinue, "continue iterator: ");
+            printValue(builder, currIndex, "current index: ");
+
             builder.CreateCondBr(loopContinue, loopBB, loopExitBB);
 
             // current index inside iterable index range, set block address in iterator struct to updateIndexBB and return false

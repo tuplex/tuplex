@@ -322,7 +322,7 @@ TEST_F(IteratorTest, CodegenTestListReverseIterator) {
     }).map(UDF(func)).collectAsVector();
 
     EXPECT_EQ(v.size(), 1);
-    EXPECT_EQ(v[0], Row(4, 3, 2, 1, 0, -1));
+    EXPECT_EQ(v[0].toPythonString(), Row(4, 3, 2, 1, 0, -1).toPythonString());
 }
 
 TEST_F(IteratorTest, CodegenTestTupleReverseIterator) {

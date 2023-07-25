@@ -212,7 +212,14 @@ namespace tuplex {
                                                   const codegen::IRBuilder &builder,
                                                   const SerializableValue& iterable,
                                                   const python::Type &iterableType,
-                                                  const std::shared_ptr<IteratorInfo> &iteratorInfo) = 0;
+                                                  const std::shared_ptr<IteratorInfo> &iteratorInfo);
+
+            // some iterators (e.g., zip) may have multiple arguments. Hence, allow for that as well using default single-arg function
+            virtual SerializableValue initContext(LambdaFunctionBuilder &lfb,
+                                                  const codegen::IRBuilder &builder,
+                                                  const std::vector<SerializableValue>& iterables,
+                                                  const python::Type &iterableType,
+                                                  const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             virtual llvm::Value* updateIndex(const codegen::IRBuilder& builder,
                                      llvm::Value *iterator,
@@ -271,6 +278,31 @@ namespace tuplex {
             SerializableValue initContext(LambdaFunctionBuilder &lfb,
                                           const codegen::IRBuilder &builder,
                                           const SerializableValue& iterable,
+                                          const python::Type &iterableType,
+                                          const std::shared_ptr<IteratorInfo> &iteratorInfo) override;
+
+            virtual llvm::Value* updateIndex(const codegen::IRBuilder& builder,
+                                             llvm::Value *iterator,
+                                             const python::Type& iterableType,
+                                             const std::shared_ptr<IteratorInfo> &iteratorInfo) override;
+
+            virtual SerializableValue nextElement(const codegen::IRBuilder& builder,
+                                                  const python::Type &yieldType,
+                                                  llvm::Value *iterator,
+                                                  const python::Type& iterableType,
+                                                  const std::shared_ptr<IteratorInfo> &iteratorInfo) override;
+
+
+            std::string name() const override;
+        };
+
+        class ZipIterator : public IIterator {
+        public:
+            explicit ZipIterator(LLVMEnvironment& env) : IIterator(env) {}
+
+            SerializableValue initContext(LambdaFunctionBuilder &lfb,
+                                          const codegen::IRBuilder &builder,
+                                          const std::vector<SerializableValue>& iterables,
                                           const python::Type &iterableType,
                                           const std::shared_ptr<IteratorInfo> &iteratorInfo) override;
 

@@ -116,6 +116,12 @@ namespace codegen {
 
                 assert(type != python::Type::UNKNOWN && llvm_type);
 
+                // special case empty types, use dummy
+                if(type.isSingleValued()) {
+                    if(python::Type::EMPTYITERATOR == type) // <-- for now only support iterator, check for empty list & Co.
+                        return {}; // <-- nullptr
+                }
+
                 // special case iterator: Load here a pointer (because it points to a concrete iter and not a value, i.e. implement here pass-by-ref sermantics.)
                 // TODO: need to do the same for lists and other objects
                 // only load immutable elements directly -> TODO: extend this here! -> maybe refactor better to capture object properties?

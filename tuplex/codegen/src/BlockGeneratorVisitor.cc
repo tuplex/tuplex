@@ -6027,7 +6027,14 @@ namespace tuplex {
             // check type compatibility
             assert(val.val->getType() == newPtrType); // <-- must hold!
 
-            slot->var.store(builder, val);
+            // special case empty iterator, simply store dummy var
+            if(targetType == python::Type::EMPTYITERATOR) {
+               // builder.CreateStore(_env->i64Const(0), slot->var.ptr);
+            } else {
+                slot->var.store(builder, val);
+            }
+
+
 
             // set correct types (llvm type etc.)
             slot->var.llvm_type = llvm_type; // <-- this is the raw type, yet store correct type as pointer (b.c. needs to point to a concrete iter struct).

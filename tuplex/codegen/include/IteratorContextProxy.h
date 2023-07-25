@@ -270,6 +270,18 @@ namespace tuplex {
 
         };
 
+        class EnumerateIterator : public SequenceIterator {
+        public:
+            EnumerateIterator(LLVMEnvironment& env) : SequenceIterator(env) {}
+
+            // same init as sequence iterator, only difference is in retrieving the next element (tuple)
+            SerializableValue initContext(tuplex::codegen::LambdaFunctionBuilder &lfb, const codegen::IRBuilder &builder, const std::vector<SerializableValue> &iterables, const python::Type &iterableType, const std::shared_ptr<IteratorInfo> &iteratorInfo) override;
+
+            llvm::Value* updateIndex(const codegen::IRBuilder &builder, llvm::Value *iterator, const python::Type &iterableType, const std::shared_ptr<IteratorInfo> &iteratorInfo) override;
+
+            SerializableValue nextElement(const codegen::IRBuilder &builder, const python::Type &yieldType, llvm::Value *iterator, const python::Type &iterableType, const std::shared_ptr<IteratorInfo> &iteratorInfo) override;
+        };
+
 
         class ReversedIterator : public IIterator {
         public:

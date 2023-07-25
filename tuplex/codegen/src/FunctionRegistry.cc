@@ -2133,18 +2133,12 @@ namespace tuplex {
             python::Type argType = argsType.parameters().front();
             IteratorContextProxy ils(&_env);
 
-            assert(argsType == iteratorInfo->argsType); // this must hold
+            assert(argsType.isTupleType());
+            assert(argsType == python::Type::propagateToTupleType(iteratorInfo->argsType)); // this must hold
 
-            if(argsType.parameters().size() == 1) {
-                return ils.initEnumerateContext(lfb, builder, args[0], _env.i64Const(0), iteratorInfo);
-            }
-
-            if(argsType.parameters().size() == 2) {
-                return ils.initEnumerateContext(lfb, builder, args[0], args[1].val, iteratorInfo);
-            }
-
-            Logger::instance().defaultLogger().error("enumerate() takes 1 or 2 arguments");
-            return SerializableValue(nullptr, nullptr);
+            // use Enumerate Context
+            EnumerateIterator it(_env);
+            return it.initContext(lfb, builder, args, argsType, iteratorInfo);
         }
 
         SerializableValue FunctionRegistry::createNextCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder &builder,

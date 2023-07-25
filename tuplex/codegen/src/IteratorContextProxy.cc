@@ -350,6 +350,80 @@ namespace tuplex {
             throw std::runtime_error("unimplemented iterator " + iteratorInfo->iteratorName + " requested for next");
         }
 
+        // free function for global dispatch
+        void increment_iterator_index(LLVMEnvironment& env, const codegen::IRBuilder& builder,
+                               llvm::Value *iterator,
+                               const std::shared_ptr<IteratorInfo> &iteratorInfo,
+                               int32_t offset) {
+            using namespace llvm;
+
+            auto iteratorName = iteratorInfo->iteratorName;
+            auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
+
+            // general iterator type
+            auto llvm_iterator_type = createIteratorContextTypeFromIteratorInfo(env, *iteratorInfo);
+
+            if(iteratorName == "zip") {
+                for (int i = 0; i < argsIteratorInfo.size(); ++i) {
+                    auto currIteratorPtr = builder.CreateStructGEP(iterator, llvm_iterator_type, i);
+
+                    // get iterator type
+                    auto llvm_inner_iterator_type = createIteratorContextTypeFromIteratorInfo(env, *argsIteratorInfo[i]);
+
+                    auto currIterator = builder.CreateLoad(llvm_inner_iterator_type->getPointerTo(), currIteratorPtr);
+                    increment_iterator_index(env, builder, currIterator, argsIteratorInfo[i], offset);
+                }
+                return;
+            }
+
+            if(iteratorName == "enumerate") {
+                // get iterator type
+                auto llvm_inner_iterator_type = createIteratorContextTypeFromIteratorInfo(env, *argsIteratorInfo.front());
+
+                auto currIteratorPtr = builder.CreateStructGEP(iterator, llvm_iterator_type, 1);
+                auto currIterator = builder.CreateLoad(llvm_inner_iterator_type->getPointerTo(0), currIteratorPtr);
+                increment_iterator_index(env, builder, currIterator, argsIteratorInfo.front(), offset);
+                return;
+            }
+
+            auto iterablesType = iteratorInfo->argsType;
+            if(iteratorName == "iter") {
+                if(iterablesType.isIteratorType()) {
+                    // iter() call on an iterator, ignore the outer iter and call again
+                    assert(argsIteratorInfo.front());
+                    increment_iterator_index(env, builder, iterator, argsIteratorInfo.front(), offset);
+                    return;
+                }
+            } else if(iteratorName == "reversed") {
+                // for reverseiterator, need to decrement index by offset
+                offset = -offset;
+            } else {
+                throw std::runtime_error("unsupported iterator" + iteratorName);
+            }
+
+            // change index field
+            auto indexPtr = builder.CreateStructGEP(iterator, llvm_iterator_type, 1);
+            // is iterator always i32?
+            auto currIndex = builder.CreateLoad(builder.getInt32Ty(), indexPtr);
+            if(iterablesType == python::Type::RANGE) {
+
+//
+//                auto startPtr = builder.CreateGEP(_env.getRangeObjectType(), iterableStruct, {_env.i32Const(0), _env.i32Const(0)});
+//                auto start = builder.CreateLoad(_env.i64Type(), startPtr);
+//                auto stepPtr = builder.CreateGEP(env.getRangeObjectType(), iterator, {env.i32Const(0), env.i32Const(2)});
+//                auto step = builder.CreateLoad(env.i64Type(), stepPtr);
+//#error ""
+                // index will change by offset * step
+                auto rangePtr = builder.CreateGEP(env.getRangeObjectType(), iterator, {env.i32Const(0), env.i32Const(2)});
+                auto range = builder.CreateLoad(env.getRangeObjectType(), rangePtr);
+                auto stepPtr = builder.CreateGEP(env.getRangeObjectType(), range, {env.i32Const(0), env.i32Const(2)});
+                auto step = builder.CreateLoad(stepPtr);
+                builder.CreateStore(builder.CreateAdd(currIndex, builder.CreateMul(env.i64Const(offset), step)), indexPtr);
+            } else {
+                builder.CreateStore(builder.CreateAdd(currIndex, env.i32Const(offset)), indexPtr);
+            }
+        }
+
         llvm::Value *IteratorContextProxy::updateIteratorIndex(const codegen::IRBuilder& builder,
                                                                llvm::Value *iterator,
                                                                const std::shared_ptr<IteratorInfo> &iteratorInfo) {
@@ -736,6 +810,12 @@ namespace tuplex {
             if(iteratorInfo.iteratorName == "reversed") {
                 auto iterableType = iteratorInfo.argsType;
                 return env.createOrGetReversedIteratorType(iterableType);
+            }
+
+            if(iteratorInfo.iteratorName == "zip") {
+                auto iterablesType = iteratorInfo.argsType;
+                auto argsIteratorInfo = iteratorInfo.argsIteratorInfo;
+                return env.createOrGetZipIteratorType(iterablesType, argsIteratorInfo);
             }
 
             throw std::runtime_error("invalid iterator info for iterator " + iteratorInfo.iteratorName + " given, can't deduce llvm type.");
@@ -1143,7 +1223,8 @@ namespace tuplex {
 
             auto iterablesType = iteratorInfo->argsType;
             auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
-            llvm::Type *iteratorContextType = _env.createOrGetZipIteratorType(iterablesType, argsIteratorInfo);
+            auto iteratorContextType = createIteratorContextTypeFromIteratorInfo(_env, *iteratorInfo);
+
             if(iteratorContextType == _env.i64Type()) {
                 // empty iterator
                 return SerializableValue(_env.i64Const(0), _env.i64Const(8));
@@ -1254,7 +1335,34 @@ namespace tuplex {
         SerializableValue ZipIterator::nextElement(const codegen::IRBuilder &builder, const python::Type &yieldType,
                                                    llvm::Value *iterator, const python::Type &iterableType,
                                                    const std::shared_ptr<IteratorInfo> &iteratorInfo) {
-            return {};
+
+            using namespace llvm;
+            auto argsType = iteratorInfo->argsType;
+            auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
+
+            FlattenedTuple ft(&_env);
+            ft.init(yieldType);
+
+            auto llvm_iterator_type = createIteratorContextTypeFromIteratorInfo(_env, *iteratorInfo);
+
+            // previously UpdateIteratorIndexFunction was called on each arg iterator which increments index of each arg iterator by 1
+            // restore index for all arg iterators
+            increment_iterator_index(_env, builder, iterator, iteratorInfo, -1);
+            for (int i = 0; i < argsType.parameters().size(); ++i) {
+                auto currIteratorInfo = argsIteratorInfo[i];
+                auto llvm_curr_iterator_type = createIteratorContextTypeFromIteratorInfo(_env, *currIteratorInfo.get());
+                auto currIteratorPtr = builder.CreateStructGEP(iterator, llvm_iterator_type, i); //{_env.i32Const(0), _env.i32Const(i)});
+                auto currIterator = builder.CreateLoad(llvm_curr_iterator_type->getPointerTo(), currIteratorPtr);
+
+                // update current arg iterator index before fetching value
+                increment_iterator_index(_env, builder, currIterator, currIteratorInfo, 1);
+
+                auto currIteratorNextVal = next_from_iterator(_env, builder, yieldType.parameters()[i], currIterator, currIteratorInfo);
+                ft.setElement(builder, i, currIteratorNextVal.val, currIteratorNextVal.size, currIteratorNextVal.is_null);
+            }
+            auto retVal = ft.getLoad(builder);
+            auto retSize = ft.getSize(builder);
+            return SerializableValue(retVal, retSize);
         }
 
         std::string ZipIterator::name() const {

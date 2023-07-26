@@ -4030,7 +4030,7 @@ namespace tuplex {
                             // load var length size
                             auto list_sizes_ptr = builder.CreateLoad(_env->i64ptrType(), builder.CreateStructGEP(value.val, llvm_list_type, 3));
                             auto subsize_ptr = builder.CreateGEP(builder.getInt64Ty(), list_sizes_ptr, index.val);
-                            auto subsize = builder.CreateLoad(builder.getInt64Ty(), subsize_ptr);
+                            subsize = builder.CreateLoad(builder.getInt64Ty(), subsize_ptr);
 
                             // legacy: subsize = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(value.val, 3), index.val));
                         }

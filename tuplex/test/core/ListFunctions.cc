@@ -17,6 +17,17 @@
 // need for these tests a running python interpreter, so spin it up
 class ListFunctions : public PyTest {};
 
+TEST_F(ListFunctions, ListOfStringsSubscript) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+    auto v3 = c.parallelize({
+                                    Row(3)
+                            }).map(UDF("lambda x: ['abcd', 'b', '', 'efghi'][x]")).collectAsVector();
+
+    EXPECT_EQ(v3.size(), 1);
+    ASSERT_EQ(v3[0].toPythonString(), "('efghi',)");
+}
+
 TEST_F(ListFunctions, ListSubscript) {
     using namespace tuplex;
     Context c(microTestOptions());

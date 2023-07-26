@@ -2405,15 +2405,25 @@ namespace tuplex {
             return SerializableValue(replaced_str, builder.CreateLoad(_env.i64Type(), sizeVar));
         }
 
-        SerializableValue FunctionRegistry::createJoinCall(const codegen::IRBuilder& builder, const tuplex::codegen::SerializableValue &caller, const tuplex::codegen::SerializableValue &list) {
+        SerializableValue FunctionRegistry::createJoinCall(const codegen::IRBuilder& builder,
+                                                           const tuplex::codegen::SerializableValue &caller,
+                                                           const tuplex::codegen::SerializableValue &list) {
             assert(caller.val->getType() == _env.i8ptrType());
-            assert(list.val->getType() == _env.createOrGetListType(python::Type::makeListType(python::Type::STRING)));
+
+            // note that argument could be anything that's iterable, for now ONLY support list.
+
+            assert(list.val && list.val->getType()->isPointerTy());
+
+            // make sure it's passed as list pointer
+            auto llvm_list_type = _env.createOrGetListType(python::Type::makeListType(python::Type::STRING));
+            auto list_struct = builder.CreateLoad(llvm_list_type, list.val);
 
             auto sizeVar = builder.CreateAlloca(_env.i64Type(), 0, nullptr);
             auto joinedStr = builder.CreateCall(strJoin_prototype(_env.getContext(), _env.getModule().get()),
-                                                {caller.val, caller.size, builder.CreateExtractValue(list.val, {1}),
-                                                 builder.CreateExtractValue(list.val, {2}),
-                                                 builder.CreateExtractValue(list.val, {3}), sizeVar});
+                                                {caller.val, caller.size,
+                                                 builder.CreateExtractValue(list_struct, {1}),
+                                                 builder.CreateExtractValue(list_struct, {2}),
+                                                 builder.CreateExtractValue(list_struct, {3}), sizeVar});
             return {joinedStr, builder.CreateLoad(_env.i64Type(), sizeVar)};
         }
 
@@ -2725,6 +2735,15 @@ namespace tuplex {
                 // make sure exactly 1 argument
                 if(args.size() != 1)
                     throw std::runtime_error("str.join only takes one argument");
+
+                // make sure arg is list, nothing else supported.
+                if(!argsType.parameters().front().isListType())
+                    throw std::runtime_error("only str.join with list argument supported yet.");
+
+                // empty list results in empty string
+                if(argsType.parameters().front() == python::Type::EMPTYLIST)
+                    return SerializableValue(_env.strConst(builder, ""), _env.i64Const(2));
+
                 return createJoinCall(builder, caller, args[0]);
             }
 

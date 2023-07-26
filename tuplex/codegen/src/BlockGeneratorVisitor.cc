@@ -3998,7 +3998,15 @@ namespace tuplex {
                             addInstruction(nullptr, nullptr); // TODO: may want to actually construct an empty dictionary, look at LambdaFunction.cc::addReturn, in the !res case
                         }
                     } else {
-                        auto num_elements = builder.CreateExtractValue(value.val, {1});
+
+                        // new: list passed as pointer
+                        assert(value.val && value.val->getType()->isPointerTy());
+
+                        auto list_type = value_type;
+                        auto llvm_list_type = _env->createOrGetListType(list_type);
+
+                        auto num_elements = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(value.val, llvm_list_type, 1));
+                        // legacy: auto num_elements = builder.CreateExtractValue(value.val, {1});
 
                         // correct for negative indices (once)
                         auto cmp = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, index.val, _env->i64Const(0));
@@ -4009,10 +4017,22 @@ namespace tuplex {
                         _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp));
 
                         // get the element
-                        auto subval = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(value.val, 2), index.val));
+                        auto llvm_element_type = _env->pythonToLLVMType(elementType);
+
+                        auto list_arr_ptr = builder.CreateLoad(llvm_element_type->getPointerTo(), builder.CreateStructGEP(value.val, llvm_list_type, 2));
+                        auto subval_ptr = builder.CreateGEP(llvm_element_type, list_arr_ptr, index.val);
+                        auto subval = builder.CreateLoad(llvm_element_type, subval_ptr);
+
+                        // legacy: auto subval = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(value.val, 2), index.val));
+
                         llvm::Value* subsize = _env->i64Const(sizeof(int64_t)); // TODO: is this 8 for boolean as well?
                         if(elementType == python::Type::STRING) {
-                            subsize = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(value.val, 3), index.val));
+                            // load var length size
+                            auto list_sizes_ptr = builder.CreateLoad(_env->i64ptrType(), builder.CreateStructGEP(value.val, llvm_list_type, 3));
+                            auto subsize_ptr = builder.CreateGEP(builder.getInt64Ty(), list_sizes_ptr, index.val);
+                            auto subsize = builder.CreateLoad(builder.getInt64Ty(), subsize_ptr);
+
+                            // legacy: subsize = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(value.val, 3), index.val));
                         }
 
                         addInstruction(subval, subsize);

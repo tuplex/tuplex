@@ -420,25 +420,39 @@ namespace tuplex {
 
             // change index field
             auto indexPtr = builder.CreateStructGEP(iterator, llvm_iterator_type, 1);
-            // is iterator always i32?
-            auto currIndex = builder.CreateLoad(builder.getInt32Ty(), indexPtr);
-            if(iterablesType == python::Type::RANGE) {
+            // is iterator always i32? -> shorten to i32. Need to fix everywhere else
+            auto llvm_index_type = llvm_iterator_type->getStructElementType(1);
 
-//
-//                auto startPtr = builder.CreateGEP(_env.getRangeObjectType(), iterableStruct, {_env.i32Const(0), _env.i32Const(0)});
-//                auto start = builder.CreateLoad(_env.i64Type(), startPtr);
-//                auto stepPtr = builder.CreateGEP(env.getRangeObjectType(), iterator, {env.i32Const(0), env.i32Const(2)});
-//                auto step = builder.CreateLoad(env.i64Type(), stepPtr);
-//#error ""
+            llvm::Value* currIndex = builder.CreateLoad(llvm_index_type, indexPtr);
+
+            llvm::Value* new_index_value = nullptr;
+
+            if(iterablesType == python::Type::RANGE) {
                 // index will change by offset * step
-                auto rangePtr = builder.CreateGEP(env.getRangeObjectType(), iterator, {env.i32Const(0), env.i32Const(2)});
-                auto range = builder.CreateLoad(env.getRangeObjectType(), rangePtr);
-                auto stepPtr = builder.CreateGEP(env.getRangeObjectType(), range, {env.i32Const(0), env.i32Const(2)});
-                auto step = builder.CreateLoad(stepPtr);
-                builder.CreateStore(builder.CreateAdd(currIndex, builder.CreateMul(env.i64Const(offset), step)), indexPtr);
+
+                // calc here in i64
+                currIndex = builder.CreateSExt(currIndex, builder.getInt64Ty());
+
+                // get range object from range iterator
+                auto llvm_range_iterator_type = env.createOrGetIterIteratorType(iterablesType);
+
+                auto rangePtr = builder.CreateStructGEP(iterator, llvm_range_iterator_type, 2); //builder.CreateGEP(env.getRangeObjectType(), iterator, {env.i32Const(0), env.i32Const(2)});
+                auto range = builder.CreateLoad(env.getRangeObjectType()->getPointerTo(), rangePtr);
+                auto stepPtr = builder.CreateStructGEP(range, env.getRangeObjectType(), 2); //builder.CreateGEP(env.getRangeObjectType(), range, {env.i32Const(0), env.i32Const(2)});
+                auto step = builder.CreateLoad(builder.getInt64Ty(), stepPtr);
+                new_index_value = builder.CreateAdd(currIndex, builder.CreateMul(env.i64Const(offset), step));
             } else {
-                builder.CreateStore(builder.CreateAdd(currIndex, env.i32Const(offset)), indexPtr);
+                // calc here in i32
+                if(llvm_index_type != env.i32Type())
+                    currIndex = builder.CreateTrunc(currIndex, builder.getInt32Ty());
+
+                new_index_value = builder.CreateAdd(currIndex, env.i32Const(offset));
             }
+
+            if(llvm_index_type != new_index_value->getType())
+                new_index_value = builder.CreateSExt(new_index_value, llvm_index_type);
+
+            builder.CreateStore(new_index_value, indexPtr);
         }
 
         llvm::Value *IteratorContextProxy::updateIteratorIndex(const codegen::IRBuilder& builder,

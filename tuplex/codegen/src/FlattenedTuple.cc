@@ -1121,10 +1121,22 @@ namespace tuplex {
             // note also special case empty tuple, else it will be sandwiched as (()) leading to errors...
             if(!subtree.tupleType().isTupleType() || subtree.tupleType() == python::Type::EMPTYTUPLE) {
                 assert(subtree.numElements() == 1);
-                return subtree.get(0);
+                auto ret_val = subtree.get(0);
+
+                // HACK: fix loading for lists to be pointer
+                if(subtree.tupleType().isListType() && subtree.tupleType() != python::Type::EMPTYLIST) {
+                    if(!ret_val.val->getType()->isPointerTy()) {
+                        auto alloc = _env->CreateFirstBlockAlloca(builder, ret_val.val->getType());
+                        builder.CreateStore(ret_val.val, alloc);
+                        ret_val.val = alloc; // <-- pointer now!
+                    }
+                }
+
+                return ret_val;
             }
 
-            return codegen::SerializableValue(dummy.getLoad(builder), dummy.getSize(builder));
+            auto ret_val = codegen::SerializableValue(dummy.getLoad(builder), dummy.getSize(builder));
+            return ret_val;
         }
 
         codegen::SerializableValue FlattenedTuple::serializeToMemory(const codegen::IRBuilder& builder) const {

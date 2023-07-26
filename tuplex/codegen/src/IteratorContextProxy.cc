@@ -1048,8 +1048,18 @@ namespace tuplex {
 
                 _env.printValue(builder, _env.i64Const(tupleLength), "data access into tuple with length=");
 
+                auto element_type = iterablesType.parameters().front();
+                assert(element_type == yieldType);
+                if(element_type.isOptionType())
+                    throw std::runtime_error("tuple of option types not yet supported in iter");
+                auto llvm_element_type = _env.pythonToLLVMType(element_type); // without options
+
+                // is it a pass-by value or reference?
+                if(!element_type.isImmutable())
+                    llvm_element_type = llvm_element_type->getPointerTo();
+
                 // create array & index
-                auto array = builder.CreateAlloca(_env.pythonToLLVMType(yieldType), 0, _env.i64Const(tupleLength));
+                auto array = builder.CreateAlloca(llvm_element_type, 0, _env.i64Const(tupleLength));
                 auto sizes = builder.CreateAlloca(_env.i64Type(), 0, _env.i64Const(tupleLength));
 
                 // store the elements into the array
@@ -1064,9 +1074,6 @@ namespace tuplex {
                     elementTypes.push_back(load.val->getType());
                 }
 
-                auto element_type = iterablesType.parameters().front();
-                auto llvm_element_type = _env.pythonToLLVMType(element_type);
-
                 // fill in array elements
                 for (int i = 0; i < tupleLength; ++i) {
                     builder.CreateStore(elements[i].val, builder.CreateGEP(llvm_element_type, array, _env.i32Const(i)));
@@ -1075,15 +1082,8 @@ namespace tuplex {
 
                 _env.printValue(builder, index, "retrieving tuple element with index=");
 
-                // special case: mutable element -> pass as pointer
-                if(element_type.isImmutable()) {
-                    // load from array
-                    retVal = builder.CreateLoad(llvm_element_type, builder.CreateGEP(llvm_element_type, array, builder.CreateTrunc(index, _env.i32Type())));
-                } else {
-                    // pass the pointer
-                    retVal = builder.CreateGEP(llvm_element_type, array, builder.CreateTrunc(index, _env.i32Type()));
-                    assert(retVal->getType()->isPointerTy());
-                }
+                // load from array
+                retVal = builder.CreateLoad(llvm_element_type, builder.CreateGEP(llvm_element_type, array, builder.CreateTrunc(index, _env.i32Type())));
 
                 // load size from array
                 retSize = builder.CreateLoad(builder.getInt64Ty(), builder.CreateGEP(builder.getInt64Ty(), sizes, builder.CreateTrunc(index, _env.i32Type())));

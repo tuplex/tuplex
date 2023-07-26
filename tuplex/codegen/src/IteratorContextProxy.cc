@@ -825,9 +825,12 @@ namespace tuplex {
 
             if(iteratorInfo.iteratorName == "iter") {
                 auto iterableType = iteratorInfo.argsType;
-                // remove subsequent iterators (iter will advance them, but the underlying llvm type will be the same)
-                while(iterableType.isIteratorType())
-                    iterableType = iterableType.yieldType();
+
+                // special case: is iterator, get the type of the inner iterator
+                if(iterableType.isIteratorType()) {
+                    assert(iteratorInfo.argsIteratorInfo.size() == 1);
+                    return createIteratorContextTypeFromIteratorInfo(env, *iteratorInfo.argsIteratorInfo.front());
+                }
 
                 llvm::Type *iteratorContextType = env.createOrGetIterIteratorType(iterableType);
                 return iteratorContextType;

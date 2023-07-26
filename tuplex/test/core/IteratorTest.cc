@@ -675,10 +675,28 @@ TEST_F(IteratorTest, CodegenTestNestedIteratorIStep) {
 //        EXPECT_EQ(v[0].toPythonString(), "(0,-1)");
 //    }
 
-    { // STEP 3:
+//    { // STEP 3:
+//        auto func = "def f(x):\n"
+//                    "    a = iter(enumerate(iter([-1, -2, -3, -4])))\n"
+//                    "    e1 = next(a)\n"
+//                    "    return e1";
+//
+//        std::cout<<"code:\n"<<func<<std::endl;
+//
+//
+//        auto v = c.parallelize({
+//                                       Row(0)
+//                               }).map(UDF(func)).collectAsVector();
+//
+//        EXPECT_EQ(v.size(), 1);
+//        EXPECT_EQ(v[0].toPythonString(), "(0,-1)");
+//    }
+
+    { // STEP 4:
         auto func = "def f(x):\n"
                     "    a = iter(enumerate(iter([-1, -2, -3, -4])))\n"
-                    "    e1 = next(a)\n"
+                    "    b = zip(a, 'abcd', enumerate(zip([1, 2], [3, 4])), zip(('A', 'B'), ('C', 'D')))\n"
+                    "    e1 = next(b)\n"
                     "    return e1";
 
         std::cout<<"code:\n"<<func<<std::endl;
@@ -689,9 +707,8 @@ TEST_F(IteratorTest, CodegenTestNestedIteratorIStep) {
                                }).map(UDF(func)).collectAsVector();
 
         EXPECT_EQ(v.size(), 1);
-        EXPECT_EQ(v[0].toPythonString(), "(0,-1)");
+        EXPECT_EQ(v[0].toPythonString(), "((0,-1),'a',(0,(1,3)),('A','C'))");
     }
-
 
     //EXPECT_EQ(v[0].toPythonString(), "(((10,((0,(0,-1)),'a',(0,(1,3)),('A','C'))),(1,(1,-2))),((11,((2,(2,-3)),'b',(1,(2,4)),('B','D'))),(3,(3,-4))))");
 }

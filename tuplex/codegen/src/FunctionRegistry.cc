@@ -2094,7 +2094,7 @@ namespace tuplex {
 
             python::Type argType = argsType.parameters().front();
             if(argType.isIteratorType()) {
-                // iter() call on a iterator. Simply return the iterator as it is.
+                // iter() call on another iterator. Simply return the iterator as it is.
                 return args.front();
             }
 
@@ -2132,9 +2132,6 @@ namespace tuplex {
                                                           const std::shared_ptr<IteratorInfo> &iteratorInfo) {
             python::Type argType = argsType.parameters().front();
             IteratorContextProxy ils(&_env);
-
-            assert(argsType.isTupleType());
-            assert(argsType == python::Type::propagateToTupleType(iteratorInfo->argsType)); // this must hold
 
             // use Enumerate Context
             EnumerateIterator it(_env);

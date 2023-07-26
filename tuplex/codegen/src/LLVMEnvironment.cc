@@ -414,7 +414,7 @@ namespace tuplex {
                 name = std::regex_replace(name, std::regex("struct\\."), "");
                 return name;
             } else {
-                throw std::runtime_error("unsupported iterable type" + iterated_type.desc());
+                throw std::runtime_error("unsupported iterable type " + iterated_type.desc());
                 return "";
             }
         }
@@ -471,7 +471,7 @@ namespace tuplex {
                     memberTypes.push_back(llvm::PointerType::get(getOrCreateTupleType(flattenedType(iterableType)), 0));
                     memberTypes.push_back(llvm::Type::getInt64Ty(_context));
                 } else {
-                    throw std::runtime_error("unsupported iterable type" + iterableType.desc());
+                    throw std::runtime_error("unsupported iterable type " + iterableType.desc());
                 }
             }
 

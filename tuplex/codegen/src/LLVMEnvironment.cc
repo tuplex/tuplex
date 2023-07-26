@@ -1719,7 +1719,8 @@ namespace tuplex {
             std::string name = twine + std::to_string(_global_counters[twine]++);
 
             // create global variable
-            auto gvar = createNullInitializedGlobal(name, llvm::Type::getInt8PtrTy(_context, 0));
+            auto llvm_gvar_type = llvm::Type::getInt8PtrTy(_context, 0);
+            auto gvar = createNullInitializedGlobal(name, llvm_gvar_type);
 
             // get the builders
             auto initGlobalBuilder = getInitGlobalBuilder(name);
@@ -1754,7 +1755,7 @@ namespace tuplex {
             initGlobalBuilder.CreateStore(initGlobalBuilder.CreateIntCast(initFailed, i64Type(), false), _initGlobalRetValue);
 
             // create release code
-            releaseGlobalBuilder.CreateCall(pcre2CodeFree_prototype(_context, _module.get()),{releaseGlobalBuilder.CreateLoad(gvar)});
+            releaseGlobalBuilder.CreateCall(pcre2CodeFree_prototype(_context, _module.get()),{releaseGlobalBuilder.CreateLoad(llvm_gvar_type, gvar)});
             releaseGlobalBuilder.CreateStore(i64Const(0), _releaseGlobalRetValue);
 
             // cache the result and return

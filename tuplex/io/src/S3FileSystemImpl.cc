@@ -756,7 +756,7 @@ namespace tuplex {
 
     void S3FileSystemImpl::initTransferThreadPool(size_t numThreads) {
         // there's a typo in older AWS SDK versions
-    #if AWS_SDK_VERSION_PATCH < 309
+    #if (AWS_SDK_VERSION_MINOR <= 9 && AWS_SDK_VERSION_PATCH < 309)
         auto overflow_policy = Aws::Utils::Threading::OverflowPolicy::QUEUE_TASKS_EVENLY_ACCROSS_THREADS;
     #else
         auto overflow_policy = Aws::Utils::Threading::OverflowPolicy::QUEUE_TASKS_EVENLY_ACROSS_THREADS;

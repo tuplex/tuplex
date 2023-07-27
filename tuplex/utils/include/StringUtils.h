@@ -190,19 +190,7 @@ namespace tuplex {
             return std::string("false");
     }
 
-    /*!
-     * converts(without tabs) JSON to text representation
-     * @param item cJSON object (tree)
-     * @return empty string if item is nullptr, else json serialized as string
-     */
-    inline std::string cJSON_to_string(const cJSON* item) {
-        if(!item)
-            return "";
-        char* ptr = cJSON_PrintUnformatted(item);
-        std::string res(ptr); // create copy
-        cJSON_free(ptr);
-        return res;
-    }
+
 
     // define here what counts all boolean true/false strings!
     // => adjust fast_atob function regarding them!!!

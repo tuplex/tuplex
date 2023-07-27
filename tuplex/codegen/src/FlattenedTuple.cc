@@ -226,7 +226,8 @@ namespace tuplex {
                     // get return type for extraction
                     type = type.getReturnType();
                     if(type == python::Type::EMPTYTUPLE) {
-                        Value *load = builder.CreateLoad(builder.CreateAlloca(_env->getEmptyTupleType(), 0, nullptr));
+                        auto llvm_empty_tuple_type = _env->getEmptyTupleType();
+                        Value *load = builder.CreateLoad(llvm_empty_tuple_type, builder.CreateAlloca(llvm_empty_tuple_type, 0, nullptr));
                         _tree.set(i, codegen::SerializableValue(load, _env->i64Const(sizeof(int64_t)), isnull));
                         continue;
                     }
@@ -737,7 +738,7 @@ namespace tuplex {
                         builder.CreateCondBr(loopNotDone, loopBody, after);
 
                         builder.SetInsertPoint(loopBody);
-                        auto loop_i = builder.CreateLoad(loopCounter);
+                        auto loop_i = builder.CreateLoad(builder.getInt64Ty(), loopCounter);
                         Value* list_el = builder.CreateLoad(_env->getBooleanType(), builder.CreateGEP(_env->getBooleanType(), list_arr, loop_i)); // next list element
                         list_el = builder.CreateZExtOrTrunc(list_el, Type::getInt64Ty(context)); // upcast to 8 bytes
                         auto byte_offset = builder.CreateMul(_env->i64Const(sizeof(int64_t)), loop_i);

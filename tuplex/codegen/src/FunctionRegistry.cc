@@ -1844,7 +1844,8 @@ namespace tuplex {
                 if(global_pattern) {
                     auto pattern_str = _env.globalVariableToString(args[0].val);
                     llvm::Value* gVar = _env.addGlobalRegexPattern("re_sub", pattern_str);
-                    compiled_pattern = builder.CreateLoad(gVar);
+                    auto llvm_gvar_type = _env.i8ptrType();
+                    compiled_pattern = builder.CreateLoad(llvm_gvar_type, gVar);
                 } else {
                     // allocate some error space
                     auto errornumber = builder.CreateAlloca(builder.getInt32Ty());

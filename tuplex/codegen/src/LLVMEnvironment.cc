@@ -1941,8 +1941,7 @@ namespace tuplex {
                 } else {
                     assert(val->getType()->isPointerTy() && val->getType()->getPointerElementType()->isStructTy());
                     auto list_len_ptr = CreateStructGEP(builder, val, 1);
-                    auto list_len = builder.CreateLoad(list_len_ptr);
-                    assert(list_len->getType() == i64Type());
+                    auto list_len = builder.CreateLoad(builder.getInt64Ty(), list_len_ptr);
                     return list_len;
                 }
             }

@@ -1630,18 +1630,13 @@ namespace tuplex {
         }
 
         BlockGeneratorVisitor::Variable::Variable(LLVMEnvironment &env, const codegen::IRBuilder& builder,
-                                                  const python::Type &t, const std::string &name) {
+                                                  const python::Type &t, const std::string &name) : type(t), name(name), env(&env) {
             // map type to LLVM
             // allocate variable in first block! (important because of loops!)
-            // get rid off option!
 
-            // only string, bool, int, f64 so far supported!
-            llvm_type = env.pythonToLLVMType(t.isOptionType() ? t.getReturnType() : t);
+            auto t_without_option = type.isOptionType() ? type.getReturnType() : type;
 
-            this->type = t; // save original type.
-            this->name = name;
-
-            this->env = &env;
+            llvm_type = deriveLLVMType();
 
             // differentiate here between pass-by-value and pass-by-copy variables.
             // pass-by-value should be all of Python's immutable objects.
@@ -1651,7 +1646,9 @@ namespace tuplex {
                 ptr = env.CreateFirstBlockAlloca(builder, llvm_type, name); // store value
             } else {
                 // make sure llvm_type is not a pointer type, this would be wrong mapping
-                assert(!llvm_type->isPointerTy());
+                // only dict -> i8* and str -> i8* at the moment.
+                if(!t_without_option.isDictionaryType() && python::Type::STRING != t_without_option)
+                    assert(!llvm_type->isPointerTy());
                 ptr = env.CreateFirstBlockAlloca(builder, llvm_type->getPointerTo(), name); // store reference
             }
 

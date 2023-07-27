@@ -1069,39 +1069,6 @@ namespace tuplex {
                 size = nullptr;
             }
 
-            if(val) {
-                // val must be a primitive
-                assert(val->getType() == llvm::Type::getInt8PtrTy(context, 0)
-                       || val->getType() == llvm::Type::getInt64Ty(context)
-                       || val->getType() == llvm::Type::getDoubleTy(context)
-                       || val->getType() == _env->getBooleanType()
-                       || val->getType() == _env->getEmptyTupleType()
-                       || val->getType()->isStructTy());
-
-
-                if (val->getType() == llvm::Type::getInt8PtrTy(context, 0)) {
-                    // must be string, dict, list
-                    assert(type == python::Type::STRING ||
-                           type.isDictionaryType() || type == python::Type::GENERICDICT ||
-                           type.isListType() || type == python::Type::GENERICLIST ||
-                           type == python::Type::NULLVALUE);
-                }
-                if(val->getType() == llvm::Type::getInt64Ty(context)) {
-                    assert(type == python::Type::I64
-                           || type == python::Type::BOOLEAN
-                           || (type.isListType() && type.elementType().isSingleValued()));
-                }
-                if(val->getType() == llvm::Type::getDoubleTy(context))
-                    assert(type == python::Type::F64);
-
-                if(val->getType()->isStructTy()) {
-                    if (val->getType() == _env->getEmptyTupleType())
-                        assert(type == python::Type::EMPTYTUPLE);
-                    else
-                        assert(type.isListType() && !type.elementType().isSingleValued());
-                }
-            }
-
             // size must be 64bit
             if(size)
                 assert(size->getType() == llvm::Type::getInt64Ty(context));

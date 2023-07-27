@@ -3986,13 +3986,20 @@ namespace tuplex {
                 } else {
                     auto elementType = value_type.elementType();
                     if(elementType.isSingleValued()) {
-                        auto indexcmp = _env->indexCheck(builder, index.val, value.val);
+
+                        // list is pointer, load from pointer numElements
+                        assert(value.val && value.val->getType()->isPointerTy());
+                        // should contain i64 only
+                        auto num_elements = builder.CreateLoad(builder.getInt64Ty(), value.val);
+
+                        auto indexcmp = _env->indexCheck(builder, index.val, num_elements);
                         _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp)); // error if index out of bounds
                         if(elementType == python::Type::NULLVALUE) {
                             addInstruction(nullptr, nullptr, _env->i1Const(true));
                         } else if(elementType == python::Type::EMPTYTUPLE) {
-                            auto alloc = builder.CreateAlloca(_env->getEmptyTupleType(), 0, nullptr);
-                            auto load = builder.CreateLoad(alloc);
+                            auto llvm_empty_tuple_type = _env->getEmptyTupleType();
+                            auto alloc = builder.CreateAlloca(llvm_empty_tuple_type, 0, nullptr);
+                            auto load = builder.CreateLoad(llvm_empty_tuple_type, alloc);
                             addInstruction(load, _env->i64Const(sizeof(int64_t)));
                         } else if(elementType == python::Type::EMPTYDICT || elementType == python::Type::EMPTYLIST) {
                             addInstruction(nullptr, nullptr); // TODO: may want to actually construct an empty dictionary, look at LambdaFunction.cc::addReturn, in the !res case
@@ -4119,7 +4126,7 @@ namespace tuplex {
                         }
                     }
                 }
-                retVal.val = builder.CreateLoad(val);
+                retVal.val = builder.CreateLoad(llvmType, val);
                 retVal.size = _env->i64Const(3 * sizeof(int64_t));
             }
             return retVal;

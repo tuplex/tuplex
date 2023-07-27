@@ -5366,7 +5366,10 @@ namespace tuplex {
                 if(exprType == python::Type::EMPTYLIST) {
                     end = _env->i64Const(0);
                 } else {
-                    end = builder.CreateExtractValue(exprAlloc.val, {1});
+                    // list comes as pointer now, use load therefore
+                    end = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(exprAlloc.val, llvm_expr_type, 1));
+                    // old:
+                    // end = builder.CreateExtractValue(exprAlloc.val, {1});
                 }
 
                 _env->printValue(builder, start, "loop over list, start=");
@@ -5378,9 +5381,9 @@ namespace tuplex {
                 step = _env->i64Const(1);
                 end = builder.CreateSub(exprAlloc.size, _env->i64Const(1));
             } else if(exprType == python::Type::RANGE) {
-                start = builder.CreateLoad(_env->CreateStructGEP(builder, exprAlloc.val, 0));
-                end = builder.CreateLoad(_env->CreateStructGEP(builder, exprAlloc.val, 1));
-                step = builder.CreateLoad(_env->CreateStructGEP(builder, exprAlloc.val, 2));
+                start = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(exprAlloc.val, llvm_expr_type, 0));
+                end = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(exprAlloc.val, llvm_expr_type, 1));
+                step = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(exprAlloc.val, llvm_expr_type, 2));
             } else if(exprType.isIteratorType()) {
                 assert(forStmt->expression->hasAnnotation() && forStmt->expression->annotation().iteratorInfo);
                 iteratorInfo = forStmt->expression->annotation().iteratorInfo;
@@ -5564,8 +5567,12 @@ namespace tuplex {
                     if(element_type.isTupleType() && !element_type.isFixedSizeType())
                         llvm_element_type = llvm_element_type->getPointerTo();
 
+                    auto list_element_array_ptr = builder.CreateLoad(llvm_element_type->getPointerTo(), builder.CreateStructGEP(exprAlloc.val, llvm_expr_type, 2));
+                    // old:
+                    // auto list_element_array_ptr = builder.CreateExtractValue(exprAlloc.val, {2});
+
                     auto currVal = builder.CreateLoad(llvm_element_type,
-                                                      builder.CreateGEP(llvm_element_type, builder.CreateExtractValue(exprAlloc.val, {2}), curr));
+                                                      builder.CreateGEP(llvm_element_type, list_element_array_ptr, curr));
                     _env->printValue(builder, currVal, "currVal in loop body=");
 
                     if(targetType == python::Type::I64 || targetType == python::Type::F64) {

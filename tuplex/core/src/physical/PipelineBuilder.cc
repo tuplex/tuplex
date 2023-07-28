@@ -2136,11 +2136,11 @@ namespace tuplex {
             beginForLoop(builder, num_rows_to_join);
 
             // there should be at least one row (omit weird loop for now b.c. more difficult...)
-            auto bucketPtr = builder.CreateLoad(bucketPtrVar);
-            auto row_length = builder.CreateLoad(builder.CreatePointerCast(bucketPtr, _env->i32ptrType()));
+            auto bucketPtr = builder.CreateLoad(_env->i8ptrType(), bucketPtrVar);
+            auto row_length = builder.CreateLoad(_env->i32Type(), builder.CreatePointerCast(bucketPtr, _env->i32ptrType()));
             auto row_ptr = builder.CreateGEP(bucketPtr, _env->i32Const(sizeof(int32_t)));
             // update bucketPtr Var with sizeof(int32_t) + data length
-            builder.CreateStore(builder.CreateGEP(bucketPtr, builder.CreateAdd(row_length, _env->i32Const(sizeof(int32_t)))), bucketPtrVar);
+            builder.CreateStore(builder.MovePtrByBytes(bucketPtr, builder.CreateAdd(row_length, _env->i32Const(sizeof(int32_t)))), bucketPtrVar);
 
             //_env->debugPrint(builder, "decoding in-bucket row with length : ", row_length);
 

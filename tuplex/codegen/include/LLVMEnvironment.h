@@ -474,9 +474,29 @@ namespace tuplex {
              */
 
             inline llvm::Type *getMatchObjectType() {
-                return llvm::StructType::get(_context, {llvm::Type::getInt64PtrTy(_context, 0),
-                                                        llvm::Type::getInt8PtrTy(_context, 0),
-                                                        llvm::Type::getInt64Ty(_context)});
+
+                if(!_module)
+                    return nullptr;
+
+                auto stype = _module->getTypeByName("match");
+
+                // lazy register range type
+                if(!stype) {
+                    // not registered yet, register now
+                    auto& ctx = _module->getContext();
+                    bool packed = false;
+                    std::vector<llvm::Type*> members{llvm::Type::getInt64PtrTy(_context, 0),
+                                                     llvm::Type::getInt8PtrTy(_context, 0),
+                                                     llvm::Type::getInt64Ty(_context)};
+                    stype = llvm::StructType::create(ctx, members, "match", packed);
+                }
+
+                return stype;
+
+                // // old: anonymous type
+                // return llvm::StructType::get(_context, {llvm::Type::getInt64PtrTy(_context, 0),
+                //                                        llvm::Type::getInt8PtrTy(_context, 0),
+                //                                        llvm::Type::getInt64Ty(_context)});
             }
 
             inline llvm::Type *getMatchObjectPtrType() {

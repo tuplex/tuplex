@@ -1806,17 +1806,18 @@ namespace tuplex {
                 builder.CreateBr(return_BB);
 
                 builder.SetInsertPoint(did_match_BB);
-                builder.CreateStore(builder.CreateCall(wrapPCRE2MatchObject_prototype(_env.getContext(),
-                                                                                      _env.getModule().get()),
-                                                       {match_data, args[1].val, args[1].size}), retval);
+                auto match_call_ret = builder.CreateCall(wrapPCRE2MatchObject_prototype(_env.getContext(),
+                                                                                        _env.getModule().get()),
+                                                         {match_data, args[1].val, args[1].size});
+                builder.CreateStore(builder.CreateBitCast(match_call_ret, _env.getMatchObjectPtrType()), retval);
                 builder.CreateStore(_env.i64Const(sizeof(uint8_t*)), retsize);
                 builder.CreateBr(return_BB);
 
                 builder.SetInsertPoint(return_BB);
                 lfb.setLastBlock(return_BB);
 
-                // return the match object
-                auto ans = SerializableValue(retval,
+                // return the match object (as pointer)
+                auto ans = SerializableValue(builder.CreateLoad(_env.getMatchObjectPtrType(), retval),
                                          builder.CreateLoad(builder.getInt64Ty(), retsize),
                                          did_not_match);
                 _env.printValue(builder, ans.size, "returning match object with size=");

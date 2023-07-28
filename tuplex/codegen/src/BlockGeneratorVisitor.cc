@@ -3991,6 +3991,7 @@ namespace tuplex {
                         auto indexcmp = _env->indexCheck(builder, index.val, num_elements);
                         _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp)); // error if index out of bounds
                         auto element = list_get_element(*_env, builder, value_type, nullptr, nullptr);
+                        addInstruction(element.val, element.size, element.is_null);
                     } else {
 
                         // new: list passed as pointer
@@ -4011,7 +4012,6 @@ namespace tuplex {
                         _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp));
 
                         auto element = list_get_element(*_env, builder, list_type, value.val, index.val);
-
                         addInstruction(element.val, element.size, element.is_null);
                     }
                 }

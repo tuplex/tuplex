@@ -1016,50 +1016,9 @@ namespace tuplex {
                 retVal = index;
                 retSize = _env.i64Const(8);
             } else if(iterablesType.isTupleType() && python::Type::EMPTYTUPLE != iterablesType) {
-                // only works with homogenous tuple
-                auto tupleLength = iterablesType.parameters().size();
-
-                _env.printValue(builder, _env.i64Const(tupleLength), "data access into tuple with length=");
-
-                auto element_type = iterablesType.parameters().front();
-                assert(element_type == yieldType);
-                if(element_type.isOptionType())
-                    throw std::runtime_error("tuple of option types not yet supported in iter");
-                auto llvm_element_type = _env.pythonToLLVMType(element_type); // without options
-
-                // is it a pass-by value or reference?
-                if(!element_type.isImmutable())
-                    llvm_element_type = llvm_element_type->getPointerTo();
-
-                // create array & index
-                auto array = builder.CreateAlloca(llvm_element_type, 0, _env.i64Const(tupleLength));
-                auto sizes = builder.CreateAlloca(_env.i64Type(), 0, _env.i64Const(tupleLength));
-
-                // store the elements into the array
-                std::vector<python::Type> tupleType(tupleLength, yieldType);
-                FlattenedTuple flattenedTuple = FlattenedTuple::fromLLVMStructVal(&_env, builder, iterableAlloc, python::Type::makeTupleType(tupleType));
-
-                std::vector<SerializableValue> elements;
-                std::vector<llvm::Type *> elementTypes;
-                for (int i = 0; i < tupleLength; ++i) {
-                    auto load = flattenedTuple.getLoad(builder, {i});
-                    elements.push_back(load);
-                    elementTypes.push_back(load.val->getType());
-                }
-
-                // fill in array elements
-                for (int i = 0; i < tupleLength; ++i) {
-                    builder.CreateStore(elements[i].val, builder.CreateGEP(llvm_element_type, array, _env.i32Const(i)));
-                    builder.CreateStore(elements[i].size, builder.CreateGEP(builder.getInt64Ty(), sizes, _env.i32Const(i)));
-                }
-
-                _env.printValue(builder, index, "retrieving tuple element with index=");
-
-                // load from array
-                retVal = builder.CreateLoad(llvm_element_type, builder.CreateGEP(llvm_element_type, array, builder.CreateTrunc(index, _env.i32Type())));
-
-                // load size from array
-                retSize = builder.CreateLoad(builder.getInt64Ty(), builder.CreateGEP(builder.getInt64Ty(), sizes, builder.CreateTrunc(index, _env.i32Type())));
+                // works only for homogenoous tuple
+                auto element = homogenous_tuple_dynamic_get_element(_env, builder, iterablesType, iterableAlloc, index);
+                return element;
             } else {
                 throw std::runtime_error("unsupported iterables type: " + iterablesType.desc());
             }

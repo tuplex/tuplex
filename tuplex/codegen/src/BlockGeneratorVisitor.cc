@@ -3340,9 +3340,17 @@ namespace tuplex {
                     start = _env->i64Const(0);
                     step = _env->i64Const(1);
                     if(iterType.elementType().isSingleValued()) {
-                        stop = iter.val;
+                        // i64* pointer, load directly
+                        stop = builder.CreateLoad(builder.getInt64Ty(), iter.val);
+
+                        // formerly:
+                        // stop = iter.val;
                     } else {
-                        stop = builder.CreateExtractValue(iter.val, {1});
+
+                        // list is now pointer, get list length here as stop
+                        auto llvm_list_type = _env->createOrGetListType(iterType);
+                        stop = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(iter.val, llvm_list_type, 1));
+                        //stop = builder.CreateExtractValue(iter.val, {1});
                     }
                 } else if(iterType.isTupleType() && tupleElementsHaveSameType(iterType)) {
                     start = _env->i64Const(0);
@@ -3416,42 +3424,20 @@ namespace tuplex {
                         if(iterType.elementType().isSingleValued()) {
                             // don't need to do anything
                         } else {
-                            auto init_val = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(iter.val, {2}), start));
-                            builder.CreateStore(init_val, target.val);
+
+                            // list ptr
+                            auto llvm_list_type = _env->createOrGetListType(iterType);
+
+                            auto init_val = list_get_element(*_env, builder, iterType, iter.val, start);
+                            builder.CreateStore(init_val.val, target.val);
                             if(iterType.elementType() == python::Type::STRING) {
-                                auto init_size = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(iter.val, {3}), start));
-                                builder.CreateStore(init_size, target.size);
+                                builder.CreateStore(init_val.size, target.size);
                             }
                         }
                     } else if(iterType.isTupleType() && tupleElementsHaveSameType(iterType)) {
-                        // store loaded vals into array & then index via gep
-                        auto tupleElementType = iterType.parameters().front();
-                        auto numElements = iterType.parameters().size();
-
-                        // create array & index
-                        tuple_array = builder.CreateAlloca(_env->pythonToLLVMType(tupleElementType), 0, _env->i64Const(numElements));
-                        tuple_sizes = builder.CreateAlloca(_env->i64Type(), 0, _env->i64Const(numElements));
-
-                        // store the elements into the array
-                        FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env, builder, iter.val, iterType);
-
-                        std::vector<SerializableValue> elements;
-                        for (int i = 0; i < numElements; ++i) {
-                            auto load = ft.getLoad(builder, {i});
-                            elements.push_back(load);
-                        }
-
-                        // fill in array elements
-                        for (int i = 0; i < numElements; ++i) {
-                            builder.CreateStore(elements[i].val, builder.CreateGEP(tuple_array, i32Const(i)));
-                            builder.CreateStore(elements[i].size, builder.CreateGEP(tuple_sizes, i32Const(i)));
-                        }
-
-                        // load from array
-                        auto init_val = builder.CreateLoad(builder.CreateGEP(tuple_array, builder.CreateTrunc(start, _env->i32Type())));
-                        builder.CreateStore(init_val, target.val);
-                        auto init_size = builder.CreateLoad(builder.CreateGEP(tuple_sizes, builder.CreateTrunc(start, _env->i32Type())));
-                        builder.CreateStore(init_size, target.size);
+                        auto element = homogenous_tuple_dynamic_get_element(*_env, builder, iterType, iter.val, start);
+                        builder.CreateStore(element.val, target.val);
+                        builder.CreateStore(element.size, target.size);
                     }
 
                     // generate + store the values
@@ -3517,19 +3503,20 @@ namespace tuplex {
                         if(iterType.elementType().isSingleValued()) {
                             // don't need to do anything
                         } else {
-                            auto init_val = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(iter.val, {2}), nextLoopVar));
-                            builder.CreateStore(init_val, target.val);
+
+                            auto element = list_get_element(*_env, builder, iterType, iter.val, nextLoopVar);
+                            builder.CreateStore(element.val, target.val);
                             if(iterType.elementType() == python::Type::STRING) {
-                                auto init_size = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(iter.val, {3}), nextLoopVar));
-                                builder.CreateStore(init_size, target.size);
+                                builder.CreateStore(element.size, target.size);
                             }
                         }
                     } else if(iterType.isTupleType() && tupleElementsHaveSameType(iterType)) {
+
+                        auto element = homogenous_tuple_dynamic_get_element(*_env, builder, iterType, iter.val, nextLoopVar);
+
                         // load from array
-                        auto init_val = builder.CreateLoad(builder.CreateGEP(tuple_array, builder.CreateTrunc(nextLoopVar, _env->i32Type())));
-                        builder.CreateStore(init_val, target.val);
-                        auto init_size = builder.CreateLoad(builder.CreateGEP(tuple_sizes, builder.CreateTrunc(nextLoopVar, _env->i32Type())));
-                        builder.CreateStore(init_size, target.size);
+                        builder.CreateStore(element.val, target.val);
+                        builder.CreateStore(element.size, target.size);
                     }
 
                     auto keep_looping = builder.CreateICmpSLT(nextLoopVar, numiters);

@@ -2349,5 +2349,55 @@ namespace tuplex {
                                              llvm::Value* index, const SerializableValue& val) {
 
         }
+
+        SerializableValue homogenous_tuple_dynamic_get_element(LLVMEnvironment& env, const codegen::IRBuilder& builder,
+                                                               const python::Type& tuple_type, llvm::Value* tuple, llvm::Value* index) {
+            // only works with homogenous tuple
+
+            assert(tuple_type.isTupleType() && tuple_type != python::Type::EMPTYTUPLE);
+
+            auto tupleLength = tuple_type.parameters().size();
+
+            auto element_type = tuple_type.parameters().front();
+            if(element_type.isOptionType())
+                throw std::runtime_error("tuple of option types not yet supported in homogenous tuple access");
+
+            auto llvm_element_type = env.pythonToLLVMType(element_type); // without options
+
+            // is it a pass-by value or reference?
+            if(!element_type.isImmutable())
+                llvm_element_type = llvm_element_type->getPointerTo();
+
+            // create array & index
+            auto array = env.CreateFirstBlockAlloca(builder, llvm_element_type, env.i64Const(tupleLength));
+            auto sizes = env.CreateFirstBlockAlloca(builder, env.i64Type(), env.i64Const(tupleLength));
+
+            // store the elements into the array
+            std::vector<python::Type> tupleType(tupleLength, element_type);
+            FlattenedTuple flattenedTuple = FlattenedTuple::fromLLVMStructVal(&env, builder, tuple,
+                                                                              python::Type::makeTupleType(tupleType));
+
+            std::vector<SerializableValue> elements;
+            std::vector<llvm::Type *> elementTypes;
+            for (int i = 0; i < tupleLength; ++i) {
+                auto load = flattenedTuple.getLoad(builder, {i});
+                elements.push_back(load);
+                elementTypes.push_back(load.val->getType());
+            }
+
+            // fill in array elements
+            for (int i = 0; i < tupleLength; ++i) {
+                builder.CreateStore(elements[i].val, builder.CreateGEP(llvm_element_type, array, env.i32Const(i)));
+                builder.CreateStore(elements[i].size, builder.CreateGEP(builder.getInt64Ty(), sizes, env.i32Const(i)));
+            }
+
+            // load from array
+            auto retVal = builder.CreateLoad(llvm_element_type, builder.CreateGEP(llvm_element_type, array, builder.CreateTrunc(index, env.i32Type())));
+
+            // load size from array
+            auto retSize = builder.CreateLoad(builder.getInt64Ty(), builder.CreateGEP(builder.getInt64Ty(), sizes, builder.CreateTrunc(index, env.i32Type())));
+
+            return {retVal, retSize, env.i1Const(false)}; // <-- what about option?
+        }
     }
 }

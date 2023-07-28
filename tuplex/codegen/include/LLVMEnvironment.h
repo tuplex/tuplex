@@ -842,10 +842,16 @@ namespace tuplex {
              */
             static inline llvm::Value* CreateFirstBlockAlloca(const codegen::IRBuilder& builder,
                                                               llvm::Type* llvmType,
+                                                              llvm::Value* arraySize,
                                                               const std::string& name="") {
                 auto ctor_builder = builder.firstBlockBuilder(false); // insert at beginning.
-                auto res = ctor_builder.CreateAlloca(llvmType, 0, nullptr, name); assert(res);
+                auto res = ctor_builder.CreateAlloca(llvmType, 0, arraySize, name); assert(res);
                 return res;
+            }
+            static inline llvm::Value* CreateFirstBlockAlloca(const codegen::IRBuilder& builder,
+                                                              llvm::Type* llvmType,
+                                                              const std::string& name="") {
+                return CreateFirstBlockAlloca(builder, llvmType, nullptr, name);
             }
 
             inline llvm::Constant* defaultEpsilon() {
@@ -2092,6 +2098,9 @@ namespace tuplex {
         void list_store_element(LLVMEnvironment& env, const codegen::IRBuilder& builder,
                                 const python::Type& list_type, llvm::Value* list_ptr,
                                 llvm::Value* index, const SerializableValue& val);
+
+        extern SerializableValue homogenous_tuple_dynamic_get_element(LLVMEnvironment& env, const codegen::IRBuilder& builder,
+                                                                      const python::Type& tuple_type, llvm::Value* tuple, llvm::Value* index);
 
     }
 }

@@ -1647,7 +1647,7 @@ namespace tuplex {
             } else {
                 // make sure llvm_type is not a pointer type, this would be wrong mapping
                 // only dict -> i8* and str -> i8* at the moment.
-                if(!t_without_option.isDictionaryType() && python::Type::STRING != t_without_option)
+                if(!t_without_option.isDictionaryType() && python::Type::STRING != t_without_option && python::Type::PYOBJECT != t_without_option)
                     assert(!llvm_type->isPointerTy());
                 ptr = env.CreateFirstBlockAlloca(builder, llvm_type->getPointerTo(), name); // store reference
             }

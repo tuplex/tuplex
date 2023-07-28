@@ -1171,6 +1171,10 @@ namespace python {
         if(python::Type::BOOLEAN == *this || python::Type::I64 == *this || python::Type::F64 == *this || python::Type::STRING == *this)
             return true;
 
+        // consider pyobject as immutable for now
+        if(python::Type::PYOBJECT == *this)
+            return true;
+
         // tuples are immutable
         if(isTupleType())
             return true;

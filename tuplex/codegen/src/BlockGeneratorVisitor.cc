@@ -907,13 +907,17 @@ namespace tuplex {
             }
 
             if(elementType.isSingleValued()) {
-                return _env->upcastToBoolean(builder, builder.CreateICmpSGT(R, _env->i64Const(0)));
+
+                auto num_elements = builder.CreateLoad(builder.getInt64Ty(), R);
+
+                return _env->upcastToBoolean(builder, builder.CreateICmpSGT(num_elements, _env->i64Const(0)));
             } else if (elementType == python::Type::I64 || elementType == python::Type::F64 ||
                        elementType == python::Type::BOOLEAN || elementType == python::Type::STRING) {
                 assert(L);
                 // extract relevant pieces of list
-                auto num_elements = builder.CreateExtractValue(R, 1);
-                auto els_array = builder.CreateExtractValue(R, 2);
+
+                auto llvm_list_type = _env->createOrGetListType(rightType);
+                auto num_elements = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(R, llvm_list_type, 1));
 
                 // create blocks for loop
                 auto bodyBlock = BasicBlock::Create(_env->getContext(), "listInclusion_body", builder.GetInsertBlock()->getParent());
@@ -928,7 +932,8 @@ namespace tuplex {
                 auto loopVar = builder.CreatePHI(_env->i64Type(), 2);
                 loopVar->addIncoming(_env->i64Const(0), startBlock); // start loopvar at 0
 
-                auto el = builder.CreateLoad(builder.CreateGEP(els_array, loopVar));
+                // TODO: better compare for strings etc.
+                auto el = list_get_element(*_env, builder, rightType, R, loopVar).val;
                 auto found = compareInst(builder, L, leftType, TokenType::EQEQUAL, el, elementType); // check for the element
                 builder.CreateStore(found, res);
 
@@ -941,7 +946,7 @@ namespace tuplex {
 
                 builder.SetInsertPoint(retBlock);
                 _lfb->setLastBlock(retBlock);
-                return builder.CreateLoad(res);
+                return builder.CreateLoad(_env->getBooleanType(), res);
             }
 
             assert(false);

@@ -294,10 +294,15 @@ namespace tuplex {
                     numVarlenFields++;
                 } else if (python::Type::PYOBJECT == t) {
 
-                    // unknown, so pass-by reference
-                    auto llvm_pyobject_type = llvm::Type::getInt8PtrTy(ctx, 0);
+                    // TODO:
+                    // // unknown, so pass-by reference
+                    // auto llvm_pyobject_type = llvm::Type::getInt8PtrTy(ctx, 0);
+                    // memberTypes.push_back(llvm_pyobject_type->getPointerTo());
 
-                    memberTypes.push_back(llvm_pyobject_type->getPointerTo());
+                    // for now: pass as value, i.e. cloudpickled. Need to change that.
+                     auto llvm_pyobject_type = llvm::Type::getInt8PtrTy(ctx, 0);
+                     memberTypes.push_back(llvm_pyobject_type);
+
                     numVarlenFields++;
                 } else if ((python::Type::GENERICDICT == t || t.isDictionaryType()) && t != python::Type::EMPTYDICT) { // dictionary
 

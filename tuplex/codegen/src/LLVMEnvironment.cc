@@ -20,6 +20,7 @@
 #include <TupleTree.h>
 
 #include <regex>
+#include "FlattenedTuple.h"
 
 using namespace llvm;
 
@@ -2254,6 +2255,94 @@ namespace tuplex {
             auto retAddr = llvm::BlockAddress::get(func, updateIndexBB);
             _generatedIteratorUpdateIndexFunctions[funcName] = retAddr;
             return retAddr;
+        }
+
+        SerializableValue list_get_element(LLVMEnvironment& env, const codegen::IRBuilder& builder,
+                                           const python::Type& list_type, llvm::Value* list_ptr, llvm::Value* index) {
+
+            assert(list_type.isListType());
+
+            auto element_type = list_type.elementType();
+
+            // special case: single valued values
+            if(element_type == python::Type::NULLVALUE) {
+                return {nullptr, nullptr, env.i1Const(true)};
+            } else if(element_type == python::Type::EMPTYTUPLE) {
+                auto llvm_empty_tuple_type = env.getEmptyTupleType();
+                auto alloc = builder.CreateAlloca(llvm_empty_tuple_type, 0, nullptr);
+                auto load = builder.CreateLoad(llvm_empty_tuple_type, alloc);
+                return {load, env.i64Const(sizeof(int64_t))};
+            } else if(element_type == python::Type::EMPTYDICT || element_type == python::Type::EMPTYLIST) {
+                return {};
+                //addInstruction(nullptr, nullptr); // TODO: may want to actually construct an empty dictionary, look at LambdaFunction.cc::addReturn, in the !res case
+            }
+
+
+            auto llvm_list_type = env.createOrGetListType(list_type);
+            auto llvm_list_element_type = env.pythonToLLVMType(element_type);
+            auto valArrayPtr = builder.CreateStructGEP(list_ptr, llvm_list_type, 2);
+            auto valArray = builder.CreateLoad(llvm_list_type->getStructElementType(2), valArrayPtr);
+
+            // special case: for tuple & list is the element type a pointer
+            auto llvm_list_element_load_type = llvm_list_element_type;
+            if((element_type.isTupleType() && !element_type.isFixedSizeType() && python::Type::EMPTYTUPLE != element_type) ||
+               (element_type.isListType() && python::Type::EMPTYLIST != element_type))
+                llvm_list_element_load_type = llvm_list_element_type->getPointerTo();
+
+            auto currValPtr = builder.CreateGEP(llvm_list_element_load_type, valArray, index);
+            llvm::Value* retVal = builder.CreateLoad(llvm_list_element_load_type, currValPtr);
+            llvm::Value* retSize = nullptr;
+            if(element_type == python::Type::I64 || element_type == python::Type::F64 || element_type == python::Type::BOOLEAN) {
+                // note: list internal representation currently uses 1 byte for bool (although this field is never used)
+                retSize = env.i64Const(8);
+            } else if(element_type == python::Type::STRING || element_type.isDictionaryType()) {
+                auto sizeArrayPtr = builder.CreateStructGEP(list_ptr, llvm_list_type, 3);
+                auto sizeArray = builder.CreateLoad(env.i64ptrType(), sizeArrayPtr);
+                auto currSizePtr = builder.CreateGEP(builder.getInt64Ty(), sizeArray, index);
+                retSize = builder.CreateLoad(builder.getInt64Ty(), currSizePtr);
+            } else if(element_type.isTupleType()) {
+                if(!element_type.isFixedSizeType()) {
+                    auto llvm_tuple_type = env.getOrCreateTupleType(element_type);
+                    // retVal is a pointer to tuple struct
+                    retVal = builder.CreateLoad(llvm_tuple_type, retVal);
+                }
+                auto ft = FlattenedTuple::fromLLVMStructVal(&env, builder, retVal, element_type);
+                retSize = ft.getSize(builder);
+            }
+
+            return {retVal, retSize, env.i1Const(false)};
+
+//            // make sure pointers are valid
+//            assert(list_ptr && index);
+//
+//            // fetch element
+//            // get the element
+//            auto llvm_list_type = env.createOrGetListType(list_type);
+//            auto llvm_element_type = env.pythonToLLVMType(element_type);
+//
+//            auto list_arr_ptr = builder.CreateLoad(llvm_element_type->getPointerTo(), builder.CreateStructGEP(list_ptr, llvm_list_type, 2));
+//            auto subval_ptr = builder.CreateGEP(llvm_element_type, list_arr_ptr, index);
+//            auto subval = builder.CreateLoad(llvm_element_type, subval_ptr);
+//
+//            // legacy: auto subval = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(value.val, 2), index.val));
+//
+//            llvm::Value* subsize = env.i64Const(sizeof(int64_t)); // TODO: is this 8 for boolean as well?
+//            if(element_type == python::Type::STRING) {
+//                // load var length size
+//                auto list_sizes_ptr = builder.CreateLoad(env.i64ptrType(), builder.CreateStructGEP(list_ptr, llvm_list_type, 3));
+//                auto subsize_ptr = builder.CreateGEP(builder.getInt64Ty(), list_sizes_ptr, index);
+//                subsize = builder.CreateLoad(builder.getInt64Ty(), subsize_ptr);
+//
+//                // legacy: subsize = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(value.val, 3), index.val));
+//            }
+//
+//            return {subval, subsize, env.i1Const(false)};
+        }
+
+        void list_store_element(LLVMEnvironment& env, const codegen::IRBuilder& builder,
+                                             const python::Type& list_type, llvm::Value* list_ptr,
+                                             llvm::Value* index, const SerializableValue& val) {
+
         }
     }
 }

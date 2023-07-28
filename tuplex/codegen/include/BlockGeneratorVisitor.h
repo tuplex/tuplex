@@ -231,18 +231,6 @@ namespace codegen {
                 }
             }
 
-        private:
-
-            llvm::Type* deriveLLVMType() const {
-                assert(env);
-
-                // get rid off option!
-
-                // only string, bool, int, f64 so far supported!
-                auto t_without_option = type.isOptionType() ? type.getReturnType() : type;
-                return env->pythonToLLVMType(t_without_option);
-            }
-
             static bool passByValue(const python::Type& t) {
                 assert(t != python::Type::UNKNOWN);
 
@@ -255,6 +243,18 @@ namespace codegen {
 
                 // dictionary type right now mapped to i8* already, so mapping is mutable.
                 return t.isImmutable() || t.isDictionaryType();
+            }
+
+        private:
+
+            llvm::Type* deriveLLVMType() const {
+                assert(env);
+
+                // get rid off option!
+
+                // only string, bool, int, f64 so far supported!
+                auto t_without_option = type.isOptionType() ? type.getReturnType() : type;
+                return env->pythonToLLVMType(t_without_option);
             }
 
             inline bool passByValue() const {

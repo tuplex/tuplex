@@ -301,3 +301,18 @@ TEST_F(ListFunctions, ListIn) {
     EXPECT_EQ(v2[1].toPythonString(), "({},)");
     EXPECT_EQ(v2[2].toPythonString(), "({},)");
 }
+
+TEST_F(ListFunctions, ListOfTuples) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    // access tuple from list of tuples
+
+    auto l0 = List(Tuple(1, 2), Tuple(3, 4), Tuple(5, 6));
+    auto v0 = c.parallelize({Row(l0, 0), Row(l0, 1), Row(l0, 2)})
+                           .map(UDF("lambda L, i: L[i]")).collectAsVector();
+    ASSERT_EQ(v0.size(), 3);
+    EXPECT_EQ(v0[0].toPythonString(), "(1,2)");
+    EXPECT_EQ(v0[1].toPythonString(), "(3,4)");
+    EXPECT_EQ(v0[2].toPythonString(), "(5,6)");
+}

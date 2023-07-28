@@ -2066,6 +2066,13 @@ namespace tuplex {
                                           llvm::Value *isnull);
 
 
+        extern SerializableValue list_get_element(LLVMEnvironment& env, const codegen::IRBuilder& builder,
+                                                  const python::Type& list_type, llvm::Value* list_ptr, llvm::Value* index);
+
+        void list_store_element(LLVMEnvironment& env, const codegen::IRBuilder& builder,
+                                const python::Type& list_type, llvm::Value* list_ptr,
+                                llvm::Value* index, const SerializableValue& val);
+
     }
 }
 

@@ -459,6 +459,10 @@ namespace tuplex {
 
                             builder.CreateStore(data_ptr, list_arr);
                         } else {
+                            // set list size and capacity to 0 to avoid errors
+                            builder.CreateStore(_env->i64Const(0), list_capacity_ptr);
+                            builder.CreateStore(_env->i64Const(0), list_len_ptr);
+
                             Logger::instance().defaultLogger().error("unknown type '" + type.desc() + "' to be deserialized!");
                         }
 

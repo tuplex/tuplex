@@ -1000,37 +1000,10 @@ namespace tuplex {
             auto iterableAllocPtr = builder.CreateGEP(llvm_iterator_context_type, iterator, {_env.i32Const(0), _env.i32Const(2)});
             auto iterableAlloc = builder.CreateLoad(llvm_iterator_context_type->getStructElementType(2), iterableAllocPtr);
             if(iterablesType.isListType()) {
-                auto llvm_list_type = _env.createOrGetListType(iterablesType);
-                auto element_type = iterablesType.elementType();
-                auto llvm_list_element_type = _env.pythonToLLVMType(element_type);
-                auto valArrayPtr = builder.CreateGEP(llvm_list_type, iterableAlloc, {_env.i32Const(0), _env.i32Const(2)});
-                auto valArray = builder.CreateLoad(llvm_list_type->getStructElementType(2), valArrayPtr);
 
-                // special case: for tuple & list is the element type a pointer
-                auto llvm_list_element_load_type = llvm_list_element_type;
-                if((element_type.isTupleType() && !element_type.isFixedSizeType() && python::Type::EMPTYTUPLE != element_type) ||
-                   (element_type.isListType() && python::Type::EMPTYLIST != element_type))
-                    llvm_list_element_load_type = llvm_list_element_type->getPointerTo();
-
-                auto currValPtr = builder.CreateGEP(llvm_list_element_load_type, valArray, index);
-                retVal = builder.CreateLoad(llvm_list_element_load_type, currValPtr);
-                if(yieldType == python::Type::I64 || yieldType == python::Type::F64 || yieldType == python::Type::BOOLEAN) {
-                    // note: list internal representation currently uses 1 byte for bool (although this field is never used)
-                    retSize = _env.i64Const(8);
-                } else if(yieldType == python::Type::STRING || yieldType.isDictionaryType()) {
-                    auto sizeArrayPtr = builder.CreateGEP(llvm_list_type, iterableAlloc, {_env.i32Const(0), _env.i32Const(3)});
-                    auto sizeArray = builder.CreateLoad(_env.i64ptrType(), sizeArrayPtr);
-                    auto currSizePtr = builder.CreateGEP(builder.getInt64Ty(), sizeArray, index);
-                    retSize = builder.CreateLoad(builder.getInt64Ty(), currSizePtr);
-                } else if(yieldType.isTupleType()) {
-                    if(!yieldType.isFixedSizeType()) {
-                        auto llvm_tuple_type = _env.getOrCreateTupleType(yieldType);
-                        // retVal is a pointer to tuple struct
-                        retVal = builder.CreateLoad(llvm_tuple_type, retVal);
-                    }
-                    auto ft = FlattenedTuple::fromLLVMStructVal(&_env, builder, retVal, yieldType);
-                    retSize = ft.getSize(builder);
-                }
+                auto ret = list_get_element(_env, builder, iterablesType, iterableAlloc, index);
+                retVal = ret.val;
+                retSize = ret.size;
             } else if(iterablesType == python::Type::STRING) {
                 auto currCharPtr = builder.CreateGEP(_env.i8Type(), iterableAlloc, index);
                 // allocate new string (1-byte character with a 1-byte null terminator)

@@ -3988,19 +3988,9 @@ namespace tuplex {
                         assert(value.val && value.val->getType()->isPointerTy());
                         // should contain i64 only
                         auto num_elements = builder.CreateLoad(builder.getInt64Ty(), value.val);
-
                         auto indexcmp = _env->indexCheck(builder, index.val, num_elements);
                         _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp)); // error if index out of bounds
-                        if(elementType == python::Type::NULLVALUE) {
-                            addInstruction(nullptr, nullptr, _env->i1Const(true));
-                        } else if(elementType == python::Type::EMPTYTUPLE) {
-                            auto llvm_empty_tuple_type = _env->getEmptyTupleType();
-                            auto alloc = builder.CreateAlloca(llvm_empty_tuple_type, 0, nullptr);
-                            auto load = builder.CreateLoad(llvm_empty_tuple_type, alloc);
-                            addInstruction(load, _env->i64Const(sizeof(int64_t)));
-                        } else if(elementType == python::Type::EMPTYDICT || elementType == python::Type::EMPTYLIST) {
-                            addInstruction(nullptr, nullptr); // TODO: may want to actually construct an empty dictionary, look at LambdaFunction.cc::addReturn, in the !res case
-                        }
+                        auto element = list_get_element(*_env, builder, value_type, nullptr, nullptr);
                     } else {
 
                         // new: list passed as pointer
@@ -4020,26 +4010,9 @@ namespace tuplex {
                         auto indexcmp = _env->indexCheck(builder, index.val, num_elements);
                         _lfb->addException(builder, ExceptionCode::INDEXERROR, _env->i1neg(builder, indexcmp));
 
-                        // get the element
-                        auto llvm_element_type = _env->pythonToLLVMType(elementType);
+                        auto element = list_get_element(*_env, builder, list_type, value.val, index.val);
 
-                        auto list_arr_ptr = builder.CreateLoad(llvm_element_type->getPointerTo(), builder.CreateStructGEP(value.val, llvm_list_type, 2));
-                        auto subval_ptr = builder.CreateGEP(llvm_element_type, list_arr_ptr, index.val);
-                        auto subval = builder.CreateLoad(llvm_element_type, subval_ptr);
-
-                        // legacy: auto subval = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(value.val, 2), index.val));
-
-                        llvm::Value* subsize = _env->i64Const(sizeof(int64_t)); // TODO: is this 8 for boolean as well?
-                        if(elementType == python::Type::STRING) {
-                            // load var length size
-                            auto list_sizes_ptr = builder.CreateLoad(_env->i64ptrType(), builder.CreateStructGEP(value.val, llvm_list_type, 3));
-                            auto subsize_ptr = builder.CreateGEP(builder.getInt64Ty(), list_sizes_ptr, index.val);
-                            subsize = builder.CreateLoad(builder.getInt64Ty(), subsize_ptr);
-
-                            // legacy: subsize = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(value.val, 3), index.val));
-                        }
-
-                        addInstruction(subval, subsize);
+                        addInstruction(element.val, element.size, element.is_null);
                     }
                 }
             } else if (value.val->getType() == _env->getMatchObjectPtrType() &&
@@ -5381,9 +5354,11 @@ namespace tuplex {
                 step = _env->i64Const(1);
                 end = builder.CreateSub(exprAlloc.size, _env->i64Const(1));
             } else if(exprType == python::Type::RANGE) {
-                start = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(exprAlloc.val, llvm_expr_type, 0));
-                end = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(exprAlloc.val, llvm_expr_type, 1));
-                step = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(exprAlloc.val, llvm_expr_type, 2));
+                // exprAlloc.val is range*, but llvm_type is range*. Hence, use original range llvm type here
+                auto llvm_range_type = _env->getRangeObjectType();
+                start = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(exprAlloc.val, llvm_range_type, 0));
+                end = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(exprAlloc.val, llvm_range_type, 1));
+                step = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(exprAlloc.val, llvm_range_type, 2));
             } else if(exprType.isIteratorType()) {
                 assert(forStmt->expression->hasAnnotation() && forStmt->expression->annotation().iteratorInfo);
                 iteratorInfo = forStmt->expression->annotation().iteratorInfo;
@@ -5579,10 +5554,16 @@ namespace tuplex {
                         // loop variable is of type i64 or f64 (has size 8)
                         addInstruction(currVal, _env->i64Const(8));
                     } else if(targetType == python::Type::STRING || targetType.isDictionaryType()) {
+
+                        auto list_size_array_ptr = builder.CreateLoad(builder.getInt64Ty()->getPointerTo(), builder.CreateStructGEP(exprAlloc.val, llvm_expr_type, 3));
+
+                        // old:
+                        // auto list_size_array_ptr = builder.CreateExtractValue(exprAlloc.val, {3});
+
                         // loop variable is of type string or dictionary (need to extract size)
                         auto currSize = builder.CreateLoad(builder.getInt64Ty(),
                                                            builder.CreateGEP(builder.getInt64Ty(),
-                                                                             builder.CreateExtractValue(exprAlloc.val, {3}), curr));
+                                                                             list_size_array_ptr, curr));
                         addInstruction(currVal, currSize);
                     } else if(targetType == python::Type::BOOLEAN) {
                         // loop variable is of type bool (has size 1)
@@ -5628,16 +5609,46 @@ namespace tuplex {
                         } else {
                             // multiple identifiers, add each value in list to stack in reverse order
                             for (int i = loopVal.size() - 1; i >= 0 ; --i) {
-                                auto idVal = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(currVal.val, {2}), _env->i32Const(i)));
+
+                                // list is passed as pointer, fix by loading from pointer directly
+                                auto list_type = exprType.yieldType();
+                                auto llvm_list_type = _env->createOrGetListType(list_type);
+                                auto llvm_element_type = _env->pythonToLLVMType(list_type.elementType());
+
+                                auto llvm_load_type = llvm_element_type;
+
+                                // special case: tuples are stored as pointer as well
+                                if(list_type.elementType().isTupleType())
+                                    llvm_load_type = llvm_element_type->getPointerTo();
+
+                                // old uses extractvalue
+                                // builder.CreateExtractValue(currVal.val, {2})
+                                auto list_value_array_ptr = builder.CreateStructGEP(currVal.val, llvm_list_type, 2);
+                                auto idVal = builder.CreateLoad(llvm_load_type,
+                                                                builder.CreateGEP(llvm_load_type, list_value_array_ptr, {_env->i32Const(i)}));
                                 auto idType = loopVal[i].second;
+
+                                // tuple? --> load!
+                                if(list_type.elementType().isTupleType()) {
+                                    _env->printValue(builder, idVal, "loading tuple from pointer: ");
+                                    idVal = builder.CreateLoad(llvm_element_type, idVal);
+                                }
+
+
                                 if(idType == python::Type::I64 || targetType == python::Type::F64) {
                                     addInstruction(idVal, _env->i64Const(8));
                                 } else if(idType == python::Type::BOOLEAN) {
                                     addInstruction(idVal, _env->i64Const(1));
                                 } else if(idType == python::Type::STRING || idType.isDictionaryType()) {
-                                    auto idValSize = builder.CreateLoad(builder.CreateGEP(builder.CreateExtractValue(currVal.val, {3}), _env->i32Const(i)));
+
+                                    // same for size array
+                                    auto list_size_array_ptr = builder.CreateStructGEP(currVal.val, llvm_list_type, 3);
+
+                                    auto idValSize = builder.CreateLoad(builder.getInt64Ty(),
+                                                                        builder.CreateGEP(builder.getInt64Ty(), list_size_array_ptr, _env->i32Const(i)));
                                     addInstruction(idVal, idValSize);
                                 } else if(idType.isTupleType()) {
+                                    _env->debugPrint(builder, "assigning tuple");
                                     FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env, builder, idVal, idType);
                                     addInstruction(idVal, ft.getSize(builder));
                                 } else {
@@ -5772,7 +5783,7 @@ namespace tuplex {
                 // type change in loop but loop ends before first iteration? -> normal case violation
                 if(typeChange) {
                     auto loopEnd = _env->i1neg(builder, whileCond);
-                    auto isFirstIteration = builder.CreateLoad(isFirstIterationPtr);
+                    auto isFirstIteration = builder.CreateLoad(_env->i1Type(), isFirstIterationPtr);
                     _lfb->addException(builder, ExceptionCode::NORMALCASEVIOLATION, builder.CreateAnd(isFirstIteration, loopEnd));
                     builder.CreateStore(builder.CreateAnd(isFirstIteration, _env->i1Const(false)), isFirstIterationPtr);
                 }

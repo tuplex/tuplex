@@ -82,7 +82,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #set(CMAKE_C_STANDARD_REQUIRED ON)
 message(STATUS "Using language versions C++${CMAKE_CXX_STANDARD} and C${CMAKE_C_STANDARD}")
 # add cmake modules from cmake folder
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 message(STATUS "additional cmake module path is ${CMAKE_MODULE_PATH}")
 include("${CMAKE_SOURCE_DIR}/cmake/ucm.cmake") #handy package to manipulate compiler flags
 include("${CMAKE_SOURCE_DIR}/cmake/CPM.cmake") # package manager from https://github.com/cpm-cmake/CPM.cmake
@@ -861,9 +861,14 @@ else()
     endif()
 endif()
 
-# zstd has no cmake standarad module, so manually search for it
-find_package(ZSTD "${ZSTD_VERSION}")
-if(ZSTD_FOUND)
+# zstd has no cmake standard module, so manually search for it
+find_package(zstd "${ZSTD_VERSION}" REQUIRED)
+if(zstd_FOUND)
+    # check if zstd is defined as target
+    if(TARGET zstd::libzstd_static)
+        set(ZSTD_LIBRARIES "zstd::libzstd_static") # could also be libzstd_shared
+    endif()
+    # if not, use variables directly
     if(ZSTD_LIBRARY)
         set(ZSTD_LIBRARIES "${ZSTD_LIBRARY}")
     elseif(ZSTD_STATIC_LIB)

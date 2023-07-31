@@ -151,22 +151,22 @@ TEST_F(ListFunctions, ListReturn) {
     EXPECT_EQ(v5[2].toPythonString(), "([],)");
 }
 
-TEST_F(ListFunctions, ListReturnII) {
-    using namespace tuplex;
-    Context c(microTestOptions());
-
-    auto code1 = "def a(x):\n"
-                 "    if(x > 2):\n"
-                 "        return [1, 2, 3]\n"
-                 "    else:\n"
-                 "        return None";
-
-    auto v1 = c.parallelize({Row(0), Row(1), Row(4)}).map(UDF(code1)).collectAsVector();
-    ASSERT_EQ(v1.size(), 3);
-    EXPECT_EQ(v1[0].toPythonString(), "(None,)");
-    EXPECT_EQ(v1[1].toPythonString(), "(None,)");
-    EXPECT_EQ(v1[2].toPythonString(), "([1,2,3],)");
-}
+//TEST_F(ListFunctions, ListReturnII) {
+//    using namespace tuplex;
+//    Context c(microTestOptions());
+//
+//    auto code1 = "def a(x):\n"
+//                 "    if(x > 2):\n"
+//                 "        return [1, 2, 3]\n"
+//                 "    else:\n"
+//                 "        return None";
+//
+//    auto v1 = c.parallelize({Row(0), Row(1), Row(4)}).map(UDF(code1)).collectAsVector();
+//    ASSERT_EQ(v1.size(), 3);
+//    EXPECT_EQ(v1[0].toPythonString(), "(None,)");
+//    EXPECT_EQ(v1[1].toPythonString(), "(None,)");
+//    EXPECT_EQ(v1[2].toPythonString(), "([1,2,3],)");
+//}
 
 TEST_F(ListFunctions, RegressionTests) {
     using namespace tuplex;

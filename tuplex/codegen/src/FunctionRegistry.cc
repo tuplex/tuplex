@@ -2459,7 +2459,9 @@ namespace tuplex {
             builder.CreateStore(list_length, idx_length);
             builder.CreateStore(values, idx_values_array);
             builder.CreateStore(sizes, idx_sizes_array);
-            return {builder.CreateLoad(llvm_list_type, res), listSerializedSize};
+
+            // new: do not load list struct, pass as pointer instead
+            return {res, listSerializedSize};
         }
 
 #warning "Doesn't support unicode strings"

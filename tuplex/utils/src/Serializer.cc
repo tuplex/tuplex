@@ -1126,7 +1126,7 @@ namespace tuplex {
             }
         }
 
-        // this seems to fails weirdly
+        // this seems to fail weirdly
 #ifndef NDEBUG
         if (altSize != varLenFieldsLength) {
             std::stringstream ss;
@@ -1141,7 +1141,7 @@ namespace tuplex {
         }
 #endif
 
-        assert(altSize == varLenFieldsLength);
+         assert(altSize == varLenFieldsLength);
 
         // is any varlenfield contained?
         if (hasSchemaVarLenFields()) {

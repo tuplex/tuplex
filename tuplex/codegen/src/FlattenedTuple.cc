@@ -578,6 +578,7 @@ namespace tuplex {
 
             // bitmap needed?
             bool hasBitmap = getTupleType().isOptional();
+            int64_t num_bitmap_blocks = 0;
 
             // step 1: serialize bitmap
             if(hasBitmap) {
@@ -593,6 +594,8 @@ namespace tuplex {
                     // warning multiple
                     lastPtr = builder.MovePtrByBytes(lastPtr, sizeof(int64_t), "outptr");
                 }
+
+                num_bitmap_blocks = bitmap.size();
 
                 // add multiple of 8 bytes to varlen base ptr for bitmap
                 varlenBasePtr = builder.MovePtrByBytes(varlenBasePtr, sizeof(int64_t) * bitmap.size(), "varlenbaseptr");
@@ -649,6 +652,7 @@ namespace tuplex {
                 if(fieldType.isListType() && !fieldType.elementType().isSingleValued()) {
                     assert(!fieldType.isFixedSizeType());
                     // the offset is computed using how many varlen fields have been already serialized
+                    // and including how many 8-byte blocks the bitmao requires
                     int64_t fixed_offset = (static_cast<int64_t>(numSerializedElements) + 1 - serialized_idx) * static_cast<int64_t>(sizeof(int64_t));
                     Value *offset = builder.CreateAdd(_env->i64Const(fixed_offset), varlenSize); // <-- offset where to serialize to
 
@@ -881,6 +885,7 @@ namespace tuplex {
 
             // if varfield was encountered, store varfield size!
             if(hasVarField) {
+                _env->printValue(builder, varlenSize, "storing total varlen fields size = ");
                 builder.CreateStore(varlenSize, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0))); // last field
             }
         }

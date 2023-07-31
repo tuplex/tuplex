@@ -2014,39 +2014,15 @@ namespace tuplex {
                     }
                 } else {
 
-                    // use this helper to print out list...
-                    // debugPrintListValue(_env, builder, argType, arg.val);
+                    auto llvm_list_type = _env.createOrGetListType(argType);
+                    auto num_elements = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(arg.val, llvm_list_type, 1));
 
-                    auto num_elements = builder.CreateExtractValue(arg.val, {1});
                     lfb.addException(builder, ExceptionCode::INDEXERROR, builder.CreateICmpEQ(num_elements, _env.i64Const(0))); // index error if empty list
                     auto random_number = builder.CreateCall(uniformInt_prototype(_env.getContext(), _env.getModule().get()), {_env.i64Const(0), num_elements});
 
-                    _env.printValue(builder, num_elements, argType.desc() +" has num elements=");
-                    _env.printValue(builder, random_number, "rand index to retrieve=");
-
-                    auto llvm_element_type = _env.pythonToLLVMType(elementType);
-                    auto elementsPtr = builder.CreateExtractValue(arg.val, {2});
-                    _env.printValue(builder, elementsPtr, "elements=");
-                    auto x0 = builder.CreateLoad(llvm_element_type, elementsPtr);
-
-                    auto subval = builder.CreateLoad(llvm_element_type,
-                                                     builder.CreateGEP(llvm_element_type, elementsPtr, random_number));
-
-                    // alt
-                    _env.printValue(builder, builder.CreateLoad(llvm_element_type,
-                                                                builder.CreateGEP(llvm_element_type, builder.CreateExtractValue(arg.val, {2}), random_number)), "alt=");
-
-                    //auto list_llvm_type = _env.pythonToLLVMType(argType);
-                    //_env.printValue(builder, builder.CreateLoad(llvm_element_type, builder.CreateGEP(llvm_element_type, builder.CreateStructGEP(arg.val, list_llvm_type, 2), random_number)), "alt=");
-
-
-                    _env.printValue(builder, subval, "value retrieved=");
-                    llvm::Value* subsize = _env.i64Const(sizeof(int64_t));
-                    if(elementType == python::Type::STRING) {
-                        subsize = builder.CreateLoad(builder.getInt64Ty(),
-                                                     builder.CreateGEP(builder.getInt64Ty(), builder.CreateExtractValue(arg.val, 3), random_number));
-                    }
-                    return {subval, subsize};
+                    // list load
+                    auto sub = list_get_element(_env, builder, argType, arg.val, random_number);
+                    return sub;
                 }
             } else {
                 throw std::runtime_error("random.choice() is only supported for string arguments, currently");

@@ -1373,6 +1373,45 @@ TEST_F(PipelinesTest, FlightPipelineWithNulLValueOpt) {
     compareStrArrays(r_proj_wLLVMOpt_parse_null, ref, true);
 }
 
+TEST_F(PipelinesTest, FlightPipelineWithGeneratedParser) {
+    // have a separate test for this setting, because it is prone to errors
+
+    using namespace tuplex;
+    using namespace std;
+    std::string bts_path="../resources/pipelines/flights/flights_on_time_performance_2019_01.10k-sample.csv";
+    std::string carrier_path="../resources/pipelines/flights/L_CARRIER_HISTORY.csv";
+    std::string airport_path="../resources/pipelines/flights/GlobalAirportDatabase.txt";
+    auto cache = false;
+
+    auto opt_ref = testOptions();
+    opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
+    opt_ref.set("tuplex.executorCount", "0"); // single-threaded
+    opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
+    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.generateParser", "false");
+    opt_ref.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
+    // Note: all resolve with interpreter work, except for when projection pushdown is used.
+    //       then there's an error in the interpreter path. Reported as Bug issue #https://github.com/LeonhardFS/Tuplex/issues/247
+    opt_ref.set("tuplex.resolveWithInterpreterOnly", "false");
+
+    // this is causing error
+    // with projection pushdown + LLVM Optimizers + generated parser
+    auto opt_proj_wLLVMOpt_parse = opt_ref;
+    opt_proj_wLLVMOpt_parse.set("tuplex.csv.selectionPushdown", "true");
+    opt_proj_wLLVMOpt_parse.set("tuplex.useLLVMOptimizer", "true");
+    opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.generateParser", "true");
+    Context c_proj_wLLVMOpt_parse(opt_proj_wLLVMOpt_parse);
+    auto r_proj_wLLVMOpt_parse = pipelineAsStrs(flightPipeline(c_proj_wLLVMOpt_parse, bts_path, carrier_path, airport_path, cache));
+
+    // run ref pipeline
+    Context c_ref(opt_ref);
+    auto ref = pipelineAsStrs(flightPipeline(c_ref, bts_path, carrier_path, airport_path, cache));
+
+    std::sort(ref.begin(), ref.end());
+    compareStrArrays(r_proj_wLLVMOpt_parse, ref, true);
+}
+
 TEST_F(PipelinesTest, FlightConfigHarness) {
     // test pipeline over several context configurations
     using namespace tuplex;
@@ -1422,14 +1461,15 @@ TEST_F(PipelinesTest, FlightConfigHarness) {
         auto r_proj_wLLVMOpt = pipelineAsStrs(flightPipeline(c_proj_wLLVMOpt, bts_path, carrier_path, airport_path, cache));
         compareStrArrays(r_proj_wLLVMOpt, ref, true);
 
-        // with projection pushdown + LLVM Optimizers + generated parser
-        auto opt_proj_wLLVMOpt_parse = opt_ref;
-        opt_proj_wLLVMOpt_parse.set("tuplex.csv.selectionPushdown", "true");
-        opt_proj_wLLVMOpt_parse.set("tuplex.useLLVMOptimizer", "true");
-        opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.generateParser", "true");
-        Context c_proj_wLLVMOpt_parse(opt_proj_wLLVMOpt_parse);
-        auto r_proj_wLLVMOpt_parse = pipelineAsStrs(flightPipeline(c_proj_wLLVMOpt_parse, bts_path, carrier_path, airport_path, cache));
-        compareStrArrays(r_proj_wLLVMOpt_parse, ref, true);
+//// this is causing error
+//        // with projection pushdown + LLVM Optimizers + generated parser
+//        auto opt_proj_wLLVMOpt_parse = opt_ref;
+//        opt_proj_wLLVMOpt_parse.set("tuplex.csv.selectionPushdown", "true");
+//        opt_proj_wLLVMOpt_parse.set("tuplex.useLLVMOptimizer", "true");
+//        opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.generateParser", "true");
+//        Context c_proj_wLLVMOpt_parse(opt_proj_wLLVMOpt_parse);
+//        auto r_proj_wLLVMOpt_parse = pipelineAsStrs(flightPipeline(c_proj_wLLVMOpt_parse, bts_path, carrier_path, airport_path, cache));
+//        compareStrArrays(r_proj_wLLVMOpt_parse, ref, true);
 
         // NULL value OPTIMIZATION
         // with projection pushdown + LLVM Optimizers + generated parser + null value opt

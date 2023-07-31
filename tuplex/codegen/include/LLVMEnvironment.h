@@ -240,6 +240,19 @@ namespace tuplex {
 
             std::unique_ptr<llvm::legacy::FunctionPassManager> _fpm; // lazy initialized function pass manager for quick optimization of function
 
+            // helper func to lookup llvm type names
+            inline llvm::Type* llvm_type_by_name(const std::string& name) {
+                if(!_module)
+                    return nullptr;
+
+#if LLVM_VERSION_MAJOR < 10
+                return _module->getTypeByName(name);
+#else
+                // LLVM moved lookup away from module to context
+                return llvm::StructType::getTypeByName(_module->getContext(), name);
+#endif
+            }
+
         public:
             LLVMEnvironment(const std::string& moduleName="tuplex") : _module(nullptr),
                                                                       _memoryRequested(false) {
@@ -478,8 +491,7 @@ namespace tuplex {
                 if(!_module)
                     return nullptr;
 
-                auto stype = _module->getTypeByName("match");
-
+                auto stype = llvm_type_by_name("match");
                 // lazy register range type
                 if(!stype) {
                     // not registered yet, register now
@@ -512,7 +524,7 @@ namespace tuplex {
                 if(!_module)
                     return nullptr;
 
-                auto stype = _module->getTypeByName("range");
+                auto stype = llvm_type_by_name("range");
 
                 // lazy register range type
                 if(!stype) {

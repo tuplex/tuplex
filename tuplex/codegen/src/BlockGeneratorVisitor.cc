@@ -4265,6 +4265,17 @@ namespace tuplex {
                 return; // early end expression
             }
 
+            // special case: call produces exception -> end here.
+            if(call->getInferredType().isExceptionType()) {
+                auto exception_name = call->getInferredType().desc();
+                if(exception_name == "unknown") {
+                    _lfb->exitWithException(ExceptionCode::NORMALCASEVIOLATION);
+                    return;
+                }
+                _lfb->exitWithException(pythonClassToExceptionCode(exception_name));
+                return;
+            }
+
 
             // _func should have yields all the parameters
             assert(_blockStack.size() >= 1 + call->_positionalArguments.size());

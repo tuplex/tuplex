@@ -656,8 +656,8 @@ namespace tuplex {
                     int64_t fixed_offset = (static_cast<int64_t>(numSerializedElements) + 1 - serialized_idx) * static_cast<int64_t>(sizeof(int64_t));
                     Value *offset = builder.CreateAdd(_env->i64Const(fixed_offset), varlenSize); // <-- offset where to serialize to
 
-                    _env->printValue(builder, varlenSize, "current acc varlensize=");
-                    _env->printValue(builder, offset, "serializing list (tuple element "+ std::to_string(i) + ") to offset=");
+                    // _env->printValue(builder, varlenSize, "current acc varlensize=");
+                    // _env->printValue(builder, offset, "serializing list (tuple element "+ std::to_string(i) + ") to offset=");
 
                     // get pointer to output space
                     Value *outptr = builder.MovePtrByBytes(lastPtr, offset, "list_varoff");
@@ -713,10 +713,10 @@ namespace tuplex {
                         // new API allows src and dest alignment separately
                         builder.CreateMemCpy(serialized_str_ptr, 0, cur_str, 0, cur_size, true);
 #endif
-                        // debug:
-                        _env->printValue(builder, cur_size, "cur_size=");
-                        _env->printValue(builder, cur_str, "cur_str=");
-                        _env->printValue(builder, serialized_size_ptr, "serialized str ptr=");
+                        // // debug:
+                        // _env->printValue(builder, cur_size, "cur_size=");
+                        // _env->printValue(builder, cur_str, "cur_str=");
+                        // _env->printValue(builder, serialized_size_ptr, "serialized str ptr=");
 
 
                         // update the loop variables and return
@@ -751,8 +751,8 @@ namespace tuplex {
                         list_el = builder.CreateZExtOrTrunc(list_el, Type::getInt64Ty(context)); // upcast to 8 bytes
                         auto byte_offset = builder.CreateMul(_env->i64Const(sizeof(int64_t)), loop_i);
 
-                        _env->printValue(builder, byte_offset, "serializing to byte offset=");
-                        _env->printValue(builder, list_el, "serializing element: ");
+                        // _env->printValue(builder, byte_offset, "serializing to byte offset=");
+                        // _env->printValue(builder, list_el, "serializing element: ");
 
                         auto serialized_ptr = builder.MovePtrByBytes(builder.CreateBitCast(outptr, _env->i8ptrType()), byte_offset); // get pointer to location for serialized value
                         serialized_ptr = builder.CreateBitCast(serialized_ptr, _env->i64ptrType());
@@ -782,8 +782,8 @@ namespace tuplex {
                         throw std::runtime_error("unknown list type " + fieldType.desc() + " to be serialized!");
                     }
 
-                    _env->printValue(builder, listLen, "serialized list " + fieldType.desc() + " of num_elements= ");
-                    _env->printValue(builder, size, "serialized list " + fieldType.desc() + " of size= ");
+                    // _env->printValue(builder, listLen, "serialized list " + fieldType.desc() + " of num_elements= ");
+                    // _env->printValue(builder, size, "serialized list " + fieldType.desc() + " of size= ");
 
                     // store correct list size (calculated here with serialization loop)
                     // len | size
@@ -854,7 +854,7 @@ namespace tuplex {
                             boolVal = builder.CreateZExt(boolVal, Type::getInt64Ty(context));
                         }
 
-                        _env->printValue(builder, boolVal, "serializing in flattened tuple bool value=");
+                        // _env->printValue(builder, boolVal, "serializing in flattened tuple bool value=");
 
                         // store within output
                         Value *store = builder.CreateStore(boolVal, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0)), false);
@@ -885,7 +885,7 @@ namespace tuplex {
 
             // if varfield was encountered, store varfield size!
             if(hasVarField) {
-                _env->printValue(builder, varlenSize, "storing total varlen fields size = ");
+                // _env->printValue(builder, varlenSize, "storing total varlen fields size = ");
                 builder.CreateStore(varlenSize, builder.CreateBitCast(lastPtr, Type::getInt64PtrTy(context, 0))); // last field
             }
         }
@@ -965,7 +965,7 @@ namespace tuplex {
             s = _env->i64Const( numSerializedFixedLenFields * sizeof(int64_t));
 
 
-             _env->debugPrint(builder, "fixed size fields take bytes: ", s);
+            // _env->debugPrint(builder, "fixed size fields take bytes: ", s);
 
 #ifndef NDEBUG
             size_t numSerializedFixedLenFieldsCheck = 0;
@@ -989,19 +989,19 @@ namespace tuplex {
                 if(!_tree.fieldType(i).isFixedSizeType()) {
                     s = builder.CreateAdd(s, el.size); // 0 for varlen option!
 
-                    // debug
-                     _env->debugPrint(builder, "element " + std::to_string(i) + ": ", el.val);
-                     _env->debugPrint(builder, "element " + std::to_string(i) + " size: ", el.size);
+                    // // debug
+                    // _env->debugPrint(builder, "element " + std::to_string(i) + ": ", el.val);
+                    // _env->debugPrint(builder, "element " + std::to_string(i) + " size: ", el.size);
                 }
             }
 
-             _env->debugPrint(builder, "including varlen fields that's bytes: ", s);
+             // _env->debugPrint(builder, "including varlen fields that's bytes: ", s);
 
             // check whether varlen field is contained (true for strings only so far. Later, also for arrays, dicts, ...)
             if(containsVarLenField())
                 s = builder.CreateAdd(s, _env->i64Const(sizeof(int64_t)));
 
-             _env->debugPrint(builder, "+fast varlen skipfield that's bytes: ", s);
+            // _env->debugPrint(builder, "+fast varlen skipfield that's bytes: ", s);
 
             // if contains bitmap, add multiple of 8 bytes
             if(tupleType().isOptional()) {
@@ -1016,7 +1016,7 @@ namespace tuplex {
                 s = builder.CreateAdd(s, _env->i64Const(bitmap64Size));
             }
 
-             _env->debugPrint(builder, "final size required is: ", s);
+            // _env->debugPrint(builder, "final size required is: ", s);
 
             return s;
         }

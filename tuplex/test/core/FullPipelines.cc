@@ -1331,6 +1331,48 @@ TEST_F(PipelinesTest, CarriersOnly) {
         std::cout<<r<<std::endl;
 }
 
+TEST_F(PipelinesTest, FlightPipelineWithNulLValueOpt) {
+    // have a separate test for this setting, because it is prone to errors
+
+    using namespace tuplex;
+    using namespace std;
+    std::string bts_path="../resources/pipelines/flights/flights_on_time_performance_2019_01.10k-sample.csv";
+    std::string carrier_path="../resources/pipelines/flights/L_CARRIER_HISTORY.csv";
+    std::string airport_path="../resources/pipelines/flights/GlobalAirportDatabase.txt";
+    auto cache = false;
+
+    auto opt_ref = testOptions();
+    opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
+    opt_ref.set("tuplex.executorCount", "0"); // single-threaded
+    opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
+    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.generateParser", "false");
+    opt_ref.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
+    // Note: all resolve with interpreter work, except for when projection pushdown is used.
+    //       then there's an error in the interpreter path. Reported as Bug issue #https://github.com/LeonhardFS/Tuplex/issues/247
+    opt_ref.set("tuplex.resolveWithInterpreterOnly", "false");
+
+    // NULL value OPTIMIZATION
+    // with projection pushdown + LLVM Optimizers + generated parser + null value opt
+    auto opt_proj_wLLVMOpt_parse_null = opt_ref;
+    opt_proj_wLLVMOpt_parse_null.set("tuplex.csv.selectionPushdown", "true");
+    opt_proj_wLLVMOpt_parse_null.set("tuplex.useLLVMOptimizer", "true");
+    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.generateParser", "true");
+    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.nullValueOptimization", "true");
+    Context c_proj_wLLVMOpt_parse_null(opt_proj_wLLVMOpt_parse_null);
+    auto r_proj_wLLVMOpt_parse_null = pipelineAsStrs(flightPipeline(c_proj_wLLVMOpt_parse_null, bts_path, carrier_path, airport_path, cache));
+    // b.c. null value opt destroys order, sort both arrays
+    std::sort(r_proj_wLLVMOpt_parse_null.begin(), r_proj_wLLVMOpt_parse_null.end());
+
+    // run ref pipeline
+    Context c_ref(opt_ref);
+    auto ref = pipelineAsStrs(flightPipeline(c_ref, bts_path, carrier_path, airport_path, cache));
+
+    std::sort(ref.begin(), ref.end());
+    compareStrArrays(r_proj_wLLVMOpt_parse_null, ref, true);
+}
+
 TEST_F(PipelinesTest, FlightConfigHarness) {
     // test pipeline over several context configurations
     using namespace tuplex;

@@ -308,7 +308,7 @@ namespace tuplex {
 
             IRBuilder builder(bbBody);
 
-            _env->debugPrint(builder, "enter main loop");
+            // _env->debugPrint(builder, "enter main loop");
 
             // there should be a check if argInSize is 0
             // if so -> handle separately, i.e. return immediately
@@ -352,12 +352,12 @@ namespace tuplex {
             BasicBlock *bLoopBody = BasicBlock::Create(context, "loopBody", read_block_func);
 
             // parse first row
-            env().debugPrint(builder, "parse row...");
+            // env().debugPrint(builder, "parse row...");
             auto parseCode = builder.CreateCall(parseRowF, {resStructVar,
                                                             builder.CreateLoad(env().i8ptrType(), currentPtrVar, "readPtr"),
                                                             endPtr}, "parseCode");
             builder.CreateStore(parseCode, parseCodeVar);
-            env().printValue(builder, parseCode, "parsed row with code: ");
+            // env().printValue(builder, parseCode, "parsed row with code: ");
             auto numParsedBytes = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(resStructVar,
                                                                        llvm_res_type,
                                                                        0), "parsedBytes");

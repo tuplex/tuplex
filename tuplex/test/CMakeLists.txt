@@ -134,8 +134,8 @@ if(GTest_VERSION VERSION_GREATER_EQUAL 1.13)
             absl::variant
             )
 
-#    list(APPEND GTest_LIBRARIES absl::base absl::strings)
-     set(GTest_LIBRARIES "${GTest_LIBRARIES} ${protobuf_ABSL_USED_TARGETS}")
+    list(APPEND GTest_LIBRARIES ${protobuf_ABSL_USED_TARGETS})
+    # set(GTest_LIBRARIES "${GTest_LIBRARIES} ${protobuf_ABSL_USED_TARGETS}")
     message(STATUS "Gtest libs: ${GTest_LIBRARIES}")
 endif()
 

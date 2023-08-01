@@ -470,66 +470,66 @@ namespace tuplex {
 
             return updated_iterator;
 
-            // old:
-            // iterator is a pointer to
-
-
-
-            llvm::Type *iteratorContextType = iterator->getType()->getPointerElementType();
-            std::string funcName;
-            auto iteratorName = iteratorInfo->iteratorName;
-
-            if(iteratorName == "zip") {
-                return updateZipIndex(builder, iterator, iteratorInfo);
-            }
-
-            if(iteratorName == "enumerate") {
-                return updateEnumerateIndex(builder, iterator, iteratorInfo);
-            }
-
-            auto iterablesType = iteratorInfo->argsType;
-            auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
-            std::string prefix;
-            if(iteratorName == "iter") {
-                if(iterablesType.isIteratorType()) {
-                    // iter() call on an iterator, ignore the outer iter and call again
-                    assert(argsIteratorInfo.front());
-                    return updateIteratorIndex(builder, iterator, argsIteratorInfo.front());
-                }
-            } else if(iteratorName == "reversed") {
-                prefix = "reverse_";
-            } else {
-                throw std::runtime_error("unsupported iterator" + iteratorName);
-            }
-
-            auto iterable_name = _env->iterator_name_from_type(iterablesType);
-            if(iterable_name.empty()) {
-              throw std::runtime_error("Iterator struct " + _env->getLLVMTypeName(iteratorContextType)
-                                           + " does not have the corresponding LLVM UpdateIteratorIndex function");
-            } else if(iterablesType == python::Type::RANGE) {
-                // special case range -> it's one structure (for all!)
-                funcName = "range_iterator_update";
-            } else {
-              if(!strEndsWith(iterable_name, "_"))
-                iterable_name += "_";
-              funcName = iterable_name + prefix + "iterator_update";
-            }
-
-            // function type: i1(*struct.iterator)
-            FunctionType *ft = llvm::FunctionType::get(llvm::Type::getInt1Ty(_env->getContext()),
-                                                       {llvm::PointerType::get(iteratorContextType, 0)}, false);
-
-            auto& logger = Logger::instance().logger("codegen");
-            logger.debug("iterator context type: " + _env->getLLVMTypeName(iteratorContextType));
-            logger.debug("ft type: " + _env->getLLVMTypeName(ft));
-            logger.debug("iterator type: " + _env->getLLVMTypeName(iterator->getType()));
-
-            // ok, update is something crazy fancy here: mod.getOrInsertFunction(name, FT).getCallee()->getType()->getPointerElementType()->isFunctionTy()
-
-            auto nextFunc_value = llvm::getOrInsertCallable(*_env->getModule(), funcName, ft);
-            llvm::FunctionCallee nextFunc_callee(ft, nextFunc_value);
-            auto exhausted = builder.CreateCall(nextFunc_callee, iterator);
-            return exhausted;
+//            // old:
+//            // iterator is a pointer to
+//
+//
+//
+//            llvm::Type *iteratorContextType = iterator->getType()->getPointerElementType();
+//            std::string funcName;
+//            auto iteratorName = iteratorInfo->iteratorName;
+//
+//            if(iteratorName == "zip") {
+//                return updateZipIndex(builder, iterator, iteratorInfo);
+//            }
+//
+//            if(iteratorName == "enumerate") {
+//                return updateEnumerateIndex(builder, iterator, iteratorInfo);
+//            }
+//
+//            auto iterablesType = iteratorInfo->argsType;
+//            auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
+//            std::string prefix;
+//            if(iteratorName == "iter") {
+//                if(iterablesType.isIteratorType()) {
+//                    // iter() call on an iterator, ignore the outer iter and call again
+//                    assert(argsIteratorInfo.front());
+//                    return updateIteratorIndex(builder, iterator, argsIteratorInfo.front());
+//                }
+//            } else if(iteratorName == "reversed") {
+//                prefix = "reverse_";
+//            } else {
+//                throw std::runtime_error("unsupported iterator" + iteratorName);
+//            }
+//
+//            auto iterable_name = _env->iterator_name_from_type(iterablesType);
+//            if(iterable_name.empty()) {
+//              throw std::runtime_error("Iterator struct " + _env->getLLVMTypeName(iteratorContextType)
+//                                           + " does not have the corresponding LLVM UpdateIteratorIndex function");
+//            } else if(iterablesType == python::Type::RANGE) {
+//                // special case range -> it's one structure (for all!)
+//                funcName = "range_iterator_update";
+//            } else {
+//              if(!strEndsWith(iterable_name, "_"))
+//                iterable_name += "_";
+//              funcName = iterable_name + prefix + "iterator_update";
+//            }
+//
+//            // function type: i1(*struct.iterator)
+//            FunctionType *ft = llvm::FunctionType::get(llvm::Type::getInt1Ty(_env->getContext()),
+//                                                       {llvm::PointerType::get(iteratorContextType, 0)}, false);
+//
+//            auto& logger = Logger::instance().logger("codegen");
+//            logger.debug("iterator context type: " + _env->getLLVMTypeName(iteratorContextType));
+//            logger.debug("ft type: " + _env->getLLVMTypeName(ft));
+//            logger.debug("iterator type: " + _env->getLLVMTypeName(iterator->getType()));
+//
+//            // ok, update is something crazy fancy here: mod.getOrInsertFunction(name, FT).getCallee()->getType()->getPointerElementType()->isFunctionTy()
+//
+//            auto nextFunc_value = llvm::getOrInsertCallable(*_env->getModule(), funcName, ft);
+//            llvm::FunctionCallee nextFunc_callee(ft, nextFunc_value);
+//            auto exhausted = builder.CreateCall(nextFunc_callee, iterator);
+//            return exhausted;
         }
 
         SerializableValue IteratorContextProxy::getIteratorNextElement(const codegen::IRBuilder& builder,
@@ -1127,8 +1127,7 @@ namespace tuplex {
                                       llvm::Value *iterator, const python::Type &iterableType,
                                       const std::shared_ptr<IteratorInfo> &iteratorInfo) {
 
-            llvm::Type *iteratorContextType = iterator->getType()->getPointerElementType();
-            std::string funcName;
+            assert(iteratorInfo);
             auto iteratorName = iteratorInfo->iteratorName;
             auto iterablesType = iteratorInfo->argsType;
             auto argsIteratorInfo = iteratorInfo->argsIteratorInfo;
@@ -1144,7 +1143,7 @@ namespace tuplex {
                                                    const std::shared_ptr<IteratorInfo> &iteratorInfo) {
 
             using namespace llvm;
-            llvm::Type *iteratorContextType = iterator->getType()->getPointerElementType();
+            llvm::Type *iteratorContextType = createIteratorContextTypeFromIteratorInfo(_env, *iteratorInfo); //iterator->getType()->getPointerElementType();
             std::string funcName;
             auto iteratorName = iteratorInfo->iteratorName;
 
@@ -1280,6 +1279,7 @@ namespace tuplex {
             builder.CreateBr(zipElementEntryBB[0]);
             // iterate over all arg iterators
             // if the current arg iterator is exhausted, jump directly to exhaustedBB and zipExhausted will be set to true
+            auto llvm_iterator_type = createIteratorContextTypeFromIteratorInfo(_env, *iteratorInfo);
             for (int i = 0; i < zipSize; ++i) {
 
                 assert(iteratorInfo);
@@ -1290,7 +1290,7 @@ namespace tuplex {
                 auto llvm_curr_iterator_type = createIteratorContextTypeFromIteratorInfo(_env, *iteratorInfo->argsIteratorInfo[i].get());
 
                 builder.SetInsertPoint(zipElementEntryBB[i]);
-                auto currIteratorPtr = builder.CreateGEP(iterator, {_env.i32Const(0), _env.i32Const(i)});
+                auto currIteratorPtr = builder.CreateStructGEP(iterator, llvm_iterator_type, i);
                 auto currIterator = builder.CreateLoad(llvm_curr_iterator_type->getPointerTo(), currIteratorPtr);
                 auto currIteratorInfo = argsIteratorInfo[i];
                 assert(currIteratorInfo);

@@ -82,7 +82,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #set(CMAKE_C_STANDARD_REQUIRED ON)
 message(STATUS "Using language versions C++${CMAKE_CXX_STANDARD} and C${CMAKE_C_STANDARD}")
 # add cmake modules from cmake folder
-list(PREPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 message(STATUS "additional cmake module path is ${CMAKE_MODULE_PATH}")
 include("${CMAKE_SOURCE_DIR}/cmake/ucm.cmake") #handy package to manipulate compiler flags
 include("${CMAKE_SOURCE_DIR}/cmake/CPM.cmake") # package manager from https://github.com/cpm-cmake/CPM.cmake
@@ -286,7 +286,7 @@ if(BUILD_WITH_AWS)
                 absl::utility
                 absl::variant
                 )
-        list(APPEND Protobuf_LIBRARIES "${protobuf_ABSL_USED_TARGETS}")
+        list(APPEND Protobuf_LIBRARIES ${protobuf_ABSL_USED_TARGETS})
     endif()
 endif()
 
@@ -806,7 +806,7 @@ set(BUILD_AND_DOWNLOAD_ZSTD True)
 # find zlib first via cmake
 find_package(ZLIB 1.2.11)
 if(ZLIB_FOUND)
-
+    # nothing todo
 else()
     # check if apple and brewed version is available, if not download & build
     if(APPLE AND BREW_FOUND)

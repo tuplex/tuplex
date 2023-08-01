@@ -2138,7 +2138,7 @@ namespace tuplex {
             // there should be at least one row (omit weird loop for now b.c. more difficult...)
             auto bucketPtr = builder.CreateLoad(_env->i8ptrType(), bucketPtrVar);
             auto row_length = builder.CreateLoad(_env->i32Type(), builder.CreatePointerCast(bucketPtr, _env->i32ptrType()));
-            auto row_ptr = builder.CreateGEP(bucketPtr, _env->i32Const(sizeof(int32_t)));
+            auto row_ptr = builder.MovePtrByBytes(bucketPtr, sizeof(int32_t));
             // update bucketPtr Var with sizeof(int32_t) + data length
             builder.CreateStore(builder.MovePtrByBytes(bucketPtr, builder.CreateAdd(row_length, _env->i32Const(sizeof(int32_t)))), bucketPtrVar);
 

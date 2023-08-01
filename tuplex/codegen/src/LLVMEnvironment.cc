@@ -1945,8 +1945,8 @@ namespace tuplex {
                     assert(list_len->getType() == i64Type());
                     return list_len;
                 } else {
-                    assert(val->getType()->isPointerTy() && val->getType()->getPointerElementType()->isStructTy());
-                    auto list_len_ptr = CreateStructGEP(builder, val, 1);
+                    auto llvm_list_type = createOrGetListType(listType);
+                    auto list_len_ptr = builder.CreateStructGEP( val, llvm_list_type, 1);
                     auto list_len = builder.CreateLoad(builder.getInt64Ty(), list_len_ptr);
                     return list_len;
                 }

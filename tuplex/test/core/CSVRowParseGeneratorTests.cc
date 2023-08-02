@@ -938,6 +938,99 @@ TEST_F(CSVRowParseTest, LargeMultiValTest) {
     EXPECT_EQ(getString(2), "\"hello!\"");
 }
 
+int fallback_spanner(const char* ptr, const char c1, const char c2, const char c3, const char c4) {
+    if(!ptr)
+        return 16;
+
+    char charset[256];
+    memset(charset, 0, 256);
+    charset[c1] = 1;
+    charset[c2] = 1;
+    charset[c3] = 1;
+    charset[c4] = 1;
+
+    // manual implementation
+    auto p = (const unsigned char *)ptr;
+    auto e = p + 16;
+
+    do {
+        if(charset[p[0]]) {
+            break;
+        }
+        if(charset[p[1]]) {
+            p++;
+            break;
+        }
+        if(charset[p[2]]) {
+            p += 2;
+            break;
+        }
+        if(charset[p[3]]) {
+            p += 3;
+            break;
+        }
+        p += 4;
+    } while(p < e);
+
+    if(! *p) {
+        return 16; // PCMPISTRI reports NUL encountered as no match.
+    }
+
+    auto ret =  p - (const unsigned char *)ptr;
+    return ret;
+}
+
+TEST_F(CSVRowParseTest, QuotedSpannerTest) {
+    using namespace tuplex;
+    using namespace tuplex::codegen;
+
+    auto env = std::make_unique<LLVMEnvironment>();
+
+    auto quotechar = '\'';
+    auto escapechar = '\0';
+
+    JITCompiler compiler;
+
+    generateFallbackSpannerFunction(*env.get(), "quoted_spanner", quotechar, escapechar);
+    compiler.compile(std::move(env->getModule()));
+    auto f = reinterpret_cast<int(*)(const char*)>(compiler.getAddrOfSymbol("quoted_spanner"));
+    ASSERT_TRUE(f);
+
+    // go over input file and check each 16 bytes
+    std::string zpath = "../resources/pipelines/zillow/zillow_noexc.csv";
+    auto data = fileToString(zpath);
+    ASSERT_GT(data.size(), 16);
+    for(unsigned i = 0; i < data.size() - 16; ++i) {
+        // check each 16 bytes for correctness
+        auto ptr = data.c_str() + i;
+        EXPECT_EQ(f(ptr), fallback_spanner(ptr, quotechar, escapechar, 0, 0));
+    }
+}
+
+TEST_F(CSVRowParseTest, UnquotedSpannerTest) {
+    using namespace tuplex;
+    using namespace tuplex::codegen;
+
+    auto env = std::make_unique<LLVMEnvironment>();
+
+    JITCompiler compiler;
+    char c1=',', c2='\r', c3='\n', c4='\0';
+    generateFallbackSpannerFunction(*env.get(), "unquoted_spanner", c1, c2, c3, c4);
+    compiler.compile(std::move(env->getModule()));
+    auto f = reinterpret_cast<int(*)(const char*)>(compiler.getAddrOfSymbol("unquoted_spanner"));
+    ASSERT_TRUE(f);
+
+    // go over input file and check each 16 bytes
+    std::string zpath = "../resources/pipelines/zillow/zillow_noexc.csv";
+    auto data = fileToString(zpath);
+    ASSERT_GT(data.size(), 16);
+    for(unsigned i = 0; i < data.size(); ++i) {
+        // check each 16 bytes for correctness
+        auto ptr = data.c_str() + i;
+        EXPECT_EQ(f(ptr), fallback_spanner(ptr, c1, c2, c3, c4));
+    }
+}
+
 // Notes: update parser with recent version from csvmonkey.hpp
 // --> if startPtr=EndPtr this should be a CSV underrun
 // --> empty string, i.e. endPtr = startPtr + 1 and *startPtr = '\0' is ok

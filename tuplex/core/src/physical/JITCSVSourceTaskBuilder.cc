@@ -340,6 +340,8 @@ namespace tuplex {
             auto resStructVar = builder.CreateAlloca(llvm_res_type, 0, nullptr, "resultVar");
             auto parseCodeVar = builder.CreateAlloca(env().i32Type(), 0, nullptr, "parseCodeVar");
 
+            llvm::Value* current_read_ptr = nullptr;
+
             // do here a
             // do {
             // ...
@@ -353,16 +355,17 @@ namespace tuplex {
 
             // parse first row
             // env().debugPrint(builder, "parse row...");
+            current_read_ptr = builder.CreateLoad(env().i8ptrType(), currentPtrVar, "readPtr");
             auto parseCode = builder.CreateCall(parseRowF, {resStructVar,
-                                                            builder.CreateLoad(env().i8ptrType(), currentPtrVar, "readPtr"),
+                                                            current_read_ptr,
                                                             endPtr}, "parseCode");
             builder.CreateStore(parseCode, parseCodeVar);
-            // env().printValue(builder, parseCode, "parsed row with code: ");
-            auto numParsedBytes = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(resStructVar,
+                        auto numParsedBytes = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(resStructVar,
                                                                        llvm_res_type,
                                                                        0), "parsedBytes");
+
             // numParsedBytes should be > 0!
-            auto current_read_ptr = builder.CreateLoad(env().i8ptrType(), currentPtrVar, "readPtr");
+            current_read_ptr = builder.CreateLoad(env().i8ptrType(), currentPtrVar, "readPtr");
             builder.CreateStore(builder.MovePtrByBytes(current_read_ptr, numParsedBytes), currentPtrVar);
             builder.CreateBr(bLoopCond);
 
@@ -404,12 +407,20 @@ namespace tuplex {
 
 #endif
             current_read_ptr = builder.CreateLoad(env().i8ptrType(), currentPtrVar, "readPtr");
+
+            // malloc and memcpy preview
+            auto snippet_ptr = _env->malloc(builder, _env->i64Const(257));
+            builder.CreateMemCpy(snippet_ptr, 0, current_read_ptr, 0, _env->i64Const(256));
+            builder.CreateStore(_env->i8Const(0), builder.MovePtrByBytes(snippet_ptr, _env->i64Const(256)));
+
+
             parseCode = builder.CreateCall(parseRowF, {resStructVar,
                                                        current_read_ptr, endPtr},
                                            "parseCode");
             builder.CreateStore(parseCode, parseCodeVar);
             numParsedBytes = builder.CreateLoad(builder.getInt64Ty(),
                                                 builder.CreateStructGEP(resStructVar, llvm_res_type, 0), "parsedBytes");
+
             // parseRow always returns ok if rows works, however, it could be the case the parse was good but the last
             // line was only partially attained
             // hence, need to check that endptr is 0, else it was a partial parse if this was the last line parsed...

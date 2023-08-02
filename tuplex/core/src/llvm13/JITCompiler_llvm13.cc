@@ -173,7 +173,6 @@ namespace tuplex {
         registerSymbol("i64toa_sse2", i64toa_sse2);
         registerSymbol("d2fixed_buffered_n", d2fixed_buffered_n);
 
-
         // AWS SDK cJSON
 #ifdef BUILD_WITH_AWS
         // cJSON_PrintUnformatted, cJSON_AddItemToObject, cJSON_CreateObject, cJSON_DetachItemViaPointer, cJSON_CreateString

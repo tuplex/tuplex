@@ -11,7 +11,7 @@
 #include <physical/BlockBasedTaskBuilder.h>
 
 // uncomment to debug code generated code
-//#define TRACE_PARSER
+// #define TRACE_PARSER
 
 namespace tuplex {
     namespace codegen {

@@ -257,8 +257,6 @@ namespace tuplex {
 
             llvm::Value *executeSpanner(IRBuilder &builder, llvm::Value *spanner, llvm::Value *ptr);
 
-            llvm::Function* generateFallbackSpannerFunction(LLVMEnvironment& env, const std::string& name="fallback_spanner", char c1 = 0, char c2 = 0, char c3 = 0, char c4 = 0);
-
             // NEW: code-gen null value check (incl. quoting!)
             llvm::Value *isCellNullValue(IRBuilder &builder, llvm::Value *cellBegin, llvm::Value *cellEndIncl) {
 
@@ -393,6 +391,18 @@ namespace tuplex {
             SerializableValue getCellInfo(IRBuilder& builder, llvm::Value* result) const;
 
         };
+
+        /*!
+         * helper to generate spanner code function in LLVM IR
+         * @param env
+         * @param name
+         * @param c1
+         * @param c2
+         * @param c3
+         * @param c4
+         * @return
+         */
+        extern llvm::Function* generateFallbackSpannerFunction(LLVMEnvironment& env, const std::string& name="fallback_spanner", char c1 = 0, char c2 = 0, char c3 = 0, char c4 = 0);
     }
 }
 

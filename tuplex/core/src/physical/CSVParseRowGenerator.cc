@@ -145,10 +145,10 @@ namespace tuplex {
 #endif
         }
 
-        llvm::Function *CSVParseRowGenerator::generateFallbackSpannerFunction(tuplex::codegen::LLVMEnvironment &env,
+        llvm::Function *generateFallbackSpannerFunction(tuplex::codegen::LLVMEnvironment &env,
                                                                               const std::string &name, char c1, char c2,
                                                                               char c3, char c4) {
-            auto &context = _env->getContext();
+            auto &context = env.getContext();
             using namespace llvm;
 
             // generate lookup array as global var
@@ -224,6 +224,20 @@ namespace tuplex {
             builder.SetInsertPoint(bbIsPtr);
 
             auto start_ptr = m["ptr"];
+
+            // // this here calls fallback C-function
+            // {
+            //     // call C-function
+            //     auto fallback_func = getOrInsertFunction(env.getModule().get(),
+            //                                          "fallback_spanner",
+            //                                          ctypeToLLVM<int>(context), env.i8ptrType(), env.i8Type(), env.i8Type(), env.i8Type(), env.i8Type());
+            //     auto ret = builder.CreateCall(fallback_func, {start_ptr, env.i8Const(c1), env.i8Const(c2), env.i8Const(c3), env.i8Const(c4)});
+            //     builder.CreateRet(builder.CreateZExtOrTrunc(ret, ctypeToLLVM<int>(context)));
+            // }
+
+
+            // direct implementation (for end-to-end optimization)
+
             auto ptr = env.CreateFirstBlockVariable(builder, env.i8nullptr());
             builder.CreateStore(start_ptr, ptr);
             auto end_ptr = builder.MovePtrByBytes(start_ptr, 16);
@@ -241,7 +255,7 @@ namespace tuplex {
             // }
 
             // p[0] is same as loading ptr twice
-            auto p_idx = builder.CreateLoad(env.i8Type(), p);
+            llvm::Value* p_idx = builder.CreateZExt(builder.CreateLoad(env.i8Type(), p), env.i32Type());
             auto charset_p0 = builder.CreateLoad(env.i8Type(), builder.CreateInBoundsGEP(g_var, env.i8Type(), p_idx));
             auto cond_p0 = builder.CreateICmpNE(charset_p0, env.i8Const(0));
             auto bbNextIf = BasicBlock::Create(context, "next_if", func);
@@ -252,7 +266,7 @@ namespace tuplex {
             //     p++;
             //     break;
             // }
-            p_idx = builder.CreateLoad(env.i8Type(), builder.MovePtrByBytes(p, 1));
+            p_idx = builder.CreateZExt(builder.CreateLoad(env.i8Type(), builder.MovePtrByBytes(p, 1)), env.i32Type());
             auto charset_p1 = builder.CreateLoad(env.i8Type(), builder.CreateInBoundsGEP(g_var, env.i8Type(), p_idx));
             auto cond_p1 = builder.CreateICmpNE(charset_p1, env.i8Const(0));
             bbNextIf = BasicBlock::Create(context, "next_if", func);
@@ -268,7 +282,7 @@ namespace tuplex {
             //                    p += 2;
             //                    break;
             //                }
-            p_idx = builder.CreateLoad(env.i8Type(), builder.MovePtrByBytes(p, 2));
+            p_idx = builder.CreateZExt(builder.CreateLoad(env.i8Type(), builder.MovePtrByBytes(p, 2)), env.i32Type());
             auto charset_p2 = builder.CreateLoad(env.i8Type(), builder.CreateInBoundsGEP(g_var, env.i8Type(), p_idx));
             auto cond_p2 = builder.CreateICmpNE(charset_p2, env.i8Const(0));
             bbNextIf = BasicBlock::Create(context, "next_if", func);
@@ -285,7 +299,7 @@ namespace tuplex {
             //                    p += 3;
             //                    break;
             //                }
-            p_idx = builder.CreateLoad(env.i8Type(), builder.MovePtrByBytes(p, 3));
+            p_idx = builder.CreateZExt(builder.CreateLoad(env.i8Type(), builder.MovePtrByBytes(p, 3)), env.i32Type());
             auto charset_p3 = builder.CreateLoad(env.i8Type(), builder.CreateInBoundsGEP(g_var, env.i8Type(), p_idx));
             auto cond_p3 = builder.CreateICmpNE(charset_p3, env.i8Const(0));
             bbNextIf = BasicBlock::Create(context, "next_if", func);
@@ -306,12 +320,33 @@ namespace tuplex {
             builder.CreateCondBr(loop_cond, bbLoopBody, bbLoopExit);
 
 
-            // return p - (const unsigned char *)s;
+
             builder.SetInsertPoint(bbLoopExit);
             p = builder.CreateLoad(env.i8ptrType(), ptr);
-            auto ret = builder.CreatePtrDiff(env.i8Type(), p, start_ptr);
 
-            builder.CreateRet(builder.CreateZExtOrTrunc(ret, ctypeToLLVM<int>(context)));
+            // special case: if(!*p) return 16
+            // else return p - (const unsigned char *)s;
+            auto is_zero_char = builder.CreateICmpEQ(builder.CreateLoad(env.i8Type(), p), env.i8Const(0));
+            auto diff = builder.CreateZExtOrTrunc(builder.CreatePtrDiff(env.i8Type(), p, start_ptr), builder.getInt32Ty());
+
+            auto ret = builder.CreateSelect(is_zero_char, env.i32Const(16), diff);
+            ret = builder.CreateZExtOrTrunc(ret, ctypeToLLVM<int>(context));
+
+            // compare with C-function result
+#ifdef TRACE_PARSER
+             // this here calls fallback C-function
+             {
+                 // call C-function
+                 auto fallback_func = getOrInsertFunction(env.getModule().get(),
+                                                      "fallback_spanner",
+                                                      ctypeToLLVM<int>(context), env.i8ptrType(), env.i8Type(), env.i8Type(), env.i8Type(), env.i8Type());
+                 auto ref_ret = builder.CreateCall(fallback_func, {start_ptr, env.i8Const(c1), env.i8Const(c2), env.i8Const(c3), env.i8Const(c4)});
+                 env.printValue(builder, ret, "codegen spanner=");
+                 env.printValue(builder, ref_ret, "C-function spanner=");
+             }
+#endif
+
+            builder.CreateRet(ret);
 
             return func;
         }
@@ -336,6 +371,10 @@ namespace tuplex {
             assert(func);
             auto res = builder.CreateCall(func, {ptr});
 #endif
+#ifdef TRACE_PARSER
+            _env->printValue(builder, res, "spanner result=");
+#endif
+
             return res;
 
             //  // safe version, i.e. when 16 byte border is not guaranteed.

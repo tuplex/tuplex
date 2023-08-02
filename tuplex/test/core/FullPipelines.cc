@@ -641,6 +641,36 @@ TEST_F(PipelinesTest, ZillowAWS) {
 
 #endif // BUILD_WITH_AWS
 
+TEST_F(PipelinesTest, ZillowWithGeneratedParser) {
+    using namespace tuplex;
+    using namespace std;
+
+    auto zpath = "../resources/pipelines/zillow/zillow_noexc.csv";
+    auto cache = false;
+    // for reference deactivate all options!
+    auto opt_ref = testOptions();
+    opt_ref.set("tuplex.runTimeMemory", "128MB");
+    opt_ref.set("tuplex.executorCount", "0"); // single-threaded
+    opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
+    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
+    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.generateParser", "false");
+
+
+     // with projection pushdown + LLVM Optimizers + generated parser
+     auto opt_proj_wLLVMOpt_parse = opt_ref;
+     opt_proj_wLLVMOpt_parse.set("tuplex.csv.selectionPushdown", "true");
+     opt_proj_wLLVMOpt_parse.set("tuplex.useLLVMOptimizer", "true");
+     opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.generateParser", "true");
+     Context c_proj_wLLVMOpt_parse(opt_proj_wLLVMOpt_parse);
+     auto r_proj_wLLVMOpt_parse = pipelineAsStrs(zillowPipeline(c_proj_wLLVMOpt_parse, zpath, cache));
+
+
+    Context c_ref(opt_ref);
+    auto ref = pipelineAsStrs(zillowPipeline(c_ref, zpath, cache));
+    compareStrArrays(r_proj_wLLVMOpt_parse, ref, true);
+}
+
 TEST_F(PipelinesTest, ZillowConfigHarness) {
     using namespace tuplex;
     using namespace std;
@@ -708,14 +738,14 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
         auto r_null_proj_opt = pipelineAsStrs(zillowPipeline(c_null_proj_opt, zpath, cache));
         compareStrArrays(r_null_proj_opt, ref, true);
 
-        // with projection pushdown + LLVM Optimizers + generated parser
-        auto opt_proj_wLLVMOpt_parse = opt_ref;
-        opt_proj_wLLVMOpt_parse.set("tuplex.csv.selectionPushdown", "true");
-        opt_proj_wLLVMOpt_parse.set("tuplex.useLLVMOptimizer", "true");
-        opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.generateParser", "true");
-        Context c_proj_wLLVMOpt_parse(opt_proj_wLLVMOpt_parse);
-        auto r_proj_wLLVMOpt_parse = pipelineAsStrs(zillowPipeline(c_proj_wLLVMOpt_parse, zpath, cache));
-        compareStrArrays(r_proj_wLLVMOpt_parse, ref, true);
+         // with projection pushdown + LLVM Optimizers + generated parser
+         auto opt_proj_wLLVMOpt_parse = opt_ref;
+         opt_proj_wLLVMOpt_parse.set("tuplex.csv.selectionPushdown", "true");
+         opt_proj_wLLVMOpt_parse.set("tuplex.useLLVMOptimizer", "true");
+         opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.generateParser", "true");
+         Context c_proj_wLLVMOpt_parse(opt_proj_wLLVMOpt_parse);
+         auto r_proj_wLLVMOpt_parse = pipelineAsStrs(zillowPipeline(c_proj_wLLVMOpt_parse, zpath, cache));
+         compareStrArrays(r_proj_wLLVMOpt_parse, ref, true);
 
         // NULL value OPTIMIZATION
         // with projection pushdown + LLVM Optimizers + generated parser + null value opt

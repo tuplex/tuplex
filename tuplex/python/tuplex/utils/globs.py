@@ -41,7 +41,7 @@ def _extract_code_globals(co):
     out_names = _extract_code_globals_cache.get(co)
     if out_names is None:
         names = co.co_names
-        out_names = {names[oparg] for _, oparg in _walk_global_ops(co)}
+        out_names = {opargval: None for opi, opargval in _walk_global_ops(co)}
 
         # Declaring a function inside another one using the "def ..."
         # syntax generates a constant code object corresonding to the one
@@ -52,7 +52,7 @@ def _extract_code_globals(co):
         if co.co_consts:
             for const in co.co_consts:
                 if isinstance(const, types.CodeType):
-                    out_names |= _extract_code_globals(const)
+                    out_names.update(_extract_code_globals(const))
 
         _extract_code_globals_cache[co] = out_names
 
@@ -110,7 +110,7 @@ def _walk_global_ops(code):
     for instr in dis.get_instructions(code):
         op = instr.opcode
         if op in GLOBAL_OPS:
-            yield op, instr.arg
+            yield instr.arg, instr.argval
 
 
 def _function_getstate(func):

@@ -3864,49 +3864,12 @@ namespace tuplex {
                     auto ret = indexTupleWithStaticExpression(expression, sub->_value, index, value);
                     addInstruction(ret.val, ret.size, ret.is_null);
                 }
-                    // case 2: load to array & then select via gep
+                    // case 2: load to array & then select via gep (homogenous tuple case)
                 else if (tupleElementsHaveSameType(value_type)) {
+                    auto ret = homogenous_tuple_dynamic_get_element(*_env, builder,
+                                                                    value_type, value.val, index.val);
 
-                    // store loaded vals into array & then index via gep
-                    auto elementType = value_type.parameters().front();
-                    auto numElements = value_type.parameters().size();
-
-                    // create array & index
-                    auto array = builder.CreateAlloca(_env->pythonToLLVMType(elementType), 0, _env->i64Const(numElements));
-                    auto sizes = builder.CreateAlloca(_env->i64Type(), 0, _env->i64Const(numElements));
-
-                    // @ Todo: index protection (out of bounds?)
-                    // store the elements into the array
-                    FlattenedTuple ft = FlattenedTuple::fromLLVMStructVal(_env,
-                                                                          builder,
-                                                                          value.val,
-                                                                          sub->_value->getInferredType());
-
-                    std::vector<SerializableValue> elements;
-                    std::vector<llvm::Type *> elementTypes;
-                    for (int i = 0; i < numElements; ++i) {
-                        auto load = ft.getLoad(builder, {i});
-                        elements.push_back(load);
-                        elementTypes.push_back(load.val->getType());
-                    }
-
-                    // fill in array elements
-                    for (int i = 0; i < numElements; ++i) {
-                        builder.CreateStore(elements[i].val, builder.CreateGEP(array, {i32Const(i)}));
-                        builder.CreateStore(elements[i].size, builder.CreateGEP(sizes, {i32Const(i)}));
-                    }
-
-                    // load from array
-                    auto retVal = builder.CreateLoad(builder.CreateGEP(array, {builder.CreateTrunc(index.val,
-                                                                                                   llvm::Type::getInt32Ty(
-                                                                                                           context))}));
-                    auto retSize = builder.CreateLoad(builder.CreateGEP(sizes, {builder.CreateTrunc(index.val,
-                                                                                                    llvm::Type::getInt32Ty(
-                                                                                                            context))}));
-
-                    // @TODO: null value for this case here!
-
-                    addInstruction(retVal, retSize);
+                    addInstruction(ret.val, ret.size, ret.is_null);
                     return;
                 } else {
                     // case 3: give error

@@ -1985,7 +1985,7 @@ namespace tuplex {
             FunctionType *FT = FunctionType::get(Type::getInt32Ty(ctx), argtypes, false);
 
             auto conv_func = env.getModule().get()->getOrInsertFunction("fast_atob", FT);
-            auto cellEnd = builder.CreateGEP(str, builder.CreateSub(strSize, env.i64Const(1)));
+            auto cellEnd = builder.MovePtrByBytes(str, builder.CreateSub(strSize, env.i64Const(1)));
             auto resCode = builder.CreateCall(conv_func, {str, cellEnd, bool_val});
 
             auto parseSuccessCond = builder.CreateICmpEQ(resCode, env.i32Const(ecToI32(ExceptionCode::SUCCESS)));

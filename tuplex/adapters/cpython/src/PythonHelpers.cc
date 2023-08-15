@@ -221,6 +221,13 @@ namespace python {
         assert(pFuncLambda);
 
         assert(PyCallable_Check(pFuncLambda));
+
+        if(PyErr_Occurred()) {
+            PyErr_Print();
+            PyErr_Clear();
+            return nullptr;
+        }
+
         return pFuncLambda;
     }
 

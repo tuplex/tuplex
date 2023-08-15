@@ -64,6 +64,29 @@ namespace tuplex {
                 auto fop = dynamic_cast<FileInputOperator*>(_inputNode); assert(fop);
                 switch (_inputFileFormat) {
                     case FileFormat::OUTFMT_CSV: {
+
+#ifndef NDEBUG
+                        {
+                            // print which columns to print according to projection map
+                            std::stringstream ss;
+                            auto pm = fop->projectionMap();
+                            if(pm.size() != 0 && pm.size() < fop->inputColumnCount()) {
+                                ss<<"keeping "<<pm.size()<<"/"<<fop->inputColumnCount()<<" columns for file input operator "<<fop->name();
+
+                                auto columns = fop->inputColumns();
+                                std::vector<std::string> col_names_with_mapping(pm.size(), "");
+                                for(auto kv: pm) {
+                                    col_names_with_mapping[kv.second] = columns[kv.first] + " ( " + std::to_string(kv.first) + " -> " + std::to_string(kv.second) + " ) ";
+                                }
+                                ss<<"\n"<<col_names_with_mapping;
+                            } else {
+                                ss<<"keeping all "<<fop->inputColumnCount()<<" for file input operator "<<fop->name();
+                            }
+                            auto& logger = Logger::instance().logger("codegen");
+                            logger.debug(ss.str());
+                        }
+#endif
+
                         ppb.cellInput(_inputNode->getID(), fop->inputColumns(), fop->null_values(), fop->typeHints(),
                                       fop->inputColumnCount(), fop->projectionMap());
                         break;

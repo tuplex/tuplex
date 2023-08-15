@@ -349,14 +349,27 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
     // projection map defined?
     if(!projectionMap.empty()) {
+
+        // bug here, need to reverse order:
+        // i.e. projection map is original_idx -> new_idx
+        int min_idx = std::numeric_limits<int>::max();
+        int max_idx = 0;
+        std::map<int, int> m(projectionMap.begin(), projectionMap.end()); // use a map so code looks nicer...
+        for(auto kv : m) {
+            min_idx = std::min(min_idx, kv.second);
+            max_idx = std::max(max_idx, kv.second);
+        }
+        int num_projected_columns = max_idx + 1;
+        assert(num_projected_columns <= numColumns);
+
         assert(numColumns >= projectionMap.size()); // also should hold for max element in projectionMap!
         writeLine("projected_row = [None] * " + std::to_string(numColumns) + "\n"); // fill with None as dummy element
         // project elements & column names
-        for(auto keyval : projectionMap)
+        for(const auto& keyval: projectionMap)
             writeLine("projected_row[" + std::to_string(keyval.first) + "] = parsed_row[" + std::to_string(keyval.second) + "]\n");
         if(!columns.empty()) {
             std::vector<std::string> projected_columns(numColumns, "");
-            for(auto keyval : projectionMap)
+            for(const auto& keyval : projectionMap)
                 projected_columns[keyval.first] = columns[keyval.second];
             columns = projected_columns;
         }

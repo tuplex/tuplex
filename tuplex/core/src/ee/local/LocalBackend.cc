@@ -750,6 +750,33 @@ namespace tuplex {
 
             //Note: maybe put all these user-defined functions into fake, tuplex module??
 
+            {
+                auto mainModule = python::getMainModule();
+                // import cloudpickle for serialized functions
+                PyObject *cloudpickleModule = PyImport_ImportModule("cloudpickle");
+                if(!cloudpickleModule) {
+                    // err<<"could not find cloudpickle module, please install via `pip3 install \""<<desired_version<<"\"`.";
+                    // if(os)
+                    //     *os<<err.str();
+                    // return false;
+                }//
+
+                PyModule_AddObject(mainModule, "cloudpickle", cloudpickleModule);
+                auto versionObj =  PyObject_GetAttr(cloudpickleModule, python::PyString_FromString("__version__"));
+                //if(!versionObj)
+                //    return false;
+
+                auto version_string = python::PyString_AsString(versionObj);
+
+                // get information about Python version and cloudpickle version used
+                std::stringstream ss;
+                ss<<"Python version: "<<PY_MAJOR_VERSION<<"."<<PY_MINOR_VERSION<<"."<<PY_MICRO_VERSION;
+                ss<<" cloudpickle: "<<version_string;
+                auto& logger = Logger::instance().logger("python");
+                logger.info(ss.str());
+            }
+
+
             // get main module
             // Note: This needs to get called BEFORE globals/locals...
             auto main_mod = python::getMainModule();

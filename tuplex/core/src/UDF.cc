@@ -516,6 +516,20 @@ namespace tuplex {
 
             // pickle code
             auto pickled_code = python::serializeFunction(mod, _code);
+
+#ifndef NDEBUG
+            // test here using cloudpickle to make sure it works
+            {
+                auto pyfunc = python::deserializePickledFunction(python::getMainModule(), pickled_code.c_str(), pickled_code.size());
+                if(PyErr_Occurred()) {
+                    PyErr_Print();
+                    PyErr_Clear();
+                } else {
+
+                }
+            }
+#endif
+
             // release GIL here
             python::unlockGIL();
 

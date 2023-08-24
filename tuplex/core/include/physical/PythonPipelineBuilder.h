@@ -117,6 +117,13 @@ namespace tuplex {
 
         bool _parseCells; // whether to parse input cells
 
+        // track projection map and last column names internally
+        std::unordered_map<int, int> _lastProjectionMap; //
+        std::vector<std::string> _lastColumns;
+        size_t _numUnprojectedColumns;
+
+        std::vector<std::string> reproject_columns(const std::vector<std::string>& columns);
+
 
         std::string emitClosure(const UDF& udf);
 
@@ -230,6 +237,10 @@ namespace tuplex {
             ss.flush();
             return ss.str();
         }
+
+        void updateMappingForJoin(const option <std::string> &leftColumn, const std::vector<std::string> &bucketColumns,
+                                  const option <std::string> &leftPrefix, const option <std::string> &leftSuffix,
+                                  const option <std::string> &rightPrefix, const option <std::string> &rightSuffix);
     };
 
     /*!

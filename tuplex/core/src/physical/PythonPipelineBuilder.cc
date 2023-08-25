@@ -473,6 +473,11 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
             _lastFunction._code =  "call_res = apply_func(f, " + row() + ")\n"
                                    +row()+ " = result_to_row(call_res, " + row() + ".columns)\n";
+
+            // overwrite projection map & columns
+            _lastProjectionMap = {};
+            _lastColumns = output_columns;
+            _numUnprojectedColumns = output_columns.size();
         }
         _lastFunction._operatorID = operatorID;
     }
@@ -740,25 +745,29 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
                             [&](const std::string& name) { return rightPrefix.value_or("") + name + rightSuffix.value_or("");});
 
         // update the key column projection pair
-// map is original column -> projected column
-        _lastProjectionMap = transform_pairs<int,int>(_lastProjectionMap,
-                                                      [&](const std::pair<int,int>& pair) -> std::pair<int,int> {
-            if(pair.first == key_column_idx) {
-                // gets moved to end
-                return std::make_pair((int) _numUnprojectedColumns - 1, (int) _lastProjectionMap.size() - 1);
-            } else if(pair.first > key_column_idx) {
-                return std::make_pair((int)pair.first - 1, (int)pair.second - 1);
-            } else
-                return pair;
-        });
+        // map is original column -> projected column
+        if(!_lastProjectionMap.empty()) {
+            _lastProjectionMap = transform_pairs<int,int>(_lastProjectionMap,
+                                                          [&](const std::pair<int,int>& pair) -> std::pair<int,int> {
+                                                              if(pair.first == key_column_idx) {
+                                                                  // gets moved to end
+                                                                  return std::make_pair((int) _numUnprojectedColumns - 1, (int) _lastProjectionMap.size() - 1);
+                                                              } else if(pair.first > key_column_idx) {
+                                                                  return std::make_pair((int)pair.first - 1, (int)pair.second - 1);
+                                                              } else
+                                                                  return pair;
+                                                          });
 
-        // add bucket column pairs now
-        auto num_projected = _lastProjectionMap.size();
-        for(unsigned i = 0; i < bucketColumns.size(); ++i) {
-            _lastProjectionMap[_numUnprojectedColumns++] = num_projected + i;
+            // add bucket column pairs now
+            auto num_projected = _lastProjectionMap.size();
+            for(unsigned i = 0; i < bucketColumns.size(); ++i) {
+                _lastProjectionMap[_numUnprojectedColumns++] = num_projected + i;
+            }
+            assert(_numUnprojectedColumns == result_columns.size());
         }
-        assert(_numUnprojectedColumns == result_columns.size());
+
         _lastColumns = result_columns;
+        _numUnprojectedColumns == result_columns.size();
     }
 
     void PythonPipelineBuilder::leftJoinDict(int64_t operatorID, const std::string &hashmap_name,
@@ -879,6 +888,7 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
     void PythonPipelineBuilder::objInput(int64_t operatorID, const std::vector<std::string> &columns) {
         _parseCells = false;
+        _lastColumns = columns;
 
         // simple: input is tuple or list
         // ==> convert to row + assign columns if given

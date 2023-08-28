@@ -75,9 +75,13 @@ namespace tuplex {
 
                                 auto columns = fop->inputColumns();
                                 std::vector<std::string> col_names_with_mapping(pm.size(), "");
-                                for(auto kv: pm) {
-                                    col_names_with_mapping[kv.second] = columns[kv.first] + " ( " + std::to_string(kv.first) + " -> " + std::to_string(kv.second) + " ) ";
+                                if(!columns.empty()) {
+                                    for(auto kv: pm) {
+                                        assert(kv.second < col_names_with_mapping.size());
+                                        col_names_with_mapping[kv.second] = columns[kv.first] + " ( " + std::to_string(kv.first) + " -> " + std::to_string(kv.second) + " ) ";
+                                    }
                                 }
+
                                 ss<<"\n"<<col_names_with_mapping;
                             } else {
                                 ss<<"keeping all "<<fop->inputColumnCount()<<" for file input operator "<<fop->name();

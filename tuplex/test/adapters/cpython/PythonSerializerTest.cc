@@ -345,3 +345,63 @@ TEST(PythonSerializer, TestFromSerializedMemory) {
     PyTuple_SetItem(wrapped_tuple, 0, bool_tuple);
     EXPECT_EQ(1, PyObject_RichCompareBool(wrapped_tuple, pyobj, Py_EQ));
 }
+
+
+TEST(PythonSerializer, BasicInterpreter) {
+    //    Py_InitializeEx(0);
+    //    python::getMainModule();
+    //    Py_FinalizeEx();
+//    python::initInterpreter();
+//
+//
+//    PyRun_SimpleString("import cloudpickle; print(cloudpickle.__version__)");
+//    //python::getMainModule();
+//
+//    python::closeInterpreter();
+
+//    Py_Initialize();
+//    PyRun_SimpleString("print('hello world')");
+//    PyRun_SimpleString("import pickle");
+//    PyRun_SimpleString("import cloudpickle; print(cloudpickle.__version__)");
+//    Py_Finalize();
+
+    PyStatus status;
+
+    PyConfig config;
+    PyConfig_InitPythonConfig(&config);
+    config.isolated = 1;
+
+    // /* Decode command line arguments.
+    //    Implicitly preinitialize Python (in isolated mode). */
+    // status = PyConfig_SetBytesArgv(&config, argc, argv);
+    // if (PyStatus_Exception(status)) {
+    //     goto exception;
+    // }
+
+    status = Py_InitializeFromConfig(&config);
+    if (PyStatus_Exception(status)) {
+        goto exception;
+    }
+    PyConfig_Clear(&config);
+
+    PyRun_SimpleString("import sys");
+    PyRun_SimpleString("import struct");
+    PyRun_SimpleString("import _struct");
+    PyRun_SimpleString("print('hello world')");
+    PyRun_SimpleString("import pickle");
+    PyRun_SimpleString("import cloudpickle; print(cloudpickle.__version__)");
+
+    std::cout<<std::endl;
+    std::cerr<<std::endl;
+
+    exception:
+    PyConfig_Clear(&config);
+    if (PyStatus_IsExit(status)) {
+        return;
+        //return status.exitcode;
+    }
+    /* Display the error message and exit the process with
+       non-zero exit code */
+    // Py_ExitStatusException(status);
+
+}

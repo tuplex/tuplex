@@ -862,7 +862,7 @@ else()
 endif()
 
 # zstd has no cmake standard module, so manually search for it
-find_package(zstd "${ZSTD_VERSION}" REQUIRED)
+find_package(zstd "${ZSTD_VERSION}")
 if(zstd_FOUND)
     # check if zstd is defined as target
     if(TARGET zstd::libzstd_static)
@@ -908,7 +908,7 @@ else()
         endif()
     endif()
 
-    if(NOT ZSTD_LIBRARY)
+    if(NOT ZSTD_LIBRARIES)
         message(STATUS "Building Zstd locally as 3rd party dependency.")
         set(ZSTD_HOME "${EXTERNAL_INSTALL_LOCATION}")
         set(ZSTD_INCLUDE_DIR "${ZSTD_HOME}/include")

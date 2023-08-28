@@ -18,6 +18,8 @@ include(GoogleTest)
 
 ADD_EXECUTABLE(testcpythonadapter ${SRCS})
 
+message(STATUS "adapter test, Python3 libs: ${Python3_LIBRARIES}")
+
 # Note: the libcpythonadapter is already included in core/codegen. Do not double include b.c. it breaks dependencies :)
 TARGET_LINK_LIBRARIES(testcpythonadapter
         libcpythonadapter

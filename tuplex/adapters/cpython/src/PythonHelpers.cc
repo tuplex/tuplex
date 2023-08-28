@@ -178,8 +178,18 @@ namespace python {
         // PyRun_SimpleString("gc.set_debug(gc.DEBUG_LEAK)");
         // PyRun_SimpleString("gc.disable()");
 
+        PyRun_SimpleString("import pickle");
+        PyRun_SimpleString("import cloudpickle; print(cloudpickle.__version__)");
+
         // import cloudpickle for serialized functions
         PyObject *cloudpickleModule = PyImport_ImportModule("cloudpickle");
+
+        if(PyErr_Occurred()) {
+            Logger::instance().defaultLogger().error("Error while import cloudpickle, details:");
+            PyErr_Print();
+            PyErr_Clear();
+            exit(1);
+        }
 
         // check whether cloudpickle module exists or errors occured!
         if(!cloudpickleModule) {

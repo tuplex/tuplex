@@ -376,7 +376,6 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         for(const auto& keyval: projectionMap)
             writeLine("projected_row[" + std::to_string(keyval.first) + "] = parsed_row[" + std::to_string(keyval.second) + "]\n");
 
-// #error "something is wrong with names here as well... need to fix."
         if(!columns.empty()) {
             std::vector<std::string> projected_columns(numColumns, "");
             for(const auto& keyval : projectionMap)
@@ -456,7 +455,6 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
         // special case: rename, there is no UDF code here. Save the space.
         if(udf.empty()) {
-// #error "this is wrong whreproject_columnsd columns. Need to make sure this is fixed properly. I.e., when passing in projected output_columns, they need to get matched up against input columns."
             assert(!output_columns.empty());
 
             // project columns with current map

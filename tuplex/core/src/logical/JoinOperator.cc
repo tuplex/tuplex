@@ -174,7 +174,8 @@ namespace tuplex {
             // the join column (reuse name from left!)
             // ==> it never gets nulled!
             // @TODO: add alias...
-            columns.push_back(_leftPrefix + leftColumns[joinColIdx] + _leftSuffix);
+            _keyColumn = _leftPrefix + leftColumns[joinColIdx] + _leftSuffix;
+            columns.push_back(_keyColumn);
 
             for (int i = 0; i < rightColumns.size(); ++i) {
                 if (_rightColumn.value() != rightColumns[i]) {
@@ -241,6 +242,7 @@ namespace tuplex {
     LogicalOperator *JoinOperator::clone() {
         auto copy = new JoinOperator(left()->clone(), right()->clone(),
                 _leftColumn, _rightColumn, _joinType, _leftPrefix, _leftSuffix, _rightPrefix, _rightSuffix);
+        copy->_keyColumn = keyColumn();
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());

@@ -217,16 +217,30 @@ namespace tuplex {
                         // TODO test this out, seems rather quick yet
                         auto leftColumn = jop->buildRight() ? jop->leftColumn().value_or("") : jop->rightColumn().value_or("");
                         auto bucketColumns = jop->bucketColumns();
+
+                        auto idxLeft = indexInVector(jop->leftColumn().value_or(""), ppb.columns());
+                        auto idxRight = indexInVector(jop->rightColumn().value_or(""), ppb.columns());
+                        auto idxKey = indexInVector(jop->keyColumn(), ppb.columns());
+
                         if(jop->joinType() == JoinType::INNER) {
                             ppb.innerJoinDict(jop->getID(), next_hashmap_name(),
-                                              leftColumn, bucketColumns,
+                                              jop->leftColumn(), jop->rightColumn(), bucketColumns,
                                               jop->leftPrefix(), jop->leftSuffix(), jop->rightPrefix(), jop->rightSuffix());
                         } else if(jop->joinType() == JoinType::LEFT) {
-                            ppb.leftJoinDict(jop->getID(), next_hashmap_name(), leftColumn, bucketColumns,
+                            ppb.leftJoinDict(jop->getID(), next_hashmap_name(), jop->leftColumn(), jop->rightColumn(), bucketColumns,
                                              jop->leftPrefix(), jop->leftSuffix(), jop->rightPrefix(), jop->rightSuffix());
                         } else {
                             throw std::runtime_error("right join not yet supported!");
                         }
+
+                        // check invariant that each column of jop is in ppb. output columns!
+#ifndef NDEBUG
+                        // should be even identical (b.c. join is altering columns)
+                        for(const auto& expected_column : jop->columns()) {
+                            auto idx = indexInVector(expected_column, ppb.columns());
+                            assert(idx >= 0);
+                        }
+#endif
 
                         break;
                     }

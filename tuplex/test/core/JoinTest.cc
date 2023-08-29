@@ -263,6 +263,8 @@ TEST_F(JoinTest, InnerJoinTwoTimes) {
                                          Row("JFK", "New York"), Row("LAX", "Los Angeles"),
                                          Row("TXL", "Berlin")}, vector<string>{"Code", "Name"}); // 5 rows
 
+    auto expected_columns = ds.join(dsAirports, std::string("Origin"), std::string("Code"), std::string(""), std::string(""), std::string("Origin")).columns();
+
     auto res1 = ds.join(dsAirports, string("Origin"), string("Code"), string(""), string(""), string("Origin"))
       .join(dsAirports, string("Dest"), string("Code"), string(""), string(""), string("Dest"))
       .selectColumns(std::vector<std::string>{"Origin", "OriginName", "Dest", "DestName", "Delay"}).collectAsVector();

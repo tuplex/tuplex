@@ -399,6 +399,7 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
                                          const std::vector<std::string>& na_values) {
 
         _parseCells = true;
+        _lastColumns = columns;
 
         std::stringstream code;
         code<<"if not isinstance("<<lastInputRowName()<<", str):\n";
@@ -635,12 +636,13 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
     void PythonPipelineBuilder::innerJoinDict(int64_t operatorID, const std::string &hashmap_name,
                                               tuplex::option<std::string> leftColumn,
+                                              tuplex::option<std::string> rightColumn,
                                               const std::vector<std::string>& bucketColumns,
                                               option<std::string> leftPrefix,
                                               option<std::string> leftSuffix,
                                               option<std::string> rightPrefix,
                                               option<std::string> rightSuffix) {
-        updateMappingForJoin(leftColumn, bucketColumns, leftPrefix, leftSuffix, rightPrefix, rightSuffix);
+        updateMappingForJoin(leftColumn, rightColumn, bucketColumns, leftPrefix, leftSuffix, rightPrefix, rightSuffix);
 
 
         // codegen python code for join
@@ -719,26 +721,50 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
     }
 
     void PythonPipelineBuilder::updateMappingForJoin(const option <std::string> &leftColumn,
+                                                     const tuplex::option<std::string>& rightColumn,
                                                      const std::vector<std::string> &bucketColumns,
                                                      const option <std::string> &leftPrefix,
                                                      const option <std::string> &leftSuffix,
                                                      const option <std::string> &rightPrefix,
-                                                     const option <std::string> &rightSuffix) {// join is a pipeline breaker, so the projection map is lost after applying it.
-        auto key_column = leftColumn.value();
-        auto key_column_idx = indexInVector(key_column, _lastColumns);
-        assert(key_column_idx >= 0 && key_column_idx < _lastColumns.size());
+                                                     const option <std::string> &rightSuffix) {
+        // join is a pipeline breaker, so the projection map is lost after applying it.
+
+        // find key_column in current columns
+        auto left_key_idx = indexInVector(leftColumn.value_or(""), _lastColumns);
+        auto right_key_idx = indexInVector(rightColumn.value_or(""), _lastColumns);
+        if(left_key_idx < 0 && right_key_idx < 0) {
+            Logger::instance().defaultLogger().error("failure to generate join renaming. Could not find key column on either left or right side.");
+        }
+
+        auto key_column_idx = std::max(left_key_idx, right_key_idx);
 
         // @TODO: prefixing?
 
         std::__1::vector<std::string> result_columns;
-        // copy columns from start to key_column_idx (excl)
-        std::copy(_lastColumns.begin(), _lastColumns.begin() + key_column_idx, std::back_inserter(result_columns));
-        std::copy(_lastColumns.begin() + key_column_idx + 1, _lastColumns.end(), std::back_inserter(result_columns));
-        // prefix with left side
-        for(auto& name : _lastColumns)
-            name = leftPrefix.value_or("") + name + leftSuffix.value_or("");
-        result_columns.push_back(_lastColumns[key_column_idx]); // <-- no prefixing
-        assert(indexInVector(key_column, bucketColumns) < 0);
+
+        if(left_key_idx >= 0) {
+            for(unsigned i = 0; i < _lastColumns.size(); ++i) {
+                if(i != left_key_idx)
+                    result_columns.push_back(leftPrefix.value_or("") + _lastColumns[i] + leftSuffix.value_or(""));
+            }
+            result_columns.push_back(_lastColumns[left_key_idx]); // no prefixing for key column
+        } else {
+            // use all left columns (key is on right side!)
+            result_columns = _lastColumns;
+        }
+
+//        if(right_key_idx)
+
+//        // copy columns from start to key_column_idx (excl)
+//        std::copy(_lastColumns.begin(), _lastColumns.begin() + key_column_idx, std::back_inserter(result_columns));
+//        std::copy(_lastColumns.begin() + key_column_idx + 1, _lastColumns.end(), std::back_inserter(result_columns));
+//        // prefix with left side
+//        for(auto& name : _lastColumns)
+//            name = leftPrefix.value_or("") + name + leftSuffix.value_or("");
+//
+//        auto key_column = _lastColumns[key_column_idx]; // <-- ??
+//
+//        result_columns.push_back(key_column); // <-- no prefixing
         std::__1::transform(bucketColumns.begin(), bucketColumns.end(), std::back_inserter(result_columns),
                             [&](const std::string& name) { return rightPrefix.value_or("") + name + rightSuffix.value_or("");});
 
@@ -770,10 +796,11 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
     void PythonPipelineBuilder::leftJoinDict(int64_t operatorID, const std::string &hashmap_name,
                                              tuplex::option<std::string> leftColumn,
+                                             tuplex::option<std::string> rightColumn,
                                              const std::vector<std::string> &bucketColumns,
                                              option<std::string> leftPrefix, option<std::string> leftSuffix,
                                              option<std::string> rightPrefix, option<std::string> rightSuffix) {
-        updateMappingForJoin(leftColumn, bucketColumns, leftPrefix, leftSuffix, rightPrefix, rightSuffix);
+        updateMappingForJoin(leftColumn, rightColumn, bucketColumns, leftPrefix, leftSuffix, rightPrefix, rightSuffix);
 
         flushLastFunction();
 

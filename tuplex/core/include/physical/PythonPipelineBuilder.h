@@ -53,7 +53,10 @@ namespace tuplex {
 
 
         // join operator => note that this simply adds a dict lookup
-        void innerJoinDict(int64_t operatorID, const std::string& hashmap_name, tuplex::option<std::string> leftColumn,
+        void innerJoinDict(int64_t operatorID,
+                           const std::string& hashmap_name,
+                           tuplex::option<std::string> leftColumn,
+                           tuplex::option<std::string> rightColumn,
                            const std::vector<std::string>& bucketColumns=std::vector<std::string>{},
                            option<std::string> leftPrefix=option<std::string>::none,
                            option<std::string> leftSuffix=option<std::string>::none,
@@ -61,6 +64,7 @@ namespace tuplex {
                            option<std::string> rightSuffix=option<std::string>::none);
         void leftJoinDict(int64_t operatorID, const std::string& hashmap_name,
                            tuplex::option<std::string> leftColumn,
+                           tuplex::option<std::string> rightColumn,
                            const std::vector<std::string>& bucketColumns=std::vector<std::string>{},
                            option<std::string> leftPrefix=option<std::string>::none,
                            option<std::string> leftSuffix=option<std::string>::none,
@@ -98,6 +102,8 @@ namespace tuplex {
 
 
         static std::string udfToByteCode(const UDF& udf);
+
+        inline std::vector<std::string> columns() const { return _lastColumns; }
     private:
         std::string _funcName;
         std::stringstream _ss;
@@ -238,7 +244,8 @@ namespace tuplex {
             return ss.str();
         }
 
-        void updateMappingForJoin(const option <std::string> &leftColumn, const std::vector<std::string> &bucketColumns,
+        void updateMappingForJoin(const option <std::string> &leftColumn, const tuplex::option<std::string>& rightColumn,
+                                  const std::vector<std::string> &bucketColumns,
                                   const option <std::string> &leftPrefix, const option <std::string> &leftSuffix,
                                   const option <std::string> &rightPrefix, const option <std::string> &rightSuffix);
     };

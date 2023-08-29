@@ -73,6 +73,7 @@ namespace tuplex {
     private:
         option<std::string> _leftColumn;  // column within left dataset
         option<std::string> _rightColumn;
+        std::string _keyColumn;
         JoinType _joinType;
 
         std::string _leftPrefix;
@@ -100,6 +101,7 @@ namespace tuplex {
         std::string leftSuffix() const { return _leftSuffix; }
         std::string rightPrefix() const { return _rightPrefix; }
         std::string rightSuffix() const { return _rightSuffix; }
+        std::string keyColumn() const { return _keyColumn; }
 
 
         /*!

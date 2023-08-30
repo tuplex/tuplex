@@ -682,11 +682,7 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
         // debug:
         // code<<"\tprint('left cols are: ' + str(left_cols"<<envSuffix()<<"))\n";
-
-        if(bucketColumns.empty())
-            code<<"\tright_cols"<<envSuffix()<<" = None\n";
-        else
-            code<<"\tright_cols"<<envSuffix()<<" = "<<columnsToList(bucketColumns)<<"\n";
+        code<<"\tright_cols"<<envSuffix()<<" = "<<columnsToList(bucketColumns)<<"\n";
         if(rightSuffix.has_value() || rightPrefix.has_value()) {
             code<<"\tright_cols"<<envSuffix()<<" = list(map(lambda c: '"<<rightPrefix.value_or("")<<"' + c + "
                 <<"'"<<rightSuffix.value_or("")<<"' if c else None, right_cols"<<envSuffix()<<"))\n";
@@ -848,10 +844,7 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         // debug:
         // code<<"print('left cols are: ' + str(left_cols"<<envSuffix()<<"))\n";
 
-        if(bucketColumns.empty())
-            code<<"right_cols"<<envSuffix()<<" = None\n";
-        else
-            code<<"right_cols"<<envSuffix()<<" = "<<columnsToList(bucketColumns)<<"\n";
+        code<<"right_cols"<<envSuffix()<<" = "<<columnsToList(bucketColumns)<<"\n";
         if(rightSuffix.has_value() || rightPrefix.has_value()) {
             code<<"right_cols"<<envSuffix()<<" = list(map(lambda c: '"<<rightPrefix.value_or("")<<"' + c + "
                 <<"'"<<rightSuffix.value_or("")<<"' if c else None, right_cols"<<envSuffix()<<"))\n";

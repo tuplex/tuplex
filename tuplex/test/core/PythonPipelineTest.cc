@@ -337,7 +337,7 @@ TEST(PythonPipeline, BasicJoin) {
 
     PythonPipelineBuilder ppb("pipeline");
     ppb.csvInput(1001, {"a", "b", "c", "d"});
-    ppb.innerJoinDict(1002, "hashmap1", option<std::string>("a"), {"value"});
+    ppb.innerJoinDict(1002, "hashmap1", option<std::string>("a"), option<std::string>("a"), {"value"});
     ppb.tuplexOutput(1003, python::Type::UNKNOWN);
     auto code = ppb.getCode();
 
@@ -397,6 +397,11 @@ TEST(PythonPipeline, BasicJoin) {
     PyTuple_SET_ITEM(args, 0, inputStr);
     PyTuple_SET_ITEM(args, 1, (PyObject*)hm_wrapped);
     auto resObj = PyObject_Call(pipFunction, args, nullptr);
+    if(PyErr_Occurred()) {
+        PyErr_Print();
+        std::cout<<std::endl;
+        PyErr_Clear();
+    }
     ASSERT_TRUE(resObj);
     PyObject_Print(resObj, stdout, 0);
     cout<<endl;
@@ -444,7 +449,7 @@ TEST(PythonPipeline, BasicIntJoin) {
 
     PythonPipelineBuilder ppb("pipeline");
     ppb.csvInput(1001, {"a", "b", "c", "d"});
-    ppb.innerJoinDict(1002, "hashmap1", option<std::string>("a"), {"value"});
+    ppb.innerJoinDict(1002, "hashmap1", option<std::string>("a"), option<std::string>("a"), {"value"});
     ppb.tuplexOutput(1003, python::Type::UNKNOWN);
     auto code = ppb.getCode();
 
@@ -550,7 +555,7 @@ TEST(PythonPipeline, LeftJoin) {
 
     PythonPipelineBuilder ppb("pipeline");
     ppb.csvInput(1001, {"a", "b", "c"});
-    ppb.leftJoinDict(1002, "hashmap1", option<std::string>("a"), {"value"});
+    ppb.leftJoinDict(1002, "hashmap1", option<std::string>("a"), option<std::string>("a"), {"value"});
     ppb.tuplexOutput(1004, python::Type::UNKNOWN);
     auto code = ppb.getCode();
 
@@ -610,7 +615,7 @@ TEST(PythonPipeline, LeftIntJoin) {
 
     PythonPipelineBuilder ppb("pipeline");
     ppb.csvInput(1001, {"a", "b", "c"});
-    ppb.leftJoinDict(1002, "hashmap1", option<std::string>("a"), {"value"});
+    ppb.leftJoinDict(1002, "hashmap1", option<std::string>("a"), option<std::string>("a"), {"value"});
     ppb.tuplexOutput(1004, python::Type::UNKNOWN);
     auto code = ppb.getCode();
 

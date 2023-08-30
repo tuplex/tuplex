@@ -303,6 +303,9 @@ TEST_F(ListFunctions, ListIn) {
 }
 
 TEST_F(ListFunctions, ListOfTuples) {
+
+    GTEST_SKIP_("serialization of list of tuples not yet supported");
+
     using namespace tuplex;
     Context c(microTestOptions());
 

@@ -547,6 +547,15 @@ namespace tuplex {
 
         // lambda Mode? just use default settings.
         if(lambdaMode) {
+            // AWS SDK 1.10 introduces endpoint config
+#if (1 == AWS_SDK_VERSION_MAJOR && 10 > AWS_SDK_VERSION_MINOR)
+
+            _client = std::make_shared<S3::S3Client>(aws_credentials);
+#else
+            auto s3_endpoint_provider = Aws::MakeShared<Aws::S3::S3EndpointProvider>("TUPLEX");
+            _client = std::make_shared<S3::S3Client>(aws_credentials,
+                                                    s3_endpoint_provider);
+#endif
             _client = std::make_shared<S3::S3Client>(aws_credentials);
             _requestPayer = Aws::S3::Model::RequestPayer::requester;
 
@@ -556,7 +565,19 @@ namespace tuplex {
             return;
         }
 
-        _client = std::make_shared<S3::S3Client>(aws_credentials, config);
+                // AWS SDK 1.10 introduces endpoint config
+#if (1 == AWS_SDK_VERSION_MAJOR && 10 > AWS_SDK_VERSION_MINOR)
+
+        _client = std::make_shared<S3::S3Client>(Auth::AWSCredentials(credentials.access_key.c_str(),
+                                                                      credentials.secret_key.c_str(),
+                                                                      credentials.session_token.c_str()), config);
+#else
+        auto s3_endpoint_provider = Aws::MakeShared<Aws::S3::S3EndpointProvider>("TUPLEX");
+        _client = std::make_shared<S3::S3Client>(Auth::AWSCredentials(credentials.access_key.c_str(),
+                                                                      credentials.secret_key.c_str(),
+                                                                      credentials.session_token.c_str()),
+                                                 s3_endpoint_provider, config);
+#endif
 
 //        if(lambdaMode) {
 //            // disable virtual host to prevent curl code 6 https://guihao-liang.github.io/2020/04/08/aws-virtual-address

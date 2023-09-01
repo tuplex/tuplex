@@ -106,7 +106,7 @@ def create_task():
 
     # add each operator to operators collection
     operators = [{'idx' : idx, 'jobid' : job.jobid, 'ecount' : 0, 'ncount' : 0, **op} for idx, op in enumerate(operators)]
-    mongo.db.operators.insert(operators)
+    mongo.db.operators.insert_many(operators)
 
     # notify all socketio clients
     msg = job.socketio_overview()

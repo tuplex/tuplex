@@ -89,6 +89,50 @@ namespace core {
         }
         return ss.str();
     }
+
+    std::string prefixLines(const std::string& s, const std::string& prefix) {
+        using namespace std;
+        stringstream ss;
+
+        auto lines = splitLines(s, "\n");
+
+        int numLines = lines.size();
+
+        for(int i = 0; i < numLines; ++i){
+            ss<<prefix<<lines[i]<<'\n';
+        }
+        return ss.str();
+    }
+}
+
+bool is_encoded_python_str(const std::string& raw_string) {
+    // needs to match python string literal specification, check here i.e.
+    // https://docs.python.org/3/reference/lexical_analysis.html#string-and-bytes-literals
+
+    // need to implement this properly (@TODO)
+    // yet for now, carry out simple "heuristic" check
+    // stringliteral   ::=  [stringprefix](shortstring | longstring)
+    // stringprefix    ::=  "r" | "u" | "R" | "U" | "f" | "F"
+    //                      | "fr" | "Fr" | "fR" | "FR" | "rf" | "rF" | "Rf" | "RF"
+    // shortstring     ::=  "'" shortstringitem* "'" | '"' shortstringitem* '"'
+    // longstring      ::=  "'''" longstringitem* "'''" | '"""' longstringitem* '"""'
+    // shortstringitem ::=  shortstringchar | stringescapeseq
+    // longstringitem  ::=  longstringchar | stringescapeseq
+    // shortstringchar ::=  <any source character except "\" or newline or the quote>
+    // longstringchar  ::=  <any source character except "\">
+    // stringescapeseq ::=  "\" <any source character>
+
+    // there must be at least '' or "" in this string
+    if(raw_string.size() < 2)
+        return false;
+
+    // heuristic (not 100% accurate)
+    if(raw_string.front() == '\'' && raw_string.back() == '\'')
+        return true;
+    if(raw_string.front() == '"' && raw_string.back() == '"')
+        return true;
+
+    return false;
 }
 
 std::string str_value_from_python_raw_value(const std::string& raw_string) {
@@ -120,7 +164,9 @@ std::string str_value_from_python_raw_value(const std::string& raw_string) {
     auto lastQuote = s[--len];
     // check that last char matches detected quote!
     if(lastQuote != quote)
-        throw std::runtime_error("ending quote char " + char2str(lastQuote) + " does not match starting quote char " + char2str(quote));
+        throw std::runtime_error("failed to parse string value from raw string << " + raw_string +
+        " >> ending quote char " + char2str(lastQuote) +
+        " does not match starting quote char " + char2str(quote));
 
     // triple string? i.e. ''' .... ''' or """ ... """?
     if(len >= 4 && s[0] == quote && s[1] == quote) {

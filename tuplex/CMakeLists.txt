@@ -18,6 +18,32 @@ option(BUILD_WITH_AWS "Build Tuplex with AWS support. This will include access t
 option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for faster testing speeds." OFF)
 option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
 option(USE_LD_GOLD "Use GNU gold linker" ON)
+option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." ON)
+option(BUILD_WITH_CEREAL "whether to enable cereal based serialization or not. Disabled per default because it results in 4x larger build times" OFF)
+option(USE_PRECOMPILED_HEADERS "use precompiled headers" OFF)
+
+# set here library mode, depending on OS
+if(APPLE)
+    set(LIBRARY_MODE OBJECT)
+else()
+    if(BUILD_SHARED_LIBS)
+        set(LIBRARY_MODE SHARED)
+    else()
+        set(LIBRARY_MODE STATIC)
+    endif()
+endif()
+
+# variables:
+# AWS_S3_TEST_BUCKET ==> specifies bucket to run tests on!
+
+# add flags to compiler to enable colored output.
+if (${FORCE_COLORED_OUTPUT})
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        add_compile_options (-fdiagnostics-color=always)
+    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        add_compile_options (-fcolor-diagnostics)
+    endif ()
+endif ()
 
 # detect MacOS Version because at least 10.13 is required when building with AWS SDK
 if(APPLE)
@@ -40,6 +66,8 @@ if(APPLE)
     message(STATUS "Detected macOS ${MACOSX_VERSION_STRING} host platform, building for deployment target ${CMAKE_OSX_DEPLOYMENT_TARGET}. To use a different deployment target either set CMAKE_OSX_DEPLOYMENT_TARGET or the environment variable MACOSX_DEPLOYMENT_TARGET to the desired version.")
 endif()
 
+
+
 # via -DVERSION_INFO a string may be passed down. --> include it somehow
 if(VERSION_INFO)
     message(STATUS "Version info supplied to cmake: ${VERSION_INFO}")
@@ -49,6 +77,8 @@ else()
     project(Tuplex DESCRIPTION "Tuplex processing framework")
 endif()
 
+# name of worker executable
+set(WORKER_NAME tuplex-worker)
 
 # before writing additional cmake modules to put in cmake/, check the list of supported cmake standard modules
 # available here: https://cmake.org/cmake/help/latest/manual/cmake-modules.7.html#find-modules
@@ -105,6 +135,20 @@ endif()
 
 if(BUILD_WITH_ORC)
     add_definitions(-DBUILD_WITH_ORC)
+endif()
+
+if(BUILD_WITH_CEREAL)
+    add_definitions(-DBUILD_WITH_CEREAL)
+endif()
+
+if(NOT AWS_S3_TEST_BUCKET AND ENV{AWS_S3_TEST_BUCKET})
+    set(AWS_S3_TEST_BUCKET $ENV{AWS_S3_TEST_BUCKET})
+endif()
+if(NOT SKIP_AWS_TESTS AND NOT AWS_S3_TEST_BUCKET)
+    message(FATAL_ERROR "To run AWS tests, please specify a test-bucket. I.e., by setting an environment variable export AWS_S3_TEST_BUCKET=<bucket> or passing an option to cmake via -DAWS_S3_TEST_BUCKET=<bucket>")
+endif()
+if(AWS_S3_TEST_BUCKET)
+    add_compile_definitions("S3_TEST_BUCKET=\"${AWS_S3_TEST_BUCKET}\"")
 endif()
 
 # add -Werror=return-type  to turn missing returns into errors!!!
@@ -265,7 +309,88 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     add_link_options("-Wl,--start-group")
 endif()
 
+#### LLVM ####
+# using llvm via brew, easiest and avoid costly LLVM build (might take up to 20min)
+# adding LLVM 9.0
+IF(BREW_FOUND)
+    IF(APPLE)
 
+        # there might be multiple LLVM versions installed.
+        # check which version there is
+        # if not sys.stdin.isatty():
+        #    data = sys.stdin.readlines()
+
+        # could use brew prefix here, but let's leave it like this
+        EXECUTE_PROCESS(COMMAND bash "-c" "brew info llvm | grep Cellar | cut -d ' ' -f 1" OUTPUT_VARIABLE LLVM_ROOT_DIR RESULT_VARIABLE BREW_LLVM_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
+        IF(NOT BREW_LLVM_NOTFOUND EQUAL "0")
+            MESSAGE(WARNING "did not find llvm, you might install it via `brew install llvm@9`")
+        ELSE()
+            # check version, needs to be within 5 and 9 incl.
+            # i.e. execute something like /usr/local/opt/llvm/bin/llvm-config --version
+            EXECUTE_PROCESS(COMMAND ${LLVM_ROOT_DIR}/bin/llvm-config --version OUTPUT_VARIABLE LLVM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+            # check if empty, if it is parse again using brew info json
+            IF("${LLVM_VERSION}" STREQUAL "")
+                EXECUTE_PROCESS(COMMAND bash "-c" "brew info --json=v1 llvm | python3 -c 'import sys,json; x=json.load(sys.stdin); print(x[0][\"versions\"][\"stable\"])'" OUTPUT_VARIABLE LLVM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+            ENDIF()
+
+            IF("${LLVM_VERSION}" STREQUAL "" OR "${LLVM_VERSION}" VERSION_LESS 5.0.0 OR "${LLVM_VERSION}" VERSION_GREATER_EQUAL 10.0.0)
+                # check if any other llvm version is installed...
+                MESSAGE(STATUS "LLVM version installed is ${LLVM_VERSION}, which is incompatible with Tuplex")
+
+                # check for llvm@9 (do not check other versions)
+                # note that we can't simply use brew --prefix due to different subversions in brew...
+                execute_process(COMMAND bash "-c" "brew info llvm@9 | grep Cellar | cut -d ' ' -f 1" OUTPUT_VARIABLE LLVM_ROOT_DIR RESULT_VARIABLE BREW_RET OUTPUT_STRIP_TRAILING_WHITESPACE)
+                if(BREW_RET EQUAL "1")
+                    message(FATAL_ERROR "checked whether in addition to ${LLVM_VERSION} LLVM 9.x is installed, but could not could find it. Please install via `brew install llvm@9`")
+                else()
+                    message(STATUS "Found another installed llvm version under ${LLVM_ROOT_DIR}, using this version for Tuplex.")
+                endif()
+            ELSE()
+                MESSAGE(STATUS "found brewed llvm under: " ${LLVM_ROOT_DIR})
+            ENDIF()
+        ENDIF()
+
+    ELSEIF(UNIX)
+        # ...
+    ENDIF()
+ENDIF()
+
+# for brewed llvm, add to cmakemodulepath
+IF(LLVM_ROOT_DIR)
+    # make cmake find in config mode the right LLVMConfig.cmake file which is located here
+    set(LLVM_DIR "${LLVM_ROOT_DIR}/lib/cmake/llvm")
+    find_package(LLVM CONFIG REQUIRED) # find with whatever llvm version has been specified
+ELSE()
+    # try to search for LLVM9, then LLVM6
+    find_package(LLVM 9 CONFIG)
+    if(NOT LLVM_FOUND)
+        find_package(LLVM 6 CONFIG REQUIRED)
+    endif()
+ENDIF()
+
+FIND_PACKAGE(LLVM REQUIRED CONFIG)
+MESSAGE(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+MESSAGE(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+MESSAGE(STATUS "Found llvm include dirs at: " ${LLVM_INCLUDE_DIRS})
+include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
+
+# special case on Unix, make use rtti gets the right flag for the build
+if (NOT LLVM_ENABLE_RTTI)
+    message(WARNING
+            "This build configuration is not supported and will likely not work."
+            "You should recompile LLVM with RTTI enabled.")
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti") # disable?
+endif()
+
+#LLVM_LINK_LLVM_DYLIB
+#if(LLVM_LINK_LLVM_DYLIB)
+#    set(USE_SHARED USE_SHARED)
+#endif()
+#llvm_config(castxml ${USE_SHARED} ${llvm_libs})
+
+#### LLVM end ####
 
 
 ###########################################################################
@@ -279,6 +404,12 @@ endif()
 
 # specific Release flags, i.e. targeting loop unrolling.
 ucm_add_flags(-m64 -O3 -funroll-loops CONFIG Release)
+
+## use split dwarf to reduce compile times
+## https://undo.io/resources/gdb-watchpoint/reduce-binary-size-compile-time-split-dwarf/
+## cf. https://undo.io/resources/gdb-watchpoint/build-for-debug-in-gdb/
+#ucm_add_flags(-Og -gsplit-dwarf CONFIG Debug)
+#ucm_add_flags(-Og -gsplit-dwarf CONFIG RelWithDebInfo)
 
 # for GCC add stack protector
 # -fstack-protector-strong
@@ -369,11 +500,11 @@ set(CMAKE_CXX_FLAGS_TSAN
 
 # AddressSanitize
 set(CMAKE_C_FLAGS_ASAN
-        "-fsanitize=address -fsanitize-recover=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
+        "-fsanitize=address -fsanitize-recover=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g3 -O1 "
         CACHE STRING "Flags used by the C compiler during AddressSanitizer builds."
         FORCE)
 set(CMAKE_CXX_FLAGS_ASAN
-        "-fsanitize=address -fsanitize-recover=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
+        "-fsanitize=address -fsanitize-recover=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g3 -O1"
         CACHE STRING "Flags used by the C++ compiler during AddressSanitizer builds."
         FORCE)
 
@@ -730,6 +861,7 @@ add_subdirectory(io)
 add_subdirectory(python)
 add_subdirectory(runtime)
 add_subdirectory(adapters)
+add_subdirectory(worker)
 
 # following code is from https://github.com/OPM/opm-common/blob/master/cmake/Modules/UseSystemInfo.cmake
 # read property from the newer /etc/os-release
@@ -789,6 +921,16 @@ if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     else()
         message(WARNING "GNU gold linker isn't available, using the default system linker.")
     endif()
+endif()
+
+ucm_add_linker_flags(-mllvm -asan-use-private-alias=1)
+
+# on MacOS, disable the warning message ranlib: no symbols found
+if(APPLE)
+    SET(CMAKE_C_ARCHIVE_CREATE   "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
+    SET(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> Scr <TARGET> <LINK_FLAGS> <OBJECTS>")
+    SET(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+    SET(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
 endif()
 
 # print flags

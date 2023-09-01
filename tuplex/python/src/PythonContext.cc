@@ -9,12 +9,12 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <PythonContext.h>
-#include <LocalEngine.h>
+#include <ee/local/LocalEngine.h>
 #include <Row.h>
 #include "python3_sink.h"
 #include <JSONUtils.h>
 #include <limits>
-#include <Signals.h>
+#include <utils/Signals.h>
 
 // possible classes are
 // int, float, str, list, tuple, dict
@@ -28,7 +28,7 @@
 
 namespace tuplex {
 
-    DataSet& PythonContext::fastF64Parallelize(PyObject* listObj, const std::vector<std::string>& columns, bool upcast) {
+    DataSet& PythonContext::fastF64Parallelize(PyObject* listObj, const std::vector<std::string>& columns, bool upcast, const SamplingMode& sm) {
         assert(listObj);
         assert(PyList_Check(listObj));
 
@@ -41,7 +41,7 @@ namespace tuplex {
 
         // check if empty?
         if(0 == numElements)
-            return _context->fromPartitions(schema, std::vector<Partition*>(), std::vector<Partition*>(), std::vector<PartitionGroup>(), columns);
+            return _context->fromPartitions(schema, std::vector<Partition*>(), std::vector<Partition*>(), std::vector<PartitionGroup>(), columns, sm);
 
         // create new partition on driver
         auto driver = _context->getDriver();
@@ -120,10 +120,10 @@ namespace tuplex {
         partitions.push_back(partition);
 
         // create dataset from partitions.
-        return _context->fromPartitions(schema, partitions, fallbackPartitions, partitionMergeInfo, columns);
+        return _context->fromPartitions(schema, partitions, fallbackPartitions, partitionMergeInfo, columns, sm);
     }
 
-    DataSet& PythonContext::fastI64Parallelize(PyObject* listObj, const std::vector<std::string>& columns, bool upcast) {
+    DataSet& PythonContext::fastI64Parallelize(PyObject* listObj, const std::vector<std::string>& columns, bool upcast, const SamplingMode& sm) {
         assert(listObj);
         assert(PyList_Check(listObj));
 
@@ -133,7 +133,7 @@ namespace tuplex {
 
         // check if empty?
         if(0 == numElements)
-            return _context->fromPartitions(schema, std::vector<Partition*>(), std::vector<Partition*>(), std::vector<PartitionGroup>(), columns);
+            return _context->fromPartitions(schema, std::vector<Partition*>(), std::vector<Partition*>(), std::vector<PartitionGroup>(), columns, sm);
 
         // create new partition on driver
         auto driver = _context->getDriver();
@@ -205,11 +205,11 @@ namespace tuplex {
         partitions.push_back(partition);
 
         // create dataset from partitions.
-        return _context->fromPartitions(schema, partitions, fallbackPartitions, partitionMergeInfo, columns);
+        return _context->fromPartitions(schema, partitions, fallbackPartitions, partitionMergeInfo, columns, sm);
     }
 
     DataSet& PythonContext::fastMixedSimpleTypeTupleTransfer(PyObject *listObj, const python::Type &majType,
-                                                             const std::vector<std::string> &columns) {
+                                                             const std::vector<std::string> &columns, const SamplingMode& sm) {
         assert(listObj);
         assert(PyList_Check(listObj));
         assert(majType.isTupleType());
@@ -223,8 +223,7 @@ namespace tuplex {
 
         // check if empty?
         if(0 == numElements)
-            return _context->fromPartitions(schema, std::vector<Partition*>(), std::vector<Partition*>(), std::vector<PartitionGroup>(), columns);
-
+            return _context->fromPartitions(schema, std::vector<Partition*>(), std::vector<Partition*>(), std::vector<PartitionGroup>(), columns, sm);
 
         // encode type of tuple quickly into string
         char *typeStr = new char[numTupleElements];
@@ -389,10 +388,10 @@ namespace tuplex {
         delete [] typeStr;
 
         // create dataset from partitions.
-        return _context->fromPartitions(schema, partitions, fallbackPartitions, partitionMergeInfo, columns);
+        return _context->fromPartitions(schema, partitions, fallbackPartitions, partitionMergeInfo, columns, sm);
     }
 
-    DataSet& PythonContext::fastBoolParallelize(PyObject *listObj, const std::vector<std::string>& columns) {
+    DataSet& PythonContext::fastBoolParallelize(PyObject *listObj, const std::vector<std::string>& columns, const SamplingMode& sm) {
         assert(listObj);
         assert(PyList_Check(listObj));
 
@@ -402,7 +401,7 @@ namespace tuplex {
 
         // check if empty?
         if(0 == numElements)
-            return _context->fromPartitions(schema, std::vector<Partition*>(), std::vector<Partition*>(), std::vector<PartitionGroup>(), columns);
+            return _context->fromPartitions(schema, std::vector<Partition*>(), std::vector<Partition*>(), std::vector<PartitionGroup>(), columns, sm);
 
 
         // create new partition on driver
@@ -460,10 +459,10 @@ namespace tuplex {
         partitions.push_back(partition);
 
         // create dataset from partitions.
-        return _context->fromPartitions(schema, partitions, fallbackPartitions, partitionMergeInfo, columns);
+        return _context->fromPartitions(schema, partitions, fallbackPartitions, partitionMergeInfo, columns, sm);
     }
 
-    DataSet& PythonContext::fastStrParallelize(PyObject* listObj, const std::vector<std::string>& columns) {
+    DataSet& PythonContext::fastStrParallelize(PyObject* listObj, const std::vector<std::string>& columns, const SamplingMode& sm) {
         assert(listObj);
         assert(PyList_Check(listObj));
 
@@ -473,7 +472,7 @@ namespace tuplex {
 
         // check if empty?
         if(0 == numElements)
-            return _context->fromPartitions(schema, std::vector<Partition*>(), std::vector<Partition*>(), std::vector<PartitionGroup>(), columns);
+            return _context->fromPartitions(schema, std::vector<Partition*>(), std::vector<Partition*>(), std::vector<PartitionGroup>(), columns, sm);
 
 
         // create new partition on driver
@@ -553,7 +552,7 @@ namespace tuplex {
         partitions.push_back(partition);
 
         // create dataset from partitions.
-        return _context->fromPartitions(schema, partitions, fallbackPartitions, partitionMergeInfo, columns);
+        return _context->fromPartitions(schema, partitions, fallbackPartitions, partitionMergeInfo, columns, sm);
     }
 
     // Returns true if t1 can be considered a subtype of t2, specifically in the context of Option types
@@ -574,7 +573,7 @@ namespace tuplex {
     }
 
     DataSet & PythonContext::parallelizeAnyType(const py::list &L, const python::Type &majType,
-                                                const std::vector<std::string> &columns, bool autoUpcast) {
+                                                const std::vector<std::string> &columns, bool autoUpcast, const SamplingMode& sm) {
 
         auto& logger = Logger::instance().logger("python");
         logger.info("using slow transfer to backend");
@@ -592,7 +591,7 @@ namespace tuplex {
 
         // check if empty?
         if(0 == numElements)
-            return _context->fromPartitions(schema, std::vector<Partition*>(), std::vector<Partition*>(), std::vector<PartitionGroup>(), columns);
+            return _context->fromPartitions(schema, std::vector<Partition*>(), std::vector<Partition*>(), std::vector<PartitionGroup>(), columns, sm);
 
         auto firstRow = PyList_GET_ITEM(listObj, 0);
         Py_XINCREF(firstRow);
@@ -677,11 +676,11 @@ namespace tuplex {
         partitions.push_back(partition);
 
         // serialize in main memory
-        return _context->fromPartitions(schema, partitions, fallbackPartitions, partitionMergeInfo, columns);
+        return _context->fromPartitions(schema, partitions, fallbackPartitions, partitionMergeInfo, columns, sm);
     }
 
     DataSet& PythonContext::strDictParallelize(PyObject *listObj, const python::Type &rowType,
-                                               const std::vector<std::string> &columns) {
+                                               const std::vector<std::string> &columns, const SamplingMode& sm) {
         assert(listObj);
         assert(PyList_Check(listObj));
 
@@ -695,7 +694,7 @@ namespace tuplex {
 
         // check if empty?
         if(0 == numElements)
-            return _context->fromPartitions(schema, std::vector<Partition*>(), std::vector<Partition*>(), std::vector<PartitionGroup>(), columns);
+            return _context->fromPartitions(schema, std::vector<Partition*>(), std::vector<Partition*>(), std::vector<PartitionGroup>(), columns, sm);
 
         // create new partition on driver
         auto driver = _context->getDriver();
@@ -776,13 +775,14 @@ namespace tuplex {
         partitions.push_back(partition);
 
         // create dataset from partitions.
-        return _context->fromPartitions(schema, partitions, fallbackPartitions, partitionMergeInfo, columns);
+        return _context->fromPartitions(schema, partitions, fallbackPartitions, partitionMergeInfo, columns, sm);
     }
 
     PythonDataSet PythonContext::parallelize(py::list L,
                                              py::object cols,
                                              py::object schema,
-                                             bool autoUnpack) {
+                                             bool autoUnpack,
+                                             int sampling_mode) {
 
         assert(_context);
 
@@ -792,7 +792,7 @@ namespace tuplex {
         DataSet *ds = nullptr;
         python::Type majType; // the type assumed for the dataset
         auto autoUpcast = _context->getOptions().AUTO_UPCAST_NUMBERS();
-
+        auto sm = sampling_mode == 0 ? DEFAULT_SAMPLING_MODE : static_cast<SamplingMode>(sampling_mode);
         Timer timer;
         auto numElements = py::len(L);
         std::stringstream ss;
@@ -839,38 +839,38 @@ namespace tuplex {
             majType = python::Type::makeTupleType(types);
 
             // have to use special dict parallelize function here!
-            ds = &strDictParallelize(L.ptr(), majType, columns);
+            ds = &strDictParallelize(L.ptr(), majType, columns, sm);
         }
         // fast convert
         else if(majType == python::Type::BOOLEAN)
-            ds = &fastBoolParallelize(L.ptr(), columns);
+            ds = &fastBoolParallelize(L.ptr(), columns, sm);
         else if(majType == python::Type::I64)
-            ds = &fastI64Parallelize(L.ptr(), columns, autoUpcast);
+            ds = &fastI64Parallelize(L.ptr(), columns, autoUpcast, sm);
         else if(majType == python::Type::F64)
-            ds = &fastF64Parallelize(L.ptr(), columns, autoUpcast);
+            ds = &fastF64Parallelize(L.ptr(), columns, autoUpcast, sm);
         else if(majType == python::Type::STRING)
-            ds = &fastStrParallelize(L.ptr(), columns);
+            ds = &fastStrParallelize(L.ptr(), columns, sm);
         else if(majType.isTupleType()) {
             // check whether it's a tuple consisting of simple types only, if so transfer super fast!
                 if(python::tupleElementsHaveSimpleTypes(majType)) {
-
-                // mixed simple types ==> can do faster transfer here!
-                    ds = &fastMixedSimpleTypeTupleTransfer(L.ptr(), majType, columns);
+                    // mixed simple types ==> can do faster transfer here!
+                    ds = &fastMixedSimpleTypeTupleTransfer(L.ptr(), majType, columns, sm);
                 } else {
                     // general slow transfer...
-               ds = &parallelizeAnyType(L, majType, columns, autoUpcast);}
+                    ds = &parallelizeAnyType(L, majType, columns, autoUpcast, sm);
+                }
         } else if(majType.isDictionaryType() || majType == python::Type::GENERICDICT) {
-            ds = &parallelizeAnyType(L, majType, columns, autoUpcast);
+            ds = &parallelizeAnyType(L, majType, columns, autoUpcast, sm);
         } else if(majType.isOptionType()) {
             // TODO: special case to fast conversion for the option types with fast underlying types
-            ds = &parallelizeAnyType(L, majType, columns, autoUpcast);
+            ds = &parallelizeAnyType(L, majType, columns, autoUpcast, sm);
         } else if(majType == python::Type::NULLVALUE) {
             // TODO: special case to fast conversion for the option types with fast underlying types
-            ds = &parallelizeAnyType(L, majType, columns, autoUpcast);
+            ds = &parallelizeAnyType(L, majType, columns, autoUpcast, sm);
         } else if(majType.isListType()) {
-            ds = &parallelizeAnyType(L, majType, columns, autoUpcast);
+            ds = &parallelizeAnyType(L, majType, columns, autoUpcast, sm);
         } else if(majType == python::Type::PYOBJECT) {
-            ds = &parallelizeAnyType(L, majType, columns, autoUpcast);
+            ds = &parallelizeAnyType(L, majType, columns, autoUpcast, sm);
         } else {
             std::string msg = "unsupported type '" + majType.desc() + "' found, could not transfer data to backend";
             Logger::instance().logger("python").error(msg);
@@ -1131,7 +1131,8 @@ namespace tuplex {
                                      const std::string& delimiter,
                                      const std::string& quotechar,
                                      py::object null_values,
-                                     py::object type_hints) {
+                                     py::object type_hints,
+                                     int sampling_mode) {
         assert(_context);
 
         // reset signals
@@ -1160,6 +1161,7 @@ namespace tuplex {
         std::vector<std::string> null_value_strs;
         std::unordered_map<size_t, python::Type> type_idx_hints_c;
         std::unordered_map<std::string, python::Type> type_col_hints_c;
+        auto sm = sampling_mode == 0 ? DEFAULT_SAMPLING_MODE : static_cast<SamplingMode>(sampling_mode);
         try {
             columns = extractFromListOfStrings(cols.ptr(), "columns ");
             null_value_strs = extractFromListOfStrings(null_values.ptr(), "null_values ");
@@ -1187,7 +1189,7 @@ namespace tuplex {
         try {
             ds = &_context->csv(pattern, columns, autodetect_header ? option<bool>::none : option<bool>(header),
                                 delimiter.empty() ? option<char>::none : option<char>(delimiter[0]),
-                                quotechar[0], null_value_strs, type_idx_hints_c, type_col_hints_c);
+                                quotechar[0], null_value_strs, type_idx_hints_c, type_col_hints_c, sm);
         } catch(const std::exception& e) {
             err_message = e.what();
             Logger::instance().defaultLogger().error(err_message);
@@ -1210,7 +1212,7 @@ namespace tuplex {
         return pds;
     }
 
-    PythonDataSet PythonContext::text(const std::string &pattern, py::object null_values ) {
+    PythonDataSet PythonContext::text(const std::string &pattern, py::object null_values, int sampling_mode) {
         assert(_context);
 
         // reset signals
@@ -1220,12 +1222,55 @@ namespace tuplex {
         PythonDataSet pds;
         assert(PyGILState_Check()); // make sure this thread holds the GIL!
         auto null_value_strs = extractFromListOfStrings(null_values.ptr(), "null_values ");
+        auto sm = sampling_mode == 0 ? DEFAULT_SAMPLING_MODE : static_cast<SamplingMode>(sampling_mode);
 
         python::unlockGIL();
         DataSet *ds = nullptr;
         std::string err_message = "";
         try {
-            ds = &_context->text(pattern, null_value_strs);
+            ds = &_context->text(pattern, null_value_strs, sm);
+        } catch(const std::exception& e) {
+            err_message = e.what();
+            Logger::instance().defaultLogger().error(err_message);
+        } catch(...) {
+            err_message = "unknown C++ exception occurred, please change type.";
+            Logger::instance().defaultLogger().error(err_message);
+        }
+
+        python::lockGIL();
+
+        // nullptr? then error dataset!
+        if(!ds || !err_message.empty()) {
+            Logger::instance().flushAll();
+            assert(_context);
+            ds = &_context->makeError(err_message);
+        }
+        pds.wrap(ds);
+        // Logger::instance().flushAll();
+        Logger::instance().flushToPython();
+        return pds;
+    }
+
+    PythonDataSet PythonContext::json(const std::string& pattern,
+                                      bool unwrap_first_level,
+                                      bool treat_heterogeneous_lists_as_tuples,
+                                      int sampling_mode) {
+        assert(_context);
+
+        // reset signals
+        if(check_and_forward_signals(true))
+            return makeError("job aborted via signal");
+
+        PythonDataSet pds;
+        assert(PyGILState_Check()); // make sure this thread holds the GIL!
+
+        auto sm = sampling_mode == 0 ? DEFAULT_SAMPLING_MODE : static_cast<SamplingMode>(sampling_mode);
+
+        python::unlockGIL();
+        DataSet *ds = nullptr;
+        std::string err_message = "";
+        try {
+            ds = &_context->json(pattern, unwrap_first_level, treat_heterogeneous_lists_as_tuples, sm);
         } catch(const std::exception& e) {
             err_message = e.what();
             Logger::instance().defaultLogger().error(err_message);
@@ -1249,7 +1294,8 @@ namespace tuplex {
     }
 
     PythonDataSet PythonContext::orc(const std::string &pattern,
-                                     py::object cols) {
+                                     py::object cols,
+                                     int sampling_mode) {
         assert(_context);
 
         // reset signals
@@ -1262,12 +1308,13 @@ namespace tuplex {
 
         // extract columns (if not none)
         auto columns = extractFromListOfStrings(cols.ptr(), "columns ");
+        auto sm = sampling_mode == 0 ? DEFAULT_SAMPLING_MODE : static_cast<SamplingMode>(sampling_mode);
 
         python::unlockGIL();
         DataSet *ds = nullptr;
         std::string err_message = "";
         try {
-            ds = &_context->orc(pattern, columns);
+            ds = &_context->orc(pattern, columns, sm);
         } catch(const std::exception& e) {
             err_message = e.what();
             Logger::instance().defaultLogger().error(err_message);
@@ -1295,7 +1342,7 @@ namespace tuplex {
         auto& logger = Logger::instance().logger("python");
 
         // go through keyval pairs and check whether they exist in default
-        for(auto keyval : m) {
+        for(const auto& keyval : m) {
             auto key = keyval.first;
             auto val = keyval.second;
 
@@ -1472,142 +1519,168 @@ namespace tuplex {
         assert(PyGILState_Check()); // make sure this thread holds the GIL!
         PyObject* dictObject = PyDict_New();
 
+        try {
+            // bool options
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.useLLVMOptimizer"),
+                           python::boolToPython(co.USE_LLVM_OPTIMIZER()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.autoUpcast"),
+                           python::boolToPython(co.AUTO_UPCAST_NUMBERS()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.allowUndefinedBehavior"),
+                           python::boolToPython(co.UNDEFINED_BEHAVIOR_FOR_OPERATORS()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.codeStats"),
+                           python::boolToPython(co.OPT_DETAILED_CODE_STATS()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.generateParser"),
+                           python::boolToPython(co.OPT_GENERATE_PARSER()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.nullValueOptimization"),
+                           python::boolToPython(co.OPT_NULLVALUE_OPTIMIZATION()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.filterPushdown"),
+                           python::boolToPython(co.OPT_FILTER_PUSHDOWN()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.sharedObjectPropagation"),
+                           python::boolToPython(co.OPT_SHARED_OBJECT_PROPAGATION()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.mergeExceptionsInOrder"),
+                           python::boolToPython(co.OPT_MERGE_EXCEPTIONS_INORDER()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.operatorReordering"),
+                           python::boolToPython(co.OPT_OPERATOR_REORDERING()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.filterPromotion"),
+                           python::boolToPython(co.OPT_FILTER_PROMOTION()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.interleaveIO"),
+                           python::boolToPython(co.INTERLEAVE_IO()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.resolveWithInterpreterOnly"),
+                           python::boolToPython(co.RESOLVE_WITH_INTERPRETER_ONLY()));
 
-        // bool options
-        PyDict_SetItem(dictObject,
-                python::PyString_FromString("tuplex.useLLVMOptimizer"),
-                python::boolToPython(co.USE_LLVM_OPTIMIZER()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.autoUpcast"),
-                       python::boolToPython(co.AUTO_UPCAST_NUMBERS()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.allowUndefinedBehavior"),
-                       python::boolToPython(co.UNDEFINED_BEHAVIOR_FOR_OPERATORS()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.codeStats"),
-                       python::boolToPython(co.OPT_DETAILED_CODE_STATS()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.generateParser"),
-                       python::boolToPython(co.OPT_GENERATE_PARSER()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.nullValueOptimization"),
-                       python::boolToPython(co.OPT_NULLVALUE_OPTIMIZATION()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.filterPushdown"),
-                       python::boolToPython(co.OPT_FILTER_PUSHDOWN()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.sharedObjectPropagation"),
-                       python::boolToPython(co.OPT_SHARED_OBJECT_PROPAGATION()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.mergeExceptionsInOrder"),
-                       python::boolToPython(co.OPT_MERGE_EXCEPTIONS_INORDER()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optimizer.operatorReordering"),
-                       python::boolToPython(co.OPT_OPERATOR_REORDERING()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.interleaveIO"),
-                       python::boolToPython(co.INTERLEAVE_IO()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.resolveWithInterpreterOnly"),
-                       python::boolToPython(co.RESOLVE_WITH_INTERPRETER_ONLY()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.network.verifySSL"),
+                           python::boolToPython(co.NETWORK_VERIFY_SSL()));
 
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.network.verifySSL"),
-                       python::boolToPython(co.NETWORK_VERIFY_SSL()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.redirectToPythonLogging"),
+                           python::boolToPython(co.REDIRECT_TO_PYTHON_LOGGING()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.useInterpreterOnly"),
+                           python::boolToPython(co.PURE_PYTHON_MODE()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.lambdaInvokeOthers"),
+                           python::boolToPython(co.AWS_LAMBDA_SELF_INVOCATION()));
 
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.redirectToPythonLogging"),
-                       python::boolToPython(co.REDIRECT_TO_PYTHON_LOGGING()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.experimental.hyperspecialization"),
+                           python::boolToPython(co.USE_EXPERIMENTAL_HYPERSPECIALIZATION()));
 
-        // @TODO: move to optimizer
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.csv.selectionPushdown"),
-                       python::boolToPython(co.CSV_PARSER_SELECTION_PUSHDOWN()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.experimental.opportuneCompilation"),
+                           python::boolToPython(co.USE_EXPERIMENTAL_OPPORTUNE_COMPILATION()));
+
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.experimental.forceBadParseExceptFormat"),
+                           python::boolToPython(co.EXPERIMENTAL_FORCE_BAD_PARSE_EXCEPT_FORMAT()));
+
+            // @TODO: move to optimizer
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optimizer.selectionPushdown"),
+                           python::boolToPython(co.OPT_SELECTION_PUSHDOWN()));
 
 
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.webui.enable"),
-                       python::boolToPython(co.USE_WEBUI()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.webui.enable"),
+                           python::boolToPython(co.USE_WEBUI()));
 
-        // int options
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.executorCount"),
-                       PyLong_FromLongLong(co.EXECUTOR_COUNT()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.csv.maxDetectionRows"),
-                       PyLong_FromLongLong(co.CSV_MAX_DETECTION_ROWS()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.webui.port"),
-                       PyLong_FromLongLong(co.WEBUI_PORT()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.webui.mongodb.port"),
-                       PyLong_FromLongLong(co.WEBUI_DATABASE_PORT()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.webui.exceptionDisplayLimit"),
-                       PyLong_FromLongLong(co.WEBUI_EXCEPTION_DISPLAY_LIMIT()));
+            // int options
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.executorCount"),
+                           PyLong_FromLongLong(co.EXECUTOR_COUNT()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.sample.maxDetectionRows"),
+                           PyLong_FromLongLong(co.SAMPLE_MAX_DETECTION_ROWS()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.webui.port"),
+                           PyLong_FromLongLong(co.WEBUI_PORT()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.webui.mongodb.port"),
+                           PyLong_FromLongLong(co.WEBUI_DATABASE_PORT()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.webui.exceptionDisplayLimit"),
+                           PyLong_FromLongLong(co.WEBUI_EXCEPTION_DISPLAY_LIMIT()));
 
-        // aws options
+            // aws options
 #ifdef BUILD_WITH_AWS
-        //                      {"tuplex.aws.requestTimeout", "600"},
-        //                     {"tuplex.aws.connectTimeout", "1"},
-        //                     {"tuplex.aws.maxConcurrency", "100"},
-        //                     {"tuplex.aws.httpThreadCount", std::to_string(std::min(8u, std::thread::hardware_concurrency()))},
-        //                     {"tuplex.aws.region", "us-east-1"},
-        //                     {"tuplex.aws.lambdaMemory", "1536"},
-        //                     {"tuplex.aws.lambdaTimeout", "600"},
-        //                     {"tuplex.aws.requesterPay", "false"},
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.aws.requestTimeout"),
-                       PyLong_FromLongLong(co.AWS_REQUEST_TIMEOUT()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.aws.connectTimeout"),
-                       PyLong_FromLongLong(co.AWS_CONNECT_TIMEOUT()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.aws.maxConcurrency"),
-                       PyLong_FromLongLong(co.AWS_MAX_CONCURRENCY()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.aws.httpThreadCount"),
-                       PyLong_FromLongLong(co.AWS_NUM_HTTP_THREADS()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.aws.lambdaMemory"),
-                       PyLong_FromLongLong(co.AWS_LAMBDA_MEMORY()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.aws.lambdaTimeout"),
-                       PyLong_FromLongLong(co.AWS_LAMBDA_TIMEOUT()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.aws.requesterPay"),
-                       python::boolToPython(co.AWS_REQUESTER_PAY()));
+            //                      {"tuplex.aws.requestTimeout", "600"},
+            //                     {"tuplex.aws.connectTimeout", "1"},
+            //                     {"tuplex.aws.maxConcurrency", "100"},
+            //                     {"tuplex.aws.httpThreadCount", std::to_string(std::min(8u, std::thread::hardware_concurrency()))},
+            //                     {"tuplex.aws.region", "us-east-1"},
+            //                     {"tuplex.aws.lambdaMemory", "1536"},
+            //                     {"tuplex.aws.lambdaTimeout", "600"},
+            //                     {"tuplex.aws.requesterPay", "false"},
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.requestTimeout"),
+                           PyLong_FromLongLong(co.AWS_REQUEST_TIMEOUT()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.connectTimeout"),
+                           PyLong_FromLongLong(co.AWS_CONNECT_TIMEOUT()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.maxConcurrency"),
+                           PyLong_FromLongLong(co.AWS_MAX_CONCURRENCY()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.httpThreadCount"),
+                           PyLong_FromLongLong(co.AWS_NUM_HTTP_THREADS()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.lambdaMemory"),
+                           PyLong_FromLongLong(co.AWS_LAMBDA_MEMORY()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.lambdaTimeout"),
+                           PyLong_FromLongLong(co.AWS_LAMBDA_TIMEOUT()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.aws.requesterPay"),
+                           python::boolToPython(co.AWS_REQUESTER_PAY()));
 #endif
 
-        // float options
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.normalcaseThreshold"),
-                       PyFloat_FromDouble(co.NORMALCASE_THRESHOLD()));
-        PyDict_SetItem(dictObject,
-                       python::PyString_FromString("tuplex.optionalThreshold"),
-                       PyFloat_FromDouble(co.OPTIONAL_THRESHOLD()));
+            // float options
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.normalcaseThreshold"),
+                           PyFloat_FromDouble(co.NORMALCASE_THRESHOLD()));
+            PyDict_SetItem(dictObject,
+                           python::PyString_FromString("tuplex.optionalThreshold"),
+                           PyFloat_FromDouble(co.OPTIONAL_THRESHOLD()));
 
-        // boost python has problems with the code below. I.e. somehow the nested structure does not
-        // get correctly copied. Hence, there is a hack for these two in options() in Context.py
-        // // list options
-        // PyObject* list = nullptr;
-        // auto vSeparators = co.CSV_SEPARATORS();
-        // list = PyList_New(vSeparators.size());
-        // for(unsigned i = 0; i < vSeparators.size(); ++i) {
-        //     //PyList_SET_ITEM(list, i, python::PyString_FromChar(vSeparators[i]));
-        //     PyList_SetItem(list, i, python::PyString_FromString(","));
-        // }
-        // PyDict_SetItem(dictObject,
-        //                python::PyString_FromString("tuplex.csv.separators"),
-        //                list);
-        // auto vComments = co.CSV_COMMENTS();
-        // list = PyList_New(vComments.size());
-        // for(unsigned i = 0; i < vComments.size(); ++i) {
-        //     PyList_SET_ITEM(list, i, python::PyString_FromChar(vComments[i]));
-        // }
-        // PyDict_SetItem(dictObject,
-        //                python::PyString_FromString("tuplex.csv.comments"),
-        //                list);
+            // boost python has problems with the code below. I.e. somehow the nested structure does not
+            // get correctly copied. Hence, there is a hack for these two in options() in Context.py
+            // // list options
+            // PyObject* list = nullptr;
+            // auto vSeparators = co.CSV_SEPARATORS();
+            // list = PyList_New(vSeparators.size());
+            // for(unsigned i = 0; i < vSeparators.size(); ++i) {
+            //     //PyList_SET_ITEM(list, i, python::PyString_FromChar(vSeparators[i]));
+            //     PyList_SetItem(list, i, python::PyString_FromString(","));
+            // }
+            // PyDict_SetItem(dictObject,
+            //                python::PyString_FromString("tuplex.csv.separators"),
+            //                list);
+            // auto vComments = co.CSV_COMMENTS();
+            // list = PyList_New(vComments.size());
+            // for(unsigned i = 0; i < vComments.size(); ++i) {
+            //     PyList_SET_ITEM(list, i, python::PyString_FromChar(vComments[i]));
+            // }
+            // PyDict_SetItem(dictObject,
+            //                python::PyString_FromString("tuplex.csv.comments"),
+            //                list);
+        } catch (const std::out_of_range& e) {
+            std::stringstream err_stream;
+            err_stream<<"Failed converting option key, details: "<<e.what();
+            Logger::instance().defaultLogger().error(err_stream.str());
+        }
 
         // strings
         // i.e. for the rest

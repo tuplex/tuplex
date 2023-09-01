@@ -8,8 +8,8 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <HybridHashTable.h>
-#include <physical/PythonPipelineBuilder.h>
+#include <physical/execution/HybridHashTable.h>
+#include <physical/codegen/PythonPipelineBuilder.h>
 #include <bucket.h>
 #include "TestUtils.h"
 
@@ -179,6 +179,8 @@ TEST(PythonPipeline, DictUnpacking) {
     ppb.csvOutput();
 
     auto code = ppb.getCode();
+
+    std::cout<<code<<std::endl;
 
     python::lockGIL();
 

@@ -12,7 +12,7 @@
 #include <Context.h>
 #include "../../utils/include/Utils.h"
 #include "TestUtils.h"
-#include "RuntimeInterface.h"
+#include "jit/RuntimeInterface.h"
 
 // need for these tests a running python interpreter, so spin it up
 class ListFunctions : public PyTest {};

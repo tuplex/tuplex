@@ -18,6 +18,7 @@
 #include <StringUtils.h> // <-- implemented in StringUtils
 #include <ExceptionCodes.h>
 #include <fmt/format.h>
+#include <fmt/args.h>
 #include <pcre2.h>
 #include <Logger.h>
 #include <random>
@@ -81,17 +82,22 @@ public:
 // use thread local to index heap
 static thread_local MemoryHeap* heap = nullptr;
 
-static const size_t HEAP_ALIGNMENT = 16ul;
+//static const size_t HEAP_ALIGNMENT = 16ul;
+// use 64 byte alignment so SSE42 optimizations work...
+static const size_t HEAP_ALIGNMENT = 64ul;
 static inline size_t alignHeapSize(size_t size) {
     return (((size) + ((HEAP_ALIGNMENT) - 1)) & ~((HEAP_ALIGNMENT) - 1));
 }
 
+inline bool is_aligned(std::size_t alignment, const volatile void* ptr) noexcept {
+    return (reinterpret_cast<std::size_t>(ptr) & (alignment - 1)) == 0;
+}
 /*!
  * helper function to init a memory block
  * @param size
  * @return
  */
-static struct MemoryBlock *initMemoryBlock(const size_t size) {
+static struct MemoryBlock *initMemoryBlock(size_t size) {
 
     auto *node = (struct MemoryBlock *) malloc(sizeof(struct MemoryBlock));
 
@@ -104,6 +110,8 @@ static struct MemoryBlock *initMemoryBlock(const size_t size) {
     node->size = size;
     node->offset = 0;
     node->next = nullptr;
+
+    size = core::ceilToMultiple(size, HEAP_ALIGNMENT); // must be multiple of heap alignment
     node->mem = (uint8_t*)aligned_alloc(HEAP_ALIGNMENT, size);
 
     if (!node->mem) {
@@ -197,7 +205,10 @@ extern "C" void *rtmalloc(const size_t requested_size) noexcept {
     if(!heap)
         heap = new MemoryHeap();
 
-    size_t size = alignHeapSize(requested_size); // align to nearest multiple of heap alignment
+    // debug: add safety buffer to prevent segfault??
+    size_t safety_buf = 0; // 8192; // 8kb safety buffer
+
+    size_t size = alignHeapSize(requested_size + safety_buf); // align to nearest multiple of heap alignment
 
     assert(size >= requested_size);
 
@@ -209,6 +220,7 @@ extern "C" void *rtmalloc(const size_t requested_size) noexcept {
         }
         // @Todo: maybe increase block size?
         // @Todo: Request super large block?
+
         printf("fatal error: Requested object size %lu, is larger than default block size %lu! Can't handle memory request!\n", size, heap->defaultBlockSize);
         exit(-1);
         return NULL;
@@ -263,8 +275,23 @@ extern "C" void *rtmalloc(const size_t requested_size) noexcept {
         assert(heap->lastBlock);
         uint8_t *memaddr = heap->lastBlock->mem + heap->lastBlock->offset;
 
+        // make sure addr is heap aligned
+        // cf. https://pzemtsov.github.io/2016/11/06/bug-story-alignment-on-x86.html
+        assert(is_aligned(HEAP_ALIGNMENT, memaddr));
+
         // inc offset
         heap->lastBlock->offset += size;
+
+        // debugging
+#ifdef TRACE_MEMORY
+#ifdef MACOS
+        printf("rtmalloc [%p] size=%zu\n", memaddr, size);
+#else
+        printf("rtmalloc [%p] size=%d\n", memaddr, size);
+#endif
+        // also memset to zero in debug mode
+        memset(memaddr, 0, size);
+#endif
         return memaddr;
     }
 }
@@ -274,6 +301,8 @@ extern "C" void *rtmalloc(const size_t requested_size) noexcept {
 extern "C" void rtfree(void *ptr) noexcept {
     // do nothing...
 }
+
+// #define TRACE_MEMORY
 
 extern "C" void rtfree_all() noexcept {
     if(!heap)
@@ -533,6 +562,101 @@ end_repl_str:
 }
 
 
+bool is_fmt_float_type(const fmt::detail::type& t) {
+    switch(t) {
+        case fmt::detail::type::float_type:
+        case fmt::detail::type::double_type:
+        case fmt::detail::type::long_double_type:
+            return true;
+        default:
+            return false;
+    }
+}
+
+std::string pyfmtToFmtlib(size_t argNo, const std::string& fmt, const fmt::format_args& args) {
+
+    //assert(argNo < store.size());
+    // does the fmt start with a number and not :?
+    if(!fmt.empty()) {
+        // extract number...
+
+        //-> replace : with :# for float!
+        if(is_fmt_float_type(args.get(argNo).type())) {
+            auto idx = fmt.find(':');
+            if(idx >= 0) {
+                return fmt.substr(0, idx) + ":#" + fmt.substr(idx + 1);
+            }
+            // doesn't matter, prob. invalid format...
+        }
+    } else {
+        // default fmt, i.e. {}
+        // adjust only for float!
+        if(is_fmt_float_type(args.get(argNo).type())) {
+            // prepend # to fmt!
+            return ":#";
+        }
+    }
+
+    // per default use the python fmt
+    return fmt;
+}
+
+std::string adjust_fmt_string(const std::string& fmt_string, const fmt::format_args& args) {
+    // parse format string, i.e. watch out for { ... }, but they can be escaped...
+    std::stringstream ss;
+    char buf[2]; buf[1] = '\0';
+    // not correct, need to do proper escaping...
+    size_t argNo = 0;
+    for(unsigned i = 0; i < fmt_string.size(); ++i) {
+        // special case: escaped {{ and }}
+        if(i + 1 < fmt_string.size()) {
+            char c1 = fmt_string[i];
+            char c2 = fmt_string[i + 1];
+            if(c1 == '{' && c2 == '{') {
+                i++;
+                ss<<"{{";
+                continue;
+            }
+            if(c1 == '}' && c2 == '}') {
+                i++;
+                ss<<"}}";
+                continue;
+            }
+        }
+
+
+        if(i < fmt_string.size() - 1 && '{' == fmt_string[i]) {
+            if('{' == fmt_string[i] && '{' != fmt_string[i + 1]) {
+                // format specification found
+                auto start_idx = i;
+                // read till '}' is encountered!
+                while(i < fmt_string.size() && fmt_string[i] != '}')
+                    ++i;
+
+                // fmt string is start_idx to i
+                // this is the fmt incl {}, fmt_string.substr(start_idx, i - start_idx + 1)
+                // but we want to have only what's inside
+                auto fmt = fmt_string.substr(start_idx + 1, i - start_idx - 1);
+
+                // translate
+                auto translated_fmt = pyfmtToFmtlib(argNo, fmt, args);
+                argNo++;
+
+                ss<<"{"<<translated_fmt<<"}";
+                continue;
+            }
+        }
+
+        // regular char
+        buf[0] = fmt_string[i];
+        ss<<buf;
+    }
+
+    // write rest of output...
+
+    return ss.str();
+}
+
 /*!
  * strFormat function with variable number of arguments. Supports formatting for bool, int, float, str.
  * No support for tuples or other objects yet.
@@ -598,8 +722,21 @@ extern "C" char* strFormat(const char *str, int64_t *res_size, const char* argty
     }
     va_end(argp);
 
+
+    // note: fmtlib has different formatting behavior than python for floating points
+    // hence, manually change string to be formatted...
+
+
     // make the formatting call
-    res = fmt::vformat(str, store);
+
+    // old and deprecated for newer fmtlib versions since they abandon compatibility with python
+    // res = fmt::vformat(str, store);
+
+    // new: adjust format before to reach python compatibility
+    auto args = fmt::basic_format_args<fmt::format_context>(store);
+    string adjusted_fmt_string = adjust_fmt_string(str, args);
+    res = fmt::vformat(adjusted_fmt_string, args);
+
     *res_size = res.length() + 1;
     ret = (char*)rtmalloc((size_t)*res_size);
     memcpy(ret, res.c_str(), (size_t)*res_size);
@@ -1089,6 +1226,12 @@ double rt_py_pow(double base, double exponent, int64_t* ecCode) {
     }
 
     return res;
+}
+
+void llvm9_store_double(double* ptr, double value, int64_t idx) {
+    assert(ptr);
+    assert(idx >= 0);
+    ptr[idx] = value;
 }
 
 //#ifdef __cplusplus

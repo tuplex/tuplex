@@ -17,11 +17,23 @@
 #include <StringUtils.h>
 #include <Utils.h>
 
+// aws constants
+#define AWS_LAMBDA_MAXIMUM_TIMEOUT 900
+
 namespace tuplex {
 
+    /*!
+     * different supported backends for execution
+     * UNKNWOWN: dummy class, invalid.
+     * LOCAL: local execution engine
+     * WORKER: good for debugging, base class for future network based backend or Lambda backend.
+     * LAMBDA: Worker based backend for AWS Lambda.
+     */
     enum class Backend {
-        LOCAL,
-        LAMBDA
+        UNKNOWN=0,
+        LOCAL=1,
+        WORKER=2,
+        LAMBDA=3
     };
 
     /*!
@@ -49,11 +61,13 @@ namespace tuplex {
         bool OPT_DETAILED_CODE_STATS() const { return stringToBool(_store.at("tuplex.optimizer.codeStats")); }
         bool OPT_GENERATE_PARSER() const { return stringToBool(_store.at("tuplex.optimizer.generateParser")); }
         bool OPT_NULLVALUE_OPTIMIZATION() const { return stringToBool(_store.at("tuplex.optimizer.nullValueOptimization")); }
+        bool OPT_CONSTANTFOLDING_OPTIMIZATION() const { return stringToBool(_store.at("tuplex.optimizer.constantFoldingOptimization")); }
         bool OPT_SHARED_OBJECT_PROPAGATION() const { return stringToBool(_store.at("tuplex.optimizer.sharedObjectPropagation")); }
         bool OPT_FILTER_PUSHDOWN() const { return stringToBool(_store.at("tuplex.optimizer.filterPushdown")); }
+        bool OPT_FILTER_PROMOTION() const { return stringToBool(_store.at("tuplex.optimizer.filterPromotion")); }
         bool OPT_OPERATOR_REORDERING() const { return stringToBool(_store.at("tuplex.optimizer.operatorReordering")); }
         bool OPT_MERGE_EXCEPTIONS_INORDER() const { return stringToBool(_store.at("tuplex.optimizer.mergeExceptionsInOrder")); }
-        bool CSV_PARSER_SELECTION_PUSHDOWN() const; //! whether to use selection pushdown in the parser. If false, then full data will be serialized.
+        bool OPT_SELECTION_PUSHDOWN() const; //! whether to use selection pushdown when reading files. If false, then full data will be always read and thus serialized within memory.
         bool INTERLEAVE_IO() const { return stringToBool(_store.at("tuplex.interleaveIO")); } //! whether to first load, compute, then write or use IO thread to interleave IO work with compute work for faster speeds.
         bool RESOLVE_WITH_INTERPRETER_ONLY() const { return stringToBool(_store.at("tuplex.resolveWithInterpreterOnly")); }
 
@@ -66,8 +80,31 @@ namespace tuplex {
         size_t AWS_NUM_HTTP_THREADS() const { return std::stoi(_store.at("tuplex.aws.httpThreadCount")); }
         std::string AWS_REGION() const { return _store.at("tuplex.aws.region"); }
         size_t AWS_LAMBDA_MEMORY() const { return std::stoi(_store.at("tuplex.aws.lambdaMemory")); } // 1536MB
-        size_t AWS_LAMBDA_TIMEOUT() const { return std::stoi(_store.at("tuplex.aws.lambdaTimeout"));  } // 5min?
+        size_t AWS_LAMBDA_TIMEOUT() const {
+            auto timeout_in_s = std::stoi(_store.at("tuplex.aws.lambdaTimeout"));
+            // limit is 15min (900s)
+            return std::min(timeout_in_s, AWS_LAMBDA_MAXIMUM_TIMEOUT);
+
+        } // 5min?
+        std::string AWS_LAMBDA_THREAD_COUNT() const { return _store.at("tuplex.aws.lambdaThreads"); } // auto or number > 0
+        bool AWS_LAMBDA_SELF_INVOCATION() const { return stringToBool(_store.at("tuplex.aws.lambdaInvokeOthers")); } // whether Lambdas should perform self-invocation to scale faster...
         bool AWS_REQUESTER_PAY() const { return stringToBool(_store.at("tuplex.aws.requesterPay")); }
+        bool AWS_VERBOSE_LOGGING() const { return stringToBool(_store.at("tuplex.aws.verboseLogging")); }
+        bool PURE_PYTHON_MODE() const { return stringToBool(_store.at("tuplex.useInterpreterOnly")); } // if set to true, then everything will be processed using the generated py-code only!
+
+        bool USE_EXPERIMENTAL_HYPERSPECIALIZATION() const { return stringToBool(_store.at("tuplex.experimental.hyperspecialization")); }
+        /*!
+         * returns specialization unit size in bytes, 0 means no specialization unit size will be used and everything regularly executed.
+         * @return unit size in bytes
+         */
+        size_t EXPERIMENTAL_SPECIALIZATION_UNIT_SIZE() const { return memStringToSize(_store.at("tuplex.experimental.specializationUnitSize")); }
+        size_t EXPERIMENTAL_MINIMUM_SIZE_TO_SPECIALIZE() const { return memStringToSize(_store.at("tuplex.experimental.minimumSizeToSpecialize")); }
+        bool USE_EXPERIMENTAL_OPPORTUNE_COMPILATION() const { return stringToBool(_store.at("tuplex.experimental.opportuneCompilation")); }
+        size_t USE_EXPERIMENTAL_S3_PRECACHE_SIZE() const { return memStringToSize(_store.at("tuplex.experimental.s3PreCacheSize")); }
+        bool EXPERIMENTAL_INTERCHANGE_CODE_VIA_OBJECT_FILES() const { return stringToBool(_store.at("tuplex.experimental.interchangeWithObjectFiles"));}
+        bool EXPERIMENTAL_FORCE_BAD_PARSE_EXCEPT_FORMAT() const { return stringToBool(_store.at("tuplex.experimental.forceBadParseExceptFormat")); }
+
+        std::string AWS_LAMBDA_INVOCATION_STRATEGY() const { return _store.at("tuplex.aws.lambdaInvocationStrategy"); }
 
         // access parameters via their getter functions
         size_t RUNTIME_MEMORY() const;                        //! in bytes how much memory should be given to UDFs (soft limit)
@@ -96,9 +133,21 @@ namespace tuplex {
         std::vector<char> CSV_COMMENTS() const; //! characters used to identify comments in csv file
         std::vector<char> CSV_SEPARATORS() const; //! potential CSV separators to scan
         char CSV_QUOTECHAR() const; //! quote char used for csv
-        size_t CSV_MAX_DETECTION_MEMORY() const; //! maximum bytes to use for CSV schema inference
-        size_t CSV_MAX_DETECTION_ROWS() const; //! maximum number of rows to use for CSV schema inference
 
+        size_t SAMPLE_MAX_DETECTION_MEMORY() const; //! maximum bytes to use for schema inference for each file source (for each sampling request)
+        size_t SAMPLE_MAX_DETECTION_ROWS() const; //! maximum number of rows to use for schema inference for each file source
+        size_t SAMPLE_STRATA_SIZE() const; // size of strata, if 1 no stratified sampling is used.
+        size_t SAMPLE_SAMPLES_PER_STRATA() const; // samples per strata, between 1 to SAMPLE_STRATA_SIZE().
+
+        // the same sampling scheme, but with separate settings for each lambda. If set to "auto" or "client" will inherit from client setings.
+        size_t AWS_LAMBDA_SAMPLE_MAX_DETECTION_MEMORY() const; //! maximum bytes to use for schema inference for each file source (for each sampling request)
+        size_t AWS_LAMBDA_SAMPLE_MAX_DETECTION_ROWS() const; //! maximum number of rows to use for schema inference for each file source
+        size_t AWS_LAMBDA_SAMPLE_STRATA_SIZE() const; // size of strata, if 1 no stratified sampling is used.
+        size_t AWS_LAMBDA_SAMPLE_SAMPLES_PER_STRATA() const; // samples per strata, between 1 to SAMPLE_STRATA_SIZE().
+
+        bool USE_STRATIFIED_SAMPLING() const { return SAMPLE_STRATA_SIZE() != 1 || SAMPLE_SAMPLES_PER_STRATA() != SAMPLE_STRATA_SIZE(); }
+
+        size_t SAMPLE_SIZE() const { return SAMPLE_MAX_DETECTION_MEMORY(); } // @TODO, change this setting name.
         double NORMALCASE_THRESHOLD() const; //! threshold for normalcase, between 0.0 and 1.0
         double OPTIONAL_THRESHOLD() const; //! threshold for detecting an optional field, between 0.0 and 1.0
 

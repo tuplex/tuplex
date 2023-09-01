@@ -219,3 +219,20 @@ TEST(CSVUtils, ParseBufferToRows) {
     EXPECT_EQ(rows[2].getNumColumns(), 5);
     EXPECT_EQ(rows[2].getRowType().desc(), "(null,i64,i64,null,i64)");
 }
+
+TEST(CSVUtils, SampleParse) {
+    using namespace tuplex;
+
+    // read sample buffer
+    std::ifstream t("../resources/csv_sample_buf.txt");
+    std::stringstream buffer;
+    buffer << t.rdbuf();
+    std::string sample = buffer.str();
+
+    ASSERT_FALSE(sample.empty());
+
+    auto rows = csv_parseRows(sample.c_str(), sample.size(),
+                              110, 0, ',', '"',
+                              std::vector<std::string>{""}, 20000);
+    ASSERT_TRUE(rows.size() > 0);
+}

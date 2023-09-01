@@ -12,6 +12,7 @@
 #include <stack>
 #include <TupleTree.h>
 #include <Utils.h>
+#include <StructCommon.h>
 
 static_assert(sizeof(double) == 8, "double must be 64bit");
 static_assert(sizeof(int64_t) == 8, "int64 must be 64bit");
@@ -45,7 +46,7 @@ namespace tuplex {
 
         // is buffer initialized?
         if (!_buffer) {
-            _bufferCapacity += std::max((int) _growthConstant, (int) numBytes);
+            _bufferCapacity += std::max(_growthConstant, numBytes);
             _bufferSize = 0;
             _buffer = malloc(_bufferCapacity);
             if (!_buffer) {
@@ -55,7 +56,7 @@ namespace tuplex {
         } else {
             // check if numBytes can be accommodated, if not realloc!
             if (_bufferSize + numBytes > _bufferCapacity) {
-                _bufferCapacity += std::max((int) _growthConstant, (int) numBytes);
+                _bufferCapacity += std::max(_growthConstant, numBytes);
                 _buffer = realloc(_buffer, _bufferCapacity);
             }
         }
@@ -88,7 +89,8 @@ namespace tuplex {
             _types.push_back(python::Type::I64);
         } else {
             // type check in debug mode
-            assert(_schema.getRowType().parameters()[_col++] == python::Type::I64);
+            assert(_schema.getRowType().parameters()[_col] == python::Type::I64);
+            _col++;
         }
         return appendWithoutInference(i);
     }
@@ -110,7 +112,8 @@ namespace tuplex {
             _types.push_back(python::Type::BOOLEAN);
         } else {
             // type check in debug mode
-            assert(_schema.getRowType().parameters()[_col++] == python::Type::BOOLEAN);
+            assert(_schema.getRowType().parameters()[_col] == python::Type::BOOLEAN);
+            _col++;
         }
         return appendWithoutInference(b);
     }
@@ -130,10 +133,12 @@ namespace tuplex {
     Serializer &Serializer::append(const option<bool> &b) {
         if (_autoSchema)
             _types.push_back(python::Type::makeOptionType(python::Type::BOOLEAN));
-        else
+        else {
             // type check in debug mode
-            assert(_schema.getRowType().parameters()[_col++] == python::Type::makeOptionType(python::Type::BOOLEAN));
-
+            assert(_schema.getRowType().parameters()[_col] == python::Type::makeOptionType(python::Type::BOOLEAN));
+            _col++;
+        }
+            
         return appendWithoutInference(b);
     }
 
@@ -153,9 +158,12 @@ namespace tuplex {
     Serializer &Serializer::append(const option<int64_t> &i) {
         if (_autoSchema)
             _types.push_back(python::Type::makeOptionType(python::Type::I64));
-        else
+        else {
             // type check in debug mode
-            assert(_schema.getRowType().parameters()[_col++] == python::Type::makeOptionType(python::Type::I64));
+            assert(_schema.getRowType().parameters()[_col] == python::Type::makeOptionType(python::Type::I64));
+            _col++;
+        }
+           
         return appendWithoutInference(i);
     }
 
@@ -716,6 +724,8 @@ namespace tuplex {
 
     Serializer &Serializer::appendWithoutInferenceHelper(const List &l) {
 
+        // @TODO: this has to be redone properly...
+
         // add number of elements
         _varLenFields.provideSpace(sizeof(uint64_t));
         *((uint64_t *)_varLenFields.ptr()) = l.numElements();
@@ -767,7 +777,7 @@ namespace tuplex {
             for (size_t listIndex = 0; listIndex < l.numElements(); ++listIndex) {
                 // write offset to placeholder
                 uint64_t currOffset = (uintptr_t)_varLenFields.ptr() - (uintptr_t)varLenOffsetAddr;
-                *(uint64_t *)varLenOffsetAddr = currOffset;
+                // *(uint64_t *)varLenOffsetAddr = currOffset; // <-- this is problematic (!)
                 // increment varLenOffsetAddr by 8
                 varLenOffsetAddr = (void *)((uint64_t *)varLenOffsetAddr + 1);
                 // append tuple
@@ -973,7 +983,8 @@ namespace tuplex {
                 std::memcpy(ptr, bitmap, bitmapSize);
             }
 
-            std::memcpy((uint8_t *) ptr + bitmapSize, _fixedLenFields.buffer(), _fixedLenFields.size());
+            if(_fixedLenFields.size() > 0) // do not serialize fields like EMPTYTUPLE etc. E.g., a field like empty tuple will serialize to 0 bytes.
+                std::memcpy((uint8_t *) ptr + bitmapSize, _fixedLenFields.buffer(), _fixedLenFields.size());
 
             // always write this addr if varlen fields are present
             if(hasSchemaVarLenFields())
@@ -1068,7 +1079,7 @@ namespace tuplex {
             _requiresBitmap.push_back(el.isOptionType());
 
             // IMPORTANT: _isVarLenField has a value for every single object, so it is not the exact same as _isVarLenField in Serializer
-            if(type.isSingleValued()) {
+            if(type.isSingleValued() || type.isConstantValued()) {
                 _isVarLenField.push_back(false); // Opt[()], Opt[{}] are not varlenfields
             } else if (type == python::Type::BOOLEAN
                 || type == python::Type::I64
@@ -1084,6 +1095,8 @@ namespace tuplex {
                 _isVarLenField.push_back(true);
             } else {
                 Logger::instance().logger("core").error("non deserializable type '" + el.desc() + "' detected");
+                // treat as none...
+                _isVarLenField.push_back(false);
             }
         }
     }
@@ -1691,8 +1704,20 @@ namespace tuplex {
                 f = Field::null();
             else if (python::Type::GENERICDICT == type)
                 f = Field::from_str_data(getDictionary(i), python::Type::GENERICDICT);
-            else if (type.isDictionaryType())
-                f = Field::from_str_data(getDictionary(i), type);
+            else if (type.isDictionaryType()) {
+                if(type.isStructuredDictionaryType()) {
+                    auto buf = getPtr(i);
+                    auto buf_size = getSize(i);
+                    auto json_data = decodeStructDictFromBinary(type, buf, buf_size);
+                    if(buf_size > 0)
+                        assert(!json_data.empty());
+                    f = Field::from_str_data(json_data, type);
+                    // old: dummy
+                    //f = Field::from_str_data("StructDict[...]", type);
+                } else {
+                    f = Field::from_str_data(getDictionary(i), type);
+                }
+            }
             else if (type == python::Type::EMPTYLIST)
                 f = Field(List());
             else if (type.isListType())
@@ -1720,21 +1745,43 @@ namespace tuplex {
                     f = Field::from_str_data(
                             isNull(i) ? option<std::string>::none : option<std::string>(getDictionary(i)),
                             python::Type::GENERICDICT);
-                else if (rt.isDictionaryType())
-                    f = Field::from_str_data(
-                            isNull(i) ? option<std::string>::none : option<std::string>(getDictionary(i)),
-                            rt);
+                else if (rt.isDictionaryType()) {
+                    if(rt.isStructuredDictionaryType()) {
+
+                        if(isNull(i)) {
+                            f = Field::from_str_data(option<std::string>::none, type);
+                        } else {
+                            // slow decode
+                            auto buf = getPtr(i);
+                            auto buf_size = getSize(i);
+                            auto json_data = decodeStructDictFromBinary(rt, buf, buf_size);
+                            if(buf_size > 0)
+                                assert(!json_data.empty());
+                            f = Field::from_str_data(option<std::string>(json_data), type);
+                            // old:
+                            // f = Field::from_str_data(option<std::string>("StructDict[...]"),rt);
+                        }
+                    } else {
+                        f = Field::from_str_data(
+                                isNull(i) ? option<std::string>::none : option<std::string>(getDictionary(i)),
+                                rt);
+                    }
+                }
                 else if(rt == python::Type::EMPTYLIST)
                     f = Field(isNull(i) ? option<List>::none : option<List>(List()));
                 else if(rt.isListType())
                     f = isNull(i) ? Field::null(type) : Field(option<List>(getList(i)));
                 else if(rt.isTupleType()) {
                     f = isNull(i) ? Field::null(type) : Field(option<Tuple>(getOptionTuple(i)));
+                } else if(rt.isConstantValued()) {
+                    f = constantTypeToField(rt);
                 } else {
                     f = Field::null(); // default to NULL
                     Logger::instance().defaultLogger().error(
                             "unknown type '" + type.desc() + "' occurred when trying to attempt deserialization of field");
                 }
+            } else if(type.isConstantValued()) {
+                f = constantTypeToField(type);
             } else {
                 f = Field::null(); // default to NULL
                 Logger::instance().defaultLogger().error(

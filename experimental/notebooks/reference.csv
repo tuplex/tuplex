@@ -1,0 +1,12 @@
+path,num_output_rows,num_input_rows,num_exceptions
+s3://tuplex-public/data/github_daily/2011-10-15.json,1418,48899,1284
+s3://tuplex-public/data/github_daily/2012-10-15.json,5907,165692,8139
+s3://tuplex-public/data/github_daily/2013-10-15.json,10628,296456,10725
+s3://tuplex-public/data/github_daily/2014-10-15.json,16014,476393,637
+s3://tuplex-public/data/github_daily/2015-10-15.json,25301,737714,0
+s3://tuplex-public/data/github_daily/2016-10-15.json,19412,678134,0
+s3://tuplex-public/data/github_daily/2017-10-15.json,26107,910100,0
+s3://tuplex-public/data/github_daily/2018-10-15.json,44404,1522655,0
+s3://tuplex-public/data/github_daily/2019-10-15.json,61337,2134789,0
+s3://tuplex-public/data/github_daily/2020-10-15.json,62354,2963694,0
+s3://tuplex-public/data/github_daily/2021-10-15.json,21313,1078139,0

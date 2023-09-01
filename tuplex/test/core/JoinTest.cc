@@ -26,7 +26,7 @@ TEST_F(JoinTest, InnerJoinNullBucket) {
     opt.set("tuplex.optimizer.filterPushdown", "false"); // no filter pushdown so codegen works properly!
 
     // disable null-value opt
-    opt.set("optimizer.nullValueOptimization", "false");
+    opt.set("optimizer.retypeUsingOptimizedInputSchema", "false");
 
     Context c(opt);
 
@@ -82,7 +82,7 @@ TEST_F(JoinTest, InnerJoinInt64Option) {
     opt.set("tuplex.optimizer.filterPushdown", "false"); // no filter pushdown so codegen works properly!
 
     // disable null-value opt
-    opt.set("optimizer.nullValueOptimization", "false");
+    opt.set("optimizer.retypeUsingOptimizedInputSchema", "false");
 
     Context c(opt);
 
@@ -467,7 +467,7 @@ TEST_F(JoinTest, SimpleIntJoins) {
 //    // @TODO: activate filter pushdown as option...
 //    // @TODO: ignore/resolve operators following a filter should be pushed with it down!
 //    auto co = microTestOptions();
-//    co.set("tuplex.csv.selectionPushdown", "true");
+//    co.set("tuplex.optimizer.selectionPushdown", "true");
 //    Context c(co);
 //
 //    auto& ds1 = c.parallelize({Row(1, 2, 3), Row(1, 2, 4), Row(2, 1, 1)}, vector<string>{"a", "b", "c"});

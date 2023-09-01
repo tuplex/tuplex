@@ -100,3 +100,4 @@ tuplex/.vscode/
 
 venv/
 Tuplex.egg-info/
+job/

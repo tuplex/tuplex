@@ -1,0 +1,13 @@
+{"webui.enable": false,
+  "executorMemory": "6G",
+  "executorCount": 15,
+  "driverMemory": "10G",
+  "partitionSize": "16MB",
+  "runTimeMemory": "64MB",
+  "inputSplitSize": "64MB",
+  "useLLVMOptimizer": true,
+  "optimizer.nullValueOptimization": true,
+  "optimizer.selectionPushdown": true,
+  "optimizer.generateParser": false,
+  "optimizer.mergeExceptionsInOrder": false,
+  "optimizer.filterPushdown": true}

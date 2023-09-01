@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# (c) Tuplex team 2017-2022
-# auto-generated on 2022-09-20 14:15:28.010743
+# (c) Tuplex team 2017-2023
+# auto-generated on 2023-03-26 21:45:55.921821
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -23,7 +23,7 @@ echo ">> Installing all build dependencies for Tuplex under Ubuntu 18.04"
 echo ">> Installing apt dependencies"
 apt update -y
 
-           apt-get install -y build-essential apt-utils wget git dh-autoreconf libxml2-dev \
+           apt-get install -y build-essential apt-utils wget git dh-autoreconf libxml2-dev libdw-dev \
  autoconf curl automake libtool software-properties-common wget libedit-dev libz-dev \
   python3-yaml pkg-config libssl-dev libcurl4-openssl-dev curl \
   uuid-dev git python3.7 python3.7-dev python3-pip libffi-dev \

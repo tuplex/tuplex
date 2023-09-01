@@ -13,16 +13,16 @@
 #include <logical/FileInputOperator.h>
 #include "ErrorDataSet.h"
 #include "EmptyDataset.h"
-#include <JITCompiler.h>
-#include <RuntimeInterface.h>
+#include <jit/JITCompiler.h>
+#include <jit/RuntimeInterface.h>
 #include <VirtualFileSystem.h>
+#include <utils/Signals.h>
 #include <ee/local/LocalBackend.h>
-#include <Signals.h>
+#include <ee/worker/WorkerBackend.h>
 #ifdef BUILD_WITH_AWS
 #include <ee/aws/AWSLambdaBackend.h>
-#include <Context.h>
-
 #endif
+#include <Context.h>
 
 namespace tuplex {
 
@@ -41,9 +41,12 @@ namespace tuplex {
         _name = "context-" + uuid().substr(0, 8);
 
         // change this to be context dependent....
-        // i.e. if a context requests this much memory, than add on top of the memory manager!
+        // i.e. if a context requests this much memory, then add on top of the memory manager!
         // ==> free blocks after that on context destruction...
         _options = options;
+
+        // this here is a bit of a hack, overwrite default compile policy with parameters...
+        codegen::DEFAULT_COMPILE_POLICY = compilePolicyFromOptions(options);
 
 #ifdef BUILD_WITH_AWS
         // init AWS SDK to get access to S3 filesystem
@@ -55,6 +58,10 @@ namespace tuplex {
 
         // start backend depending on options
         switch(options.BACKEND()) {
+            case Backend::UNKNOWN: {
+                logger.warn("unknown backend encountered, falling back to local");
+                // fall through, no break
+            }
             case Backend::LOCAL: {
                 // creates a new local backend! --> maybe reuse for multiple contexts?
                 _ee = std::make_unique<LocalBackend>(*this);
@@ -79,6 +86,10 @@ namespace tuplex {
 #endif
                 break;
             }
+            case Backend::WORKER: {
+                _ee = std::make_unique<WorkerBackend>(*this, ""); // auto search worker...
+                break;
+            }
             default: {
                 throw std::runtime_error("unknown backend encountered. Supported so far are only local or lambda.");
                 break;
@@ -98,10 +109,7 @@ namespace tuplex {
             }
 
         // free logical operators associated with context
-        for(auto& op : _operators) {
-            delete op;
-            op = nullptr;
-        }
+        _operators.clear();
     }
 
     Partition* Context::requestNewPartition(const Schema &schema, const int dataSetID, size_t minBytesRequired) {
@@ -173,36 +181,40 @@ namespace tuplex {
         std::map<LogicalOperator*, bool> visited;
         std::map<LogicalOperator*, int> graphIDs;
         for(const auto& el : _operators)
-            visited[el] = false;
+            visited[el.get()] = false;
 
         for(const auto& node : _operators) {
-            if(!visited[node]) {
+            if(!visited[node.get()]) {
                 int id = -1;
-                if(graphIDs.find(node) == graphIDs.end()) {
-                    id = builder.addHTMLNode(node_descriptor(node));
-                    graphIDs[node] = id;
+                if(graphIDs.find(node.get()) == graphIDs.end()) {
+                    id = builder.addHTMLNode(node_descriptor(node.get()));
+                    graphIDs[node.get()] = id;
                 } else {
-                    id = graphIDs[node];
+                    id = graphIDs[node.get()];
                 }
 
                 // go through children
-                for(const auto& c : node->getChildren()) {
+                for(const auto& c : node->children()) {
                     int cid = -1;
-                    if(graphIDs.find(c) == graphIDs.end()) {
-                        cid = builder.addHTMLNode(node_descriptor(c));
-                        graphIDs[c] = cid;
+                    if(graphIDs.find(c.get()) == graphIDs.end()) {
+                        cid = builder.addHTMLNode(node_descriptor(c.get()));
+                        graphIDs[c.get()] = cid;
                     } else {
-                        cid = graphIDs[node];
+                        cid = graphIDs[node.get()];
                     }
 
                     builder.addEdge(id, cid);
                 }
             }
         }
-
     }
 
-    DataSet& Context::fromPartitions(const Schema& schema, const std::vector<Partition*>& partitions, const std::vector<Partition*>& fallbackPartitions, const std::vector<PartitionGroup>& partitionGroups, const std::vector<std::string>& columns) {
+    DataSet& Context::fromPartitions(const Schema& schema,
+                                     const std::vector<Partition*>& partitions,
+                                     const std::vector<Partition*>& fallbackPartitions,
+                                     const std::vector<PartitionGroup>& partitionGroups,
+                                     const std::vector<std::string>& columns,
+                                     const SamplingMode& sampling_mode) {
         auto dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
 
@@ -214,7 +226,7 @@ namespace tuplex {
         // empty?
         if(partitions.empty()) {
             dsptr->setColumns(columns);
-            addParallelizeNode(dsptr, fallbackPartitions, partitionGroups);
+            addParallelizeNode(dsptr, fallbackPartitions, partitionGroups, sampling_mode);
             return *dsptr;
         } else {
             size_t numRows = 0;
@@ -230,7 +242,7 @@ namespace tuplex {
 
             // set rows
             dsptr->setColumns(columns);
-            addParallelizeNode(dsptr, fallbackPartitions, partitionGroups);
+            addParallelizeNode(dsptr, fallbackPartitions, partitionGroups, sampling_mode);
 
 
             // signal check
@@ -245,7 +257,8 @@ namespace tuplex {
     }
 
     DataSet& Context::parallelize(const std::vector<Row>& rows,
-                                  const std::vector<std::string>& columnNames) {
+                                  const std::vector<std::string>& columnNames,
+                                  const SamplingMode& sampling_mode) {
 
         Schema schema;
         int dataSetID = getNextDataSetID();
@@ -255,7 +268,7 @@ namespace tuplex {
             // parallelizing empty dataset...
             // just return what has been initialized so far
             dsptr->setColumns(columnNames);
-            addParallelizeNode(dsptr);
+            addParallelizeNode(dsptr, {}, {}, sampling_mode);
             return *dsptr;
         } else {
             std::vector<PartitionGroup> partitionGroups;
@@ -334,7 +347,7 @@ namespace tuplex {
 
             // set rows
             dsptr->setColumns(columnNames);
-            addParallelizeNode(dsptr, std::vector<Partition*>{}, partitionGroups);
+            addParallelizeNode(dsptr, std::vector<Partition*>{}, partitionGroups, sampling_mode);
 
             // signal check
             if(check_and_forward_signals()) {
@@ -348,12 +361,15 @@ namespace tuplex {
         }
     }
 
-    LogicalOperator* Context::addOperator(LogicalOperator *op) {
+    std::shared_ptr<LogicalOperator> Context::addOperator(const std::shared_ptr<LogicalOperator> &op) {
         _operators.push_back(op);
         return op;
     }
 
-    void Context::addParallelizeNode(DataSet *ds, const std::vector<Partition*>& fallbackPartitions, const std::vector<PartitionGroup>& partitionGroups) {
+    void Context::addParallelizeNode(DataSet *ds,
+                                     const std::vector<Partition*>& fallbackPartitions,
+                                     const std::vector<PartitionGroup>& partitionGroups,
+                                     const SamplingMode& sm) {
         assert(ds);
 
         // @TODO: make empty list as special case work. Also true for empty files.
@@ -362,7 +378,7 @@ namespace tuplex {
 
         assert(ds->_schema.getRowType() != python::Type::UNKNOWN);
 
-        auto op = new ParallelizeOperator(ds->_schema, ds->getPartitions(), ds->columns());
+        auto op = new ParallelizeOperator(ds->_schema, ds->getPartitions(), ds->columns(), sm);
         op->setFallbackPartitions(fallbackPartitions);
         if (partitionGroups.empty()) {
             std::vector<PartitionGroup> defaultPartitionGroups;
@@ -378,30 +394,28 @@ namespace tuplex {
 
 
         // add new (root) node
-        ds->_operator = addOperator(op);
+        ds->_operator = addOperator(std::shared_ptr<LogicalOperator>(op));
 
         // set dataset
         ds->_operator->setDataSet(ds);
     }
 
-    DataSet& Context::csv(const std::string &pattern,
-                          const std::vector<std::string>& columns,
-                          option<bool> hasHeader,
-                          option<char> delimiter,
-                          char quotechar,
-                          const std::vector<std::string>& null_values,
-                          const std::unordered_map<size_t, python::Type>& index_based_type_hints,
-                          const std::unordered_map<std::string, python::Type>& column_based_type_hints) {
+    DataSet &Context::json(const std::string &pattern,
+                           bool unwrap_first_level,
+                           bool treat_heterogenous_lists_as_tuples,
+                           const SamplingMode& sm) {
         using namespace std;
 
         Schema schema;
         int dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
 
-        dsptr->_operator = addOperator(
-                FileInputOperator::fromCsv(pattern, this->_options, hasHeader, delimiter, quotechar, null_values, columns,
-                                      index_based_type_hints, column_based_type_hints));
-        auto op = ((FileInputOperator*)dsptr->_operator);
+        dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(FileInputOperator::fromJSON(pattern,
+                                                                                                    unwrap_first_level,
+                                                                                                    treat_heterogenous_lists_as_tuples,
+                                                                                                    _options,
+                                                                                                    sm)));
+        auto op = ((FileInputOperator*)dsptr->_operator.get());
 
         // check whether files were found, else return empty dataset!
         if(op->getURIs().empty()) {
@@ -411,7 +425,52 @@ namespace tuplex {
             return ds;
         }
 
-        auto detectedColumns = ((FileInputOperator*)dsptr->_operator)->columns();
+        auto detectedColumns = ((FileInputOperator*)dsptr->_operator.get())->columns();
+        dsptr->setColumns(detectedColumns);
+
+        // set dataset to operator
+        dsptr->_operator->setDataSet(dsptr);
+
+        // signal check
+        if(check_and_forward_signals()) {
+#ifndef NDEBUG
+            Logger::instance().defaultLogger().info("received signal handler sig, returning error dataset");
+#endif
+            return makeError("job aborted (signal received)");
+        }
+
+        return *dsptr;
+    }
+
+    DataSet& Context::csv(const std::string &pattern,
+                          const std::vector<std::string>& columns,
+                          option<bool> hasHeader,
+                          option<char> delimiter,
+                          char quotechar,
+                          const std::vector<std::string>& null_values,
+                          const std::unordered_map<size_t, python::Type>& index_based_type_hints,
+                          const std::unordered_map<std::string, python::Type>& column_based_type_hints,
+                          const SamplingMode& sampling_mode) {
+        using namespace std;
+
+        Schema schema;
+        int dataSetID = getNextDataSetID();
+        DataSet *dsptr = createDataSet(schema);
+
+        dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(
+                FileInputOperator::fromCsv(pattern, this->_options, hasHeader, delimiter, quotechar, null_values, columns,
+                                      index_based_type_hints, column_based_type_hints, sampling_mode)));
+        auto op = ((FileInputOperator*)dsptr->_operator.get());
+
+        // check whether files were found, else return empty dataset!
+        if(op->getURIs().empty()) {
+            // note: dataset will be destroyed by context
+            auto& ds = makeEmpty();
+            op->setDataSet(&ds);
+            return ds;
+        }
+
+        auto detectedColumns = ((FileInputOperator*)dsptr->_operator.get())->columns();
         dsptr->setColumns(detectedColumns);
 
         // check if columns are given
@@ -433,7 +492,7 @@ namespace tuplex {
             }
 
             dsptr->setColumns(columns);
-            ((FileInputOperator*)dsptr->_operator)->setColumns(columns);
+            ((FileInputOperator*)dsptr->_operator.get())->setColumns(columns);
         }
 
         // set dataset to operator
@@ -450,16 +509,16 @@ namespace tuplex {
         return *dsptr;
     }
 
-    DataSet& Context::text(const std::string &pattern, const std::vector<std::string>& null_values) {
+    DataSet& Context::text(const std::string &pattern, const std::vector<std::string>& null_values, const SamplingMode& sampling_mode) {
         using namespace std;
 
         Schema schema;
         int dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
 
-        dsptr->_operator = addOperator(FileInputOperator::fromText(pattern, this->_options, null_values));
+        dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(FileInputOperator::fromText(pattern, this->_options, null_values, sampling_mode)));
 
-        auto detectedColumns = ((FileInputOperator*)dsptr->_operator)->columns();
+        auto detectedColumns = ((FileInputOperator*)dsptr->_operator.get())->columns();
         dsptr->setColumns(detectedColumns);
 
         // set dataset to operator
@@ -477,7 +536,8 @@ namespace tuplex {
     }
 
     DataSet& Context::orc(const std::string &pattern,
-                          const std::vector<std::string>& columns) {
+                          const std::vector<std::string>& columns,
+                          const SamplingMode& sampling_mode) {
         using namespace std;
 
 #ifndef BUILD_WITH_ORC
@@ -487,9 +547,8 @@ namespace tuplex {
         Schema schema;
         int dataSetID = getNextDataSetID();
         DataSet *dsptr = createDataSet(schema);
-        dsptr->_operator = addOperator(
-                FileInputOperator::fromOrc(pattern, this->_options));
-        auto op = ((FileInputOperator*)dsptr->_operator);
+        dsptr->_operator = addOperator(std::shared_ptr<LogicalOperator>(FileInputOperator::fromOrc(pattern, this->_options, sampling_mode)));
+        auto op = ((FileInputOperator*)dsptr->_operator.get());
 
         // check whether files were found, else return empty dataset!
         if(op->getURIs().empty()) {
@@ -499,7 +558,7 @@ namespace tuplex {
             return ds;
         }
 
-        auto detectedColumns = ((FileInputOperator*)dsptr->_operator)->columns();
+        auto detectedColumns = ((FileInputOperator*)dsptr->_operator.get())->columns();
         dsptr->setColumns(detectedColumns);
 
         // check if columns are given
@@ -521,7 +580,7 @@ namespace tuplex {
             }
 
             dsptr->setColumns(columns);
-            ((FileInputOperator*)dsptr->_operator)->setColumns(columns);
+            ((FileInputOperator*)dsptr->_operator.get())->setColumns(columns);
         }
 
         // set dataset to operator
@@ -558,7 +617,7 @@ namespace tuplex {
         assert(_ee); return _ee->driver();
     }
 
-    codegen::CompilePolicy Context::compilePolicyFromOptions(const ContextOptions &options) {
+    codegen::CompilePolicy compilePolicyFromOptions(const ContextOptions &options) {
         auto p = codegen::CompilePolicy();
         p.allowUndefinedBehavior = options.UNDEFINED_BEHAVIOR_FOR_OPERATORS();
         p.allowNumericTypeUnification = options.AUTO_UPCAST_NUMBERS();

@@ -12,6 +12,7 @@
 #include <S3FileSystemImpl.h>
 #include <Logger.h>
 #include <S3File.h>
+#include <S3Cache.h>
 
 #include <aws/core/platform/Environment.h>
 #include <aws/core/client/ClientConfiguration.h>
@@ -23,9 +24,10 @@
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/DeleteObjectsRequest.h>
 #include <aws/s3/model/CopyObjectRequest.h>
+#include <aws/s3/model/HeadObjectRequest.h>
 #include <Timer.h>
 #include <Utils.h>
-#include <FileUtils.h>
+#include <FileHelperUtils.h>
 
 #include <AWSCommon.h>
 
@@ -268,6 +270,12 @@ namespace tuplex {
 
     VirtualFileSystemStatus S3FileSystemImpl::file_size(const tuplex::URI &uri, uint64_t &size) {
 
+        // use cache?
+        if(_useS3ReadCache) {
+            size = S3FileCache::instance().file_size(uri);
+            return VirtualFileSystemStatus::VFS_OK;
+        }
+
         // quick way to retrieve file size is to make a tiny parts request to the uri
         // range header
 
@@ -482,13 +490,24 @@ namespace tuplex {
 
     S3FileSystemImpl::S3FileSystemImpl(const std::string& access_key, const std::string& secret_key,
                                        const std::string& session_token, const std::string& region,
-                                       const NetworkSettings& ns, bool lambdaMode, bool requesterPay) {
+                                       const NetworkSettings& ns, bool lambdaMode, bool requesterPay) : _useS3ReadCache(false) {
         // Note: If current region is different than other region, use S3 transfer acceleration
         // cf. Aws::S3::Model::GetBucketAccelerateConfigurationRequest
         // and https://s3-accelerate-speedtest.s3-accelerate.amazonaws.com/en/accelerate-speed-comparsion.html
         // for same region this is slower...
 
         using namespace Aws;
+
+
+        // set counters to zero
+        _putRequests = 0;
+        _initMultiPartUploadRequests = 0;
+        _multiPartPutRequests = 0;
+        _closeMultiPartUploadRequests = 0;
+        _getRequests = 0;
+        _bytesTransferred = 0;
+        _bytesReceived = 0;
+        _lsRequests = 0;
 
         Client::ClientConfiguration config;
 
@@ -515,8 +534,6 @@ namespace tuplex {
         if(lambdaMode) {
             if(config.region.empty())
                 config.region = Aws::Environment::GetEnv("AWS_REGION");
-            char const TAG[] = "LAMBDA_ALLOC";
-            auto credentialsProvider = Aws::MakeShared<Aws::Auth::EnvironmentAWSCredentialsProvider>(TAG);
         }
 
         if(requesterPay)
@@ -524,21 +541,67 @@ namespace tuplex {
         else
             _requestPayer = Aws::S3::Model::RequestPayer::NOT_SET;
 
+        auto aws_credentials = Auth::AWSCredentials(credentials.access_key.c_str(),
+                                                    credentials.secret_key.c_str(),
+                                                    credentials.session_token.c_str());
+
+        // lambda Mode? just use default settings.
+        if(lambdaMode) {
+            // AWS SDK 1.10 introduces endpoint config
+#if (1 == AWS_SDK_VERSION_MAJOR && 10 > AWS_SDK_VERSION_MINOR)
+
+            _client = std::make_shared<S3::S3Client>(aws_credentials);
+#else
+            auto s3_endpoint_provider = Aws::MakeShared<Aws::S3::S3EndpointProvider>("TUPLEX");
+            _client = std::make_shared<S3::S3Client>(aws_credentials,
+                                                    s3_endpoint_provider);
+#endif
+            _client = std::make_shared<S3::S3Client>(aws_credentials);
+            _requestPayer = Aws::S3::Model::RequestPayer::requester;
+
+            std::stringstream ss;
+            ss<<"S3 Client initialized using defaults";
+            Logger::instance().defaultLogger().info(ss.str());
+            return;
+        }
+
+                // AWS SDK 1.10 introduces endpoint config
+#if (1 == AWS_SDK_VERSION_MAJOR && 10 > AWS_SDK_VERSION_MINOR)
+
         _client = std::make_shared<S3::S3Client>(Auth::AWSCredentials(credentials.access_key.c_str(),
                                                                       credentials.secret_key.c_str(),
                                                                       credentials.session_token.c_str()), config);
+#else
+        auto s3_endpoint_provider = Aws::MakeShared<Aws::S3::S3EndpointProvider>("TUPLEX");
+        _client = std::make_shared<S3::S3Client>(Auth::AWSCredentials(credentials.access_key.c_str(),
+                                                                      credentials.secret_key.c_str(),
+                                                                      credentials.session_token.c_str()),
+                                                 s3_endpoint_provider, config);
+#endif
 
-        // set counters to zero
-        _putRequests = 0;
-        _initMultiPartUploadRequests = 0;
-        _multiPartPutRequests = 0;
-        _closeMultiPartUploadRequests = 0;
-        _getRequests = 0;
-        _bytesTransferred = 0;
-        _bytesReceived = 0;
-        _lsRequests = 0;
+//        if(lambdaMode) {
+//            // disable virtual host to prevent curl code 6 https://guihao-liang.github.io/2020/04/08/aws-virtual-address
+//            _client = std::make_shared<S3::S3Client>(aws_credentials,
+//                                                     config,
+//                                                     Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never,
+//                                                     false);
+//
+//            // log out settings quickly (debug)
+//            std::stringstream ss;
+//            ss<<"S3 settings: REGION="<<config.region.c_str()<<" VERIFY_SSL="<<config.verifySSL<<" CAFILE="<<config.caFile<<" CAPATH="<<config.caPath;
+//            Logger::instance().defaultLogger().info(ss.str());
+//
+//        } else {
+//
+//        }
     }
 
+
+    void S3FileSystemImpl::activateReadCache(size_t max_cache_size) {
+        _useS3ReadCache = true;
+        S3FileCache::instance().reset(max_cache_size);
+        S3FileCache::instance().setFS(*this, _requestPayer == Aws::S3::Model::RequestPayer::requester);
+    }
 
 
 // S3 helper functions
@@ -672,6 +735,10 @@ namespace tuplex {
         URI uri(pattern);
         assert(uri.prefix() == "s3://");
 
+        // remove range if given
+        size_t range_start = 0, range_end = 0;
+        decodeRangeURI(pattern.toPath(), uri, range_start, range_end);
+
         // call glob function
         std::vector<URI> files;
 
@@ -710,11 +777,11 @@ namespace tuplex {
 
     void S3FileSystemImpl::initTransferThreadPool(size_t numThreads) {
         // there's a typo in older AWS SDK versions
-#if AWS_SDK_VERSION_PATCH < 309
+    #if (AWS_SDK_VERSION_MINOR <= 9 && AWS_SDK_VERSION_PATCH < 309)
         auto overflow_policy = Aws::Utils::Threading::OverflowPolicy::QUEUE_TASKS_EVENLY_ACCROSS_THREADS;
-#else
+    #else
         auto overflow_policy = Aws::Utils::Threading::OverflowPolicy::QUEUE_TASKS_EVENLY_ACROSS_THREADS;
-#endif
+    #endif
 
         // lazy init
         if(!_thread_pool)
@@ -982,6 +1049,73 @@ namespace tuplex {
             logger.debug("copied " + s3_src.toString() + " to " + s3_dest.toString());
             return true;
         }
+    }
+
+
+    std::string s3GetHeadObject(Aws::S3::S3Client const& client, const URI& uri, std::ostream *os_err) {
+        using namespace std;
+        string meta_data;
+
+        assert(uri.prefix() == "s3://");
+
+        // perform request
+        Aws::S3::Model::HeadObjectRequest request;
+        request.WithBucket(uri.s3Bucket().c_str());
+        request.WithKey(uri.s3Key().c_str());
+        auto head_outcome = client.HeadObject(request);
+        if (head_outcome.IsSuccess()) {
+            auto& result = head_outcome.GetResult();
+
+            // there's a ton of options, https://docs.aws.amazon.com/cli/latest/reference/s3api/head-object.html
+            // just serialize as json out a couple
+            stringstream ss;
+
+            ss<<"{";
+            ss<<"\"LastModified\":"<<chronoToISO8601(result.GetLastModified().UnderlyingTimestamp())<<","
+              <<"\"ContentLength\":"<<result.GetContentLength()<<","
+              <<"\"VersionId\":"<<result.GetVersionId().c_str()<<","
+              <<"\"ContentType\":"<<result.GetContentType().c_str();
+            ss<<"}";
+
+            return ss.str();
+        } else {
+            if(os_err) {
+                *os_err<<"HeadObject Request failed with HTTP code "
+                       <<static_cast<int>(head_outcome.GetError().GetResponseCode())
+                       <<", details: "
+                       <<head_outcome.GetError().GetMessage().c_str();
+            }
+        }
+
+        return meta_data;
+    }
+
+    size_t s3GetContentLength(Aws::S3::S3Client const& client, const URI& uri, std::ostream *os_err) {
+        using namespace std;
+        string meta_data;
+
+        assert(uri.prefix() == "s3://");
+
+        size_t content_length = 0;
+
+        // perform request
+        Aws::S3::Model::HeadObjectRequest request;
+        request.WithBucket(uri.s3Bucket().c_str());
+        request.WithKey(uri.s3Key().c_str());
+        auto head_outcome = client.HeadObject(request);
+        if (head_outcome.IsSuccess()) {
+            auto& result = head_outcome.GetResult();
+            content_length = result.GetContentLength();
+        } else {
+            if(os_err) {
+                *os_err<<"HeadObject Request failed with HTTP code "
+                       <<static_cast<int>(head_outcome.GetError().GetResponseCode())
+                       <<", details: "
+                       <<head_outcome.GetError().GetMessage().c_str();
+            }
+        }
+
+        return content_length;
     }
 
 }

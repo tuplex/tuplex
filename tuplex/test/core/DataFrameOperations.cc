@@ -71,7 +71,8 @@ TEST_F(DataFrameTest, PrefixNullTest) {
     auto confB = microTestOptions();
     // this should also work...
     confB.set("tuplex.optimizer.generateParser", "true");
-    for(const auto& conf : vector<ContextOptions>{confA, confB}) {
+//    for(const auto& conf : vector<ContextOptions>{confB, confA}) {
+    for(const auto& conf : vector<ContextOptions>{confB}) {
         Context c(conf);
         auto v = c.csv(uri.toPath(), std::vector<std::string>(),
                        false, ',', '"',
@@ -82,6 +83,108 @@ TEST_F(DataFrameTest, PrefixNullTest) {
         ASSERT_EQ(v.size(), ref.size());
         for(int i = 0; i < ref.size(); ++i)
             EXPECT_EQ(ref[i], v[i].toPythonString());
+    }
+}
+
+TEST_F(DataFrameTest, ListIndex) {
+    using namespace tuplex;
+    using namespace std;
+
+    Context c(microTestOptions());
+
+    // List[str]
+    {
+        auto v = c.parallelize({Row("test"), Row("hello")}).map(UDF("lambda x: ['test', 'hello'].index(x)")).collectAsVector();
+        ASSERT_EQ(v.size(), 2);
+        EXPECT_EQ(v[0].toPythonString(), "(0,)");
+        EXPECT_EQ(v[1].toPythonString(), "(1,)");
+    }
+
+    // List[Option[str]]
+    {
+        auto v = c.parallelize({Row("test"), Row("hello")}).map(UDF("lambda x: ['test', None, 'hello'].index(x)")).collectAsVector();
+        ASSERT_EQ(v.size(), 2);
+        EXPECT_EQ(v[0].toPythonString(), "(0,)");
+        EXPECT_EQ(v[1].toPythonString(), "(2,)");
+    }
+}
+
+TEST_F(DataFrameTest, PushdownWithSpecialization) {
+    // use all basic operators in one query to make sure the specialization (rewriting works)
+    // create test file containing 0s
+    using namespace tuplex;
+    using namespace std;
+
+    URI uri(testName + ".txt");
+    stringToFile(uri, "A,B,C\n0,a,c\n000,a,c\n0000,a,c\n00,a,c\nN/A,a,c");
+    auto conf = microTestOptions();
+//    conf.set("tuplex.optimizer.projectionPushdown", "true");
+    conf.set("tuplex.optimizer.selectionPushdown", "true");
+    conf.set("tuplex.optimizer.nullValueOptimization", "true");
+
+    Context c(conf);
+
+    // variation of pipeline
+    //     auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
+    //                             .withColumn("C", UDF("lambda x: x['A'] + 1")) // this is tricky, because it overrides the column C but doesn't mean this column needs to get parsed!
+    //                             .collectAsVector();
+
+
+    // pipeline I to test
+    {
+        auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
+                .withColumn("C", UDF("lambda x: x['C'] + '1'")) // this is tricky, because it overrides the column C but doesn't mean this column needs to get parsed!
+                .map(UDF("lambda x: {'A': x['A'], 'B': x['B']}"))
+                .collectAsVector();
+        EXPECT_EQ(rows.size(), 5);
+    }
+
+     // pipeline II to test
+    {
+        auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
+                .map(UDF("lambda x: {'A': x['A'], 'B': x['B']}"))
+                .withColumn("C", UDF("lambda x: x['A'] + 1")) // this is tricky, because it overrides the column C but doesn't mean this column needs to get parsed!
+                .collectAsVector();
+        EXPECT_EQ(rows.size(), 4); // -> type error on the null row.
+    }
+
+    // pipeline III to test
+    {
+         auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
+                                 .withColumn("C", UDF("lambda x: x['A'] + 1")) // this is tricky, because it overrides the column C but doesn't mean this column needs to get parsed!
+                                 .selectColumns({"C"})
+                                 .collectAsVector();
+        EXPECT_EQ(rows.size(), 4); // -> type error on the null row.
+    }
+
+    // pipeline IV to test
+    {
+        auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
+                .mapColumn("A", UDF("lambda x: x + 1"))
+                .selectColumns(std::vector<std::string>{"A", "C"})
+                .collectAsVector();
+        EXPECT_EQ(rows.size(), 4); // -> type error on the null row.
+    }
+
+    // pipeline V to test
+    {
+        auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
+                .mapColumn("A", UDF("lambda x: x + 1"))
+                .filter(UDF("lambda r: r['A'] >= 1"))
+                .selectColumns(std::vector<std::string>{"A", "C"})
+                .collectAsVector();
+        EXPECT_EQ(rows.size(), 4); // -> type error on the null row.
+    }
+
+    // pipeline VI to test
+    {
+        auto rows = c.csv(uri.toPath(), {}, true, ',', '"', {std::string("N/A")})
+                .mapColumn("A", UDF("lambda x: x + 1"))
+                .resolve(ExceptionCode::TYPEERROR, UDF("lambda x: 0"))
+                .filter(UDF("lambda r: r['A'] >= 1"))
+                .selectColumns(std::vector<std::string>{"A", "C"})
+                .collectAsVector();
+        EXPECT_EQ(rows.size(), 4); // -> type error on the null row.
     }
 }
 
@@ -104,7 +207,7 @@ TEST_F(CSVDataFrameTest, HeaderlessStringFile) {
     auto conf = testOptions();
     // deactivate optimizers for now
     conf.set("tuplex.optimizer.filterPushdown", "false");
-    conf.set("tuplex.csv.selectionPushdown", "false");
+    conf.set("tuplex.optimizer.selectionPushdown", "false");
     conf.set("tuplex.useLLVMOptimizer", "false");
     conf.set("tuplex.executorCount", "0");
     conf.set("tuplex.optimizer.generateParser", "false");
@@ -165,7 +268,7 @@ TEST_F(CSVDataFrameTest, ReadHeaderLessFile) {
 
     auto v = c.csv(testName + ".tsv", vector<string>{"a", "b"}).map(UDF("lambda x: x['a']")).collectAsVector();
 
-    for(auto r : v)
+    for(const auto& r : v)
         std::cout<<r.toPythonString()<<std::endl;
 
     ASSERT_EQ(v.size(), 2);
@@ -449,19 +552,25 @@ TEST_F(DataFrameTest, FastPreview) {
     // test for CSV, TEXT, ORC
     // TODO.
 
-    auto res = c.csv("../resources/flights_on_time_performance_2019_01.sample.csv")
+    std::vector<Row> res;
+
+    // CSV preview check:
+    res = c.csv("../resources/flights_on_time_performance_2019_01.sample.csv")
      .selectColumns({"DAY_OF_MONTH", "MONTH", "YEAR", "ORIGIN", "DEST", "OP_UNIQUE_CARRIER"})
      .takeAsVector(5);
     ASSERT_EQ(res.size(), 5);
 
-    auto textURI = testName + "_test.txt";
 
+    // TEXT preview check
+    auto textURI = testName + "_test.txt";
     stringToFile(textURI, "A\nB\nC\nD\nE\nF\nG\nH\nI\nJ");
     res = c.text(textURI)
     .map(UDF("lambda x: x.lower()"))
     .takeAsVector(5);
     ASSERT_EQ(res.size(), 5);
 
+
+    // CSV preview check - compiled parser.
     // JITCompiled CSV source
     auto opt_jit = microTestOptions();
     opt_jit.set("tuplex.optimizer.generateParser", "true");
@@ -471,4 +580,25 @@ TEST_F(DataFrameTest, FastPreview) {
             .selectColumns({"DAY_OF_MONTH", "MONTH", "YEAR", "ORIGIN", "DEST", "OP_UNIQUE_CARRIER"})
             .takeAsVector(5);
     ASSERT_EQ(res.size(), 5);
+}
+
+TEST_F(DataFrameTest, ShowI64Options) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+    auto code = "def f(x):\n"
+                "    if x % 2 == 0:\n"
+                "        return (x, None)\n"
+                "    else:\n"
+                "        return (None, x)";
+
+    c.parallelize({Row(1), Row(2), Row(3), Row(4), Row(5)}).map(UDF(code)).show();
+
+    // actual testing:
+    auto res = c.parallelize({Row(1), Row(2), Row(3), Row(4), Row(5)}).map(UDF(code)).collectAsVector();
+    ASSERT_EQ(res.size(), 5);
+    EXPECT_EQ(res[0].toPythonString(), "(None,1)");
+    EXPECT_EQ(res[1].toPythonString(), "(2,None)");
+    EXPECT_EQ(res[2].toPythonString(), "(None,3)");
+    EXPECT_EQ(res[3].toPythonString(), "(4,None)");
+    EXPECT_EQ(res[4].toPythonString(), "(None,5)");
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# (c) Tuplex team 2017-2022
-# auto-generated on 2022-09-20 14:15:28.011336
+# (c) Tuplex team 2017-2023
+# auto-generated on 2023-03-26 21:45:55.921972
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -23,7 +23,7 @@ echo ">> Installing all build dependencies for Tuplex under Ubuntu 20.04"
 echo ">> Installing apt dependencies"
 apt update -y
 
-           apt-get install -y software-properties-common dh-autoreconf curl build-essential wget git libedit-dev libz-dev \
+           apt-get install -y software-properties-common dh-autoreconf curl build-essential wget git libedit-dev libz-dev libdw-dev\
                    python3-yaml python3-pip pkg-config libssl-dev libcurl4-openssl-dev curl \
                    uuid-dev libffi-dev libmagic-dev \
                    doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \

@@ -205,7 +205,9 @@ def showjob():
                   'aggregate_by_key': 'aggregate',
                   'aggregate': 'aggregate',
                   'join': 'join',
-                  'left_join': 'join'}
+                  'left_join': 'join',
+                  'json': 'input',
+                  'select': 'map'}
 
     operators = job['operators']
 

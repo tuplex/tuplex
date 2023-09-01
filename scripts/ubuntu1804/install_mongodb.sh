@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#(c) 2017-2022 Tuplex team
+#(c) 2017-2023 Tuplex team
 
 apt-get update && apt-get install -y curl gnupg \
 && curl -fsSL https://www.mongodb.org/static/pgp/server-5.0.asc | apt-key add - \

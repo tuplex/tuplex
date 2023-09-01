@@ -21,7 +21,7 @@ namespace tuplex {
 
         LogicalOperator::copyMembers(other);
         auto cop = (CacheOperator*)other;
-        setSchema(other->getOutputSchema());
+        setOutputSchema(other->getOutputSchema());
         _normalPartitions = cop->cachedNormalPartitions();
         _generalPartitions = cop->cachedGeneralPartitions();
         _fallbackPartitions = cop->cachedFallbackPartitions();
@@ -37,20 +37,23 @@ namespace tuplex {
         _storeSpecialized = cop->_storeSpecialized;
     }
 
-    LogicalOperator* CacheOperator::clone() {
+    std::shared_ptr<LogicalOperator> CacheOperator::clone(bool cloneParents) {
+        if(!cloneParents)
+            return cloneWithoutParents();
+
         auto copy = new CacheOperator(parent()->clone(), _storeSpecialized, _memoryLayout);
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
-    CacheOperator * CacheOperator::cloneWithoutParents() const {
+    std::shared_ptr<CacheOperator> CacheOperator::cloneWithoutParents() const {
         auto copy = new CacheOperator(); // => no parents!
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<CacheOperator>(copy);
     }
 
     int64_t CacheOperator::cost() const {
@@ -93,7 +96,7 @@ namespace tuplex {
 
         // if exceptions are empty, then force output schema to be the optimized one as well!
         if(_generalPartitions.empty())
-            setSchema(_optimizedSchema);
+            setOutputSchema(_optimizedSchema);
 
         // because the schema might have changed due to the result, need to update the dataset!
         if(getDataSet())

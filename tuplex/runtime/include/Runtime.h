@@ -148,6 +148,9 @@ extern double  pow_f64(double base, int64_t exp);
 // python compatible python func for float
 extern double rt_py_pow(double base, double exponent, int64_t* ecCode);
 
+// this is a fix b.c. LLVM9 has a bug when it comes to storing double values into an array...
+extern void llvm9_store_double(double* ptr, double value, int64_t idx);
+
 #ifdef __cplusplus
 }
 #endif

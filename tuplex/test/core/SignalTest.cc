@@ -32,8 +32,8 @@ TEST_F(SigTest, FlightInterrupt) {
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
     opt_ref.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
 

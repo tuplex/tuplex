@@ -165,6 +165,8 @@ namespace python {
         assert(pArgs);
         PyTuple_SetItem(pArgs, 0, obj);
         auto pBytesObj = PyObject_CallObject(pDumpsFunc, pArgs);
+        if(!pBytesObj)
+            return ""; // error string...
         assert(pBytesObj);
 
         std::string res;
@@ -192,17 +194,19 @@ namespace python {
      * compiles code given as string and returns pickled version of it.
      * @param mainModule module where to add code to
      * @param code python code as C++ string
+     * @param err_stream optional output of errors
      * @return pickled version of the object submitted. Empty string if error occured.
      */
-    extern std::string serializeFunction(PyObject* mainModule, const std::string& code);
+    extern std::string serializeFunction(PyObject* mainModule, const std::string& code, std::ostream* err_stream=nullptr);
 
     /*!
      * compiles code and returns callable
      * @param mainModule module where to add code to
      * @param code python code as C++ string
+     * @param err_stream optional output of errors
      * @return NULL if compilation failed, else callable object.
      */
-    extern PyObject* compileFunction(PyObject* mainModule, const std::string& code);
+    extern PyObject* compileFunction(PyObject* mainModule, const std::string& code, std::ostream* err_stream=nullptr);
 
     /*!
      * calls (depickled) function pFunc on pObj.
@@ -250,6 +254,14 @@ namespace python {
     extern tuplex::Row pythonToRow(PyObject* obj);
 
     /*!
+     * when processing samples, need to perform the automatic unwrapping of string-dict objects
+     * @param obj
+     * @param columns
+     * @return row (order according to columns).
+     */
+    extern tuplex::Row pythonToRowWithDictUnwrap(PyObject* obj, const std::vector<std::string>& columns);
+
+    /*!
      * converts a field to a python object
      * @param f
      * @return python object, nullptr if conversion failed
@@ -263,6 +275,16 @@ namespace python {
      * @return C++ Tuplex Field object
      */
     extern tuplex::Field pythonToField(PyObject *obj, bool autoUpcast=false);
+
+    /*!
+     * helper function to map a python dictionary object to a struct dict field.
+     * Note that this function can easily get quite expensive... -> potentially should map
+     * using pyobject?
+     * @param dict_obj
+     * @param autoUpcast
+     * @return struct dict field.
+     */
+    extern tuplex::Field py_dict_to_field(PyObject* dict_obj, bool autoUpcast=false);
 
     /*!
      * converts python object to Row using row type supplied in type.
@@ -320,7 +342,7 @@ namespace python {
     extern void runGC();
 
     /*!
-     * check whether Python interpreter is running in/available to this process
+     * check whether Python interpreter is running in/available to this processN
      * @return bool when is running else false
      */
     extern bool isInterpreterRunning();
@@ -329,9 +351,10 @@ namespace python {
      * get corresponding tuplex type for python object
      * @param o python object to map to Tuplex type
      * @param autoUpcast whether to upcast numeric types to a unified type when type conflicts, false by default
+     * @param treatHeterogeneousListAsTuple whether to treat list of non homogeneous types as a tuple (i.e. speculate on fixed size list)
      * @return internal Tuplex type corresponding to given python object.
      */
-    extern python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast=false);
+    extern python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast=false, bool treatHeterogeneousListAsTuple=true);
 
     /*!
      * Tuplex's python API provides a paramter to (optionally) specify a schema, this functions decodes that PyObject
@@ -406,6 +429,16 @@ namespace python {
      * @return true if ok, false else.
      */
     extern bool cloudpickleCompatibility(std::ostream* os=nullptr);
+
+    extern PyObject* json_string_to_pyobject(const std::string& s, const python::Type& type);
+
+    /*!
+     * extract version string, if cloudpickle is not found or version extract fails, return false
+     * @param version_string
+     * @param os optional output error stream
+     * @return
+     */
+    extern bool cloudpickleVersion(std::string& version_string);
 }
 
 

@@ -1,0 +1,11 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [{
+        "Sid": "EMRServerlessTrustPolicy",
+        "Action": "sts:AssumeRole",
+        "Effect": "Allow",
+        "Principal": {
+            "Service": "emr-serverless.amazonaws.com"
+        }
+    }]
+}

@@ -102,7 +102,7 @@ namespace tuplex {
         option<bool> startWhitespace; // whitespace in front of content?
         option<bool> endWhitespace; // whitespace at end?
         option <size_t> length; // typical length (0 if not determinable)
-
+        size_t maxDequotedCellSize; // max dequoted cell size in bytes (incl. null terminator!)
         size_t rowCount; // how many rows.
         size_t bufSize; // size of buffer over which estimation occurred
 
@@ -194,6 +194,43 @@ namespace tuplex {
         }
         return needs_quoting ? q + res + q : str;
     }
+
+    /*!
+     * helper function to parse a sample (does not need to be at start of proper CSV row) into rows.
+     * @param buf
+     * @param buf_size
+     * @param expected_column_count
+     * @param range_start
+     * @param delimiter
+     * @param quotechar
+     * @param null_values
+     * @param limit
+     * @return rows, maybe be empty buffer if parsing fails.
+     */
+    extern std::vector<Row> csv_parseRows(const char* buf, size_t buf_size, size_t expected_column_count, size_t range_start,
+                                          char delimiter, char quotechar, const std::vector<std::string>& null_values, size_t limit);
+
+    /*!
+     *
+     * @param buf
+     * @param buf_size
+     * @param expected_column_count
+     * @param range_start
+     * @param delimiter
+     * @param quotechar
+     * @param null_values
+     * @param limit
+     * @param strata_size
+     * @param samples_per_strata
+     * @param random_seed
+     * @param skip_rows indices of rows to skip (before sampling)
+     * @return
+     */
+    std::vector<Row>
+    csv_parseRowsStratified(const char *buf, size_t buf_size, size_t expected_column_count, size_t range_start,
+                            char delimiter, char quotechar, const std::vector<std::string> &null_values, size_t limit,
+                            size_t strata_size, size_t samples_per_strata, int random_seed,
+                            const std::set<unsigned int>& skip_rows={});
 }
 
 #endif //TUPLEX_CSVUTILS_H

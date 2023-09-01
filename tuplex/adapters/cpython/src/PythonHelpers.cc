@@ -12,6 +12,7 @@
 #include <Utils.h>
 #include <StringUtils.h>
 #include <PythonVersions.h>
+#include <TypeHelper.h>
 
 #ifndef NDEBUG
 #include <boost/stacktrace.hpp>
@@ -19,6 +20,10 @@
 #include <regex>
 
 #include <unordered_map>
+
+#include <StructCommon.h>
+#include <simdjson.h>
+#include <JSONUtils.h>
 
 // module specific vars
 static std::unordered_map<std::string, PyObject*> cached_functions;
@@ -54,21 +59,20 @@ namespace python {
 
     void handle_and_throw_py_error() {
         if(PyErr_Occurred()) {
-            PyObject *ptype = NULL, *pvalue = NULL, *ptraceback = NULL;
-            PyErr_Fetch(&ptype,&pvalue,&ptraceback);
-            PyErr_NormalizeException(&ptype,&pvalue,&ptraceback);
+            // PyObject *ptype = NULL, *pvalue = NULL, *ptraceback = NULL;
+            // PyErr_Fetch(&ptype,&pvalue,&ptraceback);
+            // PyErr_NormalizeException(&ptype,&pvalue,&ptraceback);
 
             std::stringstream ss;
-
-            PyObject *extype = nullptr, * value=nullptr, * traceback=nullptr;
+            PyObject *extype = nullptr, *value=nullptr, *traceback=nullptr;
             PyErr_Fetch(&extype, &value, &traceback);
             if (!extype)
                 throw std::runtime_error("could not obtain error");
-            if (!value)
-                throw std::runtime_error("could not obtain value");
-            if (!traceback)
-                throw std::runtime_error("could not obtain traceback");
-            // value and traceback may be nullptr (?)
+//            if (!value)
+//                throw std::runtime_error("could not obtain value");
+//            if (!traceback)
+//                throw std::runtime_error("could not obtain traceback");
+//            // value and traceback may be nullptr (?)
 
             auto mod_traceback = PyImport_ImportModule("traceback");
             if(!mod_traceback) {
@@ -83,6 +87,14 @@ namespace python {
             }
 
             auto format_exception_func = PyObject_GetAttrString(mod_traceback_dict, "format_exception");
+            if(!format_exception_func) {
+#ifndef NDEBUG
+                std::cerr<<"traceback module doesn't contain format_exception function."<<std::endl;
+                std::cerr<<PyString_AsString(mod_traceback_dict)<<std::endl;
+                PyObject_Print(mod_traceback_dict, stderr, 0);
+                std::cerr<<std::endl;
+#endif
+            }
             assert(PyCallable_Check(format_exception_func));
 
             // call function, set all args
@@ -133,6 +145,15 @@ namespace python {
 
     PyObject* PyString_FromString(const char* str) {
        auto unicode_obj = PyUnicode_DecodeUTF8(str, strlen(str), nullptr);
+
+       if(!unicode_obj) {
+           PyErr_Clear();
+
+           // string was not a unicode object. use per default iso_8859_1 (latin-1 supplement) to utf8 conversion
+           auto utf8_str = tuplex::iso_8859_1_to_utf8(std::string(str));
+           assert(tuplex::utf8_check_is_valid);
+           return PyString_FromString(utf8_str.c_str());
+       }
 
 #ifndef NDEBUG
        handle_and_throw_py_error();
@@ -278,8 +299,7 @@ namespace python {
         }
     }
 
-    PyObject* compileFunction(PyObject* mainModule, const std::string& code) {
-        MessageHandler& logger = Logger::instance().logger("python");
+    PyObject* compileFunction(PyObject* mainModule, const std::string& code, std::ostream* err_stream) {
 
         assert(mainModule);
 
@@ -303,7 +323,9 @@ namespace python {
 
             // make sure it is not dumps or loads
             if(funcName == "dumps" || funcName == "loads") {
-                logger.error("can not serialize function '" + funcName + "' in module because of conflict with cloudpickle functions");
+                if(err_stream)
+                    *err_stream<<"can not serialize function '"<<funcName
+                    <<"' in module because of conflict with cloudpickle functions";
                 return nullptr;
             }
 
@@ -353,8 +375,8 @@ namespace python {
         }
     }
 
-    std::string serializeFunction(PyObject* mainModule, const std::string& code) {
-        auto func = compileFunction(mainModule, code);
+    std::string serializeFunction(PyObject* mainModule, const std::string& code, std::ostream* err_stream) {
+        auto func = compileFunction(mainModule, code, err_stream);
         if(!func)
             return "";
 
@@ -363,7 +385,8 @@ namespace python {
         // now serialize the damn thing
         auto pDumpsFunc = PyObject_GetAttrString(mainModule, "dumps");
         if(!pDumpsFunc) {
-            Logger::instance().defaultLogger().info("dumps not found in mainModule!");
+            if(err_stream)
+                *err_stream<<"dumps not found in mainModule!";
             return "";
         }
         assert(pDumpsFunc);
@@ -487,97 +510,96 @@ namespace python {
             // maybe check in future also for PyBytes_Type
             return Field(PyUnicode_AsUTF8(obj));
         } else if (PyDict_Check(obj)) { // allow subtypes because of general access
-            // shortcut: empty dict?
-            if(PyDict_Size(obj) == 0)
-                return Field::empty_dict();
+            // represent now as struct dict (or homogenous dict if possible)
+            return py_dict_to_field(obj, autoUpcast);
 
-            auto dictType = mapPythonClassToTuplexType(obj, autoUpcast);
-            std::string dictStr;
-            PyObject *key = nullptr, *val = nullptr;
-            Py_ssize_t pos = 0;  // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
-            dictStr += "{";
-            while(PyDict_Next(obj, &pos, &key, &val)) {
-                // create key
-                auto keyStr = PyString_AsString(PyObject_Str(key));
-                auto keyType = mapPythonClassToTuplexType(key, autoUpcast);
-                python::Type valType;
-
-                // create value, mimicking cJSON printing standards
-                std::string valStr;
-                if(PyObject_IsInstance(val, (PyObject*)&PyUnicode_Type)) {
-                    valType = python::Type::STRING;
-                    valStr = PyString_AsString(val);
-                    // explicitly escape the escape characters
-                    for(int i = valStr.length() - 1; i>=0; i--) {
-                        char escapeChar = '0';
-                        switch(valStr[i]) {
-                            case '\"': escapeChar = '\"'; break;
-                            case '\\': escapeChar = '\\'; break;
-                            case '\b': escapeChar = 'b'; break;
-                            case '\f': escapeChar = 'f'; break;
-                            case '\n': escapeChar = 'n'; break;
-                            case '\r': escapeChar = 'r'; break;
-                            case '\t': escapeChar = 't'; break;
-                        }
-                        if(escapeChar != '0') {
-                            valStr[i] = '\\';
-                            valStr.insert(i+1, 1, escapeChar);
-                        }
-                    }
-                    valStr = "\"" + valStr + "\"";
-                } else if (PyObject_IsInstance(val, (PyObject *) &PyLong_Type) ||
-                           PyObject_IsInstance(val, (PyObject *) &PyFloat_Type)) {
-                    double dval;
-                    if(PyObject_IsInstance(val, (PyObject *) &PyLong_Type)) {
-                        valType = python::Type::I64;
-                        dval = PyLong_AsDouble(val);
-                    }
-                    else {
-                        valType = python::Type::F64;
-                        dval = PyFloat_AsDouble(val);
-                    }
-
-                    // TODO: cJSON does not support nan/inf
-                    // taken from cJSON::print_number
-                    unsigned char number_buffer[32];
-                    int length = 0;
-                    if (dval * 0 != 0) { // check for nan or +/- infinity. This special vals are encoded as NULL
-                        length = sprintf((char*)number_buffer, "null");
-                    } else {
-                        double test = 0.0;
-                        // Try 15 decimal places of precision to avoid nonsignificant nonzero digits
-                        length = sprintf((char*)number_buffer, "%1.15g", dval);
-
-                        // Check whether the original double can be recovered
-                        if ((sscanf((char*)number_buffer, "%lg", &test) != 1) || ((double)test != dval)) {
-                            // If not, print with 17 decimal places of precision
-                            length = sprintf((char*)number_buffer, "%1.17g", dval);
-                        }
-                    }
-                    // sprintf failed or buffer overrun occurred
-                    if ((length < 0) || (length > (int)(sizeof(number_buffer) - 1))) {
-                        Logger::instance().defaultLogger().error("Failure when serializing python dictionary to cJSON");
-                        throw std::runtime_error("Failure when serializing python dictionary to cJSON");
-                    }
-
-                    valStr = std::string((char*)number_buffer);
-                } else if(PyObject_IsInstance(obj, (PyObject*)&PyBool_Type)) {
-                    valType = python::Type::BOOLEAN;
-                    valStr = (PyBool_AsBool(val)) ? "true" : "false";
-                } else {
-                    Logger::instance().defaultLogger().error("Unsupported type for dictionary value: " + valType.desc());
-                    throw std::runtime_error("Unsupported type for dictionary value: " + valType.desc());
-                }
-                std::string newKeyStr = tuplexTypeToCharacter(keyType) + tuplexTypeToCharacter(valType) + keyStr;
-
-                dictStr += "\"";
-                dictStr += newKeyStr;
-                dictStr += "\":";
-                dictStr += valStr;
-                dictStr += ",";
-            }
-            dictStr = dictStr.substr(0, dictStr.length() - 1) + "}";
-            return Field::from_str_data(dictStr, dictType);
+//            auto dictType = mapPythonClassToTuplexType(obj, autoUpcast);
+//            std::string dictStr;
+//            PyObject *key = nullptr, *val = nullptr;
+//            Py_ssize_t pos = 0;  // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
+//            dictStr += "{";
+//            while(PyDict_Next(obj, &pos, &key, &val)) {
+//                // create key
+//                auto keyStr = PyString_AsString(PyObject_Str(key));
+//                auto keyType = mapPythonClassToTuplexType(key, autoUpcast);
+//                python::Type valType;
+//
+//                // create value, mimicking cJSON printing standards
+//                std::string valStr;
+//                if(PyObject_IsInstance(val, (PyObject*)&PyUnicode_Type)) {
+//                    valType = python::Type::STRING;
+//                    valStr = PyString_AsString(val);
+//                    // explicitly escape the escape characters
+//                    for(int i = valStr.length() - 1; i>=0; i--) {
+//                        char escapeChar = '0';
+//                        switch(valStr[i]) {
+//                            case '\"': escapeChar = '\"'; break;
+//                            case '\\': escapeChar = '\\'; break;
+//                            case '\b': escapeChar = 'b'; break;
+//                            case '\f': escapeChar = 'f'; break;
+//                            case '\n': escapeChar = 'n'; break;
+//                            case '\r': escapeChar = 'r'; break;
+//                            case '\t': escapeChar = 't'; break;
+//                        }
+//                        if(escapeChar != '0') {
+//                            valStr[i] = '\\';
+//                            valStr.insert(i+1, 1, escapeChar);
+//                        }
+//                    }
+//                    valStr = "\"" + valStr + "\"";
+//                } else if (PyObject_IsInstance(val, (PyObject *) &PyLong_Type) ||
+//                           PyObject_IsInstance(val, (PyObject *) &PyFloat_Type)) {
+//                    double dval;
+//                    if(PyObject_IsInstance(val, (PyObject *) &PyLong_Type)) {
+//                        valType = python::Type::I64;
+//                        dval = PyLong_AsDouble(val);
+//                    }
+//                    else {
+//                        valType = python::Type::F64;
+//                        dval = PyFloat_AsDouble(val);
+//                    }
+//
+//                    // TODO: cJSON does not support nan/inf
+//                    // taken from cJSON::print_number
+//                    unsigned char number_buffer[32];
+//                    int length = 0;
+//                    if (dval * 0 != 0) { // check for nan or +/- infinity. This special vals are encoded as NULL
+//                        length = sprintf((char*)number_buffer, "null");
+//                    } else {
+//                        double test = 0.0;
+//                        // Try 15 decimal places of precision to avoid nonsignificant nonzero digits
+//                        length = sprintf((char*)number_buffer, "%1.15g", dval);
+//
+//                        // Check whether the original double can be recovered
+//                        if ((sscanf((char*)number_buffer, "%lg", &test) != 1) || ((double)test != dval)) {
+//                            // If not, print with 17 decimal places of precision
+//                            length = sprintf((char*)number_buffer, "%1.17g", dval);
+//                        }
+//                    }
+//                    // sprintf failed or buffer overrun occurred
+//                    if ((length < 0) || (length > (int)(sizeof(number_buffer) - 1))) {
+//                        Logger::instance().defaultLogger().error("Failure when serializing python dictionary to cJSON");
+//                        throw std::runtime_error("Failure when serializing python dictionary to cJSON");
+//                    }
+//
+//                    valStr = std::string((char*)number_buffer);
+//                } else if(PyObject_IsInstance(obj, (PyObject*)&PyBool_Type)) {
+//                    valType = python::Type::BOOLEAN;
+//                    valStr = (PyBool_AsBool(val)) ? "true" : "false";
+//                } else {
+//                    Logger::instance().defaultLogger().error("Unsupported type for dictionary value: " + valType.desc());
+//                    throw std::runtime_error("Unsupported type for dictionary value: " + valType.desc());
+//                }
+//                std::string newKeyStr = tuplexTypeToCharacter(keyType) + tuplexTypeToCharacter(valType) + keyStr;
+//
+//                dictStr += "\"";
+//                dictStr += newKeyStr;
+//                dictStr += "\":";
+//                dictStr += valStr;
+//                dictStr += ",";
+//            }
+//            dictStr = dictStr.substr(0, dictStr.length() - 1) + "}";
+//            return Field::from_str_data(dictStr, dictType);
         } else if(PyList_Check(obj)) {
             // recursive
             auto numElements = PyList_Size(obj);
@@ -595,6 +617,44 @@ namespace python {
         } else {
             return createPickledField(obj);
         }
+    }
+
+    tuplex::Field py_dict_to_field(PyObject* dict_obj, bool autoUpcast) {
+        using namespace tuplex;
+        using namespace std;
+
+        assert(PyDict_Check(dict_obj));
+
+        // shortcut: empty dict?
+        if(PyDict_Size(dict_obj) == 0)
+            return Field::empty_dict();
+
+        // @TODO: could also just write a function in python to decode this complicated structure (i.e. getting the type).
+        // may save dev time.
+
+
+        // below is likely some complex code, write later. For now - treat as pyobjects.
+        Py_XINCREF(dict_obj);
+        auto serialized = python::pickleObject(python::getMainModule(), dict_obj);
+        return Field::from_pickled_memory(reinterpret_cast<const uint8_t *>(serialized.c_str()), serialized.size());
+
+//        // iterate over dictionary and map accordingly
+//        std::stringstream ss;
+//        std::vector<StructEntry> entries;
+//        PyObject *key = nullptr, *val = nullptr;
+//        Py_ssize_t pos = 0;  // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
+//        ss << "{";
+//        while(PyDict_Next(dict_obj, &pos, &key, &val)) {
+//            // convert key to str
+//            Py_XINCREF(key);
+//            auto key_str = PyString_AsString(key);
+//            Py_XINCREF(key);
+//            auto key_type = py
+//        }
+//
+//        auto dict_str = ss.str();
+//        auto dict_type = python::Type::makeStructuredDictType(entries);
+//        return Field::from_str_data(dict_str, dict_type);
     }
 
     tuplex::Field fieldCastTo(const tuplex::Field& f, const python::Type& type) {
@@ -668,7 +728,7 @@ namespace python {
             return tuplex::Field(tuplex::List::from_vector(v));
         } else {
             auto f = pythonToField(obj, autoUpcast);
-            return autoUpcast? fieldCastTo(f, type) : f;
+            return autoUpcast ? fieldCastTo(f, type) : f;
         }
     }
 
@@ -704,6 +764,54 @@ namespace python {
                 fields.push_back(t.getField(i));
             return Row::from_vector(fields);
         } else return Row(f);
+    }
+
+    tuplex::Row pythonToRowWithDictUnwrap(PyObject* obj, const std::vector<std::string>& columns) {
+        using namespace tuplex;
+
+        if(columns.empty())
+            return pythonToRow(obj);
+        else {
+            // is it a dictionary?
+            if(PyDict_Check(obj)) {
+                PyObject *key = nullptr, *val = nullptr;
+                Py_ssize_t pos = 0;  // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
+                std::unordered_map<std::string, PyObject*> map;
+                Py_XINCREF(obj);
+                while(PyDict_Next(obj, &pos, &key, &val)) {
+                    if(PyUnicode_Check(key)) {
+                        // convert key to str
+                        Py_XINCREF(key);
+                        auto key_str = PyString_AsString(key);
+                        Py_XINCREF(key);
+
+                        map[key_str] = val;
+                    } else {
+                        // encode as dict
+                        return Row(pythonToField(obj));
+                    }
+                }
+
+                if(map.size() != columns.size())
+                    return pythonToRow(obj);
+                else {
+                    // check column names match
+                    for(unsigned i = 0; i < columns.size(); ++i) {
+                        auto it = map.find(columns[i]);
+                        if(it == map.end())
+                            return pythonToRow(obj);
+                    }
+                }
+                // check whether columns match up, and convert to row
+                std::vector<Field> fields;
+                for(unsigned i = 0; i < columns.size(); ++i)
+                    fields.push_back(pythonToField(map[columns[i]]));
+                return Row::from_vector(fields);
+
+            } else {
+                return pythonToRow(obj);
+            }
+        }
     }
 
     PyObject* PyObj_FromCJSONKey(const char* serializedKey) {
@@ -753,6 +861,15 @@ namespace python {
                 return PyLong_FromDouble(obj->valuedouble);
             case 'f':
                 return PyFloat_FromDouble(obj->valuedouble);
+//            auto pipFunc = pip.getFunction();
+//
+//            if(!pipFunc)
+//                return nullptr;
+//
+//            // debug
+//#define PRINT_EXCEPTION_PROCESSING_DETAILS
+//
+//            auto generalCaseType = pip.inputRowType();
             default:
                 std::string errorString = "unknown type identifier" + std::string(&type) + " in field encountered. Returning Py_None";
                 Logger::instance().defaultLogger().error(errorString);
@@ -772,6 +889,131 @@ namespace python {
             cur_item = cur_item->next;
         }
         return dictObj;
+    }
+
+    // to pyobject, recursively
+    PyObject* json_string_to_pyobject(const std::string& s, const python::Type& type) {
+        using namespace std;
+
+        if(type.isStructuredDictionaryType()) {
+
+            // parse string via simdjson into dom!
+            simdjson::dom::parser parser;
+            auto obj = parser.parse(s);
+            assert(obj.is_object());
+
+            auto dict_obj = PyDict_New();
+
+            // special case: go over entries and decode string!
+            for(auto kv_pair : type.get_struct_pairs()) {
+                // what is the type?
+
+                // HACK: only support string key types for now!
+                // issue will be two keys with same value and different types -> need to be encoded in dict.
+                // could solve by using the key as-is -> i.e. python escaped strings (b.c. other values won't start with '', use b'' for pickled object)
+                if(kv_pair.keyType != python::Type::STRING)
+                    throw std::runtime_error("only string key type supported so far in decode");
+
+                auto key = str_value_from_python_raw_value(kv_pair.key);
+
+                // check if field with key exists (doesn't have to!)
+                simdjson::error_code error;
+                simdjson::dom::element value;
+                obj.at_key(key).tie(value, error);
+                if(!error) {
+                    // get string from there
+                    auto raw_str = minify(obj[key]);
+
+                    PyObject *el_obj = nullptr;
+
+                    // special cases: struct, list, (dict?)
+                    el_obj = json_string_to_pyobject(raw_str, kv_pair.valueType);
+
+                    PyDict_SetItemString(dict_obj, key.c_str(), el_obj);
+                }
+            }
+            return dict_obj;
+        } else if(type.isListType()) {
+
+            // shortcut: empty list
+            if(python::Type::EMPTYLIST == type) {
+                auto list_obj = PyList_New(0);
+                return list_obj;
+            }
+
+            simdjson::dom::parser parser;
+            auto arr = parser.parse(s);
+            assert(arr.is_array());
+            auto element_type = type.elementType();
+            std::vector<PyObject*> elements;
+            for(const auto& el : arr) {
+                // what is the element type?
+                auto el_str = simdjson::minify(el);
+                elements.push_back(json_string_to_pyobject(el_str, element_type));
+            }
+
+            // combine
+            auto list_obj = PyList_New(elements.size());
+            for(unsigned i = 0; i < elements.size(); ++i)
+                PyList_SET_ITEM(list_obj, i, elements[i]);
+            return list_obj;
+        }         // base cases:
+        else if(type == python::Type::NULLVALUE) {
+            Py_XINCREF(Py_None);
+            return Py_None;
+        } else if(type == python::Type::BOOLEAN) {
+            auto b = tuplex::stringToBool(s);
+            return python::boolToPython(b);
+        } else if(type == python::Type::I64) {
+            auto val = tuplex::parseI64String(s);
+            return PyLong_FromLongLong(val);
+        } else if(type == python::Type::F64) {
+            auto val = tuplex::parseF64String(s);
+            return PyFloat_FromDouble(val);
+        } else if(type == python::Type::STRING) {
+            auto unescaped = tuplex::unescape_json_string(s);
+            return python::PyString_FromString(unescaped.c_str());
+        } else if(type.isOptionType()) {
+            if(s == "null") {
+                Py_XINCREF(Py_None);
+                return Py_None;
+            } else {
+                return json_string_to_pyobject(s, type.getReturnType());
+            }
+        } else if(type.isTupleType()) {
+            simdjson::dom::parser parser;
+            auto arr = parser.parse(s);
+            assert(arr.is_array());
+            std::vector<PyObject*> elements;
+            unsigned pos = 0;
+            for(const auto& el : arr) {
+                // early abort in case
+                if(pos >= type.parameters().size()) {
+                    Logger::instance().logger("python").error("internal error, decoding list "
+                                                              "as tuple but too many elements available.");
+                    break;
+                }
+
+                auto element_type = type.parameters()[pos];
+                // what is the element type?
+                auto el_str = simdjson::minify(el);
+                elements.push_back(json_string_to_pyobject(el_str, element_type));
+                pos++;
+            }
+
+            // combine -> as tuple? or as list?
+            auto list_obj = PyList_New(elements.size());
+            for(unsigned i = 0; i < elements.size(); ++i)
+                PyList_SET_ITEM(list_obj, i, elements[i]);
+            return list_obj;
+        } else if(type == python::Type::EMPTYDICT) {
+            auto dict_obj = PyDict_New();
+            return dict_obj;
+        } else {
+            throw std::runtime_error("unsupported type " + type.desc() + " to decode");
+        }
+        Py_XINCREF(Py_None); // <-- unknown, use None.
+        return Py_None;
     }
 
     PyObject* fieldToPython(const tuplex::Field& f) {
@@ -811,6 +1053,18 @@ namespace python {
         } else if(t == python::Type::EMPTYDICT) {
             return PyDict_New();
         } else if(t == python::Type::GENERICDICT || f.getType().isDictionaryType()) {
+            if(f.getType().isStructuredDictionaryType()) {
+
+                // use expensive conversion ( may be a bottleneck, but for now - just get it working )
+                const char* buf = static_cast<const char *>(f.getPtr());
+                auto buf_size = f.getPtrSize();
+                std::string json_data(buf);
+
+                // buf should be json string.
+                // -> convert json string to pydict using helper!
+                return json_string_to_pyobject(json_data, f.getType());
+            }
+
             cJSON* dptr = cJSON_Parse((char*)f.getPtr());
             return PyDict_FromCJSON(dptr);
         } else if(t.isListType()) {
@@ -867,6 +1121,10 @@ namespace python {
             }
             assert(obj); assert(obj->ob_refcnt > 0);
             return obj;
+        } else if(t.isStructuredDictionaryType()) {
+            // convert json representation to python!
+            auto json_data = (const char*)f.getPtr();
+            return json_string_to_pyobject(json_data, t);
         } else {
             Logger::instance().defaultLogger().error("unknown type " + f.getType().desc()
             + " in field encountered. Returning Py_None");
@@ -1361,8 +1619,10 @@ namespace python {
         return pcr;
     }
 
+    python::Type mapPythonDictToTuplexTupe(PyObject* dict_obj, bool autoUpcast, bool shrink_to_homogenous=false);
+
     // mapping type to internal types, unknown as default
-    python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast) {
+    python::Type mapPythonClassToTuplexType(PyObject *o, bool autoUpcast, bool treatHeterogeneousListAsTuple) {
         assert(o);
 
         if(Py_None == o)
@@ -1400,27 +1660,7 @@ namespace python {
         // subdivide type for this into a fixed key type/fixed arg type dict and a variable one
         // if(cls.compare("dict") == 0) {}
         if(PyDict_CheckExact(o)) {
-            int numElements = PyDict_Size(o);
-            if(numElements == 0)
-                return python::Type::EMPTYDICT; // be specific, empty dict!
-
-            python::Type keyType, valType;
-            PyObject *key = nullptr, *val = nullptr;
-            Py_ssize_t pos = 0; // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
-            bool types_set = false; // need extra var here b/c vals could be unknown.
-            while(PyDict_Next(o, &pos, &key, &val)) {
-                auto curKeyType = mapPythonClassToTuplexType(key, autoUpcast);
-                auto curValType = mapPythonClassToTuplexType(val, autoUpcast);
-                if(!types_set) {
-                    types_set = true;
-                    keyType = curKeyType;
-                    valType = curValType;
-                } else {
-                    if(keyType != curKeyType) return python::Type::GENERICDICT;
-                    if(valType != curValType) return python::Type::GENERICDICT;
-                }
-            }
-            return python::TypeFactory::instance().createOrGetDictionaryType(keyType, valType);
+            return mapPythonDictToTuplexTupe(o, autoUpcast, false);
         }
 
         // subdivide this into a list with identical elements and a variable typed list...
@@ -1430,22 +1670,57 @@ namespace python {
             if(numElements == 0)
                 return python::Type::EMPTYLIST;
 
+            std::vector<python::Type> element_types;
+            element_types.reserve(numElements);
+
             python::Type elementType = mapPythonClassToTuplexType(PyList_GetItem(o, 0), autoUpcast);
+            element_types.push_back(elementType);
+
+            bool heterogenous_list = false;
+
             // verify that all elements have the same type
-            for(int j = 0; j < numElements; j++) {
+            for(int j = 1; j < numElements; j++) {
                 python::Type currElementType = mapPythonClassToTuplexType(PyList_GetItem(o, j), autoUpcast);
                 if(elementType != currElementType) {
                     // possible to use nullable type as element type?
-                    auto newElementType = unifyTypes(elementType, currElementType, autoUpcast);
+                    tuplex::TypeUnificationPolicy policy; policy.allowAutoUpcastOfNumbers = autoUpcast;
+                    auto newElementType = tuplex::unifyTypes(elementType, currElementType, policy);
                     if (newElementType == python::Type::UNKNOWN) {
-                        Logger::instance().defaultLogger().error("list with variable element type " + elementType.desc() + " and " + currElementType.desc() + " not supported.");
-                        return python::Type::PYOBJECT;
+                       heterogenous_list = true;
+                    } else {
+                        elementType = newElementType;
                     }
-                    elementType = newElementType;
                 }
+                // collect
+                element_types.push_back(elementType);
             }
+
+
+            // tuple or not?
+            if(treatHeterogeneousListAsTuple && heterogenous_list) {
+                // create tuple type
+               return python::Type::makeTupleType(element_types);
+            }
+
+            // else, check if variable element type
+            if(heterogenous_list) {
+#ifndef NDEBUG
+                Logger::instance().defaultLogger().error("heterogenous list found, mapping to List[PYOBJECT].");
+#endif
+                return python::Type::makeListType(python::Type::PYOBJECT);
+            }
+
+            assert(!heterogenous_list);
             return python::Type::makeListType(elementType);
         }
+
+        // match object
+        auto name = typeName(o);
+        if(0 == strcmp(o->ob_type->tp_name, "re.Match"))
+            return python::Type::MATCHOBJECT;
+
+        if("module" ==  name)
+            return python::Type::MODULE;
 
         // check if serializable via cloudpickle, if so map!
 #ifndef NDEBUG
@@ -1455,11 +1730,51 @@ namespace python {
         } else {
             PyErr_Clear();
         }
-#else
-        return python::Type::PYOBJECT;
 #endif
 
-        return python::Type::UNKNOWN;
+        return python::Type::PYOBJECT;
+    }
+
+    python::Type mapPythonDictToTuplexTupe(PyObject* dict_obj, bool autoUpcast, bool shrink_to_homogenous) {
+        assert(PyDict_CheckExact(dict_obj));
+        int numElements = PyDict_Size(dict_obj);
+        if(numElements == 0)
+            return python::Type::EMPTYDICT; // be specific, empty dict!
+
+        std::vector<python::StructEntry> kv_pairs;
+        python::Type keyType, valType;
+        PyObject *key = nullptr, *val = nullptr;
+        Py_ssize_t pos = 0; // must be initialized to 0 to start iteration, however internal iterator variable. Don't use semantically.
+        bool types_set = false; // need extra var here b/c vals could be unknown.
+        while(PyDict_Next(dict_obj, &pos, &key, &val)) {
+            Py_XINCREF(key);
+            auto str_key = PyString_AsString(key);
+            str_key = escape_to_python_str(str_key);
+            auto curKeyType = mapPythonClassToTuplexType(key, autoUpcast);
+            auto curValType = mapPythonClassToTuplexType(val, autoUpcast);
+
+            // append pair
+            python::StructEntry entry;
+            entry.keyType = curKeyType;
+            entry.valueType = curValType;
+            entry.key = str_key; // <-- correct?
+            kv_pairs.emplace_back(entry);
+
+            if(!types_set) {
+                types_set = true;
+                keyType = curKeyType;
+                valType = curValType;
+            } else {
+                if(keyType != curKeyType) keyType = python::Type::GENERICDICT;
+                if(valType != curValType) valType = python::Type::GENERICDICT;
+            }
+        }
+
+        // check what to return
+        if(shrink_to_homogenous)
+            return python::TypeFactory::instance().createOrGetDictionaryType(keyType, valType);
+        else
+            return python::Type::makeStructuredDictType(kv_pairs);
     }
 
     // @TODO: inc type objects??
@@ -1814,21 +2129,13 @@ namespace python {
         return false;
       }
 
-      // import cloudpickle for serialized functions
-      PyObject *cloudpickleModule = PyImport_ImportModule("cloudpickle");
-      if(!cloudpickleModule) {
+      std::string version_string;
+      if(!cloudpickleVersion(version_string)) {
           err<<"could not find cloudpickle module, please install via `pip3 install \""<<desired_version<<"\"`.";
           if(os)
-            *os<<err.str();
+              *os<<err.str();
           return false;
       }
-
-      PyModule_AddObject(mainModule, "cloudpickle", cloudpickleModule);
-      auto versionObj =  PyObject_GetAttr(cloudpickleModule, PyString_FromString("__version__"));
-      if(!versionObj)
-        return false;
-
-      auto version_string = PyString_AsString(versionObj);
 
       auto version = extract_version(version_string);
 #if (PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 10)
@@ -1868,5 +2175,26 @@ namespace python {
         auto arg = PyTuple_New(1);
         PyTuple_SET_ITEM(arg, 0, PyLong_FromLong(2)); // specify here collect level, 2 for full!
         PyObject_CallObject(gc_collect, arg);
+    }
+
+    bool cloudpickleVersion(std::string& version_string) {
+        std::stringstream err;
+
+        auto mainModule = getMainModule();
+        if(!mainModule)
+            return false;
+
+        // import cloudpickle for serialized functions
+        PyObject *cloudpickleModule = PyImport_ImportModule("cloudpickle");
+        if(!cloudpickleModule)
+            return false;
+
+        PyModule_AddObject(mainModule, "cloudpickle", cloudpickleModule);
+        auto versionObj =  PyObject_GetAttr(cloudpickleModule, PyString_FromString("__version__"));
+        if(!versionObj)
+            return false;
+
+        version_string = PyString_AsString(versionObj);
+        return true;
     }
 }

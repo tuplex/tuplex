@@ -8,13 +8,13 @@
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
 
-#include <LocalEngine.h>
+#include <ee/local/LocalEngine.h>
 #include <ee/local/LocalBackend.h>
-#include <RuntimeInterface.h>
-#include <physical/ResolveTask.h>
-#include <physical/TransformTask.h>
-#include <physical/SimpleFileWriteTask.h>
-#include <physical/SimpleOrcWriteTask.h>
+#include <jit/RuntimeInterface.h>
+#include <physical/execution/ResolveTask.h>
+#include <physical/execution/TransformTask.h>
+#include <physical/execution/SimpleFileWriteTask.h>
+#include <physical/execution/SimpleOrcWriteTask.h>
 
 #include <memory>
 
@@ -23,15 +23,27 @@
 
 #include <hashmap.h>
 #include <int_hashmap.h>
-#include <PartitionWriter.h>
-#include <physical/HashProbeTask.h>
-#include <physical/LLVMOptimizer.h>
-#include <HybridHashTable.h>
+#include <physical/memory/PartitionWriter.h>
+#include <physical/execution/HashProbeTask.h>
+#include <jit/LLVMOptimizer.h>
+#include <physical/execution/HybridHashTable.h>
 #include <int_hashmap.h>
 #include <PythonHelpers.h>
 
+#include <physical/codegen/StagePlanner.h>
+
 namespace tuplex {
 
+    static CodePathStat mergeCodePathStats(const std::vector<IExecutorTask*> &tasks) {
+        CodePathStat stat;
+        for(auto task : tasks) {
+            if(task && task->type() == TaskType::RESOLVE) {
+                auto rtask = (ResolveTask*)task;
+                stat = stat + rtask->codePathStats();
+            }
+        }
+        return stat;
+    }
 
     void freeTasks(std::vector<IExecutorTask*>& tasks) {
         // delete tasks
@@ -534,7 +546,7 @@ namespace tuplex {
             char delimiter = tstage->csvInputDelimiter();
             char quotechar = tstage->csvInputQuotechar();
 
-            vector<bool>  colsToKeep = tstage->columnsToKeep(); // after projection pushdown, what to keep
+            vector<bool> colsToKeep = indicesToBoolArray(tstage->normalCaseInputColumnsToKeep(), tstage->inputColumnCount()); //tstage->columnsToKeep(); // after projection pushdown, what to keep
 
             for(auto partition : tstage->inputPartitions()) {
                 // get num
@@ -558,7 +570,8 @@ namespace tuplex {
                                                  numColumns, 0, 0, delimiter, quotechar, colsToKeep, options.PARTITION_SIZE(), tstage->inputFormat());
                         // hash table or memory output?
                         if(tstage->outputMode() == EndPointMode::HASHTABLE) {
-                            if (tstage->hashtableKeyByteWidth() == 8)
+                            auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
+                            if (ht_width == 8)
                                 task->sinkOutputToHashTable(HashTableFormat::UINT64,
                                                             tstage->outputDataSetID());
                             else
@@ -592,7 +605,8 @@ namespace tuplex {
                                                      quotechar, colsToKeep, options.PARTITION_SIZE(), tstage->inputFormat());
                             // hash table or memory output?
                             if(tstage->outputMode() == EndPointMode::HASHTABLE) {
-                                if (tstage->hashtableKeyByteWidth() == 8)
+                                auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
+                                if (ht_width == 8)
                                     task->sinkOutputToHashTable(HashTableFormat::UINT64,
                                                                 tstage->outputDataSetID());
                                 else
@@ -629,7 +643,8 @@ namespace tuplex {
                                                          quotechar, colsToKeep, options.PARTITION_SIZE(), tstage->inputFormat());
                                 // hash table or memory output?
                                 if(tstage->outputMode() == EndPointMode::HASHTABLE) {
-                                    if (tstage->hashtableKeyByteWidth() == 8)
+                                    auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
+                                    if (ht_width == 8)
                                         task->sinkOutputToHashTable(HashTableFormat::UINT64,
                                                                     tstage->outputDataSetID());
                                     else
@@ -670,12 +685,19 @@ namespace tuplex {
             // --> issue for each memory partition a transform task and put it into local workqueue
             assert(tstage->inputMode() == EndPointMode::MEMORY);
 
+
+            // restrict after input limit
             size_t numInputRows = 0;
 
             auto inputPartitions = tstage->inputPartitions();
             auto generalPartitions = tstage->generalPartitions();
             auto fallbackPartitions = tstage->fallbackPartitions();
             auto partitionGroups = tstage->partitionGroups();
+
+            // sanity check: partition groups have to exist when partitions exist!
+            if(!inputPartitions.empty())
+                assert(!partitionGroups.empty());
+
             for (const auto &group : partitionGroups) {
                 std::vector<Partition*> taskNormalPartitions;
                 bool invalidateAfterUse = false;
@@ -711,7 +733,8 @@ namespace tuplex {
                 task->setFallbackPartitions(taskFallbackPartitions);
                 // hash table or memory output?
                 if(tstage->outputMode() == EndPointMode::HASHTABLE) {
-                    if (tstage->hashtableKeyByteWidth() == 8)
+                    auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
+                    if (ht_width == 8)
                         task->sinkOutputToHashTable(HashTableFormat::UINT64,
                                                     tstage->outputDataSetID());
                     else
@@ -746,6 +769,9 @@ namespace tuplex {
 
         // decode
         if(!py_code.empty()) {
+
+            assert(!pipeline_name.empty());
+
             python::lockGIL();
 
             //Note: maybe put all these user-defined functions into fake, tuplex module??
@@ -799,6 +825,11 @@ namespace tuplex {
         // reset Partition stats
         Partition::resetStatistics();
 
+#ifndef NDEBUG
+        // reset fast exception reservoir for debugging
+        resetExceptionReservoir(_options.WEBUI_EXCEPTION_DISPLAY_LIMIT());
+#endif
+
         // special case: no input, return & set empty result
         // Note: file names & sizes are also saved in input partition!
         if (tstage->inputMode() != EndPointMode::HASHTABLE
@@ -808,8 +839,21 @@ namespace tuplex {
             return;
         }
 
+        // HACK (for testing, perform hyper specialization on stage)
+        if(_options.USE_EXPERIMENTAL_HYPERSPECIALIZATION() && !tstage->input_files().empty()) {
+            auto files = tstage->input_files();
+            auto uri_str = std::get<0>(files.front());
+            auto uri_size = std::get<1>(files.front());
+            codegen::StageBuilderConfiguration conf(_options);
+            hyperspecialize(tstage, uri_str, uri_size,
+                            _options.SAMPLE_MAX_DETECTION_ROWS(),
+                            _options.SAMPLE_STRATA_SIZE(),
+                            _options.SAMPLE_SAMPLES_PER_STRATA(),
+                            conf);
+        }
+
         // special case: skip stage, i.e. empty code and mem2mem
-        if(tstage->code().empty() &&  !tstage->fileInputMode() && !tstage->fileOutputMode()) {
+        if(tstage->fastPathIRCode().empty() && !tstage->fileInputMode() && !tstage->fileOutputMode()) {
             tstage->setMemoryResult(tstage->inputPartitions(), tstage->generalPartitions(), tstage->fallbackPartitions(),
                                     tstage->partitionGroups());
             // skip stage
@@ -858,7 +902,10 @@ namespace tuplex {
         // 1.) COMPILATION
         // compile code & link functions to tasks
         LLVMOptimizer optimizer;
-        auto syms = tstage->compile(*_compiler, _options.USE_LLVM_OPTIMIZER() ? &optimizer : nullptr, false); // @TODO: do not compile slow path yet, do it later in parallel when other threads are already working!
+        // @TODO: do not compile slow path yet, do it later in parallel when other threads are already working!
+        // deactivate slow path symbols when using interpreter only for resolve...
+        auto syms = tstage->compile(*_compiler, _options.USE_LLVM_OPTIMIZER() ? &optimizer : nullptr,
+                                    _options.RESOLVE_WITH_INTERPRETER_ONLY());
         bool combineOutputHashmaps = syms->aggInitFunctor && syms->aggCombineFunctor && syms->aggAggregateFunctor;
         JobMetrics& metrics = tstage->PhysicalStage::plan()->getContext().metrics();
         double total_compilation_time = metrics.getTotalCompilationTime() + timer.time();
@@ -872,14 +919,16 @@ namespace tuplex {
         // -------------------------------------------------------------------
         // 2.) MAIN MEMORY processing tasks
         timer.reset();
+        Logger::instance().defaultLogger().info("initializing transform stage.");
 
         // ==> init using optionally hashmaps from dependents
         int64_t init_rc = 0;
-        if((init_rc = syms->initStageFunctor(tstage->initData().numArgs,
-                                  reinterpret_cast<void**>(tstage->initData().hash_maps),
-                                  reinterpret_cast<void**>(tstage->initData().null_buckets))) != 0)
-            throw std::runtime_error("initStage() failed for stage " + std::to_string(tstage->number()) + " with code " + std::to_string(init_rc));
-
+        if(syms->_fastCodePath.initStageFunctor) {
+            if((init_rc = syms->_fastCodePath.initStageFunctor(tstage->initData().numArgs,
+                                                               reinterpret_cast<void**>(tstage->initData().hash_maps),
+                                                               reinterpret_cast<void**>(tstage->initData().null_buckets))) != 0)
+                throw std::runtime_error("fastPathInitStage() failed for stage " + std::to_string(tstage->number()) + " with code " + std::to_string(init_rc));
+        }
 
         // init aggregate by key
         if(syms->aggAggregateFunctor) {
@@ -892,6 +941,7 @@ namespace tuplex {
         }
 
         auto tasks = createLoadAndTransformToMemoryTasks(tstage, _options, syms);
+        Logger::instance().defaultLogger().info("Created " + pluralize(tasks.size(), "task") + " for transform stage.");
         auto completedTasks = performTasks(tasks);
 
         // calc number of input rows and total wall clock time
@@ -931,6 +981,8 @@ namespace tuplex {
         // => there are fallback mechanisms...
 
         bool executeSlowPath = true;
+        bool slowPathActuallyExecuted = false;
+
         //TODO: implement pure python resolution here...
         // exceptions found or slowpath data given?
         if(totalECountsBeforeResolution > 0 || !tstage->generalPartitions().empty() || !tstage->fallbackPartitions().empty()) {
@@ -988,6 +1040,9 @@ namespace tuplex {
 
             // should slow path get executed
             executeSlowPath = syms->resolveFunctor || !tstage->purePythonCode().empty();
+            if(!executeSlowPath) {
+                logger().warn("whether a compiled resolve path nor a python code path was fund. Can't resolve exceptions.");
+            }
 
             // any ops with resolver IDs?
             if(executeSlowPath && !tstage->operatorIDsWithResolvers().empty())
@@ -1012,6 +1067,15 @@ namespace tuplex {
                     // => this can be achieved by setting functor to nullptr!
                     auto resolveFunctor = _options.RESOLVE_WITH_INTERPRETER_ONLY() ? nullptr : syms->resolveFunctor;
 
+                    if (resolveFunctor != nullptr) {
+                        slowPathActuallyExecuted = true;
+                        int64_t init_rc = 0;
+                        if((init_rc = syms->_slowCodePath.initStageFunctor(tstage->initData().numArgs,
+                                                                     reinterpret_cast<void**>(tstage->initData().hash_maps),
+                                                                     reinterpret_cast<void**>(tstage->initData().null_buckets))) != 0)
+                            throw std::runtime_error("slowPathInitStage() failed for stage " + std::to_string(tstage->number()) + " with code " + std::to_string(init_rc));
+                    }
+
                     // cout<<"*** num tasks before resolution: "<<completedTasks.size()<<" ***"<<endl;
                     completedTasks = resolveViaSlowPath(completedTasks,
                                                         merge_except_rows,
@@ -1035,6 +1099,11 @@ namespace tuplex {
                 ss<<"in "<<slow_path_total_time<<"s";
                 logger().info(ss.str());
 
+                auto pathStats = mergeCodePathStats(completedTasks);
+                std::string general_info = _options.RESOLVE_WITH_INTERPRETER_ONLY() ? "(deactivated)" : std::to_string(pathStats.general);
+                logger().info("paths rows took for slow code path: general: " + general_info
+                              + " fallback: " + std::to_string(pathStats.fallback)
+                              + " unresolved: " + std::to_string(pathStats.unresolved));
 
                 totalWallTime = 0.0;
                 size_t slowPathNumInputRows = 0;
@@ -1133,8 +1202,9 @@ namespace tuplex {
                 } else {
 
                     auto py_combine = preparePythonPipeline(tstage->purePythonAggregateCode(), tstage->pythonAggregateFunctionName());
+                    auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
                     auto hsink = createFinalHashmap(completedTasks,
-                                                    tstage->hashtableKeyByteWidth(),
+                                                    ht_width,
                                                     combineOutputHashmaps,
                                                     syms->aggInitFunctor,
                                                     syms->aggCombineFunctor,
@@ -1181,8 +1251,11 @@ namespace tuplex {
 
 
         // call release func for stage globals
-        if(syms->releaseStageFunctor() != 0)
-            throw std::runtime_error("releaseStage() failed for stage " + std::to_string(tstage->number()));
+        if(syms->_fastCodePath.releaseStageFunctor && syms->_fastCodePath.releaseStageFunctor() != 0)
+            throw std::runtime_error("fastPathReleaseStage() failed for stage " + std::to_string(tstage->number()));
+
+        if(slowPathActuallyExecuted && syms->_slowCodePath.releaseStageFunctor && syms->_slowCodePath.releaseStageFunctor() != 0)
+            throw std::runtime_error("slowPathReleaseStage() failed for stage " + std::to_string(tstage->number()));
 
         // add exception counts from previous stages to current one
         // @TODO: need to add test for this. I.e. the whole exceptions + joins needs to revised...
@@ -1239,6 +1312,29 @@ namespace tuplex {
         HashTableSink* hsink = nullptr;
         bool hasNormalHashSink = false;
 
+        // the schema in which exceptions are stored for this stage
+        auto exceptionInputSchema = tstage->generalCaseInputSchema(); // this could be specialized!
+        logger().debug("Exception schema (general case input schema): " + exceptionInputSchema.getRowType().desc());
+
+#ifndef NDEBUG
+        {
+            // debug: dump exceptions for python fallback mode
+            // this is helpful for checking/reprocessing using fallback
+
+            // exception partitions
+            std::vector<Partition*> exception_partitions;
+            for(auto task : tasks) {
+                auto tt = dynamic_cast<TransformTask *>(task);
+                auto partitions = tt->getExceptionPartitions();
+                std::copy(partitions.begin(), partitions.end(), std::back_inserter(exception_partitions));
+            }
+            auto dump_path = "fallback_exceptions_stage" + std::to_string(tstage->number()) + ".pkl";
+
+            // this does not work yet, b.c. decoding of struct dict in row not yet supported!
+            // dumpExceptionsForFallback(dump_path, exceptionInputSchema, exception_partitions);
+        }
+#endif
+
         // make sure output mode is NOT hash table, not yet supported...
         if(tstage->outputMode() == EndPointMode::HASHTABLE) {
             // note: must hold that normal-case output type is equal to general-case output type
@@ -1249,8 +1345,9 @@ namespace tuplex {
             // compile & prep python pipeline for this stage
             auto pip_object = preparePythonPipeline(tstage->purePythonAggregateCode(), tstage->pythonAggregateFunctionName());
 
+            auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
             hsink = createFinalHashmap(tasks,
-                                       tstage->hashtableKeyByteWidth(),
+                                       ht_width,
                                        combineHashmaps,
                                        init_aggregate,
                                        combine_aggregate,
@@ -1315,7 +1412,7 @@ namespace tuplex {
                     hs->hm = input_intermediates.hash_maps[i];
                     hs->null_bucket = input_intermediates.null_buckets[i];
                     input_intermediates.hybrids[i] = reinterpret_cast<PyObject *>(CreatePythonHashMapWrapper(*hs,
-                                                                                                             ts->hashResult().keyType.withoutOptions(),
+                                                                                                             ts->hashResult().keyType.withoutOption(),
                                                                                                              ts->hashResult().bucketType,
                                                                                                              LookupStorageMode::LISTOFVALUES)); // this is for joins, i.e. list of values...
                 }
@@ -1359,7 +1456,7 @@ namespace tuplex {
             ss<<"\ttarget normal case output schema: "<<tstage->normalCaseOutputSchema().getRowType().desc()<<endl;
             ss<<"\ttarget general case output schema: "<<tstage->outputSchema().getRowType().desc()<<endl;
             ss<<"\tshould cases be persisted separately: "<<std::boolalpha<<tstage->persistSeparateCases()<<endl;
-            ss<<"\tschema the regular exceptions are stored in: "<<tt->inputSchema().getRowType().desc()<<endl;
+            ss<<"\tschema the regular exceptions are stored in: "<<tstage->inputSchema().getRowType().desc()<<endl;
             ss<<"\tschema the compiled slow path outputs: "<<tstage->outputSchema().getRowType().desc()<<endl;
 
             if(tt == tasks.front())
@@ -1384,7 +1481,6 @@ namespace tuplex {
 
                 // this task needs to be resolved, b.c. exceptions occurred...
                 // pretty simple, just create a ResolveTask
-                auto exceptionInputSchema = tt->inputSchema(); // this could be specialized!
                 auto rtask = new ResolveTask(stageID,
                                              tstage->context().id(),
                                              tt->getOutputPartitions(),
@@ -1443,8 +1539,8 @@ namespace tuplex {
                     if(hasNormalHashSink) {
                         rtask->sinkOutputToHashTable(tt->hashTableFormat(),
                                                      tstage->dataAggregationMode(),
-                                                     tstage->hashOutputKeyType().withoutOptions(),
-                                                     tstage->hashOutputBucketType(),
+                                                     tstage->generalCaseHashKeyType().withoutOption(), //tstage->hashOutputKeyType().withoutOption(),
+                                                     tstage->generalCaseHashBucketType(), //tstage->hashOutputBucketType(),
                                                      hsink->hm,
                                                      hsink->null_bucket);
                         hasNormalHashSink = false;
@@ -1454,12 +1550,13 @@ namespace tuplex {
                     } else {
 
                         // init hash table based on key
-                        auto hm = tstage->hashtableKeyByteWidth() == 8 ? int64_hashmap_new() : hashmap_new();
+                        auto ht_width = codegen::hashtableKeyWidth(tstage->normalCaseHashKeyType());
+                        auto hm = ht_width == 8 ? int64_hashmap_new() : hashmap_new();
                         assert(hm);
                         rtask->sinkOutputToHashTable(tt->hashTableFormat(),
                                                      tstage->dataAggregationMode(),
-                                                     tstage->hashOutputKeyType().withoutOptions(),
-                                                     tstage->hashOutputBucketType(),
+                                                     tstage->generalCaseHashKeyType().withoutOption(), //tstage->hashOutputKeyType().withoutOption(),
+                                                     tstage->generalCaseHashBucketType(), //tstage->hashOutputBucketType(),
                                                      hm,
                                                      nullptr);
                     }
@@ -1493,6 +1590,8 @@ namespace tuplex {
 
         // add all resolved tasks to the result
         // cout<<"*** need to compute "<<resolveTasks.size()<<" resolve tasks ***"<<endl;
+        JobMetrics& metrics = tstage->PhysicalStage::plan()->getContext().metrics();
+        Timer interpretedPathTimer;
         auto resolvedTasks = performTasks(resolveTasks);
         // cout<<"*** git "<<resolvedTasks.size()<<" resolve tasks ***"<<endl;
         std::copy(resolvedTasks.cbegin(), resolvedTasks.cend(), std::back_inserter(tasks_result));
@@ -2118,6 +2217,13 @@ namespace tuplex {
         return MAP_OK;
     }
 
+    static void printSingleF64Bucket(const void* bucket) {
+        assert(bucket);
+        auto size = *(int64_t*)bucket;
+        double val = *(double*)((uint8_t*)bucket + 8);
+        std::cout<<"size: "<<size<<"  value: "<<val<<std::endl;
+    }
+
     void applyCombinePerGroup(HashTableSink& sink, int hashtableKeyByteWidth, codegen::agg_init_f init_aggregate,
                               codegen::agg_combine_f combine_aggregate) {
 
@@ -2146,6 +2252,10 @@ namespace tuplex {
             int64_t init_size = 0;
             init_aggregate(&init_val, &init_size);
 
+            // std::cout<<"init val: "<<*(double*)init_val<<std::endl;
+            // std::cout<<"given bucket: "<<std::endl;
+            // printSingleF64Bucket(sink.null_bucket);
+
             // call combine over null-bucket
             // decode first bucket values!
             // --> for aggregate by key a single value is stored there
@@ -2160,14 +2270,28 @@ namespace tuplex {
                 std::cerr<<"combine function failed"<<std::endl;
             }
 
-            // free original aggregate
-            free(init_val);
+            // free original aggregate if new one was allocated (could be overwritten! i.e. for fixed size agg type)
+            if(new_val != init_val) {
+                free(init_val);
+                init_val = nullptr;
+            }
+
             auto old_ptr = sink.null_bucket;
             assert(new_size == init_size);
             // create new combined pointer
             sink.null_bucket = static_cast<uint8_t*>(malloc(new_size + 8));
+#ifndef NDEBUG
+            memset(sink.null_bucket, 0, new_size + 8);
+#endif
             *(int64_t*)sink.null_bucket = new_size;
-            memcpy(sink.null_bucket + 8, new_val, new_size);
+            memcpy(sink.null_bucket + 8, new_val, new_size); // note the +8 to copy the values (and not the sizes)
+
+           // debug:
+#ifndef NDEBUG
+            //std::cout<<"double before: "<<*(double*)(old_ptr + 8)<<std::endl;
+            //std::cout<<"double after: "<<*(double*)(sink.null_bucket + 8)<<std::endl;
+#endif
+
             free(new_val);
             free(old_ptr);
         }
@@ -2286,7 +2410,7 @@ namespace tuplex {
                     continue;
 
 
-                if(combine) combineBuckets(sink->null_bucket, task_sink->null_bucket);
+                if(combine) sink->null_bucket = combineBuckets(sink->null_bucket, task_sink->null_bucket);
                 else sink->null_bucket = merge_buckets(&sink->null_bucket, task_sink->null_bucket);
 
                 // fetch all buckets in hashmap & place into new hashmap
@@ -2481,5 +2605,125 @@ namespace tuplex {
 
         Logger::instance().defaultLogger().info("writing output took " + std::to_string(timer.time()) + "s");
         tstage->setFileResult(ecounts);
+    }
+
+
+    PyObject* exceptionAsPyObject(const Schema& exceptionsInputSchema, int64_t ecCode, int64_t operatorID, const uint8_t* ebuf, size_t eSize) {
+
+        // holds the pythonized data
+        PyObject* tuple = nullptr;
+
+        bool parse_cells = false;
+
+        // there are different data reps for certain error codes.
+        // => decode the correct object from memory & then feed it into the pipeline...
+        if(ecCode == ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)) {
+            // it's a string!
+            tuple = tupleFromParseException(ebuf, eSize);
+            parse_cells = true; // need to parse cells in python mode.
+        } else if(ecCode == ecToI64(ExceptionCode::NORMALCASEVIOLATION)) {
+            // changed, why are these names so random here? makes no sense...
+            auto row = Row::fromMemory(exceptionsInputSchema, ebuf, eSize);
+            tuple = python::rowToPython(row, true);
+            parse_cells = false;
+            // called below...
+        } else if (ecCode == ecToI64(ExceptionCode::PYTHON_PARALLELIZE)) {
+            auto pyObj = python::deserializePickledObject(python::getMainModule(), (char *) ebuf, eSize);
+            tuple = pyObj;
+            parse_cells = false;
+        } else {
+            // normal case, i.e. an exception occurred somewhere.
+            // --> this means if pipeline is using string as input, we should convert
+            auto row = Row::fromMemory(exceptionsInputSchema, ebuf, eSize);
+
+            // cell source automatically takes input, i.e. no need to convert. simply get tuple from row object
+            tuple = python::rowToPython(row, true);
+
+#ifndef NDEBUG
+            if(PyTuple_Check(tuple)) {
+                // make sure tuple is valid...
+                for(unsigned i = 0; i < PyTuple_Size(tuple); ++i) {
+                    auto elemObj = PyTuple_GET_ITEM(tuple, i);
+                    assert(elemObj);
+                }
+            }
+#endif
+            parse_cells = false;
+        }
+
+        // note: current python pipeline always expects a tuple arg. hence pack current element.
+        if(PyTuple_Check(tuple) && PyTuple_Size(tuple) > 1) {
+            // nothing todo...
+        } else {
+            auto tmp_tuple = PyTuple_New(1);
+            PyTuple_SET_ITEM(tmp_tuple, 0, tuple);
+            tuple = tmp_tuple;
+        }
+
+        return tuple;
+    }
+
+    void dumpExceptionsForFallback(const std::string& local_path, const Schema& exceptionInputSchema, const std::vector<Partition*>& exceptions, bool invalidate_exceptions) {
+        python::lockGIL();
+
+
+        auto list_obj = PyList_New(0);
+
+        // go through exceptions and dump them!
+        int64_t rowNumber = 0;
+        for(auto partition : exceptions) {
+            const uint8_t *ptr = partition->lockRaw();
+            int64_t numRows = *((int64_t *) ptr);
+            ptr += sizeof(int64_t);
+
+            for(int i = 0; i < numRows; ++i) {
+                // old
+                // _currentRowNumber = *((int64_t*)ptr);
+                // ptr += sizeof(int64_t);
+                // int64_t ecCode = *((int64_t*)ptr);
+                // ptr += sizeof(int64_t);
+                // int64_t operatorID = *((int64_t*)ptr);
+                // ptr += sizeof(int64_t);
+                // int64_t eSize = *((int64_t*)ptr);
+                // ptr += sizeof(int64_t);
+
+                const uint8_t *ebuf = nullptr;
+                int64_t ecCode = -1, operatorID = -1;
+                size_t eSize = 0;
+                auto delta = deserializeExceptionFromMemory(ptr, &ecCode, &operatorID, &rowNumber, &ebuf,
+                                                            &eSize);
+
+                // call functor over this...
+                // ==> important to use row number here for continuous exception resolution!
+                // args are: "userData",  "rowNumber", "exceptionCode", "rowBuf", "bufSize"
+                auto py_object = exceptionAsPyObject(exceptionInputSchema, ecCode, operatorID, ebuf, eSize);
+
+                // parse cells is only true for badparsestringinput
+                auto parse_cells = ecCode == ecToI64(ExceptionCode::BADPARSE_STRING_INPUT);
+
+                auto dict_obj = PyDict_New();
+                PyDict_SetItemString(dict_obj, "parse_cells", parse_cells ? Py_True : Py_False);
+                PyDict_SetItemString(dict_obj, "data", py_object);
+                PyDict_SetItemString(dict_obj, "ecCode", PyLong_FromLong(ecCode));
+                PyDict_SetItemString(dict_obj, "operatorID", PyLong_FromLong(operatorID));
+
+                // append to list obj
+                PyList_Append(list_obj, dict_obj);
+                ptr += delta;
+            }
+            partition->unlock();
+
+            if(invalidate_exceptions)
+                partition->invalidate();
+        }
+
+        auto num_exceptions = PyList_Size(list_obj);
+
+        // store large list as pickled object... -> may be slow!
+        auto data = python::pickleObject(python::getMainModule(), list_obj);
+        python::unlockGIL();
+
+        stringToFile(local_path, data);
+        Logger::instance().defaultLogger().debug("wrote " + pluralize(num_exceptions, "exception row") + " to file " + local_path);
     }
 } // namespace tuplex

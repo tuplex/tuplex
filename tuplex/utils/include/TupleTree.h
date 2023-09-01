@@ -56,7 +56,7 @@ namespace tuplex {
 
                 // primitive type?
                 // ==> add index!
-                if(rtype.isPrimitiveType() || rtype.isDictionaryType() || rtype.isListType()) {
+                if(rtype.isPrimitiveType() || rtype.isDictionaryType() || rtype.isListType() || rtype.isExceptionType()) {
                     assert(!rtype.isTupleType());
                     // end recursive descent, just return the root
                     root->type = type;
@@ -74,7 +74,8 @@ namespace tuplex {
             } else {
                 // primitive type?
                 // ==> add index!
-                if(type.isPrimitiveType() || type.isDictionaryType() || type.isListType() || type == python::Type::PYOBJECT) {
+                if(type.isPrimitiveType() || type.isDictionaryType() || type.isListType() ||
+                   type == python::Type::PYOBJECT || type.isConstantValued() || type.isExceptionType()) {
                     assert(!type.isTupleType());
                     // end recursive descent, just return the root
                     root->type = type;
@@ -283,6 +284,10 @@ namespace tuplex {
          * @return
          */
         T get(int index) const {
+            if(index < 0 || index >= numElements()) {
+                throw std::runtime_error("invalid index " + std::to_string(index) + " used in TupleTree of " + pluralize(numElements(), "element"));
+            }
+
             assert(index >= 0 && index < numElements());
             int i = 0;
             auto ret = searchNthLeave(_root, i, index);
@@ -305,7 +310,7 @@ namespace tuplex {
                 ret->type.getReturnType().isTupleType());
             else
                 assert(ret->type.isPrimitiveType() || ret->type == python::Type::EMPTYTUPLE ||
-                ret->type.isDictionaryType() || ret->type.isListType() || ret->type == python::Type::PYOBJECT);
+                ret->type.isDictionaryType() || ret->type.isListType() || ret->type.isConstantValued() || ret->type == python::Type::PYOBJECT);
             assert(ret->isLeaf());
             return ret->type;
         }

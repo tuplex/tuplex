@@ -16,6 +16,25 @@
 #include <cctype>
 #include <string>
 
+// this would be a test for the internal fmtlib conversion functions...
+//TEST(Runtime, FmtlibFloatingFormats) {
+//    using namespace std;
+//
+//    fmt::dynamic_format_arg_store<fmt::format_context> store;
+//    store.push_back(1.12);
+//    store.push_back(1.0);
+//    store.push_back(0.0);
+//
+//    // translate python specific fmt lang args to fmtlib specific fmt args
+//    // e.g., for float need to transform {} to {#}
+//    auto args = fmt::basic_format_args<fmt::format_context>(store);
+//
+//    string fmt = "{} {} {{hel}}lo}} {}";
+//    string adjusted_fmt = adjust_fmt_string(fmt, args);
+//    auto ret = fmt::vformat(adjusted_fmt, store);
+//
+//    EXPECT_EQ(ret, "1.12 1.0 {hel}lo} 0.0");
+//}
 
 TEST(Runtime, malloc) {
     setRunTimeMemory(1024 * 1024 * 10, 0); // use 10MB
@@ -396,7 +415,7 @@ std::string gen_random_string(int length) {
     std::string s(length, ' ');
     // 33 - 126 incl.
     std::default_random_engine gen;
-    std::uniform_int_distribution<char> u_dist(33,126);
+    std::uniform_int_distribution<int> u_dist(33,126);
     for(int i = 0; i < length; ++i)
         s[i] = u_dist(gen);
     s[length - 1] = 0;

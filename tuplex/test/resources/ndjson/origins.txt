@@ -1,0 +1,1 @@
+https://raw.githubusercontent.com/simdjson/simdjson/master/jsonexamples/amazon_cellphones.ndjson

@@ -12,63 +12,86 @@
 #include <cassert>
 #include <UDF.h>
 #include <PythonHelpers.h>
-#include <ColumnReturnRewriteVisitor.h>
+#include <visitors/ColumnReturnRewriteVisitor.h>
 
 namespace tuplex {
-    MapOperator::MapOperator(LogicalOperator *parent, const UDF &udf, const std::vector<std::string> &columnNames)
-            : UDFOperator::UDFOperator(parent, udf, columnNames), _name("map") {
+    MapOperator::MapOperator(const std::shared_ptr<LogicalOperator>& parent,
+                             const UDF &udf,
+                             const std::vector<std::string>& outputColumnNames,
+                             const std::unordered_map<size_t, size_t>& rewriteMap)
+            : UDFOperator::UDFOperator(parent, udf, outputColumnNames, rewriteMap), _name("map") {
 
-        assert(parent);
+        // assert(parent);
 
-        // is it an empty UDF? I.e. a rename operation?
-        if(udf.empty()) {
-            // nothing todo, simply set schema as same. this is the same as supplying an identity function
-            // lambda x: x!
-            setSchema(parent->getOutputSchema());
+        bool udf_well_defined = udf.hasWellDefinedTypes();
+        bool typeUDF = !udf_well_defined || (parent && parent->getOutputSchema() != _udf.getInputSchema());
 
-            // also overwrite schema in udf b.c. this allows setters/getters to work
-            _udf.setInputSchema(parent->getOutputSchema());
-            _udf.setOutputSchema(parent->getOutputSchema());
-            _outputColumns = columnNames; // set output columns to the given ones AND retrieve UDF Operator columns from parent
-            UDFOperator::setColumns(parent->columns());
-        } else {
-            // rewrite output if it is a dictionary
-            if (_udf.isCompiled()) {
-                 // fetch column names if dictionary is returned...
-                 auto root = _udf.getAnnotatedAST().getFunctionAST();
-                 ColumnReturnRewriteVisitor rv;
-                 root->accept(rv);
-                 if (rv.foundColumnNames()) {
-                     auto outputColumnNames = rv.columnNames;
-                     // type annotator hasn't run yet , so we don't need to reset outputschema
-                     _outputColumns = outputColumnNames;
-                 }
+        if(typeUDF) {
+            // is it an empty UDF? I.e. a rename operation?
+            if(udf.empty()) {
+                if(parent) {
+                    // nothing todo, simply set schema as same. this is the same as supplying an identity function
+                    // lambda x: x!
+                    setOutputSchema(parent->getOutputSchema());
 
-                 // remove types
-                 _udf.removeTypes();
+                    // also overwrite schema in udf b.c. this allows setters/getters to work
+                    _udf.setInputSchema(parent->getOutputSchema());
+                    _udf.setOutputSchema(parent->getOutputSchema());
+                    UDFOperator::setColumns(parent->columns());
+
+                }
+
+                _outputColumns = outputColumnNames; // set output columns to the given ones AND retrieve UDF Operator columns from parent
+            } else {
+                // rewrite output if it is a dictionary
+                if (_udf.isCompiled()) {
+                    // fetch column names if dictionary is returned...
+                    auto root = _udf.getAnnotatedAST().getFunctionAST();
+                    ColumnReturnRewriteVisitor rv;
+                    root->accept(rv);
+                    if (rv.foundColumnNames()) {
+                        Logger::instance().defaultLogger().warn("StructDict type will help make this easier.");
+                        auto outputColumnNames = rv.columnNames;
+                        // type annotator hasn't run yet , so we don't need to reset outputschema
+                        _outputColumns = outputColumnNames;
+                    }
+
+                    // remove types
+                    _udf.removeTypes();
+                }
+
+                if(parent) {
+                    // infer schema (may throw exception!) after applying UDF
+                    setOutputSchema(this->inferSchema(parent->getOutputSchema()));
+                    //_udf.retype(parent->getOutputSchema().getRowType());
+                    assert(_udf.getOutputSchema() != Schema::UNKNOWN);
+                    //setSchema(_udf.getOutputSchema());
+                }
             }
-
-            // infer schema (may throw exception!) after applying UDF
-            setSchema(this->inferSchema(parent->getOutputSchema()));
         }
 
 #ifndef NDEBUG
         if(!_udf.empty())
             Logger::instance().defaultLogger().info(
-                "detected output type for " + _name + " operator is " + schema().getRowType().desc());
+                "detected output type for " + _name + " operator is " + getOutputSchema().getRowType().desc());
 #endif
     }
 
     void MapOperator::setDataSet(DataSet *dsptr) {
         // check whether schema is ok, if not set error dataset!
-        if (schema().getRowType().isIllDefined())
-            LogicalOperator::setDataSet(&dsptr->getContext()->makeError("schema could not be propagated successfully"));
-        else
+        if(getOutputSchema().getRowType().isIllDefined()) {
+            if(dsptr)
+                LogicalOperator::setDataSet(&dsptr->getContext()->makeError("schema could not be propagated successfully"));
+            else {
+                Logger::instance().defaultLogger().error("output schema for " + name() + " operator is not well-defined, propagation error?");
+                LogicalOperator::setDataSet(nullptr);
+            }
+        } else
             LogicalOperator::setDataSet(dsptr);
     }
 
     bool MapOperator::good() const {
-        if (schema().getRowType().isIllDefined()) {
+        if (getOutputSchema().getRowType().isIllDefined()) {
             Logger::instance().defaultLogger().error("Could not infer schema for map operator.");
             return false;
         }
@@ -99,6 +122,8 @@ namespace tuplex {
         auto func = python::deserializePickledFunction(python::getMainModule(), pickledCode.c_str(),
                                                        pickledCode.length());
 
+        auto output_columns = columns();
+
         size_t numExceptions = 0;
         for (const auto& row : vSamples) {
 
@@ -121,7 +146,9 @@ namespace tuplex {
             if (ec != ExceptionCode::SUCCESS)
                 numExceptions++;
             else {
-                auto res = python::pythonToRow(pyobj_res);
+                // old: no dict unwrapping
+                // auto res = python::pythonToRow(pyobj_res);
+                auto res = python::pythonToRowWithDictUnwrap(pyobj_res, output_columns);
                 vRes.push_back(res);
             }
         }
@@ -135,18 +162,19 @@ namespace tuplex {
         return vRes;
     }
 
-    LogicalOperator *MapOperator::clone() {
+    std::shared_ptr<LogicalOperator> MapOperator::clone(bool cloneParents) {
         // important to use here input column names, i.e. stored in base class UDFOperator!
         // @TODO: avoid here the costly retyping but making a faster, better clone.
-        auto copy = new MapOperator(parent()->clone(),
+        auto copy = new MapOperator(cloneParents ? parent()->clone() : nullptr,
                                     _udf,
-                                    UDFOperator::columns());
+                                    UDFOperator::columns(),
+                                    UDFOperator::rewriteMap());
         copy->setOutputColumns(_outputColumns); // account for the rewrite visitor
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         copy->setName(_name);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
     void MapOperator::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
@@ -156,7 +184,7 @@ namespace tuplex {
         UDFOperator::rewriteParametersInAST(rewriteMap);
 
         // update output schema
-        setSchema(_udf.getOutputSchema());
+        setOutputSchema(_udf.getOutputSchema());
 
         // special case, empty udf: need to update output column names
         // ==> for the others, output column names are deduced from map.
@@ -175,25 +203,38 @@ namespace tuplex {
         }
     }
 
-    bool MapOperator::retype(const std::vector<python::Type> &rowTypes) {
+    bool MapOperator::retype(const RetypeConfiguration& conf) {
+        // assert(good());
 
-        // make sure no unknown in it!
-#ifndef NDEBUG
-    assert(!rowTypes.empty());
-    assert(rowTypes.front().isTupleType());
-    for(auto t : rowTypes.front().parameters())
-        assert(t != python::Type::UNKNOWN);
-#endif
+        // there are two options:
+        // 1.) it's a rename operator -> special case
+        if(_udf.empty()) {
+            throw std::runtime_error("rename not supported yet. Basically check if rename scheme works etc.");
+        } else {
+            // 2.) regular
+            bool ret = UDFOperator::retype(conf);
 
-        assert(good());
-        assert(rowTypes.size() == 1);
-        assert(rowTypes.front().isTupleType());
-        auto schema = Schema(getOutputSchema().getMemoryLayout(), rowTypes.front());
+            // extract output columns / input columns from retype
+            auto input_columns = UDFOperator::columns();
+            //_outputColumns = _udf.extractOutputColumns();
+
+            return ret;
+        }
+
+
+        throw std::runtime_error("wrong, use here the UDFOperator approach with the columns...");
+
+        auto input_row_type = conf.row_type;
+        auto is_projected_row_type = conf.is_projected;
+
+        performRetypeCheck(input_row_type, is_projected_row_type);
+
+        auto schema = Schema(getOutputSchema().getMemoryLayout(), input_row_type);
 
         // is it an empty UDF? I.e. a rename operation?
         if(_udf.empty()) {
             // force schema
-            setSchema(schema);
+            setOutputSchema(schema);
 
             // overwrite schema in udf b.c. this allows setters/getters to work
             _udf.setInputSchema(schema);
@@ -202,7 +243,8 @@ namespace tuplex {
         } else {
             try {
                 _udf.removeTypes(false);
-                setSchema(this->inferSchema(schema));
+                _udf.rewriteDictAccessInAST(inputColumns());
+                setOutputSchema(this->inferSchema(schema, is_projected_row_type));
                 return true;
             } catch(...) {
                 return false;

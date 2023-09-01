@@ -265,22 +265,37 @@ namespace tuplex {
     }
 
     bool isBoolString(const std::string& str) {
-        // @TODO: can we optimize this?
-
-        // true list
-        for(const auto& t : booleanTrueStrings()) {
-            if(boost::algorithm::to_lower_copy(str).compare(t) == 0)
-                return true;
+        static std::unordered_map<std::string, bool> m;
+        if(m.empty()) {
+            for(const auto& t : booleanTrueStrings())
+                m[t] = true;
+            for(const auto& t : booleanFalseStrings())
+                m[t] = false;
         }
+        // new version, use lazy lookup dict
+        assert(!m.empty());
 
-        // false list
-        for(const auto& f : booleanFalseStrings()) {
-            if(boost::algorithm::to_lower_copy(str).compare(f) == 0)
-                return true;
-        }
+        auto key = boost::algorithm::to_lower_copy(str);
+        auto it = m.find(key);
+        return it != m.end();
 
-        // not a boolean string
-        return false;
+        // old, slow version
+        // // @TODO: can we optimize this?
+        //
+        // // true list
+        // for(const auto& t : booleanTrueStrings()) {
+        //     if(boost::algorithm::to_lower_copy(str).compare(t) == 0)
+        //         return true;
+        // }
+        //
+        // // false list
+        // for(const auto& f : booleanFalseStrings()) {
+        //     if(boost::algorithm::to_lower_copy(str).compare(f) == 0)
+        //         return true;
+        // }
+        //
+        // // not a boolean string
+        // return false;
     }
 
     bool parseBoolString(const std::string& str) {
@@ -297,6 +312,28 @@ namespace tuplex {
         }
 
         throw std::runtime_error("parse exception, " + str + " is not boolean");
+    }
+
+    /*!
+    * parses using tuplex functions
+    */
+    int64_t parseI64String(const std::string& str) {
+        int64_t ret = 0;
+        auto ec = fast_atoi64(str.c_str(), str.c_str() + str.size(), &ret);
+        if(ecToI32(ExceptionCode::SUCCESS) != ec)
+            throw std::runtime_error("failed to parse i64 from '" + str + "'");
+        return ret;
+    }
+
+    /*!
+     * parses using tuplex functions
+     */
+    double parseF64String(const std::string& str) {
+        double ret = 0;
+        auto ec = fast_atod(str.c_str(), str.c_str() + str.size(), &ret);
+        if(ecToI32(ExceptionCode::SUCCESS) != ec)
+            throw std::runtime_error("failed to parse f64 from '" + str + "'");
+        return ret;
     }
 
 
@@ -406,6 +443,27 @@ namespace tuplex {
         return false;
     }
 
+    // from http://www.zedwood.com/article/cpp-is-valid-utf8-string-function
+    bool utf8_check_is_valid(const std::string& string) {
+        int c,i,ix,n,j;
+        for (i=0, ix=string.length(); i < ix; i++) {
+            c = (unsigned char) string[i];
+            //if (c==0x09 || c==0x0a || c==0x0d || (0x20 <= c && c <= 0x7e) ) n = 0; // is_printable_ascii
+            if (0x00 <= c && c <= 0x7f) n=0; // 0bbbbbbb
+            else if ((c & 0xE0) == 0xC0) n=1; // 110bbbbb
+            else if ( c==0xed && i<(ix-1) && ((unsigned char)string[i+1] & 0xa0)==0xa0) return false; //U+d800 to U+dfff
+            else if ((c & 0xF0) == 0xE0) n=2; // 1110bbbb
+            else if ((c & 0xF8) == 0xF0) n=3; // 11110bbb
+                //else if (($c & 0xFC) == 0xF8) n=4; // 111110bb //byte 5, unnecessary in 4 byte UTF-8
+                //else if (($c & 0xFE) == 0xFC) n=5; // 1111110b //byte 6, unnecessary in 4 byte UTF-8
+            else return false;
+            for (j=0; j<n && i<ix; j++) { // n bytes matching 10bbbbbb follow ?
+                if ((++i == ix) || (( (unsigned char)string[i] & 0xC0) != 0x80))
+                    return false;
+            }
+        }
+        return true;
+    }
 
     size_t getMaxLineLength(const std::string& s) {
         size_t maxLength = 0;

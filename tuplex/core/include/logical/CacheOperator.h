@@ -21,12 +21,15 @@ namespace tuplex {
      */
     class CacheOperator : public LogicalOperator {
     public:
+        // required by cereal
+        CacheOperator() : _memoryLayout(Schema::MemoryLayout::ROW), _cached(false) {}
+
         virtual ~CacheOperator() override = default;
 
-        CacheOperator(LogicalOperator* parent, bool storeSpecialized,
+        CacheOperator(const std::shared_ptr<LogicalOperator> &parent, bool storeSpecialized,
                       const Schema::MemoryLayout& memoryLayout=Schema::MemoryLayout::ROW) : LogicalOperator(parent), _storeSpecialized(storeSpecialized), _memoryLayout(memoryLayout), _cached(false),
         _columns(parent->columns()), _normalRowCount(0), _fallbackRowCount(0), _generalRowCount(0) {
-            setSchema(this->parent()->getOutputSchema()); // inherit schema from parent
+            setOutputSchema(this->parent()->getOutputSchema()); // inherit schema from parent
             _optimizedSchema = getOutputSchema();
             if(memoryLayout != Schema::MemoryLayout::ROW)
                 throw std::runtime_error("only row based memory layout yet supported");
@@ -35,7 +38,7 @@ namespace tuplex {
             _sample = parent->getSample(MAX_TYPE_SAMPLING_ROWS);
         }
 
-        std::string name() override {
+        std::string name() const override {
            return "cache";
         }
 
@@ -54,7 +57,7 @@ namespace tuplex {
         }
         void useNormalCase() {
             // optimized schema becomes normal schema
-            setSchema(_optimizedSchema);
+            setOutputSchema(_optimizedSchema);
         }
 
         virtual std::vector<Row> getSample(const size_t num) const override {
@@ -71,8 +74,8 @@ namespace tuplex {
         std::vector<std::string> columns() const override { return _columns; }
 
         void setResult(const std::shared_ptr<ResultSet>& rs);
-        LogicalOperator* clone() override;
-        CacheOperator* cloneWithoutParents() const;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
+        std::shared_ptr<CacheOperator> cloneWithoutParents() const;
 
         /*!
          * whether this operator holds an in-memory result or not. If not, then
@@ -94,11 +97,21 @@ namespace tuplex {
          * @return
          */
         bool storeSpecialized() const { return _storeSpecialized; }
+
+#ifdef BUILD_WITH_CEREAL
+        // cereal serialization functions
+        template<class Archive> void save(Archive &ar) const {
+            // Do not serialize cached stuff.
+            ar(::cereal::base_class<LogicalOperator>(this), _memoryLayout, _optimizedSchema, _cached, _storeSpecialized, _columns, _sample, _normalRowCount, _generalRowCount, _fallbackRowCount);
+        }
+        template<class Archive> void load(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _memoryLayout, _optimizedSchema, _cached, _storeSpecialized, _columns, _sample, _normalRowCount, _generalRowCount, _fallbackRowCount);
+        }
+#endif
+
     protected:
         void copyMembers(const LogicalOperator* other) override;
     private:
-
-        CacheOperator() : _memoryLayout(Schema::MemoryLayout::ROW), _cached(false) {}
 
         Schema::MemoryLayout _memoryLayout;
         Schema _optimizedSchema;
@@ -123,5 +136,9 @@ namespace tuplex {
         size_t _fallbackRowCount;
     };
 }
+
+#ifdef BUILD_WITH_CEREAL
+CEREAL_REGISTER_TYPE(tuplex::CacheOperator);
+#endif
 
 #endif //TUPLEX_CACHEOPERATOR_H

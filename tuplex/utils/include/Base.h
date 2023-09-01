@@ -24,7 +24,6 @@
 #include <set>
 #include <vector>
 
-
 // to detect platform, use here boost predef
 #include <boost/predef.h>
 #if BOOST_OS_WINDOWS
@@ -125,7 +124,7 @@ typedef int32_t* ptr_t;
 #endif
 
 #ifndef __FILENAME__
-#define __FILENAME __FILE_NAME__
+#define __FILENAME__ __FILE_NAME__
 #endif
 
 
@@ -133,7 +132,7 @@ typedef int32_t* ptr_t;
 #ifdef BUILD_WITH_AWS
 #include <aws/core/external/cjson/cJSON.h>
 // newer AWS SDK version shadowed symbols, hence need to add defines to fix this
-#if (AWS_SDK_VERSION_MAJOR >= 1 && AWS_SDK_VERSION_MINOR >= 9 && AWS_SDK_VERSION_PATCH >= 134)
+#if (AWS_SDK_VERSION_MAJOR >= 1 && AWS_SDK_VERSION_MINOR > 9) || (AWS_SDK_VERSION_MAJOR >= 1 && AWS_SDK_VERSION_MINOR == 9 && AWS_SDK_VERSION_PATCH >= 134)
 
 #define cJSON_Hooks cJSON_AS4CPP_Hooks
 
@@ -234,6 +233,23 @@ typedef int32_t* ptr_t;
 #include <cJSON.h>
 #endif
 
+// double and float equality
+#define DOUBLE_EPSILON 0.0000000001
+#define FLOAT_EPSILON 0.000000001f
+
+inline bool float_eq(float a, float b) {
+    return std::abs(a - b) < FLOAT_EPSILON;
+}
+
+inline bool double_eq(double a, double b) {
+    return std::abs(a - b) < DOUBLE_EPSILON;
+}
+
+template<typename T> std::string pointer2hex(T *ptr) {
+    char buf[64];
+    snprintf(buf, 64, "%p", ptr);
+    return std::string(buf);
+}
 
 // some basic helper to throw for possible bad code in debug mode an error (should never occur in release mode!)
 void debug_error_message(const char* message, const char* file, const int ine);
@@ -290,6 +306,11 @@ namespace core {
         return((byte0 << 24) | (byte1 << 16) | (byte2 << 8) | (byte3 << 0));
     }
 
+    template<typename T> inline bool isPowerOfTwo(const T& t) {
+        // First t in the below expression is for the case when t is 0
+        return t && (!(t & (t - 1)));
+    }
+
     template<typename T> inline void make_set(std::vector<T>& vec) {
         std::set<T> s( vec.begin(), vec.end() );
         vec.assign( s.begin(), s.end() );
@@ -321,6 +342,10 @@ namespace core {
             return k * base;
         else
             return (k + 1) * base;
+    }
+
+    template<typename T, typename U> inline T ceilToMultiple(const T& x, const U& base) {
+        return ceilToMultiple(x, static_cast<T>(base));
     }
 
     // Note: GCC demands template<...> tokens to come first
@@ -355,6 +380,14 @@ namespace core {
      */
     extern std::string withLineNumbers(const std::string& s);
 
+    /*!
+     * prefix all lines (determined by '\n') with another string
+     * @param s string to split into lines
+     * @param prefix what to prefix
+     * @return prefixed string.
+     */
+    extern std::string prefixLines(const std::string& s, const std::string& prefix);
+
 
     /*!
      * remove duplicates in a std::vector
@@ -379,6 +412,14 @@ namespace tuplex {
     }
 }
 
+
+/*!
+ * check whether string adheres to python string format specification
+ * @param raw_string
+ * @return true/false
+ */
+extern bool is_encoded_python_str(const std::string& raw_string);
+
 /*!
  * desugars various python strings, won't work for formatted strings.
  * @param raw_string
@@ -401,7 +442,7 @@ inline std::string escape_to_python_str(const std::string& s) {
             res += tuplex::char2str('\\');
         res += tuplex::char2str(c);
     }
-    return res;
+    return "'" + res + "'";
 }
 
 #endif //TUPLEX_BASE_H

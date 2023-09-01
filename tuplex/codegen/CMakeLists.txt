@@ -4,106 +4,6 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.19 FATAL_ERROR)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-## external libraries
-
-## check for ICU
-#IF(BREW_FOUND)
-#    IF(APPLE)
-#        MESSAGE("brew on Mac found")
-#        EXECUTE_PROCESS(COMMAND brew --prefix icu4c OUTPUT_VARIABLE ICU_ROOT_DIR ERROR_VARIABLE BREW_ICU_NOTFOUND)
-#        IF(BREW_ICU_NOTFOUND)
-#            MESSAGE("did not find brewed icu, you might install it via brew install icu4c")
-#        ELSE()
-#            MESSAGE("found brewed icu under: " ${ICU_ROOT_DIR})
-#        ENDIF()
-#
-#    ELSEIF(UNIX)
-#        MESSAGE("brew on Unix found")
-#    ENDIF()
-#ENDIF()
-
-
-# add LLVM as external project
-# note that building LLVM might take a while...
-# However, this is the cleanest method to guarantee version compatibility
-
-#SET(LLVM_URL "http://releases.llvm.org/5.0.0/llvm-5.0.0.src.tar.xz" CACHE STRING "llvm repo")
-#include(ExternalProject)
-#ExternalProject_Add(llvm PREFIX llvm URL ${LLVM_URL} BUILD_IN_SOURCE INSTALL_DIR ${CMAKE_BINARY_DIR}/install CMAKE_ARGS )
-
-# using llvm via brew, easiest and avoid costly LLVM build (might take up to 20min)
-# adding LLVM 9.0
-IF(BREW_FOUND)
-    IF(APPLE)
-
-        # there might be multiple LLVM versions installed.
-        # check which version there is
-        # if not sys.stdin.isatty():
-        #    data = sys.stdin.readlines()
-
-        # could use brew prefix here, but let's leave it like this
-        EXECUTE_PROCESS(COMMAND bash "-c" "brew info llvm | grep Cellar | cut -d ' ' -f 1" OUTPUT_VARIABLE LLVM_ROOT_DIR RESULT_VARIABLE BREW_LLVM_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
-        IF(NOT BREW_LLVM_NOTFOUND EQUAL "0")
-            MESSAGE(WARNING "did not find llvm, you might install it via `brew install llvm@9`")
-        ELSE()
-            # check version, needs to be within 5 and 9 incl.
-            # i.e. execute something like /usr/local/opt/llvm/bin/llvm-config --version
-            EXECUTE_PROCESS(COMMAND ${LLVM_ROOT_DIR}/bin/llvm-config --version OUTPUT_VARIABLE LLVM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-            # check if empty, if it is parse again using brew info json
-            IF("${LLVM_VERSION}" STREQUAL "")
-                EXECUTE_PROCESS(COMMAND bash "-c" "brew info --json=v1 llvm | python3 -c 'import sys,json; x=json.load(sys.stdin); print(x[0][\"versions\"][\"stable\"])'" OUTPUT_VARIABLE LLVM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
-            ENDIF()
-
-            IF("${LLVM_VERSION}" STREQUAL "" OR "${LLVM_VERSION}" VERSION_LESS 5.0.0 OR "${LLVM_VERSION}" VERSION_GREATER_EQUAL 10.0.0)
-                # check if any other llvm version is installed...
-                MESSAGE(STATUS "LLVM version installed is ${LLVM_VERSION}, which is incompatible with Tuplex")
-
-                # check for llvm@9 (do not check other versions)
-                # note that we can't simply use brew --prefix due to different subversions in brew...
-                execute_process(COMMAND bash "-c" "brew info llvm@9 | grep Cellar | cut -d ' ' -f 1" OUTPUT_VARIABLE LLVM_ROOT_DIR RESULT_VARIABLE BREW_RET OUTPUT_STRIP_TRAILING_WHITESPACE)
-                if(BREW_RET EQUAL "1")
-                    message(FATAL_ERROR "checked whether in addition to ${LLVM_VERSION} LLVM 9.x is installed, but could not could find it. Please install via `brew install llvm@9`")
-                else()
-                    message(STATUS "Found another installed llvm version under ${LLVM_ROOT_DIR}, using this version for Tuplex.")
-                endif()
-            ELSE()
-                MESSAGE(STATUS "found brewed llvm under: " ${LLVM_ROOT_DIR})
-            ENDIF()
-        ENDIF()
-
-    ELSEIF(UNIX)
-        # ...
-    ENDIF()
-ENDIF()
-
-# for brewed llvm, add to cmakemodulepath
-IF(LLVM_ROOT_DIR)
-    # make cmake find in config mode the right LLVMConfig.cmake file which is located here
-    set(LLVM_DIR "${LLVM_ROOT_DIR}/lib/cmake/llvm")
-    find_package(LLVM CONFIG REQUIRED) # find with whatever llvm version has been specified
-ELSE()
-    # try to search for LLVM9, then LLVM6
-    find_package(LLVM 9 CONFIG)
-    if(NOT LLVM_FOUND)
-	    find_package(LLVM 6 CONFIG REQUIRED)
-    endif()
-ENDIF()
-
-MESSAGE(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-MESSAGE(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-MESSAGE(STATUS "Found llvm include dirs at: " ${LLVM_INCLUDE_DIRS})
-include_directories(${LLVM_INCLUDE_DIRS})
-add_definitions(${LLVM_DEFINITIONS})
-
-# special case on Unix, make use rtti gets the right flag for the build
-if (NOT LLVM_ENABLE_RTTI)
-        message(WARNING
-                "This build configuration is not supported and will likely not work."
-                "You should recompile LLVM with RTTI enabled.")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
-endif()
-
 ## libffi
 #find_package(FFI 3.2.1 REQUIRED)
 #include_directories(${FFI_INCLUDE_DIRS})
@@ -127,8 +27,9 @@ find_package(ANTLR REQUIRED)
 
 antlr_target(Python3Grammar ${CMAKE_CURRENT_SOURCE_DIR}/grammar/Python3.g4 OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/managed PACKAGE antlr4 LISTENER VISITOR)
 
-add_library(libcodegen OBJECT
-        ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${ANTLR_Python3Grammar_CXX_OUTPUTS})
+# can be only static because of llvms
+add_library(libcodegen ${LIBRARY_MODE}
+        ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${ANTLR_Python3Grammar_CXX_OUTPUTS} include/codegen/ExceptionTrace.h)
 set_target_properties(libcodegen PROPERTIES PREFIX "")
 
 # find libraries for LLVM components that are intended to be used
@@ -136,8 +37,9 @@ set_target_properties(libcodegen PROPERTIES PREFIX "")
 # to get list overview, use llvm-config --components
 
 # list to reduce size of shared object. Compared to linking against all LLVM components, this saves about ~10MB.
-llvm_map_components_to_libnames(llvm_libs core orcjit nativecodegen native scalaropts objcarcopts passes)
-
+#llvm_map_components_to_libnames(llvm_libs core orcjit nativecodegen native scalaropts objcarcopts passes)
+llvm_map_components_to_libnames(llvm_libs core native irreader target)
+link_directories(${LLVM_LIBRARY_DIRS})
 # for minimum JIT these components are recommended:
 #    core
 #    executionengine
@@ -151,12 +53,21 @@ llvm_map_components_to_libnames(llvm_libs core orcjit nativecodegen native scala
 
 #add_dependencies(libcodegen GeneratePython3Parser)
 
+# use precompiled headers for this target to decrease the cereal template instantiation cost
+if(USE_PRECOMPILED_HEADERS)
+    file(GLOB_RECURSE VISITORS_HEADERS include/visitors/*.h)
+    file(GLOB_RECURSE AST_HEADERS include/ast/*.h)
+    file(GLOB_RECURSE SYMBOLS_HEADERS include/symbols/*.h)
+    set(CODEGEN_HEADERS ${VISITORS_HEADERS} ${AST_HEADERS} ${SYMBOLS_HEADERS})
+    message(STATUS "headers to precompile: ${CODEGEN_HEADERS}")
+    target_precompile_headers(libcodegen PUBLIC ${CODEGEN_HEADERS})
+endif()
 # Specify here the include directories exported
 # by this library
 target_include_directories(libcodegen PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/managed
-        ${CMAKE_CURRENT_BINARY_DIR}
         ${LLVM_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIR}
         ${ANTLR4Runtime_INCLUDE_DIR}
@@ -165,9 +76,12 @@ target_include_directories(libcodegen PUBLIC
 
 # Declare the library
 target_link_libraries(libcodegen
+        PUBLIC
         libutils
-        ${llvm_libs}
+        PRIVATE
         ${FFI_LIBRARIES}
+        ${PCRE2_LIBRARIES}
         ${ANTLR4Runtime_LIB}
-        ${AWSSDK_LINK_LIBRARIES}
-        ${PCRE2_LIBRARIES})
+        INTERFACE
+        ${llvm_libs}
+        )

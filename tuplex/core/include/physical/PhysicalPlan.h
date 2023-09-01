@@ -12,7 +12,7 @@
 #define TUPLEX_PHYSICALPLAN_H
 
 #include <logical/LogicalPlan.h>
-#include "ResultSet.h"
+#include "physical/execution/ResultSet.h"
 #include "PhysicalStage.h"
 
 namespace tuplex {
@@ -31,8 +31,8 @@ namespace tuplex {
          * @return
          */
         PhysicalStage* splitIntoAndPlanStages();
-        PhysicalStage* createStage(LogicalOperator* root,
-                                   LogicalOperator* endNode,
+        PhysicalStage* createStage(const std::shared_ptr<LogicalOperator> &root,
+                                   std::shared_ptr<LogicalOperator> endNode,
                                    bool isRootStage,
                                    EndPointMode outMode);
 

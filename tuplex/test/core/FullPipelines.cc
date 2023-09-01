@@ -12,7 +12,15 @@
 #include <string>
 #include <vector>
 
+#include <JsonStatistic.h>
+
 namespace tuplex {
+
+    // dummy
+    ContainerInfo getThisContainerInfo() {
+        ContainerInfo info;
+        return info;
+    }
 
     std::vector<std::string> pipelineAsStrs(DataSet& ds) {
         using namespace std;
@@ -602,7 +610,341 @@ namespace tuplex {
 
 class PipelinesTest : public PyTest {};
 
+TEST_F(PipelinesTest, GithubLocalVersion) {
+    using namespace std;
+    using namespace tuplex;
+    auto co = testOptions();
+
+    co.set("tuplex.useLLVMOptimizer", "true");
+    co.set("tuplex.useLLVMOptimizer", "false");
+
+    co.set("tuplex.executorMemory", "64MB");
+    co.set("tuplex.driverMemory", "64MB");
+
+    co.set("tuplex.executorMemory", "1GB");
+    co.set("tuplex.driverMemory", "1GB");
+
+    // deactivate optimizations (should be done alter again)
+    // disable constant=folding opt for JSON
+    co.set("tuplex.optimizer.constantFoldingOptimization", "false");
+//    co.set("tuplex.optimizer.filterPushdown", "false"); // <-- requires access path detection to work
+
+    co.set("tuplex.optimizer.filterPushdown", "true"); // <-- wip
+
+    co.set("tuplex.optimizer.selectionPushdown", "false"); // <-- requires access path detection to work.
+
+    // hyper on/off
+    //co.set("tuplex.experimental.hyperspecialization", "true");
+    co.set("tuplex.experimental.hyperspecialization", "false");
+
+
+    co.set("tuplex.executorCount", "0");
+
+    // co.set("tuplex.resolveWithInterpreterOnly", "true");
+
+    // enable webui in order to collect statistics
+    // co.set("tuplex.webui.enable", "true");
+
+    Context c(co);
+
+    // create Github based (JSON) pipeline.
+    auto repo_id_code = "def extract_repo_id(row):\n"
+                        "\tif 2012 <= row['year'] <= 2014:\n"
+                        "\t\treturn row['repository']['id']\n"
+                        "\telse:\n"
+                        "\t\treturn row['repo']['id']\n";
+    // tiny example.
+    string pattern = "../resources/hyperspecialization/github_daily/*.json.sample";
+
+    // test: has attribute errors??
+    // pattern = "s3://tuplex-public/data/github_daily/2017*.json";
+
+    // @TODO: for hyperspecialization active, need to support TakeOperator!!!
+    auto sm = SamplingMode::LAST_FILE | SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS;
+
+    // check that this here works
+   // sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::ALL_FILES;
+
+     // sm = DEFAULT_SAMPLING_MODE;
+
+    c.json(pattern, true, true, sm)
+      .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+            .withColumn("repo_id", UDF(repo_id_code))
+            .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+            .selectColumns({"type", "repo_id", "year"})
+            .tocsv("out.csv");
+}
+
+TEST_F(PipelinesTest, GithubLocalVersionEx) {
+    using namespace std;
+    using namespace tuplex;
+    auto co = testOptions();
+
+    co.set("tuplex.useLLVMOptimizer", "true");
+    co.set("tuplex.useLLVMOptimizer", "false");
+
+    co.set("tuplex.executorMemory", "64MB");
+    co.set("tuplex.driverMemory", "64MB");
+
+    // deactivate optimizations (should be done alter again)
+    // disable constant=folding opt for JSON
+    co.set("tuplex.optimizer.constantFoldingOptimization", "false");
+//    co.set("tuplex.optimizer.filterPushdown", "false"); // <-- requires access path detection to work
+
+    co.set("tuplex.optimizer.filterPushdown", "true"); // <-- wip
+
+    co.set("tuplex.optimizer.selectionPushdown", "false"); // <-- requires access path detection to work.
+
+    // hyper on/off
+    //co.set("tuplex.experimental.hyperspecialization", "true");
+    co.set("tuplex.experimental.hyperspecialization", "false");
+
+
+    co.set("tuplex.executorCount", "0");
+
+    // enable webui in order to collect statistics
+    // co.set("tuplex.webui.enable", "true");
+
+    Context c(co);
+
+    // create Github based (JSON) pipeline.
+    auto repo_id_code = "def extract_repo_id(row):\n"
+                        "\tif 2012 <= row['year'] <= 2014:\n"
+                        "\t\treturn row['repository']['id']\n"
+                        "\telse:\n"
+                        "\t\treturn row['repo']['id']\n";
+    // tiny example.
+    string pattern = "../resources/hyperspecialization/github_daily/*.json.sample";
+
+    // @TODO: for hyperspecialization active, need to support TakeOperator!!!
+    auto sm = SamplingMode::LAST_FILE | SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS;
+
+    // check that this here works
+    sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::ALL_FILES;
+
+    sm = DEFAULT_SAMPLING_MODE;
+
+    c.json(pattern, true, true, sm)
+    //.withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+      //      .withColumn("repo_id", UDF(repo_id_code))
+            .withColumn("description", UDF("lambda x: x['payload']['description']"))
+        //    .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+          //  .selectColumns({"type", "repo_id", "year", "description"})
+          .selectColumns(std::vector<std::string>({"type", "description"}))
+            .show(5);
+}
+
 #ifdef BUILD_WITH_AWS
+
+
+TEST_F(PipelinesTest, FullFlightsAWS) {
+    // this is to produce faulty requests to debug
+    using namespace tuplex;
+    using namespace std;
+
+    string input_pattern = "s3://tuplex-public/data/flights_all/flights_on_time_performance_*.csv";
+    auto co = testOptions();
+
+    co.set("tuplex.backend", "lambda");
+    co.set("tuplex.aws.scratchDir", "s3://tuplex/scratch");
+    co.set("tuplex.useLLVMOptimizer", "true");
+
+    // deactivate optimizations (should be done alter again)
+    // disable constant=folding opt for JSON
+    co.set("tuplex.optimizer.constantFoldingOptimization", "true");
+    co.set("tuplex.optimizer.filterPushdown", "true"); // <-- requires access path detection to work
+    co.set("tuplex.optimizer.selectionPushdown", "true"); // <-- requires access path detection to work.
+    co.set("tuplex.optimizer.nullValueOptimization", "true");
+    // hyper on/off
+    co.set("tuplex.experimental.hyperspecialization", "true");
+    co.set("tuplex.aws.lambdaMemory", "10000");
+
+    // split size 512MB
+    co.set("tuplex.inputSplitSize", "2GB");
+
+    Context c(co);
+
+    // pipeline is: ctx.csv(input_pattern).map(fill_in_delays).tocsv(s3_output_path)
+    auto udf_code = "# UDF to be hyper-specialized\n"
+                    "def fill_in_delays(row):\n"
+                    "    # want to fill in data for missing carrier_delay, weather delay etc.\n"
+                    "    # only need to do that prior to 2003/06\n"
+                    "\n"
+                    "    year = row['YEAR']\n"
+                    "    month = row['MONTH']\n"
+                    "    arr_delay = row['ARR_DELAY']\n"
+                    "\n"
+                    "    if year == 2003 and month < 6 or year < 2003:\n"
+                    "        # fill in delay breakdown using model and complex logic\n"
+                    "        if arr_delay is None:\n"
+                    "            # stays None, because flight arrived early\n"
+                    "            # if diverted though, need to add everything to div_arr_delay\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': None,\n"
+                    "                    'carrier_delay' : None,\n"
+                    "                    'weather_delay': None,\n"
+                    "                    'nas_delay' : None,\n"
+                    "                    'security_delay': None,\n"
+                    "                    'late_aircraft_delay' : None}\n"
+                    "        elif arr_delay < 0.:\n"
+                    "            # stays None, because flight arrived early\n"
+                    "            # if diverted though, need to add everything to div_arr_delay\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': row['ARR_DELAY'],\n"
+                    "                    'carrier_delay' : None,\n"
+                    "                    'weather_delay': None,\n"
+                    "                    'nas_delay' : None,\n"
+                    "                    'security_delay': None,\n"
+                    "                    'late_aircraft_delay' : None}\n"
+                    "        elif arr_delay < 5.:\n"
+                    "            # it's an ontime flight, just attribute any delay to the carrier\n"
+                    "            carrier_delay = arr_delay\n"
+                    "            # set the rest to 0\n"
+                    "            # ....\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': row['ARR_DELAY'],\n"
+                    "                    'carrier_delay' : carrier_delay,\n"
+                    "                    'weather_delay': None,\n"
+                    "                    'nas_delay' : None,\n"
+                    "                    'security_delay': None,\n"
+                    "                    'late_aircraft_delay' : None}\n"
+                    "        else:\n"
+                    "            # use model to determine everything and set into (join with weather data?)\n"
+                    "            # i.e., extract here a couple additional columns & use them for features etc.!\n"
+                    "            crs_dep_time = float(row['CRS_DEP_TIME'])\n"
+                    "            crs_arr_time = float(row['CRS_ARR_TIME'])\n"
+                    "            crs_elapsed_time = float(row['CRS_ELAPSED_TIME'])\n"
+                    "            carrier_delay = 1024 + 2.7 * crs_dep_time - 0.2 * crs_elapsed_time\n"
+                    "            weather_delay = 2000 + 0.09 * carrier_delay * (carrier_delay - 10.0)\n"
+                    "            nas_delay = 3600 * crs_dep_time / 10.0\n"
+                    "            security_delay = 7200 / crs_dep_time\n"
+                    "            late_aircraft_delay = (20 + crs_arr_time) / (1.0 + crs_dep_time)\n"
+                    "            return {'year' : year, 'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                    'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                    'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                    'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                    'distance' : row['DISTANCE'],\n"
+                    "                    'dep_delay' : row['DEP_DELAY'],\n"
+                    "                    'arr_delay': row['ARR_DELAY'],\n"
+                    "                    'carrier_delay' : carrier_delay,\n"
+                    "                    'weather_delay': weather_delay,\n"
+                    "                    'nas_delay' : nas_delay,\n"
+                    "                    'security_delay': security_delay,\n"
+                    "                    'late_aircraft_delay' : late_aircraft_delay}\n"
+                    "    else:\n"
+                    "        # just return it as is\n"
+                    "        return {'year' : year, 'month' : month,\n"
+                    "                'day' : row['DAY_OF_MONTH'],\n"
+                    "                'carrier': row['OP_UNIQUE_CARRIER'],\n"
+                    "                'flightno' : row['OP_CARRIER_FL_NUM'],\n"
+                    "                'origin': row['ORIGIN_AIRPORT_ID'],\n"
+                    "                'dest': row['DEST_AIRPORT_ID'],\n"
+                    "                'distance' : row['DISTANCE'],\n"
+                    "                'dep_delay' : row['DEP_DELAY'],\n"
+                    "                'arr_delay': row['ARR_DELAY'],\n"
+                    "                'carrier_delay' : row['CARRIER_DELAY'],\n"
+                    "                'weather_delay':row['WEATHER_DELAY'],\n"
+                    "                'nas_delay' : row['NAS_DELAY'],\n"
+                    "                'security_delay': row['SECURITY_DELAY'],\n"
+                    "                'late_aircraft_delay' : row['LATE_AIRCRAFT_DELAY']}\n";
+
+    string s3_output_path = "s3://tuplex-leonhard/experiments/flights_hyper/hyper";
+    c.csv(input_pattern).map(UDF(udf_code)).tocsv(s3_output_path);
+
+}
+
+TEST_F(PipelinesTest, GithubLambdaVersion) {
+//#ifdef SKIP_AWS_TESTS
+//    GTEST_SKIP();
+//#endif
+
+    using namespace std;
+    using namespace tuplex;
+    auto co = testOptions();
+
+    co.set("tuplex.backend", "lambda");
+    co.set("tuplex.aws.scratchDir", "s3://tuplex/scratch");
+    co.set("tuplex.useLLVMOptimizer", "true");
+
+    // deactivate optimizations (should be done alter again)
+    // disable constant=folding opt for JSON
+    co.set("tuplex.optimizer.constantFoldingOptimization", "true");
+    co.set("tuplex.optimizer.filterPushdown", "true"); // <-- requires access path detection to work
+    co.set("tuplex.optimizer.selectionPushdown", "true"); // <-- requires access path detection to work.
+    co.set("tuplex.optimizer.nullValueOptimization", "true");
+    // hyper on/off
+    co.set("tuplex.experimental.hyperspecialization", "true");
+    //co.set("tuplex.experimental.hyperspecialization", "false");
+    co.set("tuplex.inputSplitSize", "128MB");
+    co.set("tuplex.aws.lambdaMemory", "10000");
+
+    // enable webui in order to collect statistics
+    // co.set("tuplex.webui.enable", "true");
+
+    // split size 512MB
+    //co.set("tuplex.inputSplitSize", "512MB");
+
+    Context c(co);
+
+    // create Github based (JSON) pipeline.
+    auto repo_id_code = "def extract_repo_id(row):\n"
+                        "\tif 2012 <= row['year'] <= 2014:\n"
+                        "\t\treturn row['repository']['id']\n"
+                        "\telse:\n"
+                        "\t\treturn row['repo']['id']\n";
+    // tiny example.
+    string pattern = "s3://tuplex-public/data/github_daily_sample/*.json.sample";
+
+    // full data:
+    pattern = "s3://tuplex-public/data/github_daily/*.json";
+
+    // pattern = "s3://tuplex-public/data/github_daily/2013*.json";
+    //     pattern = "s3://tuplex-public/data/github_daily/2011*.json,s3://tuplex-public/data/github_daily/2013*.json";
+
+    // tinier sample:
+    //    pattern = "s3://tuplex-public/data/github_daily_sample/2011*.json.sample,s3://tuplex-public/data/github_daily_sample/2013*.json.sample";
+
+    // @TODO: for hyperspecialization active, need to support TakeOperator!!!
+    auto sm = SamplingMode::LAST_FILE | SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS;
+
+    // check that this here works
+    sm = SamplingMode::FIRST_ROWS | SamplingMode::LAST_ROWS | SamplingMode::ALL_FILES;
+
+    sm = SamplingMode::FIRST_FILE | SamplingMode::FIRST_ROWS;
+
+    c.json(pattern, true, true, sm).withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+    .withColumn("repo_id", UDF(repo_id_code))
+    .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+    .selectColumns({"type", "repo_id", "year"})
+    .tocsv("s3://tuplex/scratch/exp-result/out.csv");
+    //.tocsv("test_out.csv"); // <-- local file isn't working in hyper mode... -.-
+    //.show(5);
+
+    // @TODO: incorrect exceptions reported. I.e., the original badparse string input exceptions are reported - yet should be whatever general-case/fallback yield...
+}
 
 TEST_F(PipelinesTest, ZillowAWS) {
 #ifdef SKIP_AWS_TESTS
@@ -655,8 +997,8 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
         opt_ref.set("tuplex.runTimeMemory", "128MB");
         opt_ref.set("tuplex.executorCount", "0"); // single-threaded
         opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-        opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-        opt_ref.set("tuplex.csv.selectionPushdown", "false");
+        opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
+        opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
         opt_ref.set("tuplex.optimizer.generateParser", "false");
 
         Context c_ref(opt_ref);
@@ -671,14 +1013,14 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
 
         // with projection pushdown enabled
         auto opt_proj = opt_ref;
-        opt_proj.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj.set("tuplex.optimizer.selectionPushdown", "true");
         Context c_proj(opt_proj);
         auto r_proj = pipelineAsStrs(zillowPipeline(c_proj, zpath, cache));
         compareStrArrays(r_proj, ref, true);
 
         // with projection pushdown + LLVM Optimizers
         auto opt_proj_wLLVMOpt = opt_ref;
-        opt_proj_wLLVMOpt.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj_wLLVMOpt.set("tuplex.optimizer.selectionPushdown", "true");
         opt_proj_wLLVMOpt.set("tuplex.useLLVMOptimizer", "true");
         Context c_proj_wLLVMOpt(opt_proj_wLLVMOpt);
         auto r_proj_wLLVMOpt = pipelineAsStrs(zillowPipeline(c_proj_wLLVMOpt, zpath, cache));
@@ -686,23 +1028,23 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
 
         // with null value optimization (i.e. getting rid off them!)
         auto opt_null = opt_ref;
-        opt_null.set("tuplex.optimizer.nullValueOptimization", "true");
+        opt_null.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
         Context c_null(opt_null);
         auto r_null = pipelineAsStrs(zillowPipeline(c_null, zpath, cache));
         compareStrArrays(r_null, ref, true);
 
         // with null value + proj
         auto opt_null_proj = opt_ref;
-        opt_null_proj.set("tuplex.optimizer.nullValueOptimization", "true");
-        opt_null_proj.set("tuplex.csv.selectionPushdown", "true");
+        opt_null_proj.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
+        opt_null_proj.set("tuplex.optimizer.selectionPushdown", "true");
         Context c_null_proj(opt_null_proj);
         auto r_null_proj = pipelineAsStrs(zillowPipeline(c_null_proj, zpath, cache));
         compareStrArrays(r_null_proj, ref, true);
 
         // with null value + proj + llvmopt
         auto opt_null_proj_opt = opt_ref;
-        opt_null_proj_opt.set("tuplex.optimizer.nullValueOptimization", "true");
-        opt_null_proj_opt.set("tuplex.csv.selectionPushdown", "true");
+        opt_null_proj_opt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
+        opt_null_proj_opt.set("tuplex.optimizer.selectionPushdown", "true");
         opt_null_proj_opt.set("tuplex.useLLVMOptimizer", "true");
         Context c_null_proj_opt(opt_null_proj_opt);
         auto r_null_proj_opt = pipelineAsStrs(zillowPipeline(c_null_proj_opt, zpath, cache));
@@ -710,7 +1052,7 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
 
         // with projection pushdown + LLVM Optimizers + generated parser
         auto opt_proj_wLLVMOpt_parse = opt_ref;
-        opt_proj_wLLVMOpt_parse.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.selectionPushdown", "true");
         opt_proj_wLLVMOpt_parse.set("tuplex.useLLVMOptimizer", "true");
         opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.generateParser", "true");
         Context c_proj_wLLVMOpt_parse(opt_proj_wLLVMOpt_parse);
@@ -720,10 +1062,10 @@ TEST_F(PipelinesTest, ZillowConfigHarness) {
         // NULL value OPTIMIZATION
         // with projection pushdown + LLVM Optimizers + generated parser + null value opt
         auto opt_proj_wLLVMOpt_parse_null = opt_ref;
-        opt_proj_wLLVMOpt_parse_null.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.selectionPushdown", "true");
         opt_proj_wLLVMOpt_parse_null.set("tuplex.useLLVMOptimizer", "true");
         opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.generateParser", "true");
-        opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.nullValueOptimization", "true");
+        opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
         Context c_proj_wLLVMOpt_parse_null(opt_proj_wLLVMOpt_parse_null);
         auto r_proj_wLLVMOpt_parse_null = pipelineAsStrs(zillowPipeline(c_proj_wLLVMOpt_parse_null, zpath, cache));
         // b.c. null value opt destroys order, sort both arrays
@@ -742,12 +1084,12 @@ TEST_F(PipelinesTest, ServiceRequestsConfigHarnessNVOvsNormal) {
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
 
     auto opt_nvo = opt_ref;
-    opt_nvo.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt_nvo.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
 
     EXPECT_EQ(opt_ref.OPT_NULLVALUE_OPTIMIZATION(), false);
     EXPECT_EQ(opt_nvo.OPT_NULLVALUE_OPTIMIZATION(), true);
@@ -820,8 +1162,8 @@ TEST_F(PipelinesTest, FlightsWithPyResolver) {
     opt_ref.set("tuplex.driverMemory", "4GB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.csv.operatorReordering", "false");
     // opt_ref.set("tuplex.optimizer.generateParser", "true");
     opt_ref.set("tuplex.optimizer.generateParser", "true");
@@ -873,8 +1215,8 @@ TEST_F(PipelinesTest, FlightDevWithColumnPyFallback) {
     opt_ref.set("tuplex.driverMemory", "4GB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false"); // disable for now, prob errors later...
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false"); // disable for now, prob errors later...
 
     // Note: when null value opt is turned off AND selection pushdown is off,
     // then on 2009 there are 8 rows where errors are produced on columns which actually do not
@@ -923,8 +1265,8 @@ TEST_F(PipelinesTest, FlightDevToFixWithPurePythonPipeline) {
     opt_ref.set("tuplex.driverMemory", "4GB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false"); // disable for now, prob errors later...
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false"); // disable for now, prob errors later...
 
     // Note: when null value opt is turned off AND selection pushdown is off,
     // then on 2009 there are 8 rows where errors are produced on columns which actually do not
@@ -950,8 +1292,8 @@ TEST_F(PipelinesTest, TypeErrorFlightPipeline) {
     opt.set("tuplex.driverMemory", "4GB");
     opt.set("tuplex.executorCount", "15"); // single-threaded
     opt.set("tuplex.useLLVMOptimizer", "true"); // deactivate
-    opt.set("tuplex.optimizer.nullValueOptimization", "true");
-    opt.set("tuplex.csv.selectionPushdown", "true"); // disable for now, prob errors later...
+    opt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
+    opt.set("tuplex.optimizer.selectionPushdown", "true"); // disable for now, prob errors later...
     opt.set("tuplex.optimizer.generateParser", "false"); // do not use parser generation
     opt.set("tuplex.inputSplitSize", "128MB"); // probably something wrong with the reader, again??
     opt.set("tuplex.resolveWithInterpreterOnly", "false");
@@ -961,14 +1303,14 @@ TEST_F(PipelinesTest, TypeErrorFlightPipeline) {
 
     // Checks:
     // 1.) Is selectionPushdown NOT working with interpreter only resolve??
-    // ---> yup, exactly that is the issue!!! i.e. interpreteronly == true AND csv.selectionPushdown == true
+    // ---> yup, exactly that is the issue!!! i.e. interpreteronly == true AND optimizer.selectionPushdown == true
     // 2.) what is the typeError that occurs??
 
     // check //~ expansion in the future...
     auto bts_paths = "../resources/flights_on_time_performance_2019_01.sample.csv";
     auto carrier_path="../resources/pipelines/flights/L_CARRIER_HISTORY.csv";
     auto airport_path="../resources/pipelines/flights/GlobalAirportDatabase.txt";
-    flightPipeline(ctx, bts_paths,carrier_path, airport_path, false, true).tocsv("test_flights_output");
+    flightPipeline(ctx, bts_paths, carrier_path, airport_path, false, true).tocsv("test_flights_output");
 }
 
 
@@ -984,8 +1326,8 @@ TEST_F(PipelinesTest, FlightNullValueCacheMini) {
     opt_ref.set("tuplex.partitionSize", "32MB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "true"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "true"); // disable for now, prob errors later...
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "true"); // disable for now, prob errors later...
     opt_ref.set("tuplex.optimizer.generateParser", "false"); // do not use par
     opt_ref.set("tuplex.inputSplitSize", "64MB"); // probably something wrong with the reader, again??
     opt_ref.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
@@ -996,7 +1338,7 @@ TEST_F(PipelinesTest, FlightNullValueCacheMini) {
 
     // create with null-value opt
     auto opt = opt_ref;
-    opt.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     Context c(opt);
     flightPipelineMini(c, bts_path,carrier_path, airport_path, true).tocsv(URI("flight_output/"));
 
@@ -1056,8 +1398,8 @@ TEST_F(PipelinesTest, ZillowDev) {
     //            "runTimeMemory" : "128MB",
     //            "inputSplitSize":"64MB",
     //            "useLLVMOptimizer" : True,
-    //            "optimizer.nullValueOptimization" : False,
-    //            "csv.selectionPushdown" : True,
+    //            "optimizer.retypeUsingOptimizedInputSchema" : False,
+    //            "optimizer.selectionPushdown" : True,
     //            "optimizer.generateParser": False}
 
 
@@ -1068,16 +1410,16 @@ TEST_F(PipelinesTest, ZillowDev) {
     //            "partitionSize" : "32MB",
     //            "runTimeMemory" : "128MB",
     //            "useLLVMOptimizer" : True,
-    //            "optimizer.nullValueOptimization" : False,
-    //            "csv.selectionPushdown" : True}
+    //            "optimizer.retypeUsingOptimizedInputSchema" : False,
+    //            "optimizer.selectionPushdown" : True}
     opt_ref.set("tuplex.runTimeMemory", "256MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorMemory", "2GB");
     opt_ref.set("tuplex.driverMemory", "2GB");
     opt_ref.set("tuplex.partitionSize", "16MB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "true"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "true"); // disable for now, prob errors later...
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "true"); // disable for now, prob errors later...
     opt_ref.set("tuplex.optimizer.generateParser", "true"); // do not use par => wrong parse for some cell here!
     opt_ref.set("tuplex.inputSplitSize", "64MB"); // probably something wrong with the reader, again??
     //opt_ref.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
@@ -1099,8 +1441,8 @@ TEST_F(PipelinesTest, ApacheDev) {
     auto opt_ref = testOptions();
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
     opt_ref.set("tuplex.optimizer.filterPushdown", "true");
     opt_ref.set("tuplex.optimizer.sharedObjectPropagation", "true");
@@ -1120,10 +1462,10 @@ TEST_F(PipelinesTest, ApacheDev) {
     // NULL value OPTIMIZATION
     // with projection pushdown + LLVM Optimizers + generated parser + null value opt
     auto opt_proj_wLLVMOpt_parse_null = opt_ref;
-    opt_proj_wLLVMOpt_parse_null.set("tuplex.csv.selectionPushdown", "true");
+    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.selectionPushdown", "true");
     opt_proj_wLLVMOpt_parse_null.set("tuplex.useLLVMOptimizer", "true");
     opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.generateParser", "true");
-    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     Context c_proj_wLLVMOpt_parse_null(opt_proj_wLLVMOpt_parse_null);
     auto r_proj_wLLVMOpt_parse_null = pipelineAsStrs(apacheLogsPipeline(c_ref, logs_path));
     // b.c. null value opt destroys order, sort both arrays
@@ -1142,8 +1484,8 @@ TEST_F(PipelinesTest, NullValueApache) {
     auto opt_ref = testOptions();
     opt_ref.set("tuplex.executorCount", "4"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "true");
-    opt_ref.set("tuplex.csv.selectionPushdown", "true");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "true");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
     opt_ref.set("tuplex.optimizer.filterPushdown", "true");
     opt_ref.set("tuplex.optimizer.sharedObjectPropagation", "true");
@@ -1268,16 +1610,16 @@ TEST_F(PipelinesTest, FlightWithIgnore) {
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
     opt_ref.set("tuplex.optimizer.filterPushdown", "false");
 
     auto opt_proj_wLLVMOpt_parse_null = opt_ref;
-    opt_proj_wLLVMOpt_parse_null.set("tuplex.csv.selectionPushdown", "true");
+    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.selectionPushdown", "true");
 //    opt_proj_wLLVMOpt_parse_null.set("tuplex.useLLVMOptimizer", "true");
 //    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.generateParser", "true");
-//    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.nullValueOptimization", "true");
+//    opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     Context c_proj_wLLVMOpt_parse_null(opt_proj_wLLVMOpt_parse_null);
 
     flightPipeline(c_proj_wLLVMOpt_parse_null, bts_path, carrier_path, airport_path, false, true).tocsv(testName + ".csv");
@@ -1298,8 +1640,8 @@ TEST_F(PipelinesTest, CarriersOnly) {
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
     opt_ref.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
 
@@ -1344,8 +1686,8 @@ TEST_F(PipelinesTest, FlightConfigHarness) {
         opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
         opt_ref.set("tuplex.executorCount", "0"); // single-threaded
         opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-        opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-        opt_ref.set("tuplex.csv.selectionPushdown", "false");
+        opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
+        opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
         opt_ref.set("tuplex.optimizer.generateParser", "false");
         opt_ref.set("tuplex.optimizer.mergeExceptionsInOrder", "false");
         // Note: all resolve with interpreter work, except for when projection pushdown is used.
@@ -1364,7 +1706,7 @@ TEST_F(PipelinesTest, FlightConfigHarness) {
 
         // with projection pushdown enabled
         auto opt_proj = opt_ref;
-        opt_proj.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj.set("tuplex.optimizer.selectionPushdown", "true");
         Context c_proj(opt_proj);
         auto r_proj = pipelineAsStrs(flightPipeline(c_proj, bts_path, carrier_path, airport_path, cache));
 
@@ -1372,7 +1714,7 @@ TEST_F(PipelinesTest, FlightConfigHarness) {
 
         // with projection pushdown + LLVM Optimizers
         auto opt_proj_wLLVMOpt = opt_ref;
-        opt_proj_wLLVMOpt.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj_wLLVMOpt.set("tuplex.optimizer.selectionPushdown", "true");
         opt_proj_wLLVMOpt.set("tuplex.useLLVMOptimizer", "true");
         Context c_proj_wLLVMOpt(opt_proj_wLLVMOpt);
         auto r_proj_wLLVMOpt = pipelineAsStrs(flightPipeline(c_proj_wLLVMOpt, bts_path, carrier_path, airport_path, cache));
@@ -1380,7 +1722,7 @@ TEST_F(PipelinesTest, FlightConfigHarness) {
 
         // with projection pushdown + LLVM Optimizers + generated parser
         auto opt_proj_wLLVMOpt_parse = opt_ref;
-        opt_proj_wLLVMOpt_parse.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.selectionPushdown", "true");
         opt_proj_wLLVMOpt_parse.set("tuplex.useLLVMOptimizer", "true");
         opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.generateParser", "true");
         Context c_proj_wLLVMOpt_parse(opt_proj_wLLVMOpt_parse);
@@ -1390,10 +1732,10 @@ TEST_F(PipelinesTest, FlightConfigHarness) {
         // NULL value OPTIMIZATION
         // with projection pushdown + LLVM Optimizers + generated parser + null value opt
         auto opt_proj_wLLVMOpt_parse_null = opt_ref;
-        opt_proj_wLLVMOpt_parse_null.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.selectionPushdown", "true");
         opt_proj_wLLVMOpt_parse_null.set("tuplex.useLLVMOptimizer", "true");
         opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.generateParser", "true");
-        opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.nullValueOptimization", "true");
+        opt_proj_wLLVMOpt_parse_null.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
         Context c_proj_wLLVMOpt_parse_null(opt_proj_wLLVMOpt_parse_null);
         auto r_proj_wLLVMOpt_parse_null = pipelineAsStrs(flightPipeline(c_proj_wLLVMOpt_parse_null, bts_path, carrier_path, airport_path, cache));
         // b.c. null value opt destroys order, sort both arrays
@@ -1414,8 +1756,8 @@ TEST_F(PipelinesTest, GoogleTrace) {
     opt_ref.set("tuplex.runTimeMemory", "128MB"); // join might require a lot of runtime memory!!!
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "false");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "false");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
 
     Context c_ref(opt_ref);

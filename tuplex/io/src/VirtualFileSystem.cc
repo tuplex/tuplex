@@ -47,6 +47,13 @@ namespace tuplex {
         return VirtualFileSystem::registerFileSystem(std::make_shared<S3FileSystemImpl>(access_key, secret_key, session_token, region, ns, lambdaMode, requesterPay), "s3://");
     }
 
+    void VirtualFileSystem::removeS3FileSystem() {
+        auto it = fsRegistry.find("s3://");
+        if(it != fsRegistry.end()) {
+            fsRegistry.erase(it);
+        }
+    }
+
     std::map<std::string, size_t> VirtualFileSystem::s3TransferStats() {
         MessageHandler& logger = Logger::instance().logger("filesystem");
         std::map<std::string, size_t> m;
@@ -189,7 +196,17 @@ namespace tuplex {
 
     std::unique_ptr<VirtualFile> VirtualFileSystem::open_file(const URI &uri, VirtualFileMode vfm) {
         auto impl = getFileSystemImpl(uri);
-        return impl ? impl->open_file(uri, vfm) : nullptr;
+
+        // is it a range based uri?
+        URI target_uri;
+        size_t range_start = 0, range_end = 0;
+        decodeRangeURI(uri.toString(), target_uri, range_start, range_end);
+
+        auto file = impl ? impl->open_file(target_uri, vfm) : nullptr;
+        if(file && (range_start != 0 && range_end != 0)) {
+            file->seek(range_start);
+        }
+        return file;
     }
 
     std::unique_ptr<VirtualMappedFile> VirtualFileSystem::map_file(const URI &uri) {
@@ -234,8 +251,9 @@ namespace tuplex {
             trim(s);
         }
         // normalize paths...
-        for(int i = 0; i < v.size(); ++i)
+        for(int i = 0; i < v.size(); ++i) {
             v[i] = URI(v[i]).toPath();
+        }
 
         // go through patterns & call walkPattern of impl
         for(const auto& pattern : v) {
@@ -305,6 +323,16 @@ namespace tuplex {
     }
 
 #ifdef BUILD_WITH_AWS
+
+    S3FileSystemImpl* VirtualFileSystem::getS3FileSystemImpl() {
+        // check whether s3 is registered
+        auto it = fsRegistry.find("s3://");
+        if(it == fsRegistry.end())
+            return nullptr;
+        return static_cast<S3FileSystemImpl*>(it->second.get());
+    }
+
+
     int VirtualFileSystem::copyLocalToS3(const std::vector<std::string> &src_uris, const URI &target,
                                             const std::string &lcp, std::vector<URI> &copied_uris, bool overwrite) {
         using namespace std;
@@ -507,7 +535,7 @@ COPY_FAILURE:
         return rc;
     }
 
-    void stringToFile(const URI& uri, const std::string content) {
+    void stringToFile(const URI& uri, const std::string& content) {
         auto vfs = VirtualFileSystem::fromURI(uri);
 
         auto file = vfs.open_file(uri, VirtualFileMode::VFS_OVERWRITE);
@@ -517,6 +545,19 @@ COPY_FAILURE:
         }
 
         file->write(content.c_str(), content.length());
+        file->close();
+    }
+
+    void bufferToFile(const URI& uri, const void* buffer, size_t buffer_size) {
+        auto vfs = VirtualFileSystem::fromURI(uri);
+
+        auto file = vfs.open_file(uri, VirtualFileMode::VFS_OVERWRITE);
+        if(!file) {
+            Logger::instance().defaultLogger().error("could not open file " + uri.toString());
+            return;
+        }
+
+        file->write(buffer, buffer_size);
         file->close();
     }
 

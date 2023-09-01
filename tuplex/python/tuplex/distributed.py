@@ -34,9 +34,17 @@ from tuplex.utils.common import in_jupyter_notebook, in_google_colab, is_in_inte
 
 
 def current_iam_user():
-    iam = boto3.resource('iam')
-    user = iam.CurrentUser()
-    return user.user_name.lower()
+    sts = boto3.client('sts')
+    identity = sts.get_caller_identity()
+    account_id = identity['Account']
+    user_name = identity['Arn'][identity['Arn'].rfind('user/') + len('user/'):]
+
+    return user_name.lower()
+
+    # following code requires IAM::GetUser policy that allows too much information, better use the one above.
+    # iam = boto3.resource('iam')
+    # user = iam.CurrentUser()
+    # return user.user_name.lower()
 
 
 def default_lambda_name():

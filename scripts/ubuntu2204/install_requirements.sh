@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# (c) Tuplex team 2017-2022
-# auto-generated on 2022-09-20 14:15:28.012087
+# (c) Tuplex team 2017-2023
+# auto-generated on 2023-03-26 21:45:55.922096
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -24,7 +24,7 @@ echo ">> Installing apt dependencies"
 apt update -y
 
            apt-get install -y apt-utils dh-autoreconf libmagic-dev curl libxml2-dev vim build-essential libssl-dev zlib1g-dev libncurses5-dev \
-    libncursesw5-dev libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev \
+    libncursesw5-dev libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev libdw-dev \
     libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git libcurl4-openssl-dev python3-dev python3-pip openjdk-8-jre-headless
            
            ldconfig

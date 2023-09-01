@@ -12,7 +12,9 @@
 #include <Context.h>
 #include "../../utils/include/Utils.h"
 #include "TestUtils.h"
-#include "RuntimeInterface.h"
+#include "jit/RuntimeInterface.h"
+#include <parser/Parser.h>
+#include <graphviz/GraphVizGraph.h>
 
 // need for these tests a running python interpreter, so spin it up
 class DictionaryFunctions : public PyTest {};
@@ -496,4 +498,29 @@ TEST_F(DictionaryFunctions, EmptyDict) {
     // .pop(val) KeyError
     // ==> left for later testing because it's a bit more complicated...
 #warning "implement fast, special functions for empty dict..."
+}
+
+TEST_F(DictionaryFunctions, DictCount) {
+    using namespace tuplex;
+    auto code = "def count(L):\n"
+                "    d = {}\n"
+                "    for x in L:\n"
+                "        if x not in d.keys():\n"
+                "            d[x] = 0\n"
+                "        d[x] += 1\n"
+                "    return d";
+
+    auto root = std::unique_ptr<ASTNode>(parseToAST(code));
+    EXPECT_TRUE(root.get());
+
+    GraphVizGraph graph;
+    graph.createFromAST(root.get(), true);
+    graph.saveAsPDF("/home/rgoyal6/tuplex/tuplex/build/dict_count.pdf");
+}
+
+
+TEST_F(DictionaryFunctions, Get) {
+    using namespace tuplex;
+
+
 }

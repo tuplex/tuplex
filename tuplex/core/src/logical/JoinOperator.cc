@@ -14,7 +14,7 @@
 
 namespace tuplex {
 
-    JoinOperator::JoinOperator(tuplex::LogicalOperator *left, tuplex::LogicalOperator *right,
+    JoinOperator::JoinOperator(const std::shared_ptr<LogicalOperator>& left, const std::shared_ptr<LogicalOperator>& right,
                                tuplex::option<std::string> leftColumn, tuplex::option<std::string> rightColumn,
                                const tuplex::JoinType &jt, const std::string &leftPrefix, const std::string &leftSuffix,
                                const std::string &rightPrefix, const std::string &rightSuffix) : LogicalOperator(
@@ -190,7 +190,7 @@ namespace tuplex {
                     joinType());
 
             // create schema
-            setSchema(Schema(Schema::MemoryLayout::ROW, combinedRowType));
+            setOutputSchema(Schema(Schema::MemoryLayout::ROW, combinedRowType));
             _columns = columns;
 
         } else {
@@ -238,12 +238,12 @@ namespace tuplex {
         inferSchema();
     }
 
-    LogicalOperator *JoinOperator::clone() {
-        auto copy = new JoinOperator(left()->clone(), right()->clone(),
+    std::shared_ptr<LogicalOperator> JoinOperator::clone(bool cloneParents) {
+        auto copy = new JoinOperator(cloneParents ? left()->clone() : nullptr, cloneParents ? right()->clone() : nullptr,
                 _leftColumn, _rightColumn, _joinType, _leftPrefix, _leftSuffix, _rightPrefix, _rightSuffix);
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 }

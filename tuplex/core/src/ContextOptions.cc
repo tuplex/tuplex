@@ -23,7 +23,7 @@
 #include <stack>
 
 #include <VirtualFileSystem.h>
-#include <Environment.h>
+#include <utils/Environment.h>
 #include <PythonHelpers.h>
 #include <Utils.h>
 #include <StringUtils.h>
@@ -175,8 +175,8 @@ namespace tuplex {
         return status == VirtualFileSystemStatus::VFS_OK;
     }
 
-    bool ContextOptions::CSV_PARSER_SELECTION_PUSHDOWN() const {
-        return stringToBool(_store.at("tuplex.csv.selectionPushdown"));
+    bool ContextOptions::OPT_SELECTION_PUSHDOWN() const {
+        return stringToBool(_store.at("tuplex.optimizer.selectionPushdown"));
     }
 
     ContextOptions ContextOptions::defaults() {
@@ -208,14 +208,20 @@ namespace tuplex {
                      {"tuplex.scratchDir", temp_cache_path},
                      {"tuplex.logDir", "."},
                      {"tuplex.runTimeLibrary", "tuplex_runtime"},
-                     {"tuplex.csv.maxDetectionRows", "10000"},
-                     {"tuplex.csv.maxDetectionMemory", "256KB"},
+                     {"tuplex.sample.maxDetectionRows", "10000"},
+                     {"tuplex.sample.maxDetectionMemory", "256KB"},
+                     {"tuplex.sample.strataSize", "1"},
+                     {"tuplex.sample.samplesPerStrata", "1"},
+                     {"tuplex.lambda.sample.maxDetectionRows", "auto"},
+                     {"tuplex.lambda.sample.maxDetectionMemory", "auto"},
+                     {"tuplex.lambda.sample.strataSize", "auto"},
+                     {"tuplex.lambda.sample.samplesPerStrata", "auto"},
                      {"tuplex.csv.separators", "[',', ';', '|', '\t']"},
                      {"tuplex.csv.quotechar", "\""},
                      {"tuplex.csv.comments", "['#', '~']"},
                      {"tuplex.normalcaseThreshold", "0.9"},
                      {"tuplex.optionalThreshold", "0.7"},
-                     {"tuplex.csv.selectionPushdown", "true"},
+                     {"tuplex.optimizer.selectionPushdown", "true"},
                      {"tuplex.webui.enable", "true"},
                      {"tuplex.webui.port", "5000"},
                      {"tuplex.webui.url", "localhost"},
@@ -228,10 +234,12 @@ namespace tuplex {
                      {"tuplex.optimizer.codeStats", "false"},
                      {"tuplex.optimizer.generateParser", "false"},
                      {"tuplex.optimizer.nullValueOptimization", "false"},
+                     {"tuplex.optimizer.constantFoldingOptimization", "false"},
                      {"tuplex.optimizer.filterPushdown", "true"},
                      {"tuplex.optimizer.operatorReordering", "false"},
                      {"tuplex.optimizer.sharedObjectPropagation", "true"},
                      {"tuplex.optimizer.mergeExceptionsInOrder", "true"},
+                     {"tuplex.optimizer.filterPromotion", "true"},
                      {"tuplex.interleaveIO", "true"},
                      {"tuplex.aws.scratchDir", ""},
                      {"tuplex.aws.requestTimeout", "600"},
@@ -241,12 +249,24 @@ namespace tuplex {
                      {"tuplex.aws.region", "us-east-1"},
                      {"tuplex.aws.lambdaMemory", "1536"},
                      {"tuplex.aws.lambdaTimeout", "600"},
+                     {"tuplex.aws.lambdaThreads", "auto"},
+                     {"tuplex.aws.lambdaInvokeOthers", "true"},
+                     {"tuplex.aws.lambdaInvocationStrategy", "direct"},
                      {"tuplex.aws.requesterPay", "false"},
+                     {"tuplex.aws.verboseLogging", "false"},
+                     {"tuplex.useInterpreterOnly", "false"},
                      {"tuplex.resolveWithInterpreterOnly", "false"},
                      {"tuplex.network.caFile", ""},
                      {"tuplex.network.caPath", ""},
                      {"tuplex.network.verifySSL", "false"},  // if default is going to be changed to true, ship cacert.pem from Amazon to avoid issues.
-                     {"tuplex.redirectToPythonLogging", "false"}};
+                     {"tuplex.redirectToPythonLogging", "false"},
+                     {"tuplex.experimental.hyperspecialization", "false"},
+                     {"tuplex.experimental.interchangeWithObjectFiles", "false"},
+                     {"tuplex.experimental.specializationUnitSize", "0"},
+                     {"tuplex.experimental.minimumSizeToSpecialize", "128MB"},
+                     {"tuplex.experimental.opportuneCompilation", "true"},
+                     {"tuplex.experimental.forceBadParseExceptFormat", "false"},
+                     {"tuplex.experimental.s3PreCacheSize", "0"}};
 #else
         // DEBUG options
         co._store = {{"tuplex.useLLVMOptimizer", "false"},
@@ -262,14 +282,21 @@ namespace tuplex {
                      {"tuplex.scratchDir", temp_cache_path},
                      {"tuplex.logDir", "."},
                      {"tuplex.runTimeLibrary", "tuplex_runtime"},
-                     {"tuplex.csv.maxDetectionRows", "10000"},
-                     {"tuplex.csv.maxDetectionMemory", "256KB"},
+                     {"tuplex.sample.maxDetectionRows", "10000"},
+                     {"tuplex.sample.maxDetectionMemory", "256KB"},
+                     {"tuplex.sample.strataSize", "1"},
+                     {"tuplex.sample.samplesPerStrata", "1"},
+                     {"tuplex.lambda.sample.maxDetectionRows", "auto"},
+                     {"tuplex.lambda.sample.maxDetectionMemory", "auto"},
+                     {"tuplex.lambda.sample.strataSize", "auto"},
+                     {"tuplex.lambda.sample.samplesPerStrata", "auto"},
                      {"tuplex.csv.separators", "[',', ';', '|', '\t']"},
                      {"tuplex.csv.quotechar", "\""},
                      {"tuplex.csv.comments", "['#', '~']"},
                      {"tuplex.normalcaseThreshold", "0.9"},
                      {"tuplex.optionalThreshold", "0.7"},
-                     {"tuplex.csv.selectionPushdown", "true"}, //
+                     {"tuplex.optimizer.selectionPushdown", "true"}, //
+                     {"tuplex.optimizer.filterPromotion", "true"},
                      {"tuplex.webui.enable", "true"},
                      {"tuplex.webui.port", "5000"},
                      {"tuplex.webui.url", "localhost"},
@@ -282,6 +309,7 @@ namespace tuplex {
                      {"tuplex.optimizer.codeStats", "true"},
                      {"tuplex.optimizer.generateParser", "false"},
                      {"tuplex.optimizer.nullValueOptimization", "false"},
+                     {"tuplex.optimizer.constantFoldingOptimization", "false"},
                      {"tuplex.optimizer.filterPushdown", "true"},
                      {"tuplex.optimizer.operatorReordering", "false"},
                      {"tuplex.optimizer.sharedObjectPropagation", "true"},
@@ -295,12 +323,24 @@ namespace tuplex {
                      {"tuplex.aws.region", "us-east-1"},
                      {"tuplex.aws.lambdaMemory", "1536"},
                      {"tuplex.aws.lambdaTimeout", "600"},
+                     {"tuplex.aws.lambdaThreads", "auto"},
+                     {"tuplex.aws.lambdaInvokeOthers", "true"},
+                     {"tuplex.aws.lambdaInvocationStrategy", "direct"},
                      {"tuplex.aws.requesterPay", "false"},
-                     {"tuplex.resolveWithInterpreterOnly", "true"},
+                     {"tuplex.aws.verboseLogging", "true"},
+                     {"tuplex.useInterpreterOnly", "false"},
+                     {"tuplex.resolveWithInterpreterOnly", "false"},
                      {"tuplex.network.caFile", ""},
                      {"tuplex.network.caPath", ""},
                      {"tuplex.network.verifySSL", "false"},
-                     {"tuplex.redirectToPythonLogging", "false"}}; // experimental feature, deactivate for now.
+                     {"tuplex.redirectToPythonLogging", "false"},
+                     {"tuplex.experimental.hyperspecialization", "false"},
+                     {"tuplex.experimental.interchangeWithObjectFiles", "false"},
+                     {"tuplex.experimental.specializationUnitSize", "0"},
+                     {"tuplex.experimental.minimumSizeToSpecialize", "128MB"},
+                     {"tuplex.experimental.opportuneCompilation", "true"},
+                     {"tuplex.experimental.forceBadParseExceptFormat", "false"},
+                     {"tuplex.experimental.s3PreCacheSize", "0"}}; // experimental feature, deactivate for now.
 #endif
 
         // update with tuplex env
@@ -576,8 +616,8 @@ namespace tuplex {
 
         // check first with pathParent, then PATH
         std::vector<std::string> failedPaths;
-        for(auto c : candidates) {
-            URI p = URI(pathParent + "/" + c);
+        for(const auto& c : candidates) {
+            URI p = URI(pathParent.empty() ? c : pathParent + "/" + c);
             if(p.exists() && p.isFile())
                 return p;
             else
@@ -598,7 +638,8 @@ namespace tuplex {
                                         URI("file:///usr/local/lib"),
                                         URI("file:///lib"),
                                         URI("file:///usr/lib"),
-                                        URI("file://" + execPath.parent_path().string())};
+                                        URI("file://" + execPath.parent_path().string()),
+                                        URI("file://" + execPath.parent_path().string() + "/../lib")};
 
         // very generous searching, even wrong extension is tolerated...
         for(auto c : candidates) {
@@ -637,8 +678,102 @@ namespace tuplex {
         return res;
     }
 
-    size_t ContextOptions::CSV_MAX_DETECTION_MEMORY() const {
-        return memStringToSize(_store.at("tuplex.csv.maxDetectionMemory"));
+    size_t ContextOptions::SAMPLE_MAX_DETECTION_MEMORY() const {
+        return memStringToSize(_store.at("tuplex.sample.maxDetectionMemory"));
+    }
+
+    size_t ContextOptions::SAMPLE_MAX_DETECTION_ROWS() const {
+        auto val = _store.at("tuplex.sample.maxDetectionRows");
+        return std::stoull(val);
+    }
+
+    static size_t parse_strata_size(const std::string& entry) {
+        auto& logger = Logger::instance().defaultLogger();
+        try {
+            auto size = std::stoi(entry);
+            if(size < 1)
+                return 1;
+            // limit to 10k?
+            // -> special case for empty rows...
+            static const auto MAX_STRATA_SIZE = 10000;
+            if(size > MAX_STRATA_SIZE) {
+                std::stringstream ss;
+                ss<<"Given strata size is "<<size<<" which exceeds MAX_STRATA_SIZE="<<MAX_STRATA_SIZE<<", setting to "<<MAX_STRATA_SIZE;
+                logger.warn(ss.str());
+                return MAX_STRATA_SIZE;
+            }
+            return size;
+        } catch(...) {
+            logger.error("invalid strata size: " + entry + ", setting to 1.");
+            return 1;
+        }
+    }
+
+    size_t ContextOptions::SAMPLE_STRATA_SIZE() const {
+        auto entry = _store.at("tuplex.sample.strataSize");
+        return parse_strata_size(entry);
+    }
+
+    static size_t parse_samples_per_strata(const std::string& entry, size_t strata_size) {
+        auto& logger = Logger::instance().defaultLogger();
+        try {
+            auto size = std::stoi(entry);
+            if(size > strata_size) {
+                std::stringstream ss;
+                ss<<"Given samples_per_strata is "<<size<<" but strata size is "<<strata_size<<", setting samples_per_strata to "<<strata_size;
+                logger.warn(ss.str());
+                return strata_size;
+            }
+
+            if(size < 1) {
+                logger.warn("samples_per_strata set to " + std::to_string(size) + " but at least 1 sample/strata required, setting to 1.");
+                return 1;
+            }
+            return size;
+        } catch(...) {
+            logger.error("invalid samples_per_strata: " + entry + ", setting to 1 sample/strata.");
+            return 1;
+        }
+    }
+
+    size_t ContextOptions::SAMPLE_SAMPLES_PER_STRATA() const {
+        auto entry = _store.at("tuplex.sample.samplesPerStrata");
+        auto strata_size = SAMPLE_STRATA_SIZE();
+        return parse_samples_per_strata(entry, strata_size);
+    }
+
+    size_t ContextOptions::AWS_LAMBDA_SAMPLE_MAX_DETECTION_MEMORY() const {
+        auto entry = _store.at("tuplex.lambda.sample.maxDetectionMemory");
+        if("auto" == entry || "client" == entry)
+            return SAMPLE_MAX_DETECTION_MEMORY();
+        else
+            return memStringToSize(entry);
+    }
+
+    size_t ContextOptions::AWS_LAMBDA_SAMPLE_MAX_DETECTION_ROWS() const {
+        auto entry = _store.at("tuplex.lambda.sample.maxDetectionRows");
+        if("auto" == entry || "client" == entry)
+            return SAMPLE_MAX_DETECTION_ROWS();
+        else
+            return std::stoull(entry);
+    }
+
+    size_t ContextOptions::AWS_LAMBDA_SAMPLE_STRATA_SIZE() const {
+        auto entry = _store.at("tuplex.lambda.sample.strataSize");
+        if("auto" == entry || "client" == entry)
+            return SAMPLE_STRATA_SIZE();
+        else
+            return parse_strata_size(entry);
+    }
+
+    size_t ContextOptions::AWS_LAMBDA_SAMPLE_SAMPLES_PER_STRATA() const {
+        auto entry = _store.at("tuplex.lambda.sample.samplesPerStrata");
+        if("auto" == entry || "client" == entry)
+            return SAMPLE_SAMPLES_PER_STRATA();
+        else {
+            auto lambda_strata_size = AWS_LAMBDA_SAMPLE_STRATA_SIZE();
+            return parse_samples_per_strata(entry, lambda_strata_size);
+        }
     }
 
     size_t ContextOptions::INPUT_SPLIT_SIZE() const {
@@ -647,11 +782,6 @@ namespace tuplex {
 
     size_t ContextOptions::READ_BUFFER_SIZE() const {
         return memStringToSize(_store.at("tuplex.readBufferSize"));
-    }
-
-    size_t ContextOptions::CSV_MAX_DETECTION_ROWS() const {
-        auto val = _store.at("tuplex.csv.maxDetectionRows");
-        return std::stoull(val);
     }
 
     char ContextOptions::CSV_QUOTECHAR() const {
@@ -738,6 +868,8 @@ namespace tuplex {
             return Backend::LOCAL;
         } else if(b == "lambda") {
             return Backend::LAMBDA;
+        } else if(b == "worker") {
+            return Backend::WORKER;
         } else {
             Logger::instance().defaultLogger().error("found unknown backend '" + b + "', defaulting to local execution.");
             return Backend::LOCAL;

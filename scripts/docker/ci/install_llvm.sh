@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#(c) 2017-2022 Tuplex team
+#(c) 2017-2023 Tuplex team
 
 
 # install LLVM 9.0.1 to use for building wheels

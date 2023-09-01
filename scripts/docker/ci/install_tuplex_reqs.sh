@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#(c) 2017-2022 Tuplex team
+#(c) 2017-2023 Tuplex team
 
 
 # install all build dependencies for tuplex (CentOS)
@@ -17,7 +17,7 @@ mkdir -p $PREFIX/lib
 echo ">> Files will be downloaded to ${WORKDIR}/tuplex-downloads"
 WORKDIR=$WORKDIR/tuplex-downloads
 mkdir -p $WORKDIR
-yum install -y libedit-devel libzip-devel   pkgconfig openssl-devel libxml2-devel zlib-devel    uuid libuuid-devel libffi-devel graphviz-devel   gflags-devel ncurses-devel   awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip ninja-build --skip-broken
+yum install -y libedit-devel libzip-devel elfutils-devel   pkgconfig openssl-devel libxml2-devel zlib-devel    uuid libuuid-devel libffi-devel graphviz-devel   gflags-devel ncurses-devel   awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip ninja-build --skip-broken
 
 # add github to known hosts
 mkdir -p /root/.ssh/ &&

@@ -12,6 +12,8 @@
 #include <sstream>
 #include <iomanip>
 
+#include <nlohmann/json.hpp>
+
 // gcc fixes, needed for memcpy. Clang does not need those includes
 #ifdef __GNUC__
 #include <cstdlib>
@@ -20,6 +22,7 @@
 #include <string>
 #include <iostream>
 #include <Logger.h>
+#include "JSONUtils.h"
 
 #endif
 
@@ -86,24 +89,6 @@ namespace tuplex {
         return f;
     }
 
-    Field::Field(const Field &other) {
-        _type = other._type;
-        _size = other._size;
-        _isNull = other._isNull;
-
-        // special handling:
-        // ptr type?
-        if(other.hasPtrData()) {
-            assert(other._ptrValue);
-            // memcpy
-            _ptrValue = new uint8_t[_size];
-            std::memcpy(_ptrValue, other._ptrValue, _size);
-        } else {
-            // primitive val copy (doesn't matter which)
-            _iValue = other._iValue;
-        }
-    }
-
     Field::Field(const Tuple &t) {
         // allocate size and then transfer tuple to ptr
         _size = sizeof(Tuple);
@@ -133,6 +118,39 @@ namespace tuplex {
         _ptrValue = reinterpret_cast<uint8_t*>(new Tuple(t));
     }
 
+    void Field::deep_copy_from_other(const Field &other) {
+        if(other.hasPtrData()) {
+            assert(_ptrValue == nullptr);
+
+            // special data structs have to perform individual deep copies
+            if(other._type.isTupleType()) {
+                auto tuple_ptr = reinterpret_cast<Tuple*>(other._ptrValue);
+                _ptrValue = reinterpret_cast<uint8_t*>(tuple_ptr->allocate_deep_copy());
+                _size = sizeof(Tuple);
+            } else if(other._type.isListType()) {
+                auto list_ptr = reinterpret_cast<List*>(other._ptrValue);
+                _ptrValue = reinterpret_cast<uint8_t*>(list_ptr->allocate_deep_copy());
+                _size = sizeof(List);
+            } else {
+                // dict is currently stored as string...
+
+                // memcpy --> is this correct for Tuple e.g.?
+                _size = other._size;
+
+                // special case option type
+                if(_size != 0) {
+                    _ptrValue = new uint8_t[_size];
+                    assert(other._ptrValue);
+                    std::memcpy(_ptrValue, other._ptrValue, _size);
+                } else {
+                    _ptrValue = nullptr;
+                }
+            }
+        } else {
+            _iValue = other._iValue;
+        }
+    }
+
     Field& Field::operator = (const Field &other) {
 
         _size = other._size;
@@ -141,13 +159,15 @@ namespace tuplex {
         // special handling:
         // ptr type?
         if(other.hasPtrData()) {
-            assert(other._ptrValue);
-
             releaseMemory();
-            // memcpy
-            _ptrValue = new uint8_t[_size];
-            assert(_ptrValue);
-            std::memcpy(_ptrValue, other._ptrValue, _size);
+            _ptrValue = nullptr;
+
+            // only invoke deepcopy if size != 0
+            if(other._size != 0) {
+                assert(other._ptrValue);
+                deep_copy_from_other(other);
+            }
+
         } else {
             // primitive val copy (doesn't matter which)
             _iValue = other._iValue;
@@ -161,14 +181,14 @@ namespace tuplex {
         if(hasPtrData()) {
             if(_ptrValue) {
                 // select correct deletion method!
-                if(_type.withoutOptions().isListType() || _type.withoutOptions().isTupleType())
+                if(_type.withoutOption().isListType() || _type.withoutOption().isTupleType())
                     delete _ptrValue;
                 else
                     delete [] _ptrValue;
             }
-
-            _ptrValue = nullptr;
         }
+        _ptrValue = nullptr;
+        _size = 0;
     }
 
     Field::~Field() {
@@ -262,13 +282,17 @@ namespace tuplex {
         } else if(python::Type::STRING == type) {
             std::string s;
             s = std::string(reinterpret_cast<char*>(_ptrValue));
-            return "'" + s + "'";
+            return escape_to_python_str(s);
         } else if(type.isTupleType()) {
             Tuple *t = (Tuple*) this->_ptrValue;
             return t->desc();
         } else if(type.isDictionaryType() || type == python::Type::GENERICDICT) {
+            // @TODO: update with concrete/correct typing -> conversion to python!
             char *dstr = reinterpret_cast<char*>(_ptrValue);
-            return PrintCJSONDict(cJSON_Parse(dstr));
+            if(!type.isStructuredDictionaryType())
+                return PrintCJSONDict(cJSON_Parse(dstr));
+
+            return dstr;
         } else if(type.isListType()) {
             List *l = (List*)this->_ptrValue;
             return l->desc();
@@ -353,6 +377,10 @@ namespace tuplex {
 
         // emptydict to any dict
         if(f._type == python::Type::EMPTYDICT && targetType.isDictionaryType()) {
+            // TODO: upcast to any dict works for dynamic dictionaries
+            // AND for struct dicts if all keys are maybe.
+            // else, upcast not possible.
+
             // upcast to any dict
             throw std::runtime_error("not yet implemented, pls add");
         }
@@ -405,4 +433,256 @@ namespace tuplex {
 
         return f;
     }
+
+    Field constantTypeToField(const python::Type& type) {
+        assert(type.isConstantValued());
+
+        auto value = type.constant();
+        auto u_type = type.underlying();
+        // decode...
+        if(python::Type::STRING == u_type) {
+            return Field(value);
+            //return Field(str_value_from_python_raw_value(value));
+        } else if(python::Type::BOOLEAN == u_type) {
+            return Field(stringToBool(value));
+        } else if(python::Type::I64 == u_type) {
+            return Field(parseI64String(value));
+        } else if(python::Type::F64 == u_type) {
+            return Field(parseF64String(value));
+        } else {
+            throw std::runtime_error("encountered unknown underlying type " + u_type.desc() + " when decoding constant type " + type.desc());
+        }
+    }
+
+    std::string jsonToPython(const std::string& s, const python::Type& t) {
+        if(t == python::Type::STRING) {
+            return escape_to_python_str(s);
+        }
+        if(t == python::Type::BOOLEAN) {
+            auto b = parseBoolString(s);
+            return b ? "True" : "False";
+        }
+//        if(t == python::Type::I64) {
+//            auto i =
+//        }
+
+        throw std::runtime_error("unknown type encountered for decoding.");
+        return s;
+    }
+
+    std::string Field::toJsonString() const {
+
+        auto t = _type;
+
+        // what type? -> convert accordingly
+        if(t.isOptionType() && _isNull)
+            return "null";
+        else if(t.isOptionType())
+            t = t.withoutOption();
+
+        if(t == python::Type::NULLVALUE)
+            return "null";
+
+        if(t == python::Type::BOOLEAN)
+            return _iValue > 0 ? "true" : "false";
+
+        if(t == python::Type::I64)
+            return std::to_string(_iValue);
+
+        if(t == python::Type::F64)
+            return std::to_string(_dValue);
+
+        if(t == python::Type::STRING) {
+            std::string s = std::string(reinterpret_cast<const char*>(_ptrValue));
+            return escape_for_json(s);
+        }
+        if(t == python::Type::EMPTYDICT)
+            return "{}";
+        if(t == python::Type::EMPTYLIST || t == python::Type::EMPTYTUPLE)
+            return "[]";
+
+        if(t.isTupleType()) {
+            Tuple *t = (Tuple*) this->_ptrValue;
+            return t->toJsonString();
+        }
+
+        if(t.isListType()) {
+            List *l = (List*)this->_ptrValue;
+            assert(l);
+            return l->toJsonString();
+
+        }
+        if(t.isDictionaryType() || t == python::Type::GENERICDICT) {
+            // @TODO: update with concrete/correct typing -> conversion to python!
+            const char *dstr = reinterpret_cast<const char*>(_ptrValue);
+            if(!t.isStructuredDictionaryType())
+                return PrintCJSONDict(cJSON_Parse(dstr));
+            // should be JSON...
+            return dstr;
+        }
+
+
+        throw std::runtime_error("unsupported field type " + _type.desc() + " not yet supported in toJsonString conversion.");
+        return "";
+    }
+
+    std::string jsonToPython(const nlohmann::json& j, const python::Type& t) {
+
+        // special case: option
+        if(t.isOptionType()) {
+            if(j.is_null())
+                return "None";
+            else
+                return jsonToPython(j, t.elementType());
+        }
+
+        // decode other json objects...
+        if(j.is_array()) {
+            // is type list type?
+            assert(t == python::Type::PYOBJECT || t .isListType()
+            || t.isTupleType() || t == python::Type::EMPTYTUPLE || t == python::Type::EMPTYLIST);
+            if(t == python::Type::EMPTYTUPLE)
+                return "()";
+            if(t == python::Type::EMPTYLIST)
+                return "[]";
+            if(t.isListType()) {
+                std::stringstream ss;
+                auto num_elements = j.size();
+                ss<<"[";
+                for(unsigned i = 0; i < num_elements; ++i) {
+                    ss<<jsonToPython(j[i], t.elementType());
+                    if(i != num_elements - 1)
+                        ss<<", ";
+                }
+                ss<<"]";
+                return ss.str();
+            } else if(t.isTupleType()) {
+                std::stringstream ss;
+                auto num_elements = j.size();
+                if(t.parameters().size() != num_elements) {
+                    throw std::runtime_error("invalid encoding, json array has " + pluralize(num_elements, "element")
+                    + " but given tuple type " + t.desc() + " has only " + std::to_string(t.parameters().size()) + ".");
+                }
+                ss<<"(";
+                for(unsigned i = 0; i < num_elements; ++i) {
+                    ss<<jsonToPython(j[i], t.parameters()[i]);
+                    if(i != num_elements - 1)
+                        ss<<", ";
+                }
+                if(num_elements == 1)
+                    ss<<",";
+                ss<<")";
+                return ss.str();
+            } else {
+                throw std::runtime_error("invalid decoding type " + t.desc()); // maybe tuple ok as well?
+            }
+        } else if(j.is_object()) {
+            if(t == python::Type::EMPTYDICT)
+                return "{}";
+
+            std::stringstream ss;
+            // nested dict? is it a struct dict? or regular dict?
+            if(t.isStructuredDictionaryType()) {
+                auto num_elements = j.size();
+                auto kv_pairs = t.get_struct_pairs();
+                // create lookup table
+                std::unordered_map<std::string, python::StructEntry> kv_lookup;
+                for(auto kv_pair : kv_pairs)
+                    kv_lookup[kv_pair.key] = kv_pair;
+                auto pos = 0;
+                ss<<"{";
+                for(const auto& el : j.items()) {
+
+                    // the key in json is always a string, yet struct type uses pystring storage or raw value. -> check for that reason
+                    auto key = el.key();
+                    auto skey = escape_to_python_str(key);
+                    auto it = kv_lookup.find(key);
+                    if(it == kv_lookup.end())
+                        it = kv_lookup.find(skey);
+                    if(it == kv_lookup.end())
+                        throw std::runtime_error("type decode error, could not find key " + key);
+
+                    auto key_t = it->second.keyType;
+                    auto val_t = it->second.valueType;
+                    ss<<jsonToPython(el.key(), key_t)<<": "<<jsonToPython(el.value(), val_t);
+                    if(pos != num_elements - 1)
+                        ss<<", ";
+                    pos++;
+                }
+                ss<<"}";
+                return ss.str();
+            } else if(t.isDictionaryType()) {
+                // trivial: key/value type
+                auto key_t = t.keyType();
+                auto val_t = t.valueType();
+                auto num_elements = j.size();
+                auto pos = 0;
+                ss<<"{";
+                for(const auto& el : j.items()) {
+                    ss<<jsonToPython(el.key(), key_t)<<": "<<jsonToPython(el.value(), val_t);
+                    if(pos != num_elements - 1)
+                        ss<<", ";
+                    pos++;
+                }
+                ss<<"}";
+                return ss.str();
+            } else {
+                throw std::runtime_error("found json object, but can only decode as struct dict or homogenous dict - not as " + t.desc());
+            }
+        } else if(j.is_string()) {
+            if(t != python::Type::STRING)
+                throw std::runtime_error("encoding mismatch, not string type");
+            return escape_to_python_str(j.get<std::string>());
+            return j.get<std::string>();
+        } else if(j.is_number()) {
+            if(t != python::Type::I64 && t != python::Type::F64)
+                throw std::runtime_error("encoding mismatch, not number (float or int)");
+            if(j.is_number_float()) {
+                auto val = j.get<double>();
+                return t == python::Type::I64 ? std::to_string((int64_t)val) : std::to_string(val);
+            } else {
+                auto val = j.get<int64_t>();
+                return t == python::Type::I64 ? std::to_string(val) : std::to_string(val) + ".0";
+            }
+        } else if(j.is_null()) {
+            if(!t.isOptionType() && t != python::Type::NULLVALUE)
+                throw std::runtime_error("encoding mismatch, not null");
+            return "None";
+        } else if(j.is_boolean()) {
+            if(t != python::Type::BOOLEAN)
+                throw std::runtime_error("encoding mismatch, not boolean");
+            return j.get<bool>() ? "True" : "False";
+        } else {
+            throw std::runtime_error("unknown json encountered.");
+        }
+    }
+
+    std::string Field::internalJSONToPythonString() const {
+        // decode internal json string according to spec.
+        assert(_type.isDictionaryType());
+        if(_type == python::Type::EMPTYDICT)
+            return "{}";
+
+        // is it a structured key type?
+        if(_type.isStructuredDictionaryType() || _type.isDictionaryType()) {
+            // special case: parse JSON dict
+            nlohmann::json j;
+            if(!_ptrValue) {
+                std::cerr<<"INTERNAL ERROR: no value stored for dict"<<std::endl;
+                return "None";
+            }
+            std::string str(reinterpret_cast<const char*>(_ptrValue));
+            try {
+                j = nlohmann::json::parse(str);
+                return jsonToPython(j, _type);
+            } catch (nlohmann::json::parse_error& ex) {
+                std::cerr << "JSON parse error at byte " << ex.byte << std::endl;
+                return "json.loads(" + escape_to_python_str(str) + ")";
+            }
+        } else {
+            throw std::runtime_error("internal error, what other struct is stored as JSON?");
+        }
+        return "None";
+    }
+
 }

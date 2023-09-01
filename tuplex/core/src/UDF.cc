@@ -10,15 +10,17 @@
 
 #include <UDF.h>
 #include "../../adapters/cpython/include/PythonHelpers.h"
+#include "visitors/ReplaceConstantTypesVisitor.h"
 
 
 #include <graphviz/GraphVizGraph.h>
-#include <IPrePostVisitor.h>
+#include <visitors/IPrePostVisitor.h>
 #include <unordered_map>
-#include <IReplaceVisitor.h>
-#include <ColumnRewriteVisitor.h>
-#include <TraceVisitor.h>
-#include <ApplyVisitor.h>
+#include <visitors/IReplaceVisitor.h>
+#include <visitors/ColumnRewriteVisitor.h>
+#include <tracing/TraceVisitor.h>
+#include <visitors/ApplyVisitor.h>
+#include <visitors/IReplaceParameterVisitor.h>
 
 #ifndef NDEBUG
 static int g_func_counter = 0;
@@ -35,7 +37,7 @@ namespace tuplex {
              _code(pythonLambdaStr), _pickledCode(pickledCode),
              _outputSchema(Schema::UNKNOWN), _inputSchema(Schema::UNKNOWN),
              _dictAccessFound(false), _rewriteDictExecuted(false),
-             _policy(policy) {
+             _policy(policy), _numInputColumns(0) {
 
         // empty UDF.
         if(pythonLambdaStr.empty())
@@ -164,16 +166,30 @@ namespace tuplex {
     }
 
 
-    UDF& UDF::removeTypes(bool removeAnnotations) {
+    UDF& UDF::removeTypes(bool removeAnnotations, bool keep_column_annotation) {
 
+        _hintedInputSchema = Schema::UNKNOWN;
         _inputSchema = Schema::UNKNOWN;
         _outputSchema = Schema::UNKNOWN;
         _ast.removeParameterTypes();
 
+        // reset failed/iscompiled flags
+        _isCompiled = _ast.getFunctionAST(); // when ast is valid.
+
         // annotations as well?
         if(removeAnnotations) {
-            ApplyVisitor av([](const ASTNode* node){ return true; }, [](ASTNode& node) {
-                node.removeAnnotation();
+            ApplyVisitor av([](const ASTNode* node){ return true; },
+                            [&keep_column_annotation](ASTNode& node) {
+                if(keep_column_annotation) {
+                    // check if there is an annotation
+                    std::string col_name = node.hasAnnotation() ? node.annotation().originalColumnName : "";
+                    node.removeAnnotation();
+                    // recreate annotation, but keep only name
+                    if(!col_name.empty())
+                        node.annotation().originalColumnName = col_name;
+                } else
+                    node.removeAnnotation();
+
             });
             _ast.getFunctionAST()->accept(av);
         }
@@ -182,7 +198,9 @@ namespace tuplex {
     }
 
     Schema UDF::getInputSchema() const {
-        // assert(_inputSchema.getRowType() != python::Type::UNKNOWN);
+        // assert(_generalCaseInputSchema.getRowType() != python::Type::UNKNOWN);
+        assert(_inputSchema == Schema::UNKNOWN || _inputSchema.getRowType().isTupleType()
+               || _inputSchema.getRowType().isExceptionType());
         return _inputSchema;
     }
 
@@ -255,7 +273,7 @@ namespace tuplex {
                     foundPyObject = true;
 
                 // check pos args are not of pyobject, if they're default to fallback compilation...
-                for(auto arg : call->_positionalArguments) {
+                for(const auto &arg : call->_positionalArguments) {
                     if(arg->getInferredType() == python::Type::PYOBJECT)
                         foundPyObject = true;
                 }
@@ -287,12 +305,27 @@ namespace tuplex {
     }
 
     bool UDF::hintInputSchema(const Schema &schema, bool removeBranches, bool printErrors) {
+        // already typed? can't use hinting. Need to perform retyping.
+        if(isTyped())
+            throw std::runtime_error("UDF already typed, can't hint schema. Use retype instead.");
 
         _hintedInputSchema = schema;
         _inputSchema = Schema::UNKNOWN;
 
         _ast.setUnpacking(false);
         python::Type hintType = schema.getRowType();
+
+
+        // if it's not a tuple type, go directly to the special case...
+        if(!hintType.isTupleType())
+            hintType = codegenTypeToRowType(hintType);
+
+        // shortcut hint with exception type.
+        if(hintType.isExceptionType()) {
+            _inputSchema = _outputSchema = Schema(Schema::MemoryLayout::ROW, hintType);
+            return true;
+        }
+
         assert(hintType.isTupleType());
 
         // there are two cases now:
@@ -333,8 +366,13 @@ namespace tuplex {
                     _inputSchema = Schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType(_ast.getParameterTypes().argTypes));
                     _outputSchema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(_ast.getReturnType()));
 
+                    // well-typed? -> if not. abort.
+                    if(_outputSchema.getRowType().isIllDefined())
+                        return false;
+
                     if(hasPythonObjectTyping())
                         markAsNonCompilable();
+                    _numInputColumns = 1;
                     return true;
                 } else {
                     // hint with first element as tuple unpacked
@@ -348,6 +386,7 @@ namespace tuplex {
                     _outputSchema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(_ast.getReturnType()));
                     if(hasPythonObjectTyping())
                         markAsNonCompilable();
+                    _numInputColumns = hintType.parameters().front().parameters().size();
                     return true;
                 }
             } else {
@@ -379,6 +418,7 @@ namespace tuplex {
                 _outputSchema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(_ast.getReturnType()));
                 if(hasPythonObjectTyping())
                     markAsNonCompilable();
+                _numInputColumns = hintType.parameters().size();
                 return true;
             }
         } else {
@@ -416,8 +456,10 @@ namespace tuplex {
             _outputSchema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(_ast.getReturnType()));
             if(hasPythonObjectTyping())
                 markAsNonCompilable();
+            _numInputColumns = _inputSchema.getRowType().parameters().size();
             return true;
         }
+        _numInputColumns = 0;
         return false;
     }
 
@@ -435,9 +477,16 @@ namespace tuplex {
             // lambda syntax doesn't support this
 
             auto retType = _ast.getReturnType();
-            return Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(retType));
-        }
+            auto schema_row_type = codegenTypeToRowType(retType);
+            if(schema_row_type == python::Type::UNKNOWN)
+                return Schema::UNKNOWN;
 
+            auto schema = Schema(Schema::MemoryLayout::ROW, schema_row_type);
+            assert(schema.getRowType().isTupleType() || schema.getRowType().isExceptionType());
+            return schema;
+        }
+        // must be tuple type OR should be exception type only.
+        assert(_outputSchema.getRowType().isTupleType() || _outputSchema.getRowType().isExceptionType());
         return _outputSchema;
     }
 
@@ -542,8 +591,8 @@ namespace tuplex {
 
         // input type corresponds to how the function is called:
         cf.input_type = python::Type::makeTupleType(cg.getParameterTypes().argTypes);
-        cf.output_type = cg.getReturnType();
-
+        cf.output_python_type = cg.getReturnType();
+        cf.output_type = getOutputSchema().getRowType();
 
         // check whether given output schema differs from output_type.
         // ==> could be that e.g. a resolver requests upcasting!
@@ -551,8 +600,8 @@ namespace tuplex {
         // a.) could either do this by inserting dummy ast nodes, or simply b.) coding it directly up
         if(cg.getRowType() != getOutputSchema().getRowType()) {
             // is it a primitive or a tuple?
-            auto rt = cg.getReturnType();
-            python::Type targetType = getOutputSchema().getRowType();
+            auto rt = deoptimizedType(cg.getReturnType());
+            python::Type targetType = deoptimizedType(getOutputSchema().getRowType());
             if(rt.isPrimitiveType()) {
                 assert(targetType.parameters().size() == 1);
                 targetType = targetType.parameters().front();
@@ -570,15 +619,24 @@ namespace tuplex {
             cf.output_type = cg.getReturnType();
         }
 
-        if(0 == cf.input_type.parameters().size()) {
-            logger.error("code generation for user supplied function failed. Lambda function needs at least one parameter.");
-            return cf;
-        }
+        // is this really an error here?
+        // if(0 == cf.input_type.parameters().size()) {
+        //     logger.error("code generation for user supplied function failed. Lambda function needs at least one parameter.");
+        //     return cf;
+        // }
 
         // compile UDF to LLVM IR Code
         if(!cg.generateCode(&env, _policy)) {
             // log error and abort processing.
-            logger.error("code generation for user supplied function " + cg.getFunctionName() + " failed.");
+
+            std::stringstream err_stream;
+            err_stream<<"code generation for user supplied function " + cg.getFunctionName() + " failed.";
+            err_stream<<"\nDetails:\n"
+                      <<"input row type:  "<<getInputSchema().getRowType().desc()<<"\n"
+                      <<"input columns:   "<<this->_columnNames<<"\n"
+                      <<"output row type: "<<getOutputSchema().getRowType().desc()<<"\n"
+                      <<"is compiled:     "<<std::boolalpha<<isCompiled();
+            logger.error(err_stream.str());
             cf.function = nullptr; // invalidate func
             return cf;
         }
@@ -737,13 +795,25 @@ namespace tuplex {
         LambdaAccessedColumnVisitor() : _tupleArgument(false),
         _numColumns(0), _singleLambda(false) {}
 
+        // override subscript to handle special cases, i.e. stop traversal on (nested) dictionaries/lists.
+        virtual void visit(NSubscription* n) override;
+
 
         std::vector<size_t> getAccessedIndices() const;
     };
 
+    void LambdaAccessedColumnVisitor::visit(tuplex::NSubscription *n) {
+        if(!n)
+            return;
+
+        preOrder(n);
+        ApatheticVisitor::visit(n);
+        postOrder(n);
+    }
+
     std::vector<size_t> LambdaAccessedColumnVisitor::getAccessedIndices() const {
 
-        std::vector<size_t> idxs;
+        std::set<size_t> idxs;
 
         // first check what type it is
         if(_tupleArgument) {
@@ -751,19 +821,20 @@ namespace tuplex {
             std::string argName = _argNames.front();
             if(_argFullyUsed.at(argName)) {
                 for(unsigned i = 0; i < _numColumns; ++i)
-                    idxs.push_back(i);
+                    idxs.insert(i);
             } else {
-                return _argSubscriptIndices.at(argName);
+                auto v_idxs = _argSubscriptIndices.at(argName);
+                idxs = std::set<size_t>(v_idxs.begin(), v_idxs.end());
             }
         } else {
             // simple, see which params are fully used.
             for(unsigned i = 0; i < _argNames.size(); ++i) {
                 if(_argFullyUsed.at(_argNames[i]))
-                    idxs.push_back(i);
+                    idxs.insert(i);
             }
         }
 
-        return idxs;
+        return std::vector<size_t>(idxs.begin(), idxs.end());
     }
 
     void LambdaAccessedColumnVisitor::preOrder(ASTNode *node) {
@@ -783,9 +854,9 @@ namespace tuplex {
                 _numColumns = _tupleArgument ? itype.parameters().front().parameters().size() : itype.parameters().size();
 
                 // fetch identifiers for args
-                for(auto argNode : lambda->_arguments->_args) {
+                for(const auto &argNode : lambda->_arguments->_args) {
                     assert(argNode->type() == ASTNodeType::Parameter);
-                    NIdentifier* id = ((NParameter*)argNode)->_identifier;
+                    NIdentifier* id = ((NParameter*)argNode.get())->_identifier.get();
                     _argNames.push_back(id->_name);
                     _argFullyUsed[id->_name] = false;
                     _argSubscriptIndices[id->_name] = std::vector<size_t>();
@@ -809,9 +880,9 @@ namespace tuplex {
                 _numColumns = _tupleArgument ? itype.parameters().front().parameters().size() : itype.parameters().size();
 
                 // fetch identifiers for args
-                for(auto argNode : func->_parameters->_args) {
+                for(const auto &argNode : func->_parameters->_args) {
                     assert(argNode->type() == ASTNodeType::Parameter);
-                    NIdentifier* id = ((NParameter*)argNode)->_identifier;
+                    NIdentifier* id = ((NParameter*)argNode.get())->_identifier.get();
                     _argNames.push_back(id->_name);
                     _argFullyUsed[id->_name] = false;
                     _argSubscriptIndices[id->_name] = std::vector<size_t>();
@@ -835,6 +906,10 @@ namespace tuplex {
             case ASTNodeType::Subscription: {
                 NSubscription* sub = (NSubscription*)node;
 
+                // ignore subs that are typed as KeyError or unknown
+                if(sub->getInferredType() == python::Type::UNKNOWN || sub->getInferredType().isExceptionType())
+                    return;
+
                 assert(sub->_value->getInferredType() != python::Type::UNKNOWN); // type annotation/tracing must have run for this...
 
                 auto val_type = sub->_value->getInferredType();
@@ -842,19 +917,20 @@ namespace tuplex {
                 // just simple stuff yet.
                 if (sub->_value->type() == ASTNodeType::Identifier &&
                     (val_type.isTupleType() || val_type.isDictionaryType())) {
-                    NIdentifier* id = (NIdentifier*)sub->_value;
+                    NIdentifier* id = (NIdentifier*)sub->_value.get();
 
                     // first check whether this identifier is in args,
                     // if not ignore.
                     if(std::find(_argNames.begin(), _argNames.end(), id->_name) != _argNames.end()) {
                         // no nested paths yet, i.e. x[0][2]
                         if(sub->_expression->type() == ASTNodeType::Number) {
-                            NNumber* num = (NNumber*)sub->_expression;
-
+                            NNumber* num = (NNumber*)sub->_expression.get();
+#ifndef NDEBUG
                             // should be I64 or bool
-                            assert(num->getInferredType() == python::Type::BOOLEAN ||
-                                   num->getInferredType() == python::Type::I64);
-
+                            auto deopt_num_type = deoptimizedType(num->getInferredType());
+                            assert(deopt_num_type == python::Type::BOOLEAN ||
+                                   deopt_num_type == python::Type::I64);
+#endif
 
                             // can save this one!
                             auto idx = num->getI64();
@@ -881,7 +957,7 @@ namespace tuplex {
         }
     }
 
-    std::vector<size_t> UDF::getAccessedColumns() {
+    std::vector<size_t> UDF::getAccessedColumns(bool ignoreConstantTypedColumns) {
 
         // need valid input schema!
         assert(!(getInputSchema() == Schema::UNKNOWN));
@@ -909,7 +985,27 @@ namespace tuplex {
         auto root = getAnnotatedAST().getFunctionAST();
         LambdaAccessedColumnVisitor acv;
         root->accept(acv);
-        return acv.getAccessedIndices();
+        auto indices = acv.getAccessedIndices();
+
+        if(ignoreConstantTypedColumns) {
+            auto input_row_type = getInputSchema().getRowType();
+            assert(input_row_type.isTupleType());
+            if(_numInputColumns != 1 && input_row_type.parameters().size() == 1)
+                input_row_type = input_row_type.parameters().front();
+
+            assert(input_row_type.isTupleType());
+            std::vector<size_t> filtered_indices;
+            filtered_indices.reserve(_numInputColumns);
+            // check column input types...
+            for(auto idx : indices) {
+                assert(idx < input_row_type.parameters().size());
+                if(!input_row_type.parameters()[idx].isConstantValued())
+                    filtered_indices.push_back(idx);
+            }
+            return filtered_indices;
+        }
+
+        return indices;
     }
 
 
@@ -949,7 +1045,7 @@ namespace tuplex {
         }
     };
 
-    ASTNode* RewriteVisitor::replace(ASTNode *parent, ASTNode *node) {
+    ASTNode* RewriteVisitor::replace(ASTNode *parent, ASTNode* node) {
 
         if(!node)
             return nullptr;
@@ -974,9 +1070,9 @@ namespace tuplex {
                                          : itype.parameters().size();
 
             // fetch identifiers for args
-            for (auto argNode : lambda->_arguments->_args) {
+            for (const auto &argNode : lambda->_arguments->_args) {
                 assert(argNode->type() == ASTNodeType::Parameter);
-                NIdentifier *id = ((NParameter *) argNode)->_identifier;
+                NIdentifier *id = ((NParameter *) argNode.get())->_identifier.get();
                 _argNames.push_back(id->_name);
             }
 
@@ -1000,9 +1096,9 @@ namespace tuplex {
                                          : itype.parameters().size();
 
             // fetch identifiers for args
-            for (auto argNode : func->_parameters->_args) {
+            for (const auto &argNode : func->_parameters->_args) {
                 assert(argNode->type() == ASTNodeType::Parameter);
-                NIdentifier *id = ((NParameter *) argNode)->_identifier;
+                NIdentifier *id = ((NParameter *) argNode.get())->_identifier.get();
                 _argNames.push_back(id->_name);
             }
 
@@ -1030,6 +1126,13 @@ namespace tuplex {
                         auto ptype = ftype.getParamsType();
                         assert(ptype.isTupleType());
                         assert(ptype.parameters().size() == 1);
+#ifndef NDEBUG
+                        if(paramList->getInferredType() != ptype) {
+                            std::cerr<<"assert failed with: "<<paramList->getInferredType().hash()
+                                     <<" != "<<ptype.hash()<<" , "<<paramList->getInferredType().desc()
+                                     <<" vs. "<<ptype.desc()<<std::endl;
+                        }
+#endif
                         assert(paramList->getInferredType() == ptype);
 
                         // single argument
@@ -1068,17 +1171,15 @@ namespace tuplex {
 
                         // need to replace paramlist with params to rewrite
                         // reduce
-                        std::vector<ASTNode*> keepNodes;
+                        std::vector<std::unique_ptr<ASTNode>> keepNodes;
 
                         for(unsigned i = 0; i < _numColumns; ++i) {
                             if(_rewriteMap.find(i) != _rewriteMap.end()) {
-                                keepNodes.push_back(paramList->_args[i]);
+                                keepNodes.push_back(std::move(paramList->_args[i]));
                                 reducedArgTypes.push_back(ptype.parameters()[i]);
-                            } else {
-                                delete paramList->_args[i];
                             }
                         }
-                        paramList->_args = keepNodes;
+                        paramList->_args = std::move(keepNodes);
 
                         // update type
                         ptype = python::Type::makeTupleType(reducedArgTypes);
@@ -1107,20 +1208,20 @@ namespace tuplex {
                     if(sub->_value->type() == ASTNodeType::Identifier &&
                     sub->_expression->type() == ASTNodeType::Number) {
                         // matches argname?
-                        NIdentifier* id = (NIdentifier*)sub->_value;
+                        NIdentifier* id = (NIdentifier*)sub->_value.get();
 
                         if(id->_name == _argNames.front()) {
-                            assert(sub->_expression->getInferredType() == python::Type::I64 ||
-                            sub->_expression->getInferredType() == python::Type::BOOLEAN);
-
+#ifndef NDEBUG
+                            auto exp_type = deoptimizedType(sub->_expression->getInferredType());
+                            assert(exp_type == python::Type::I64 || exp_type == python::Type::BOOLEAN);
+#endif
                             // there are two options:
                             // opt1: expression is a simple number
                             if(sub->_expression->type() == ASTNodeType::Number) {
-                                auto old_idx = ((NNumber*)sub->_expression)->getI64();
+                                auto old_idx = ((NNumber*)sub->_expression.get())->getI64();
                                 // correct for negative indices
                                 if(old_idx < 0)
                                     old_idx += _numColumns;
-
 
                                 // assert(0 <= old_idx && old_idx < _numColumns);
 
@@ -1140,8 +1241,7 @@ namespace tuplex {
                                 // replace
                                 NNumber* num_new = new NNumber(std::to_string(new_idx));
 
-                                delete sub->_expression;
-                                sub->_expression = num_new;
+                                sub->_expression = std::unique_ptr<ASTNode>(num_new);
                             } else {
                                 // opt2: it is something else
                                 // trick is to add a NBinaryOp to remap the index
@@ -1153,17 +1253,77 @@ namespace tuplex {
                     }
                 }
             }
+            default: {
+                // do nothing...
+                break;
+            }
         }
 
         // no replacement
         return node;
     }
 
-    void UDF::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
+    void UDF::resetAST() {
+        this->_rewriteDictExecuted = false;
+        _columnNames.clear();
+        _rewriteMap.clear();
+
+        // only parse of code length > 0
+        if(_code.length() > 0 && _compilationEnabled)
+            // attempt to parse code
+            // if it fails, make sure a backup solution in the form of pickled code is existing
+            _ast.parseString(_code);
+
+    }
+
+    std::unordered_map<size_t, size_t> UDF::defaultRewriteMap() const {
+        std::unordered_map<size_t, size_t> m;
+
+        auto input_row_type = getInputSchema().getRowType();
+        if(python::Type::UNKNOWN == input_row_type)
+            return m;
+
+        if(!input_row_type.isTupleType()) {
+            m[0] = 0;
+            return m;
+        }
+
+        for(unsigned i = 0; i < _numInputColumns; ++i)
+            m[i] = i;
+        return m;
+    }
+
+    bool UDF::isDefaultRewriteMap(const std::unordered_map<size_t, size_t>& rewriteMap) {
+        auto m = defaultRewriteMap();
+        if(m.size() != rewriteMap.size())
+            return false;
+
+        // check that every pair of m is within rewriteMap and identical
+        for(auto kv : m) {
+            auto it = rewriteMap.find(kv.first);
+            if(it->second != kv.second)
+                return false;
+        }
+        return true;
+    }
+
+    bool UDF::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
+        _rewriteMap = rewriteMap;
+
+        // same as default Map? skip.
+        if(isDefaultRewriteMap(rewriteMap))
+            return true;
+
+        // special case: rewrite to no params...
+        // // no rewrite map, skip.
+        // if(rewriteMap.empty()) {
+        //     throw std::runtime_error("special acse: emptuy rewrite map means no columns should be parsed! fix this.");
+        //     return true;
+        // }
 
         // is UDF compilable? if not, can't rewrite (fallback)
         if(!isCompiled() && !empty())
-            return;
+            return true;
 
         using namespace std;
         auto root = getAnnotatedAST().getFunctionAST();
@@ -1197,7 +1357,7 @@ namespace tuplex {
             setInputSchema(new_schema);
             setOutputSchema(new_schema);
 
-            return;
+            return true;
         }
 
         // call the replace visitor
@@ -1208,7 +1368,7 @@ namespace tuplex {
 
         // need to update type hints too. Else, everything gets overwritten from the code generator.
         auto hints = rv.getTypeHints();
-        for(auto el : hints)
+        for(const auto &el : hints)
             getAnnotatedAST().addTypeHint(el.first, el.second);
 
         // call define types then again
@@ -1223,9 +1383,78 @@ namespace tuplex {
         Logger::instance().defaultLogger().debug("saving rewritten Python AST to PDF skipped.");
 #endif
 #endif
+        return true;
     }
 
-    bool UDF::rewriteDictAccessInAST(const std::vector<std::string> &columnNames, const std::string& parameterName) {
+    std::unordered_map<std::string, python::Type> UDF::constantColumnMap() const {
+        std::unordered_map<std::string, python::Type> m;
+        // go through input columns and check whether they're constant, return array then.
+
+        auto input_row_type = getInputSchema().getRowType();
+        assert(input_row_type.isTupleType());
+        if(_numInputColumns != 1 && input_row_type.parameters().size() == 1)
+            input_row_type = input_row_type.parameters().front();
+
+        input_row_type = python::Type::propagateToTupleType(input_row_type);
+
+        for(unsigned i = 0; i < _columnNames.size(); ++i) {
+            assert(i < input_row_type.parameters().size());
+            auto col_type = input_row_type.parameters()[i];
+
+            if(col_type.isConstantValued())
+                m[_columnNames[i]] = col_type;
+        }
+
+        return m;
+    }
+
+
+    class ReplaceConstantColumnAccessesVisitor : public IReplaceParameterVisitor {
+    private:
+        std::string _parameter;
+        std::unordered_map<std::string, python::Type> _additional_type_hints; // additional hints for name -> col.
+    protected:
+        inline ASTNode* replaceAccess(NSubscription* sub) override {
+            if(!sub)
+                return nullptr;
+            auto id = (NIdentifier*)(sub->_value.get());
+            auto expr_type = sub->_expression->getInferredType();
+            std::string key = "";
+            if(sub->_expression->type() == ASTNodeType::String) {
+                key = ((NString*)(sub->_expression.get()))->value();
+            } else if(expr_type.isConstantValued() && expr_type.underlying() == python::Type::STRING) {
+                key = str_value_from_python_raw_value(expr_type.constant());
+            } else {
+                return sub;
+            }
+
+            // check if there's a match within type hints & it is constnt -> then ovveride
+            auto it = _additional_type_hints.find(key);
+            if(it != _additional_type_hints.end() && it->second.isConstantValued()) {
+                // replace sub with constant!
+                auto new_node = astNodeFromConstType(it->second);
+                if(new_node)
+                    return new_node;
+            }
+
+            return sub;
+        }
+    public:
+        ReplaceConstantColumnAccessesVisitor() = delete;
+        ReplaceConstantColumnAccessesVisitor(const std::string& parameter,
+                                             const std::unordered_map<std::string, python::Type>& coltype_hints) : IReplaceParameterVisitor(parameter),
+                                             _additional_type_hints(coltype_hints) {}
+    };
+
+    bool UDF::rewriteDictAccessInAST(const std::vector<std::string> &columnNames,
+                                     const std::string& parameterName,
+                                     const std::unordered_map<std::string, python::Type>& coltype_hints) {
+        auto& logger = Logger::instance().logger("logical");
+
+        // save
+        auto original_column_names = _columnNames;
+
+        _columnNames = columnNames;
 
         // UDF compiled? if not, nothing to be done
         if(!isCompiled())
@@ -1255,7 +1484,7 @@ namespace tuplex {
             parameter = parameterName;
         else if(!parameterName.empty()) {
 #ifndef NDEBUG
-            Logger::instance().defaultLogger().debug("attempting to rewrite param " + parameterName + " which is not in param list...");
+            logger.debug("attempting to rewrite param " + parameterName + " which is not in param list...");
 #endif
         }
 
@@ -1264,7 +1493,29 @@ namespace tuplex {
 
         // got a param to rewrite?
         if(!parameter.empty()) {
-            ColumnRewriteVisitor crv(columnNames, parameter);
+            // additional hints? -> rewrite constant accesses!
+            if(!coltype_hints.empty()) {
+                logger.debug("using additional coltypes to rewrite parameter access");
+                ReplaceConstantColumnAccessesVisitor rccav(parameter, coltype_hints) ;
+                root->accept(rccav);
+            }
+
+            // are column names the same? If not, deoptimize first by rewriting numbers into columns
+            if(!original_column_names.empty() && !vec_equal(columnNames, original_column_names)) {
+                logger.debug("column names differ, restoring column access via column names.");
+                ColumnRewriteVisitor crv(original_column_names,
+                                         parameter,
+                                         _rewriteMap,
+                                         ColumnRewriteMode::INDEX_TO_NAME);
+                root->accept(crv);
+                if(crv.failed()) {
+                    logger.error("failed to rewrite indices to names");
+                    return false;
+                }
+            }
+
+            // rewrite again, but with new columns!
+            ColumnRewriteVisitor crv(columnNames, parameter, _rewriteMap, ColumnRewriteMode::NAME_TO_INDEX);
             root->accept(crv);
 
             if(crv.failed())
@@ -1290,8 +1541,8 @@ namespace tuplex {
         return true;
     }
 
-    void UDF::saveASTToPDF(const std::string &filePath) {
-        getAnnotatedAST().writeGraphToPDF(filePath);
+    void UDF::saveASTToPDF(const std::string &filePath, bool with_types) {
+        getAnnotatedAST().writeGraphToPDF(filePath, with_types);
     }
 
     bool UDF::dictMode() const {
@@ -1336,7 +1587,9 @@ namespace tuplex {
 
 
     bool UDF::hintSchemaWithSample(const std::vector<PyObject *>& sample, const python::Type& inputRowType, bool acquireGIL) {
-        TraceVisitor tv(inputRowType);
+        auto& logger = Logger::instance().logger("type inference");
+
+        TraceVisitor tv(inputRowType, _policy);
 
         auto funcNode = _ast.getFunctionAST();
 
@@ -1351,7 +1604,7 @@ namespace tuplex {
         tv.setClosure(_ast.globals(), false);
 
         for(auto args : sample)
-            tv.recordTrace(funcNode, args);
+            tv.recordTrace(funcNode, args, _columnNames);
         // record the total number of samples (used to check in TypeAnnotatorVisitor if every sample corresponds to a normal case violation)
         funcNode->annotation().numTimesVisited = sample.size();
         addCompileErrors(tv.getCompileErrors());
@@ -1371,10 +1624,23 @@ namespace tuplex {
         //_ast.setUnpacking(tv.unpackParams());
 
         auto row_type = tv.majorityOutputType().isExceptionType() ? tv.majorityOutputType() : python::Type::propagateToTupleType(tv.majorityOutputType());
-        _outputSchema = Schema(Schema::MemoryLayout::ROW, row_type);
+        _outputSchema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(row_type));
 
         // run type annotator on top of tree which has been equipped with annotations now
-        hintInputSchema(Schema(Schema::MemoryLayout::ROW, inputSchema.getRowType()), false, false); // TODO: could do this directly in tracevisitor as well, but let's separate concerns here...
+        auto res = hintInputSchema(Schema(Schema::MemoryLayout::ROW, inputSchema.getRowType()), false, false); // TODO: could do this directly in tracevisitor as well, but let's separate concerns here...
+        if(!res) {
+            // gey typing error messages
+            std::stringstream  ss;
+            if(!_ast.typingErrMessages().empty()) {
+                ss<<"\n";
+                for(auto err : _ast.typingErrMessages()) {
+                    ss<<"  -- "<<err<<"\n";
+                }
+            }
+
+            logger.error("type inference using traced sample failed. Details: Failed to annotate AST tree with tracing results." + ss.str());
+            return false;
+        }
 
         _inputSchema = inputSchema; // somehow hintInputSchema overwrites current one? => Restore.
 
@@ -1426,5 +1692,160 @@ namespace tuplex {
 
         // else, create new UDF based on whatever is already here
         return UDF(_code, _pickledCode, _ast.globals(), policy);
+    }
+
+    void UDF::optimizeConstants() {
+        // run reduce expressions visitor to fold whatever is possible...
+        _ast.reduceConstantTypes();
+
+        // rerun define types
+        // rerun types
+        bool silent = true;
+        bool removeBranches = true;
+        auto res = _ast.redefineTypes(_policy, silent, removeBranches);
+        assert(res); // <-- this should NOT fail.
+    }
+
+    bool UDF::hasWellDefinedTypes() const {
+        // input schema ok?
+        if(_inputSchema == Schema::UNKNOWN)
+            return false;
+        if(_outputSchema == Schema::UNKNOWN)
+            return false;
+        if(_ast.getFunctionAST()) {
+            // check AST
+            // is there any node?
+            bool unknown_found = false;
+            ApplyVisitor av([](const ASTNode* node) { return true; }, [&unknown_found](ASTNode& node) {
+                if(node.getInferredType() == python::Type::UNKNOWN)
+                    unknown_found = true;
+            });
+            _ast.getFunctionAST()->accept(av);
+            return !unknown_found;
+        }
+        return true;
+    }
+
+    std::string UDF::desc() const {
+        std::stringstream ss;
+        ss<<"is typed: "<<std::boolalpha<<isTyped()<<std::endl;
+        auto func_ast = _ast.getFunctionAST();
+        if(func_ast) {
+            ss<<"python type: "<<func_ast->getInferredType().desc()<<std::endl;
+        } else {
+            ss<<"no ast"<<std::endl;
+        }
+
+        return ss.str();
+    }
+
+    class FirstArgRewriteVisitor : public IReplaceVisitor {
+    public:
+        FirstArgRewriteVisitor(const std::string& parameter_name) : _parameter_name(parameter_name), _func_type(ASTNodeType::UNKNOWN) {}
+    protected:
+        ASTNode* replace(ASTNode* parent, ASTNode* node) {
+
+            // there are two scenarios:
+            // 1. def'ed function => add assignment instruction that wraps the single param
+
+            // 2. Lambda => b.c. := is not supported, need to rewrite parameter_name[0] to parameter_name.
+            // for the future, if := should be supported -> same idea as in def'ed function
+
+            if(parent->type() == ASTNodeType::Function)
+                _func_type = ASTNodeType::Function;
+            if(parent->type() == ASTNodeType::Lambda)
+                _func_type = ASTNodeType::Lambda;
+
+            if(node->type() == ASTNodeType::Function)
+                _func_type = ASTNodeType::Function;
+            if(node->type() == ASTNodeType::Lambda)
+                _func_type = ASTNodeType::Lambda;
+
+            // now replace
+            switch(node->type()) {
+                case ASTNodeType::Subscription: {
+                   if(_func_type == ASTNodeType::Lambda) {
+                        // is parameter indexed?
+                        auto sub = (NSubscription*)node;
+                        if(sub->_value->type() == ASTNodeType::Identifier) {
+                            auto id = (NIdentifier*)sub->_value.get();
+                            if(id->_name == _parameter_name) {
+                                if(sub->_expression->type() == ASTNodeType::Number) {
+                                    auto num = (NNumber*)sub->_expression.get();
+                                    if(num->getI64() == 0) {
+                                        // release num and replace sub with value!
+                                        auto ptr = sub->_value.release();
+                                        sub->_value = nullptr;
+                                        return ptr;
+                                    }
+                                }
+                            }
+                        }
+                   }
+                   break;
+                }
+
+                // special case: for def'ed function -> add assign statement!
+                case ASTNodeType::Function: {
+                    assert(_func_type == ASTNodeType::Function);
+
+                    auto func = (NFunction*)node;
+                    // create new node!
+                    throw std::runtime_error("new node needed!");
+
+                    break;
+                }
+                case ASTNodeType::Suite: {
+                    auto suite = (NSuite*)node;
+                    if(parent->type() == ASTNodeType::Function) {
+                        throw std::runtime_error("code to fix this here neeeded");
+                    }
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+
+            return node;
+        }
+    private:
+        std::string _parameter_name;
+        ASTNodeType _func_type;
+    };
+
+    bool UDF::retype(const python::Type& new_row_type) {
+
+        // make sure it's a row type (or exception)
+        assert(new_row_type.isExceptionType() || new_row_type.isTupleType());
+
+        // what is the status of the UDF? has it been typed already?
+        if(!hasWellDefinedTypes()) {
+           // no types yet, type with hintInputSchema
+           return hintInputSchema(Schema(Schema::MemoryLayout::ROW, new_row_type));
+        } else {
+            // special case: new row type has a single element && UDF has single param
+            if(new_row_type.parameters().size() == 1 && getInputParameters().size() == 1) {
+                // -> rewrite access like lambda x: x[0] to lambda x: x.
+                // this only applies if first param is not a tuple (except empty tuple)
+                auto first_param_type = new_row_type.parameters().front();
+                auto input_params = getInputParameters();
+                auto parameter_name = std::get<0>(input_params.front());
+                if(first_param_type == python::Type::EMPTYTUPLE || !first_param_type.isTupleType()) {
+                    // rewrite AST
+                    FirstArgRewriteVisitor farv(parameter_name);
+                    assert(_ast.getFunctionAST());
+                    _ast.getFunctionAST()->accept(farv);
+                }
+            }
+            // remove types & rehint!
+            removeTypes(false); // keep annotations?
+
+            // reset schema
+            _hintedInputSchema = Schema::UNKNOWN;
+            return hintInputSchema(Schema(Schema::MemoryLayout::ROW, new_row_type));
+        }
+
+        return false;
     }
 }

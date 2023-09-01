@@ -11,13 +11,14 @@
 #include <logical/MapColumnOperator.h>
 
 namespace tuplex {
-    MapColumnOperator::MapColumnOperator(tuplex::LogicalOperator *parent, const std::string &columnName, const std::vector<std::string>& columns,
-                                         const tuplex::UDF &udf) : UDFOperator::UDFOperator(parent, udf, columns), _columnToMap(columnName) {
+    MapColumnOperator::MapColumnOperator(const std::shared_ptr<LogicalOperator>& parent, const std::string &columnName, const std::vector<std::string>& columns,
+                                         const tuplex::UDF &udf,
+                                         const std::unordered_map<size_t, size_t>& rewriteMap) : UDFOperator::UDFOperator(parent, udf, columns, rewriteMap), _columnToMap(columnName) {
 
         _columnToMapIndex = indexInVector(columnName, columns);
         assert(_columnToMapIndex >= 0);
-
-        setSchema(inferSchema(parent->getOutputSchema()));
+        if(parent)
+            setOutputSchema(inferSchema(parent->getOutputSchema(), false));
 
 //#ifndef NDEBUG
 //        Logger::instance().defaultLogger().info("detected output type for " + name() + " operator is " + schema().getRowType().desc());
@@ -27,7 +28,7 @@ namespace tuplex {
 
 #warning "make sure that that mapColumn function is compatible!!!!"
 
-    Schema MapColumnOperator::inferSchema(Schema parentSchema) {
+    Schema MapColumnOperator::inferSchema(Schema parentSchema, bool is_projected_row_type) {
         // ATTENTION!!!
         // in map column operator NO column rewrite will be undertaken
         // in withColumn it will be though...
@@ -48,12 +49,20 @@ namespace tuplex {
             // note: there is NO UDF rewrite here, because single element is used.
             // ==> wrong usage should be indicated.
 
-            auto hintSchema = Schema(parentSchema.getMemoryLayout(), python::Type::propagateToTupleType(colTypes[_columnToMapIndex]));
-            if(!_udf.hintInputSchema(hintSchema))
-                throw std::runtime_error("could not hint input schema for mapColumn operator. Please check semantics!");
+            Schema udf_output_schema;
+
+            // schema already defined within udf? => use output schema!
+            if(_udf.getInputSchema() != Schema::UNKNOWN && _udf.getOutputSchema() != Schema::UNKNOWN)
+                udf_output_schema = _udf.getOutputSchema();
+            else {
+                auto hintSchema = Schema(parentSchema.getMemoryLayout(), python::Type::propagateToTupleType(colTypes[_columnToMapIndex]));
+                if(!_udf.hintInputSchema(hintSchema))
+                    throw std::runtime_error("could not hint input schema for mapColumn operator. Please check semantics!");
+                udf_output_schema = _udf.getOutputSchema();
+            }
 
             // check what type udf returns
-            auto udfResType = _udf.getOutputSchema().getRowType();
+            auto udfResType = udf_output_schema.getRowType();
 
             assert(udfResType.isTupleType());
             // single element? or multiple?
@@ -70,14 +79,12 @@ namespace tuplex {
 
         auto retType = python::Type::makeTupleType(colTypes);
 
-        // Logger::instance().defaultLogger().info("detected type for " + name() + " operator is " + retType.desc());
-
         return Schema(parentSchema.getMemoryLayout(), retType);
     }
 
     void MapColumnOperator::setDataSet(tuplex::DataSet *dsptr) {
         // check whether schema is ok, if not set error dataset!
-        if(schema().getRowType().isIllDefined())
+        if(getOutputSchema().getRowType().isIllDefined())
             LogicalOperator::setDataSet(&dsptr->getContext()->makeError("schema could not be propagated successfully"));
         else
             LogicalOperator::setDataSet(dsptr);
@@ -138,6 +145,7 @@ namespace tuplex {
 
 
     void MapColumnOperator::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
+        // throw std::runtime_error("not sure what's going on here...");
         if(rewriteMap.find(_columnToMapIndex) != rewriteMap.end())
             _columnToMapIndex = rewriteMap.at(_columnToMapIndex);
         else
@@ -147,29 +155,40 @@ namespace tuplex {
         projectColumns(rewriteMap);
 
         // update schema
-        setSchema(inferSchema(parent()->getOutputSchema()));
+        setOutputSchema(inferSchema(parent()->getOutputSchema(), false));
     }
 
-    LogicalOperator *MapColumnOperator::clone() {
-        auto copy = new MapColumnOperator(parent()->clone(), _columnToMap,
-                                          UDFOperator::columns(), _udf);
+    std::shared_ptr<LogicalOperator> MapColumnOperator::clone(bool cloneParents) {
+        auto copy = new MapColumnOperator(cloneParents ? parent()->clone() : nullptr, _columnToMap,
+                                          UDFOperator::columns(), _udf, UDFOperator::rewriteMap());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         assert(getID() == copy->getID());
-        return copy;
+        return std::shared_ptr<LogicalOperator>(copy);
     }
 
-    bool MapColumnOperator::retype(const std::vector<python::Type> &rowTypes) {
+    bool MapColumnOperator::retype(const RetypeConfiguration& conf) {
         assert(good());
+
+        auto input_row_type = conf.row_type;
 
         // save old schema
         auto oldIn = getInputSchema();
         auto oldOut = getOutputSchema();
 
         // infer new schema using one row type
-        assert(rowTypes.size() == 1);
-        assert(rowTypes[0].isTupleType());
-        auto colTypes = rowTypes.front().parameters();
+        assert(input_row_type.isTupleType());
+        auto colTypes = input_row_type.parameters();
+
+        // check that number of parameters are identical, else can't rewrite (need to project first!)
+        auto old_input_type = oldIn.getRowType().parameters().at(_columnToMapIndex);
+        size_t num_params_before_retype = oldIn.getRowType().parameters().size();
+        size_t num_params_after_retype = colTypes.size();
+        if(num_params_before_retype != num_params_after_retype) {
+            throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");
+        }
+
+        throw std::runtime_error("redesign");
 
         python::Type udfResType = python::Type::UNKNOWN;
         auto memLayout = oldOut.getMemoryLayout();
@@ -201,10 +220,10 @@ namespace tuplex {
         // success?
         if(udfResType != python::Type::UNKNOWN) {
             // set schema
-            setSchema(Schema(memLayout, python::Type::makeTupleType(colTypes)));
+            setOutputSchema(Schema(memLayout, python::Type::makeTupleType(colTypes)));
             return true;
         } else {
-            setSchema(oldOut);
+            setOutputSchema(oldOut);
             return false;
         }
 

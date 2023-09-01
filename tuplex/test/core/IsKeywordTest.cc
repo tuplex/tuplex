@@ -14,7 +14,7 @@
 #include <random>
 
 #include "gtest/gtest.h"
-#include <AnnotatedAST.h>
+#include <ast/AnnotatedAST.h>
 #include <graphviz/GraphVizGraph.h>
 #include "../../codegen/include/parser/Parser.h"
 

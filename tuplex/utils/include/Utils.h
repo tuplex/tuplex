@@ -14,11 +14,14 @@
 // standard message strings
 #define MISSING_ORC_MESSAGE ("Tuplex was not built with ORC support. To build Tuplex with ORC, set BUILD_WITH_ORC=ON.")
 
-
+#include <random>
+#include <ctime>
 #include "Base.h"
 #include "StringUtils.h"
 #include "StatUtils.h"
 #include "optional.h"
+
+#include "compression.h"
 
 #include <Logger.h>
 
@@ -29,6 +32,13 @@
 #include <cerrno>
 #include <cstring>
 #include <unordered_map>
+
+// note: there're different options re the IANA tz database
+// do not download, just rely on OS
+#define USE_OS_TZDB 1
+
+#include "third_party/date/date.h"
+#include "third_party/date/tz.h"
 
 #include <utility>
 #include <cstdint>
@@ -59,6 +69,33 @@ namespace std {
 #include <libgen.h>
 
 #include <boost/filesystem.hpp>
+
+#include <regex>
+
+#if defined(_WIN32)
+#include <windows.h>
+#include <psapi.h>
+
+#elif defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
+#include <unistd.h>
+#include <sys/resource.h>
+
+#if defined(__APPLE__) && defined(__MACH__)
+#include <mach/mach.h>
+#undef FALSE
+#undef TRUE
+#elif (defined(_AIX) || defined(__TOS__AIX__)) || (defined(__sun__) || defined(__sun) || defined(sun) && (defined(__SVR4) || defined(__svr4__)))
+#include <fcntl.h>
+#include <procfs.h>
+
+#elif defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
+#include <stdio.h>
+
+#endif
+
+#else
+#error "Cannot define getPeakRSS( ) or getCurrentRSS( ) for an unknown OS."
+#endif
 
 static_assert(__cplusplus >= 201402L, "need at least C++ 14 to compile this file");
 // check https://blog.galowicz.de/2016/02/20/short_file_macro/
@@ -133,46 +170,55 @@ namespace std
     // See Mike Seymour in magic-numbers-in-boosthash-combine:
     //     https://stackoverflow.com/questions/4948780
 
-    template <class T>
-    inline void hash_combine(std::size_t& seed, T const& v)
-    {
-        seed ^= hash<T>()(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+    template<class T>
+    inline void hash_combine(std::size_t &seed, T const &v) {
+        seed ^= hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
 
     // Recursive template code derived from Matthieu M.
-    template <class Tuple, size_t Index = std::tuple_size<Tuple>::value - 1>
-    struct HashValueImpl
-    {
-        static void apply(size_t& seed, Tuple const& tuple)
-        {
-            HashValueImpl<Tuple, Index-1>::apply(seed, tuple);
+    template<class Tuple, size_t Index = std::tuple_size<Tuple>::value - 1>
+    struct HashValueImpl {
+        static void apply(size_t &seed, Tuple const &tuple) {
+            HashValueImpl<Tuple, Index - 1>::apply(seed, tuple);
             hash_combine(seed, get<Index>(tuple));
         }
     };
 
-    template <class Tuple>
-    struct HashValueImpl<Tuple,0>
-    {
-        static void apply(size_t& seed, Tuple const& tuple)
-        {
+    template<class Tuple>
+    struct HashValueImpl<Tuple, 0> {
+        static void apply(size_t &seed, Tuple const &tuple) {
             hash_combine(seed, get<0>(tuple));
         }
     };
 
-template <typename ... TT>
-struct hash<std::tuple<TT...>>
-{
-    size_t
-    operator()(std::tuple<TT...> const& tt) const
-    {
-        size_t seed = 0;
-        HashValueImpl<std::tuple<TT...> >::apply(seed, tt);
-        return seed;
-    }
+    template<typename ... TT>
+    struct hash<std::tuple<TT...>> {
+        size_t
+        operator()(std::tuple<TT...> const &tt) const {
+            size_t seed = 0;
+            HashValueImpl<std::tuple<TT...> >::apply(seed, tt);
+            return seed;
+        }
 
-};
+    };
 
+    template<typename T> struct hash<std::vector<T>> {
+        size_t operator ()(std::vector<T> const& v) const {
+            size_t seed = 0;
+            for(const auto& el : v)
+                hash_combine(seed, el);
+            return seed;
+        }
+    };
 
+    template<typename T1, typename T2> struct hash<std::pair<T1,T2>> {
+        size_t operator()(std::pair<T1,T2> const& v) const {
+            size_t seed = 0;
+            hash_combine(seed, v.first);
+            hash_combine(seed, v.second);
+            return seed;
+        }
+    };
 }
 
 // llvm has competing debug macro -.-
@@ -180,6 +226,106 @@ struct hash<std::tuple<TT...>>
 // #define TUPLEX_DEBUG
 
 namespace tuplex {
+
+    // random uniform integer
+    template<typename T> T randi(const T& low, const T& high) {
+        std::random_device rd;
+        std::mt19937 rng(rd());
+        std::uniform_int_distribution<int> uni(low, high);
+
+        auto random_integer = uni(rng);
+        return random_integer;
+    }
+
+    inline std::vector<unsigned> sample_without_replacement(unsigned N, unsigned num_samples, int random_seed) {
+        // from https://bastian.rieck.me/blog/posts/2017/selection_sampling/
+        auto seed = random_seed < 0 ? static_cast<long unsigned int>(time(0)) : random_seed;
+        std::default_random_engine e(seed);
+
+        std::uniform_real_distribution<> U( 0, std::nextafter(1.0, std::numeric_limits<double>::max() ) );
+
+        std::vector<unsigned> selected;
+        selected.reserve(num_samples);
+
+        assert(num_samples <= N);
+
+        if(1 == num_samples) {
+            auto random_integer = randi((unsigned)0, N - 1);
+            selected.push_back(random_integer);
+            return selected;
+        }
+
+        for( unsigned t = 0; t < N; t++ ) {
+            if( (N-t) * U( e ) < num_samples - selected.size() )
+                selected.push_back(t);
+
+            if( selected.size() == num_samples )
+                break;
+        }
+
+        return selected;
+    }
+
+    /*!
+     * perform reservoir sampling over sample
+     * @tparam T
+     * @param v sample
+     * @param k how many elements to sample
+     * @return sample
+     */
+    template<typename T> std::vector<T> randomSampleFromReservoir(const std::vector<T>& v, size_t k) {
+        // optimal algorithm from https://en.wikipedia.org/wiki/Reservoir_sampling
+        using namespace std;
+
+        if(0 == k || v.empty())
+            return {};
+        if(1 == k)
+            return {v[randi(0ul, v.size() - 1)]};
+
+        if(k >= v.size())
+            return v;
+
+        vector<T> R(v.begin(), v.begin() + k);
+
+        auto W = exp(log(random()) / k);
+        size_t i = 0;
+        auto n = v.size();
+        while(i <= n) {
+            i += floor(log(random()) / log(1 - W)) + 1;
+            if(i <= n) {
+                R[randi(0ul, R.size() - 1)] = v[i];
+                W = W * exp(log(random()) / k);
+            }
+        }
+
+        return R;
+    }
+
+    template<typename T> bool isSortedAsc(const std::vector<T>& v) {
+        if(v.empty())
+            return true;
+        T last = v.front();
+        for(auto it = v.begin() + 1; it != v.end(); ++it) {
+            if(*it < last)
+                return false;
+            last = *it;
+        }
+        return true;
+    }
+
+    // current system timestamp
+    inline int64_t currentTimestamp() {
+        std::chrono::high_resolution_clock clock;
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(clock.now().time_since_epoch()).count();
+    }
+
+    // current UTC timestamp
+    inline uint64_t current_utc_timestamp() {
+        // https://howardhinnant.github.io/date/tz.html#utc_clock
+        std::chrono::high_resolution_clock clock;
+        auto utc = date::utc_clock::now();
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(utc.time_since_epoch()).count();
+    }
 
     // from https://stackoverflow.com/questions/1068849/how-do-i-determine-the-number-of-digits-of-an-integer-in-c
     // and http://graphics.stanford.edu/~seander/bithacks.html#IntegerLog10Obvious
@@ -261,6 +407,30 @@ namespace tuplex {
     template<typename K, typename V>
     std::vector<std::pair<K,V>> mapToVector(const std::map<K,V> &map) {
         return std::vector<std::pair<K,V>>(map.begin(), map.end());
+    }
+
+    template<typename T> bool vec_equal(const std::vector<T>& a, const std::vector<T>& b) {
+        if(a.size() != b.size())
+            return false;
+        for(unsigned i = 0; i < a.size(); ++i)
+            if(a[i] != b[i])
+                return false;
+        return true;
+    }
+
+    template<typename T> std::vector<bool> indicesToBoolArray(const std::vector<T>& indices, size_t count) {
+        std::vector<bool> v(count, false);
+        for(auto idx : indices)
+            v[idx] = true;
+        return v;
+    }
+
+    template<typename T> std::vector<T> boolArrayToIndices(const std::vector<bool>& bits) {
+        std::vector<T> v;
+        for(T idx = 0; idx < bits.size(); ++idx)
+            if(bits[idx])
+                v.push_back(idx);
+        return v;
     }
 
     /*!
@@ -731,6 +901,126 @@ namespace tuplex {
 //        std::cerr.flush();
 #endif
     }
+
+    /*!
+     * extract timeout string for AWS Lambda.
+     * @param log
+     * @return string describing timeout in seconds (double format)
+     */
+    inline std::string extractTimeoutStr(const std::string& log) {
+        std::smatch m;
+        std::regex re("Task timed out after ([0-9]+\\.[0-9]+) seconds");
+        std::string s = log;
+        std::string output;
+        while (std::regex_search (s, m, re)) {
+            for (auto x:m)
+                output = x;
+            s = m.suffix().str();
+        }
+        return output;
+    }
+
+    inline std::string extractExitCodeStr(const std::string& log) {
+        std::smatch m;
+        std::regex re("Error: Runtime exited with error: exit status ([0-9]+)");
+        std::string s = log;
+        std::string output;
+        while (std::regex_search (s, m, re)) {
+            for (auto x:m)
+                output = x;
+            s = m.suffix().str();
+        }
+        return output;
+    }
+
+    // virtual memory and RSS util
+    // https://www.tutorialspoint.com/how-to-get-memory-usage-at-runtime-using-cplusplus
+    // source https://stackoverflow.com/questions/669438/how-to-get-memory-usage-at-runtime-using-c
+    // also check
+    // https://libstatgrab.org/
+
+    /**
+     * Returns the peak (maximum so far) resident set size (physical
+     * memory use) measured in bytes, or zero if the value cannot be
+     * determined on this OS.
+     */
+    inline size_t getPeakRSS() {
+#if defined(_WIN32)
+        /* Windows -------------------------------------------------- */
+    PROCESS_MEMORY_COUNTERS info;
+    GetProcessMemoryInfo( GetCurrentProcess( ), &info, sizeof(info) );
+    return (size_t)info.PeakWorkingSetSize;
+
+#elif (defined(_AIX) || defined(__TOS__AIX__)) || (defined(__sun__) || defined(__sun) || defined(sun) && (defined(__SVR4) || defined(__svr4__)))
+        /* AIX and Solaris ------------------------------------------ */
+    struct psinfo psinfo;
+    int fd = -1;
+    if ( (fd = open( "/proc/self/psinfo", O_RDONLY )) == -1 )
+        return (size_t)0L;      /* Can't open? */
+    if ( read( fd, &psinfo, sizeof(psinfo) ) != sizeof(psinfo) )
+    {
+        close( fd );
+        return (size_t)0L;      /* Can't read? */
+    }
+    close( fd );
+    return (size_t)(psinfo.pr_rssize * 1024L);
+
+#elif defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
+        /* BSD, Linux, and OSX -------------------------------------- */
+        struct rusage rusage;
+        getrusage(RUSAGE_SELF, &rusage);
+#if defined(__APPLE__) && defined(__MACH__)
+        return (size_t)rusage.ru_maxrss;
+#else
+        return (size_t) (rusage.ru_maxrss * 1024L);
+#endif
+
+#else
+        /* Unknown OS ----------------------------------------------- */
+    return (size_t)0L;          /* Unsupported. */
+#endif
+    }
+
+
+    /**
+     * Returns the current resident set size (physical memory use) measured
+     * in bytes, or zero if the value cannot be determined on this OS.
+     */
+    inline size_t getCurrentRSS() {
+#if defined(_WIN32)
+        /* Windows -------------------------------------------------- */
+    PROCESS_MEMORY_COUNTERS info;
+    GetProcessMemoryInfo( GetCurrentProcess( ), &info, sizeof(info) );
+    return (size_t)info.WorkingSetSize;
+
+#elif defined(__APPLE__) && defined(__MACH__)
+        /* OSX ------------------------------------------------------ */
+    struct mach_task_basic_info info;
+    mach_msg_type_number_t infoCount = MACH_TASK_BASIC_INFO_COUNT;
+    if ( task_info( mach_task_self( ), MACH_TASK_BASIC_INFO,
+        (task_info_t)&info, &infoCount ) != KERN_SUCCESS )
+        return (size_t)0L;      /* Can't access? */
+    return (size_t)info.resident_size;
+
+#elif defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
+        /* Linux ---------------------------------------------------- */
+        long rss = 0L;
+        FILE *fp = NULL;
+        if ((fp = fopen("/proc/self/statm", "r")) == NULL)
+            return (size_t) 0L;      /* Can't open? */
+        if (fscanf(fp, "%*s%ld", &rss) != 1) {
+            fclose(fp);
+            return (size_t) 0L;      /* Can't read? */
+        }
+        fclose(fp);
+        return (size_t) rss * (size_t) sysconf(_SC_PAGESIZE);
+
+#else
+        /* AIX, BSD, Solaris, and Unknown OS ------------------------ */
+    return (size_t)0L;          /* Unsupported. */
+#endif
+    }
+
 }
 
 // define trace macro

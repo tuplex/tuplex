@@ -105,12 +105,13 @@ if(ANTLR_EXECUTABLE AND Java_JAVA_EXECUTABLE)
     # note that ; needs to be escaped via $<SEMICOLON> in Cmake
     add_custom_command(
             OUTPUT ${ANTLR_${Name}_OUTPUTS}
-            COMMAND if [ -d ${ANTLR_${Name}_OUTPUT_DIR} ] $<SEMICOLON> then rm -rf "${ANTLR_${Name}_OUTPUT_DIR}" $<SEMICOLON> fi && ${Java_JAVA_EXECUTABLE} -jar ${ANTLR_EXECUTABLE}
+            COMMAND if [ -d ${ANTLR_${Name}_OUTPUT_DIR} ] $<SEMICOLON> then rm -rf "${ANTLR_${Name}_OUTPUT_DIR}" $<SEMICOLON> fi || exit 0 && if [ ! -d ${ANTLR_${Name}_OUTPUT_DIR} ] $<SEMICOLON> then ${Java_JAVA_EXECUTABLE} -jar ${ANTLR_EXECUTABLE}
             ${InputFile}
             -o ${ANTLR_${Name}_OUTPUT_DIR}
             -no-listener
             -Dlanguage=Cpp
             ${ANTLR_TARGET_COMPILE_FLAGS}
+            $<SEMICOLON> fi
             DEPENDS ${InputFile}
             ${ANTLR_TARGET_DEPENDS}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

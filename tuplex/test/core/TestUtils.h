@@ -23,20 +23,28 @@
 
 #include <Row.h>
 #include <UDF.h>
-#include <Executor.h>
+#include <ee/local/Executor.h>
 #include <ContextOptions.h>
 #include <spdlog/sinks/ostream_sink.h>
-#include <LocalEngine.h>
-#include <physical/CodeDefs.h>
-#include <RuntimeInterface.h>
-#include <ClosureEnvironment.h>
-#include <Environment.h>
+#include <ee/local/LocalEngine.h>
+#include <physical/codegen/CodeDefs.h>
+#include <jit/RuntimeInterface.h>
+#include <symbols/ClosureEnvironment.h>
+#include <utils/Environment.h>
 
 #ifdef BUILD_WITH_AWS
 #include <ee/aws/AWSLambdaBackend.h>
 #endif
 
 #include <boost/filesystem/operations.hpp>
+
+// declare dummy S3 Test Bucket if skip tests is enabled
+#ifdef SKIP_AWS_TESTS
+#ifndef S3_TEST_BUCKET
+#define S3_TEST_BUCKET "tuplex-test"
+#endif
+#endif
+
 
 // helper functions to faciliate test writing
 extern tuplex::Row execRow(const tuplex::Row& input, tuplex::UDF udf=tuplex::UDF("lambda x: x"));
@@ -117,7 +125,7 @@ protected:
         co.set("tuplex.scratchDir", "file://" + scratchDir);
 
         // disable schema pushdown
-        co.set("tuplex.csv.selectionPushdown", "true");
+        co.set("tuplex.optimizer.selectionPushdown", "true");
 
 #ifdef BUILD_FOR_CI
         co.set("tuplex.aws.httpThreadCount", "0");
@@ -134,10 +142,15 @@ protected:
 
         // enable requester pays
         co.set("tuplex.aws.requesterPay", "true");
-
+#ifndef SKIP_AWS_TESTS
+#ifndef S3_TEST_BUCKET
+#error "no S3 test bucket specified, can't really run AWS queries..."
+#endif
         // scratch dir
         co.set("tuplex.aws.scratchDir", std::string("s3://") + S3_TEST_BUCKET + "/.tuplex-cache");
-
+#else
+        co.set("tuplex.aws.scratchDir", std::string("s3://tuplex-test-") + tuplex::getUserName() + "/.tuplex-cache");
+#endif
 #ifdef BUILD_FOR_CI
         co.set("tuplex.aws.httpThreadCount", "1");
 #else

@@ -72,6 +72,7 @@ PYMODULE {
             .def("csv", &tuplex::PythonContext::csv)
             .def("text", &tuplex::PythonContext::text)
             .def("orc", &tuplex::PythonContext::orc)
+            .def("json", &tuplex::PythonContext::json)
             .def("parallelize", &tuplex::PythonContext::parallelize)
             .def("options", &tuplex::PythonContext::options)
             .def("getMetrics", &tuplex::PythonContext::getMetrics)
@@ -84,6 +85,7 @@ PYMODULE {
             .def("getLLVMOptimizationTime", &tuplex::PythonMetrics::getLLVMOptimizationTime)
             .def("getLLVMCompilationTime", &tuplex::PythonMetrics::getLLVMCompilationTime)
             .def("getTotalCompilationTime", &tuplex::PythonMetrics::getTotalCompilationTime)
+            .def("getGenerateLLVMTime", &tuplex::PythonMetrics::getGenerateLLVMTime)
             .def("getTotalExceptionCount", &tuplex::PythonMetrics::getTotalExceptionCount)
             .def("getJSONString", &tuplex::PythonMetrics::getJSONString);
 

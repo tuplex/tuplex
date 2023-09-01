@@ -7,17 +7,16 @@
 //  Created by Leonhard Spiegelberg first on 3/2/20                                                                   //
 //  License: Apache 2.0                                                                                               //
 //--------------------------------------------------------------------------------------------------------------------//
-
-
 #ifndef TUPLEX_AGGREGATEOPERATOR_H
 #define TUPLEX_AGGREGATEOPERATOR_H
 
 #include <utility>
-#include "LogicalOperator.h"
+#include <logical/LogicalOperator.h>
+#include <logical/UDFOperator.h>
 
 namespace tuplex {
 
-    enum class AggregateType {
+    enum class AggregateType : uint32_t {
         AGG_NONE=0,
         AGG_UNIQUE=10, // aggregate is unique(distinct) operation over whole schema.
         AGG_GENERAL=20, // the aggregate is simply one global object that gets updated via init, update, combine.
@@ -26,9 +25,12 @@ namespace tuplex {
 
     class AggregateOperator : public LogicalOperator {
     public:
+        // required by Cereal
+        AggregateOperator() = default;
+
         virtual ~AggregateOperator() override = default;
 
-        AggregateOperator(LogicalOperator* parent,
+        AggregateOperator(const std::shared_ptr<LogicalOperator>& parent,
                           const AggregateType& at,
                           const UDF& combiner=UDF("",""),
                           const UDF& aggregator=UDF("",""),
@@ -36,15 +38,18 @@ namespace tuplex {
                           std::vector<std::string> keys = {}) : LogicalOperator(parent), _aggType(at),
                                                                 _combiner(combiner), _aggregator(aggregator),
                                                                 _initialValue(std::move(initialValue)), _keys(std::move(keys)) {
-            std::vector<python::Type> keyTypes;
+
+            // construct key col indices via name lookup.
             for(const auto &k : _keys) {
                 auto val = indexInVector(k, parent->columns());
                 if(val < 0) throw std::runtime_error("Column " + k + " not in columns (Aggregate)");
+
+                if(val >= parent->getOutputSchema().getRowType().parameters().size())
+                    throw std::runtime_error("invalid index for key column");
                 _keyColsInParent.push_back(val);
-                keyTypes.push_back(parent->getOutputSchema().getRowType().parameters()[val]);
             }
-            _keyType = python::Type::makeTupleType(keyTypes);
-            if(_keyType.parameters().size() == 1) _keyType = _keyType.parameters().front();
+
+            _keyType = keyTypeFromParent();
 
             if(!inferAndCheckTypes()) {
 //#ifndef NDEBUG
@@ -69,7 +74,7 @@ namespace tuplex {
         }
 
 
-        std::string name() override {
+        std::string name() const override {
             switch(_aggType) {
                 case AggregateType::AGG_UNIQUE:
                     return "unique";
@@ -110,7 +115,9 @@ namespace tuplex {
             return std::vector<std::string>();
         }
 
-        LogicalOperator* clone() override;
+        bool retype(const RetypeConfiguration& conf) override;
+
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
 
         const UDF& aggregatorUDF() const { return _aggregator; }
         const UDF& combinerUDF() const { return _combiner; }
@@ -130,7 +137,24 @@ namespace tuplex {
          * @return The indices of key columns in parent
          */
         std::vector<size_t> keyColsInParent() const { assert(aggType() == AggregateType::AGG_BYKEY); return _keyColsInParent; }
-        python::Type keyType() const { assert(aggType() == AggregateType::AGG_BYKEY); return _keyType; }
+        python::Type keyType() const {
+            // assert(aggType() == AggregateType::AGG_BYKEY);
+
+            return _keyType; }
+        inline python::Type bucketType() const { return _aggregateOutputType; // ? is this correct ?
+        }
+
+#ifdef BUILD_WITH_CEREAL
+        // cereal serialization functions
+        template<class Archive> void save(Archive &ar) const {
+            ar(::cereal::base_class<LogicalOperator>(this), _aggType, _aggregateOutputType, _combiner, _aggregator, _initialValue);
+        }
+
+        template<class Archive> void load(Archive &ar) {
+            ar(::cereal::base_class<LogicalOperator>(this), _aggType, _aggregateOutputType, _combiner, _aggregator, _initialValue);
+        }
+#endif
+
     private:
         AggregateType _aggType;
 
@@ -145,7 +169,13 @@ namespace tuplex {
         python::Type _keyType; // the overall type of the key
 
         bool inferAndCheckTypes();
+
+        python::Type keyTypeFromParent() const;
     };
 }
+
+#ifdef BUILD_WITH_CEREAL
+CEREAL_REGISTER_TYPE(tuplex::AggregateOperator);
+#endif
 
 #endif //TUPLEX_AGGREGATEOPERATOR_H

@@ -29,7 +29,7 @@ if __name__ == "__main__":
         "--log-group",
         type=str,
         dest="log_group",
-        default="/aws/lambda/tplxlam",
+        default="/aws/lambda/tuplex-lambda-runner",
         help="name of log group to clear",
     )
     args = parser.parse_args()

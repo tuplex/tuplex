@@ -213,9 +213,10 @@ char* pad(const char* s, int64_t s_len, int64_t left, int64_t right, const char 
 
         if (right)
             memset(res + left + s_len, fillchar, right);
+        
+        res[left + s_len + right] = '\0';
     }
 
-    res[left + s_len + right] = '\0';
     return res;
 }
 

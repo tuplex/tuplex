@@ -10,6 +10,7 @@
 
 #ifdef BUILD_WITH_AWS
 #include <S3File.h>
+#include <S3Cache.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/PutObjectRequest.h>
 #include <boost/interprocess/streams/bufferstream.hpp>
@@ -25,44 +26,14 @@
 // @TODO: use global allocator!
 // ==> make customizable
 
-// from https://github.com/TileDB-Inc/TileDB/blob/dev/tiledb/sm/filesystem/s3.cc
-/**
- * Return the exception name and error message from the given outcome object.
- *
- * @tparam R AWS result type
- * @tparam E AWS error type
- * @param outcome Outcome to retrieve error message from
- * @return Error message string
- */
-template <typename R, typename E>
-std::string outcome_error_message(const Aws::Utils::Outcome<R, E>& outcome) {
-
-    // special case: For public buckets just 403 is emitted, which is hard to decode
-    if(outcome.GetError().GetResponseCode() == Aws::Http::HttpResponseCode::FORBIDDEN) {
-        // access issue
-        std::stringstream ss;
-        ss<<outcome.GetError().GetMessage()<<" - this may be the result of accessing a public bucket with"
-                                             " requester pay mode. Set tuplex.aws.requesterPay to true when initializing"
-                                             " the context. Also make sure the object in the public repo has a proper"
-                                             " ACL set. I.e., to make it publicly available use "
-                                             "`aws s3api put-object-acl --bucket <bucket> --key <path> --acl public-read"
-                                             " --request-payer requester`";
-        return ss.str();
-    }
-
-    return std::string("\nException:  ") +
-           outcome.GetError().GetExceptionName().c_str() +
-           std::string("\nError message:  ") +
-           outcome.GetError().GetMessage().c_str();
-}
-
-
 namespace tuplex {
     void S3File::init() {
         _buffer = nullptr;
         _bufferPosition = 0;
         _bufferLength = 0;
+        _bufferSize = DEFAULT_INTERNAL_BUFFER_SIZE();
         _fileSize = 0;
+        _bufferedAbsoluteFilePosition = 0;
         _filePosition = 0;
         _partNumber = 0; // set to 0
 
@@ -73,10 +44,10 @@ namespace tuplex {
         _fileUploaded = false;
 
 
-#ifndef NDEBUG
+//#ifndef NDEBUG
         //debug:
         _requestTime = 0.0;
-#endif
+//#endif
     }
 
     bool S3File::is_open() const {
@@ -86,17 +57,35 @@ namespace tuplex {
     void S3File::lazyUpload() {
         assert(_mode & VirtualFileMode::VFS_WRITE || _mode & VirtualFileMode::VFS_OVERWRITE);
 
+        MessageHandler& logger = Logger::instance().logger("s3fs");
+
+        // do not upload in reade mode.
+        if(!(_mode & VirtualFileMode::VFS_WRITE || _mode & VirtualFileMode::VFS_OVERWRITE))
+            return;
+
         // check if buffer is valid, if so upload via PutRequest
         if(_buffer && !_fileUploaded) {
 
+            logger.info("Invoking lazyUpload to uri " + _uri.toString());
+
             // check if multipart upload (_partNumber != 0)
             if(_partNumber > 0) {
+
+                logger.info("Completing multipart upload, uploading last part.");
+
                 // upload last part
                 uploadPart();
 
+                logger.info("Completing multipart upload, completion request.");
                 // finish multipart upload
                 completeMultiPartUpload();
+
+                logger.info("Multipart done.");
+
             } else {
+
+                logger.info("Issuing simple write request");
+
                 // simple put request
                 // upload via simple putrequest
                 Aws::S3::Model::PutObjectRequest put_req;
@@ -115,12 +104,15 @@ namespace tuplex {
                 put_req.SetBody(stream);
 
                 // perform upload request
+                Timer timer;
                 auto outcome = _s3fs.client().PutObject(put_req);
+                _requestTime += timer.time();
                 _s3fs._putRequests++;
                 if(!outcome.IsSuccess()) {
                     MessageHandler& logger = Logger::instance().logger("s3fs");
-                    logger.error(outcome_error_message(outcome));
-                    throw std::runtime_error(outcome_error_message(outcome));
+                    auto err_msg = outcome_error_message(outcome, _uri.toString());
+                    logger.error(err_msg);
+                    throw std::runtime_error(err_msg);
                 }
                 _s3fs._bytesTransferred += _bufferLength;
             }
@@ -151,13 +143,16 @@ namespace tuplex {
             req.SetContentType(content_type.c_str());
         }
 
+        Timer timer;
         auto outcome = _s3fs.client().CreateMultipartUpload(req);
+        _requestTime += timer.time();
         _s3fs._multiPartPutRequests++;
         // count as put request
 
         if(!outcome.IsSuccess()) {
-            logger.error(outcome_error_message(outcome));
-            throw std::runtime_error(outcome_error_message(outcome));
+            auto err_msg = outcome_error_message(outcome, _uri.toString());
+            logger.error(err_msg);
+            throw std::runtime_error(err_msg);
         }
 
         _uploadID = outcome.GetResult().GetUploadId();
@@ -176,15 +171,17 @@ namespace tuplex {
     }
 
 
-    void S3File::uploadPart() {
+    bool S3File::uploadPart() {
         MessageHandler& logger = Logger::instance().logger("s3fs");
 
         assert(_partNumber > 0); // if this is zero, need to all init before!
         assert(_buffer);
 
         // skip empty buffer for second time
-        if(_bufferLength == 0 && _partNumber > 1)
-            return;
+        if(_bufferLength == 0 && _partNumber > 1) {
+            logger.info("Skipping empty buffer (partno = " + std::to_string(_partNumber) + ")");
+            return false;
+        }
 
         Aws::S3::Model::UploadPartRequest req;
         //@Todo: what about content MD5???
@@ -198,12 +195,16 @@ namespace tuplex {
         auto stream = std::shared_ptr<Aws::IOStream>(new boost::interprocess::bufferstream((char*)_buffer, _bufferLength));
         req.SetBody(stream);
 
+        Timer timer;
         auto outcome = _s3fs.client().UploadPart(req);
+        _requestTime += timer.time();
         _s3fs._multiPartPutRequests++;
         _s3fs._bytesTransferred += _bufferLength;
         if(!outcome.IsSuccess()) {
-            logger.error(outcome_error_message(outcome));
-            throw std::runtime_error(outcome_error_message(outcome));
+            auto err_msg = outcome_error_message(outcome, _uri.toString());
+            logger.error(err_msg);
+            throw std::runtime_error(err_msg);
+            return false;
         }
 
         // record upload
@@ -216,6 +217,8 @@ namespace tuplex {
         _bufferPosition = 0;
         _bufferLength = 0;
         _partNumber++;
+
+        return true;
     }
 
     void S3File::completeMultiPartUpload() {
@@ -223,6 +226,7 @@ namespace tuplex {
         //aws s3api list-multipart-uploads --bucket <bucket name>
 
         MessageHandler& logger = Logger::instance().logger("s3fs");
+        logger.info("Completing multi-part upload for " + pluralize(_partNumber, "part"));
 
         // issue complete upload request
         Aws::S3::Model::CompleteMultipartUploadRequest req;
@@ -237,20 +241,119 @@ namespace tuplex {
 
         req.SetMultipartUpload(std::move(upld));
 
+        Timer timer;
         auto outcome = _s3fs.client().CompleteMultipartUpload(req);
+        _requestTime += timer.time();
         _s3fs._closeMultiPartUploadRequests++;
         if(!outcome.IsSuccess()) {
-            logger.error(outcome_error_message(outcome));
-            throw std::runtime_error(outcome_error_message(outcome));
+            auto err_msg = outcome_error_message(outcome, _uri.toString());
+            logger.error(err_msg);
+            throw std::runtime_error(err_msg);
+        }
+    }
+
+    bool S3File::uploadAndResetBufferIfFull(size_t additional_space_required) {
+        // MessageHandler& logger = Logger::instance().logger("s3fs");
+
+        // only if larger than limit!
+        if(_bufferLength < 5 * 1024 * 1024) { // the 5MB is an AWS limit.
+
+            // enough space left to hold additional bytes?
+            if(_bufferLength + additional_space_required > _bufferSize) {
+                size_t new_buffer_size = _bufferLength + additional_space_required;
+
+                if(!_buffer) {
+                    new_buffer_size = std::max(new_buffer_size, _bufferSize);
+                    _buffer = new uint8_t [new_buffer_size];
+                    _bufferSize = new_buffer_size;
+                } else {
+                    // realloc!
+                    auto old_buf = _buffer;
+
+                    _buffer = new uint8_t[new_buffer_size];
+                    memcpy(_buffer, old_buf, _bufferLength);
+                    _bufferSize = new_buffer_size;
+
+                    delete [] old_buf;
+                }
+            }
+
+            return false; // do not upload, part too small. Minimum part size is 5MB. Last part that is allowed to be smaller will be uploaded upon close.
+        }
+
+        // need to do multipart upload!
+        size_t part_size = _bufferLength;
+
+        // check if multipart was already initiated
+        if(0 == _partNumber) {
+            // init multipart upload and upload first part
+            // there's a lower limit on the part (except the last one)
+            // i.e., need to have at least 5MB in the buffer before initiating a multipart upload!
+            initMultiPartUpload();
+
+            // check if limit of 10,000 was reached. If so, abort!
+            return uploadPart();
+            // logger.info("initiated multiupload, first part with size=" + std::to_string(part_size) + " uploaded.");
+        } else {
+            // append another multipart upload part
+            return uploadPart();
+            // logger.info("uploaded another part with size=" + std::to_string(part_size) + ".");
         }
     }
 
     VirtualFileSystemStatus S3File::write(const void *buffer, uint64_t bufferSize) {
 
+        // MessageHandler& logger = Logger::instance().logger("s3fs");
+
         // make sure file is not yet uploaded
         if(_fileUploaded) {
             throw std::runtime_error("file has been already uploaded. Did you call write after close?");
         }
+
+        // skip write
+        if(0 == bufferSize)
+            return VirtualFileSystemStatus::VFS_OK;
+
+        // logger.info("Writing buffer of size " + std::to_string(bufferSize));
+
+        // what if buffer size is larger than internal buffer?
+        // ==> invoke write in chunks (max-chunk size = internal buffer size!)
+        if(bufferSize > _bufferSize) {
+            // call recursive loop!
+            size_t remaining_bytes = bufferSize;
+            size_t pos = 0;
+            uint8_t* buf = (uint8_t *) buffer;
+            // std::cout<<"internal buffer size: "<<INTERNAL_BUFFER_SIZE()<<std::endl;
+            // std::cout<<"Got "<<remaining_bytes<<" bytes to write"<<std::endl;
+            while (remaining_bytes > 0) {
+                // std::cout<<"Still "<<remaining_bytes<<" bytes left to write"<<std::endl;
+                // buffer full? upload part!
+                assert(_bufferLength <= _bufferSize);
+                size_t bytes_to_write = std::min(remaining_bytes, _bufferSize - _bufferLength); // how much capacity is still available?
+                uploadAndResetBufferIfFull(bytes_to_write);
+                // reset counter
+                if(0 == bytes_to_write)
+                    bytes_to_write = std::min(remaining_bytes, _bufferSize - _bufferLength);
+                assert(bytes_to_write > 0);
+                auto rc = write(buf + pos, bytes_to_write);
+                if(rc != VirtualFileSystemStatus::VFS_OK) {
+                    // std::cerr<<"Got bad code"<<std::endl;
+                    return rc;
+                }
+
+                pos += bytes_to_write;
+                remaining_bytes -= bytes_to_write;
+            }
+
+            // std::cout<<"Still "<<remaining_bytes<<" bytes left to write"<<std::endl;
+            uploadAndResetBufferIfFull(remaining_bytes);
+
+            // write the rest
+            return write(buf + pos, remaining_bytes);
+        }
+
+        // make sure buffer is smaller than buffer size
+        assert(bufferSize <= _bufferSize);
 
         // two options: either buffer is empty OR full
         if(!_buffer) {
@@ -266,36 +369,76 @@ namespace tuplex {
                 _bufferPosition += bufferSize;
                 _bufferLength += bufferSize;
             } else {
-                // need to do multipart upload!
+                uploadAndResetBufferIfFull(bufferSize);
 
-                // check if multipart was already initiated
-                if(0 == _partNumber) {
-                    // init multipart upload and upload first part
-                    initMultiPartUpload();
-
-                    // check if limit of 10,000 was reached. If so, abort!
-                    uploadPart();
-                } else {
-                    // append another multipart upload part
-                    uploadPart();
-                }
+                // invoke write again for the buffer after flushing the current buffer, i.e. it has been uploaded.
+                return write(buffer, bufferSize);
             }
-
-            return VirtualFileSystemStatus::VFS_NOTYETIMPLEMENTED;
         }
 
         return VirtualFileSystemStatus::VFS_OK;
     }
 
 
-    // fast tiny read
+    // fast tiny read (do not advance internal pointers)
     VirtualFileSystemStatus S3File::readOnly(void *buffer, uint64_t nbytes, size_t *bytesRead) const {
 
+        // regular requesting...
         // short cut for empty read
         if(nbytes == 0) {
             if(bytesRead)
                 *bytesRead = 0;
             return VirtualFileSystemStatus::VFS_OK;
+        }
+
+        // shortcut: is buffer filled and nbytes available?
+        // --> no need to query again!
+        if(_buffer && _bufferPosition + nbytes <= _bufferLength) {
+            memcpy(buffer, _buffer + _bufferPosition, nbytes);
+            if(bytesRead)
+                *bytesRead = nbytes;
+            return VirtualFileSystemStatus::VFS_OK;
+        }
+
+        // use cache?
+        if(_s3fs._useS3ReadCache) {
+            auto& cache = S3FileCache::instance();
+            // check if file size has been queried/filled.
+            // --> required to clamp request to avoid invalid range!
+            size_t fileSize = _fileSize;
+            if(!_buffer && fileSize == 0) {
+                // ==> fill in file size
+                fileSize = cache.file_size(_uri);
+            }
+
+            // clamp nbytes
+            if(_filePosition + nbytes > fileSize) {
+                nbytes = fileSize - _filePosition;
+            }
+
+            // simply issue here one direct request
+            size_t retrievedBytes = 0;
+            auto range_start = _filePosition;
+            auto range_end = _filePosition + nbytes - 1;
+
+            assert(range_end - range_start <= nbytes);
+            cache.get(reinterpret_cast<uint8_t*>(buffer), nbytes, _uri, range_start, range_end, bytesRead);
+            return VirtualFileSystemStatus::VFS_OK;
+        }
+
+        // check if file size has been queried/filled.
+        // --> required to clamp request to avoid invalid range!
+        size_t fileSize = _fileSize;
+        if(!_buffer && fileSize == 0) {
+            // ==> fill in file size
+            Timer timer;
+            fileSize = s3GetContentLength(this->_s3fs.client(), this->_uri);
+            const_cast<S3File*>(this)->_requestTime += timer.time();
+        }
+
+        // clamp nbytes
+        if(_filePosition + nbytes > fileSize) {
+            nbytes = fileSize - _filePosition;
         }
 
         // simply issue here one direct request
@@ -312,8 +455,10 @@ namespace tuplex {
         req.SetRequestPayer(_requestPayer);
 
         // Get the object ==> Note: this s3 client is damn slow, need to make it faster in the future...
+        Timer timer;
         auto get_object_outcome = _s3fs.client().GetObject(req);
         _s3fs._getRequests++;
+        const_cast<S3File*>(this)->_requestTime += timer.time();
 
         if (get_object_outcome.IsSuccess()) {
             auto result = get_object_outcome.GetResultWithOwnership();
@@ -336,8 +481,9 @@ namespace tuplex {
             _s3fs._bytesReceived += retrievedBytes;
         } else {
             MessageHandler& logger = Logger::instance().logger("s3fs");
-            logger.error(outcome_error_message(get_object_outcome));
-            throw std::runtime_error(outcome_error_message(get_object_outcome));
+            auto err_msg = outcome_error_message(get_object_outcome, _uri.toString());
+            logger.error(err_msg);
+            throw std::runtime_error(err_msg);
         }
 
         if(bytesRead)
@@ -384,7 +530,7 @@ namespace tuplex {
 
                 // now there are two options: 1) file already exhausted, no need to refill
                 // 2) still data left, refill buffer
-                if(_filePosition >= _fileSize) // exhausted, leave loop
+                if(_bufferedAbsoluteFilePosition >= _fileSize) // exhausted, leave loop
                     break;
 
                 // fill buffer up again
@@ -394,6 +540,8 @@ namespace tuplex {
                 const_cast<S3File*>(this)->fillBuffer(_bufferSize); // try to request full buffer
                 bytesAvailable = _bufferLength - _bufferPosition;
 
+                if(bytesAvailable == 0)
+                    break;
                 assert(bytesAvailable > 0);
             }
 
@@ -416,21 +564,65 @@ namespace tuplex {
         if(0 == bytesToRequest)
             return 0;
 
+        // important to check here
+        if(_s3fs._useS3ReadCache) {
+            auto &cache = S3FileCache::instance();
+            // check if file size has been queried/filled.
+            if (_fileSize == 0 && !_buffer) {
+                _fileSize = cache.file_size(_uri);
+            }
+        }
+
         // create buffer if not existing
         if(!_buffer) {
             _buffer = new uint8_t[_bufferSize];
-
             _bufferPosition = 0;
             _bufferLength = 0;
             _fileSize = 0;
         } else {
             // shortcut: if eof reached, then do not perform request
-            if(_filePosition >= _fileSize)
+            if(_bufferedAbsoluteFilePosition >= _fileSize)
                 return 0;
         }
 
+        // use S3 cache? if so fill buffer from cache.
+        if(_s3fs._useS3ReadCache) {
+            auto& cache = S3FileCache::instance();
+            // check if file size has been queried/filled.
+            // --> required to clamp request to avoid invalid range!
+            // fill size from cache (should be there, else single request)
+            _fileSize = cache.file_size(_uri);
+
+            size_t range_end = std::min(_bufferedAbsoluteFilePosition + bytesToRequest, _fileSize);
+            size_t range_start = _bufferedAbsoluteFilePosition;
+
+
+            // simply issue here one direct request
+            retrievedBytes = range_end - range_start;
+            // copy contents & move cursors
+            assert(_bufferPosition + retrievedBytes <= _bufferSize);
+            cache.get(reinterpret_cast<uint8_t *>((char *) (_buffer + _bufferPosition)), retrievedBytes, _uri, range_start, range_end, &retrievedBytes);
+            _bufferLength += retrievedBytes;
+            _bufferedAbsoluteFilePosition += retrievedBytes;
+
+            // in bounds check
+            assert(_bufferPosition + _bufferLength <= _bufferSize);
+            return retrievedBytes;
+        }
+
+
         // range header
-        std::string range = "bytes=" + std::to_string(_filePosition) + "-" + std::to_string(_filePosition + bytesToRequest - 1);
+
+        // make sure file size is not 0
+        if(_fileSize == 0 && !_buffer) {
+            Timer timer;
+            _fileSize = s3GetContentLength(_s3fs.client(), _uri);
+            _requestTime += timer.time();
+        }
+
+
+        size_t range_end = std::min(_bufferedAbsoluteFilePosition + bytesToRequest - 1, _fileSize - 1);
+        std::string range = "bytes=" + std::to_string(_bufferedAbsoluteFilePosition) + "-" + std::to_string(range_end);
         // make AWS S3 part request to uri
         // check how to retrieve object in poarts
         Aws::S3::Model::GetObjectRequest req;
@@ -446,9 +638,9 @@ namespace tuplex {
         auto get_object_outcome = _s3fs.client().GetObject(req);
         // std::cout<<" done!"<<std::endl;
         _s3fs._getRequests++;
-#ifndef NDEBUG
+//#ifndef NDEBUG
         _requestTime += timer.time();
-#endif
+//#endif
         if (get_object_outcome.IsSuccess()) {
             auto result = get_object_outcome.GetResultWithOwnership();
 
@@ -470,7 +662,7 @@ namespace tuplex {
             assert(_bufferPosition + retrievedBytes <= _bufferSize);
             retrieved_file.read((char*)(_buffer + _bufferPosition), retrievedBytes);
             _bufferLength += retrievedBytes;
-            _filePosition += retrievedBytes;
+            _bufferedAbsoluteFilePosition += retrievedBytes;
 
             // in bounds check
             assert(_bufferPosition + _bufferLength <= _bufferSize);
@@ -479,8 +671,9 @@ namespace tuplex {
             _s3fs._bytesReceived += retrievedBytes;
         } else {
             MessageHandler& logger = Logger::instance().logger("s3fs");
-            logger.error(outcome_error_message(get_object_outcome));
-            throw std::runtime_error(outcome_error_message(get_object_outcome));
+            auto err_msg = outcome_error_message(get_object_outcome, _uri.toString());
+            logger.error(err_msg);
+            throw std::runtime_error(err_msg);
         }
         return retrievedBytes;
     }
@@ -503,38 +696,76 @@ namespace tuplex {
             delete [] _buffer;
         _buffer = nullptr;
 
-        // // print
-        // std::cout<<"request Time on "<<_uri.toPath()<<": "<<_requestTime<<"s "<<std::endl;
+         // print
+         std::stringstream ss;
+         ss<<"s3 request time spent on "<<_uri.toPath()<<": "<<_requestTime<<"s"<<std::endl;
+         Logger::instance().defaultLogger().info(ss.str());
     }
 
     bool S3File::eof() const {
         // note that buffer must be initialized, even for empty files!
         // when is end of file reached?
-        // buffer is filled, filePos == fileSize and _bufferPosistion reached buffer Length
+        // buffer is filled, filePos == fileSize and _bufferPosition reached buffer Length
         return _buffer &&
-               _filePosition == _fileSize &&
+               _bufferedAbsoluteFilePosition == _fileSize &&
                _bufferLength == _bufferPosition;
     }
 
     VirtualFileSystemStatus S3File::seek(int64_t delta) {
 
+        // new file pos (clamp)
+        // is file size known?
+        if(!_buffer && _fileSize == 0) { // not 100% correct, but we can live with additional request for empty files...
+            Timer timer;
+            _fileSize = s3GetContentLength(_s3fs.client(), _uri);
+            _requestTime += timer.time();
+        }
+
+        // clamp delta
+        int64_t curPos = _filePosition;
+        int64_t newPos = curPos + delta;
+        if(newPos < 0)
+            newPos = 0;
+        if(newPos > _fileSize)
+            newPos = _fileSize;
+        delta = newPos - curPos;
+        if(0 == delta)
+            return VirtualFileSystemStatus::VFS_OK;
+
         // check if buffer is valid
         if(_buffer) {
-
-        } else {
-            if(_fileSize == 0) {
-                // buffer is not active yet & fileSize neither. => best effort jump on filePosition
-                int64_t relativePos = ((int64_t)_filePosition) + delta;
-                if(relativePos < 0)
-                    relativePos = 0;
-
-                _filePosition = relativePos;
+            // can delta be consumed by moving buffer pos only?
+            if(delta < 0) {
+                if(_bufferPosition >= std::abs(delta)) {
+                    _bufferPosition += delta;
+                    _filePosition += delta;
+                    return VirtualFileSystemStatus::VFS_OK;
+                } else {
+                    // need to move back more bytes -> i.e. request new buffer!
+                    _bufferPosition = 0;
+                    _filePosition += delta;
+                    _bufferedAbsoluteFilePosition += delta;
+                    fillBuffer(_bufferSize);
+                }
             } else {
-                // try to move buffer posisition
-                int64_t newPos = std::min((int64_t)_fileSize, std::max((int64_t)_filePosition + delta, (int64_t)0l));
-
-                EXCEPTION("nyimpl");
+                if(_bufferPosition + delta <= _bufferLength) {
+                    _bufferPosition += delta;
+                    _filePosition += delta;
+                    return VirtualFileSystemStatus::VFS_OK;
+                } else {
+                    // need to move forward more bytes -> i.e. request new buffer!
+                    _bufferPosition = 0;
+                    _filePosition += delta;
+                    _filePosition += delta;
+                    _bufferedAbsoluteFilePosition += delta;
+                    fillBuffer(_bufferSize);
+                }
             }
+        } else {
+           // no buffer, so move both fileposition and buffered pos
+           _bufferPosition = 0;
+           _bufferedAbsoluteFilePosition += delta;
+           _filePosition += delta;
         }
 
         return VirtualFileSystemStatus::VFS_OK;

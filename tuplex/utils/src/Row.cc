@@ -9,6 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include "Row.h"
+#include "JSONUtils.h"
 
 namespace tuplex {
 
@@ -89,7 +90,7 @@ namespace tuplex {
     std::string Row::toPythonString() const {
         std::string s = "(";
         for(int i = 0; i < getNumColumns(); ++i) {
-            s += _values[i].desc();
+            s += _values[i].toPythonString();
 
             if(i != getNumColumns() - 1)
                 s += ",";
@@ -105,12 +106,42 @@ namespace tuplex {
         return s;
     }
 
+    std::string Row::toJsonString(const std::vector<std::string> &columns) const {
+        std::stringstream ss;
+        if(columns.empty()) {
+            // use []
+            ss<<"[";
+            for(unsigned i = 0; i < getNumColumns(); ++i) {
+                ss<<escape_for_json(columns[i])<<":"<<_values[i].toJsonString();
+                if(i != getNumColumns() - 1)
+                    ss<<",";
+            }
+            ss<<"]";
+        } else {
+            if(columns.size() != getNumColumns())
+                throw std::runtime_error("can not convert row to Json string, number of columns given ("
+                + std::to_string(columns.size()) + ") is different than stored number of fields ("
+                + std::to_string(getNumColumns()) + ")");
+
+            // use dictionary syntax
+            ss<<"{";
+            for(unsigned i = 0; i < getNumColumns(); ++i) {
+                ss<<escape_for_json(columns[i])<<":"<<_values[i].toJsonString();
+                if(i != getNumColumns() - 1)
+                    ss<<",";
+            }
+            ss<<"}";
+        }
+        return ss.str();
+    }
+
     python::Type Row::getRowType() const {
         if(_values.empty())
             return python::Type::EMPTYTUPLE; // bad case!
 
         // get types of rows & return then tuple type
         std::vector<python::Type> types;
+        types.reserve(_values.size());
         for(const auto& el: _values)
             types.push_back(el.getType());
 
@@ -131,7 +162,7 @@ namespace tuplex {
         if(_values.empty()) {
             // basically serialize an empty tuple here
             serializer.append(Tuple()); // use {} here to make empty tuple. default constructor yields unknown
-            return serializer;
+            return std::move(serializer);
         }
 
         for(const auto& el : _values) {
@@ -197,7 +228,7 @@ namespace tuplex {
                 }
             }
         }
-        return serializer;
+        return std::move(serializer);
     }
 
     bool operator == (const Row& lhs, const Row& rhs) {
@@ -206,8 +237,10 @@ namespace tuplex {
             return false;
 
         // special case: empty rows
-        if(lhs._values.size() == 0)
+        if(lhs._values.size() == 0) {
+            assert(rhs._values.size() == 0);
             return true;
+        }
 
         // check whether type matches
         if(lhs.getRowType() != rhs.getRowType())
@@ -220,9 +253,47 @@ namespace tuplex {
                 return false;
         }
 
-
         return true;
     }
+    bool operator < (const Row& lhs, const Row& rhs) {
+        // this is important !!!
+        if(lhs == rhs)
+            return false;
+
+        if(lhs._values.size() != rhs._values.size())
+            return lhs._values.size() < rhs._values.size();
+
+        // same size
+        auto num_elements = lhs._values.size();
+
+        // element wise comparison (types!)
+        for(unsigned i = 0; i < num_elements; ++i) {
+            // compare values, if not equal then
+            if(lhs._values[i] != rhs._values[i]) {
+                // check whether lhs < rhs
+                // types differ?
+                // sort after type hash!
+                if(lhs._values[i].getType() != rhs._values[i].getType())
+                    return lhs._values[i].getType().hash() < rhs._values[i].getType().hash();
+
+                auto r = rhs._values[i];
+                auto l = lhs._values[i];
+                // same type, so check values
+                auto t = lhs._values[i].getType();
+                if(t == python::Type::BOOLEAN || t == python::Type::I64) {
+                    return l.getInt() < r.getInt();
+                } else if(t == python::Type::F64) {
+                    return l.getDouble() < r.getDouble();
+                } else {
+                    auto r_str = r.toPythonString();
+                    auto l_str = l.toPythonString();
+                    return lexicographical_compare(l_str.begin(), l_str.end(), r_str.begin(), r_str.end());
+                }
+            }
+        }
+        return true;
+    }
+
 
 
     Row Row::upcastedRow(const python::Type &targetType) const {
@@ -312,5 +383,125 @@ namespace tuplex {
         }
 
         os.flush();
+    }
+
+    python::Type detectMajorityRowType(const std::vector<Row>& rows,
+                                       double threshold,
+                                       bool independent_columns,
+                                       bool use_nvo,
+                                       const TypeUnificationPolicy& t_policy) {
+        if(rows.empty())
+            return python::Type::UNKNOWN;
+
+        assert(0.0 <= threshold <= 1.0);
+
+        if(independent_columns) {
+            // count each column independently
+            // hashmap is type, col -> count
+            std::unordered_map<std::tuple<unsigned, unsigned>, unsigned> counts;
+            for(const auto& row : rows) {
+                auto t = row.getRowType();
+                for(unsigned i = 0; i < t.parameters().size(); ++i) {
+                    counts[std::make_tuple(t.parameters()[i].hash(), i)]++;
+                }
+            }
+
+            // get column counts
+            unsigned min_idx = std::numeric_limits<unsigned>::max();
+            unsigned max_idx = 0;
+            for(auto keyval : counts) {
+                auto type_hash = std::get<0>(keyval.first);
+                auto col_idx = std::get<1>(keyval.first);
+                min_idx = std::min(min_idx, col_idx);
+                max_idx = std::max(max_idx, col_idx);
+            }
+
+            // have counts, now for each column make a type decision --> i.e. based on majority case!
+            std::vector<std::map<unsigned, unsigned, std::greater<unsigned>>> col_counts(max_idx + 1);
+            for(auto keyval : counts) {
+                auto type_hash = std::get<0>(keyval.first);
+                auto col_idx = std::get<1>(keyval.first);
+                col_counts[col_idx][keyval.second] = type_hash;
+            }
+
+            // compute majority, account for null-value prevalence!
+            std::vector<python::Type> col_types(col_counts.size());
+            for(unsigned i = 0; i < col_counts.size(); ++i) {
+               // single type? -> trivial.
+               // empty? pyobject
+               if(col_counts[i].empty()) {
+                   col_types[i] = python::Type::PYOBJECT;
+               } else if(col_counts[i].size() == 1) {
+                   col_types[i] = python::Type::fromHash(col_counts[i].begin()->second);
+               } else {
+                   // more than one count. Now it's getting tricky...
+                   // is the first null and something else present? => use threshold to determine whether option type or not!
+                   auto most_common_type = python::Type::fromHash(col_counts[i].begin()->second);
+                   auto most_freq = col_counts[i].begin()->first;
+                   unsigned total_freq = 0;
+                   for(auto kv : col_counts[i])
+                       total_freq += kv.first;
+                   if(python::Type::NULLVALUE == most_common_type) {
+                       // second one present?
+                       auto it = std::next(col_counts[i].begin());
+                       auto second_freq = it->first;
+                       auto second_type = python::Type::fromHash(it->second);
+
+                       // threshold?
+                       if(most_freq >= threshold * total_freq && use_nvo) {
+                           // null value
+                           col_types[i] = python::Type::NULLVALUE;
+                       } else {
+                           // create opt type to cover other cases...
+                           col_types[i] = python::Type::makeOptionType(second_type);
+                       }
+                   } else {
+                       // is there null value somewhere so Opt covers most of the cases?
+
+                       auto it = col_counts[i].begin();
+                       while(it->second != python::Type::NULLVALUE.hash() && it != col_counts[i].end())
+                           ++it;
+
+                       // take original value
+                       col_types[i] = most_common_type;
+
+                       // null value found? --> form option type!
+                       if(it != col_counts[i].end()) {
+                           assert(it->second == python::Type::NULLVALUE.hash());
+                           // check counts, in case of non-nvo always use Option type
+                           auto nv_count = it->first;
+                           // when most freq count >= threshold, use that. else use option type.
+                           if(most_freq >= threshold * total_freq && use_nvo) {
+                               // nothing
+                           } else {
+                               col_types[i] = python::Type::makeOptionType(most_common_type);
+                           }
+                       }
+                   }
+               }
+            }
+
+            // // debug print:
+            // std::stringstream ss;
+            // for(unsigned i = 0; i < col_counts.size(); ++i) {
+            //     ss<<"col "<<i<<": ";
+            //     for(auto entry : col_counts[i]) {
+            //         python::Type t = python::Type::fromHash(entry.second);
+            //         ss<<t.desc()<<" ("<<entry.first<<"), ";
+            //     }
+            //     ss<<"\n";
+            // }
+            // std::cout<<ss.str()<<std::endl;
+
+            return python::Type::makeTupleType(col_types);
+        } else {
+
+            std::cerr<<"not yet implemented"<<std::endl;
+
+            // joint aggregate
+            return python::Type::UNKNOWN;
+        }
+
+        return python::Type::UNKNOWN;
     }
 }

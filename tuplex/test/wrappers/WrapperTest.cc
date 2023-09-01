@@ -21,6 +21,15 @@
 
 #include <boost/filesystem/operations.hpp>
 
+namespace tuplex {
+    // dummy
+    ContainerInfo getThisContainerInfo() {
+        ContainerInfo info;
+        return info;
+    }
+}
+
+
 // need for these tests a running python interpreter, so spin it up
 class WrapperTest : public TuplexTest {
     void SetUp() override {
@@ -352,6 +361,10 @@ TEST_F(WrapperTest, GetOptions) {
         ContextOptions co = ContextOptions::defaults();
         auto length = py::len(c.options());
         EXPECT_GE(co.store().size(), length);
+
+        PyObject_Print(c.options().ptr(), stdout, 0);
+        std::cout<<std::endl;
+        std::cout<<co.asJSON()<<std::endl;
     }
 
 }
@@ -1148,15 +1161,15 @@ TEST_F(WrapperTest, FlightSimulateSpark) {
     // "executorCount": 15, "driverMemory": "15G",
     // "partitionSize": "32MB", "runTimeMemory": "64MB",
     // "inputSplitSize": "64MB", "useLLVMOptimizer": true,
-    // "optimizer.nullValueOptimization": true,
-    // "csv.selectionPushdown": true,
+    // "optimizer.retypeUsingOptimizedInputSchema": true,
+    // "optimizer.selectionPushdown": true,
     // "optimizer.generateParser": false,
     // "optimizer.mergeExceptionsInOrder": false,
     // "optimizer.filterPushdown": true}
     PythonContext ctx("python", "",
                     "{\"tuplex.webui.enable\":\"False\", \"tuplex.useLLVMOptimizer\" : \"True\","
-                    " \"tuplex.optimizer.nullValueOptimization\" : \"True\","
-                    " \"tuplex.optimizer.csv.selectionPushdown\" : \"True\","
+                    " \"tuplex.optimizer.retypeUsingOptimizedInputSchema\" : \"True\","
+                    " \"tuplex.optimizer.optimizer.selectionPushdown\" : \"True\","
                     " \"tuplex.resolveWithInterpreterOnly\":\"False\","
                     "\"tuplex.executorCount\":0,"
                     "\"tuplex.driverMemory\":\"6G\","
@@ -2206,8 +2219,8 @@ TEST_F(WrapperTest, ZillowDirty) {
                      " \"partitionSize\": \"4MB\","
                      " \"runTimeMemory\": \"4MB\","
                      " \"useLLVMOptimizer\": true,"
-                     " \"optimizer.nullValueOptimization\": false,"
-                     " \"csv.selectionPushdown\": false, "
+                     " \"optimizer.retypeUsingOptimizedInputSchema\": false,"
+                     " \"optimizer.selectionPushdown\": false, "
                      "\"optimizer.generateParser\": false,"
                      "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                      "\"optimizer.mergeExceptionsInOrder\": true}";
@@ -2219,8 +2232,8 @@ TEST_F(WrapperTest, ZillowDirty) {
                      " \"partitionSize\": \"4MB\","
                      " \"runTimeMemory\": \"4MB\","
                      " \"useLLVMOptimizer\": true,"
-                     " \"optimizer.nullValueOptimization\": false,"
-                     " \"csv.selectionPushdown\": false, "
+                     " \"optimizer.retypeUsingOptimizedInputSchema\": false,"
+                     " \"optimizer.selectionPushdown\": false, "
                      "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
                      "\"optimizer.generateParser\": false,"
 
@@ -3018,6 +3031,69 @@ TEST_F(WrapperTest, NonConformingResolve) {
     }
 }
 
+#ifdef BUILD_WITH_AWS
+TEST_F(WrapperTest, PythonGithubProcessing) {
+    using namespace std;
+    using namespace tuplex;
+//    auto co = testOptions();
+//
+//    co.set("tuplex.backend", "lambda");
+//    co.set("tuplex.aws.scratchDir", "s3://tuplex/scratch");
+//    co.set("tuplex.useLLVMOptimizer", "true");
+//
+//    // deactivate optimizations (should be done alter again)
+//    // disable constant=folding opt for JSON
+//    co.set("tuplex.optimizer.constantFoldingOptimization", "false");
+//    co.set("tuplex.optimizer.filterPushdown", "false"); // <-- requires access path detection to work
+//    co.set("tuplex.optimizer.selectionPushdown", "false"); // <-- requires access path detection to work.
+//
+//    // hyper on/off
+//    //co.set("tuplex.experimental.hyperspecialization", "true");
+//    co.set("tuplex.experimental.hyperspecialization", "false");
+//    co.set("tuplex.aws.lambdaMemory", "10000");
+//
+//    Context c(co);
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"backend\": \"lambda\","
+                    " \"aws.lambdaMemory\": \"10000\","
+                    " \"aws.scratchDir\": \"s3://tuplex/scratch\","
+                    " \"useLLVMOptimizer\": true,"
+                    " \"optimizer.constantFoldingOptimization\": false,"
+                    " \"optimizer.filterPushdown\": false,"
+                    " \"optimizer.selectionPushdown\": false,"
+                    " \"experimental.hyperspecialization\": true"
+                    "}";
+
+    PythonContext ctx("", "", ctx_opts);
+    {
+
+        // create Github based (JSON) pipeline.
+        auto repo_id_code = "def extract_repo_id(row):\n"
+                            "\tif 2012 <= row['year'] <= 2014:\n"
+                            "\t\treturn row['repository']['id']\n"
+                            "\telse:\n"
+                            "\t\treturn row['repo']['id']\n";
+
+        string pattern = "s3://tuplex-public/data/github_daily/2011*.json,s3://tuplex-public/data/github_daily/2013*.json";
+
+        PyObject * listObj = PyList_New(3);
+        PyList_SET_ITEM(listObj, 0, python::PyString_FromString("type"));
+        PyList_SET_ITEM(listObj, 1, python::PyString_FromString("repo_id"));
+        PyList_SET_ITEM(listObj, 2, python::PyString_FromString("year"));
+
+        auto list = py::reinterpret_borrow<py::list>(listObj);
+
+        ctx.json(pattern, true, true)
+            .withColumn("year", "lambda x: int(x['created_at'].split('-')[0])", "")
+                .withColumn("repo_id", repo_id_code, "")
+                .filter("lambda x: x['type'] == 'ForkEvent'", "")
+                .selectColumns(list)
+                .tocsv("s3://tuplex/scratch/exp-result/out.csv");
+        std::cout<<std::endl; // flush
+    }
+}
+#endif
 
 //// debug any python module...
 ///** Takes a path and adds it to sys.paths by calling PyRun_SimpleString.

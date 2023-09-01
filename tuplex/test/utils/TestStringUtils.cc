@@ -206,3 +206,42 @@ TEST(CSVUtils, I64ToString) {
     EXPECT_EQ(i64toa_sse2(100000000000000000,buf), 18);
     EXPECT_EQ(std::string(buf), "100000000000000000");
 }
+
+// cf. https://github.com/nemtrif/utfcpp --> find_invalid could be used as well...
+
+TEST(StringUtils, UTF8clamp) {
+    using namespace tuplex;
+
+    size_t clamped_size = -1;
+
+    // problematic buffer from online:
+    uint8_t raw_test_buf[] = {0xe9, 0x80, 0xa0, 0xe4, 0xba, 0x86, 0xe9, 0xab, 0x98 , 0xe7, 0xba, 0xa7, 0xe7, 0xa8, 0x8b, 0xe5, '\0'};
+    const char* test_buf = reinterpret_cast<const char*>(raw_test_buf);
+    clamped_size = utf8clamp(test_buf, strlen(test_buf));
+    int len = strlen(test_buf);
+
+    // need to detect UTF-8 end of buffer
+
+    char test_bufA[]= {'a', 'b', 'c', 'd', '\0'};
+    EXPECT_EQ(5, utf8clamp(test_bufA, 5));
+    EXPECT_EQ(4, utf8clamp(test_bufA, 4));
+    EXPECT_EQ(3, utf8clamp(test_bufA, 3));
+    EXPECT_EQ(0, utf8clamp(test_bufA, 0));
+
+    char buf[2048];
+    memset(buf, 0, 2048);
+
+    char utf_invalid[] = "\xe6\x97\xa5\xd1\x88\xfa";
+    clamped_size = utf8clamp(utf_invalid, strlen(utf_invalid));
+    EXPECT_EQ(6, clamped_size);
+
+    // check validity
+    ASSERT_TRUE(clamped_size <= 2048);
+    memcpy(buf, utf_invalid, clamped_size);
+    buf[clamped_size - 1] = 0;
+    EXPECT_EQ(strlen(buf), 5);
+
+    // 2 char utf8
+    char test_bufB[] = "\xe6\x97\xa5\xd1\x88\xf0\x9d\x84\x9e";
+    EXPECT_EQ(10, utf8clamp(test_bufB, 10));
+}

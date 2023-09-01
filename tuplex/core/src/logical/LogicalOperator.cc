@@ -30,11 +30,22 @@ namespace tuplex {
         return id;
     }
 
-
-    LogicalOperator::~LogicalOperator() {
-#warning "memory management of op graph??"
+    int64_t LogicalOperator::getDataSetID(int64_t default_id_value) {
+        if(getDataSet())
+            return getDataSet()->getID();
+        return default_id_value;
     }
 
+
+    LogicalOperator::~LogicalOperator() {
+        // remove this from parents
+        // b.c. need to maintain invariance manually, i.e. remove from pointers when being deconstructed!
+        for(auto& p:  _parents) {
+            auto it = std::find(p->_children.begin(), p->_children.end(), this);
+            if(it != p->_children.end())
+                p->_children.erase(it);
+        }
+    }
 
     std::shared_ptr<ResultSet> LogicalOperator::compute(const Context& context) {
 
@@ -70,27 +81,59 @@ namespace tuplex {
             _dataSet = other->_dataSet;
             _id = other->_id;
             // children and parents left, because special case...
-            _schema = other->_schema;
+            _outputSchema = other->_outputSchema;
         }
     }
 
     void LogicalOperator::freeParents() {
+        // TODO: this function is redundant with smart pointers...
         // recurse
-        for(auto parent : parents()) {
+        for(const auto &parent : parents()) {
             parent->freeParents();
-            delete parent;
         }
         _parents.clear();
     }
 
-    void LogicalOperator::setParents(const std::vector<LogicalOperator *> &parents) {
-        _parents.clear();
-        _parents = parents;
+    void LogicalOperator::setParents(const std::vector<std::shared_ptr<LogicalOperator>> &parents) {
+        // special case: parents empty?
+        if(_parents.empty()) {
+            _parents = parents;
+            addThisToParents();
+            return;
+        }
+
+        _parents.clear(); // this removes all the smart pointers owned by this tree.
+        _parents = parents; // now own all the parents!
+
+        // each parent has this as child
+        for(auto& parent : _parents) {
+            parent->_children = {this};
+        }
     }
 
-    void LogicalOperator::setChildren(const std::vector<LogicalOperator *> &children) {
+    std::vector<std::shared_ptr<LogicalOperator>> LogicalOperator::children() const {
+        // trick, use here the shared ptrs which represent the children!
+        // i.e. this is the parent of each child.
+        std::vector<std::shared_ptr<LogicalOperator>> v;
+        for(auto child : _children)
+            v.emplace_back(child->shared_from_this());
+        return v;
+    }
+
+    void LogicalOperator::setChildren(const std::vector<std::shared_ptr<LogicalOperator>> &children) {
+        // each child gets owned by this
+
+        // remove this from children parents
+        for(auto& child : _children) {
+            auto it = std::find(child->_parents.begin(), child->_parents.end(), shared_from_this());
+            if(it != child->_parents.end())
+                child->_parents.erase(it);
+        }
         _children.clear();
-        _children = children;
+
+        for(auto& child : children) {
+            child->setParent(shared_from_this()); // this becomes parent, thus child becomes owner of this
+        }
     }
 
     std::vector<PyObject*> LogicalOperator::getPythonicSample(size_t num) {
@@ -102,5 +145,33 @@ namespace tuplex {
             v.push_back(python::rowToPython(r, true));
         python::unlockGIL();
         return v;
+    }
+
+    std::shared_ptr<LogicalOperator> LogicalOperator::remove() {
+
+        // both parents and children? -> need to connect.
+        if(!_parents.empty() && !_children.empty()) {
+            // need to connect parents/children
+            // go over each parent and connect to each child
+            for(auto& parent : _parents) {
+                for(auto& child : _children) {
+                    parent->_children.push_back(child);
+                    child->_parents.push_back(parent);
+                }
+            }
+
+            // remove this from parents
+            removeThisFromParents();
+        }
+
+        // disconnect this node.
+        // has parents? disconnect.
+        if(!_parents.empty())
+            setParents({});
+        // has children? disconnect.
+        if(!_children.empty())
+            setChildren({});
+
+        return shared_from_this();
     }
 }

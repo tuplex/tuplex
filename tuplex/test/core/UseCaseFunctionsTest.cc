@@ -394,6 +394,16 @@ TEST_F(UseCaseFunctionsTest, strReplaceFunction) {
     EXPECT_EQ(v[4], Row("hello world"));
 }
 
+TEST_F(UseCaseFunctionsTest, strFormatFunctionPositional) {
+    using namespace tuplex;
+
+    auto v3 = context->parallelize({
+                                           Row("{0:.2f} hi {2:{1}.0s}", 1.23, 3, "goodbye"),
+                                   }).map(UDF("lambda s, x, y, z: s.format(x, y, z)")).collectAsVector();
+    ASSERT_EQ(v3.size(), 1);
+    EXPECT_EQ(v3[0], std::string("1.23 hi    "));
+}
+
 TEST_F(UseCaseFunctionsTest, strFormatFunction) {
     using namespace tuplex;
 
@@ -916,7 +926,7 @@ TEST_F(UseCaseFunctionsTest, NullValueOptIf) {
     opt_nopt.set("tuplex.optimizer.generateParser", "true");
     opt_nopt.set("tuplex.executorCount", "0");
 
-    opt_nopt.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt_nopt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     opt_nopt.set("tuplex.normalcaseThreshold", "0.6"); // set higher, so optimization is more aggressive.
     Context c(opt_nopt);
 
@@ -951,7 +961,7 @@ TEST_F(UseCaseFunctionsTest, FloatNullError) {
 
     auto opt_nopt = microTestOptions();
     // enable NullValue Optimization
-    opt_nopt.set("tuplex.optimizer.nullValueOptimization", "true");
+    opt_nopt.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
     opt_nopt.set("tuplex.normalcaseThreshold", "0.6"); // set higher, so optimization is more aggressive.
     Context c(opt_nopt);
 
@@ -1186,8 +1196,8 @@ TEST_F(UseCaseFunctionsTest, ZillowCacheEachStep) {
     opt_ref.set("tuplex.partitionSize", "16MB");
     opt_ref.set("tuplex.executorCount", "4"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "true"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "true");
-    opt_ref.set("tuplex.csv.selectionPushdown", "true"); // disable for now, prob errors later...
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "true"); // disable for now, prob errors later...
     opt_ref.set("tuplex.optimizer.generateParser", "true"); // do not use par => wrong parse for some cell here!
     opt_ref.set("tuplex.inputSplitSize", "64MB"); // probably something wrong with the reader, again??
     Context ctx(opt_ref);

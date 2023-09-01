@@ -9,6 +9,8 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <Context.h>
+#include <fstream>
+#include <iostream>
 #include "TestUtils.h"
 
 class AggregateTest : public PyTest {};
@@ -79,6 +81,15 @@ class AggregateTest : public PyTest {};
 //        ASSERT_TRUE(found);
 //    }
 //}
+
+TEST_F(AggregateTest, UniqueAirports) {
+    using namespace tuplex;
+    auto opt = testOptions();
+    Context context(opt);
+
+    // get unique airports (dest and origin) --> flatMap would work well here!!!
+
+}
 
 TEST_F(AggregateTest, StrUniqueTest) {
     using namespace tuplex;
@@ -371,8 +382,8 @@ TEST_F(AggregateTest, UniqueMixedTypesWithInterpreterFallback) {
     opt_ref.set("tuplex.executorMemory", "64MB");
     opt_ref.set("tuplex.executorCount", "0"); // single-threaded
     opt_ref.set("tuplex.useLLVMOptimizer", "false"); // deactivate
-    opt_ref.set("tuplex.optimizer.nullValueOptimization", "true");
-    opt_ref.set("tuplex.csv.selectionPushdown", "false");
+    opt_ref.set("tuplex.optimizer.retypeUsingOptimizedInputSchema", "true");
+    opt_ref.set("tuplex.optimizer.selectionPushdown", "false");
     opt_ref.set("tuplex.optimizer.generateParser", "false");
 
     Context c_ref(opt_ref);
@@ -397,7 +408,7 @@ TEST_F(AggregateTest, ComplaintTypeAgg) {
     opt.set("tuplex.redirectToPythonLogging", "True");
     opt.set("tuplex.executorMemory", "2G");
     opt.set("tuplex.driverMemory", "2G");
-    opt.set("tuplex.executorCount", "0");
+    // opt.set("tuplex.executorCount", "0"); // single-threaded setting.
     opt.set("tuplex.executorCount", "16");
 
     // ds = c.csv('311_subset.csv')

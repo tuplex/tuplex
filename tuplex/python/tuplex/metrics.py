@@ -87,6 +87,15 @@ class Metrics:
         assert self._metrics
         return self._metrics.getTotalCompilationTime()
 
+    @property
+    def generateLLVMTime(self) -> float:
+        """
+        Returns:
+            float:  the time in seconds
+        """
+        assert self._metrics
+        return self._metrics.getGenerateLLVMTime()
+        
     def as_json(self) -> str:
         """
         all measurements as json encoded string

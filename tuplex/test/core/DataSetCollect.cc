@@ -22,7 +22,7 @@ TEST_F(DataSetTest, MixedTransform) {
     ContextOptions co = testOptions();
     co.set("tuplex.partitionSize", "100B");
     co.set("tuplex.executorMemory", "1MB");
-    co.set("tuplex.useLLVMOptimizer", "false");
+    co.set("tuplex.useLLVMOptimizer", "true");
 
     Context c(co);
     Row row1(Tuple(10.0, "This"));
@@ -664,4 +664,83 @@ TEST_F(DataSetTest, MapColumnTypingBug) {
     auto v = c.csv("../resources/zillow_data.csv").mapColumn("title", UDF("lambda x: x + '-hi'")).unique().collectAsVector();//.filter(UDF("lambda a: False")).collectAsVector();
 
     EXPECT_GT(v.size(), 0);
+}
+
+TEST_F(DataSetTest, TypeOptionalList) {
+    using namespace tuplex;
+
+    Context c(microTestOptions());
+
+    auto udf_code = "def foo(x):\n"
+                    "        if x > 0:\n"
+                    "                return [1, 2, 3]\n"
+                    "        else:\n"
+                    "                return [None]";
+
+    auto v = c.parallelize({Row(0), Row(1)}).map(UDF(udf_code)).collectAsVector();
+    EXPECT_EQ(v.size(), 2);
+}
+
+TEST_F(DataSetTest, ListIndexOptionalStr) {
+    using namespace tuplex;
+
+    auto udf_code = "def foo(name):\n"
+                               "    carrier_list = [None, 'EA', 'UA', 'PI', 'NK', 'PS', 'AA', 'NW', 'EV', 'B6', 'HP', 'TW', 'DL', 'OO', 'F9', 'YV',\n"
+                               "                    'TZ', 'US',\n"
+                               "                    'MQ', 'OH', 'HA', 'ML (1)', 'XE', 'G4', 'YX', 'DH', 'AS', 'KH', 'QX', 'CO', 'FL', 'VX', 'PA (1)',\n"
+                               "                    'WN', '9E']\n"
+                               "    return carrier_list.index(name)";
+
+    Context c(microTestOptions());
+    auto v = c.parallelize({Row("UA"), Row("AA"), Row("9E"), Row("")}).map(UDF(udf_code)).collectAsVector();
+
+    // 2, 6, 34, ValueError should be the result
+    ASSERT_EQ(v.size(), 3);
+    EXPECT_EQ(v[0].getInt(0), 2);
+    EXPECT_EQ(v[1].getInt(0), 6);
+    EXPECT_EQ(v[2].getInt(0), 34);
+}
+
+
+TEST_F(DataSetTest, ListOfNulls) {
+    using namespace tuplex;
+
+    auto udf_code = "def foo(x):\n"
+                    "    if x % 2 == 0:\n"
+                    "        return [None, None]\n"
+                    "\n"
+                    "    return [None, None, None]";
+
+    auto co = microTestOptions();
+    co.set("useLLVMOptimizer", "false");
+    Context c(co);
+
+    auto v = c.parallelize({Row(0), Row(1)}).map(UDF(udf_code)).map(UDF("lambda x: x[1]")).collectAsVector();
+    ASSERT_EQ(v.size(), 2);
+    EXPECT_EQ(v[0].toPythonString(), "(None,)");
+    EXPECT_EQ(v[1].toPythonString(), "(None,)");
+}
+
+TEST_F(DataSetTest, ListReturnUpcastNull) {
+    using namespace tuplex;
+    // test code
+    auto udf_code = "def foo(x):\n"
+                    "    if x % 2 == 0:\n"
+                    "        return [None, None, None, None, None, None, None, None, None, None, None, None, None]\n"
+                    "    else:\n"
+                    "        return [1.0, 2.0, 3.141, 2.0, 1.0, 2.0, 3.141, 2.0, 0.0]";
+
+    auto co = microTestOptions();
+    co.set("useLLVMOptimizer", "false");
+    Context c(co);
+
+    // does this work? --> NO.
+    auto v = c.parallelize({Row(0), Row(1)})
+            .map(UDF(udf_code))
+            .map(UDF("lambda x: x[6]")).collectAsVector();
+
+    ASSERT_FALSE(v.empty());
+    ASSERT_EQ(v.size(), 2);
+    EXPECT_EQ(v[0].toPythonString(), "(None,)");
+    EXPECT_EQ(v[1].toPythonString(), "(3.14100,)");
 }

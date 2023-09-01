@@ -265,6 +265,122 @@ TEST(UDF, Rewrite) {
     ASSERT_EQ(v.size(), 2);
 }
 
+TEST(UDF, RewriteSpecialCases) {
+    // rewrite for projection pushdown, look into weird edge cases here
+    using namespace tuplex;
+    using namespace std;
+
+    UDF udf("lambda x: x['a']");
+    udf.rewriteDictAccessInAST({"c", "b", "a"}); // convert dict access...
+    // hint schema ( tuple of 3!)
+    auto type = python::Type::makeTupleType({python::Type::I64, python::Type::NULLVALUE, python::Type::F64});
+    udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, type));
+    EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "f64");
+    EXPECT_EQ(udf.getOutputSchema().getRowType().desc(), "(f64)");
+
+    // now perform projection pushdown, i.e. rewrite 2->0
+    udf.rewriteParametersInAST({{2, 0}});
+    EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "f64");
+    EXPECT_EQ(udf.getOutputSchema().getRowType().desc(), "(f64)");
+
+}
+
+TEST(UDF, RetypeTest) {
+    // check that multiple retypes using projections work easily
+
+    using namespace tuplex;
+    using namespace std;
+
+    UDF udf("lambda x: x['a']");
+    udf.rewriteDictAccessInAST({"c", "b", "a"}); // convert dict access...
+    // hint schema ( tuple of 3!)
+    auto type = python::Type::makeTupleType({python::Type::I64, python::Type::NULLVALUE, python::Type::F64});
+    udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, type));
+    EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "f64");
+    EXPECT_EQ(udf.getOutputSchema().getRowType().desc(), "(f64)");
+
+    std::cout<<udf.desc()<<std::endl;
+
+    // now perform projection pushdown, i.e. rewrite 2->0
+    udf.rewriteParametersInAST({{2, 0}});
+    EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "f64");
+    EXPECT_EQ(udf.getOutputSchema().getRowType().desc(), "(f64)");
+
+    // now retype using string
+    auto new_type = python::Type::makeTupleType({python::Type::I64, python::Type::I64, python::Type::I64});
+
+    bool rc = false;
+
+    // retype using original
+    rc = udf.retype(new_type);
+    EXPECT_TRUE(rc);
+    //udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, new_type));
+    EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "i64");
+    EXPECT_EQ(udf.getOutputSchema().getRowType().desc(), "(i64)");
+
+    // now check when using retyping using a tinier type.
+    auto new_type_proj = python::Type::makeTupleType({python::Type::NULLVALUE});
+    rc = udf.retype(new_type_proj);
+    EXPECT_TRUE(rc);
+    EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "null");
+    EXPECT_EQ(udf.getOutputSchema().getRowType().desc(), "(null)");
+}
+
+TEST(UDF, RetypeWithChangedColumnOrder) {
+    // perform some more complex retype scenarios (i.e., column names missing, order changed etc.)
+    // --> need to do this to avoid issues with retyping later on!
+
+    auto code = "lambda x: (x['A'], x['B'], x['C'], x['D'], x['E'])";
+
+    // type first with right row type
+    // note that rewrite with colunm names changes order? -> should it?
+    // -> there should be a stable rewrite when it comes to column names!!!
+    // maybe introduce proper Row type!
+    // -> that would solve a bunch of issues...
+    // yeah, that's a good idea...
+    UDF udf(code);
+    udf.rewriteDictAccessInAST({"A", "B", "C", "D", "E"});
+    auto row_type = python::Type::makeTupleType({python::Type::I64, python::Type::NULLVALUE, python::Type::F64, python::Type::STRING, python::Type::BOOLEAN});
+    udf.retype(row_type);
+
+
+}
+
+TEST(UDF, InputColumnCount) {
+    using namespace tuplex;
+    using namespace std;
+
+    // single param
+    {
+        UDF udf("lambda x: x");
+        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::I64));
+        EXPECT_EQ(udf.inputColumnCount(), 1);
+        EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "i64");
+        udf.removeTypes();
+        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType({python::Type::I64})));
+        EXPECT_EQ(udf.inputColumnCount(), 1);
+        EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "i64");
+
+        udf.removeTypes();
+        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType({python::Type::makeTupleType({python::Type::I64})})));
+        EXPECT_EQ(udf.inputColumnCount(), 1);
+        EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "(i64)");
+    }
+
+    // multi param
+    {
+        auto tuple_type = python::Type::makeTupleType({python::Type::I64, python::Type::BOOLEAN, python::Type::F64, python::Type::STRING});
+        UDF udf("lambda x: (x[0], x[2])");
+        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, tuple_type));
+        EXPECT_EQ(udf.inputColumnCount(), 4);
+        EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "(i64,f64)");
+        udf = UDF("lambda a, b, c, d: (a, c)");
+        udf.hintInputSchema(Schema(Schema::MemoryLayout::ROW, tuple_type));
+        EXPECT_EQ(udf.inputColumnCount(), 4);
+        EXPECT_EQ(udf.getAnnotatedAST().getReturnType().desc(), "(i64,f64)");
+    }
+}
+
 TEST(UDF, SymbolTableIfLogic) {
 
     // check here symbol table can handle type reassignments properly
@@ -363,6 +479,69 @@ TEST(UDF, ModuleCall) {
     auto desc = udf.getOutputSchema().getRowType().desc();
     EXPECT_EQ(desc, "(Option[matchobject])");
 }
+
+TEST(UDF, ConstantFolding) {
+    using namespace tuplex;
+
+    auto udf_code = "def fill_in_delays(row):\n"
+                    "    # want to fill in data for missing carrier_delay, weather delay etc.\n"
+                    "    # only need to do that prior to 2003/06\n"
+                    "    \n"
+                    "    year = row['YEAR']\n"
+                    "    month = row['MONTH']\n"
+                    "    arr_delay = row['ARR_DELAY']\n"
+                    "    \n"
+                    "    if year == 2003 and month < 6 or year < 2003:\n"
+                    "        # fill in delay breakdown using model and complex logic\n"
+                    "        if arr_delay is None:\n"
+                    "            # stays None, because flight arrived early\n"
+                    "            # if diverted though, need to add everything to div_arr_delay\n"
+                    "            return {'year' : year,"
+                    "                    'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'arr_delay': None,"
+                    "                    'carrier_delay' : None}\n"
+                    "        elif arr_delay < 0.:\n"
+                    "            # stays None, because flight arrived early\n"
+                    "            # if diverted though, need to add everything to div_arr_delay\n"
+                    "            return {'year' : year,"
+                    "                    'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'arr_delay': row['ARR_DELAY'],\n"
+                    "                    'carrier_delay' : None}\n"
+                    "        elif arr_delay < 5.:\n"
+                    "            # it's an ontime flight, just attribute any delay to the carrier\n"
+                    "            carrier_delay = arr_delay\n"
+                    "            # set the rest to 0\n"
+                    "            # ....\n"
+                    "            return {'year' : year,"
+                    "                    'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'arr_delay': row['ARR_DELAY'],\n"
+                    "                    'carrier_delay' : carrier_delay}\n"
+                    "        else:\n"
+                    "            # use model to determine everything and set into (join with weather data?)\n"
+                    "            # i.e., extract here a couple additional columns & use them for features etc.!\n"
+                    "            crs_dep_time = float(row['CRS_DEP_TIME'])\n"
+                    "            crs_arr_time = float(row['CRS_ARR_TIME'])\n"
+                    "            crs_elapsed_time = float(row['CRS_ELAPSED_TIME'])\n"
+                    "            carrier_delay = 1024 + 2.7 * crs_dep_time - 0.2 * crs_elapsed_time\n"
+                    "            return {'year' : year,"
+                    "                    'month' : month,\n"
+                    "                    'day' : row['DAY_OF_MONTH'],\n"
+                    "                    'arr_delay': row['ARR_DELAY'],\n"
+                    "                    'carrier_delay' : carrier_delay}\n"
+                    "    else:\n"
+                    "        # just return it as is\n"
+                    "        return {'year' : year,"
+                    "                'month' : month,\n"
+                    "                'day' : row['DAY_OF_MONTH'],\n"
+                    "                'arr_delay': row['ARR_DELAY'],\n"
+                    "                'carrier_delay' : row['CARRIER_DELAY']}";
+
+    // @TODO: fix on this simplified version the constant folding...
+}
+
 
 // this test fails, postponed for now. There're more important things todo.
 //TEST(UDF, RewriteSlice) {

@@ -1,0 +1,6 @@
+*.pdf
+*.json
+.cache/
+data/
+results_hyper/
+*.tar.gz

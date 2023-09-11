@@ -35,24 +35,26 @@ RUN bash /opt/sbin/install_boost.sh /opt/python/cp37-cp37m/bin/python3.7 /opt/bo
 RUN bash /opt/sbin/install_boost.sh /opt/python/cp38-cp38//bin/python3.8 /opt/boost/python3.8
 RUN bash /opt/sbin/install_boost.sh /opt/python/cp39-cp39/bin/python3.9 /opt/boost/python3.9
 RUN bash /opt/sbin/install_boost.sh /opt/python/cp310-cp310/bin/python3.10 /opt/boost/python3.10
-RUN bash /opt/sbin/install_boost.sh /opt/python/cp310-cp310/bin/python3.10 /opt/boost/python3.11
+RUN bash /opt/sbin/install_boost.sh /opt/python/cp311-cp311/bin/python3.11 /opt/boost/python3.11
 
 # Update pip versions
 RUN python3.7 -m pip install --upgrade pip setuptools wheel
 RUN python3.8 -m pip install --upgrade pip setuptools wheel
 RUN python3.9 -m pip install --upgrade pip setuptools wheel
 RUN python3.10 -m pip install --upgrade pip setuptools wheel
+RUN python3.11 -m pip install --upgrade pip setuptools wheel
 
 # matrix?
 RUN python3.7 -m pip install 'cloudpickle<2.0' cython numpy pandas
 RUN python3.8 -m pip install 'cloudpickle<2.0' cython numpy pandas
 RUN python3.9 -m pip install 'cloudpickle<2.0' numpy pandas
 RUN python3.10 -m pip install 'cloudpickle>2.0' numpy pandas
+RUN python3.11 -m pip install 'cloudpickle>2.0' numpy pandas
 
 # tuplex requirements
 RUN bash /opt/sbin/install_tuplex_reqs.sh
 
-RUN bash /opt/sbin/install_boost.sh /opt/python/cp310-cp310/bin/python3.10 /opt/boost/python3.10
+#RUN bash /opt/sbin/install_boost.sh /opt/python/cp310-cp310/bin/python3.10 /opt/boost/python3.10
 
 # add lambda-specific Python 3.8 (full python install)
 ADD install_lambda_python.sh /opt/sbin/install_lambda_python.sh

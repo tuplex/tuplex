@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #(c) 2017-2022 Tuplex team
 
+set -euxo pipefail
 
 # install LLVM 9.0.1 to use for building wheels
 LLVM_VERSIONS_TO_INSTALL=(9.0.1)
@@ -32,18 +33,18 @@ function install_llvm {
    pushd "${LLVM_WORKDIR}" || exit 1
 
    wget ${LLVM_URL} && tar xf llvm-${LLVM_VERSION}.src.tar.xz
-   wget ${CLANG_URL} && tar xf clang-${LLVM_VERSION}.src.tar.xz && mv clang-${LLVM_VERSION}.src llvm-${LLVM_VERSION}.src/clang
+   wget ${CLANG_URL} && tar xf clang-${LLVM_VERSION}.src.tar.xz && mv clang-${LLVM_VERSION}.src llvm-${LLVM_VERSION}.src/../clang
 
    if (( LLVM_MAJOR_VERSION >= 15 )); then
       wget ${LLVM_CMAKE_URL} && tar xf cmake-${LLVM_VERSION}.src.tar.xz && mv cmake-${LLVM_VERSION}.src llvm-${LLVM_VERSION}.src/cmake
    fi
 
 
-   cmake -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON \
+   cmake -GNinja -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON \
          -DLLVM_ENABLE_PROJECTS="clang" \
-         -DLLVM_TARGETS_TO_BUILD="X86;AArch64" -DCMAKE_BUILD_TYPE=Release -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF -DCMAKE_CXX_FLAGS="-std=c++11 -include /usr/include/c++/11/limits" \
+         -DLLVM_TARGETS_TO_BUILD="X86;AArch64" -DCMAKE_BUILD_TYPE=Release -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF  \
          -DCMAKE_INSTALL_PREFIX=/opt/llvm-${LLVM_VERSION} llvm-${LLVM_VERSION}.src
-
+   ninja install
   popd
 }
 
@@ -63,7 +64,7 @@ echo ">> Files will be downloaded to ${WORKDIR}/tuplex-downloads"
 WORKDIR=$WORKDIR/tuplex-downloads
 mkdir -p $WORKDIR
 
-for llvm_version in ${LLVM_VERSIONS_TO_INSTALL[@]}; do 
+for llvm_version in "${LLVM_VERSIONS_TO_INSTALL[@]}"; do
   echo "Installing LLVM ${llvm_version}"
   install_llvm ${llvm_version}
 done

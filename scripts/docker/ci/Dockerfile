@@ -8,8 +8,20 @@ FROM quay.io/pypa/manylinux2014_x86_64
 
 MAINTAINER "Tuplex project@Brown"
 
+
+# image is centos based, so use yum as package manager
+# --> install_llvm uses most recent 9 release.
+
+RUN yum update -y
+RUN yum install -y dnf
+RUN dnf install -y git flex curl autoconf zip wget kernel-headers python3
+
 # add script files from local dir
 RUN mkdir -p /opt/sbin
+
+ADD install_cmake.sh /opt/sbin/install_cmake.sh
+RUN bash /opt/sbin/install_cmake.sh amd64 linux 3.27.4 /usr/local
+
 ADD install_boost.sh /opt/sbin/install_boost.sh
 ADD install_tuplex_reqs.sh /opt/sbin/install_tuplex_reqs.sh
 ADD install_llvm.sh /opt/sbin/install_llvm.sh
@@ -20,11 +32,6 @@ ADD install_llvm.sh /opt/sbin/install_llvm.sh
 # CentOS/RHEL does not use OpenSSL for the system curl, however AWSSDK must use OpenSSL backed curl.
 ADD install_curl.sh /opt/sbin/install_curl.sh
 
-# image is centos based, so use yum as package manager
-# --> install_llvm uses most recent 9 release.
-
-RUN yum update -y
-RUN yum install -y wget
 
 
 # install curl now

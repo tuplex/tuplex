@@ -36,14 +36,14 @@ function install_llvm {
    wget ${CLANG_URL} && tar xf clang-${LLVM_VERSION}.src.tar.xz && mv clang-${LLVM_VERSION}.src llvm-${LLVM_VERSION}.src/../clang
 
    if (( LLVM_MAJOR_VERSION >= 15 )); then
-      wget ${LLVM_CMAKE_URL} && tar xf cmake-${LLVM_VERSION}.src.tar.xz && mv cmake-${LLVM_VERSION}.src llvm-${LLVM_VERSION}.src/cmake
+      wget ${LLVM_CMAKE_URL} && tar xf cmake-${LLVM_VERSION}.src.tar.xz && mv cmake-${LLVM_VERSION}.src cmake
    fi
 
+  mkdir -p llvm-${LLVM_VERSION}.src/build && cd llvm-${LLVM_VERSION}.src/build
 
-   cmake -GNinja -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON \
-         -DLLVM_ENABLE_PROJECTS="clang" \
-         -DLLVM_TARGETS_TO_BUILD="X86;AArch64" -DCMAKE_BUILD_TYPE=Release -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF  \
-         -DCMAKE_INSTALL_PREFIX=/opt/llvm-${LLVM_VERSION} llvm-${LLVM_VERSION}.src
+   cmake -GNinja -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DLLVM_ENABLE_PROJECTS="clang" -DLLVM_TARGETS_TO_BUILD="X86;AArch64" \
+         -DCMAKE_BUILD_TYPE=Release -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF  \
+         -DCMAKE_INSTALL_PREFIX=/opt/llvm-${LLVM_VERSION} ..
    ninja install
   popd
 }

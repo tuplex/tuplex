@@ -738,10 +738,10 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         key_column = leftColumn.value_or(rightColumn.value_or(""));
 
         auto build_right = right_key_idx >= 0; // because always the "left" column is taken, can infer build direction
-        std::__1::vector<std::string> result_columns;
+        std::vector<std::string> result_columns;
         if(build_right) {
             // the bucket columns come first
-            std::__1::transform(bucketColumns.begin(), bucketColumns.end(), std::back_inserter(result_columns),
+            std::transform(bucketColumns.begin(), bucketColumns.end(), std::back_inserter(result_columns),
                                 [&](const std::string& name) { return leftPrefix.value_or("") + name + leftSuffix.value_or("");});
             result_columns.push_back(key_column); // no prefixing for key column
 
@@ -760,7 +760,7 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
             if(right_key_idx >= 0)
                 result_columns.push_back(_lastColumns[right_key_idx]);
-            std::__1::transform(bucketColumns.begin(), bucketColumns.end(), std::back_inserter(result_columns),
+            std::transform(bucketColumns.begin(), bucketColumns.end(), std::back_inserter(result_columns),
                                 [&](const std::string& name) { return rightPrefix.value_or("") + name + rightSuffix.value_or("");});
         }
 

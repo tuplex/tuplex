@@ -4,7 +4,7 @@
 set -euxo pipefail
 
 # install LLVM 9.0.1 to use for building wheels
-LLVM_VERSIONS_TO_INSTALL=(9.0.1)
+LLVM_VERSIONS_TO_INSTALL=(9.0.1 16.0.6)
 
 function install_llvm {
    LLVM_VERSION=$1

@@ -26,33 +26,26 @@ ADD install_boost.sh /opt/sbin/install_boost.sh
 ADD install_tuplex_reqs.sh /opt/sbin/install_tuplex_reqs.sh
 ADD install_llvm.sh /opt/sbin/install_llvm.sh
 
-# cmake not required to be installed, because recent image has cmake 3.20
-# it uses gcc 9.3.1
-
 # CentOS/RHEL does not use OpenSSL for the system curl, however AWSSDK must use OpenSSL backed curl.
 ADD install_curl.sh /opt/sbin/install_curl.sh
-
 
 
 # install curl now
 RUN bash /opt/sbin/install_curl.sh
 
-# install boost-python for 3.7, 3.8, 3.9, 3.10
-RUN bash /opt/sbin/install_boost.sh /opt/python/cp37-cp37m/bin/python3.7 /opt/boost/python3.7
+# install boost-python for 3.8, 3.9, 3.10, 3.11.
 RUN bash /opt/sbin/install_boost.sh /opt/python/cp38-cp38//bin/python3.8 /opt/boost/python3.8
 RUN bash /opt/sbin/install_boost.sh /opt/python/cp39-cp39/bin/python3.9 /opt/boost/python3.9
 RUN bash /opt/sbin/install_boost.sh /opt/python/cp310-cp310/bin/python3.10 /opt/boost/python3.10
 RUN bash /opt/sbin/install_boost.sh /opt/python/cp311-cp311/bin/python3.11 /opt/boost/python3.11
 
 # Update pip versions
-RUN python3.7 -m pip install --upgrade pip setuptools wheel
 RUN python3.8 -m pip install --upgrade pip setuptools wheel
 RUN python3.9 -m pip install --upgrade pip setuptools wheel
 RUN python3.10 -m pip install --upgrade pip setuptools wheel
 RUN python3.11 -m pip install --upgrade pip setuptools wheel
 
 # matrix?
-RUN python3.7 -m pip install 'cloudpickle<2.0' cython numpy pandas
 RUN python3.8 -m pip install 'cloudpickle<2.0' cython numpy pandas
 RUN python3.9 -m pip install 'cloudpickle<2.0' numpy pandas
 RUN python3.10 -m pip install 'cloudpickle>2.0' numpy pandas
@@ -61,7 +54,8 @@ RUN python3.11 -m pip install 'cloudpickle>2.0' numpy pandas
 # tuplex requirements
 RUN bash /opt/sbin/install_tuplex_reqs.sh
 
-#RUN bash /opt/sbin/install_boost.sh /opt/python/cp310-cp310/bin/python3.10 /opt/boost/python3.10
+# install llvm (versions)
+RUN bash /opt/sbin/install_llvm.sh
 
 # add lambda-specific Python 3.8 (full python install)
 ADD install_lambda_python.sh /opt/sbin/install_lambda_python.sh

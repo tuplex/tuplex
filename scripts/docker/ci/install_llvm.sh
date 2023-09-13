@@ -3,8 +3,10 @@
 
 set -euxo pipefail
 
-# install LLVM 9.0.1 to use for building wheels
-LLVM_VERSIONS_TO_INSTALL=(9.0.1 16.0.6)
+# install LLVM 16.0.6 to use for building wheels
+# github actions runs into space issues when using both 9.0.1 and 16.0.6
+# LLVM_VERSIONS_TO_INSTALL=(9.0.1 16.0.6)
+LLVM_VERSIONS_TO_INSTALL=(16.0.6)
 
 function install_llvm {
    LLVM_VERSION=$1

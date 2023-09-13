@@ -31,7 +31,7 @@ get_abs_filename() {
 
 LOCAL_BUILD_FOLDER=$(get_abs_filename $LOCAL_BUILD_FOLDER)
 SRC_FOLDER=$(get_abs_filename $SRC_FOLDER)
-LLVM_ROOT_PATH=/opt/llvm-9.0.1
+LLVM_ROOT_PATH=/opt/llvm-16.0.6
 echo "Tuplex source: $SRC_FOLDER"
 echo "Building lambda in: $LOCAL_BUILD_FOLDER"
 echo "LLVM folder: ${LLVM_ROOT_PATH}"

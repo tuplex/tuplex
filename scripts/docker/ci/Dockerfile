@@ -10,7 +10,7 @@ MAINTAINER "Tuplex project@Brown"
 
 
 # image is centos based, so use yum as package manager
-# --> install_llvm uses most recent 9 release.
+# --> install_llvm uses most recent 16 release.
 
 RUN yum update -y
 RUN yum install -y dnf

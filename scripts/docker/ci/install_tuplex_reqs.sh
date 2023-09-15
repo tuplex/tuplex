@@ -1,10 +1,31 @@
 #!/usr/bin/env bash
-#(c) 2017-2022 Tuplex team
+#(c) 2017-2023 Tuplex team
 
+set -euxo pipefail
+
+# dependency versions
+AWSSDK_CPP_VERSION=1.11.164
+ANTLR4_VERSION=4.13.1
+YAML_CPP_VERSION=0.8.0
+AWS_LAMBDA_CPP_VERSION=0.2.8
+PCRE2_VERSION=10.42
+PROTOBUF_VERSION=24.3
+
+PYTHON_VERSION=$(echo $(python3 --version) | cut -d ' ' -f2)
+PYTHON_MAJMIN_VERSION=${PYTHON_VERSION%%.[0-9]}
+echo ">> Installing dependencies for Python version ${PYTHON_VERSION}"
+
+function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
+
+# install python dependencies depending on version
+declare -A PYTHON_DEPENDENCIES=(["3.8"]="cloudpickle<2.0 cython numpy pandas" ["3.9"]="cloudpickle<2.0 numpy pandas" ["3.10"]="cloudpickle>2.0 numpy pandas" ["3.11"]="cloudpickle>2.0 numpy pandas")
+PYTHON_REQUIREMENTS=$(echo "${PYTHON_DEPENDENCIES[$PYTHON_MAJMIN_VERSION]}")
+python3 -m pip install ${PYTHON_REQUIREMENTS}
 
 # install all build dependencies for tuplex (CentOS)
 PREFIX=${PREFIX:-/opt}
 WORKDIR=${WORKDIR:-/tmp}
+CPU_COUNT=$(( 1 * $( egrep '^processor[[:space:]]+:' /proc/cpuinfo | wc -l ) ))
 
 echo ">> Installing packages into ${PREFIX}"
 mkdir -p $PREFIX && chmod 0755 $PREFIX
@@ -17,7 +38,22 @@ mkdir -p $PREFIX/lib
 echo ">> Files will be downloaded to ${WORKDIR}/tuplex-downloads"
 WORKDIR=$WORKDIR/tuplex-downloads
 mkdir -p $WORKDIR
-yum install -y libedit-devel libzip-devel   pkgconfig openssl-devel libxml2-devel zlib-devel    uuid libuuid-devel libffi-devel graphviz-devel   gflags-devel ncurses-devel   awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip ninja-build --skip-broken
+yum install -y libedit-devel libzip-devel pkgconfig libxml2-devel zlib-devel uuid libuuid-devel libffi-devel graphviz-devel gflags-devel ncurses-devel   awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip ninja-build --skip-broken
+
+# custom OpenSSL, use a recent OpenSSL and uninstall current one
+if which yum; then
+	yum erase -y openssl-devel
+else
+	apk del openssl-dev
+fi
+cd $WORKDIR && \
+  wget https://ftp.openssl.org/source/openssl-1.1.1w.tar.gz && \
+  tar -xzvf openssl-1.1.1w.tar.gz && \
+  cd openssl-1.1.1w && \
+  ./config no-shared zlib-dynamic && \
+  make install -j ${CPU_COUNT}
+# this will install openssl into /usr/local
+
 
 # add github to known hosts
 mkdir -p /root/.ssh/ &&
@@ -29,7 +65,7 @@ echo ">> Installing YAMLCPP"
 mkdir -p ${WORKDIR}/yamlcpp && cd ${WORKDIR}/yamlcpp \
 && git clone https://github.com/jbeder/yaml-cpp.git yaml-cpp \
 && cd yaml-cpp \
-&& git checkout tags/yaml-cpp-0.6.3 \
+&& git checkout tags/yaml-cpp-${YAML_CPP_VERSION} \
 && mkdir build && cd build \
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${prefix} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \
 && make -j$(nproc) && make install
@@ -44,11 +80,11 @@ mkdir -p ${WORKDIR}/celero && cd ${WORKDIR}/celero \
 
 echo ">> Installing ANTLR"
 mkdir -p ${WORKDIR}/antlr && cd ${WORKDIR}/antlr \
-&& curl -O https://www.antlr.org/download/antlr-4.8-complete.jar \
-&& cp antlr-4.8-complete.jar ${PREFIX}/lib/ \
-&& curl -O https://www.antlr.org/download/antlr4-cpp-runtime-4.8-source.zip \
-&& unzip antlr4-cpp-runtime-4.8-source.zip -d antlr4-cpp-runtime \
-&& rm antlr4-cpp-runtime-4.8-source.zip \
+&& curl -O https://www.antlr.org/download/antlr-${ANTLR4_VERSION}-complete.jar \
+&& cp antlr-${ANTLR4_VERSION}-complete.jar ${PREFIX}/lib/ \
+&& curl -O https://www.antlr.org/download/antlr4-cpp-runtime-${ANTLR4_VERSION}-source.zip \
+&& unzip antlr4-cpp-runtime-${ANTLR4_VERSION}-source.zip -d antlr4-cpp-runtime \
+&& rm antlr4-cpp-runtime-${ANTLR4_VERSION}-source.zip \
 && cd antlr4-cpp-runtime \
 && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
 && make -j$(nproc) && make install
@@ -56,8 +92,8 @@ mkdir -p ${WORKDIR}/antlr && cd ${WORKDIR}/antlr \
 echo ">> Installing AWS SDK"
 mkdir -p ${WORKDIR}/aws && cd ${WORKDIR}/aws \
 &&  git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git \
-&& cd aws-sdk-cpp && git checkout tags/1.9.320 && mkdir build && cd build \
-&& cmake -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=14 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
+&& cd aws-sdk-cpp && git checkout tags/${AWSSDK_CPP_VERSION} && mkdir build && cd build \
+&& cmake -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=17 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
 && make -j$(nproc) \
 && make install
 
@@ -67,7 +103,7 @@ cd ${WORKDIR}/aws \
 && git clone https://github.com/awslabs/aws-lambda-cpp.git \
 && cd aws-lambda-cpp \
 && git fetch && git fetch --tags \
-&& git checkout v0.2.6 \
+&& git checkout v${AWS_LAMBDA_CPP_VERSION} \
 && mkdir build \
 && cd build \
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
@@ -75,17 +111,22 @@ cd ${WORKDIR}/aws \
 
 echo ">> Installing PCRE2"
 mkdir -p ${WORKDIR}/pcre2 && cd ${WORKDIR}/pcre2 \
-&& curl -LO https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.39/pcre2-10.39.zip \
-&& unzip pcre2-10.39.zip \
-&& rm pcre2-10.39.zip \
-&& cd pcre2-10.39 \
+&& curl -LO https://github.com/PhilipHazel/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.zip \
+&& unzip pcre2-${PCRE2_VERSION}.zip \
+&& rm pcre2-${PCRE2_VERSION}.zip \
+&& cd pcre2-${PCRE2_VERSION} \
 && ./configure CFLAGS="-O2 -fPIC" --prefix=${PREFIX} --enable-jit=auto --disable-shared \
 && make -j$(nproc) && make install
 
 echo ">> Installing protobuf"
 mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf \
-&& curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v21.5/protobuf-cpp-3.21.5.tar.gz \
-&& tar xf protobuf-cpp-3.21.5.tar.gz \
-&& cd protobuf-3.21.5 \
+&& curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protobuf-cpp-3.${PROTOBUF_VERSION}.tar.gz \
+&& tar xf protobuf-cpp-3.${PROTOBUF_VERSION}.tar.gz \
+&& cd protobuf-3.${PROTOBUF_VERSION} \
 && ./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" \
 && make -j$(nproc) && make install && ldconfig
+
+
+# delete workdir (downloads dir) to clean up space
+rm -rf ${WORKDIR}
+yum clean all

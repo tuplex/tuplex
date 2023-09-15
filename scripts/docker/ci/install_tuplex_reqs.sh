@@ -42,18 +42,17 @@ yum install -y libedit-devel libzip-devel pkgconfig libxml2-devel zlib-devel uui
 
 # custom OpenSSL, use a recent OpenSSL and uninstall current one
 if which yum; then
-	yum erase -y openssl-devel
+	yum erase -y openssl-devel openssl
 else
-	apk del openssl-dev
+	apk del openssl-dev openssl
 fi
 cd $WORKDIR && \
   wget https://ftp.openssl.org/source/openssl-1.1.1w.tar.gz && \
   tar -xzvf openssl-1.1.1w.tar.gz && \
   cd openssl-1.1.1w && \
-  ./config no-shared zlib-dynamic && \
-  make install -j ${CPU_COUNT}
+  ./config no-shared zlib-dynamic CFLAGS="-fPIC" CXXFLAGS="-fPIC" LDFLAGS="-fPIC" && \
+  make -j ${CPU_COUNT} && make install_sw && echo "OpenSSL ok"
 # this will install openssl into /usr/local
-
 
 # add github to known hosts
 mkdir -p /root/.ssh/ &&

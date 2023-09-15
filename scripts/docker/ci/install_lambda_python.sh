@@ -19,10 +19,12 @@ echo ">>> Building Python for AWS Lambda runner with version ${PYTHON3_VERSION}"
 # change tasks, because hangs at test_faulthandler...
 export PROFILE_TASK="-m test.regrtest --pgo         test_collections         test_dataclasses         test_difflib         test_embed         test_float         test_functools         test_generators         test_int         test_itertools         test_json         test_logging         test_long         test_ordered_dict         test_pickle         test_pprint         test_re         test_set         test_statistics         test_struct         test_tabnanny         test_xml_etree"
 
+# complains about bz2, readline gdbm missing.
+
 cd /tmp && wget https://www.python.org/ftp/python/${PYTHON3_VERSION}/Python-${PYTHON3_VERSION}.tgz && \
         tar xf Python-${PYTHON3_VERSION}.tgz     && \
         cd Python-${PYTHON3_VERSION} && \
-        ./configure ./configure --with-openssl=/usr/local --with-ssl --with-lto --prefix=/opt/lambda-python --enable-optimizations --enable-shared     && \
+        ./configure --with-openssl=/usr/local --with-lto --prefix=/opt/lambda-python --enable-optimizations --enable-shared     && \
          make -j ${CPU_COUNT}     && make altinstall
 
 export LD_LIBRARY_PATH=/opt/lambda-python/lib:$LD_LIBRARY_PATH

@@ -49,26 +49,23 @@ RUN bash /opt/sbin/install_tuplex_reqs.sh
 
 # add lambda-specific Python (full python install), for correct shipping Python must be built with correct flags
 ADD install_lambda_python.sh /opt/sbin/install_lambda_python.sh
-#RUN bash /opt/sbin/install_lambda_python.sh ${PYTHON_VERSION}
+RUN bash /opt/sbin/install_lambda_python.sh ${PYTHON_VERSION}
 
+# install llvm, use here script which uses 16.0.6 to enable recent CPU architectures
+RUN bash /opt/sbin/install_llvm.sh
 
-#
-## install llvm (versions)
-#RUN bash /opt/sbin/install_llvm.sh
-#
+## MongoDB community edition for WebUI testing
+ADD mongodb-org-5.0.repo /etc/yum.repos.d/mongodb-org-5.0.repo
+RUN yum update -y && yum install -y mongodb-org
 
-#
-### MongoDB community edition for WebUI testing
-#ADD mongodb-org-5.0.repo /etc/yum.repos.d/mongodb-org-5.0.repo
-#RUN yum update -y && yum install -y mongodb-org
-#
-## replace curl again with recent version to be 100% everything worked properly.
-#RUN bash /opt/sbin/install_curl.sh
-#
-## remove all the tmp stuff
-## remove temp stuff based on https://www.getpagespeed.com/server-setup/clear-disk-space-centos
-#RUN rm -rf /tmp/* && curl -Ls http://bit.ly/clean-centos-disk-space | bash && dnf clean all && rm -rf /var/cache/yum
-#
+# replace curl again with recent version to be 100% everything worked properly.
+RUN bash /opt/sbin/install_curl.sh
+
+# remove all the tmp stuff
+# remove temp stuff based on https://www.getpagespeed.com/server-setup/clear-disk-space-centos
+RUN rm -rf /tmp/* && curl -Ls http://bit.ly/clean-centos-disk-space | bash && dnf clean all && rm -rf /var/cache/yum
+
+# optional:
 ## install additional libraries for debugging
 ##RUN yum install -y centos-release-scl-rh devtoolset-11-libtsan-devel devtoolset-10-libtsan-devel
 ##RUN yum install -y devtoolset-11-libasan-devel devtoolset-10-libasan-devel

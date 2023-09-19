@@ -38,7 +38,20 @@ mkdir -p $PREFIX/lib
 echo ">> Files will be downloaded to ${WORKDIR}/tuplex-downloads"
 WORKDIR=$WORKDIR/tuplex-downloads
 mkdir -p $WORKDIR
-yum install -y libedit-devel libzip-devel pkgconfig libxml2-devel zlib-devel uuid libuuid-devel libffi-devel graphviz-devel gflags-devel ncurses-devel   awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip ninja-build --skip-broken
+yum install -y libedit-devel libzip-devel pkgconfig libxml2-devel uuid libuuid-devel libffi-devel graphviz-devel gflags-devel ncurses-devel   awscli java-11-openjdk libyaml-devel file-devel ninja-build zip unzip ninja-build --skip-broken
+
+# if java exists, remove via
+yum remove -y java-1.8.0-openjdk-headless
+
+# install recent zlib version (1.2.11) fork from cloudflare
+# https://github.com/aws/aws-graviton-getting-started#zlib-on-linux
+export LD_LIBRARY_PATH=$PREFIX/lib:$PREFIX/lib64:$LD_LIBRARY_PATH
+
+#mkdir -p $WORKDIR/zlib && cd $WORKDIR && git clone https://github.com/cloudflare/zlib.git && cd zlib && ./configure --prefix=$PREFIX && make -j ${CPU_COUNT} && make install
+
+git clone https://github.com/zlib-ng/zlib-ng.git && cd zlib-ng && git checkout tags/2.1.3 && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DZLIB_COMPAT=ON .. && make -j ${CPU_COUNT} && make install
+
+git clone https://github.com/google/googletest.git -b v1.14.0 && cd googletest && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release ..
 
 # custom OpenSSL, use a recent OpenSSL and uninstall current one
 if which yum; then
@@ -64,10 +77,10 @@ echo ">> Installing YAMLCPP"
 mkdir -p ${WORKDIR}/yamlcpp && cd ${WORKDIR}/yamlcpp \
 && git clone https://github.com/jbeder/yaml-cpp.git yaml-cpp \
 && cd yaml-cpp \
-&& git checkout tags/yaml-cpp-${YAML_CPP_VERSION} \
+&& git checkout tags/${YAML_CPP_VERSION} \
 && mkdir build && cd build \
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${prefix} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \
-&& make -j$(nproc) && make install
+&& make -j ${CPU_COUNT} && make install
 
 echo ">> Installing Celero"
 mkdir -p ${WORKDIR}/celero && cd ${WORKDIR}/celero \
@@ -119,11 +132,7 @@ mkdir -p ${WORKDIR}/pcre2 && cd ${WORKDIR}/pcre2 \
 
 echo ">> Installing protobuf"
 mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf \
-&& curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protobuf-cpp-3.${PROTOBUF_VERSION}.tar.gz \
-&& tar xf protobuf-cpp-3.${PROTOBUF_VERSION}.tar.gz \
-&& cd protobuf-3.${PROTOBUF_VERSION} \
-&& ./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" \
-&& make -j$(nproc) && make install && ldconfig
+&& git clone -b v${PROTOBUF_VERSION}https://github.com/protocolbuffers/protobuf.git && cd protobuf && git submodule update --init --recursive && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_CXX_STANDARD=17 -Dprotobuf_BUILD_TESTS=OFF .. && make -j ${CPU_COUNT} && make install
 
 
 # delete workdir (downloads dir) to clean up space

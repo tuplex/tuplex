@@ -49,6 +49,7 @@ find_program(LLVM_CONFIG
         PATHS ${LLVM_ROOT_DIR}/bin NO_DEFAULT_PATH
         DOC "Path to llvm-config tool.")
 find_program(LLVM_CONFIG NAMES ${llvm_config_names})
+message(STATUS "llvm config program: ${LLVM_CONFIG}")
 if(APPLE)
     # extra fallbacks for MacPorts & Homebrew
     find_program(LLVM_CONFIG

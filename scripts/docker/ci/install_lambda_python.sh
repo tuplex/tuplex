@@ -15,11 +15,14 @@ PYTHON3_MAJMIN=${PYTHON3_VERSION%.*}
 
 echo ">>> Building Python for AWS Lambda runner with version ${PYTHON3_VERSION}"
 
+# update yum and add Python specific dependencies/dev packages bzip2-devel, readline-devel and gbdm-devel
+# do not use tkinter here, because Lambdas do not require GUI libs.
+YUM_PACKAGES="bzip2-devel readline-devel gdbm-devel"
+yum update -y && yum install -y ${YUM_PACKAGES}
+
 # from https://bugs.python.org/issue36044
 # change tasks, because hangs at test_faulthandler...
 export PROFILE_TASK="-m test.regrtest --pgo         test_collections         test_dataclasses         test_difflib         test_embed         test_float         test_functools         test_generators         test_int         test_itertools         test_json         test_logging         test_long         test_ordered_dict         test_pickle         test_pprint         test_re         test_set         test_statistics         test_struct         test_tabnanny         test_xml_etree"
-
-# complains about bz2, readline gdbm missing.
 
 cd /tmp && wget https://www.python.org/ftp/python/${PYTHON3_VERSION}/Python-${PYTHON3_VERSION}.tgz && \
         tar xf Python-${PYTHON3_VERSION}.tgz     && \
@@ -34,5 +37,12 @@ declare -A PYTHON_DEPENDENCIES=(["3.8"]="cloudpickle<2.0 cython numpy pandas" ["
 PYTHON_REQUIREMENTS=$(echo "${PYTHON_DEPENDENCIES[$PYTHON3_MAJMIN]}")
 /opt/lambda-python/bin/python${PYTHON3_MAJMIN} -m pip install ${PYTHON_REQUIREMENTS} tqdm
 
+# create symlink for python3 and python
+ln -s /opt/lambda-python/bin/python${PYTHON3_MAJMIN} /opt/lambda-python/bin/python
+ln -s /opt/lambda-python/bin/python${PYTHON3_MAJMIN} /opt/lambda-python/bin/python3
+
 # remove downloaded Python files from /tmp
 rm -rf /tmp/Python*
+
+# remove yum packages
+yum remove -y ${YUM_PACKAGES}

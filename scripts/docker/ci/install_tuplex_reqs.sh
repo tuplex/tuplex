@@ -92,7 +92,7 @@ mkdir -p ${WORKDIR}/celero && cd ${WORKDIR}/celero \
 && git checkout tags/v2.8.3 \
 && mkdir build && cd build \
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC -std=c++11" .. \
-&& make -j$(nproc) && make install
+&& make -j ${CPU_COUNT} && make install
 
 echo ">> Installing ANTLR"
 mkdir -p ${WORKDIR}/antlr && cd ${WORKDIR}/antlr \
@@ -103,7 +103,7 @@ mkdir -p ${WORKDIR}/antlr && cd ${WORKDIR}/antlr \
 && rm antlr4-cpp-runtime-${ANTLR4_VERSION}-source.zip \
 && cd antlr4-cpp-runtime \
 && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
-&& make -j$(nproc) && make install
+&& make -j ${CPU_COUNT}&& make install
 
 echo ">> Installing AWS SDK"
 # Note the z-lib patch here.
@@ -136,7 +136,7 @@ mkdir -p ${WORKDIR}/pcre2 && cd ${WORKDIR}/pcre2 \
 
 echo ">> Installing protobuf"
 mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf \
-&& git clone -b v${PROTOBUF_VERSION}https://github.com/protocolbuffers/protobuf.git && cd protobuf && git submodule update --init --recursive && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_CXX_STANDARD=17 -Dprotobuf_BUILD_TESTS=OFF .. && make -j ${CPU_COUNT} && make install
+&& git clone -b v${PROTOBUF_VERSION} https://github.com/protocolbuffers/protobuf.git && cd protobuf && git submodule update --init --recursive && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_CXX_STANDARD=17 -Dprotobuf_BUILD_TESTS=OFF .. && make -j ${CPU_COUNT} && make install
 
 
 # delete workdir (downloads dir) to clean up space

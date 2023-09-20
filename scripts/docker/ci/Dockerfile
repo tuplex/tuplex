@@ -9,7 +9,7 @@ MAINTAINER "Tuplex project@Brown"
 
 # select core versions to use when building CI image here
 ARG PYTHON_VERSION=3.11.5
-ARG CMAKE_VERSION=3.27.4
+ARG CMAKE_VERSION=3.27.5
 ARG BOOST_VERSION=1.79.0
 
 # image is centos based, so use yum as package manager

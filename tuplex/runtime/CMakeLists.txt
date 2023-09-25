@@ -22,7 +22,6 @@ target_link_libraries(runtime libutils ${PCRE2_LIBRARIES})
 
 # require thread_local and aligned malloc keyword (C11 or C++11)
 target_compile_features(runtime PRIVATE cxx_thread_local)
-target_compile_features(runtime PRIVATE c_std_11)
 
 # copy dylib to pip package
 add_custom_command(TARGET runtime POST_BUILD

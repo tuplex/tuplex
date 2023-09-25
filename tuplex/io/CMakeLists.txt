@@ -167,7 +167,6 @@ if(BUILD_WITH_ORC)
     message(STATUS "Configuring ORC to run with flags: ${CMAKE_CXX_FLAGS}")
 
     # add explicit snappy step because ORC build has issues
-
     find_package(Snappy)
     if(Snappy_NOTFOUND)
         message(STATUS "Could not find locally installed snappy, building third party")
@@ -192,6 +191,9 @@ if(BUILD_WITH_ORC)
         install(FILES "${SNAPPY_STATIC_LIB}" DESTINATION "lib")
         set(SNAPPY_DEPENDS "snappy_ep")
     else()
+        if(NOT Snappy_INCLUDE_DIR AND SNAPPY_INCLUDE_DIR)
+            set(Snappy_INCLUDE_DIR "${SNAPPY_INCLUDE_DIR}")
+        endif()
         cmake_path(GET Snappy_INCLUDE_DIR PARENT_PATH SNAPPY_ROOT_DIR)
         set(SNAPPY_HOME ${SNAPPY_ROOT_DIR})
     endif()

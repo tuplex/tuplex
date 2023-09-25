@@ -17,7 +17,7 @@ find_path(ANTLR4Runtime_INCLUDE_DIR NAMES "antlr4-runtime.h" PATH_SUFFIXES "antl
 # find lib
 find_library(ANTLR4Runtime_LIB antlr4-runtime)
 
-set(ANTLR4Runtime_VERSION ${PC_ANTLR4Runtime_VERSION})
+set(ANTLR4Runtime_VERSION "${PC_ANTLR4Runtime_VERSION}")
 
 # version empty? read from header file
 if(NOT ANTLR4Runtime_VERSION MATCHES [0-9]+.[0-9]+.[0-9]+)
@@ -47,6 +47,10 @@ if(NOT ANTLR4Runtime_VERSION MATCHES [0-9]+.[0-9]+.[0-9]+)
         #   return 0;
         # }
 
+        # copy lib to CMAKE_BINARY_DIR, because
+        # could happen dylib is not loaded correctly via try_run.
+        file(COPY "${ANTLR4Runtime_LIB}" DESTINATION "${CMAKE_BINARY_DIR}")
+
         try_run(ANTLR4Runtime_RUN_RES ANTLR4Runtime_COMPILE_RES SOURCE_FROM_CONTENT detect.cc "
 #include <antlr4-runtime.h>
 #include <iostream>
@@ -56,7 +60,8 @@ int main() {
   cout<<antlr4::RuntimeMetaData::getRuntimeVersion()<<endl;
   return 0;
 }
-    " LINK_LIBRARIES ${ANTLR4Runtime_LIB}
+    "
+                LINK_LIBRARIES "${ANTLR4Runtime_LIB}"
                 CMAKE_FLAGS
                 "-DINCLUDE_DIRECTORIES=${ANTLR4Runtime_INCLUDE_DIR}"
                 COMPILE_OUTPUT_VARIABLE ANTLR4Runtime_compile_log

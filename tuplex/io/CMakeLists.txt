@@ -21,7 +21,8 @@ include_directories(${Boost_INCLUDE_DIR})
 if(BUILD_WITH_ORC)
     message(STATUS "Building Tuplex with ORC support")
 
-    find_package(Protobuf REQUIRED)
+    # https://github.com/protocolbuffers/protobuf/issues/12637
+    find_package(Protobuf REQUIRED CONFIG)
     get_filename_component(Protobuf_HOME "${Protobuf_INCLUDE_DIRS}" DIRECTORY)
 
 #    include(ExternalProject)
@@ -144,7 +145,7 @@ if(BUILD_WITH_ORC)
 
     if (NOT APPLE)
         message(STATUS "Adding byproducts to external project")
-        set(SNAPPY_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a)
+        #set(SNAPPY_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a)
         #set(ZSTD_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libzstd.a)
         #set(ZLIB_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libz.a)
         set(LZ4_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/liblz4.a)

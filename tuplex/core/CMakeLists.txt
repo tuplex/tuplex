@@ -17,11 +17,12 @@ if(BUILD_WITH_AWS)
     # communication with AWS Lambda happens via protobuf, i.e. make sure protobuf compiler
     # is installed
     # set(Protobuf_USE_STATIC_LIBS ON)
-    find_package(Protobuf REQUIRED)
+    # https://github.com/protocolbuffers/protobuf/issues/12637
+    find_package(Protobuf REQUIRED CONFIG)
     include_directories(Protobuf_INCLUDE_DIRS)
     protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS proto/Lambda.proto)
-    message(STATUS "protobuf sources: ${PROTO_SRCS}")
-    message(STATUS "protobuf headers: ${PROTO_HDRS}")
+    message(STATUS "protobuf sources (v${Protobuf_VERSION}): ${PROTO_SRCS}")
+    message(STATUS "protobuf headers (v${Protobuf_VERSION}): ${PROTO_HDRS}")
 endif()
 
 

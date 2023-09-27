@@ -74,7 +74,8 @@ endif()
 
 if(BUILD_WITH_AWS)
     #set(Protobuf_USE_STATIC_LIBS ON)
-    find_package(Protobuf REQUIRED)
+    # https://github.com/protocolbuffers/protobuf/issues/12637
+    find_package(Protobuf REQUIRED CONFIG)
 endif()
 
 # these require python, so only if embed is active!

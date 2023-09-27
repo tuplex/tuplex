@@ -67,5 +67,6 @@ RUN rm -rf /tmp/* && curl -Ls http://bit.ly/clean-centos-disk-space | bash && dn
 
 # optional:
 ## install additional libraries for debugging
+RUN yum install -y devtoolset-10-gdb
 ##RUN yum install -y centos-release-scl-rh devtoolset-11-libtsan-devel devtoolset-10-libtsan-devel
 ##RUN yum install -y devtoolset-11-libasan-devel devtoolset-10-libasan-devel

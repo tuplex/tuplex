@@ -22,7 +22,10 @@ if(BUILD_WITH_ORC)
     message(STATUS "Building Tuplex with ORC support")
 
     # https://github.com/protocolbuffers/protobuf/issues/12637
-    find_package(Protobuf REQUIRED CONFIG)
+    find_package(Protobuf CONFIG)
+    if(NOT Protobuf_NOTFOUND)
+        find_package(Protobuf REQUIRED)
+    endif()
     get_filename_component(Protobuf_HOME "${Protobuf_INCLUDE_DIRS}" DIRECTORY)
 
 #    include(ExternalProject)

@@ -246,7 +246,10 @@ if(BUILD_WITH_AWS)
     # is installed
     #set(Protobuf_USE_STATIC_LIBS ON)
     # https://github.com/protocolbuffers/protobuf/issues/12637
-    find_package(Protobuf REQUIRED)
+    find_package(Protobuf CONFIG)
+    if(NOT Protobuf_FOUND)
+        find_package(Protobuf REQUIRED)
+    endif()
 
     # newer protobuf has abseil dependency, amend protobuf libs accordingly because protobuf is shipped in
     # a non-fixed state (see https://github.com/protocolbuffers/protobuf/issues/12637)

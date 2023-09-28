@@ -55,7 +55,9 @@ export LD_LIBRARY_PATH=$PREFIX/lib:$PREFIX/lib64:$LD_LIBRARY_PATH
 
 
 git clone https://github.com/google/googletest.git -b v1.14.0 && cd googletest && mkdir build && cd build && cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release .. && make -j ${CPU_COUNT} && make install
-git clone https://github.com/google/snappy.git -b 1.1.10 && cd snappy && git submodule update --init && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j ${CPU_COUNT} && make install
+
+# build snappy as static lib
+git clone https://github.com/google/snappy.git -b 1.1.10 && cd snappy && git submodule update --init && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. && make -j ${CPU_COUNT} && make install
 
 # custom OpenSSL, use a recent OpenSSL and uninstall current one
 if which yum; then

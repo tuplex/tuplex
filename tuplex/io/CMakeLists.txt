@@ -201,9 +201,9 @@ if(BUILD_WITH_ORC)
             endif()
             cmake_path(GET Snappy_INCLUDE_DIR PARENT_PATH SNAPPY_ROOT_DIR)
             set(SNAPPY_HOME ${SNAPPY_ROOT_DIR})
+            set(SNAPPY_LIBRARIES ${Snappy_LIBRARIES})
         endif()
     endif()
-    message(STATUS "snappy home: ${SNAPPY_HOME}")
 
     ExternalProject_Add(orc
             GIT_REPOSITORY https://github.com/apache/orc.git
@@ -228,13 +228,14 @@ if(BUILD_WITH_ORC)
 
     add_dependencies(liborc orc)
     include_directories(${orc_INCLUDE_DIR})
-
     set(ORC_LIBRARIES
             ${SNAPPY_LIBRARIES}
             #${ZSTD_LIBRARIES}
             #${ZLIB_LIBRARIES}
             ${LZ4_LIBRARIES}
             liborc)
+    # set also for parent scope (don't set liborc?)
+    set(ORC_LIBRARIES ${SNAPPY_LIBRARIES} ${LZ4_LIBRARIES} PARENT_SCOPE)
 endif()
 
 add_library(libio OBJECT
@@ -246,6 +247,7 @@ target_include_directories(libio PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${LibMagic_INCLUDE_DIR}
         ${orc_INCLUDE_DIR})
 
+message(STATUS "orc libs are: ${ORC_LIBRARIES}")
 #Note: If awssdk not found, then awssdk_link_librarires is empty...
 # Specify here the libraries this program depends on
 target_link_libraries(libio libutils

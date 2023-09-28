@@ -36,7 +36,7 @@
 
 #ifdef BUILD_WITH_AWS
 // include protobuf serialization of TrafoStage for Lambda executor
-#include <Lambda.pb.h>
+#include <managed/Lambda.pb.h>
 #endif
 
 namespace tuplex {

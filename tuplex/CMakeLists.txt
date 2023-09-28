@@ -254,7 +254,7 @@ if(BUILD_WITH_AWS)
     # newer protobuf has abseil dependency, amend protobuf libs accordingly because protobuf is shipped in
     # a non-fixed state (see https://github.com/protocolbuffers/protobuf/issues/12637)
     # there's a bug in cmake for cmake < 3.27 where version is detected wrongly as 4.x -> fix
-    if((Protobuf_VERSION VERSION_GREATER_EQUAL "3.22" AND Protobuf_VERSION VERSION_LESS "4.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "4.3.22" AND Protobuf_VERSION VERSION_LESS "5.0.0"))
+    if((Protobuf_VERSION VERSION_GREATER_EQUAL "3.22" AND Protobuf_VERSION VERSION_LESS "4.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "4.3.22" AND Protobuf_VERSION VERSION_LESS "5.0.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "22.0"))
         find_package(absl REQUIRED)
         find_package(utf8_range REQUIRED)
         set(protobuf_ABSL_USED_TARGETS
@@ -982,11 +982,11 @@ endif()
 find_package(Curses REQUIRED)
 
 # add subdirs here...
+add_subdirectory(io)  # <-- make sure to call this first, because it changes parent scope with io dependencies
 add_subdirectory(utils)
 add_subdirectory(test)
 add_subdirectory(codegen)
 add_subdirectory(core)
-add_subdirectory(io)
 add_subdirectory(python)
 add_subdirectory(runtime)
 add_subdirectory(adapters)

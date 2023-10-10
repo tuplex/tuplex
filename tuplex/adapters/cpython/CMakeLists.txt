@@ -7,9 +7,7 @@ INCLUDE_DIRECTORIES("${Python3_INCLUDE_DIRS}")
 
 # Source code & linking
 file(GLOB SOURCES src/*.cc)
-message(STATUS "sources are: ${SOURCES}")
-message(STATUS "why this" ${CMAKE_CURRENT_BINARY_DIR})
-message(STATUS "protobuf libs: ${Protobuf_LIBRARIES}")
+
 add_library(libcpythonadapter OBJECT ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES})
 add_dependencies(libcpythonadapter libutils)
 
@@ -19,8 +17,6 @@ target_include_directories(libcpythonadapter PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR}
         ${Python3_INCLUDE_DIRS}
-        #${Protobuf_LIBRARIES}
-        #${Protobuf_LITE_LIBRARIES}
         )
 
 # Declare the library

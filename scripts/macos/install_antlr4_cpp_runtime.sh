@@ -9,7 +9,7 @@ PREFIX=/usr/local
 
 git clone https://github.com/antlr/antlr4.git \
 && cd antlr4 && cd runtime &&  git fetch --all --tags \
-&& git checkout tags/4.9.3 -b 4.9.3 && cd Cpp/ && ./deploy-macos.sh \
+&& git checkout tags/4.13.1 -b 4.13.1 && cd Cpp/ && ./deploy-macos.sh \
 && unzip -l antlr4-cpp-runtime-macos.zip && unzip antlr4-cpp-runtime-macos.zip \
 && cd lib && cp -R * $PREFIX/lib/ && cd .. \
 && mv antlr4-runtime $PREFIX/include/ \

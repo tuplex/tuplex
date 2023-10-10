@@ -934,7 +934,8 @@ else()
         ExternalProject_Add (zstd_ep
                 URL "https://github.com/facebook/zstd/archive/v${ZSTD_VERSION}.tar.gz"
                 ${ZSTD_CONFIGURE}
-                BUILD_BYPRODUCTS "${ZSTD_STATIC_LIB}")
+                BUILD_BYPRODUCTS "${ZSTD_STATIC_LIB}"
+                DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
 
         set(ZSTD_LIBRARIES ${ZSTD_STATIC_LIB})
 

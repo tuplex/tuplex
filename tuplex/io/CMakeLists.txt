@@ -173,7 +173,14 @@ if(BUILD_WITH_ORC)
     # add explicit snappy step because ORC build has issues under linux
     if(NOT APPLE)
         find_package(Snappy)
-        if(Snappy_NOTFOUND)
+        if(Snappy_FOUND)
+            if(NOT Snappy_INCLUDE_DIR AND SNAPPY_INCLUDE_DIR)
+                set(Snappy_INCLUDE_DIR "${SNAPPY_INCLUDE_DIR}")
+            endif()
+            cmake_path(GET Snappy_INCLUDE_DIR PARENT_PATH SNAPPY_ROOT_DIR)
+            set(SNAPPY_HOME ${SNAPPY_ROOT_DIR})
+            set(SNAPPY_LIBRARIES ${Snappy_LIBRARIES})
+        else()
             message(STATUS "Could not find locally installed snappy, building third party")
             set(SNAPPY_VERSION "1.1.10")
             set(SNAPPY_HOME "${EXTERNAL_INSTALL_LOCATION}")
@@ -184,7 +191,8 @@ if(BUILD_WITH_ORC)
             ExternalProject_Add (snappy_ep
                     URL "https://github.com/google/snappy/archive/${SNAPPY_VERSION}.tar.gz"
                     CMAKE_ARGS ${SNAPPY_CMAKE_ARGS}
-                    BUILD_BYPRODUCTS "${SNAPPY_STATIC_LIB}")
+                    BUILD_BYPRODUCTS "${SNAPPY_STATIC_LIB}"
+            DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
 
             set(SNAPPY_LIBRARIES ${SNAPPY_STATIC_LIB})
 
@@ -195,13 +203,6 @@ if(BUILD_WITH_ORC)
             add_dependencies(snappy snappy_ep)
             install(FILES "${SNAPPY_STATIC_LIB}" DESTINATION "lib")
             set(SNAPPY_DEPENDS "snappy_ep")
-        else()
-            if(NOT Snappy_INCLUDE_DIR AND SNAPPY_INCLUDE_DIR)
-                set(Snappy_INCLUDE_DIR "${SNAPPY_INCLUDE_DIR}")
-            endif()
-            cmake_path(GET Snappy_INCLUDE_DIR PARENT_PATH SNAPPY_ROOT_DIR)
-            set(SNAPPY_HOME ${SNAPPY_ROOT_DIR})
-            set(SNAPPY_LIBRARIES ${Snappy_LIBRARIES})
         endif()
     endif()
 

@@ -146,13 +146,13 @@ def apt_dependencies(osname='ubuntu:22.04'):
 
     packages_dict = {'ubuntu:22.04': '''apt-utils dh-autoreconf libmagic-dev curl libxml2-dev vim build-essential libssl-dev zlib1g-dev libncurses5-dev \\
     libncursesw5-dev libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev \\
-    libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git libcurl4-openssl-dev python3-dev python3-pip openjdk-8-jre-headless''',
+    libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git libcurl4-openssl-dev python3-dev python3-pip openjdk-11-jdk''',
                      'ubuntu:20.04': '''software-properties-common dh-autoreconf curl build-essential wget git libedit-dev libz-dev \\
                    python3-yaml python3-pip pkg-config libssl-dev libcurl4-openssl-dev curl \\
                    uuid-dev libffi-dev libmagic-dev \\
                    doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \\
                    libgflags-dev libncurses-dev \\
-                   openjdk-8-jdk libyaml-dev ninja-build gcc-{} g++-{} autoconf libtool m4
+                   openjdk-11-jdk libyaml-dev ninja-build gcc-{} g++-{} autoconf libtool m4
                      '''.format(GCC_VERSION_MAJOR, GCC_VERSION_MAJOR),
                      'ubuntu:18.04': '''build-essential apt-utils wget git dh-autoreconf libxml2-dev \\
  autoconf curl automake libtool software-properties-common wget libedit-dev libz-dev \\
@@ -160,7 +160,7 @@ def apt_dependencies(osname='ubuntu:22.04'):
   uuid-dev git python3.7 python3.7-dev python3-pip libffi-dev \\
   doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \\
   gcc-{} g++-{} libgflags-dev libncurses-dev \\
-  awscli openjdk-8-jdk libyaml-dev libmagic-dev ninja-build
+  awscli openjdk-11-jdk libyaml-dev libmagic-dev ninja-build
                     '''.format(GCC_VERSION_MAJOR, GCC_VERSION_MAJOR)}
 
     return 'apt update -y\n' + \
@@ -177,7 +177,7 @@ def yum_dependencies():
   pkgconfig openssl-devel libxml2-devel zlib-devel  \
   uuid libuuid-devel libffi-devel graphviz-devel \
   gflags-devel ncurses-devel \
-  awscli java-1.8.0-openjdk-devel libyaml-devel file-devel ninja-build zip unzip ninja-build --skip-broken
+  awscli java-11-openjdk-devel libyaml-devel file-devel ninja-build zip unzip ninja-build --skip-broken
 """
 
 def github_to_known_hosts(home='/root'):
@@ -786,7 +786,7 @@ apt install -y software-properties-common \\
   uuid-dev git python3.7 python3.7-dev python3-pip libffi-dev \\
   doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \\
   gcc-7 g++-7 libgflags-dev libncurses-dev \\
-  awscli openjdk-8-jdk libyaml-dev libmagic-dev ninja-build"""
+  awscli openjdk-11-jdk libyaml-dev libmagic-dev ninja-build"""
 
         fp.write(apt_install + '\n')
 

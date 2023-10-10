@@ -50,11 +50,10 @@ export LD_LIBRARY_PATH=$PREFIX/lib:$PREFIX/lib64:$LD_LIBRARY_PATH
 # Cloudflare fork is too old
 #mkdir -p $WORKDIR/zlib && cd $WORKDIR && git clone https://github.com/cloudflare/zlib.git && cd zlib && ./configure --prefix=$PREFIX && make -j ${CPU_COUNT} && make install
 
-# note that zlin defines Z_NULL=0 whereas zlib-ng defines it as NULL, patch aws sdk accordingly
- git clone https://github.com/zlib-ng/zlib-ng.git && cd zlib-ng && git checkout tags/2.1.3 && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DZLIB_COMPAT=ON .. && make -j ${CPU_COUNT} && make install
+# note that zlib defines Z_NULL=0 whereas zlib-ng defines it as NULL, patch aws sdk accordingly
+git clone https://github.com/zlib-ng/zlib-ng.git && cd zlib-ng && git checkout tags/2.1.3 && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-fPIC" -DZLIB_COMPAT=ON .. && make -j ${CPU_COUNT} && make install
 
-
-git clone https://github.com/google/googletest.git -b v1.14.0 && cd googletest && mkdir build && cd build && cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release .. && make -j ${CPU_COUNT} && make install
+git clone https://github.com/google/googletest.git -b v1.14.0 && cd googletest && mkdir build && cd build && cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_BUILD_TYPE=Release .. && make -j ${CPU_COUNT} && make install
 
 # build snappy as static lib
 git clone https://github.com/google/snappy.git -b 1.1.10 && cd snappy && git submodule update --init && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. && make -j ${CPU_COUNT} && make install

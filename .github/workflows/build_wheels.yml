@@ -60,7 +60,7 @@ jobs:
 
       - name: Build wheels
         #if: runner.os != 'macOS'
-        uses: pypa/cibuildwheel@2.16.2
+        uses: pypa/cibuildwheel@fff9ec32ed25a9c576750c91e06b410ed0c15db7 # v2.16.2
         env:
           # configure cibuildwheel to build native archs ('auto'), and some
           # emulated ones

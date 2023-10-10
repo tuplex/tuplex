@@ -72,7 +72,7 @@ jobs:
 
           # do not use build, b.c. it will fail on subsequent. setup once.
           CIBW_BEFORE_ALL_MACOS: bash ./scripts/macos/install_antlr4_cpp_runtime.sh && bash ./scripts/macos/brew_dependencies.sh && bash ./scripts/macos/install_aws-sdk-cpp.sh
-          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.8"
+          # CIBW_PROJECT_REQUIRES_PYTHON: ">=3.8"
 
           # set this environment variable to include the Lambda zip from the previous build step
           # do not include Lambda runner in macos wheel yet. Do in future release.

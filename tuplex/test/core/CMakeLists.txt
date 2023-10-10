@@ -8,7 +8,7 @@ file(GLOB STDLIB_SRCS stdlib/*.cc)
 
 include(GoogleTest)
 
-message(STATUS "LLVM libs: ${LLVM_LIBRARIES}")
+message(STATUS "Google test libs: ${GTest_LIBRARIES}")
 
 add_executable(testcore ${SRCS} ${STDLIB_SRCS})
 target_link_libraries(testcore

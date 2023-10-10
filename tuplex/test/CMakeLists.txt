@@ -69,7 +69,7 @@ if(NOT GTest_FOUND)
 else()
     message(STATUS "Using locally installed GoogleTest")
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    set(GTest_LIBRARIES GTest::gtest)
+    set(GTest_LIBRARIES GTest::gtest GTest::gtest_main)
 endif()
 
 if(BUILD_WITH_AWS)
@@ -140,7 +140,7 @@ if(GTest_VERSION VERSION_GREATER_EQUAL 1.13)
 
     list(APPEND GTest_LIBRARIES ${protobuf_ABSL_USED_TARGETS})
     # set(GTest_LIBRARIES "${GTest_LIBRARIES} ${protobuf_ABSL_USED_TARGETS}")
-    message(STATUS "Gtest libs: ${GTest_LIBRARIES}")
+    message(STATUS "Gtest libs (after append): ${GTest_LIBRARIES}")
 endif()
 
 # add subdirs after above config is done

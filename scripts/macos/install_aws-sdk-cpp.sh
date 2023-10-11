@@ -29,7 +29,5 @@ cd /tmp \
   && cd aws-sdk-cpp && git checkout tags/${AWSSDK_CPP_VERSION} && sed -i '' 's/int ret = Z_NULL;/int ret = static_cast<int>(Z_NULL);/g' src/aws-cpp-sdk-core/source/client/RequestCompression.cpp && mkdir build && cd build \
   && cmake ${MINIMUM_TARGET} -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=17 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" .. \
   && make -j ${CPU_COUNT} \
-  && make install &&
-  popd &&
-  cd - || echo ">> error: AWS SDK failed"
+  && make install || echo ">> error: AWS SDK failed"
 

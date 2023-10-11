@@ -12,7 +12,7 @@ PCRE2_VERSION=10.42
 PROTOBUF_VERSION=24.3
 
 PYTHON_VERSION=$(echo $(python3 --version) | cut -d ' ' -f2)
-PYTHON_MAJMIN_VERSION=${PYTHON_VERSION%%.[0-9]}
+PYTHON_MAJMIN_VERSION=${PYTHON_VERSION%.*}
 echo ">> Installing dependencies for Python version ${PYTHON_VERSION}"
 
 function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }

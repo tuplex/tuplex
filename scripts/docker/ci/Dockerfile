@@ -15,8 +15,8 @@ ARG BOOST_VERSION=1.79.0
 # image is centos based, so use yum as package manager
 # --> install_llvm uses most recent 16 release.
 
-# set link to desired python version, note that ${PYTHON_VERSION%%.[0-9]} gives for e.g. 3.x.y 3.x
-RUN ln -sf /usr/local/bin/python${PYTHON_VERSION%%.[0-9]} /usr/local/bin/python3
+# set link to desired python version, note that ${PYTHON_VERSION%.*} gives for e.g. 3.x.y -> 3.x
+RUN ln -sf /usr/local/bin/python${PYTHON_VERSION%.*} /usr/local/bin/python3 && /usr/local/bin/python3 --version
 
 RUN yum update -y && yum install -y dnf && dnf install -y git autoconf zip wget
 
@@ -41,7 +41,7 @@ RUN bash /opt/sbin/install_curl.sh
 RUN bash /opt/sbin/install_boost.sh /usr/local/bin/python3 /opt/boost/python${PYTHON_VERSION%%.[0-9]} ${BOOST_VERSION}
 
 # Update pip versions
-RUN python3 -m pip install --upgrade pip setuptools wheel
+RUN /usr/local/bin/python3 -m pip install --upgrade pip setuptools wheel
 
 # Tuplex requirements, installs python version specific requirements as well
 ADD install_tuplex_reqs.sh /opt/sbin/install_tuplex_reqs.sh

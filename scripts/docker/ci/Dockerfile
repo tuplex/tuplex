@@ -38,7 +38,7 @@ ADD install_curl.sh /opt/sbin/install_curl.sh
 RUN bash /opt/sbin/install_curl.sh
 
 # install boost-python for given version
-RUN bash /opt/sbin/install_boost.sh python3 /opt/boost/python${PYTHON_VERSION%%.[0-9]} ${BOOST_VERSION}
+RUN bash /opt/sbin/install_boost.sh /usr/local/bin/python3 /opt/boost/python${PYTHON_VERSION%%.[0-9]} ${BOOST_VERSION}
 
 # Update pip versions
 RUN python3 -m pip install --upgrade pip setuptools wheel

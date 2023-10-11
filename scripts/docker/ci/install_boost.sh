@@ -9,12 +9,12 @@ PYTHON_EXECUTABLE=${1:?Usage: ${USAGE}}
 PREFIX=${2:?Usage: ${USAGE}}
 BOOST_VERSION=${3:?Usage: ${USAGE}}
 
-PYTHON_VERSION="$(basename -- $PYTHON_EXECUTABLE)"
+PYTHON_VERSION="$(basename -- "$PYTHON_EXECUTABLE")"
 echo ">>> building boost for ${PYTHON_VERSION}"
 echo " -- boost will be installed to ${PREFIX}"
 
 # fix up for boost python a link
-INCLUDE_DIR=$(echo $(which $PYTHON_EXECUTABLE) | sed 's|/bin/.*||')
+INCLUDE_DIR=$(echo $(which "$PYTHON_EXECUTABLE") | sed 's|/bin/.*||')
 INCLUDE_DIR=${INCLUDE_DIR}/include
 cd $INCLUDE_DIR && ln -s ${PYTHON_VERSION}m ${PYTHON_VERSION} && cd - || exit 1
 

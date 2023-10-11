@@ -465,7 +465,7 @@ class CMakeBuild(build_ext):
         else:
             # restrict to shared object only...
             logging.info('Building only shared objects...')
-            build_args += ['--target', 'tuplex']
+            build_args += ['--target', 'tuplex', 'runtime']
 
         # hack: only run for first invocation!
         if ext_filename == 'tuplex_runtime':

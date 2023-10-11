@@ -12,7 +12,6 @@ while :; do
 done
 
 PYTHON_VERSIONS=(3.11.6 3.10.13 3.9.18 3.8.18)
-PYTHON_VERSIONS=(3.10.13)
 
 for python_version in "${PYTHON_VERSIONS[@]}"; do
   echo ">>> Building image for Python ${python_version}"

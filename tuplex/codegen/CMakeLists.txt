@@ -43,7 +43,7 @@ IF(BREW_FOUND)
                 execute_process(COMMAND bash "-c" "brew info llvm | grep Cellar | cut -d ' ' -f 1" OUTPUT_VARIABLE LLVM_ROOT_DIR RESULT_VARIABLE BREW_RET OUTPUT_STRIP_TRAILING_WHITESPACE)
             ENDIF()
 
-            message(STATUS "Found llvm version: ${LLVM_VERSION}")
+            message(STATUS "Found LLVM ${LLVM_VERSION}")
         ENDIF()
 
     ELSEIF(UNIX)
@@ -65,7 +65,7 @@ MESSAGE(STATUS "Found LLVM ${LLVM_VERSION_STRING}")
 if(LLVM_DIR)
     message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 endif()
-MESSAGE(STATUS "Found llvm include dirs at: " ${LLVM_INCLUDE_DIRS})
+MESSAGE(STATUS "Found LLVM include dirs at: " ${LLVM_INCLUDE_DIRS})
 MESSAGE(STATUS "LLVM library dir: ${LLVM_LIBRARY_DIRS}")
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${LLVM_LIBRARY_DIRS})
 
@@ -77,12 +77,7 @@ if (NOT LLVM_ENABLE_RTTI)
         message(WARNING
                 "This build configuration is not supported and will likely not work."
                 "You should recompile LLVM with RTTI enabled.")
-        # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 endif()
-
-## libffi
-#find_package(FFI 3.2.1 REQUIRED)
-#include_directories(${FFI_INCLUDE_DIRS})
 
 # BOOST libs
 include_directories(${Boost_INCLUDE_DIR})
@@ -142,9 +137,6 @@ target_include_directories(libcodegen PUBLIC
         ${PCRE2_INCLUDE_DIRS}
         )
 
-# debug
-message(STATUS "Libraries: ${LLVM_SYSTEM_LIBS}")
-
 # Declare the library
 target_link_libraries(libcodegen
         libutils
@@ -153,7 +145,6 @@ target_link_libraries(libcodegen
         ${AWSSDK_LINK_LIBRARIES}
         ${PCRE2_LIBRARIES}
         ${LLVM_LIBRARIES}
-        #${LLVM_SYSTEM_LIBS}
         ${ZLIB_LIBRARIES}
         ${CURSES_LIBRARIES}
         )

@@ -77,10 +77,8 @@ endif()
 # enable c++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# enable c11
-#set(CMAKE_C_STANDARD 11)
-#set(CMAKE_C_STANDARD_REQUIRED ON)
-message(STATUS "Using language versions C++${CMAKE_CXX_STANDARD} and C${CMAKE_C_STANDARD}")
+message(STATUS "Using language version: C++${CMAKE_CXX_STANDARD}")
+
 # add cmake modules from cmake folder
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 message(STATUS "additional cmake module path is ${CMAKE_MODULE_PATH}")
@@ -102,19 +100,20 @@ if(IPO_SUPPORTED)
 else()
     message(WARNING "target does not support interprocedural optimization/link time optimization.")
 endif()
-## Check if ccache exists to speed up compilation when switching branches
-## taken from https://invent.kde.org/utilities/konsole/-/merge_requests/26?tab=diffs
-#find_program(CCACHE_FOUND "ccache")
-#set(CCACHE_SUPPORT ON CACHE BOOL "Enable ccache support")
-#if (CCACHE_FOUND AND CCACHE_SUPPORT)
-#    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" # GNU is GNU GCC
-#            OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-#        # without this compiler messages in `make` backend would be uncolored
-#        ucm_add_flags("-fdiagnostics-color=auto")
-#    endif()
-#    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "ccache")
-#    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "ccache")
-#endif()
+
+# Check if ccache exists to speed up compilation when switching branches
+# taken from https://invent.kde.org/utilities/konsole/-/merge_requests/26?tab=diffs
+find_program(CCACHE_FOUND "ccache")
+set(CCACHE_SUPPORT ON CACHE BOOL "Enable ccache support")
+if (CCACHE_FOUND AND CCACHE_SUPPORT)
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" # GNU is GNU GCC
+            OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        # without this compiler messages in `make` backend would be uncolored
+        ucm_add_flags("-fdiagnostics-color=auto")
+    endif()
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "ccache")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "ccache")
+endif()
 
 set(CMAKE_MACOSX_RPATH 1) # fix for gtest warning
 
@@ -336,12 +335,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     else()
         message(FATAL_ERROR "could not find gcc-ar or gcc-ranlib. Make sure they are installed and symlinked. Leaving them at their defaults (ar: ${CMAKE_AR}, ranlib: ${CMAKE_RANLIB}) will produce lto errors in Release build.")
     endif ()
-
-    # add flags so link order does not matter...
-    # add_link_options("-Wl,--start-group")
 endif()
-
-
 
 
 ###########################################################################

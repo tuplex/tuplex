@@ -5,12 +5,6 @@
 # for try_run need 3.25+
 cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 
-# only under linux?
-#find_package(PkgConfig)
-#pkg_check_modules(PC_ANTLR4Runtime QUIET ANTLR4Runtime)
-
-# set (CMAKE_CXX_STANDARD 17)
-
 # find include (is e.g. in /usr/local/include/antlr4-runtime/antlr4-runtime.h
 find_path(ANTLR4Runtime_INCLUDE_DIR NAMES "antlr4-runtime.h" PATH_SUFFIXES "antlr4-runtime")
 

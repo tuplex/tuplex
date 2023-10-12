@@ -81,9 +81,8 @@ namespace tuplex {
             if(other._llvm_builder) {
                 // cf. https://reviews.llvm.org/D74693
                 auto& ctx = other._llvm_builder->getContext();
-                const llvm::DILocation *DL = nullptr; //llvm::DILocation::get(ctx, 0, 0, );
-                _llvm_builder.reset(new llvm::IRBuilder<>(ctx/*DL->getContext()*/));
-                //initIRBuilder(*_llvm_builder, DL, InsertBB, InsertBefore);
+                const llvm::DILocation *DL = nullptr;
+                _llvm_builder.reset(new llvm::IRBuilder<>(ctx));
                 llvm::Instruction* InsertBefore = nullptr;
                 auto InsertBB = other._llvm_builder->GetInsertBlock();
                 if(InsertBB && !InsertBB->empty()) {
@@ -95,11 +94,6 @@ namespace tuplex {
                 else if(InsertBB)
                     _llvm_builder->SetInsertPoint(InsertBB);
                 _llvm_builder->SetCurrentDebugLocation(DL);
-
-//                const auto it = other._llvm_builder->GetInsertPoint();
-//                initFromIterator(it);
-
-
             }
         }
 
@@ -110,7 +104,6 @@ namespace tuplex {
         IRBuilder::~IRBuilder() {
             if(_llvm_builder)
                 _llvm_builder->ClearInsertionPoint();
-            // std::cout<<"IRBuilder destructor called..."<<std::endl;
         }
 
         IRBuilder IRBuilder::firstBlockBuilder(bool insertAtEnd) const {
@@ -158,8 +151,6 @@ namespace tuplex {
             if(it->getParent()->empty())
                 _llvm_builder = std::make_unique<llvm::IRBuilder<>>(it->getParent());
             else {
-                //llvm::Instruction &inst = *it;
-                //_llvm_builder = std::make_unique<llvm::IRBuilder<>>(it->getParent());
                 auto& ctx = it->getParent()->getContext();
                 _llvm_builder = std::make_unique<llvm::IRBuilder<>>(ctx);
 
@@ -167,25 +158,7 @@ namespace tuplex {
                 auto bb = it->getParent();
 
                 auto pt = llvm::IRBuilderBase::InsertPoint(bb, it);
-                //_llvm_builder->CollectMetadataToCopy()
                 _llvm_builder->restoreIP(pt);
-
-                //auto inst = *it;
-                //_llvm_builder->SetInsertPoint(bb, it);
-
-//                // change iterator!
-//                auto firstBlock = _llvm_builder->GetInsertBlock();
-//
-//                if(!firstBlock->empty()) {
-//                    const auto jt = firstBlock->getInstList().begin();
-//                    // auto jt = firstBlock->getFirstInsertionPt();
-//                    auto lastit = jt;
-////                while(jt != firstBlock->end() && !llvm::isa<llvm::BranchInst>(*jt)) {
-////                    lastit = jt;
-////                    ++jt;
-////                }
-//                    _llvm_builder->SetInsertPoint(firstBlock, lastit);
-//                }
             }
         }
 
@@ -518,21 +491,6 @@ namespace tuplex {
             return inst_count.formattedStats(include_detailed_counts);
         }
 
-        // deprecated, doesn't work anymore with llvm15+
-//        std::string globalVariableToString(llvm::Value* value) {
-//            using namespace llvm;
-//            assert(value);
-//
-//            if(!value || !dyn_cast<ConstantExpr>(value))
-//                throw std::runtime_error("value is not a constant expression");
-//            auto *CE = dyn_cast<ConstantExpr>(value);
-//            StringRef Str;
-//            if(getConstantStringInfo(CE, Str)) {
-//                return Str.str();
-//            }
-//            return "";
-//        }
-
 
         /// If generating a bc file on darwin, we have to emit a
         /// header and trailer to make it compatible with the system archiver.  To do
@@ -746,11 +704,8 @@ namespace tuplex {
                 }
             }
 
-
             // go over all functions in mod
             for(auto& func : mod) {
-                // std::cout<<"Annotating "<<func.getName().str()<<std::endl;
-
                 // go over blocks
                 size_t num_blocks = 0;
                 size_t num_instructions = 0;
@@ -835,7 +790,6 @@ namespace tuplex {
 
                     num_blocks++;
                 }
-                // std::cout<<"Annotated "<<pluralize(num_blocks, "basic block")<<", "<<pluralize(num_instructions, "instruction")<<std::endl;
             }
         }
     }

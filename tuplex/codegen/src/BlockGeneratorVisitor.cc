@@ -3131,14 +3131,9 @@ namespace tuplex {
                         malloc_size = _env->i64Const(element_byte_size * list->_elements.size());
                     }
 
-                    _env->printValue(builder, malloc_size, "size to allocate for list is (" + std::to_string(__LINE__) + "): ");
-
                     auto list_arr_malloc = builder.CreatePointerCast(builder.malloc(malloc_size), llvmType->getStructElementType(2));
                     // store the values
                     for(size_t i = 0; i < vals.size(); i++) {
-                        //auto list_el = builder.MovePtrByBytes(builder.CreateBitCast(list_arr_malloc, _env->i8ptrType()),
-                        //                                      i * element_byte_size); //builder.CreateGEP(list_arr_malloc, _env->i32Const(i));
-
                         if(elementType.isTupleType() && !elementType.isFixedSizeType()) {
                             // tuples are stored as pointers.
                             auto list_el = builder.CreateInBoundsGEP(list_arr_malloc, llvm_element_type->getPointerTo(), _env->i64Const(i));
@@ -3163,7 +3158,6 @@ namespace tuplex {
                     if(elementType == python::Type::STRING || elementType.isDictionaryType()) {
                         listSize = _env->i64Const(8 * list->_elements.size() + 8); // length field, size array
                         auto malloc_size_for_sizes = _env->i64Const(8 * list->_elements.size());
-                        _env->printValue(builder, malloc_size_for_sizes, "size to allocate for list is (" + std::to_string(__LINE__) + "): ");
 
                         // allocate the size array
                         auto list_sizes_arr_malloc = builder.CreatePointerCast(builder.malloc(malloc_size_for_sizes), llvmType->getStructElementType(3));
@@ -3179,13 +3173,8 @@ namespace tuplex {
                     }
                 }
 
-                _env->printValue(builder, listAlloc, "returning list with " + std::to_string(list->_elements.size()) + " elements");
-
                 // use the list pointer.
                 addInstruction(listAlloc, listSize); // <-- need to set list size here for serialization. Change that later.
-
-                // old:
-                // addInstruction(builder.CreateLoad(llvmType, listAlloc), listSize);
             }
         }
 
@@ -3531,12 +3520,8 @@ namespace tuplex {
                     _lfb->setLastBlock(retBlock);
                 }
 
-                // new: list pointer + size
+                // return list pointer + size
                 addInstruction(listAlloc, builder.CreateLoad(builder.getInt64Ty(), listSize));
-
-                // // old: load list pointer
-                // addInstruction(builder.CreateLoad(listLLVMType, listAlloc),
-                //               builder.CreateLoad(builder.getInt64Ty(), listSize));
             } else {
                 throw std::runtime_error("Unsupported iterable in list comprehension codegen: " + iterType.desc());
             }
@@ -3972,33 +3957,14 @@ namespace tuplex {
                 }
             } else if (value.val->getType() == _env->getMatchObjectPtrType() &&
                        value_type == python::Type::MATCHOBJECT) {
-                _env->printValue(builder, index.val, "indexing matchobject with index=");
-
                 auto ind = builder.CreateMul(_env->i64Const(2), index.val);
-                _env->printValue(builder, ind, "ind=");
-
-                // // new code:
-                // auto x0 = builder.CreateLoad(_env->getMatchObjectType(), value.val);
-                // auto x1 = builder.CreateInBoundsGEP(x0, _env->getMatchObjectType(), ind);
-                // auto x2 = builder.CreateLoad(builder.getInt64Ty(), x1);
-                // _env->printValue(builder, x2, "start=");
-
                 auto match_object = value.val;
-
-                _env->printValue(builder, match_object, "match object=");
                 auto ovector = builder.CreateLoad(_env->i64ptrType(), builder.CreateStructGEP(match_object, _env->getMatchObjectType(), 0));
-                _env->printValue(builder, value.val, "ovector=");
                 auto subject = builder.CreateLoad(_env->i8ptrType(), builder.CreateStructGEP(match_object, _env->getMatchObjectType(), 1));
-                _env->printValue(builder, subject, "subject=");
                 auto subject_len = builder.CreateLoad(_env->i64Type(), builder.CreateStructGEP(match_object, _env->getMatchObjectType(), 2));
-                _env->printValue(builder, subject_len, "subject_len=");
-
                 // TODO: add some boundary checking here, probably with _env->indexCheck (remember that 0 is a valid choice)
                 auto start = builder.CreateLoad(builder.getInt64Ty(), builder.CreateGEP(builder.getInt64Ty(), ovector, ind));
                 auto end = builder.CreateLoad(builder.getInt64Ty(), builder.CreateGEP(builder.getInt64Ty(), ovector, builder.CreateAdd(ind, _env->i64Const(1))));
-
-                _env->printValue(builder, start, "start=");
-                _env->printValue(builder, end, "end=");
 
                 auto ret = stringSliceInst({subject, subject_len}, start, end, _env->i64Const(1));
                 addInstruction(ret.val, ret.size);
@@ -5307,14 +5273,7 @@ namespace tuplex {
                 } else {
                     // list comes as pointer now, use load therefore
                     end = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(exprAlloc.val, llvm_expr_type, 1));
-                    // old:
-                    // end = builder.CreateExtractValue(exprAlloc.val, {1});
                 }
-
-                _env->printValue(builder, start, "loop over list, start=");
-                _env->printValue(builder, step, "loop over list, step=");
-                _env->printValue(builder, end, "loop over list, stop=");
-
             } else if(exprType == python::Type::STRING) {
                 start = _env->i64Const(0);
                 step = _env->i64Const(1);
@@ -5425,8 +5384,6 @@ namespace tuplex {
             } else {
                 // expression is list, string or range. Check if curr exceeds end.
                 curr = builder.CreateLoad(builder.getInt64Ty(), currPtr);
-
-                _env->printValue(builder, curr, "loop curr=");
 
                 if(exprType == python::Type::RANGE) {
                     // step can be negative in range. Check if curr * stepSign < end * stepSign

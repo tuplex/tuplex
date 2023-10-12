@@ -95,11 +95,6 @@ namespace tuplex {
                 return get_or_throw().CreateAlloca(type);
             }
 
-//             inline llvm::AllocaInst *CreateAlloca(llvm::Type *Ty, llvm::Value *ArraySize = nullptr,
-//                                      const std::string &Name = "") {
-//                return get_or_throw().CreateAlloca(Ty, ArraySize, Name);
-//            }
-
             // StoreInst * 	CreateStore (Value *Val, Value *Ptr, bool isVolatile=false)
             inline llvm::Value* CreateStore(llvm::Value* Val, llvm::Value* Ptr, bool isVolatile=false) const {
 
@@ -205,16 +200,6 @@ namespace tuplex {
                                           const std::string &Name = "") const {
                 return get_or_throw().CreateInsertValue(Agg, Val, Idxs, Name);
             }
-
-//            inline llvm::Value *CreateInsertElement(llvm::Type *VecTy, llvm::Value *NewElt, llvm::Value *Idx,
-//                                       const std::string &Name = "") const {
-//                return get_or_throw().CreateInsertElement(VecTy, NewElt, Idx, Name);
-//            }
-//
-//            inline llvm::Value *CreateInsertElement(llvm::Type *VecTy, llvm::Value *NewElt, uint64_t Idx,
-//                                       const std::string &Name = "") {
-//                return get_or_throw().CreateInsertElement(VecTy, NewElt, Idx, Name);
-//            }
 
             inline llvm::Value *CreateInsertElement(llvm::Value *Vec, llvm::Value *NewElt, llvm::Value *Idx,
                                        const std::string &Name = "") const {
@@ -479,12 +464,6 @@ namespace tuplex {
                 return get_or_throw().CreateCall(FTy, Callee, Args, Name, FPMathTag);
             }
 
-            // #if LLVM_VERSION_MAJOR < 9
-            //                Function* func = cast<Function>(_module->getOrInsertFunction(key, FT));
-            //#else
-            //                Function *func = cast<Function>(_module->getOrInsertFunction(key, FT).getCallee());
-            //#endif
-
             inline llvm::CallInst* CreateCall(llvm::Value* func_value,
 #if (LLVM_VERSION_MAJOR >= 10)
                     llvm::ArrayRef<llvm::Value *> Args = std::nullopt,
@@ -733,11 +712,6 @@ namespace tuplex {
                 auto i64_size =  llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, size));
                 return malloc(i64_size);
             }
-          //  inline llvm::Value* CreateMemCpy(destPtr, 0, srcPtr, 0, srcSize, true);
-
-//        llvm::IRBuilder<>& get() const {
-//                return get_or_throw();
-//        }
 
             inline llvm::Value *CreateGlobalStringPtr(const std::string &basicString) const {
                 return get_or_throw().CreateGlobalStringPtr(basicString);
@@ -1085,15 +1059,6 @@ namespace tuplex {
             static_assert(sizeof(double) == 8, "double should be 64bit");
             return llvm::Type::getDoubleTy(ctx);
         }
-
-        // deprecated because of opaque pointer change in llvm15+.
-        // /*!
-        //  * returns the underlying string of a global variable, created e.g. via env->strConst.
-        //  * May throw exception if value is not a constantexpr
-        //  * @param value
-        //  * @return string or empty string if extraction failed.
-        //  */
-        // extern std::string globalVariableToString(llvm::Value* value);
 
         /*!
          * renames function args and returns them as hashmap for easy access. Order of names in vector corresponds to order of args

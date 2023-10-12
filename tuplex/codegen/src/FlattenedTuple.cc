@@ -291,9 +291,9 @@ namespace tuplex {
                         // _env->printValue(builder, builder.CreateLoad(builder.getInt64Ty(), listSize), "(deserialized) list size is (line:"+std::to_string(__LINE__)+"): ");
 
                         // load the list with its initial size
-                        auto list_capacity_ptr = builder.CreateStructGEP(listAlloc, llvmType, 0); //_env->CreateStructGEP(builder, listAlloc,  0);
+                        auto list_capacity_ptr = builder.CreateStructGEP(listAlloc, llvmType, 0);
                         builder.CreateStore(numElements, list_capacity_ptr);
-                        auto list_len_ptr = builder.CreateStructGEP(listAlloc, llvmType, 1); //_env->CreateStructGEP(builder, listAlloc,  1);
+                        auto list_len_ptr = builder.CreateStructGEP(listAlloc, llvmType, 1);
                         builder.CreateStore(numElements, list_len_ptr);
 
                         auto elementType = type.elementType();
@@ -388,9 +388,9 @@ namespace tuplex {
 
                             builder.SetInsertPoint(after);
                             // store the malloc'd and populated array to the struct
-                            auto list_arr = builder.CreateStructGEP(listAlloc, llvmType, 2); //_env->CreateStructGEP(builder, listAlloc, 2);
+                            auto list_arr = builder.CreateStructGEP(listAlloc, llvmType, 2);
                             builder.CreateStore(list_arr_malloc, list_arr);
-                            auto list_sizearr = builder.CreateStructGEP(listAlloc, llvmType, 3); //_env->CreateStructGEP(builder, listAlloc, 3);
+                            auto list_sizearr = builder.CreateStructGEP(listAlloc, llvmType, 3);
                             builder.CreateStore(list_sizearr_malloc, list_sizearr);
                         }
                         else if(elementType == python::Type::BOOLEAN) {
@@ -440,19 +440,19 @@ namespace tuplex {
 
                             builder.SetInsertPoint(after);
                             // store the malloc'd and populated array to the struct
-                            auto list_arr = builder.CreateStructGEP(listAlloc, llvmType, 2); //_env->CreateStructGEP(builder, listAlloc, 2);
+                            auto list_arr = builder.CreateStructGEP(listAlloc, llvmType, 2);
                             builder.CreateStore(list_arr_malloc, list_arr);
                         }
                         else if(elementType == python::Type::I64) {
                             // can just directly point to the serialized data
-                            auto list_arr = builder.CreateStructGEP(listAlloc, llvmType, 2); //_env->CreateStructGEP(builder, listAlloc, 2);
+                            auto list_arr = builder.CreateStructGEP(listAlloc, llvmType, 2);
                             auto data_ptr = builder.CreateBitCast(builder.MovePtrByBytes(ptr, _env->i64Const(sizeof(int64_t))),
                                                                   _env->i64ptrType());
 
                             builder.CreateStore(data_ptr, list_arr);
                         }  else if(elementType == python::Type::F64) {
                             // can just directly point to the serialized data
-                            auto list_arr = builder.CreateStructGEP(listAlloc, llvmType, 2); //_env->CreateStructGEP(builder, listAlloc, 2);
+                            auto list_arr = builder.CreateStructGEP(listAlloc, llvmType, 2);
 
                             auto data_ptr = builder.CreateBitCast(builder.MovePtrByBytes(ptr, _env->i64Const(sizeof(int64_t))),
                                                                   _env->doublePointerType());

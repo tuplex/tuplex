@@ -174,31 +174,6 @@ namespace codegen {
                     }
 
                     builder.CreateStore(val.val, ptr, false);
-                    // special case for tuples potentially (?)
-
-
-                    // // old:
-                    // // if tuples etc. are used, then there could be a pointer. When this happens, load & then assign
-                    // // make sure it's not string, which is a special case... --> opaque pointers make this check here difficult.
-                    // if(val.val->getType() == ptr->getType() && type.withoutOptions() != python::Type::STRING) {
-                    //     assert(llvm_type);
-//
-                    //     // load val
-                    //     auto tmp = builder.CreateLoad(llvm_type, val.val);
-                    //     builder.CreateStore(tmp, ptr);
-                    // } else {
-#ifndef NDEBUG//
-                    //     if(val.val->getType()->getPointerTo(0) != ptr->getType()) {
-                    //         auto err_msg = "trying to store value of type "
-                    //                        + LLVMEnvironment::getLLVMTypeName(val.val->getType())
-                    //                        + " to a pointer of type " + LLVMEnvironment::getLLVMTypeName(ptr->getType());
-                    //         throw std::runtime_error(err_msg);
-                    //     }
-#endif//
-//
-                    //     assert(val.val->getType()->getPointerTo(0) == ptr->getType());
-                    //     builder.CreateStore(val.val, ptr);
-                    // }
                 }
 
                 if(val.size) {

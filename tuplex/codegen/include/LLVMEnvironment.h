@@ -85,28 +85,6 @@ namespace llvm {
         return CI;
     }
 
-//    inline CallInst* createBinaryIntrinsic(const tuplex::codegen::IRBuilder& builder,
-//                                           Intrinsic::ID ID,
-//                                           Value *LHS, Value* RHS,
-//                                           const Twine& Name="",
-//                                           Instruction *FMFSource = nullptr) {
-//        Module *M = builder.GetInsertBlock()->getModule();
-//        assert(M);
-//        Function *Fn = Intrinsic::getDeclaration(M, ID, {LHS->getType()});
-//        assert(Fn);
-//        return createCallHelper(Fn, {LHS, RHS}, builder, Name, FMFSource);
-//    }
-
-//    inline CallInst* createUnaryIntrinsic(const tuplex::codegen::IRBuilder& builder,
-//                                          Intrinsic::ID ID,
-//                                          Value *V,
-//                                          const Twine& Name="",
-//                                          Instruction *FMFSource = nullptr) {
-//        Module *M = builder.GetInsertBlock()->getModule();
-//        Function *Fn = Intrinsic::getDeclaration(M, ID, {V->getType()});
-//        return createCallHelper(Fn, {V}, builder, Name, FMFSource);
-//    }
-
     inline Value* CreateStructGEP(const tuplex::codegen::IRBuilder& builder,
                                   Value* ptr,
                                   unsigned int idx, const Twine& Name="") {
@@ -504,11 +482,6 @@ namespace tuplex {
                 }
 
                 return stype;
-
-                // // old: anonymous type
-                // return llvm::StructType::get(_context, {llvm::Type::getInt64PtrTy(_context, 0),
-                //                                        llvm::Type::getInt8PtrTy(_context, 0),
-                //                                        llvm::Type::getInt64Ty(_context)});
             }
 
             inline llvm::Type *getMatchObjectPtrType() {
@@ -536,9 +509,6 @@ namespace tuplex {
                 }
 
                 return stype;
-
-                // // old: anonymous type
-                // return llvm::StructType::get(_context, {i64Type(), i64Type(), i64Type()});
             }
 
             /*!

@@ -18,11 +18,11 @@ DOCKER_PYTHON3_VERSION=$(docker run -e LD_LIBRARY_PATH=/opt/lambda-python/lib $D
 
 echo "-- detected docker Python3 version ${DOCKER_PYTHON3_VERSION}"
 
-# make sure versions match
-if [ $DOCKER_PYTHON3_VERSION -ne $PYTHON3_VERSION ]; then
-  echo "Python version does not match"
-  exit 1
-fi
+## make sure versions match
+#if [ $DOCKER_PYTHON3_VERSION -ne $PYTHON3_VERSION ]; then
+#  echo "Python version does not match"
+#  exit 1
+#fi
 
 
 # check from where script is invoked

@@ -44,14 +44,12 @@ namespace tuplex {
          */
         virtual bool compile(const std::string& llvmIR) = 0;
 
+        /*!
+         * compile llvm module
+         * @param mod module to compile
+         * @return true if compilation was successful, false in case of failure.
+         */
         virtual bool compile(std::unique_ptr<llvm::Module> mod) = 0;
-
-//        /*!
-//         * registers symbol name as new addressable for linking
-//         * @param Name for which to link
-//         * @param addr of Symbol
-//         */
-//        template<typename Function> virtual void registerSymbol(const std::string& Name, Function f) = 0;
     };
 }
 

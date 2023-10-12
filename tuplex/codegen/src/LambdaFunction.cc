@@ -75,18 +75,14 @@ namespace tuplex {
             for (int i = 0; i < func->arg_size(); ++i) {
                 auto& arg = *(func->arg_begin() + i);
 
-                // set attribute
+                // set attribute names
                 if(0 == i) {
                     arg.setName("outRow");
-                    // maybe align by 8?
-
                     _retValPtr = &arg; // set retval ptr!
                 }
 
                 if(1 == i) {
                     arg.setName("inRow");
-                    //arg.addAttr(Attribute::ByVal); // not working with LLVM13?
-                    // maybe align by 8?
                 }
             }
 

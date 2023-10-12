@@ -351,7 +351,6 @@ namespace tuplex {
             }
 
             return python::Type::UNKNOWN; // no typing possible for next(...), e.g. next(range(...))
-            // return python::Type::makeFunctionType(parameterType, python::Type::UNKNOWN);
         };
 
         addSymbol(make_shared<Symbol>("iter", iterFunctionTyper));

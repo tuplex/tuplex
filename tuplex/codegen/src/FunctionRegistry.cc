@@ -16,51 +16,6 @@
 namespace tuplex {
     namespace codegen {
 
-
-
-        // helper functions:
-
-        // a function is constructed in the following standard way in Tuplex:
-        // i64 func(rettype* ptr, arg1, arg2, ..., argn, arg1_size, ..., argn_size)
-        // this allows for failures as well.
-        // that general model is basically required for true exception handling...
-        // maybe give details in implementation...
-
-        //can be removed?
-//        llvm::Function* createStringLenFunction(LLVMEnvironment& env) {
-//            using namespace llvm;
-//
-//            // simple function:
-//            // Taking i8* as input and i64 for size of i8*
-//
-//            FunctionType *ft = FunctionType::get(env.i64Type(), {env.i8ptrType(), env.i64Type()}, false);
-//
-//            Function *func = Function::Create(ft, Function::InternalLinkage, "strLen", env.getModule().get());
-//            // set inline attributes
-//            AttrBuilder ab;
-//            ab.addAttribute(Attribute::AlwaysInline);
-//            func->addAttributes(llvm::AttributeList::FunctionIndex, ab);
-//
-//
-//            std::vector<llvm::Argument*> args;
-//            for(auto& arg : func->args())
-//                args.push_back(&arg);
-//            assert(args.size() == 2);
-//
-//            args[0]->setName("ptr");
-//            args[1]->setName("ptr_size");
-//
-//            // create basic block & simple return
-//            BasicBlock* bb = BasicBlock::Create(env.getContext(), "body", func);
-//            codegen::IRBuilder builder(bb);
-//
-//            // simple return: just size - 1
-//            llvm::Value* size = args[1];
-//            builder.CreateRet(builder.CreateSub(size, env.i64Const(1)));
-//
-//            return func;
-//        }
-
         llvm::Function* createStringUpperFunction(LLVMEnvironment& env) {
             using namespace llvm;
 
@@ -71,7 +26,6 @@ namespace tuplex {
 
             return nullptr;
         }
-
 
         SerializableValue FunctionRegistry::createLenCall(const codegen::IRBuilder& builder,
                 const python::Type &argsType,
@@ -1781,12 +1735,8 @@ namespace tuplex {
                              _env.i64Const(0), _env.i32Const(0), match_data, match_context});
                 }
 
-                _env.printValue(builder, num_matches, "matching has num_matches=");
-
                 // None if the match failed
                 auto did_not_match = builder.CreateICmpSLT(num_matches, _env.i32Const(0));
-
-                _env.printValue(builder, did_not_match, "did_not_match=");
 
                 // get the correct return size/val
                 auto retval = builder.CreateAlloca(_env.getMatchObjectPtrType(), 0, nullptr);
@@ -1820,7 +1770,6 @@ namespace tuplex {
                 auto ans = SerializableValue(builder.CreateLoad(_env.getMatchObjectPtrType(), retval),
                                          builder.CreateLoad(builder.getInt64Ty(), retsize),
                                          did_not_match);
-                _env.printValue(builder, ans.size, "returning match object with size=");
 
                 return ans;
             }
@@ -2080,8 +2029,6 @@ namespace tuplex {
             SequenceIterator it(_env);
             auto it_info = std::shared_ptr<IteratorInfo>(new IteratorInfo("iter", argsType, {}));
             return it.initContext(lfb, builder, args.front(), argType, it_info);
-            // old:
-            // return _iteratorContextProxy->initIterContext(lfb, builder, argType, args.front());
         }
 
         SerializableValue FunctionRegistry::createReversedCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder &builder,

@@ -4,9 +4,26 @@
 
 set -euxo pipefail
 
-# check which Python version is installed in /opt/lambda-python/bin/python3
-PYTHON3_VERSION=$(docker run -e LD_LIBRARY_PATH=/opt/lambda-python/lib tuplex/ci /opt/lambda-python/bin/python3 --version | cut -d ' ' -f2)
+echo ">>> Building Lambda runner"
+DEFAULT_PYTHON3_VERSION=$(python3 --version | cut -d ' ' -f2)
+echo "-- detected system python version is ${DEFAULT_PYTHON3_VERSION}"
+echo "-- to specify different Python3 version, set environment variable PYTHON3_VERSION, e.g. export PYTHON3_VERSION=3.9"
+
+PYTHON3_VERSION="${PYTHON3_VERSION:-$DEFAULT_PYTHON3_VERSION}"
 PYTHON3_MAJMIN=${PYTHON3_VERSION%.*}
+DOCKER_IMAGE=tuplex/ci:${PYTHON3_MAJMIN}
+
+# check which Python version is installed in /opt/lambda-python/bin/python3
+DOCKER_PYTHON3_VERSION=$(docker run -e LD_LIBRARY_PATH=/opt/lambda-python/lib $DOCKER_IMAGE /opt/lambda-python/bin/python3 --version | cut -d ' ' -f2)
+
+echo "-- detected docker Python3 version ${DOCKER_PYTHON3_VERSION}"
+
+# make sure versions match
+if [ $DOCKER_PYTHON3_VERSION -ne $PYTHON3_VERSION ]; then
+  echo "Python version does not match"
+  exit 1
+fi
+
 
 # check from where script is invoked
 CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
@@ -19,7 +36,6 @@ cd .. # go to root of repo
 
 LOCAL_BUILD_FOLDER=build-lambda
 SRC_FOLDER=tuplex
-DOCKER_IMAGE=tuplex/ci
 
 # convert to absolute paths
 get_abs_filename() {

@@ -13,24 +13,11 @@
 
 namespace tuplex {
     namespace codegen {
-
-
-        // cache structtype here
-        static std::unordered_map<llvm::LLVMContext*, llvm::StructType*> g_cached_types;
         llvm::StructType* PipelineBuilder::resultStructType(llvm::LLVMContext& ctx) {
             using namespace llvm;
 
             auto i32_type = Type::getInt32Ty(ctx);
             return llvm::StructType::get(ctx, {i32_type, i32_type, i32_type});
-
-            //// old
-            //// check if entry is already there
-            //auto it = g_cached_types.find(&ctx);
-            //if(it == g_cached_types.end()) {
-            //    auto i32_type = Type::getInt32Ty(ctx);
-            //    g_cached_types[&ctx] = llvm::StructType::create(ctx, {i32_type, i32_type, i32_type}, "struct.result", false);
-            //}
-            //return g_cached_types[&ctx];
         }
 
         // reusable function b.c. needs to be done in resolver too.
@@ -2026,7 +2013,6 @@ namespace tuplex {
                 ft.init(normalCaseType);
                 ft.deserializationCode(builder, args["rowBuf"]);
                 // upcast to general type!
-                // castRow(IRBuilder& builder, const FlattenedTuple& row, const python::Type& target_type)
                 auto tuple = castRow(builder, ft, pip.inputRowType());
 
 #ifndef NDEBUG

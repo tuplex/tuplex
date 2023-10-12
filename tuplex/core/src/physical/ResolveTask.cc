@@ -530,10 +530,10 @@ default:
                 }
 
 #ifndef NDEBUG
-                 // to print python object
-                 Py_XINCREF(tuple);
-                 PyObject_Print(tuple, stdout, 0);
-                 std::cout<<std::endl;
+                // // to print python object
+                // Py_XINCREF(tuple);
+                // PyObject_Print(tuple, stdout, 0);
+                // std::cout<<std::endl;
 #endif
 
                 // call pipFunctor
@@ -576,11 +576,11 @@ default:
                     } else {
 
 #ifndef NDEBUG
-                         // uncomment to print res obj
-                         Py_XINCREF(pcr.res);
-                         PyObject_Print(pcr.res, stdout, 0);
-                         std::cout<<std::endl;
-#endif
+                        // // uncomment to print res obj
+                        // Py_XINCREF(pcr.res);
+                        // PyObject_Print(pcr.res, stdout, 0);
+                        // std::cout<<std::endl;
+#endif//
                         auto exceptionObject = PyDict_GetItemString(pcr.res, "exception");
                         if(exceptionObject) {
 

@@ -79,97 +79,6 @@ namespace tuplex {
         return TM;
     }
 
-//    // these are the default passes used
-//    void generateFunctionPassesI(llvm::legacy::FunctionPassManager& fpm) {
-//        // function-wise passes
-//        fpm.add(createSROAPass()); // break up aggregates
-//        fpm.add(createInstructionCombiningPass());
-//        fpm.add(createReassociatePass());
-//        fpm.add(createGVNPass());
-//        fpm.add(createCFGSimplificationPass());
-//        fpm.add(createAggressiveDCEPass());
-//        fpm.add(createCFGSimplificationPass());
-//
-//        // added passes...
-//        fpm.add(createPromoteMemoryToRegisterPass()); // mem2reg pass
-//        fpm.add(createAggressiveDCEPass());
-//
-//        // custom added passes
-//        // ==> Tuplex is memcpy heavy, i.e. optimize!
-//        fpm.add(createMemCpyOptPass()); // !!! use this pass for sure !!! It's quite expensive first, but it pays off big time.
-//    }
-
-//    void optimizePipelineI(llvm::Module& mod) {
-//        // Step 1: optimize functions
-//        auto fpm = std::make_unique<legacy::FunctionPassManager>(&mod);
-//        assert(fpm.get());
-//
-//        generateFunctionPassesI(*fpm.get());
-//        fpm->doInitialization();
-//
-//        // run function passes over each function in the module
-//        for(Function& f: mod.getFunctionList())
-//            fpm->run(f);
-//
-//        //// on current master, module optimizations are deactivated. Inlining seems to worsen things!
-//        // // Step 2: optimize over whole module
-//        // // Module passes (function inlining)
-//        // legacy::PassManager pm;
-//        // // inline functions now
-//        // pm.add(createGlobalDCEPass()); // remove dead globals
-//        // pm.add(createConstantMergePass()); // merge global constants
-//        // pm.add(createFunctionInliningPass());
-//        // pm.add(createDeadArgEliminationPass());
-//        // pm.run(mod);
-//
-//        // // run per function pass again
-//        //// run function passes over each function in the module
-//        //for(Function& f: mod.getFunctionList())
-//        //    fpm->run(f);
-//    }
-
-    // // these are the default passes used
-    //    void generateFunctionPassesI(llvm::legacy::FunctionPassManager& fpm) {
-    //        // function-wise passes
-    //        fpm.add(createSROAPass()); // break up aggregates
-    //        fpm.add(createInstructionCombiningPass());
-    //        fpm.add(createReassociatePass());
-    //        fpm.add(createGVNPass());
-    //        fpm.add(createCFGSimplificationPass());
-    //        fpm.add(createAggressiveDCEPass());
-    //        fpm.add(createCFGSimplificationPass());
-    //
-    //        // added passes...
-    //        fpm.add(createPromoteMemoryToRegisterPass()); // mem2reg pass
-    //        fpm.add(createAggressiveDCEPass());
-    //
-    //        // custom added passes
-    //        // ==> Tuplex is memcpy heavy, i.e. optimize!
-    //        fpm.add(createMemCpyOptPass()); // !!! use this pass for sure !!! It's quite expensive first, but it pays off big time.
-    //    }
-    //
-    //    void optimizePipelineI(llvm::Module& mod) {
-    //        // Step 1: optimize functions
-    //        auto fpm = llvm::make_unique<legacy::FunctionPassManager>(&mod);
-    //        assert(fpm.get());
-    //
-    //        generateFunctionPassesI(*fpm.get());
-    //        fpm->doInitialization();
-    //
-    //        // run function passes over each function in the module
-    //        for(Function& f: mod.getFunctionList())
-    //            fpm->run(f);
-    //
-    //        // on current master, module optimizations are deactivated. Inlining seems to worsen things!
-    //        // // Step 2: optimize over whole module
-    //        // // Module passes (function inlining)
-    //        // legacy::PassManager pm;
-    //        // // inline functions now
-    //        // pm.add(createFunctionInliningPass());
-    //        // pm.add(createDeadArgEliminationPass());
-    //        // pm.run(mod);
-    //    }
-
     void optimizePipelineII(llvm::legacy::FunctionPassManager &fpm) {
         // inspired from https://courses.engr.illinois.edu/cs426/fa2015/Project/mp4.pdf
         // i.e.
@@ -240,29 +149,6 @@ namespace tuplex {
 
         // Optimize the IR!F
         MPM.run(M, MAM);
-
-//      llvm::PassManagerBuilder Builder;
-//      Builder.OptLevel = OptLevel;
-//      Builder.SizeLevel = OptSize;
-//      Builder.LibraryInfo = new llvm::TargetLibraryInfoImpl(Triple);
-//      Builder.Inliner = llvm::createFunctionInliningPass(OptLevel, OptSize, false);
-//      Builder.SLPVectorize = true; // enable vectorization!
-//
-//      std::unique_ptr<llvm::TargetMachine> TM = GetHostTargetMachine();
-//      assert(TM);
-//      TM->adjustPassManager(Builder);
-//
-//      llvm::legacy::PassManager MPM;
-//      MPM.add(llvm::createTargetTransformInfoWrapperPass(TM->getTargetIRAnalysis()));
-//      Builder.populateModulePassManager(MPM);
-//
-//    #ifndef NDEBUG
-//      MPM.add(llvm::createVerifierPass());
-//    #endif
-//
-//      Builder.populateModulePassManager(MPM);
-//
-//      MPM.run(M);
     }
 
     __attribute__((no_sanitize_address)) std::string LLVMOptimizer::optimizeIR(const std::string &llvmIR) {
@@ -303,35 +189,4 @@ namespace tuplex {
         // OptLevel 3, SizeLevel 0
         Optimize(mod, 3, 0);
     }
-
-    // use https://github.com/jmmartinez/easy-just-in-time/blob/master/runtime/Function.cpp
-    // static void Optimize(llvm::Module& M, const char* Name, const easy::Context& C, unsigned OptLevel, unsigned OptSize) {
-    //
-    //  llvm::Triple Triple{llvm::sys::getProcessTriple()};
-    //
-    //  llvm::PassManagerBuilder Builder;
-    //  Builder.OptLevel = OptLevel;
-    //  Builder.SizeLevel = OptSize;
-    //  Builder.LibraryInfo = new llvm::TargetLibraryInfoImpl(Triple);
-    //  Builder.Inliner = llvm::createFunctionInliningPass(OptLevel, OptSize, false);
-    //
-    //  std::unique_ptr<llvm::TargetMachine> TM = GetHostTargetMachine();
-    //  assert(TM);
-    //  TM->adjustPassManager(Builder);
-    //
-    //  llvm::legacy::PassManager MPM;
-    //  MPM.add(llvm::createTargetTransformInfoWrapperPass(TM->getTargetIRAnalysis()));
-    //  MPM.add(easy::createContextAnalysisPass(C));
-    //  MPM.add(easy::createInlineParametersPass(Name));
-    //  Builder.populateModulePassManager(MPM);
-    //  MPM.add(easy::createDevirtualizeConstantPass(Name));
-    //
-    //#ifdef NDEBUG
-    //  MPM.add(llvm::createVerifierPass());
-    //#endif
-    //
-    //  Builder.populateModulePassManager(MPM);
-    //
-    //  MPM.run(M);
-    //}
 }

@@ -9,7 +9,6 @@ include(GoogleTest)
 
 ADD_EXECUTABLE(testio ${SRCS} main.cc)
 
-message(STATUS "Protobuf libraries (testio): ${Protobuf_LIBRARIES} ${Protobuf_LITE_LIBRARIES}")
 TARGET_LINK_LIBRARIES(testio
         libio
         libutils

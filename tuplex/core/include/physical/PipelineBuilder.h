@@ -132,12 +132,6 @@ namespace tuplex {
              */
             SerializableValue makeKey(IRBuilder& builder, const SerializableValue& key, bool persist=true);
 
-//            /*!
-//             * return builder at current stage of pipeline building!
-//             */
-//            llvm::IRBuilder<> builder();
-
-
             void createInnerJoinBucketLoop(IRBuilder& builder,
                                            llvm::Value* num_rows_to_join,
                                            llvm::Value* bucketPtrVar,

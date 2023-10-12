@@ -139,11 +139,6 @@ namespace tuplex {
             // => SampleProcessor is really, really required!
             ExceptionCode ec = ExceptionCode::SUCCESS;
 
-            // // HACK: skip for pushdown.
-            // // this is bad, but let's get tplx208 done.
-            // if(!inputColumns().empty() && row.getNumColumns() != inputColumns().size())
-            //    continue;
-
             auto pcr = !inputColumns().empty() ? python::callFunctionWithDictEx(pFunc, rowObj, inputColumns()) :
                        python::callFunctionEx(pFunc, rowObj);
             ec = pcr.exceptionCode;
@@ -217,11 +212,6 @@ namespace tuplex {
         // infer schema with given type
         auto schema = inferSchema(Schema(oldOut.getMemoryLayout(), rowTypes.front()));
         if(schema == Schema::UNKNOWN) {
-
-            std::cerr<<"inferring failed..."<<std::endl;
-            // debug again...
-            auto s = inferSchema(Schema(oldOut.getMemoryLayout(), rowTypes.front()));
-
             return false;
         } else {
             setSchema(schema);

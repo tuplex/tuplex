@@ -820,15 +820,15 @@ TEST_F(UseCaseFunctionsTest, regexSearch) {
     ClosureEnvironment ce;
     ce.importModuleAs("re", "re");
 
-//    // global pattern
-//    auto v1 = context->parallelize({Row("hello"),
-//                                   Row("world"), Row("ball")})
-//            .map(UDF("lambda x: re.search(r'(.*)l.*', x)[1]", "", ce)).collectAsVector();
-//
-//    ASSERT_EQ(v1.size(), 3);
-//    EXPECT_EQ(v1[0], Row("hel"));
-//    EXPECT_EQ(v1[1], Row("wor"));
-//    EXPECT_EQ(v1[2], Row("bal"));
+    // global pattern
+    auto v1 = context->parallelize({Row("hello"),
+                                   Row("world"), Row("ball")})
+            .map(UDF("lambda x: re.search(r'(.*)l.*', x)[1]", "", ce)).collectAsVector();
+
+    ASSERT_EQ(v1.size(), 3);
+    EXPECT_EQ(v1[0], Row("hel"));
+    EXPECT_EQ(v1[1], Row("wor"));
+    EXPECT_EQ(v1[2], Row("bal"));
 
     auto code = "def f(x):\n"
                 "    match = re.search(r'(.*)l(.*)', x)\n"
@@ -842,58 +842,58 @@ TEST_F(UseCaseFunctionsTest, regexSearch) {
     EXPECT_EQ(v2[1], Row("wor", "d"));
     EXPECT_EQ(v2[2], Row("bal", ""));
 
-//    // bad PCRE2 pattern example
-//    // const char* pattern = "(.*)l[^0-9][0-9]*)";
-//    // int error_code = 0;
-//    // size_t error_offset = 0;
-//    // auto compiled_pattern = pcre2_compile_8(reinterpret_cast<PCRE2_SPTR8>(pattern), strlen(pattern), 0, &error_code, &error_offset, nullptr);
-//
-//    // global pattern with addition
-//    auto v3 = context->parallelize({Row("hello123"),
-//                                    Row("world456"), Row("ball789")})
-//            .map(UDF("lambda x: re.search(r'(.*)l[^0-9]*' + r'([0-9]*)', x)[2]", "", ce)).collectAsVector();
-//
-//    ASSERT_EQ(v3.size(), 3);
-//    EXPECT_EQ(v3[0], Row("123"));
-//    EXPECT_EQ(v3[1], Row("456"));
-//    EXPECT_EQ(v3[2], Row("789"));
-//
-//    code = "def f(x):\n"
-//                "    p1 = r'(.*)l([^0-9]*)'\n"
-//                "    p2 = r'([0-9]*)'\n"
-//                "    match = re.search(p1 + p2, x)\n"
-//                "    return (match[1], match[2], match[3])";
-//
-//    auto v4 = context->parallelize({Row("hello123"), Row("world456"), Row("ball789")})
-//            .map(UDF(code, "", ce)).collectAsVector();
-//
-//    ASSERT_EQ(v4.size(), 3);
-//    EXPECT_EQ(v4[0], Row("hel", "o", "123"));
-//    EXPECT_EQ(v4[1], Row("wor", "d", "456"));
-//    EXPECT_EQ(v4[2], Row("bal", "", "789"));
-//
-//    // non-global pattern
-//    auto v5 = context->parallelize({Row("(.*)l.*", "hello"),
-//                                    Row("(.*)(l).*", "world456"), Row("(.*)(l)(.*)", "ball")})
-//            .map(UDF("lambda x, y: re.search(x, y)[1]", "", ce)).collectAsVector();
-//
-//    ASSERT_EQ(v5.size(), 3);
-//    EXPECT_EQ(v5[0], Row("hel"));
-//    EXPECT_EQ(v5[1], Row("wor"));
-//    EXPECT_EQ(v5[2], Row("bal"));
-//
-//    code = "def f(x, y):\n"
-//           "    match = re.search(x, y)\n"
-//           "    return (match[1], match[2])";
-//
-//    auto v6 = context->parallelize({Row("(.*)l(.*)", "hello"),
-//                                    Row("(.*)(l).*", "world456"), Row("(.*)(l)(.*)", "ball")})
-//            .map(UDF(code, "", ce)).collectAsVector();
-//
-//    ASSERT_EQ(v6.size(), 3);
-//    EXPECT_EQ(v6[0], Row("hel", "o"));
-//    EXPECT_EQ(v6[1], Row("wor", "l"));
-//    EXPECT_EQ(v6[2], Row("bal", "l"));
+    // bad PCRE2 pattern example
+    // const char* pattern = "(.*)l[^0-9][0-9]*)";
+    // int error_code = 0;
+    // size_t error_offset = 0;
+    // auto compiled_pattern = pcre2_compile_8(reinterpret_cast<PCRE2_SPTR8>(pattern), strlen(pattern), 0, &error_code, &error_offset, nullptr);
+
+    // global pattern with addition
+    auto v3 = context->parallelize({Row("hello123"),
+                                    Row("world456"), Row("ball789")})
+            .map(UDF("lambda x: re.search(r'(.*)l[^0-9]*' + r'([0-9]*)', x)[2]", "", ce)).collectAsVector();
+
+    ASSERT_EQ(v3.size(), 3);
+    EXPECT_EQ(v3[0], Row("123"));
+    EXPECT_EQ(v3[1], Row("456"));
+    EXPECT_EQ(v3[2], Row("789"));
+
+    code = "def f(x):\n"
+                "    p1 = r'(.*)l([^0-9]*)'\n"
+                "    p2 = r'([0-9]*)'\n"
+                "    match = re.search(p1 + p2, x)\n"
+                "    return (match[1], match[2], match[3])";
+
+    auto v4 = context->parallelize({Row("hello123"), Row("world456"), Row("ball789")})
+            .map(UDF(code, "", ce)).collectAsVector();
+
+    ASSERT_EQ(v4.size(), 3);
+    EXPECT_EQ(v4[0], Row("hel", "o", "123"));
+    EXPECT_EQ(v4[1], Row("wor", "d", "456"));
+    EXPECT_EQ(v4[2], Row("bal", "", "789"));
+
+    // non-global pattern
+    auto v5 = context->parallelize({Row("(.*)l.*", "hello"),
+                                    Row("(.*)(l).*", "world456"), Row("(.*)(l)(.*)", "ball")})
+            .map(UDF("lambda x, y: re.search(x, y)[1]", "", ce)).collectAsVector();
+
+    ASSERT_EQ(v5.size(), 3);
+    EXPECT_EQ(v5[0], Row("hel"));
+    EXPECT_EQ(v5[1], Row("wor"));
+    EXPECT_EQ(v5[2], Row("bal"));
+
+    code = "def f(x, y):\n"
+           "    match = re.search(x, y)\n"
+           "    return (match[1], match[2])";
+
+    auto v6 = context->parallelize({Row("(.*)l(.*)", "hello"),
+                                    Row("(.*)(l).*", "world456"), Row("(.*)(l)(.*)", "ball")})
+            .map(UDF(code, "", ce)).collectAsVector();
+
+    ASSERT_EQ(v6.size(), 3);
+    EXPECT_EQ(v6[0], Row("hel", "o"));
+    EXPECT_EQ(v6[1], Row("wor", "l"));
+    EXPECT_EQ(v6[2], Row("bal", "l"));
 }
 
 
@@ -1028,16 +1028,16 @@ TEST_F(UseCaseFunctionsTest, randomChoice) {
     ce.importModuleAs("re", "re");
     ce.importModuleAs("random", "random");
 
-//    auto v1 = context->parallelize({Row("hello"), Row("world"), Row("abc"), Row("def")}).map(UDF("lambda x: random.choice(x)", "", ce)).collectAsVector();
-//    ASSERT_EQ(v1.size(), 4);
-//    EXPECT_EQ(v1[0].getString(0).size(), 1);
-//    ASSERT_TRUE(std::string("hello").find(v1[0].getString(0)[0]) != std::string::npos);
-//    EXPECT_EQ(v1[1].getString(0).size(), 1);
-//    ASSERT_TRUE(std::string("world").find(v1[1].getString(0)[0]) != std::string::npos);
-//    EXPECT_EQ(v1[2].getString(0).size(), 1);
-//    ASSERT_TRUE(std::string("abc").find(v1[2].getString(0)[0]) != std::string::npos);
-//    EXPECT_EQ(v1[3].getString(0).size(), 1);
-//    ASSERT_TRUE(std::string("def").find(v1[3].getString(0)[0]) != std::string::npos);
+    auto v1 = context->parallelize({Row("hello"), Row("world"), Row("abc"), Row("def")}).map(UDF("lambda x: random.choice(x)", "", ce)).collectAsVector();
+    ASSERT_EQ(v1.size(), 4);
+    EXPECT_EQ(v1[0].getString(0).size(), 1);
+    ASSERT_TRUE(std::string("hello").find(v1[0].getString(0)[0]) != std::string::npos);
+    EXPECT_EQ(v1[1].getString(0).size(), 1);
+    ASSERT_TRUE(std::string("world").find(v1[1].getString(0)[0]) != std::string::npos);
+    EXPECT_EQ(v1[2].getString(0).size(), 1);
+    ASSERT_TRUE(std::string("abc").find(v1[2].getString(0)[0]) != std::string::npos);
+    EXPECT_EQ(v1[3].getString(0).size(), 1);
+    ASSERT_TRUE(std::string("def").find(v1[3].getString(0)[0]) != std::string::npos);
 
     auto v2 = context->parallelize({Row(List(1, 2, 3, 4)), Row(List(2, 3, 4, 5)), Row(List(3, 4)), Row(List(-1, 0, 1))}).map(UDF("lambda x: random.choice(x)", "", ce)).collectAsVector();
     ASSERT_EQ(v2.size(), 4);
@@ -1056,15 +1056,15 @@ TEST_F(UseCaseFunctionsTest, randomChoice) {
     EXPECT_TRUE(v2[3].getInt(0) >= -1);
     EXPECT_TRUE(v2[3].getInt(0) <= 1);
 
-//    auto v3 = context->parallelize({Row(List(Field::empty_dict(), Field::empty_dict(), Field::empty_dict())), Row(List(Field::empty_dict()))}).map(UDF("lambda x: random.choice(x)", "", ce)).collectAsVector();
-//    ASSERT_EQ(v3.size(), 2);
-//    EXPECT_EQ(v3[0].toPythonString(), "({},)");
-//    EXPECT_EQ(v3[1].toPythonString(), "({},)");
-//
-//    auto v4 = context->parallelize({Row(List("hello", "world", "!"))}).map(UDF("lambda x: random.choice(x)", "", ce)).collectAsVector();
-//    ASSERT_EQ(v4.size(), 1);
-//    auto str = v4[0].getString(0);
-//    EXPECT_TRUE(str == "hello" || str == "world" || str == "!");
+    auto v3 = context->parallelize({Row(List(Field::empty_dict(), Field::empty_dict(), Field::empty_dict())), Row(List(Field::empty_dict()))}).map(UDF("lambda x: random.choice(x)", "", ce)).collectAsVector();
+    ASSERT_EQ(v3.size(), 2);
+    EXPECT_EQ(v3[0].toPythonString(), "({},)");
+    EXPECT_EQ(v3[1].toPythonString(), "({},)");
+
+    auto v4 = context->parallelize({Row(List("hello", "world", "!"))}).map(UDF("lambda x: random.choice(x)", "", ce)).collectAsVector();
+    ASSERT_EQ(v4.size(), 1);
+    auto str = v4[0].getString(0);
+    EXPECT_TRUE(str == "hello" || str == "world" || str == "!");
 }
 
 TEST_F(UseCaseFunctionsTest, randomStringGeneration) {

@@ -28,9 +28,6 @@ if(BUILD_WITH_ORC)
     endif()
     get_filename_component(Protobuf_HOME "${Protobuf_INCLUDE_DIRS}" DIRECTORY)
 
-#    include(ExternalProject)
-#    set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
-
     # For MacOS, check whether certain 3rd party libs are already installed via brew
     if(BREW_FOUND)
         if(APPLE)
@@ -147,15 +144,9 @@ if(BUILD_WITH_ORC)
     endif()
 
     if (NOT APPLE)
-        message(STATUS "Adding byproducts to external project")
-        #set(SNAPPY_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libsnappy.a)
-        #set(ZSTD_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libzstd.a)
-        #set(ZLIB_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/libz.a)
         set(LZ4_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/liblz4.a)
         set(ORC_THIRD_PARTY_LIBS
             ${SNAPPY_LIBRARIES}
-            #${ZSTD_LIBRARIES}
-            #${ZLIB_LIBRARIES}
             ${LZ4_LIBRARIES})
     endif()
 
@@ -217,7 +208,6 @@ if(BUILD_WITH_ORC)
             )
     ExternalProject_Add_StepDependencies(orc build ${SNAPPY_DEPENDS} ${LZ4_DEPENDS}
             ${ZSTD_DEPENDS}
-            #${ZLIB_DEPENDS}
             )
     set(orc_INCLUDE_DIR ${EXTERNAL_INSTALL_LOCATION}/include)
     ExternalProject_Get_Property(orc binary_dir)
@@ -231,8 +221,6 @@ if(BUILD_WITH_ORC)
     include_directories(${orc_INCLUDE_DIR})
     set(ORC_LIBRARIES
             ${SNAPPY_LIBRARIES}
-            #${ZSTD_LIBRARIES}
-            #${ZLIB_LIBRARIES}
             ${LZ4_LIBRARIES}
             liborc)
     # set also for parent scope (don't set liborc?)

@@ -755,17 +755,11 @@ namespace tuplex {
                 // import cloudpickle for serialized functions
                 PyObject *cloudpickleModule = PyImport_ImportModule("cloudpickle");
                 if(!cloudpickleModule) {
-                    // err<<"could not find cloudpickle module, please install via `pip3 install \""<<desired_version<<"\"`.";
-                    // if(os)
-                    //     *os<<err.str();
-                    // return false;
-                }//
+                     throw std::runtime_error("could not find cloudpickle module");
+                }
 
                 PyModule_AddObject(mainModule, "cloudpickle", cloudpickleModule);
                 auto versionObj =  PyObject_GetAttr(cloudpickleModule, python::PyString_FromString("__version__"));
-                //if(!versionObj)
-                //    return false;
-
                 auto version_string = python::PyString_AsString(versionObj);
 
                 // get information about Python version and cloudpickle version used

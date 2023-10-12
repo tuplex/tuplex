@@ -347,8 +347,6 @@ TEST(LLVMENV, StringConstantFromGlobal) {
     auto strObj = env->strConst(builder, "teststring");
     builder.CreateRet(env->i64Const(0));
 
-    // deprecated, use env related function because env tracks strings
-    // EXPECT_EQ(codegen::globalVariableToString(strObj), "teststring");
     EXPECT_EQ(env->globalVariableToString(strObj), "teststring");
 }
 

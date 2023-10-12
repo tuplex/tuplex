@@ -1439,12 +1439,12 @@ TEST_F(PipelinesTest, FlightPipelineWithGeneratedParser) {
 
     EXPECT_EQ(r_proj_wLLVMOpt_parse.size(), 4999);
 
-//    // run ref pipeline
-//    Context c_ref(opt_ref);
-//    auto ref = pipelineAsStrs(flightPipeline(c_ref, bts_path, carrier_path, airport_path, cache));
-//
-//    std::sort(ref.begin(), ref.end());
-//    compareStrArrays(r_proj_wLLVMOpt_parse, ref, true);
+    // run ref pipeline
+    Context c_ref(opt_ref);
+    auto ref = pipelineAsStrs(flightPipeline(c_ref, bts_path, carrier_path, airport_path, cache));
+
+    std::sort(ref.begin(), ref.end());
+    compareStrArrays(r_proj_wLLVMOpt_parse, ref, true);
 }
 
 TEST_F(PipelinesTest, FlightConfigHarness) {
@@ -1496,15 +1496,14 @@ TEST_F(PipelinesTest, FlightConfigHarness) {
         auto r_proj_wLLVMOpt = pipelineAsStrs(flightPipeline(c_proj_wLLVMOpt, bts_path, carrier_path, airport_path, cache));
         compareStrArrays(r_proj_wLLVMOpt, ref, true);
 
-//// this is causing error
-//        // with projection pushdown + LLVM Optimizers + generated parser
-//        auto opt_proj_wLLVMOpt_parse = opt_ref;
-//        opt_proj_wLLVMOpt_parse.set("tuplex.csv.selectionPushdown", "true");
-//        opt_proj_wLLVMOpt_parse.set("tuplex.useLLVMOptimizer", "true");
-//        opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.generateParser", "true");
-//        Context c_proj_wLLVMOpt_parse(opt_proj_wLLVMOpt_parse);
-//        auto r_proj_wLLVMOpt_parse = pipelineAsStrs(flightPipeline(c_proj_wLLVMOpt_parse, bts_path, carrier_path, airport_path, cache));
-//        compareStrArrays(r_proj_wLLVMOpt_parse, ref, true);
+        // with projection pushdown + LLVM Optimizers + generated parser
+        auto opt_proj_wLLVMOpt_parse = opt_ref;
+        opt_proj_wLLVMOpt_parse.set("tuplex.csv.selectionPushdown", "true");
+        opt_proj_wLLVMOpt_parse.set("tuplex.useLLVMOptimizer", "true");
+        opt_proj_wLLVMOpt_parse.set("tuplex.optimizer.generateParser", "true");
+        Context c_proj_wLLVMOpt_parse(opt_proj_wLLVMOpt_parse);
+        auto r_proj_wLLVMOpt_parse = pipelineAsStrs(flightPipeline(c_proj_wLLVMOpt_parse, bts_path, carrier_path, airport_path, cache));
+        compareStrArrays(r_proj_wLLVMOpt_parse, ref, true);
 
         // NULL value OPTIMIZATION
         // with projection pushdown + LLVM Optimizers + generated parser + null value opt

@@ -2,8 +2,7 @@
 
 [![Build Status](https://dev.azure.com/leonhardspiegelberg/Tuplex%20-%20Open%20Source/_apis/build/status/tuplex.tuplex?branchName=master)](https://dev.azure.com/leonhardspiegelberg/Tuplex%20-%20Open%20Source/_build/latest?definitionId=2&branchName=master)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-![Supported python versions](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue)
-[![Gitter](https://badges.gitter.im/tuplex/community.svg)](https://gitter.im/tuplex/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+![Supported python versions](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)
 [![PyPi Downloads](https://img.shields.io/pypi/dm/tuplex)](https://img.shields.io/pypi/dm/tuplex)
 
 [Website](https://tuplex.cs.brown.edu/) [Documentation](https://tuplex.cs.brown.edu/python-api.html)
@@ -62,7 +61,7 @@ pip install tuplex
 
 ### Building
 
-Tuplex is available for MacOS and Linux. The current version has been tested under MacOS 10.13-12.0 and Ubuntu 18.04/20.04/22.04 LTS.
+Tuplex is available for MacOS and Linux. The current version has been tested under MacOS 10.13+ and Ubuntu 20.04/22.04 LTS.
 To install Tuplex, simply install the dependencies first and then build the package.
 
 #### MacOS build from source
@@ -74,10 +73,10 @@ python3 setup.py install --user
 ```
 
 #### Ubuntu build from source
-To faciliate installing the dependencies for Ubuntu, we do provide two scripts (`scripts/ubuntu1804/install_reqs.sh` for Ubuntu 18.04, or `scripts/ubuntu2004/install_reqs.sh` for Ubuntu 20.04). To create an up to date version of Tuplex, simply run
+To faciliate installing the dependencies for Ubuntu, we do provide two scripts (`scripts/ubuntu2004/install_reqs.sh` for Ubuntu 20.04, or `scripts/ubuntu2204/install_reqs.sh` for Ubuntu 22.04). To create an up to date version of Tuplex, simply run
 ```
-./scripts/ubuntu1804/install_reqs.sh
-python3 -m pip install 'cloudpickle<2.0' numpy
+./scripts/ubuntu2204/install_reqs.sh
+python3 -m pip install cloudpickle numpy
 python3 setup.py install --user
 ```
 
@@ -134,4 +133,4 @@ series = {SIGMOD/PODS '21}
 ```
 
 ---
-(c) 2017-2022 Tuplex contributors
+(c) 2017-2023 Tuplex contributors

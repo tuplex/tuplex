@@ -8,6 +8,7 @@ import glob
 import json
 import datetime
 import logging
+import sys
 
 ### CHANGE VERSIONS HERE ###
 
@@ -18,27 +19,26 @@ def configure_versions(osname):
 
     VERSIONS['OS'] = osname
 
-    VERSIONS['CMAKE_VERSION'] = '3.23.3'
-    VERSIONS['YAMLCPP_VERSION'] = '0.6.3'
+    VERSIONS['CMAKE_VERSION'] = '3.27.5'
+    VERSIONS['YAMLCPP_VERSION'] = '0.8.0'
     VERSIONS['CELERO_VERSION'] = '2.8.3'
-    VERSIONS['ANTLR_VERSION'] = '4.8'
-    VERSIONS['AWSSDK_VERSION'] = '1.9.320'  # '1.9.133'
-    VERSIONS['AWSLAMBDACPP_VERSION'] = '0.2.6'
-    VERSIONS['PCRE2_VERSION'] = '10.39'
-    VERSIONS['PROTOBUF_VERSION'] = '3.21.5'
+    VERSIONS['ANTLR_VERSION'] = '4.13.1'
+    VERSIONS['AWSSDK_VERSION'] = '1.11.164'
+    VERSIONS['AWSLAMBDACPP_VERSION'] = '0.2.8'
+    VERSIONS['PCRE2_VERSION'] = '10.42'
+    VERSIONS['PROTOBUF_VERSION'] = '24.3'
+    # cloudpickle depends on python version, for < 3.10 use cloudpickle < 2.0, else newest cloudpickle
     VERSIONS['CLOUDPICKLE_VERSION'] = '<2.0.0'
+    if sys.version_info.major >= 10:
+        VERSIONS['CLOUDPICKLE_VERSION'] = '>=2.1.0'  # 2.0.0 is buggy, ignore
     VERSIONS['BOOST_VERSION'] = '1.79.0'
     VERSIONS['GCC_VERSION'] = '10'
-    VERSIONS['LLVM_VERSION'] = '9.0.1'
+    VERSIONS['LLVM_VERSION'] = '16.0.6'
 
     VERSIONS['MONGODB_VERSION'] = '5.0'
 
     VERSIONS['WORKDIR'] = '/tmp'
     VERSIONS['PREFIX'] = '/opt'
-
-    # for ubuntu 18.04 use gcc7
-    if '18.04' in osname:
-        VERSIONS['GCC_VERSION'] = '7'
 
     # for 20.04 use gcc10
     if '20.04' in osname:
@@ -105,13 +105,7 @@ def install_mongodb(osname='ubuntu:22.04'):
     # cf. https://www.mongodb.com/docs/v5.0/tutorial/install-mongodb-on-ubuntu/
 
     MONGODB_VERSION=VERSIONS['MONGODB_VERSION']
-    if osname == 'ubuntu:18.04':
-        return  """apt-get update && apt-get install -y curl gnupg \\
-&& curl -fsSL https://www.mongodb.org/static/pgp/server-{version}.asc | apt-key add - \\
-&& echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/{version} multiverse" | tee /etc/apt/sources.list.d/mongodb-org-{version}.list \\
-&& apt update \\
-&& apt install -y mongodb-org""".format(version=MONGODB_VERSION)
-    elif osname == 'ubuntu:20.04':
+    if osname == 'ubuntu:20.04':
         return """apt-get update && apt-get install -y curl gnupg \\
     && curl -fsSL https://www.mongodb.org/static/pgp/server-{version}.asc | apt-key add - \\
     && echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/{version} multiverse" | tee /etc/apt/sources.list.d/mongodb-org-{version}.list \\
@@ -244,14 +238,8 @@ pushd ${WORKDIR}/boost && ''' + \
 def install_protobuf():
     PROTOBUF_VERSION = VERSIONS['PROTOBUF_VERSION']
 
-    code = 'mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf \\'
-
-    code += '''\n&& curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v{minversion}/protobuf-cpp-{version}.tar.gz \\
-&& tar xf protobuf-cpp-{version}.tar.gz \\
-&& cd protobuf-{version} \\
-&& ./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" \\
-&& make -j$(nproc) && make install && ldconfig'''.format(version=PROTOBUF_VERSION,
-                                                         minversion=PROTOBUF_VERSION.replace('3.', ''))
+    code = '''mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf \
+&& git clone -b v${''' + PROTOBUF_VERSION + '''} https://github.com/protocolbuffers/protobuf.git && cd protobuf && git submodule update --init --recursive && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_CXX_STANDARD=17 -Dprotobuf_BUILD_TESTS=OFF .. && make -j$(nproc) && make install && ldconfig'''
 
     return code
 
@@ -280,7 +268,7 @@ def install_aws_sdk():
     
     code += '''\n&&  git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git \\
 && cd aws-sdk-cpp && git checkout tags/{version} && mkdir build && cd build \\
-&& cmake -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=14 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=${{PREFIX}} .. \\
+&& cmake -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=17 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=${{PREFIX}} .. \\
 && make -j$(nproc) \\
 && make install'''.format(version=AWSSDK_VERSION)
 
@@ -329,7 +317,7 @@ fi
 cd /tmp &&
   git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git &&
   cd aws-sdk-cpp && git checkout tags/''' + AWSSDK_VERSION + ''' && mkdir build && pushd build &&
-  cmake ${MINIMUM_TARGET} -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=14 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" .. &&
+  cmake ${MINIMUM_TARGET} -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=17 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" .. &&
   make -j${CPU_CORES} &&
   make install &&
   popd &&
@@ -521,41 +509,6 @@ def make_ubuntu_req_file(path, osname='ubuntu:18.04'):
         
     os.chmod(path, 0o700)
 
-
-
-def generate_ubuntu1804(root_folder):
-    # write ubuntu 18.04 files
-    osname = 'ubuntu:18.04'
-    configure_versions(osname)
-    os.makedirs(root_folder, exist_ok=True)
-    write_bash_file(os.path.join(root_folder, 'install_mongodb.sh'), install_mongodb(osname))
-
-    # write reqs file
-    make_ubuntu_req_file(os.path.join(root_folder, 'install_requirements.sh'), osname)
-
-    # write corresponding docker file
-    docker_content = '\nFROM ubuntu:18.04\n    \n' \
-                     '# build using docker build -t tuplex/ubuntu:18.04 .\n\n' \
-                     'MAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"\n\n' \
-                     'ENV DEBIAN_FRONTEND=noninteractive\n' \
-                     'RUN mkdir -p /opt/sbin\n\n' \
-                     '\nENV PATH "/opt/bin:$PATH"\n' \
-                     'RUN echo "export PATH=/opt/bin:${PATH}" >> /root/.bashrc\n' \
-                     'RUN apt-get update && apt-get install -y python3\n\n' \
-                     'ADD install_mongodb.sh /opt/sbin/install_mongodb.sh\n' \
-                     'RUN /opt/sbin/install_mongodb.sh\n' \
-                     'ADD install_requirements.sh /opt/sbin/install_requirements.sh\n' \
-                     'RUN /opt/sbin/install_requirements.sh\n'
-
-    # install cloudpickle < 2.0 & numpy
-    # python3.6 -m pip install 'cloudpickle<2.0' cython snumpy
-    # python3.7 -m pip install 'cloudpickle<2.0' cython numpy
-    docker_content += '\nRUN python3.6 -m pip install "cloudpickle<2.0" cython numpy\n' \
-                      '\nRUN python3.6 -m pip install "cloudpickle<2.0" cython numpy\n'
-
-    with open(os.path.join(root_folder, "Dockerfile"), 'w') as fp:
-        fp.write(docker_content)
-
 def generate_ubuntu2004(root_folder):
     # write ubuntu 20.04 files
     osname = 'ubuntu:20.04'
@@ -729,7 +682,7 @@ cd $INCLUDE_DIR && ln -s ${PYTHON_VERSION}m ${PYTHON_VERSION} && cd - || exit 1
         fp.write('\n\necho ">> Installing protobuf"\n')
         fp.write(install_protobuf().strip())
 
-    # write install_llvm9.sh yum edition
+    # write install_llvm.sh yum edition
     with open(os.path.join(root_folder, 'install_llvm.sh'), 'w') as fp:
 
         LLVM_VERSION=VERSIONS['LLVM_VERSION']
@@ -763,7 +716,8 @@ def create_llvm14_file(path, llvm_version='14.0.6'):
         fp.write('\necho "-- Done, all Tuplex requirements installed to {} --"\n'.format(PREFIX))
 
 
-def generate_yaml_req_file(path, osname='ubuntu:18.04'):
+def generate_yaml_req_file(path, osname='ubuntu:22.04'):
+    # Base Azure pipelines CI file on ubuntu:22.04 dependencies
     configure_versions(osname)
 
     with open(path, 'w') as fp:
@@ -773,37 +727,22 @@ def generate_yaml_req_file(path, osname='ubuntu:18.04'):
 
         fp.write('\nexport DEBIAN_FRONTEND=noninteractive\n')
 
-        # use python3.7 from deadsnakes for yaml
-        py37_install = """# add recent python3.7 package, confer https://linuxize.com/post/how-to-install-python-3-7-on-ubuntu-18-04/
-apt install -y software-properties-common \\
-&& add-apt-repository -y ppa:deadsnakes/ppa \\
-&& apt-get update\n"""
-        fp.write(py37_install)
-
         # apt install
-        apt_install = """apt-get install -y build-essential autoconf automake libtool software-properties-common wget libedit-dev libz-dev \\
+        apt_install = """apt-get install -qy build-essential autoconf automake libtool software-properties-common wget libedit-dev libz-dev \\
   python3-yaml pkg-config libssl-dev libcurl4-openssl-dev curl \\
-  uuid-dev git python3.7 python3.7-dev python3-pip libffi-dev \\
+  uuid-dev git python3.11 python3.11-dev python3-pip libffi-dev \\
   doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \\
-  gcc-7 g++-7 libgflags-dev libncurses-dev \\
+  libgflags-dev libncurses-dev \\
   awscli openjdk-11-jdk libyaml-dev libmagic-dev ninja-build"""
 
         fp.write(apt_install + '\n')
 
         # faster llvm get
-        llvm_install = """# LLVM 9 packages (prob not all of them needed, but here for complete install)
+        llvm_install = """# LLVM packages (prob not all of them needed, but here for complete install)
 wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh \\
-&& ./llvm.sh 9 && rm -rf llvm.sh"""
+&& ./llvm.sh 16 && rm -rf llvm.sh"""
 
         fp.write(llvm_install + '\n')
-
-        link_update = """# set gcc-7 as default
-update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 70 --slave /usr/bin/g++ g++ /usr/bin/g++-7
-# set python3.7 as default
-update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 70 --slave /usr/bin/python3m python3m /usr/bin/python3.7m
-# upgrade pip
-python3.7 -m pip install --upgrade pip\n"""
-        fp.write(link_update + '\n')
 
         fp.write(install_cmake() + '\n')
 
@@ -824,7 +763,7 @@ python3.7 -m pip install --upgrade pip\n"""
 
         fp.write(install_protobuf() + '\n')
 
-        fp.write("pip3 install 'cloudpickle<2.0.0' cython numpy\n")
+        fp.write("pip3 install 'cloudpickle>2.0.0' cython numpy\n")
 
         fp.write('echo ">>> installing reqs done."\n')
 
@@ -834,12 +773,12 @@ def generate_macos_awssdk_file(path):
 
 def main():
     """generates all scripts"""
-    generate_ubuntu1804('ubuntu1804')
     generate_ubuntu2004('ubuntu2004')
     generate_ubuntu2204('ubuntu2204')
 
-    generate_manylinux_files('docker/ci')
-    generate_yaml_req_file('install_azure_ci_reqs.sh')
+    # TODO: need to update docker/ci file generation, did change
+    # generate_manylinux_files('docker/ci')
+    generate_yaml_req_file('../ci/install_azure_ci_reqs.sh')
 
     generate_macos_awssdk_file('macos/install_aws-sdk-cpp.sh')
 

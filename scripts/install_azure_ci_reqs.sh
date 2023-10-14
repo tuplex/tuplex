@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# (c) Tuplex team 2017-2022
-# auto-generated on 2022-09-20 14:15:28.013499
+# (c) Tuplex team 2017-2023
+# auto-generated on 2023-10-14 15:48:10.354055
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -45,7 +45,7 @@ apt-get install -y build-essential autoconf automake libtool software-properties
   uuid-dev git python3.7 python3.7-dev python3-pip libffi-dev \
   doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \
   gcc-7 g++-7 libgflags-dev libncurses-dev \
-  awscli openjdk-8-jdk libyaml-dev libmagic-dev ninja-build
+  awscli openjdk-11-jdk libyaml-dev libmagic-dev ninja-build
 # LLVM 9 packages (prob not all of them needed, but here for complete install)
 wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh \
 && ./llvm.sh 9 && rm -rf llvm.sh
@@ -59,8 +59,8 @@ python3.7 -m pip install --upgrade pip
 
 # fetch recent cmake & install
 CMAKE_VER_MAJOR=3
-CMAKE_VER_MINOR=23
-CMAKE_VER_PATCH=3
+CMAKE_VER_MINOR=27
+CMAKE_VER_PATCH=5
 CMAKE_VER="${CMAKE_VER_MAJOR}.${CMAKE_VER_MINOR}"
 CMAKE_VERSION="${CMAKE_VER}.${CMAKE_VER_PATCH}"
 URL=https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz
@@ -88,7 +88,7 @@ pushd ${WORKDIR}/boost && wget https://boostorg.jfrog.io/artifactory/main/releas
 mkdir -p ${WORKDIR}/yamlcpp && cd ${WORKDIR}/yamlcpp \
 && git clone https://github.com/jbeder/yaml-cpp.git yaml-cpp \
 && cd yaml-cpp \
-&& git checkout tags/yaml-cpp-0.6.3 \
+&& git checkout tags/yaml-cpp-0.8.0 \
 && mkdir build && cd build \
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${prefix} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \
 && make -j$(nproc) && make install
@@ -99,17 +99,17 @@ mkdir -p ${WORKDIR}/celero && cd ${WORKDIR}/celero \
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC -std=c++11" .. \
 && make -j$(nproc) && make install
 mkdir -p ${WORKDIR}/antlr && cd ${WORKDIR}/antlr \
-&& curl -O https://www.antlr.org/download/antlr-4.8-complete.jar \
-&& cp antlr-4.8-complete.jar ${PREFIX}/lib/ \
-&& curl -O https://www.antlr.org/download/antlr4-cpp-runtime-4.8-source.zip \
-&& unzip antlr4-cpp-runtime-4.8-source.zip -d antlr4-cpp-runtime \
-&& rm antlr4-cpp-runtime-4.8-source.zip \
+&& curl -O https://www.antlr.org/download/antlr-4.13-complete.jar \
+&& cp antlr-4.13-complete.jar ${PREFIX}/lib/ \
+&& curl -O https://www.antlr.org/download/antlr4-cpp-runtime-4.13-source.zip \
+&& unzip antlr4-cpp-runtime-4.13-source.zip -d antlr4-cpp-runtime \
+&& rm antlr4-cpp-runtime-4.13-source.zip \
 && cd antlr4-cpp-runtime \
 && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
 && make -j$(nproc) && make install
 mkdir -p ${WORKDIR}/aws && cd ${WORKDIR}/aws \
 &&  git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git \
-&& cd aws-sdk-cpp && git checkout tags/1.9.320 && mkdir build && cd build \
+&& cd aws-sdk-cpp && git checkout tags/1.11.164 && mkdir build && cd build \
 && cmake -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=14 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
 && make -j$(nproc) \
 && make install
@@ -120,22 +120,22 @@ cd ${WORKDIR}/aws \
 && git clone https://github.com/awslabs/aws-lambda-cpp.git \
 && cd aws-lambda-cpp \
 && git fetch && git fetch --tags \
-&& git checkout v0.2.6 \
+&& git checkout v0.2.8 \
 && mkdir build \
 && cd build \
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
 && make -j$(nproc) && make install
 mkdir -p ${WORKDIR}/pcre2 && cd ${WORKDIR}/pcre2 \
-&& curl -LO https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.39/pcre2-10.39.zip \
-&& unzip pcre2-10.39.zip \
-&& rm pcre2-10.39.zip \
-&& cd pcre2-10.39 \
+&& curl -LO https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.42/pcre2-10.42.zip \
+&& unzip pcre2-10.42.zip \
+&& rm pcre2-10.42.zip \
+&& cd pcre2-10.42 \
 && ./configure CFLAGS="-O2 -fPIC" --prefix=${PREFIX} --enable-jit=auto --disable-shared \
 && make -j$(nproc) && make install
 mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf \
-&& curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v21.5/protobuf-cpp-3.21.5.tar.gz \
-&& tar xf protobuf-cpp-3.21.5.tar.gz \
-&& cd protobuf-3.21.5 \
+&& curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v24.3/protobuf-cpp-3.24.3.tar.gz \
+&& tar xf protobuf-cpp-3.24.3.tar.gz \
+&& cd protobuf-3.24.3 \
 && ./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" \
 && make -j$(nproc) && make install && ldconfig
 pip3 install 'cloudpickle<2.0.0' cython numpy

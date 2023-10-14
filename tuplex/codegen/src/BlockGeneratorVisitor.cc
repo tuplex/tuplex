@@ -226,7 +226,7 @@ namespace tuplex {
                     auto strlen = builder.CreateMul(origstrlen, num);
                     auto duplen = builder.CreateAdd(strlen, _env->i64Const(1));
                     builder.CreateStore(num, loopvar); // set up loop counter
-                    auto allocmem = builder.malloc(duplen); //builder.malloc(duplen); // allocate memory
+                    auto allocmem = builder.malloc(duplen); // allocate memory
                     builder.CreateBr(loopBlock);
 
                     // Loop Block
@@ -268,7 +268,7 @@ namespace tuplex {
 
                 // Empty String Block
                 builder.SetInsertPoint(emptyBlock);
-                auto emptystr = builder.malloc(1); //builder.malloc(_env->i64Const(1)); // make null terminated empty string
+                auto emptystr = builder.malloc(1); // make null terminated empty string
                 builder.CreateStore(_env->i8Const('\0'), emptystr);
                 builder.CreateStore(emptystr, retval); // save result in ret local vars
                 builder.CreateStore(_env->i64Const(1), retsize);
@@ -399,7 +399,7 @@ namespace tuplex {
                 builder.SetInsertPoint(concatBlock);
                 auto llen = builder.CreateSub(L.size, _env->i64Const(1));
                 auto concatsize = builder.CreateAdd(R.size, llen);
-                auto concatval = builder.malloc(concatsize); //builder.malloc(concatsize);
+                auto concatval = builder.malloc(concatsize);
 
 #if LLVM_VERSION_MAJOR < 9
                 builder.CreateMemCpy(builder.CreateGEP(builder.getInt8Ty(), concatval, _env->i64Const(0)), L.val, llen, false);
@@ -3163,12 +3163,12 @@ namespace tuplex {
                         auto list_sizes_arr_malloc = builder.CreatePointerCast(builder.malloc(malloc_size_for_sizes), llvmType->getStructElementType(3));
                         // store the lengths
                         for(size_t i = 0; i < vals.size(); i++) {
-                            auto list_el_size = builder.CreateGEP(builder.getInt64Ty(), list_sizes_arr_malloc, _env->i64Const(i)); // builder.CreateGEP(list_sizes_arr_malloc, _env->i32Const(i));
+                            auto list_el_size = builder.CreateGEP(builder.getInt64Ty(), list_sizes_arr_malloc, _env->i64Const(i));
                             builder.CreateStore(vals[i].size, list_el_size);
                             listSize = builder.CreateAdd(listSize, vals[i].size);
                         }
                         // store the new array back into the array pointer
-                        auto list_sizes_arr = builder.CreateStructGEP(listAlloc, llvmType, 3); //_env->CreateStructGEP(builder, listAlloc, 3);
+                        auto list_sizes_arr = builder.CreateStructGEP(listAlloc, llvmType, 3);
                         builder.CreateStore(list_sizes_arr_malloc, list_sizes_arr);
                     }
                 }
@@ -3344,7 +3344,6 @@ namespace tuplex {
                         // list is now pointer, get list length here as stop
                         auto llvm_list_type = _env->createOrGetListType(iterType);
                         stop = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(iter.val, llvm_list_type, 1));
-                        //stop = builder.CreateExtractValue(iter.val, {1});
                     }
                 } else if(iterType.isTupleType() && tupleElementsHaveSameType(iterType)) {
                     start = _env->i64Const(0);
@@ -3941,7 +3940,6 @@ namespace tuplex {
                         auto llvm_list_type = _env->createOrGetListType(list_type);
 
                         auto num_elements = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(value.val, llvm_list_type, 1));
-                        // legacy: auto num_elements = builder.CreateExtractValue(value.val, {1});
 
                         // correct for negative indices (once)
                         auto cmp = builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_SLT, index.val, _env->i64Const(0));
@@ -5466,8 +5464,6 @@ namespace tuplex {
                         llvm_element_type = llvm_element_type->getPointerTo();
 
                     auto list_element_array_ptr = builder.CreateLoad(llvm_element_type->getPointerTo(), builder.CreateStructGEP(exprAlloc.val, llvm_expr_type, 2));
-                    // old:
-                    // auto list_element_array_ptr = builder.CreateExtractValue(exprAlloc.val, {2});
 
                     auto currVal = builder.CreateLoad(llvm_element_type,
                                                       builder.CreateGEP(llvm_element_type, list_element_array_ptr, curr));
@@ -5479,9 +5475,6 @@ namespace tuplex {
                     } else if(targetType == python::Type::STRING || targetType.isDictionaryType()) {
 
                         auto list_size_array_ptr = builder.CreateLoad(builder.getInt64Ty()->getPointerTo(), builder.CreateStructGEP(exprAlloc.val, llvm_expr_type, 3));
-
-                        // old:
-                        // auto list_size_array_ptr = builder.CreateExtractValue(exprAlloc.val, {3});
 
                         // loop variable is of type string or dictionary (need to extract size)
                         auto currSize = builder.CreateLoad(builder.getInt64Ty(),
@@ -5544,8 +5537,6 @@ namespace tuplex {
                                 if(list_type.elementType().isTupleType())
                                     llvm_load_type = llvm_element_type->getPointerTo();
 
-                                // old uses extractvalue
-                                // builder.CreateExtractValue(currVal.val, {2})
                                 auto list_value_array_ptr = builder.CreateStructGEP(currVal.val, llvm_list_type, 2);
                                 auto idVal = builder.CreateLoad(llvm_load_type,
                                                                 builder.CreateGEP(llvm_load_type, list_value_array_ptr, {_env->i32Const(i)}));

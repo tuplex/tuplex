@@ -38,9 +38,6 @@ namespace tuplex {
             // two options: either it's a pointer to llvm type OR the type directly (i.e. in struct access)
             if(llvmType->isPointerTy()) {
                 assert(llvmType->isPointerTy());
-                // deprecated with opaque pointers
-                //assert(llvmType->getPointerElementType()->isStructTy());
-                //assert(llvmType->getPointerElementType() == t.getLLVMType());
 
                 // now fill in values using getelementptr
                 for (unsigned int i = 0; i < t.numElements(); ++i)

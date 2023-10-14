@@ -65,8 +65,7 @@ RUN bash /opt/sbin/install_curl.sh
 # remove temp stuff based on https://www.getpagespeed.com/server-setup/clear-disk-space-centos
 RUN rm -rf /tmp/* && curl -Ls http://bit.ly/clean-centos-disk-space | bash && dnf clean all && rm -rf /var/cache/yum
 
-# optional:
-## install additional libraries for debugging
-RUN yum install -y devtoolset-10-gdb
-##RUN yum install -y centos-release-scl-rh devtoolset-11-libtsan-devel devtoolset-10-libtsan-devel
-##RUN yum install -y devtoolset-11-libasan-devel devtoolset-10-libasan-devel
+# uncomment following to install optional packages for debugging
+# RUN yum install -y devtoolset-10-gdb
+# RUN yum install -y centos-release-scl-rh devtoolset-11-libtsan-devel devtoolset-10-libtsan-devel
+# RUN yum install -y devtoolset-11-libasan-devel devtoolset-10-libasan-devel

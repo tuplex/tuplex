@@ -794,10 +794,7 @@ namespace tuplex {
             }
 
             // extract elements
-            // auto structValIdx = builder.CreateStructGEP(tuplePtr, valueOffset);
             auto structValIdx = builder.CreateStructGEP(tuplePtr, llvm_tuple_type, valueOffset);
-            //CreateStructGEP(builder, tuplePtr, valueOffset);
-
             value = builder.CreateLoad(llvm_element_without_option_type, structValIdx);
 
             // size existing? ==> only for varlen types

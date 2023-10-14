@@ -580,7 +580,7 @@ default:
                         // Py_XINCREF(pcr.res);
                         // PyObject_Print(pcr.res, stdout, 0);
                         // std::cout<<std::endl;
-#endif//
+#endif
                         auto exceptionObject = PyDict_GetItemString(pcr.res, "exception");
                         if(exceptionObject) {
 

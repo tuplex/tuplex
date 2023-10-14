@@ -124,7 +124,6 @@ namespace tuplex {
                    throw std::runtime_error("make sure to pass in list as ptr");
                 }
 #endif
-                // new:
                 auto llvm_list_type = _env->createOrGetListType(argType);
                 auto list_len = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(arg.val, llvm_list_type, 1));
                 auto index_val = builder.CreateZExtOrTrunc(list_len, _env->i32Type());
@@ -427,9 +426,9 @@ namespace tuplex {
                 // get range object from range iterator
                 auto llvm_range_iterator_type = env.createOrGetIterIteratorType(iterablesType);
 
-                auto rangePtr = builder.CreateStructGEP(iterator, llvm_range_iterator_type, 2); //builder.CreateGEP(env.getRangeObjectType(), iterator, {env.i32Const(0), env.i32Const(2)});
+                auto rangePtr = builder.CreateStructGEP(iterator, llvm_range_iterator_type, 2);
                 auto range = builder.CreateLoad(env.getRangeObjectType()->getPointerTo(), rangePtr);
-                auto stepPtr = builder.CreateStructGEP(range, env.getRangeObjectType(), 2); //builder.CreateGEP(env.getRangeObjectType(), range, {env.i32Const(0), env.i32Const(2)});
+                auto stepPtr = builder.CreateStructGEP(range, env.getRangeObjectType(), 2);
                 auto step = builder.CreateLoad(builder.getInt64Ty(), stepPtr);
                 new_index_value = builder.CreateAdd(currIndex, builder.CreateMul(env.i64Const(offset), step));
             } else {
@@ -453,12 +452,9 @@ namespace tuplex {
 
             assert(iteratorInfo);
 
-            // new:
-           // -> invoke general dispatch function
+            // -> invoke general dispatch function
             auto updated_iterator = update_iterator_index(*_env, builder, iterator, iteratorInfo);
-
             assert(updated_iterator);
-
             return updated_iterator;
         }
 
@@ -1117,8 +1113,6 @@ namespace tuplex {
                 auto currIterator = builder.CreateLoad(llvm_curr_iterator_type->getPointerTo(), currIteratorPtr);
                 auto currIteratorInfo = argsIteratorInfo[i];
                 assert(currIteratorInfo);
-
-                // new:
                 auto exhausted = update_iterator_index(_env, builder, currIterator, currIteratorInfo);
 
                 builder.CreateBr(zipElementCondBB[i]);

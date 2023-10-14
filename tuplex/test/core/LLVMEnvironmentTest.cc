@@ -39,13 +39,13 @@ str_test_func_f compileNullValueComparisonFunction(tuplex::JITCompiler& jit, con
 #else
     Function* func = cast<Function>(env->getModule()->getOrInsertFunction(name, FT).getCallee());
 #endif
-    name = func->getName();
+    name = func->getName().str();
 
     auto args = mapLLVMFunctionArgs(func, vector<string>{"str"});
 
     BasicBlock* bbEntry = BasicBlock::Create(env->getContext(), "entry", func);
 
-    IRBuilder<> builder(bbEntry);
+    tuplex::codegen::IRBuilder builder(bbEntry);
 
     // execute compare code
     auto resVal = env->compareToNullValues(builder, args["str"], null_values);
@@ -128,13 +128,13 @@ bitmap_test_func_f compileBitmapTestFunction(tuplex::JITCompiler& jit) {
 #else
     Function* func = cast<Function>(env->getModule()->getOrInsertFunction(name, FT).getCallee());
 #endif
-    name = func->getName();
+    name = func->getName().str();
 
     auto args = mapLLVMFunctionArgs(func, vector<string>{"isnull", "pos"});
 
     BasicBlock* bbEntry = BasicBlock::Create(env->getContext(), "entry", func);
 
-    IRBuilder<> builder(bbEntry);
+    tuplex::codegen::IRBuilder builder(bbEntry);
 
     // isnull << pos is the result
     // does that work for pos > 32? doubt it...
@@ -185,114 +185,6 @@ TEST(LLVMENV, strCastFunctions) {
     // @TODO
 }
 
-
-llvm::Type* createStructType(llvm::LLVMContext& ctx, const python::Type &type, const std::string &twine) {
-    using namespace llvm;
-
-    python::Type T = python::Type::propagateToTupleType(type);
-    assert(T.isTupleType());
-
-    auto size_field_type = llvm::Type::getInt64Ty(ctx); // what type to use for size fields.
-
-    bool packed = false;
-
-    // empty tuple?
-    // is special type
-    if(type.parameters().size() == 0) {
-        llvm::ArrayRef<llvm::Type*> members;
-        llvm::Type *structType = llvm::StructType::create(ctx, members, "emptytuple", packed);
-
-        // // add to mapping (make sure it doesn't exist yet!)
-        // assert(_typeMapping.find(structType) == _typeMapping.end());
-        // _typeMapping[structType] = type;
-
-        return structType;
-    }
-
-    assert(type.parameters().size() > 0);
-    // define type
-    std::vector<llvm::Type*> memberTypes;
-
-    auto params = type.parameters();
-    // count optional elements
-    int numNullables = 0;
-    for(int i = 0; i < params.size(); ++i) {
-        if(params[i].isOptionType()) {
-            numNullables++;
-            params[i] = params[i].withoutOptions();
-        }
-
-        assert(!params[i].isTupleType()); // no nesting at this level here supported!
-    }
-
-    int numBitmapElements = core::ceilToMultiple(numNullables, 64) / 64; // 0 if no optional elements
-    assert(type.isOptional() ? numBitmapElements > 0 : numBitmapElements == 0);
-
-    // first, create bitmap as array
-    if(numBitmapElements > 0) {
-        //memberTypes.emplace_back(ArrayType::get(Type::getInt64Ty(ctx), numBitmapElements));
-        // i1 array!
-        memberTypes.emplace_back(ArrayType::get(Type::getInt1Ty(ctx), numBitmapElements));
-    }
-
-    // size fields at end
-    int numVarlenFields = 0;
-
-    // define bitmap on the fly
-    for(const auto& el: T.parameters()) {
-        auto t = el.isOptionType() ? el.getReturnType() : el; // get rid of most outer options
-
-        // @TODO: special case empty tuple! also doesn't need to be represented
-
-        if(python::Type::BOOLEAN == t) {
-            // i8
-            //memberTypes.push_back(getBooleanType());
-            memberTypes.push_back(llvm::Type::getInt64Ty(ctx));
-        } else if(python::Type::I64 == t) {
-            // i64
-            //memberTypes.push_back(i64Type());
-            memberTypes.push_back(llvm::Type::getInt64Ty(ctx));
-        } else if(python::Type::F64 == t) {
-            // double
-            memberTypes.push_back(llvm::Type::getDoubleTy(ctx));
-        } else if(python::Type::STRING == t) {
-            memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
-            numVarlenFields++;
-        } else if(python::Type::GENERICDICT == t || t.isDictionaryType()) { // dictionary
-            memberTypes.push_back(llvm::Type::getInt8PtrTy(ctx, 0));
-            numVarlenFields++;
-        } else if(python::Type::NULLVALUE == t || python::Type::EMPTYTUPLE == t || python::Type::EMPTYDICT == t) {
-            // leave out. Not necessary to represent it!
-        } else {
-            // nested tuple?
-            // ==> do lookup!
-            // add i64 (for length)
-            // and pointer type
-            // previously defined? => get!
-            if(t.isTupleType()) {
-                // recurse!
-                // add struct into it (can be accessed via recursion then!!!)
-                memberTypes.push_back(createStructType(ctx, t, twine));
-            } else {
-                Logger::instance().logger("codegen").error("not supported type " + el.desc() + " encountered in LLVM struct type creation");
-                return nullptr;
-            }
-        }
-    }
-
-    for(int i = 0; i < numVarlenFields; ++i)
-        memberTypes.emplace_back(size_field_type); // 64 bit int as size
-
-    llvm::ArrayRef<llvm::Type*> members(memberTypes);
-    llvm::Type *structType = llvm::StructType::create(ctx, members, "struct." + twine, packed);
-
-    // // add to mapping (make sure it doesn't exist yet!)
-    // assert(_typeMapping.find(structType) == _typeMapping.end());
-    // _typeMapping[structType] = type;
-
-    return structType;
-}
-
 TEST(LLVMENV, TupleStructs) {
     // layout of a tuple (flattened), is in general
     // struct tuple {
@@ -316,15 +208,15 @@ TEST(LLVMENV, TupleStructs) {
     auto argTupleType = python::Type::makeTupleType({python::Type::makeOptionType(python::Type::STRING), python::Type::I64, python::Type::F64});
     auto retTupleType = python::Type::makeTupleType({python::Type::STRING, python::Type::F64});
 
-    FunctionType* FT = FunctionType::get(Type::getInt64Ty(ctx), {createStructType(ctx, retTupleType, "tuple")->getPointerTo(),
-                                                                 createStructType(ctx, argTupleType, "tuple")->getPointerTo()}, false);
+    auto llvm_in_type = env->getOrCreateTupleType(retTupleType);
+    auto llvm_out_type = env->getOrCreateTupleType(argTupleType);
+
+    FunctionType* FT = FunctionType::get(Type::getInt64Ty(ctx), {llvm_in_type->getPointerTo(),
+                                                                 llvm_out_type->getPointerTo()}, false);
 
     string name = "process_row";
-#if LLVM_VERSION_MAJOR < 9
-    Function* func = cast<Function>(env->getModule()->getOrInsertFunction(name, FT));
-#else
-    Function* func = cast<Function>(env->getModule()->getOrInsertFunction(name, FT).getCallee());
-#endif
+    auto func = getOrInsertFunction(*env->getModule(), name, FT);
+
     // add attributes to the arguments (sret, byval)
     for (int i = 0; i < func->arg_size(); ++i) {
         auto& arg = *(func->arg_begin() + i);
@@ -337,22 +229,24 @@ TEST(LLVMENV, TupleStructs) {
 
         if(1 == i) {
             arg.setName("inRow");
-            arg.addAttr(Attribute::ByVal);
+
+            // attributes broken...
+            // arg.addAttr(Attribute::ByVal);
             // maybe align by 8?
         }
     }
 
-    // add norecurse to function & inline hint
-    func->addFnAttr(Attribute::NoRecurse);
-    func->addFnAttr(Attribute::InlineHint);
-    func->addFnAttr(Attribute::NoUnwind); // explicitly disable unwind! (no external lib calls!)
+//    // add norecurse to function & inline hint
+//    func->addFnAttr(Attribute::NoRecurse);
+//    func->addFnAttr(Attribute::InlineHint);
+//    func->addFnAttr(Attribute::NoUnwind); // explicitly disable unwind! (no external lib calls!)
 
 
     auto argMap = mapLLVMFunctionArgs(func, {"outRow", "inRow"});
 
     // codegen
     BasicBlock* bbEntry = BasicBlock::Create(ctx, "entry", func);
-    IRBuilder<> builder(bbEntry);
+    tuplex::codegen::IRBuilder builder(bbEntry);
 
     auto val = env->getTupleElement(builder, argTupleType, argMap["inRow"], 0);
     env->setTupleElement(builder, retTupleType, argMap["outRow"], 1, SerializableValue(env->f64Const(3.141), nullptr, nullptr));
@@ -403,7 +297,7 @@ TEST(LLVMENV, SingleElementStructTypes) {
 
     // codegen
     BasicBlock* bbEntry = BasicBlock::Create(ctx, "entry", func);
-    IRBuilder<> builder(bbEntry);
+    ::tuplex::codegen::IRBuilder builder(bbEntry);
 
     auto et_res = env->getTupleElement(builder, et_type, argMap["outRow"], 0);
     auto ed_res = env->getTupleElement(builder, ed_type, argMap["inRow"], 0);
@@ -448,12 +342,12 @@ TEST(LLVMENV, StringConstantFromGlobal) {
 #endif
 
     BasicBlock* bb = BasicBlock::Create(ctx, "body", func);
-    IRBuilder<> builder(bb);
+    tuplex::codegen::IRBuilder builder(bb);
 
     auto strObj = env->strConst(builder, "teststring");
     builder.CreateRet(env->i64Const(0));
 
-    EXPECT_EQ(codegen::globalVariableToString(strObj), "teststring");
+    EXPECT_EQ(env->globalVariableToString(strObj), "teststring");
 }
 
 extern "C" void throwingFunc() {

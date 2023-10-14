@@ -148,6 +148,9 @@ extern double  pow_f64(double base, int64_t exp);
 // python compatible python func for float
 extern double rt_py_pow(double base, double exponent, int64_t* ecCode);
 
+// spanner function for CSV parsing
+int fallback_spanner(const char* ptr, const char c1, const char c2, const char c3, const char c4);
+
 #ifdef __cplusplus
 }
 #endif

@@ -809,8 +809,6 @@ char* csvNormalize(const char quotechar, const char* start, const char* end, int
     char* res = (char*)rtmalloc(size);
     // memset(res, 0, size);
 
-#warning "might be wrong for strings which actually need to be dequoted :/ ?"
-
     // copy over unless quote char!
     const char* ptr = start;
     int i = 0;
@@ -821,11 +819,16 @@ char* csvNormalize(const char quotechar, const char* start, const char* end, int
         ptr++;
     }
 
-    // important, set last to 0
-    res[i++] = '\0';
+    // important, set last to 0 (if not 0)
+    if('\0' != res[i])
+        res[i++] = '\0';
+
+    // adjust length (find first non-'\0' char)
+    while(i > 0 && res[i - 1] == '\0')
+        --i;
 
     if(ret_size)
-        *ret_size = size;
+        *ret_size = i + 1;
 
     return res;
 }
@@ -1090,6 +1093,49 @@ double rt_py_pow(double base, double exponent, int64_t* ecCode) {
 
     return res;
 }
+
+int fallback_spanner(const char* ptr, const char c1, const char c2, const char c3, const char c4) {
+    if(!ptr)
+        return 16;
+
+    char charset[256];
+    memset(charset, 0, 256);
+    charset[c1] = 1;
+    charset[c2] = 1;
+    charset[c3] = 1;
+    charset[c4] = 1;
+
+    // manual implementation
+    auto p = (const unsigned char *)ptr;
+    auto e = p + 16;
+
+    do {
+        if(charset[p[0]]) {
+            break;
+        }
+        if(charset[p[1]]) {
+            p++;
+            break;
+        }
+        if(charset[p[2]]) {
+            p += 2;
+            break;
+        }
+        if(charset[p[3]]) {
+            p += 3;
+            break;
+        }
+        p += 4;
+    } while(p < e);
+
+    if(! *p) {
+        return 16; // PCMPISTRI reports NUL encountered as no match.
+    }
+
+    auto ret =  p - (const unsigned char *)ptr;
+    return ret;
+}
+
 
 //#ifdef __cplusplus
 //}

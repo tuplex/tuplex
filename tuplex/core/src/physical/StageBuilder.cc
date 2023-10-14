@@ -64,6 +64,33 @@ namespace tuplex {
                 auto fop = dynamic_cast<FileInputOperator*>(_inputNode); assert(fop);
                 switch (_inputFileFormat) {
                     case FileFormat::OUTFMT_CSV: {
+
+#ifndef NDEBUG
+                        {
+                            // print which columns to print according to projection map
+                            std::stringstream ss;
+                            auto pm = fop->projectionMap();
+                            if(pm.size() != 0 && pm.size() < fop->inputColumnCount()) {
+                                ss<<"keeping "<<pm.size()<<"/"<<fop->inputColumnCount()<<" columns for file input operator "<<fop->name();
+
+                                auto columns = fop->inputColumns();
+                                std::vector<std::string> col_names_with_mapping(pm.size(), "");
+                                if(!columns.empty()) {
+                                    for(auto kv: pm) {
+                                        assert(kv.second < col_names_with_mapping.size());
+                                        col_names_with_mapping[kv.second] = columns[kv.first] + " ( " + std::to_string(kv.first) + " -> " + std::to_string(kv.second) + " ) ";
+                                    }
+                                }
+
+                                ss<<"\n"<<col_names_with_mapping;
+                            } else {
+                                ss<<"keeping all "<<fop->inputColumnCount()<<" for file input operator "<<fop->name();
+                            }
+                            auto& logger = Logger::instance().logger("codegen");
+                            logger.debug(ss.str());
+                        }
+#endif
+
                         ppb.cellInput(_inputNode->getID(), fop->inputColumns(), fop->null_values(), fop->typeHints(),
                                       fop->inputColumnCount(), fop->projectionMap());
                         break;
@@ -190,16 +217,30 @@ namespace tuplex {
                         // TODO test this out, seems rather quick yet
                         auto leftColumn = jop->buildRight() ? jop->leftColumn().value_or("") : jop->rightColumn().value_or("");
                         auto bucketColumns = jop->bucketColumns();
+
+                        auto idxLeft = indexInVector(jop->leftColumn().value_or(""), ppb.columns());
+                        auto idxRight = indexInVector(jop->rightColumn().value_or(""), ppb.columns());
+                        auto idxKey = indexInVector(jop->keyColumn(), ppb.columns());
+
                         if(jop->joinType() == JoinType::INNER) {
                             ppb.innerJoinDict(jop->getID(), next_hashmap_name(),
-                                              leftColumn, bucketColumns,
+                                              jop->leftColumn(), jop->rightColumn(), bucketColumns,
                                               jop->leftPrefix(), jop->leftSuffix(), jop->rightPrefix(), jop->rightSuffix());
                         } else if(jop->joinType() == JoinType::LEFT) {
-                            ppb.leftJoinDict(jop->getID(), next_hashmap_name(), leftColumn, bucketColumns,
+                            ppb.leftJoinDict(jop->getID(), next_hashmap_name(), jop->leftColumn(), jop->rightColumn(), bucketColumns,
                                              jop->leftPrefix(), jop->leftSuffix(), jop->rightPrefix(), jop->rightSuffix());
                         } else {
                             throw std::runtime_error("right join not yet supported!");
                         }
+
+                        // check invariant that each column of jop is in ppb. output columns!
+#ifndef NDEBUG
+                        // should be even identical (b.c. join is altering columns)
+                        for(const auto& expected_column : jop->columns()) {
+                            auto idx = indexInVector(expected_column, ppb.columns());
+                            assert(idx >= 0);
+                        }
+#endif
 
                         break;
                     }
@@ -691,8 +732,8 @@ namespace tuplex {
 
             BasicBlock *bbISBody = BasicBlock::Create(env->getContext(), "", initStageFunc);
             BasicBlock *bbRSBody = BasicBlock::Create(env->getContext(), "", releaseStageFunc);
-            IRBuilder<> isBuilder(bbISBody);
-            IRBuilder<> rsBuilder(bbRSBody);
+            IRBuilder isBuilder(bbISBody);
+            IRBuilder rsBuilder(bbRSBody);
             auto isArgs = codegen::mapLLVMFunctionArgs(initStageFunc, {"num_args", "hashmaps", "null_buckets"});
 
             // step 1. build pipeline, i.e. how to process data
@@ -789,11 +830,11 @@ namespace tuplex {
                         // add to lookup map for slow case
                         _hashmap_vars[jop->getID()] = make_tuple(hash_map_global, null_bucket_global);
 
-                        isBuilder.CreateStore(isBuilder.CreateLoad(
-                                isBuilder.CreateGEP(isArgs["hashmaps"], env->i32Const(global_var_cnt))),
+                        isBuilder.CreateStore(isBuilder.CreateLoad(env->i8ptrType(),
+                                isBuilder.CreateGEP(env->i8ptrType(), isArgs["hashmaps"], env->i32Const(global_var_cnt))),
                                               hash_map_global);
-                        isBuilder.CreateStore(isBuilder.CreateLoad(
-                                isBuilder.CreateGEP(isArgs["null_buckets"], env->i32Const(global_var_cnt))),
+                        isBuilder.CreateStore(isBuilder.CreateLoad(env->i8ptrType(),
+                                isBuilder.CreateGEP(env->i8ptrType(), isArgs["null_buckets"], env->i32Const(global_var_cnt))),
                                               null_bucket_global);
 
                         rsBuilder.CreateStore(env->i8nullptr(), hash_map_global);
@@ -1080,15 +1121,18 @@ namespace tuplex {
             isBuilder.CreateRet(env->callGlobalsInit(isBuilder));
             rsBuilder.CreateRet(env->callGlobalsRelease(rsBuilder));
 
-            // // print module for debug/dev purposes
-            // auto code = codegen::moduleToString(*env->getModule());
-            // std::cout<<core::withLineNumbers(code)<<std::endl;
-            // LLVMContext test_ctx;
-            // auto test_mod = codegen::stringToModule(test_ctx, code);
+            //   // print module for debug/dev purposes
+            //   auto code = codegen::moduleToString(*env->getModule());
+            //   std::cout<<core::withLineNumbers(code)<<std::endl;
+            //   LLVMContext test_ctx;
+            //   auto test_mod = codegen::stringToModule(test_ctx, code);
+            //
+            //   // annotate module for debugging
+            //  annotateModuleWithInstructionPrint(*env->getModule(), false);
 
             // save into variables (allows to serialize stage etc.)
             // IR is generated. Save into stage.
-            _funcStageName = func->getName();
+            _funcStageName = func->getName().str();
             _irBitCode = codegen::moduleToBitCodeString(*env->getModule()); // trafo stage takes ownership of module
 
             // @TODO: lazy & fast codegen of the different paths + lowering of them
@@ -1290,7 +1334,7 @@ namespace tuplex {
             auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(*slowPip, funcResolveRowName,
                                                                             normalCaseType, null_values);
 
-            _resolveRowFunctionName = rowProcessFunc->getName();
+            _resolveRowFunctionName = rowProcessFunc->getName().str();
             _resolveRowWriteCallbackName = slowPathMemoryWriteCallback;
             _resolveRowExceptionCallbackName = slowPathExceptionCallback;
             _resolveHashCallbackName = slowPathHashWriteCallback;

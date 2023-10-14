@@ -29,11 +29,10 @@ namespace python {
         ss.flush();
         auto thread_id = ss.str();
         int64_t id = -1;
-#ifndef LINUX
-        sscanf(thread_id.c_str(), "%lld", &id);
-#else
-        sscanf(thread_id.c_str(), "%ld", &id);
-#endif
+
+        // use macro for portable way to scan %lld.
+        sscanf(thread_id.c_str(), "%" PRId64, &id);
+
         return id;
     }
 
@@ -135,6 +134,11 @@ namespace python {
         if(!Py_IsInitialized()) {
             Py_InitializeEx(0); // 0 to skip initialization of signal handlers, 1 would register them.
 
+
+        if(PyErr_Occurred()) {
+            PyErr_Print();
+            PyErr_Clear();
+        }
 #if (PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION < 7)
             // init threads (not necessary from Python 3.7 onwards)
             PyEval_InitThreads();
@@ -155,6 +159,19 @@ namespace python {
         gil_id = std::this_thread::get_id();
         gilMutex.lock();
         interpreterInitialized = true;
+
+        // debug print important python variables
+#ifndef NDEBUG
+        {
+            std::cout<<"Initialized embedded Python "<<PY_MAJOR_VERSION<<"."<<PY_MINOR_VERSION<<"."<<PY_MICRO_VERSION<<std::endl;
+            // std::cout<<"Python home: "<<Py_GetPythonHome()<<std::endl;
+
+            // // get sys path and print it
+            // auto path_object = PySys_GetObject("path");
+            // PyObject_Print(path_object, stdout, 0);
+            // std::cout<<std::endl;
+        }
+#endif
     }
 
     void closeInterpreter() {

@@ -100,7 +100,7 @@ template <typename T, typename Context> class arg_converter {
     } else {
       if (is_signed) {
         // glibc's printf doesn't sign extend arguments of smaller types:
-        //   std::printf("%lld", -42);  // prints "4294967254"
+        //   std::printf(""%" PRId64", -42);  // prints "4294967254"
         // but we don't have to do the same because it's a UB.
         arg_ = internal::make_arg<Context>(static_cast<long long>(value));
       } else {

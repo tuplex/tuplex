@@ -63,3 +63,31 @@ TEST(URI, equal) {
     EXPECT_FALSE(uriA == uriC);
     EXPECT_FALSE(uriA == uriD);
 }
+
+#ifdef __x86_64__
+TEST(SSEInit, v16qi_replacement) {
+    __v16qi vq = {'\n', '\r', '\0', '\0'};
+    auto ref = (__m128i) vq;
+
+    int32_t i;
+    char bytes[] = {'\n', '\r', '\0', '\0'};
+    memcpy(&i, bytes, 4);
+
+    EXPECT_EQ(i, 3338);
+
+    // now check constant route
+    __m128i test = _mm_setr_epi32(i, 0x0, 0x0, 0x0);
+
+    std::cout<<"byte 0: "<<_mm_extract_epi32(ref, 0)<<std::endl;
+    EXPECT_EQ(_mm_extract_epi32(test, 0), _mm_extract_epi32(ref, 0));
+
+    std::cout<<"byte 0: "<<_mm_extract_epi32(ref, 1)<<std::endl;
+    EXPECT_EQ(_mm_extract_epi32(test, 1), _mm_extract_epi32(ref, 1));
+
+    std::cout<<"byte 0: "<<_mm_extract_epi32(ref, 2)<<std::endl;
+    EXPECT_EQ(_mm_extract_epi32(test, 2), _mm_extract_epi32(ref, 2));
+
+    std::cout<<"byte 0: "<<_mm_extract_epi32(ref, 3)<<std::endl;
+    EXPECT_EQ(_mm_extract_epi32(test, 3), _mm_extract_epi32(ref, 3));
+}
+#endif

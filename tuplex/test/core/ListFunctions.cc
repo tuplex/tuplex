@@ -17,6 +17,17 @@
 // need for these tests a running python interpreter, so spin it up
 class ListFunctions : public PyTest {};
 
+TEST_F(ListFunctions, ListOfStringsSubscript) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+    auto v3 = c.parallelize({
+                                    Row(3)
+                            }).map(UDF("lambda x: ['abcd', 'b', '', 'efghi'][x]")).collectAsVector();
+
+    EXPECT_EQ(v3.size(), 1);
+    ASSERT_EQ(v3[0].toPythonString(), "('efghi',)");
+}
+
 TEST_F(ListFunctions, ListSubscript) {
     using namespace tuplex;
     Context c(microTestOptions());
@@ -289,4 +300,22 @@ TEST_F(ListFunctions, ListIn) {
     EXPECT_EQ(v2[0].toPythonString(), "({},)");
     EXPECT_EQ(v2[1].toPythonString(), "({},)");
     EXPECT_EQ(v2[2].toPythonString(), "({},)");
+}
+
+TEST_F(ListFunctions, ListOfTuples) {
+
+    GTEST_SKIP_("serialization of list of tuples not yet supported");
+
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    // access tuple from list of tuples
+
+    auto l0 = List(Tuple(1, 2), Tuple(3, 4), Tuple(5, 6));
+    auto v0 = c.parallelize({Row(l0, 0), Row(l0, 1), Row(l0, 2)})
+                           .map(UDF("lambda L, i: L[i]")).collectAsVector();
+    ASSERT_EQ(v0.size(), 3);
+    EXPECT_EQ(v0[0].toPythonString(), "(1,2)");
+    EXPECT_EQ(v0[1].toPythonString(), "(3,4)");
+    EXPECT_EQ(v0[2].toPythonString(), "(5,6)");
 }

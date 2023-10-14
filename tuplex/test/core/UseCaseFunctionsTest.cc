@@ -1041,6 +1041,12 @@ TEST_F(UseCaseFunctionsTest, randomChoice) {
 
     auto v2 = context->parallelize({Row(List(1, 2, 3, 4)), Row(List(2, 3, 4, 5)), Row(List(3, 4)), Row(List(-1, 0, 1))}).map(UDF("lambda x: random.choice(x)", "", ce)).collectAsVector();
     ASSERT_EQ(v2.size(), 4);
+
+    // print results for debugging
+    for(unsigned i = 0; i < 4; ++i) {
+        std::cout<<i<<":   "<<v2[0].getInt(0)<<std::endl;
+    }
+
     EXPECT_TRUE(v2[0].getInt(0) >= 1);
     EXPECT_TRUE(v2[0].getInt(0) <= 4);
     EXPECT_TRUE(v2[1].getInt(0) >= 2);
@@ -1339,7 +1345,7 @@ TEST_F(UseCaseFunctionsTest, PaperExampleCode) {
 
     auto& mod = *env->getModule();
     // run cfg-simplification pass to get rid of unnecessary basic blocks
-    auto fpm = llvm::make_unique<llvm::legacy::FunctionPassManager>(&mod);
+    auto fpm = std::make_unique<llvm::legacy::FunctionPassManager>(&mod);
     assert(fpm.get());
     fpm->add(llvm::createCFGSimplificationPass());
     fpm->add(llvm::createDeadCodeEliminationPass());

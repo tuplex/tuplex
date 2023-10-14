@@ -14,7 +14,7 @@ done
 # build benchmark docker image
 # copy from scripts to current dir because docker doesn't understand files
 # outside the build context
-docker build -t tuplex/ci . || exit 1
+docker build --squash -t tuplex/ci . || exit 1
 
 # is upload set?
 if [[ "${UPLOAD}" == 'SET' ]]; then

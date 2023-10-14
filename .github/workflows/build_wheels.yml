@@ -4,108 +4,69 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
+    name: Build wheel on ${{ matrix.os }} - py ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-20.04, macos-10.15, macos-11, macos-12 ]
-
+        os: [ ubuntu-20.04, macos-11 ]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        include:
+          - os: ubuntu-20.04
+            python-version: "3.8"
+            cibw-build: "cp38-manylinux_x86_64"
+          - os: ubuntu-20.04
+            python-version: "3.9"
+            cibw-build: "cp39-manylinux_x86_64"
+          - os: ubuntu-20.04
+            python-version: "3.10"
+            cibw-build: "cp310-manylinux_x86_64"
+          - os: ubuntu-20.04
+            python-version: "3.11"
+            cibw-build: "cp311-manylinux_x86_64"
+          - os: macos-11
+            python-version: "3.8"
+            cibw-build: "cp38-macosx_x86_64"
+          - os: macos-11
+            python-version: "3.9"
+            cibw-build: "cp39-macosx_x86_64"
+          - os: macos-11
+            python-version: "3.10"
+            cibw-build: "cp310-macosx_x86_64"
+          - os: macos-11
+            python-version: "3.11"
+            cibw-build: "cp311-macosx_x86_64"
     steps:
-      - uses: actions/checkout@v2
-
-      # this will create a dummy dev version based on the current time to avoid conflicts on test.pypi.org
-      - name: Create dev version
-        if: github.event_name != 'push' || startsWith(github.event.ref, 'refs/tags/v') != true
-        run: cd ./scripts && pip3 install requests && python3 set_version.py --dev
-        shell: bash
+      - uses: actions/checkout@v3
 
       # need to make this an intermediate step, i.e. build first the different lambda runners on Ubuntu...
       - name: Build Lambda runner (Linux only)
         if: runner.os != 'macOS'
-        run: docker pull registry-1.docker.io/tuplex/ci:latest && bash ./scripts/create_lambda_zip.sh && mkdir -p ./tuplex/python/tuplex/other && cp ./build-lambda/tplxlam.zip ./tuplex/python/tuplex/other
+        run: docker pull registry-1.docker.io/tuplex/ci:${{ matrix.python-version }} && export PYTHON3_VERSION=${{ matrix.python-version }}.0 && bash ./scripts/create_lambda_zip.sh && mkdir -p ./tuplex/python/tuplex/other && cp ./build-lambda/tplxlam.zip ./tuplex/python/tuplex/other
         shell: bash
 
       - name: Build wheels
         #if: runner.os != 'macOS'
-        uses: pypa/cibuildwheel@v1.11.1.post1
+        uses: pypa/cibuildwheel@fff9ec32ed25a9c576750c91e06b410ed0c15db7 # hash corresponds to v2.16.2
         env:
           # configure cibuildwheel to build native archs ('auto'), and some
           # emulated ones
           CIBW_ARCHS_LINUX: native
-          CIBW_MANYLINUX_X86_64_IMAGE: 'registry-1.docker.io/tuplex/ci:latest'
-          # build python 3.7, 3.8, 3.9 on linux.
-          # only build python 3.9 on macos
+          CIBW_MANYLINUX_X86_64_IMAGE: "registry-1.docker.io/tuplex/ci:${{ matrix.python-version }}"
+          CIBW_BUILD: ${{ matrix.cibw-build }}
 
-          # production version:
-          # no musllinux yet, no 3.10 support yet.
-          CIBW_BUILD: "cp3{7,8,9}-*"
-          CIBW_SKIP: "cp3{5,6}-macosx* pp* *-musllinux_*"
+          # macOS dependencies separate, for linux use docker tuplex/ci:3.x images.
+          CIBW_BEFORE_ALL_MACOS: bash ./scripts/macos/install_antlr4_cpp_runtime.sh && bash ./scripts/macos/brew_dependencies.sh && bash ./scripts/macos/install_aws-sdk-cpp.sh && echo 'export PATH="/usr/local/opt/openjdk@11/bin:$PATH"' >> /Users/runner/.bash_profile
 
-          # do not use build, b.c. it will fail on subsequent. setup once.
-          CIBW_BEFORE_ALL_MACOS: bash ./scripts/macos/install_antlr4_cpp_runtime.sh && bash ./scripts/macos/brew_dependencies.sh && bash ./scripts/macos/install_aws-sdk-cpp.sh
-          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
+          # bundle aws runner with linux wheel, remove environment variable TUPLEX_LAMBDA_ZIP to remove runner.
+          CIBW_ENVIRONMENT_LINUX: "TUPLEX_LAMBDA_ZIP='./tuplex/python/tuplex/other/tplxlam.zip' CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
 
-          # set this environment variable to include the Lambda zip from the previous build step
-          # do not include Lambda runner in macos wheel yet. Do in future release.
-
-          # use following line to bundle Lambda runner:
-          # CIBW_ENVIRONMENT_LINUX: "TUPLEX_LAMBDA_ZIP='./tuplex/python/tuplex/other/tplxlam.zip' CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
-          # yet, because PyPi limit hasn't been increased yet, do not bundle runner.
-          CIBW_ENVIRONMENT_LINUX: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
-          # requires 10.13 at least for macos!
-          CIBW_ENVIRONMENT_MACOS: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON'"
+          # requires macOS 10.13 at least to build because of C++17 features.
+          CIBW_ENVIRONMENT_MACOS: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' JAVA_HOME=${JAVA_HOME_11_X64}"
 
       - name: reorganize files
         run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./.github/scripts/test_pypi.sh ./wheelhouse
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: |
             ./wheelhouse/*.whl
-            ./wheelhouse/*.version
-            ./wheelhouse/test_pypi.sh
-
-  # cf. https://github.com/pypa/cibuildwheel/blob/main/examples/github-deploy.yml
-  # potentially also create a sdist.
-  upload_pypi:
-    needs: [ build_wheels ]
-    runs-on: ubuntu-20.04
-    # remove repository url to publish to default pypi.
-    # upload to PyPI on every tag starting with 'v' ONLY on official tuplex repo.
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v') && github.repository == 'tuplex/tuplex'
-    # alternatively, to publish when a GitHub Release is created, use the following rule:
-    # if: github.event_name == 'release' && github.event.action == 'published'
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: artifact
-          path: dist
-
-      - name: remove test files
-        run: rm dist/*.version && rm dist/*.sh
-
-      - uses: pypa/gh-action-pypi-publish@v1.4.2
-        with:
-          user: ${{ secrets.pypi_user }}
-          password: ${{ secrets.pypi_password }}
-
-  upload_testpypi:
-    needs: [ build_wheels ]
-    runs-on: ubuntu-20.04
-    # inverse condition, always create test release, any repo with passwords can work with this.
-    # note, pull requests are not sharing secrets...
-    if: github.event_name != 'pull_request' && (github.event_name != 'push' || startsWith(github.event.ref, 'refs/tags/v') != true)
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: artifact
-          path: dist
-
-      - name: reorganize
-        run: mkdir -p scripts && mv dist/*.sh ./scripts/ && mv dist/*.version ./scripts/ && chmod +x ./scripts/test_pypi.sh
-
-      - uses: pypa/gh-action-pypi-publish@v1.4.2
-        with:
-          user: ${{ secrets.pypi_user }}
-          password: ${{ secrets.pypi_password }}
-          repository_url: https://test.pypi.org/legacy/ # uncomment for test purposes

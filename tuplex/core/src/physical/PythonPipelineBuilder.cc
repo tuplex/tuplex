@@ -291,6 +291,14 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
                                          const std::vector<std::string> &na_values,
                                          const std::unordered_map<size_t, python::Type>& typeHints,
                                          size_t numColumns, const std::unordered_map<int, int>& projectionMap) {
+
+    _lastProjectionMap = projectionMap;
+    _lastColumns = columns;
+    _numUnprojectedColumns = numColumns;
+
+    if(!columns.empty())
+        assert(columns.size() == numColumns);
+
     std::stringstream code;
     code<<"if not isinstance("<<lastInputRowName()<<", (tuple, list)):\n";
     exceptInnerCode(code, operatorID, "TypeError('cell input must be of string type')", "", 1);
@@ -349,14 +357,28 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
     // projection map defined?
     if(!projectionMap.empty()) {
+
+        // bug here, need to reverse order:
+        // i.e. projection map is original_idx -> new_idx
+        int min_idx = std::numeric_limits<int>::max();
+        int max_idx = 0;
+        std::map<int, int> m(projectionMap.begin(), projectionMap.end()); // use a map so code looks nicer...
+        for(auto kv : m) {
+            min_idx = std::min(min_idx, kv.second);
+            max_idx = std::max(max_idx, kv.second);
+        }
+        int num_projected_columns = max_idx + 1;
+        assert(num_projected_columns <= numColumns);
+
         assert(numColumns >= projectionMap.size()); // also should hold for max element in projectionMap!
         writeLine("projected_row = [None] * " + std::to_string(numColumns) + "\n"); // fill with None as dummy element
         // project elements & column names
-        for(auto keyval : projectionMap)
+        for(const auto& keyval: projectionMap)
             writeLine("projected_row[" + std::to_string(keyval.first) + "] = parsed_row[" + std::to_string(keyval.second) + "]\n");
+
         if(!columns.empty()) {
             std::vector<std::string> projected_columns(numColumns, "");
-            for(auto keyval : projectionMap)
+            for(const auto& keyval : projectionMap)
                 projected_columns[keyval.first] = columns[keyval.second];
             columns = projected_columns;
         }
@@ -377,6 +399,7 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
                                          const std::vector<std::string>& na_values) {
 
         _parseCells = true;
+        _lastColumns = columns;
 
         std::stringstream code;
         code<<"if not isinstance("<<lastInputRowName()<<", str):\n";
@@ -406,6 +429,25 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
             writeLine(row() + " = Row(parsed_row)");
     }
 
+    std::vector<std::string> PythonPipelineBuilder::reproject_columns(const std::vector<std::string>& columns) {
+        assert(!columns.empty());
+
+        if(!_lastProjectionMap.empty()) {
+            // check that #columns is the same as reproject map
+            assert(columns.size() == _lastProjectionMap.size());
+
+            // basically update _lastColumns based on new columns & projection map
+            for(const auto& kv: _lastProjectionMap) {
+                assert(kv.first < _lastColumns.size());
+                assert(kv.second < columns.size());
+                _lastColumns[kv.first] = columns[kv.second];
+            }
+        } else {
+            assert(columns.size() == _lastColumns.size());
+            _lastColumns = columns;
+        }
+        return _lastColumns;
+    }
 
     void PythonPipelineBuilder::mapOperation(int64_t operatorID, const tuplex::UDF &udf, const std::vector<std::string>& output_columns) {
 
@@ -415,8 +457,12 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         // special case: rename, there is no UDF code here. Save the space.
         if(udf.empty()) {
             assert(!output_columns.empty());
+
+            // project columns with current map
+            auto columns = reproject_columns(output_columns);
+
             _lastFunction._udfCode = "";
-            auto cols = columnsToList(output_columns);
+            auto cols = columnsToList(columns);
             _lastFunction._code = row() + ".columns = (" + cols.substr(1, cols.length() - 2) + ")\n"; // use tuple!
         } else {
             // setup function
@@ -426,6 +472,11 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
             _lastFunction._code =  "call_res = apply_func(f, " + row() + ")\n"
                                    +row()+ " = result_to_row(call_res, " + row() + ".columns)\n";
+
+            // overwrite projection map & columns
+            _lastProjectionMap = {};
+            _lastColumns = output_columns;
+            _numUnprojectedColumns = output_columns.size();
         }
         _lastFunction._operatorID = operatorID;
     }
@@ -464,6 +515,16 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
     void PythonPipelineBuilder::withColumn(int64_t operatorID, const std::string &columnName, const tuplex::UDF &udf) {
 
+        // update column tracers
+        if(indexInVector(columnName, _lastColumns) >= 0) {
+            // replacement, no change
+        } else {
+            // only update if not the default map (empty)
+            if(!_lastProjectionMap.empty())
+                _lastProjectionMap[_numUnprojectedColumns] = _lastProjectionMap.size();
+            _numUnprojectedColumns++;
+            _lastColumns.push_back(columnName);
+        }
 
        flushLastFunction();
         _lastFunction._udfCode = "code = " + udfToByteCode(udf) + "\n"
@@ -563,14 +624,28 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         writeLine(code);
     }
 
+    template<typename K, typename V> std::unordered_map<K, V> transform_pairs(const std::unordered_map<K, V>& m,
+            const std::function<std::pair<K,V>(const std::pair<K,V>& p)>& f=[](const std::pair<K, V>& p) { return p; }) {
+        std::unordered_map<K, V> ans;
+        for(const auto& old_p : m) {
+            auto p = f(old_p);
+            ans[p.first] = p.second;
+        }
+        return ans;
+    }
+
     void PythonPipelineBuilder::innerJoinDict(int64_t operatorID, const std::string &hashmap_name,
                                               tuplex::option<std::string> leftColumn,
+                                              tuplex::option<std::string> rightColumn,
                                               const std::vector<std::string>& bucketColumns,
                                               option<std::string> leftPrefix,
                                               option<std::string> leftSuffix,
                                               option<std::string> rightPrefix,
                                               option<std::string> rightSuffix) {
+        updateMappingForJoin(leftColumn, rightColumn, bucketColumns, leftPrefix, leftSuffix, rightPrefix, rightSuffix);
 
+
+        // codegen python code for join
         flushLastFunction();
 
         // only string column join supported yet...
@@ -607,11 +682,7 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
         // debug:
         // code<<"\tprint('left cols are: ' + str(left_cols"<<envSuffix()<<"))\n";
-
-        if(bucketColumns.empty())
-            code<<"\tright_cols"<<envSuffix()<<" = None\n";
-        else
-            code<<"\tright_cols"<<envSuffix()<<" = "<<columnsToList(bucketColumns)<<"\n";
+        code<<"\tright_cols"<<envSuffix()<<" = "<<columnsToList(bucketColumns)<<"\n";
         if(rightSuffix.has_value() || rightPrefix.has_value()) {
             code<<"\tright_cols"<<envSuffix()<<" = list(map(lambda c: '"<<rightPrefix.value_or("")<<"' + c + "
                 <<"'"<<rightSuffix.value_or("")<<"' if c else None, right_cols"<<envSuffix()<<"))\n";
@@ -645,11 +716,91 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         // NOTE: could make this even easier by using Nodes + volcano style iteration....
     }
 
+    void PythonPipelineBuilder::updateMappingForJoin(const option <std::string> &leftColumn,
+                                                     const tuplex::option<std::string>& rightColumn,
+                                                     const std::vector<std::string> &bucketColumns,
+                                                     const option <std::string> &leftPrefix,
+                                                     const option <std::string> &leftSuffix,
+                                                     const option <std::string> &rightPrefix,
+                                                     const option <std::string> &rightSuffix) {
+        // join is a pipeline breaker, so the projection map is lost after applying it.
+
+        // find key_column in current columns
+        auto left_key_idx = indexInVector(leftColumn.value_or(""), _lastColumns);
+        auto right_key_idx = indexInVector(rightColumn.value_or(""), _lastColumns);
+        if(left_key_idx < 0 && right_key_idx < 0) {
+            Logger::instance().defaultLogger().error("failure to generate join renaming. Could not find key column on either left or right side.");
+        }
+
+        auto key_column_idx = std::max(left_key_idx, right_key_idx);
+        auto key_column = _lastColumns[key_column_idx];
+
+        key_column = leftColumn.value_or(rightColumn.value_or(""));
+
+        auto build_right = right_key_idx >= 0; // because always the "left" column is taken, can infer build direction
+        std::vector<std::string> result_columns;
+        if(build_right) {
+            // the bucket columns come first
+            std::transform(bucketColumns.begin(), bucketColumns.end(), std::back_inserter(result_columns),
+                                [&](const std::string& name) { return leftPrefix.value_or("") + name + leftSuffix.value_or("");});
+            result_columns.push_back(key_column); // no prefixing for key column
+
+            // the other columns come first
+            for(unsigned i = 0; i < _lastColumns.size(); ++i) {
+                if(i != key_column_idx)
+                    result_columns.push_back(rightPrefix.value_or("") + _lastColumns[i] + rightSuffix.value_or(""));
+            }
+        } else {
+            // the other columns come first
+            for(unsigned i = 0; i < _lastColumns.size(); ++i) {
+                if(i != key_column_idx)
+                    result_columns.push_back(leftPrefix.value_or("") + _lastColumns[i] + leftSuffix.value_or(""));
+            }
+            result_columns.push_back(key_column); // no prefixing for key column
+
+            if(right_key_idx >= 0)
+                result_columns.push_back(_lastColumns[right_key_idx]);
+            std::transform(bucketColumns.begin(), bucketColumns.end(), std::back_inserter(result_columns),
+                                [&](const std::string& name) { return rightPrefix.value_or("") + name + rightSuffix.value_or("");});
+        }
+
+        // update the key column projection pair
+        // map is original column -> projected column
+        if(!_lastProjectionMap.empty()) {
+
+            // TODO: need to update with previous column assignment...
+
+            _lastProjectionMap = transform_pairs<int,int>(_lastProjectionMap,
+                                                          [&](const std::pair<int,int>& pair) -> std::pair<int,int> {
+                                                              if(pair.first == key_column_idx) {
+                                                                  // gets moved to end
+                                                                  return std::make_pair((int) _numUnprojectedColumns - 1, (int) _lastProjectionMap.size() - 1);
+                                                              } else if(pair.first > key_column_idx) {
+                                                                  return std::make_pair((int)pair.first - 1, (int)pair.second - 1);
+                                                              } else
+                                                                  return pair;
+                                                          });
+
+            // add bucket column pairs now
+            auto num_projected = _lastProjectionMap.size();
+            for(unsigned i = 0; i < bucketColumns.size(); ++i) {
+                _lastProjectionMap[_numUnprojectedColumns++] = num_projected + i;
+            }
+            assert(_numUnprojectedColumns == result_columns.size());
+        }
+
+        _lastColumns = result_columns;
+        _numUnprojectedColumns == result_columns.size();
+    }
+
     void PythonPipelineBuilder::leftJoinDict(int64_t operatorID, const std::string &hashmap_name,
                                              tuplex::option<std::string> leftColumn,
+                                             tuplex::option<std::string> rightColumn,
                                              const std::vector<std::string> &bucketColumns,
                                              option<std::string> leftPrefix, option<std::string> leftSuffix,
                                              option<std::string> rightPrefix, option<std::string> rightSuffix) {
+        updateMappingForJoin(leftColumn, rightColumn, bucketColumns, leftPrefix, leftSuffix, rightPrefix, rightSuffix);
+
         flushLastFunction();
 
         // only string column join supported yet...
@@ -693,10 +844,7 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
         // debug:
         // code<<"print('left cols are: ' + str(left_cols"<<envSuffix()<<"))\n";
 
-        if(bucketColumns.empty())
-            code<<"right_cols"<<envSuffix()<<" = None\n";
-        else
-            code<<"right_cols"<<envSuffix()<<" = "<<columnsToList(bucketColumns)<<"\n";
+        code<<"right_cols"<<envSuffix()<<" = "<<columnsToList(bucketColumns)<<"\n";
         if(rightSuffix.has_value() || rightPrefix.has_value()) {
             code<<"right_cols"<<envSuffix()<<" = list(map(lambda c: '"<<rightPrefix.value_or("")<<"' + c + "
                 <<"'"<<rightSuffix.value_or("")<<"' if c else None, right_cols"<<envSuffix()<<"))\n";
@@ -761,6 +909,7 @@ void PythonPipelineBuilder::cellInput(int64_t operatorID, std::vector<std::strin
 
     void PythonPipelineBuilder::objInput(int64_t operatorID, const std::vector<std::string> &columns) {
         _parseCells = false;
+        _lastColumns = columns;
 
         // simple: input is tuple or list
         // ==> convert to row + assign columns if given

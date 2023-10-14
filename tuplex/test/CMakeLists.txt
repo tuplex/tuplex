@@ -69,15 +69,17 @@ if(NOT GTest_FOUND)
 else()
     message(STATUS "Using locally installed GoogleTest")
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    set(GTest_LIBRARIES GTest::gtest)
+    set(GTest_LIBRARIES GTest::gtest GTest::gtest_main)
 endif()
 
-
-add_subdirectory(codegen)
-add_subdirectory(io)
-add_subdirectory(runtime)
-add_subdirectory(adapters)
-add_subdirectory(utils)
+if(BUILD_WITH_AWS)
+    #set(Protobuf_USE_STATIC_LIBS ON)
+    # https://github.com/protocolbuffers/protobuf/issues/12637
+    find_package(Protobuf CONFIG)
+    if(Protobuf_NOTFOUND)
+        find_package(Protobuf REQUIRED)
+    endif()
+endif()
 
 # these require python, so only if embed is active!
 if(Python3_Embed_FOUND)
@@ -93,3 +95,16 @@ file(COPY resources DESTINATION ${DIST_DIR})
 # copy resources folder one more time (little hack, but this is where ctest needs the files)
 # it uses build/test as working directory
 file(COPY resources DESTINATION ${CMAKE_BINARY_DIR}/test)
+
+# newer gtest >= 1.13 needs abseil
+if(GTest_VERSION VERSION_GREATER_EQUAL 1.13)
+    # find abseil & amend libs
+    find_package(absl REQUIRED)
+endif()
+
+# add subdirs after above config is done
+add_subdirectory(codegen)
+add_subdirectory(io)
+add_subdirectory(runtime)
+add_subdirectory(adapters)
+add_subdirectory(utils)

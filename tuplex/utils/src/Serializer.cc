@@ -1126,7 +1126,7 @@ namespace tuplex {
             }
         }
 
-        // this seems to fails weirdly
+        // this seems to fail weirdly
 #ifndef NDEBUG
         if (altSize != varLenFieldsLength) {
             std::stringstream ss;
@@ -1141,7 +1141,7 @@ namespace tuplex {
         }
 #endif
 
-        assert(altSize == varLenFieldsLength);
+         assert(altSize == varLenFieldsLength);
 
         // is any varlenfield contained?
         if (hasSchemaVarLenFields()) {
@@ -1359,7 +1359,13 @@ namespace tuplex {
         assert(phys_col < (inferLength(_buffer) - sizeof(int64_t)) / sizeof(int64_t)); // sharper bound because of varlen
         // get offset: offset is in the lower 32bit, the upper are the size of the var entry
         int64_t offset = *((int64_t *) ((uint8_t *) _buffer + sizeof(int64_t) * phys_col + calcBitmapSize(_requiresBitmap)));
-        int64_t len = ((offset & (0xFFFFFFFFl << 32)) >> 32) - 1;
+        int64_t len = ((offset & (0xFFFFFFFFl << 32)) >> 32);
+
+        // shortcut, warn about empty list:
+        if(0 == len) {
+            return List::from_vector({});
+        }
+
         assert(len > 0);
         offset = offset & 0xFFFFFFFF;
 

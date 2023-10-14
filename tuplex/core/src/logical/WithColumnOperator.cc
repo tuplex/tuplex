@@ -63,6 +63,10 @@ namespace tuplex {
             return Schema::UNKNOWN;
         }
 
+        // could be exception, return then immediately
+        if(udfRetRowType.isExceptionType())
+            return Schema(Schema::MemoryLayout::ROW, udfRetRowType);
+
 
         assert(udfRetRowType.isTupleType());
         if(udfRetRowType.parameters().size() == 1)
@@ -133,12 +137,7 @@ namespace tuplex {
             // call python function
             // issue: when pushdown occurred, then this fails!
             // => SampleProcessor is really, really required!
-            ExceptionCode ec;
-
-            // HACK: skip for pushdown.
-            // this is bad, but let's get tplx208 done.
-            if(!inputColumns().empty() && row.getNumColumns() != inputColumns().size())
-                continue;
+            ExceptionCode ec = ExceptionCode::SUCCESS;
 
             auto pcr = !inputColumns().empty() ? python::callFunctionWithDictEx(pFunc, rowObj, inputColumns()) :
                        python::callFunctionEx(pFunc, rowObj);

@@ -2,8 +2,8 @@
 # this build file builds the core component of the Tuplex project
 CMAKE_MINIMUM_REQUIRED(VERSION 3.12 FATAL_ERROR)
 
-# enable c++14
-set(CMAKE_CXX_STANDARD 14)
+# enable c++17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(YAMLCPP REQUIRED)
@@ -16,12 +16,36 @@ if(BUILD_WITH_AWS)
 
     # communication with AWS Lambda happens via protobuf, i.e. make sure protobuf compiler
     # is installed
-    set(Protobuf_USE_STATIC_LIBS ON)
-    find_package(Protobuf REQUIRED)
+    # set(Protobuf_USE_STATIC_LIBS ON)
+    # https://github.com/protocolbuffers/protobuf/issues/12637
+    find_package(Protobuf CONFIG)
+    if(NOT Protobuf_FOUND)
+        find_package(Protobuf REQUIRED)
+    endif()
     include_directories(Protobuf_INCLUDE_DIRS)
-    protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS proto/Lambda.proto)
-    message(STATUS "protobuf sources: ${PROTO_SRCS}")
-    message(STATUS "protobuf headers: ${PROTO_HDRS}")
+
+    # https://github.com/protocolbuffers/protobuf/blob/e1faf09604d26cc6803970815f91225b220175d4/docs/cmake_protobuf_generate.md
+    # depending on version, use protobuf_generate_cpp or protobuf_generate
+    if((Protobuf_VERSION VERSION_GREATER_EQUAL "3.22" AND Protobuf_VERSION VERSION_LESS "4.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "4.3.22" AND Protobuf_VERSION VERSION_LESS "5.0.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "22.0"))
+        # see https://github.com/protocolbuffers/protobuf/blob/e1faf09604d26cc6803970815f91225b220175d4/docs/cmake_protobuf_generate.md
+        add_library(proto-objects OBJECT "${CMAKE_CURRENT_LIST_DIR}/proto/Lambda.proto")
+        target_link_libraries(proto-objects PUBLIC protobuf::libprotobuf)
+        set(PROTO_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/managed")
+        file(MAKE_DIRECTORY ${PROTO_BINARY_DIR})
+        target_include_directories(proto-objects PUBLIC "$<BUILD_INTERFACE:${PROTO_BINARY_DIR}>")
+
+        protobuf_generate(
+                TARGET proto-objects
+                IMPORT_DIRS "${CMAKE_CURRENT_LIST_DIR}/proto"
+                PROTOC_OUT_DIR "${PROTO_BINARY_DIR}")
+        include_directories(${PROTO_BINARY_DIR})
+        set(PROTO_SRCS "${PROTO_BINARY_DIR}/Lambda.pb.cc")
+        set(PROTO_HDRS "${PROTO_BINARY_DIR}/Lambda.pb.h")
+    else()
+        protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS proto/Lambda.proto)
+    endif()
+    message(STATUS "protobuf sources (v${Protobuf_VERSION}): ${PROTO_SRCS}")
+    message(STATUS "protobuf headers (v${Protobuf_VERSION}): ${PROTO_HDRS}")
 endif()
 
 
@@ -45,7 +69,6 @@ include_directories(${Boost_INCLUDE_DIR})
 
 # Source code & linking
 file(GLOB_RECURSE SOURCES src/*.cc)
-
 if(BUILD_WITH_AWS)
     # add protobuf srcs
     list(APPEND SOURCES ${PROTO_SRCS} ${PROTO_HDRS})
@@ -70,6 +93,10 @@ target_include_directories(libcore PUBLIC
 
 message(STATUS "Boost libraries are: ${Boost_LIBRARIES}")
 
+# make sure llvm dependencies exist
+ASSERT_VAR(ZLIB_LIBRARIES)
+ASSERT_VAR(ZSTD_LIBRARIES)
+
 # Declare the library
 target_link_libraries(libcore
         libcodegen
@@ -79,9 +106,13 @@ target_link_libraries(libcore
         ${CURL_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES}
         ${Protobuf_LIBRARIES}
+        proto-objects
+        protobuf::libprotobuf
         Boost::iostreams
         Boost::thread
         Boost::system
         Boost::filesystem
-	util
+	    util
+        ${ZLIB_LIBRARIES}
+        ${ZSTD_LIBRARIES}
         )

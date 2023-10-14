@@ -148,7 +148,7 @@ TEST_F(ClosureTest, SpecializeAttribute) {
     auto& ds = c.parallelize({Row(10), Row(20)}).map(udf);
     auto res = ds.collectAsVector();
 
-    for(auto r : res)
+    for(const auto& r : res)
         cout<<r.toPythonString()<<endl;
 }
 

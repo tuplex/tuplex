@@ -4,6 +4,23 @@
 
 class IteratorTest : public PyTest {};
 
+TEST_F(IteratorTest, CodegenTestBasicListIterator) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    a = iter([x, 20, 30, 40])\n"
+                "    b1 = next(a)\n"
+                "    return b1";
+
+    auto v = c.parallelize({
+                                   Row(10)
+                           }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0].toPythonString(), Row(10).toPythonString());
+}
+
 TEST_F(IteratorTest, CodegenTestListIteratorI) {
     using namespace tuplex;
     Context c(microTestOptions());
@@ -244,6 +261,26 @@ TEST_F(IteratorTest, CodegenTestTupleIteratorII) {
     EXPECT_EQ(v[0], Row("a", "b", "c", "d", "x", "x"));
 }
 
+TEST_F(IteratorTest, CodegenTestTupleIteratorIIISingleDefault) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto func = "def f(x):\n"
+                "    a = iter(x)\n"
+                "    b1 = next(a)\n"
+                "    b2 = next(a, [5, 6])\n"
+                "    return (b1, b2)";
+
+    auto v = c.parallelize({
+                                   Row(Tuple(List(1, 2)))
+                           }).map(UDF(func)).collectAsVector();
+
+    auto expected_row = Row(List(1, 2), List(5, 6));
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0].toPythonString(), expected_row.toPythonString());
+    EXPECT_EQ(v[0], expected_row);
+}
+
 TEST_F(IteratorTest, CodegenTestTupleIteratorIII) {
     using namespace tuplex;
     Context c(microTestOptions());
@@ -260,8 +297,10 @@ TEST_F(IteratorTest, CodegenTestTupleIteratorIII) {
         Row(List(1, 2), List(3, 4))
     }).map(UDF(func)).collectAsVector();
 
+    auto expected_row = Row(List(1, 2), List(3, 4), List(5, 6), List(7, 8));
     EXPECT_EQ(v.size(), 1);
-    EXPECT_EQ(v[0], Row(List(1, 2), List(3, 4), List(5, 6), List(7, 8)));
+    EXPECT_EQ(v[0].toPythonString(), expected_row.toPythonString());
+    EXPECT_EQ(v[0], expected_row);
 }
 
 TEST_F(IteratorTest, CodegenTestListReverseIterator) {
@@ -283,7 +322,7 @@ TEST_F(IteratorTest, CodegenTestListReverseIterator) {
     }).map(UDF(func)).collectAsVector();
 
     EXPECT_EQ(v.size(), 1);
-    EXPECT_EQ(v[0], Row(4, 3, 2, 1, 0, -1));
+    EXPECT_EQ(v[0].toPythonString(), Row(4, 3, 2, 1, 0, -1).toPythonString());
 }
 
 TEST_F(IteratorTest, CodegenTestTupleReverseIterator) {
@@ -327,6 +366,60 @@ TEST_F(IteratorTest, CodegenTestStringReverseIterator) {
 
     EXPECT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row("a", "bc", "defgh", "end"));
+}
+
+TEST_F(IteratorTest, TrivialIterator) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    // next(range) -> TypeError: range object is not an iterator
+    // but next(iter(range)) works
+    auto func = "def f(x):\n"
+                           "    return next(iter(range(2, 10)))\n";
+
+    auto v = c.parallelize({
+                               Row(10)
+                           }).map(UDF(func)).collectAsVector();
+    ASSERT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(2));
+}
+
+TEST_F(IteratorTest, CodegenTestDifferentRangeIterators) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    // this func will produce errors because next(range(...)) is undefined.
+    // same goes for next(next(...))
+    // auto func = "def f(x):\n"
+    //             "    L = [i * i for i in range(0, x)]\n"
+    //             "    r1 = range(0, 100 * x, 2)\n"
+    //             "    r2 = range(0, 100 * x, 4)\n"
+    //             "    r3 = range(0, 100 * x, 8)\n"
+    //             "    x = next(r1)\n"
+    //             "    y = next(next(r2))\n"
+    //             "    z = next(next(next(r3)))\n"
+    //             "    \n"
+    //             "    return y, z, z\n";
+    auto func = "def f(x):\n"
+                "    L = [i * i for i in range(0, x)]\n"
+                "    r1 = iter(range(0, 100 * x, 2))\n"
+                "    r2 = iter(range(0, 100 * x, 4))\n"
+                "    r3 = iter(range(0, 100 * x, 8))\n"
+                "    x = next(r1)\n"
+                "    next(r2)\n"
+                "    y = next(r2)\n"
+                "    next(r3)\n"
+                "    next(r3)\n"
+                "    z = next(r3)\n"
+                "    \n"
+                "    return y, z, z";
+
+    auto v = c.parallelize({
+                               Row(10)
+                           }).map(UDF(func)).collectAsVector();
+
+    EXPECT_EQ(v.size(), 1);
+    EXPECT_EQ(v[0], Row(4, 16, 16));
 }
 
 TEST_F(IteratorTest, CodegenTestRangeReverseIteratorI) {
@@ -531,6 +624,91 @@ TEST_F(IteratorTest, CodegenTestEmptyIteratorIV) {
 
     EXPECT_EQ(v.size(), 1);
     EXPECT_EQ(v[0], Row(-1, "empty"));
+}
+
+TEST_F(IteratorTest, CodegenTestNestedIteratorIStep) {
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    // test iterator correctness step by step
+    // full func:
+    // auto func = "def f(x):\n"
+    //             "    a = enumerate(iter(enumerate(iter([-1, -2, -3, -4]))))\n"
+    //             "    b = zip(a, 'abcd', enumerate(zip([1, 2], [3, 4])), zip(('A', 'B'), ('C', 'D')))\n"
+    //             "    c = enumerate(b, 10)\n"
+    //             "    d = iter(zip(iter(c), a))\n"
+    //             "    e1 = next(d)\n"
+    //             "    e2 = next(d)\n"
+    //             "    return (e1, e2)";
+
+    { // STEP 1:
+        auto func = "def f(x):\n"
+                    "    a = iter([-1, -2, -3, -4])\n"
+                    "    e1 = next(a)\n"
+                    "    return e1";
+
+        std::cout<<"code:\n"<<func<<std::endl;
+
+
+        auto v = c.parallelize({
+                                       Row(0)
+                               }).map(UDF(func)).collectAsVector();
+
+        EXPECT_EQ(v.size(), 1);
+        EXPECT_EQ(v[0].toPythonString(), "(-1,)");
+    }
+
+    { // STEP 2:
+        auto func = "def f(x):\n"
+                    "    a = enumerate(iter([-1, -2, -3, -4]))\n"
+                    "    e1 = next(a)\n"
+                    "    return e1";
+
+        std::cout<<"code:\n"<<func<<std::endl;
+
+
+        auto v = c.parallelize({
+                                       Row(0)
+                               }).map(UDF(func)).collectAsVector();
+
+        EXPECT_EQ(v.size(), 1);
+        EXPECT_EQ(v[0].toPythonString(), "(0,-1)");
+    }
+
+    { // STEP 3:
+        auto func = "def f(x):\n"
+                    "    a = iter(enumerate(iter([-1, -2, -3, -4])))\n"
+                    "    e1 = next(a)\n"
+                    "    return e1";
+
+        std::cout<<"code:\n"<<func<<std::endl;
+
+
+        auto v = c.parallelize({
+                                       Row(0)
+                               }).map(UDF(func)).collectAsVector();
+
+        EXPECT_EQ(v.size(), 1);
+        EXPECT_EQ(v[0].toPythonString(), "(0,-1)");
+    }
+
+    { // STEP 4:
+        auto func = "def f(x):\n"
+                    "    a = iter(enumerate(iter([-1, -2, -3, -4])))\n"
+                    "    b = zip(a, 'abcd', enumerate(zip([1, 2], [3, 4])), zip(('A', 'B'), ('C', 'D')))\n"
+                    "    e1 = next(b)\n"
+                    "    return e1";
+
+        std::cout<<"code:\n"<<func<<std::endl;
+
+
+        auto v = c.parallelize({
+                                       Row(0)
+                               }).map(UDF(func)).collectAsVector();
+
+        EXPECT_EQ(v.size(), 1);
+        EXPECT_EQ(v[0].toPythonString(), "((0,-1),'a',(0,(1,3)),('A','C'))");
+    }
 }
 
 TEST_F(IteratorTest, CodegenTestNestedIteratorI) {

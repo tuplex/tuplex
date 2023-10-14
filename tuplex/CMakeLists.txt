@@ -19,6 +19,23 @@ option(GENERATE_PDFS "whether to generate PDFs in Debug mode or not. Disable for
 option(SHOW_EXPLICIT_WARNINGS "Show the output of #warning directives in the code (lots of output)" OFF)
 option(USE_LD_GOLD "Use GNU gold linker" ON)
 
+# helper to check whether var exists and is valid
+function(ASSERT_VAR VARNAME)
+    if(DEFINED ${VARNAME})
+        string(COMPARE EQUAL "${${VARNAME}}" "" str_result)
+        if("${str_result}")
+            message(FATAL_ERROR "variable ${VARNAME} is empty string")
+        endif()
+    else()
+        message(FATAL_ERROR "expected variable ${VARNAME} to exist.")
+    endif()
+endfunction()
+
+# ninja fixes for multiple zstd generators
+if(CMAKE_GENERATOR STREQUAL "Ninja")
+    message(STATUS "Using ninja generator, if fails use -w dupbuild=err")
+endif()
+
 # detect MacOS Version because at least 10.13 is required when building with AWS SDK
 if(APPLE)
     execute_process(COMMAND bash -c "sw_vers | grep -Eo '([0-9]{1,}\\.)+[0-9]{1,}' | head -1" OUTPUT_VARIABLE MACOSX_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -53,14 +70,15 @@ endif()
 # before writing additional cmake modules to put in cmake/, check the list of supported cmake standard modules
 # available here: https://cmake.org/cmake/help/latest/manual/cmake-modules.7.html#find-modules
 
+# uncomment to get verbose cmake output
+# set(CMAKE_VERBOSE_MAKEFILE ON)
+
 # top-level language specification
-# enable c++14
-set(CMAKE_CXX_STANDARD 14)
+# enable c++17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# enable c11
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-message(STATUS "Using language versions C++${CMAKE_CXX_STANDARD} and C${CMAKE_C_STANDARD}")
+message(STATUS "Using language version: C++${CMAKE_CXX_STANDARD}")
+
 # add cmake modules from cmake folder
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 message(STATUS "additional cmake module path is ${CMAKE_MODULE_PATH}")
@@ -82,6 +100,7 @@ if(IPO_SUPPORTED)
 else()
     message(WARNING "target does not support interprocedural optimization/link time optimization.")
 endif()
+
 # Check if ccache exists to speed up compilation when switching branches
 # taken from https://invent.kde.org/utilities/konsole/-/merge_requests/26?tab=diffs
 find_program(CCACHE_FOUND "ccache")
@@ -220,6 +239,62 @@ if(BUILD_WITH_AWS)
     else()
         message(FATAL_ERROR "option build with AWSSDK specified, but AWS SDK was not found.")
     endif ()
+
+    # building with AWS backend support?
+    # communication with AWS Lambda happens via protobuf, i.e. make sure protobuf compiler
+    # is installed
+    #set(Protobuf_USE_STATIC_LIBS ON)
+    # https://github.com/protocolbuffers/protobuf/issues/12637
+    find_package(Protobuf CONFIG)
+    if(NOT Protobuf_FOUND)
+        find_package(Protobuf REQUIRED)
+    endif()
+
+    # newer protobuf has abseil dependency, amend protobuf libs accordingly because protobuf is shipped in
+    # a non-fixed state (see https://github.com/protocolbuffers/protobuf/issues/12637)
+    # there's a bug in cmake for cmake < 3.27 where version is detected wrongly as 4.x -> fix
+    if((Protobuf_VERSION VERSION_GREATER_EQUAL "3.22" AND Protobuf_VERSION VERSION_LESS "4.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "4.3.22" AND Protobuf_VERSION VERSION_LESS "5.0.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "22.0"))
+        find_package(absl REQUIRED)
+        find_package(utf8_range REQUIRED)
+        set(protobuf_ABSL_USED_TARGETS
+                absl::absl_check
+                absl::absl_log
+                absl::algorithm
+                absl::base
+                absl::bind_front
+                absl::bits
+                absl::btree
+                absl::cleanup
+                absl::cord
+                absl::core_headers
+                absl::debugging
+                absl::die_if_null
+                absl::dynamic_annotations
+                absl::flags
+                absl::flat_hash_map
+                absl::flat_hash_set
+                absl::function_ref
+                absl::hash
+                absl::layout
+                absl::log_initialize
+                absl::log_severity
+                absl::memory
+                absl::node_hash_map
+                absl::node_hash_set
+                absl::optional
+                absl::span
+                absl::status
+                absl::statusor
+                absl::strings
+                absl::synchronization
+                absl::time
+                absl::type_traits
+                absl::utility
+                absl::variant
+                utf8_range::utf8_validity
+                )
+        list(APPEND Protobuf_LIBRARIES ${protobuf_ABSL_USED_TARGETS})
+    endif()
 endif()
 
 if(GENERATE_PDFS)
@@ -260,12 +335,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     else()
         message(FATAL_ERROR "could not find gcc-ar or gcc-ranlib. Make sure they are installed and symlinked. Leaving them at their defaults (ar: ${CMAKE_AR}, ranlib: ${CMAKE_RANLIB}) will produce lto errors in Release build.")
     endif ()
-
-    # add flags so link order does not matter...
-    add_link_options("-Wl,--start-group")
 endif()
-
-
 
 
 ###########################################################################
@@ -369,13 +439,15 @@ set(CMAKE_CXX_FLAGS_TSAN
 
 # AddressSanitize
 set(CMAKE_C_FLAGS_ASAN
-        "-fsanitize=address -fsanitize-recover=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
+        "-fsanitize=address -fsanitize-recover=address -fno-omit-frame-pointer -g -O1"
         CACHE STRING "Flags used by the C compiler during AddressSanitizer builds."
         FORCE)
 set(CMAKE_CXX_FLAGS_ASAN
         "-fsanitize=address -fsanitize-recover=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
         CACHE STRING "Flags used by the C++ compiler during AddressSanitizer builds."
         FORCE)
+
+ucm_set_flags(-fsanitize=address -fsanitize-recover=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1 CONFIG asan)
 
 # LeakSanitizer
 set(CMAKE_C_FLAGS_LSAN
@@ -722,14 +794,154 @@ if(pcre2_FOUND)
     message(STATUS "Found pcre2 headers in ${PCRE2_INCLUDE_DIRS}")
 endif()
 
-add_subdirectory(utils)
-add_subdirectory(test)
-add_subdirectory(codegen)
-add_subdirectory(core)
-add_subdirectory(io)
-add_subdirectory(python)
-add_subdirectory(runtime)
-add_subdirectory(adapters)
+
+# find ZSTD / ZLIB
+include(ExternalProject)
+set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
+
+# external libs to build / download
+set(ZLIB_VERSION "1.2.11") # which zlib version to use
+set(ZSTD_VERSION "1.5.0") # which zstd version to use
+set(BUILD_AND_DOWNLOAD_ZLIB True)
+set(BUILD_AND_DOWNLOAD_ZSTD True)
+
+# find zlib first via cmake
+find_package(ZLIB 1.2.11)
+if(ZLIB_FOUND)
+    # nothing todo
+else()
+    # check if apple and brewed version is available, if not download & build
+    if(APPLE AND BREW_FOUND)
+        # Zlib
+        EXECUTE_PROCESS(COMMAND brew list zlib OUTPUT_VARIABLE BREW_ZLIB_LIST RESULT_VARIABLE BREW_ZLIB_FOUND ERROR_VARIABLE BREW_ZLIB_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if(BREW_ZLIB_FOUND)
+            EXECUTE_PROCESS(COMMAND brew --prefix zlib OUTPUT_VARIABLE BREW_ZLIB_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+            set(ENV{ZLIB_HOME} ${BREW_ZLIB_DIR})
+            set(ZLIB_HOME ${BREW_ZLIB_DIR})
+            message(STATUS "Found locally installed zlib under $ENV{ZLIB_HOME}")
+            # set variables
+            file (TO_CMAKE_PATH "${ZLIB_HOME}" _zlib_path)
+            find_library (ZLIB_LIBRARY NAMES z HINTS
+                    ${_zlib_path}
+                    PATH_SUFFIXES "lib" "lib64")
+            if(ZLIB_LIBRARY)
+                message(STATUS "zlib lib: ${ZLIB_LIBRARY}")
+            endif()
+            find_library (ZLIB_STATIC_LIB NAMES ${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX} HINTS
+                    ${_zlib_path}
+                    PATH_SUFFIXES "lib" "lib64")
+            if(ZLIB_LIBRARY)
+                set(ZLIB_LIBRARIES "${ZLIB_LIBRARY}")
+            elseif(ZLIB_STATIC_LIB)
+                set(ZLIB_LIBRARIES "${ZLIB_STATIC_LIB}")
+            endif()
+            message(STATUS "Zlib libraries: ${ZLIB_LIBRARIES}")
+        endif()
+    endif()
+
+    if(NOT ZLIB_LIBRARY)
+        message(STATUS "Could not find locally installed zlib, building third party")
+        set(ZLIB_HOME "${EXTERNAL_INSTALL_LOCATION}")
+        set(ZLIB_INCLUDE_DIR "${ZLIB_HOME}/include")
+        set(ZLIB_STATIC_LIB "${ZLIB_HOME}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX}")
+        set(ZLIB_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ZLIB_HOME}
+                -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DZLIB_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
+        ExternalProject_Add (zlib_ep
+                URL "http://zlib.net/fossils/zlib-${ZLIB_VERSION}.tar.gz"
+                CMAKE_ARGS ${ZLIB_CMAKE_ARGS}
+                BUILD_BYPRODUCTS "${ZLIB_STATIC_LIB}")
+
+        set(ZLIB_LIBRARIES ${ZLIB_STATIC_LIB})
+
+        add_library(zlib INTERFACE)
+        target_link_libraries(zlib INTERFACE ${ZLIB_STATIC_LIB})
+        target_include_directories(zlib SYSTEM INTERFACE ${ZLIB_INCLUDE_DIR})
+
+        add_dependencies(zlib zlib_ep)
+        install(FILES "${ZLIB_STATIC_LIB}" DESTINATION "lib")
+        set(ZLIB_DEPENDS "zlib_ep")
+    endif()
+endif()
+
+# zstd has no cmake standard module, so manually search for it
+find_package(zstd "${ZSTD_VERSION}")
+if(zstd_FOUND)
+    # check if zstd is defined as target
+    if(TARGET zstd::libzstd_static)
+        set(ZSTD_LIBRARIES "zstd::libzstd_static") # could also be libzstd_shared
+    endif()
+    # if not, use variables directly
+    if(ZSTD_LIBRARY)
+        set(ZSTD_LIBRARIES "${ZSTD_LIBRARY}")
+    elseif(ZSTD_STATIC_LIB)
+        set(ZSTD_LIBRARIES "${ZSTD_STATIC_LIB}")
+    endif()
+else()
+
+    # check if brewed by chance, if not fetch
+    if(APPLE AND BREW_FOUND)
+        set(THIRDPARTY_CONFIGURE_COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}")
+
+        # Zstd
+        EXECUTE_PROCESS(COMMAND brew list zstd OUTPUT_VARIABLE BREW_ZSTD_LIST RESULT_VARIABLE BREW_ZSTD_FOUND ERROR_VARIABLE BREW_ZSTD_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if(BREW_ZSTD_FOUND)
+            EXECUTE_PROCESS(COMMAND brew --prefix zstd OUTPUT_VARIABLE BREW_ZSTD_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+            set(ENV{ZSTD_HOME} ${BREW_ZSTD_DIR})
+            set(ZSTD_HOME ${BREW_ZSTD_DIR})
+            message(STATUS "Found locally installed zstd under $ENV{ZSTD_HOME}")
+            # set variables
+            file (TO_CMAKE_PATH "${ZSTD_HOME}" _zstd_path)
+            find_library (ZSTD_LIBRARY NAMES zstd HINTS
+                    ${_zstd_path}
+                    PATH_SUFFIXES "lib" "lib64")
+            if(ZSTD_LIBRARY)
+                message(STATUS "zstd lib: ${ZSTD_LIBRARY}")
+            endif()
+            find_library (ZSTD_STATIC_LIB NAMES ${CMAKE_STATIC_LIBRARY_PREFIX}${ZSTD_LIB_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX} HINTS
+                    ${_zstd_path}
+                    PATH_SUFFIXES "lib" "lib64")
+            if(ZSTD_LIBRARY)
+                set(ZSTD_LIBRARIES "${ZSTD_LIBRARY}")
+            elseif(ZSTD_STATIC_LIB)
+                set(ZSTD_LIBRARIES "${ZSTD_STATIC_LIB}")
+            endif()
+            message(STATUS "Zstd libraries: ${ZSTD_LIBRARIES}")
+            set(BUILD_AND_DOWNLOAD_ZLIB False)
+        endif()
+    endif()
+
+    if(NOT ZSTD_LIBRARIES)
+        message(STATUS "Building Zstd locally as 3rd party dependency.")
+        set(ZSTD_HOME "${EXTERNAL_INSTALL_LOCATION}")
+        set(ZSTD_INCLUDE_DIR "${ZSTD_HOME}/include")
+        set(ZSTD_STATIC_LIB "${ZSTD_HOME}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}zstd${CMAKE_STATIC_LIBRARY_SUFFIX}")
+        set(ZSTD_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ZSTD_HOME}
+                -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DZSTD_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
+
+        if (CMAKE_VERSION VERSION_GREATER "3.7")
+            set(ZSTD_CONFIGURE SOURCE_SUBDIR "build/cmake" CMAKE_ARGS ${ZSTD_CMAKE_ARGS})
+        else()
+            set(ZSTD_CONFIGURE CONFIGURE_COMMAND "${THIRDPARTY_CONFIGURE_COMMAND}" ${ZSTD_CMAKE_ARGS}
+                    "${CMAKE_CURRENT_BINARY_DIR}/zstd_ep-prefix/src/zstd_ep/build/cmake")
+        endif()
+
+        ExternalProject_Add (zstd_ep
+                URL "https://github.com/facebook/zstd/archive/v${ZSTD_VERSION}.tar.gz"
+                ${ZSTD_CONFIGURE}
+                BUILD_BYPRODUCTS "${ZSTD_STATIC_LIB}"
+                DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+
+        set(ZSTD_LIBRARIES ${ZSTD_STATIC_LIB})
+
+        add_library(zstd INTERFACE)
+        target_link_libraries(zstd INTERFACE ${ZSTD_STATIC_LIB})
+        target_include_directories(zstd SYSTEM INTERFACE ${ZSTD_INCLUDE_DIR})
+
+        add_dependencies(zstd zstd_ep)
+        install(FILES "${ZSTD_STATIC_LIB}" DESTINATION "lib")
+        set(ZSTD_DEPENDS "zstd_ep")
+    endif()
+endif()
 
 # following code is from https://github.com/OPM/opm-common/blob/master/cmake/Modules/UseSystemInfo.cmake
 # read property from the newer /etc/os-release
@@ -761,6 +973,19 @@ if(UNIX AND NOT APPLE)
     endif()
 endif()
 
+# ncurses/curses lib for terminal manipulation
+find_package(Curses REQUIRED)
+
+# add subdirs here...
+add_subdirectory(io)  # <-- make sure to call this first, because it changes parent scope with io dependencies
+add_subdirectory(utils)
+add_subdirectory(test)
+add_subdirectory(codegen)
+add_subdirectory(core)
+add_subdirectory(python)
+add_subdirectory(runtime)
+add_subdirectory(adapters)
+
 # can only build aws lambda on linux platform
 if(LINUX AND BUILD_WITH_AWS)
     # removed AWS lambda implementation, can be found on separate branch
@@ -791,10 +1016,13 @@ if(USE_LD_GOLD AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     endif()
 endif()
 
+# enable rtti and exceptions
+ucm_add_flags("-fexceptions -frtti")
+
 # print flags
 ucm_print_flags()
 
 
 # TODO: check cloudpickle versions
 # should be < 2.0.0 for python3.9 and >= 2.1.0 for python3.10
-# ython3 -c 'import cloudpickle; print(cloudpickle.__version__)'
+# python3 -c 'import cloudpickle; print(cloudpickle.__version__)'

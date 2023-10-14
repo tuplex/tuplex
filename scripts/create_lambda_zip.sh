@@ -1,19 +1,33 @@
 #!/usr/bin/env bash
-# (c) 2021 Tuplex team
-
-# exact python versions AWS uses:
-# Python 3.9 runtime --> Python 3.9.8
-# Python 3.8 runtime --> Python 3.8.11
-PYTHON3_VERSION=3.9.8
-PYTHON3_MAJMIN=${PYTHON3_VERSION%.*}
-
-
+# (c) 2017-2023 Tuplex team
 # this script creates a deployable AWS Lambda zip package using docker
+
+set -euxo pipefail
+
+echo ">>> Building Lambda runner"
+DEFAULT_PYTHON3_VERSION=$(python3 --version | cut -d ' ' -f2)
+echo "-- detected system python version is ${DEFAULT_PYTHON3_VERSION}"
+echo "-- to specify different Python3 version, set environment variable PYTHON3_VERSION, e.g. export PYTHON3_VERSION=3.9"
+
+PYTHON3_VERSION="${PYTHON3_VERSION:-$DEFAULT_PYTHON3_VERSION}"
+PYTHON3_MAJMIN=${PYTHON3_VERSION%.*}
+DOCKER_IMAGE=tuplex/ci:${PYTHON3_MAJMIN}
+
+# check which Python version is installed in /opt/lambda-python/bin/python3
+DOCKER_PYTHON3_VERSION=$(docker run -e LD_LIBRARY_PATH=/opt/lambda-python/lib $DOCKER_IMAGE /opt/lambda-python/bin/python3 --version | cut -d ' ' -f2)
+
+echo "-- detected docker Python3 version ${DOCKER_PYTHON3_VERSION}"
+
+## make sure maj.min version matches
+if [ "${DOCKER_PYTHON3_VERSION%.*}" -ne "${PYTHON3_VERSION%.*}" ]; then
+  echo "ERROR: Python maj.min versions do not match, Docker has ${DOCKER_PYTHON3_VERSION%.*} but desired version is ${PYTHON3_VERSION%.*}."
+  exit 1
+fi
 
 # check from where script is invoked
 CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 
-echo "Executing buildwheel script located in $CWD"
+echo "-- Executing buildwheel script located in $CWD"
 pushd $CWD > /dev/null
 cd .. # go to root of repo
 
@@ -21,7 +35,6 @@ cd .. # go to root of repo
 
 LOCAL_BUILD_FOLDER=build-lambda
 SRC_FOLDER=tuplex
-DOCKER_IMAGE=tuplex/ci
 
 # convert to absolute paths
 get_abs_filename() {
@@ -31,9 +44,10 @@ get_abs_filename() {
 
 LOCAL_BUILD_FOLDER=$(get_abs_filename $LOCAL_BUILD_FOLDER)
 SRC_FOLDER=$(get_abs_filename $SRC_FOLDER)
-echo "Tuplex source: $SRC_FOLDER"
-echo "Building lambda in: $LOCAL_BUILD_FOLDER"
-
+LLVM_ROOT_PATH=/opt/llvm-16.0.6
+echo "-- Tuplex source: $SRC_FOLDER"
+echo "-- Building lambda in: $LOCAL_BUILD_FOLDER"
+echo "-- LLVM folder: ${LLVM_ROOT_PATH}"
 mkdir -p $LOCAL_BUILD_FOLDER
 
 echo "starting docker (this might take a while...)"
@@ -49,12 +63,12 @@ echo "starting docker (this might take a while...)"
 # only release works, b.c. of size restriction
 BUILD_TYPE=Release
 
-docker run --name lambda --rm -v $SRC_FOLDER:/code/tuplex -v $LOCAL_BUILD_FOLDER:/build tuplex/ci bash -c "export LD_LIBRARY_PATH=/opt/lambda-python/lib:\$LD_LIBRARY_PATH && /opt/lambda-python/bin/python${PYTHON3_MAJMIN} -m pip install cloudpickle numpy && cd /build && cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DBUILD_FOR_LAMBDA=ON -DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DPYTHON3_EXECUTABLE=/opt/lambda-python/bin/python${PYTHON3_MAJMIN} -DBOOST_ROOT=/opt/boost/python${PYTHON3_MAJMIN}/ -GNinja /code/tuplex && cmake --build . --target tplxlam && python${PYTHON3_MAJMIN} /code/tuplex/python/zip_cc_runtime.py --input /build/dist/bin/tplxlam --runtime /build/dist/bin/tuplex_runtime.so --python /opt/lambda-python/bin/python${PYTHON3_MAJMIN} --output /build/tplxlam.zip"
+docker run --name lambda --rm -v $SRC_FOLDER:/code/tuplex -v $LOCAL_BUILD_FOLDER:/build ${DOCKER_IMAGE} bash -c "export LD_LIBRARY_PATH=/opt/lambda-python/lib:/opt/lib:/opt/lib64:\$LD_LIBRARY_PATH && /opt/lambda-python/bin/python${PYTHON3_MAJMIN} -m pip install cloudpickle numpy && cd /build && cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DLLVM_ROOT_DIR=${LLVM_ROOT_PATH} -DBUILD_FOR_LAMBDA=ON -DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DPYTHON3_EXECUTABLE=/opt/lambda-python/bin/python${PYTHON3_MAJMIN} -DBOOST_ROOT=/opt/boost/python${PYTHON3_MAJMIN}/ -GNinja /code/tuplex && cmake --build . --target runtime && cmake --build . --target tplxlam && python${PYTHON3_MAJMIN} /code/tuplex/python/zip_cc_runtime.py --input /build/dist/bin/tplxlam --runtime /build/dist/bin/tuplex_runtime.so --python /opt/lambda-python/bin/python${PYTHON3_MAJMIN} --output /build/tplxlam.zip"
 DOCKER_EXIT_CODE=$?
 if [ "${DOCKER_EXIT_CODE}" -eq "0" ]; then
-   echo "docker command run, zipped Lambda file can be found in: ${LOCAL_BUILD_FOLDER}/tplxlam.zip"
+   echo "-- docker command run, zipped Lambda file can be found in: ${LOCAL_BUILD_FOLDER}/tplxlam.zip"
 else
-   echo "build failed"
+   echo "ERROR: build failed"
    popd > /dev/null
    exit 1
 fi

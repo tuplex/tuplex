@@ -15,22 +15,22 @@
 #include "IVisitor.h"
 #include <IFailable.h>
 
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/IR/BasicBlock.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/LegacyPassManager.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Type.h"
-#include "llvm/IR/Verifier.h"
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/Target/TargetMachine.h"
-#include "llvm/Transforms/Scalar.h"
-#include "llvm/Transforms/Scalar/GVN.h"
+#include <llvm/ADT/APFloat.h>
+#include <llvm/ADT/STLExtras.h>
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/Scalar/GVN.h>
 #include "ClosureEnvironment.h"
 
 #include <deque>
@@ -75,17 +75,21 @@ namespace codegen {
             llvm::Value *ptr;
             llvm::Value *sizePtr;
             llvm::Value *nullPtr;
+            llvm::Type* llvm_type;
+            python::Type type;
             std::string name;
 
-            Variable() : ptr(nullptr), sizePtr(nullptr), nullPtr(nullptr), name("undefined") {}
+            LLVMEnvironment* env;
 
-            Variable(LLVMEnvironment& env, llvm::IRBuilder<>& builder, const python::Type& t, const std::string& name);
+            Variable() : ptr(nullptr), sizePtr(nullptr), nullPtr(nullptr), llvm_type(nullptr), name("undefined"), env(nullptr) {}
 
-            static Variable asGlobal(LLVMEnvironment& env, llvm::IRBuilder<>& builder,
+            Variable(LLVMEnvironment& env, const codegen::IRBuilder& builder, const python::Type& t, const std::string& name);
+
+            static Variable asGlobal(LLVMEnvironment& env, const codegen::IRBuilder& builder,
                             const python::Type& t,
                             const std::string& name, const SerializableValue& value);
 
-            inline void endLife(llvm::IRBuilder<>& builder) {
+            inline void endLife(codegen::IRBuilder&builder) {
                 if(ptr)
                     builder.CreateLifetimeEnd(ptr);
                 if(sizePtr)
@@ -98,7 +102,7 @@ namespace codegen {
             }
 
             // simplify interfaces a bit
-            inline codegen::SerializableValue load(llvm::IRBuilder<>& builder) const {
+            inline codegen::SerializableValue load(codegen::IRBuilder& builder) const {
                 assert(ptr && sizePtr);
 
                 // GlobalValue is a constant...
@@ -110,33 +114,66 @@ namespace codegen {
                 //         assert(llvm::isa<llvm::Constant>(nullPtr));
                 // }
 
+                assert(type != python::Type::UNKNOWN && llvm_type);
+
+                // special case empty types, use dummy
+                if(type.isSingleValued()) {
+                    if(python::Type::EMPTYITERATOR == type) // <-- for now only support iterator, check for empty list & Co.
+                        return {}; // <-- nullptr
+                }
+
+                // special case iterator: Load here a pointer (because it points to a concrete iter and not a value, i.e. implement here pass-by-ref sermantics.)
+                // TODO: need to do the same for lists and other objects
+                // only load immutable elements directly -> TODO: extend this here! -> maybe refactor better to capture object properties?
+                llvm::Value* value = nullptr;
+                if(passByValue()) {
+                    // load value
+                    value = builder.CreateLoad(llvm_type, ptr);
+
+                } else {
+                    assert(!llvm_type->isPointerTy());
+                    // load reference
+                    value = builder.CreateLoad(llvm_type->getPointerTo(), ptr);
+                }
+
                 // iterator slot may not have ptr yet
-                return codegen::SerializableValue(builder.CreateLoad(ptr), builder.CreateLoad(sizePtr),
-                        nullPtr ? builder.CreateLoad(nullPtr) : nullptr);
+                return codegen::SerializableValue(value, builder.CreateLoad(builder.getInt64Ty(), sizePtr),
+                        nullPtr ? builder.CreateLoad(builder.getInt1Ty(), nullPtr) : nullptr);
             }
 
-            inline void store(llvm::IRBuilder<>& builder, const codegen::SerializableValue& val) {
+            inline void store(const codegen::IRBuilder& builder, const codegen::SerializableValue& val) {
                 assert(ptr && sizePtr);
 
                 if(val.val) {
-                    // if tuples etc. are used, then there could be a pointer. When this happens, load & then assign
-                    if(val.val->getType() == ptr->getType()) {
-                        // load val
-                        auto tmp = builder.CreateLoad(val.val);
-                        builder.CreateStore(tmp, ptr);
-                    } else {
+
+                    // new: -> simply store to pointer.
+
+                    // LLVM9 pointer type check
+                    if(passByValue()) {
 #ifndef NDEBUG
-                        if(val.val->getType()->getPointerTo(0) != ptr->getType()) {
-                            auto err_msg = "trying to store value of type "
-                                           + LLVMEnvironment::getLLVMTypeName(val.val->getType())
-                                           + " to a pointer of type " + LLVMEnvironment::getLLVMTypeName(ptr->getType());
-                            throw std::runtime_error(err_msg);
+                        if(val.val->getType()->getPointerTo() != ptr->getType()) {
+                            std::stringstream err;
+                            err<<"attempting to store value of LLVM type "<<env->getLLVMTypeName(val.val->getType())<<" to slot expecting LLVM type "<<env->getLLVMTypeName(ptr->getType());
+                            Logger::instance().logger("codegen").error(err.str());
+                        }
+#endif
+                        assert(val.val->getType()->getPointerTo() == ptr->getType());
+                    } else {
+
+                        // debug checks
+#ifndef NDEBUG
+                        if(val.val->getType()->getPointerTo() != ptr->getType()) {
+                            std::stringstream err;
+                            err<<"attempting to store value of LLVM type "<<env->getLLVMTypeName(val.val->getType())<<" to slot expecting LLVM type "<<env->getLLVMTypeName(ptr->getType());
+                            Logger::instance().logger("codegen").error(err.str());
                         }
 #endif
 
-                        assert(val.val->getType()->getPointerTo(0) == ptr->getType());
-                        builder.CreateStore(val.val, ptr);
+                        assert(val.val->getType()->isPointerTy());
+                        assert(val.val->getType()->getPointerTo() == ptr->getType());
                     }
+
+                    builder.CreateStore(val.val, ptr, false);
                 }
 
                 if(val.size) {
@@ -168,6 +205,36 @@ namespace codegen {
                     builder.CreateStore(val.is_null, nullPtr);
                 }
             }
+
+            static bool passByValue(const python::Type& t) {
+                assert(t != python::Type::UNKNOWN);
+
+                // for option, decide based on underlying type
+                if(t.isOptionType())
+                    return passByValue(t.getReturnType());
+
+                if(t.isIteratorType())
+                    return false;
+
+                // dictionary type right now mapped to i8* already, so mapping is mutable.
+                return t.isImmutable() || t.isDictionaryType();
+            }
+
+        private:
+
+            llvm::Type* deriveLLVMType() const {
+                assert(env);
+
+                // get rid off option!
+
+                // only string, bool, int, f64 so far supported!
+                auto t_without_option = type.isOptionType() ? type.getReturnType() : type;
+                return env->pythonToLLVMType(t_without_option);
+            }
+
+            inline bool passByValue() const {
+               return passByValue(type);
+            }
         };
 
 
@@ -179,9 +246,9 @@ namespace codegen {
 
             VariableSlot():type(python::Type::UNKNOWN), definedPtr(nullptr) {}
 
-            void generateUnboundLocalCheck(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder) {
+            void generateUnboundLocalCheck(LambdaFunctionBuilder& lfb, codegen::IRBuilder& builder) {
                 assert(definedPtr);
-                auto val = builder.CreateLoad(definedPtr);
+                auto val = builder.CreateLoad(builder.getInt1Ty(), definedPtr);
                 auto c_val = llvm::dyn_cast<llvm::ConstantInt>(val);
                 if(c_val && c_val->getValue().getBoolValue()) {
                     // nothing todo, just remove the load instruction
@@ -196,7 +263,7 @@ namespace codegen {
                 }
             }
 
-            bool isDefined(llvm::IRBuilder<>& builder) const {
+            bool isDefined(codegen::IRBuilder& builder) const {
                 // unknown type?
                 if(type == python::Type::UNKNOWN)
                     return false;
@@ -205,7 +272,7 @@ namespace codegen {
                 if(!definedPtr)
                     return false;
 
-                auto val = builder.CreateLoad(definedPtr);
+                auto val = builder.CreateLoad(builder.getInt1Ty(), definedPtr);
                 auto c_val = llvm::dyn_cast<llvm::ConstantInt>(val);
                 if(c_val) {
                     val->eraseFromParent();
@@ -229,11 +296,11 @@ namespace codegen {
             llvm::Value* defined;
             llvm::Value* original_defined_ptr;
 
-            static VariableRealization fromSlot(llvm::IRBuilder<>& builder, const std::string& name, const VariableSlot& slot) {
+            static VariableRealization fromSlot(codegen::IRBuilder&builder, const std::string& name, const VariableSlot& slot) {
                 VariableRealization r;
                 r.name = name;
                 r.type = slot.type;
-                r.defined = builder.CreateLoad(slot.definedPtr);
+                r.defined = builder.CreateLoad(builder.getInt1Ty(), slot.definedPtr);
                 r.val = slot.var.load(builder);
 
                 r.original_ptr = SerializableValue(slot.var.ptr, slot.var.sizePtr, slot.var.nullPtr);
@@ -242,7 +309,7 @@ namespace codegen {
             }
         };
 
-        inline std::unordered_map<std::string, VariableRealization> snapshotVariableValues(llvm::IRBuilder<>& builder) {
+        inline std::unordered_map<std::string, VariableRealization> snapshotVariableValues(codegen::IRBuilder&builder) {
             std::unordered_map<std::string, VariableRealization> var_realizations;
             for(auto p : _variableSlots) {
                 auto r = VariableRealization::fromSlot(builder, p.first, p.second);
@@ -251,7 +318,7 @@ namespace codegen {
             return var_realizations;
         }
 
-        inline void restoreVariableSlots(llvm::IRBuilder<>& builder, const std::unordered_map<std::string, VariableRealization>& var_realizations, bool delete_others=false) {
+        inline void restoreVariableSlots(codegen::IRBuilder& builder, const std::unordered_map<std::string, VariableRealization>& var_realizations, bool delete_others=false) {
             using namespace std;
             // when delete is specified, delete all slots which are not used anymore!
             // TODO: potentially add lifetime end!
@@ -414,10 +481,10 @@ namespace codegen {
         }
 
         // upcast return type
-        SerializableValue upCastReturnType(llvm::IRBuilder<>& builder, const SerializableValue& val, const python::Type& type, const python::Type& targetType);
+        SerializableValue upCastReturnType(const codegen::IRBuilder& builder, const SerializableValue& val, const python::Type& type, const python::Type& targetType);
 
-        SerializableValue CreateDummyValue(llvm::IRBuilder<>& builder, const python::Type& type);
-        SerializableValue popWithNullCheck(llvm::IRBuilder<>& builder, ExceptionCode ec, const std::string& message="");
+        SerializableValue CreateDummyValue(const codegen::IRBuilder& builder, const python::Type& type);
+        SerializableValue popWithNullCheck(const codegen::IRBuilder& builder, ExceptionCode ec, const std::string& message="");
 
         SerializableValue additionInst(const SerializableValue &L, NBinaryOp *op, const SerializableValue &R);
 
@@ -436,9 +503,9 @@ namespace codegen {
 
         llvm::Value* powerInst(llvm::Value *L, NBinaryOp *op, llvm::Value *R);
 
-        llvm::Value* oneSidedNullComparison(llvm::IRBuilder<>& builder, const python::Type& type, const TokenType& tt, llvm::Value* isnull);
+        llvm::Value* oneSidedNullComparison(const codegen::IRBuilder& builder, const python::Type& type, const TokenType& tt, llvm::Value* isnull);
 
-        llvm::Value *compareInst(llvm::IRBuilder<>& builder,
+        llvm::Value *compareInst(const codegen::IRBuilder& builder,
                                 llvm::Value *L,
                                  llvm::Value *L_isnull,
                                  const python::Type &leftType,
@@ -447,23 +514,23 @@ namespace codegen {
                                  llvm::Value *R_isnull,
                                  const python::Type &rightType);
 
-        llvm::Value *compareInst(llvm::IRBuilder<>& builder,
+        llvm::Value *compareInst(const codegen::IRBuilder& builder,
                                  llvm::Value *L,
                                  const python::Type &leftType,
                                  const TokenType &tt,
                                  llvm::Value *R,
                                  const python::Type &rightType);
 
-        llvm::Value* listInclusionCheck(llvm::IRBuilder<> &builder, llvm::Value *L, const python::Type &leftType,
+        llvm::Value* listInclusionCheck(const codegen::IRBuilder& builder, llvm::Value *L, const python::Type &leftType,
                                 llvm::Value *R, const python::Type &rightType);
 
-        llvm::Value *numericCompareInst(llvm::IRBuilder<>& builder, llvm::Value *L,
+        llvm::Value *numericCompareInst(const codegen::IRBuilder& builder, llvm::Value *L,
                                  const python::Type &leftType,
                                  const TokenType &tt,
                                  llvm::Value *R,
                                  const python::Type &rightType);
 
-        llvm::Value *stringCompareInst(llvm::IRBuilder<>& builder, llvm::Value *L,
+        llvm::Value *stringCompareInst(const codegen::IRBuilder& builder, llvm::Value *L,
                                        const python::Type &leftType,
                                        const TokenType &tt,
                                        llvm::Value *R,
@@ -475,7 +542,7 @@ namespace codegen {
 
         SerializableValue stringSliceInst(const SerializableValue& value, llvm::Value *start, llvm::Value *end, llvm::Value *stride);
 
-        llvm::Value *processSliceIndex(llvm::IRBuilder<> &builder, llvm::Value *index, llvm::Value *len, llvm::Value *stride);
+        llvm::Value *processSliceIndex(const codegen::IRBuilder& builder, llvm::Value *index, llvm::Value *len, llvm::Value *stride);
 
         SerializableValue tupleStaticSliceInst(ASTNode *tuple_node, ASTNode *start_node, ASTNode *end_node,
                 ASTNode *stride_node, const SerializableValue& tuple, llvm::Value *start, llvm::Value *end,
@@ -491,7 +558,7 @@ namespace codegen {
          * @param type desired type
          * @return
          */
-        llvm::Value *upCast(llvm::IRBuilder<> &builder, llvm::Value *val, llvm::Type *type);
+        llvm::Value *upCast(const codegen::IRBuilder &builder, llvm::Value *val, llvm::Type *type);
 
         llvm::Value *i32Const(const int32_t val) {
             return llvm::Constant::getIntegerValue(llvm::Type::getInt32Ty(_env->getContext()), llvm::APInt(32, val));
@@ -643,16 +710,17 @@ namespace codegen {
 
         llvm::Value *binaryInst(llvm::Value *R, NBinaryOp *op, llvm::Value *L);
 
-        void updateSlotsBasedOnRealizations(llvm::IRBuilder<>& builder,
+        void updateSlotsBasedOnRealizations(const codegen::IRBuilder& builder,
                                             const std::unordered_map<std::string, VariableRealization>& var_realizations,
                                             const std::string &branch_name,
                                             bool allowNumericUpcasting);
 
-        void updateSlotsWithSharedTypes(llvm::IRBuilder<> &builder,
+        void updateSlotsWithSharedTypes(const codegen::IRBuilder& builder,
                                         const std::unordered_map<std::string, VariableRealization> &if_var_realizations,
                                         const std::unordered_map<std::string, VariableRealization> &else_var_realizations);
 
-        llvm::Value *generateConstantIntegerPower(llvm::IRBuilder<>& builder, llvm::Value *base, int64_t exponent);
+        llvm::Value *generateConstantIntegerPower(const codegen::IRBuilder& builder,
+                                                  llvm::Value *base, int64_t exponent);
 
         /*!
          * should get called when targetType is iteratorType
@@ -664,7 +732,7 @@ namespace codegen {
          * @param targetType
          * @param iteratorInfo
          */
-        void updateIteratorVariableSlot(llvm::IRBuilder<> &builder,
+        void updateIteratorVariableSlot(const codegen::IRBuilder &builder,
                                         VariableSlot *slot,
                                         const SerializableValue &val,
                                         const python::Type &targetType,

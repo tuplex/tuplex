@@ -24,6 +24,13 @@
 #include <set>
 #include <vector>
 
+// use this to not sanitize a function, cf. https://github.com/google/sanitizers/wiki/AddressSanitizer#turning-off-instrumentation
+#if defined(__clang__) || defined (__GNUC__)
+# define ATTRIBUTE_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
+#else
+# define ATTRIBUTE_NO_SANITIZE_ADDRESS
+#endif
+
 
 // to detect platform, use here boost predef
 #include <boost/predef.h>
@@ -50,7 +57,7 @@
   #endif
 #endif
 #if __GNUC__
-#if __x86_64__ || __ppc64__
+#if __x86_64__ || __ppc64__ || __arm64__
 #define ENV64BIT
 #else
 #define ENV32BIT
@@ -131,9 +138,16 @@ typedef int32_t* ptr_t;
 
 // cJSON / AWS SDK fix
 #ifdef BUILD_WITH_AWS
+#include <aws/core/VersionConfig.h>
 #include <aws/core/external/cjson/cJSON.h>
+
+#ifndef AWS_SDK_VERSION_MAJOR
+#error "need to include files defining AWS SDK version"
+#endif
+
 // newer AWS SDK version shadowed symbols, hence need to add defines to fix this
-#if (AWS_SDK_VERSION_MAJOR >= 1 && AWS_SDK_VERSION_MINOR >= 9 && AWS_SDK_VERSION_PATCH >= 134)
+// version must be >= 1.9.134
+#if (AWS_SDK_VERSION_MAJOR == 1 && AWS_SDK_VERSION_MINOR == 9 && AWS_SDK_VERSION_PATCH >= 134) || (AWS_SDK_VERSION_MAJOR == 1 && AWS_SDK_VERSION_MINOR > 9) || (AWS_SDK_VERSION_MAJOR > 1)
 
 #define cJSON_Hooks cJSON_AS4CPP_Hooks
 

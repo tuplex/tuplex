@@ -23,6 +23,9 @@ import fnmatch
 import re
 import atexit
 
+# variables for build configuration
+LLVM_CI_ROOT_DIR = '/opt/llvm-16.0.6'
+
 def in_google_colab():
     """
         check whether framework runs in Google Colab environment
@@ -311,8 +314,7 @@ class CMakeBuild(build_ext):
             #       -DPython3_LIBRARY=/opt/python/cp37-cp37m/lib/python3.7/ \
             #       -DBoost_INCLUDE_DIR=/opt/boost/python3.7/include/ \
             #       -DLLVM_ROOT=/usr/lib64/llvm9.0/ ..
-            # llvm_root = '/usr/lib64/llvm9.0/' # yum based
-            llvm_root = '/opt/llvm-9.0'  # manual install
+            llvm_root = LLVM_CI_ROOT_DIR # set via variable (configurable above)
             boost_include_dir = '/opt/boost/python{}/include/'.format(py_maj_min)
             py_include_dir = pyconfig.get_paths()['include']
             py_libs_dir = pyconfig.get_paths()['stdlib']
@@ -378,10 +380,10 @@ class CMakeBuild(build_ext):
         if llvm_root is not None:
             cmake_args.append('-DLLVM_ROOT={}'.format(llvm_root))
             if os.environ.get('CIBUILDWHEEL', '0') == '1':
-                print('setting prefix path...')
                 # ci buildwheel?
                 # /opt/llvm-9.0/lib/cmake/llvm/
-                prefix_path = "/opt/llvm-9.0/lib/cmake/llvm/" #os.path.join(llvm_root, '/lib/cmake/llvm')
+                prefix_path = os.path.join(llvm_root, '/lib/cmake/llvm')
+                
                 #cmake_args.append('-DCMAKE_PREFIX_PATH={}'.format(prefix_path))
                 cmake_args.append('-DLLVM_DIR={}'.format(prefix_path))
                 cmake_args.append('-DLLVM_ROOT_DIR={}'.format(llvm_root))
@@ -463,7 +465,7 @@ class CMakeBuild(build_ext):
         else:
             # restrict to shared object only...
             logging.info('Building only shared objects...')
-            build_args += ['--target', 'tuplex']
+            build_args += ['--target', 'tuplex', 'runtime']
 
         # hack: only run for first invocation!
         if ext_filename == 'tuplex_runtime':

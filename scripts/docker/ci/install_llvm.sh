@@ -1,8 +1,55 @@
 #!/usr/bin/env bash
 #(c) 2017-2022 Tuplex team
 
+set -euxo pipefail
 
-# install LLVM 9.0.1 to use for building wheels
+# install LLVM 16.0.6 to use for building wheels
+# github actions runs into space issues when using both 9.0.1 and 16.0.6
+# LLVM_VERSIONS_TO_INSTALL=(9.0.1 16.0.6)
+LLVM_VERSIONS_TO_INSTALL=(16.0.6)
+
+function install_llvm {
+   LLVM_VERSION=$1
+   LLVM_MAJOR_VERSION=`echo ${LLVM_VERSION} | cut -d. -f1`
+   LLVM_MINOR_VERSION=`echo ${LLVM_VERSION} | cut -d. -f2`
+   LLVM_MAJMIN_VERSION="${LLVM_MAJOR_VERSION}.${LLVM_MINOR_VERSION}"
+
+   # list of targets available to build: AArch64;AMDGPU;ARM;AVR;BPF;Hexagon;Lanai;LoongArch;Mips;MSP430;NVPTX;PowerPC;RISCV;Sparc;SystemZ;VE;WebAssembly;X86;XCore
+   # in order to cross-compile, should use targets:
+
+
+   echo ">> building LLVM ${LLVM_VERSION}"
+   LLVM_URL=https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/llvm-${LLVM_VERSION}.src.tar.xz
+   CLANG_URL=https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/clang-${LLVM_VERSION}.src.tar.xz
+   # required when LLVM version > 15
+   LLVM_CMAKE_URL=https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/cmake-${LLVM_VERSION}.src.tar.xz
+
+   PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE:-python3}
+   PYTHON_BASENAME="$(basename -- $PYTHON_EXECUTABLE)"
+   PYTHON_VERSION=$(${PYTHON_EXECUTABLE} --version)
+   echo ">> Building dependencies for ${PYTHON_VERSION}"
+
+   echo ">> Downloading prerequisites for llvm ${LLVM_VERSION}}"
+   LLVM_WORKDIR=${WORKDIR}/llvm${LLVM_VERSION}
+   mkdir -p ${LLVM_WORKDIR}
+   pushd "${LLVM_WORKDIR}" || exit 1
+
+   wget ${LLVM_URL} && tar xf llvm-${LLVM_VERSION}.src.tar.xz
+   wget ${CLANG_URL} && tar xf clang-${LLVM_VERSION}.src.tar.xz && mv clang-${LLVM_VERSION}.src llvm-${LLVM_VERSION}.src/../clang
+
+   if (( LLVM_MAJOR_VERSION >= 15 )); then
+      wget ${LLVM_CMAKE_URL} && tar xf cmake-${LLVM_VERSION}.src.tar.xz && mv cmake-${LLVM_VERSION}.src cmake
+   fi
+
+  mkdir -p llvm-${LLVM_VERSION}.src/build && cd llvm-${LLVM_VERSION}.src/build
+
+   cmake -GNinja -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON -DLLVM_ENABLE_PROJECTS="clang" -DLLVM_TARGETS_TO_BUILD="X86;AArch64" \
+         -DCMAKE_BUILD_TYPE=Release -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF  \
+         -DCMAKE_INSTALL_PREFIX=/opt/llvm-${LLVM_VERSION} ..
+   ninja install
+  popd
+}
+
 
 PREFIX=${PREFIX:-/opt}
 WORKDIR=${WORKDIR:-/tmp}
@@ -19,16 +66,9 @@ echo ">> Files will be downloaded to ${WORKDIR}/tuplex-downloads"
 WORKDIR=$WORKDIR/tuplex-downloads
 mkdir -p $WORKDIR
 
-yum update && yum install -y wget libxml2-devel
-mkdir -p ${WORKDIR}/llvm && cd ${WORKDIR}/llvm && wget https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1/llvm-9.0.1.src.tar.xz \
-&& wget https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1/clang-9.0.1.src.tar.xz \
-&& tar xf llvm-9.0.1.src.tar.xz && tar xf clang-9.0.1.src.tar.xz \
-&& mkdir llvm9 && mv clang-9.0.1.src llvm9/clang \
-    && mv llvm-9.0.1.src llvm9/llvm-9.0.1.src \
-    && cd llvm9 && mkdir build && cd build \
-&& cmake -DLLVM_ENABLE_RTTI=ON -DLLVM_ENABLE_EH=ON \
-        -DLLVM_ENABLE_PROJECTS="clang" \
-         -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-std=c++11" \
-         -DCMAKE_INSTALL_PREFIX=/opt/llvm-9.0 ../llvm-9.0.1.src \
-         && make -j "$(nproc)" && make install
-cd ${PREFIX}/llvm-9.0/bin && ln -s clang++ clang++-9.0
+for llvm_version in "${LLVM_VERSIONS_TO_INSTALL[@]}"; do
+  echo "Installing LLVM ${llvm_version}"
+  install_llvm ${llvm_version}
+done
+
+echo "done with LLVM install"

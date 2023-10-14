@@ -17,7 +17,11 @@
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/TargetSelect.h>
+#if LLVM_VERSION_MAJOR < 14
 #include <llvm/Support/TargetRegistry.h>
+#else
+#include <llvm/MC/TargetRegistry.h>
+#endif
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/IR/LegacyPassManager.h>
@@ -35,9 +39,15 @@
 #include <llvm/Bitstream/BitCodes.h>
 #include <llvm/Bitcode/BitcodeReader.h>
 
+// llvm 10 refactored sys into Host
+#if LLVM_VERSION_MAJOR > 9
+#include <llvm/Support/Host.h>
+#endif
+
+#include <llvm/Support/ManagedStatic.h>
+
 namespace tuplex {
     namespace codegen {
-
         // global var because often only references are passed around.
         // CompilePolicy DEFAULT_COMPILE_POLICY = CompilePolicy();
 
@@ -57,8 +67,109 @@ namespace tuplex {
             llvmInitialized = false;
         }
 
+        // IRBuilder definitions
+        IRBuilder::IRBuilder(llvm::BasicBlock *bb) {
+            _llvm_builder = std::make_unique<llvm::IRBuilder<>>(bb);
+        }
+
+        IRBuilder::IRBuilder(llvm::IRBuilder<> &llvm_builder) {
+            _llvm_builder = std::make_unique<llvm::IRBuilder<>>(llvm_builder.getContext());
+            _llvm_builder->SetInsertPoint(llvm_builder.GetInsertBlock(), llvm_builder.GetInsertPoint());
+        }
+
+        IRBuilder::IRBuilder(const IRBuilder &other) : _llvm_builder(nullptr) {
+            if(other._llvm_builder) {
+                // cf. https://reviews.llvm.org/D74693
+                auto& ctx = other._llvm_builder->getContext();
+                const llvm::DILocation *DL = nullptr;
+                _llvm_builder.reset(new llvm::IRBuilder<>(ctx));
+                llvm::Instruction* InsertBefore = nullptr;
+                auto InsertBB = other._llvm_builder->GetInsertBlock();
+                if(InsertBB && !InsertBB->empty()) {
+                    auto& inst = *InsertBB->getFirstInsertionPt();
+                    InsertBefore = &inst;
+                }
+                if(InsertBefore)
+                    _llvm_builder->SetInsertPoint(InsertBefore);
+                else if(InsertBB)
+                    _llvm_builder->SetInsertPoint(InsertBB);
+                _llvm_builder->SetCurrentDebugLocation(DL);
+            }
+        }
+
+        IRBuilder::IRBuilder(llvm::LLVMContext& ctx) {
+            _llvm_builder = std::make_unique<llvm::IRBuilder<>>(ctx);
+        }
+
+        IRBuilder::~IRBuilder() {
+            if(_llvm_builder)
+                _llvm_builder->ClearInsertionPoint();
+        }
+
+        IRBuilder IRBuilder::firstBlockBuilder(bool insertAtEnd) const {
+            // create new IRBuilder for first block
+
+            // empty builder? I.e., no basicblock?
+            if(!_llvm_builder)
+                return IRBuilder();
+
+            assert(_llvm_builder->GetInsertBlock());
+            assert(_llvm_builder->GetInsertBlock()->getParent());
+
+            // function shouldn't be empty when this function here is called!
+            assert(!_llvm_builder->GetInsertBlock()->getParent()->empty());
+
+            // create new builder to avoid memory issues
+            auto b = std::make_unique<llvm::IRBuilder<>>(_llvm_builder->GetInsertBlock());
+
+            // special case: no instructions yet present?
+            auto func = b->GetInsertBlock()->getParent();
+            auto is_empty = b->GetInsertBlock()->getParent()->empty();
+            //auto num_blocks = func->getBasicBlockList().size();
+            auto firstBlock = &func->getEntryBlock();
+
+            if(firstBlock->empty())
+                return IRBuilder(firstBlock);
+
+            if(!insertAtEnd) {
+                auto it = firstBlock->getFirstInsertionPt();
+                auto inst_name = it->getName().str();
+                return IRBuilder(it);
+            } else {
+                // create inserter unless it's a branch instruction
+                auto it = firstBlock->getFirstInsertionPt();
+                auto lastit = it;
+                while(it != firstBlock->end() && !llvm::isa<llvm::BranchInst>(*it)) {
+                    lastit = it;
+                    ++it;
+                }
+                return IRBuilder(lastit);
+            }
+        }
+
+        void IRBuilder::initFromIterator(llvm::BasicBlock::iterator it) {
+            if(it->getParent()->empty())
+                _llvm_builder = std::make_unique<llvm::IRBuilder<>>(it->getParent());
+            else {
+                auto& ctx = it->getParent()->getContext();
+                _llvm_builder = std::make_unique<llvm::IRBuilder<>>(ctx);
+
+                // instruction & basic block
+                auto bb = it->getParent();
+
+                auto pt = llvm::IRBuilderBase::InsertPoint(bb, it);
+                _llvm_builder->restoreIP(pt);
+            }
+        }
+
+        IRBuilder::IRBuilder(const llvm::IRBuilder<> &llvm_builder) : IRBuilder(llvm_builder.GetInsertPoint()) {}
+
+        IRBuilder::IRBuilder(llvm::BasicBlock::iterator it) {
+            initFromIterator(it);
+        }
+
         // Clang doesn't work well with ASAN, disable here container overflow.
-        __attribute__((no_sanitize_address)) std::string getLLVMFeatureStr() {
+        ATTRIBUTE_NO_SANITIZE_ADDRESS std::string getLLVMFeatureStr() {
             using namespace llvm;
             SubtargetFeatures Features;
 
@@ -85,7 +196,7 @@ namespace tuplex {
             auto triple = sys::getProcessTriple();//sys::getDefaultTargetTriple();
             std::string error;
             auto theTarget = llvm::TargetRegistry::lookupTarget(triple, error);
-            std::string CPUStr = sys::getHostCPUName();
+            std::string CPUStr = sys::getHostCPUName().str();
 
             //logger.info("using LLVM for target triple: " + triple + " target: " + theTarget->getName() + " CPU: " + CPUStr);
 
@@ -126,9 +237,12 @@ namespace tuplex {
 #if LLVM_VERSION_MAJOR == 9
             target_machine->addPassesToEmitFile(pass_manager, asm_sstream, nullptr,
                                                 llvm::TargetMachine::CGFT_AssemblyFile);
-#else
+#elif LLVM_VERSION_MAJOR < 9
             target_machine->addPassesToEmitFile(pass_manager, asm_sstream,
                                                 llvm::TargetMachine::CGFT_AssemblyFile);
+#else
+            target_machine->addPassesToEmitFile(pass_manager, asm_sstream, nullptr,
+                                                llvm::CodeGenFileType::CGFT_AssemblyFile);
 #endif
 
             pass_manager.run(*module);
@@ -211,7 +325,7 @@ namespace tuplex {
             return mod;
         }
 
-        llvm::Value* upCast(llvm::IRBuilder<> &builder, llvm::Value *val, llvm::Type *destType) {
+        llvm::Value* upCast(const codegen::IRBuilder& builder, llvm::Value *val, llvm::Type *destType) {
             // check if types are the same, then just return val
             if (val->getType() == destType)
                 return val;
@@ -236,7 +350,7 @@ namespace tuplex {
         }
 
         llvm::Value *
-        dictionaryKey(llvm::LLVMContext &ctx, llvm::Module *mod, llvm::IRBuilder<> &builder, llvm::Value *val,
+        dictionaryKey(llvm::LLVMContext &ctx, llvm::Module *mod, const codegen::IRBuilder &builder, llvm::Value *val,
                       python::Type keyType, python::Type valType) {
             // get key to string
             auto strFormat_func = strFormat_prototype(ctx, mod);
@@ -285,15 +399,15 @@ namespace tuplex {
         // TODO: Do we need to use lfb to add checks?
         SerializableValue
         dictionaryKeyCast(llvm::LLVMContext &ctx, llvm::Module* mod,
-                          llvm::IRBuilder<> &builder, llvm::Value *val, python::Type keyType) {
+                          const codegen::IRBuilder& builder, llvm::Value *val, python::Type keyType) {
             // type chars
             auto s_char = llvm::Constant::getIntegerValue(llvm::Type::getInt8Ty(ctx), llvm::APInt(8, 's'));
             auto b_char = llvm::Constant::getIntegerValue(llvm::Type::getInt8Ty(ctx), llvm::APInt(8, 'b'));
             auto i_char = llvm::Constant::getIntegerValue(llvm::Type::getInt8Ty(ctx), llvm::APInt(8, 'i'));
             auto f_char = llvm::Constant::getIntegerValue(llvm::Type::getInt8Ty(ctx), llvm::APInt(8, 'f'));
 
-            auto typechar = builder.CreateLoad(val);
-            auto keystr = builder.CreateGEP(val, llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, 2)));
+            auto typechar = builder.CreateLoad(builder.getInt8Ty(), val);
+            auto keystr = builder.MovePtrByBytes(val, llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, 2)));
             auto keylen = builder.CreateCall(strlen_prototype(ctx, mod), {keystr});
             if(keyType == python::Type::STRING) {
 //                lfb.addException(builder, ExceptionCode::UNKNOWN, builder.CreateICmpEQ(typechar, s_char));
@@ -302,39 +416,39 @@ namespace tuplex {
 //                lfb.addException(builder, ExceptionCode::UNKNOWN, builder.CreateICmpEQ(typechar, b_char));
                 auto value = builder.CreateAlloca(llvm::Type::getInt8Ty(ctx), 0, nullptr);
                 auto strBegin = keystr;
-                auto strEnd = builder.CreateGEP(strBegin, keylen);
+                auto strEnd = builder.MovePtrByBytes(strBegin, keylen);
                 auto resCode = builder.CreateCall(fastatob_prototype(ctx, mod), {strBegin, strEnd, value});
                 auto cond = builder.CreateICmpNE(resCode, llvm::Constant::getIntegerValue(llvm::Type::getInt32Ty(ctx),
                                                                                           llvm::APInt(32,
                                                                                                       ecToI32(ExceptionCode::SUCCESS))));
 //                lfb.addException(builder, ExceptionCode::VALUEERROR, cond);
-                return SerializableValue(builder.CreateLoad(value),
+                return SerializableValue(builder.CreateZExtOrTrunc(builder.CreateLoad(llvm::Type::getInt8Ty(ctx), value), builder.getInt64Ty()),
                         llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx),
                                 llvm::APInt(64, sizeof(int64_t))));
             } else if (keyType == python::Type::I64) {
 //                lfb.addException(builder, ExceptionCode::UNKNOWN, builder.CreateICmpEQ(typechar, i_char));
                 auto value = builder.CreateAlloca(llvm::Type::getInt64Ty(ctx), 0, nullptr);
                 auto strBegin = keystr;
-                auto strEnd = builder.CreateGEP(strBegin, keylen);
+                auto strEnd = builder.MovePtrByBytes(strBegin, keylen);
                 auto resCode = builder.CreateCall(fastatoi_prototype(ctx, mod), {strBegin, strEnd, value});
                 auto cond = builder.CreateICmpNE(resCode, llvm::Constant::getIntegerValue(llvm::Type::getInt32Ty(ctx),
                                                                                           llvm::APInt(32,
                                                                                                       ecToI32(ExceptionCode::SUCCESS))));
 //                lfb.addException(builder, ExceptionCode::VALUEERROR, cond);
-                return SerializableValue(builder.CreateLoad(value),
+                return SerializableValue(builder.CreateLoad(llvm::Type::getInt64Ty(ctx), value),
                                          llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx),
                                                                          llvm::APInt(64, sizeof(int64_t))));
             } else if (keyType == python::Type::F64) {
 //                lfb.addException(builder, ExceptionCode::UNKNOWN, builder.CreateICmpEQ(typechar, f_char));
                 auto value = builder.CreateAlloca(llvm::Type::getDoubleTy(ctx), 0, nullptr);
                 auto strBegin = keystr;
-                auto strEnd = builder.CreateGEP(strBegin, keylen);
+                auto strEnd = builder.MovePtrByBytes(strBegin, keylen);
                 auto resCode = builder.CreateCall(fastatod_prototype(ctx, mod), {strBegin, strEnd, value});
                 auto cond = builder.CreateICmpNE(resCode, llvm::Constant::getIntegerValue(llvm::Type::getInt32Ty(ctx),
                                                                                           llvm::APInt(32,
                                                                                                       ecToI32(ExceptionCode::SUCCESS))));
 //                lfb.addException(builder, ExceptionCode::VALUEERROR, cond);
-                return SerializableValue(builder.CreateLoad(value),
+                return SerializableValue(builder.CreateLoad(llvm::Type::getDoubleTy(ctx), value),
                                          llvm::Constant::getIntegerValue(llvm::Type::getInt64Ty(ctx),
                                                                          llvm::APInt(64, sizeof(double))));
             } else {
@@ -375,20 +489,6 @@ namespace tuplex {
             InstructionCounts inst_count(*name);
             inst_count.runOnModule(*mod);
             return inst_count.formattedStats(include_detailed_counts);
-        }
-
-        std::string globalVariableToString(llvm::Value* value) {
-            using namespace llvm;
-            assert(value);
-
-            if(!value || !dyn_cast<ConstantExpr>(value))
-                throw std::runtime_error("value is not a constant expression");
-            auto *CE = dyn_cast<ConstantExpr>(value);
-            StringRef Str;
-            if(getConstantStringInfo(CE, Str)) {
-                return Str.str();
-            }
-            return "";
         }
 
 
@@ -459,8 +559,32 @@ namespace tuplex {
                 Buffer.push_back(0);
         }
 
+        bool validateModule(const llvm::Module& mod) {
+            // check if module is ok, if not print out issues & throw exception
+
+            // run verify pass on module and print out any errors, before attempting to compile it
+            std::string moduleErrors = "";
+            llvm::raw_string_ostream os(moduleErrors);
+            if(llvm::verifyModule(mod, &os)) {
+                std::stringstream errStream;
+                os.flush();
+                auto llvmIR = moduleToString(mod);
+
+                errStream<<"could not verify module:\n>>>>>>>>>>>>>>>>>\n"<<core::withLineNumbers(llvmIR)<<"\n<<<<<<<<<<<<<<<<<\n";
+                errStream<<moduleErrors;
+
+                throw std::runtime_error("failed to verify module (code: " + std::to_string(llvm::inconvertibleErrorCode().value()) + "), details: " + errStream.str());
+            }
+            return true;
+        }
+
         uint8_t* moduleToBitCode(const llvm::Module& module, size_t* bufSize) {
             using namespace llvm;
+
+            // in debug mode validate module first before writing it out
+#ifndef NDEBUG
+            validateModule(module);
+#endif
 
             SmallVector<char, 0> Buffer;
             Buffer.reserve(256 * 1014); // 256K
@@ -496,24 +620,28 @@ namespace tuplex {
         std::string moduleToBitCodeString(const llvm::Module& module) {
             using namespace llvm;
 
-            // in debug mode, verify module first
+            // in debug mode validate module first before writing it out
 #ifndef NDEBUG
+            validateModule(module);
+#endif
+
+            // iterate over functions
             {
-                // run verify pass on module and print out any errors, before attempting to compile it
-                std::string moduleErrors;
-                llvm::raw_string_ostream os(moduleErrors);
-                if (verifyModule(module, &os)) {
-                    os.flush();
-                    auto llvmIR = moduleToString(module);
-                    Logger::instance().logger("LLVM Backend").error("could not verify module:\n>>>>>>>>>>>>>>>>>\n"
-                                                                    + core::withLineNumbers(llvmIR)
-                                                                    + "\n<<<<<<<<<<<<<<<<<");
-                    Logger::instance().logger("LLVM Backend").error(moduleErrors);
-                    return "";
+                std::stringstream ss;
+                for(auto& func : module) {
+                    ss<<"function: "<<func.getName().str()<<std::endl;
+
+                    // type
+                    auto type = func.getType();
+                    ss<<"type: "<<type<<std::endl;
                 }
+
+                Logger::instance().logger("LLVM Backend").debug(ss.str());
             }
 
-#endif
+
+            // cf. https://github.com/llvm-mirror/llvm/blob/master/tools/verify-uselistorder/verify-uselistorder.cpp#L179
+            // to check that everything is mappable?
 
             // simple conversion using LLVM builtins...
             std::string out_str;
@@ -551,6 +679,118 @@ namespace tuplex {
             // bc_str.assign((char*)&Buffer.front(), bc_size);
             // assert(bc_str.length() == bc_size);
             // return bc_str;
+        }
+
+        void annotateModuleWithInstructionPrint(llvm::Module& mod, bool print_values) {
+
+            auto printf_func = codegen::printf_prototype(mod.getContext(), &mod);
+
+            // lookup table for names (before modifying module!)
+            std::unordered_map<llvm::Instruction*, std::string> names;
+            for(auto& func : mod) {
+                for(auto& bb : func) {
+
+                    for(auto& inst : bb) {
+                        std::string inst_name;
+                        llvm::raw_string_ostream os(inst_name);
+                        inst.print(os);
+                        os.flush();
+
+                        // save instruction name in map
+                        auto inst_ptr = &inst;
+                        names[inst_ptr] = inst_name;
+
+                    }
+                }
+            }
+
+            // go over all functions in mod
+            for(auto& func : mod) {
+                // go over blocks
+                size_t num_blocks = 0;
+                size_t num_instructions = 0;
+                for(auto& bb : func) {
+
+                    auto printed_enter = false;
+
+                    for(auto& inst : bb) {
+                        // only call printf IFF not a branching instruction and not a ret instruction
+                        auto inst_ptr = &inst;
+
+                        // inst not found in names? -> skip!
+                        if(names.end() == names.find(inst_ptr))
+                            continue;
+
+                        auto inst_name = names.at(inst_ptr);
+                        if(!llvm::isa<llvm::BranchInst>(inst_ptr) && !llvm::isa<llvm::ReturnInst>(inst_ptr) && !llvm::isa<llvm::PHINode>(inst_ptr)) {
+                            llvm::IRBuilder<> builder(inst_ptr);
+                            llvm::Value *sConst = builder.CreateGlobalStringPtr(inst_name);
+
+                            // print enter instruction
+                            if(!printed_enter) {
+                                llvm::Value* str = builder.CreateGlobalStringPtr("enter basic block " + bb.getName().str() + " ::\n");
+                                builder.CreateCall(printf_func, {str});
+                                printed_enter = true;
+                            }
+
+                            // value trace format
+                            // bb= : %19 = load i64, i64* %exceptionCode : %19 = 42
+
+                            if(print_values) {
+
+                                llvm::Value* value_to_print = nullptr;
+                                std::string format = "bb=" + bb.getName().str() + " : " + inst_name;
+
+                                if(!inst_ptr->getNextNode()) {
+                                    // nothing to do, else print value as well.
+                                } else {
+                                    builder.SetInsertPoint(inst_ptr->getNextNode());
+
+                                    auto inst_number = splitToArray(inst_name, '=').front();
+                                    trim(inst_number);
+
+                                    if(inst_ptr->hasValueHandle()) {
+                                        // check what type of value it is and adjust printing accordingly
+                                        if(inst.getType() == builder.getInt8Ty()) {
+                                            static_assert(sizeof(int32_t) == 4);
+                                            value_to_print = builder.CreateZExtOrTrunc(inst_ptr, builder.getInt32Ty());
+                                            format += " : [i8] " + inst_number + " = %d";
+                                        } else if(inst.getType() == builder.getInt16Ty()) {
+                                            static_assert(sizeof(int32_t) == 4);
+                                            value_to_print = builder.CreateZExtOrTrunc(inst_ptr, builder.getInt32Ty());
+                                            format += " : [i16] " + inst_number + " = %d";
+                                        } else if(inst.getType() == builder.getInt32Ty()) {
+                                            value_to_print = inst_ptr;
+                                            format += " : [i32] " + inst_number + " = %d";
+                                        } else if(inst.getType() == builder.getInt64Ty()) {
+                                            value_to_print = inst_ptr;
+                                            format += " : [i64] " + inst_number + " = %" PRId64;
+                                        } else if(inst.getType()->isPointerTy()) {
+                                            value_to_print = inst_ptr;
+                                            format += " : [ptr] " + inst_number + " = %p";
+                                        }
+                                    }
+                                }
+
+                                // call func
+                                llvm::Value *sFormat = builder.CreateGlobalStringPtr(format + "\n");
+                                std::vector<llvm::Value*> llvm_args{sFormat};
+                                if(value_to_print)
+                                    llvm_args.push_back(value_to_print);
+                                builder.CreateCall(printf_func, llvm_args);
+                            } else {
+                                // Trace format:
+                                llvm::Value *sFormat = builder.CreateGlobalStringPtr("  %s\n");
+                                builder.CreateCall(printf_func, {sFormat, sConst});
+                            }
+
+                            num_instructions++;
+                        }
+                    }
+
+                    num_blocks++;
+                }
+            }
         }
     }
 }

@@ -52,14 +52,14 @@ namespace tuplex {
             }
 
             codegen::SerializableValue createGlobalSymbolCall(LambdaFunctionBuilder& lfb,
-                    llvm::IRBuilder<>& builder,
+                    const codegen::IRBuilder& builder,
                     const std::string& symbol,
                     const python::Type& argsType,
                     const python::Type& retType,
                     const std::vector<codegen::SerializableValue>& args);
 
             codegen::SerializableValue createAttributeCall(LambdaFunctionBuilder& lfb,
-                    llvm::IRBuilder<>& builder,
+                    const codegen::IRBuilder& builder,
                     const std::string& symbol,
                     const python::Type& callerType,
                     const python::Type& argsType,
@@ -68,70 +68,70 @@ namespace tuplex {
                     const std::vector<codegen::SerializableValue>& args);
 
             // global functions
-            SerializableValue createLenCall(llvm::IRBuilder<>& builder,
+            SerializableValue createLenCall(const codegen::IRBuilder& builder,
                     const python::Type &argsType,
                     const python::Type &retType,
                     const std::vector<tuplex::codegen::SerializableValue> &args);
 
-            SerializableValue createFormatCall(llvm::IRBuilder<>& builder,
+            SerializableValue createFormatCall(const codegen::IRBuilder& builder,
                                                const SerializableValue& caller,
                                                const std::vector<tuplex::codegen::SerializableValue>& args,
                                                const std::vector<python::Type>& argsTypes);
-            SerializableValue createLowerCall(llvm::IRBuilder<>& builder, const SerializableValue& caller);
-            SerializableValue createUpperCall(llvm::IRBuilder<>& builder, const SerializableValue& caller);
-            SerializableValue createSwapcaseCall(llvm::IRBuilder<>& builder, const SerializableValue& caller);
-            SerializableValue createFindCall(llvm::IRBuilder<>& builder, const SerializableValue& caller, const SerializableValue& needle);
-            SerializableValue createReverseFindCall(llvm::IRBuilder<>& builder, const SerializableValue& caller, const SerializableValue& needle);
-            SerializableValue createStripCall(llvm::IRBuilder<>& builder, const SerializableValue& caller, const std::vector<tuplex::codegen::SerializableValue>& args);
-            SerializableValue createLStripCall(llvm::IRBuilder<>& builder, const SerializableValue& caller, const std::vector<tuplex::codegen::SerializableValue>& args);
-            SerializableValue createRStripCall(llvm::IRBuilder<>& builder, const SerializableValue& caller, const std::vector<tuplex::codegen::SerializableValue>& args);
-            SerializableValue createReplaceCall(llvm::IRBuilder<>& builder, const SerializableValue& caller, const SerializableValue& from, const SerializableValue& to);
-            SerializableValue createCenterCall(LambdaFunctionBuilder& lfb, llvm::IRBuilder<> &builder, const SerializableValue &caller, const SerializableValue &width, const SerializableValue *fillchar);
-            SerializableValue createJoinCall(llvm::IRBuilder<>& builder, const SerializableValue& caller, const SerializableValue& list);
-            SerializableValue createSplitCall(LambdaFunctionBuilder& lfb, llvm::IRBuilder<> &builder, const tuplex::codegen::SerializableValue &caller, const tuplex::codegen::SerializableValue &delimiter);
+            SerializableValue createLowerCall(const codegen::IRBuilder& builder, const SerializableValue& caller);
+            SerializableValue createUpperCall(const codegen::IRBuilder& builder, const SerializableValue& caller);
+            SerializableValue createSwapcaseCall(const codegen::IRBuilder& builder, const SerializableValue& caller);
+            SerializableValue createFindCall(const codegen::IRBuilder& builder, const SerializableValue& caller, const SerializableValue& needle);
+            SerializableValue createReverseFindCall(const codegen::IRBuilder& builder, const SerializableValue& caller, const SerializableValue& needle);
+            SerializableValue createStripCall(const codegen::IRBuilder& builder, const SerializableValue& caller, const std::vector<tuplex::codegen::SerializableValue>& args);
+            SerializableValue createLStripCall(const codegen::IRBuilder& builder, const SerializableValue& caller, const std::vector<tuplex::codegen::SerializableValue>& args);
+            SerializableValue createRStripCall(const codegen::IRBuilder& builder, const SerializableValue& caller, const std::vector<tuplex::codegen::SerializableValue>& args);
+            SerializableValue createReplaceCall(const codegen::IRBuilder& builder, const SerializableValue& caller, const SerializableValue& from, const SerializableValue& to);
+            SerializableValue createCenterCall(LambdaFunctionBuilder& lfb, const codegen::IRBuilder& builder, const SerializableValue &caller, const SerializableValue &width, const SerializableValue *fillchar);
+            SerializableValue createJoinCall(const codegen::IRBuilder& builder, const SerializableValue& caller, const SerializableValue& list);
+            SerializableValue createSplitCall(LambdaFunctionBuilder& lfb, const codegen::IRBuilder& builder, const tuplex::codegen::SerializableValue &caller, const tuplex::codegen::SerializableValue &delimiter);
 
-            SerializableValue createIntCast(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
+            SerializableValue createIntCast(LambdaFunctionBuilder& lfb, const codegen::IRBuilder& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
 
-            SerializableValue createCapwordsCall(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, const SerializableValue& caller);
+            SerializableValue createCapwordsCall(LambdaFunctionBuilder& lfb, const codegen::IRBuilder& builder, const SerializableValue& caller);
 
             SerializableValue
-            createReSearchCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder, const python::Type &argsType,
+            createReSearchCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder& builder, const python::Type &argsType,
                                const std::vector<tuplex::codegen::SerializableValue> &args);
 
             SerializableValue
-            createReSubCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder, const python::Type &argsType,
+            createReSubCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder& builder, const python::Type &argsType,
                                const std::vector<tuplex::codegen::SerializableValue> &args);
 
-            SerializableValue createRandomChoiceCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder, const python::Type &argType, const SerializableValue &arg);
+            SerializableValue createRandomChoiceCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder& builder, const python::Type &argType, const SerializableValue &arg);
 
             SerializableValue createIterCall(LambdaFunctionBuilder &lfb,
-                                             llvm::IRBuilder<>& builder,
+                                             const codegen::IRBuilder &builder,
                                              const python::Type &argsType,
                                              const python::Type &retType,
                                              const std::vector<tuplex::codegen::SerializableValue> &args);
 
             SerializableValue createReversedCall(LambdaFunctionBuilder &lfb,
-                                             llvm::IRBuilder<>& builder,
+                                                 const codegen::IRBuilder &builder,
                                              const python::Type &argsType,
                                              const python::Type &retType,
                                              const std::vector<tuplex::codegen::SerializableValue> &args);
 
             SerializableValue createNextCall(LambdaFunctionBuilder &lfb,
-                                             llvm::IRBuilder<>& builder,
+                                             const codegen::IRBuilder &builder,
                                              const python::Type &argsType,
                                              const python::Type &retType,
                                              const std::vector<tuplex::codegen::SerializableValue> &args,
                                              const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             SerializableValue createZipCall(LambdaFunctionBuilder &lfb,
-                                             llvm::IRBuilder<>& builder,
+                                            const codegen::IRBuilder &builder,
                                              const python::Type &argsType,
                                              const python::Type &retType,
                                              const std::vector<tuplex::codegen::SerializableValue> &args,
                                              const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
             SerializableValue createEnumerateCall(LambdaFunctionBuilder &lfb,
-                                            llvm::IRBuilder<>& builder,
+                                                  const codegen::IRBuilder &builder,
                                             const python::Type &argsType,
                                             const python::Type &retType,
                                             const std::vector<tuplex::codegen::SerializableValue> &args,
@@ -150,58 +150,59 @@ namespace tuplex {
              * @return
              */
             SerializableValue createIteratorRelatedSymbolCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
-                                                              llvm::IRBuilder<> &builder,
+                                                              const codegen::IRBuilder &builder,
                                                               const std::string &symbol,
                                                               const python::Type &argsType,
                                                               const python::Type &retType,
                                                               const std::vector<tuplex::codegen::SerializableValue> &args,
                                                               const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
-            SerializableValue createDictConstructor(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
-            void getValueFromcJSON(llvm::IRBuilder<> &builder, llvm::Value *cjson_val, python::Type retType,
+            SerializableValue createDictConstructor(LambdaFunctionBuilder& lfb, const codegen::IRBuilder& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
+            void getValueFromcJSON(const codegen::IRBuilder& builder, llvm::Value *cjson_val, python::Type retType,
                                    llvm::Value *retval,
                                    llvm::Value *retsize);
             SerializableValue createCJSONPopCall(LambdaFunctionBuilder& lfb,
-                                            llvm::IRBuilder<>& builder,
+                                            const codegen::IRBuilder& builder,
                                             const SerializableValue& caller,
                                             const std::vector<tuplex::codegen::SerializableValue>& args,
                                             const std::vector<python::Type>& argsTypes,
                                             const python::Type& retType);
-            SerializableValue createCJSONPopItemCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder, const SerializableValue &caller,
+            SerializableValue createCJSONPopItemCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder& builder, const SerializableValue &caller,
                               const python::Type &retType);
 
-            SerializableValue createFloatCast(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
-            SerializableValue createBoolCast(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
-            SerializableValue createStrCast(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
-            SerializableValue createIndexCall(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, const SerializableValue& caller, const SerializableValue& needle);
-            SerializableValue createReverseIndexCall(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, const SerializableValue& caller, const SerializableValue& needle);
-            SerializableValue createCountCall(llvm::IRBuilder<> &builder, const SerializableValue &caller, const SerializableValue &needle);
-            SerializableValue createStartswithCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder, const SerializableValue &caller, const SerializableValue &needle);
-            SerializableValue createEndswithCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder, const SerializableValue &caller, const SerializableValue &suffix);
-            SerializableValue createIsDecimalCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder, const SerializableValue &caller);
-            SerializableValue createIsDigitCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder, const SerializableValue &caller);
-            SerializableValue createIsAlphaCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder, const SerializableValue &caller);
-            SerializableValue createIsAlNumCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder, const SerializableValue &caller);
-            SerializableValue createMathToRadiansCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
+            SerializableValue createFloatCast(LambdaFunctionBuilder& lfb, const codegen::IRBuilder& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
+            SerializableValue createBoolCast(LambdaFunctionBuilder& lfb, const codegen::IRBuilder& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
+            SerializableValue createStrCast(LambdaFunctionBuilder& lfb, const codegen::IRBuilder& builder, python::Type argsType, const std::vector<tuplex::codegen::SerializableValue> &args);
+            SerializableValue createIndexCall(LambdaFunctionBuilder& lfb, const codegen::IRBuilder& builder, const SerializableValue& caller, const SerializableValue& needle);
+            SerializableValue createReverseIndexCall(LambdaFunctionBuilder& lfb, const codegen::IRBuilder& builder, const SerializableValue& caller, const SerializableValue& needle);
+            SerializableValue createCountCall(const codegen::IRBuilder& builder, const SerializableValue &caller, const SerializableValue &needle);
+            SerializableValue createStartswithCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder& builder, const SerializableValue &caller, const SerializableValue &needle);
+            SerializableValue createEndswithCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder& builder, const SerializableValue &caller, const SerializableValue &suffix);
+            SerializableValue createIsDecimalCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder& builder, const SerializableValue &caller);
+            SerializableValue createIsDigitCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder& builder, const SerializableValue &caller);
+            SerializableValue createIsAlphaCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder& builder, const SerializableValue &caller);
+            SerializableValue createIsAlNumCall(LambdaFunctionBuilder &lfb, const codegen::IRBuilder& builder, const SerializableValue &caller);
+            SerializableValue createMathToRadiansCall(const codegen::IRBuilder& builder, const python::Type &argsType,
                                                                                  const python::Type &retType,
                                                                                  const std::vector<tuplex::codegen::SerializableValue> &args);
-            SerializableValue createMathToDegreesCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
+            SerializableValue createMathToDegreesCall(const codegen::IRBuilder& builder, const python::Type &argsType,
                                                       const python::Type &retType,
                                                       const std::vector<tuplex::codegen::SerializableValue> &args);
-            SerializableValue createMathIsNanCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
+
+            SerializableValue createMathIsNanCall(const codegen::IRBuilder& builder, const python::Type &argsType,
                                                   const python::Type &retType,
                                                   const std::vector<tuplex::codegen::SerializableValue> &args);
-
-            SerializableValue createMathIsInfCall(llvm::IRBuilder<>& builder, const python::Type &argsType,
+            
+            SerializableValue createMathIsInfCall(const codegen::IRBuilder& builder, const python::Type &argsType,
                                                   const python::Type &retType,
                                                   const std::vector<tuplex::codegen::SerializableValue> &args);
-
+                                                  
             SerializableValue createMathIsCloseCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
-                                                    llvm::IRBuilder<>& builder, const python::Type &argsType,
+                                                    const codegen::IRBuilder& builder, const python::Type &argsType,
                                                     const std::vector<tuplex::codegen::SerializableValue> &args);
 
             // math module functions
-            SerializableValue createMathCeilFloorCall(LambdaFunctionBuilder& lfb, llvm::IRBuilder<>& builder, const std::string& qual_name, const SerializableValue& arg);
+            SerializableValue createMathCeilFloorCall(LambdaFunctionBuilder& lfb, const codegen::IRBuilder& builder, const std::string& qual_name, const SerializableValue& arg);
 
         private:
             LLVMEnvironment& _env;
@@ -215,7 +216,25 @@ namespace tuplex {
                                                                  std::function<llvm::Value*(void)> elseCase,
                                                                  llvm::Value *res,
                                                                  tuplex::codegen::LambdaFunctionBuilder &lfb,
-                                                                 llvm::IRBuilder<> &builder);
+                                                                 const codegen::IRBuilder& builder);
+
+
+            inline std::tuple<llvm::Value*, llvm::Value*, llvm::Value*> loadPCRE2Contexts(const IRBuilder& builder) {
+                if(_sharedObjectPropagation) {
+                    // create runtime contexts that are allocated on regular heap: general, compile, match (in order to pass rtmalloc/rtfree)
+                    auto contexts = _env.addGlobalPCRE2RuntimeContexts();
+                    auto general_context = builder.CreateLoad(_env.i8ptrType(), std::get<0>(contexts));
+                    auto match_context = builder.CreateLoad(_env.i8ptrType(), std::get<1>(contexts));
+                    auto compile_context = builder.CreateLoad(_env.i8ptrType(), std::get<2>(contexts));
+                    return std::make_tuple(general_context, match_context, compile_context);
+                } else {
+                    // create runtime contexts for the row
+                    auto general_context = builder.CreateCall(pcre2GetLocalGeneralContext_prototype(_env.getContext(), _env.getModule().get()));
+                    auto match_context = builder.CreateCall(pcre2MatchContextCreate_prototype(_env.getContext(), _env.getModule().get()), {general_context});
+                    auto compile_context = builder.CreateCall(pcre2CompileContextCreate_prototype(_env.getContext(), _env.getModule().get()), {general_context});
+                    return std::make_tuple(general_context, match_context, compile_context);
+                }
+            }
         };
     }
 }

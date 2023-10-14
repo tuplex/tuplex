@@ -4,8 +4,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.12 FATAL_ERROR)
 
 # use pybind11 (header only library) to create python C-extension representing tuplex
 
-# enable c++14
-set(CMAKE_CXX_STANDARD 14)
+# enable c++17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # how should the module be named?
@@ -18,7 +18,7 @@ message(STATUS "Pybind11 uses python version ${Python3_VERSION}")
 set(PYBIND11_FINDPYTHON OFF CACHE INTERNAL "") 
 set(PYBIND11_PYTHON_VERSION "${Python3_VERSION}" CACHE INTERNAL "")
 FetchContent_Declare(pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11
-                             GIT_TAG        v2.9.1 )
+                             GIT_TAG        v2.10.4 )
 FetchContent_GetProperties(pybind11)
 if(NOT pybind11_POPULATED)
     FetchContent_Populate(pybind11)

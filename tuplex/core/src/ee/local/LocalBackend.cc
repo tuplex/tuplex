@@ -750,6 +750,27 @@ namespace tuplex {
 
             //Note: maybe put all these user-defined functions into fake, tuplex module??
 
+            {
+                auto mainModule = python::getMainModule();
+                // import cloudpickle for serialized functions
+                PyObject *cloudpickleModule = PyImport_ImportModule("cloudpickle");
+                if(!cloudpickleModule) {
+                     throw std::runtime_error("could not find cloudpickle module");
+                }
+
+                PyModule_AddObject(mainModule, "cloudpickle", cloudpickleModule);
+                auto versionObj =  PyObject_GetAttr(cloudpickleModule, python::PyString_FromString("__version__"));
+                auto version_string = python::PyString_AsString(versionObj);
+
+                // get information about Python version and cloudpickle version used
+                std::stringstream ss;
+                ss<<"Python version: "<<PY_MAJOR_VERSION<<"."<<PY_MINOR_VERSION<<"."<<PY_MICRO_VERSION;
+                ss<<" cloudpickle: "<<version_string;
+                auto& logger = Logger::instance().logger("python");
+                logger.info(ss.str());
+            }
+
+
             // get main module
             // Note: This needs to get called BEFORE globals/locals...
             auto main_mod = python::getMainModule();
@@ -863,10 +884,16 @@ namespace tuplex {
         JobMetrics& metrics = tstage->PhysicalStage::plan()->getContext().metrics();
         double total_compilation_time = metrics.getTotalCompilationTime() + timer.time();
         metrics.setTotalCompilationTime(total_compilation_time);
-        {
+        if(syms->valid()) {
             std::stringstream ss;
             ss<<"[Transform Stage] Stage "<<tstage->number()<<" compiled to x86 in "<<timer.time()<<"s";
             Logger::instance().defaultLogger().info(ss.str());
+        } else {
+            // failed to compile, abort stage execution
+            std::stringstream ss;
+            ss<<"[Transform Stage] Failed to compile stage to x86.";
+            Logger::instance().defaultLogger().error(ss.str());
+            throw std::runtime_error("transform stage compilation error");
         }
 
         // -------------------------------------------------------------------

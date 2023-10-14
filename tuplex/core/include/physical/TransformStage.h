@@ -32,10 +32,11 @@
 #include <Defs.h>
 #include <logical/FileOutputOperator.h>
 #include <logical/AggregateOperator.h>
+#include <JITCompiler.h>
 
 #ifdef BUILD_WITH_AWS
 // include protobuf serialization of TrafoStage for Lambda executor
-#include <Lambda.pb.h>
+#include <managed/Lambda.pb.h>
 #endif
 
 namespace tuplex {
@@ -308,6 +309,8 @@ namespace tuplex {
                            aggInitFunctor(nullptr),
                            aggCombineFunctor(nullptr),
                            aggAggregateFunctor(nullptr) {}
+
+            inline bool valid() const { return functor || functorWithExp || resolveFunctor; }
         };
 
         /*!

@@ -33,6 +33,24 @@ protected:
     }
 };
 
+TEST_F(AWSTest, MultiSDKInit) {
+#ifdef SKIP_AWS_TESTS
+    GTEST_SKIP();
+#endif
+
+    using namespace tuplex;
+
+    Timer timer;
+    initAWS(AWSCredentials::get(), NetworkSettings(), true);
+    shutdownAWS();
+    std::cout<<"SDK init & shutdown took: "<<timer.time()<<"s"<<std::endl;
+    timer.reset();
+    initAWS(AWSCredentials::get(), NetworkSettings(), true);
+    shutdownAWS();
+    std::cout<<"SDK init & shutdown took: "<<timer.time()<<"s"<<std::endl;
+}
+
+
 TEST_F(AWSTest, BucketOperations) {
 #ifdef SKIP_AWS_TESTS
     GTEST_SKIP();

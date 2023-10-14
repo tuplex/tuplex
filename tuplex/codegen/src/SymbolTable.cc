@@ -39,6 +39,9 @@ namespace tuplex {
 
     void SymbolTable::addBuiltins() {
 
+        // first, add builtin exceptions
+        addBuiltinExceptionHierarchy();
+
         // add here types for functions that are known
 
         // builtin functions
@@ -72,6 +75,9 @@ namespace tuplex {
         //    t = str
         //    return t(x)
 
+        auto type_error_type = python::TypeFactory::instance().getByName("TypeError");
+        assert(type_error_type.isExceptionType());
+
         // global functions
         addSymbol("dict", python::Type::makeFunctionType(python::Type::EMPTYTUPLE, python::Type::GENERICDICT));
 
@@ -92,6 +98,12 @@ namespace tuplex {
         addSymbol("bool", python::Type::makeFunctionType(python::Type::I64, python::Type::BOOLEAN));
         addSymbol("bool", python::Type::makeFunctionType(python::Type::F64, python::Type::BOOLEAN));
         addSymbol("bool", python::Type::makeFunctionType(python::Type::STRING, python::Type::BOOLEAN));
+
+
+        // add explicit type errors for None to cover primitive
+        addSymbol("bool", python::Type::makeFunctionType(python::Type::NULLVALUE, type_error_type));
+        addSymbol("int", python::Type::makeFunctionType(python::Type::NULLVALUE, type_error_type));
+        addSymbol("float", python::Type::makeFunctionType(python::Type::NULLVALUE, type_error_type));
 
         addSymbol("str", python::Type::makeFunctionType(python::Type::NULLVALUE, python::Type::STRING));
         addSymbol("str", python::Type::makeFunctionType(python::Type::makeTupleType({python::Type::EMPTYTUPLE}),
@@ -161,6 +173,7 @@ namespace tuplex {
             }
 
             if(iterableType == python::Type::RANGE) {
+                // hack: could be float as well...
                 return python::Type::makeFunctionType(parameterType, python::Type::makeIteratorType(python::Type::I64));
             }
 
@@ -337,7 +350,7 @@ namespace tuplex {
                 }
             }
 
-            return python::Type::makeFunctionType(parameterType, python::Type::UNKNOWN);
+            return python::Type::UNKNOWN; // no typing possible for next(...), e.g. next(range(...))
         };
 
         addSymbol(make_shared<Symbol>("iter", iterFunctionTyper));
@@ -491,9 +504,6 @@ namespace tuplex {
         // ==> how to hook up functions from defined objects??
         // which then bundles code generation, typing etc. => that might be easier to extent...
         // @TODO: is this wise?
-
-
-        addBuiltinExceptionHierarchy();
     }
 
     void SymbolTable::addBuiltinExceptionHierarchy() {

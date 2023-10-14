@@ -6,6 +6,8 @@
 // Modifications: (1) fix incorrect digits (2) accept all ranges (3) write to user provided buffer.
 // modifications for tuplex: return size written as well
 
+#ifdef __x86_64__
+
 #include <cassert>
 #include <emmintrin.h>
 #include <stdint.h>
@@ -335,3 +337,30 @@ int i64toa_sse2(int64_t value, char* buffer) {
         return u64toa_sse2(u, buffer);
     } else return u64toa_sse2(u, buffer) - 1;
 }
+#else
+
+#include <cstdio>
+#include <cstring>
+#include <cstdint>
+
+#include <inttypes.h>
+
+// general fallback solution
+int i64toa_sse2(int64_t value, char* buffer) {
+    // note: the buffer has to have at least size 21 bytes, in order to fit -9223372036854775807 (smallest 64bit integer).
+    // assume input is 21 bytes.
+
+    snprintf(buffer, 21, "%" PRId64, value);
+    return strlen(buffer);
+}
+
+int u64toa_sse2(uint64_t value, char* buffer) {
+    // note: the buffer has to have at least size 21 bytes, in order to fit 18446744073709551615 (largest 64bit unsigned integer).
+    // assume input is 21 bytes.
+
+    snprintf(buffer, 21, "%" PRIu64, value);
+    return strlen(buffer);
+}
+
+
+#endif

@@ -11,11 +11,6 @@
 #ifndef TUPLEX_JSONUTILS_H
 #define TUPLEX_JSONUTILS_H
 
-#ifdef BUILD_WITH_AWS
-#include <aws/core/external/cjson/cJSON.h>
-#else
-#include <cJSON.h>
-#endif
 #include <vector>
 #include "Base.h"
 #include "Utils.h"

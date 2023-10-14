@@ -15,11 +15,7 @@
 #include <Schema.h>
 #include <Tuple.h>
 #include <List.h>
-#ifdef BUILD_WITH_AWS
-#include <aws/core/external/cjson/cJSON.h>
-#else
-#include <cJSON.h>
-#endif
+#include <Base.h>
 #include "optional.h"
 
 

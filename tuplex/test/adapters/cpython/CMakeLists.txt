@@ -27,6 +27,7 @@ TARGET_LINK_LIBRARIES(testcpythonadapter
         libutils
         libio
         ${Python3_LIBRARIES}
+        ${CURSES_LIBRARY}
         )
 
 gtest_add_tests(TARGET testcpythonadapter TEST_PREFIX "")

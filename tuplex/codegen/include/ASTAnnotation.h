@@ -86,6 +86,11 @@ public:
      * @return true if a specialized function type could be generated, false else.
      */
     inline bool findFunctionTypeBasedOnParameterType(const python::Type& parameterType, python::Type& specializedFunctionType) {
+        // functionTyper helper function can expect a well-formed parameter type, however need therefore to
+        // perform quick check here.
+        if(parameterType.isIllDefined())
+            return false;
+
         // check if typer function is there?
         auto generic_result = functionTyper(parameterType);
         if(generic_result != python::Type::UNKNOWN) {
@@ -365,6 +370,20 @@ struct IteratorInfo {
     std::string iteratorName; // from which built-in function the iterator was generated, currently can be "iter", "zip", "enumerate".
     python::Type argsType; // concrete type of arguments of the iterator generating function.
     std::vector<std::shared_ptr<IteratorInfo>> argsIteratorInfo; // pointers to IteratorInfo of each argument.
+
+    IteratorInfo() = default;
+
+    IteratorInfo(const std::string& name,
+                 const python::Type& type,
+                 const std::vector<std::shared_ptr<IteratorInfo>>& iteratorInfo={}) : iteratorName(name), argsType(type), argsIteratorInfo(iteratorInfo) {
+#ifndef NDEBUG
+        // make sure no cyclic reference
+        for(auto p : argsIteratorInfo) {
+            assert(p.get() != this);
+        }
+        assert(!name.empty());
+#endif
+    }
 };
 
 // simple class used to annotate ast nodes

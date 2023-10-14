@@ -74,7 +74,7 @@ protected:
         auto func = Function::Create(FT, Function::ExternalLinkage, "getColumn", env->getModule().get());
 
         BasicBlock* bbBody = BasicBlock::Create(ctx, "body",func);
-        IRBuilder<> builder(bbBody);
+        codegen::IRBuilder builder(bbBody);
 
         auto argMap = tuplex::codegen::mapLLVMFunctionArgs(func, {"result", "column"});
 
@@ -87,7 +87,8 @@ protected:
         }
 
         // create dummy struct
-       auto arr = builder.CreateAlloca(ArrayType::get(env->i8ptrType(), num_cols));
+        auto arr_type = ArrayType::get(env->i8ptrType(), num_cols);
+       auto arr = builder.CreateAlloca(arr_type);
 
         // store in struct and then retrieve via column arg!
         for(int i = 0; i < num_cols; ++i) {
@@ -100,18 +101,16 @@ protected:
 
                 auto d = builder.CreateAlloca(env->doubleType());
                 builder.CreateStore(dummy, d);
-                dummy = builder.CreateLoad(builder.CreateBitOrPointerCast(d, env->i64ptrType()));
+                dummy = builder.CreateLoad(builder.getInt64Ty(), builder.CreateBitOrPointerCast(d, env->i64ptrType()));
             }
 
             if(dummy->getType()->isIntegerTy())
                 dummy = builder.CreateIntToPtr(dummy, env->i8ptrType());
 
-
-
-            builder.CreateStore(dummy, builder.CreateGEP(arr, {env->i32Const(0), env->i32Const(i)}));
+            builder.CreateStore(dummy, builder.CreateGEP(arr_type, arr, {env->i32Const(0), env->i32Const(i)}));
         }
 
-        auto val = builder.CreateLoad(builder.CreateGEP(arr, {env->i32Const(0), argMap["column"]}));
+        auto val = builder.CreateLoad(env->i8ptrType(), builder.CreateGEP(arr_type, arr, {env->i32Const(0), argMap["column"]}));
 
 ////        Value *retval = val;
 ////
@@ -160,14 +159,14 @@ protected:
             vLineEndArgs.push_back(&arg);
 
 
-        IRBuilder<> builder(bNumBytes);
-        builder.CreateRet(builder.CreateLoad(builder.CreateGEP(vLineStartArgs[0], {env->i32Const(0),env->i32Const(0)})));
+        codegen::IRBuilder builder(bNumBytes);
+        builder.CreateRet(builder.CreateLoad(builder.getInt64Ty(), builder.CreateGEP(gen.resultType(), vLineStartArgs[0], {env->i32Const(0),env->i32Const(0)})));
 
         builder.SetInsertPoint(bLineStart);
-        builder.CreateRet(builder.CreateLoad(builder.CreateGEP(vLineStartArgs[0], {env->i32Const(0),env->i32Const(1)})));
+        builder.CreateRet(builder.CreateLoad(i8ptr_type, builder.CreateGEP(gen.resultType(), vLineStartArgs[0], {env->i32Const(0),env->i32Const(1)})));
 
         builder.SetInsertPoint(bLineEnd);
-        builder.CreateRet(builder.CreateLoad(builder.CreateGEP(vLineEndArgs[0], {env->i32Const(0),env->i32Const(2)})));
+        builder.CreateRet(builder.CreateLoad(i8ptr_type, builder.CreateGEP(gen.resultType(), vLineEndArgs[0], {env->i32Const(0),env->i32Const(2)})));
 
 
         // magical retrieve column function
@@ -937,6 +936,99 @@ TEST_F(CSVRowParseTest, LargeMultiValTest) {
     EXPECT_EQ(getInt(0), 1234);
     EXPECT_EQ(getDouble(1), -20.0);
     EXPECT_EQ(getString(2), "\"hello!\"");
+}
+
+int fallback_spanner(const char* ptr, const char c1, const char c2, const char c3, const char c4) {
+    if(!ptr)
+        return 16;
+
+    char charset[256];
+    memset(charset, 0, 256);
+    charset[c1] = 1;
+    charset[c2] = 1;
+    charset[c3] = 1;
+    charset[c4] = 1;
+
+    // manual implementation
+    auto p = (const unsigned char *)ptr;
+    auto e = p + 16;
+
+    do {
+        if(charset[p[0]]) {
+            break;
+        }
+        if(charset[p[1]]) {
+            p++;
+            break;
+        }
+        if(charset[p[2]]) {
+            p += 2;
+            break;
+        }
+        if(charset[p[3]]) {
+            p += 3;
+            break;
+        }
+        p += 4;
+    } while(p < e);
+
+    if(! *p) {
+        return 16; // PCMPISTRI reports NUL encountered as no match.
+    }
+
+    auto ret =  p - (const unsigned char *)ptr;
+    return ret;
+}
+
+TEST_F(CSVRowParseTest, QuotedSpannerTest) {
+    using namespace tuplex;
+    using namespace tuplex::codegen;
+
+    auto env = std::make_unique<LLVMEnvironment>();
+
+    auto quotechar = '\'';
+    auto escapechar = '\0';
+
+    JITCompiler compiler;
+
+    generateFallbackSpannerFunction(*env.get(), "quoted_spanner", quotechar, escapechar);
+    compiler.compile(std::move(env->getModule()));
+    auto f = reinterpret_cast<int(*)(const char*)>(compiler.getAddrOfSymbol("quoted_spanner"));
+    ASSERT_TRUE(f);
+
+    // go over input file and check each 16 bytes
+    std::string zpath = "../resources/pipelines/zillow/zillow_noexc.csv";
+    auto data = fileToString(zpath);
+    ASSERT_GT(data.size(), 16);
+    for(unsigned i = 0; i < data.size() - 16; ++i) {
+        // check each 16 bytes for correctness
+        auto ptr = data.c_str() + i;
+        EXPECT_EQ(f(ptr), fallback_spanner(ptr, quotechar, escapechar, 0, 0));
+    }
+}
+
+TEST_F(CSVRowParseTest, UnquotedSpannerTest) {
+    using namespace tuplex;
+    using namespace tuplex::codegen;
+
+    auto env = std::make_unique<LLVMEnvironment>();
+
+    JITCompiler compiler;
+    char c1=',', c2='\r', c3='\n', c4='\0';
+    generateFallbackSpannerFunction(*env.get(), "unquoted_spanner", c1, c2, c3, c4);
+    compiler.compile(std::move(env->getModule()));
+    auto f = reinterpret_cast<int(*)(const char*)>(compiler.getAddrOfSymbol("unquoted_spanner"));
+    ASSERT_TRUE(f);
+
+    // go over input file and check each 16 bytes
+    std::string zpath = "../resources/pipelines/zillow/zillow_noexc.csv";
+    auto data = fileToString(zpath);
+    ASSERT_GT(data.size(), 16);
+    for(unsigned i = 0; i < data.size(); ++i) {
+        // check each 16 bytes for correctness
+        auto ptr = data.c_str() + i;
+        EXPECT_EQ(f(ptr), fallback_spanner(ptr, c1, c2, c3, c4));
+    }
 }
 
 // Notes: update parser with recent version from csvmonkey.hpp

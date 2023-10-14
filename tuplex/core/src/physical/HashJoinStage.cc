@@ -58,7 +58,7 @@ namespace tuplex {
         }
 
         BasicBlock *bbEntry = BasicBlock::Create(context, "entry", func);
-        IRBuilder<> builder(bbEntry);
+        codegen::IRBuilder builder(bbEntry);
 
         Value *curPtrVar = builder.CreateAlloca(env->i8ptrType(), 0, nullptr);
         builder.CreateStore(argMap["inputPtr"], curPtrVar);
@@ -104,14 +104,13 @@ namespace tuplex {
 
         // rtfree all
         env->freeAll(builder);
-
         builder.CreateRetVoid();
 
         return env->getIR();
     }
 
 
-    void HashJoinStage::generateProbingCode(std::shared_ptr<codegen::LLVMEnvironment> &env, llvm::IRBuilder<> &builder,
+    void HashJoinStage::generateProbingCode(std::shared_ptr<codegen::LLVMEnvironment> &env, codegen::IRBuilder &builder,
                                             llvm::Value *userData, llvm::Value *hashMap, llvm::Value *ptrVar,
                                             llvm::Value *hashedValueVar, const python::Type &buildType,
                                             int buildKeyIndex, const python::Type &probeType, int probeKeyIndex,
@@ -212,7 +211,7 @@ namespace tuplex {
         builder.CreateStore(builder.CreateGEP(curPtr, serializedSize), ptrVar);
     }
 
-    llvm::Value *HashJoinStage::makeKey(std::shared_ptr<codegen::LLVMEnvironment> &env, llvm::IRBuilder<> &builder,
+    llvm::Value *HashJoinStage::makeKey(std::shared_ptr<codegen::LLVMEnvironment> &env, codegen::IRBuilder &builder,
                                         const python::Type &type, const tuplex::codegen::SerializableValue &key) {
         using namespace llvm;
         // create key for different types...
@@ -245,11 +244,7 @@ namespace tuplex {
 
             builder.SetInsertPoint(bbNotNull);
             builder.CreateStore(env->i8Const('_'), skey_ptr);
-#if LLVM_VERSION_MAJOR < 9
-            builder.CreateMemCpy(builder.CreateGEP(skey_ptr, env->i64Const(1)), key.val, key.size, 0);
-#else
             builder.CreateMemCpy(builder.CreateGEP(skey_ptr, env->i64Const(1)), 0, key.val, 0, key.size);
-#endif
             builder.CreateBr(bbNext);
 
             builder.SetInsertPoint(bbNext); // update builder var!
@@ -262,7 +257,7 @@ namespace tuplex {
     }
 
     void HashJoinStage::writeJoinResult(std::shared_ptr<codegen::LLVMEnvironment> &env,
-                                        llvm::IRBuilder<> &builder, llvm::Value *userData, llvm::Value *bucketPtr,
+                                        codegen::IRBuilder &builder, llvm::Value *userData, llvm::Value *bucketPtr,
                                         const python::Type &buildType, int buildKeyIndex,
                                         const codegen::FlattenedTuple &ftProbe, int probeKeyIndex) {
         using namespace llvm;
@@ -427,7 +422,7 @@ namespace tuplex {
 
     }
 
-    void HashJoinStage::writeBuildNullResult(std::shared_ptr<codegen::LLVMEnvironment> &env, llvm::IRBuilder<> &builder,
+    void HashJoinStage::writeBuildNullResult(std::shared_ptr<codegen::LLVMEnvironment> &env, codegen::IRBuilder &builder,
                                              llvm::Value *userData, const python::Type &buildType, int buildKeyIndex,
                                              const tuplex::codegen::FlattenedTuple &ftProbe, int probeKeyIndex) {
         // Write NULL values for the build row

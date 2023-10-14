@@ -396,6 +396,19 @@ namespace tuplex {
         _optimizedNormalCaseRowType = _normalCaseRowType;
     }
 
+    Row FileInputOperator::projectRow(const tuplex::Row &row) const {
+
+        if(_columnsToSerialize.empty())
+            return row;
+
+        std::vector<Field> fields;
+        for(int i = 0; i < row.getNumColumns(); ++i) {
+            if(_columnsToSerialize[i])
+                fields.push_back(row.get(i));
+        }
+        return Row::from_vector(fields);
+    }
+
     std::vector<Row> FileInputOperator::getSample(const size_t num) const {
 
         if(num > _sample.size()) {
@@ -406,7 +419,10 @@ namespace tuplex {
         }
 
         // retrieve as many rows as necessary from the first file
-        return std::vector<Row>(_sample.begin(), _sample.begin() + std::min(_sample.size(), num));
+        auto rows = std::vector<Row>(_sample.begin(), _sample.begin() + std::min(_sample.size(), num));
+        for(auto& row : rows)
+            row = projectRow(row);
+        return rows;
     }
 
     void FileInputOperator::selectColumns(const std::vector<size_t> &columnsToSerialize) {

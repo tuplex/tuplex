@@ -49,6 +49,10 @@ namespace tuplex {
      */
     extern bool initAWS(const AWSCredentials& credentials, const NetworkSettings& ns=NetworkSettings(), bool requesterPay=false);
 
+    /*!
+     * shuts down AWS SDK (freeing resources)
+     */
+    extern void shutdownAWS();
 
     /*!
      * validates zone string.

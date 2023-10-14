@@ -13,7 +13,15 @@
 #include <Logger.h>
 #include <RuntimeInterface.h>
 #include <ExceptionCodes.h>
+
+// use simd intrinsics or ARM Neon translation layer
+#if (defined __x86_64__)
 #include <nmmintrin.h>
+#elif (defined __arm64__)
+#include <third_party/sse2neon/sse2neon.h>
+#else
+#error "unsupported platform for intrinsics"
+#endif
 
 namespace tuplex {
 
@@ -49,9 +57,15 @@ namespace tuplex {
         explicit BufferedFileReader(const URI &inputFilePath, size_t rangeStart) : _file(
                 VirtualFileSystem::open_file(inputFilePath, VirtualFileMode::VFS_READ)), _readPos(0), _numBytesInBuf(0),
                                                                 _numBytesRead(0) {
-            // set up new line characters
-            __v16qi vq = {'\n', '\r', '\0', '\0'};
-            _newline_chars = (__m128i) vq;
+            // set up new line characters (basically first bytes, rest 0)
+            // __v16qi vq = {'\n', '\r', '\0', '\0'};
+            // _newline_chars = (__m128i) vq;
+
+            // following is portable way when v16qi is not known.
+            int32_t i = 0;
+            char bytes[] = {'\n', '\r', '\0', '\0'};
+            memcpy(&i, bytes, 4); // <-- i should be 3338
+            _newline_chars = _mm_setr_epi32(i, 0x0, 0x0, 0x0);
 
             // zero out the end of the array
             memset(&_buf[maxBufSize], 0, 16 + 1);

@@ -2,7 +2,7 @@ find_package(Java QUIET COMPONENTS Runtime)
 
 if(NOT ANTLR_EXECUTABLE)
   find_program(ANTLR_EXECUTABLE
-               NAMES antlr.jar antlr4.jar antlr-4.jar antlr-4.8-complete.jar)
+               NAMES antlr.jar antlr4.jar antlr-4.jar antlr-4.13.1-complete.jar antlr-4.13.0-complete.jar antlr-4.12.0-complete.jar antlr-4.11.1-complete.jar antlr-4.11.0-complete.jar antlr-4.10.1-complete.jar antlr-4.10.0-complete.jar antlr-4.9.3-complete.jar antlr-4.9.2-complete.jar antlr-4.9.1-complete.jar antlr-4.9.0-complete.jar antlr-4.8-complete.jar)
 endif()
 
 if(ANTLR_EXECUTABLE AND Java_JAVA_EXECUTABLE)
@@ -14,7 +14,7 @@ if(ANTLR_EXECUTABLE AND Java_JAVA_EXECUTABLE)
       OUTPUT_STRIP_TRAILING_WHITESPACE)
 
   if(ANTLR_COMMAND_RESULT EQUAL 0)
-    string(REGEX MATCH "Version [0-9]+(\\.[0-9])*" ANTLR_VERSION ${ANTLR_COMMAND_OUTPUT})
+    string(REGEX MATCH "Version [0-9]+(.[0-9]+)+" ANTLR_VERSION ${ANTLR_COMMAND_OUTPUT})
     string(REPLACE "Version " "" ANTLR_VERSION ${ANTLR_VERSION})
   else()
     message(
@@ -122,5 +122,14 @@ endif(ANTLR_EXECUTABLE AND Java_JAVA_EXECUTABLE)
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
     ANTLR
+    FOUND_VAR ANTLR_FOUND
     REQUIRED_VARS ANTLR_EXECUTABLE Java_JAVA_EXECUTABLE
     VERSION_VAR ANTLR_VERSION)
+
+# create antlr4 version var if version > 4
+if(ANTLR_VERSION VERSION_GREATER_EQUAL 4.0)
+  set(ANTLR4_VERSION ${ANTLR_VERSION})
+  set(ANTLR4_FOUND ${ANTLR_FOUND})
+endif()
+
+mark_as_advanced(ANTLR4_VERSION)

@@ -50,7 +50,7 @@ namespace tuplex {
 
 
             // minimum variables required for exception handling (to call handler)
-            IRBuilder<> builder(_entryBlock);
+            IRBuilder builder(_entryBlock);
             addVariable(builder, "currentInputPtr", llvm::Type::getInt8PtrTy(context, 0), i8nullptr());
             addVariable(builder, "currentInputRowLength", _env->i64Type(), _env->i64Const(0));
             addVariable(builder, "row", _env->i64Type(), _env->i64Const(0));
@@ -76,7 +76,6 @@ namespace tuplex {
             builder.SetInsertPoint(_taskSuccessBlock);
             builder.CreateRet(getVariable(builder, "outputTotalBytesWritten"));
 
-
             _lastBlock = _entryBlock;
             return true;
         }
@@ -89,7 +88,7 @@ namespace tuplex {
             _exceptionBlock= BasicBlock::Create(context, "exception", _func);
 
             // generate actual exception block
-            IRBuilder<> builder(_exceptionBlock);
+            IRBuilder builder(_exceptionBlock);
 
             // EH handling should be implemented here...
             if(_handler) { // only add call to handler if a valid pointer is given
@@ -141,7 +140,7 @@ namespace tuplex {
             builder.CreateRet(_env->i64Const(-1));
         }
 
-        void IExceptionableTaskGenerator::addVariable(llvm::IRBuilder<> &builder, const std::string name, llvm::Type *type,
+        void IExceptionableTaskGenerator::addVariable(IRBuilder &builder, const std::string name, llvm::Type *type,
                                                       llvm::Value *initialValue) {
             _variables[name] = builder.CreateAlloca(type, 0, nullptr, name);
 
@@ -149,17 +148,17 @@ namespace tuplex {
                 builder.CreateStore(initialValue, _variables[name]);
         }
 
-        llvm::Value* IExceptionableTaskGenerator::getVariable(llvm::IRBuilder<> &builder, const std::string name) {
+        llvm::Value* IExceptionableTaskGenerator::getVariable(IRBuilder &builder, const std::string name) {
             assert(_variables.find(name) != _variables.end());
             return builder.CreateLoad(_variables[name]);
         }
 
-        llvm::Value* IExceptionableTaskGenerator::getPointerToVariable(llvm::IRBuilder<> &builder, const std::string name) {
+        llvm::Value* IExceptionableTaskGenerator::getPointerToVariable(IRBuilder &builder, const std::string name) {
             assert(_variables.find(name) != _variables.end());
             return _variables[name];
         }
 
-        void IExceptionableTaskGenerator::assignToVariable(llvm::IRBuilder<> &builder, const std::string name,
+        void IExceptionableTaskGenerator::assignToVariable(IRBuilder &builder, const std::string name,
                                                            llvm::Value *newValue) {
             assert(_variables.find(name) != _variables.end());
             builder.CreateStore(newValue, _variables[name]);

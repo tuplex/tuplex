@@ -15,7 +15,7 @@ jobs:
           - os: ubuntu-20.04
             hw: "arm64"
           - os: macos-11
-            python-version: "3.8""
+            python-version: "3.8"
             hw: "arm64"
         include:
           - os: ubuntu-20.04

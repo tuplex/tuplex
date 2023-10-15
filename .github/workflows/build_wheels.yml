@@ -10,40 +10,52 @@ jobs:
       matrix:
         os: [ ubuntu-20.04, macos-11 ]
         python-version: ["3.8", "3.9", "3.10", "3.11"]
+        hw: ["x86_64", "arm64"]
         include:
           - os: ubuntu-20.04
             python-version: "3.8"
             cibw-build: "cp38-manylinux_x86_64"
+            hw: "x86_64"
           - os: ubuntu-20.04
             python-version: "3.9"
             cibw-build: "cp39-manylinux_x86_64"
+            hw: "x86_64"
           - os: ubuntu-20.04
             python-version: "3.10"
             cibw-build: "cp310-manylinux_x86_64"
+            hw: "x86_64"
           - os: ubuntu-20.04
             python-version: "3.11"
             cibw-build: "cp311-manylinux_x86_64"
+            hw: "x86_64"
           - os: macos-11
             python-version: "3.8"
             cibw-build: "cp38-macosx_x86_64"
+            hw: "x86_64"
           - os: macos-11
             python-version: "3.9"
             cibw-build: "cp39-macosx_x86_64"
+            hw: "x86_64"
           - os: macos-11
             python-version: "3.10"
             cibw-build: "cp310-macosx_x86_64"
+            hw: "x86_64"
           - os: macos-11
             python-version: "3.11"
             cibw-build: "cp311-macosx_x86_64"
+            hw: "x86_64"
           - os: macos-11
             python-version: "3.9"
             cibw-build: "cp39-macosx_arm64"
+            hw: "arm64"
           - os: macos-11
             python-version: "3.10"
             cibw-build: "cp310-macosx_arm64"
+            hw: "arm64"
           - os: macos-11
             python-version: "3.11"
             cibw-build: "cp311-macosx_arm64"
+            hw: "arm64"
     steps:
       - uses: actions/checkout@v3
 

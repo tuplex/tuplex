@@ -11,6 +11,12 @@ jobs:
         os: [ ubuntu-20.04, macos-11 ]
         python-version: ["3.8", "3.9", "3.10", "3.11"]
         hw: ["x86_64", "arm64"]
+        exclude:
+          - os: ubuntu-20.04
+            hw: "arm64"
+          - os: macos-11
+            python-version: "3.8""
+            hw: "arm64"
         include:
           - os: ubuntu-20.04
             python-version: "3.8"

@@ -112,21 +112,21 @@ def install_mongodb(osname='ubuntu:22.04'):
     && apt update \\
     && apt install -y mongodb-org""".format(version=MONGODB_VERSION)
     elif osname == 'ubuntu:22.04':
-        # cf. guide at https://wiki.crowncloud.net/?How_to_Install_Latest_MongoDB_on_Ubuntu_22_04
-        # and https://www.mongodb.com/community/forums/t/installing-mongodb-over-ubuntu-22-04/159931/35, there is no mongodb release for 22.04 yet...
-        return "echo 'no support for Ubuntu 22.04 for MongoDB, watch out for future release.'"
-    #     return """apt update && apt install -y curl gnupg dirmngr gnupg apt-transport-https ca-certificates software-properties-common \\
-    # && curl -fsSL https://www.mongodb.org/static/pgp/server-{version}.asc | apt-key add - \\
-    # && echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/{version} multiverse" | tee /etc/apt/sources.list.d/mongodb-org-{version}.list \\
-    # && apt update \\
-    # && apt install -y mongodb-org""".format(version=MONGODB_VERSION)
+       return """
+apt-get update -qy &&
+apt install -qy wget curl gnupg2 software-properties-common apt-transport-https ca-certificates lsb-release &&
+curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc| gpg --dearmor -o /etc/apt/trusted.gpg.d/mongodb-6.gpg &&
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/6.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-6.0.list &&
+apt update -y &&
+apt install -y mongodb-org
+"""
     else:
         raise Exception('unknown os {}'.format(osname))
    
 def tiny_bash_header():
     current_year = datetime.datetime.now().year
     current_date = str(datetime.datetime.now())
-    return '#!/usr/bin/env bash\n#(c) 2017-{} Tuplex team\n\n'.format(current_year)
+    return '#!/usr/bin/env bash\n#(c) 2017-{} Tuplex team\n\nset -euxo pipefail\n'.format(current_year)
 
 def write_bash_file(path, content, header=tiny_bash_header()):
     with open(path, 'w') as fp:

@@ -25,16 +25,16 @@ jobs:
             cibw-build: "cp311-manylinux_x86_64"
           - os: macos-11
             python-version: "3.8"
-            cibw-build: "cp38-macosx_x86_64"
+            cibw-build: "cp38-macosx*"
           - os: macos-11
             python-version: "3.9"
-            cibw-build: "cp39-macosx_x86_64"
+            cibw-build: "cp39-macosx*"
           - os: macos-11
             python-version: "3.10"
-            cibw-build: "cp310-macosx_x86_64"
+            cibw-build: "cp310-macosx*"
           - os: macos-11
             python-version: "3.11"
-            cibw-build: "cp311-macosx_x86_64"
+            cibw-build: "cp311-macosx*"
     steps:
       - uses: actions/checkout@v3
 
@@ -59,6 +59,9 @@ jobs:
 
           # bundle aws runner with linux wheel, remove environment variable TUPLEX_LAMBDA_ZIP to remove runner.
           CIBW_ENVIRONMENT_LINUX: "TUPLEX_LAMBDA_ZIP='./tuplex/python/tuplex/other/tplxlam.zip' CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
+
+          # enable builds for both Intel and Apple Silicon based machines
+          CIBW_ARCHS_MACOS: x86_64 arm64
 
           # requires macOS 10.13 at least to build because of C++17 features.
           CIBW_ENVIRONMENT_MACOS: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' JAVA_HOME=${JAVA_HOME_11_X64}"

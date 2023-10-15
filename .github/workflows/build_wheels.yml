@@ -4,7 +4,7 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build_wheels:
-    name: Build wheel on ${{ matrix.os }} - py ${{ matrix.python-version }}
+    name: Build wheel on ${{ matrix.os }} - py ${{ matrix.python-version }} - ${{ matrix.hw  }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

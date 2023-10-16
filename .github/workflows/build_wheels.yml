@@ -4,13 +4,13 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build_wheels:
-    name: Build wheel on ${{ matrix.os }} - py ${{ matrix.python-version }} - ${{ matrix.hw  }}
+    name: Build wheel for ${{ matrix.cibw-build }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ ubuntu-20.04, macos-11 ]
         python-version: ["3.8", "3.9", "3.10", "3.11"]
-        hw: ["x86_64", "arm64"]
+        hw: [arm64"] #["x86_64", "arm64"]
         exclude:
           - os: ubuntu-20.04
             hw: "arm64"
@@ -52,7 +52,7 @@ jobs:
             hw: "x86_64"
           - os: macos-11
             python-version: "3.9"
-            cibw-build: "cp39-macosx_arm64"
+            cibw-build: "cp38-macosx_arm64"
             hw: "arm64"
           - os: macos-11
             python-version: "3.10"

@@ -51,7 +51,7 @@ jobs:
         #     python-version: "3.11"
         #     cibw-build: "cp311-macosx_x86_64"
         #     hw: "x86_64"
-          - os: macos-11
+          - os: macos-12
             python-version: "3.9"
             cibw-build: "cp39-macosx_arm64"
             hw: "arm64"

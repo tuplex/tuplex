@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2023
-# auto-generated on 2023-10-14 15:48:10.354055
+# auto-generated on 2023-10-16 21:11:40.815600
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
+
+
+set -euxo pipefail
 
 # need to run this with root privileges
 if [[ $(id -u) -ne 0 ]]; then
@@ -12,7 +15,20 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
-""" + workdir_setup() + """
+PREFIX=${PREFIX:-/opt}
+WORKDIR=${WORKDIR:-/tmp}
+
+echo ">> Installing packages into ${PREFIX}"
+mkdir -p $PREFIX && chmod 0755 $PREFIX
+mkdir -p $PREFIX/sbin
+mkdir -p $PREFIX/bin
+mkdir -p $PREFIX/share
+mkdir -p $PREFIX/include
+mkdir -p $PREFIX/lib
+
+echo ">> Files will be downloaded to ${WORKDIR}/tuplex-downloads"
+WORKDIR=$WORKDIR/tuplex-downloads
+mkdir -p $WORKDIR
 
 PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE:-python3}
 PYTHON_BASENAME="$(basename -- $PYTHON_EXECUTABLE)"
@@ -36,26 +52,15 @@ WORKDIR=$WORKDIR/tuplex-downloads
 mkdir -p $WORKDIR
 
 export DEBIAN_FRONTEND=noninteractive
-# add recent python3.7 package, confer https://linuxize.com/post/how-to-install-python-3-7-on-ubuntu-18-04/
-apt install -y software-properties-common \
-&& add-apt-repository -y ppa:deadsnakes/ppa \
-&& apt-get update
-apt-get install -y build-essential autoconf automake libtool software-properties-common wget libedit-dev libz-dev \
+apt-get install -qy build-essential autoconf automake libtool software-properties-common wget libedit-dev libz-dev \
   python3-yaml pkg-config libssl-dev libcurl4-openssl-dev curl \
-  uuid-dev git python3.7 python3.7-dev python3-pip libffi-dev \
+  uuid-dev git python3.11 python3.11-dev python3-pip libffi-dev \
   doxygen doxygen-doc doxygen-latex doxygen-gui graphviz \
-  gcc-7 g++-7 libgflags-dev libncurses-dev \
+  libgflags-dev libncurses-dev \
   awscli openjdk-11-jdk libyaml-dev libmagic-dev ninja-build
-# LLVM 9 packages (prob not all of them needed, but here for complete install)
+# LLVM packages (prob not all of them needed, but here for complete install)
 wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh \
-&& ./llvm.sh 9 && rm -rf llvm.sh
-# set gcc-7 as default
-update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 70 --slave /usr/bin/g++ g++ /usr/bin/g++-7
-# set python3.7 as default
-update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 70 --slave /usr/bin/python3m python3m /usr/bin/python3.7m
-# upgrade pip
-python3.7 -m pip install --upgrade pip
-
+&& ./llvm.sh 16 && rm -rf llvm.sh
 
 # fetch recent cmake & install
 CMAKE_VER_MAJOR=3
@@ -110,7 +115,7 @@ mkdir -p ${WORKDIR}/antlr && cd ${WORKDIR}/antlr \
 mkdir -p ${WORKDIR}/aws && cd ${WORKDIR}/aws \
 &&  git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git \
 && cd aws-sdk-cpp && git checkout tags/1.11.164 && mkdir build && cd build \
-&& cmake -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=14 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
+&& cmake -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=17 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
 && make -j$(nproc) \
 && make install
 
@@ -132,11 +137,6 @@ mkdir -p ${WORKDIR}/pcre2 && cd ${WORKDIR}/pcre2 \
 && cd pcre2-10.42 \
 && ./configure CFLAGS="-O2 -fPIC" --prefix=${PREFIX} --enable-jit=auto --disable-shared \
 && make -j$(nproc) && make install
-mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf \
-&& curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v24.3/protobuf-cpp-3.24.3.tar.gz \
-&& tar xf protobuf-cpp-3.24.3.tar.gz \
-&& cd protobuf-3.24.3 \
-&& ./autogen.sh && ./configure "CFLAGS=-fPIC" "CXXFLAGS=-fPIC" \
-&& make -j$(nproc) && make install && ldconfig
-pip3 install 'cloudpickle<2.0.0' cython numpy
+mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf && git clone -b v24.3 https://github.com/protocolbuffers/protobuf.git && cd protobuf && git submodule update --init --recursive && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_CXX_STANDARD=17 -Dprotobuf_BUILD_TESTS=OFF .. && make -j$(nproc) && make install && ldconfig
+pip3 install 'cloudpickle>2.0.0' cython numpy
 echo ">>> installing reqs done."

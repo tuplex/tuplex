@@ -82,7 +82,7 @@ def bash_header(install_prefix='/opt', workdir='/tmp'):
 # auto-generated on {}
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to {} by default'''.format(current_year, current_date, install_prefix) + \
-'\n' + '''
+'\n' + '''\n\nset -euxo pipefail\n
 # need to run this with root privileges
 if [[ $(id -u) -ne 0 ]]; then
   echo "Please run this script with root privileges"
@@ -91,7 +91,7 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
-""" + workdir_setup() + """
+''' + workdir_setup() + '''
 
 PYTHON_EXECUTABLE=${{PYTHON_EXECUTABLE:-python3}}
 PYTHON_BASENAME="$(basename -- $PYTHON_EXECUTABLE)"
@@ -239,7 +239,7 @@ def install_protobuf():
     PROTOBUF_VERSION = VERSIONS['PROTOBUF_VERSION']
 
     code = '''mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf \
-&& git clone -b v${''' + PROTOBUF_VERSION + '''} https://github.com/protocolbuffers/protobuf.git && cd protobuf && git submodule update --init --recursive && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_CXX_STANDARD=17 -Dprotobuf_BUILD_TESTS=OFF .. && make -j$(nproc) && make install && ldconfig'''
+&& git clone -b v''' + PROTOBUF_VERSION + ''' https://github.com/protocolbuffers/protobuf.git && cd protobuf && git submodule update --init --recursive && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_CXX_STANDARD=17 -Dprotobuf_BUILD_TESTS=OFF .. && make -j$(nproc) && make install && ldconfig'''
 
     return code
 
@@ -778,7 +778,7 @@ def main():
 
     # TODO: need to update docker/ci file generation, did change
     # generate_manylinux_files('docker/ci')
-    generate_yaml_req_file('../ci/install_azure_ci_reqs.sh')
+    generate_yaml_req_file('azure/install_azure_ci_reqs.sh')
 
     generate_macos_awssdk_file('macos/install_aws-sdk-cpp.sh')
 

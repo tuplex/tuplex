@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2023
-# auto-generated on 2023-10-14 17:08:17.892215
+# auto-generated on 2023-10-16 21:11:40.815515
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
+
+
+set -euxo pipefail
 
 # need to run this with root privileges
 if [[ $(id -u) -ne 0 ]]; then
@@ -12,7 +15,20 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
-""" + workdir_setup() + """
+PREFIX=${PREFIX:-/opt}
+WORKDIR=${WORKDIR:-/tmp}
+
+echo ">> Installing packages into ${PREFIX}"
+mkdir -p $PREFIX && chmod 0755 $PREFIX
+mkdir -p $PREFIX/sbin
+mkdir -p $PREFIX/bin
+mkdir -p $PREFIX/share
+mkdir -p $PREFIX/include
+mkdir -p $PREFIX/lib
+
+echo ">> Files will be downloaded to ${WORKDIR}/tuplex-downloads"
+WORKDIR=$WORKDIR/tuplex-downloads
+mkdir -p $WORKDIR
 
 PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE:-python3}
 PYTHON_BASENAME="$(basename -- $PYTHON_EXECUTABLE)"
@@ -112,7 +128,7 @@ mkdir -p ${WORKDIR}/antlr && cd ${WORKDIR}/antlr \
 && make -j$(nproc) && make install
 
 echo ">> Installing protobuf"
-mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf && git clone -b v${24.3} https://github.com/protocolbuffers/protobuf.git && cd protobuf && git submodule update --init --recursive && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_CXX_STANDARD=17 -Dprotobuf_BUILD_TESTS=OFF .. && make -j$(nproc) && make install && ldconfig
+mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf && git clone -b v24.3 https://github.com/protocolbuffers/protobuf.git && cd protobuf && git submodule update --init --recursive && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_CXX_STANDARD=17 -Dprotobuf_BUILD_TESTS=OFF .. && make -j$(nproc) && make install && ldconfig
 
 echo ">> Installing AWS SDK"
 mkdir -p ${WORKDIR}/aws && cd ${WORKDIR}/aws \

@@ -3,6 +3,8 @@
 
 set -euxo pipefail
 
+apt-get update -y
+
 apt install -y wget curl gnupg2 software-properties-common apt-transport-https ca-certificates lsb-release
 
 curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc| gpg --dearmor -o /etc/apt/trusted.gpg.d/mongodb-6.gpg

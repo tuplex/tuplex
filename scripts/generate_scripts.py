@@ -357,7 +357,7 @@ def install_yaml():
     
     code += '''\n&& git clone https://github.com/jbeder/yaml-cpp.git yaml-cpp \\
 && cd yaml-cpp \\
-&& git checkout tags/yaml-cpp-{version} \\
+&& git checkout tags/{version} \\
 && mkdir build && cd build \\
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{prefix}} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \\
 && make -j$(nproc) && make install'''.format(version=YAMLCPP_VERSION)

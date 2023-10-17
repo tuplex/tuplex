@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2023
-# auto-generated on 2023-10-16 21:38:52.310330
+# auto-generated on 2023-10-16 22:07:30.052419
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -93,7 +93,7 @@ pushd ${WORKDIR}/boost && wget https://boostorg.jfrog.io/artifactory/main/releas
 mkdir -p ${WORKDIR}/yamlcpp && cd ${WORKDIR}/yamlcpp \
 && git clone https://github.com/jbeder/yaml-cpp.git yaml-cpp \
 && cd yaml-cpp \
-&& git checkout tags/yaml-cpp-0.8.0 \
+&& git checkout tags/0.8.0 \
 && mkdir build && cd build \
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${prefix} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \
 && make -j$(nproc) && make install

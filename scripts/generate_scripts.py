@@ -328,21 +328,24 @@ cd /tmp &&
 def install_antlr():
     # install both ANTLR tool and C++ runtime
     ANTLR_VERSION=VERSIONS['ANTLR_VERSION']
-    
-    ANTLR_MAJMIN = '.'.join(ANTLR_VERSION.split('.')[:2])
+    ANTLR_MAJMIN = ANTLR_VERSION
+
+    # current links look like this:
+    # https://www.antlr.org/download/antlr4-cpp-runtime-4.13.1-source.zip
+    # https://www.antlr.org/download/antlr-4.13.1-complete.jar
     
     code = 'mkdir -p ${WORKDIR}/antlr && cd ${WORKDIR}/antlr \\\n'
     
-    code += '''&& curl -O https://www.antlr.org/download/antlr-{majmin}-complete.jar \\
-&& cp antlr-{majmin}-complete.jar ${{PREFIX}}/lib/ \\\n'''.format(majmin=ANTLR_MAJMIN)
-    
+    code += '''&& curl -O https://www.antlr.org/download/antlr-{version}-complete.jar \\
+&& cp antlr-{version}-complete.jar ${{PREFIX}}/lib/ \\\n'''.format(version=ANTLR_MAJMIN)
+
     # install runtime
-    code += '''&& curl -O https://www.antlr.org/download/antlr4-cpp-runtime-{majmin}-source.zip \\
-&& unzip antlr4-cpp-runtime-{majmin}-source.zip -d antlr4-cpp-runtime \\
-&& rm antlr4-cpp-runtime-{majmin}-source.zip \\
+    code += '''&& curl -O https://www.antlr.org/download/antlr4-cpp-runtime-{version}-source.zip \\
+&& unzip antlr4-cpp-runtime-{version}-source.zip -d antlr4-cpp-runtime \\
+&& rm antlr4-cpp-runtime-{version}-source.zip \\
 && cd antlr4-cpp-runtime \\
 && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{PREFIX}} .. \\
-&& make -j$(nproc) && make install'''.format(majmin=ANTLR_MAJMIN)
+&& make -j$(nproc) && make install'''.format(version=ANTLR_MAJMIN)
     
     return code
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2023
-# auto-generated on 2023-10-16 21:11:40.815515
+# auto-generated on 2023-10-16 21:38:52.310250
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -118,11 +118,11 @@ mkdir -p ${WORKDIR}/yamlcpp && cd ${WORKDIR}/yamlcpp \
 
 echo ">> Installing ANTLR"
 mkdir -p ${WORKDIR}/antlr && cd ${WORKDIR}/antlr \
-&& curl -O https://www.antlr.org/download/antlr-4.13-complete.jar \
-&& cp antlr-4.13-complete.jar ${PREFIX}/lib/ \
-&& curl -O https://www.antlr.org/download/antlr4-cpp-runtime-4.13-source.zip \
-&& unzip antlr4-cpp-runtime-4.13-source.zip -d antlr4-cpp-runtime \
-&& rm antlr4-cpp-runtime-4.13-source.zip \
+&& curl -O https://www.antlr.org/download/antlr-4.13.1-complete.jar \
+&& cp antlr-4.13.1-complete.jar ${PREFIX}/lib/ \
+&& curl -O https://www.antlr.org/download/antlr4-cpp-runtime-4.13.1-source.zip \
+&& unzip antlr4-cpp-runtime-4.13.1-source.zip -d antlr4-cpp-runtime \
+&& rm antlr4-cpp-runtime-4.13.1-source.zip \
 && cd antlr4-cpp-runtime \
 && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
 && make -j$(nproc) && make install

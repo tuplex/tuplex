@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # (c) Tuplex team 2017-2023
-# auto-generated on 2023-10-16 22:07:30.052419
+# auto-generated on 2023-10-16 22:23:55.272907
 # install all dependencies required to compile tuplex + whatever is needed for profiling
 # everything will be installed to /opt by default
 
@@ -95,13 +95,13 @@ mkdir -p ${WORKDIR}/yamlcpp && cd ${WORKDIR}/yamlcpp \
 && cd yaml-cpp \
 && git checkout tags/0.8.0 \
 && mkdir build && cd build \
-&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${prefix} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \
+&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \
 && make -j$(nproc) && make install
 mkdir -p ${WORKDIR}/celero && cd ${WORKDIR}/celero \
 &&  git clone https://github.com/DigitalInBlue/Celero.git celero && cd celero \
 && git checkout tags/v2.8.3 \
 && mkdir build && cd build \
-&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC -std=c++11" .. \
+&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC -std=c++11" .. \
 && make -j$(nproc) && make install
 mkdir -p ${WORKDIR}/antlr && cd ${WORKDIR}/antlr \
 && curl -O https://www.antlr.org/download/antlr-4.13.1-complete.jar \

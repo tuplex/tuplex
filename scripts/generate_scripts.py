@@ -359,22 +359,22 @@ def install_yaml():
 && cd yaml-cpp \\
 && git checkout tags/{version} \\
 && mkdir build && cd build \\
-&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{prefix}} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \\
+&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{PREFIX}} -DYAML_CPP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC" .. \\
 && make -j$(nproc) && make install'''.format(version=YAMLCPP_VERSION)
     
     return code
 
 def install_celero():
     CELERO_VERSION=VERSIONS['CELERO_VERSION']
-    
+    PREFIX=VERSIONS['PREFIX']
     # install ycelero
     code = 'mkdir -p ${WORKDIR}/celero && cd ${WORKDIR}/celero \\'
     
     code += '''\n&&  git clone https://github.com/DigitalInBlue/Celero.git celero && cd celero \\
 && git checkout tags/v{version} \\
 && mkdir build && cd build \\
-&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{PREFIX}} -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC -std=c++11" .. \\
-&& make -j$(nproc) && make install'''.format(version=CELERO_VERSION)
+&& cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX={prefix} -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC -std=c++11" .. \\
+&& make -j$(nproc) && make install'''.format(version=CELERO_VERSION, prefix=PREFIX)
     
     return code
 

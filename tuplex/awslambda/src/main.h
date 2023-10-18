@@ -18,7 +18,7 @@
 #include <nlohmann/json.hpp>
 #include <Utils.h>
 
-#include <Lambda.pb.h>
+#include <managed/proto/Lambda.pb.h>
 #include <Python.h>
 
 // lambda main function, i.e. get a json request and return a json object

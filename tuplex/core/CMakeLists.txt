@@ -24,26 +24,35 @@ if(BUILD_WITH_AWS)
     endif()
     include_directories(Protobuf_INCLUDE_DIRS)
 
-    # https://github.com/protocolbuffers/protobuf/blob/e1faf09604d26cc6803970815f91225b220175d4/docs/cmake_protobuf_generate.md
-    # depending on version, use protobuf_generate_cpp or protobuf_generate
-    if((Protobuf_VERSION VERSION_GREATER_EQUAL "3.22" AND Protobuf_VERSION VERSION_LESS "4.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "4.3.22" AND Protobuf_VERSION VERSION_LESS "5.0.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "22.0"))
-        # see https://github.com/protocolbuffers/protobuf/blob/e1faf09604d26cc6803970815f91225b220175d4/docs/cmake_protobuf_generate.md
-        add_library(proto-objects OBJECT "${CMAKE_CURRENT_LIST_DIR}/proto/Lambda.proto")
-        target_link_libraries(proto-objects PUBLIC protobuf::libprotobuf)
-        set(PROTO_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/managed")
-        file(MAKE_DIRECTORY ${PROTO_BINARY_DIR})
-        target_include_directories(proto-objects PUBLIC "$<BUILD_INTERFACE:${PROTO_BINARY_DIR}>")
+    add_library(proto-objects OBJECT "${CMAKE_CURRENT_LIST_DIR}/proto/Lambda.proto")
 
-        protobuf_generate(
-                TARGET proto-objects
-                IMPORT_DIRS "${CMAKE_CURRENT_LIST_DIR}/proto"
-                PROTOC_OUT_DIR "${PROTO_BINARY_DIR}")
-        include_directories(${PROTO_BINARY_DIR})
-        set(PROTO_SRCS "${PROTO_BINARY_DIR}/Lambda.pb.cc")
-        set(PROTO_HDRS "${PROTO_BINARY_DIR}/Lambda.pb.h")
-    else()
-        protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS proto/Lambda.proto)
-    endif()
+    target_link_libraries(proto-objects PUBLIC protobuf::libprotobuf)
+
+    set(PROTO_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/managed")
+    set(PROTO_IMPORT_DIRS "${CMAKE_CURRENT_LIST_DIR}/proto")
+    file(MAKE_DIRECTORY ${PROTO_BINARY_DIR})
+
+    protobuf_generate(
+            TARGET proto-objects
+            OUT_VAR PROTO_GENERATED_FILES
+            IMPORT_DIRS ${PROTO_IMPORT_DIRS}
+            PROTOC_OUT_DIR "${PROTO_BINARY_DIR}")
+    set_source_files_properties(${PROTO_GENERATED_FILES} PROPERTIES SKIP_UNITY_BUILD_INCLUSION on)
+
+    protobuf_generate(
+            TARGET proto-objects
+            OUT_VAR PROTO_GENERATED_FILES
+            LANGUAGE cpp
+            # PLUGIN_OPTIONS "generate_mock_code=true"
+            IMPORT_DIRS ${PROTO_IMPORT_DIRS}
+            PROTOC_OUT_DIR "${PROTO_BINARY_DIR}")
+    set_source_files_properties(${PROTO_GENERATED_FILES} PROPERTIES SKIP_UNITY_BUILD_INCLUSION on)
+
+    target_include_directories(proto-objects PUBLIC "$<BUILD_INTERFACE:${PROTO_BINARY_DIR}>")
+
+    set(PROTO_SRCS "${PROTO_BINARY_DIR}/proto/Lambda.pb.cc")
+    set(PROTO_HDRS "${PROTO_BINARY_DIR}/proto/Lambda.pb.h")
+
     message(STATUS "protobuf sources (v${Protobuf_VERSION}): ${PROTO_SRCS}")
     message(STATUS "protobuf headers (v${Protobuf_VERSION}): ${PROTO_HDRS}")
 endif()

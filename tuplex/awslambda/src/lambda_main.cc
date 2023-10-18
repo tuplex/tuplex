@@ -25,7 +25,7 @@
 #include <aws/s3/model/Bucket.h>
 
 // protobuf
-#include <Lambda.pb.h>
+#include <managed/proto/Lambda.pb.h>
 #include <physical/TransformStage.h>
 #include <physical/CSVReader.h>
 #include <physical/TextReader.h>

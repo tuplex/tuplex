@@ -30,6 +30,14 @@ if(BUILD_WITH_AWS)
 
     set(PROTO_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/managed")
     set(PROTO_IMPORT_DIRS "${CMAKE_CURRENT_LIST_DIR}/proto")
+    set(PROTO_TARGET_DIR "${PROTO_BINARY_DIR}/proto")
+
+    # generation dirs changed for protobuf versions, earlier versions will generate when given /managed into /managed/proto
+    # newer ones respect the dir, and will generate into /managed. manually fix this here
+    if((Protobuf_VERSION VERSION_GREATER_EQUAL "3.22" AND Protobuf_VERSION VERSION_LESS "4.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "4.3.22" AND Protobuf_VERSION VERSION_LESS "5.0.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "22.0"))
+        set(PROTO_BINARY_DIR "${PROTO_TARGET_DIR}")
+    endif()
+
     file(MAKE_DIRECTORY ${PROTO_BINARY_DIR})
 
     protobuf_generate(
@@ -50,8 +58,8 @@ if(BUILD_WITH_AWS)
 
     target_include_directories(proto-objects PUBLIC "$<BUILD_INTERFACE:${PROTO_BINARY_DIR}>")
 
-    set(PROTO_SRCS "${PROTO_BINARY_DIR}/proto/Lambda.pb.cc")
-    set(PROTO_HDRS "${PROTO_BINARY_DIR}/proto/Lambda.pb.h")
+    set(PROTO_SRCS "${PROTO_TARGET_DIR}/Lambda.pb.cc")
+    set(PROTO_HDRS "${PROTO_TARGET_DIR}/Lambda.pb.h")
 
     message(STATUS "protobuf sources (v${Protobuf_VERSION}): ${PROTO_SRCS}")
     message(STATUS "protobuf headers (v${Protobuf_VERSION}): ${PROTO_HDRS}")

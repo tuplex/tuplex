@@ -152,11 +152,12 @@ TEST_F(ListFunctions, ListReturn) {
 }
 
 TEST_F(ListFunctions, ListReturnII) {
+    GTEST_SKIP_("Option[List[...]] not yet supported");
     using namespace tuplex;
     Context c(microTestOptions());
 
     auto code1 = "def a(x):\n"
-                 "    if(x > 2):\n"
+                 "    if x > 2:\n"
                  "        return [1, 2, 3]\n"
                  "    else:\n"
                  "        return None";

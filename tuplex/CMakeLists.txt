@@ -652,6 +652,16 @@ endfunction()
 
 # is a python3 version set?
 if(PYTHON3_VERSION STREQUAL "")
+
+    # set hints correctly
+    # first check if Python3_ROOT_DIR is empty, if so when an executable is specified use it's parent dir as hint
+    if(NOT Python3_ROOT_DIR OR Python3_ROOT_DIR STREQUAL "")
+        if(Python3_EXECUTABLE AND NOT Python3_EXECUTABLE STREQUAL "")
+            cmake_path(GET Python3_EXECUTABLE PARENT_PATH Python3_ROOT_DIR)
+        endif()
+    endif()
+
+
     # try first to find full Python3, if it fails find only Interpreter & Module
     find_package(Python3 COMPONENTS Interpreter Development QUIET)
     if(Python3_FOUND)

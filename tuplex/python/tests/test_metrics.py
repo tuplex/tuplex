@@ -11,14 +11,14 @@
 
 import unittest
 from tuplex import *
-from helper import test_options
+from helper import options_for_pytest
 
 # this test is a basic test to make sure that times/exceptions for a project are
 # working correctly
 class TestMetrics(unittest.TestCase):
 
     def testTimes(self):
-        conf = test_options()
+        conf = options_for_pytest()
         conf.update({"tuplex.useLLVMOptimizer" : "true", "webui.enable" : False,
                       "driverMemory" : "8MB", "partitionSize" : "256KB"})
         c = Context(conf)

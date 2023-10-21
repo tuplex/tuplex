@@ -9,7 +9,7 @@
 #  License: Apache 2.0                                                                                                 #
 #----------------------------------------------------------------------------------------------------------------------#
 
-def test_options():
+def options_for_pytest():
     return {'tuplex.partitionSize': "128KB",
             "tuplex.executorMemory": "8MB",
             "tuplex.useLLVMOptimizer": True,

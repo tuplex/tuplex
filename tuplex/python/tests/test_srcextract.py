@@ -14,7 +14,7 @@ import tuplex
 
 from tuplex.utils.reflection import get_source, get_globals, supports_lambda_closure
 from notebook_utils import get_jupyter_function_code
-from helper import test_options
+from helper import options_for_pytest
 
 SOME_CONSTANT_TO_EXTRACT=42
 
@@ -22,7 +22,7 @@ SOME_CONSTANT_TO_EXTRACT=42
 class TestSourceExtract(TestCase):
 
     def setUp(self):
-        self.conf = test_options()
+        self.conf = options_for_pytest()
         self.conf.update({"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"})
         self.c = tuplex.Context(self.conf)
 

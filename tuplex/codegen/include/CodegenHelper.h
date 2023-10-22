@@ -382,26 +382,6 @@ namespace tuplex {
            }
 
 
-            inline llvm::Value *CreateStructGEP(llvm::Value *Ptr, unsigned Idx,
-                                                const std::string &Name = "") const {
-#if LLVM_VERSION_MAJOR < 9
-                // compatibility
-                return get_or_throw().CreateConstInBoundsGEP2_32(nullptr, ptr, 0, idx, Name);
-#elif LLVM_VERSION_MAJOR < 15
-                assert(Ptr->getType()->isPointerTy());
-                auto pointeetype = Ptr->getType()->getPointerElementType();
-                assert(pointeetype);
-                return get_or_throw().CreateStructGEP(pointeetype, Ptr, Idx, Name);
-#else
-                //  return builder.CreateStructGEP(ptr, idx);
-                assert(Ptr->getType()->isPointerTy());
-                auto pointeetype = Ptr->getType()->getNonOpaquePointerElementType();
-                assert(pointeetype);
-                return get_or_throw().CreateStructGEP(pointeetype, Ptr, Idx, Name);
-#endif
-            }
-
-
             inline llvm::Value *CreateStructGEP(llvm::Value *Ptr, llvm::Type* pointee_type, unsigned Idx,
                                                 const std::string &Name = "") const {
 #if LLVM_VERSION_MAJOR < 9
@@ -824,7 +804,14 @@ namespace tuplex {
                 llvm::Instruction& inst = *firstBlock.getFirstInsertionPt();
                 ctorBuilder.SetInsertPoint(&inst);
             }
+// disable here clang/gcc warning just for this - it's a limitation of how ctorbuilder is architected.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-local-addr"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-local-addr"
             return std::move(ctorBuilder);
+#pragma GCC diagnostic pop
+#pragma clang diagnostic pop
         }
 
         // in order to serialize/deserialize data properly and deal with

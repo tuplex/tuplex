@@ -11,13 +11,13 @@
 
 import unittest
 import tuplex
-from helper import test_options
+from helper import options_for_pytest
 
 import re
 
 class Test_Import(unittest.TestCase):
     def test_import(self):
-        c = tuplex.Context(test_options())
+        c = tuplex.Context(options_for_pytest())
 
         # map
         res = c.parallelize(['123', 'abc']).map(lambda x: re.search('\\d+', x) != None).collect()

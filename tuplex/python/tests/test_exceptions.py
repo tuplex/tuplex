@@ -13,14 +13,14 @@ import unittest
 from tuplex import Context
 from random import randint, sample, shuffle
 from math import floor
-from helper import test_options
+from helper import options_for_pytest
 
 class TestExceptions(unittest.TestCase):
 
     def setUp(self):
-        self.conf = test_options()
+        self.conf = options_for_pytest()
         self.conf.update({"tuplex.webui.enable": False, "executorCount": 8, "executorMemory": "256MB", "driverMemory": "256MB", "partitionSize": "256KB", "tuplex.optimizer.mergeExceptionsInOrder": False})
-        self.conf_in_order = test_options()
+        self.conf_in_order = options_for_pytest()
         self.conf_in_order.update({"tuplex.webui.enable": False, "executorCount": 8, "executorMemory": "256MB", "driverMemory": "256MB", "partitionSize": "256KB", "tuplex.optimizer.mergeExceptionsInOrder": True})
 
     def test_merge_with_filter(self):

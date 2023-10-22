@@ -103,7 +103,9 @@ if in_google_colab():
         'astor',
         'prompt_toolkit',
         'jedi',
-        'cloudpickle>=0.6.1,<2.0.0',
+        "cloudpickle>=0.6.1,<2.0.0;python_version<'3.10'",
+        "cloudpickle>=2.1.0;python_version=='3.10'",
+        "cloudpickle>=2.2.1;python_version>='3.11'",
         'PyYAML>=3.13',
         'psutil',
         'pymongo',
@@ -123,7 +125,9 @@ else:
         'astor',
         'prompt_toolkit',
         'jedi',
-        'cloudpickle>=0.6.1,<2.0.0',
+        "cloudpickle>=0.6.1,<2.0.0;python_version<'3.10'",
+        "cloudpickle>=2.1.0;python_version=='3.10'",
+        "cloudpickle>=2.2.1;python_version>='3.11'",
         'PyYAML>=3.13',
         'psutil',
         'pymongo',
@@ -654,7 +658,7 @@ def tplx_package_data():
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.
 setup(name="tuplex",
-    python_requires='>=3.7.0',
+    python_requires='>=3.8.0',
     version="0.3.6dev",
     author="Leonhard Spiegelberg",
     author_email="tuplex@cs.brown.edu",
@@ -694,9 +698,10 @@ setup(name="tuplex",
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ],
     scripts=['tuplex/historyserver/bin/tuplex-webui'],
     project_urls={

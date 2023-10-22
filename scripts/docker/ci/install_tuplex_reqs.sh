@@ -10,6 +10,7 @@ YAML_CPP_VERSION=0.8.0
 AWS_LAMBDA_CPP_VERSION=0.2.8
 PCRE2_VERSION=10.42
 PROTOBUF_VERSION=24.3
+CELERO_VERSION=2.8.3
 
 PYTHON_VERSION=$(echo $(python3 --version) | cut -d ' ' -f2)
 PYTHON_MAJMIN_VERSION=${PYTHON_VERSION%.*}
@@ -90,7 +91,7 @@ mkdir -p ${WORKDIR}/yamlcpp && cd ${WORKDIR}/yamlcpp \
 echo ">> Installing Celero"
 mkdir -p ${WORKDIR}/celero && cd ${WORKDIR}/celero \
 &&  git clone https://github.com/DigitalInBlue/Celero.git celero && cd celero \
-&& git checkout tags/v2.8.3 \
+&& git checkout tags/v${CELERO_VERSION} \
 && mkdir build && cd build \
 && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_FLAGS="-fPIC -std=c++11" .. \
 && make -j ${CPU_COUNT} && make install

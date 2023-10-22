@@ -10,14 +10,16 @@
 #----------------------------------------------------------------------------------------------------------------------#
 
 import unittest
+import pytest
 from tuplex import *
 from tuplex.utils.common import auto_shutdown_all, get_json
 
 import logging
 import urllib.request
 
-from helper import test_options
+from helper import options_for_pytest
 
+@pytest.mark.skip(reason="gunicorn and eventlet issues under Python 3.10")
 class TestWebUI(unittest.TestCase):
 
     @classmethod
@@ -25,7 +27,7 @@ class TestWebUI(unittest.TestCase):
         logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
 
         localhost_ip = '127.0.0.1'
-        conf = test_options()
+        conf = options_for_pytest()
         # bug in logging redirect?
         conf.update({"webui.enable": True, "executorCount": 1, "driverMemory": "8MB", "executorMemory" : "1MB",
                "partitionSize": "256KB", "tuplex.redirectToPythonLogging": True,

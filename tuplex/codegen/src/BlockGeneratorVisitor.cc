@@ -4003,15 +4003,16 @@ namespace tuplex {
                     if (elementType.isSingleValued()) {
                         builder.CreateStore(_env->i64Const(0), val);
                     } else {
-                        builder.CreateStore(_env->i64Const(0), _env->CreateStructGEP(builder, val, 0));
-                        builder.CreateStore(_env->i64Const(0), _env->CreateStructGEP(builder, val, 1));
+                        builder.CreateStore(_env->i64Const(0), builder.CreateStructGEP(val, llvmType, 0));
+                        builder.CreateStore(_env->i64Const(0), builder.CreateStructGEP(val, llvmType, 1));
+
                         builder.CreateStore(llvm::ConstantPointerNull::get(
                                 llvm::dyn_cast<PointerType>(llvmType->getStructElementType(2))),
-                                            _env->CreateStructGEP(builder, val, 2));
+                                            builder.CreateStructGEP(val, llvmType, 2));
                         if (elementType == python::Type::STRING) {
                             builder.CreateStore(llvm::ConstantPointerNull::get(
                                     llvm::dyn_cast<PointerType>(llvmType->getStructElementType(3))),
-                                                _env->CreateStructGEP(builder, val, 3));
+                                                builder.CreateStructGEP(val, llvmType, 3));
                         }
                     }
                 }

@@ -1951,7 +1951,10 @@ namespace tuplex {
             } else if(argType.isListType() && argType != python::Type::EMPTYLIST) {
                 auto elementType = argType.elementType();
                 if(elementType.isSingleValued()) {
-                    lfb.addException(builder, ExceptionCode::INDEXERROR, builder.CreateICmpEQ(arg.val, _env.i64Const(0))); // index error if empty list
+                    assert(arg.val->getType()->isPointerTy());
+                    auto list_size = builder.CreateLoad(builder.getInt64Ty(), arg.val); // <-- note that arg.val will be list_ptr
+
+                    lfb.addException(builder, ExceptionCode::INDEXERROR, builder.CreateICmpEQ(list_size, _env.i64Const(0))); // index error if empty list
                     if(elementType == python::Type::NULLVALUE) {
                         return {nullptr, nullptr, _env.i1Const(true)};
                     } else if(elementType == python::Type::EMPTYTUPLE) {

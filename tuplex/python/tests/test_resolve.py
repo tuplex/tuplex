@@ -12,12 +12,12 @@
 from unittest import TestCase
 import tuplex
 import time
-from helper import test_options
+from helper import options_for_pytest
 
 class TestResolveMechanism(TestCase):
 
     def setUp(self):
-        self.conf = test_options()
+        self.conf = options_for_pytest()
         self.conf.update({"webui.enable": False, "driverMemory": "8MB",
                      "partitionSize": "256KB", "optimizer.mergeExceptionsInOrder": True})
         self.c = tuplex.Context(self.conf)

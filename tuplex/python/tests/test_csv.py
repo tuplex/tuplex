@@ -12,7 +12,7 @@
 import unittest
 import os
 from tuplex import *
-from helper import test_options
+from helper import options_for_pytest
 
 class TestCSV(unittest.TestCase):
 
@@ -31,7 +31,7 @@ class TestCSV(unittest.TestCase):
         self._generate_csv_file('test.csv', ',')
         self._generate_csv_file('test.tsv', '\t')
         self._generate_csv_file('test_header.csv', ',', True)
-        self.conf = test_options()
+        self.conf = options_for_pytest()
         self.conf.update({"webui.enable" : False, "driverMemory" : "8MB", "partitionSize" : "256KB"})
 
     def tearDown(self):

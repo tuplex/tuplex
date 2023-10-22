@@ -11,7 +11,7 @@
 
 import unittest
 import tuplex
-from helper import test_options
+from helper import options_for_pytest
 
 
 # different flavors of imports...
@@ -21,10 +21,10 @@ import math
 class TestMath(unittest.TestCase):
 
     def setUp(self):
-        self.conf = test_options()
+        self.conf = options_for_pytest()
 
     def test_constants(self):
-        c = tuplex.Context(test_options())
+        c = tuplex.Context(options_for_pytest())
 
         # Note that in order to extract this, we need to put lambdas on separate lines...
         res = c.parallelize([0]).map(lambda x: (pi, math.e, math.tau, math.inf, math.nan, -math.inf)) \

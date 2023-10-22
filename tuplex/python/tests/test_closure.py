@@ -12,12 +12,12 @@
 from unittest import TestCase
 import tuplex
 import time
-from helper import test_options
+from helper import options_for_pytest
 
 class TestClosure(TestCase):
 
     def setUp(self):
-        self.conf = test_options()
+        self.conf = options_for_pytest()
         self.c = tuplex.Context(self.conf)
 
 

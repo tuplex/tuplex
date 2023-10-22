@@ -11,12 +11,12 @@
 
 import unittest
 from tuplex import *
-from helper import test_options
+from helper import options_for_pytest
 
 class TestLogical(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
-        self.conf = test_options()
+        self.conf = options_for_pytest()
         self.conf.update({"webui.enable": False, "driverMemory": "64MB",
                           "executorMemory": "2MB", "partitionSize": "128KB"})
         super(TestLogical, self).__init__(*args, **kwargs)

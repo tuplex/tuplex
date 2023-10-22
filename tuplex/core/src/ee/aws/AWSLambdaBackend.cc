@@ -27,7 +27,7 @@
 // #include <aws/lambda/model/Architecture.h>
 
 // protobuf header
-#include <Lambda.pb.h>
+#include <managed/proto/Lambda.pb.h>
 
 #include <third_party/base64/base64.h>
 

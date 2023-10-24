@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "dependencies": [
+    "boost-system",
+    "fmt",
+    "spdlog"
+  ],
+  "overrides": [
+    {
+      "name": "fmt",
+      "version": "10.1.1"
+    }
+  ],
+  "builtin-baseline": "3265c187c74914aa5569b75355badebfdbab7987"
+}

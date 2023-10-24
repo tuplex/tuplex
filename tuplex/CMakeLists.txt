@@ -1,5 +1,21 @@
-# (c) 2017 Leonhard Spiegelberg
+# (c) 2017-2023 Leonhard Spiegelberg
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
+
+# top-level language specification
+# enable c++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+message(STATUS "Using language version: C++${CMAKE_CXX_STANDARD}")
+
+# add cmake modules from cmake folder
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
+
+# use vcpkg as manager from https://github.com/bitmeal/vcpkg-cmake-integration
+#set(VCPKG_VERSION edge) # optional
+include("${CMAKE_SOURCE_DIR}/cmake/vcpkg.cmake")
+
+
+
 
 # Tuplex build options:
 # =====================
@@ -73,14 +89,6 @@ endif()
 # uncomment to get verbose cmake output
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
-# top-level language specification
-# enable c++17
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-message(STATUS "Using language version: C++${CMAKE_CXX_STANDARD}")
-
-# add cmake modules from cmake folder
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 message(STATUS "additional cmake module path is ${CMAKE_MODULE_PATH}")
 include("${CMAKE_SOURCE_DIR}/cmake/ucm.cmake") #handy package to manipulate compiler flags
 include("${CMAKE_SOURCE_DIR}/cmake/CPM.cmake") # package manager from https://github.com/cpm-cmake/CPM.cmake

@@ -93,7 +93,8 @@ export CIBW_ENVIRONMENT_MACOS="MACOSX_DEPLOYMENT_TARGET=${MINIMUM_TARGET} CMAKE_
 export CIBW_BUILD="${CIBW_BUILD}"
 export CIBW_PROJECT_REQUIRES_PYTHON=">=3.8"
 
-export CIBW_BUILD_VERBOSITY=3
+# uncomment to increase verbosity of cibuildwheel
+# export CIBW_BUILD_VERBOSITY=3
 
 cibuildwheel --platform macos
 

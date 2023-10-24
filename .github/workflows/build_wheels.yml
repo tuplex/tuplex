@@ -4,65 +4,37 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build_wheels:
-    name: Build wheel for ${{ matrix.cibw-build }}
+    name: Build wheel on ${{ matrix.os }} - py ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # os: [ ubuntu-20.04, macos-11 ]
-        os: ["macos-12"]
-        python-version: ["3.9"] #["3.8", "3.9", "3.10", "3.11"]
-        hw: ["arm64"] #["x86_64", "arm64"]
-        # exclude:
-        #   - os: ubuntu-20.04
-        #     hw: "arm64"
-        #   - os: macos-11
-        #     python-version: "3.8"
-        #     hw: "arm64"
+        os: [ ubuntu-20.04, macos-11 ]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
         include:
-        #   - os: ubuntu-20.04
-        #     python-version: "3.8"
-        #     cibw-build: "cp38-manylinux_x86_64"
-        #     hw: "x86_64"
-        #   - os: ubuntu-20.04
-        #     python-version: "3.9"
-        #     cibw-build: "cp39-manylinux_x86_64"
-        #     hw: "x86_64"
-        #   - os: ubuntu-20.04
-        #     python-version: "3.10"
-        #     cibw-build: "cp310-manylinux_x86_64"
-        #     hw: "x86_64"
-        #   - os: ubuntu-20.04
-        #     python-version: "3.11"
-        #     cibw-build: "cp311-manylinux_x86_64"
-        #     hw: "x86_64"
-        #   - os: macos-11
-        #     python-version: "3.8"
-        #     cibw-build: "cp38-macosx_x86_64"
-        #     hw: "x86_64"
-        #   - os: macos-11
-        #     python-version: "3.9"
-        #     cibw-build: "cp39-macosx_x86_64"
-        #     hw: "x86_64"
-        #   - os: macos-11
-        #     python-version: "3.10"
-        #     cibw-build: "cp310-macosx_x86_64"
-        #     hw: "x86_64"
-        #   - os: macos-11
-        #     python-version: "3.11"
-        #     cibw-build: "cp311-macosx_x86_64"
-        #     hw: "x86_64"
-          - os: macos-12
+          - os: ubuntu-20.04
+            python-version: "3.8"
+            cibw-build: "cp38-manylinux_x86_64"
+          - os: ubuntu-20.04
             python-version: "3.9"
-            cibw-build: "cp39-macosx_arm64"
-            hw: "arm64"
-        #   - os: macos-11
-        #     python-version: "3.10"
-        #     cibw-build: "cp310-macosx_arm64"
-        #     hw: "arm64"
-        #   - os: macos-11
-        #     python-version: "3.11"
-        #     cibw-build: "cp311-macosx_arm64"
-        #     hw: "arm64"
+            cibw-build: "cp39-manylinux_x86_64"
+          - os: ubuntu-20.04
+            python-version: "3.10"
+            cibw-build: "cp310-manylinux_x86_64"
+          - os: ubuntu-20.04
+            python-version: "3.11"
+            cibw-build: "cp311-manylinux_x86_64"
+          - os: macos-11
+            python-version: "3.8"
+            cibw-build: "cp38-macosx_x86_64"
+          - os: macos-11
+            python-version: "3.9"
+            cibw-build: "cp39-macosx_x86_64"
+          - os: macos-11
+            python-version: "3.10"
+            cibw-build: "cp310-macosx_x86_64"
+          - os: macos-11
+            python-version: "3.11"
+            cibw-build: "cp311-macosx_x86_64"
     steps:
       - uses: actions/checkout@v3
 
@@ -79,8 +51,6 @@ jobs:
           # configure cibuildwheel to build native archs ('auto'), and some
           # emulated ones
           CIBW_ARCHS_LINUX: native
-          CIBW_ARCHS_MACOS: ${{ matrix.hw }}
-
           CIBW_MANYLINUX_X86_64_IMAGE: "registry-1.docker.io/tuplex/ci:${{ matrix.python-version }}"
           CIBW_BUILD: ${{ matrix.cibw-build }}
 

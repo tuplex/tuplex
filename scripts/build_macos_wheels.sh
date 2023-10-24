@@ -2,8 +2,7 @@
 # (c) 2017-2023 Tuplex team
 # builds x86_64 (and arm64) wheels
 
-# uncomment for debug
-#set -euxo pipefail
+# add -x option for verbose output
 set -euo pipefail
 
 function fail {
@@ -44,7 +43,9 @@ fi
 arch=$(detect_instruction_set)
 echo "-- Detected arch ${arch}"
 
-xcode_version_str=$(pkgutil --pkg-info=com.apple.pkg.CLTools_Executables | grep version)
+# try to extract version of compiler first via command-line tools or xcode
+# either needs to be installed.
+xcode_version_str=$(pkgutil --pkg-info=com.apple.pkg.CLTools_Executables 2>/dev/null | grep version || pkgutil --pkg-info=com.apple.pkg.Xcode | grep version)
 echo "-- Detected Xcode ${xcode_version_str}"
 
 # if no param is given, use defaults to build all
@@ -54,7 +55,7 @@ if [ "${arch}" = "arm64" ]; then
   CIBW_BUILD=${CIBW_BUILD-"cp3{9,10,11}-macosx_arm64"}
 else
   # build Python 3.8 - 3.11
-  CIBW_BUILD=${CIBW_BUILD-"cp3{8,9,10,11}-macosx_x86_64}"}
+  CIBW_BUILD=${CIBW_BUILD-"cp3{8,9,10,11}-macosx_x86_64"}
 fi
 
 echo "-- Building wheels for ${CIBW_BUILD}"

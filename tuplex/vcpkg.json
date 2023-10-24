@@ -3,12 +3,17 @@
   "dependencies": [
     "boost-system",
     "fmt",
-    "spdlog"
+    "spdlog",
+    {"name" : "aws-sdk-cpp", "features": ["s3", "lambda", "transfer"]},
+    {"name":  "llvm", "features":  ["enable-rtti", "enable-zlib", "enable-zstd", "target-aarch64", "target-x86"]}
   ],
   "overrides": [
     {
       "name": "fmt",
       "version": "10.1.1"
+    },
+    {"name":  "llvm",
+    "version":  "17.0.2"
     }
   ],
   "builtin-baseline": "3265c187c74914aa5569b75355badebfdbab7987"

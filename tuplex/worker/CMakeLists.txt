@@ -6,11 +6,8 @@ if(NOT WORKER_NAME OR WORKER_NAME STREQUAL "")
 endif()
 
 # enable c++14
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# enable c11
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # add nlohmann json
 include(ExternalProject)

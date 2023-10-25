@@ -83,7 +83,6 @@ namespace tuplex {
             auto field_type = _tree.fieldType(index);
             if(field_type.isTupleType() && field_type != python::Type::EMPTYTUPLE) {
                 // need to assign a subtree
-                assert(value->getType()->isStructTy() || value->getType()->getPointerElementType()->isStructTy()); // struct or struct*
 
                 auto subtree = _tree.subTree(index);
                 auto subtree_type = subtree.tupleType();

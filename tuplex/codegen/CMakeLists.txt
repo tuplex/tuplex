@@ -20,48 +20,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # this may make it easier but increases size of shared object tremendously
 set(LLVM_REQUIRED_COMPONENTS core orcjit nativecodegen native scalaropts objcarcopts passes)
 
-IF(BREW_FOUND)
-    IF(APPLE)
-
-        # there might be multiple LLVM versions installed.
-        # check which version there is
-        # if not sys.stdin.isatty():
-        #    data = sys.stdin.readlines()
-
-        # could use brew prefix here, but let's leave it like this
-        EXECUTE_PROCESS(COMMAND bash "-c" "brew info llvm | grep Cellar | cut -d ' ' -f 1" OUTPUT_VARIABLE LLVM_ROOT_DIR RESULT_VARIABLE BREW_LLVM_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
-        IF(NOT BREW_LLVM_NOTFOUND EQUAL "0")
-            MESSAGE(WARNING "did not find llvm, you might install it via `brew install llvm@9`")
-        ELSE()
-            # check version, needs to be within 5 and 9 incl.
-            # i.e. execute something like /usr/local/opt/llvm/bin/llvm-config --version
-            EXECUTE_PROCESS(COMMAND ${LLVM_ROOT_DIR}/bin/llvm-config --version OUTPUT_VARIABLE LLVM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-            # check if empty, if it is parse again using brew info json
-            IF("${LLVM_VERSION}" STREQUAL "")
-                EXECUTE_PROCESS(COMMAND bash "-c" "brew info --json=v1 llvm | python3 -c 'import sys,json; x=json.load(sys.stdin); print(x[0][\"versions\"][\"stable\"])'" OUTPUT_VARIABLE LLVM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
-                execute_process(COMMAND bash "-c" "brew info llvm | grep Cellar | cut -d ' ' -f 1" OUTPUT_VARIABLE LLVM_ROOT_DIR RESULT_VARIABLE BREW_RET OUTPUT_STRIP_TRAILING_WHITESPACE)
-            ENDIF()
-
-            message(STATUS "Found LLVM ${LLVM_VERSION}")
-        ENDIF()
-
-    ELSEIF(UNIX)
-        # ...
-    ENDIF()
-ENDIF()
-
-# for brewed llvm, add to cmakemodulepath
-IF(NOT "${LLVM_ROOT_DIR}" STREQUAL "")
-    message(STATUS "Detected LLVM root dir: ${LLVM_ROOT_DIR}")
-    # make cmake find in config mode the right LLVMConfig.cmake file which is located here
-    set(LLVM_DIR "${LLVM_ROOT_DIR}/lib/cmake/llvm")
-    FIND_PACKAGE(LLVM 6.0 REQUIRED COMPONENTS ${LLVM_REQUIRED_COMPONENTS})
-ELSE()
-    FIND_PACKAGE(LLVM 6.0 REQUIRED COMPONENTS ${LLVM_REQUIRED_COMPONENTS})
-ENDIF()
-
-MESSAGE(STATUS "Found LLVM ${LLVM_VERSION_STRING}")
+find_package(LLVM CONFIG REQUIRED)
 if(LLVM_DIR)
     message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 endif()

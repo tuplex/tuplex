@@ -1103,8 +1103,12 @@ namespace tuplex {
 #if (LLVM_VERSION_MAJOR > 14)
                 if(stype->isOpaquePointerTy())
                     return "ptr";
-#endif
+#elif (LLVM_VERSION_MAJOR >= 17)
+                return "ptr"
+#else
                 stype = stype->getPointerElementType();
+#endif
+
                 pointer_stars += "*";
             }
 
@@ -1166,9 +1170,12 @@ namespace tuplex {
 #if (LLVM_VERSION_MAJOR > 14)
                 if(t->isOpaquePointerTy())
                     return "ptr";
-#endif
+#elif (LLVM_VERSION_MAJOR >= 17)
+                return "ptr";
+#else
                 // recurse:
                 return getLLVMTypeName(t->getPointerElementType()) + "*";
+#endif
             }
 
             if (t->isArrayTy()) {

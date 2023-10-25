@@ -922,8 +922,6 @@ namespace tuplex {
             logger.debug("ft type: " + _env.getLLVMTypeName(ft));
             logger.debug("iterator type: " + _env.getLLVMTypeName(iterator->getType()));
 
-            // ok, update is something crazy fancy here: mod.getOrInsertFunction(name, FT).getCallee()->getType()->getPointerElementType()->isFunctionTy()
-
             auto nextFunc_value = llvm::getOrInsertCallable(*_env.getModule(), funcName, ft);
             llvm::FunctionCallee nextFunc_callee(ft, nextFunc_value);
             auto exhausted = builder.CreateCall(nextFunc_callee, iterator);
@@ -965,7 +963,7 @@ namespace tuplex {
                                                    const std::shared_ptr<IteratorInfo> &iteratorInfo) {
 
             using namespace llvm;
-            llvm::Type *iteratorContextType = createIteratorContextTypeFromIteratorInfo(_env, *iteratorInfo); //iterator->getType()->getPointerElementType();
+            llvm::Type *iteratorContextType = createIteratorContextTypeFromIteratorInfo(_env, *iteratorInfo);
             std::string funcName;
             auto iteratorName = iteratorInfo->iteratorName;
 
@@ -998,8 +996,6 @@ namespace tuplex {
             logger.debug("iterator context type: " + _env.getLLVMTypeName(iteratorContextType));
             logger.debug("ft type: " + _env.getLLVMTypeName(ft));
             logger.debug("iterator type: " + _env.getLLVMTypeName(iterator->getType()));
-
-            // ok, update is something crazy fancy here: mod.getOrInsertFunction(name, FT).getCallee()->getType()->getPointerElementType()->isFunctionTy()
 
             auto nextFunc_value = llvm::getOrInsertCallable(*_env.getModule(), funcName, ft);
             llvm::FunctionCallee nextFunc_callee(ft, nextFunc_value);

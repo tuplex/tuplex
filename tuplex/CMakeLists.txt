@@ -993,6 +993,8 @@ endif()
 
 # ncurses/curses lib for terminal manipulation
 find_package(Curses REQUIRED)
+find_package(fmt REQUIRED)
+find_package(spdlog REQUIRED)
 
 # add subdirs here...
 add_subdirectory(io)  # <-- make sure to call this first, because it changes parent scope with io dependencies

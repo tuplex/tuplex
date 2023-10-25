@@ -147,4 +147,5 @@ target_link_libraries(libcodegen
         ${LLVM_LIBRARIES}
         ${ZLIB_LIBRARIES}
         ${CURSES_LIBRARIES}
+        fmt::fmt
         )

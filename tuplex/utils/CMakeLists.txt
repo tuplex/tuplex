@@ -67,11 +67,9 @@ target_include_directories(libutils PUBLIC
         ${cjson_SOURCE_DIR}
         ${json_INCLUDE_DIR}
         ${Boost_INCLUDE_DIR}
-        ${AWSSDK_INCLUDE_DIR})
-
-find_package(fmt REQUIRED)
-find_package(spdlog REQUIRED)
+        ${AWSSDK_INCLUDE_DIR}
+        spdlog::spdlog_header_only)
 
 # Specify here the libraries this program depends on
-target_link_libraries(libutils PRIVATE fmt::fmt-header-only spdlog::spdlog_header_only Boost::filesystem Boost::thread Boost::system
+target_link_libraries(libutils spdlog::spdlog_header_only fmt::fmt Boost::filesystem Boost::thread Boost::system
         Boost::system Boost::iostreams ${AWSSDK_LINK_LIBRARIES} )

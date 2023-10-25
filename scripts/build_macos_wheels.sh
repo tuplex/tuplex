@@ -51,7 +51,6 @@ echo "-- Detected Xcode ${xcode_version_str}"
 # if no param is given, use defaults to build all
 if [ "${arch}" = "arm64" ]; then
   # build Python 3.9 - 3.11
-#  cp38-macosx_arm64
   CIBW_BUILD=${CIBW_BUILD-"cp3{9,10,11}-macosx_arm64"}
 else
   # build Python 3.8 - 3.11
@@ -64,7 +63,7 @@ echo "-- Building wheels for ${CIBW_BUILD}"
 MINIMUM_TARGET="10.13"
 
 MACOS_VERSION=$(sw_vers -productVersion)
-echo "-- processing on MacOS ${MACOS_VERSION}"
+echo "-- Processing on MacOS ${MACOS_VERSION}"
 function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
 
 MACOS_VERSION_MAJOR=`echo $MACOS_VERSION | cut -d . -f1`
@@ -75,18 +74,13 @@ if [ "$MACOS_VERSION_MAJOR" -ge 11 ]; then
     MINIMUM_TARGET="${MACOS_VERSION_MAJOR}.0"
 else
     # keep as is
-    echo "-- defaulting build to use as minimum target ${MINIMUM_TARGET}"
+    echo "-- Defaulting build to use as minimum target ${MINIMUM_TARGET}"
 fi
 
 pushd $CWD > /dev/null
 cd ..
 
-# protobuf 3.20-3.21.2 is broken for MacOS, so use
-# 3.19.4
-# brew tap-new $USER/local-podman
-# brew extract --version=3.19.4 protobuf $USER/local-podman
-# brew install $USER/local-podman/protobuf@3.19.4
-# i.e., prepend to statemtnt the following: brew tap-new $USER/local; brew extract --force --version=3.19.4 protobuf $USER/local && brew install $USER/local/protobuf@3.19.4 &&
+# Note: protobuf 3.20 - 3.21.2 is broken for MacOS, do not use those versions
 export CIBW_BEFORE_BUILD_MACOS="brew install protobuf coreutils zstd zlib libmagic llvm@16 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero wget boost ninja snappy"
 export CIBW_ENVIRONMENT_MACOS="MACOSX_DEPLOYMENT_TARGET=${MINIMUM_TARGET} CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' "
 

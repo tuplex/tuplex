@@ -252,8 +252,16 @@ namespace tuplex {
         jitlib.addGenerator(std::move(*ProcessSymbolsGenerator));
 
         // define symbols from custom symbols for this jitlib
-        for(auto keyval: _customSymbols)
+        for(auto keyval: _customSymbols) {
+#if LLVM_VERSION_MAJOR <= 16
             auto rc = jitlib.define(absoluteSymbols({{Mangle(keyval.first), keyval.second}}));
+#else
+            auto rc = jitlib.define(absoluteSymbols(SymbolMap({
+                { Mangle(keyval.first),
+                  { ExecutorAddr::fromPtr(&keyval.second), JITSymbolFlags() } }
+              });
+#endif
+        }
 
         _dylibs.push_back(&jitlib); // save reference for search
         auto err = _lljit->addIRModule(jitlib, std::move(tsm.get()));

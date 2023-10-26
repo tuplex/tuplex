@@ -1038,10 +1038,10 @@ namespace tuplex {
             // here it is just a load
             // ==> an empty tuple can't have a bitmap!
             if(isEmptyTuple()) {
-                throw std::runtime_error("need to figure this out..."); // what needs to be stored here anyways??
+                throw std::runtime_error("need to figure this out..."); // what needs to be stored here anyways?
                 assert(1 == numElements());
                 // store size for packed empty tuple
-                builder.CreateStore(_tree.get(0).size, builder.CreateGEP(ptr, {_env->i32Const(0), _env->i32Const(numElements())}));
+                builder.CreateStore(_tree.get(0).size, builder.CreateStructGEP(ptr, llvmType, numElements()));
                 return;
             }
 

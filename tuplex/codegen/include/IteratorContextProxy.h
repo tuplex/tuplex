@@ -127,70 +127,70 @@ namespace tuplex {
                                                      llvm::Value *iterator,
                                                      const std::shared_ptr<IteratorInfo> &iteratorInfo);
 
-            /*!
-             * Update index for a zip iterator in preparing for the getIteratorNextElement call by calling updateIteratorIndex on each argument.
-             * If any argument is exhausted, return true and stop calling updateIteratorIndex on rest of the arguments.
-             * Only return false if none of the argument iterators is exhausted.
-             * @param builder
-             * @param iterator
-             * @param iteratorInfo
-             * @return true if iterator is exhausted (getIteratorNextElement should not get called later), otherwise false
-             */
-            llvm::Value *updateZipIndex(const codegen::IRBuilder& builder,
-                                        llvm::Value *iterator,
-                                        const std::shared_ptr<IteratorInfo> &iteratorInfo);
-
-            /*!
-             * Generate the next element of a zip iterator.
-             * Only to be called after calling updateIteratorIndex.
-             * @param builder
-             * @param yieldType
-             * @param iterator
-             * @param iteratorInfo
-             * @return tuple element of yieldType
-             */
-            SerializableValue getZipNextElement(const codegen::IRBuilder& builder,
-                                                const python::Type &yieldType,
-                                                llvm::Value *iterator,
-                                                const std::shared_ptr<IteratorInfo> &iteratorInfo);
-
-            /*!
-             * Generate the next element of a enumerate iterator.
-             * Only to be called after calling updateIteratorIndex.
-             * @param builder
-             * @param iterator
-             * @param iteratorInfo
-             * @return true if iterator is exhausted (getIteratorNextElement should not get called later), otherwise false
-             */
-            llvm::Value *updateEnumerateIndex(const codegen::IRBuilder& builder,
-                                              llvm::Value *iterator,
-                                              const std::shared_ptr<IteratorInfo> &iteratorInfo);
-
-            /*!
-             * Generate the next element of a enumerate iterator.
-             * Only to be called after calling updateIteratorIndex.
-             * @param builder
-             * @param yieldType
-             * @param iterator
-             * @param iteratorInfo
-             * @return tuple element of yieldType
-             */
-            SerializableValue getEnumerateNextElement(const codegen::IRBuilder& builder,
-                                                      const python::Type &yieldType,
-                                                      llvm::Value *iterator,
-                                                      const std::shared_ptr<IteratorInfo> &iteratorInfo);
-
-            /*!
-             * Increment index field of a list/string/tuple iterator by offset.
-             * Increment index field of a range iterator by step * offset.
-             * Decrement index field of any reverseiterator by offset.
-             * For zip and enumerate, will use recursive calls on their arguments until a list/string/tuple iterator or a reverseiterator is reached.
-             * @param builder
-             * @param iterator
-             * @param iteratorInfo
-             * @param offset can be negative
-             */
-            void incrementIteratorIndex(const codegen::IRBuilder& builder, llvm::Value *iterator, const std::shared_ptr<IteratorInfo> &iteratorInfo, int offset);
+//            /*!
+//             * Update index for a zip iterator in preparing for the getIteratorNextElement call by calling updateIteratorIndex on each argument.
+//             * If any argument is exhausted, return true and stop calling updateIteratorIndex on rest of the arguments.
+//             * Only return false if none of the argument iterators is exhausted.
+//             * @param builder
+//             * @param iterator
+//             * @param iteratorInfo
+//             * @return true if iterator is exhausted (getIteratorNextElement should not get called later), otherwise false
+//             */
+//            llvm::Value *updateZipIndex(const codegen::IRBuilder& builder,
+//                                        llvm::Value *iterator,
+//                                        const std::shared_ptr<IteratorInfo> &iteratorInfo);
+//
+//            /*!
+//             * Generate the next element of a zip iterator.
+//             * Only to be called after calling updateIteratorIndex.
+//             * @param builder
+//             * @param yieldType
+//             * @param iterator
+//             * @param iteratorInfo
+//             * @return tuple element of yieldType
+//             */
+//            SerializableValue getZipNextElement(const codegen::IRBuilder& builder,
+//                                                const python::Type &yieldType,
+//                                                llvm::Value *iterator,
+//                                                const std::shared_ptr<IteratorInfo> &iteratorInfo);
+//
+//            /*!
+//             * Generate the next element of a enumerate iterator.
+//             * Only to be called after calling updateIteratorIndex.
+//             * @param builder
+//             * @param iterator
+//             * @param iteratorInfo
+//             * @return true if iterator is exhausted (getIteratorNextElement should not get called later), otherwise false
+//             */
+//            llvm::Value *updateEnumerateIndex(const codegen::IRBuilder& builder,
+//                                              llvm::Value *iterator,
+//                                              const std::shared_ptr<IteratorInfo> &iteratorInfo);
+//
+//            /*!
+//             * Generate the next element of a enumerate iterator.
+//             * Only to be called after calling updateIteratorIndex.
+//             * @param builder
+//             * @param yieldType
+//             * @param iterator
+//             * @param iteratorInfo
+//             * @return tuple element of yieldType
+//             */
+//            SerializableValue getEnumerateNextElement(const codegen::IRBuilder& builder,
+//                                                      const python::Type &yieldType,
+//                                                      llvm::Value *iterator,
+//                                                      const std::shared_ptr<IteratorInfo> &iteratorInfo);
+//
+//            /*!
+//             * Increment index field of a list/string/tuple iterator by offset.
+//             * Increment index field of a range iterator by step * offset.
+//             * Decrement index field of any reverseiterator by offset.
+//             * For zip and enumerate, will use recursive calls on their arguments until a list/string/tuple iterator or a reverseiterator is reached.
+//             * @param builder
+//             * @param iterator
+//             * @param iteratorInfo
+//             * @param offset can be negative
+//             */
+//            void incrementIteratorIndex(const codegen::IRBuilder& builder, llvm::Value *iterator, const std::shared_ptr<IteratorInfo> &iteratorInfo, int offset);
         };
 
         /*!
@@ -200,6 +200,11 @@ namespace tuplex {
          * @return corresponding llvm::Type
          */
         extern llvm::Type* createIteratorContextTypeFromIteratorInfo(LLVMEnvironment& env, const IteratorInfo& iteratorInfo);
+
+        extern void increment_iterator_index(LLVMEnvironment& env, const codegen::IRBuilder& builder,
+                                             llvm::Value *iterator,
+                                             const std::shared_ptr<IteratorInfo> &iteratorInfo,
+                                             int32_t offset);
     }
 
     namespace codegen {

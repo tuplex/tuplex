@@ -1669,7 +1669,7 @@ namespace tuplex {
             auto str_size = CreateFirstBlockAlloca(builder, i64Type());
             auto str = builder.CreateCall(func, {value, str_size});
 
-            return SerializableValue(str, builder.CreateLoad(str_size));
+            return SerializableValue(str, builder.CreateLoad(builder.getInt64Ty(), str_size));
         }
 
 

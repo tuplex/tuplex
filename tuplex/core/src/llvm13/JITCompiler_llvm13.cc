@@ -252,16 +252,7 @@ namespace tuplex {
         jitlib.addGenerator(std::move(*ProcessSymbolsGenerator));
 
         // define symbols from custom symbols for this jitlib
-        for(auto keyval: _customSymbols) {
-#if LLVM_VERSION_MAJOR <= 16
-            auto rc = jitlib.define(absoluteSymbols({{Mangle(keyval.first), keyval.second}}));
-#else
-            auto rc = jitlib.define(absoluteSymbols(SymbolMap({
-                { Mangle(keyval.first),
-                  { ExecutorAddr::fromPtr(&keyval.second), JITSymbolFlags() } }
-              });
-#endif
-        }
+        defineCustomSymbols(jitlib);
 
         _dylibs.push_back(&jitlib); // save reference for search
         auto err = _lljit->addIRModule(jitlib, std::move(tsm.get()));
@@ -283,6 +274,23 @@ namespace tuplex {
         // // another reference: https://doxygen.postgresql.org/llvmjit_8c_source.html
 
         return true;
+    }
+
+    void JITCompiler::defineCustomSymbols(llvm::orc::JITDylib &jitlib) {
+        auto& ES = _lljit->getExecutionSession();
+        const auto& DL = _lljit->getDataLayout();
+        llvm::orc::MangleAndInterner Mangle(ES, DL);
+
+        for(auto keyval: _customSymbols) {
+#if LLVM_VERSION_MAJOR <= 16
+            auto rc = jitlib.define(absoluteSymbols({{Mangle(keyval.first), keyval.second}}));
+#else
+            auto rc = jitlib.define(llvm::orc::absoluteSymbols(llvm::orc::SymbolMap({
+                { Mangle(keyval.first),
+                  {llvm::orc::ExecutorAddr::fromPtr(&keyval.second), llvm::JITSymbolFlags() } }
+              })));
+#endif
+        }
     }
 
     bool JITCompiler::compile(std::unique_ptr<llvm::Module> mod) {
@@ -328,9 +336,7 @@ namespace tuplex {
         jitlib.addGenerator(std::move(*ProcessSymbolsGenerator));
 
         // define symbols from custom symbols for this jitlib
-        for(auto keyval: _customSymbols)
-            auto rc = jitlib.define(llvm::orc::absoluteSymbols({{Mangle(keyval.first), keyval.second}}));
-
+        defineCustomSymbols(jitlib);
         _dylibs.push_back(&jitlib); // save reference for search
 
         assert(tsm);

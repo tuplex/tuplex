@@ -43,7 +43,7 @@ namespace tuplex {
 
 
             // create some preliminary things
-            auto endPtr = oldBuilder.CreateGEP(getInputPtrArg(), getInputSizeArg());
+            auto endPtr = oldBuilder.MovePtrByBytes(getInputPtrArg(), getInputSizeArg());
 
             oldBuilder.CreateBr(bBody);
 
@@ -59,11 +59,11 @@ namespace tuplex {
             // if skipHeader is true, skip first row
             // !!! there is no header validation/order etc. here.
             if(_skipHeader) {
-                auto parseCode = builder.CreateCall(parseRowF, {_resStructVar, builder.CreateLoad(_currentPtrVar), _endPtr});
-                auto numParsedBytes = builder.CreateLoad(builder.CreateGEP(_resStructVar, {_env->i32Const(0), _env->i32Const(0)}));
+                auto parseCode = builder.CreateCall(parseRowF, {_resStructVar, builder.CreateLoad(_env->i8ptrType(), _currentPtrVar), _endPtr});
+                auto numParsedBytes = builder.CreateLoad(builder.getInt64Ty(), builder.CreateGEP(_resStructVar, {_env->i32Const(0), _env->i32Const(0)}));
 
                 // inc ptr & go to loop cond
-                builder.CreateStore(builder.CreateGEP(builder.CreateLoad(_currentPtrVar), numParsedBytes), _currentPtrVar);
+                builder.CreateStore(builder.CreateGEP(builder.CreateLoad(_env->i8ptrType(), _currentPtrVar), numParsedBytes), _currentPtrVar);
             }
 
             builder.CreateBr(bLoopCond);
@@ -71,7 +71,7 @@ namespace tuplex {
 
             // loop condition, i.e. p < endp
             builder.SetInsertPoint(bLoopCond);
-            auto cond = builder.CreateICmpULT(builder.CreatePtrToInt(builder.CreateLoad(_currentPtrVar), _env->i64Type()),
+            auto cond = builder.CreateICmpULT(builder.CreatePtrToInt(builder.CreateLoad(_env->i8ptrType(), _currentPtrVar), _env->i64Type()),
                                               builder.CreatePtrToInt(_endPtr, _env->i64Type()));
             builder.CreateCondBr(cond, bLoopBody, bLoopDone);
 
@@ -80,7 +80,7 @@ namespace tuplex {
             builder.SetInsertPoint(bLoopBody);
             //call func and advance ptr
 
-            auto parseCode = builder.CreateCall(parseRowF, {_resStructVar, builder.CreateLoad(_currentPtrVar), _endPtr});
+            auto parseCode = builder.CreateCall(parseRowF, {_resStructVar, builder.CreateLoad(_env->i8ptrType(), _currentPtrVar), _endPtr});
             _env->debugPrint(builder, "parseCode is ", parseCode);
             auto numParsedBytes = builder.CreateLoad(builder.CreateGEP(_resStructVar, {_env->i32Const(0), _env->i32Const(0)}));
 

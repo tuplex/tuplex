@@ -764,13 +764,13 @@ namespace tuplex {
                 ctorBuilder.SetInsertPoint(&inst);
             }
 // disable here clang/gcc warning just for this - it's a limitation of how ctorbuilder is architected.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wreturn-local-addr"
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wreturn-local-addr"
+// #pragma clang diagnostic push
+// #pragma clang diagnostic ignored "-Wreturn-local-addr"
+// #pragma GCC diagnostic push
+// #pragma GCC diagnostic ignored "-Wreturn-local-addr"
             return std::move(ctorBuilder);
-#pragma GCC diagnostic pop
-#pragma clang diagnostic pop
+// #pragma GCC diagnostic pop
+// #pragma clang diagnostic pop
         }
 
         // in order to serialize/deserialize data properly and deal with

@@ -9,10 +9,10 @@ include(GoogleTest)
 
 ADD_EXECUTABLE(testcodegen ${SRCS})
 
-
 TARGET_LINK_LIBRARIES(testcodegen
         libcodegen
         ${GTest_LIBRARIES}
+        ${Protobuf_LIBRARIES}
         runtime
         )
 

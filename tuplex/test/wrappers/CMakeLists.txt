@@ -47,6 +47,7 @@ TARGET_LINK_LIBRARIES(testwrappers
         libcpythonadapter
         ${Boost_LIBRARIES}
         pybind11::embed
+        ${Protobuf_LIBRARIES}
         )
 
 gtest_add_tests(TARGET testwrappers TEST_PREFIX "")

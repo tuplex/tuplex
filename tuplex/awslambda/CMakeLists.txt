@@ -73,13 +73,4 @@ target_compile_definitions(${LAMBDA_NAME} PRIVATE "AWS_LAMBDA_LOG=3")
 # depend on nlohmann json
 add_dependencies(${LAMBDA_NAME} json libio libutils libcore)
 
-# this line creates a target that packages your binary and zips it up
-if(AMAZON_LINUX)
-    # when compiled on Amazon Linux, no need to package libc. reduces size.
-    aws_lambda_package_target(${LAMBDA_NAME} NO_LIBC)
-else()
-    # need to package full libc
-    aws_lambda_package_target(${LAMBDA_NAME})
-endif()
-
-# To build Lambda runner deployment package, use ./scripts/create_lambda.zip.sh
+# To build Lambda runner deployment package, use ./scripts/create_lambda.zip.sh specifically.

@@ -261,6 +261,67 @@ if(BUILD_WITH_AWS)
     else()
         message(FATAL_ERROR "option build with AWSSDK specified, but AWS SDK was not found.")
     endif ()
+
+    # building with AWS backend support?
+    # communication with AWS Lambda happens via protobuf, i.e. make sure protobuf compiler
+    # is installed
+    set(Protobuf_USE_STATIC_LIBS ON)
+    # https://github.com/protocolbuffers/protobuf/issues/12637
+    find_package(Protobuf CONFIG)
+    if(NOT Protobuf_FOUND)
+        find_package(Protobuf REQUIRED)
+    endif()
+
+    if(NOT Protobuf_LIBRARIES)
+        set(Protobuf_LIBRARIES protobuf::libprotobuf)
+    endif()
+
+    # newer protobuf has abseil dependency, amend protobuf libs accordingly because protobuf is shipped in
+    # a non-fixed state (see https://github.com/protocolbuffers/protobuf/issues/12637)
+    # there's a bug in cmake for cmake < 3.27 where version is detected wrongly as 4.x -> fix
+    if((Protobuf_VERSION VERSION_GREATER_EQUAL "3.22" AND Protobuf_VERSION VERSION_LESS "4.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "4.3.22" AND Protobuf_VERSION VERSION_LESS "5.0.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "22.0"))
+        find_package(absl REQUIRED)
+        find_package(utf8_range REQUIRED)
+        set(protobuf_ABSL_USED_TARGETS
+                absl::absl_check
+                absl::absl_log
+                absl::algorithm
+                absl::base
+                absl::bind_front
+                absl::bits
+                absl::btree
+                absl::cleanup
+                absl::cord
+                absl::core_headers
+                absl::debugging
+                absl::die_if_null
+                absl::dynamic_annotations
+                absl::flags
+                absl::flat_hash_map
+                absl::flat_hash_set
+                absl::function_ref
+                absl::hash
+                absl::layout
+                absl::log_initialize
+                absl::log_severity
+                absl::memory
+                absl::node_hash_map
+                absl::node_hash_set
+                absl::optional
+                absl::span
+                absl::status
+                absl::statusor
+                absl::strings
+                absl::synchronization
+                absl::time
+                absl::type_traits
+                absl::utility
+                absl::variant
+                utf8_range::utf8_validity
+        )
+        list(APPEND Protobuf_LIBRARIES ${protobuf_ABSL_USED_TARGETS})
+    endif()
+
 endif()
 
 if(GENERATE_PDFS)

@@ -191,8 +191,6 @@ class Context:
             ensure_webui(options)
 
         # last arg are the options as json string serialized b.c. of boost python problems
-        logging.debug('Creating C++ context object')
-
         # because webui=False/True is convenient, pass it as well to tuplex options
         if 'tuplex.webui' in options.keys():
             options['tuplex.webui.enable'] = options['tuplex.webui']
@@ -202,7 +200,6 @@ class Context:
             del options['webui']
 
         self._context = _Context(name, runtime_path, json.dumps(options))
-        logging.debug('C++ object created.')
         python_metrics = self._context.getMetrics()
         assert python_metrics, 'internal error: metrics object should be valid'
         self.metrics = Metrics(python_metrics)

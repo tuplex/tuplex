@@ -1418,7 +1418,7 @@ namespace tuplex {
                     auto func = quoteForCSV_prototype(env.getContext(), env.getModule().get());
                     val = builder.CreateCall(func, {val, size, quotedSize, env.i8Const(','), env.i8Const('"')});
                     fmtString += "%s";
-                    fmtSize = builder.CreateAdd(fmtSize, builder.CreateLoad(quotedSize));
+                    fmtSize = builder.CreateAdd(fmtSize, builder.CreateLoad(env.i64Type(), quotedSize));
                 } else if(type.isOptionType()) {
 
                     // check element type & call string conversion function with convert

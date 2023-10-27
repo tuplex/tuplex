@@ -60,10 +60,11 @@ namespace tuplex {
             // !!! there is no header validation/order etc. here.
             if(_skipHeader) {
                 auto parseCode = builder.CreateCall(parseRowF, {_resStructVar, builder.CreateLoad(_env->i8ptrType(), _currentPtrVar), _endPtr});
-                auto numParsedBytes = builder.CreateLoad(builder.getInt64Ty(), builder.CreateGEP(_resStructVar, {_env->i32Const(0), _env->i32Const(0)}));
+                auto llvm_ret_type = _rowGenerator.resultType();
+                auto numParsedBytes = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(_resStructVar, llvm_ret_type, 0));
 
                 // inc ptr & go to loop cond
-                builder.CreateStore(builder.CreateGEP(builder.CreateLoad(_env->i8ptrType(), _currentPtrVar), numParsedBytes), _currentPtrVar);
+                builder.CreateStore(builder.MovePtrByBytes(builder.CreateLoad(_env->i8ptrType(), _currentPtrVar), numParsedBytes), _currentPtrVar);
             }
 
             builder.CreateBr(bLoopCond);
@@ -82,10 +83,11 @@ namespace tuplex {
 
             auto parseCode = builder.CreateCall(parseRowF, {_resStructVar, builder.CreateLoad(_env->i8ptrType(), _currentPtrVar), _endPtr});
             _env->debugPrint(builder, "parseCode is ", parseCode);
-            auto numParsedBytes = builder.CreateLoad(builder.CreateGEP(_resStructVar, {_env->i32Const(0), _env->i32Const(0)}));
+            auto llvm_ret_type = _rowGenerator.resultType();
+            auto numParsedBytes = builder.CreateLoad(builder.getInt64Ty(), builder.CreateStructGEP(_resStructVar, llvm_ret_type, 0));
 
             // inc ptr & go to loop cond with next blocks
-            builder.CreateStore(builder.CreateGEP(builder.CreateLoad(_currentPtrVar), numParsedBytes), _currentPtrVar);
+            builder.CreateStore(builder.MovePtrByBytes(builder.CreateLoad(_env->i8ptrType(), _currentPtrVar), numParsedBytes), _currentPtrVar);
 
             // ignore empty results at end
             // maybe add assert that lineEnd is >= endPtr
@@ -95,8 +97,8 @@ namespace tuplex {
             builder.SetInsertPoint(bNonEmpty);
 
             // can only stuff if bytes were parsed!
-            auto lineStart = builder.CreateLoad(builder.CreateGEP(_resStructVar, {_env->i32Const(0), _env->i32Const(1)}));
-            auto lineEnd = builder.CreateLoad(builder.CreateGEP(_resStructVar, {_env->i32Const(0), _env->i32Const(2)}));
+            auto lineStart = builder.CreateLoad(_env->i8ptrType(), builder.CreateStructGEP(_resStructVar, llvm_ret_type, 1));
+            auto lineEnd = builder.CreateLoad(_env->i8ptrType(), builder.CreateStructGEP(_resStructVar, llvm_ret_type, 2));
 
             // check result code, if zero all ok. Else, go into exception handling
             BasicBlock *bNoException = BasicBlock::Create(context, "no_exception", getFunction());
@@ -160,8 +162,14 @@ namespace tuplex {
 
 #warning "this here is outdated... should not be used. Remove code"
             for(const auto& t : stype.parameters()) {
-                Value* val = builder.CreateLoad(builder.CreateGEP(resStructVal, {_env->i32Const(0), _env->i32Const(3 + 2 * pos)}));
-                Value* size = builder.CreateLoad(builder.CreateGEP(resStructVal, {_env->i32Const(0), _env->i32Const(3 + 2 * pos + 1)}));
+                auto llvm_ret_type = _rowGenerator.resultType();
+                auto val_position = 3 + 2 * pos;
+                auto size_position = 3 + 2 * pos + 1;
+                auto val_ptr = builder.CreateStructGEP(resStructVal, llvm_ret_type, val_position);
+                auto size_ptr = builder.CreateStructGEP(resStructVal, llvm_ret_type, size_position);
+                Value* val = builder.CreateLoad(llvm_ret_type->getStructElementType(val_position), val_ptr);
+                assert(llvm_ret_type->getStructElementType(size_position) == builder.getInt64Ty());
+                Value* size = builder.CreateLoad(builder.getInt64Ty(), size_ptr);
 
                 // !!! zero terminated string
                 if(python::Type::STRING == t)

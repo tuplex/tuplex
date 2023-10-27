@@ -121,8 +121,8 @@ namespace tuplex {
 
 
                 // adjust inputptr (has been already updated) to previous row uwsing inputlength
-                auto inputptr = builder.CreateGEP(getVariable(builder, "currentInputPtr"),
-                                                  builder.CreateNeg(inputlength));//builder.CreateLoad(_currentInputPtrVar);
+                auto inputptr = builder.MovePtrByBytes(getVariable(builder, "currentInputPtr"),
+                                                  builder.CreateNeg(inputlength));
                 std::vector<llvm::Value *> eh_parameters{_parameters["userData"], ehcode, ehopid, row, inputptr,
                                                          inputlength};
                 builder.CreateCall(eh_func, eh_parameters);

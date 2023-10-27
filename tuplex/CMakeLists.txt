@@ -52,6 +52,16 @@ if(CMAKE_GENERATOR STREQUAL "Ninja")
     message(STATUS "Using ninja generator, if fails use -w dupbuild=err")
 endif()
 
+# The -fvisibility=hidden option only works for static builds.
+if (NOT BUILD_SHARED_LIBS)
+    set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+else()
+    if (CMAKE_CXX_VISIBILITY_PRESET STREQUAL "hidden")
+        message(FATAL_ERROR "CMAKE_CXX_VISIBILITY_PRESET=hidden is incompatible \
+                           with BUILD_SHARED_LIBS.")
+    endif()
+endif()
+
 # detect MacOS Version because at least 10.13 is required when building with AWS SDK
 if(APPLE)
     execute_process(COMMAND bash -c "sw_vers | grep -Eo '([0-9]{1,}\\.)+[0-9]{1,}' | head -1" OUTPUT_VARIABLE MACOSX_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -999,18 +1009,20 @@ find_package(spdlog REQUIRED)
 # add subdirs here...
 add_subdirectory(io)  # <-- make sure to call this first, because it changes parent scope with io dependencies
 add_subdirectory(utils)
-add_subdirectory(test)
 add_subdirectory(codegen)
 add_subdirectory(core)
 add_subdirectory(python)
 add_subdirectory(runtime)
 add_subdirectory(adapters)
-
 # can only build aws lambda on linux platform
 if(LINUX AND BUILD_WITH_AWS)
     # removed AWS lambda implementation, can be found on separate branch
-     add_subdirectory(awslambda)
+    add_subdirectory(awslambda)
 endif()
+# call test dir last to get vars from before
+add_subdirectory(test)
+
+
 
 ###########################################################################
 # (7) Additional flags

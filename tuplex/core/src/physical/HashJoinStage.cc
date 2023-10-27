@@ -69,10 +69,10 @@ namespace tuplex {
         builder.CreateStore(env->i8nullptr(), hashed_value);
 
         // read num rows
-        Value *numRows = builder.CreateLoad(builder.CreatePointerCast(builder.CreateLoad(curPtrVar), env->i64ptrType()),
+        Value *numRows = builder.CreateLoad(builder.getInt64Ty(), builder.CreatePointerCast(builder.CreateLoad(env->i8ptrType(), curPtrVar), env->i64ptrType()),
                                             "numInputRows");
         // move ptr by int64_t
-        builder.CreateStore(builder.CreateGEP(builder.CreateLoad(curPtrVar), env->i64Const(sizeof(int64_t))),
+        builder.CreateStore(builder.MovePtrByBytes(builder.CreateLoad(env->i8ptrType(), curPtrVar), sizeof(int64_t)),
                             curPtrVar);
 
         // set up

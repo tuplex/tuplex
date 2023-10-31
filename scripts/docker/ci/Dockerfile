@@ -11,7 +11,6 @@ MAINTAINER "Tuplex project@Brown"
 # add script files from local dir
 RUN mkdir -p /opt/sbin
 ADD install_boost.sh /opt/sbin/install_boost.sh
-ADD install_tuplex_reqs.sh /opt/sbin/install_tuplex_reqs.sh
 ADD install_llvm.sh /opt/sbin/install_llvm.sh
 
 # cmake not required to be installed, because recent image has cmake 3.20
@@ -52,6 +51,8 @@ RUN python3.9 -m pip install 'cloudpickle<2.0' numpy pandas
 RUN python3.10 -m pip install 'cloudpickle>2.0' numpy pandas
 
 # tuplex requirements
+RUN ln -sf /usr/local/bin/python3.9 /usr/local/bin/python3 && /usr/local/bin/python3 --version
+ADD install_tuplex_reqs.sh /opt/sbin/install_tuplex_reqs.sh
 RUN bash /opt/sbin/install_tuplex_reqs.sh
 
 # add lambda-specific Python 3.8 (full python install)

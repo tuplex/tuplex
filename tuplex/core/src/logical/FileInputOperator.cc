@@ -22,6 +22,7 @@
 
 #include <Base.h>
 #include <StringUtils.h>
+#include "logical/parameters.h"
 
 namespace tuplex {
 
@@ -346,14 +347,31 @@ namespace tuplex {
             // run row count estimation (required for cost-based optimizer)
             f->_estimatedRowCount = f->estimateSampleBasedRowCount();
 
-            // get type & assign schema
-            f->_normalCaseRowType = normalcasetype;
-            f->_generalCaseRowType = generalcasetype;
-            f->setOutputSchema(Schema(Schema::MemoryLayout::ROW, generalcasetype));
+            if(PARAM_USE_ROW_TYPE) {
+                assert(!f->_columnNames.empty() && f->_columnNames.size() == normalcasetype.parameters().size());
+                assert(!f->_columnNames.empty() && f->_columnNames.size() == generalcasetype.parameters().size());
+                assert(normalcasetype.isTupleType());
+                assert(generalcasetype.isTupleType());
+                f->_normalCaseRowType = python::Type::makeRowType(normalcasetype.parameters(), f->_columnNames);
+                f->_generalCaseRowType = python::Type::makeRowType(generalcasetype.parameters(), f->_columnNames);
+                f->setOutputSchema(Schema(Schema::MemoryLayout::ROW, f->_generalCaseRowType));
+            } else {
+                // get type & assign schema
+                f->_normalCaseRowType = normalcasetype;
+                f->_generalCaseRowType = generalcasetype;
+                f->setOutputSchema(Schema(Schema::MemoryLayout::ROW, generalcasetype));
+            }
         } else {
             f->_estimatedRowCount = 0;
             logger.warn("no input files found, can't infer type from given path: " + pattern);
-            f->setOutputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
+
+            if(PARAM_USE_ROW_TYPE) {
+                f->setOutputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYROW));
+            } else {
+                f->setOutputSchema(Schema(Schema::MemoryLayout::ROW, python::Type::EMPTYTUPLE));
+            }
+
+
         }
 
         // set defaults for possible projection pushdown...

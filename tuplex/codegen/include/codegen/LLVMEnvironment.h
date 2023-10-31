@@ -311,12 +311,29 @@ namespace tuplex {
             inline std::vector<python::Type> lookupPythonTypes(llvm::Type* llvm_type) {
                 if(!llvm_type)
                     return {};
-                auto it = _typeMapping.find(llvm_type);
-                if(it != _typeMapping.end()) {
-                    return std::vector<python::Type>(it->second.begin(), it->second.end());
-                } else {
-                    return {};
+
+                // check all internal mappings
+                {
+                    auto it = _typeMapping.find(llvm_type);
+                    if(it != _typeMapping.end())
+                        return std::vector<python::Type>(it->second.begin(), it->second.end());
                 }
+
+                for(auto keyval : _generatedTupleTypes) {
+                    if(keyval.second == llvm_type)
+                        return {keyval.first};
+                }
+
+                for(auto keyval: _generatedListTypes) {
+                    if(keyval.second == llvm_type)
+                        return {keyval.first};
+                }
+
+                // if it's a pointer type, deref
+                if(llvm_type->isPointerTy())
+                    return lookupPythonTypes(llvm_type->getPointerElementType());
+
+                return {};
             }
 
             /*!

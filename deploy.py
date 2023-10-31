@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import tuplex
 from tuplex.distributed import setup_aws
 

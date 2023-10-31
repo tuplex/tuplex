@@ -12,6 +12,7 @@
 #define TUPLEX_FILEINPUTOPERATOR_H
 
 #include "LogicalOperator.h"
+#include "parameters.h"
 #include <physical/memory/Partition.h>
 #include <boost/align/aligned_allocator.hpp>
 
@@ -540,7 +541,10 @@ namespace tuplex {
          * @return number of input columns in file
          */
         inline size_t inputColumnCount() const {
-            return getInputSchema().getRowType().parameters().size();
+            if(PARAM_USE_ROW_TYPE)
+                return getInputSchema().getRowType().get_column_count();
+            else
+                return getInputSchema().getRowType().parameters().size();
         }
 
         /*!

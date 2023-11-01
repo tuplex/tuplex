@@ -120,6 +120,25 @@ namespace tuplex {
                 // not set, use original
                 return rowType;
             }
+
+            if(PARAM_USE_ROW_TYPE) {
+                assert(rowType.isRowType());
+                if(python::Type::EMPTYROW == rowType)
+                    return rowType;
+
+                assert(_columnsToSerialize.size() == rowType.get_column_names().size());
+                auto column_names = rowType.get_column_names();
+                std::vector<python::Type> projected_column_types;
+                std::vector<std::string> projected_column_names;
+                for(unsigned i = 0; i < std::min(column_names.size(), _columnsToSerialize.size()); ++i) {
+                    if(_columnsToSerialize[i]) {
+                        projected_column_types.push_back(rowType.get_column_type(i));
+                        projected_column_names.push_back(column_names[i]);
+                    }
+                }
+                return python::Type::makeRowType(projected_column_types, projected_column_names);
+            }
+
             // use columns to serialize to get projected type
             if(!rowType.isTupleType())
                 throw std::runtime_error("can't project row type, expected a tuple type but got " + rowType.desc());

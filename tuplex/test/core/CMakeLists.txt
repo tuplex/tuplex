@@ -17,6 +17,7 @@ target_link_libraries(testcore
         libcpythonadapter
         ${GTest_LIBRARIES}
         ${AWSSDK_LINK_LIBRARIES}
+        ${Protobuf_LIBRARIES}
         ${Python3_LIBRARIES})
 
 gtest_add_tests(TARGET testcore TEST_PREFIX "")

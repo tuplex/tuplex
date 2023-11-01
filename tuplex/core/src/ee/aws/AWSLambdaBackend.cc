@@ -35,7 +35,7 @@
 // #include <aws/lambda/model/Architecture.h>
 
 // protobuf header
-#include <Lambda.pb.h>
+#include <utils/Messages.h>
 
 #include <third_party/base64/base64.h>
 

@@ -37,7 +37,7 @@
 #define WORKER_HASH_BUFFER_SIZE 8388608
 
 // protobuf
-#include <Lambda.pb.h>
+#include <utils/Messages.h>
 #include <physical/execution/TransformStage.h>
 #include <physical/execution/CSVReader.h>
 #include <physical/execution/TextReader.h>

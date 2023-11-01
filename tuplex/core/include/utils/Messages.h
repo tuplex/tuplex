@@ -6,7 +6,7 @@
 #define TUPLEX_MESSAGES_H
 
 // collection of all protobuf messages + definitions
-#include <Lambda.pb.h>
+#include <managed/proto/Lambda.pb.h>
 
 namespace tuplex {
     enum class ResourceType : uint32_t {

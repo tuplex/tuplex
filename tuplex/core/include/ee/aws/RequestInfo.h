@@ -9,7 +9,7 @@
 #include <StringUtils.h>
 
 #ifdef BUILD_WITH_AWS
-#include <Lambda.pb.h>
+#include <utils/Messages.h>
 #include "JSONUtils.h"
 
 #endif

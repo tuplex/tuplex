@@ -284,7 +284,7 @@ namespace tuplex {
 
         for(auto keyval: _customSymbols) {
 #if LLVM_VERSION_MAJOR <= 16
-            auto rc = jitlib.define(absoluteSymbols({{Mangle(keyval.first), keyval.second}}));
+            auto rc = jitlib.define(llvm::orc::absoluteSymbols({{Mangle(keyval.first), keyval.second}}));
 #else
             auto rc = jitlib.define(llvm::orc::absoluteSymbols(llvm::orc::SymbolMap({
                 { Mangle(keyval.first),
@@ -318,6 +318,16 @@ namespace tuplex {
 
         // create for this module own jitlib
         auto& ES = _lljit->getExecutionSession();
+
+        // if lib with name already exists, remove
+        llvm::orc::JITDylib *jitlib_ptr = nullptr;
+        if((jitlib_ptr = ES.getJITDylibByName(module_name.str()))) {
+            auto err = ES.removeJITDylib(*jitlib_ptr);
+            if(err)
+                throw std::runtime_error("failed to remove JITDylib " + module_name.str() + " from execution session.");
+            jitlib_ptr = nullptr;
+        }
+
         auto& jitlib = ES.createJITDylib(module_name.str()).get();
         const auto& DL = _lljit->getDataLayout();
         llvm::orc::MangleAndInterner Mangle(ES, DL);

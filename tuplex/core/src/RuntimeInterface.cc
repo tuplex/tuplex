@@ -14,9 +14,9 @@
 #include <Logger.h>
 #include <llvm/IR/Mangler.h>
 #include <llvm/ExecutionEngine/orc/JITTargetMachineBuilder.h>
+#if LLVM_VERSION_MAJOR >= 16
 #include <llvm/TargetParser/Host.h>
-
-#include <dlfcn.h>
+#endif
 
 static bool _loaded = false;
 static std::string _libPath = "";

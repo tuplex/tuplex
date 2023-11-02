@@ -414,7 +414,7 @@ namespace tuplex {
 
             inline llvm::CallInst *CreateCall(llvm::FunctionType *FTy, llvm::Value *Callee,
 
-#if (LLVM_VERSION_MAJOR >= 10)
+#if (LLVM_VERSION_MAJOR >= 16)
                                         llvm::ArrayRef<llvm::Value *> Args = std::nullopt,
 #else
                     llvm::ArrayRef<llvm::Value *> Args = {},
@@ -426,7 +426,7 @@ namespace tuplex {
             }
 
             inline llvm::CallInst* CreateCall(llvm::Value* func_value,
-#if (LLVM_VERSION_MAJOR >= 10)
+#if (LLVM_VERSION_MAJOR >= 16)
                     llvm::ArrayRef<llvm::Value *> Args = std::nullopt,
 #else
                                               llvm::ArrayRef<llvm::Value *> Args = {},
@@ -440,7 +440,7 @@ namespace tuplex {
             }
 
             inline llvm::CallInst* CreateCall(llvm::Function* func,
-#if (LLVM_VERSION_MAJOR >= 10)
+#if (LLVM_VERSION_MAJOR >= 16)
                     llvm::ArrayRef<llvm::Value *> Args = std::nullopt,
 #else
                                               llvm::ArrayRef<llvm::Value *> Args = {},
@@ -451,7 +451,7 @@ namespace tuplex {
             }
 
             inline llvm::CallInst *CreateCall(llvm::FunctionCallee Callee,
-#if (LLVM_VERSION_MAJOR >= 10)
+#if (LLVM_VERSION_MAJOR >= 16)
                     llvm::ArrayRef<llvm::Value *> Args = std::nullopt,
 #else
                                               llvm::ArrayRef<llvm::Value *> Args = {},

@@ -533,6 +533,47 @@ end_repl_str:
     return ret;
 }
 
+// helper function to replace undefined floating point formats with correct ones
+std::string replace_with_float_default_format(const std::string& fmt, const std::string& argtypes) {
+
+    auto default_float_fmt = "{:#g}";
+
+    unsigned pos = 0;
+    std::string new_fmt;
+    unsigned argpos = 0;
+    unsigned startpos = 0;
+    while(pos < fmt.size()) {
+        auto curchar = fmt[pos];
+        auto nextchar = pos + 1 < fmt.size() ? fmt[pos + 1] : 0;
+
+        if(curchar == '{' && nextchar == '{') {
+            new_fmt += "{{";
+            pos += 2;
+        } else if(curchar == '}' && nextchar == '}') {
+            new_fmt += "}}";
+            pos += 2;
+        } else if(curchar == '{') {
+            startpos = pos;
+
+            // special case: {} and arg is float
+            if(argpos < argtypes.size() && 'f' == argtypes[argpos] && nextchar == '}') {
+                new_fmt += default_float_fmt;
+                pos += 2;
+            } else {
+                new_fmt.push_back(curchar);
+                pos++;
+            }
+        } else if(curchar == '}') {
+            argpos++;
+            new_fmt.push_back(curchar);
+            pos++;
+        } else {
+            new_fmt.push_back(curchar);
+            pos++;
+        }
+    }
+    return new_fmt;
+}
 
 /*!
  * strFormat function with variable number of arguments. Supports formatting for bool, int, float, str.
@@ -563,6 +604,8 @@ extern "C" char* strFormat(const char *str, int64_t *res_size, const char* argty
     // retrieve the arguments
     va_list argp;
     va_start(argp, argtypes);
+    bool found_float = false;
+    auto original_argtypes = argtypes;
     int num_args = (int)strlen(argtypes);
     for(int i=0; i<num_args; ++i) {
         char type = *argtypes++;
@@ -572,6 +615,7 @@ extern "C" char* strFormat(const char *str, int64_t *res_size, const char* argty
         } else if(type == 'f') {
             double val = va_arg(argp, double);
             store.push_back(val);
+            found_float = true;
         } else if(type == 'b') { // boolean
             static_assert(sizeof(long long) == 8, "long long must be 8 bytes");
             int64_t val = va_arg(argp, long long);
@@ -599,8 +643,17 @@ extern "C" char* strFormat(const char *str, int64_t *res_size, const char* argty
     }
     va_end(argp);
 
+    // to be compatible with default floating point format (here g), convert non-defined floating point formats
+    auto fmt_str = str;
+    std::string new_fmt;
+    if(found_float) {
+        // make the formatting call
+        new_fmt = replace_with_float_default_format(str, original_argtypes);
+        fmt_str = new_fmt.c_str();
+    }
+
     // make the formatting call
-    res = fmt::vformat(str, store);
+    res = fmt::vformat(fmt_str, store);
     *res_size = res.length() + 1;
     ret = (char*)rtmalloc((size_t)*res_size);
     memcpy(ret, res.c_str(), (size_t)*res_size);

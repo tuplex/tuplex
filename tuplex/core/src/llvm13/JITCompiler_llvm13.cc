@@ -109,6 +109,7 @@ namespace tuplex {
         tmb.setCPU(CPUStr);
         tmb.setRelocationModel(Reloc::Model::PIC_);
         tmb.addFeatures(getFeatureList());
+
         //tmb.addFeatures(codegen::getLLVMFeatureStr()); //<-- should add here probably SSE4.2.??
 
         // build on top of this:

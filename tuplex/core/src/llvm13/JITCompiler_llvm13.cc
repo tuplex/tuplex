@@ -295,10 +295,13 @@ namespace tuplex {
 #if LLVM_VERSION_MAJOR <= 16
             auto rc = jitlib.define(llvm::orc::absoluteSymbols({{Mangle(keyval.first), keyval.second}}));
 #else
+            // LLVM17 introduces new llvm::orc::ExecutorSymbolDef class
+            // convert JITEvaluatedSymbol from map to this new class.
             auto rc = jitlib.define(llvm::orc::absoluteSymbols(llvm::orc::SymbolMap({
-                { Mangle(keyval.first),
-                  {llvm::orc::ExecutorAddr::fromPtr(&keyval.second), llvm::JITSymbolFlags() } }
-              })));
+                                                        { Mangle(keyval.first),
+                                                          { llvm::orc::ExecutorAddr(keyval.second.getAddress()),
+                                                            keyval.second.getFlags()} }
+                                                })));
 #endif
         }
     }

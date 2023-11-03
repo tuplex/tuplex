@@ -238,6 +238,15 @@ namespace tuplex {
 
         // create for this module own jitlib
         auto& ES = _lljit->getExecutionSession();
+
+        // if lib with name already exists, remove
+        llvm::orc::JITDylib *jitlib_ptr = nullptr;
+        if((jitlib_ptr = ES.getJITDylibByName(module_name))) {
+            auto err = ES.removeJITDylib(*jitlib_ptr);
+            if(err)
+                throw std::runtime_error("failed to remove JITDylib " + module_name + " from execution session.");
+            jitlib_ptr = nullptr;
+        }
         auto& jitlib = ES.createJITDylib(module_name).get();
         const auto& DL = _lljit->getDataLayout();
         MangleAndInterner Mangle(ES, DL);

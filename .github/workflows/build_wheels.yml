@@ -85,7 +85,7 @@ jobs:
           CIBW_BUILD: ${{ matrix.cibw-build }}
 
           # macOS dependencies separate, for linux use docker tuplex/ci:3.x images.
-          CIBW_BEFORE_ALL_MACOS: bash ./scripts/macos/install_antlr4_cpp_runtime.sh && bash ./scripts/macos/brew_dependencies.sh && bash ./scripts/macos/install_aws-sdk-cpp.sh && echo 'export PATH="/usr/local/opt/openjdk@11/bin:$PATH"' >> /Users/runner/.bash_profile
+          #CIBW_BEFORE_ALL_MACOS: bash ./scripts/macos/install_antlr4_cpp_runtime.sh && bash ./scripts/macos/brew_dependencies.sh && bash ./scripts/macos/install_aws-sdk-cpp.sh && echo 'export PATH="/usr/local/opt/openjdk@11/bin:$PATH"' >> /Users/runner/.bash_profile
 
           # bundle aws runner with linux wheel, remove environment variable TUPLEX_LAMBDA_ZIP to remove runner.
           CIBW_ENVIRONMENT_LINUX: "TUPLEX_LAMBDA_ZIP='./tuplex/python/tuplex/other/tplxlam.zip' CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"

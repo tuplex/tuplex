@@ -2374,6 +2374,21 @@ namespace python {
         return kv_pairs.size();
     }
 
+    std::vector<python::Type> Type::get_column_types() const {
+        assert(isRowType());
+        auto& factory = TypeFactory::instance();
+
+        const std::lock_guard<std::mutex> lock(factory._typeMapMutex);
+        auto it = factory._typeMap.find(_hash);
+        assert(it != factory._typeMap.end());
+        auto kv_pairs = factory._typeVec[it->second]._struct_pairs;
+        std::vector<python::Type> column_types;
+        column_types.reserve(kv_pairs.size());
+        for(const auto& entry : kv_pairs)
+            column_types.push_back(entry.valueType);
+        return column_types;
+    }
+
     std::vector<python::Type> primitiveTypes(bool return_options_as_well) {
         std::vector<python::Type> v{python::Type::BOOLEAN, python::Type::I64, python::Type::F64,
                                     python::Type::STRING, python::Type::NULLVALUE, python::Type::EMPTYTUPLE,

@@ -27,6 +27,11 @@ namespace tuplex {
         auto original_type = type;
         type = deoptimizedType(type); // deoptimize first...
 
+        if(PARAM_USE_ROW_TYPE) {
+            if(type.isRowType())
+                return type;
+        }
+
         if (type.isPrimitiveType() || python::Type::EMPTYTUPLE == type || type.isDictionaryType() ||
             python::Type::NULLVALUE == type || python::Type::GENERICTUPLE == type ||
             python::Type::PYOBJECT == type ||

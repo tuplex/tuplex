@@ -22,7 +22,6 @@
 
 #include <Base.h>
 #include <StringUtils.h>
-#include "logical/parameters.h"
 
 namespace tuplex {
 

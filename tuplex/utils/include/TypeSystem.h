@@ -274,11 +274,17 @@ namespace python {
         python::Type get_column_type(int64_t index) const;
 
         /*!
-         * similat to the integer version, but checks for keys
+         * similar to the integer version, but checks for keys
          * @param key
          * @return the type or INDEXERROR if invalid
          */
         python::Type get_column_type(const std::string& key) const;
+
+        /*!
+         * for row types, retrieve column types.
+         * @return
+         */
+        std::vector<python::Type> get_column_types() const;
 
         /*!
          * checks for row type whether there are column names or not
@@ -525,7 +531,8 @@ namespace python {
             bool _isVarLen; // params.empty && _isVarlen => GENERICTUPLE
 
             // type specific meta-data
-            // structured dict:
+            // used for structured dict, row type.
+            // note that order here matters, e.g. for row type.
             std::vector<StructEntry> _struct_pairs; // pairs for structured dicts.
 
             // opt properties

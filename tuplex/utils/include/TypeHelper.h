@@ -12,6 +12,7 @@
 #define TUPLEX_TYPEHELPER_H
 
 #include "TypeSystem.h"
+#include "parameters.h"
 
 namespace tuplex {
 
@@ -86,6 +87,16 @@ namespace tuplex {
 
         if(optType == python::Type::ANY)
             return python::Type::ANY;
+
+        if(PARAM_USE_ROW_TYPE) {
+            if(optType.isRowType()) {
+                auto names = optType.get_column_names();
+                auto col_types = optType.get_column_types();
+                for(auto& col_type : col_types)
+                    col_type = deoptimizedType(col_type);
+                return python::Type::makeRowType(col_types, names);
+            }
+        }
 
         throw std::runtime_error("unsupported type " + optType.desc() + " encountered in "
                                  + std::string(__FILE__) + ":" + std::to_string(__LINE__));

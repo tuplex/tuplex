@@ -32,8 +32,12 @@ namespace tuplex {
 
             // rewrite if matches param
             if(id->_name == _parameter) {
-                // exchange expression with number (index in column names array)
 
+                // special case: if id is of row type, do not perform any action
+                if(PARAM_USE_ROW_TYPE)
+                    return sub;
+
+                // exchange expression with number (index in column names array)
                 auto colName = str->value();
 
                 int idx = indexInVector(colName, _columnNames);
@@ -83,6 +87,10 @@ namespace tuplex {
 
             // does id->_name match parameter name? if so, rewrite! (what about name re-assigns? make them work later...)
             if(id->_name != _parameter) // <-- this is not 100% correct. I.e., should have proper set of names that correspond to parameter, handle case where name gets reassigned etc. Special attention to if case.. @TODO: make this more correct.
+                return sub;
+
+            // special case: if id is of row type, do not perform any action
+            if(PARAM_USE_ROW_TYPE)
                 return sub;
 
             // does an annotation exist?

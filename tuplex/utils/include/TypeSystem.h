@@ -466,7 +466,7 @@ namespace python {
         bool all_struct_pairs_optional() const;
         bool all_struct_pairs_always_present() const;
 
-        size_t get_column_count();
+        size_t get_column_count() const;
     };
 
      struct StructEntry { // an entry of a structured dict

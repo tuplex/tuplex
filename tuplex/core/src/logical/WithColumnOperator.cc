@@ -84,6 +84,12 @@ namespace tuplex {
         if(udfRetRowType.parameters().size() == 1)
             retType = retType.parameters().front();
 
+        if(PARAM_USE_ROW_TYPE && parentSchema.getRowType().isRowType()) {
+            // check whether index is contained or not
+            auto in_schema = parentSchema.getRowType();
+            return getOutputSchemaFromReturnAndInputRowType(retType, in_schema);
+        }
+
         // create new rowtype depending on output and where column is
         auto inParameters = parentSchema.getRowType().parameters();
 
@@ -99,6 +105,23 @@ namespace tuplex {
         else
             inParameters.emplace_back(retType);
         return Schema(Schema::MemoryLayout::ROW, python::Type::makeTupleType(inParameters));
+    }
+
+    Schema
+    WithColumnOperator::getOutputSchemaFromReturnAndInputRowType(const python::Type &retType, const python::Type &input_type) const {
+        auto in_column_count = input_type.get_column_count();
+        auto column_names = input_type.get_column_names();
+        auto column_types = input_type.get_column_types();
+        if(_columnToMapIndex < in_column_count)
+            column_types[_columnToMapIndex] = retType;
+        else {
+            if(column_names.empty())
+                column_names = std::vector<std::string>(in_column_count); // important to initialize.
+            column_names.push_back(_newColumn);
+            column_types.push_back(retType);
+        }
+        auto out_row_type = python::Type::makeRowType(column_types, column_names);
+        return Schema(Schema::MemoryLayout::ROW, out_row_type);
     }
 
     void WithColumnOperator::setDataSet(tuplex::DataSet *dsptr) {
@@ -137,6 +160,10 @@ namespace tuplex {
         // special case: UDF produced only exceptions -> set ret type to exception!
         if(udf_ret_type.isExceptionType()) {
             return Schema(Schema::MemoryLayout::ROW, udf_ret_type);
+        }
+
+        if(PARAM_USE_ROW_TYPE && in_schema.getRowType().isRowType()) {
+            return getOutputSchemaFromReturnAndInputRowType(udf_ret_type, in_schema.getRowType());
         }
 
         // check what schema is supposed to be

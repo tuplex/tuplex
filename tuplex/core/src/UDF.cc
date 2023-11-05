@@ -326,7 +326,10 @@ namespace tuplex {
             return true;
         }
 
-        assert(hintType.isTupleType());
+        if(PARAM_USE_ROW_TYPE)
+            assert(hintType.isRowType());
+        else
+            assert(hintType.isTupleType());
 
         // there are two cases now:
         // either the user accesses everything as a tuple or the first tuple gets unpacked (syntactical sugar)
@@ -336,6 +339,15 @@ namespace tuplex {
             // empty tuple?
             Logger::instance().logger("type inference").warn("no param not yet implemented");
         } else if(1 == params.size()) {
+
+            // simpler hinting using row type, for a single param - assume it's the full row
+            if(PARAM_USE_ROW_TYPE) {
+                if(!hintParams({hintType}, params, true, removeBranches)) {
+                    logTypingErrors(printErrors);
+                    return false;
+                }
+                return true;
+            }
 
             // two options
             // (1) param is used as tuple
@@ -424,6 +436,11 @@ namespace tuplex {
         } else {
             // unpack > 1 parameter
            _ast.setUnpacking(true);
+
+
+           if(PARAM_USE_ROW_TYPE) {
+               return hintParams(hintType.get_column_types(), params, true, removeBranches);
+           }
 
             // check whether hintType is really a tuple. If not, then something is wrong!
             assert(hintType.isTupleType());
@@ -1604,7 +1621,7 @@ namespace tuplex {
         tv.setClosure(_ast.globals(), false);
 
         for(auto args : sample)
-            tv.recordTrace(funcNode, args, _columnNames);
+            tv.recordTrace(funcNode, args, _columnNames); // <-- note: column names here are fixed, with new RowType can also trace differing column names.
         // record the total number of samples (used to check in TypeAnnotatorVisitor if every sample corresponds to a normal case violation)
         funcNode->annotation().numTimesVisited = sample.size();
         addCompileErrors(tv.getCompileErrors());
@@ -1616,12 +1633,25 @@ namespace tuplex {
 
 
         Schema inputSchema;
-        // fetch majority type from TraceVisitor
-        if(inputRowType != python::Type::UNKNOWN)
-            inputSchema = Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(inputRowType));
-        else
-            inputSchema = Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(tv.majorityInputType()));
-        //_ast.setUnpacking(tv.unpackParams());
+        if(PARAM_USE_ROW_TYPE) {
+            if(inputRowType != python::Type::UNKNOWN) {
+                assert(inputRowType.isRowType());
+                inputSchema = Schema(Schema::MemoryLayout::ROW, inputRowType);
+            } else {
+                // fetch majority type
+                auto column_types = python::Type::propagateToTupleType(tv.majorityInputType()).parameters();
+                auto column_names = _columnNames;
+                auto in_row_type = python::Type::makeRowType(column_types, column_names);
+                inputSchema = Schema(Schema::MemoryLayout::ROW, in_row_type);
+            }
+        } else {
+            // fetch majority type from TraceVisitor
+            if(inputRowType != python::Type::UNKNOWN)
+                inputSchema = Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(inputRowType));
+            else
+                inputSchema = Schema(Schema::MemoryLayout::ROW, python::Type::propagateToTupleType(tv.majorityInputType()));
+            //_ast.setUnpacking(tv.unpackParams());
+        }
 
         auto row_type = tv.majorityOutputType().isExceptionType() ? tv.majorityOutputType() : python::Type::propagateToTupleType(tv.majorityOutputType());
         _outputSchema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(row_type));

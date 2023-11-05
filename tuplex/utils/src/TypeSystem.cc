@@ -2363,7 +2363,7 @@ namespace python {
         return true;
     }
 
-    size_t Type::get_column_count() {
+    size_t Type::get_column_count() const {
         assert(isRowType());
         auto& factory = TypeFactory::instance();
 

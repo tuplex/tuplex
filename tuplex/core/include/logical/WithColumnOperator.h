@@ -24,6 +24,8 @@ namespace tuplex {
 
         int calcColumnToMapIndex(const std::vector<std::string> &columnNames,
                              const std::string &columnName);
+
+        Schema getOutputSchemaFromReturnAndInputRowType(const python::Type &retType, const python::Type &input_type) const;
     public:
         std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
 
@@ -126,7 +128,6 @@ namespace tuplex {
 
             return obj;
         }
-
     };
 }
 

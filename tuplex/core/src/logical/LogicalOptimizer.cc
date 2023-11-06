@@ -849,7 +849,9 @@ namespace tuplex {
                 auto input_op_row_type = input_op->getInputSchema().getRowType();
                 vector<size_t> colsToSerialize;
                 for (auto idx : requiredCols) {
-                    if (idx < input_op_row_type.parameters().size())
+                    assert(PARAM_USE_ROW_TYPE && input_op_row_type.isRowType()); // <-- this should hold if param is true
+                    auto input_column_count = input_op_row_type.isRowType() ? input_op_row_type.get_column_count() : input_op_row_type.parameters().size();
+                    if (idx < input_column_count)
                         colsToSerialize.emplace_back(idx);
                 }
                 sort(colsToSerialize.begin(), colsToSerialize.end());

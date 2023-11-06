@@ -231,8 +231,13 @@ namespace tuplex {
                 return generalCaseSchema().getRowType().parameters().size();
             } else {
                 // count!
-                assert(generalCaseSchema().getRowType().isTupleType());
-                assert(generalCaseSchema().getRowType().parameters().size() == _columnsToSerialize.size());
+                if(PARAM_USE_ROW_TYPE) {
+                    assert(generalCaseSchema().getRowType().isRowType());
+                    assert(generalCaseSchema().getRowType().get_column_count() == _columnsToSerialize.size());
+                } else {
+                    assert(generalCaseSchema().getRowType().isTupleType());
+                    assert(generalCaseSchema().getRowType().parameters().size() == _columnsToSerialize.size());
+                }
 
                 size_t num = 0;
                 for(auto flag : _columnsToSerialize)

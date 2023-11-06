@@ -324,8 +324,8 @@ namespace tuplex {
             assert(_fileInputParameters.empty());
 
             // fetch file input columns from original schema (before projection pushdown!)
-            _fileInputParameters["numInputColumns"] = std::to_string(
-                    csvop->getInputSchema().getRowType().parameters().size()); // actual count of input columns, not the projected out count!
+            auto input_column_count = csvop->getInputSchema().getRowType().isRowType() ? csvop->getInputSchema().getRowType().get_column_count() : csvop->getInputSchema().getRowType().parameters().size();
+            _fileInputParameters["numInputColumns"] = std::to_string(input_column_count); // actual count of input columns, not the projected out count!
             _fileInputParameters["hasHeader"] = boolToString(csvop->hasHeader());
             _fileInputParameters["delimiter"] = char2str(csvop->delimiter());
             _fileInputParameters["quotechar"] = char2str(csvop->quotechar());
@@ -1622,7 +1622,7 @@ namespace tuplex {
             stage->_normalCaseOutputSchema = _normalCaseOutputSchema;
             stage->_outputDataSetID = outputDataSetID();
             stage->_inputNodeID = _inputNodeID;
-            auto numColumns = stage->_generalCaseReadSchema.getRowType().parameters().size();
+            auto numColumns = stage->_generalCaseReadSchema.getRowType().isRowType() ? stage->_generalCaseReadSchema.getRowType().get_column_count() : stage->_generalCaseReadSchema.getRowType().parameters().size();
 //            if(_inputMode == EndPointMode::FILE && _inputNode) {
 //
 //
@@ -2013,7 +2013,7 @@ namespace tuplex {
                 // basically just need to get general settings & general path and then encode that!
                 auto ctx = createCodeGenerationContext();
                 ctx.slowPathContext = getGeneralPathContext();
-                auto num_columns = ctx.slowPathContext.readSchema.getRowType().parameters().size();
+                auto num_columns = ctx.slowPathContext.readSchema.getRowType().isRowType() ? ctx.slowPathContext.readSchema.getRowType().get_column_count() : ctx.slowPathContext.readSchema.getRowType().parameters().size();
                 stage->_generalCaseColumnsToKeep = boolArrayToIndices<unsigned>(ctx.slowPathContext.columnsToRead);
 
                 // also important to encode into stage python code. Else, nowhere to be found!

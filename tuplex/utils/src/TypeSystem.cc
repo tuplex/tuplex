@@ -1258,6 +1258,7 @@ namespace python {
     }
 
     Type Type::propagateToTupleType(const python::Type &type) {
+        assert(!type.isRowType());
         if(type.isTupleType())
             return type;
         else

@@ -1081,15 +1081,19 @@ namespace tuplex {
 
         auto schema = getInputSchema();
         auto rowType = schema.getRowType();
-        assert(schema.getRowType().isTupleType());
-        assert(schema.getRowType().parameters().size() == inputColumnCount());
+
+        if(!PARAM_USE_ROW_TYPE) {
+            assert(schema.getRowType().isTupleType());
+            assert(schema.getRowType().parameters().size() == inputColumnCount());
+        }
 
         // set internal (original) column indices to serialize to false
         for (int i = 0; i < _columnsToSerialize.size(); ++i)
             _columnsToSerialize[i] = false;
 
         for (auto idx : original_col_indices_to_serialize) {
-            assert(idx < rowType.parameters().size());
+            if(!PARAM_USE_ROW_TYPE)
+                assert(idx < rowType.parameters().size());
 
             // set to true for idx
             _columnsToSerialize[idx] = true;

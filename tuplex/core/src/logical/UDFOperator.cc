@@ -154,6 +154,7 @@ namespace tuplex {
             // 3-stage typing
             // 1. try to type statically by simply annotating the AST
             logger.debug("performing static typing for UDF in operator " + name());
+            _udf.removeTypes(false);
             bool success = _udf.hintInputSchema(parentSchema, false, false);
 
             // check what the return type is. If it is of exception type, try to use a sample to get rid off branches that are off

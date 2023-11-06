@@ -81,6 +81,13 @@ namespace tuplex {
             auto input_schema = getInputSchema();
             auto output_schema = getOutputSchema();
             if(input_schema != Schema::UNKNOWN && output_schema != Schema::UNKNOWN) {
+
+                if(PARAM_USE_ROW_TYPE && input_schema.getRowType().isRowType()) {
+                    auto input_column_count = input_schema.getRowType().get_column_count();
+                    auto output_column_count = output_schema.getRowType().isTupleType() ? output_schema.getRowType().parameters().size() : output_schema.getRowType().get_column_count();
+                    return input_column_count < output_column_count;
+                }
+
                 return input_schema.getRowType().parameters().size() < output_schema.getRowType().parameters().size();
             }
 

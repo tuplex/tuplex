@@ -198,6 +198,10 @@ namespace tuplex {
     }
 
     Schema UDF::getInputSchema() const {
+        if(PARAM_USE_ROW_TYPE) {
+            // assert(_inputSchema == Schema::UNKNOWN || _inputSchema.getRowType().isRowType());
+            return _inputSchema;
+        }
         // assert(_generalCaseInputSchema.getRowType() != python::Type::UNKNOWN);
         assert(_inputSchema == Schema::UNKNOWN || _inputSchema.getRowType().isTupleType()
                || _inputSchema.getRowType().isExceptionType());
@@ -315,10 +319,13 @@ namespace tuplex {
         _ast.setUnpacking(false);
         python::Type hintType = schema.getRowType();
 
-
-        // if it's not a tuple type, go directly to the special case...
-        if(!hintType.isTupleType())
-            hintType = codegenTypeToRowType(hintType);
+        if(PARAM_USE_ROW_TYPE) {
+            assert(hintType.isRowType());
+        } else {
+            // if it's not a tuple type, go directly to the special case...
+            if(!hintType.isTupleType())
+                hintType = codegenTypeToRowType(hintType);
+        }
 
         // shortcut hint with exception type.
         if(hintType.isExceptionType()) {
@@ -346,6 +353,11 @@ namespace tuplex {
                     logTypingErrors(printErrors);
                     return false;
                 }
+
+                // update here
+                _inputSchema = Schema(Schema::MemoryLayout::ROW, hintType);
+                _outputSchema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(_ast.getReturnType()));
+                _numInputColumns = hintType.get_column_count();
                 return true;
             }
 
@@ -437,9 +449,16 @@ namespace tuplex {
             // unpack > 1 parameter
            _ast.setUnpacking(true);
 
-
+#warning "TODO, revisit this function. Could be better refactored."
            if(PARAM_USE_ROW_TYPE) {
-               return hintParams(hintType.get_column_types(), params, true, removeBranches);
+               if(!hintParams(hintType.get_column_types(), params, true, removeBranches))
+                   return false;
+               _inputSchema = Schema(Schema::MemoryLayout::ROW, hintType);
+               _outputSchema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(_ast.getReturnType())); // <-- row type??
+               if(hasPythonObjectTyping())
+                   markAsNonCompilable();
+               _numInputColumns = _inputSchema.getRowType().get_column_count();
+               return true;
            }
 
             // check whether hintType is really a tuple. If not, then something is wrong!
@@ -833,7 +852,7 @@ namespace tuplex {
         std::set<size_t> idxs;
 
         // first check what type it is
-        if(_tupleArgument) {
+        if(_tupleArgument || PARAM_USE_ROW_TYPE) {
             assert(_argNames.size() == 1);
             std::string argName = _argNames.front();
             if(_argFullyUsed.at(argName)) {
@@ -930,6 +949,52 @@ namespace tuplex {
                 assert(sub->_value->getInferredType() != python::Type::UNKNOWN); // type annotation/tracing must have run for this...
 
                 auto val_type = sub->_value->getInferredType();
+
+                // special treatment, row type
+                if(PARAM_USE_ROW_TYPE && val_type.isRowType() && sub->_value->type() == ASTNodeType::Identifier) {
+                    NIdentifier* id = (NIdentifier*)sub->_value.get();
+                    if(std::find(_argNames.begin(), _argNames.end(), id->_name) != _argNames.end()) {
+                        if(sub->_expression->type() == ASTNodeType::Number) {
+                            NNumber* num = (NNumber*)sub->_expression.get();
+                            // can save this one!
+                            auto idx = num->getI64();
+
+                            // negative indices should be converted to positive ones
+                            if(idx < 0)
+                                idx += _numColumns;
+                            assert(idx >= 0 && idx < _numColumns);
+
+                            _argSubscriptIndices[id->_name].push_back(idx);
+                        } else if(sub->_expression->type() == ASTNodeType::String) {
+                            NString* str = (NString*)sub->_expression.get();
+                            auto columns = val_type.get_column_names();
+                            auto it = std::find(columns.begin(), columns.end(), str->value());
+                            if(it != columns.end())
+                                _argSubscriptIndices[id->_name].push_back(it - columns.begin());
+
+                        } else if(sub->_expression->getInferredType().isConstantValued() && sub->_expression->getInferredType().underlying() == python::Type::I64) {
+                            // can save this one!
+                            auto idx = std::stoi(sub->_expression->getInferredType().constant());
+
+                            // negative indices should be converted to positive ones
+                            if(idx < 0)
+                                idx += _numColumns;
+                            assert(idx >= 0 && idx < _numColumns);
+
+                            _argSubscriptIndices[id->_name].push_back(idx);
+                        } else if(sub->_expression->getInferredType().isConstantValued() && sub->_expression->getInferredType().underlying() == python::Type::STRING) {
+                            auto columns = val_type.get_column_names();
+                            auto it = std::find(columns.begin(), columns.end(), sub->_expression->getInferredType().constant());
+                            if(it != columns.end())
+                                _argSubscriptIndices[id->_name].push_back(it - columns.begin());
+                        } else {
+                            // dynamic access into identifier, so need to push completely back.
+                            _argFullyUsed[id->_name] = true;
+                        }
+                        return;
+                    }
+                }
+
                 // access/rewrite makes only sense for dict/tuple types!
                 // just simple stuff yet.
                 if (sub->_value->type() == ASTNodeType::Identifier &&
@@ -983,6 +1048,41 @@ namespace tuplex {
         // empty UDF? ==> no accessed columns!
         if(empty())
             return std::vector<size_t>();
+
+        // special logic for when rowtype is used
+        if(PARAM_USE_ROW_TYPE && getInputSchema().getRowType().isRowType()) {
+            std::vector<size_t> idxs;
+            auto input_row_type = getInputSchema().getRowType();
+            auto num_input_columns = input_row_type.get_column_count();
+            if(!_isCompiled) {
+                for(unsigned i = 0; i < num_input_columns; ++i) {
+                    idxs.push_back(i);
+                }
+                return idxs;
+            }
+
+            // func is compiled, hence need to look at AST tree to find out.
+            auto root = getAnnotatedAST().getFunctionAST();
+            LambdaAccessedColumnVisitor acv;
+            root->accept(acv);
+            auto indices = acv.getAccessedIndices();
+
+            if(ignoreConstantTypedColumns) {
+                std::vector<size_t> filtered_indices;
+                assert(_numInputColumns == num_input_columns);
+                filtered_indices.reserve(_numInputColumns);
+                // check column input types...
+                for(auto idx : indices) {
+                    assert(idx < num_input_columns);
+                    if(!input_row_type.get_column_type(idx).isConstantValued())
+                        filtered_indices.push_back(idx);
+                }
+                return filtered_indices;
+            }
+
+            return indices;
+        }
+
 
         // then, check if UDF is compilable or not.
         // if not, for now there is no way to introspect Python code.
@@ -1408,6 +1508,21 @@ namespace tuplex {
         // go through input columns and check whether they're constant, return array then.
 
         auto input_row_type = getInputSchema().getRowType();
+
+        // special case, rowtype
+        if(PARAM_USE_ROW_TYPE && input_row_type.isRowType()) {
+            assert(_columnNames.size() == input_row_type.get_column_count());
+            for(unsigned i = 0; i < input_row_type.get_column_count(); ++i) {
+                auto col_type = input_row_type.get_column_type(i);
+                assert(_columnNames[i] == input_row_type.get_column_names()[i]); // <-- check this, can remove at some point.
+                if(col_type.isConstantValued())
+                    m[_columnNames[i]] = col_type;
+            }
+
+            return m;
+        }
+
+
         assert(input_row_type.isTupleType());
         if(_numInputColumns != 1 && input_row_type.parameters().size() == 1)
             input_row_type = input_row_type.parameters().front();
@@ -1847,27 +1962,28 @@ namespace tuplex {
     bool UDF::retype(const python::Type& new_row_type) {
 
         // make sure it's a row type (or exception)
-        assert(new_row_type.isExceptionType() || new_row_type.isTupleType());
+        assert(new_row_type.isExceptionType() || new_row_type.isTupleType() || (PARAM_USE_ROW_TYPE && new_row_type.isRowType()));
 
         // what is the status of the UDF? has it been typed already?
         if(!hasWellDefinedTypes()) {
            // no types yet, type with hintInputSchema
            return hintInputSchema(Schema(Schema::MemoryLayout::ROW, new_row_type));
         } else {
-            // special case: new row type has a single element && UDF has single param
-            if(new_row_type.parameters().size() == 1 && getInputParameters().size() == 1) {
-                // -> rewrite access like lambda x: x[0] to lambda x: x.
-                // this only applies if first param is not a tuple (except empty tuple)
-                auto first_param_type = new_row_type.parameters().front();
-                auto input_params = getInputParameters();
-                auto parameter_name = std::get<0>(input_params.front());
-                if(first_param_type == python::Type::EMPTYTUPLE || !first_param_type.isTupleType()) {
-                    // rewrite AST
-                    FirstArgRewriteVisitor farv(parameter_name);
-                    assert(_ast.getFunctionAST());
-                    _ast.getFunctionAST()->accept(farv);
+            if(!new_row_type.isRowType())
+                // special case: new row type has a single element && UDF has single param
+                if(new_row_type.parameters().size() == 1 && getInputParameters().size() == 1) {
+                    // -> rewrite access like lambda x: x[0] to lambda x: x.
+                    // this only applies if first param is not a tuple (except empty tuple)
+                    auto first_param_type = new_row_type.parameters().front();
+                    auto input_params = getInputParameters();
+                    auto parameter_name = std::get<0>(input_params.front());
+                    if(first_param_type == python::Type::EMPTYTUPLE || !first_param_type.isTupleType()) {
+                        // rewrite AST
+                        FirstArgRewriteVisitor farv(parameter_name);
+                        assert(_ast.getFunctionAST());
+                        _ast.getFunctionAST()->accept(farv);
+                    }
                 }
-            }
             // remove types & rehint!
             removeTypes(false); // keep annotations?
 

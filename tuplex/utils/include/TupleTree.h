@@ -14,6 +14,8 @@
 #include <Tuple.h>
 #include <Logger.h>
 
+#include "parameters.h"
+
 namespace tuplex {
 
     /*!
@@ -90,10 +92,20 @@ namespace tuplex {
                         }
                         root->type = type;
                         return root;
-                    } else {
-                        Logger::instance().defaultLogger().error("fatal error: TupleTree can be only constructed using nested tuples so far! Given type is " + type.desc());
-                        return nullptr;
+                    } else if(PARAM_USE_ROW_TYPE && type.isRowType()) {
+                        // turn row type into tuple for physical representation.
+                        // -> this loses column name information.
+                        auto column_types = type.get_column_types();
+                        for(unsigned i = 0; i < column_types.size(); ++i) {
+                            TupleTreeNode<T> *child = new TupleTreeNode<T>();
+                            root->children.push_back(createTupleTreeR(child, column_types[i]));
+                        }
+                        root->type = type;
+                        return root;
                     }
+
+                    Logger::instance().defaultLogger().error("fatal error: TupleTree can be only constructed using nested tuples so far! Given type is " + type.desc());
+                    return nullptr;
                 }
             }
         }

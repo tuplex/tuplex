@@ -18,6 +18,8 @@
 #include <TypeSystem.h>
 #include <Field.h>
 
+#include <parameters.h>
+
 //#if LLVM_VERSION_MAJOR == 9
 // LLVM9 fix
 #include <llvm/Target/TargetMachine.h>
@@ -670,6 +672,36 @@ namespace tuplex {
         inline bool checkCaseCompatibility(const python::Type& normal_case_type, const python::Type& general_case_type,
                                            const std::map<int, int>& mapping) {
             auto& logger = Logger::instance().logger("codegen");
+
+
+            // special case: both are row type
+            if(PARAM_USE_ROW_TYPE && normal_case_type.isRowType() && general_case_type.isRowType()) {
+                // check that each pair can be upcast
+                std::vector<std::pair<std::string, python::Type>> normal_case_pairs;
+                std::unordered_map<std::string, python::Type> general_case_map;
+                auto normal_case_columns = normal_case_type.get_column_names();
+                auto normal_case_column_types = normal_case_type.get_column_types();
+                for(unsigned i = 0; i < normal_case_columns.size(); ++i)
+                    normal_case_pairs.push_back(std::make_pair(normal_case_columns[i], normal_case_column_types[i]));
+
+                auto general_case_columns = general_case_type.get_column_names();
+                auto general_case_column_types = general_case_type.get_column_types();
+                for(unsigned i = 0; i < general_case_columns.size(); ++i)
+                    general_case_map[general_case_columns[i]] = general_case_column_types[i];
+
+                // now check each pair
+                for(const auto& p : normal_case_pairs) {
+                    auto it = general_case_map.find(p.first);
+                    // missing key/column
+                    if(general_case_map.end() == it)
+                        return false;
+
+                    // check if type can be upcast
+                    if(!python::canUpcastType(p.second, it->second))
+                        return false;
+                }
+                return true;
+            }
 
             if(!normal_case_type.isTupleType())
                 throw std::runtime_error("normal case type " + normal_case_type.desc() + " is not a row type.");

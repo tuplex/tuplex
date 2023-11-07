@@ -1698,6 +1698,10 @@ namespace tuplex {
             if(t.isExceptionType())
                 return Type::getInt64Ty(_context); // <-- simply hold exception code.
 
+            // special case row type, convert to tuple type!
+            if(t.isRowType())
+                return pythonToLLVMType(python::Type::makeTupleType(t.get_column_types()));
+
             throw std::runtime_error("could not convert type '" + t.desc() + "' to LLVM compliant type");
             return nullptr;
         }

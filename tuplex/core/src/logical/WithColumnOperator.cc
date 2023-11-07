@@ -259,6 +259,23 @@ namespace tuplex {
         // get current input schema before rewrite
         auto input_schema = getInputSchema(); // this is the unrewritten one.
 
+        // special case: rewriting using row type: Challenge here is the newly added column, it may be part of the rewriteMap
+        // for this reason, remove it when retyping using row type
+        if(PARAM_USE_ROW_TYPE && input_schema.getRowType().isRowType()) {
+            auto input_column_count = _udf.inputColumnCount();
+            auto m = rewriteMap;
+            auto it = m.find(_columnToMapIndex); // part of it?
+            if(it != m.end() && it->first >= input_column_count) {
+                // is contained, remove
+                m.erase(it->first);
+            }
+
+            UDFOperator::rewriteParametersInAST(m);
+            _columnToMapIndex = calcColumnToMapIndex(UDFOperator::columns(), _newColumn);
+            setOutputSchema(inferSchema(input_schema, false));
+            return;
+        }
+
         // rewrite UDF & update schema
         UDFOperator::rewriteParametersInAST(rewriteMap);
         _columnToMapIndex = calcColumnToMapIndex(UDFOperator::columns(), _newColumn);

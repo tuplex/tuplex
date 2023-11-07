@@ -1477,6 +1477,41 @@ namespace tuplex {
             return true;
         }
 
+        // special case: Row type rewrite is much easier
+        if(PARAM_USE_ROW_TYPE && getInputSchema().getRowType().isRowType()) {
+            auto in_type = getInputSchema().getRowType();
+            auto col_types = in_type.get_column_types();
+            auto col_names = in_type.get_column_names();
+            auto new_column_count = rewriteMap.size();
+            std::vector<python::Type> new_types(new_column_count, python::Type::UNKNOWN);
+            std::vector<std::string> new_names(new_column_count);
+            for(auto keyval: rewriteMap) {
+                assert(keyval.second < new_column_count);
+                assert(keyval.first < col_types.size());
+                new_types[keyval.second] = col_types[keyval.first];
+                if(!col_names.empty()) {
+                    assert(col_names.size() == col_types.size());
+                    new_names[keyval.second] = col_names[keyval.first];
+                }
+            }
+
+            auto new_row_type = python::Type::makeRowType(new_types, new_names);
+            auto oldSchema = getInputSchema();
+            setInputSchema(Schema(oldSchema.getMemoryLayout(), new_row_type));
+
+            auto hints = this->getInputParameters();
+            // update
+            if(hints.size() == 1)
+                hints[0] = std::make_pair(std::get<0>(hints[0]), new_row_type);
+            else
+                throw std::runtime_error("not yet implemented");
+            for(const auto &el : hints)
+                getAnnotatedAST().addTypeHint(std::get<0>(el), std::get<1>(el));
+
+            // call define types then again
+            return getAnnotatedAST().defineTypes(_policy, true);
+        }
+
         // call the replace visitor
         RewriteVisitor rv(rewriteMap);
         root->accept(rv);

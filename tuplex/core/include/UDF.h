@@ -222,8 +222,8 @@ namespace tuplex {
         void setInputSchema(const Schema& schema) {
             _inputSchema = schema;
             if(_inputSchema.getRowType() != python::Type::UNKNOWN && !_inputSchema.getRowType().isExceptionType()) {
-                assert(_inputSchema.getRowType().isTupleType());
-                _numInputColumns = _inputSchema.getRowType().parameters().size();
+                assert(_inputSchema.getRowType().isTupleType() || _inputSchema.getRowType().isRowType());
+                _numInputColumns = _inputSchema.getRowType().isTupleType() ? _inputSchema.getRowType().parameters().size() : _inputSchema.getRowType().get_column_count();
             } else {
                 _numInputColumns = 0;
             }

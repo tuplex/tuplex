@@ -27,7 +27,7 @@ namespace tuplex {
             assert(env);
             assert(ptr);
 
-            auto tupleType = python::Type::propagateToTupleType(type); // convenience type for loops down there
+            auto tupleType = type.isRowType() ? python::Type::makeTupleType(type.get_column_types()) : python::Type::propagateToTupleType(type); // convenience type for loops down there
             assert(tupleType.isTupleType());
 
             // init tuple
@@ -171,7 +171,7 @@ namespace tuplex {
             std::vector<llvm::Type*> types;
 
             // iterate over all fields & return mapped types
-            for(auto type : _tree.fieldTypes()) {
+            for(const auto& type : _tree.fieldTypes()) {
                 auto deoptimized_type = type.isConstantValued() ? type.underlying() : type;
                 types.push_back(_env->pythonToLLVMType(deoptimized_type.withoutOption()));
             }

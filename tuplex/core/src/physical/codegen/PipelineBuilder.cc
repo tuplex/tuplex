@@ -874,7 +874,12 @@ namespace tuplex {
             // copy to new vals
             FlattenedTuple ftOut(&env());
 
-            auto params = _lastSchemaType.isTupleType() ? _lastSchemaType.parameters() : std::vector<python::Type>({_lastSchemaType});
+            std::vector<python::Type> params{_lastSchemaType};
+            if(_lastSchemaType.isTupleType())
+                params = _lastSchemaType.parameters();
+            if(_lastSchemaType.isRowType())
+                params = _lastSchemaType.get_column_types();
+
             // update with result of UDF
             if(columnToMapIndex < params.size())
                 params[columnToMapIndex] = cf.output_python_type;

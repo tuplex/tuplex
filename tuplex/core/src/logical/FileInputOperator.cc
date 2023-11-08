@@ -1085,6 +1085,8 @@ namespace tuplex {
         if(!PARAM_USE_ROW_TYPE) {
             assert(schema.getRowType().isTupleType());
             assert(schema.getRowType().parameters().size() == inputColumnCount());
+        } else {
+            assert(schema.getRowType().isRowType());
         }
 
         // set internal (original) column indices to serialize to false
@@ -1417,6 +1419,12 @@ namespace tuplex {
                 // update types
                 _normalCaseRowType = python::Type::makeTupleType(new_unprojected_col_types_normal);
                 _generalCaseRowType = python::Type::makeTupleType(new_unprojected_col_types_general);
+
+                // if using row type, update
+                if(PARAM_USE_ROW_TYPE) {
+                    _normalCaseRowType = python::Type::makeRowType(_normalCaseRowType.parameters(), inputColumns());
+                    _generalCaseRowType = python::Type::makeRowType(_generalCaseRowType.parameters(), inputColumns());
+                }
             }
 
             setOutputSchema(Schema(Schema::MemoryLayout::ROW, _generalCaseRowType));
@@ -1436,10 +1444,10 @@ namespace tuplex {
 
         assert(input_row_type.isTupleType());
         auto col_types = input_row_type.parameters();
-        auto old_col_types = normalCaseSchema().getRowType().parameters();
-        auto old_general_col_types = getOutputSchema().getRowType().parameters();
+        auto old_col_types = normalCaseSchema().getRowType().isRowType() ? normalCaseSchema().getRowType().get_column_types() : normalCaseSchema().getRowType().parameters();
+        auto old_general_col_types = getOutputSchema().getRowType().isRowType() ? getOutputSchema().getRowType().get_column_types() : getOutputSchema().getRowType().parameters();
 
-        size_t num_projected_columns = getOptimizedOutputSchema().getRowType().parameters().size();
+        size_t num_projected_columns = getOptimizedOutputSchema().getRowType().isRowType() ? getOptimizedOutputSchema().getRowType().get_column_count() : getOptimizedOutputSchema().getRowType().parameters().size();
 
         // assert(old_col_types.size() <= old_general_col_types.size());
         auto& logger = Logger::instance().logger("codegen");
@@ -1517,7 +1525,7 @@ namespace tuplex {
         // -> this requires reprojection if possible!
         if(is_projected_row_type) {
             // set normal-case type with updated projected fields
-            auto nc_col_types = _normalCaseRowType.parameters();
+            auto nc_col_types = _normalCaseRowType.isRowType() ? _normalCaseRowType.get_column_types() : _normalCaseRowType.parameters();
             auto m = projectionMap();
             for(auto kv : m) {
                 assert(kv.second < col_types.size());
@@ -1528,10 +1536,18 @@ namespace tuplex {
             if(m.empty() && nc_col_types.size() == col_types.size())
                 nc_col_types = col_types;
 
-            _normalCaseRowType = python::Type::makeTupleType(nc_col_types);
+            if(PARAM_USE_ROW_TYPE)
+                _normalCaseRowType = python::Type::makeRowType(nc_col_types, _normalCaseRowType.get_column_names());
+            else
+                _normalCaseRowType = python::Type::makeTupleType(nc_col_types);
         } else {
-            _normalCaseRowType = python::Type::makeTupleType(col_types);
+            if(PARAM_USE_ROW_TYPE)
+                _normalCaseRowType = python::Type::makeRowType(col_types, _normalCaseRowType.get_column_names());
+            else
+                _normalCaseRowType = python::Type::makeTupleType(col_types);
         }
+
+
         return true;
     }
 

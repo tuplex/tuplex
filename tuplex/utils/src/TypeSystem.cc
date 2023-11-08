@@ -2390,6 +2390,10 @@ namespace python {
         return column_types;
     }
 
+    python::Type Type::get_columns_as_tuple_type() const {
+        return python::Type::makeTupleType(get_column_types());
+    }
+
     std::vector<python::Type> primitiveTypes(bool return_options_as_well) {
         std::vector<python::Type> v{python::Type::BOOLEAN, python::Type::I64, python::Type::F64,
                                     python::Type::STRING, python::Type::NULLVALUE, python::Type::EMPTYTUPLE,

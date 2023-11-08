@@ -302,11 +302,11 @@ namespace tuplex {
         auto oldIn = getInputSchema();
         auto oldOut = getOutputSchema();
 
-        assert(input_row_type.isTupleType());
-        auto colTypes = input_row_type.parameters();
+        assert(input_row_type.isTupleType() || input_row_type.isRowType());
+        auto colTypes = input_row_type.isRowType() ? input_row_type.get_column_types() : input_row_type.parameters();
 
         // check that number of parameters are identical, else can't rewrite (need to project first!)
-        size_t num_params_before_retype = oldIn.getRowType().parameters().size();
+        size_t num_params_before_retype = oldIn.getRowType().isRowType() ? oldIn.getRowType().get_column_count() : oldIn.getRowType().parameters().size();
         size_t num_params_after_retype = colTypes.size();
         if(num_params_before_retype != num_params_after_retype) {
             throw std::runtime_error("attempting to retype " + name() + " operator, but number of parameters does not match.");
@@ -316,9 +316,7 @@ namespace tuplex {
         auto rc = UDFOperator::retype(conf);
         _columnToMapIndex = calcColumnToMapIndex(UDFOperator::columns(), _newColumn);
         if(rc) {
-
             // update schema with result of UDF operator.
-
             return true;
         } else {
             return false;

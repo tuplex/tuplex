@@ -187,7 +187,9 @@ namespace tuplex {
                         ss<<"filter requires "<<pluralize(conf.columns.size(), "column")<<": "<<conf.columns;
                         logger().debug(ss.str());
                         BasicBlock* bbFilterBadParse = BasicBlock::Create(ctx, "filter_" + std::to_string(fop->getID()) + "_bad_parse", builder.GetInsertBlock()->getParent());
-                        auto ft_filter = json_parseRow(env(), builder, conf.row_type, conf.columns, true, false, parser, bbFilterBadParse);
+                        auto tuple_row_type = conf.row_type.isRowType() ? conf.row_type.get_columns_as_tuple_type() : conf.row_type;
+                        assert(row_type_compatible_with_columns(tuple_row_type, conf.columns));
+                        auto ft_filter = json_parseRow(env(), builder, tuple_row_type, conf.columns, true, false, parser, bbFilterBadParse);
 
                         // debug print:
 #ifndef NDEBUG
@@ -911,7 +913,9 @@ namespace tuplex {
                 unwrap_first_level = false;
             }
 
-            auto ft_parsed = json_parseRow(env, builder, row_type, columns, unwrap_first_level, true, parser, bMismatch);
+            auto tuple_row_type = row_type.isRowType() ? row_type.get_columns_as_tuple_type() : row_type;
+            assert(row_type_compatible_with_columns(tuple_row_type, columns));
+            auto ft_parsed = json_parseRow(env, builder, tuple_row_type, columns, unwrap_first_level, true, parser, bMismatch);
             ft_parsed.storeTo(builder, args["out_tuple"]);
 #ifdef JSON_PARSER_TRACE_MEMORY
             _env->debugPrint(builder, "tuple store to output ptr done.");

@@ -137,7 +137,10 @@ namespace tuplex {
                     }
 
                     // @TODO: make sure parseF output is compatible with pip input row type
-                    assert(input_op->getOutputSchema().getRowType() == pip_input_row_type);
+                    auto normalized_output_row_type = input_op->getOutputSchema().getRowType();
+                    if(normalized_output_row_type.isRowType())
+                        normalized_output_row_type = normalized_output_row_type.get_columns_as_tuple_type();
+                    assert(normalized_output_row_type == pip_input_row_type);
 
                     // extract string and length from data buffer
 
@@ -313,8 +316,12 @@ namespace tuplex {
             auto& logger = Logger::instance().logger("codegen");
             auto pipFunc = pipeline_func;
 
+            assert(pip_input_row_type.isTupleType());
+            assert(normalCaseType.isTupleType());
+
             if(!pipFunc)
                 return nullptr;
+
 
             auto generalCaseType = pip_input_row_type;
             bool normalCaseAndGeneralCaseCompatible = checkCaseCompatibility(normalCaseType, generalCaseType, normalToGeneralMapping);

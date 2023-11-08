@@ -282,9 +282,15 @@ namespace python {
 
         /*!
          * for row types, retrieve column types.
-         * @return
+         * @return vector of column type
          */
         std::vector<python::Type> get_column_types() const;
+
+        /*!
+         * for Row type, return column types as tuple type
+         * @return type
+         */
+        python::Type get_columns_as_tuple_type() const;
 
         /*!
          * checks for row type whether there are column names or not

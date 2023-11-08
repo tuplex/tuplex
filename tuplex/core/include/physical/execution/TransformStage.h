@@ -205,7 +205,13 @@ namespace tuplex {
          */
         std::vector<unsigned> normalCaseInputColumnsToKeep() const { return _normalCaseColumnsToKeep; }
         std::vector<unsigned> generalCaseInputColumnsToKeep() const { return _generalCaseColumnsToKeep; }
-        size_t inputColumnCount() const { return readSchema().getRowType().parameters().size(); }
+        size_t inputColumnCount() const {
+            auto read_row_type = readSchema().getRowType();
+            if(read_row_type.isRowType())
+                return read_row_type.get_column_count();
+            else
+                return read_row_type.parameters().size();
+        }
         int64_t outputDataSetID() const { return _outputDataSetID; }
         std::unordered_map<std::string, std::string> outputOptions() const;
 

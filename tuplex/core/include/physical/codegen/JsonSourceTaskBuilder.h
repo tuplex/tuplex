@@ -185,6 +185,23 @@ namespace tuplex {
                                                                 const python::Type &row_type,
                                                                 const std::vector<std::string> &columns);
 
+
+        inline bool row_type_compatible_with_columns(const python::Type& row_type, const std::vector<std::string>& columns) {
+            if(row_type.isRowType()) {
+                if(columns.size() != row_type.get_column_count())
+                    return false;
+                for(unsigned i = 0; i < columns.size(); ++i) {
+                    if(columns[i] != row_type.get_column_names()[i])
+                        return false;
+                }
+                return true;
+            }
+
+            if(row_type.isTupleType()) {
+                return row_type.parameters().size() == columns.size();
+            }
+            return false;
+        }
     }
 }
 

@@ -839,7 +839,7 @@ namespace tuplex {
                         auto columns_before = op->columns();
                         auto in_columns_before = op->inputColumns();
 
-                        checkRowType(last_rowtype);
+                        checkRowType(last_rowtype.isRowType() ? last_rowtype.get_columns_as_tuple_type() : last_rowtype);
                         // set FIRST the parent. Why? because operators like ignore depend on parent schema
                         // therefore, this needs to get updated first.
                         op->setParent(lastParent); // need to call this before retype, so that columns etc. can be utilized.
@@ -1035,7 +1035,7 @@ namespace tuplex {
                         last_columns = opt_ops.back()->columns();
                     }
 
-                    checkRowType(last_rowtype);
+                    checkRowType(last_rowtype.isRowType() ? last_rowtype.get_columns_as_tuple_type() : last_rowtype);
                 }
 
                 lastNode = node;
@@ -1116,7 +1116,8 @@ namespace tuplex {
         auto inputNode = path_ctx.inputNode;
         auto operators = path_ctx.operators;
 
-        size_t num_input_before_hyper = inputNode->getOutputSchema().getRowType().parameters().size();
+        auto input_row_type = inputNode->getOutputSchema().getRowType(); if(input_row_type.isRowType())input_row_type = input_row_type.get_columns_as_tuple_type();
+        size_t num_input_before_hyper = input_row_type.parameters().size();
         logger.info("number of input columns before hyperspecialization: " + std::to_string(num_input_before_hyper));
 
         // force resampling b.c. of thin layer

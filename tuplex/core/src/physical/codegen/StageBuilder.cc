@@ -1464,12 +1464,20 @@ namespace tuplex {
             auto pip_func = slowPip->getFunction();
             auto pip_input_row_type = slowPip->inputRowType();
 
+            // convert to tuple type if row type
+            if(pip_input_row_type.isRowType())
+                pip_input_row_type = pip_input_row_type.get_columns_as_tuple_type();
+            // same for normal case type
+            auto normal_case_type = normalCaseType;
+            if(normal_case_type.isRowType())
+                normal_case_type = normal_case_type.get_columns_as_tuple_type();
+
             auto rowProcessFunc = codegen::createProcessExceptionRowWrapper(slowPip->env(),
                                                                             pip_input_row_type,
                                                                             pip_func,
                                                                             _inputNode->type() == LogicalOperatorType::FILEINPUT ? std::dynamic_pointer_cast<FileInputOperator>(_inputNode) : nullptr,
                                                                             ret.funcStageName/*funcResolveRowName*/,
-                                                                            normalCaseType,
+                                                                            normal_case_type,
                                                                             normalToGeneralMapping,
                                                                             null_values,
                                                                             _conf.policy);

@@ -1267,7 +1267,9 @@ namespace tuplex {
         if(keys.empty())
             return false;
 
+        int index = -1; // not found
         auto it = keys.end();
+        bool found = false;
         if(expression->type() == ASTNodeType::String) {
             // get actual, string value
             auto value = static_cast<NString*>(expression)->value();
@@ -1275,19 +1277,25 @@ namespace tuplex {
             // special case: empty string is not allowed
             if(value.empty())
                 it = keys.end();
-
+            if(it != keys.end())
+                index = it - keys.begin();
+            found = true;
         } else if(expression->getInferredType().isConstantValued() && expression->getInferredType().underlying() == python::Type::STRING) {
             auto value = expression->getInferredType().constant();
             it = std::find(keys.begin(), keys.end(), value);
             // special case: empty string is not allowed
             if(value.empty())
                 it = keys.end();
+            if(it != keys.end())
+                index = it - keys.begin();
+            found = true;
         }
 
-        if(it == keys.end())
+        if(!found)
             return false;
+
         if(output_index) {
-            *output_index = it - keys.begin();
+            *output_index = index;
         }
         return true;
     }

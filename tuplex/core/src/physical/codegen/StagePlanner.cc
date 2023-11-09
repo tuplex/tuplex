@@ -1183,7 +1183,7 @@ namespace tuplex {
             path_ctx.readSchema = fop->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
             path_ctx.columnsToRead = fop->columnsToSerialize();
              // print out columns & types!
-             assert(fop->columns().size() == path_ctx.inputSchema.getRowType().parameters().size());
+             assert(fop->columns().size() == path_ctx.inputSchema.getRowType().isRowType() ? path_ctx.inputSchema.getRowType().get_column_count() : path_ctx.inputSchema.getRowType().parameters().size());
              for(unsigned i = 0; i < fop->columns().size(); ++i) {
                  std::cout<<"col "<<i<<" (" + fop->columns()[i] + ")"<<": "<<path_ctx.inputSchema.getRowType().parameters()[i].desc()<<std::endl;
              }
@@ -1871,9 +1871,14 @@ namespace tuplex {
                             std::vector<std::string> acc_column_names;
                             std::vector<python::Type> acc_col_types;
                             auto acc_cols = filter_node->getUDF().getAccessedColumns(false);
+                            auto col_types = filter_node->getInputSchema().getRowType().isRowType() ? filter_node->getInputSchema().getRowType().get_column_types() : filter_node->getInputSchema().getRowType().parameters();
                             for(auto idx : acc_cols) {
                                 acc_column_names.push_back(filter_node->inputColumns()[idx]);
-                                acc_col_types.push_back(filter_node->getInputSchema().getRowType().parameters()[idx]);
+
+                                if(filter_node->getInputSchema().getRowType().isRowType()) {
+                                    assert(filter_node->inputColumns()[idx] == filter_node->getInputSchema().getRowType().get_column_names()[idx]);
+                                }
+                                acc_col_types.push_back(col_types[idx]);
                             }
 
                             // however, these here should show correct columns/types.

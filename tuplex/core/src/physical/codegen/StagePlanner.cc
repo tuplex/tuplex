@@ -1284,8 +1284,8 @@ namespace tuplex {
 
         // the output schema (str in tocsv) case is not finalized yet...
         // stage->_normalCaseOutputSchema = Schema(stage->_normalCaseOutputSchema.getMemoryLayout(), path_ctx.outputSchema.getRowType());
-
-        size_t num_input_after_hyper = ctx.fastPathContext.inputNode->getOutputSchema().getRowType().parameters().size();
+        auto after_hyper_output_row_type = ctx.fastPathContext.inputNode->getOutputSchema().getRowType();
+        size_t num_input_after_hyper = after_hyper_output_row_type.isRowType() ? after_hyper_output_row_type.get_column_count() : after_hyper_output_row_type.parameters().size();
         logger.info("number of input columns after hyperspecialization: " + std::to_string(num_input_after_hyper));
 
         logger.info("generated code in " + std::to_string(timer.time()) + "s");

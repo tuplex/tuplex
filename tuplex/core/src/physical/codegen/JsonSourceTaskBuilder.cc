@@ -277,7 +277,7 @@ namespace tuplex {
                     // env().debugPrint(builder, "promoted filter check passed.");
 
                     // create reduced input type for quick parsing
-                    assert(_inputRowType.isTupleType());
+                    assert(_inputRowType.isTupleType() || _inputRowType.isRowType());
                 } else {
                     throw std::runtime_error("Check not supported for JsonSourceTaskBuilder");
                 }

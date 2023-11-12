@@ -142,8 +142,14 @@ namespace tuplex {
                     std::vector<std::string> acc_column_names;
                     std::vector<python::Type> acc_col_types;
                     for(auto idx : acc_cols) {
-                        acc_column_names.push_back(_normal_case_columns[idx]);
-                        acc_col_types.push_back(_inputRowType.parameters()[idx]);
+                        if(_inputRowType.isRowType()) {
+                            assert(vec_equal(_normal_case_columns, _inputRowType.get_column_names()));
+                            acc_column_names.push_back(_inputRowType.get_column_name(idx));
+                            acc_col_types.push_back(_inputRowType.get_column_type(idx));
+                        } else {
+                            acc_column_names.push_back(_normal_case_columns[idx]);
+                            acc_col_types.push_back(_inputRowType.parameters()[idx]);
+                        }
                     }
 
                     // however, these here should show correct columns/types.
@@ -151,8 +157,13 @@ namespace tuplex {
                     ss<<"filter input schema: "<<python::Type::makeTupleType(acc_col_types).desc()<<"\n";
 
                     RetypeConfiguration conf;
+                    // @TODO: when always switching over to row type, can remove the column names here.
                     conf.columns = acc_column_names;
                     conf.row_type = python::Type::makeTupleType(acc_col_types);
+
+                    if(PARAM_USE_ROW_TYPE)
+                        conf.row_type = python::Type::makeRowType(acc_col_types, acc_column_names);
+
                     conf.is_projected = true;
 
                     // create filter op from scratch (avoid retyping etc., no parent needed)
@@ -194,7 +205,7 @@ namespace tuplex {
                         // debug print:
 #ifndef NDEBUG
                         for(unsigned i = 0; i < conf.columns.size(); ++i) {
-                            auto col_type = conf.row_type.parameters()[i];
+                            auto col_type = conf.row_type.isRowType() ? conf.row_type.get_column_type(i) : conf.row_type.parameters()[i];
 
                             // what type?
                             if(python::Type::STRING == col_type) {

@@ -267,6 +267,13 @@ namespace python {
         std::vector<std::string> get_column_names() const;
 
         /*!
+         * get a specific column name for an integer key (negative allowed
+         * @param index
+         * @return the column name, or throws and exception if invalid index for row type
+         */
+        std::string get_column_name(int64_t index) const;
+
+        /*!
          * get a specific column type for an integer key (negative allowed
          * @param index
          * @return the type or INDEXERROR if invalid index for row type

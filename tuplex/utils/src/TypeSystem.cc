@@ -761,6 +761,32 @@ namespace python {
         return index_error_type;
     }
 
+    std::string Type::get_column_name(int64_t index) const {
+        assert(isRowType());
+        auto& factory = TypeFactory::instance();
+        auto index_error_type = factory.getByName("IndexError");
+
+
+        const std::lock_guard<std::mutex> lock(factory._typeMapMutex);
+        auto it = factory._typeMap.find(_hash);
+        assert(it != factory._typeMap.end());
+        auto kv_pairs = factory._typeVec[it->second]._struct_pairs;
+
+        // search within names
+        if(kv_pairs.empty())
+            throw std::runtime_error("no column names in empty row");
+
+        // correct negative indices once
+        if(index < 0)
+            index += kv_pairs.size();
+
+        // invalid index?
+        if(index < 0 || index >= kv_pairs.size())
+            throw std::runtime_error("invalid index " + std::to_string(index) + " to access row type column names");
+
+        return kv_pairs[index].key;
+    }
+
     python::Type Type::get_column_type(int64_t index) const {
         assert(isRowType());
         auto& factory = TypeFactory::instance();

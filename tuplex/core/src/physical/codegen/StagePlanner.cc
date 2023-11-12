@@ -1183,10 +1183,11 @@ namespace tuplex {
             path_ctx.readSchema = fop->getOptimizedInputSchema(); // when null-value opt is used, then this is different! hence apply!
             path_ctx.columnsToRead = fop->columnsToSerialize();
              // print out columns & types!
-             assert(fop->columns().size() == path_ctx.inputSchema.getRowType().isRowType() ? path_ctx.inputSchema.getRowType().get_column_count() : path_ctx.inputSchema.getRowType().parameters().size());
-             for(unsigned i = 0; i < fop->columns().size(); ++i) {
-                 std::cout<<"col "<<i<<" (" + fop->columns()[i] + ")"<<": "<<path_ctx.inputSchema.getRowType().parameters()[i].desc()<<std::endl;
-             }
+            auto col_types = path_ctx.inputSchema.getRowType().isRowType() ? path_ctx.inputSchema.getRowType().get_column_types() : path_ctx.inputSchema.getRowType().parameters();
+            assert(fop->columns().size() == col_types.size());
+            for(unsigned i = 0; i < fop->columns().size(); ++i) {
+                std::cout<<"col "<<i<<" (" + fop->columns()[i] + ")"<<": "<<col_types[i].desc()<<std::endl;
+            }
 
         } else {
             path_ctx.inputSchema = path_ctx.inputNode->getOutputSchema();
@@ -1212,9 +1213,10 @@ namespace tuplex {
             std::stringstream ss;
             // print out normal-case columns and types
             unsigned pos = 0;
+            auto col_types = path_ctx.inputSchema.getRowType().isRowType() ? path_ctx.inputSchema.getRowType().get_column_types() : path_ctx.inputSchema.getRowType().parameters();
             for(unsigned i = 0; i < path_ctx.columnsToRead.size(); ++i) {
                 if(path_ctx.columnsToRead[i]) {
-                    ss<<"column "<<i<<" '"<<path_ctx.columns()[pos]<<"': "<<path_ctx.inputSchema.getRowType().parameters()[pos].desc()<<"\n";
+                    ss<<"column "<<i<<" '"<<path_ctx.columns()[pos]<<"': "<<col_types[pos].desc()<<"\n";
                     pos++;
                 }
             }

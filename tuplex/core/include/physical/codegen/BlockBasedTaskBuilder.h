@@ -220,13 +220,32 @@ namespace tuplex {
                 // create trivial mapping if empty.
                 if(_normalToGeneralMapping.empty() && _normalAndGeneralCompatible) {
                     // make sure size matches!
-                    assert(inputRowType.isTupleType());
-                    assert(generalCaseInputRowType.isTupleType());
-                    if(inputRowType.parameters().size() != generalCaseInputRowType.parameters().size())
-                        throw std::runtime_error("row type sizes do not match, can't create trivial mapping");
-                    auto num_params = inputRowType.parameters().size();
-                    for(unsigned i = 0; i < num_params; ++i)
-                        _normalToGeneralMapping[i] = i;
+                    assert(inputRowType.isTupleType() ||inputRowType.isRowType());
+                    assert(generalCaseInputRowType.isTupleType() || generalCaseInputRowType.isRowType());
+                    auto num_normal_case_input_columns = inputRowType.isTupleType() ? inputRowType.parameters().size() : inputRowType.get_column_count();
+                    auto num_general_case_input_columns = generalCaseInputRowType.isTupleType() ? generalCaseInputRowType.parameters().size() : generalCaseInputRowType.get_column_count();
+
+                    // check if both are row type, then can create mapping according to names!
+                    if(inputRowType.isRowType() && generalCaseInputRowType.isRowType()) {
+
+                        auto normal_case_column_names = inputRowType.get_column_names();
+                        auto general_case_column_names = generalCaseInputRowType.get_column_names();
+                        assert(!normal_case_column_names.empty() && !general_case_column_names.empty());
+                        for(int i = 0; i < normal_case_column_names.size(); ++i) {
+                            auto normal_case_column_name = normal_case_column_names[i];
+                            auto index = indexInVector(normal_case_column_name, general_case_column_names);
+                            if(index >= 0)
+                                _normalToGeneralMapping[i] = index;
+                            else {
+                                throw std::runtime_error("normal case column " + escape_to_python_str(normal_case_column_name) + " not found in general case columns.");
+                            }
+                        }
+                    } else {
+                        if(num_normal_case_input_columns != num_general_case_input_columns)
+                            throw std::runtime_error("row type sizes do not match, can't create trivial mapping");
+                        for(int i = 0; i < num_normal_case_input_columns; ++i)
+                            _normalToGeneralMapping[i] = i;
+                    }
                 }
             }
 

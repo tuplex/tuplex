@@ -1981,6 +1981,16 @@ namespace tuplex {
             logger.debug("Of " + pluralize(sample.size(), "sample row") + ", " + std::to_string(num_passing) + " adhere to detected majority type.");
             for(unsigned i = 0; i < std::min(majRows.size(), 5ul); ++i)
                 std::cout<<majRows[i].toPythonString()<<std::endl;
+
+            // check if any forkevents are found in the sample
+            std::vector<std::string> rows_as_python_strings;
+            size_t fork_events_found = 0;
+            for(auto row : sample) {
+                rows_as_python_strings.push_back(row.toPythonString());
+                if(rows_as_python_strings.back().find("ForkEvent") != std::string::npos)
+                    fork_events_found++;
+            }
+            std::cout<<"Found forkevents: "<<fork_events_found<<"x"<<std::endl;
 #endif
 
 

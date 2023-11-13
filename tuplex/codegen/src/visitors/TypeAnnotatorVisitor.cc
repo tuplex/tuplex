@@ -1352,7 +1352,7 @@ namespace tuplex {
                 if(try_to_get_static_integer_index_from_expression(sub->_expression.get(), type.parameters().size(), &i)) {
                     if(i < 0 || i >= type.parameters().size()) {
                         sub->setInferredType(python::Type::UNKNOWN);
-                        error("Index error: tried to access element at position" + std::to_string(i));
+                        error("Index error: tried to access element at position " + std::to_string(i));
                     } else {
                         sub->setInferredType(type.parameters()[i]);
                     }
@@ -1431,7 +1431,7 @@ namespace tuplex {
                 // check if valid index
                 if(index < 0 || index >= type.get_column_count()) {
                     sub->setInferredType(python::Type::UNKNOWN);
-                    error("Index error: tried to access row element at position" + std::to_string(index));
+                    error("Index error: tried to access row element at position " + std::to_string(index));
                 } else {
                     sub->setInferredType(type.get_column_type(index));
                 }

@@ -31,13 +31,13 @@ namespace tuplex {
         return parent()->columns();
     }
 
-    std::shared_ptr<LogicalOperator> TakeOperator::clone(bool cloneParents) {
+    std::shared_ptr<LogicalOperator> TakeOperator::clone(bool cloneParents) const {
         // create clone of this operator
         auto copy = new TakeOperator(cloneParents ? parent()->clone() : nullptr, _limit);
 
         copy->setDataSet(getDataSet()); // weak ptr to old dataset...
         copy->copyMembers(this);
-        assert(getID() == copy->getID());
+        assert(checkBasicEqualityOfOperators(*copy, *this));
         return std::shared_ptr<LogicalOperator>(copy);
     }
 }

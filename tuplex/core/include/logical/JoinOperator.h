@@ -55,7 +55,7 @@ namespace tuplex {
 
         bool isDataSource() override;
 
-        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) const override;
 
         Schema getInputSchema() const override;
 

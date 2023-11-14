@@ -20,7 +20,7 @@ namespace tuplex {
         std::vector<std::string> _outputColumns;
         std::string _name;
     public:
-        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) const override;
 
         // required by cereal
         MapOperator() = default;

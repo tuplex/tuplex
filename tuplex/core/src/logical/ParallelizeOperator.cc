@@ -110,13 +110,13 @@ namespace tuplex {
         // return v;
     }
 
-    std::shared_ptr<LogicalOperator> ParallelizeOperator::clone(bool cloneParents) {
+    std::shared_ptr<LogicalOperator> ParallelizeOperator::clone(bool cloneParents) const {
         auto copy = new ParallelizeOperator(getOutputSchema(), _normalPartitions, columns(), _samplingMode);
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         copy->setFallbackPartitions(_fallbackPartitions);
         copy->setPartitionGroups(_partitionGroups);
-        assert(getID() == copy->getID());
+        assert(checkBasicEqualityOfOperators(*copy, *this));
         return std::shared_ptr<LogicalOperator>(copy);
     }
 

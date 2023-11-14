@@ -152,12 +152,12 @@ namespace tuplex {
         }
     }
 
-    std::shared_ptr<LogicalOperator> ResolveOperator::clone(bool cloneParents) {
+    std::shared_ptr<LogicalOperator> ResolveOperator::clone(bool cloneParents) const {
         auto copy = new ResolveOperator(cloneParents ? parent()->clone() : nullptr, ecCode(), _udf,
                                         UDFOperator::columns(), UDFOperator::rewriteMap());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
-        assert(getID() == copy->getID());
+        assert(checkBasicEqualityOfOperators(*copy, *this));
         return std::shared_ptr<LogicalOperator>(copy);
     }
 

@@ -273,7 +273,7 @@ namespace tuplex {
                           const ContextOptions& co,
                           const SamplingMode& sampling_mode);
 
-        FileInputOperator(FileInputOperator& other); // specialized copy constructor!
+        FileInputOperator(const FileInputOperator& other); // specialized copy constructor!
 
         aligned_string loadSample(size_t sampleSize, const URI& uri, size_t file_size, const SamplingMode& mode, bool use_cache=true, size_t* file_offset=nullptr);
         std::vector<size_t> translateOutputToInputIndices(const std::vector<size_t>& output_indices);
@@ -578,7 +578,7 @@ namespace tuplex {
         std::unordered_map<int, int> projectionMap() const;
 
         FileFormat fileFormat() const { return _fmt; }
-        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) const override;
 
         // transfer caches
         void cloneCaches(const FileInputOperator& other);

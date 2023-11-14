@@ -162,7 +162,7 @@ namespace tuplex {
         return vRes;
     }
 
-    std::shared_ptr<LogicalOperator> MapOperator::clone(bool cloneParents) {
+    std::shared_ptr<LogicalOperator> MapOperator::clone(bool cloneParents) const {
         // important to use here input column names, i.e. stored in base class UDFOperator!
         // @TODO: avoid here the costly retyping but making a faster, better clone.
         auto copy = new MapOperator(cloneParents ? parent()->clone() : nullptr,

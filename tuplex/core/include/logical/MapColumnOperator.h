@@ -21,7 +21,7 @@ namespace tuplex {
         std::string _columnToMap;
         int         _columnToMapIndex;
     public:
-        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) const override;
 
 #ifdef BUILD_WITH_CEREAL
         // cereal serialization functions

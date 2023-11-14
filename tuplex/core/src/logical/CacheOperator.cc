@@ -37,7 +37,7 @@ namespace tuplex {
         _storeSpecialized = cop->_storeSpecialized;
     }
 
-    std::shared_ptr<LogicalOperator> CacheOperator::clone(bool cloneParents) {
+    std::shared_ptr<LogicalOperator> CacheOperator::clone(bool cloneParents) const {
         if(!cloneParents)
             return cloneWithoutParents();
 

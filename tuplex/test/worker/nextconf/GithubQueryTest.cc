@@ -444,6 +444,7 @@ namespace tuplex {
     }
 
     TEST_F(GithubQuery, ForkEventsFilterPromoAllSamplesExtended) {
+        // @TODO: this here is the pipeline to get to work...
         using namespace std;
 
         // set input/output paths
@@ -631,27 +632,44 @@ namespace tuplex {
 //                .tocsv(output_path);
 
 
-        // fixed pipeline here b.c. canPromoteFilterCheck is incomplete yet...
+        // full pipeline (fix func by func)
         ctx.json(input_pattern, true, true, sm)
                 .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
-                .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
-                .withColumn("repo_id", UDF(repo_id_code))
-                .withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
-                .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
-                .withColumn("forkee", UDF(extract_forkee))
+//                .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+//                .withColumn("repo_id", UDF(repo_id_code))
+//                .withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
+//                .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
+//                .withColumn("forkee", UDF(extract_forkee))
 //                .withColumn("forkee_url", UDF(extract_forkee_url))
-                .withColumn("watchers", UDF(extract_watchers))
+//                .withColumn("watchers", UDF(extract_watchers))
 //                .withColumn("stargazers", UDF(extract_stargazers))
 //                .withColumn("forks", UDF(extract_forks))
-               // .withColumn("lang", UDF(extract_lang))
-                .selectColumns(vector<string>{"type", "year", "watchers"})
+//                .withColumn("lang", UDF(extract_lang))
 //                .selectColumns(vector<string>{"type", "repo_id", "year",
-//                              "number_of_commits", "forkee", "forkee_url", "watchers"})
-                 //.selectColumns(vector<string>{"type", "repo_id", "year",
-                 //                             "number_of_commits", "lang", "forkee", "forkee_url",
-                 //                             "watchers",
-                 //                             "stargazers", "forks"})
+//                                                     "number_of_commits", "lang", "forkee", "forkee_url",
+//                                                     "watchers",
+//                                                     "stargazers", "forks"})
+                .selectColumns(vector<string>{"type"})
                 .tocsv(output_path);
+
+//        // full pipeline (fix func by func)
+//        ctx.json(input_pattern, true, true, sm)
+//                .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+//                .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+//                .withColumn("repo_id", UDF(repo_id_code))
+//                .withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
+//                .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
+//                .withColumn("forkee", UDF(extract_forkee))
+//                .withColumn("forkee_url", UDF(extract_forkee_url))
+//                .withColumn("watchers", UDF(extract_watchers))
+//                .withColumn("stargazers", UDF(extract_stargazers))
+//                .withColumn("forks", UDF(extract_forks))
+//                .withColumn("lang", UDF(extract_lang))
+//                .selectColumns(vector<string>{"type", "repo_id", "year",
+//                                              "number_of_commits", "lang", "forkee", "forkee_url",
+//                                              "watchers",
+//                                              "stargazers", "forks"})
+//                .tocsv(output_path);
     }
 
     TEST_F(GithubQuery, ExtractWatchersTest) {

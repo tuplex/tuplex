@@ -1433,7 +1433,7 @@ namespace tuplex {
         if(python::Type::UNKNOWN == input_row_type)
             return m;
 
-        if(!input_row_type.isTupleType()) {
+        if(!input_row_type.isTupleType() && !input_row_type.isRowType()) {
             m[0] = 0;
             return m;
         }

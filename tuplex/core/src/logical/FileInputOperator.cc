@@ -1158,14 +1158,14 @@ namespace tuplex {
         }
     }
 
-    std::shared_ptr<LogicalOperator> FileInputOperator::clone(bool cloneParents) {
+    std::shared_ptr<LogicalOperator> FileInputOperator::clone(bool cloneParents) const {
         // make here copy a bit more efficient, i.e. avoid resampling files by using specialized copy constructor (private)
         auto copy = new FileInputOperator(*this); // no children, no parents so all good with this method
         assert(checkBasicEqualityOfOperators(*copy, *this));
         return std::shared_ptr<LogicalOperator>(copy);
     }
 
-    FileInputOperator::FileInputOperator(tuplex::FileInputOperator &other) : _fileURIs(other._fileURIs),
+    FileInputOperator::FileInputOperator(const tuplex::FileInputOperator &other) : _fileURIs(other._fileURIs),
                                                                              _sizes(other._sizes),
                                                                              _estimatedRowCount(other._estimatedRowCount),
                                                                              _fmt(other._fmt),

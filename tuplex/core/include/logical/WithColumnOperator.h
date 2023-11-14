@@ -27,7 +27,7 @@ namespace tuplex {
 
         Schema getOutputSchemaFromReturnAndInputRowType(const python::Type &retType, const python::Type &input_type) const;
     public:
-        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) const override;
 
     protected:
         Schema inferSchema(Schema parentSchema, bool is_projected_row_type) override;

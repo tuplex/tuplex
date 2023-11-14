@@ -80,7 +80,7 @@ namespace tuplex {
 
         URI uri() const { return _uri; }
 
-        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) const override;
 
         std::vector<std::string> columns() const override {
             // check if parent has columns, if not fail

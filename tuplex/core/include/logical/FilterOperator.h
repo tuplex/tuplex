@@ -59,7 +59,7 @@ namespace tuplex {
          */
         std::vector<Row> getSample(const size_t num, bool applyFilter) const;
 
-        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) const override;
 
         Schema getInputSchema() const override {
             if(parent())

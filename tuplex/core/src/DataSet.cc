@@ -516,18 +516,17 @@ namespace tuplex {
         // no missing cols, hence one can do selection.
         // for this, create a simple UDF
         std::string code;
+        auto output_column_count = _operator->getOutputSchema().getRowType().isRowType() ? _operator->getOutputSchema().getRowType().get_column_count() : _operator->getOutputSchema().getRowType().parameters().size();
         if (columnNames.size() == 1) {
             auto idx = indexInVector(columnNames.front(), _columnNames);
             assert(idx >= 0);
-            assert(idx < _operator->getOutputSchema().getRowType().parameters().size());
+            assert(idx < output_column_count);
             //code += "t[" + std::to_string(idx) + "]";
             code = "lambda t: t['" + _columnNames[idx] + "']";
         } else {
             code = "lambda t: (";
             for (std::string cn : columnNames) {
                 auto idx = indexInVector(cn, _columnNames);
-
-                auto output_column_count = _operator->getOutputSchema().getRowType().isRowType() ? _operator->getOutputSchema().getRowType().get_column_count() : _operator->getOutputSchema().getRowType().parameters().size();
                 assert(idx >= 0);
                 assert(idx < output_column_count);
                 // code += "t[" + std::to_string(idx) + "], ";

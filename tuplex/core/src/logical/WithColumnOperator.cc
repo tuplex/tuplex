@@ -287,7 +287,7 @@ namespace tuplex {
         setOutputSchema(inferSchema(input_schema, false)); // input schema is not rewritten, but parameters in AST are?
     }
 
-    std::shared_ptr<LogicalOperator> WithColumnOperator::clone(bool cloneParents) {
+    std::shared_ptr<LogicalOperator> WithColumnOperator::clone(bool cloneParents) const {
         auto copy = new WithColumnOperator(cloneParents ? parent()->clone() : nullptr, UDFOperator::columns(),
                                            _newColumn, _udf, UDFOperator::rewriteMap());
         copy->setDataSet(getDataSet());

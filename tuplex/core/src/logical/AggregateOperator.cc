@@ -25,7 +25,7 @@ namespace tuplex {
 
     }
 
-    std::shared_ptr<LogicalOperator> AggregateOperator::clone(bool cloneParents) {
+    std::shared_ptr<LogicalOperator> AggregateOperator::clone(bool cloneParents) const {
         // copy manually everything else over
         auto copy = new AggregateOperator();
         if(cloneParents)

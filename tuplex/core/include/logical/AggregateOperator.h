@@ -117,7 +117,7 @@ namespace tuplex {
 
         bool retype(const RetypeConfiguration& conf) override;
 
-        std::shared_ptr<LogicalOperator> clone(bool cloneParents) override;
+        std::shared_ptr<LogicalOperator> clone(bool cloneParents) const override;
 
         const UDF& aggregatorUDF() const { return _aggregator; }
         const UDF& combinerUDF() const { return _combiner; }

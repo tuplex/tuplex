@@ -1426,11 +1426,14 @@ namespace tuplex {
             // there're now two options:
             // [1] index via static expression
             int index = 0;
-            if(try_to_get_static_integer_index_from_expression(sub->_expression.get(), type.get_column_count(), &index) ||
-               try_to_get_static_string_based_integer_index_from_expression(sub->_expression.get(), type.get_column_names(), &index)) {
+            bool rc_integer = false;
+            bool rc_string = false;
+            if((rc_integer = try_to_get_static_integer_index_from_expression(sub->_expression.get(), type.get_column_count(), &index)) ||
+                    (rc_string = try_to_get_static_string_based_integer_index_from_expression(sub->_expression.get(), type.get_column_names(), &index))) {
                 // check if valid index
                 if(index < 0 || index >= type.get_column_count()) {
-                    sub->setInferredType(python::Type::UNKNOWN);
+                    auto ec_code = rc_integer ? ExceptionCode::INDEXERROR : ExceptionCode::KEYERROR;
+                    sub->setInferredType(get_exception_type(ec_code)); // should be
                     error("Index error: tried to access row element at position " + std::to_string(index));
                 } else {
                     sub->setInferredType(type.get_column_type(index));

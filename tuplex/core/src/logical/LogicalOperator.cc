@@ -174,4 +174,14 @@ namespace tuplex {
 
         return shared_from_this();
     }
+
+    bool checkBasicEqualityOfOperators(const LogicalOperator& rhs, const LogicalOperator& lhs) {
+        if(rhs.getInputSchema() != lhs.getInputSchema())
+            return false;
+        if(rhs.getOutputSchema() != lhs.getOutputSchema())
+            return false;
+        if(rhs.getID() != lhs.getID())
+            return false;
+        return true;
+    }
 }

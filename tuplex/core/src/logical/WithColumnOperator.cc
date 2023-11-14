@@ -109,6 +109,11 @@ namespace tuplex {
 
     Schema
     WithColumnOperator::getOutputSchemaFromReturnAndInputRowType(const python::Type &retType, const python::Type &input_type) const {
+
+        if(retType == python::Type::UNKNOWN) {
+            return Schema::UNKNOWN;
+        }
+
         auto in_column_count = input_type.get_column_count();
         auto column_names = input_type.get_column_names();
         auto column_types = input_type.get_column_types();
@@ -289,6 +294,9 @@ namespace tuplex {
         // clone id
         copy->copyMembers(this);
         assert(getID() == copy->getID());
+
+        // sanity check, output schema
+        assert(checkBasicEqualityOfOperators(*copy, *this));
         return std::shared_ptr<LogicalOperator>(copy);
     }
 

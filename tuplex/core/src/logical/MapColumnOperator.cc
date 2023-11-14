@@ -163,7 +163,7 @@ namespace tuplex {
                                           UDFOperator::columns(), _udf, UDFOperator::rewriteMap());
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
-        assert(getID() == copy->getID());
+        assert(checkBasicEqualityOfOperators(*copy, *this));
         return std::shared_ptr<LogicalOperator>(copy);
     }
 

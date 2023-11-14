@@ -192,6 +192,7 @@ namespace tuplex {
         copy->copyMembers(this);
         assert(getID() == copy->getID());
         copy->_good = _good;
+        assert(checkBasicEqualityOfOperators(*copy, *this));
         return std::shared_ptr<LogicalOperator>(copy);
     }
 

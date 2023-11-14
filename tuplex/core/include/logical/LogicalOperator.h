@@ -346,6 +346,15 @@ namespace tuplex {
         }
 #endif
     };
+
+    /*!
+     * helper to check that basic properties (input/output schema) are identical. Helpful to verify clone
+     * worked correctly.
+     * @param rhs some op
+     * @param lhs some op
+     * @return true if equal, false else
+     */
+    extern bool checkBasicEqualityOfOperators(const LogicalOperator& rhs, const LogicalOperator& lhs);
 }
 
 #ifdef BUILD_WITH_CEREAL

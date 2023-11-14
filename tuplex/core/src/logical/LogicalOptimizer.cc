@@ -84,6 +84,15 @@ namespace tuplex {
         return opt_ops;
     }
 
+    bool LogicalOptimizer::ensureOperatorStateIsGood(const std::shared_ptr<LogicalOperator> &op,
+                                                     const std::string &message) {
+        if(!op->parents().empty())
+            for(auto node : op->parents())
+                if(!ensureOperatorStateIsGood(node, message))
+                    return false;
+        return op->good();
+    }
+
     std::shared_ptr<LogicalOperator>
     LogicalOptimizer::optimize(const std::shared_ptr<LogicalOperator> &root, bool inplace) {
         using namespace std;
@@ -104,21 +113,31 @@ namespace tuplex {
 
         bool ignoreConstantTypedColumns = _options.OPT_CONSTANTFOLDING_OPTIMIZATION();
 
+        assert(ensureOperatorStateIsGood(root, "before opt plan"));
+
         if(_options.OPT_FILTER_PUSHDOWN()) {
             emitPartialFilters(node, ignoreConstantTypedColumns);
             optimizeFilters(node, ignoreConstantTypedColumns);
+
+            assert(ensureOperatorStateIsGood(node, "filter pushdown"));
         }
 
         // prune tree? (note for lambda x: true / lambda x: false the optimization will only work if constant-fold is active)
         if(_options.OPT_CONSTANTFOLDING_OPTIMIZATION()) {
             pruneConstantFilters(node, _options.OPT_SELECTION_PUSHDOWN());
+
+            assert(ensureOperatorStateIsGood(node, "constant folding"));
         }
 
         // @TODO: filter reordering! -> could be also done in a specializing way!
 
         // this opt makes only sense when joins (or flatmap later) are involved...
-        if(properties.hasJoin() && _options.OPT_OPERATOR_REORDERING())
+        if(properties.hasJoin() && _options.OPT_OPERATOR_REORDERING()) {
             reorderDataProcessingOperators(node);
+
+            assert(ensureOperatorStateIsGood(node, "operator reordering"));
+        }
+
 
         // projectionPushdown (to csv parser etc. if possible)
         // ==> i.e. only parse accessed fields!
@@ -136,6 +155,8 @@ namespace tuplex {
 
             // note: could remove identity functions...
             // i.e. lambda x: x or lambda x: (x[0], x[1], ..., x[len(x) - 1]) same for def...
+
+            assert(ensureOperatorStateIsGood(node, "selection pushdown"));
         }
 
         return node;
@@ -568,6 +589,30 @@ namespace tuplex {
         auto inputRowType = op->parents().size() != 1 ? python::Type::UNKNOWN : op->getInputSchema().getRowType(); // could be also a tuple of one element!!!
         auto outputRowType = op->getOutputSchema().getRowType();
 
+        // debug print
+#ifndef NDEBUG
+        {
+            std::stringstream ss;
+            if(outputRowType.isRowType()) {
+                auto column_names =outputRowType.get_column_names();
+                std::vector<std::string> req_column_names;
+                for(auto col_idx : requiredCols) {
+                    if(col_idx < column_names.size())
+                        req_column_names.push_back(column_names[col_idx]);
+                    else
+                        req_column_names.push_back("<INVALID INDEX>");
+                }
+                ss<<"operator "<<op->name()<<" requires (output) columns: "<<req_column_names;
+            } else {
+                //...
+                ss<<"could not retrieve output type for operator "<<op->name();
+            }
+            Logger::instance().logger("optimizer").debug(ss.str());
+
+
+        }
+#endif
+
         vector<size_t> accCols; // indices of accessed columns from input row type!
 
         // udf operator? ==> selection possible!
@@ -579,6 +624,10 @@ namespace tuplex {
                 case LogicalOperatorType::MAP:
                 case LogicalOperatorType::WITHCOLUMN:
                 case LogicalOperatorType::FILTER: {
+
+                    // @TODO: this here is static-based access visitor. Better to use sample-based visitor to push
+                    // more effectively down!
+
                     // UDF access of input...
                     accCols = udfop->getUDF().getAccessedColumns(ignoreConstantTypedColumns);
                     break;
@@ -853,6 +902,9 @@ namespace tuplex {
                     auto input_column_count = input_op_row_type.isRowType() ? input_op_row_type.get_column_count() : input_op_row_type.parameters().size();
                     if (idx < input_column_count)
                         colsToSerialize.emplace_back(idx);
+                    else {
+                        throw std::runtime_error("invalid index for input op rewrite");
+                    }
                 }
                 sort(colsToSerialize.begin(), colsToSerialize.end());
 

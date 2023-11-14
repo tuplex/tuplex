@@ -41,7 +41,7 @@ namespace tuplex {
                 _name, _fmt, _options, _numParts, _splitSize, _limit);
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
-        assert(getID() == copy->getID());
+        assert(checkBasicEqualityOfOperators(*copy, *this));
         return std::shared_ptr<LogicalOperator>(copy);
     }
 }

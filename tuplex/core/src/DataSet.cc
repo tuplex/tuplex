@@ -526,8 +526,10 @@ namespace tuplex {
             code = "lambda t: (";
             for (std::string cn : columnNames) {
                 auto idx = indexInVector(cn, _columnNames);
+
+                auto output_column_count = _operator->getOutputSchema().getRowType().isRowType() ? _operator->getOutputSchema().getRowType().get_column_count() : _operator->getOutputSchema().getRowType().parameters().size();
                 assert(idx >= 0);
-                assert(idx < _operator->getOutputSchema().getRowType().parameters().size());
+                assert(idx < output_column_count);
                 // code += "t[" + std::to_string(idx) + "], ";
                 code += "t['" + _columnNames[idx] + "'], ";
 

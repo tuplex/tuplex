@@ -173,7 +173,7 @@ namespace tuplex {
         copy->setDataSet(getDataSet());
         copy->copyMembers(this);
         copy->setName(_name);
-        assert(getID() == copy->getID());
+        assert(checkBasicEqualityOfOperators(*copy, *this));
         return std::shared_ptr<LogicalOperator>(copy);
     }
 

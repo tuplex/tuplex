@@ -820,7 +820,8 @@ namespace tuplex {
         virtual void postOrder(ASTNode *node) override {}
         virtual void preOrder(ASTNode *node) override;
 
-        bool _tupleArgument;
+        /// whether function has multiple arguments or not. If multiple args, use different map.
+        option<bool> _multiArgs;
         size_t _numColumns;
         bool _singleLambda;
         std::vector<std::string> _argNames;
@@ -828,7 +829,7 @@ namespace tuplex {
         std::unordered_map<std::string, std::vector<size_t>> _argSubscriptIndices;
 
     public:
-        LambdaAccessedColumnVisitor() : _tupleArgument(false),
+        LambdaAccessedColumnVisitor() : _multiArgs(option<bool>::none),
         _numColumns(0), _singleLambda(false) {}
 
         // override subscript to handle special cases, i.e. stop traversal on (nested) dictionaries/lists.
@@ -851,8 +852,10 @@ namespace tuplex {
 
         std::set<size_t> idxs;
 
+        assert(_multiArgs.has_value());
+
         // first check what type it is
-        if(_tupleArgument || PARAM_USE_ROW_TYPE) {
+        if(!_multiArgs.value()) {
             assert(_argNames.size() == 1);
             std::string argName = _argNames.front();
             if(_argFullyUsed.at(argName)) {
@@ -883,11 +886,26 @@ namespace tuplex {
                 auto itype = lambda->_arguments->getInferredType();
                 assert(itype.isTupleType());
 
-                // how many elements?
-                _tupleArgument = itype.parameters().size() == 1 &&
+                // are multiple arguments used or not?
+                _multiArgs = lambda->_arguments->_args.size() > 1;
+                if(_multiArgs.value()) {
+                   _numColumns = lambda->_arguments->_args.size();
+                } else {
+
+                    // normalize tuple type argument
+                    auto normalized_input_row_type = itype.isTupleType() && itype.parameters().size() == 1 &&
                         itype.parameters().front().isTupleType() &&
-                        itype.parameters().front() != python::Type::EMPTYTUPLE;
-                _numColumns = _tupleArgument ? itype.parameters().front().parameters().size() : itype.parameters().size();
+                        itype.parameters().front() != python::Type::EMPTYTUPLE ? itype.parameters().front() : itype;
+                    if(itype.isTupleType() && itype.parameters().size() == 1 && itype.parameters().front().isRowType())
+                        normalized_input_row_type = itype.parameters().front();
+
+                    if(normalized_input_row_type.isTupleType())
+                        _numColumns = normalized_input_row_type.parameters().size();
+                    else if(normalized_input_row_type.isRowType())
+                        _numColumns = normalized_input_row_type.get_column_count();
+                    else
+                        _numColumns = 1;
+                }
 
                 // fetch identifiers for args
                 for(const auto &argNode : lambda->_arguments->_args) {
@@ -909,11 +927,26 @@ namespace tuplex {
                 auto itype = func->_parameters->getInferredType();
                 assert(itype.isTupleType());
 
-                // how many elements?
-                _tupleArgument = itype.parameters().size() == 1 &&
-                                 itype.parameters().front().isTupleType() &&
-                                 itype.parameters().front() != python::Type::EMPTYTUPLE;
-                _numColumns = _tupleArgument ? itype.parameters().front().parameters().size() : itype.parameters().size();
+                // are multiple arguments used or not?
+                _multiArgs = func->_parameters->_args.size() > 1;
+                if(_multiArgs.value()) {
+                    _numColumns = func->_parameters->_args.size();
+                } else {
+                    // normalize tuple type argument
+                    auto normalized_input_row_type = itype.isTupleType() && itype.parameters().size() == 1 &&
+                                                     itype.parameters().front().isTupleType() &&
+                                                     itype.parameters().front() != python::Type::EMPTYTUPLE ? itype.parameters().front() : itype;
+                    if(itype.isTupleType() && itype.parameters().size() == 1 && itype.parameters().front().isRowType())
+                        normalized_input_row_type = itype.parameters().front();
+
+                    if(normalized_input_row_type.isTupleType())
+                        _numColumns = normalized_input_row_type.parameters().size();
+                    else if(normalized_input_row_type.isRowType())
+                        _numColumns = normalized_input_row_type.get_column_count();
+                    else
+                        _numColumns = 1;
+                }
+
 
                 // fetch identifiers for args
                 for(const auto &argNode : func->_parameters->_args) {
@@ -1509,7 +1542,11 @@ namespace tuplex {
                 getAnnotatedAST().addTypeHint(std::get<0>(el), std::get<1>(el));
 
             // call define types then again
-            return getAnnotatedAST().defineTypes(_policy, true);
+            bool silent = true;
+#ifndef NDEBUG
+            silent = false;
+#endif
+            return getAnnotatedAST().defineTypes(_policy, false);
         }
 
         // call the replace visitor

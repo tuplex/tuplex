@@ -296,7 +296,8 @@ namespace tuplex {
         assert(getID() == copy->getID());
 
         // sanity check, output schema
-        assert(checkBasicEqualityOfOperators(*copy, *this));
+        if(cloneParents)
+            assert(checkBasicEqualityOfOperators(*copy, *this));
         return std::shared_ptr<LogicalOperator>(copy);
     }
 

@@ -29,10 +29,11 @@ namespace tuplex {
         } else {
             // check if compiled, then hintschema
             if(_udf.isCompiled()) {
-                // remove types from UDF --> retype using parent...
-                _udf.removeTypes();
-
+                // when parent is given
                 if(parent) {
+                    // remove types from UDF --> retype using parent...
+                    _udf.removeTypes();
+
                     // rewrite column access if given info
                     if(!_udf.rewriteDictAccessInAST(parent->columns())) {
                         _good = false;
@@ -192,7 +193,8 @@ namespace tuplex {
         copy->copyMembers(this);
         assert(getID() == copy->getID());
         copy->_good = _good;
-        assert(checkBasicEqualityOfOperators(*copy, *this));
+        if(cloneParents) // <-- getInputSchema for filter is based on parent. should clone with UDF though.
+            assert(checkBasicEqualityOfOperators(*copy, *this));
         return std::shared_ptr<LogicalOperator>(copy);
     }
 

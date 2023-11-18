@@ -62,6 +62,9 @@ jobs:
 
           # requires macOS 10.13 at least to build because of C++17 features.
           CIBW_ENVIRONMENT_MACOS: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' JAVA_HOME=${JAVA_HOME_11_X64}"
+          # run all python tests to make sure wheels are not defunct
+          CIBW_TEST_REQUIRES: "pytest numpy nbformat jupyter"
+          CIBW_TEST_COMMAND: "cd {project} && pytest tuplex/python/tests"
 
       - name: reorganize files
         run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./.github/scripts/test_pypi.sh ./wheelhouse

@@ -100,7 +100,7 @@ export CIBW_PROJECT_REQUIRES_PYTHON=">=3.8"
 export CIBW_BUILD_VERBOSITY=3
 
 export CIBW_BUILD="cp39-macosx_x86_64"
-export CIBW_TEST_REQUIRES="pytest numpy nbformat"
+export CIBW_TEST_REQUIRES="pytest numpy nbformat jupyter"
 export CIBW_TEST_COMMAND="cd {project} && pytest tuplex/python/tests"
 
 

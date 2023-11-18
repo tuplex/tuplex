@@ -5,7 +5,8 @@
     "fmt",
     "spdlog",
     {"name" : "aws-sdk-cpp", "features": ["s3", "lambda", "transfer"]},
-    {"name":  "llvm", "features":  ["enable-rtti", "enable-zlib", "enable-zstd", "target-aarch64", "target-x86"]}
+    {"name":  "llvm", "features":  ["enable-rtti", "enable-zlib", "enable-zstd", "target-aarch64", "target-x86"]},
+    {"name": "protobuf", "features":  ["zlib"]}
   ],
   "overrides": [
     {

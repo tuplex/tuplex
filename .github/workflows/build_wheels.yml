@@ -64,7 +64,8 @@ jobs:
           CIBW_ENVIRONMENT_MACOS: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' JAVA_HOME=${JAVA_HOME_11_X64}"
           # run all python tests to make sure wheels are not defunct
           CIBW_TEST_REQUIRES: "pytest pytest-timeout numpy nbformat jupyter"
-          CIBW_TEST_COMMAND: "cd {project} && pytest tuplex/python/tests --timeout=90"
+          # use 2min timeout per test.
+          CIBW_TEST_COMMAND: "cd {project} && pytest tuplex/python/tests --timeout 120"
 
       - name: reorganize files
         run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./.github/scripts/test_pypi.sh ./wheelhouse

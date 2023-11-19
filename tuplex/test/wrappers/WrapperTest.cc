@@ -21,6 +21,9 @@
 
 #include <boost/filesystem/operations.hpp>
 
+#include <algorithm>
+#include <random>
+
 // need for these tests a running python interpreter, so spin it up
 class WrapperTest : public TuplexTest {
     void SetUp() override {
@@ -3019,111 +3022,148 @@ TEST_F(WrapperTest, NonConformingResolve) {
 }
 
 
-//// debug any python module...
-///** Takes a path and adds it to sys.paths by calling PyRun_SimpleString.
-// * This does rather laborious C string concatenation so that it will work in
-// * a primitive C environment.
-// *
-// * Returns 0 on success, non-zero on failure.
-// */
-//int add_path_to_sys_module(const char *path) {
-//    int ret = 0;
-//    const char *prefix = "import sys\nsys.path.append(\"";
-//    const char *suffix = "\")\n";
-//    char *command = (char*)malloc(strlen(prefix)
-//                                  + strlen(path)
-//                                  + strlen(suffix)
-//                                  + 1);
-//    if (! command) {
-//        return -1;
-//    }
-//    strcpy(command, prefix);
-//    strcat(command, path);
-//    strcat(command, suffix);
-//    ret = PyRun_SimpleString(command);
-//#ifdef DEBUG
-//    printf("Calling PyRun_SimpleString() with:\n");
-//    printf("%s", command);
-//    printf("PyRun_SimpleString() returned: %d\n", ret);
-//    fflush(stdout);
-//#endif
-//    free(command);
-//    return ret;
-//}
-//
-///** This imports a Python module and calls a specific function in it.
-// * It's arguments are similar to main():
-// * argc - Number of strings in argv
-// * argv - Expected to be 4 strings:
-// *      - Name of the executable.
-// *      - Path to the directory that the Python module is in.
-// *      - Name of the Python module.
-// *      - Name of the function in the module.
-// *
-// * The Python interpreter will be initialised and the path to the Python module
-// * will be added to sys.paths then the module will be imported.
-// * The function will be called with no arguments and its return value will be
-// * ignored.
-// *
-// * This returns 0 on success, non-zero on failure.
-// */
-//int import_call_execute(int argc, const char *argv[]) {
-//    int return_value = 0;
-//    PyObject *pModule   = NULL;
-//    PyObject *pFunc     = NULL;
-//    PyObject *pResult   = NULL;
-//
-//    if (argc != 4) {
-//        fprintf(stderr,
-//                "Wrong arguments!"
-//                " Usage: %s package_path module function\n", argv[0]);
-//        return_value = -1;
-//        goto except;
-//    }
-//    Py_SetProgramName((wchar_t*)argv[0]);
-//    Py_Initialize();
-//    if (add_path_to_sys_module(argv[1])) {
-//        return_value = -2;
-//        goto except;
-//    }
-//    pModule = PyImport_ImportModule(argv[2]);
-//    if (! pModule) {
-//        fprintf(stderr,
-//                "%s: Failed to load module \"%s\"\n", argv[0], argv[2]);
-//        return_value = -3;
-//        goto except;
-//    }
-//    pFunc = PyObject_GetAttrString(pModule, argv[3]);
-//    if (! pFunc) {
-//        fprintf(stderr,
-//                "%s: Can not find function \"%s\"\n", argv[0], argv[3]);
-//        return_value = -4;
-//        goto except;
-//    }
-//    if (! PyCallable_Check(pFunc)) {
-//        fprintf(stderr,
-//                "%s: Function \"%s\" is not callable\n", argv[0], argv[3]);
-//        return_value = -5;
-//        goto except;
-//    }
-//    pResult = PyObject_CallObject(pFunc, NULL);
-//    if (! pResult) {
-//        fprintf(stderr, "%s: Function call failed\n", argv[0]);
-//        return_value = -6;
-//        goto except;
-//    }
-//#ifdef DEBUG
-//        printf("%s: PyObject_CallObject() succeeded\n", argv[0]);
-//#endif
-//    assert(! PyErr_Occurred());
-//    goto finally;
-//    except:
-//    assert(PyErr_Occurred());
-//    PyErr_Print();
-//    finally:
-//    Py_XDECREF(pFunc);
-//    Py_XDECREF(pModule);
-//    Py_XDECREF(pResult);
-//    Py_Finalize();
-//    return return_value;
-//}
+TEST_F(WrapperTest, CombinedExceptionHandling) {
+    // this is based on test_exceptions.py
+    //def process(self, input_size, num_filtered, num_schema, num_resolved, num_unresolved):
+    //        inds = list(range(input_size))
+    //        shuffle(inds)
+    //        inds = iter(inds)
+    //
+    //        input = list(range(1, input_size + 1))
+    //
+    //        for _ in range(floor(num_filtered * input_size)):
+    //            ind = next(inds)
+    //            input[ind] = -1
+    //
+    //        for _ in range(floor(num_schema * input_size)):
+    //            ind = next(inds)
+    //            input[ind] = "E"
+    //
+    //        for _ in range(floor(num_resolved * input_size)):
+    //            ind = next(inds)
+    //            input[ind] = -2
+    //
+    //        for _ in range(floor(num_unresolved * input_size)):
+    //            ind = next(inds)
+    //            input[ind] = -3
+    //
+    //        def filter_udf(x):
+    //            return x != -1
+    //
+    //        def map_udf(x):
+    //            if x == -2 or x == -3:
+    //                return 1 // (x - x)
+    //            else:
+    //                return x
+    //
+    //        def resolve_udf(x):
+    //            if x == -3:
+    //                return 1 // (x - x)
+    //            else:
+    //                return x
+    //
+    //        # for larger partitions, there's a multi-threading issue for this.
+    //        # need to fix.
+    //        conf = self.conf_in_order
+    //        # use this line to force single-threaded
+    //        # conf['executorCount'] = 0
+    //        c = Context(conf)
+    //        output = c.parallelize(input).filter(filter_udf).map(map_udf).resolve(ZeroDivisionError, resolve_udf).collect()
+    //
+    //        self.assertEqual(list(filter(lambda x: x != -3 and x != -1, input)), output)
+    //
+    //    @pytest.mark.parametrize("n", [100, 1000, 10000, 100000])
+    //    def test_everything(self, n):
+    //        self.process(n, 0.25, 0.25, 0.25, 0.25)
+
+    using namespace tuplex;
+
+    // use here a resolve operator that doesn't trigger
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"256MB\","
+                    " \"partitionSize\": \"64KB\","
+                    "\"executorCount\": 8,"
+                    "\"tuplex.optimizer.mergeExceptionsInOrder\": true,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+    std::string udf_filter = "def filter_udf(x):\n"
+                             "            return x != -1";
+
+    std::string udf_map = "def map_udf(x):\n"
+                          "            if x == -2 or x == -3:\n"
+                          "                return 1 // (x - x)\n"
+                          "            else:\n"
+                          "                return x";
+    std::string udf_resolve = "def resolve_udf(x):\n"
+                              "            if x == -3:\n"
+                              "                return 1 // (x - x)\n"
+                              "            else:\n"
+                              "                return x";
+
+    auto initial_pickled = python::pickleObject(python::getMainModule(), PyLong_FromLong(0));
+
+    std::cout<<"starting to generate data..."<<std::endl;
+
+    int N = 100000;
+    auto list = PyList_New(N);
+    std::vector<PyObject*> v(N, nullptr);
+    int pos = 0;
+    auto num_filtered = 0.25;
+    auto num_schema = 0.25;
+    auto num_resolved = 0.25;
+    auto num_unresolved = 0.25;
+    for(pos = 0; pos <= floor(num_filtered * N); pos++)
+        v[pos] = PyLong_FromLong(-1);
+    auto count = pos;
+    for(; pos <= count + floor(num_schema * N); pos++)
+        v[pos] = python::PyString_FromString("E");
+    count = pos;
+    for(; pos <= count + floor(num_resolved * N); pos++)
+        v[pos] = PyLong_FromLong(-2);
+    count = pos;
+    for(; pos <= count + floor(num_unresolved * N) && pos < N; pos++)
+        v[pos] = PyLong_FromLong(-3);
+    count = pos;
+    for(; pos < N; pos++)
+        v[pos] = PyLong_FromLong(-1);
+
+    // shuffle vector
+    auto rng = std::default_random_engine {};
+    std::shuffle(std::begin(v), std::end(v), rng);
+
+    // now assign to list
+    for(unsigned i = 0; i < N; ++i) {
+        PyList_SetItem(list, i, v[i]);
+        v[i] = nullptr;
+    }
+
+    std::cout<<"data gen done"<<std::endl;
+
+    auto data_list = py::reinterpret_borrow<py::list>(list);
+    PythonContext ctx("", "", ctx_opts);
+    {
+
+        //        output = c.parallelize(input).filter(filter_udf).map(map_udf).resolve(ZeroDivisionError, resolve_udf).collect()
+        //        self.assertEqual(list(filter(lambda x: x != -3 and x != -1, input)), output)
+        auto ds = ctx.parallelize(data_list)
+                .filter(udf_filter, "").map(udf_map, "").resolve(ecToI64(ExceptionCode::ZERODIVISIONERROR), udf_resolve, "");
+
+        //ds.show();
+        python::runGC();
+
+
+        // check
+        auto res = ds.collect();
+        auto res_obj = res.ptr();
+        ASSERT_TRUE(res_obj);
+        ASSERT_TRUE(PyList_Check(res_obj));
+        // EXPECT_EQ(PyList_Size(res_obj), N);
+
+        python::runGC();
+
+        std::cout<<std::endl; // flush
+    }
+
+}

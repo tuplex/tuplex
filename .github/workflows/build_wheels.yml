@@ -65,7 +65,7 @@ jobs:
           # run all python tests to make sure wheels are not defunct
           CIBW_TEST_REQUIRES: "pytest pytest-timeout numpy nbformat jupyter"
           # use 2min timeout per test.
-          CIBW_TEST_COMMAND: "cd {project} && pytest tuplex/python/tests --timeout 120"
+          CIBW_TEST_COMMAND: "cd {project} && pytest tuplex/python/tests -v --timeout 120"
 
       - name: reorganize files
         run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./.github/scripts/test_pypi.sh ./wheelhouse

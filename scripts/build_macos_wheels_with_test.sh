@@ -59,9 +59,6 @@ fi
 
 echo "-- Building wheels for ${CIBW_BUILD}"
 
-# if macOS is 10.x -> use this as minimum
-MINIMUM_TARGET="10.13"
-
 MACOS_VERSION=$(sw_vers -productVersion)
 echo "-- Processing on MacOS ${MACOS_VERSION}"
 function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }

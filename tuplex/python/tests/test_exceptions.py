@@ -28,6 +28,9 @@ class TestExceptions:
     def assertEqual(self, lhs, rhs):
         assert lhs == rhs
 
+    def assertTrue(self, ans):
+        assert ans
+
     def test_merge_with_filter(self):
         c = Context(self.conf_in_order)
 

@@ -199,6 +199,7 @@ class Context:
             options['tuplex.webui.enable'] = options['webui']
             del options['webui']
 
+        # last arg are the options as json string serialized b.c. of boost python problems
         self._context = _Context(name, runtime_path, json.dumps(options))
         python_metrics = self._context.getMetrics()
         assert python_metrics, 'internal error: metrics object should be valid'

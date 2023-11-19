@@ -10,10 +10,12 @@
 #----------------------------------------------------------------------------------------------------------------------#
 
 import unittest
+import pytest
 from tuplex import Context
 from random import randint, sample, shuffle
 from math import floor
 from helper import options_for_pytest
+
 
 class TestExceptions(unittest.TestCase):
 
@@ -91,11 +93,9 @@ class TestExceptions(unittest.TestCase):
 
         self.assertEqual(list(filter(lambda x: x != -3 and x != -1, input)), output)
 
-    def test_everything(self):
-        self.process(100, 0.25, 0.25, 0.25, 0.25)
-        self.process(1000, 0.25, 0.25, 0.25, 0.25)
-        self.process(10000, 0.25, 0.25, 0.25, 0.25)
-        self.process(100000, 0.25, 0.25, 0.25, 0.25)
+    @pytest.mark.parametrize("n", [100, 1000, 10000, 100000])
+    def test_everything(self, n):
+        self.process(n, 0.25, 0.25, 0.25, 0.25)
 
     def test_merge_with_filter_on_exps(self):
         c = Context(self.conf_in_order)

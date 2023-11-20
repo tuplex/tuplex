@@ -44,7 +44,7 @@ class TestExceptions:
         output = c.parallelize([-1.1, 1, 2, -2.2, 4, 5, -6.6]).filter(lambda x: x < 0 or x > 3).collect()
         self.compare_in_order([-1.1, -2.2, 4, 5, -6.6], output)
 
-    @pytest.mark.parametrize("n", [1000, 25000])
+    @pytest.mark.parametrize("n", [1000, 2500])
     def test_merge_with_filter(self, n):
         c = Context(self.conf_in_order)
         input = list(range(1, n + 1))

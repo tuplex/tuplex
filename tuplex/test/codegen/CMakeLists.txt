@@ -17,6 +17,7 @@ TARGET_LINK_LIBRARIES(testcodegen
         ${ZSTD_LIBRARIES}
         ${ZLIB_LIBRARIES}
         ${CURSES_LIBRARIES}
+        ${LLVM_LIBRARIES}
         runtime
         )
 

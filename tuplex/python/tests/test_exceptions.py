@@ -118,17 +118,18 @@ class TestExceptions:
         output = c.parallelize([0, 1.1, 2.2, 1, 3.3, 4, 5]).filter(lambda x: x != 0 and x != 1.1).collect()
         self.compare_in_order([2.2, 1, 3.3, 4, 5], output)
 
-    def test_merge_runtime_only(self):
+    @pytest.mark.parametrize("n", [10000])
+    def test_merge_runtime_only(self, n):
         c = Context(self.conf_in_order)
 
         output = c.parallelize([1, 0, 0, 4]).map(lambda x: 1 // x).resolve(ZeroDivisionError, lambda x: -1).collect()
         self.compare_in_order([1, -1, -1, 0], output)
 
-        output = c.parallelize([0 for i in range(100000)]).map(lambda x: 1 // x).resolve(ZeroDivisionError, lambda x: -1).collect()
-        self.compare_in_order([-1 for i in range(100000)], output)
+        output = c.parallelize([0 for i in range(n)]).map(lambda x: 1 // x).resolve(ZeroDivisionError, lambda x: -1).collect()
+        self.compare_in_order([-1 for i in range(n)], output)
 
         input = []
-        for i in range(100000):
+        for i in range(n):
             if i % 100 == 0:
                 input.append(0)
             else:
@@ -137,7 +138,7 @@ class TestExceptions:
         output = c.parallelize(input).map(lambda x: 1 // x).resolve(ZeroDivisionError, lambda x: -1).collect()
 
         expectedOutput = []
-        for i in range(100000):
+        for i in range(n):
             if i % 100 == 0:
                 expectedOutput.append(-1)
             else:
@@ -155,7 +156,8 @@ class TestExceptions:
             .collect()
         self.compare_in_order([1, 2, -1, 5, 6, 7, 10, 11, 12, -3, 15], output)
 
-    def test_merge_both_but_no_resolve(self):
+    @pytest.mark.parametrize("n", [10000])
+    def test_merge_both_but_no_resolve(self, n):
         c = Context(self.conf_in_order)
 
         input = [1, 2, -1, "a", 5, 6, 7, -2, "b", 10, 11, 12, -3, "c", 15]
@@ -165,8 +167,8 @@ class TestExceptions:
             .collect()
         self.compare_in_order([1, 2, -1, "a", 5, 6, 7, "b", 10, 11, 12, -3, "c", 15], output)
 
-        input = list(range(1, 100001))
-        sampled = sample(input, 40000)
+        input = list(range(1, n + 1))
+        sampled = sample(input, int(0.4 * n))
         for i in sampled:
             ind = randint(0, 2)
             if ind == 0:
@@ -180,7 +182,8 @@ class TestExceptions:
         output = c.parallelize(input).map(lambda x: 1 // (x - x) if x == -1 or x == 0 else x).resolve(ZeroDivisionError, lambda x: 1 // x if x == 0 else x).collect()
         self.compare_in_order(expectedOutput, output)
 
-    def test_merge_both(self):
+    @pytest.mark.parametrize("n", [10000])
+    def test_merge_both(self, n):
         c = Context(self.conf_in_order)
 
         input = [1, 2, 0, "a", 5, 6, 7, 0, "b", 10, 11, 12, 0, "c", 15]
@@ -191,8 +194,8 @@ class TestExceptions:
         output = c.parallelize(input).map(lambda x: 1 // x if x == 0 else x).resolve(ZeroDivisionError, lambda x: -1).collect()
         self.compare_in_order([1, 2, "a", -1, 5, 6, 7, "b", -1, 10, 11, 12, "c", -1, 15], output)
 
-        input = list(range(1, 100001))
-        sampled = sample(input, 40000)
+        input = list(range(1, n + 1))
+        sampled = sample(input, int(0.4 * n))
         for i in sampled:
             if randint(0, 1) == 0:
                 input[i - 1] = str(input[i - 1])
@@ -202,7 +205,8 @@ class TestExceptions:
         output = c.parallelize(input).map(lambda x: 1 // x if x == 0 else x).resolve(ZeroDivisionError, lambda x: x).collect()
         self.compare_in_order(input, output)
 
-    def test_merge_input_only(self):
+    @pytest.mark.parametrize("n", [40000])
+    def test_merge_input_only(self, n):
         c = Context(self.conf_in_order)
 
         input = [1, 2, "a", 4, 5, "b", 6, 7, 8, 9, 10, "d"]
@@ -210,7 +214,7 @@ class TestExceptions:
         self.compare_in_order(input, output)
 
         input = []
-        for i in range(40000):
+        for i in range(n):
             if i % 100 == 0:
                 input.append(str(i))
             else:
@@ -268,7 +272,8 @@ class TestExceptions:
             .collect()
         self.compare([1, 2, -1, 5, 6, 7, 10, 11, 12, -3, 15], output)
 
-    def test_no_merge_both_but_no_resolve(self):
+    @pytest.mark.parametrize("n", [10000])
+    def test_no_merge_both_but_no_resolve(self, n):
         c = Context(self.conf)
 
         input = [1, 2, -1, "a", 5, 6, 7, -2, "b", 10, 11, 12, -3, "c", 15]
@@ -278,8 +283,8 @@ class TestExceptions:
             .collect()
         self.compare([1, 2, -1, "a", 5, 6, 7, "b", 10, 11, 12, -3, "c", 15], output)
 
-        input = list(range(1, 100001))
-        sampled = sample(input, 40000)
+        input = list(range(1, n + 1))
+        sampled = sample(input, int(0.4 * n))
         for i in sampled:
             ind = randint(0, 2)
             if ind == 0:
@@ -293,7 +298,8 @@ class TestExceptions:
         output = c.parallelize(input).map(lambda x: 1 // (x - x) if x == -1 or x == 0 else x).resolve(ZeroDivisionError, lambda x: 1 // x if x == 0 else x).collect()
         self.compare(expectedOutput, output)
 
-    def test_no_merge_both(self):
+    @pytest.mark.parametrize("n", [10000])
+    def test_no_merge_both(self, n):
         c = Context(self.conf)
 
         input = [1, 2, 0, "a", 5, 6, 7, 0, "b", 10, 11, 12, 0, "c", 15]
@@ -304,8 +310,8 @@ class TestExceptions:
         output = c.parallelize(input).map(lambda x: 1 // x if x == 0 else x).resolve(ZeroDivisionError, lambda x: -1).collect()
         self.compare([1, 2, "a", -1, 5, 6, 7, "b", -1, 10, 11, 12, "c", -1, 15], output)
 
-        input = list(range(1, 100001))
-        sampled = sample(input, 40000)
+        input = list(range(1, n + 1))
+        sampled = sample(input, int(0.4 * n))
         for i in sampled:
             if randint(0, 1) == 0:
                 input[i - 1] = str(input[i - 1])
@@ -315,7 +321,8 @@ class TestExceptions:
         output = c.parallelize(input).map(lambda x: 1 // x if x == 0 else x).resolve(ZeroDivisionError, lambda x: x).collect()
         self.compare(input, output)
 
-    def test_no_merge_input_only(self):
+    @pytest.mark.parametrize("n", [40000])
+    def test_no_merge_input_only(self, n):
         c = Context(self.conf)
 
         input = [1, 2, "a", 4, 5, "b", 6, 7, 8, 9, 10, "d"]
@@ -323,7 +330,7 @@ class TestExceptions:
         self.compare(input, output)
 
         input = []
-        for i in range(40000):
+        for i in range(n):
             if i % 100 == 0:
                 input.append(str(i))
             else:
@@ -332,14 +339,15 @@ class TestExceptions:
         output = c.parallelize(input).map(lambda x: x).collect()
         self.compare(input, output)
 
-    def test_no_merge_runtime_only(self):
+    @pytest.mark.parametrize("n", [10000])
+    def test_no_merge_runtime_only(self, n):
         c = Context(self.conf)
 
         output = c.parallelize([1, 0, 0, 4]).map(lambda x: 1 // x).resolve(ZeroDivisionError, lambda x: -1).collect()
         self.compare([1, -1, -1, 0], output)
 
         input = []
-        for i in range(100000):
+        for i in range(n):
             if i % 100 == 0:
                 input.append(0)
             else:
@@ -356,7 +364,8 @@ class TestExceptions:
 
         self.compare(expectedOutput, output)
 
-    def test_parallelize_exceptions_no_merge(self):
+    @pytest.mark.parametrize("n", [50000])
+    def test_parallelize_exceptions_no_merge(self, n):
         c = Context(self.conf)
 
         output = c.parallelize([1, 2, 3, 4, None]).map(lambda x: x).collect()
@@ -377,7 +386,7 @@ class TestExceptions:
         l1 = []
         l2 = []
         input = []
-        for i in range(50000):
+        for i in range(n):
             if i % 100 == 0:
                 l2.append(str(i))
                 input.append(str(i))

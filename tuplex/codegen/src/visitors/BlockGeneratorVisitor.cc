@@ -5414,19 +5414,13 @@ namespace tuplex {
                 }
 
                 auto exceptionType = raise->_expression->getInferredType();
-                auto exceptionName = exceptionType.desc();
-
-                // get exception code corresponding to exceptionName!
-                auto ecCode = pythonClassToExceptionCode(exceptionName); // TODO: Custom exceptions?
+                auto ecCode = exception_type_to_code(exceptionType);
 
                 if(ecCode == ExceptionCode::UNKNOWN) {
                     error("could not decode raise ExceptionClass to code");
                     return;
                 }
 
-                // _lfb->addException(builder, ecCode, _env->i1Const(true));
-
-                // NEW: exit with exception!
                 _lfb->exitWithException(ecCode);
             }
         }

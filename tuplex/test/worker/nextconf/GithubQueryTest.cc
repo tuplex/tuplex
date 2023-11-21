@@ -632,6 +632,18 @@ namespace tuplex {
 //                .tocsv(output_path);
 
 
+// #error "investigate forkee url and what is going wrong here. Maybe create separate example."
+
+        // problematic isolated pipeline
+        ctx.json(input_pattern, true, true, sm)
+                .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
+                .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
+                .withColumn("forkee_url", UDF(extract_forkee_url)) // <-- problematic, need to investigate & fix
+                .selectColumns(vector<string>{"type", "year", "forkee_url"})
+                .tocsv(output_path);
+
+        return;
+
         // full pipeline (fix func by func)
         ctx.json(input_pattern, true, true, sm)
                 .filter(UDF("lambda x: x['type'] == 'ForkEvent'"))
@@ -640,7 +652,7 @@ namespace tuplex {
                 .withColumn("commits", UDF("lambda row: row['payload'].get('commits')"))
                 .withColumn("number_of_commits", UDF("lambda row: len(row['commits']) if row['commits'] else 0"))
                 .withColumn("forkee", UDF(extract_forkee))
-//                .withColumn("forkee_url", UDF(extract_forkee_url))
+                .withColumn("forkee_url", UDF(extract_forkee_url)) // <-- problematic, need to investigate & fix
 //                .withColumn("watchers", UDF(extract_watchers))
 //                .withColumn("stargazers", UDF(extract_stargazers))
 //                .withColumn("forks", UDF(extract_forks))
@@ -649,7 +661,7 @@ namespace tuplex {
 //                                                     "number_of_commits", "lang", "forkee", "forkee_url",
 //                                                     "watchers",
 //                                                     "stargazers", "forks"})
-                .selectColumns(vector<string>{"type", "year", "repo_id", "number_of_commits", "forkee"})
+                .selectColumns(vector<string>{"type", "year", "repo_id", "number_of_commits", "forkee", "forkee_url"})
                 .tocsv(output_path);
 
 //        // full pipeline (fix func by func)

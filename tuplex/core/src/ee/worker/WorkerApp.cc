@@ -448,6 +448,11 @@ namespace tuplex {
                 ss<<"maxrows="<<_settings.sampleLimitCount<<" ";
                 ss<<"stratasize="<<_settings.strataSize<<" ";
                 ss<<"samplesperstrata="<<_settings.samplesPerStrata<<" ";
+                ss<<"specializing on uri="<<uri<<", size="<<file_size;
+
+                if(uri.find("2012-10-15.json.sample:0-1596253") != std::string::npos)
+                    std::cout<<"found file"<<std::endl;
+
                 logger().info(ss.str());
             }
 

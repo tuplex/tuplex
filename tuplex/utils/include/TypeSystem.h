@@ -959,6 +959,12 @@ namespace tuplex {
         assert(t != python::Type::UNKNOWN);
         return t;
     }
+
+    inline ExceptionCode exception_type_to_code(const python::Type& exception_type) {
+        // @TODO: what about custom classes? --> need to sync values for those as well.
+        assert(exception_type.isExceptionType());
+        return pythonClassToExceptionCode(exception_type.desc());
+    }
 }
 
 

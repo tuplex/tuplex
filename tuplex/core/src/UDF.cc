@@ -320,7 +320,7 @@ namespace tuplex {
         python::Type hintType = schema.getRowType();
 
         if(PARAM_USE_ROW_TYPE) {
-            assert(hintType.isRowType());
+            assert(hintType.isRowType() || hintType.isExceptionType());
         } else {
             // if it's not a tuple type, go directly to the special case...
             if(!hintType.isTupleType())
@@ -609,6 +609,63 @@ namespace tuplex {
         } else return _pickledCode;
     }
 
+
+    // helper function, move
+    namespace codegen {
+        std::string generate_always_raise_function(codegen::LLVMEnvironment& env,
+                                                               const python::Type& input_row_type,
+                                                               const python::Type& output_row_type,
+                                                               const std::string& function_name,
+                                                               const ExceptionCode& ec) {
+            using namespace llvm;
+            assert(input_row_type.isTupleType());
+            assert(output_row_type.isTupleType());
+
+            // this must be compatible with LambdaFunction.cc::createLLVMFunction
+            FlattenedTuple fti(&env);
+            FlattenedTuple fto(&env);
+            fti.init(input_row_type);
+            fto.init(output_row_type);
+
+            // propagate to tuple type for now. Note: there is an option to optimize for single type functions!
+            assert(env.getOrCreateTupleType(fto.flattenedTupleType()) == fto.getLLVMType());
+            assert(env.getOrCreateTupleType(fti.flattenedTupleType()) == fti.getLLVMType());
+            auto outRowLLVMType = fto.getLLVMType()->getPointerTo();
+            auto inRowLLVMType = fti.getLLVMType()->getPointerTo();
+
+            FunctionType *FT = FunctionType::get(env.i64Type(), {outRowLLVMType,
+                                                                   inRowLLVMType}, false);
+
+            auto linkage = Function::InternalLinkage;
+            auto func = Function::Create(FT, linkage, function_name, env.getModule().get());
+
+            llvm::Value* retValPtr = nullptr;
+
+            // rename arguments & set attributes
+            // add attributes to the arguments (sret, byval)
+            for (int i = 0; i < func->arg_size(); ++i) {
+                auto& arg = *(func->arg_begin() + i);
+
+                // set attribute
+                if(0 == i) {
+                    arg.setName("outRow");
+                    retValPtr = &arg; // set retval ptr!
+                }
+
+                if(1 == i) {
+                    arg.setName("inRow");
+                }
+            }
+
+            auto body = BasicBlock::Create(env.getContext(), "body", func);
+            IRBuilder<> builder(body);
+            builder.CreateRet(env.i64Const(ecToI64(ec))); // <-- always returns ec code.
+
+            return func->getName().str();
+        }
+    }
+
+
     codegen::CompiledFunction UDF::compile(codegen::LLVMEnvironment &env) {
 
         codegen::CompiledFunction cf;
@@ -660,6 +717,27 @@ namespace tuplex {
         //     logger.error("code generation for user supplied function failed. Lambda function needs at least one parameter.");
         //     return cf;
         // }
+
+        // special case: Function produces always exceptions -> generate trivial function.
+        // -> still meaningful to collect number of exceptions and when used e.g. after a filter or together with resolve.
+        if(_outputSchema.getRowType().isExceptionType()) {
+            auto function_name = cg.getFunctionName();
+            auto exception_type = _outputSchema.getRowType();
+            auto ec = exception_type_to_code(exception_type);
+            logger.debug("Generating always exception of type " + exception_type.desc() + " throwing UDF.");
+
+            // generate exception function based on code & input data. Uses empty tuple as dummy output.
+            function_name = codegen::generate_always_raise_function(env, _inputSchema.getRowType(), python::Type::EMPTYTUPLE, function_name, ec);
+
+            auto func = env.getModule()->getFunction(function_name);
+            if(!func) {
+                logger.error("could not retrieve LLVM function from module");
+                cf.function = nullptr; // invalidate func
+                return cf;
+            }
+            cf.function = func;
+            return cf;
+        }
 
         // compile UDF to LLVM IR Code
         if(!cg.generateCode(&env, _policy)) {
@@ -1822,7 +1900,7 @@ namespace tuplex {
         Schema inputSchema;
         if(PARAM_USE_ROW_TYPE) {
             if(inputRowType != python::Type::UNKNOWN) {
-                assert(inputRowType.isRowType());
+                assert(inputRowType.isRowType() || inputRowType.isExceptionType());
                 inputSchema = Schema(Schema::MemoryLayout::ROW, inputRowType);
             } else {
                 // fetch majority type

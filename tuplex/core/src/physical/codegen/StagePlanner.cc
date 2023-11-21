@@ -1826,6 +1826,7 @@ namespace tuplex {
 
             if(0 == original_sample_size) {
                 logger.debug("skip because empty original sample");
+                return;
             }
 
             std::vector<std::shared_ptr<LogicalOperator>> operators_post_op;
@@ -1846,6 +1847,11 @@ namespace tuplex {
                     // get sample! is it non-empty and smaller than the original sample size?
                     auto samples_post_filter = filter_node->getSample(original_sample_size, true);
                     logger.debug("sample size post-filter: " + pluralize(samples_post_filter.size(), "row"));
+
+                    // @TODD: There's two possibilities here:
+                    // [1] if sample is empty, replace pipeline with simple filter node throwing normal-case if filter condition is not met.
+                    // [2] sample is empty, ignore filter promot and continue with other majority case. Above is more aggressive, the other one less.
+
                     if(!samples_post_filter.empty() && samples_post_filter.size() < original_sample_size) {
                         logger.info("filter is candidate for promotion, reduced sample size from " + std::to_string(original_sample_size) + " -> " + std::to_string(samples_post_filter.size()));
 

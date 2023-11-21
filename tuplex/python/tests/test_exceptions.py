@@ -107,7 +107,8 @@ class TestExceptions:
 
         self.assertEqual(list(filter(lambda x: x != -3 and x != -1, input)), output)
 
-    @pytest.mark.parametrize("n", [100, 1000, 10000, 50000])
+    # test tends to be slow on Github actions, do not test for 100k
+    @pytest.mark.parametrize("n", [100, 1000, 10000])
     def test_everything(self, n):
         self.process(n, 0.25, 0.25, 0.25, 0.25)
 

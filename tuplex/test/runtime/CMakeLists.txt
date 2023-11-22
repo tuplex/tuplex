@@ -9,7 +9,7 @@ file(GLOB SRCS *.cc)
 
 include(GoogleTest)
 
-ADD_EXECUTABLE(testruntime ${SRCS})
+ADD_EXECUTABLE(testruntime ${SRCS} ../../runtime/src/Runtime.cc ../../runtime/src/StringFunctions.cc)
 
 TARGET_LINK_LIBRARIES(testruntime
         libio

@@ -83,7 +83,6 @@ namespace tuplex {
             auto field_type = _tree.fieldType(index);
             if(field_type.isTupleType() && field_type != python::Type::EMPTYTUPLE) {
                 // need to assign a subtree
-                assert(value->getType()->isStructTy() || value->getType()->getPointerElementType()->isStructTy()); // struct or struct*
 
                 auto subtree = _tree.subTree(index);
                 auto subtree_type = subtree.tupleType();
@@ -1039,10 +1038,10 @@ namespace tuplex {
             // here it is just a load
             // ==> an empty tuple can't have a bitmap!
             if(isEmptyTuple()) {
-                throw std::runtime_error("need to figure this out..."); // what needs to be stored here anyways??
+                throw std::runtime_error("need to figure this out..."); // what needs to be stored here anyways?
                 assert(1 == numElements());
                 // store size for packed empty tuple
-                builder.CreateStore(_tree.get(0).size, builder.CreateGEP(ptr, {_env->i32Const(0), _env->i32Const(numElements())}));
+                builder.CreateStore(_tree.get(0).size, builder.CreateStructGEP(ptr, llvmType, numElements()));
                 return;
             }
 

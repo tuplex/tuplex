@@ -1103,8 +1103,12 @@ namespace tuplex {
 #if (LLVM_VERSION_MAJOR > 14)
                 if(stype->isOpaquePointerTy())
                     return "ptr";
-#endif
+#elif (LLVM_VERSION_MAJOR >= 17)
+                return "ptr"
+#else
                 stype = stype->getPointerElementType();
+#endif
+
                 pointer_stars += "*";
             }
 
@@ -1166,9 +1170,12 @@ namespace tuplex {
 #if (LLVM_VERSION_MAJOR > 14)
                 if(t->isOpaquePointerTy())
                     return "ptr";
-#endif
+#elif (LLVM_VERSION_MAJOR >= 17)
+                return "ptr";
+#else
                 // recurse:
                 return getLLVMTypeName(t->getPointerElementType()) + "*";
+#endif
             }
 
             if (t->isArrayTy()) {
@@ -1662,7 +1669,7 @@ namespace tuplex {
             auto str_size = CreateFirstBlockAlloca(builder, i64Type());
             auto str = builder.CreateCall(func, {value, str_size});
 
-            return SerializableValue(str, builder.CreateLoad(str_size));
+            return SerializableValue(str, builder.CreateLoad(builder.getInt64Ty(), str_size));
         }
 
 

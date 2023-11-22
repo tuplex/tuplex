@@ -190,6 +190,7 @@ class Context:
         if options['tuplex.webui.enable']:
             ensure_webui(options)
 
+        # last arg are the options as json string serialized b.c. of boost python problems
         # because webui=False/True is convenient, pass it as well to tuplex options
         if 'tuplex.webui' in options.keys():
             options['tuplex.webui.enable'] = options['tuplex.webui']

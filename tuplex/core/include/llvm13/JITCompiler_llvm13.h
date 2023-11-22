@@ -77,6 +77,7 @@ namespace tuplex {
         // custom symbols
         std::unordered_map<std::string, llvm::JITEvaluatedSymbol> _customSymbols;
 
+        void defineCustomSymbols(llvm::orc::JITDylib &jitlib);
     };
 }
 #endif

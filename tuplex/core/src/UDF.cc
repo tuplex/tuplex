@@ -727,7 +727,14 @@ namespace tuplex {
             logger.debug("Generating always exception of type " + exception_type.desc() + " throwing UDF.");
 
             // generate exception function based on code & input data. Uses empty tuple as dummy output.
-            function_name = codegen::generate_always_raise_function(env, _inputSchema.getRowType(), python::Type::EMPTYTUPLE, function_name, ec);
+            auto input_row_type = _inputSchema.getRowType();
+            if(input_row_type.isRowType())
+                input_row_type = input_row_type.get_columns_as_tuple_type();
+            if(input_row_type.isExceptionType()) {
+                input_row_type = python::Type::makeTupleType({input_row_type});
+                logger.warn("Could optimize pipeline here by removing operators that just raise again an exception");
+            }
+            function_name = codegen::generate_always_raise_function(env, input_row_type, python::Type::makeTupleType({exception_type}), function_name, ec);
 
             auto func = env.getModule()->getFunction(function_name);
             if(!func) {

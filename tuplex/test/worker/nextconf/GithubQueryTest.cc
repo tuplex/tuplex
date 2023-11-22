@@ -492,6 +492,10 @@ namespace tuplex {
         co.set("tuplex.optimizer.constantFoldingOptimization", "false");
         co.set("tuplex.inputSplitSize", "2GB");
         co.set("tuplex.resolveWithInterpreterOnly", "false");
+
+
+        co.set("tuplex.executorCount", "0"); // <-- uncomment if there are any multi-threading issues
+
         // result of this is:
         // [2023-04-12 12:04:55.841] [worker] [info] total input row count: 11012665
         // [2023-04-12 12:04:55.841] [worker] [info] total output row count: 294195

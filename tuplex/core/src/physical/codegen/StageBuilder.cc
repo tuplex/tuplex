@@ -587,6 +587,7 @@ namespace tuplex {
                 auto node = pathContext.operators[i];
                 assert(node);
                 UDFOperator *udfop = dynamic_cast<UDFOperator *>(node.get());
+
                 switch (node->type()) {
                     case LogicalOperatorType::MAP: {
                         if (!pip->mapOperation(node->getID(), udfop->getUDF(), ctx.normalCaseThreshold, ctx.allowUndefinedBehavior,

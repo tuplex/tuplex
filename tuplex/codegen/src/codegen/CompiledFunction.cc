@@ -142,7 +142,6 @@ namespace tuplex {
                         ss<<t.desc()<<"\n";
                     logger.error(ss.str());
                 }
-
                 assert(expected_out_type == resPtr->getType());
                 assert(expected_in_type == inRowPtr->getType());
 

@@ -1013,6 +1013,8 @@ namespace tuplex {
             llvm::BlockAddress *createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(const codegen::IRBuilder &builder,
                                                                                           const python::Type &iterableType,
                                                                                           bool reverse=false);
+
+            llvm::Value *cbool_const(bool b);
         };
 
 // i.e. there should be a function

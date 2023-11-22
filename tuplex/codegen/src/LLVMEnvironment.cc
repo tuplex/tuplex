@@ -1956,7 +1956,7 @@ namespace tuplex {
 
             auto cbool_type = codegen::ctypeToLLVM<bool>(builder.getContext());
             Value* bool_val = env.CreateFirstBlockAlloca(builder, cbool_type);
-            builder.CreateStore(env.boolConst(false), bool_val);
+            builder.CreateStore(env.cbool_const(false), bool_val);
 
             // all the basicblocks
             BasicBlock* bbParse = BasicBlock::Create(ctx, "parse_bool_value", func);
@@ -2247,6 +2247,14 @@ namespace tuplex {
             auto retAddr = llvm::BlockAddress::get(func, updateIndexBB);
             _generatedIteratorUpdateIndexFunctions[funcName] = retAddr;
             return retAddr;
+        }
+
+        llvm::Value *LLVMEnvironment::cbool_const(bool b) {
+            auto cbool_type = codegen::ctypeToLLVM<bool>(getContext());
+            assert(cbool_type->isIntegerTy());
+            auto num_bits = cbool_type->getIntegerBitWidth();
+            return llvm::Constant::getIntegerValue(llvm::Type::getIntNTy(getContext(), num_bits),
+                                            llvm::APInt(num_bits, b));
         }
 
         SerializableValue list_get_element(LLVMEnvironment& env, const codegen::IRBuilder& builder,

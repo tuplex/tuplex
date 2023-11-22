@@ -18,7 +18,10 @@ if(BUILD_WITH_AWS)
     # is installed
     # set(Protobuf_USE_STATIC_LIBS ON)
     # https://github.com/protocolbuffers/protobuf/issues/12637
-    find_package(Protobuf REQUIRED)
+    find_package(Protobuf CONFIG)
+    if(NOT Protobuf_FOUND)
+        find_package(Protobuf REQUIRED)
+    endif()
     include_directories(Protobuf_INCLUDE_DIRS)
 
     add_library(proto-objects OBJECT "${CMAKE_CURRENT_LIST_DIR}/proto/Lambda.proto")

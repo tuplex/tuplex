@@ -10,13 +10,6 @@ message(STATUS "Using language version: C++${CMAKE_CXX_STANDARD}")
 # add cmake modules from cmake folder
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
-# use vcpkg as manager from https://github.com/bitmeal/vcpkg-cmake-integration
-#set(VCPKG_VERSION edge) # optional
-include("${CMAKE_SOURCE_DIR}/cmake/vcpkg.cmake")
-
-
-
-
 # Tuplex build options:
 # =====================
 
@@ -1003,8 +996,6 @@ endif()
 
 # ncurses/curses lib for terminal manipulation
 find_package(Curses REQUIRED)
-find_package(fmt REQUIRED)
-find_package(spdlog REQUIRED)
 
 # add subdirs here...
 add_subdirectory(io)  # <-- make sure to call this first, because it changes parent scope with io dependencies

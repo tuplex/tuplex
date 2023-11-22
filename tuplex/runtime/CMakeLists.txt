@@ -18,7 +18,7 @@ message(STATUS "Tuplex python language runtime include dir is: ${RUNTIME_INCLUDE
 target_include_directories(runtime PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${PCRE2_INCLUDE_DIRS})
 
 # keep dependencies lean...
-target_link_libraries(runtime libutils ${PCRE2_LIBRARIES} fmt::fmt)
+target_link_libraries(runtime libutils ${PCRE2_LIBRARIES})
 
 # require thread_local and aligned malloc keyword (C11 or C++11)
 target_compile_features(runtime PRIVATE cxx_thread_local)

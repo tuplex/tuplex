@@ -120,7 +120,7 @@ namespace tuplex {
             LogMessage msg;
             msg.message = std::string(spdlog_msg.payload.data());
             msg.timestamp = spdlog_msg.time;
-            msg.logger = std::string(spdlog_msg.logger_name.begin(), spdlog_msg.logger_name.end());
+            msg.logger = *spdlog_msg.logger_name;
             msg.level = spdlog_msg.level;
             _messageBuffer.push_back(msg);
         }

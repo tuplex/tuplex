@@ -68,8 +68,7 @@ endif()
 MESSAGE(STATUS "Found LLVM include dirs at: " ${LLVM_INCLUDE_DIRS})
 MESSAGE(STATUS "LLVM library dir: ${LLVM_LIBRARY_DIRS}")
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${LLVM_LIBRARY_DIRS})
-llvm_map_components_to_libnames(llvm_libs ${LLVM_REQUIRED_COMPONENTS})
-set(LLVM_LIBRARIES "${llvm_libs}")
+
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 

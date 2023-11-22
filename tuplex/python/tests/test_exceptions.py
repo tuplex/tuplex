@@ -356,7 +356,7 @@ class TestExceptions:
         output = c.parallelize(input).map(lambda x: 1 // x).resolve(ZeroDivisionError, lambda x: -1).collect()
 
         expectedOutput = []
-        for i in range(100000):
+        for i in range(n):
             if i % 100 == 0:
                 expectedOutput.append(-1)
             else:

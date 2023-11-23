@@ -159,7 +159,7 @@ namespace tuplex {
             std::map<std::string, llvm::Value*> _parameters;
 
             // helper functions to use variables via alloc/store in code
-            std::map<std::string, llvm::Value*> _variables;
+            std::map<std::string, std::pair<llvm::Type*, llvm::Value*>> _variables;
             void addVariable(IRBuilder& builder, const std::string name, llvm::Type* type, llvm::Value* initialValue=nullptr);
             llvm::Value* getVariable(IRBuilder& builder, const std::string name);
             llvm::Value* getPointerToVariable(IRBuilder& builder, const std::string name);

@@ -121,8 +121,8 @@ namespace tuplex {
 
 
                 // adjust inputptr (has been already updated) to previous row uwsing inputlength
-                auto inputptr = builder.CreateGEP(getVariable(builder, "currentInputPtr"),
-                                                  builder.CreateNeg(inputlength));//builder.CreateLoad(_currentInputPtrVar);
+                auto inputptr = builder.MovePtrByBytes(getVariable(builder, "currentInputPtr"),
+                                                  builder.CreateNeg(inputlength));
                 std::vector<llvm::Value *> eh_parameters{_parameters["userData"], ehcode, ehopid, row, inputptr,
                                                          inputlength};
                 builder.CreateCall(eh_func, eh_parameters);
@@ -142,26 +142,27 @@ namespace tuplex {
 
         void IExceptionableTaskGenerator::addVariable(IRBuilder &builder, const std::string name, llvm::Type *type,
                                                       llvm::Value *initialValue) {
-            _variables[name] = builder.CreateAlloca(type, 0, nullptr, name);
+            _variables[name] = std::make_pair(type, builder.CreateAlloca(type, 0, nullptr, name));
 
             if(initialValue)
-                builder.CreateStore(initialValue, _variables[name]);
+                assignToVariable(builder, name, initialValue);
         }
 
         llvm::Value* IExceptionableTaskGenerator::getVariable(IRBuilder &builder, const std::string name) {
             assert(_variables.find(name) != _variables.end());
-            return builder.CreateLoad(_variables[name]);
+            return builder.CreateLoad(_variables[name].first, _variables[name].second);
         }
 
         llvm::Value* IExceptionableTaskGenerator::getPointerToVariable(IRBuilder &builder, const std::string name) {
             assert(_variables.find(name) != _variables.end());
-            return _variables[name];
+            return _variables[name].second;
         }
 
         void IExceptionableTaskGenerator::assignToVariable(IRBuilder &builder, const std::string name,
                                                            llvm::Value *newValue) {
             assert(_variables.find(name) != _variables.end());
-            builder.CreateStore(newValue, _variables[name]);
+            assert(newValue->getType() == _variables[name].first);
+            builder.CreateStore(newValue, _variables[name].second);
         }
 
         void IExceptionableTaskGenerator::linkBlocks() {
@@ -235,7 +236,7 @@ namespace tuplex {
 
                 // store back some variables in then block & make sure to mark as last block!
                 // add to variable how much was serialized
-                auto newoutput = builder.CreateGEP(output, serializedRowSize);
+                auto newoutput = builder.MovePtrByBytes(output, serializedRowSize);
                 assignToVariable(builder, "outputPtr", newoutput);
                 auto newcapacity = builder.CreateSub(capacity, serializedRowSize);
                 assignToVariable(builder, "outputCapacityLeft", newcapacity);
@@ -244,7 +245,7 @@ namespace tuplex {
 
                 // inc how many rows are written
                 numRowsPtr = getVariable(builder, "outputBasePtr");
-                auto curRows = builder.CreateLoad(numRowsPtr);
+                auto curRows = builder.CreateLoad(builder.getInt64Ty(), numRowsPtr);
                 builder.CreateStore(builder.CreateAdd(curRows, _env->i64Const(1)), numRowsPtr);
 
                 // inc how many writtes are written
@@ -282,7 +283,7 @@ namespace tuplex {
                 auto output_ptr = builder.CreateCall(func, parameters, "output_ptr");
                 // first save back to variables the memory request incl. 8 byte offset for number of rows!
                 assignToVariable(builder, "outputBasePtr", builder.CreatePointerCast(output_ptr, _env->i64Type()->getPointerTo(0)));
-                assignToVariable(builder, "outputPtr", builder.CreateGEP(output_ptr, _env->i32Const(sizeof(int64_t))));
+                assignToVariable(builder, "outputPtr", builder.MovePtrByBytes(output_ptr, sizeof(int64_t)));
 
                 // check for null. If so (i.e. no memory returned), if so exit task function immediately
                 // --> also if capacity returned is less than minRequested.

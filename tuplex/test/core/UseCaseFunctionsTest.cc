@@ -15,7 +15,9 @@
 #include <Context.h>
 #include <DataSet.h>
 #include <third_party/ryu/ryu.h>
+#if LLVM_VERSION_MAJOR < 17
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
+#endif
 
 class UseCaseFunctionsTest : public PyTest {
 protected:

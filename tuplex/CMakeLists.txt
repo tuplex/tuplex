@@ -1,5 +1,14 @@
-# (c) 2017 Leonhard Spiegelberg
+# (c) 2017-2023 Leonhard Spiegelberg
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
+
+# top-level language specification
+# enable c++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+message(STATUS "Using language version: C++${CMAKE_CXX_STANDARD}")
+
+# add cmake modules from cmake folder
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
 # Tuplex build options:
 # =====================
@@ -34,6 +43,16 @@ endfunction()
 # ninja fixes for multiple zstd generators
 if(CMAKE_GENERATOR STREQUAL "Ninja")
     message(STATUS "Using ninja generator, if fails use -w dupbuild=err")
+endif()
+
+# The -fvisibility=hidden option only works for static builds.
+if (NOT BUILD_SHARED_LIBS)
+    set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+else()
+    if (CMAKE_CXX_VISIBILITY_PRESET STREQUAL "hidden")
+        message(FATAL_ERROR "CMAKE_CXX_VISIBILITY_PRESET=hidden is incompatible \
+                           with BUILD_SHARED_LIBS.")
+    endif()
 endif()
 
 # detect MacOS Version because at least 10.13 is required when building with AWS SDK
@@ -73,14 +92,6 @@ endif()
 # uncomment to get verbose cmake output
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
-# top-level language specification
-# enable c++17
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-message(STATUS "Using language version: C++${CMAKE_CXX_STANDARD}")
-
-# add cmake modules from cmake folder
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 message(STATUS "additional cmake module path is ${CMAKE_MODULE_PATH}")
 include("${CMAKE_SOURCE_DIR}/cmake/ucm.cmake") #handy package to manipulate compiler flags
 include("${CMAKE_SOURCE_DIR}/cmake/CPM.cmake") # package manager from https://github.com/cpm-cmake/CPM.cmake
@@ -1015,18 +1026,20 @@ find_package(Curses REQUIRED)
 # add subdirs here...
 add_subdirectory(io)  # <-- make sure to call this first, because it changes parent scope with io dependencies
 add_subdirectory(utils)
-add_subdirectory(test)
 add_subdirectory(codegen)
 add_subdirectory(core)
 add_subdirectory(python)
 add_subdirectory(runtime)
 add_subdirectory(adapters)
-
 # can only build aws lambda on linux platform
 if(LINUX AND BUILD_WITH_AWS)
     # removed AWS lambda implementation, can be found on separate branch
-     add_subdirectory(awslambda)
+    add_subdirectory(awslambda)
 endif()
+# call test dir last to get vars from before
+add_subdirectory(test)
+
+
 
 ###########################################################################
 # (7) Additional flags

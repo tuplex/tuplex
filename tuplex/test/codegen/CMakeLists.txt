@@ -13,6 +13,7 @@ ASSERT_VAR(CURSES_LIBRARIES)
 
 TARGET_LINK_LIBRARIES(testcodegen
         libcodegen
+        libutils
         ${GTest_LIBRARIES}
         ${ZSTD_LIBRARIES}
         ${ZLIB_LIBRARIES}

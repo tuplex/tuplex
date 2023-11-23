@@ -9,8 +9,16 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #include <RuntimeInterface.h>
-#include "llvm/Support/DynamicLibrary.h"
+#include <llvm/Support/DynamicLibrary.h>
+#include <llvm/Support/raw_os_ostream.h>
 #include <Logger.h>
+#include <llvm/IR/Mangler.h>
+#if LLVM_VERSION_MAJOR > 9
+#include <llvm/ExecutionEngine/orc/JITTargetMachineBuilder.h>
+#endif
+#if LLVM_VERSION_MAJOR >= 16
+#include <llvm/TargetParser/Host.h>
+#endif
 
 static bool _loaded = false;
 static std::string _libPath = "";
@@ -31,6 +39,19 @@ namespace tuplex {
         void (*rtfree)(void *) noexcept = nullptr;
 
         bool loaded() { return _loaded; }
+
+
+        static void* findAddrOfSymbol(const char* name) {
+            auto addr_ptr = llvm::sys::DynamicLibrary::SearchForAddressOfSymbol(name);
+
+            if(!addr_ptr) {
+                // try mangled version by prepending "_"
+                auto mangled_name = std::string("_") + name;
+                addr_ptr = llvm::sys::DynamicLibrary::SearchForAddressOfSymbol(mangled_name.c_str());
+            }
+
+            return addr_ptr;
+        }
 
         bool init(const std::string& path) {
 
@@ -68,13 +89,13 @@ namespace tuplex {
             rtfree_all = nullptr;
             rtmalloc=nullptr;
             rtfree=nullptr;
-            setRunTimeMemory = reinterpret_cast<void(*)(const size_t, size_t) noexcept>(llvm::sys::DynamicLibrary::SearchForAddressOfSymbol("setRunTimeMemory"));
-            freeRunTimeMemory = reinterpret_cast<void(*)() noexcept>(llvm::sys::DynamicLibrary::SearchForAddressOfSymbol("freeRunTimeMemory"));
-            releaseRunTimeMemory = reinterpret_cast<void(*)() noexcept>(llvm::sys::DynamicLibrary::SearchForAddressOfSymbol("releaseRunTimeMemory"));
-            rtfree_all = reinterpret_cast<void(*)() noexcept>(llvm::sys::DynamicLibrary::SearchForAddressOfSymbol("rtfree_all"));
-            rtmalloc = reinterpret_cast<void*(*)(const size_t) noexcept>(llvm::sys::DynamicLibrary::SearchForAddressOfSymbol("rtmalloc"));
-            rtfree = reinterpret_cast<void (*)(void *) noexcept>(llvm::sys::DynamicLibrary::SearchForAddressOfSymbol("rtfree"));
-            runTimeMemorySize = reinterpret_cast<size_t(*)() noexcept>(llvm::sys::DynamicLibrary::SearchForAddressOfSymbol("getRunTimeMemorySize"));
+            setRunTimeMemory = reinterpret_cast<void(*)(const size_t, size_t) noexcept>(findAddrOfSymbol("setRunTimeMemory"));
+            freeRunTimeMemory = reinterpret_cast<void(*)() noexcept>(findAddrOfSymbol("freeRunTimeMemory"));
+            releaseRunTimeMemory = reinterpret_cast<void(*)() noexcept>(findAddrOfSymbol("releaseRunTimeMemory"));
+            rtfree_all = reinterpret_cast<void(*)() noexcept>(findAddrOfSymbol("rtfree_all"));
+            rtmalloc = reinterpret_cast<void*(*)(const size_t) noexcept>(findAddrOfSymbol("rtmalloc"));
+            rtfree = reinterpret_cast<void (*)(void *) noexcept>(findAddrOfSymbol("rtfree"));
+            runTimeMemorySize = reinterpret_cast<size_t(*)() noexcept>(findAddrOfSymbol("getRunTimeMemorySize"));
 
             cJSON_Hooks tmp = {rtmalloc, rtfree};
             cJSON_InitHooks(&tmp);
@@ -82,7 +103,7 @@ namespace tuplex {
             srand(time(0));
 
             if(!setRunTimeMemory || !freeRunTimeMemory) {
-                Logger::instance().defaultLogger().error("Could not find required runtime symbols in shared library.");
+                Logger::instance().defaultLogger().error("Could not find required runtime symbols setRunTimeMemory or freeRunTimeMemory in shared library " + path + ".");
                 return false;
             }
 

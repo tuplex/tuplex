@@ -3082,7 +3082,7 @@ TEST_F(WrapperTest, CombinedExceptionHandling) {
 
     auto ctx_opts = "{\"webui.enable\": false,"
                     " \"driverMemory\": \"256MB\","
-                    " \"partitionSize\": \"64KB\","
+                    " \"partitionSize\": \"256KB\","
                     "\"executorCount\": 8,"
                     "\"tuplex.optimizer.mergeExceptionsInOrder\": true,"
                     "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
@@ -3106,7 +3106,7 @@ TEST_F(WrapperTest, CombinedExceptionHandling) {
 
     std::cout<<"starting to generate data..."<<std::endl;
 
-    int N = 100000;
+    int N = 1000000;
     auto list = PyList_New(N);
     std::vector<PyObject*> v(N, nullptr);
     int pos = 0;
@@ -3166,4 +3166,71 @@ TEST_F(WrapperTest, CombinedExceptionHandling) {
         std::cout<<std::endl; // flush
     }
 
+}
+
+TEST_F(WrapperTest, WithColumnReplace) {
+    //     def test_withColumn_replace(self):
+    //        c = Context(self.conf_in_order)
+    //
+    //        ds = c.parallelize([(1, "a", True), (0, "b", False), (3, "c", True)], columns=["num", "str", "bool"]) \
+    //              .withColumn("str", lambda x, y, z: str(1 // x) + y)
+    //        output = ds.collect()
+    //        ecounts = ds.exception_counts
+    //
+    //        self.assertEqual(2, len(output))
+    //        self.assertEqual((1, "1a", True), output[0])
+    //        self.assertEqual((3, "0c", True), output[1])
+    //
+    //        self.assertEqual(1, len(ecounts))
+    //        self.assertEqual(1, ecounts["ZeroDivisionError"])
+    //
+    //        ds = ds.resolve(ZeroDivisionError, lambda x, y, z: "NULL")
+    //        output = ds.collect()
+    //        ecounts = ds.exception_counts
+    //        self.assertEqual(3, len(output))
+
+    using namespace tuplex;
+
+    // use here a resolve operator that doesn't trigger
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"256MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 8,"
+                    "\"tuplex.optimizer.mergeExceptionsInOrder\": true,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+
+    auto list = python::runAndGet("L = [(1, \"a\", True), (0, \"b\", False), (3, \"c\", True)]", "L");
+    auto cols = python::runAndGet("L = [\"num\", \"str\", \"bool\"]", "L");
+    auto data_list = py::reinterpret_borrow<py::list>(list);
+    auto columns_list = py::reinterpret_borrow<py::list>(cols);
+    PythonContext ctx("", "", ctx_opts);
+    {
+        // .withColumn("str", lambda x, y, z: str(1 // x) + y)
+        auto ds = ctx.parallelize(data_list, columns_list)
+                .withColumn("str", "lambda x, y, z: str(1 // x) + y", "");
+
+        auto result_before_resolve = ds.collect();
+        auto result_before_resolve_obj = result_before_resolve.ptr();
+
+        ASSERT_TRUE(result_before_resolve_obj);
+        ASSERT_TRUE(PyList_Check(result_before_resolve_obj));
+        EXPECT_EQ(PyList_Size(result_before_resolve_obj), 2);
+
+        //ds.show();
+        python::runGC();
+
+        // check
+        auto res = ds.resolve(ecToI64(ExceptionCode::ZERODIVISIONERROR), "lambda x, y, z: \"NULL\"", "").collect();
+        auto res_obj = res.ptr();
+        ASSERT_TRUE(res_obj);
+        ASSERT_TRUE(PyList_Check(res_obj));
+         EXPECT_EQ(PyList_Size(res_obj), 3);
+
+        python::runGC();
+
+        std::cout<<std::endl; // flush
+    }
 }

@@ -79,7 +79,7 @@ cd ..
 
 # Note: protobuf 3.20 - 3.21.2 is broken for MacOS, do not use those versions
 export CIBW_BEFORE_BUILD_MACOS="brew install protobuf coreutils zstd zlib libmagic llvm@16 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero wget boost ninja snappy"
-export CIBW_ENVIRONMENT_MACOS="MACOSX_DEPLOYMENT_TARGET=${MINIMUM_TARGET} CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' "
+export CIBW_ENVIRONMENT_MACOS="MACOSX_DEPLOYMENT_TARGET=${MINIMUM_TARGET} CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DCMAKE_BUILD_TYPE=Release' CMAKE_BUILD_TYPE=Release"
 
 export CIBW_BUILD="${CIBW_BUILD}"
 export CIBW_PROJECT_REQUIRES_PYTHON=">=3.8"

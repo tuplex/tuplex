@@ -12,13 +12,6 @@
 #include <llvm/Support/DynamicLibrary.h>
 #include <llvm/Support/raw_os_ostream.h>
 #include <Logger.h>
-#include <llvm/IR/Mangler.h>
-#if LLVM_VERSION_MAJOR > 9
-#include <llvm/ExecutionEngine/orc/JITTargetMachineBuilder.h>
-#endif
-#if LLVM_VERSION_MAJOR >= 16
-#include <llvm/TargetParser/Host.h>
-#endif
 
 static bool _loaded = false;
 static std::string _libPath = "";

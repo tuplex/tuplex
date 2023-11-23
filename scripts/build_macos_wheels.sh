@@ -88,7 +88,7 @@ export CIBW_BUILD="${CIBW_BUILD}"
 export CIBW_PROJECT_REQUIRES_PYTHON=">=3.8"
 
 # uncomment to increase verbosity of cibuildwheel
-# export CIBW_BUILD_VERBOSITY=3
+export CIBW_BUILD_VERBOSITY=3
 
 cibuildwheel --platform macos
 

@@ -27,8 +27,18 @@ namespace tuplex {
         sig_received = signum;
         shutdown_requested = true;
 #ifndef NDEBUG
-        const char str[] = "\n => received signal SIGINT in tplx_signal_handler, aborting.\n";
-        write(STDERR_FILENO, str, sizeof(str) - 1); // write is signal safe, the others not.
+        if(SIGINT == signum) {
+            const char str[] = "\n => received signal SIGINT in tplx_signal_handler, aborting.\n";
+            write(STDERR_FILENO, str, sizeof(str) - 1); // write is signal safe, the others not.
+        }
+        if(SIGALRM == signum) {
+            const char str[] = "\n => received signal SIGALRM in tplx_signal_handler, aborting.\n";
+            write(STDERR_FILENO, str, sizeof(str) - 1); // write is signal safe, the others not.
+        }
+        if(SIGTERM == signum) {
+            const char str[] = "\n => received signal SIGTERM in tplx_signal_handler, aborting.\n";
+            write(STDERR_FILENO, str, sizeof(str) - 1); // write is signal safe, the others not.
+        }
 #endif
     }
 
@@ -43,17 +53,21 @@ namespace tuplex {
         action.sa_handler = tplx_signal_handler;
         sigemptyset(&action.sa_mask);
 
-        // for now only install on sigint, this effectively disables
-        // all other python handlers. That's ok though...
+        // install handler on following signals:
+        // SIGINT, SIGALRM, SIGTERM
+        std::vector<int> signals_to_catch({SIGINT, SIGALRM, SIGTERM});
 
-        if(0 == sigaction(SIGINT, &action, NULL))
-            return true;
-        else {
-            // errno has description
-            Logger::instance().defaultLogger().error("Failed to install custom signal handlers, details: " +
-            std::string(strerror(errno)));
-            return false;
+        // install on above signals, this effectively disables
+        // all other python handlers. That's ok though...
+        for(auto sigtype : signals_to_catch) {
+            if(0 != sigaction(sigtype, &action, NULL)) {
+                // errno has description
+                Logger::instance().defaultLogger().error("Failed to install custom signal handlers for signal type " + std::to_string(sigtype) + " , details: " +
+                                                         std::string(strerror(errno)));
+                return false;
+            }
         }
+        return true;
     }
 
     bool check_interrupted() {

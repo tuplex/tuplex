@@ -134,7 +134,7 @@ namespace tuplex {
 
     void Partition::loadFromFile(const tuplex::URI &uri) {
 
-        auto path = uri.toString().substr(7);
+        auto path = uri.toString().substr(uri.prefix().length());
 
         if(!fileExists(path)) {
             throw std::runtime_error("could not find file under path " + path);
@@ -146,11 +146,28 @@ namespace tuplex {
             return;
         }
 
+        size_t bytes_read = 0;
         // read from file
-        fread(&_bytesWritten, sizeof(uint64_t), 1, pFile);
-        fread(_arena, _size, 1, pFile);
+        bytes_read = fread(&_bytesWritten, 1, sizeof(uint64_t), pFile);
+        if(bytes_read != sizeof(uint64_t)) {
+            handle_file_error("file corrupted, could not read number of bytes written for partition."
+                              " Expected reading " + std::to_string(sizeof(uint64_t))
+                              + " bytes, but fread returned " + std::to_string(bytes_read));
+            fclose(pFile);
+            return;
+        }
 
-        fclose(pFile);
+        // @TODO: bytes written vs. size?
+
+        bytes_read = fread(_arena, 1, _size, pFile);
+        if(bytes_read != _size) {
+            handle_file_error("file corrupted, could not read data."
+                              " Expected reading " + std::to_string(_size)
+                              + " bytes, but fread returned " + std::to_string(bytes_read));
+            fclose(pFile);
+            return;
+        }
+
 
         // remove file b.c. it's now loaded
         if(0 != remove(path.c_str())) {

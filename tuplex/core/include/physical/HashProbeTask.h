@@ -44,6 +44,8 @@ namespace tuplex {
 
         void execute() override;
         TaskType type() const override { return TaskType::HASHPROBE; }
+
+        void releaseAllLocks() override;
     };
 }
 

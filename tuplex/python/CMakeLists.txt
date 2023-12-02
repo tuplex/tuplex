@@ -36,6 +36,10 @@ message(STATUS "includes: ${Python3_INCLUDE_DIRS}")
 # Use explicit stracktrace to produce errors
 include(FetchContent)
 
+# for this also requires libdwarf
+find_package(LibElf REQUIRED)
+find_package(LibDwarf REQUIRED)
+
 # Also requires one of: libbfd (gnu binutils), libdwarf, libdw (elfutils)
 FetchContent_Declare(backward
         GIT_REPOSITORY https://github.com/bombela/backward-cpp

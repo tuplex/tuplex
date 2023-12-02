@@ -83,7 +83,7 @@ namespace tuplex {
             // new version, directly interact with the interpreter
             Timer timer;
 
-            Logger::instance().logger("python").debug("Converting result-set to CPython objects");
+            Logger::instance().logger("python").info("Converting result-set to CPython objects");
 
             // build python list object from resultset
             auto listObj = resultSetToCPython(rs.get(), std::numeric_limits<size_t>::max());
@@ -1360,8 +1360,10 @@ namespace tuplex {
         // b.c. merging of arbitrary python objects is not implemented yet, whenever they're present, use general
         // version
         // @TODO: this could be optimized!
-        if(rs->fallbackRowCount() != 0)
+        if(rs->fallbackRowCount() != 0) {
+            Logger::instance().defaultLogger().info("Using slow anyToCPythonWithPyObjects conversion function, because fallback row count is not 0.");
             return anyToCPythonWithPyObjects(rs, maxRowCount);
+        }
 
         auto type = rs->schema().getRowType();
         // if single type, reset by one

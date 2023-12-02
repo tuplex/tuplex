@@ -10,6 +10,12 @@
 
 #include <PythonCommon.h>
 
+
+// init backtrace
+#define BACKWARD_HAS_DWARF 1
+#include <backward.hpp>
+backward::SignalHandling sh;
+
 namespace tuplex {
     py::object registerPythonLoggingCallback(py::object callback_functor) {
         python::registerWithInterpreter();

@@ -76,9 +76,15 @@ namespace tuplex {
                 PyList_SetItem(listObj, 0, python::PyString_FromString(err_message.c_str()));
                 return py::reinterpret_borrow<py::list>(listObj);
             }
+
+            Logger::instance().flushToPython();
+
             // collect results & transfer them back to python
             // new version, directly interact with the interpreter
             Timer timer;
+
+            Logger::instance().logger("python").debug("Converting result-set to CPython objects");
+
             // build python list object from resultset
             auto listObj = resultSetToCPython(rs.get(), std::numeric_limits<size_t>::max());
 

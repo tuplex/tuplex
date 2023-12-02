@@ -33,6 +33,18 @@ file(GLOB_RECURSE SOURCES src/*.cc)
 message(STATUS "libs: ${Python3_LIBRARIES}")
 message(STATUS "includes: ${Python3_INCLUDE_DIRS}")
 
+# Use explicit stracktrace to produce errors
+include(FetchContent)
+
+# Also requires one of: libbfd (gnu binutils), libdwarf, libdw (elfutils)
+FetchContent_Declare(backward
+        GIT_REPOSITORY https://github.com/bombela/backward-cpp
+        GIT_TAG master  # or a version tag, such as v1.6
+        SYSTEM          # optional, the Backward include directory will be treated as system directory
+        )
+FetchContent_MakeAvailable(backward)
+# Add Backward to your target (either Backward::Interface, Backward::Object, or Backward::Backward)
+#target_link_libraries(mytarget PUBLIC Backward::Interface)
 
 ## use e.g. cpm https://github.com/cpm-cmake/CPM.cmake
 ## fetch pybind11 (external project)
@@ -63,7 +75,8 @@ add_dependencies(${MODULE_NAME} libcore libcodegen)
 target_include_directories(${MODULE_NAME} PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(${MODULE_NAME} PRIVATE
+target_link_libraries(${MODULE_NAME} PUBLIC Backward::Interface
+        PRIVATE
         libcodegen
         libcore
         libcpythonadapter

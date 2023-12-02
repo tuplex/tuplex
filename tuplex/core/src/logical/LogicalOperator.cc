@@ -62,6 +62,7 @@ namespace tuplex {
         delete lp;
         delete pp;
 
+        Logger::instance().defaultLogger().debug("Query execution complete, returning result-set");
         return rs;
     }
 

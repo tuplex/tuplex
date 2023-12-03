@@ -59,9 +59,12 @@ namespace tuplex {
         }
 
         // free plan memory
+        Logger::instance().defaultLogger().info("Delete logical plan");
         delete lp;
+        Logger::instance().defaultLogger().info("Delete physical plan");
         delete pp;
 
+        Logger::instance().defaultLogger().info("Query execution complete, returning result-set");
         return rs;
     }
 

@@ -76,9 +76,15 @@ namespace tuplex {
                 PyList_SetItem(listObj, 0, python::PyString_FromString(err_message.c_str()));
                 return py::reinterpret_borrow<py::list>(listObj);
             }
+
+            Logger::instance().flushToPython();
+
             // collect results & transfer them back to python
             // new version, directly interact with the interpreter
             Timer timer;
+
+            Logger::instance().logger("python").info("Converting result-set to CPython objects");
+
             // build python list object from resultset
             auto listObj = resultSetToCPython(rs.get(), std::numeric_limits<size_t>::max());
 
@@ -895,14 +901,40 @@ namespace tuplex {
             return emptyListObj;
         }
 
-        for(int i = 0; i < rowCount; ++i) {
+        // avoid locking to often, so retrieve rows in batches
+        static const size_t ROW_BATCH_SIZE = 2048 * 8;
+
+        for(int i = 0; i < rowCount; i += ROW_BATCH_SIZE) {
+            // convert to vector of rows, then lock GIL and convert each to python
+            std::vector<Row> v; v.reserve(ROW_BATCH_SIZE);
+            int max_j = std::min((int)rowCount - i, (int)ROW_BATCH_SIZE); assert(i >= 0);
             python::unlockGIL();
-            auto row = rs->getNextRow();
+            for(int j = 0; j < max_j; ++j) {
+                v.emplace_back(rs->getNextRow());
+            }
             python::lockGIL();
-            auto py_row = python::rowToPython(row, true);
-            assert(py_row);
-            PyList_SET_ITEM(listObj, i, py_row);
+            // perfom signal check after each batch to make sure interrupts are handled correctly
+            check_and_forward_signals(true);
+
+            // conversion to python objects
+            for(int j = 0; j < max_j; ++j) {
+                auto py_row = python::rowToPython(v[j], true);
+                assert(py_row);
+                PyList_SET_ITEM(listObj, i + j, py_row);
+            }
+            // check & forward signals again
+            check_and_forward_signals(true);
         }
+
+        //        // old, batch-less version
+        //        for(int i = 0; i < rowCount; ++i) {
+        //            python::unlockGIL();
+        //            auto row = rs->getNextRow();
+        //            python::lockGIL();
+        //            auto py_row = python::rowToPython(row, true);
+        //            assert(py_row);
+        //            PyList_SET_ITEM(listObj, i, py_row);
+        //        }
 
         return listObj;
     }
@@ -1354,8 +1386,10 @@ namespace tuplex {
         // b.c. merging of arbitrary python objects is not implemented yet, whenever they're present, use general
         // version
         // @TODO: this could be optimized!
-        if(rs->fallbackRowCount() != 0)
+        if(rs->fallbackRowCount() != 0) {
+            Logger::instance().defaultLogger().info("Using slow anyToCPythonWithPyObjects conversion function, because fallback row count is not 0.");
             return anyToCPythonWithPyObjects(rs, maxRowCount);
+        }
 
         auto type = rs->schema().getRowType();
         // if single type, reset by one

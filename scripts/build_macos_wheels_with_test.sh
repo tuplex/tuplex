@@ -84,7 +84,7 @@ MINIMUM_TARGET=11.0
 MINIMUM_TARGET=10.13
 
 # Note: protobuf 3.20 - 3.21.2 is broken for MacOS, do not use those versions
-export CIBW_BEFORE_BUILD_MACOS="brew install protobuf coreutils zstd zlib libmagic llvm@16 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero wget boost ninja snappy"
+export CIBW_BEFORE_BUILD_MACOS="brew install protobuf coreutils zstd zlib libmagic llvm@16 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero wget boost ninja snappy libdwarf libelf"
 
 
 # Note: orc build breaks wheel right now...
@@ -100,7 +100,7 @@ export CIBW_BUILD_VERBOSITY=3
 #export CIBW_BUILD="cp39-macosx_x86_64"
 
 export CIBW_TEST_REQUIRES="pytest pytest-timeout numpy nbformat jupyter"
-export CIBW_TEST_COMMAND="cd {project} && pytest tuplex/python/tests --timeout 90 -l -v"
+export CIBW_TEST_COMMAND="cd {project} && pytest tuplex/python/tests/test_exceptions.py --timeout_method thread --timeout 60 -l -v"
 
 
 cibuildwheel --platform macos

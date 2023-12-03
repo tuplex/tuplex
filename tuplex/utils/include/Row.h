@@ -38,6 +38,21 @@ namespace tuplex {
     public:
         Row() : _serializedLength(0) {}
 
+        Row(const Row& other) : _schema(other._schema), _values(other._values), _serializedLength(other._serializedLength) {}
+        Row& operator = (const Row& other) {
+            _schema = other._schema;
+            _values = other._values;
+            _serializedLength = other._serializedLength;
+            return *this;
+        }
+
+        Row(Row&& other) : _schema(other._schema), _serializedLength(other._serializedLength), _values(std::move(other._values)) {
+            other._values = {};
+            other._serializedLength = 0;
+            other._schema = Schema::UNKNOWN;
+        }
+
+
         // new constructor using variadic templates
         template<typename... Targs> Row(Targs... Fargs) {
             vec_build(_values, Fargs...);
@@ -45,12 +60,32 @@ namespace tuplex {
             _serializedLength = getSerializedLength();
         }
 
-        int             getNumColumns() const { return _values.size(); }
+        inline size_t   getNumColumns() const { return _values.size(); }
         inline Field    get(const int col) const {
             assert(!_values.empty());
             assert(0 <= col && col < _values.size());
             return _values[col];
         }
+
+        inline void set(const unsigned col, const Field& f) {
+#ifndef NDEBUG
+            if(col >= _values.size())
+                throw std::runtime_error("invalid column index in get specified");
+#endif
+            _values[col] = f;
+
+            // need to update type of row!
+            auto old_type = _schema.getRowType();
+            auto types = old_type.parameters();
+            if(types[col] != f.getType()) {
+                types[col] = f.getType();
+                _schema = Schema(_schema.getMemoryLayout(), python::Type::makeTupleType(types));
+            }
+
+            // update length, may change!
+            _serializedLength = getSerializedLength();
+        }
+
 
         bool            getBoolean(const int col) const;
         int64_t         getInt(const int col) const;

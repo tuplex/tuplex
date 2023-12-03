@@ -89,8 +89,7 @@ namespace tuplex {
     std::string Row::toPythonString() const {
         std::string s = "(";
         for(int i = 0; i < getNumColumns(); ++i) {
-            s += _values[i].desc();
-
+            s += _values[i].toPythonString();
             if(i != getNumColumns() - 1)
                 s += ",";
         }
@@ -111,6 +110,7 @@ namespace tuplex {
 
         // get types of rows & return then tuple type
         std::vector<python::Type> types;
+        types.reserve(_values.size());
         for(const auto& el: _values)
             types.push_back(el.getType());
 
@@ -197,7 +197,7 @@ namespace tuplex {
                 }
             }
         }
-        return serializer;
+        return std::move(serializer);
     }
 
     bool operator == (const Row& lhs, const Row& rhs) {
@@ -206,8 +206,10 @@ namespace tuplex {
             return false;
 
         // special case: empty rows
-        if(lhs._values.size() == 0)
+        if(lhs._values.size() == 0) {
+            assert(rhs._values.size() == 0);
             return true;
+        }
 
         // check whether type matches
         if(lhs.getRowType() != rhs.getRowType())

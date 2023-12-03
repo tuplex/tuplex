@@ -901,14 +901,40 @@ namespace tuplex {
             return emptyListObj;
         }
 
-        for(int i = 0; i < rowCount; ++i) {
+        // avoid locking to often, so retrieve rows in batches
+        static const size_t ROW_BATCH_SIZE = 2048 * 8;
+
+        for(int i = 0; i < rowCount; i += ROW_BATCH_SIZE) {
+            // convert to vector of rows, then lock GIL and convert each to python
+            std::vector<Row> v; v.reserve(ROW_BATCH_SIZE);
+            int max_j = std::min((int)rowCount - i, (int)ROW_BATCH_SIZE); assert(i >= 0);
             python::unlockGIL();
-            auto row = rs->getNextRow();
+            for(int j = 0; j < max_j; ++j) {
+                v.emplace_back(rs->getNextRow());
+            }
             python::lockGIL();
-            auto py_row = python::rowToPython(row, true);
-            assert(py_row);
-            PyList_SET_ITEM(listObj, i, py_row);
+            // perfom signal check after each batch to make sure interrupts are handled correctly
+            check_and_forward_signals(true);
+
+            // conversion to python objects
+            for(int j = 0; j < max_j; ++j) {
+                auto py_row = python::rowToPython(v[j], true);
+                assert(py_row);
+                PyList_SET_ITEM(listObj, i + j, py_row);
+            }
+            // check & forward signals again
+            check_and_forward_signals(true);
         }
+
+        //        // old, batch-less version
+        //        for(int i = 0; i < rowCount; ++i) {
+        //            python::unlockGIL();
+        //            auto row = rs->getNextRow();
+        //            python::lockGIL();
+        //            auto py_row = python::rowToPython(row, true);
+        //            assert(py_row);
+        //            PyList_SET_ITEM(listObj, i, py_row);
+        //        }
 
         return listObj;
     }

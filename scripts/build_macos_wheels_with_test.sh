@@ -88,7 +88,7 @@ export CIBW_BEFORE_BUILD_MACOS="brew install protobuf coreutils zstd zlib libmag
 
 
 # Note: orc build breaks wheel right now...
-export CIBW_ENVIRONMENT_MACOS="MACOSX_DEPLOYMENT_TARGET=${MINIMUM_TARGET} CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' "
+export CIBW_ENVIRONMENT_MACOS="MACOSX_DEPLOYMENT_TARGET=${MINIMUM_TARGET} CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' TUPLEX_BUILD_TYPE=Debug"
 
 export CIBW_BUILD="${CIBW_BUILD}"
 export CIBW_PROJECT_REQUIRES_PYTHON=">=3.8"
@@ -100,7 +100,7 @@ export CIBW_BUILD_VERBOSITY=3
 #export CIBW_BUILD="cp39-macosx_x86_64"
 
 export CIBW_TEST_REQUIRES="pytest pytest-timeout numpy nbformat jupyter"
-export CIBW_TEST_COMMAND="cd {project} && pytest tuplex/python/tests/test_exceptions.py --timeout_method thread --timeout 60 -l -v"
+export CIBW_TEST_COMMAND="cd {project} && pytest tuplex/python/tests/test_exceptions.py --timeout_method thread --timeout 60 -s -v"
 
 
 cibuildwheel --platform macos

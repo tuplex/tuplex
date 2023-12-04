@@ -767,7 +767,10 @@ namespace tuplex {
             for (size_t listIndex = 0; listIndex < l.numElements(); ++listIndex) {
                 // write offset to placeholder
                 uint64_t currOffset = (uintptr_t)_varLenFields.ptr() - (uintptr_t)varLenOffsetAddr;
-                *(uint64_t *)varLenOffsetAddr = currOffset;
+
+                // TODO:
+                // *(uint64_t *)varLenOffsetAddr = currOffset; // <-- this is problematic (!)
+
                 // increment varLenOffsetAddr by 8
                 varLenOffsetAddr = (void *)((uint64_t *)varLenOffsetAddr + 1);
                 // append tuple
@@ -973,7 +976,8 @@ namespace tuplex {
                 std::memcpy(ptr, bitmap, bitmapSize);
             }
 
-            std::memcpy((uint8_t *) ptr + bitmapSize, _fixedLenFields.buffer(), _fixedLenFields.size());
+            if(_fixedLenFields.size() > 0) // do not serialize fields like EMPTYTUPLE etc. E.g., a field like empty tuple will serialize to 0 bytes.
+                std::memcpy((uint8_t *) ptr + bitmapSize, _fixedLenFields.buffer(), _fixedLenFields.size());
 
             // always write this addr if varlen fields are present
             if(hasSchemaVarLenFields())
@@ -1084,6 +1088,8 @@ namespace tuplex {
                 _isVarLenField.push_back(true);
             } else {
                 Logger::instance().logger("core").error("non deserializable type '" + el.desc() + "' detected");
+                // treat as none...
+                _isVarLenField.push_back(false);
             }
         }
     }

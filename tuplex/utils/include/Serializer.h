@@ -36,24 +36,50 @@ namespace tuplex {
         size_t _bufferSize;
         size_t _bufferCapacity;
     public:
-        Buffer(const size_t growthConstant) : _growthConstant(growthConstant), _buffer(nullptr), _bufferSize(0), _bufferCapacity(0) {
+        Buffer(const size_t growthConstant) : _growthConstant(growthConstant), _buffer(nullptr), _bufferSize(0),
+                                              _bufferCapacity(0) {
             assert(_growthConstant > 0);
         }
 
-        ~Buffer() {
-            if(_buffer)
-                free(_buffer);
+        Buffer() : Buffer::Buffer(1024) {}
+
+        // movable
+        Buffer(Buffer &&other) : _growthConstant(other._growthConstant), _buffer(other._buffer),
+                                 _bufferSize(other._bufferSize), _bufferCapacity(other._bufferCapacity) {
+            other._bufferSize = 0;
+            other._bufferCapacity = 0;
+            other._buffer = nullptr;
         }
+
+        // make non-copyable
+        Buffer(const Buffer& other) = delete;
+        Buffer& operator = (const Buffer& other) = delete;
+
+        ~Buffer() {
+            free_and_reset();
+        }
+
 
         void provideSpace(const size_t numBytes);
 
-        void* buffer() { return _buffer; }
+        void* buffer() { assert(_buffer); return _buffer; }
 
         void* ptr() const { static_assert(sizeof(unsigned char) == 1, "byte type must be 1 byte wide"); assert(_buffer); return (unsigned char*)_buffer + _bufferSize; }
         void movePtr(const size_t numBytes) { _bufferSize += numBytes; }
         size_t size() const { return _bufferSize; }
         size_t capacity() const { return _bufferCapacity; }
         void reset() { _bufferSize = 0; }
+
+        /*!
+         * reset buffer by actually releasing the memory.
+         */
+        inline void free_and_reset() {
+            if(_buffer)
+                free(_buffer);
+            _buffer = nullptr;
+            _bufferSize = 0;
+            _bufferCapacity = 0;
+        }
     };
 
     /*!
@@ -119,6 +145,25 @@ namespace tuplex {
         Serializer(bool autoSchema = true) : _autoSchema(autoSchema),
                                              _fixedLenFields(_bufferGrowthConstant),
                                              _varLenFields(_bufferGrowthConstant), _col(0)   {}
+
+        ~Serializer() {
+
+        }
+
+        // move constructor
+        Serializer(Serializer&& other) : _autoSchema(other._autoSchema),
+                                         _schema(other._schema),
+                                         _types(std::move(other._types)), _col(other._col),
+                                         _fixedLenFields(std::move(other._fixedLenFields)),
+                                         _varLenFields(std::move(other._varLenFields)),
+                                         _isVarField(std::move(other._isVarField)),
+                                         _varLenFieldOffsets(std::move(other._varLenFieldOffsets)),
+                                         _requiresBitmap(std::move(other._requiresBitmap)),
+                                         _isNull(std::move(other._isNull)) {}
+
+        // make non-copyable
+        Serializer(const Serializer& other) = delete;
+        Serializer& operator = (const Serializer& other) = delete;
 
         Serializer& reset();
 

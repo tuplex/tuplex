@@ -294,17 +294,10 @@ namespace tuplex {
     }
 
     Row ResultSet::getNextRow() {
-
-        // trace with a lot of print statements
-        //auto&logger = Logger::instance().logger("python");
-        std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"enter getNexRow "<<std::endl;
         if (_currentNormalPartitions.empty() && _currentFallbackPartitions.empty() && _currentGeneralPartitions.empty()) {
-            // logger.info("all current partitions empty, retrieving next partition:");
 
             // all partitions are exhausted return empty row as default value
             if (_partitionGroups.empty()) {
-                std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"partition groups are empty, returning empty row "<<std::endl;
-                // logger.info("no partitions left, returnig empty row");
                 return Row();
             }
 
@@ -332,58 +325,42 @@ namespace tuplex {
                 _currentFallbackPartitions.push_back(_remainingFallbackPartitions.front());
                 _remainingFallbackPartitions.pop_front();
             }
-            //logger.info("getting next row after update");
-            std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"next partiton group update done, calling getNextRow recursively. "<<std::endl;
             return getNextRow();
         } else if (_currentNormalPartitions.empty() && _currentFallbackPartitions.empty()) {
-            std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"normal + fallback are empty, get next general row "<<std::endl;
             // only general rows remain, return next general row
             return getNextGeneralRow();
         } else if (_currentNormalPartitions.empty() && _currentGeneralPartitions.empty()) {
-            std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"normal + general are empty, get next fallback row "<<std::endl;
             // only fallback rows remain, return next fallback row
             return getNextFallbackRow();
         } else if (_currentFallbackPartitions.empty() && _currentGeneralPartitions.empty()) {
-            std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"general + fallback are empty, get next normal row "<<std::endl;
             // only normal rows remain, return next normal row
             return getNextNormalRow();
         } else if (_currentFallbackPartitions.empty()) {
-            std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"no fallback left, get next normal or general row "<<std::endl;
             // only normal and general rows remain, compare row index
             // emit normal rows until reached current general ind
             if (_normalRowCounter + _generalRowCounter < currentGeneralRowInd()) {
-                std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"get normal row "<<std::endl;
                 return getNextNormalRow();
             } else {
-                std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"get general row "<<std::endl;
                 return getNextGeneralRow();
             }
         }  else if (_currentGeneralPartitions.empty()) {
-            std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"no general left, get next normal or fallback row "<<std::endl;
             // only normal and fallback rows remain, compare row index
             // emit normal rows until reached current fallback ind
             if (_normalRowCounter + _generalRowCounter + _fallbackRowCounter < currentFallbackRowInd()) {
-                std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"get normal row "<<std::endl;
                 return getNextNormalRow();
             } else {
-                std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"get fallback row "<<std::endl;
                 return getNextFallbackRow();
             }
         } else {
-
-            std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"3-way compare, get either normal, general or fallback "<<std::endl;
 
             // all three cases remain, three-way row comparison
             auto generalRowInd = currentGeneralRowInd();
             auto fallbackRowInd = currentFallbackRowInd();
             if (_normalRowCounter + _generalRowCounter < generalRowInd && _normalRowCounter + _generalRowCounter + _fallbackRowCounter < fallbackRowInd) {
-                std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"get normal row "<<std::endl;
                 return getNextNormalRow();
             } else if (generalRowInd <= fallbackRowInd) {
-                std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"get general row "<<std::endl;
                 return getNextGeneralRow();
             } else {
-                std::cerr<<__FILE__<<":"<<__LINE__<<":: "<<"get fallback row "<<std::endl;
                 return getNextFallbackRow();
             }
         }

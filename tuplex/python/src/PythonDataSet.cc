@@ -891,11 +891,15 @@ namespace tuplex {
     PyObject* PythonDataSet::anyToCPythonWithPyObjects(ResultSet* rs, size_t maxRowCount) {
         assert(rs);
 
+        auto& logger = Logger::instance().logger("python");
+
         // simply call the getnext row function from resultset
         PyObject * emptyListObj = PyList_New(0);
         size_t rowCount = std::min(rs->rowCount(), maxRowCount);
+        logger.info("Found " + std::to_string(rowCount) + " rows to convert to python objects.");
         PyObject * listObj = PyList_New(rowCount);
         if (PyErr_Occurred()) {
+
             PyErr_Print();
             PyErr_Clear();
             return emptyListObj;
@@ -909,9 +913,12 @@ namespace tuplex {
             std::vector<Row> v; v.reserve(ROW_BATCH_SIZE);
             int max_j = std::min((int)rowCount - i, (int)ROW_BATCH_SIZE); assert(i >= 0);
             python::unlockGIL();
+            logger.info("Converting batch of rows " + std::to_string(i) + " - " + std::to_string(i + max_j) + " from result set to rows.");
             for(int j = 0; j < max_j; ++j) {
                 v.emplace_back(rs->getNextRow());
             }
+
+
             python::lockGIL();
             // perfom signal check after each batch to make sure interrupts are handled correctly
             check_and_forward_signals(true);
@@ -922,6 +929,8 @@ namespace tuplex {
                 assert(py_row);
                 PyList_SET_ITEM(listObj, i + j, py_row);
             }
+            logger.info("Wrote batch of rows " + std::to_string(i) + " - " + std::to_string(i + max_j) + " from result set to Python list.");
+
             // check & forward signals again
             check_and_forward_signals(true);
         }
@@ -936,6 +945,7 @@ namespace tuplex {
         //            PyList_SET_ITEM(listObj, i, py_row);
         //        }
 
+        logger.info("Python object conversion done, writing list output object");
         return listObj;
     }
 

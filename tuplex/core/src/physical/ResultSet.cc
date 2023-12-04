@@ -294,27 +294,44 @@ namespace tuplex {
     }
 
     Row ResultSet::getNextRow() {
+
+        // trace with a lot of print statements
+        auto&logger = Logger::instance().logger("python");
+
         if (_currentNormalPartitions.empty() && _currentFallbackPartitions.empty() && _currentGeneralPartitions.empty()) {
+            logger.info("all current partitions empty, retrieving next partition:");
+
             // all partitions are exhausted return empty row as default value
-            if (_partitionGroups.empty())
+            if (_partitionGroups.empty()) {
+                logger.info("no partitions left, returnig empty row");
                 return Row();
+            }
+
             _normalRowCounter = 0;
             _generalRowCounter = 0;
             _fallbackRowCounter = 0;
+            logger.info("get first partition group");
             auto group = _partitionGroups.front();
             _partitionGroups.pop_front();
             for (int i = group.normalPartitionStartIndex; i < group.normalPartitionStartIndex + group.numNormalPartitions; ++i) {
+                if(_remainingNormalPartitions.empty())
+                    break; // TODO: need to fix for take (?)
                 _currentNormalPartitions.push_back(_remainingNormalPartitions.front());
                 _remainingNormalPartitions.pop_front();
             }
             for (int i = group.generalPartitionStartIndex; i < group.generalPartitionStartIndex + group.numGeneralPartitions; ++i) {
+                if(_remainingGeneralPartitions.empty())
+                    break; // TODO: need to fix for take (?)
                 _currentGeneralPartitions.push_back(_remainingGeneralPartitions.front());
                 _remainingGeneralPartitions.pop_front();
             }
             for (int i = group.fallbackPartitionStartIndex; i < group.fallbackPartitionStartIndex + group.numFallbackPartitions; ++i) {
+                if(_remainingFallbackPartitions.empty())
+                    break; // TODO: need to fix for take (?)
                 _currentFallbackPartitions.push_back(_remainingFallbackPartitions.front());
                 _remainingFallbackPartitions.pop_front();
             }
+            logger.info("getting next row after update");
             return getNextRow();
         } else if (_currentNormalPartitions.empty() && _currentFallbackPartitions.empty()) {
             // only general rows remain, return next general row
@@ -342,7 +359,7 @@ namespace tuplex {
                 return getNextFallbackRow();
             }
         } else {
-            // all three cases remain, three way row comparison
+            // all three cases remain, three-way row comparison
             auto generalRowInd = currentGeneralRowInd();
             auto fallbackRowInd = currentFallbackRowInd();
             if (_normalRowCounter + _generalRowCounter < generalRowInd && _normalRowCounter + _generalRowCounter + _fallbackRowCounter < fallbackRowInd) {

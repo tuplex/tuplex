@@ -897,11 +897,10 @@ namespace tuplex {
                         bitmapV.push_back(false);
                         // write offset
                         *((uint64_t *)ptr) = currentOffset;
-                        ptr += sizeof(uint64_t);
                         // update for next field: move forward one uint64_t, then add on the string
-                        currentOffset -= sizeof(uint64_t);
                         currentOffset += strlen((char *) l.getField(i).getPtr()) + 1;
                     }
+                    ptr += sizeof(uint64_t);
                 }
                 // string data
                 for (size_t i = 0; i < l.numElements(); i++) {
@@ -956,21 +955,23 @@ namespace tuplex {
                 for(size_t i = 0; i < l.numElements(); i++) {
                     if(l.getField(i).isNull()) {
                         bitmapV.push_back(true);
+                        *((uint64_t*)ptr) = 0;
                     } else {
                         bitmapV.push_back(false);
                         *((uint64_t*)ptr) = l.getField(i).getInt();
-                        ptr += sizeof(uint64_t);
                     }
+                    ptr += sizeof(uint64_t);
                 }
             } else if(underlyingElementType == python::Type::F64) {
                 for(size_t i = 0; i < l.numElements(); i++) {
                     if(l.getField(i).isNull()) {
                         bitmapV.push_back(true);
+                        *((uint64_t*)ptr) = 0;
                     } else {
                         bitmapV.push_back(false);
                         *((double*)ptr) = l.getField(i).getDouble();
-                        ptr += sizeof(uint64_t);
                     }
+                    ptr += sizeof(uint64_t);
                 }
             } else {
                 throw std::runtime_error(
@@ -1131,6 +1132,8 @@ namespace tuplex {
 
     Serializer &Serializer::appendField(const Field &f) {
         // dispatch according to field type
+        if(f.getType() == python::Type::NULLVALUE)
+            return appendNull();
         if(f.getType() == python::Type::BOOLEAN)
             return append((bool)f.getInt());
         if(f.getType() == python::Type::I64)
@@ -1139,6 +1142,31 @@ namespace tuplex {
             return append(f.getDouble());
         if(f.getType() == python::Type::STRING)
             return append(std::string((const char*)f.getPtr()));
+
+        if(f.getType().isListType())
+            return append(*(List*)f.getPtr());
+
+        if(f.getType().isTupleType())
+            return append(*(Tuple*)f.getPtr());
+
+        if(f.getType().isOptionType()) {
+            auto et = f.getType().getReturnType();
+            if(et == python::Type::BOOLEAN)
+                return append(f.isNull() ? option<bool>::none : option<bool>((bool)f.getInt()));
+            if(et == python::Type::I64)
+                return append(f.isNull() ? option<int64_t>::none : option<int64_t>(f.getInt()));
+            if(et == python::Type::F64)
+                return append(f.isNull() ? option<double>::none : option<double>(f.getDouble()));
+            if(et == python::Type::STRING)
+                return append(f.isNull() ? option<std::string>::none : option<std::string>(std::string((const char*)f.getPtr())));
+
+            if(et.isListType())
+                return append(f.isNull() ? option<List>::none : option<List>(*(List*)f.getPtr()), et);
+
+            if(et.isTupleType())
+                return append(f.isNull() ? option<Tuple>::none : option<Tuple>(*(Tuple*)f.getPtr()), et);
+        }
+
         throw std::runtime_error("Unknown field type " + f.getType().desc() + " to append found.");
     }
 

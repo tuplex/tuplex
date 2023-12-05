@@ -132,7 +132,7 @@ namespace tuplex {
             return 0;
 
         // use Serializer to check length
-        Serializer s;\
+        Serializer s;
         for(unsigned i = 0; i < _numElements; ++i)
             s.appendField(_elements[i]);
         return s.length();

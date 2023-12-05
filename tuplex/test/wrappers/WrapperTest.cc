@@ -3234,3 +3234,39 @@ TEST_F(WrapperTest, WithColumnReplace) {
         std::cout<<std::endl; // flush
     }
 }
+
+// modeled after def testListTupleII(self) in test_parallelize
+TEST_F(WrapperTest, TestListII) {
+
+    using namespace tuplex;
+
+    // use here a resolve operator that doesn't trigger
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"256MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 8,"
+                    "\"tuplex.optimizer.mergeExceptionsInOrder\": true,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+
+    auto list = python::runAndGet("ref = [(\"a\", [(\"b\", [1, 2]), (\"c\", [1, 2, 3, 4])]), (\"....\", [(\"d\", [100, 200, -10000000]), (\"e\", [1000, 2000, 3000, 4000, 5000])])]", "ref");
+    auto data_list = py::reinterpret_borrow<py::list>(list);
+    PythonContext ctx("", "", ctx_opts);
+    {
+        auto ds = ctx.parallelize(data_list);
+
+        auto result_before_resolve = ds.collect();
+        auto result_before_resolve_obj = result_before_resolve.ptr();
+
+        ASSERT_TRUE(result_before_resolve_obj);
+        ASSERT_TRUE(PyList_Check(result_before_resolve_obj));
+        EXPECT_EQ(PyList_Size(result_before_resolve_obj), 2);
+
+        ds.show();
+        python::runGC();
+
+        std::cout<<std::endl; // flush
+    }
+}

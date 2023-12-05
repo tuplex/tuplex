@@ -157,6 +157,13 @@ TEST(Serializer, ListOfTuples) {
                                            python::Type::I64});
     EXPECT_TRUE(schema.getRowType() == et);
 
+    {
+        // check length
+        Deserializer d(schema);
+        auto inferred_len = d.inferLength(buffer);
+        EXPECT_EQ(len, inferred_len);
+    }
+
     Deserializer d(schema);
     d.deserialize(buffer, 2048);
     free(buffer);

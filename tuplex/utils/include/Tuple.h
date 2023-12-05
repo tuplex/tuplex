@@ -32,6 +32,12 @@ namespace tuplex {
 
     public:
         Tuple() : _elements(nullptr), _numElements(0)    {}
+
+        Tuple(Tuple&& other) : _numElements(other._numElements), _elements(other._elements) {
+            other._numElements = 0;
+            other._elements = nullptr;
+        }
+
         ~Tuple();
 
         // new variadic template param ctor
@@ -59,6 +65,11 @@ namespace tuplex {
             t.init_from_vector(elements);
             return t;
         }
+
+        Tuple* allocate_deep_copy() const;
+
+        size_t serialized_length() const;
+        size_t serialize_to(uint8_t* ptr) const;
     };
 
 

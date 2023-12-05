@@ -27,11 +27,18 @@ namespace tuplex {
 
         Field* _elements;
         size_t _numElements;
+        python::Type _listType;
 
         void init_from_vector(const std::vector<tuplex::Field>& elements);
 
     public:
-        List() : _elements(nullptr), _numElements(0)    {}
+        List() : _elements(nullptr), _numElements(0), _listType(python::Type::EMPTYLIST)   {}
+        List(List&& other) : _numElements(other._numElements), _elements(other._elements), _listType(other._listType) {
+            other._numElements = 0;
+            other._elements = nullptr;
+        }
+
+
         ~List();
 
         // new variadic template param ctor
@@ -61,6 +68,11 @@ namespace tuplex {
             l.init_from_vector(elements);
             return l;
         }
+
+        List* allocate_deep_copy() const;
+
+        size_t serialized_length() const;
+        size_t serialize_to(uint8_t* ptr) const;
     };
 
 

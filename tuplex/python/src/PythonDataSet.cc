@@ -896,7 +896,7 @@ namespace tuplex {
         // simply call the getnext row function from resultset
         PyObject * emptyListObj = PyList_New(0);
         size_t rowCount = std::min(rs->rowCount(), maxRowCount);
-        logger.info("Found " + std::to_string(rowCount) + " rows to convert to python objects.");
+        logger.debug("Found " + std::to_string(rowCount) + " rows to convert to python objects.");
         PyObject * listObj = PyList_New(rowCount);
         if (PyErr_Occurred()) {
 
@@ -906,14 +906,17 @@ namespace tuplex {
         }
 
         // avoid locking to often, so retrieve rows in batches
+#ifndef NDEBUG
+        static const size_t ROW_BATCH_SIZE = 1024;
+#else
         static const size_t ROW_BATCH_SIZE = 2048 * 8;
-
+#endif
         for(int i = 0; i < rowCount; i += ROW_BATCH_SIZE) {
             // convert to vector of rows, then lock GIL and convert each to python
             std::vector<Row> v; v.reserve(ROW_BATCH_SIZE);
             int max_j = std::min((int)rowCount - i, (int)ROW_BATCH_SIZE); assert(i >= 0);
             python::unlockGIL();
-            logger.info("Converting batch of rows " + std::to_string(i) + " - " + std::to_string(i + max_j) + " from result set to rows.");
+            logger.debug("Converting batch of rows " + std::to_string(i) + " - " + std::to_string(i + max_j) + " from result set to rows.");
             for(int j = 0; j < max_j; ++j) {
                 v.emplace_back(rs->getNextRow());
             }
@@ -929,7 +932,7 @@ namespace tuplex {
                 assert(py_row);
                 PyList_SET_ITEM(listObj, i + j, py_row);
             }
-            logger.info("Wrote batch of rows " + std::to_string(i) + " - " + std::to_string(i + max_j) + " from result set to Python list.");
+            logger.debug("Wrote batch of rows " + std::to_string(i) + " - " + std::to_string(i + max_j) + " from result set to Python list.");
 
             // check & forward signals again
             check_and_forward_signals(true);
@@ -945,7 +948,7 @@ namespace tuplex {
         //            PyList_SET_ITEM(listObj, i, py_row);
         //        }
 
-        logger.info("Python object conversion done, writing list output object");
+        logger.debug("Python object conversion done, writing list output object");
         return listObj;
     }
 

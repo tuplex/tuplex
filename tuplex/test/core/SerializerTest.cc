@@ -223,6 +223,32 @@ TEST(Serializer, ListOfLists) {
     EXPECT_EQ(lst22.desc(), "['####','QWERT']");
 }
 
+TEST(Serializer, ListOfOptionalList) {
+    // "[[5,6],None]"
+    Serializer s;
+    auto *buffer = (uint8_t*)malloc(2048);
+
+    // test with [[5,6], None]
+    auto len = s.append(List(List(5, 6), option<List>::none))
+            .serialize(buffer, 2048);
+
+
+
+    Schema schema = s.getSchema();
+    auto et = python::Type::makeTupleType({python::Type::makeListType(python::Type::makeOptionType(python::Type::makeListType(python::Type::I64)))});
+    EXPECT_TRUE(schema.getRowType() == et);
+
+    Deserializer d(schema);
+    d.deserialize(buffer, 2048);
+    free(buffer);
+
+    auto row = d.getTuple();
+    EXPECT_EQ(row.numElements(), 1);
+    auto lst1 = *(List *)row.getField(0).getPtr();
+    EXPECT_EQ(lst1.numElements(), 2);
+    EXPECT_EQ(lst1.desc(), "[[5,6],None]");
+}
+
 TEST(Serializer, OptionalTuple) {
     Serializer s;
     auto *buffer = (uint8_t*)malloc(2048);

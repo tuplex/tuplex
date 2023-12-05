@@ -38,6 +38,7 @@ namespace tuplex {
             other._elements = nullptr;
         }
 
+        List(const python::Type& elementType) : _elements(nullptr), _numElements(0), _listType(python::Type::makeListType(elementType)) {}
 
         ~List();
 

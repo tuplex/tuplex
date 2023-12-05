@@ -363,8 +363,8 @@ namespace tuplex {
 
         // emptylist to any list
         if(f._type == python::Type::EMPTYLIST && targetType.isListType()) {
-            // upcast to list
-            throw std::runtime_error("not yet implemented, pls add");
+            // upcast to empty list with set list type
+            return Field(List(targetType.elementType()));
         }
 
         // emptydict to any dict
@@ -389,6 +389,7 @@ namespace tuplex {
             Field c = upcastTo_unsafe(tmp, targetType.elementType());
             c._type = targetType;
             c._isNull = f._isNull;
+            return c;
         }
 
         if(t == python::Type::BOOLEAN) {

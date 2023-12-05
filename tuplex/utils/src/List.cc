@@ -30,9 +30,9 @@ namespace tuplex {
             auto uni_type = el_type;
             bool is_homogeneous = true;
             for(unsigned i = 1; i < elements.size(); ++i) {
+                uni_type = unifyTypes(uni_type, elements[i].getType());
                 if(elements[i].getType() != el_type)
                     is_homogeneous = false;
-                uni_type = unifyTypes(uni_type, elements[i].getType());
             }
 
             if(is_homogeneous) {

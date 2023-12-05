@@ -747,6 +747,11 @@ namespace tuplex {
             // skip #elements * 8 bytes as placeholder for offsets
             size += l.numElements() * sizeof(uint64_t);
             for (size_t listIndex = 0; listIndex < l.numElements(); ++listIndex) {
+
+                // skip None entries
+                if(bitmapSize != 0 && l.getField(listIndex).isNull())
+                    continue;
+
                 auto currTuple = *(Tuple *)(l.getField(listIndex).getPtr());
                 auto tuple_serialized_length = currTuple.serialized_length();
                 size += tuple_serialized_length;
@@ -757,6 +762,10 @@ namespace tuplex {
 
             // same logic as for tuple here
             for (size_t listIndex = 0; listIndex < l.numElements(); ++listIndex) {
+                // skip None entries
+                if(bitmapSize != 0 && l.getField(listIndex).isNull())
+                    continue;
+
                 auto currList = *(List *)(l.getField(listIndex).getPtr());
                 auto list_serialized_length = currList.serialized_length();
                 size += list_serialized_length;
@@ -830,6 +839,10 @@ namespace tuplex {
                 // increment varLenOffsetAddr by 8
                 varLenOffsetAddr += sizeof(uint64_t);
 
+                // skip None entries
+                if(bitmapSize != 0 && l.getField(listIndex).isNull())
+                    continue;
+
                 // append tuple
                 auto currTuple = *(Tuple *)(l.getField(listIndex).getPtr());
                 auto tuple_serialized_length = currTuple.serialized_length();
@@ -852,6 +865,10 @@ namespace tuplex {
                 // increment varLenOffsetAddr by 8
                 varLenOffsetAddr += sizeof(uint64_t);
 
+                // skip None entries
+                if(bitmapSize != 0 && l.getField(listIndex).isNull())
+                    continue;
+
                 // append tuple
                 auto currList = *(List *)(l.getField(listIndex).getPtr());
                 auto list_serialized_length = currList.serialized_length();
@@ -870,10 +887,9 @@ namespace tuplex {
             }
         } else if(elementType.isOptionType()) {
             auto underlyingElementType = elementType.getReturnType();
-            size_t numNonNullElements = l.numNonNullElements();
             if(underlyingElementType == python::Type::STRING) {
                 // offset numbers
-                size_t currentOffset = sizeof(uint64_t) * numNonNullElements;
+                size_t currentOffset = sizeof(uint64_t) * l.numElements();
                 for(size_t i = 0; i < l.numElements(); i++) {
                     if(l.getField(i).isNull()) {
                         bitmapV.push_back(true);
@@ -899,7 +915,7 @@ namespace tuplex {
             } else if(underlyingElementType.isTupleType()) {
                 void *varLenOffsetAddr = ptr;
                 // skip #elements * 8 bytes as placeholder for offsets
-                auto offsetBytes = numNonNullElements * sizeof(uint64_t);
+                auto offsetBytes = l.numElements() * sizeof(uint64_t);
                 ptr += offsetBytes;
                 for (size_t listIndex = 0; listIndex < l.numElements(); ++listIndex) {
                     if(l.getField(listIndex).isNull()) {
@@ -917,9 +933,9 @@ namespace tuplex {
                     }
                 }
             } else if(underlyingElementType.isListType()) {
-                void *varLenOffsetAddr = ptr;
+                uint8_t *varLenOffsetAddr = ptr;
                 // skip #elements * 8 bytes as placeholder for offsets
-                auto offsetBytes = l.numNonNullElements() * sizeof(uint64_t);
+                auto offsetBytes = l.numElements() * sizeof(uint64_t);
                 ptr += offsetBytes;
                 for (size_t listIndex = 0; listIndex < l.numElements(); ++listIndex) {
                     if(l.getField(listIndex).isNull()) {
@@ -929,12 +945,12 @@ namespace tuplex {
                         // write offset to placeholder
                         uint64_t currOffset = (uintptr_t)ptr - (uintptr_t)varLenOffsetAddr;
                         *(uint64_t *)varLenOffsetAddr = currOffset;
-                        // increment varLenOffsetAddr by 8
-                        varLenOffsetAddr = (void *)((uint64_t *)varLenOffsetAddr + 1);
                         // append list
                         auto currList = *(List *)(l.getField(listIndex).getPtr());
                         ptr += currList.serialize_to(ptr);
                     }
+                    // increment varLenOffsetAddr always by 8
+                    varLenOffsetAddr += sizeof(uint64_t);
                 }
             } else if(underlyingElementType == python::Type::I64 || underlyingElementType == python::Type::BOOLEAN) {
                 for(size_t i = 0; i < l.numElements(); i++) {

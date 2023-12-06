@@ -1541,6 +1541,7 @@ namespace tuplex {
                 ptr += sizeof(uint64_t);
             } else if(currFieldType.isListType()) {
                 auto listOffset = *(int64_t *)ptr;
+                listOffset &= 0xFFFFFFFF; // offset is lower 4 bytes.
                 f = Field(getListHelper(currFieldType, ptr + listOffset));
                 ptr += sizeof(uint64_t);
             } else if(currFieldType == python::Type::NULLVALUE) {
@@ -1594,6 +1595,7 @@ namespace tuplex {
                         f = Field::null(currFieldType);
                     } else {
                         auto listOffset = *(int64_t *)ptr;
+                        listOffset &= 0xFFFFFFFF;
                         f = Field(option<List>(getListHelper(underlyingType, ptr + listOffset)));
                         ptr += sizeof(uint64_t);
                     }
@@ -1603,6 +1605,7 @@ namespace tuplex {
                         f = Field::null(currFieldType);
                     } else {
                         auto tupleOffset = *(int64_t *)ptr;
+                        tupleOffset &= 0xFFFFFFFF;
                         f = Field(option<Tuple>(getTupleHelper(underlyingType, ptr + tupleOffset)));
                         ptr += sizeof(uint64_t);
                     }

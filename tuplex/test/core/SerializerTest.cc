@@ -275,3 +275,25 @@ TEST(Serializer, OptionalTuple) {
     EXPECT_EQ(tuple.desc(), "(1234,9876)");
     EXPECT_EQ(std::string((char *)(row.getField(2).getPtr())), "$$$$tuple$$$$");
 }
+
+// [("a", [("b", [1, 2]), ...]
+TEST(Serializer, NestedListTuple) {
+    Serializer s;
+    auto *buffer = (uint8_t*)malloc(2048);
+
+    // (str, List[Tuple[str, List[i64]]])
+    auto len = s.append("a").append(List::from_vector({Field(Tuple(Field("b"), List::from_vector({Field((int64_t)1), Field((int64_t)2)})))}))
+            .serialize(buffer, 2048);
+
+    Schema schema = s.getSchema();
+    auto et = python::Type::makeTupleType({python::Type::STRING, python::Type::makeListType(python::Type::makeTupleType({python::Type::STRING, python::Type::makeListType(python::Type::I64)}))});
+    EXPECT_EQ(schema.getRowType().desc(), et.desc());
+    EXPECT_GT(len, 0);
+    EXPECT_TRUE(schema.getRowType() == et);
+    Deserializer d(schema);
+    d.deserialize(buffer, 2048);
+    free(buffer);
+
+    auto row = d.getTuple();
+    EXPECT_EQ("('a',[('b',[1,2])])", row.desc());
+}

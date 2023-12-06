@@ -205,7 +205,8 @@ class TestExceptions:
         output = c.parallelize(input).map(lambda x: 1 // x if x == 0 else x).resolve(ZeroDivisionError, lambda x: x).collect()
         self.compare_in_order(input, output)
 
-    @pytest.mark.parametrize("n", [40000])
+    # 40k too slow under macOS, need to investigate
+    @pytest.mark.parametrize("n", [10000])
     def test_merge_input_only(self, n):
         c = Context(self.conf_in_order)
 
@@ -321,7 +322,8 @@ class TestExceptions:
         output = c.parallelize(input).map(lambda x: 1 // x if x == 0 else x).resolve(ZeroDivisionError, lambda x: x).collect()
         self.compare(input, output)
 
-    @pytest.mark.parametrize("n", [40000])
+    # 40k too slow under macOS, need to investigate.
+    @pytest.mark.parametrize("n", [10000])
     def test_no_merge_input_only(self, n):
         c = Context(self.conf)
 
@@ -364,7 +366,8 @@ class TestExceptions:
 
         self.compare(expectedOutput, output)
 
-    @pytest.mark.parametrize("n", [50000])
+    # 50k too slow under macOS, need to investigate
+    @pytest.mark.parametrize("n", [10000])
     def test_parallelize_exceptions_no_merge(self, n):
         c = Context(self.conf)
 

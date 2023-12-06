@@ -846,7 +846,9 @@ namespace tuplex {
                 // append tuple
                 auto currTuple = *(Tuple *)(l.getField(listIndex).getPtr());
                 auto tuple_serialized_length = currTuple.serialized_length();
-                currTuple.serialize_to(ptr);
+                assert(ptr - original_ptr + tuple_serialized_length <= capacity_left);
+                auto size = currTuple.serialize_to(ptr);
+                assert(size == tuple_serialized_length);
                 ptr += tuple_serialized_length;
             }
         }  else if (elementType.isListType()) {
@@ -1003,7 +1005,7 @@ namespace tuplex {
 
     Serializer &Serializer::appendWithoutInferenceHelper(const List &l) {
         auto size = serialized_list_size(l);
-        _varLenFields.provideSpace(sizeof(uint64_t));
+        _varLenFields.provideSpace(size);
         auto ret = serialize_list_to_ptr(l, (uint8_t*)_varLenFields.ptr(), size);
         assert(ret == size);
         _varLenFields.movePtr(size);
@@ -1067,9 +1069,10 @@ namespace tuplex {
                 *((int64_t *) ((uint8_t *) ptr + bitmapSize + _fixedLenFields.size())) = _varLenFields.size();
 
             if (_varLenFields.size() > 0) {
+                assert(capacityLeft >= bitmapSize + _fixedLenFields.size() + sizeof(int64_t) + _varLenFields.size());
 
                 // copy varlenfields over
-                std::memcpy((uint8_t *) ptr + bitmapSize + _fixedLenFields.size() + sizeof(int64_t),
+                std::memcpy(((uint8_t *) ptr) + bitmapSize + _fixedLenFields.size() + sizeof(int64_t),
                             _varLenFields.buffer(), _varLenFields.size());
 
                 // set correct offsets in buffer

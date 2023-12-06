@@ -3270,3 +3270,40 @@ TEST_F(WrapperTest, TestListII) {
         std::cout<<std::endl; // flush
     }
 }
+
+// modeled after def testOptionTypeV(self):
+TEST_F(WrapperTest, TestOptionTypeV) {
+
+    using namespace tuplex;
+
+    // use here a resolve operator that doesn't trigger
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"driverMemory\": \"256MB\","
+                    " \"partitionSize\": \"256KB\","
+                    "\"executorCount\": 8,"
+                    "\"tuplex.optimizer.mergeExceptionsInOrder\": true,"
+                    "\"tuplex.scratchDir\": \"file://" + scratchDir + "\","
+                                                                      "\"resolveWithInterpreterOnly\": true}";
+
+    //         ref = [[(1, None), None, (3, (4, None))]]
+    //        res = c.parallelize(ref).collect()
+    auto list = python::runAndGet("ref = [[(1, None), None, (3, (4, None))]]", "ref");
+    auto data_list = py::reinterpret_borrow<py::list>(list);
+    PythonContext ctx("", "", ctx_opts);
+    {
+        auto ds = ctx.parallelize(data_list);
+
+        auto result_before_resolve = ds.collect();
+        auto result_before_resolve_obj = result_before_resolve.ptr();
+
+        ASSERT_TRUE(result_before_resolve_obj);
+        ASSERT_TRUE(PyList_Check(result_before_resolve_obj));
+        EXPECT_EQ(PyList_Size(result_before_resolve_obj), 1);
+
+        ds.show();
+        python::runGC();
+
+        std::cout<<std::endl; // flush
+    }
+}

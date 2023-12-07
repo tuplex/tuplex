@@ -85,28 +85,8 @@ namespace tuplex {
     }
 
     bool Partition::saveToFile(const URI& partitionURI) {
-//        auto uuid = uuidToString(_uuid);
-//        auto vfs = VirtualFileSystem::fromURI(partitionURI);
-//
-//        // create file & write partition contents to it
-//        std::unique_ptr<VirtualFile> file = vfs.open_file(partitionURI, VFS_WRITE | VFS_OVERWRITE);
-//        if(!file) {
-//            std::stringstream ss;
-//            ss<<"Could not save partition "<<uuid<<" to path "<<partitionURI.toString();
-//            _owner->logger().error(ss.str());
-//            return false;
-//        }
-//
-//        auto status = file.get()->write(_arena, (uint64_t)_size);
-//
-//        if(status != VirtualFileSystemStatus::VFS_OK) {
-//            assert(file);
-//            _owner->logger().error("Could not save partition " + uuid + " to path " + file.get()->getURI().toPath());
-//
-//            return false;
-//        }
 
-        auto path = partitionURI.toString().substr(7);
+        auto path = partitionURI.toString().substr(partitionURI.prefix().length());
 
         // does file exist already?
         // => fail
@@ -116,7 +96,7 @@ namespace tuplex {
 
         FILE *pFile = fopen(path.c_str(), "wb");
         if(!pFile) {
-            handle_file_error("failed to evict partition to " + path);
+            handle_file_error("failed to evict partition to " + path + " (" + partitionURI.toString() + ")");
             return false;
         }
 
@@ -137,12 +117,12 @@ namespace tuplex {
         auto path = uri.toString().substr(uri.prefix().length());
 
         if(!fileExists(path)) {
-            throw std::runtime_error("could not find file under path " + path);
+            throw std::runtime_error("could not find file under path " + path + " (" + uri.toString() + ")");
         }
 
         FILE *pFile = fopen(path.c_str(), "rb");
         if(!pFile) {
-            handle_file_error("failed to load evicted partition from " + path);
+            handle_file_error("failed to load evicted partition from " + path + " (" + uri.toString() + ")");
             return;
         }
 

@@ -103,10 +103,6 @@ export CIBW_BUILD_VERBOSITY=3
 export CIBW_TEST_REQUIRES="pytest pytest-timeout numpy nbformat jupyter"
 export CIBW_TEST_COMMAND="cd {project} && pytest tuplex/python/tests --timeout_method thread --timeout 300 -l -v"
 
-#export CIBW_TEST_REQUIRES="pytest pytest-timeout pytest-xdist numpy nbformat jupyter"
-#export CIBW_TEST_COMMAND="cd {project} && pytest tuplex/python/tests/test_exceptions.py::TestExceptions -l -v"
-#export CIBW_TEST_COMMAND="cd {project} && pytest tuplex/python/tests -n auto --timeout 600 -l -v"
-
 cibuildwheel --platform macos
 
 popd

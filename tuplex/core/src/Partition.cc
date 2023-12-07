@@ -94,6 +94,20 @@ namespace tuplex {
             throw std::runtime_error("partition file under " + path + " already exists.");
         }
 
+        // create parent path if not exists
+        auto parent_uri = partitionURI.parent();
+        auto parent_path = parent_uri.toString().substr(parent_uri.prefix().length());
+        if(!dirExists(parent_path)) {
+            boost::system::error_code ec;
+            boost::filesystem::create_directories(parent_path, ec);
+            if(ec) {
+               std::stringstream ss;
+               ss<<"failed to create not yet existing parent dir "<<parent_path<<" for evicting partition. Details: "<<ec.message();
+               handle_file_error(ss.str());
+               return false;
+            }
+        }
+
         FILE *pFile = fopen(path.c_str(), "wb");
         if(!pFile) {
             handle_file_error("failed to evict partition to " + path + " (" + partitionURI.toString() + ")");

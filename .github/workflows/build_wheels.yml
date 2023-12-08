@@ -38,6 +38,22 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Cache brew dependencies
+        if: runner.os == 'macOS'
+        uses: actions/cache@v3.3.2
+        with:
+          # Paths to cache:
+          # /usr/local/Homebrew - installation folder of Homebrew
+          # /usr/local/Cellar - installation folder of Homebrew formulae
+          # /usr/local/Frameworks, /usr/local/bin, /usr/local/opt - contain (links to) binaries installed by Homebrew formulae
+          path: |
+            /usr/local/Homebrew
+            /usr/local/Cellar
+            /usr/local/Frameworks
+            /usr/local/bin
+            /usr/local/opt
+          key: macos-11-build-cache-${{ hashFiles('./scripts/macos/brew_dependencies.sh') }}-v2
+
       # need to make this an intermediate step, i.e. build first the different lambda runners on Ubuntu...
       - name: Build Lambda runner (Linux only)
         if: runner.os != 'macOS'

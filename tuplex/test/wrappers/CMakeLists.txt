@@ -17,17 +17,33 @@ ADD_EXECUTABLE(testwrappers ${SRCS} ${PYSRCS})
 
 target_include_directories(testwrappers PRIVATE "../../python/include/" ${Boost_INCLUDE_DIR})
 
-TARGET_LINK_LIBRARIES(testwrappers
-        libcore
-        libcodegen
-        libutils
-        libio
-        ${GTest_LIBRARIES}
-        libcpythonadapter
-        ${Boost_LIBRARIES}
-        ${CURSES_LIBRARY}
-        pybind11::embed
-        # Backward::Interface
-        )
+
+# use backward for problematic macos builds
+if(APPLE)
+    TARGET_LINK_LIBRARIES(testwrappers
+            libcore
+            libcodegen
+            libutils
+            libio
+            ${GTest_LIBRARIES}
+            libcpythonadapter
+            ${Boost_LIBRARIES}
+            ${CURSES_LIBRARY}
+            pybind11::embed
+             Backward::Interface
+            )
+else()
+    TARGET_LINK_LIBRARIES(testwrappers
+            libcore
+            libcodegen
+            libutils
+            libio
+            ${GTest_LIBRARIES}
+            libcpythonadapter
+            ${Boost_LIBRARIES}
+            ${CURSES_LIBRARY}
+            pybind11::embed
+            )
+endif()
 
 gtest_add_tests(TARGET testwrappers TEST_PREFIX "")

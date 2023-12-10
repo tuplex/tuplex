@@ -12,10 +12,12 @@
 
 
 // include backward lib
-//// init backtrace
-//#define BACKWARD_HAS_DWARF 1
-//#include <backward.hpp>
-//backward::SignalHandling sh;
+#ifdef __APPLE__
+// init backtrace
+#define BACKWARD_HAS_DWARF 1
+#include <backward.hpp>
+backward::SignalHandling sh;
+#endif
 
 namespace tuplex {
     py::object registerPythonLoggingCallback(py::object callback_functor) {

@@ -62,7 +62,8 @@ add_dependencies(${MODULE_NAME} libcore libcodegen)
 target_include_directories(${MODULE_NAME} PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(${MODULE_NAME} #PUBLIC Backward::Interface
+if(APPLE)
+target_link_libraries(${MODULE_NAME} PUBLIC Backward::Interface
         PRIVATE
         libcodegen
         libcore
@@ -73,6 +74,19 @@ target_link_libraries(${MODULE_NAME} #PUBLIC Backward::Interface
         Boost::thread
         Boost::system
         Boost::filesystem)
+else()
+    target_link_libraries(${MODULE_NAME}
+            PRIVATE
+            libcodegen
+            libcore
+            libcpythonadapter
+            libutils
+            libio
+            Boost::iostreams
+            Boost::thread
+            Boost::system
+            Boost::filesystem)
+endif()
 
 #check if single generator or multiple
 # copy setup.py/MANIFEST.in files and the directory tuplex

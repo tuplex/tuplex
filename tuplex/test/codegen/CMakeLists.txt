@@ -10,6 +10,7 @@ include(GoogleTest)
 ADD_EXECUTABLE(testcodegen ${SRCS})
 
 ASSERT_VAR(CURSES_LIBRARIES)
+ASSERT_VAR(ZSTD_LIBRARIES)
 
 TARGET_LINK_LIBRARIES(testcodegen
         libcodegen

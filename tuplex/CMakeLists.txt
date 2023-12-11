@@ -978,7 +978,7 @@ else()
                 BUILD_BYPRODUCTS "${ZSTD_STATIC_LIB}"
                 DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
 
-        set(ZSTD_LIBRARIES ${ZSTD_STATIC_LIB})
+        set(ZSTD_LIBRARIES "zstd")
 
         add_library(zstd INTERFACE)
         target_link_libraries(zstd INTERFACE ${ZSTD_STATIC_LIB})

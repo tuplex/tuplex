@@ -74,7 +74,7 @@ namespace tuplex {
                 Logger::instance().flushToPython();
                 auto listObj = PyList_New(1);
                 PyList_SetItem(listObj, 0, python::PyString_FromString(err_message.c_str()));
-                return py::reinterpret_borrow<py::list>(listObj);
+                return pybind_list_from_obj(listObj);
             }
 
             Logger::instance().flushToPython();
@@ -104,7 +104,7 @@ namespace tuplex {
             Logger::instance().logger("python").info("Data transfer back to Python took "
                                                      + std::to_string(timer.time()) + " seconds");
 
-            auto list = py::reinterpret_borrow<py::list>(listObj);
+            auto list = pybind_list_from_obj(listObj);
             // Logger::instance().flushAll();
             Logger::instance().flushToPython();
 
@@ -167,7 +167,7 @@ namespace tuplex {
                 Logger::instance().flushToPython();
                 auto listObj = PyList_New(1);
                 PyList_SetItem(listObj, 0, python::PyString_FromString(err_message.c_str()));
-                return py::reinterpret_borrow<py::list>(listObj);
+                return pybind_list_from_obj(listObj);
             }
 
             // collect results & transfer them back to python
@@ -184,7 +184,7 @@ namespace tuplex {
             if (ss.str().length() > 0)
                 PySys_FormatStdout("%s", ss.str().c_str());
 
-            return py::reinterpret_borrow<py::list>(listObj);
+            return pybind_list_from_obj(listObj);
         }
     }
 
@@ -1712,7 +1712,7 @@ namespace tuplex {
             auto typeobj = python::encodePythonSchema(row_type.parameters()[i]);
             PyList_SetItem(listObj, i, typeobj);
         }
-        return py::reinterpret_borrow<py::list>(listObj);
+        return pybind_list_from_obj(listObj);
     }
 
     py::object PythonDataSet::exception_counts() {

@@ -848,7 +848,7 @@ set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
 
 # external libs to build / download
 set(ZLIB_VERSION "1.2.11") # which zlib version to use
-set(ZSTD_VERSION "1.5.0") # which zstd version to use
+set(ZSTD_VERSION "1.5.5") # which zstd version to use
 set(BUILD_AND_DOWNLOAD_ZLIB True)
 set(BUILD_AND_DOWNLOAD_ZSTD True)
 
@@ -913,17 +913,26 @@ endif()
 # zstd has no cmake standard module, so manually search for it
 find_package(zstd "${ZSTD_VERSION}")
 if(zstd_FOUND)
-    # check if zstd is defined as target
-    if(TARGET zstd::libzstd_static)
-        set(ZSTD_LIBRARIES "zstd::libzstd_static") # could also be libzstd_shared
+    # check if zstd version is up to required version
+    if(zstd_VERSION VERSION_GREATER_EQUAL ${ZSTD_VERSION})
+        # check if zstd is defined as target
+        if(TARGET zstd::libzstd_static)
+            set(ZSTD_LIBRARIES "zstd::libzstd_static") # could also be libzstd_shared
+        endif()
+        # if not, use variables directly
+        if(ZSTD_LIBRARY)
+            set(ZSTD_LIBRARIES "${ZSTD_LIBRARY}")
+        elseif(ZSTD_STATIC_LIB)
+            set(ZSTD_LIBRARIES "${ZSTD_STATIC_LIB}")
+        endif()
+    else()
+        message(STATUS "Found locally installed zstd ${zstd_VERSION}, but required is at least ${ZSTD_VERSION}. Building suitable zstd library ${ZSTD_VERSION} from source.")
+        unset(zstd_FOUND)
     endif()
-    # if not, use variables directly
-    if(ZSTD_LIBRARY)
-        set(ZSTD_LIBRARIES "${ZSTD_LIBRARY}")
-    elseif(ZSTD_STATIC_LIB)
-        set(ZSTD_LIBRARIES "${ZSTD_STATIC_LIB}")
-    endif()
-else()
+endif()
+
+# if zstd is not found (or version not ok)
+if(NOT zstd_FOUND)
 
     # check if brewed by chance, if not fetch
     if(APPLE AND BREW_FOUND)

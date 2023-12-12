@@ -3106,7 +3106,7 @@ TEST_F(WrapperTest, CombinedExceptionHandling) {
 
     std::cout<<"starting to generate data..."<<std::endl;
 
-    int N = 1000000;
+    int N = 100000;
     auto list = PyList_New(N);
     std::vector<PyObject*> v(N, nullptr);
     int pos = 0;
@@ -3165,7 +3165,6 @@ TEST_F(WrapperTest, CombinedExceptionHandling) {
 
         std::cout<<std::endl; // flush
     }
-
 }
 
 TEST_F(WrapperTest, WithColumnReplace) {

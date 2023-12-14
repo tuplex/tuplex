@@ -17,7 +17,8 @@ class TestTuples(unittest.TestCase):
 
     def setUp(self):
         self.conf = options_for_pytest()
-        self.conf.update({"webui.enable" : False, "driverMemory" : "16MB", "partitionSize" : "256KB"})
+        self.conf.update({"webui.enable" : False, "driverMemory" : "32MB", "executorCount": 4,
+                          "executorMemory": "32MB", "partitionSize" : "64KB"})
 
     def testEmptyTupleI(self):
         c = Context(self.conf)

@@ -85,28 +85,8 @@ namespace tuplex {
     }
 
     bool Partition::saveToFile(const URI& partitionURI) {
-//        auto uuid = uuidToString(_uuid);
-//        auto vfs = VirtualFileSystem::fromURI(partitionURI);
-//
-//        // create file & write partition contents to it
-//        std::unique_ptr<VirtualFile> file = vfs.open_file(partitionURI, VFS_WRITE | VFS_OVERWRITE);
-//        if(!file) {
-//            std::stringstream ss;
-//            ss<<"Could not save partition "<<uuid<<" to path "<<partitionURI.toString();
-//            _owner->logger().error(ss.str());
-//            return false;
-//        }
-//
-//        auto status = file.get()->write(_arena, (uint64_t)_size);
-//
-//        if(status != VirtualFileSystemStatus::VFS_OK) {
-//            assert(file);
-//            _owner->logger().error("Could not save partition " + uuid + " to path " + file.get()->getURI().toPath());
-//
-//            return false;
-//        }
 
-        auto path = partitionURI.toString().substr(7);
+        auto path = partitionURI.toString().substr(partitionURI.prefix().length());
 
         // does file exist already?
         // => fail
@@ -114,9 +94,23 @@ namespace tuplex {
             throw std::runtime_error("partition file under " + path + " already exists.");
         }
 
+        // create parent path if not exists
+        auto parent_uri = partitionURI.parent();
+        auto parent_path = parent_uri.toString().substr(parent_uri.prefix().length());
+        if(!dirExists(parent_path)) {
+            boost::system::error_code ec;
+            boost::filesystem::create_directories(parent_path, ec);
+            if(ec) {
+               std::stringstream ss;
+               ss<<"failed to create not yet existing parent dir "<<parent_path<<" for evicting partition. Details: "<<ec.message();
+               handle_file_error(ss.str());
+               return false;
+            }
+        }
+
         FILE *pFile = fopen(path.c_str(), "wb");
         if(!pFile) {
-            handle_file_error("failed to evict partition to " + path);
+            handle_file_error("failed to evict partition to " + path + " (" + partitionURI.toString() + ")");
             return false;
         }
 
@@ -134,23 +128,40 @@ namespace tuplex {
 
     void Partition::loadFromFile(const tuplex::URI &uri) {
 
-        auto path = uri.toString().substr(7);
+        auto path = uri.toString().substr(uri.prefix().length());
 
         if(!fileExists(path)) {
-            throw std::runtime_error("could not find file under path " + path);
+            throw std::runtime_error("could not find file under path " + path + " (" + uri.toString() + ")");
         }
 
         FILE *pFile = fopen(path.c_str(), "rb");
         if(!pFile) {
-            handle_file_error("failed to load evicted partition from " + path);
+            handle_file_error("failed to load evicted partition from " + path + " (" + uri.toString() + ")");
             return;
         }
 
+        size_t bytes_read = 0;
         // read from file
-        fread(&_bytesWritten, sizeof(uint64_t), 1, pFile);
-        fread(_arena, _size, 1, pFile);
+        bytes_read = fread(&_bytesWritten, 1, sizeof(uint64_t), pFile);
+        if(bytes_read != sizeof(uint64_t)) {
+            handle_file_error("file corrupted, could not read number of bytes written for partition."
+                              " Expected reading " + std::to_string(sizeof(uint64_t))
+                              + " bytes, but fread returned " + std::to_string(bytes_read));
+            fclose(pFile);
+            return;
+        }
 
-        fclose(pFile);
+        // @TODO: bytes written vs. size?
+
+        bytes_read = fread(_arena, 1, _size, pFile);
+        if(bytes_read != _size) {
+            handle_file_error("file corrupted, could not read data."
+                              " Expected reading " + std::to_string(_size)
+                              + " bytes, but fread returned " + std::to_string(bytes_read));
+            fclose(pFile);
+            return;
+        }
+
 
         // remove file b.c. it's now loaded
         if(0 != remove(path.c_str())) {

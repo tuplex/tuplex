@@ -86,24 +86,6 @@ namespace tuplex {
         return f;
     }
 
-    Field::Field(const Field &other) {
-        _type = other._type;
-        _size = other._size;
-        _isNull = other._isNull;
-
-        // special handling:
-        // ptr type?
-        if(other.hasPtrData()) {
-            assert(other._ptrValue);
-            // memcpy
-            _ptrValue = new uint8_t[_size];
-            std::memcpy(_ptrValue, other._ptrValue, _size);
-        } else {
-            // primitive val copy (doesn't matter which)
-            _iValue = other._iValue;
-        }
-    }
-
     Field::Field(const Tuple &t) {
         // allocate size and then transfer tuple to ptr
         _size = sizeof(Tuple);
@@ -133,6 +115,39 @@ namespace tuplex {
         _ptrValue = reinterpret_cast<uint8_t*>(new Tuple(t));
     }
 
+    void Field::deep_copy_from_other(const Field &other) {
+        if(other.hasPtrData()) {
+            assert(_ptrValue == nullptr);
+
+            // special data structs have to perform individual deep copies
+            if(other._type.isTupleType()) {
+                auto tuple_ptr = reinterpret_cast<Tuple*>(other._ptrValue);
+                _ptrValue = reinterpret_cast<uint8_t*>(tuple_ptr->allocate_deep_copy());
+                _size = sizeof(Tuple);
+            } else if(other._type.isListType()) {
+                auto list_ptr = reinterpret_cast<List*>(other._ptrValue);
+                _ptrValue = reinterpret_cast<uint8_t*>(list_ptr->allocate_deep_copy());
+                _size = sizeof(List);
+            } else {
+                // dict is currently stored as string...
+
+                // memcpy --> is this correct for Tuple e.g.?
+                _size = other._size;
+
+                // special case option type
+                if(_size != 0) {
+                    _ptrValue = new uint8_t[_size];
+                    assert(other._ptrValue);
+                    std::memcpy(_ptrValue, other._ptrValue, _size);
+                } else {
+                    _ptrValue = nullptr;
+                }
+            }
+        } else {
+            _iValue = other._iValue;
+        }
+    }
+
     Field& Field::operator = (const Field &other) {
 
         _size = other._size;
@@ -141,13 +156,14 @@ namespace tuplex {
         // special handling:
         // ptr type?
         if(other.hasPtrData()) {
-            assert(other._ptrValue);
-
             releaseMemory();
-            // memcpy
-            _ptrValue = new uint8_t[_size];
-            assert(_ptrValue);
-            std::memcpy(_ptrValue, other._ptrValue, _size);
+            _ptrValue = nullptr;
+
+            // only invoke deepcopy if size != 0
+            if(other._size != 0) {
+                assert(other._ptrValue);
+                deep_copy_from_other(other);
+            }
         } else {
             // primitive val copy (doesn't matter which)
             _iValue = other._iValue;
@@ -166,9 +182,9 @@ namespace tuplex {
                 else
                     delete [] _ptrValue;
             }
-
-            _ptrValue = nullptr;
         }
+        _ptrValue = nullptr;
+        _size = 0;
     }
 
     Field::~Field() {
@@ -347,8 +363,8 @@ namespace tuplex {
 
         // emptylist to any list
         if(f._type == python::Type::EMPTYLIST && targetType.isListType()) {
-            // upcast to list
-            throw std::runtime_error("not yet implemented, pls add");
+            // upcast to empty list with set list type
+            return Field(List(targetType.elementType()));
         }
 
         // emptydict to any dict
@@ -373,6 +389,7 @@ namespace tuplex {
             Field c = upcastTo_unsafe(tmp, targetType.elementType());
             c._type = targetType;
             c._isNull = f._isNull;
+            return c;
         }
 
         if(t == python::Type::BOOLEAN) {

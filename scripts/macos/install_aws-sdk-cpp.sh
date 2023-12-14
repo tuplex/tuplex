@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# check if dir exists (i.e. restored from cache, then skip)
+if [ -d "/usr/local/include/aws" ]; then
+  echo ">> Skip aws-sdk-cpp compile from source, already exists"
+  exit 0
+fi
+
 echo ">> installing AWS SDK from source"
 CPU_CORES=$(sysctl -n hw.physicalcpu)
 

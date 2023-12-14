@@ -1,3 +1,4 @@
+
 //--------------------------------------------------------------------------------------------------------------------//
 //                                                                                                                    //
 //                                      Tuplex: Blazing Fast Python Data Science                                      //
@@ -145,6 +146,14 @@ namespace tuplex {
     using no_gil_python3_sink_st = nogil_python3_sink<spdlog::details::null_mutex>;
 
     extern py::object registerPythonLoggingCallback(py::object callback_functor);
+
+    inline py::list pybind_list_from_obj(PyObject* listObj) {
+        assert(listObj);
+        assert(PyList_Check(listObj));
+        assert(listObj->ob_refcnt > 0);
+
+        return py::cast<py::list>(listObj);
+    }
 }
 
 #endif //TUPLEX_PYTHONCOMMON_H

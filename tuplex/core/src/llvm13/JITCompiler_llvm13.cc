@@ -109,6 +109,7 @@ namespace tuplex {
         tmb.setCPU(CPUStr);
         tmb.setRelocationModel(Reloc::Model::PIC_);
         tmb.addFeatures(getFeatureList());
+
         //tmb.addFeatures(codegen::getLLVMFeatureStr()); //<-- should add here probably SSE4.2.??
 
         // build on top of this:
@@ -237,6 +238,15 @@ namespace tuplex {
 
         // create for this module own jitlib
         auto& ES = _lljit->getExecutionSession();
+
+        // if lib with name already exists, remove
+        llvm::orc::JITDylib *jitlib_ptr = nullptr;
+        if((jitlib_ptr = ES.getJITDylibByName(module_name))) {
+            auto err = ES.removeJITDylib(*jitlib_ptr);
+            if(err)
+                throw std::runtime_error("failed to remove JITDylib " + module_name + " from execution session.");
+            jitlib_ptr = nullptr;
+        }
         auto& jitlib = ES.createJITDylib(module_name).get();
         const auto& DL = _lljit->getDataLayout();
         MangleAndInterner Mangle(ES, DL);
@@ -252,8 +262,7 @@ namespace tuplex {
         jitlib.addGenerator(std::move(*ProcessSymbolsGenerator));
 
         // define symbols from custom symbols for this jitlib
-        for(auto keyval: _customSymbols)
-            auto rc = jitlib.define(absoluteSymbols({{Mangle(keyval.first), keyval.second}}));
+        defineCustomSymbols(jitlib);
 
         _dylibs.push_back(&jitlib); // save reference for search
         auto err = _lljit->addIRModule(jitlib, std::move(tsm.get()));
@@ -275,6 +284,26 @@ namespace tuplex {
         // // another reference: https://doxygen.postgresql.org/llvmjit_8c_source.html
 
         return true;
+    }
+
+    void JITCompiler::defineCustomSymbols(llvm::orc::JITDylib &jitlib) {
+        auto& ES = _lljit->getExecutionSession();
+        const auto& DL = _lljit->getDataLayout();
+        llvm::orc::MangleAndInterner Mangle(ES, DL);
+
+        for(auto keyval: _customSymbols) {
+#if LLVM_VERSION_MAJOR <= 16
+            auto rc = jitlib.define(llvm::orc::absoluteSymbols({{Mangle(keyval.first), keyval.second}}));
+#else
+            // LLVM17 introduces new llvm::orc::ExecutorSymbolDef class
+            // convert JITEvaluatedSymbol from map to this new class.
+            auto rc = jitlib.define(llvm::orc::absoluteSymbols(llvm::orc::SymbolMap({
+                                                        { Mangle(keyval.first),
+                                                          { llvm::orc::ExecutorAddr(keyval.second.getAddress()),
+                                                            keyval.second.getFlags()} }
+                                                })));
+#endif
+        }
     }
 
     bool JITCompiler::compile(std::unique_ptr<llvm::Module> mod) {
@@ -301,6 +330,16 @@ namespace tuplex {
 
         // create for this module own jitlib
         auto& ES = _lljit->getExecutionSession();
+
+        // if lib with name already exists, remove
+        llvm::orc::JITDylib *jitlib_ptr = nullptr;
+        if((jitlib_ptr = ES.getJITDylibByName(module_name.str()))) {
+            auto err = ES.removeJITDylib(*jitlib_ptr);
+            if(err)
+                throw std::runtime_error("failed to remove JITDylib " + module_name.str() + " from execution session.");
+            jitlib_ptr = nullptr;
+        }
+
         auto& jitlib = ES.createJITDylib(module_name.str()).get();
         const auto& DL = _lljit->getDataLayout();
         llvm::orc::MangleAndInterner Mangle(ES, DL);
@@ -320,9 +359,7 @@ namespace tuplex {
         jitlib.addGenerator(std::move(*ProcessSymbolsGenerator));
 
         // define symbols from custom symbols for this jitlib
-        for(auto keyval: _customSymbols)
-            auto rc = jitlib.define(llvm::orc::absoluteSymbols({{Mangle(keyval.first), keyval.second}}));
-
+        defineCustomSymbols(jitlib);
         _dylibs.push_back(&jitlib); // save reference for search
 
         assert(tsm);

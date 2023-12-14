@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# (c) 2017 - 2023 Tuplex team
+# (c) 2023 Tuplex team
 # this script invokes the cibuildwheel process with necessary env variables to build the wheel for linux/docker
 # builds wheels for python 3.7 - 3.9
 
@@ -54,6 +54,9 @@ export CIBW_PROJECT_REQUIRES_PYTHON=">=3.8"
 
 # uncomment to increase verbosity of cibuildwheel
 # export CIBW_BUILD_VERBOSITY=3
+
+export CIBW_TEST_REQUIRES="pytest pytest-timeout numpy nbformat jupyter"
+export CIBW_TEST_COMMAND="cd {project} && pytest tuplex/python/tests --timeout_method thread --timeout 300 -l -v"
 
 cibuildwheel --platform linux .
 

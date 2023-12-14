@@ -1418,7 +1418,7 @@ namespace tuplex {
                     auto func = quoteForCSV_prototype(env.getContext(), env.getModule().get());
                     val = builder.CreateCall(func, {val, size, quotedSize, env.i8Const(','), env.i8Const('"')});
                     fmtString += "%s";
-                    fmtSize = builder.CreateAdd(fmtSize, builder.CreateLoad(quotedSize));
+                    fmtSize = builder.CreateAdd(fmtSize, builder.CreateLoad(env.i64Type(), quotedSize));
                 } else if(type.isOptionType()) {
 
                     // check element type & call string conversion function with convert
@@ -1510,7 +1510,7 @@ namespace tuplex {
             auto snprintf_func = snprintf_prototype(env.getContext(), env.getModule().get());
 
             //{csvRow, fmtSize, env().strConst(builder, fmtString), ...}
-            args[0] = builder.CreateLoad(bufVar); args[1] = fmtSize; args[2] = env.strConst(builder, fmtString);
+            args[0] = builder.CreateLoad(env.i8ptrType(), bufVar); args[1] = fmtSize; args[2] = env.strConst(builder, fmtString);
             auto charsRequired = builder.CreateCall(snprintf_func, args);
             auto sizeWritten = builder.CreateAdd(builder.CreateZExt(charsRequired, env.i64Type()), env.i64Const(1));
 
@@ -1525,7 +1525,7 @@ namespace tuplex {
             // realloc with sizeWritten
             // store new malloc in bufVar
             builder.CreateStore(env.malloc(builder, sizeWritten), bufVar);
-            args[0] = builder.CreateLoad(bufVar);
+            args[0] = builder.CreateLoad(env.i8ptrType(), bufVar);
             args[1] = sizeWritten;
             builder.CreateCall(snprintf_func, args);
 
@@ -1539,7 +1539,7 @@ namespace tuplex {
 
 
             // then, call writeRow
-            auto buf = builder.CreateLoad(bufVar);
+            auto buf = builder.CreateLoad(env.i8ptrType(), bufVar);
             // use string length instead of size, because else writer will copy '\0' too!
             auto length = builder.CreateSub(sizeWritten, env.i64Const(1));
 

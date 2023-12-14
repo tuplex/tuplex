@@ -1,5 +1,14 @@
-# (c) 2017 Leonhard Spiegelberg
+# (c) 2017-2023 Leonhard Spiegelberg
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
+
+# top-level language specification
+# enable c++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+message(STATUS "Using language version: C++${CMAKE_CXX_STANDARD}")
+
+# add cmake modules from cmake folder
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
 # Tuplex build options:
 # =====================
@@ -34,6 +43,16 @@ endfunction()
 # ninja fixes for multiple zstd generators
 if(CMAKE_GENERATOR STREQUAL "Ninja")
     message(STATUS "Using ninja generator, if fails use -w dupbuild=err")
+endif()
+
+# The -fvisibility=hidden option only works for static builds.
+if (NOT BUILD_SHARED_LIBS)
+    set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+else()
+    if (CMAKE_CXX_VISIBILITY_PRESET STREQUAL "hidden")
+        message(FATAL_ERROR "CMAKE_CXX_VISIBILITY_PRESET=hidden is incompatible \
+                           with BUILD_SHARED_LIBS.")
+    endif()
 endif()
 
 # detect MacOS Version because at least 10.13 is required when building with AWS SDK
@@ -73,14 +92,6 @@ endif()
 # uncomment to get verbose cmake output
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
-# top-level language specification
-# enable c++17
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-message(STATUS "Using language version: C++${CMAKE_CXX_STANDARD}")
-
-# add cmake modules from cmake folder
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 message(STATUS "additional cmake module path is ${CMAKE_MODULE_PATH}")
 include("${CMAKE_SOURCE_DIR}/cmake/ucm.cmake") #handy package to manipulate compiler flags
 include("${CMAKE_SOURCE_DIR}/cmake/CPM.cmake") # package manager from https://github.com/cpm-cmake/CPM.cmake
@@ -192,6 +203,88 @@ if(BUILD_FOR_CI)
     add_definitions(-DBUILD_FOR_CI)
 endif()
 
+## Protobuf
+if(BUILD_WITH_AWS)
+    # building with AWS backend support?
+    # communication with AWS Lambda happens via protobuf, i.e. make sure protobuf compiler
+    # is installed
+    set(PROTOBUF_REQUIRED True)
+endif()
+
+if(BUILD_WITH_ORC)
+    # ORC requires protobuf for schema
+    set(PROTOBUF_REQUIRED True)
+endif()
+
+# if protobuf is required, add as lib here.
+if(PROTOBUF_REQUIRED)
+    message(STATUS "Build requires Protobuf")
+    set(Protobuf_USE_STATIC_LIBS ON)
+    # https://github.com/protocolbuffers/protobuf/issues/12637
+    find_package(Protobuf CONFIG)
+    if(NOT Protobuf_FOUND)
+        find_package(Protobuf REQUIRED)
+    endif()
+
+    if(Protobuf_LIBRARY)
+    else()
+        get_target_property(Protobuf_LIBRARY protobuf::libprotobuf LOCATION)
+    endif()
+    cmake_path(GET Protobuf_LIBRARY PARENT_PATH Protobuf_LIBRARY_DIR)
+    cmake_path(GET Protobuf_LIBRARY_DIR PARENT_PATH Protobuf_HOME)
+
+    message(STATUS "Protobuf home is ${Protobuf_HOME}")
+    assert_var(Protobuf_HOME)
+
+    # newer protobuf has abseil dependency, amend protobuf libs accordingly because protobuf is shipped in
+    # a non-fixed state (see https://github.com/protocolbuffers/protobuf/issues/12637)
+    # there's a bug in cmake for cmake < 3.27 where version is detected wrongly as 4.x -> fix
+    if((Protobuf_VERSION VERSION_GREATER_EQUAL "3.22" AND Protobuf_VERSION VERSION_LESS "4.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "4.3.22" AND Protobuf_VERSION VERSION_LESS "5.0.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "22.0"))
+        find_package(absl REQUIRED)
+        find_package(utf8_range REQUIRED)
+        set(protobuf_ABSL_USED_TARGETS
+                absl::absl_check
+                absl::absl_log
+                absl::algorithm
+                absl::base
+                absl::bind_front
+                absl::bits
+                absl::btree
+                absl::cleanup
+                absl::cord
+                absl::core_headers
+                absl::debugging
+                absl::die_if_null
+                absl::dynamic_annotations
+                absl::flags
+                absl::flat_hash_map
+                absl::flat_hash_set
+                absl::function_ref
+                absl::hash
+                absl::layout
+                absl::log_initialize
+                absl::log_severity
+                absl::memory
+                absl::node_hash_map
+                absl::node_hash_set
+                absl::optional
+                absl::span
+                absl::status
+                absl::statusor
+                absl::strings
+                absl::synchronization
+                absl::time
+                absl::type_traits
+                absl::utility
+                absl::variant
+                utf8_range::utf8_validity
+        )
+        list(APPEND Protobuf_LIBRARIES ${protobuf_ABSL_USED_TARGETS})
+    endif()
+endif()
+
+
+
 # build with AWS support
 if(BUILD_WITH_AWS)
     # requires at least High Sierra (10.13)
@@ -239,62 +332,6 @@ if(BUILD_WITH_AWS)
     else()
         message(FATAL_ERROR "option build with AWSSDK specified, but AWS SDK was not found.")
     endif ()
-
-    # building with AWS backend support?
-    # communication with AWS Lambda happens via protobuf, i.e. make sure protobuf compiler
-    # is installed
-    #set(Protobuf_USE_STATIC_LIBS ON)
-    # https://github.com/protocolbuffers/protobuf/issues/12637
-    find_package(Protobuf CONFIG)
-    if(NOT Protobuf_FOUND)
-        find_package(Protobuf REQUIRED)
-    endif()
-
-    # newer protobuf has abseil dependency, amend protobuf libs accordingly because protobuf is shipped in
-    # a non-fixed state (see https://github.com/protocolbuffers/protobuf/issues/12637)
-    # there's a bug in cmake for cmake < 3.27 where version is detected wrongly as 4.x -> fix
-    if((Protobuf_VERSION VERSION_GREATER_EQUAL "3.22" AND Protobuf_VERSION VERSION_LESS "4.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "4.3.22" AND Protobuf_VERSION VERSION_LESS "5.0.0") OR (Protobuf_VERSION VERSION_GREATER_EQUAL "22.0"))
-        find_package(absl REQUIRED)
-        find_package(utf8_range REQUIRED)
-        set(protobuf_ABSL_USED_TARGETS
-                absl::absl_check
-                absl::absl_log
-                absl::algorithm
-                absl::base
-                absl::bind_front
-                absl::bits
-                absl::btree
-                absl::cleanup
-                absl::cord
-                absl::core_headers
-                absl::debugging
-                absl::die_if_null
-                absl::dynamic_annotations
-                absl::flags
-                absl::flat_hash_map
-                absl::flat_hash_set
-                absl::function_ref
-                absl::hash
-                absl::layout
-                absl::log_initialize
-                absl::log_severity
-                absl::memory
-                absl::node_hash_map
-                absl::node_hash_set
-                absl::optional
-                absl::span
-                absl::status
-                absl::statusor
-                absl::strings
-                absl::synchronization
-                absl::time
-                absl::type_traits
-                absl::utility
-                absl::variant
-                utf8_range::utf8_validity
-                )
-        list(APPEND Protobuf_LIBRARIES ${protobuf_ABSL_USED_TARGETS})
-    endif()
 endif()
 
 if(GENERATE_PDFS)
@@ -811,7 +848,7 @@ set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
 
 # external libs to build / download
 set(ZLIB_VERSION "1.2.11") # which zlib version to use
-set(ZSTD_VERSION "1.5.0") # which zstd version to use
+set(ZSTD_VERSION "1.5.5") # which zstd version to use
 set(BUILD_AND_DOWNLOAD_ZLIB True)
 set(BUILD_AND_DOWNLOAD_ZSTD True)
 
@@ -876,17 +913,26 @@ endif()
 # zstd has no cmake standard module, so manually search for it
 find_package(zstd "${ZSTD_VERSION}")
 if(zstd_FOUND)
-    # check if zstd is defined as target
-    if(TARGET zstd::libzstd_static)
-        set(ZSTD_LIBRARIES "zstd::libzstd_static") # could also be libzstd_shared
+    # check if zstd version is up to required version
+    if(zstd_VERSION VERSION_GREATER_EQUAL ${ZSTD_VERSION})
+        # check if zstd is defined as target
+        if(TARGET zstd::libzstd_static)
+            set(ZSTD_LIBRARIES "zstd::libzstd_static") # could also be libzstd_shared
+        endif()
+        # if not, use variables directly
+        if(ZSTD_LIBRARY)
+            set(ZSTD_LIBRARIES "${ZSTD_LIBRARY}")
+        elseif(ZSTD_STATIC_LIB)
+            set(ZSTD_LIBRARIES "${ZSTD_STATIC_LIB}")
+        endif()
+    else()
+        message(STATUS "Found locally installed zstd ${zstd_VERSION}, but required is at least ${ZSTD_VERSION}. Building suitable zstd library ${ZSTD_VERSION} from source.")
+        unset(zstd_FOUND)
     endif()
-    # if not, use variables directly
-    if(ZSTD_LIBRARY)
-        set(ZSTD_LIBRARIES "${ZSTD_LIBRARY}")
-    elseif(ZSTD_STATIC_LIB)
-        set(ZSTD_LIBRARIES "${ZSTD_STATIC_LIB}")
-    endif()
-else()
+endif()
+
+# if zstd is not found (or version not ok)
+if(NOT zstd_FOUND)
 
     # check if brewed by chance, if not fetch
     if(APPLE AND BREW_FOUND)
@@ -941,7 +987,7 @@ else()
                 BUILD_BYPRODUCTS "${ZSTD_STATIC_LIB}"
                 DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
 
-        set(ZSTD_LIBRARIES ${ZSTD_STATIC_LIB})
+        set(ZSTD_LIBRARIES "zstd")
 
         add_library(zstd INTERFACE)
         target_link_libraries(zstd INTERFACE ${ZSTD_STATIC_LIB})
@@ -986,21 +1032,43 @@ endif()
 # ncurses/curses lib for terminal manipulation
 find_package(Curses REQUIRED)
 
+# For debug tracing, actually link & include symbols (for macos right now only)
+if(APPLE)
+    # Use explicit stracktrace to produce errors
+    include(FetchContent)
+
+    # for this also requires libdwarf
+    find_package(LibElf REQUIRED)
+    find_package(LibDwarf REQUIRED)
+
+    # Also requires one of: libbfd (gnu binutils), libdwarf, libdw (elfutils)
+    FetchContent_Declare(backward
+            GIT_REPOSITORY https://github.com/bombela/backward-cpp
+            GIT_TAG master  # or a version tag, such as v1.6
+            SYSTEM          # optional, the Backward include directory will be treated as system directory
+            )
+    FetchContent_MakeAvailable(backward)
+    # Add Backward to your target (either Backward::Interface, Backward::Object, or Backward::Backward)
+    #target_link_libraries(mytarget PUBLIC Backward::Interface)
+endif()
+
 # add subdirs here...
 add_subdirectory(io)  # <-- make sure to call this first, because it changes parent scope with io dependencies
 add_subdirectory(utils)
-add_subdirectory(test)
 add_subdirectory(codegen)
 add_subdirectory(core)
 add_subdirectory(python)
 add_subdirectory(runtime)
 add_subdirectory(adapters)
-
 # can only build aws lambda on linux platform
 if(LINUX AND BUILD_WITH_AWS)
     # removed AWS lambda implementation, can be found on separate branch
-     add_subdirectory(awslambda)
+    add_subdirectory(awslambda)
 endif()
+# call test dir last to get vars from before
+add_subdirectory(test)
+
+
 
 ###########################################################################
 # (7) Additional flags

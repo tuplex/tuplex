@@ -33,7 +33,6 @@ file(GLOB_RECURSE SOURCES src/*.cc)
 message(STATUS "libs: ${Python3_LIBRARIES}")
 message(STATUS "includes: ${Python3_INCLUDE_DIRS}")
 
-
 ## use e.g. cpm https://github.com/cpm-cmake/CPM.cmake
 ## fetch pybind11 (external project)
 #CPMAddPackage(
@@ -63,7 +62,9 @@ add_dependencies(${MODULE_NAME} libcore libcodegen)
 target_include_directories(${MODULE_NAME} PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(${MODULE_NAME} PRIVATE
+if(APPLE)
+target_link_libraries(${MODULE_NAME} PUBLIC Backward::Interface
+        PRIVATE
         libcodegen
         libcore
         libcpythonadapter
@@ -73,6 +74,19 @@ target_link_libraries(${MODULE_NAME} PRIVATE
         Boost::thread
         Boost::system
         Boost::filesystem)
+else()
+    target_link_libraries(${MODULE_NAME}
+            PRIVATE
+            libcodegen
+            libcore
+            libcpythonadapter
+            libutils
+            libio
+            Boost::iostreams
+            Boost::thread
+            Boost::system
+            Boost::filesystem)
+endif()
 
 #check if single generator or multiple
 # copy setup.py/MANIFEST.in files and the directory tuplex

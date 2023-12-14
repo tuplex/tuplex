@@ -994,6 +994,14 @@ namespace python {
             bUnderlyingType = b.getReturnType();
         }
 
+        // if makeOption -> recursive call
+        if(makeOption) {
+            auto ans = unifyTypes(aUnderlyingType, bUnderlyingType);
+            if(python::Type::UNKNOWN == ans)
+                return ans;
+            return python::Type::makeOptionType(ans);
+        }
+
         // same underlying types? make option
         if (aUnderlyingType == bUnderlyingType) {
             return python::Type::makeOptionType(aUnderlyingType);
@@ -1032,6 +1040,18 @@ namespace python {
             }
             return python::Type::makeListType(newElementType);
         }
+
+        // any list is compatible with empty list
+        if(aUnderlyingType.isListType() && bUnderlyingType == python::Type::EMPTYLIST)
+            return aUnderlyingType;
+        if(aUnderlyingType == python::Type::EMPTYLIST && bUnderlyingType.isListType())
+            return bUnderlyingType;
+
+        // any dict is compatible with empty dict
+        if(aUnderlyingType.isDictionaryType() && bUnderlyingType == python::Type::EMPTYDICT)
+            return aUnderlyingType;
+        if(aUnderlyingType == python::Type::EMPTYDICT && bUnderlyingType.isDictionaryType())
+            return bUnderlyingType;
 
         // tuple type? check if every parameter type compatible
         if(aUnderlyingType.isTupleType() && bUnderlyingType.isTupleType()) {

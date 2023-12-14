@@ -132,10 +132,19 @@ namespace tuplex {
                 PyObject *elem_to_insert = nullptr;
                 if (current_type.isOptionType() && current_type.getReturnType().isTupleType()) {
                     // createPyTupleFromMemory requires a ptr to start of the actual tuple data, so need to decode and add offset here
-                    uint64_t offset = *((uint64_t *)(ptr + current_buffer_index));
-                    assert(current_buffer_index + offset <= capacity);
-                    elem_to_insert = createPyObjectFromMemory(ptr + current_buffer_index + offset, current_type,
-                                                              capacity, bitmap, bitmap_index);
+                    // check first whether element is NULL, if so return None.
+                    // else, read tuple ptr
+                    assert(bitmap);
+                    bool is_null = bitmap[bitmap_index/64] & (1UL << (bitmap_index % 64));
+                    if(is_null) {
+                        Py_XINCREF(Py_None);
+                        elem_to_insert = Py_None;
+                    } else {
+                        uint64_t offset = *((uint64_t *)(ptr + current_buffer_index)) & 0xFFFFFFFF;
+                        assert(current_buffer_index + offset <= capacity);
+                        elem_to_insert = createPyObjectFromMemory(ptr + current_buffer_index + offset, current_type,
+                                                                  capacity, bitmap, bitmap_index);
+                    }
                 } else {
                     // otherwise, simply pass ptr to the current field
                     elem_to_insert = createPyObjectFromMemory(ptr + current_buffer_index, current_type, capacity,
@@ -232,13 +241,13 @@ namespace tuplex {
                     } else if (elementType == python::Type::STRING) {
                         char *string_errors = nullptr;
                         // get offset for string
-                        auto currOffset = *reinterpret_cast<const uint64_t *>(ptr);
+                        auto currOffset = *reinterpret_cast<const uint64_t *>(ptr) & 0xFFFFFFFF;
                         assert(currOffset <= capacity);
                         auto currStr = reinterpret_cast<const char*>(&ptr[currOffset]);
                         element = PyUnicode_DecodeUTF8(currStr, (long)(strlen(currStr)), string_errors);
                         ptr += sizeof(int64_t);
                     } else if(elementType.isTupleType()) {
-                        auto currOffset = *(uint64_t *)ptr;
+                        auto currOffset = *(uint64_t *)ptr & 0xFFFFFFFF;
                         assert(currOffset <= capacity);
                         element = createPyTupleFromMemory(ptr + currOffset, elementType, capacity);
                         ptr += sizeof(int64_t);
@@ -281,7 +290,7 @@ namespace tuplex {
                             } else {
                                 char *string_errors = nullptr;
                                 // get offset for string
-                                auto currOffset = *reinterpret_cast<const uint64_t *>(ptr);
+                                auto currOffset = *reinterpret_cast<const uint64_t *>(ptr) & 0xFFFFFFFF;
                                 assert(currOffset <= capacity);
                                 auto currStr = reinterpret_cast<const char*>(&ptr[currOffset]);
                                 element = PyUnicode_DecodeUTF8(currStr, (long)(strlen(currStr)), string_errors);
@@ -300,7 +309,7 @@ namespace tuplex {
                                 Py_XINCREF(Py_None);
                                 element = Py_None;
                             } else {
-                                uint64_t currOffset = *((uint64_t *)(ptr));
+                                uint64_t currOffset = *((uint64_t *)(ptr)) & 0xFFFFFFFF;
                                 assert(currOffset <= capacity);
                                 element = createPyTupleFromMemory(ptr + currOffset, underlyingType, capacity);
                                 ptr += sizeof(int64_t);

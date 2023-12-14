@@ -37,7 +37,7 @@ namespace tuplex {
                 callProcessFuncWithHandler(builder, userData, tuple, normalRowCountVar, rowNumberVar, inputRowPtr,
                                            inputRowSize, terminateEarlyOnLimitCode, processRowFunc);
             } else {
-                Value *normalRowCount = builder.CreateLoad(normalRowCountVar, "normalRowCount");
+                Value *normalRowCount = builder.CreateLoad(builder.getInt64Ty(), normalRowCountVar, "normalRowCount");
                 builder.CreateStore(builder.CreateAdd(normalRowCount, env().i64Const(1)), normalRowCountVar);
             }
         }

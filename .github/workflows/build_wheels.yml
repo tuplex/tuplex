@@ -38,13 +38,29 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Cache brew dependencies
+        if: runner.os == 'macOS'
+        uses: actions/cache@v3.3.2
+        with:
+          # Paths to cache:
+          # /usr/local/Homebrew - installation folder of Homebrew
+          # /usr/local/Cellar - installation folder of Homebrew formulae
+          # /usr/local/Frameworks, /usr/local/bin, /usr/local/opt - contain (links to) binaries installed by Homebrew formulae
+          path: |
+            /usr/local/Homebrew
+            /usr/local/Cellar
+            /usr/local/Frameworks
+            /usr/local/bin
+            /usr/local/opt
+          key: macos-11-build-cache-${{ hashFiles('./scripts/macos/brew_dependencies.sh') }}-v2
+
       # need to make this an intermediate step, i.e. build first the different lambda runners on Ubuntu...
       - name: Build Lambda runner (Linux only)
         if: runner.os != 'macOS'
         run: docker pull registry-1.docker.io/tuplex/ci:${{ matrix.python-version }} && export PYTHON3_VERSION=${{ matrix.python-version }}.0 && bash ./scripts/create_lambda_zip.sh && mkdir -p ./tuplex/python/tuplex/other && cp ./build-lambda/tplxlam.zip ./tuplex/python/tuplex/other
         shell: bash
 
-      - name: Build wheels
+      - name: Build wheel
         #if: runner.os != 'macOS'
         uses: pypa/cibuildwheel@fff9ec32ed25a9c576750c91e06b410ed0c15db7 # hash corresponds to v2.16.2
         env:
@@ -62,6 +78,10 @@ jobs:
 
           # requires macOS 10.13 at least to build because of C++17 features.
           CIBW_ENVIRONMENT_MACOS: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' JAVA_HOME=${JAVA_HOME_11_X64}"
+          # run all python tests to make sure wheels are not defunct
+          CIBW_TEST_REQUIRES: "pytest pytest-timeout numpy nbformat jupyter"
+          # use 3min timeout per test and print top 25 slowest tests
+          CIBW_TEST_COMMAND: "cd {project} && pytest tuplex/python/tests -v --timeout 600 --durations 25"
 
       - name: reorganize files
         run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./.github/scripts/test_pypi.sh ./wheelhouse

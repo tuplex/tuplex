@@ -76,7 +76,7 @@ namespace llvm {
         CallInst *CI = CallInst::Create(Callee, Ops, Name);
         if (FMFSource)
             CI->copyFastMathFlags(FMFSource);
-#if (LLVM_VERSION_MAJOR <= 14)
+#if (LLVM_VERSION_MAJOR <= 15)
         builder.GetInsertBlock()->getInstList().insert(builder.GetInsertPoint(), CI);
 #else
         CI->insertInto(builder.GetInsertBlock(), builder.GetInsertBlock()->begin());
@@ -1013,6 +1013,8 @@ namespace tuplex {
             llvm::BlockAddress *createOrGetUpdateIteratorIndexFunctionDefaultBlockAddress(const codegen::IRBuilder &builder,
                                                                                           const python::Type &iterableType,
                                                                                           bool reverse=false);
+
+            llvm::Value *cbool_const(bool b);
         };
 
 // i.e. there should be a function

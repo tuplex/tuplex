@@ -289,13 +289,13 @@ namespace tuplex {
                                                          builder.CreateICmpEQ(cellEnd, _endPtr));
 
 
-                auto beforeCellBegin = clampWithStartPtr(builder, builder.CreateGEP(cellBegin, _env->i32Const(-1)));
+                auto beforeCellBegin = clampWithStartPtr(builder, builder.MovePtrByBytes(cellBegin, -1));
                 // note that cellEnd is excl. Hence at cellEnd there is the character after the cell end
-                auto afterCellEnd = clampWithEndPtr(builder, builder.CreateGEP(cellEnd, _env->i32Const(0)));
+                auto afterCellEnd = clampWithEndPtr(builder, builder.MovePtrByBytes(cellEnd, (int64_t)0));
 
-                auto beforeIsQuote = builder.CreateICmpEQ(builder.CreateLoad(beforeCellBegin),
+                auto beforeIsQuote = builder.CreateICmpEQ(builder.CreateLoad(builder.getInt8Ty(), beforeCellBegin),
                                                           _env->i8Const(_quotechar));
-                auto afterIsQuote = builder.CreateICmpEQ(builder.CreateLoad(afterCellEnd), _env->i8Const(_quotechar));
+                auto afterIsQuote = builder.CreateICmpEQ(builder.CreateLoad(builder.getInt8Ty(), afterCellEnd), _env->i8Const(_quotechar));
                 auto beforeAndAfterAreQuotes = builder.CreateAnd(beforeIsQuote, afterIsQuote);
 
                 return builder.CreateSelect(cellAtBoundaries, _env->i1Const(false), beforeAndAfterAreQuotes);

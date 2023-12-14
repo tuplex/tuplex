@@ -532,7 +532,6 @@ end_repl_str:
     return ret;
 }
 
-
 /*!
  * strFormat function with variable number of arguments. Supports formatting for bool, int, float, str.
  * No support for tuples or other objects yet.

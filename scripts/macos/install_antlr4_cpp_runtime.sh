@@ -7,6 +7,11 @@ PREFIX=/usr/local
 # if antlr4 exists already, skip
 [ -d "antlr4" ] && exit 0
 
+if [ -d "${PREFIX}/include/antlr4-runtime" ]; then
+  echo "skip antlr4 runtime install, directory already exists"
+  exit 0
+fi
+
 # if macOS is 10.x -> use this as minimum
 MINIMUM_TARGET="-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"
 

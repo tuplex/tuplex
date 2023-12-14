@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# (c) 2021 Tuplex contributors
+# (c) 2017 - 2023 Tuplex contributors
 # builds CI image
 
 while :; do

@@ -9,7 +9,7 @@
 //--------------------------------------------------------------------------------------------------------------------//
 
 #!/usr/bin/env bash
-# (c) 2021 L. Spiegelberg, R. Yesantharao
+# (c) 2017 - 2023 L. Spiegelberg, R. Yesantharao
 # Create AWS Lambda function and upload the provided function zip file.
 
 LAMBDA_NAME=tplxlam

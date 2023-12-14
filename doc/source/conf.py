@@ -30,13 +30,13 @@ sys.path.insert(0, 'python')
 # -- Project information -----------------------------------------------------
 
 project = 'Tuplex'
-copyright = '(c) 2021 Tuplex Contributors'
+copyright = '(c) 2017 - 2023 Tuplex Contributors'
 author = 'Leonhard Spiegelberg'
 
 # The short X.Y version
 version="0.3"
 # The full version, including alpha/beta/rc tags
-release="0.3.6dev"
+release="0.3.6"
 
 
 # -- General configuration ---------------------------------------------------

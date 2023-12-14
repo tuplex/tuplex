@@ -14,6 +14,8 @@ import os
 import tempfile
 import subprocess
 import json
+import tempfile
+import logging
 
 def get_jupyter_version():
     """helper to get version of jupyter as tuple"""
@@ -87,12 +89,12 @@ def get_jupyter_function_code(func_name, code):
     Returns:
         result of get_source run in jupyter notebook
     """
-    fname = 'testnb.ipynb'
+    # create temp name
+    fname = None
+    with tempfile.NamedTemporaryFile() as tmp:
+        fname = tmp.name + '.ipynb'
 
-    # create notebook
-    if os.path.exists(fname):
-        raise Exception('File {} already exists. Aborting testing.'.format(fname))
-
+    logging.debug(f'Writing data to temp file {fname}')
     try:
         create_function_notebook(func_name, code, fname)
 

@@ -77,15 +77,31 @@ fi
 pushd $CWD > /dev/null
 cd ..
 
+# fix because of Python
+MINIMUM_TARGET=11.0
+
+# Note: 3.8 only supports tags up to 10.16
+MINIMUM_TARGET=10.13
+
 # Note: protobuf 3.20 - 3.21.2 is broken for MacOS, do not use those versions
-export CIBW_BEFORE_BUILD_MACOS="brew install protobuf coreutils zstd zlib libmagic llvm@16 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero wget boost ninja snappy"
-export CIBW_ENVIRONMENT_MACOS="MACOSX_DEPLOYMENT_TARGET=${MINIMUM_TARGET} CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DCMAKE_BUILD_TYPE=Release' CMAKE_BUILD_TYPE=Release"
+export CIBW_BEFORE_BUILD_MACOS="brew install protobuf coreutils zstd zlib libmagic llvm@16 aws-sdk-cpp pcre2 antlr4-cpp-runtime googletest gflags yaml-cpp celero wget boost ninja snappy libdwarf libelf"
+
+
+# Note: orc build breaks wheel right now...
+export CIBW_ENVIRONMENT_MACOS="MACOSX_DEPLOYMENT_TARGET=${MINIMUM_TARGET} CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' TUPLEX_BUILD_TYPE=RelWithDebInfo"
+#export CIBW_ENVIRONMENT_MACOS="MACOSX_DEPLOYMENT_TARGET=${MINIMUM_TARGET} CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' TUPLEX_BUILD_TYPE=Debug"
 
 export CIBW_BUILD="${CIBW_BUILD}"
 export CIBW_PROJECT_REQUIRES_PYTHON=">=3.8"
 
 # uncomment to increase verbosity of cibuildwheel
 export CIBW_BUILD_VERBOSITY=3
+
+# uncomment and set to specific identifier
+#export CIBW_BUILD="cp39-macosx_x86_64"
+
+export CIBW_TEST_REQUIRES="pytest pytest-timeout numpy nbformat jupyter"
+export CIBW_TEST_COMMAND="cd {project} && pytest tuplex/python/tests --timeout_method thread --timeout 300 -l -v"
 
 cibuildwheel --platform macos
 

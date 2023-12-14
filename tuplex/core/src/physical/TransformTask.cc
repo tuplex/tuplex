@@ -1056,4 +1056,11 @@ namespace tuplex {
         }
         assert(_htable->hm);
     }
+
+    void TransformTask::releaseAllLocks() {
+        // need to unlock all input partitions & output partitions (sinks)
+        for(auto p : _inputPartitions)
+            p->unlock();
+        unlockAllMemorySinks();
+    }
 }

@@ -259,6 +259,8 @@ namespace tuplex {
 
         size_t output_rows_written() const { return _numOutputRowsWritten; }
         size_t output_limit() const { return _outLimit; }
+
+        void releaseAllLocks() override;
     private:
         void resetSinks();
         void resetSources();

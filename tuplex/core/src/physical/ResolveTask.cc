@@ -1424,4 +1424,18 @@ default:
         // -> 3 functions in python: a.) init aggregate, b.) update aggregate c.) later: combine aggregates (this will be done last)
         // @TODO.
     }
+
+    void ResolveTask::releaseAllLocks() {
+        for(auto p : _partitions)
+            p->unlock();
+        for(auto p : _exceptionPartitions)
+            p->unlock();
+        for(auto p : _generalPartitions)
+            p->unlock();
+        for(auto p : _fallbackPartitions)
+            p->unlock();
+        this->_mergedRowsSink.unlock();
+        this->_fallbackSink.unlock();
+        this->_generalCaseSink.unlock();
+    }
 }

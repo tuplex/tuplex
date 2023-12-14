@@ -20,14 +20,9 @@ include_directories(${Boost_INCLUDE_DIR})
 # Install and build ORC C++ APIs when BUILD_WITH_ORC is active
 if(BUILD_WITH_ORC)
     message(STATUS "Building Tuplex with ORC support")
+    message(STATUS "Protobuf_HOME is ${Protobuf_HOME}")
 
-    # https://github.com/protocolbuffers/protobuf/issues/12637
-    find_package(Protobuf CONFIG)
-    if(NOT Protobuf_NOTFOUND)
-        find_package(Protobuf REQUIRED)
-    endif()
-    get_filename_component(Protobuf_HOME "${Protobuf_INCLUDE_DIRS}" DIRECTORY)
-
+    ASSERT_VAR(Protobuf_HOME)
     # For MacOS, check whether certain 3rd party libs are already installed via brew
     if(BREW_FOUND)
         if(APPLE)
@@ -199,9 +194,14 @@ if(BUILD_WITH_ORC)
 
     ExternalProject_Add(orc
             GIT_REPOSITORY https://github.com/apache/orc.git
-            GIT_TAG rel/release-1.9.1
+            GIT_TAG rel/release-1.9.2
             TIMEOUT 5
-            CMAKE_ARGS -DBUILD_LIBHDFSPP=OFF -DSNAPPY_HOME=${SNAPPY_HOME} -DLZ4_HOME=${LZ4_HOME} -DZSTD_HOME=${ZSTD_HOME} -DZLIB_HOME=${ZLIB_HOME} -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION} -DSTOP_BUILD_ON_WARNING=OFF -DBUILD_JAVA=OFF -DBUILD_TOOLS=OFF -DBUILD_CPP_TESTS=OFF -DBUILD_POSITION_INDEPENDENT_LIB=ON -DPROTOBUF_HOME=${Protobuf_HOME}
+            CMAKE_ARGS -DBUILD_LIBHDFSPP=OFF -DSNAPPY_HOME=${SNAPPY_HOME}
+            -DLZ4_HOME=${LZ4_HOME} -DZSTD_HOME=${ZSTD_HOME} -DZLIB_HOME=${ZLIB_HOME}
+            -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+            -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
+            -DSTOP_BUILD_ON_WARNING=OFF -DBUILD_JAVA=OFF -DBUILD_TOOLS=OFF -DBUILD_CPP_TESTS=OFF
+            -DBUILD_POSITION_INDEPENDENT_LIB=ON -DPROTOBUF_HOME=${Protobuf_HOME}
             PREFIX "${EXTERNAL_INSTALL_LOCATION}"
             UPDATE_COMMAND "" # Disable update step: clones the project only once
             BUILD_BYPRODUCTS ${EXTERNAL_INSTALL_LOCATION}/lib/liborc.a ${ORC_THIRD_PARTY_LIBS}

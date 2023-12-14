@@ -74,11 +74,17 @@ namespace tuplex {
                 Logger::instance().flushToPython();
                 auto listObj = PyList_New(1);
                 PyList_SetItem(listObj, 0, python::PyString_FromString(err_message.c_str()));
-                return py::reinterpret_borrow<py::list>(listObj);
+                return pybind_list_from_obj(listObj);
             }
+
+            Logger::instance().flushToPython();
+
             // collect results & transfer them back to python
             // new version, directly interact with the interpreter
             Timer timer;
+
+            Logger::instance().logger("python").info("Converting result-set to CPython objects");
+
             // build python list object from resultset
             auto listObj = resultSetToCPython(rs.get(), std::numeric_limits<size_t>::max());
 
@@ -98,7 +104,7 @@ namespace tuplex {
             Logger::instance().logger("python").info("Data transfer back to Python took "
                                                      + std::to_string(timer.time()) + " seconds");
 
-            auto list = py::reinterpret_borrow<py::list>(listObj);
+            auto list = pybind_list_from_obj(listObj);
             // Logger::instance().flushAll();
             Logger::instance().flushToPython();
 
@@ -161,7 +167,7 @@ namespace tuplex {
                 Logger::instance().flushToPython();
                 auto listObj = PyList_New(1);
                 PyList_SetItem(listObj, 0, python::PyString_FromString(err_message.c_str()));
-                return py::reinterpret_borrow<py::list>(listObj);
+                return pybind_list_from_obj(listObj);
             }
 
             // collect results & transfer them back to python
@@ -178,7 +184,7 @@ namespace tuplex {
             if (ss.str().length() > 0)
                 PySys_FormatStdout("%s", ss.str().c_str());
 
-            return py::reinterpret_borrow<py::list>(listObj);
+            return pybind_list_from_obj(listObj);
         }
     }
 
@@ -885,25 +891,64 @@ namespace tuplex {
     PyObject* PythonDataSet::anyToCPythonWithPyObjects(ResultSet* rs, size_t maxRowCount) {
         assert(rs);
 
+        auto& logger = Logger::instance().logger("python");
+
         // simply call the getnext row function from resultset
         PyObject * emptyListObj = PyList_New(0);
         size_t rowCount = std::min(rs->rowCount(), maxRowCount);
+        logger.debug("Found " + std::to_string(rowCount) + " rows to convert to python objects.");
         PyObject * listObj = PyList_New(rowCount);
         if (PyErr_Occurred()) {
+
             PyErr_Print();
             PyErr_Clear();
             return emptyListObj;
         }
 
-        for(int i = 0; i < rowCount; ++i) {
+        // avoid locking to often, so retrieve rows in batches
+#ifndef NDEBUG
+        static const size_t ROW_BATCH_SIZE = 1024;
+#else
+        static const size_t ROW_BATCH_SIZE = 2048 * 8;
+#endif
+        for(int i = 0; i < rowCount; i += ROW_BATCH_SIZE) {
+            // convert to vector of rows, then lock GIL and convert each to python
+            std::vector<Row> v; v.reserve(ROW_BATCH_SIZE);
+            int max_j = std::min((int)rowCount - i, (int)ROW_BATCH_SIZE); assert(i >= 0);
             python::unlockGIL();
-            auto row = rs->getNextRow();
+            logger.debug("Converting batch of rows " + std::to_string(i) + " - " + std::to_string(i + max_j) + " from result set to rows.");
+            for(int j = 0; j < max_j; ++j) {
+                v.emplace_back(rs->getNextRow());
+            }
+
+
             python::lockGIL();
-            auto py_row = python::rowToPython(row, true);
-            assert(py_row);
-            PyList_SET_ITEM(listObj, i, py_row);
+            // perfom signal check after each batch to make sure interrupts are handled correctly
+            check_and_forward_signals(true);
+
+            // conversion to python objects
+            for(int j = 0; j < max_j; ++j) {
+                auto py_row = python::rowToPython(v[j], true);
+                assert(py_row);
+                PyList_SET_ITEM(listObj, i + j, py_row);
+            }
+            logger.debug("Wrote batch of rows " + std::to_string(i) + " - " + std::to_string(i + max_j) + " from result set to Python list.");
+
+            // check & forward signals again
+            check_and_forward_signals(true);
         }
 
+        //        // old, batch-less version
+        //        for(int i = 0; i < rowCount; ++i) {
+        //            python::unlockGIL();
+        //            auto row = rs->getNextRow();
+        //            python::lockGIL();
+        //            auto py_row = python::rowToPython(row, true);
+        //            assert(py_row);
+        //            PyList_SET_ITEM(listObj, i, py_row);
+        //        }
+
+        logger.debug("Python object conversion done, writing list output object");
         return listObj;
     }
 
@@ -1354,8 +1399,10 @@ namespace tuplex {
         // b.c. merging of arbitrary python objects is not implemented yet, whenever they're present, use general
         // version
         // @TODO: this could be optimized!
-        if(rs->fallbackRowCount() != 0)
+        if(rs->fallbackRowCount() != 0) {
+            Logger::instance().defaultLogger().info("Using slow anyToCPythonWithPyObjects conversion function, because fallback row count is not 0.");
             return anyToCPythonWithPyObjects(rs, maxRowCount);
+        }
 
         auto type = rs->schema().getRowType();
         // if single type, reset by one
@@ -1665,7 +1712,7 @@ namespace tuplex {
             auto typeobj = python::encodePythonSchema(row_type.parameters()[i]);
             PyList_SetItem(listObj, i, typeobj);
         }
-        return py::reinterpret_borrow<py::list>(listObj);
+        return pybind_list_from_obj(listObj);
     }
 
     py::object PythonDataSet::exception_counts() {

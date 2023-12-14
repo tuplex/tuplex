@@ -374,6 +374,13 @@ class CMakeBuild(build_ext):
                 except:
                     logging.error('Could not detect macos version, defaulting to macos 10.13 as build target')
 
+            # special case: Python3.8 earlier, widely deployed versions only support suffxi 10_13 or up to 10.16 so use that as target
+            if sys.version_info.major == 3 and sys.version_info.minor == 8:
+                if macos_build_target != "10.13" or macos_build_target != "10.16":
+                    logging.warning(f"Building Tuplex with Python {sys.version_info}, however earlier versions of Python 3.8 can only comprehend tag 10_13, using therefore deployment target 10.13")
+                    macos_build_target = "10.13"
+
+            logging.info(f"Building with macOS platform tag {macos_build_target}")
             # get mac OS version
             cmake_args.append('-DCMAKE_OSX_DEPLOYMENT_TARGET={}'.format(macos_build_target))
 

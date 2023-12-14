@@ -58,8 +58,20 @@ if(zstd_FOUND)
                 INTERFACE_INCLUDE_DIRECTORIES "${zstd_INCLUDE_DIR}"
                 IMPORTED_LOCATION "${zstd_STATIC_LIBRARY}")
     endif()
+
+    # Find a ZSTD version
+    if(zstd_INCLUDE_DIR AND EXISTS "${zstd_INCLUDE_DIR}/zstd.h")
+      file(READ "${zstd_INCLUDE_DIR}/zstd.h" CONTENT)
+      string(REGEX MATCH ".*define ZSTD_VERSION_MAJOR *([0-9]+).*define ZSTD_VERSION_MINOR *([0-9]+).*define ZSTD_VERSION_RELEASE *([0-9]+)" VERSION_REGEX "${CONTENT}")
+      set(zstd_VERSION_MAJOR ${CMAKE_MATCH_1})
+      set(zstd_VERSION_MINOR ${CMAKE_MATCH_2})
+      set(zstd_VERSION_RELEASE ${CMAKE_MATCH_3})
+      set(zstd_VERSION "${zstd_VERSION_MAJOR}.${zstd_VERSION_MINOR}.${zstd_VERSION_RELEASE}")
+    endif()
+
 endif()
 
 unset(zstd_STATIC_LIBRARY_SUFFIX)
 
-mark_as_advanced(zstd_INCLUDE_DIR zstd_LIBRARY zstd_STATIC_LIBRARY)
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(zstd REQUIRED_VARS zstd_LIBRARY zstd_INCLUDE_DIR zstd_VERSION)

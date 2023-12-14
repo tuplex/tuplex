@@ -228,6 +228,8 @@ namespace tuplex {
         double wallTime() const override { return _wallTime; }
         size_t getNumInputRows() const override { return _numInputRowsRead; }
 
+        void releaseAllLocks() override;
+
     private:
         int64_t                 _stageID; /// to which stage does this task belong to.
         std::vector<Partition*> _partitions;

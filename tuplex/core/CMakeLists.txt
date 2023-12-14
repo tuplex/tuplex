@@ -12,20 +12,12 @@ find_package(YAMLCPP REQUIRED)
 if(BUILD_WITH_AWS)
     # locate aws sdk & include lambda component
     find_package(AWSSDK REQUIRED COMPONENTS core s3 lambda)
-    MESSAGE(STATUS "building with AWS Lambda backend")
+    MESSAGE(STATUS "Building with AWS Lambda backend")
 
-    # communication with AWS Lambda happens via protobuf, i.e. make sure protobuf compiler
-    # is installed
-    # set(Protobuf_USE_STATIC_LIBS ON)
-    # https://github.com/protocolbuffers/protobuf/issues/12637
-    find_package(Protobuf CONFIG)
-    if(NOT Protobuf_FOUND)
-        find_package(Protobuf REQUIRED)
-    endif()
-    include_directories(Protobuf_INCLUDE_DIRS)
+    # make sure protobuf was discovered in parent dir
+    assert_var(Protobuf_FOUND)
 
     add_library(proto-objects OBJECT "${CMAKE_CURRENT_LIST_DIR}/proto/Lambda.proto")
-
     target_link_libraries(proto-objects PUBLIC protobuf::libprotobuf)
 
     set(PROTO_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/managed")

@@ -157,6 +157,13 @@ TEST(Serializer, ListOfTuples) {
                                            python::Type::I64});
     EXPECT_TRUE(schema.getRowType() == et);
 
+    {
+        // check length
+        Deserializer d(schema);
+        auto inferred_len = d.inferLength(buffer);
+        EXPECT_EQ(len, inferred_len);
+    }
+
     Deserializer d(schema);
     d.deserialize(buffer, 2048);
     free(buffer);
@@ -216,6 +223,32 @@ TEST(Serializer, ListOfLists) {
     EXPECT_EQ(lst22.desc(), "['####','QWERT']");
 }
 
+TEST(Serializer, ListOfOptionalList) {
+    // "[[5,6],None]"
+    Serializer s;
+    auto *buffer = (uint8_t*)malloc(2048);
+
+    // test with [[5,6], None]
+    auto len = s.append(List(List(5, 6), option<List>::none))
+            .serialize(buffer, 2048);
+
+
+
+    Schema schema = s.getSchema();
+    auto et = python::Type::makeTupleType({python::Type::makeListType(python::Type::makeOptionType(python::Type::makeListType(python::Type::I64)))});
+    EXPECT_TRUE(schema.getRowType() == et);
+
+    Deserializer d(schema);
+    d.deserialize(buffer, 2048);
+    free(buffer);
+
+    auto row = d.getTuple();
+    EXPECT_EQ(row.numElements(), 1);
+    auto lst1 = *(List *)row.getField(0).getPtr();
+    EXPECT_EQ(lst1.numElements(), 2);
+    EXPECT_EQ(lst1.desc(), "[[5,6],None]");
+}
+
 TEST(Serializer, OptionalTuple) {
     Serializer s;
     auto *buffer = (uint8_t*)malloc(2048);
@@ -241,4 +274,26 @@ TEST(Serializer, OptionalTuple) {
     EXPECT_EQ(tuple.numElements(), 2);
     EXPECT_EQ(tuple.desc(), "(1234,9876)");
     EXPECT_EQ(std::string((char *)(row.getField(2).getPtr())), "$$$$tuple$$$$");
+}
+
+// [("a", [("b", [1, 2]), ...]
+TEST(Serializer, NestedListTuple) {
+    Serializer s;
+    auto *buffer = (uint8_t*)malloc(2048);
+
+    // (str, List[Tuple[str, List[i64]]])
+    auto len = s.append("a").append(List::from_vector({Field(Tuple(Field("b"), List::from_vector({Field((int64_t)1), Field((int64_t)2)})))}))
+            .serialize(buffer, 2048);
+
+    Schema schema = s.getSchema();
+    auto et = python::Type::makeTupleType({python::Type::STRING, python::Type::makeListType(python::Type::makeTupleType({python::Type::STRING, python::Type::makeListType(python::Type::I64)}))});
+    EXPECT_EQ(schema.getRowType().desc(), et.desc());
+    EXPECT_GT(len, 0);
+    EXPECT_TRUE(schema.getRowType() == et);
+    Deserializer d(schema);
+    d.deserialize(buffer, 2048);
+    free(buffer);
+
+    auto row = d.getTuple();
+    EXPECT_EQ("('a',[('b',[1,2])])", row.desc());
 }

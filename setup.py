@@ -79,6 +79,24 @@ webui_dependencies = [
     'iso8601'
 ]
 
+def run_command(cmd, cwd, env):
+    try:
+        res = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, env=env)
+        #res = subprocess.Popen(['xls','-al','/home'],stdout=subprocess.PIPE);
+        output,error = res.communicate()
+        if output:
+            logging.info(f"ret> {res.returncode}")
+            logging.info(f"OK> output {output.decode()}")
+        if error:
+            logging.info(f"ret> {res.returncode}")
+            logging.info(f"Error> error {error.decode().strip()}")
+    except os.OSError as e:
+        logging.error(f"OSError > {e.errno}")
+        logging.error(f"OSError > {e.strerror}")
+        logging.error(f"OSError > {e.filename}")
+    except:
+        logging.error("Error > ",sys.exc_info()[0])
+
 # dependencies for AWS Lambda backend...
 # boto is broken currently...
 aws_lambda_dependencies = []
@@ -515,8 +533,11 @@ class CMakeBuild(build_ext):
         if 'MACOSX_DEPLOYMENT_TARGET' not in build_env.keys() and platform.system().lower() == 'darwin':
             build_env['MACOSX_DEPLOYMENT_TARGET'] = macos_build_target
 
+        cmake_command = ["cmake", ext.sourcedir] + cmake_args
+        logging.info('cmake build command: {}'.format(' '.join(cmake_command)))
+        run_command(cmake_command, cwd=self.build_temp, env=build_env)
         subprocess.check_call(
-            ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp, env=build_env
+            cmake_command, cwd=self.build_temp, env=build_env
         )
         logging.info('configuration done, workdir={}'.format(self.build_temp))
         subprocess.check_call(

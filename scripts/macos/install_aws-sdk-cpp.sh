@@ -2,7 +2,7 @@
 
 # check if dir exists (i.e. restored from cache, then skip)
 if [ -d "/usr/local/include/aws" ]; then
-  echo ">> Skip aws-sdk-cpp compile from source, already exists"
+  echo ">> Skip aws-sdk-cpp compile from source, already exists."
   exit 0
 fi
 
@@ -16,10 +16,9 @@ MACOS_VERSION=$(sw_vers -productVersion)
 echo "-- processing on MacOS ${MACOS_VERSION}"
 function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
 
-MACOS_VERSION_MAJOR=${MACOS_VERSION%.*}
-if [ $MACOS_VERSION_MAJOR -ge 11 ]; then
+MACOS_VERSION_MAJOR=$(echo "$MACOS_VERSION" | awk -F \. {'print $1'})
+if (( $MACOS_VERSION_MAJOR >= 11 )); then
     echo "-- Newer MacOS detected (>=11.0), using more recent base target."
-    MACOS_VERSION_MAJOR=${MACOS_VERSION%.*}
     echo "-- Using minimum target ${MACOS_VERSION_MAJOR}.0"
     MINIMUM_TARGET="-DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOS_VERSION_MAJOR}.0"
 else

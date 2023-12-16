@@ -536,9 +536,9 @@ class CMakeBuild(build_ext):
         cmake_command = ["cmake", ext.sourcedir] + cmake_args
         logging.info('cmake build command: {}'.format(' '.join(cmake_command)))
         run_command(cmake_command, cwd=self.build_temp, env=build_env)
-        subprocess.check_call(
-            cmake_command, cwd=self.build_temp, env=build_env
-        )
+        # subprocess.check_call(
+        #     cmake_command, cwd=self.build_temp, env=build_env
+        # )
         logging.info('configuration done, workdir={}'.format(self.build_temp))
         subprocess.check_call(
             ["cmake", "--build", "."] + build_args, cwd=self.build_temp, env=build_env

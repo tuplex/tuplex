@@ -80,10 +80,20 @@ webui_dependencies = [
 ]
 
 def run_command(cmd, cwd, env):
+    """
+    run shell command `cmd`
+    :param cmd: command to run (list of strings)
+    :param cwd: working directory for command
+    :param env: environment dictionary
+    
+    "raises": raise subprocess.Ca
+    """
+
+    output, error = None, None
+    res = None
     try:
         res = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, env=env)
-        #res = subprocess.Popen(['xls','-al','/home'],stdout=subprocess.PIPE);
-        output,error = res.communicate()
+        output, error = res.communicate()
         if output:
             logging.info(f"ret> {res.returncode}")
             logging.info(f"OK> output {output.decode()}")
@@ -95,13 +105,12 @@ def run_command(cmd, cwd, env):
         logging.error(f"OSError > {e.strerror}")
         logging.error(f"OSError > {e.filename}")
     except:
-        logging.error("Error > ",sys.exc_info()[0])
+        logging.error("Error > {sys.exc_info()[0]}")
+        raise subprocess.CalledProcessError(res.returncode if res else 1, cmd, output, error)
 
 # dependencies for AWS Lambda backend...
 # boto is broken currently...
 aws_lambda_dependencies = []
-
-# check python version, e.g., cloudpickle is specific
 
 # manual fix for google colab
 if in_google_colab():
@@ -536,16 +545,14 @@ class CMakeBuild(build_ext):
         cmake_command = ["cmake", ext.sourcedir] + cmake_args
         logging.info('cmake build command: {}'.format(' '.join(cmake_command)))
         run_command(cmake_command, cwd=self.build_temp, env=build_env)
-        # subprocess.check_call(
-        #     cmake_command, cwd=self.build_temp, env=build_env
-        # )
+
         logging.info('configuration done, workdir={}'.format(self.build_temp))
         subprocess.check_call(
             ["cmake", "--build", "."] + build_args, cwd=self.build_temp, env=build_env
         )
 
         # this helps to search paths in doubt
-        # print('searching for .so files in {}'.format(self.build_temp))
+        # logging.info('searching for .so files in {}'.format(self.build_temp))
         # subprocess.check_call(['find', '.', '-name', '*.so'], cwd = self.build_temp)
         # subprocess.check_call(['find', '.', '-name', '*.so'], cwd = ext.sourcedir)
 

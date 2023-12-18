@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# (c) 2020 L.Spiegelberg
+# (c) 2017 - 2023 L.Spiegelberg
 # runs all command to package website
 
 rm -rf build

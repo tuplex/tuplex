@@ -1,4 +1,4 @@
-# (c) 2022 Tuplex contributors
+# (c) 2017 - 2023 Tuplex contributors
 # a ready-to-run Tuplex version on a jupyter image
 # docker pull jupyter/minimal-notebook:python-3.9.13
 

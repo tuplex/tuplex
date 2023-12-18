@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# (c) 2021 Tuplex team
+# (c) 2017 - 2023 Tuplex team
 # this script invokes the cibuildwheel process with necessary env variables to build the wheel for linux/docker
 # builds wheels for python 3.7 - 3.9
 

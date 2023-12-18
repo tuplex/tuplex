@@ -29,7 +29,7 @@ files = list(filter(lambda x: '__pycache__' not in x and not x.endswith('.pyc'),
 
 setup(
     name="Tuplex",
-    version="0.3.6dev",
+    version="0.3.6",
     packages=find_packages(),
     package_data={
       # include libs in libexec

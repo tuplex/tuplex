@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# (c) 2020 L.Spiegelberg
+# (c) 2017 - 2023 L.Spiegelberg
 # this script creates Tuplex json configuration files for benchmarks
 
 import json

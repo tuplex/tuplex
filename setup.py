@@ -79,11 +79,38 @@ webui_dependencies = [
     'iso8601'
 ]
 
+def run_command(cmd, cwd, env):
+    """
+    run shell command `cmd`
+    :param cmd: command to run (list of strings)
+    :param cwd: working directory for command
+    :param env: environment dictionary
+    
+    "raises": raise subprocess.Ca
+    """
+
+    output, error = None, None
+    res = None
+    try:
+        res = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, env=env)
+        output, error = res.communicate()
+        if output:
+            logging.info(f"ret> {res.returncode}")
+            logging.info(f"OK> output {output.decode()}")
+        if error:
+            logging.info(f"ret> {res.returncode}")
+            logging.info(f"Error> error {error.decode().strip()}")
+    except os.OSError as e:
+        logging.error(f"OSError > {e.errno}")
+        logging.error(f"OSError > {e.strerror}")
+        logging.error(f"OSError > {e.filename}")
+    except:
+        logging.error("Error > {sys.exc_info()[0]}")
+        raise subprocess.CalledProcessError(res.returncode if res else 1, cmd, output, error)
+
 # dependencies for AWS Lambda backend...
 # boto is broken currently...
 aws_lambda_dependencies = []
-
-# check python version, e.g., cloudpickle is specific
 
 # manual fix for google colab
 if in_google_colab():
@@ -515,16 +542,17 @@ class CMakeBuild(build_ext):
         if 'MACOSX_DEPLOYMENT_TARGET' not in build_env.keys() and platform.system().lower() == 'darwin':
             build_env['MACOSX_DEPLOYMENT_TARGET'] = macos_build_target
 
-        subprocess.check_call(
-            ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp, env=build_env
-        )
+        cmake_command = ["cmake", ext.sourcedir] + cmake_args
+        logging.info('cmake build command: {}'.format(' '.join(cmake_command)))
+        run_command(cmake_command, cwd=self.build_temp, env=build_env)
+
         logging.info('configuration done, workdir={}'.format(self.build_temp))
         subprocess.check_call(
             ["cmake", "--build", "."] + build_args, cwd=self.build_temp, env=build_env
         )
 
         # this helps to search paths in doubt
-        # print('searching for .so files in {}'.format(self.build_temp))
+        # logging.info('searching for .so files in {}'.format(self.build_temp))
         # subprocess.check_call(['find', '.', '-name', '*.so'], cwd = self.build_temp)
         # subprocess.check_call(['find', '.', '-name', '*.so'], cwd = ext.sourcedir)
 
@@ -667,7 +695,7 @@ def tplx_package_data():
 # logic and declaration, and simpler if you include description/version in a file.
 setup(name="tuplex",
     python_requires='>=3.8.0',
-    version="0.3.6dev",
+    version="0.3.6",
     author="Leonhard Spiegelberg",
     author_email="tuplex@cs.brown.edu",
     description="Tuplex is a novel big data analytics framework incorporating a Python UDF compiler based on LLVM "

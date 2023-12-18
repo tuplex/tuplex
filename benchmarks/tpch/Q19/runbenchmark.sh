@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# (c) 2021 L.Spiegelberg
+# (c) 2017 - 2023 L.Spiegelberg
 # runs Tuplex TPCH Q19 benchmark on AWS setup
 
 # use 11 runs and a timeout after 60min

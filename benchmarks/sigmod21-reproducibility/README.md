@@ -177,4 +177,4 @@ The experiment comparing Tuplex's Lambda backend vs. Spark is unfortunately not 
 The setup guide and source code for this experiment can be found in the `benchmarks/distributed` folder.
 
 --
-(c) 2021 Tuplex authors
+(c) 2017 - 2023 Tuplex authors

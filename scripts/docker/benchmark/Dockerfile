@@ -1,5 +1,5 @@
 # Docker image based on Ubuntu 20.04 which holds all frameworks for evaluation
-# (c) 2021 L.Spiegelberg, R. Yesantharao
+# (c) 2017 - 2023 L.Spiegelberg, R. Yesantharao
 
 FROM ubuntu:20.04
 MAINTAINER Leonhard Spiegelberg "leonhard_spiegelberg@brown.edu"

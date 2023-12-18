@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# (c) 2021 L.Spiegelberg
+# (c) 2017 - 2023 L.Spiegelberg
 # this file compares how fast in a single-threaded setting resolving via
 # 1. interpreter only vs. 2. compiled code path is
 

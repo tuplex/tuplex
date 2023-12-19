@@ -472,3 +472,15 @@ TEST_F(DataFrameTest, FastPreview) {
             .takeAsVector(5);
     ASSERT_EQ(res.size(), 5);
 }
+
+TEST_F(DataFrameTest, HetereogenousDataCSVFile) {
+
+    using namespace tuplex;
+    Context c(microTestOptions());
+
+    auto path = "../resources/int_str_mix.csv";
+    auto v = c.csv(path).collectAsVector();
+
+    ASSERT_FALSE(v.empty());
+    EXPECT_EQ(v.size(), 7);
+}

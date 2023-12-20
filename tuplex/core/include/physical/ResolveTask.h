@@ -373,6 +373,88 @@ namespace tuplex {
 
         PyObject* tupleFromParseException(const uint8_t* ebuf, size_t esize);
 
+        inline std::tuple<bool, PyObject*> decodeFallbackRow(const ExceptionCode& ecCode,
+                                                             const uint8_t* ebuf,
+                                                             size_t eSize,
+                                                             const Schema& normal_case_schema,
+                                                             const Schema& general_case_schema) {
+            assert(ecCode != ExceptionCode::SUCCESS);
+            assert(ebuf);
+
+            PyObject* tuple = nullptr;
+            bool parse_cells = false;
+
+            // there are different data reps for certain error codes.
+            // => decode the correct object from memory & then feed it into the pipeline...
+            switch(ecCode) {
+                case ExceptionCode::BADPARSE_STRING_INPUT: {
+                    // it's a string!
+                    tuple = tupleFromParseException(ebuf, eSize);
+                    parse_cells = true; // need to parse cells in python mode.
+                    break;
+                }
+                case ExceptionCode::NORMALCASEVIOLATION: {
+                    // changed, why are these names so random here? makes no sense...
+                    // std::cout<<"except schema: "<<exceptionsInputSchema().getRowType().desc()<<std::endl;
+                    auto row = Row::fromMemory(normal_case_schema, ebuf, eSize);
+
+                    tuple = python::rowToPython(row, true);
+                    parse_cells = false;
+                    // called below...
+                    break;
+                }
+                case ExceptionCode::GENERALCASEVIOLATION: {
+                    // changed, why are these names so random here? makes no sense...
+                    // std::cout<<"except schema: "<<exceptionsInputSchema().getRowType().desc()<<std::endl;
+                    auto row = Row::fromMemory(general_case_schema, ebuf, eSize);
+
+                    tuple = python::rowToPython(row, true);
+                    parse_cells = false;
+                    // called below...
+                    break;
+                }
+                case ExceptionCode::PYTHON_PARALLELIZE: {
+                    auto pyObj = python::deserializePickledObject(python::getMainModule(), (char *) ebuf, eSize);
+                    tuple = pyObj;
+                    parse_cells = false;
+                    break;
+                }
+                default: {
+// normal case, i.e. an exception occurred somewhere.
+                    // --> this means if pipeline is using string as input, we should convert
+                    auto row = Row::fromMemory(normal_case_schema, ebuf, eSize);
+
+                    // cell source automatically takes input, i.e. no need to convert. simply get tuple from row object
+                    tuple = python::rowToPython(row, true);
+
+#ifndef NDEBUG
+                    if(PyTuple_Check(tuple)) {
+                        // make sure tuple is valid...
+                        for(unsigned i = 0; i < PyTuple_Size(tuple); ++i) {
+                            auto elemObj = PyTuple_GET_ITEM(tuple, i);
+                            assert(elemObj);
+                        }
+                    }
+#endif
+                    parse_cells = false;
+                    break;
+                }
+            }
+
+            assert(tuple);
+
+            // note: current python pipeline always expects a tuple arg. hence pack current element.
+            if(PyTuple_Check(tuple) && PyTuple_Size(tuple) > 1) {
+                // nothing todo...
+            } else if(!parse_cells) {
+                auto tmp_tuple = PyTuple_New(1);
+                PyTuple_SET_ITEM(tmp_tuple, 0, tuple);
+                tuple = tmp_tuple;
+            }
+
+            return std::make_tuple(parse_cells, tuple);
+        }
+
         void sinkRowToHashTable(PyObject *rowObject, PyObject* key=nullptr);
     };
 }

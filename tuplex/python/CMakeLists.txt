@@ -18,7 +18,7 @@ message(STATUS "Pybind11 uses python version ${Python3_VERSION}")
 set(PYBIND11_FINDPYTHON OFF CACHE INTERNAL "") 
 set(PYBIND11_PYTHON_VERSION "${Python3_VERSION}" CACHE INTERNAL "")
 FetchContent_Declare(pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11
-                             GIT_TAG        v2.10.4 )
+                             GIT_TAG        v2.11.1 )
 FetchContent_GetProperties(pybind11)
 if(NOT pybind11_POPULATED)
     FetchContent_Populate(pybind11)

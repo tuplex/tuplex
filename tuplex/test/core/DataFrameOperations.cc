@@ -473,8 +473,7 @@ TEST_F(DataFrameTest, FastPreview) {
     ASSERT_EQ(res.size(), 5);
 }
 
-TEST_F(DataFrameTest, HetereogenousDataCSVFile) {
-
+TEST_F(DataFrameTest, HeterogeneouslyTypedCSVFile) {
     using namespace tuplex;
     Context c(microTestOptions());
 

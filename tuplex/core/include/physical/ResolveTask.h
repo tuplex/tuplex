@@ -394,23 +394,15 @@ namespace tuplex {
                     break;
                 }
                 case ExceptionCode::NORMALCASEVIOLATION: {
-                    // changed, why are these names so random here? makes no sense...
-                    // std::cout<<"except schema: "<<exceptionsInputSchema().getRowType().desc()<<std::endl;
                     auto row = Row::fromMemory(normal_case_schema, ebuf, eSize);
-
                     tuple = python::rowToPython(row, true);
                     parse_cells = false;
-                    // called below...
                     break;
                 }
                 case ExceptionCode::GENERALCASEVIOLATION: {
-                    // changed, why are these names so random here? makes no sense...
-                    // std::cout<<"except schema: "<<exceptionsInputSchema().getRowType().desc()<<std::endl;
                     auto row = Row::fromMemory(general_case_schema, ebuf, eSize);
-
                     tuple = python::rowToPython(row, true);
                     parse_cells = false;
-                    // called below...
                     break;
                 }
                 case ExceptionCode::PYTHON_PARALLELIZE: {
@@ -420,14 +412,16 @@ namespace tuplex {
                     break;
                 }
                 default: {
-// normal case, i.e. an exception occurred somewhere.
+                    // normal case, i.e. an exception occurred somewhere.
                     // --> this means if pipeline is using string as input, we should convert
                     auto row = Row::fromMemory(normal_case_schema, ebuf, eSize);
 
-                    // cell source automatically takes input, i.e. no need to convert. simply get tuple from row object
+                    // cell source automatically takes input, i.e. no need to convert.
+                    // Simply get tuple from row object.
                     tuple = python::rowToPython(row, true);
 
 #ifndef NDEBUG
+                    // in debug mode perform additional validation checks.
                     if(PyTuple_Check(tuple)) {
                         // make sure tuple is valid...
                         for(unsigned i = 0; i < PyTuple_Size(tuple); ++i) {
@@ -445,7 +439,7 @@ namespace tuplex {
 
             // note: current python pipeline always expects a tuple arg. hence pack current element.
             if(PyTuple_Check(tuple) && PyTuple_Size(tuple) > 1) {
-                // nothing todo...
+                // nothing to do for tuples with more than a single element or an empty tuple.
             } else if(!parse_cells) {
                 auto tmp_tuple = PyTuple_New(1);
                 PyTuple_SET_ITEM(tmp_tuple, 0, tuple);

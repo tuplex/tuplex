@@ -470,42 +470,11 @@ default:
                 PyObject* tuple = nullptr;
                 bool parse_cells = false;
 
-                // there are different data reps for certain error codes.
-                // => decode the correct object from memory & then feed it into the pipeline...
-                if(ecCode == ecToI64(ExceptionCode::BADPARSE_STRING_INPUT)) {
-                    // it's a string!
-                    tuple = tupleFromParseException(ebuf, eSize);
-                    parse_cells = true; // need to parse cells in python mode.
-                } else if(ecCode == ecToI64(ExceptionCode::NORMALCASEVIOLATION)) {
-                    // changed, why are these names so random here? makes no sense...
-                    auto row = Row::fromMemory(exceptionsInputSchema(), ebuf, eSize);
+                std::tie(parse_cells, tuple) = decodeFallbackRow(i64ToEC(ecCode),
+                                                                 ebuf, eSize,
+                                                                 exceptionsInputSchema(),
+                                                                 exceptionsInputSchema());
 
-                    tuple = python::rowToPython(row, true);
-                    parse_cells = false;
-                    // called below...
-                } else if (ecCode == ecToI64(ExceptionCode::PYTHON_PARALLELIZE)) {
-                    auto pyObj = python::deserializePickledObject(python::getMainModule(), (char *) ebuf, eSize);
-                    tuple = pyObj;
-                    parse_cells = false;
-                } else {
-                    // normal case, i.e. an exception occurred somewhere.
-                    // --> this means if pipeline is using string as input, we should convert
-                    auto row = Row::fromMemory(exceptionsInputSchema(), ebuf, eSize);
-
-                    // cell source automatically takes input, i.e. no need to convert. simply get tuple from row object
-                    tuple = python::rowToPython(row, true);
-
-#ifndef NDEBUG
-                    if(PyTuple_Check(tuple)) {
-                        // make sure tuple is valid...
-                        for(unsigned i = 0; i < PyTuple_Size(tuple); ++i) {
-                            auto elemObj = PyTuple_GET_ITEM(tuple, i);
-                            assert(elemObj);
-                        }
-                    }
-#endif
-                    parse_cells = false;
-                }
 
                 // compute
                 // @TODO: we need to encode the hashmaps as these hybrid objects!
@@ -519,15 +488,6 @@ default:
                     tuple = PyTuple_New(0); // empty tuple.
                 }
 #endif
-
-                // note: current python pipeline always expects a tuple arg. hence pack current element.
-                if(PyTuple_Check(tuple) && PyTuple_Size(tuple) > 1) {
-                    // nothing todo...
-                } else {
-                    auto tmp_tuple = PyTuple_New(1);
-                    PyTuple_SET_ITEM(tmp_tuple, 0, tuple);
-                    tuple = tmp_tuple;
-                }
 
 #ifndef NDEBUG
                 // // to print python object

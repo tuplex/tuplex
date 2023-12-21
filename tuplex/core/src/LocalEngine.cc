@@ -31,6 +31,11 @@ namespace tuplex {
             ss<<"[GLOBAL] local executor "<<exec->name()<<" terminated.";
             std::cout<<ss.str()<<std::endl;
         }
+
+#ifdef BUILD_WITH_AWS
+        // shutdown aws sdk
+        shutdownAWS();
+#endif
     }
 
     std::vector<Executor*> LocalEngine::getExecutors(const size_t num,

@@ -122,6 +122,9 @@ namespace tuplex {
             }
 
             if(PARAM_USE_ROW_TYPE) {
+                if(!rowType.isRowType()) {
+                    Logger::instance().logger("logical planner").error("PARAM_USE_ROW_TYPE set, but given rowType is " + rowType.desc() + ", assert will fail.");
+                }
                 assert(rowType.isRowType());
                 if(python::Type::EMPTYROW == rowType)
                     return rowType;

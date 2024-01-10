@@ -1314,6 +1314,12 @@ namespace tuplex {
                         generalcase = generalcase.withoutOption();
                 }
 
+                // create row type from input columns
+                if(PARAM_USE_ROW_TYPE) {
+                    normalcase = python::Type::makeRowType(normalcase.parameters(), inputColumns());
+                    generalcase = python::Type::makeRowType(generalcase.parameters(), inputColumns());
+                }
+
                 _normalCaseRowType = normalcase;
                 _generalCaseRowType = generalcase;
             } else {
@@ -1343,8 +1349,8 @@ namespace tuplex {
                 }
 
                 // now create (unprojected) type based on new columns
-                std::vector<python::Type> new_unprojected_col_types_normal = _normalCaseRowType.parameters();
-                std::vector<python::Type> new_unprojected_col_types_general = _generalCaseRowType.parameters();
+                std::vector<python::Type> new_unprojected_col_types_normal = _normalCaseRowType.isRowType() ? _normalCaseRowType.get_column_types() : _normalCaseRowType.parameters();
+                std::vector<python::Type> new_unprojected_col_types_general = _generalCaseRowType.isRowType() ? _generalCaseRowType.get_column_types() : _generalCaseRowType.parameters();
                 std::vector<std::string>  new_unprojected_col_names = inputColumns();
 
                 python::Type exception_type = python::TypeFactory::instance().getByName("Exception");
@@ -1428,6 +1434,12 @@ namespace tuplex {
             }
 
             setOutputSchema(Schema(Schema::MemoryLayout::ROW, _generalCaseRowType));
+        }
+
+        // check for flag that proper row type is used (not tuple type)
+        if(PARAM_USE_ROW_TYPE) {
+            assert(_normalCaseRowType.isRowType());
+            assert(_generalCaseRowType.isRowType());
         }
     }
 

@@ -130,6 +130,14 @@ namespace tuplex {
     }
 
     TEST_F(GithubQuery, ForkEventsExtended) {
+
+        // Notes: slow path compilation seems to be a problem, fix by using
+        // https://en.cppreference.com/w/cpp/thread/future
+        // and https://en.cppreference.com/w/cpp/thread/future to wait for compile-thread for slow code to finish?
+        // if it doesn't finish in time, use interpreter only?
+        // or is there a way to reduce complexity of slow code? E.g., cJSON dict instead of struct dict?
+        // -> this could be faster...
+
         using namespace std;
 
         // set input/output paths

@@ -540,6 +540,16 @@ namespace tuplex {
             // return updated ptr & bitmap
             return make_tuple(ptr, bitmap);
         }
+
+        inline SerializableValue tuple_load_element(LLVMEnvironment& env, llvm::IRBuilder<>& builder, llvm::Value* tuple_ptr, const python::Type& tuple_type, unsigned idx) {
+            assert(tuple_type.isTupleType() && tuple_type.parameters().size() > 0);
+
+            assert(tuple_type != python::Type::EMPTYTUPLE);
+            assert(idx < tuple_type.parameters().size());
+            auto ft = FlattenedTuple::fromLLVMStructVal(&env, builder, tuple_ptr, tuple_type);
+            auto nested_index_vector = std::vector<int>{(int)idx};
+            return ft.getLoad(builder, nested_index_vector);
+        }
     }
 }
 

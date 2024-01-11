@@ -3077,9 +3077,18 @@ namespace tuplex {
             }
 
             if(symbol == "get") {
-                if(args.size() < 1 || args.size() > 2)
-                    throw std::runtime_error("dict.get() takes 1 or 2 arguments");
-                return createDictGetCall(lfb, builder, caller, callerType, args, argsType.parameters(), retType);
+                // dict types
+                if(callerType.isDictionaryType() || callerType.isStructuredDictionaryType() || callerType == python::Type::EMPTYDICT) {
+                    if(args.size() < 1 || args.size() > 2)
+                        throw std::runtime_error("dict.get() takes 1 or 2 arguments");
+                    return createDictGetCall(lfb, builder, caller, callerType, args, argsType.parameters(), retType);
+                }
+                // row type
+                else if(callerType.isRowType()) {
+                    return createRowGetCall(lfb, builder, caller, callerType, args, argsType.parameters(), retType);
+                } else {
+                    throw std::runtime_error("no .get attribute available for type " + callerType.desc());
+                }
             }
 
             // throw exception
@@ -3109,6 +3118,61 @@ namespace tuplex {
             }
         }
 
+        SerializableValue
+        FunctionRegistry::createRowGetCall(tuplex::codegen::LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
+                                           const tuplex::codegen::SerializableValue &caller,
+                                           const python::Type &callerType,
+                                           const std::vector<tuplex::codegen::SerializableValue> &args,
+                                           const std::vector<python::Type> &argsTypes, const python::Type &retType) {
+            assert(callerType.isRowType());
+
+            // special case: callerType is EMPTY ROW
+            if(callerType == python::Type::EMPTYROW) {
+                // always return default value or raise KeyError
+                throw std::runtime_error("callerType empty row not yet implemented for Row.get");
+            }
+
+            // extract key type, for Row either int or str are fine.
+            // all other types will be invalid.
+            auto key_type = argsTypes.front();
+            auto deopt_key_type = deoptimizedType(key_type);
+
+            // integer type?
+            if(python::Type::I64 == deopt_key_type) {
+                throw std::runtime_error("integer access for Row.get not yet implemented");
+            } else if(python::Type::STRING == deopt_key_type) {
+                // string access.
+                // check first if constant
+                std::string key_constant;
+                if(key_type.isConstantValued())
+                    key_constant = key_type.constant();
+                if(llvm::dyn_cast<llvm::ConstantExpr>(args.front().val))
+                    key_constant = globalVariableToString(args.front().val);
+
+                // string constant?
+                if(!key_constant.empty()) {
+                    // constant value access into row
+                    auto columns = callerType.get_column_names();
+                    auto idx_in_columns = indexInVector(key_constant, columns);
+
+                    if(idx_in_columns >= 0) {
+                        // contained! return result via load
+                        // need to ensure ret type matches
+                        assert(callerType.get_columns_as_tuple_type().parameters()[idx_in_columns] == retType);
+                        return tuple_load_element(_env, builder, caller.val, callerType.get_columns_as_tuple_type(), idx_in_columns);
+                    } else {
+                        // not contained, except with KeyError or return optional field.
+                        throw std::runtime_error("not yet implemented, need to throw key error or return default value");
+                    }
+                } else {
+                    // need to check explicitly against values & then perform type check of expected return type.
+                    throw std::runtime_error("non constant string access not yet implemented for Row.get");
+                }
+            }
+
+            return {};
+        }
+
         SerializableValue FunctionRegistry::createDictGetCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
                                                               const SerializableValue &caller,
                                                               const python::Type& callerType,
@@ -3123,9 +3187,9 @@ namespace tuplex {
             assert(!callerType.isOptionType());
 
             // only certain dicts yet supported
-            if(!callerType.isStructuredDictionaryType() && callerType != python::Type::EMPTYDICT) {
+            if(!callerType.isStructuredDictionaryType() && callerType != python::Type::EMPTYDICT)
                 throw std::runtime_error("Only struct dict or empty dict yet supported for dict.get. Requested " + callerType.desc() + ".get");
-            }
+
 
             // special case empty dict. -> always return opt arg!
             if(callerType == python::Type::EMPTYDICT) {
@@ -3159,7 +3223,7 @@ namespace tuplex {
                     // simple, it's a constant key -> can perform direct lookup in struct dict.
                     assert(false);
                 } else {
-                    // it's not a constant type, need to emit chain of checks... -> costly. Maybe it's own function?
+                    // it's not a constant type, need to emit chain of checks... -> costly. Maybe its own function?
                     // for now, emit check
 
                     // get all pairs with same key type

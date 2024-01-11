@@ -140,7 +140,7 @@ namespace tuplex {
                 total_input_rows += j_stats["input"]["total_input_row_count"].get<size_t>();
                 req_array.push_back(j_req);
 
-                double remaining_estimate = ((double)requests.size() - request_counter) * (agg_timer.time() / request_counter);
+                double remaining_estimate = ((double)requests.size() - (double)request_counter) * (agg_timer.time() / (double) request_counter);
 
                 std::stringstream ss;
                 ss<<"Processed request "<<request_counter<<"/"<<requests.size()<<" in " + std::to_string(timer.time()) + "s, rc=" + std::to_string(rc)<<", elapsed="<<agg_timer.time()<<"s, est. remaining="<<remaining_estimate<<"s.";

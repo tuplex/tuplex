@@ -48,6 +48,7 @@ namespace tuplex {
                             "            return '(' + ','.join(['{}={}'.format(c, d) for c, d in zip(self.columns, self.data)]) + ')'\n"
                             "        else:\n"
                             "            return '(' + ','.join(['{}'.format(d) for d in self.data]) + ')'\n";
+#error "implement here .get function for this class. Also, maybe compile/replace with this with C coded Row object for optimization???"
         return rowClassCode;
     }
 

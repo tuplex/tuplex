@@ -607,6 +607,62 @@ namespace tuplex {
             });
         }
 
+        // row type annotation
+        addBuiltinTypeAttribute(python::Type::GENERICROW, "get", [](const python::Type& callerType,
+                                                                     const python::Type& parameterType) {
+            assert(callerType.isRowType() && callerType != python::Type::GENERICROW);
+
+            assert(parameterType.isTupleType());
+            auto key_type = parameterType.parameters().front();
+            auto value_type = python::Type::UNKNOWN;
+
+            if(parameterType.parameters().size() == 2)
+                value_type = parameterType.parameters()[1];
+            else
+                // todo emulate default=None
+                value_type = python::Type::NULLVALUE;
+
+            // check if empty row, then always default type if available
+            if(callerType == python::Type::EMPTYROW && parameterType.parameters().size() == 2)
+                return python::Type::makeFunctionType(callerType, parameterType.parameters()[1]);
+
+            // check if return type can be determined if key_type is a constant.
+            if(key_type.isConstantValued()) {
+                // integer?
+                if(key_type.underlying() == python::Type::I64) {
+                    auto idx = std::stoi(key_type.constant());
+                    if(idx < 0)
+                        idx += callerType.get_column_count();
+                    if(idx < 0 || idx >= callerType.get_column_count())
+                        return python::Type::makeFunctionType(callerType, /*python::TypeFactory::instance().getByName("IndexError")*/value_type); // <-- builtin exception
+                    return python::Type::makeFunctionType(callerType, callerType.get_column_type(idx));
+                }
+
+                // string?
+                if(key_type.underlying() == python::Type::STRING) {
+                    auto idx = indexInVector(key_type.constant(), callerType.get_column_names());
+                    if(idx < 0)
+                        return python::Type::makeFunctionType(callerType, /*python::TypeFactory::instance().getByName("KeyError")*/value_type);
+                    else
+                        return python::Type::makeFunctionType(callerType, callerType.get_column_type(idx));
+                }
+
+                // always KeyError
+                return python::Type::makeFunctionType(callerType, /*python::TypeFactory::instance().getByName("KeyError")*/value_type);
+            }
+
+            // if not int or string type (or options thereof) always return key error
+            if(key_type.withoutOption() != python::Type::STRING && key_type.withoutOption() != python::Type::I64)
+                // always KeyError
+                return python::Type::makeFunctionType(callerType, /*python::TypeFactory::instance().getByName("KeyError")*/value_type);
+
+            // Note: for special case of all columns being the same type, the return type could be determined!
+            // @TODO
+
+            // can not statically determine, need to run tracer
+            return python::Type::UNKNOWN;
+        });
+
         // i.e. type depending on input
 
         // for pop/popitem things are actually a bit more complicated...
@@ -1090,14 +1146,16 @@ namespace tuplex {
             return resultType;
 
         // check generics
-        assert(python::Type::EMPTYTUPLE.isTupleType() && python::Type::EMPTYLIST.isListType() && python::Type::EMPTYDICT.isDictionaryType());
-        if(type.isTupleType() || type.isListType() || type.isDictionaryType()) {
+        assert(python::Type::EMPTYTUPLE.isTupleType() && python::Type::EMPTYLIST.isListType() && python::Type::EMPTYDICT.isDictionaryType() && python::Type::EMPTYROW.isRowType());
+        if(type.isTupleType() || type.isListType() || type.isDictionaryType() || type.isRowType()) {
             if(type.isTupleType() || type == python::Type::EMPTYTUPLE)
                 name = python::Type::GENERICTUPLE.desc(); // generic tuple
             if(type.isListType() || type == python::Type::EMPTYLIST)
                 name = python::Type::GENERICLIST.desc();
             if(type.isDictionaryType() || type == python::Type::EMPTYDICT)
                 name = python::Type::GENERICDICT.desc();
+            if(type.isRowType() || type == python::Type::EMPTYROW)
+                name = python::Type::GENERICROW.desc();
             sym = findSymbol(name);
             resultType = typeAttribute(sym, attribute, parameterType, type);
         }

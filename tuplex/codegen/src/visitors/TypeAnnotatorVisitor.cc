@@ -859,6 +859,11 @@ namespace tuplex {
             // annotation available?
             // -> then create type from arguments + return type!
             if(call->_func->hasAnnotation()) {
+
+                // Note: majority type here will simply return the type with the highest count.
+                // however, may be more worthwhile to have a type that allows e.g. for struct type some optional key pairs etc.
+                // for higher coverage.
+
                 auto ret_type = call->_func->annotation().majorityType();
                 python::Type func_type = python::Type::UNKNOWN;
                 if(!ret_type.isFunctionType()) {
@@ -1098,20 +1103,25 @@ namespace tuplex {
             assert(object_type != python::Type::UNKNOWN);
 
             auto lastCallParameterType = _lastCallParameterType.top();
-            // deoptimize, no optimized functins in symboltable
-            lastCallParameterType = deoptimizedType(lastCallParameterType);
 
-            // deoptimize object type as well..
-            object_type = deoptimizedType(object_type);
+            // chained type retrieval, first both optimized types
             auto type = _symbolTable.findAttributeType(object_type, attr->_attribute->_name, lastCallParameterType);
+            // then deoptimize first object type
+            if(is_undefined_attribute_type(type)) {
+                type = _symbolTable.findAttributeType(deoptimizedType(object_type), attr->_attribute->_name, lastCallParameterType);
+            }
+            // then call param type
+            if(is_undefined_attribute_type(type)) {
+                type = _symbolTable.findAttributeType(object_type, attr->_attribute->_name, deoptimizedType(lastCallParameterType));
+            }
+            // deoptimize both types
+            if(is_undefined_attribute_type(type)) {
+                type = _symbolTable.findAttributeType(deoptimizedType(object_type), attr->_attribute->_name, deoptimizedType(lastCallParameterType));
+            }
 
-            // special case: result type is UNKNOWN but an annotation exists? (check also func case!)
-            bool unknown_attribute_type = type == python::Type::UNKNOWN;
-            if(type.isFunctionType() && (type.getReturnType() == python::Type::UNKNOWN || type.getReturnType().isIllDefined()))
-                unknown_attribute_type = true;
-
+            // special case: result type is still UNKNOWN but an annotation exists? (check also func case!)
             // unknown type but annotation available? -> use that one
-            if(unknown_attribute_type) {
+            if(is_undefined_attribute_type(type)) {
                 // multiple options:
                 if(attr->_attribute->hasAnnotation()) {
                     // func or not?
@@ -1122,6 +1132,10 @@ namespace tuplex {
                         // regular attribute.
                         type = attr->_attribute->annotation().majorityType();
                     }
+                } else {
+                    // failed to annotate
+                    error("failed to annotate attribute");
+                    attr->setInferredType(python::Type::UNKNOWN);
                 }
 
 //                if(attr->hasAnnotation()) {
@@ -1139,6 +1153,13 @@ namespace tuplex {
             }
             attr->_attribute->setInferredType(type);
         }
+    }
+
+    bool TypeAnnotatorVisitor::is_undefined_attribute_type(python::Type &type) const {
+        auto unknown_attribute_type = type == python::Type::UNKNOWN;
+        if(type.isFunctionType() && (type.getReturnType() == python::Type::UNKNOWN || type.getReturnType().isIllDefined()))
+            unknown_attribute_type = true;
+        return unknown_attribute_type;
     }
 
     void TypeAnnotatorVisitor::typeStructuredDictSubscription(tuplex::NSubscription *sub, const python::Type &type) {

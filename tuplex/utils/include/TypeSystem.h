@@ -70,6 +70,7 @@ namespace python {
         static const Type GENERICTUPLE; //! special type to accept ANY tuple object (helpful for symbol table)
         static const Type GENERICDICT; //! special type to accept ANY dictionary object
         static const Type GENERICLIST; //! special type to accept ANY list object
+        static const Type GENERICROW; //! special type to accept ANY row object
         static const Type MATCHOBJECT; //! python [re.match] regex match object
         static const Type RANGE; //! python [range] range object
         static const Type MODULE; //! generic module object, used in symbol table

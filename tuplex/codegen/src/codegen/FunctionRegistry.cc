@@ -3158,6 +3158,16 @@ namespace tuplex {
                     if(idx_in_columns >= 0) {
                         // contained! return result via load
                         // need to ensure ret type matches
+
+#ifndef NDEBUG
+                        auto caller_element_type = callerType.get_columns_as_tuple_type().parameters()[idx_in_columns];
+                        if(caller_element_type != retType) {
+                            std::stringstream err_stream;
+                            err_stream<<"Retrieved type at idx="<<idx_in_columns<<" has type\n"<<caller_element_type.desc()<<"\nbut ret type is\n"<<retType.desc();
+                            Logger::instance().logger("codegen").error(err_stream.str());
+                        }
+#endif
+
                         assert(callerType.get_columns_as_tuple_type().parameters()[idx_in_columns] == retType);
                         return tuple_load_element(_env, builder, caller.val, callerType.get_columns_as_tuple_type(), idx_in_columns);
                     } else {

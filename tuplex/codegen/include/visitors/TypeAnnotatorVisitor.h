@@ -156,6 +156,8 @@ namespace tuplex {
         // for compound types, check whether there's an option to annotate using constants!
 
         TSet<std::string> getMissingIdentifiers() { return _missingIdentifiers; }
+
+        bool is_undefined_attribute_type(python::Type &type) const;
     };
 
     /*!

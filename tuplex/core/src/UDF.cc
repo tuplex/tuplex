@@ -176,6 +176,15 @@ namespace tuplex {
         // reset failed/iscompiled flags
         _isCompiled = _ast.getFunctionAST(); // when ast is valid.
 
+        // remove types from all nodes (setInferredType if it applies, except for literals)
+        {
+            ApplyVisitor av([](const ASTNode* node){ return true; },
+                            [](ASTNode& node) {
+                               node.setInferredType(python::Type::UNKNOWN);
+                            });
+            _ast.getFunctionAST()->accept(av);
+        }
+
         // annotations as well?
         if(removeAnnotations) {
             ApplyVisitor av([](const ASTNode* node){ return true; },

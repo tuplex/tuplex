@@ -77,7 +77,10 @@ namespace tuplex {
                 _udf.rewriteDictAccessInAST(_columnNames, "", conf.coltype_hints);
             }
 
-            _udf.removeTypes(conf.remove_existing_annotations, true);
+            if(PARAM_USE_ROW_TYPE)
+                _udf.removeTypes(conf.remove_existing_annotations, false);
+            else
+                _udf.removeTypes(conf.remove_existing_annotations, true);
 
             bool success = _udf.retype(conf.row_type);
 

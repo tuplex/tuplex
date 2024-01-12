@@ -46,6 +46,7 @@ namespace python {
     const Type Type::GENERICTUPLE = python::TypeFactory::instance().createOrGetPrimitiveType("tuple");
     const Type Type::GENERICDICT = python::TypeFactory::instance().createOrGetDictionaryType(python::Type::PYOBJECT, python::Type::PYOBJECT);
     const Type Type::GENERICLIST = python::TypeFactory::instance().createOrGetListType(python::Type::PYOBJECT);
+    const Type Type::GENERICROW = python::TypeFactory::instance().createOrGetPrimitiveType("row");
     //const Type Type::GENERICSET = python::TypeFactory::instance().createOrGetSetType(python::Type::PYOBJECT); // @TODO: implement.
     const Type Type::VOID = python::TypeFactory::instance().createOrGetPrimitiveType("void");
     const Type Type::MATCHOBJECT = python::TypeFactory::instance().createOrGetPrimitiveType("matchobject");

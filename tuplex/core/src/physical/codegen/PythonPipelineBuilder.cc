@@ -47,8 +47,24 @@ namespace tuplex {
                             "                self.columns = self.columns + [None] * (len(self.data) - len(self.columns))\n"
                             "            return '(' + ','.join(['{}={}'.format(c, d) for c, d in zip(self.columns, self.data)]) + ')'\n"
                             "        else:\n"
-                            "            return '(' + ','.join(['{}'.format(d) for d in self.data]) + ')'\n";
-#error "implement here .get function for this class. Also, maybe compile/replace with this with C coded Row object for optimization???"
+                            "            return '(' + ','.join(['{}'.format(d) for d in self.data]) + ')'\n"
+                            "    def get(self, key, default=None):\n"
+                            "        if isinstance(key, int):\n"
+                            "            if key < 0:\n"
+                            "                key += len(self.data)\n"
+                            "            if key < 0 or key >= len(self.data):\n"
+                            "                return default\n"
+                            "            return self.data[key]\n"
+                            "        if isinstance(key, str):\n"
+                            "            if not self.columns:\n"
+                            "                return default\n"
+                            "            try:\n"
+                            "                key = self.columns.index(key)\n"
+                            "                return self.data[key]\n"
+                            "            except ValueError:\n"
+                            "                return default\n"
+                            "        return default\n";
+        // TODO: maybe compile/replace with this with C coded Row object for optimization purposes
         return rowClassCode;
     }
 

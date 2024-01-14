@@ -1133,8 +1133,9 @@ namespace tuplex {
                         type = attr->_attribute->annotation().majorityType();
                     }
                 } else {
-                    // failed to annotate
-                    error("failed to annotate attribute");
+                    // failed to annotate, yet do not make this a failing error.
+                    // this should result in normal or general case violation.
+                    // error("failed to annotate attribute " + object_type.desc() + "." + attr->_attribute->_name + " - could not find required annotation.");
                     attr->setInferredType(python::Type::UNKNOWN);
                 }
 

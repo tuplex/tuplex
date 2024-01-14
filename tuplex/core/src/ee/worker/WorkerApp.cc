@@ -1605,6 +1605,11 @@ namespace tuplex {
                                      const std::shared_ptr<TransformStage::JITSymbols>& syms, size_t* inputRowCount) {
         using namespace std;
 
+        if(!tstage)
+            throw std::runtime_error("null pointer for Transform Stage");
+        if(!syms->functor)
+            throw std::runtime_error("no compiled function pointer for codegened code found");
+
         // couple checks
         assert(tstage);
         assert(syms->functor);

@@ -608,6 +608,8 @@ namespace tuplex {
         }
 
         // row type annotation
+        // need to first add dummy internal type as module type
+        addSymbol(make_shared<Symbol>(python::Type::GENERICROW.desc(), python::Type::GENERICROW.desc(), python::Type::GENERICROW, SymbolType::TYPE));
         addBuiltinTypeAttribute(python::Type::GENERICROW, "get", [](const python::Type& callerType,
                                                                      const python::Type& parameterType) {
             assert(callerType.isRowType() && callerType != python::Type::GENERICROW);

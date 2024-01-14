@@ -5453,15 +5453,15 @@ namespace tuplex {
                 // @TODO: aliasing??
                 if(sym && sym->symbolType == SymbolType::VARIABLE) {
                     // skip module types
-                    if(sym->types.front() == python::Type::MODULE)
+                    if(!sym->types.empty() && sym->types.front() == python::Type::MODULE)
                         continue;
 
                     // skip functions
-                    if(sym->types.front().isFunctionType())
+                    if(!sym->types.empty() && sym->types.front().isFunctionType())
                         continue;
 
                     // skip exceptions though note that they can get redefined...
-                    if(sym->types.front().isExceptionType())
+                    if(!sym->types.empty() && sym->types.front().isExceptionType())
                         continue;
 
                     auto it = _globals.find(name);

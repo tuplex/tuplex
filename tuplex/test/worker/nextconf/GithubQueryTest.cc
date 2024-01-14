@@ -178,7 +178,7 @@ namespace tuplex {
                                        "    else:\n"
                                        "        return row['repo'].get('id')";
         ctx.json(input_pattern, true, true, sm)
-                .filter(UDF("lambda x: x['type'] == 'ForkEvent'")) // workaround for filter promo.
+                // .filter(UDF("lambda x: x['type'] == 'ForkEvent'")) // workaround for filter promo.
                 .withColumn("year", UDF("lambda x: int(x['created_at'].split('-')[0])"))
                 .withColumn("repo_id", UDF(repo_id_code))
                 .filter(UDF("lambda x: x['type'] == 'ForkEvent'")) // <-- this is challenging to push down.

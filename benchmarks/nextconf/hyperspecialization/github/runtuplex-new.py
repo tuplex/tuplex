@@ -62,9 +62,11 @@ def process_path_with_python(input_path, dest_output_path):
     #        .tocsv(s3_output_path)
     tstart = time.time()
     rows = []
+    num_input_rows = 0
     with open(input_path, 'r') as fp:
         for line in fp.readlines():
             row = json.loads(line.strip())
+            num_input_rows += 1
 
             # .filter(lambda x: x['type'] == 'ForkEvent')
             if row['type'] != 'ForkEvent':
@@ -110,7 +112,7 @@ def process_path_with_python(input_path, dest_output_path):
     duration = time.time() - tstart
     logging.info(f"Done in {duration:.2f}s, wrote output to {dest_output_path} ({output_result}, {num_output_rows} rows)")
 
-    return {'output_path': dest_output_path, 'duration': duration, 'num_output_rows': num_output_rows}
+    return {'output_path': dest_output_path, 'duration': duration, 'num_output_rows': num_output_rows, 'num_input_rows': num_input_rows}
 
 
 def run_with_python_baseline(args):
@@ -136,15 +138,20 @@ def run_with_python_baseline(args):
     logging.info(f"Found {len(input_paths)} input paths, total size: {human_readable_size(total_input_size)}")
 
     # Process each file now using hand-written pipeline
+    total_output_rows = 0
+    total_input_rows = 0
     for part_no, path in enumerate(input_paths):
         logging.info(f"Processing path {part_no+1}/{len(input_paths)}: {path} ({human_readable_size(os.path.getsize(path))})")
-        process_path_with_python(path, os.path.join(output_path, "part_{:04d}.csv".format(part_no)))
+        ans = process_path_with_python(path, os.path.join(output_path, "part_{:04d}.csv".format(part_no)))
+        total_output_rows += ans['num_output_rows']
+        total_input_rows += ans['num_input_rows']
 
     job_time = time.time() - tstart
-
+    logging.info(f'total output rows: {total_output_rows}')
     stats = {"startup_time_in_s": startup_time, "job_time_in_s": job_time, 'mode': 'tuplex',
              'output_path': output_path,
-             'input_path': input_pattern, 'scratch_path': scratch_dir, 'total_input_paths_size_in_bytes': total_input_size}
+             'input_path': input_pattern, 'scratch_path': scratch_dir, 'total_input_paths_size_in_bytes': total_input_size,
+             'total_output_rows': total_output_rows, 'total_input_rows': total_input_rows}
     return stats
 
 def github_pipeline(ctx, input_pattern, s3_output_path, sm):

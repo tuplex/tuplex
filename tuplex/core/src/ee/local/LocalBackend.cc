@@ -1677,13 +1677,6 @@ namespace tuplex {
         }
     }
 
-    /*!
-     * construct output path based either on a base URI or via a udf
-     * @param udf
-     * @param baseURI
-     * @param partNo
-     * @return
-     */
     URI outputURI(const UDF& udf, const URI& baseURI, int64_t partNo, FileFormat fmt) {
 
         // check if UDF is valid, if so pass it partNo and get filename back

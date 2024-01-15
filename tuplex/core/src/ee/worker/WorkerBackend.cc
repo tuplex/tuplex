@@ -192,6 +192,7 @@ namespace tuplex {
         // @TODO: more sophisticated splitting of workload!
         Timer timer;
         int num_digits = ilog10c(uri_infos.size());
+        int part_no = 0; // counter for part numbers, always to be increased when a new part is needed.
         for (int i = 0; i < uri_infos.size(); ++i) {
             auto info = uri_infos[i];
 
@@ -200,7 +201,7 @@ namespace tuplex {
             auto num_parts_per_file = uri_size / splitSize;
 
             auto num_digits_part = ilog10c(num_parts_per_file + 1);
-            int part_no = 0;
+
             size_t cur_size = 0;
             while (cur_size < uri_size) {
                 messages::InvocationRequest req;
@@ -246,8 +247,9 @@ namespace tuplex {
                     req.set_baseoutputuri(temp_uri.toString());
                 } else throw std::runtime_error("unknown output endpoint in lambda backend");
                 requests.push_back(req);
-
                 part_no++;
+
+
                 cur_size += splitSize;
             }
         }

@@ -151,6 +151,12 @@ namespace tuplex {
             if(startsWith(kv.first, "tuplex."))
                 co.set(kv.first, kv.second);
 
+
+        // --> slow path is SUPER SLOW to compile. need to improve, use this here to make testing faster.
+        // make testing faster...
+        co.set("tuplex.resolveWithInterpreterOnly", "true");
+
+
         // creater context according to settings
         Context ctx(co);
 

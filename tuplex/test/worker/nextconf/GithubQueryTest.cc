@@ -45,11 +45,10 @@ namespace tuplex {
         m["tuplex.optimizer.selectionPushdown"] = "True";
         m["tuplex.experimental.forceBadParseExceptFormat"] = "False";
         m["tuplex.resolveWithInterpreterOnly"] = "False";
-        m["tuplex.inputSplitSize"] = "2GB";
         m["tuplex.experimental.opportuneCompilation"] = "True";
         m["tuplex.aws.scratchDir"] = "s3://tuplex-leonhard/scratch/github-exp";
 
-        // for github use smaller split size
+        // for github use smaller split size? --> need to test/check!
         m["tuplex.inputSplitSize"] = "64MB"; // tiny tasks?
 
         // sampling settings incl.
@@ -155,6 +154,9 @@ namespace tuplex {
         // --> slow path is SUPER SLOW to compile. need to improve, use this here to make testing faster.
         // make testing faster...
         co.set("tuplex.resolveWithInterpreterOnly", "true");
+
+        // let's iterate over a few split sizes
+        co.set("tuplex.inputSplitSize", "128M");
 
 
         // creater context according to settings

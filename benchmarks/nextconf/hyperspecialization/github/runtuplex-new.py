@@ -14,6 +14,8 @@ import glob
 import argparse
 import logging
 import csv
+# used for validation
+import pandas as pd
 
 
 # default parameters to use for paths, scratch dirs
@@ -85,7 +87,7 @@ def process_path_with_python(input_path, dest_output_path):
             row['number_of_commits'] = len(row['commits']) if row['commits'] else 0
 
             row = {'type': row['type'], 'repo_id': row['repo_id'],
-                   'year':row['year'], 'commits': row['number_of_commits']}
+                   'year': row['year'], 'number_of_commits': row['number_of_commits']}
             rows.append(row)
 
     # write out as CSV (escape each)
@@ -95,7 +97,9 @@ def process_path_with_python(input_path, dest_output_path):
         pathlib.Path(dest_output_path).parent.mkdir(parents=True, exist_ok=True)
 
         with open(dest_output_path, 'w', newline='') as csvfile:
-            fieldnames = sorted([str(key) for key in rows[0].keys()])
+            # use same order here as Tuplex does, alternative would be something like
+            # sorted([str(key) for key in rows[0].keys()])
+            fieldnames = ['type', 'repo_id', 'year', 'number_of_commits']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
             writer.writeheader()
@@ -314,6 +318,38 @@ def setup_logging(log_path:Optional[str]) -> None:
                         format=LOG_FORMAT,
                         datefmt=LOG_DATE_FORMAT,
                         handlers=handlers)
+
+# helper functions to perform validation
+def read_csv_glob(pattern):
+    paths = sorted(glob.glob(pattern))
+    df = pd.DataFrame()
+    for path in paths:
+        df = pd.concat((df, pd.read_csv(path)))
+    return df
+
+
+def compare_dataframes_order_independent(df1, df2):
+    # check same length
+    if len(df1) != len(df2):
+        raise ValueError(f'length of dataframes do not match {len(df1)} != {len(df2)}')
+    # check columns
+    columns1 = list(df1.columns)
+    columns2 = list(df2.columns)
+
+    if columns1 != columns2:
+        raise ValueError(f'column labels of dataframes do not match {columns1} != {columns2}')
+
+    # sort each dataframe
+    def sort_by_all_columns(df):
+        return df.sort_values(by=list(df.columns)).reset_index(drop=True)
+
+    df1 = sort_by_all_columns(df1)
+    df2 = sort_by_all_columns(df2)
+
+    # compare dataframes using pandas helper
+    pd.testing.assert_frame_equal(df1, df2)
+
+    return True
 
 
 if __name__ == '__main__':

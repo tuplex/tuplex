@@ -100,6 +100,18 @@ namespace tuplex {
         if (!requests.empty()) {
             logger().info("Invoking " + pluralize(requests.size(), "request") + " ...");
 
+
+            // check requests have all different output uris
+            std::set<std::string> output_uri_set;
+            for(const auto& req: requests)
+                output_uri_set.insert(req.baseoutputuri());
+            if(output_uri_set.size() != requests.size()) {
+                std::stringstream err_stream;
+                err_stream<<"Of "<<pluralize(requests.size(), "request")<<" only "<<output_uri_set.size()<<" unique output base uris found.";
+                logger().error(err_stream.str());
+                throw std::runtime_error(err_stream.str());
+            }
+
 #ifndef NDEBUG
             logger().debug("Emitting request files for easier debugging...");
             for(unsigned i = 0; i < requests.size(); ++i) {
@@ -229,15 +241,14 @@ namespace tuplex {
 
                 // output uri of job? => final one? parts?
                 // => create temporary if output is local! i.e. to memory etc.
-                int taskNo = i;
                 if (tstage->outputMode() == EndPointMode::MEMORY) {
                     // create temp file in scratch dir!
                     req.set_baseoutputuri(scratchDir(hintsFromTransformStage(tstage)).join_path(
-                            "output.part" + fixedLength(taskNo, num_digits) + "_" +
+                            "output.part" + fixedLength(part_no, num_digits) + "_" +
                             fixedLength(part_no, num_digits_part)).toString());
                 } else if (tstage->outputMode() == EndPointMode::FILE) {
                     // create output URI based on taskNo
-                    auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), taskNo, tstage->outputFormat());
+                    auto uri = outputURI(tstage->outputPathUDF(), tstage->outputURI(), part_no, tstage->outputFormat());
                     req.set_baseoutputuri(uri.toPath());
                 } else if (tstage->outputMode() == EndPointMode::HASHTABLE) {
                     // there's two options now, either this is an end-stage (i.e., unique/aggregateByKey/...)

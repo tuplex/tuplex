@@ -74,7 +74,7 @@ def process_path_with_python(input_path, dest_output_path):
             row['year'] = int(row['created_at'].split('-')[0])
 
             # .withColumn('repo_id', extract_repo_id)
-            row['repo_id'] =  extract_repo_id(row)
+            row['repo_id'] = extract_repo_id(row)
 
             # .withColumn('commits', lambda row: row['payload'].get('commits'))
             row['commits'] = row['payload'].get('commits')
@@ -104,8 +104,13 @@ def process_path_with_python(input_path, dest_output_path):
         output_result = human_readable_size(os.path.getsize(dest_output_path))
     else:
         output_result = "skipped"
+
+    num_output_rows = len(rows)
+
     duration = time.time() - tstart
-    logging.info(f"Done in {duration:.2f}s, wrote output to {dest_output_path} ({output_result})")
+    logging.info(f"Done in {duration:.2f}s, wrote output to {dest_output_path} ({output_result}, {num_output_rows} rows)")
+
+    return {'output_path': dest_output_path, 'duration': duration, 'num_output_rows': num_output_rows}
 
 
 def run_with_python_baseline(args):

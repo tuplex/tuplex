@@ -156,7 +156,7 @@ namespace tuplex {
         co.set("tuplex.resolveWithInterpreterOnly", "true");
 
         // let's iterate over a few split sizes
-        co.set("tuplex.inputSplitSize", "128M");
+        co.set("tuplex.inputSplitSize", "32M");
 
 
         // creater context according to settings

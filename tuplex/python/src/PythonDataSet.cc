@@ -1358,6 +1358,10 @@ namespace tuplex {
             return anyToCPythonWithPyObjects(rs, maxRowCount);
 
         auto type = rs->schema().getRowType();
+
+        if(type.isRowType())
+            type = type.get_columns_as_tuple_type();
+
         // if single type, reset by one
         assert(type.isTupleType());
         if (type.parameters().size() == 1)

@@ -267,7 +267,8 @@ namespace tuplex {
                      {"tuplex.experimental.opportuneCompilation", "true"},
                      {"tuplex.experimental.forceBadParseExceptFormat", "false"},
                      {"tuplex.experimental.s3PreCacheSize", "0"},
-                     {"tuplex.experimental.worker.numWorkers", "0"}};
+                     {"tuplex.experimental.worker.numWorkers", "0"},
+                     {"tuplex.experimental.worker.workerPath", ""}};
 #else
         // DEBUG options
         co._store = {{"tuplex.useLLVMOptimizer", "false"},
@@ -342,7 +343,8 @@ namespace tuplex {
                      {"tuplex.experimental.opportuneCompilation", "true"},
                      {"tuplex.experimental.forceBadParseExceptFormat", "false"},
                      {"tuplex.experimental.s3PreCacheSize", "0"},
-                     {"tuplex.experimental.worker.numWorkers", "0"}}; // experimental feature, deactivate for now.
+                     {"tuplex.experimental.worker.numWorkers", "0"},
+                     {"tuplex.experimental.worker.workerPath", ""}}; // experimental feature, deactivate for now.
 #endif
 
         // update with tuplex env

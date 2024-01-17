@@ -169,23 +169,35 @@ def github_pipeline(ctx, input_pattern, s3_output_path, sm):
        .selectColumns(['type', 'repo_id', 'year', 'number_of_commits']) \
        .tocsv(s3_output_path)
 
-
+# local worker version
 def run_with_tuplex(args):
-    if not 'AWS_ACCESS_KEY_ID' in os.environ or 'AWS_SECRET_ACCESS_KEY' not in os.environ:
-        raise Exception('Did not find AWS credentials in environment, please set.')
 
-    # if paths are None, use per default S3 ones
-    lambda_size = "10000"
-    lambda_threads = 3
-    s3_scratch_dir = args.scratch_dir or S3_DEFAULT_SCRATCH_DIR
+    LOCAL_WORKER_PATH='/home/leonhards/projects/tuplex-public/tuplex/cmake-build-release-w-cereal/dist/bin/tuplex-worker'
+
+    output_path = args.output_path
+    input_pattern = args.input_pattern
+    scratch_dir = args.scratch_dir
+
+    if not output_path:
+        raise ValueError('No output path specified')
+    if not input_pattern:
+        raise ValueError('No input_pattern specified')
+    if not scratch_dir:
+        raise ValueError('No scratch directory specified')
+
     use_hyper_specialization = not args.no_hyper
     use_filter_promotion = not args.no_promo
     use_constant_folding = False  # deactivate explicitly
-    input_pattern = args.input_pattern or S3_DEFAULT_INPUT_PATTERN
-    s3_output_path = args.output_pattern or S3_DEFAULT_OUTPUT_PATH
+
     strata_size = args.strata_size
     samples_per_strata = args.samples_per_strata
+
+
+    # manipulate here to contrain granularity
     input_split_size = "2GB"
+    num_processes = 8
+
+    import tuplex
 
     # use following as debug pattern
     sm_map = {'A': tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS,
@@ -206,11 +218,11 @@ def run_with_tuplex(args):
     # manipulate output path
 
     if use_hyper_specialization:
-        s3_output_path += '/hyper'
+        output_path += '/hyper'
     else:
-        s3_output_path += '/general'
+        output_path += '/general'
 
-    print('>>> running {} on {} -> {}'.format('tuplex', input_pattern, s3_output_path))
+    print('>>> running {} on {} -> {}'.format('tuplex', input_pattern, output_path))
     print('    running in interpreter mode: {}'.format(args.python_mode))
     print('    hyperspecialization: {}'.format(use_hyper_specialization))
     print('    constant-folding: {}'.format(use_constant_folding))
@@ -223,16 +235,16 @@ def run_with_tuplex(args):
     # configuration, make sure to give enough runtime memory to the executors!
     # run on Lambda
     conf = {"webui.enable": False,
-            "backend": "lambda",
-            "aws.lambdaMemory": lambda_size,
-            "aws.lambdaThreads": lambda_threads,
+            "backend": "worker",
+            "experimental.worker.numWorkers": num_processes,
+            "experimental.worker.workerPath": LOCAL_WORKER_PATH,
             "aws.lambdaTimeout": 900,  # maximum allowed is 900s!
             "aws.httpThreadCount": 410,
             "aws.maxConcurrency": 410,
             'sample.maxDetectionMemory': '32MB',
             'sample.strataSize': strata_size,
             'sample.samplesPerStrata': samples_per_strata,
-            "aws.scratchDir": s3_scratch_dir,
+            "aws.scratchDir": scratch_dir,
             "autoUpcast": True,
             "experimental.hyperspecialization": use_hyper_specialization,
             "executorCount": 0,
@@ -250,12 +262,13 @@ def run_with_tuplex(args):
             "useInterpreterOnly": args.python_mode,
             "experimental.forceBadParseExceptFormat": not args.use_internal_fmt}
 
-    if os.path.exists('tuplex_config.json'):
-        with open('tuplex_config.json') as fp:
-            conf = json.load(fp)
 
-    conf['inputSplitSize'] = '2GB'  # '256MB' #'128MB'
-    conf["tuplex.experimental.opportuneCompilation"] = True  # False #True #False #True
+    # if os.path.exists('tuplex_config.json'):
+    #     with open('tuplex_config.json') as fp:
+    #         conf = json.load(fp)
+
+    conf['inputSplitSize'] = input_split_size
+    conf["experimental.opportuneCompilation"] = True  # False #True #False #True
 
     if args.no_nvo:
         conf["optimizer.nullValueOptimization"] = False
@@ -274,7 +287,7 @@ def run_with_tuplex(args):
     tstart = time.time()
     ### QUERY HERE ###
 
-    github_pipeline(ctx, input_pattern, s3_output_path, sm)
+    github_pipeline(ctx, input_pattern, output_path, sm)
 
     ### END QUERY ###
     run_time = time.time() - tstart
@@ -285,9 +298,129 @@ def run_with_tuplex(args):
     print(ctx.options())
     print(m.as_json())
     # print stats as last line
-    stats = {"startup_time_in_s": startup_time, "job_time_in_s": job_time, 'mode': 'tuplex', 'output_path': s3_output_path,
-             'input_path': input_pattern, 'scratch_path': s3_scratch_dir, 'options': ctx.options(), 'metrics': json.loads(m.as_json())}
+    stats = {"startup_time_in_s": startup_time, "job_time_in_s": job_time, 'mode': 'tuplex', 'output_path': output_path,
+             'input_path': input_pattern, 'scratch_path': scratch_dir, 'options': ctx.options(), 'metrics': json.loads(m.as_json())}
     return stats
+
+# AWS Lambda version
+# def run_with_tuplex(args):
+#     if not 'AWS_ACCESS_KEY_ID' in os.environ or 'AWS_SECRET_ACCESS_KEY' not in os.environ:
+#         raise Exception('Did not find AWS credentials in environment, please set.')
+#
+#     # if paths are None, use per default S3 ones
+#     lambda_size = "10000"
+#     lambda_threads = 3
+#     s3_scratch_dir = args.scratch_dir or S3_DEFAULT_SCRATCH_DIR
+#     use_hyper_specialization = not args.no_hyper
+#     use_filter_promotion = not args.no_promo
+#     use_constant_folding = False  # deactivate explicitly
+#     input_pattern = args.input_pattern or S3_DEFAULT_INPUT_PATTERN
+#     s3_output_path = args.output_pattern or S3_DEFAULT_OUTPUT_PATH
+#     strata_size = args.strata_size
+#     samples_per_strata = args.samples_per_strata
+#     input_split_size = "2GB"
+#
+#     # use following as debug pattern
+#     sm_map = {'A': tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.FIRST_ROWS,
+#               'B': tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_ROWS | tuplex.dataset.SamplingMode.FIRST_ROWS,
+#               'C': tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_FILE,
+#               'D': tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS | tuplex.dataset.SamplingMode.FIRST_FILE | tuplex.dataset.SamplingMode.LAST_FILE,
+#               'E': tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.ALL_FILES,
+#               'F': tuplex.dataset.SamplingMode.FIRST_ROWS | tuplex.dataset.SamplingMode.LAST_ROWS | tuplex.dataset.SamplingMode.ALL_FILES
+#               }
+#
+#     sm = sm_map['D']  # ism_map.get(args.sampling_mode, None)
+#     sm = sm_map['B']
+#
+#     if use_hyper_specialization:
+#         sm = sm_map['D']
+#     else:
+#         sm = sm_map['D']
+#     # manipulate output path
+#
+#     if use_hyper_specialization:
+#         s3_output_path += '/hyper'
+#     else:
+#         s3_output_path += '/general'
+#
+#     print('>>> running {} on {} -> {}'.format('tuplex', input_pattern, s3_output_path))
+#     print('    running in interpreter mode: {}'.format(args.python_mode))
+#     print('    hyperspecialization: {}'.format(use_hyper_specialization))
+#     print('    constant-folding: {}'.format(use_constant_folding))
+#     print('    filter-promotion: {}'.format(use_filter_promotion))
+#     print('    null-value optimization: {}'.format(not args.no_nvo))
+#     print('    strata: {} per {}'.format(samples_per_strata, strata_size))
+#     # load data
+#     tstart = time.time()
+#
+#     # configuration, make sure to give enough runtime memory to the executors!
+#     # run on Lambda
+#     conf = {"webui.enable": False,
+#             "backend": "lambda",
+#             "aws.lambdaMemory": lambda_size,
+#             "aws.lambdaThreads": lambda_threads,
+#             "aws.lambdaTimeout": 900,  # maximum allowed is 900s!
+#             "aws.httpThreadCount": 410,
+#             "aws.maxConcurrency": 410,
+#             'sample.maxDetectionMemory': '32MB',
+#             'sample.strataSize': strata_size,
+#             'sample.samplesPerStrata': samples_per_strata,
+#             "aws.scratchDir": s3_scratch_dir,
+#             "autoUpcast": True,
+#             "experimental.hyperspecialization": use_hyper_specialization,
+#             "executorCount": 0,
+#             "executorMemory": "2G",
+#             "driverMemory": "2G",
+#             "partitionSize": "32MB",
+#             "runTimeMemory": "128MB",
+#             "useLLVMOptimizer": True,
+#             "optimizer.generateParser": False,  # not supported on lambda yet
+#             "optimizer.nullValueOptimization": True,
+#             "resolveWithInterpreterOnly": False,
+#             "optimizer.constantFoldingOptimization": use_constant_folding,
+#             "optimizer.filterPromotion": use_filter_promotion,
+#             "optimizer.selectionPushdown": True,
+#             "useInterpreterOnly": args.python_mode,
+#             "experimental.forceBadParseExceptFormat": not args.use_internal_fmt}
+#
+#     if os.path.exists('tuplex_config.json'):
+#         with open('tuplex_config.json') as fp:
+#             conf = json.load(fp)
+#
+#     conf['inputSplitSize'] = '2GB'  # '256MB' #'128MB'
+#     conf["tuplex.experimental.opportuneCompilation"] = True  # False #True #False #True
+#
+#     if args.no_nvo:
+#         conf["optimizer.nullValueOptimization"] = False
+#     else:
+#         conf["optimizer.nullValueOptimization"] = True
+#
+#     conf["inputSplitSize"] = input_split_size
+#
+#     tstart = time.time()
+#     import tuplex
+#
+#     ctx = tuplex.Context(conf)
+#
+#     startup_time = time.time() - tstart
+#     print('Tuplex startup time: {}'.format(startup_time))
+#     tstart = time.time()
+#     ### QUERY HERE ###
+#
+#     github_pipeline(ctx, input_pattern, s3_output_path, sm)
+#
+#     ### END QUERY ###
+#     run_time = time.time() - tstart
+#
+#     job_time = time.time() - tstart
+#     print('Tuplex job time: {} s'.format(job_time))
+#     m = ctx.metrics
+#     print(ctx.options())
+#     print(m.as_json())
+#     # print stats as last line
+#     stats = {"startup_time_in_s": startup_time, "job_time_in_s": job_time, 'mode': 'tuplex', 'output_path': s3_output_path,
+#              'input_path': input_pattern, 'scratch_path': s3_scratch_dir, 'options': ctx.options(), 'metrics': json.loads(m.as_json())}
+#     return stats
 
 def setup_logging(log_path:Optional[str]) -> None:
 

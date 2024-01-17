@@ -11,7 +11,7 @@
 
 namespace tuplex {
 
-    std::string find_worker();
+    std::string find_worker(const std::string& path_hint);
 
     WorkerBackend::WorkerBackend(const tuplex::Context &context,
                                  const std::string &exe_path) : IBackend(context),
@@ -20,7 +20,6 @@ namespace tuplex {
                                                                 _deleteScratchDirOnShutdown(false),
                                                                 _logger(Logger::instance().logger("worker")),
                                                                 _scratchDir(URI::INVALID) {
-        _worker_exe_path = ensure_worker_path(exe_path);
 
         _driver.reset(new Executor(_options.DRIVER_MEMORY(),
                                    _options.PARTITION_SIZE(),
@@ -395,7 +394,7 @@ namespace tuplex {
             logger().info(ss.str());
         }
 
-        auto worker_path = find_worker();
+        auto worker_path = find_worker(_options.EXPERIMENTAL_WORKER_PATH());
         logger().info("Found worker executable " + worker_path);
 
         // ensure scratch dir is writable
@@ -548,11 +547,18 @@ namespace tuplex {
         m_map["tuplex.sample.samplesPerStrata"] = std::to_string(options.AWS_LAMBDA_SAMPLE_SAMPLES_PER_STRATA());
     }
 
-    std::string find_worker() {
+    std::string find_worker(const std::string& path_hint) {
         using namespace tuplex;
+
+        if(fileExists(path_hint))
+            return eliminateSeparatorRuns(path_hint);
 
         // find worker executable (tuplex-worker)
         static const std::string exec_name = "tuplex-worker";
+
+        auto hint_and_name = path_hint + "/" + exec_name;
+        if(fileExists(hint_and_name))
+            return eliminateSeparatorRuns(hint_and_name);
 
         // check current working dir
         auto exec_dir = dir_from_pid(pid_from_self());
@@ -568,7 +574,7 @@ namespace tuplex {
     std::string ensure_worker_path(const std::string& exe_path) {
         if(exe_path.empty()) {
             // find relative to current path
-            auto path =  find_worker();
+            auto path =  find_worker("");
             if(!path.empty())
                 return path;
         } else {

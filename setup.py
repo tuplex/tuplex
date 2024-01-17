@@ -653,7 +653,7 @@ def tplx_package_data():
 # logic and declaration, and simpler if you include description/version in a file.
 setup(name="tuplex",
     python_requires='>=3.7.0',
-    version="0.3.6dev",
+    version="0.3.7",
     author="Leonhard Spiegelberg",
     author_email="tuplex@cs.brown.edu",
     description="Tuplex is a novel big data analytics framework incorporating a Python UDF compiler based on LLVM "

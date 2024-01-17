@@ -13,7 +13,7 @@
 #include <RuntimeInterface.h>
 
 // protobuf
-#include <Lambda.pb.h>
+#include <utils/Messages.h>
 #include <physical/TransformStage.h>
 #include <physical/CSVReader.h>
 #include <physical/TextReader.h>

@@ -5,7 +5,7 @@
 #include <sstream>
 #include <Utils.h>
 
-#include <Lambda.pb.h>
+#include <utils/Messages.h>
 
 // lambda main function, i.e. get a json request and return a json object
 //extern const char* handler_worker(const char *payload, int &r);

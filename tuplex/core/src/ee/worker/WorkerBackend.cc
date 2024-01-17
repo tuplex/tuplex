@@ -129,11 +129,10 @@ namespace tuplex {
             size_t total_input_rows = 0;
             size_t total_num_output_rows = 0;
 
-            // // process within this thread?
-            // processRequestsInline(requests, &stats_array, &req_array, &total_input_rows, &total_num_output_rows);
 
             // process using multiple processes? -> i.e. pass message to worker executable
-            auto num_processes = 8;
+            auto num_processes = _options.EXPERIMENTAL_WORKER_BACKEND_NUM_WORKERS();
+            logger().info("Context configured with " + pluralize(num_processes, "worker process") + " (experimental)");
             processRequestsWithProcessPool(requests, &stats_array, &req_array, &total_input_rows, &total_num_output_rows, num_processes);
 
             logger().info("total input row count: " + std::to_string(total_input_rows));
@@ -456,7 +455,7 @@ namespace tuplex {
                     // save to file
                     stringToFile(message_path, json_message);
 
-                    auto cmd = worker_path + " -m " + message_path.toPath();
+                    auto cmd = worker_path + " -m " + message_path.toPath() + " -o " + stats_path.toPath();
                     auto res_stdout = runCommand(cmd);
 
                     // parse stats as answer out

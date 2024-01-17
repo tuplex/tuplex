@@ -286,11 +286,55 @@ if(BUILD_WITH_ORC)
         ucm_add_flags("-Wno-poison-system-directories")
     endif()
     message(STATUS "Configuring ORC to run with flags: ${CMAKE_CXX_FLAGS}")
+
+    # add explicit snappy step because ORC build has issues under linux
+    if(NOT APPLE)
+        find_package(Snappy)
+        if(Snappy_FOUND)
+            if(NOT Snappy_INCLUDE_DIR AND SNAPPY_INCLUDE_DIR)
+                set(Snappy_INCLUDE_DIR "${SNAPPY_INCLUDE_DIR}")
+            endif()
+            cmake_path(GET Snappy_INCLUDE_DIR PARENT_PATH SNAPPY_ROOT_DIR)
+            set(SNAPPY_HOME ${SNAPPY_ROOT_DIR})
+            set(SNAPPY_LIBRARIES ${Snappy_LIBRARIES})
+        else()
+            message(STATUS "Could not find locally installed snappy, building third party")
+            set(SNAPPY_VERSION "1.1.10")
+            set(SNAPPY_HOME "${EXTERNAL_INSTALL_LOCATION}")
+            set(SNAPPY_INCLUDE_DIR "${SNAPPY_HOME}/include")
+            set(SNAPPY_STATIC_LIB "${SNAPPY_HOME}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}snappy${CMAKE_STATIC_LIBRARY_SUFFIX}")
+            set(SNAPPY_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${SNAPPY_HOME}
+                    -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DSNAPPY_BUILD_BENCHMARKS=OFF -DSNAPPY_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
+            ExternalProject_Add (snappy_ep
+                    URL "https://github.com/google/snappy/archive/${SNAPPY_VERSION}.tar.gz"
+                    CMAKE_ARGS ${SNAPPY_CMAKE_ARGS}
+                    BUILD_BYPRODUCTS "${SNAPPY_STATIC_LIB}"
+                    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+
+            set(SNAPPY_LIBRARIES ${SNAPPY_STATIC_LIB})
+
+            add_library(snappy INTERFACE)
+            target_link_libraries(snappy INTERFACE ${SNAPPY_STATIC_LIB})
+            target_include_directories(snappy SYSTEM INTERFACE ${SNAPPY_INCLUDE_DIR})
+
+            add_dependencies(snappy snappy_ep)
+            install(FILES "${SNAPPY_STATIC_LIB}" DESTINATION "lib")
+            set(SNAPPY_DEPENDS "snappy_ep")
+        endif()
+    endif()
+
+
+
     ExternalProject_Add(orc
             GIT_REPOSITORY https://github.com/apache/orc.git
-            GIT_TAG rel/release-1.7.3
+            GIT_TAG rel/release-1.9.2
             TIMEOUT 5
-            CMAKE_ARGS -DBUILD_LIBHDFSPP=OFF -DSNAPPY_HOME=${SNAPPY_HOME} -DLZ4_HOME=${LZ4_HOME} -DZSTD_HOME=${ZSTD_HOME} -DZLIB_HOME=${ZLIB_HOME} -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION} -DSTOP_BUILD_ON_WARNING=OFF -DBUILD_JAVA=OFF -DBUILD_TOOLS=OFF -DBUILD_CPP_TESTS=OFF -DBUILD_POSITION_INDEPENDENT_LIB=ON -DPROTOBUF_HOME=${Protobuf_HOME}
+            CMAKE_ARGS -DBUILD_LIBHDFSPP=OFF -DSNAPPY_HOME=${SNAPPY_HOME}
+            -DLZ4_HOME=${LZ4_HOME} -DZSTD_HOME=${ZSTD_HOME} -DZLIB_HOME=${ZLIB_HOME}
+            -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+            -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
+            -DSTOP_BUILD_ON_WARNING=OFF -DBUILD_JAVA=OFF -DBUILD_TOOLS=OFF -DBUILD_CPP_TESTS=OFF
+            -DBUILD_POSITION_INDEPENDENT_LIB=ON -DPROTOBUF_HOME=${Protobuf_HOME}
             PREFIX "${EXTERNAL_INSTALL_LOCATION}"
             UPDATE_COMMAND "" # Disable update step: clones the project only once
             BUILD_BYPRODUCTS ${EXTERNAL_INSTALL_LOCATION}/lib/liborc.a ${ORC_THIRD_PARTY_LIBS}

@@ -36,6 +36,7 @@ int main(int argc, char* argv[]) {
     using namespace tuplex;
 
     std::string logPath;
+    std::string output_response_path;
     bool isDaemon = false; // do not start in daemon mode
     unsigned int port = 9000; // default port
     std::string message; // no message to process
@@ -49,6 +50,7 @@ int main(int argc, char* argv[]) {
     cli.add_argument(lyra::opt(isDaemon, "daemon").name("-d").name("--daemon").help("start worker as daemon process listening to connections"));
     cli.add_argument(lyra::opt(port, "port").name("-p").name("--port").help("port on which worker should listen for messages"));
     cli.add_argument(lyra::opt(message, "message").name("-m").name("--message").help("single message in JSON for worker to process, auto-shutdown after message or path to file holding a message"));
+    cli.add_argument(lyra::opt(output_response_path, "outputResponse").name("-o").name("--output-response").help("output response in JSON format to path, overwrites existing file."));
     cli.add_argument(lyra::opt(timeout, "timeout").name("-t").name("--timeout").help("if set to non-zero, timeout in ms after which worker will auto-shutdown"));
 
     auto result = cli.parse({argc, argv});
@@ -94,7 +96,10 @@ int main(int argc, char* argv[]) {
 
             // process message
             rc = app->processJSONMessage(message);
-
+            if(!output_response_path.empty()) {
+                logger.info("Save json statistics to " + output_response_path);
+                stringToFile(output_response_path, app->jsonStats());
+            }
             logger.debug("message found");
         }
         app->shutdown();

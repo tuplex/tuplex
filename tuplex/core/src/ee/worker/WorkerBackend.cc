@@ -406,7 +406,7 @@ namespace tuplex {
 
 
         // launch threads and distribute work to them
-        std::vector<std::thread> process_threads;
+        std::vector<std::future<std::vector<nlohmann::json>>> process_futures;
         auto n_requests = requests.size();
         size_t n_requests_per_process = std::max((size_t)1u, n_requests / num_processes_to_use);
         size_t n_remainder = n_requests % num_processes_to_use;
@@ -423,43 +423,90 @@ namespace tuplex {
             assert(check_total == n_requests);
         }
 
+        // atomic counter (inc'ed whenever request has completed)
+        std::atomic_int atomic_request_counter = 0;
+
         size_t offset = 0;
         for(unsigned i = 0; i < num_processes_to_use; ++i) {
 
             // create new thread
-            process_threads.push_back(std::thread([this](unsigned process_id, const std::vector<messages::InvocationRequest>& requests) {
+            process_futures.push_back(std::async([this, worker_path, &atomic_request_counter, n_requests](unsigned process_id, const std::vector<messages::InvocationRequest>& requests) {
 
                 logger().info("Process " + std::to_string(process_id) + " got " + pluralize(requests.size(), "request") + " to process.");
 
-              return true;
+                unsigned request_no = 1;
+                std::vector<nlohmann::json> responses;
+                for(const auto& req : requests) {
+
+                    std::string prefix = std::to_string(atomic_request_counter) + "/" + std::to_string(n_requests) + " completed, ";
+
+                    {
+                        std::stringstream ss;
+                        ss<<prefix<<"Process "<<process_id<<" start request "<<request_no<<"/"<<requests.size();
+                        logger().info(ss.str());
+                    }
+
+                    Timer timer;
+                    auto message_path = _options.SCRATCH_DIR().join("message_process_" + std::to_string(process_id) + "_" + std::to_string(request_no-1) + ".json");
+                    auto stats_path = _options.SCRATCH_DIR().join("message_stats_" + std::to_string(process_id) + "_" + std::to_string(request_no-1) + ".json");
+
+                    std::string json_message;
+                    google::protobuf::util::MessageToJsonString(req, &json_message);
+
+                    // save to file
+                    stringToFile(message_path, json_message);
+
+                    auto cmd = worker_path + " -m " + message_path.toPath();
+                    auto res_stdout = runCommand(cmd);
+
+                    // parse stats as answer out
+                    auto stats = nlohmann::json::parse(fileToString(stats_path));
+                    responses.push_back(stats);
+                    atomic_request_counter++;
+                    auto worker_invocation_duration = timer.time();
+                    {
+                        std::stringstream ss;
+                        ss<<prefix<<"Process "<<process_id<<" request "<<request_no<<"/"<<requests.size()<<" took "<<worker_invocation_duration<<"s";
+                        logger().info(ss.str());
+                    }
+                    request_no++;
+                }
+
+              return responses;
             }, i, std::vector<messages::InvocationRequest>(requests.begin() + offset, requests.begin() + offset + n_tasks[i])));
             offset += n_tasks[i];
         }
-//
-//        {
-//            Timer timer;
-//            auto cmd = worker_path + " -m " + msg_file.toPath();
-//            auto res_stdout = runCommand(cmd);
-//            auto worker_invocation_duration = timer.time();
-//        }
 
+        std::vector<nlohmann::json> stats;
+        size_t total_input_rows = 0;
+        size_t total_output_rows = 0;
+        for(auto& f: process_futures) {
+            auto stat = f.get();
+            for(auto j_stats : stat) {
+                total_output_rows += j_stats["output"]["normal"].get<std::size_t>() + j_stats["output"]["except"].get<std::size_t>();
+                total_input_rows += j_stats["input"]["total_input_row_count"].get<std::size_t>();
+            }
 
-//        // launch threads and distribute work to them
-//        std::vector<std::thread> process_threads;
-//        {
-//            std::string cmd = "dot -Tpdf " + tempfile + " -o " + path;
-//            std::array<char, 128> buffer;
-//            std::string result;
-//            std::shared_ptr<FILE> pipe(popen(cmd.c_str(), "r"), pclose);
-//            if (!pipe) throw std::runtime_error("popen() failed!");
-//            while (!feof(pipe.get())) {
-//                if (fgets(buffer.data(), 128, pipe.get()) != nullptr)
-//                    result += buffer.data();
-//            }
-//        }
-        for(auto& thread: process_threads) {
-            thread.join();
+            std::copy(stat.begin(), stat.end(), std::back_inserter(stats));
         }
+
+        if(out_stats_array)
+            *out_stats_array = stats;
+        //if(out_req_array) // --> correspondence must be achieved, i.e. read files back???
+        //    *out_req_array = requests;
+        if(out_total_input_rows)
+            *out_total_input_rows = total_input_rows;
+        if(out_total_output_rows)
+            *out_total_output_rows = total_output_rows;
+
+//        auto arr = nlohmann::json::array();
+//        for(const auto& stat : stats)
+//            arr.push_back(stat);
+//
+//        auto full_json_string = arr.dump();
+//        auto save_path = URI("./process_pool_stats.json");
+//        logger().info("Save detailed process pool stats to " + save_path.toString());
+//        stringToFile(save_path, full_json_string);
 
         logger().info("Pool processing done.");
     }

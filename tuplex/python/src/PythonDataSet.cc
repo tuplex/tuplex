@@ -655,8 +655,8 @@ namespace tuplex {
         // 2.) via strings
         // ==> mixture also ok...
         auto rowType = _dataset->schema().getRowType();
-        assert(rowType.isTupleType());
-        auto num_cols = rowType.parameters().size();
+        assert(rowType.isTupleType() || rowType.isRowType());
+        auto num_cols = rowType.isTupleType() ? rowType.parameters().size() : rowType.get_column_count();
 
         // go through list
         // ==> Tuplex supports list and integer indices which may be mixed up even!

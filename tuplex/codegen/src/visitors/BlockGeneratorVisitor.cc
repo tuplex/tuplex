@@ -4317,6 +4317,12 @@ namespace tuplex {
             auto key = std::get<0>(t_key_and_type);
             auto key_type = std::get<1>(t_key_and_type);
 
+            // handle constant types
+            if(key_type.isConstantValued()) {
+                key = key_type.constant();
+                key_type = key_type.underlying();
+            }
+
             if(key_type == python::Type::UNKNOWN || key.empty())
                 return false;
 

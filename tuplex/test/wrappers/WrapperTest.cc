@@ -3116,18 +3116,30 @@ TEST_F(WrapperTest, PythonGithubLocalWorkerProcessing) {
 
         // create Github based (JSON) pipeline.
         auto repo_id_code = "def extract_repo_id(row):\n"
-                            "\tif 2012 <= row['year'] <= 2014:\n"
-                            "\t\treturn row['repository']['id']\n"
-                            "\telse:\n"
-                            "\t\treturn row['repo']['id']\n";
+                            "    if 2012 <= row['year'] <= 2014:\n"
+                            "        \n"
+                            "        if row['type'] == 'FollowEvent':\n"
+                            "            return row['payload']['target']['id']\n"
+                            "        \n"
+                            "        if row['type'] == 'GistEvent':\n"
+                            "            return row['payload']['id']\n"
+                            "        \n"
+                            "        repo = row.get('repository')\n"
+                            "        \n"
+                            "        if repo is None:\n"
+                            "            return None\n"
+                            "        return repo.get('id')\n"
+                            "    else:\n"
+                            "        return row['repo'].get('id')";
 
         string pattern = "/hot/data/github_daily/*.json";
         string output_path = "./local-exp/hyper/github/output.csv";
 
-        PyObject * listObj = PyList_New(3);
+        PyObject * listObj = PyList_New(4);
         PyList_SET_ITEM(listObj, 0, python::PyString_FromString("type"));
         PyList_SET_ITEM(listObj, 1, python::PyString_FromString("repo_id"));
         PyList_SET_ITEM(listObj, 2, python::PyString_FromString("year"));
+        PyList_SET_ITEM(listObj, 3, python::PyString_FromString("number_of_commits"));
 
         auto list = py::reinterpret_borrow<py::list>(listObj);
 
@@ -3135,6 +3147,8 @@ TEST_F(WrapperTest, PythonGithubLocalWorkerProcessing) {
                 .withColumn("year", "lambda x: int(x['created_at'].split('-')[0])", "")
                 .withColumn("repo_id", repo_id_code, "")
                 .filter("lambda x: x['type'] == 'ForkEvent'", "")
+                .withColumn("commits", "lambda row: row['payload'].get('commits')", "")
+                .withColumn("number_of_commits", "lambda row: len(row['commits']) if row['commits'] else 0", "")
                 .selectColumns(list)
                 .tocsv(output_path);
         std::cout<<std::endl; // flush

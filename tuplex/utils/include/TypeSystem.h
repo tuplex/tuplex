@@ -966,6 +966,14 @@ namespace tuplex {
         assert(exception_type.isExceptionType());
         return pythonClassToExceptionCode(exception_type.desc());
     }
+
+    inline size_t extract_columns_from_type(const python::Type& row_type) {
+        if(row_type.isTupleType())
+            return row_type.parameters().size();
+        if(row_type.isRowType())
+            return row_type.get_column_count();
+        throw std::runtime_error("can not extract number of columns from type " + row_type.desc());
+    }
 }
 
 

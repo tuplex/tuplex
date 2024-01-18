@@ -326,7 +326,7 @@ namespace tuplex {
             return _context->makeError("select columns must contain at least one index");
 
         // check that all indices are valid
-        auto num_cols = _operator->getOutputSchema().getRowType().parameters().size();
+        auto num_cols = extract_columns_from_type(_operator->getOutputSchema().getRowType());
         for (auto idx : columnIndices)
             if (idx >= num_cols)
                 return _context->makeError(
@@ -408,7 +408,7 @@ namespace tuplex {
 
     size_t DataSet::numColumns() const {
         assert(schema().getRowType().isTupleType());
-        return this->schema().getRowType().parameters().size();
+        return extract_columns_from_type(this->schema().getRowType());
     }
 
     DataSet& DataSet::renameColumn(int index, const std::string &newColumnName) {
@@ -516,7 +516,7 @@ namespace tuplex {
         // no missing cols, hence one can do selection.
         // for this, create a simple UDF
         std::string code;
-        auto output_column_count = _operator->getOutputSchema().getRowType().isRowType() ? _operator->getOutputSchema().getRowType().get_column_count() : _operator->getOutputSchema().getRowType().parameters().size();
+        auto output_column_count = extract_columns_from_type(_operator->getOutputSchema().getRowType());
         if (columnNames.size() == 1) {
             auto idx = indexInVector(columnNames.front(), _columnNames);
             assert(idx >= 0);

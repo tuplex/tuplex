@@ -659,8 +659,12 @@ namespace tuplex {
             }
             if(python::Type::UNKNOWN == getReturnType()) {
                 auto funcType = getFunctionAST()->getInferredType();
-                funcType = python::Type::makeFunctionType(funcType.getParamsType(), targetType);
-                setFunctionType(getFunctionAST(), funcType);
+                if(funcType.isFunctionType()) {
+                    funcType = python::Type::makeFunctionType(funcType.getParamsType(), targetType);
+                    setFunctionType(getFunctionAST(), funcType);
+                } else {
+                    throw std::runtime_error("funcType is " + funcType.desc() + ", can't set return type to " + targetType.desc());
+                }
                 return;
             }
 

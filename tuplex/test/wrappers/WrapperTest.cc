@@ -3095,6 +3095,52 @@ TEST_F(WrapperTest, PythonGithubProcessing) {
 }
 #endif
 
+
+TEST_F(WrapperTest, PythonGithubLocalWorkerProcessing) {
+    using namespace std;
+    using namespace tuplex;
+
+    auto ctx_opts = "{\"webui.enable\": false,"
+                    " \"backend\": \"worker\","
+                    " \"aws.lambdaMemory\": \"10000\","
+                    " \"aws.scratchDir\": \"s3://tuplex/scratch\","
+                    " \"useLLVMOptimizer\": true,"
+                    " \"optimizer.constantFoldingOptimization\": false,"
+                    " \"optimizer.filterPushdown\": false,"
+                    " \"optimizer.selectionPushdown\": false,"
+                    " \"experimental.hyperspecialization\": true"
+                    "}";
+
+    PythonContext ctx("", "", ctx_opts);
+    {
+
+        // create Github based (JSON) pipeline.
+        auto repo_id_code = "def extract_repo_id(row):\n"
+                            "\tif 2012 <= row['year'] <= 2014:\n"
+                            "\t\treturn row['repository']['id']\n"
+                            "\telse:\n"
+                            "\t\treturn row['repo']['id']\n";
+
+        string pattern = "/hot/data/github_daily/*.json";
+        string output_path = "./local-exp/hyper/github/output.csv";
+
+        PyObject * listObj = PyList_New(3);
+        PyList_SET_ITEM(listObj, 0, python::PyString_FromString("type"));
+        PyList_SET_ITEM(listObj, 1, python::PyString_FromString("repo_id"));
+        PyList_SET_ITEM(listObj, 2, python::PyString_FromString("year"));
+
+        auto list = py::reinterpret_borrow<py::list>(listObj);
+
+        ctx.json(pattern, true, true)
+                .withColumn("year", "lambda x: int(x['created_at'].split('-')[0])", "")
+                .withColumn("repo_id", repo_id_code, "")
+                .filter("lambda x: x['type'] == 'ForkEvent'", "")
+                .selectColumns(list)
+                .tocsv(output_path);
+        std::cout<<std::endl; // flush
+    }
+}
+
 //// debug any python module...
 ///** Takes a path and adds it to sys.paths by calling PyRun_SimpleString.
 // * This does rather laborious C string concatenation so that it will work in

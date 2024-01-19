@@ -363,7 +363,7 @@ namespace tuplex {
        _rewriteMap = rewriteMap;
        projectColumns(rewriteMap);
        if(!_udf.rewriteParametersInAST(rewriteMap))
-           throw std::runtime_error("failed ro rewrite operator " + name());
+           throw std::runtime_error("failed to rewrite operator " + name());
     }
 
     bool UDFOperator::performRetypeCheck(const python::Type& input_row_type, bool is_projected_row_type) {

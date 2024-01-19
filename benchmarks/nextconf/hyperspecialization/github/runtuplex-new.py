@@ -161,9 +161,9 @@ def run_with_python_baseline(args):
 def github_pipeline(ctx, input_pattern, s3_output_path, sm):
 
     ctx.json(input_pattern, True, True, sm) \
-       .filter(lambda x: x['type'] == 'ForkEvent') \
        .withColumn('year', lambda x: int(x['created_at'].split('-')[0])) \
        .withColumn('repo_id', extract_repo_id) \
+       .filter(lambda x: x['type'] == 'ForkEvent') \
        .withColumn('commits', lambda row: row['payload'].get('commits')) \
        .withColumn('number_of_commits', lambda row: len(row['commits']) if row['commits'] else 0) \
        .selectColumns(['type', 'repo_id', 'year', 'number_of_commits']) \
@@ -281,6 +281,7 @@ def run_with_tuplex(args):
     import tuplex
 
     ctx = tuplex.Context(conf)
+    print('>>> Tuplex options: \n{}'.format(json.dumps(ctx.options())))
 
     startup_time = time.time() - tstart
     print('Tuplex startup time: {}'.format(startup_time))

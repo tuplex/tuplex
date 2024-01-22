@@ -548,11 +548,11 @@ set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE}
 
 # ThreadSanitizer
 set(CMAKE_C_FLAGS_TSAN
-        "-fsanitize=thread -g -O1"
+        "-fsanitize=thread -g -O1 -lpthread"
         CACHE STRING "Flags used by the C compiler during ThreadSanitizer builds."
         FORCE)
 set(CMAKE_CXX_FLAGS_TSAN
-        "-fsanitize=thread -g -O1"
+        "-fsanitize=thread -g -O1 -lpthread"
         CACHE STRING "Flags used by the C++ compiler during ThreadSanitizer builds."
         FORCE)
 

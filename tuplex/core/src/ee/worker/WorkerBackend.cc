@@ -202,6 +202,8 @@ namespace tuplex {
             request_counter++;
         }
 
+        app->shutdown();
+
         // output
         if(out_req_array)
             *out_req_array = req_array;

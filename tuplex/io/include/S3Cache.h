@@ -4,6 +4,7 @@
 
 #ifndef TUPLEX_S3CACHE_H
 #define TUPLEX_S3CACHE_H
+
 #ifdef BUILD_WITH_AWS
 
 #include <thread>

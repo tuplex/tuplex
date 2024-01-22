@@ -96,4 +96,6 @@ PYMODULE {
     m.def("registerLoggingCallback", &tuplex::registerPythonLoggingCallback);
 
     m.def("registerWithInterpreter", &python::registerWithInterpreter);
+
+    m.def("getPythonVersion", &tuplex::getPythonVersion);
 }

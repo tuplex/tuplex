@@ -145,6 +145,13 @@ namespace tuplex {
     using no_gil_python3_sink_st = nogil_python3_sink<spdlog::details::null_mutex>;
 
     extern py::object registerPythonLoggingCallback(py::object callback_functor);
+
+    /*!
+     * retrieve python version as X.Y.Z (hex) to check whether version of module matches up with interpreter version
+     * being run.
+     * @return python object holding formatted string like above.
+     */
+    extern py::object getPythonVersion();
 }
 
 #endif //TUPLEX_PYTHONCOMMON_H

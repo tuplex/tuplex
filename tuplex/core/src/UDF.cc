@@ -1499,8 +1499,8 @@ namespace tuplex {
                         }
                     }
                 } else {
-                    // debug:
-                    std::cout<<"found Subscription, but tuple arg is set to false."<<std::endl;
+                    // // debug:
+                    // std::cout<<"found Subscription, but tuple arg is set to false."<<std::endl;
                 }
             }
             default: {

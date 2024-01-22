@@ -2,6 +2,8 @@
 // Created by leonhard on 12/5/22.
 //
 
+#ifdef BUILD_WITH_AWS
+
 #include <S3Cache.h>
 #include <algorithm>
 #include <future>
@@ -600,3 +602,5 @@ namespace tuplex {
 
     // cf. https://raw.githubusercontent.com/mohaps/lrucache11/master/LRUCache11.hpp
 }
+
+#endif

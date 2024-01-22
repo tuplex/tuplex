@@ -292,6 +292,11 @@ namespace tuplex {
     }
 
     bool JITCompiler::compile(std::unique_ptr<llvm::Module> mod) {
+
+        // do not compile nullptr modules.
+        if(!mod)
+            return false;
+
         llvm::Expected<llvm::orc::ThreadSafeModule> tsm = llvm::orc::ThreadSafeModule(std::move(mod), std::make_unique<llvm::LLVMContext>());
         if(!tsm) {
             auto err_msg = errToString(tsm.takeError());
@@ -362,6 +367,10 @@ namespace tuplex {
     bool JITCompiler::compile(const std::string &llvmIR) {
         using namespace llvm;
         using namespace llvm::orc;
+
+        // empty module doesn't compile.
+        if(llvmIR.empty())
+            return false;
 
         assert(_lljit);
 

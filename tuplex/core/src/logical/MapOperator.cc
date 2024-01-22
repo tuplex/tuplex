@@ -64,7 +64,7 @@ namespace tuplex {
                     // infer schema (may throw exception!) after applying UDF
                     setOutputSchema(this->inferSchema(parent->getOutputSchema()));
                     //_udf.retype(parent->getOutputSchema().getRowType());
-                    assert(_udf.getOutputSchema() != Schema::UNKNOWN);
+                    //assert(_udf.getOutputSchema() != Schema::UNKNOWN);
                     //setSchema(_udf.getOutputSchema());
                 }
             }
@@ -179,6 +179,16 @@ namespace tuplex {
 
     void MapOperator::rewriteParametersInAST(const std::unordered_map<size_t, size_t> &rewriteMap) {
         using namespace std;
+
+        // debug:
+        {
+            std::stringstream ss;
+            ss<<"Operator "<<name()<<" got rewriteMap of "<<rewriteMap.size()<<" entries, calling rewriteParametersInAST now for following udf:\n";
+            ss<<_udf.getCode()<<std::endl;
+
+
+            Logger::instance().logger("logical").debug(ss.str());
+        }
 
         // update UDF, account for rename/empty udf case!
         UDFOperator::rewriteParametersInAST(rewriteMap);

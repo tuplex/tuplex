@@ -161,13 +161,18 @@ def run_with_python_baseline(args):
 def github_pipeline(ctx, input_pattern, s3_output_path, sm):
 
     ctx.json(input_pattern, True, True, sm) \
-       .withColumn('year', lambda x: int(x['created_at'].split('-')[0])) \
-       .withColumn('repo_id', extract_repo_id) \
-       .filter(lambda x: x['type'] == 'ForkEvent') \
-       .withColumn('commits', lambda row: row['payload'].get('commits')) \
-       .withColumn('number_of_commits', lambda row: len(row['commits']) if row['commits'] else 0) \
-       .selectColumns(['type', 'repo_id', 'year', 'number_of_commits']) \
+        .withColumn('year', lambda x: int(x['created_at'].split('-')[0])) \
+        .selectColumns(['type', 'year']) \
        .tocsv(s3_output_path)
+
+    # ctx.json(input_pattern, True, True, sm) \
+    #    .withColumn('year', lambda x: int(x['created_at'].split('-')[0])) \
+    #    .withColumn('repo_id', extract_repo_id) \
+    #    .filter(lambda x: x['type'] == 'ForkEvent') \
+    #    .withColumn('commits', lambda row: row['payload'].get('commits')) \
+    #    .withColumn('number_of_commits', lambda row: len(row['commits']) if row['commits'] else 0) \
+    #    .selectColumns(['type', 'repo_id', 'year', 'number_of_commits']) \
+    #    .tocsv(s3_output_path)
 
 # local worker version
 def run_with_tuplex(args):
@@ -278,7 +283,6 @@ def run_with_tuplex(args):
     conf["inputSplitSize"] = input_split_size
 
     tstart = time.time()
-    import tuplex
 
     ctx = tuplex.Context(conf)
     print('>>> Tuplex options: \n{}'.format(json.dumps(ctx.options())))
@@ -536,3 +540,4 @@ if __name__ == '__main__':
 
 
 
+v

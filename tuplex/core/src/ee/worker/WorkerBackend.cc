@@ -162,6 +162,12 @@ namespace tuplex {
         auto req_array= nlohmann::json::array();
         auto total_input_rows= 0;
         auto total_num_output_rows= 0;// process using local app
+
+        // check whether runtime has been loaded into process yet, if not load now
+        if(!runtime::loaded()) {
+            runtime::init(_options.RUNTIME_LIBRARY(true).toPath());
+        }
+
         auto app = std::make_unique<WorkerApp>(WorkerSettings());
         app->globalInit(true);
         unsigned request_counter = 1;

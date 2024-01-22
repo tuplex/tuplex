@@ -342,6 +342,13 @@ namespace tuplex {
         virtual bool isError() const { return false; }
         virtual bool isEmpty() const;
     };
+
+    /*!
+     * generates python code for a simple UDF returning all columns referring to the given column indices.
+     * @param column_indices
+     * @return string containing python code.
+     */
+    extern std::string generate_python_code_for_select_columns_udf(const std::vector<size_t> &column_indices);
 }
 
 #endif //TUPLEX_DATASET_H

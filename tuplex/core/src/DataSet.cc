@@ -333,18 +333,7 @@ namespace tuplex {
                         "index in selectColumns can be at most " + std::to_string(num_cols) + ", is " +
                         std::to_string(idx));
 
-        // no missing cols, hence one can do selection.
-        // for this, create a simple UDF
-        std::string code;
-        if (columnIndices.size() == 1) {
-            code = "lambda t: t[" + std::to_string(columnIndices.front()) + "]";
-        } else {
-            code = "lambda t: (";
-            for (auto idx : columnIndices) {
-                code += "t[" + std::to_string(idx) + "], ";
-            }
-            code += ")";
-        }
+        auto code = generate_python_code_for_select_columns_udf(columnIndices);
 
         // now it is a simple map operator
         DataSet &ds = map(UDF(code).withCompilePolicy(_context->compilePolicy()));
@@ -905,6 +894,25 @@ namespace tuplex {
                 return false;
         } else {
             return false;
+        }
+    }
+
+    std::string generate_python_code_for_select_columns_udf(const std::vector<size_t> &column_indices) {
+        if(column_indices.empty())
+            return "lambda t: ()";
+
+        // no missing cols, hence one can do selection.
+        // for this, create a simple UDF
+        if (column_indices.size() == 1) {
+            return "lambda t: t[" + std::to_string(column_indices.front()) + "]";
+        } else {
+            std::stringstream code;
+            code << "lambda t: (";
+            for (auto idx : column_indices) {
+                code << "t[" + std::to_string(idx) + "], ";
+            }
+            code << ")";
+            return code.str();
         }
     }
 }

@@ -14,9 +14,6 @@
 #include "../physical/PhysicalPlan.h"
 #include "LogicalOperator.h"
 
-// uncomment to trace logical plan optimization
-// #define TRACE_LOGICAL_OPTIMIZATION
-
 namespace tuplex {
 
     class LogicalPlan;

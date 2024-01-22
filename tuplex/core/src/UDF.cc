@@ -328,6 +328,9 @@ namespace tuplex {
         _ast.setUnpacking(false);
         python::Type hintType = schema.getRowType();
 
+        if(python::Type::UNKNOWN == hintType)
+            return false;
+
         if(PARAM_USE_ROW_TYPE) {
             assert(hintType.isRowType() || hintType.isExceptionType());
         } else {
@@ -1287,6 +1290,8 @@ namespace tuplex {
             }
             return m;
         }
+
+        void setTupleArgumentAndColumnCount(const python::Type &function_row_type);
     };
 
     ASTNode* RewriteVisitor::replace(ASTNode *parent, ASTNode* node) {
@@ -1305,13 +1310,7 @@ namespace tuplex {
             NLambda *lambda = (NLambda *)parent;
             auto itype = lambda->_arguments->getInferredType();
             assert(itype.isTupleType());
-
-            // how many elements?
-            _tupleArgument = itype.parameters().size() == 1 &&
-                             itype.parameters().front().isTupleType() &&
-                             itype.parameters().front() != python::Type::EMPTYTUPLE;
-            _numColumns = _tupleArgument ? itype.parameters().front().parameters().size()
-                                         : itype.parameters().size();
+            setTupleArgumentAndColumnCount(itype);
 
             // fetch identifiers for args
             for (const auto &argNode : lambda->_arguments->_args) {
@@ -1332,12 +1331,7 @@ namespace tuplex {
             auto itype = func->_parameters->getInferredType();
             assert(itype.isTupleType());
 
-            // how many elements?
-            _tupleArgument = itype.parameters().size() == 1 &&
-                             itype.parameters().front().isTupleType() &&
-                             itype.parameters().front() != python::Type::EMPTYTUPLE;
-            _numColumns = _tupleArgument ? itype.parameters().front().parameters().size()
-                                         : itype.parameters().size();
+            setTupleArgumentAndColumnCount(itype);
 
             // fetch identifiers for args
             for (const auto &argNode : func->_parameters->_args) {
@@ -1381,16 +1375,25 @@ namespace tuplex {
 
                         // single argument
                         ptype = ptype.parameters().front();
+                        // get individual column types
+                        auto column_count = extract_columns_from_type(ptype);
+                        auto col_types = ptype.isRowType() ? ptype.get_columns_as_tuple_type().parameters() : ptype.parameters();
+
+                        assert(column_count == col_types.size());
 
                         // reduce
-                        for(unsigned i = 0; i < ptype.parameters().size(); ++i) {
+                        std::vector<std::string> reducedArgNames;
+                        for(unsigned i = 0; i < column_count; ++i) {
                             if(_rewriteMap.find(i) != _rewriteMap.end()) {
-                                reducedArgTypes.push_back(ptype.parameters()[i]);
+                                reducedArgTypes.push_back(col_types[i]);
+                                if(ptype.isRowType())
+                                    reducedArgNames.push_back(ptype.get_column_name(i));
                             }
                         }
 
-                        // create function type
-                        ptype = python::Type::makeTupleType({python::Type::makeTupleType(reducedArgTypes)});
+                        // create new function type with reduced args
+                        auto row_type = ptype.isRowType() ? python::Type::makeRowType(reducedArgTypes, reducedArgNames) : python::Type::makeTupleType(reducedArgTypes);
+                        ptype = python::Type::makeTupleType({row_type});
                         ftype = python::TypeFactory::instance()
                                 .createOrGetFunctionType(ptype,
                                         ftype.getReturnType());
@@ -1495,6 +1498,9 @@ namespace tuplex {
                             }
                         }
                     }
+                } else {
+                    // debug:
+                    std::cout<<"found Subscription, but tuple arg is set to false."<<std::endl;
                 }
             }
             default: {
@@ -1505,6 +1511,26 @@ namespace tuplex {
 
         // no replacement
         return node;
+    }
+
+    void RewriteVisitor::setTupleArgumentAndColumnCount(const python::Type &function_row_type) {
+        assert(function_row_type.isFunctionType() || function_row_type.isTupleType());
+
+        if(function_row_type.parameters().size() == 1) {
+            auto row_type = function_row_type.parameters().front();
+            if((row_type.isTupleType() && row_type != python::Type::EMPTYTUPLE) || (row_type.isRowType() && row_type != python::Type::EMPTYROW)) {
+                _tupleArgument = true;
+                _numColumns = extract_columns_from_type(row_type);
+            }
+        } else {
+            _tupleArgument = false;
+            _numColumns = function_row_type.parameters().size();
+        }
+
+        if(!_tupleArgument) {
+            // debug:
+            std::cout<<"Rewrite visitor not using tuple argument=true, because given function row type is: "<<function_row_type.desc()<<std::endl;
+        }
     }
 
     void UDF::resetAST() {
@@ -1606,6 +1632,10 @@ namespace tuplex {
 
         // special case: Row type rewrite is much easier
         if(PARAM_USE_ROW_TYPE && getInputSchema().getRowType().isRowType()) {
+
+            // debug:
+            std::cout<<"using row type for UDF rewrite"<<std::endl;
+
             auto in_type = getInputSchema().getRowType();
             auto col_types = in_type.get_column_types();
             auto col_names = in_type.get_column_names();
@@ -1623,6 +1653,16 @@ namespace tuplex {
             }
 
             auto new_row_type = python::Type::makeRowType(new_types, new_names);
+
+            // does new row type have different number of elements? Need to rewrite integer indices at least.
+            // the string ones are fine.
+            if(extract_columns_from_type(new_row_type) != extract_columns_from_type(in_type)) {
+                // debug:
+                std::cout<<"rewriting row types from "<<in_type.desc()<<" to "<<new_row_type.desc()<<std::endl;
+                RewriteVisitor rv(rewriteMap); // <-- rewrite integers only.
+                root->accept(rv);
+            }
+
             auto oldSchema = getInputSchema();
             setInputSchema(Schema(oldSchema.getMemoryLayout(), new_row_type));
 

@@ -291,6 +291,17 @@ namespace tuplex {
 
     }
 
+    std::string create_unique_module_name(llvm::orc::ExecutionSession& ES, const std::string&  module_name) {
+        // if lib with name already exists, remove
+        auto counter = 0;
+        static const auto MAX_COUNTER = 100000;
+        std::string name = module_name;
+        while(ES.getJITDylibByName(module_name) && counter < MAX_COUNTER) {
+            name = module_name + "_" + std::to_string(counter++);
+        }
+        return name;
+    }
+
     bool JITCompiler::compile(std::unique_ptr<llvm::Module> mod) {
 
         // do not compile nullptr modules.
@@ -308,13 +319,20 @@ namespace tuplex {
         auto mIdentifier = tsm->getModule()->getModuleIdentifier(); // this should not be an empty string...
 
         // change module target triple, data layout etc. to target machine
-        //tsm->getModule()->setDataLayout(_lljit->getDataLayout());
+        tsm->getModule()->setDataLayout(_lljit->getDataLayout());
         //tsm->getModule()->setTargetTriple(_targetTriple.str());
         // look into https://github.com/llvm/llvm-project/blob/master/llvm/examples/ModuleMaker/ModuleMaker.cpp on how to ouput bitcode
 
         // create for this module own jitlib
         auto& ES = _lljit->getExecutionSession();
-        auto& jitlib = ES.createJITDylib(tsm->getModule()->getName());
+
+
+        // for llvm9, modules must have unique names. Find unique name
+        // note that there's no release mechanism in LLVM9. :/
+        auto unique_module_name = create_unique_module_name(ES, tsm->getModule()->getName());
+        tsm->getModule()->setSourceFileName(unique_module_name);
+
+        auto& jitlib = ES.createJITDylib(unique_module_name);
         const auto& DL = _lljit->getDataLayout();
         llvm::orc::MangleAndInterner Mangle(ES, DL);
 
@@ -386,7 +404,13 @@ namespace tuplex {
 
         // create for this module own jitlib
         auto& ES = _lljit->getExecutionSession();
-        auto& jitlib = ES.createJITDylib(tsm->getModule()->getName());
+
+        // for llvm9, modules must have unique names. Find unique name
+        // note that there's no release mechanism in LLVM9. :/
+        auto unique_module_name = create_unique_module_name(ES, tsm->getModule()->getName());
+        tsm->getModule()->setSourceFileName(unique_module_name);
+
+        auto& jitlib = ES.createJITDylib(unique_module_name);
         const auto& DL = _lljit->getDataLayout();
         MangleAndInterner Mangle(ES, DL);
 
@@ -446,7 +470,7 @@ namespace tuplex {
         auto& ES = _lljit->getExecutionSession();
         if(dylib_name.empty())
             dylib_name = "object";
-
+        dylib_name = create_unique_module_name(ES, dylib_name);
         auto& jitlib = ES.createJITDylib(dylib_name);
         const auto& DL = _lljit->getDataLayout();
         MangleAndInterner Mangle(ES, DL);

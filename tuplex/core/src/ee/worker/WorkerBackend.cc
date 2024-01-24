@@ -418,8 +418,16 @@ namespace tuplex {
         size_t n_remainder = n_requests % num_processes_to_use;
         // distribute remainder now.
         std::vector<size_t> n_tasks(num_processes_to_use, n_requests_per_process);
+
+        // more processes than tasks?
+        if(num_processes_to_use > n_requests) {
+            n_tasks = std::vector<size_t>(n_requests, 0);
+            n_remainder = n_requests;
+        }
+
         for(unsigned i = 0; i < n_remainder; ++i)
             n_tasks[i]++;
+
 
         // make sure n_tasks is fine
         {
@@ -433,6 +441,7 @@ namespace tuplex {
         std::atomic_int atomic_request_counter = 0;
 
         size_t offset = 0;
+        num_processes_to_use = std::min(num_processes_to_use, n_requests);
         for(unsigned i = 0; i < num_processes_to_use; ++i) {
 
             // create new thread

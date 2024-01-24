@@ -21,21 +21,28 @@ namespace tuplex {
             auto it = std::find(columns.begin(), columns.end(), str_key);
             if(it != columns.end()) {
                 auto offset = std::distance(columns.begin(), it);
-                if(offset >= items.size())
+                if(offset >= items.size()) {
                     PyErr_SetString(PyExc_KeyError, "invalid offset detected");
-                auto item = items[offset];
-                Py_XINCREF(item);
-                return item;
+                    return nullptr;
+                } else {
+                    auto item = items[offset];
+                    Py_XINCREF(item);
+                    return item;
+                }
             }
 
             PyErr_SetString(PyExc_KeyError, ("could not find key '" + str_key + "' in row object").c_str());
         } else if(PyLong_Check(key)) {
             auto offset = PyLong_AsLong(key);
-            if(offset < 0 || offset >= items.size())
+            if(offset < 0 || offset >= items.size()) {
                 PyErr_SetString(PyExc_KeyError, "invalid key");
-            auto item = items[offset];
-            Py_XINCREF(item);
-            return item;
+                return nullptr;
+            } else {
+                auto item = items[offset];
+                Py_XINCREF(item);
+                return item;
+            }
+
         } else {
             // key error
             PyErr_SetString(PyExc_KeyError, "could not find key in row object");

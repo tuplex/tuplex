@@ -3110,6 +3110,7 @@ TEST_F(WrapperTest, PythonGithubLocalWorkerProcessing) {
 //                    " \"optimizer.selectionPushdown\": false,"
 //                    " \"experimental.hyperspecialization\": true"
 //                    "}";
+unsigned num_workers = 0; // 0 is within the process.
     auto ctx_opts = "{\"tuplex.useLLVMOptimizer\": true, \"tuplex.autoUpcast\": true,"
                     " \"tuplex.allowUndefinedBehavior\": false, \"tuplex.optimizer.codeStats\": true,"
                     " \"tuplex.optimizer.generateParser\": false, \"tuplex.optimizer.nullValueOptimization\": true,"
@@ -3140,7 +3141,7 @@ TEST_F(WrapperTest, PythonGithubLocalWorkerProcessing) {
                     "\"tuplex.experimental.minimumSizeToSpecialize\": \"128MB\", "
                     "\"tuplex.experimental.s3PreCacheSize\": \"0\", "
                     "\"tuplex.experimental.specializationUnitSize\": \"0\", "
-                    "\"tuplex.experimental.worker.numWorkers\": \"8\", "
+                    "\"tuplex.experimental.worker.numWorkers\": \"" + std::to_string(num_workers) + "\", "
                     "\"tuplex.experimental.worker.workerPath\": \"/home/leonhards/projects/tuplex-public/tuplex/cmake-build-release-w-cereal/dist/bin/tuplex-worker\", \"tuplex.inputSplitSize\": \"2GB\", \"tuplex.lambda.sample.maxDetectionMemory\": \"auto\", \"tuplex.lambda.sample.maxDetectionRows\": \"auto\", \"tuplex.lambda.sample.samplesPerStrata\": \"auto\", \"tuplex.lambda.sample.strataSize\": \"auto\", \"tuplex.logDir\": \".\", \"tuplex.network.caFile\": \"\", \"tuplex.network.caPath\": \"\", \"tuplex.optimizer.constantFoldingOptimization\": \"false\", \"tuplex.partitionSize\": \"32MB\", \"tuplex.readBufferSize\": \"4KB\", \"tuplex.runTimeLibrary\": \"/home/leonhards/projects/tuplex-public/tuplex/build/dist/python/tuplex/libexec/tuplex_runtime.so\", \"tuplex.runTimeMemory\": \"128MB\", \"tuplex.runTimeMemoryBlockSize\": \"4MB\", \"tuplex.sample.maxDetectionMemory\": \"32MB\", \"tuplex.sample.samplesPerStrata\": \"10\", \"tuplex.sample.strataSize\": \"1024\", \"tuplex.scratchDir\": \"/tmp/tuplex-cache-leonhards\", \"tuplex.webui.mongodb.path\": \"/tmp/tuplex-cache-leonhards/mongodb\", \"tuplex.webui.mongodb.url\": \"localhost\", \"tuplex.webui.url\": \"localhost\"}";
 
     PythonContext ctx("", "", ctx_opts);
@@ -3164,7 +3165,8 @@ TEST_F(WrapperTest, PythonGithubLocalWorkerProcessing) {
                             "    else:\n"
                             "        return row['repo'].get('id')";
 
-        string pattern = "/hot/data/github_daily/*.json";
+        // string pattern = "/hot/data/github_daily/*.json"; // <-- all
+        string pattern = "/hot/data/github_daily/*2011*.json,/hot/data/github_daily/*2012*.json"; // <-- problematic?
         string output_path = "./local-exp/hyper/github/output.csv";
 
         PyObject * listObj = PyList_New(4);

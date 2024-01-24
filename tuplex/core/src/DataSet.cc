@@ -915,4 +915,23 @@ namespace tuplex {
             return code.str();
         }
     }
+
+    std::string generate_python_code_for_select_columns_udf(const std::vector<std::string> &column_names) {
+        if(column_names.empty())
+            return "lambda t: ()";
+
+        // no missing cols, hence one can do selection.
+        // for this, create a simple UDF
+        if (column_names.size() == 1) {
+            return "lambda t: t[" + escape_to_python_str(column_names[0]) + "]";
+        } else {
+            std::stringstream code;
+            code << "lambda t: (";
+            for (auto name : column_names) {
+                code << "t[" + escape_to_python_str(name) + "], ";
+            }
+            code << ")";
+            return code.str();
+        }
+    }
 }

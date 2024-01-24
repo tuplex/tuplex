@@ -13,6 +13,8 @@
 #include <UDF.h>
 #include <PythonHelpers.h>
 #include <visitors/ColumnReturnRewriteVisitor.h>
+#include "visitors/ApplyVisitor.h"
+#include "visitors/ReplaceIndexToNameVisitor.h"
 
 namespace tuplex {
     MapOperator::MapOperator(const std::shared_ptr<LogicalOperator>& parent,
@@ -221,6 +223,28 @@ namespace tuplex {
         if(_udf.empty()) {
             throw std::runtime_error("rename not supported yet. Basically check if rename scheme works etc.");
         } else {
+
+            // special case select:
+            if("select" == name()) {
+                // first rewrite integer literals into column names accessed
+                auto columns_accessed = columns();
+                if(!columns_accessed.empty()) {
+                    // create new, simple UDF for this
+                    auto new_udf_code = generate_python_code_for_select_columns_udf(columns_accessed);
+                    auto new_udf = UDF(new_udf_code);
+                    _udf = new_udf;
+                    return UDFOperator::retype(conf);
+                }
+
+                throw std::runtime_error("not implemented yet, missing rewrite feature - ill-formed select?");
+//                ReplaceIndexToNameVisitor rv(columns_accessed);
+//                _udf.getAnnotatedAST().getFunctionAST()->accept(rv);
+//
+//                // rewrite UDF now
+//                auto ret = UDFOperator::retype(conf);
+//                return ret;
+            }
+
             // 2.) regular
             bool ret = UDFOperator::retype(conf);
 

@@ -349,6 +349,8 @@ namespace tuplex {
      * @return string containing python code.
      */
     extern std::string generate_python_code_for_select_columns_udf(const std::vector<size_t> &column_indices);
+
+    extern std::string generate_python_code_for_select_columns_udf(const std::vector<std::string> &column_names);
 }
 
 #endif //TUPLEX_DATASET_H

@@ -1053,8 +1053,11 @@ namespace tuplex {
                     cout<<"MAP needs rewrite because empty but parent type is: "<<mop->parent()->getOutputSchema().getRowType().desc()<<endl;
                     cout<<"And MAP type is: "<<mop->getInputSchema().getRowType().desc()<<endl;
 #endif
-
-                    mop->rewriteParametersInAST(rewriteMap);
+                    if(isMapSelect(mop.get())) {
+                        throw std::runtime_error("not yet implemented");
+                    } else {
+                        mop->rewriteParametersInAST(rewriteMap);
+                    }
 
 #ifdef TRACE_LOGICAL_OPTIMIZATION
                     cout<<"After rewrite: "<<mop->getInputSchema().getRowType().desc()<<endl;

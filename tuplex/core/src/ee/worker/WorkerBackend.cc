@@ -210,9 +210,9 @@ namespace tuplex {
         if(out_stats_array)
             *out_stats_array = stats_array;
         if(out_total_input_rows)
-            *out_total_input_rows;
+            *out_total_input_rows = total_input_rows;
         if(out_total_num_output_rows)
-            *out_total_num_output_rows;
+            *out_total_num_output_rows = total_num_output_rows;
     }
 
     std::vector<messages::InvocationRequest>

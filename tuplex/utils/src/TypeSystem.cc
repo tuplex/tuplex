@@ -2398,7 +2398,14 @@ namespace python {
         const std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
-        auto kv_pairs = factory._typeVec[it->second]._struct_pairs;
+
+        auto ret = factory._typeVec[it->second];
+        auto kv_pairs = ret._struct_pairs;
+
+        // pair based but only params? -> return directly.
+        if(!ret._params.empty() && kv_pairs.empty())
+            return ret._params.size();
+
         return kv_pairs.size();
     }
 
@@ -2409,7 +2416,13 @@ namespace python {
         const std::lock_guard<std::mutex> lock(factory._typeMapMutex);
         auto it = factory._typeMap.find(_hash);
         assert(it != factory._typeMap.end());
-        auto kv_pairs = factory._typeVec[it->second]._struct_pairs;
+        auto ret = factory._typeVec[it->second];
+        auto kv_pairs = ret._struct_pairs;
+
+        // pair based but only params? -> return directly.
+        if(!ret._params.empty() && kv_pairs.empty())
+            return ret._params;
+
         std::vector<python::Type> column_types;
         column_types.reserve(kv_pairs.size());
         for(const auto& entry : kv_pairs)

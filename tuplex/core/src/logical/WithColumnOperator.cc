@@ -200,6 +200,36 @@ namespace tuplex {
         auto pFunc = python::deserializePickledFunction(python::getMainModule(),
                                                        pickledCode.c_str(), pickledCode.length());
 
+//        // overwrite the offending function (HACK)
+//        auto func_name = python::pythonFunctionGetName(pFunc);
+//        if(func_name == "extract_repo_id") {
+//            // ?? cloudpickle serialization failed ?? --> version mismatch?
+//            auto udf_code = "def extract_repo_id(row):\n"
+//                            "    print(f\"entering func. row is: {row}\")\n"
+//                            "    if 2012 <= row['year'] <= 2014:\n"
+//                            "         print(\"entering if for 2012 <= ... <= 2014\")\n"
+//                            "         if row['type'] == 'FollowEvent':\n"
+//                            "             return row['payload']['target']['id']\n"
+//                            "\n"
+//                            "         if row['type'] == 'GistEvent':\n"
+//                            "             return row['payload']['id']\n"
+//                            " \n"
+//                            "        # this here doesn't work, because no fancy typed row object yet\n"
+//                            "         # repo = row.get('repository')\n"
+//                            "         repo = row['repository']\n"
+//                            " \n"
+//                            "         if repo is None:\n"
+//                            "             return None\n"
+//                            "         return repo.get('id')\n"
+//                            "    else:\n"
+//                            "         return row['repo'].get('id')";
+//            pFunc = python::compileFunction(python::getMainModule(), udf_code);
+//        }
+//
+//#ifndef NDEBUG
+//        Logger::instance().defaultLogger().debug("calling getSample for code:\n" + core::withLineNumbers(_udf.getCode()));
+//#endif
+
         size_t numExceptions = 0;
         for(auto row : vSamples) {
 
@@ -220,6 +250,18 @@ namespace tuplex {
                 continue;
             }
             Py_XINCREF(rowObj);
+
+
+//            // in debug mode print sample out
+//#ifndef NDEBUG
+//            Py_XINCREF(rowObj);
+//            auto sample_as_string = python::PyString_AsString(rowObj);
+//            std::stringstream ss;
+//            ss<<"withColumn sample:\ncolumns: "<<inputColumns()<<"\ndata: "<<sample_as_string;
+//            Logger::instance().defaultLogger().debug(ss.str());
+//#endif
+
+
             auto pcr = !inputColumns().empty() ? python::callFunctionWithDictEx(pFunc, rowObj, inputColumns()) :
                        python::callFunctionEx(pFunc, rowObj);
             ec = pcr.exceptionCode;

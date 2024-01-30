@@ -780,6 +780,26 @@ namespace tuplex {
 
 
     }
+
+    TEST(GithubQueryRequest, DebugSingleRequest) {
+        using namespace tuplex;
+
+        // debug single problematic request
+        std::string path = "/home/leonhards/projects/tuplex-public/benchmarks/nextconf/hyperspecialization/github/request_1.json";
+
+        auto json_message = fileToString(path);
+        ASSERT_FALSE(json_message.empty());
+
+        python::initInterpreter();
+        python::unlockGIL();
+
+        // start worker within same process to easier debug...
+        auto app = std::make_unique<WorkerApp>(WorkerSettings());
+        app->processJSONMessage(json_message);
+        app->shutdown();
+
+        python::closeInterpreter();
+    }
 }
 
 

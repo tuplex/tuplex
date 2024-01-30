@@ -3165,6 +3165,8 @@ unsigned num_workers = 0; // 0 is within the process.
                             "    else:\n"
                             "        return row['repo'].get('id')";
 
+        std::cout<<"function is: \n"<<repo_id_code<<std::endl;
+
         // string pattern = "/hot/data/github_daily/*.json"; // <-- all
         string pattern = "/hot/data/github_daily/*2011*.json,/hot/data/github_daily/*2012*.json"; // <-- problematic?
         string output_path = "./local-exp/hyper/github/output.csv";

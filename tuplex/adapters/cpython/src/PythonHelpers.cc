@@ -1521,8 +1521,12 @@ namespace python {
 
         // create python dict
         PyObject *dictObj = PyDict_New();
-        for(int i = 0; i < columns.size(); ++i)
-            PyDict_SetItemString(dictObj, columns[i].c_str(), PyTuple_GET_ITEM(pArgs, i));
+        for(unsigned i = 0; i < columns.size(); ++i) {
+            auto item = PyTuple_GET_ITEM(pArgs, i);
+            assert(item);
+            Py_XINCREF(item);
+            PyDict_SetItemString(dictObj, columns[i].c_str(), item);
+        }
 
         // create tuple arg object
         PyObject *args = PyTuple_New(1);

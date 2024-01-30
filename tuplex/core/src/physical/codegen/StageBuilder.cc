@@ -182,7 +182,19 @@ namespace tuplex {
                     }
                     case LogicalOperatorType::MAP: {
                         auto udfop = dynamic_cast<UDFOperator *>(op.get()); assert(udfop);
-                        ppb.mapOperation(op->getID(), udfop->getUDF(), udfop->columns());
+
+                        // special case: select operation --> keep columns to be more compatible.
+                        // this is a hack because of issues with the integer column access thingy
+                        if(op->name() == "select") {
+                            // create new, simple UDF for this
+                            auto columns_accessed = udfop->columns();
+                            auto new_udf_code = generate_python_code_for_select_columns_udf(columns_accessed);
+                            auto new_udf = UDF(new_udf_code);
+                            ppb.mapOperation(op->getID(), new_udf, udfop->columns());
+                        } else {
+                            ppb.mapOperation(op->getID(), udfop->getUDF(), udfop->columns());
+                        }
+
                         break;
                     }
                     case LogicalOperatorType::FILTER: {

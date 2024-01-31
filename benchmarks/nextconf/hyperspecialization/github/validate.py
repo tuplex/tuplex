@@ -95,4 +95,5 @@ if __name__ == '__main__':
         df_counts = pd.DataFrame({'counts_A': df_A['year'].value_counts(), 'counts_B': df_B['year'].value_counts()})
         print(df_counts)
     compare_dataframes_order_independent(df_A, df_B, check_exact=False) # use check_dtype to not check types exactly.
+    logging.info(f"Validated successfully: results in {dirA} and {dirB} are identical.")
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Github query for Viton paper
+# TODO: build with cmake -G "Unix Makefiles" -DBUILD_WITH_CEREAL=ON -DSKIP_AWS_TESTS=OFF -DBUILD_WITH_ORC=OFF -DBUILD_WITH_AWS=ON -DPython3_EXECUTABLE=/home/leonhards/.pyenv/shims/python3.9 -DAWS_S3_TEST_BUCKET='tuplex-test' -DLLVM_ROOT_DIR=/opt/llvm-9 ..
 import logging
 import pathlib
 from typing import Optional
@@ -151,7 +152,7 @@ def run_with_python_baseline(args):
 
     job_time = time.time() - tstart
     logging.info(f'total output rows: {total_output_rows}')
-    stats = {"startup_time_in_s": startup_time, "job_time_in_s": job_time, 'mode': 'tuplex',
+    stats = {"benchmark": "flights", "startup_time_in_s": startup_time, "job_time_in_s": job_time, 'mode': 'tuplex',
              'output_path': output_path,
              'input_path': input_pattern, 'scratch_path': scratch_dir, 'total_input_paths_size_in_bytes': total_input_size,
              'total_output_rows': total_output_rows, 'total_input_rows': total_input_rows}

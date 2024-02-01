@@ -40,8 +40,15 @@ namespace tuplex {
                         return;
                     }
 
+
+                    // trick for row type, if not row type but columns exist -> rewrite!
+                    auto parent_schema = this->parent()->getOutputSchema();
+                    if(PARAM_USE_ROW_TYPE && !parent->columns().empty() && !parent_schema.getRowType().isRowType()) {
+                        parent_schema = Schema(parent_schema.getMemoryLayout(), python::Type::makeRowType(parent_schema.getRowType().parameters(), parent->columns()));
+                    }
+
                     // hint from parents
-                    _udf.hintInputSchema(this->parent()->getOutputSchema());
+                    _udf.hintInputSchema(parent_schema);
                 }
             } else {
                 // set input schema from parent & set as output bool

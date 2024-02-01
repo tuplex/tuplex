@@ -331,8 +331,8 @@ namespace tuplex {
         if(python::Type::UNKNOWN == hintType)
             return false;
 
-        if(PARAM_USE_ROW_TYPE) {
-            assert(hintType.isRowType() || hintType.isExceptionType());
+        if(PARAM_USE_ROW_TYPE && (hintType.isRowType() || hintType.isExceptionType())) {
+            // do nothing...
         } else {
             // if it's not a tuple type, go directly to the special case...
             if(!hintType.isTupleType())
@@ -346,7 +346,7 @@ namespace tuplex {
         }
 
         if(PARAM_USE_ROW_TYPE)
-            assert(hintType.isRowType());
+            assert(hintType.isRowType() || hintType.isTupleType());
         else
             assert(hintType.isTupleType());
 
@@ -1956,7 +1956,7 @@ namespace tuplex {
         Schema inputSchema;
         if(PARAM_USE_ROW_TYPE) {
             if(inputRowType != python::Type::UNKNOWN) {
-                assert(inputRowType.isRowType() || inputRowType.isExceptionType());
+                assert(inputRowType.isRowType() || inputRowType.isExceptionType() || inputRowType.isTupleType());
                 inputSchema = Schema(Schema::MemoryLayout::ROW, inputRowType);
             } else {
                 // fetch majority type

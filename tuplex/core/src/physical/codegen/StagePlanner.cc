@@ -204,8 +204,8 @@ namespace tuplex {
                     // null-checks handled separately, do not add them
                     // if null-value optimization has been already performed.
                     // --> i.e., they're done using the schema (?)
-                    assert(original_idx < unprojected_row_type.parameters().size());
-                    auto opt_schema_col_type = unprojected_row_type.parameters()[original_idx];
+                    assert(original_idx < extract_columns_from_type(unprojected_row_type));
+                    auto opt_schema_col_type = unprojected_row_type.isRowType() ? unprojected_row_type.get_column_type(original_idx) : unprojected_row_type.parameters()[original_idx];
                     if(constant_type == python::Type::NULLVALUE && opt_schema_col_type == python::Type::NULLVALUE) {
                         // skip
                     } else {

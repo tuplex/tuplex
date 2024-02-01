@@ -568,10 +568,12 @@ namespace tuplex {
          * @return number of input columns in file
          */
         inline size_t inputColumnCount() const {
-            if(PARAM_USE_ROW_TYPE)
-                return getInputSchema().getRowType().get_column_count();
-            else
-                return getInputSchema().getRowType().parameters().size();
+            return extract_columns_from_type(getInputSchema().getRowType());
+
+//            if(PARAM_USE_ROW_TYPE)
+//                return getInputSchema().getRowType().get_column_count();
+//            else
+//                return getInputSchema().getRowType().parameters().size();
         }
 
         /*!

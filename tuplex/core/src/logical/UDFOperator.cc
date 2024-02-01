@@ -82,7 +82,13 @@ namespace tuplex {
             else
                 _udf.removeTypes(conf.remove_existing_annotations, true);
 
-            bool success = _udf.retype(conf.row_type);
+            auto row_type = conf.row_type;
+            if(PARAM_USE_ROW_TYPE && !row_type.isRowType() && row_type.isTupleType() && !conf.columns.empty()) {
+                // create row type
+                row_type = python::Type::makeRowType(row_type.parameters(), conf.columns);
+            }
+
+            bool success = _udf.retype(row_type);
 
             // check what the return type is. If it is of exception type OR an exception type is contained, try to use a sample to get rid off branches that are off
             // => eliminate annotations first!

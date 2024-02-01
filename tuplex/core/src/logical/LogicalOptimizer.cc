@@ -95,7 +95,7 @@ namespace tuplex {
             // start with requiring all columns from action node!
             // there's a subtle difference now b.c. output schema for csv was changed to str
             // --> use therefore input schema of the operator!
-            auto num_cols = last_op->getInputSchema().getRowType().parameters().size();
+            auto num_cols = extract_columns_from_type(last_op->getInputSchema().getRowType());
             for(unsigned i = 0; i < num_cols; ++i)
                 cols.emplace_back(i);
             projectionPushdown(last_op, nullptr, cols); // what about dropOperators??
@@ -926,7 +926,7 @@ namespace tuplex {
                 auto input_op_row_type = input_op->getInputSchema().getRowType();
                 vector<size_t> colsToSerialize;
                 for (auto idx : requiredCols) {
-                    assert(PARAM_USE_ROW_TYPE && input_op_row_type.isRowType()); // <-- this should hold if param is true
+                    //assert(PARAM_USE_ROW_TYPE && input_op_row_type.isRowType()); // <-- this should hold if param is true
                     auto input_column_count = input_op_row_type.isRowType() ? input_op_row_type.get_column_count() : input_op_row_type.parameters().size();
                     if (idx < input_column_count)
                         colsToSerialize.emplace_back(idx);

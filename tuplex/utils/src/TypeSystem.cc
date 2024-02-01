@@ -2152,12 +2152,19 @@ namespace python {
                     if(kv_pairs.empty()) {
                         t = TypeFactory::instance().createOrGetRowType(topVec);
                     } else {
-                        assert(topVec.size() == kv_pairs.size());
+                        assert(topVec.size() >= kv_pairs.size());
 
                         // retrieve names
                         std::vector<std::string> names;
-                        for(unsigned i = 0l; i < topVec.size(); ++i) {
-                            names.push_back(kv_pairs[i].key);
+                        if(!kv_pairs.empty()) {
+                            for(unsigned i = 0l; i < topVec.size(); ++i) {
+
+                                // empty name case
+                                if(i >= kv_pairs.size())
+                                    names.push_back("");
+                                else
+                                    names.push_back(kv_pairs[i].key);
+                            }
                         }
                         t = TypeFactory::instance().createOrGetRowType(topVec, names);
                     }

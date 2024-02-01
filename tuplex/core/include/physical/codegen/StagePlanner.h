@@ -45,10 +45,10 @@ namespace tuplex {
             }
 
             inline python::Type specialize_row_type(const python::Type& row_type) const {
-                assert(row_type.isTupleType());
-                assert(row_type.parameters().size() == constant_row.getNumColumns());
+                assert(row_type.isRowType() || row_type.isTupleType());
+                assert(extract_columns_from_type(row_type) == constant_row.getNumColumns());
 
-                std::vector<python::Type> colTypes = row_type.parameters();
+                std::vector<python::Type> colTypes = row_type.isRowType() ? row_type.get_column_types() : row_type.parameters();
 
                 // fill in constant valued types
                 for(auto idx : constant_column_indices()) {
@@ -222,7 +222,7 @@ namespace tuplex {
                 if(LogicalOperatorType::FILEINPUT == _inputNode->type()) {
                     auto fop = std::dynamic_pointer_cast<FileInputOperator>(_inputNode);
                     auto t = fop->getOptimizedInputSchema().getRowType();
-                    assert(t.parameters().size() == unprojected_unoptimized_row_type().parameters().size());
+                    assert(extract_columns_from_type(t) == extract_columns_from_type(unprojected_unoptimized_row_type()));
                     return t;
                 } else {
                     // normal-case is always the propagated schema

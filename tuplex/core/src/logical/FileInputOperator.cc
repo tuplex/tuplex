@@ -822,6 +822,13 @@ namespace tuplex {
             // get type & assign schema
             _normalCaseRowType = normalcasetype;
             _generalCaseRowType = generalcasetype;
+
+            // make row types if set
+            if(PARAM_USE_ROW_TYPE) {
+                _normalCaseRowType = python::Type::makeRowType(_normalCaseRowType.parameters(), _columnNames);
+                _generalCaseRowType = python::Type::makeRowType(_generalCaseRowType.parameters(), _columnNames);
+            }
+
             setOutputSchema(Schema(Schema::MemoryLayout::ROW, generalcasetype));
 
             // if csv stat produced unknown, issue warning and use empty
@@ -1082,11 +1089,11 @@ namespace tuplex {
         auto schema = getInputSchema();
         auto rowType = schema.getRowType();
 
-        if(!PARAM_USE_ROW_TYPE) {
+        if(!PARAM_USE_ROW_TYPE || !schema.getRowType().isRowType()) {
             assert(schema.getRowType().isTupleType());
             assert(schema.getRowType().parameters().size() == inputColumnCount());
         } else {
-            assert(schema.getRowType().isRowType());
+            //assert(schema.getRowType().isRowType());
         }
 
         // set internal (original) column indices to serialize to false

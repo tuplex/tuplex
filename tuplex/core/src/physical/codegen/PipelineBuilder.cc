@@ -76,9 +76,15 @@ namespace tuplex {
 #endif
             auto& context = env().getContext();
 
+            auto last_tuple_type = _lastSchemaType;
+            if(last_tuple_type.isRowType())
+                last_tuple_type = last_tuple_type.get_columns_as_tuple_type();
+
+            assert(last_tuple_type.isTupleType());
+
             // signature is basically i8* userData, ?* row
             FlattenedTuple ft(_env.get());
-            ft.init(_lastSchemaType);
+            ft.init(last_tuple_type);
 
             vector<Type*> argsType{resultStructType()->getPointerTo(0),
                                    env().i8ptrType(),

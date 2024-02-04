@@ -32,7 +32,7 @@ namespace tuplex {
 
             // init tuple
             FlattenedTuple t(env);
-            t.init(type); // original type
+            t.init(tupleType); // original type
 
             auto llvmType = ptr->getType();
 

@@ -1678,7 +1678,11 @@ namespace tuplex {
                 nullPtr = nullptr;
             } else {
                 // only string, bool, int, f64 so far supported!
-                ptr = env.CreateFirstBlockAlloca(builder, env.pythonToLLVMType(t.isOptionType() ? t.getReturnType() : t), name);
+                auto ptr_python_type = t.isOptionType() ? t.getReturnType() : t;
+                if(ptr_python_type.isRowType())
+                    ptr_python_type = ptr_python_type.get_columns_as_tuple_type();
+                assert(!ptr_python_type.isRowType());
+                ptr = env.CreateFirstBlockAlloca(builder, env.pythonToLLVMType(ptr_python_type), name);
                 // alloc size
                 sizePtr = env.CreateFirstBlockAlloca(builder, env.i64Type(), name + "_size");
 

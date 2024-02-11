@@ -23,16 +23,16 @@ jobs:
           - os: ubuntu-20.04
             python-version: "3.11"
             cibw-build: "cp311-manylinux_x86_64"
-          - os: macos-11
+          - os: macos-12
             python-version: "3.8"
             cibw-build: "cp38-macosx_x86_64"
-          - os: macos-11
+          - os: macos-12
             python-version: "3.9"
             cibw-build: "cp39-macosx_x86_64"
-          - os: macos-11
+          - os: macos-12
             python-version: "3.10"
             cibw-build: "cp310-macosx_x86_64"
-          - os: macos-11
+          - os: macos-12
             python-version: "3.11"
             cibw-build: "cp311-macosx_x86_64"
     steps:
@@ -52,7 +52,7 @@ jobs:
             /usr/local/Frameworks
             /usr/local/bin
             /usr/local/opt
-          key: macos-11-build-cache-${{ hashFiles('./scripts/macos/brew_dependencies.sh') }}-v2
+          key: macos-12-build-cache-${{ hashFiles('./scripts/macos/brew_dependencies.sh') }}-v2
 
       # need to make this an intermediate step, i.e. build first the different lambda runners on Ubuntu...
       - name: Build Lambda runner (Linux only)

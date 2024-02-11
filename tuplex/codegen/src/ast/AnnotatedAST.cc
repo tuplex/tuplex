@@ -323,6 +323,29 @@ namespace tuplex {
                 _typesDefined = false;
         }
 
+        void AnnotatedAST::hintNoParameters() {
+            if(!_root)
+                throw std::runtime_error("could not hint no parameters, no root node found.");
+
+            ASTNode *node = findFunction(_root.get());
+            if(!node)
+                throw std::runtime_error("could not find function node");
+
+            auto empty_type = PARAM_USE_ROW_TYPE ? python::Type::EMPTYROW : python::Type::EMPTYTUPLE;
+
+            if(ASTNodeType::Lambda == node->type()) {
+                NLambda *lambda = static_cast<NLambda*>(node);
+                if(!lambda->_arguments || !lambda->_arguments->_args.empty())
+                    throw std::runtime_error("hinting no parameters, but found Lambda with parameters");
+                lambda->_arguments->setInferredType(empty_type);
+            } else if(ASTNodeType::Function == node->type()) {
+                NFunction *function = static_cast<NFunction*>(node);
+                if(!function->_parameters || !function->_parameters->_args.empty())
+                    throw std::runtime_error("hinting no parameters, but found Function with parameters");
+               function->_parameters->setInferredType(empty_type);
+            }
+        }
+
         std::vector<std::string> AnnotatedAST::getParameterNames() const {
 
             if(!_root)

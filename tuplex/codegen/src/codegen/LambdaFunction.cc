@@ -76,6 +76,8 @@ namespace tuplex {
             auto outRowLLVMType = _fto.getLLVMType()->getPointerTo();
             auto inRowLLVMType = _fti.getLLVMType()->getPointerTo();
 
+            // special case: If
+
             FunctionType *FT = FunctionType::get(_env->i64Type(), {outRowLLVMType,
                                                                    inRowLLVMType}, false);
 

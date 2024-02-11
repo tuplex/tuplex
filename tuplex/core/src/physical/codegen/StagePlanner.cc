@@ -664,6 +664,17 @@ namespace tuplex {
             // can filters get pushed down even further? => check! constant folding may remove code!
         }
 
+        bool are_in_and_out_schemas_compatible(const python::Type& prev_out_row_type, const python::Type& in_row_type) {
+            // check whether schemas are compatible
+
+            // special case: in_row_type is empty_tuple or empty_row -> always compatible
+            if(in_row_type == python::Type::EMPTYTUPLE || in_row_type == python::Type::EMPTYROW)
+                return true;
+
+            // they're ok if the flattened representation matches
+            return flattenedType(prev_out_row_type) == flattenedType(in_row_type);
+        }
+
         bool StagePlanner::validatePipeline() {
 
             auto& logger = Logger::instance().logger("specializing stage optimizer");
@@ -694,7 +705,7 @@ namespace tuplex {
                     lastRowType = rop->getNormalParent()->getInputSchema().getRowType();
                 }
 
-                if(flattenedType(lastRowType) != flattenedType(op->getInputSchema().getRowType())) {
+                if(!are_in_and_out_schemas_compatible(lastRowType, op->getInputSchema().getRowType())) {
                     logger.error("(" + op->name() + "): input schema "
                                      + op->getInputSchema().getRowType().desc()
                                      + " incompatible with previous operator's output schema "

@@ -318,6 +318,9 @@ namespace tuplex {
     }
 
     bool UDF::hintInputSchema(const Schema &schema, bool removeBranches, bool printErrors) {
+
+        auto& logger = Logger::instance().logger("type annotation");
+
         // already typed? can't use hinting. Need to perform retyping.
         if(isTyped())
             throw std::runtime_error("UDF already typed, can't hint schema. Use retype instead.");
@@ -354,9 +357,30 @@ namespace tuplex {
         // either the user accesses everything as a tuple or the first tuple gets unpacked (syntactical sugar)
         auto params = getInputParameters();
 
-        if(0 == params.size()) {
-            // empty tuple?
-            Logger::instance().logger("type inference").warn("no param not yet implemented");
+        if(params.empty()) {
+            logger.debug("Hinting UDF to have no parameters");
+
+            // no parameters? -> result is constant.
+            _ast.hintNoParameters();
+
+            // run type annotator visitor. Missing identifier etc. should produce exception.
+            // --> this code here works statically. However, note that there's a simpler version of this possible
+            // i.e., run over single dummy input and use result. That won't capture weird if branch behavior though.
+            // therefore resort to static annotation here with the if escape hatch if necessary.
+            if(!hintParams({}, {}, true, removeBranches)) {
+                logTypingErrors(printErrors);
+                return false;
+            }
+
+            auto input_row_type = PARAM_USE_ROW_TYPE ? python::Type::EMPTYROW : python::Type::EMPTYTUPLE;
+            auto return_type = _ast.getReturnType();
+
+            // update here
+            _inputSchema = Schema(Schema::MemoryLayout::ROW, input_row_type);
+            _outputSchema = Schema(Schema::MemoryLayout::ROW, codegenTypeToRowType(return_type));
+            _numInputColumns = 0;
+
+            return true;
         } else if(1 == params.size()) {
 
             // simpler hinting using row type, for a single param - assume it's the full row
@@ -948,8 +972,10 @@ namespace tuplex {
     std::vector<size_t> LambdaAccessedColumnVisitor::getAccessedIndices() const {
 
         std::set<size_t> idxs;
-
         assert(_multiArgs.has_value());
+
+        if(0 == _numColumns)
+            return {};
 
         // first check what type it is
         if(!_multiArgs.value()) {
@@ -1627,6 +1653,14 @@ namespace tuplex {
             setInputSchema(new_schema);
             setOutputSchema(new_schema);
 
+            return true;
+        }
+
+        // special case, no input columns -> set as empty.
+        if(0 == _numInputColumns) {
+            _ast.hintNoParameters();
+
+            // should not change input/output schema.
             return true;
         }
 

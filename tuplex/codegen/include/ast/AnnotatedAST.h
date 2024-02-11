@@ -127,6 +127,12 @@ namespace tuplex {
 
 
             /*!
+             * hints AST for no parameter case, setting function type to EMPTYTUPLE or EMPTYROW.
+             * @raises exception when parameters are present.
+             */
+            void hintNoParameters();
+
+            /*!
              * generates code for a python UDF function
              * @param env LLVM module where to generate code into
              * @param policy UDF compiler policy to use

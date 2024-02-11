@@ -160,6 +160,14 @@ namespace tuplex {
         }
 
         void FlattenedTuple::init(const python::Type &type) {
+
+            // special case: empty tuple
+            if(python::Type::EMPTYTUPLE == type || python::Type::EMPTYROW == type) {
+                _tree = TupleTree<codegen::SerializableValue>(); // empty tree
+                _flattenedTupleType = python::Type::EMPTYTUPLE;
+                return;
+            }
+
             _tree = TupleTree<codegen::SerializableValue>(type);
 
             // compute flattened type version

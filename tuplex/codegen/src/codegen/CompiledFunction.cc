@@ -96,8 +96,15 @@ namespace tuplex {
             assert(resPtr->getType() == fto.getLLVMType()->getPointerTo(0));
             assert(env.i64Type()->getPointerTo(0) == exceptionCode->getType());
 
-            // temp alloc & store flattenedTuple val
-            auto inRowPtr = args.loadToPtr(builder);
+
+            // if input_type is empty tuple or empty row, then args are ignored. Handle this specially here by simple allocating an empty tuple ptr (should get automatically removed)
+            llvm::Value* inRowPtr = nullptr;
+            if(python::Type::EMPTYROW == input_type || python::Type::EMPTYTUPLE == input_type) {
+                inRowPtr = env.CreateFirstBlockAlloca(builder, env.getEmptyTupleType(), "empty_input_row");
+            } else {
+                // temp alloc & store flattenedTuple val from args.
+                inRowPtr = args.loadToPtr(builder);
+            }
 
             // call compiled function or fallback?
             if (!usesFallback()) {

@@ -86,6 +86,29 @@ TEST_F(DataFrameTest, PrefixNullTest) {
     }
 }
 
+TEST_F(DataFrameTest, LambdaWithNoParameters) {
+    using namespace tuplex;
+    using namespace std;
+
+    Context c(microTestOptions());
+
+    // loop through test cases
+    std::vector<std::pair<std::string, std::string>> test_cases{{"lambda: 42", "(42,)"},
+                                                                {"lambda: 'test'", "('test',)"},
+                                                                {"lambda: None", "(None,)"}};
+    // use dummy input row
+    for(const auto& p : test_cases) {
+        auto udf_code = p.first;
+        auto expected_result_as_str = p.second;
+
+        auto ans = c.parallelize({Row(0)}).map(UDF(udf_code)).collectAsVector();
+        ASSERT_FALSE(ans.empty());
+        ASSERT_EQ(ans.size(), 1);
+        EXPECT_EQ(ans[0].toPythonString(), expected_result_as_str);
+    }
+
+}
+
 TEST_F(DataFrameTest, ListIndex) {
     using namespace tuplex;
     using namespace std;

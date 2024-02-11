@@ -109,14 +109,8 @@ namespace tuplex {
     std::string Row::toJsonString(const std::vector<std::string> &columns) const {
         std::stringstream ss;
         if(columns.empty()) {
-            // use []
-            ss<<"[";
-            for(unsigned i = 0; i < getNumColumns(); ++i) {
-                ss<<escape_for_json(columns[i])<<":"<<_values[i].toJsonString();
-                if(i != getNumColumns() - 1)
-                    ss<<",";
-            }
-            ss<<"]";
+            // use {}
+            ss<<"{}";
         } else {
             if(columns.size() != getNumColumns())
                 throw std::runtime_error("can not convert row to Json string, number of columns given ("

@@ -90,6 +90,9 @@ TEST_F(DataFrameTest, LambdaWithNoParameters) {
     using namespace tuplex;
     using namespace std;
 
+    // @TODO: in logial optimizer, if UDF does not have any parameters
+    // push down s.t. no columns are read in. Only count is required. -> can be done faster!
+
     Context c(microTestOptions());
 
     // loop through test cases

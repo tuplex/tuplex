@@ -314,14 +314,30 @@ namespace tuplex {
             if (columnsToSerialize.empty())
                 return rowType;
 
-            std::vector<python::Type> cols;
-            assert(rowType.isTupleType());
-            assert(columnsToSerialize.size() == rowType.parameters().size());
-            for (int i = 0; i < rowType.parameters().size(); ++i) {
-                if (columnsToSerialize[i])
-                    cols.push_back(rowType.parameters()[i]);
+            if(rowType.isTupleType()) {
+                std::vector<python::Type> cols;
+                assert(rowType.isTupleType());
+                assert(columnsToSerialize.size() == rowType.parameters().size());
+                for (int i = 0; i < rowType.parameters().size(); ++i) {
+                    if (columnsToSerialize[i])
+                        cols.push_back(rowType.parameters()[i]);
+                }
+                return python::Type::makeTupleType(cols);
             }
-            return python::Type::makeTupleType(cols);
+            if(rowType.isRowType()) {
+                std::vector<python::Type> cols;
+                std::vector<std::string> names;
+                for (int i = 0; i < rowType.get_column_count(); ++i) {
+                    if (columnsToSerialize[i]) {
+                        cols.push_back(rowType.get_column_type(i));
+                        if(!rowType.get_column_names().empty())
+                            names.push_back(rowType.get_column_name(i));
+                    }
+                }
+                return python::Type::makeRowType(cols, names);
+            }
+
+            return python::Type::UNKNOWN;
         }
     }
 }

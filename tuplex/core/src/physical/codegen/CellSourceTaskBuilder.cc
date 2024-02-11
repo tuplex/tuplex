@@ -633,7 +633,7 @@ namespace tuplex {
 
             auto rowType = restrictRowType(columnsToSerialize, inputRowType);
 
-            assert(columnsToSerialize.size() == inputRowType.parameters().size());
+            assert(columnsToSerialize.size() == extract_columns_from_type(inputRowType));
 
             FlattenedTuple ft(&env());
             ft.init(rowType);
@@ -644,8 +644,8 @@ namespace tuplex {
             for(int i = 0; i < columnsToSerialize.size(); ++i) {
                 // should column be serialized? if so emit type logic!
                 if(columnsToSerialize[i]) {
-                    assert(rowTypePos < rowType.parameters().size());
-                    auto t = rowType.parameters()[rowTypePos];
+                    assert(rowTypePos < extract_columns_from_type(rowType));
+                    auto t = rowType.isRowType() ? rowType.get_column_type(rowTypePos) : rowType.parameters()[rowTypePos];
 
                     auto val = cachedParse(builder, t, i, cellsPtr, sizesPtr);
                     ft.setElement(builder, rowTypePos, val.val, val.size, val.is_null);

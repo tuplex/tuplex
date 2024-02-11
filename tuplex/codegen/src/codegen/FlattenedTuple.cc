@@ -1152,6 +1152,10 @@ namespace tuplex {
             // here it is just a load
             // ==> an empty tuple can't have a bitmap!
             if(isEmptyTuple()) {
+
+                // do nothing for now...
+                return;
+
                 throw std::runtime_error("need to figure this out..."); // what needs to be stored here anyways??
                 assert(1 == numElements());
                 // store size for packed empty tuple

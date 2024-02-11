@@ -138,15 +138,13 @@ namespace tuplex {
                                                                  _nullErrorBlock(nullptr) {
 
                 // both cases should have same amount of columns
-                assert(_fileInputRowType.isTupleType() &&
-                _fileInputRowTypeGeneralCase.isTupleType() &&
-                _fileInputRowType.parameters().size() == _fileInputRowTypeGeneralCase.parameters().size());
+                assert(extract_columns_from_type(_fileInputRowType) == extract_columns_from_type(_fileInputRowTypeGeneralCase));
 
 
-                // make sure columnsToSerilaize array is valid
+                // make sure columnsToSerialize array is valid
                 // if empty array given, add always trues
                 if(_columnsToSerialize.empty()) {
-                    for(int i = 0; i < _fileInputRowType.parameters().size(); ++i)
+                    for(int i = 0; i < extract_columns_from_type(_fileInputRowType); ++i)
                         _columnsToSerialize.emplace_back(true);
                 }
 
@@ -163,7 +161,7 @@ namespace tuplex {
                 }
                 assert(num_normal_cols <= num_general_cols);
 
-                assert(_columnsToSerialize.size() == _fileInputRowType.parameters().size());
+                assert(_columnsToSerialize.size() == extract_columns_from_type(_fileInputRowType));
             }
 
             llvm::Function *build(bool terminateEarlyOnLimitCode) override;

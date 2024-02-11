@@ -84,7 +84,12 @@ namespace tuplex {
 
             // signature is basically i8* userData, ?* row
             FlattenedTuple ft(_env.get());
+
+            // ensure type is well-defined
+            if(last_tuple_type.isIllDefined())
+                throw std::runtime_error("can not create function, last row type is ill-defined: " + last_tuple_type.desc());
             ft.init(last_tuple_type);
+            assert(!ft.getTupleType().isIllDefined());
 
             vector<Type*> argsType{resultStructType()->getPointerTo(0),
                                    env().i8ptrType(),

@@ -64,6 +64,9 @@ namespace tuplex {
             python::Type _flattenedTupleType; // cache this for fast speed
 
             inline python::Type tupleType() const {
+                if(0 == _tree.numElements())
+                    return python::Type::EMPTYTUPLE;
+
                 return _tree.tupleType();
             }
 

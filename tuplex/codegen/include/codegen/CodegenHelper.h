@@ -703,13 +703,13 @@ namespace tuplex {
                 return true;
             }
 
-            if(!normal_case_type.isTupleType())
+            if(!normal_case_type.isTupleType() && !normal_case_type.isRowType())
                 throw std::runtime_error("normal case type " + normal_case_type.desc() + " is not a row type.");
-            if(!general_case_type.isTupleType())
+            if(!general_case_type.isTupleType() && !general_case_type.isRowType())
                 throw std::runtime_error("general case type " + general_case_type.desc() + " is not a row type.");
 
-            auto num_normal_columns = normal_case_type.parameters().size();
-            auto num_general_columns = general_case_type.parameters().size();
+            auto num_normal_columns = extract_columns_from_type(normal_case_type);
+            auto num_general_columns = extract_columns_from_type(general_case_type);
 
             if(mapping.empty()) {
                 // no mapping, column count must match and upcast be possible!
@@ -720,7 +720,14 @@ namespace tuplex {
                     return false;
                 }
 
-                return python::canUpcastToRowType(normal_case_type, general_case_type);
+                auto tmp_normal_case_type = normal_case_type;
+                auto tmp_general_case_type = general_case_type;
+                if(normal_case_type.isRowType())
+                    tmp_normal_case_type = normal_case_type.get_columns_as_tuple_type();
+                if(general_case_type.isRowType())
+                    tmp_general_case_type = general_case_type.get_columns_as_tuple_type();
+
+                return python::canUpcastToRowType(tmp_normal_case_type, tmp_general_case_type);
             } else {
                 // check that for each column in normal case a mapping to general case exists and is valid!
                 for(unsigned i = 0; i < num_normal_columns; ++i) {

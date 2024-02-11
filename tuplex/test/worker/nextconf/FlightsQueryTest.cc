@@ -166,6 +166,9 @@ namespace tuplex {
                 co.set(kv.first, kv.second);
 
 
+        // debug:
+        input_pattern = "/hot/data/flights_all/flights*2002*.csv";
+
         // set sampling back to regular one & use just 256KB
         // sampling Mode C
         sm = SamplingMode::FIRST_FILE | SamplingMode::LAST_FILE | SamplingMode::FIRST_ROWS;

@@ -3393,12 +3393,17 @@ namespace tuplex {
         ss<<"\"unresolved\":"<<_codePathStats.unresolvedRowsCount;
         ss<<"}";
 
-        assert(!_statistics.empty());
+        auto num_normal_output_rows = 0;
+        auto num_exception_output_rows = 0;
+        if(!_statistics.empty()) {
+            num_normal_output_rows = _statistics.back().numNormalOutputRows;
+            num_exception_output_rows = _statistics.back().numExceptionOutputRows;
+        }
 
         // output path breakdown
         ss<<",\"output\":{";
-        ss<<"\"normal\":"<<_statistics.back().numNormalOutputRows;
-        ss<<",\"except\":"<<_statistics.back().numExceptionOutputRows;
+        ss<<"\"normal\":"<<num_normal_output_rows;
+        ss<<",\"except\":"<<num_exception_output_rows;
         ss<<"}";
 
         // go over timing dict (should be reset)

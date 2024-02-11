@@ -636,7 +636,9 @@ namespace tuplex {
             assert(columnsToSerialize.size() == extract_columns_from_type(inputRowType));
 
             FlattenedTuple ft(&env());
-            ft.init(rowType);
+            auto tuple_row_type = rowType.isRowType() ? rowType.get_columns_as_tuple_type() : rowType;
+            assert(tuple_row_type.isTupleType());
+            ft.init(tuple_row_type);
 
             // create flattened tuple & fill its values.
             // Note: might need to do value conversion first!!!

@@ -144,14 +144,20 @@ namespace tuplex {
                     break;
                 }
                 case ExceptionSerializationFormat::GENERALCASE: {
+
+                    auto input_tuple_row_type = _inputRowType.isRowType() ? _inputRowType.get_columns_as_tuple_type() : _inputRowType;
+                    auto input_general_tuple_row_type = _inputRowTypeGeneralCase.isRowType() ? _inputRowTypeGeneralCase.get_columns_as_tuple_type() : _inputRowTypeGeneralCase;
+                    assert(input_tuple_row_type.isTupleType());
+                    assert(input_general_tuple_row_type.isTupleType());
+
                     // is ftIn in general-case format? -> serialize as is
-                    if(ftIn.getTupleType() == _inputRowTypeGeneralCase) {
+                    if(ftIn.getTupleType() == input_general_tuple_row_type) {
                         // perfect, simply serialize
                         auto serialized_row = ftIn.serializeToMemory(builder);
                         return serialized_row;
                     } else {
                         // must be in normal-case format
-                        if(ftIn.getTupleType() != _inputRowType) {
+                        if(ftIn.getTupleType() != input_tuple_row_type) {
                             std::stringstream ss;
                             ss<<"ftIn is in unknown format "<<ftIn.getTupleType().desc()<<" that is neither normal-case format "
                             <<_inputRowType.desc()<<" nor general-case format "<<_inputRowTypeGeneralCase.desc();
@@ -162,13 +168,10 @@ namespace tuplex {
                         if(isNormalCaseAndGeneralCaseCompatible()) {
                             // upcast necessary?
                             FlattenedTuple ft = ftIn;
-                            if(_inputRowType != _inputRowTypeGeneralCase) {
-                                assert(_inputRowType.isTupleType());
-                                assert(_inputRowTypeGeneralCase.isTupleType());
-
+                            if(input_tuple_row_type != input_general_tuple_row_type) {
                                 logger.debug("emitting exception upcast on code-path");
                                 // could be the case that fast path/normal case requires less columns than general case, therefore cast up
-                                ft = normalToGeneralTuple(builder, ftIn, _inputRowType, _inputRowTypeGeneralCase, _normalToGeneralMapping);
+                                ft = normalToGeneralTuple(builder, ftIn, input_tuple_row_type, input_general_tuple_row_type, _normalToGeneralMapping);
                             }
 
                             logger.debug("normal-case input row type of block-based builder is: " + _inputRowType.desc());

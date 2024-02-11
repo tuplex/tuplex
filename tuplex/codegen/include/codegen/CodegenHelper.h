@@ -742,8 +742,8 @@ namespace tuplex {
                     }
 
                     // mapping found, check that upcating is possible
-                    auto nt = normal_case_type.parameters()[i];
-                    auto gt = general_case_type.parameters()[mapping.at(i)];
+                    auto nt = normal_case_type.isRowType() ? normal_case_type.get_column_type(i) : normal_case_type.parameters()[i];
+                    auto gt = general_case_type.isRowType() ? general_case_type.get_column_type(mapping.at(i)) : general_case_type.parameters()[mapping.at(i)];
                     if(!python::canUpcastType(nt, gt)) {
                         logger.debug("can not upcast " + nt.desc() + " -> " + gt.desc());
                         return false;

@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # Github query for Viton paper
 # TODO: build with cmake -G "Unix Makefiles" -DBUILD_WITH_CEREAL=ON -DSKIP_AWS_TESTS=OFF -DBUILD_WITH_ORC=OFF -DBUILD_WITH_AWS=ON -DPython3_EXECUTABLE=/home/leonhards/.pyenv/shims/python3.9 -DAWS_S3_TEST_BUCKET='tuplex-test' -DLLVM_ROOT_DIR=/opt/llvm-9 ..
+
+# invoke python baseline via --mode python --input-pattern "/hot/data/flights_all/*.csv" --output-path "./local-exp/python-baseline/flights/output" --scratch-dir "./local-exp/scratch" --result-path "./local-exp/python-baseline/flights/results.ndjson"
+
 import logging
 import pathlib
 from typing import Optional
 
-# Tuplex based cleaning script
-# import tuplex
 import time
 import sys
 import json
@@ -18,12 +19,16 @@ import csv
 # used for validation
 import pandas as pd
 
+# frameworks supported are
+# - python baseline
+# - Tuplex
+# - lithops
+# - ??
 
 # default parameters to use for paths, scratch dirs
 S3_DEFAULT_INPUT_PATTERN='s3://tuplex-public/data/github_daily/*.json'
 S3_DEFAULT_OUTPUT_PATH='s3://tuplex-leonhard/experiments/github'
 S3_DEFAULT_SCRATCH_DIR="s3://tuplex-leonhard/scratch/github-exp"
-
 
 def human_readable_size(size, decimal_places=2):
     for unit in ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB']:
@@ -264,6 +269,12 @@ def fill_in_delays(row):
                 'security_delay': row['SECURITY_DELAY'],
                 'late_aircraft_delay' : row['LATE_AIRCRAFT_DELAY']}
 
+def glob_paths(pattern):
+    paths = []
+    for pattern_part in pattern.split(','):
+        paths += sorted(glob.glob(pattern_part))
+    return paths
+
 # special conversion function for boolean necessary
 def python_baseline_to_bool(value):
     valid = {'true': True, 't': True, 'yes': True, 'y': True, 'false': False, 'f': False, 'no': False,
@@ -317,7 +328,7 @@ def process_path_with_python_flights(input_path, year_lower, year_upper, dest_ou
     tstart = time.time()
     rows = []
     num_input_rows = 0
-    with open(input_path, 'r') as fp:
+    with open(input_path, 'r', encoding='latin1') as fp:
         reader = csv.DictReader(fp, delimiter=',', quotechar='"')
         for row in reader:
             row = dict(row)
@@ -341,7 +352,8 @@ def process_path_with_python_flights(input_path, year_lower, year_upper, dest_ou
         with open(dest_output_path, 'w', newline='') as csvfile:
             # use same order here as Tuplex does, alternative would be something like
             # sorted([str(key) for key in rows[0].keys()])
-            fieldnames = ['type', 'repo_id', 'year', 'number_of_commits']
+            fieldnames = ['year', 'month', 'day', 'carrier', 'flightno', 'origin', 'dest', 'distance', 'dep_delay',
+                          'arr_delay', 'carrier_delay', 'weather_delay', 'nas_delay', 'security_delay', 'late_aircraft_delay']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
             writer.writeheader()
@@ -358,7 +370,8 @@ def process_path_with_python_flights(input_path, year_lower, year_upper, dest_ou
     duration = time.time() - tstart
     logging.info(f"Done in {duration:.2f}s, wrote output to {dest_output_path} ({output_result}, {num_output_rows} rows)")
 
-    return {'output_path': dest_output_path, 'duration': duration, 'num_output_rows': num_output_rows, 'num_input_rows': num_input_rows}
+    return {'input_path': input_path, 'output_path': dest_output_path, 'duration': duration,
+            'num_output_rows': num_output_rows, 'num_input_rows': num_input_rows}
 
 
 def run_with_python_baseline(args, **kwargs):
@@ -379,16 +392,18 @@ def run_with_python_baseline(args, **kwargs):
     tstart = time.time()
 
     # Step 1: glob files (python only supports local mode (?) )
-    input_paths = sorted(glob.glob(input_pattern))
+    input_paths = glob_paths(input_pattern)
     total_input_size = sum(map(lambda path: os.path.getsize(path), input_paths))
     logging.info(f"Found {len(input_paths)} input paths, total size: {human_readable_size(total_input_size)}")
 
-    # Process each file now using hand-written pipeline
+    # Process each file now using handwritten pipeline
     total_output_rows = 0
     total_input_rows = 0
+    path_stats = []
     for part_no, path in enumerate(input_paths):
         logging.info(f"Processing path {part_no+1}/{len(input_paths)}: {path} ({human_readable_size(os.path.getsize(path))})")
         ans = process_path_with_python_flights(path, kwargs['year_lower'], kwargs['year_upper'], os.path.join(output_path, "part_{:04d}.csv".format(part_no)))
+        path_stats.append(ans)
         total_output_rows += ans['num_output_rows']
         total_input_rows += ans['num_input_rows']
 
@@ -397,6 +412,50 @@ def run_with_python_baseline(args, **kwargs):
     stats = {"startup_time_in_s": startup_time, "job_time_in_s": job_time, 'mode': 'tuplex',
              'output_path': output_path,
              'input_path': input_pattern, 'scratch_path': scratch_dir, 'total_input_paths_size_in_bytes': total_input_size,
+             'total_output_rows': total_output_rows, 'total_input_rows': total_input_rows, 'per_file_stats': path_stats}
+    return stats
+
+## Lithops
+def run_with_lithops(args, **kwargs):
+    tstart = time.time()
+    import lithops
+    startup_time = time.time() - tstart
+
+    tstart = time.time()
+
+    output_path = args.output_path
+    input_pattern = args.input_pattern
+    scratch_dir = args.scratch_dir
+
+    if not output_path:
+        raise ValueError('No output path specified')
+    if not input_pattern:
+        raise ValueError('No input_pattern specified')
+
+    # Step 1: glob files (lithops does not support globbing)
+    input_paths = glob_paths(input_pattern)
+    total_input_size = sum(map(lambda path: os.path.getsize(path), input_paths))
+    logging.info(f"Found {len(input_paths)} input paths, total size: {human_readable_size(total_input_size)}")
+
+    # Process each file now using lithops executor
+    total_output_rows = 0
+    total_input_rows = 0
+    for part_no, path in enumerate(input_paths):
+        logging.info(
+            f"Processing path {part_no + 1}/{len(input_paths)}: {path} ({human_readable_size(os.path.getsize(path))})")
+        ans = process_path_with_python_flights(path, kwargs['year_lower'], kwargs['year_upper'],
+                                               os.path.join(output_path, "part_{:04d}.csv".format(part_no)))
+        total_output_rows += ans['num_output_rows']
+        total_input_rows += ans['num_input_rows']
+
+    job_time = time.time() - tstart
+    logging.info(f'total output rows: {total_output_rows}')
+
+    job_time = time.time() - tstart
+    stats = {"startup_time_in_s": startup_time, "job_time_in_s": job_time, 'mode': 'lithops',
+             'output_path': output_path,
+             'input_path': input_pattern, 'scratch_path': scratch_dir,
+             'total_input_paths_size_in_bytes': total_input_size,
              'total_output_rows': total_output_rows, 'total_input_rows': total_input_rows}
     return stats
 
@@ -603,7 +662,7 @@ if __name__ == '__main__':
     parser.add_argument('--output-path', default=None, dest='output_path', help='where to store result of pipeline')
     parser.add_argument('--scratch-dir', default=None, dest='scratch_dir', help='where to store intermediate results')
     parser.add_argument('--log-path', default=None, dest='log_path', help='specify optional path where to store experiment log results.')
-    parser.add_argument('--result_path', default='results.ndjson', help='new-line delimited JSON formatted result file')
+    parser.add_argument('--result-path', default='results.ndjson', help='new-line delimited JSON formatted result file')
     args = parser.parse_args()
 
     # set up logging, by default always render to console. If log path is present, store file as well
@@ -632,6 +691,7 @@ if __name__ == '__main__':
 
     logging.info(f"pipeline in mode {args.mode} took {ans['job_time_in_s']:.2f} seconds")
     logging.info(f"Storing results in {args.result_path} via append")
+    os.makedirs(pathlib.Path(args.result_path).parent, exist_ok=True)
     with open(args.result_path, 'a') as f:
         json.dump(ans, f, sort_keys=True)
         f.write('\n')

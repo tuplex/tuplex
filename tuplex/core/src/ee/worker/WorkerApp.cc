@@ -389,8 +389,8 @@ namespace tuplex {
         // check settings, pure python mode?
         if(req.settings().has_useinterpreteronly() && req.settings().useinterpreteronly()) {
             logger().info("WorkerApp is processing everything in single-threaded python/fallback mode.");
-            auto rc = processTransformStageInPythonMode(tstage, parts, outputURI);
-            _lastStat = jsonStat(req, tstage); // generate stats before returning.
+            auto rc = processTransformStageInPythonMode(tstage.get(), parts, outputURI);
+            _lastStat = jsonStat(req, tstage.get()); // generate stats before returning.
             return rc;
         }
 
@@ -456,7 +456,7 @@ namespace tuplex {
                 logger().info(ss.str());
             }
 
-            bool hyper_rc = hyperspecialize(tstage,
+            bool hyper_rc = hyperspecialize(tstage.get(),
                                             uri,
                                             file_size,
                                             _settings.sampleLimitCount,
@@ -492,8 +492,8 @@ namespace tuplex {
                 return WORKER_ERROR_COMPILATION_FAILED;
 #else
                 logger().error("Hyper-specializastion could not produce a fast-path, using interpreter mode as fallback.");
-                auto rc = processTransformStageInPythonMode(tstage, parts, outputURI);
-                _lastStat = jsonStat(req, tstage); // generate stats before returning.
+                auto rc = processTransformStageInPythonMode(tstage.get(), parts, outputURI);
+                _lastStat = jsonStat(req, tstage.get()); // generate stats before returning.
                 return rc;
 #endif
             }
@@ -519,16 +519,16 @@ namespace tuplex {
         // kick off general case compile then
         if(_settings.opportuneGeneralPathCompilation && _settings.useCompiledGeneralPath) {
             // create new thread to compile slow path (in parallel to running fast path)
-            _resolverCompileThread.reset(new std::thread([this, tstage]() {
+            _resolverCompileThread.reset(new std::thread([this](TransformStage* tstage) {
                 auto resolver = getCompiledResolver(tstage);
-            }));
+            }, tstage.get()));
             //_resolverFuture = std::async(std::launch::async, [this, tstage]() {
             //    return getCompiledResolver(tstage);
             //});
         }
 
-        auto rc = processTransformStage(tstage, syms, parts, outputURI);
-        _lastStat = jsonStat(req, tstage); // generate stats before returning.
+        auto rc = processTransformStage(tstage.get(), syms, parts, outputURI);
+        _lastStat = jsonStat(req, tstage.get()); // generate stats before returning.
         return rc;
     }
 

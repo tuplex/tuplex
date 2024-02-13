@@ -47,7 +47,7 @@ namespace tuplex {
         TupleTreeNode<T> *_root;
         python::Type _tupleType;
 
-        TupleTreeNode<T>* createTupleTreeR(TupleTreeNode<T>* root, python::Type type) {
+        TupleTreeNode<T>* createTupleTreeR(TupleTreeNode<T>* root, python::Type type) const {
             // !!! logic like in lookup helper
             assert(root);
 
@@ -128,7 +128,10 @@ namespace tuplex {
                 delete _root;
 
             _root = new TupleTreeNode<T>();
-            _root = createTupleTreeR(_root, tupleType);
+            auto recursively_created_root = createTupleTreeR(_root, tupleType);
+            if(recursively_created_root != _root)
+                delete _root;
+            _root = recursively_created_root;
             _numElements = countLeaves(_root);
             _tupleType = tupleType;
         }

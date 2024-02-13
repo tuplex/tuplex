@@ -102,7 +102,7 @@ namespace tuplex {
 
 #ifdef BUILD_WITH_AWS
         std::unique_ptr<messages::TransformStage> to_protobuf() const;
-        static TransformStage* from_protobuf(const messages::TransformStage& msg);
+        static std::unique_ptr<TransformStage> from_protobuf(const messages::TransformStage& msg);
 #endif
 
         /*!

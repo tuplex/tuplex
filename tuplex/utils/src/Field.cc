@@ -119,6 +119,9 @@ namespace tuplex {
     }
 
     void Field::deep_copy_from_other(const Field &other) {
+        // always release internal memory first.
+        releaseMemory();
+
         if(other.hasPtrData()) {
             assert(_ptrValue == nullptr);
 

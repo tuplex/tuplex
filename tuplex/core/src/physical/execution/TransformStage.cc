@@ -1209,8 +1209,8 @@ namespace tuplex {
         }
     }
 
-    TransformStage* TransformStage::from_protobuf(const messages::TransformStage &msg) {
-        auto stage = new TransformStage(nullptr, nullptr, msg.stagenumber(), true); // dummy, no backend/plan
+    std::unique_ptr<TransformStage> TransformStage::from_protobuf(const messages::TransformStage &msg) {
+        auto stage = std::unique_ptr<TransformStage>(new TransformStage(nullptr, nullptr, msg.stagenumber(), true)); // dummy, no backend/plan
 
         // decode columns
         for(int i = 0; i < msg.inputcolumns_size(); ++i)

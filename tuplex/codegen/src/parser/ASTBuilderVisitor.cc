@@ -218,7 +218,15 @@ namespace tuplex {
                 auto left = popNode();
                 auto right = vn[i];
                 pushNode(new NBinaryOp(left, stringToToken(children[2 * i - 1]->getText()), right));
+
+                // because NBinaryOp(...) calls clone() on left -> delete AST node memory here
+                delete left;
             }
+
+            // because NBinaryOp(...) calls clone() on left/right -> delete AST node memory here
+            for(auto node : vn)
+                delete node;
+            vn.clear();
 
         } // else, nothing todo, it is a simple factor
     }
@@ -604,6 +612,11 @@ namespace tuplex {
             auto paramList = popNode();
             assert(paramList->type() == ASTNodeType::ParameterList);
             pushNode(new NLambda((NParameterList *) paramList, expr));
+
+            // lambda calls clone, so delete original nodes here
+            delete paramList;
+            delete expr;
+
         } else {
             // no args, test must be present though
             // i.e. pop node & push
@@ -611,7 +624,12 @@ namespace tuplex {
             assert(ctx->test());
 
             auto n = popNode();
-            pushNode(new NLambda(new NParameterList(), n));
+            auto empty_param_list = new NParameterList();
+            pushNode(new NLambda(empty_param_list, n));
+
+            // lambda calls clone, so delete original nodes here
+            delete empty_param_list;
+            delete n;
         }
 
         return nullptr;
@@ -630,7 +648,6 @@ namespace tuplex {
         // this is similar to vararg list, however this time there are parameters & possible default values
         // because of stack go from back
         ASTNode *lastDefault = nullptr; // last default value encountered
-
 
         std::vector<NParameter *> parameters;
 
@@ -732,6 +749,10 @@ namespace tuplex {
                 assert(id->type() == ASTNodeType::Identifier);
 
                 auto param = new NParameter((NIdentifier *) id);
+
+                // param calls clone, so delete original id node
+                delete id; id = nullptr;
+
                 param->setDefault(lastDefault);
                 // no annotation for vararg list...
                 parameters.emplace_back(param);
@@ -763,7 +784,6 @@ namespace tuplex {
                     lastDefault = popNode();
                 }
             }
-
         }
 
         // reverse parameters
@@ -772,6 +792,10 @@ namespace tuplex {
         auto pl = new NParameterList();
         for (auto p : parameters)
             pl->addParam(p);
+
+        // add param performs clone as well, so delete all parameters explicitly here
+        for(auto node : parameters)
+            delete node;
 
         pushNode(pl);
 

@@ -14,6 +14,21 @@
 
 using namespace tuplex;
 
+TEST(ANTLRParserTest, ParseLiteral) {
+    auto ast = std::unique_ptr<ASTNode>(tuplex::parseToAST("42"));
+    EXPECT_TRUE(ast.get());
+}
+
+TEST(ANTLRParserTest, ParseSimpleExpressionI) {
+    auto ast = std::unique_ptr<ASTNode>(tuplex::parseToAST("42 + x"));
+    EXPECT_TRUE(ast.get());
+}
+
+TEST(ANTLRParserTest, ParseSimpleExpressionII) {
+    auto ast = std::unique_ptr<ASTNode>(tuplex::parseToAST("42 + x * 4 | 3 ^ 1"));
+    EXPECT_TRUE(ast.get());
+}
+
 TEST(ANTLRParserTest, ParseTestI) {
     auto ast = std::unique_ptr<ASTNode>(tuplex::parseToAST("lambda x: x * 2 * 3 - 20 - 40 << 2 | 3 ^ 1 & 0"));
     EXPECT_TRUE(ast.get());

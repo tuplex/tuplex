@@ -135,6 +135,10 @@ namespace tuplex {
                     auto generator = dynamic_cast<NComprehension*>(popNode());
                     auto expr = popNode();
                     auto lComp = new NListComprehension(expr);
+
+                    // NListComprehension clones
+                    delete expr;
+
                     lComp->generators.push_back(std::unique_ptr<NComprehension>(generator));
 
                     pushNode(lComp);
@@ -339,7 +343,11 @@ namespace tuplex {
                 if (t->DOT()) {
                     // argument lookup
                     assert(trailer->type() == ASTNodeType::Identifier);
+                    auto old_atom = atom;
                     atom = new NAttribute(atom, (NIdentifier *) trailer);
+
+                    // delete old nodes because NAttribute clones them.
+                    delete old_atom; delete trailer;
                 }
 
                 if (t->subscriptlist()) {
@@ -351,10 +359,18 @@ namespace tuplex {
                     if (trailer->type() == ASTNodeType::SliceItem) {
                         // NSlicing!
                         // --> currently only a single one supported, future could be more...
+                        auto old_atom = atom;
                         atom = new NSlice(atom, {trailer});
+
+                        // delete old nodes because NSlice clones them
+                        delete old_atom; delete trailer;
                     } else {
                         // subscript
+                        auto old_atom = atom;
                         atom = new NSubscription(atom, trailer);
+
+                        // NSubscription clones too
+                        delete old_atom; delete trailer;
                     }
                 }
 
@@ -372,9 +388,12 @@ namespace tuplex {
                                 range->_positionalArguments.push_back(std::unique_ptr<ASTNode>(v.back()));
                                 v.pop_back();
                             }
+                            if(atom)
+                                delete atom;
                             atom = range;
                         } else {
                             auto call = new NCall(atom);
+                            delete atom;
                             for (unsigned i = 0; i < num_args; ++i) {
                                 assert(!v.empty());
                                 call->_positionalArguments.push_back(std::unique_ptr<ASTNode>(v.back()));
@@ -383,7 +402,9 @@ namespace tuplex {
                             atom = call;
                         }
                     } else {
+                        auto old_atom = atom;
                         atom = new NCall(atom);
+                        delete old_atom;
                     }
                 }
             }
@@ -543,11 +564,14 @@ namespace tuplex {
 
             auto cmp = new NCompare();
             cmp->setLeft(vn[0]);
+            delete vn[0]; // <-- delete because setLeft clones.
 
             for (unsigned i = 1; i < vn.size(); ++i) {
                 auto right = vn[i];
                 assert(dynamic_cast<Python3Parser::Comp_opContext *>(children[2 * i - 1]));
                 cmp->addCmp(stringToToken(children[2 * i - 1]->getText()), right);
+
+                delete right; // <-- delete because addCmp clones right.
             }
             pushNode(cmp);
         }
@@ -717,12 +741,20 @@ namespace tuplex {
         if (ctx->test()) {
             // pop test from stack
             auto ann = popNode();
-            auto param = new NParameter(new NIdentifier(ctx->NAME()->getText()));
+            auto id = new NIdentifier(ctx->NAME()->getText());
+            auto param = new NParameter(id);
             param->setAnnotation(ann);
             pushNode(param);
+
+            delete id;
+            delete ann;
         } else {
             // simple identifier
-            pushNode(new NParameter(new NIdentifier(ctx->NAME()->getText())));
+            auto id = new NIdentifier(ctx->NAME()->getText());
+            pushNode(new NParameter(id));
+
+            // because of clone, delete id.
+            delete id;
         }
 
         return nullptr;
@@ -831,6 +863,9 @@ namespace tuplex {
         func->setParams(parameters);
         pushNode(func);
 
+        delete suite;
+        delete parameters;
+
         return nullptr;
     }
 
@@ -862,6 +897,8 @@ namespace tuplex {
 
             pushNode(suite);
 
+            delete simple_stmt;
+
         } else {
             // must have multiple statements
             assert(ctx->stmt().size() > 0);
@@ -881,6 +918,9 @@ namespace tuplex {
                 suite->addStatement(stmt);
 
             pushNode(suite);
+
+            for(auto stmt : v)
+                delete stmt;
         }
         return nullptr;
     }
@@ -952,7 +992,11 @@ namespace tuplex {
             // TODO: doesn't work when returning tuples w/ function (e.g., return f(x), y)
 
             if (tupleSize == 1 && ctx->testlist()->COMMA().empty()) {
-                pushNode(new NReturn(popNode()));
+                auto expr = popNode();
+                pushNode(new NReturn(expr));
+
+                // NReturn clones, delete
+                delete expr;
             } else {
                 NTuple tuple;
                 tuple._elements.resize(tupleSize);
@@ -961,6 +1005,8 @@ namespace tuplex {
                     tuple._elements[tupleSize-i-1] = std::unique_ptr<ASTNode>(popNode());
                 }
                 pushNode(new NReturn(&tuple));
+
+                // no delete necessary here b.c. of scope
             }
         } else {
             pushNode(new NReturn());
@@ -1027,6 +1073,9 @@ namespace tuplex {
 
             pushNode(new NAssign(target, binop));
 
+            // NAssign clones
+            delete target; delete binop;
+
             return nullptr;
         } else {
             // no augassign...
@@ -1045,8 +1094,16 @@ namespace tuplex {
                 }
 
                 ASTNode *assign = new NAssign(v[1], v[0]);
+
+                // NAssign clones
+                delete v[1]; delete v[0];
+
                 for (unsigned i = 2; i < v.size(); ++i) {
+                    auto old_assign = assign;
                     assign = new NAssign(v[i], assign);
+
+                    // assign clones
+                    delete v[i]; delete old_assign;
                 }
 
                 pushNode(assign);
@@ -1076,6 +1133,9 @@ namespace tuplex {
 
             pushNode(new NIfElse(test, suite, nullptr, false));
 
+            // NIfElse clones passed nodes, so delete memory here
+            delete test; delete suite;
+
         } else if (ctx->ELSE() && ctx->ELIF().size() == 0) {
             auto elseSuite = popNode();
             auto thenSuite = popNode();
@@ -1085,10 +1145,10 @@ namespace tuplex {
             assert(thenSuite->type() == ASTNodeType::Suite);
 
             pushNode(new NIfElse(test, thenSuite, elseSuite, false));
-        } else {
-            // full elif, not yet supported...
-            //error("not yet supported...");
 
+            // NIfElse clones passed nodes, so delete memory here
+            delete test; delete thenSuite; delete elseSuite;
+        } else {
             auto num_elif = ctx->ELIF().size();
 
             // final else suite?
@@ -1107,13 +1167,22 @@ namespace tuplex {
             // construct elif & final if
             ASTNode *elif = elseSuite;
             for (unsigned i = 0; i < num_elif; ++i) {
+                auto old_elif = elif;
                 elif = new NIfElse(tests[i], suites[i], elif, false);
+
+                // NIfElse clones passed nodes, so delete memory here
+                delete tests[i]; tests[i] = nullptr;
+                delete suites[i]; suites[i] = nullptr;
+                delete old_elif;
             }
 
             auto suite = popNode();
             auto test = popNode();
 
             pushNode(new NIfElse(test, suite, elif, false));
+
+            // NIfElse clones passed nodes, so delete memory here
+            delete test; delete suite; delete elif;
         }
 
         return nullptr;
@@ -1194,10 +1263,17 @@ namespace tuplex {
             auto errExpr = popNode();
             auto expr = popNode();
             pushNode(new NAssert(expr, errExpr));
+
+            // NAssert clones
+            delete errExpr;
+            delete expr;
         } else {
             // one
             auto expr = popNode();
             pushNode(new NAssert(expr));
+
+            // NAssert clones
+            delete expr;
         }
 
         return nullptr;
@@ -1213,9 +1289,15 @@ namespace tuplex {
             auto fromExpr = popNode();
             auto expr = popNode();
             pushNode(new NRaise(expr, fromExpr));
+
+            // NRaise clones
+            delete fromExpr; delete expr;
         } else {
             auto expr = popNode();
             pushNode(new NRaise(expr));
+
+            // NRaise clones
+            delete expr;
         }
 
         return nullptr;

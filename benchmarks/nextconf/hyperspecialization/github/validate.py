@@ -67,7 +67,11 @@ def load_results_from_output_dir(data_path: str) -> pd.DataFrame:
     logging.info(f"Loading {len(output_paths)} results from {data_path}")
     df = pd.DataFrame()
     for path in output_paths:
-        df = pd.concat((df, pd.read_csv(path)))
+        next_df = pd.read_csv(path)
+        # pd.concat is expensive when adding a 0-length df. Skip here to improve validation performance.
+        if 0 == len(next_df):
+            continue
+        df = pd.concat((df, next_df))
     logging.info(f"Loaded {len(df)} rows.")
     return df
 

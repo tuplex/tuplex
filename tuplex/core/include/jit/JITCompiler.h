@@ -288,7 +288,7 @@ namespace tuplex {
          * @param Name (un)mangled name of address.
          * @return address of compiled function, nullptr if not found
          */
-        void* getAddrOfSymbol(const std::string& Name);
+        void* getAddrOfSymbol(const std::string& Name, std::ostream *err_stream=nullptr);
 
         /*!
          * compile string based IR

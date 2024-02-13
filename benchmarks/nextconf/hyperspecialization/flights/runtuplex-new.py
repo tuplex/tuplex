@@ -484,7 +484,7 @@ def run_with_tuplex(args, **kwargs):
 
     use_hyper_specialization = not args.no_hyper
     use_filter_promotion = not args.no_promo
-    use_constant_folding = False  # deactivate explicitly
+    use_constant_folding = not args.no_cf
 
     strata_size = args.strata_size
     samples_per_strata = args.samples_per_strata
@@ -512,12 +512,6 @@ def run_with_tuplex(args, **kwargs):
         sm = sm_map['D']
     else:
         sm = sm_map['D']
-    # manipulate output path
-
-    if use_hyper_specialization:
-        output_path += '/hyper'
-    else:
-        output_path += '/general'
 
     print('>>> running {} on {} -> {}'.format('tuplex', input_pattern, output_path))
     print('    running in interpreter mode: {}'.format(args.python_mode))
@@ -638,9 +632,8 @@ if __name__ == '__main__':
                         help="deactivate hyperspecialization optimization explicitly.")
     parser.add_argument('--no-promo', dest='no_promo', action="store_true",
                         help="deactivate filter-promotion optimization explicitly.")
-    # constant-folding for now always deactivated.
-    # parser.add_argument('--no-cf', dest='no_cf', action="store_true",
-    #                     help="deactivate constant-folding optimization explicitly.")
+    parser.add_argument('--no-cf', dest='no_cf', action="store_true",
+                        help="deactivate constant-folding optimization explicitly.")
     parser.add_argument('--no-nvo', dest='no_nvo', action="store_true",
                         help="deactivate null value optimization explicitly.")
     parser.add_argument('--python-mode', dest='python_mode', action="store_true",

@@ -156,7 +156,7 @@ namespace tuplex {
         using namespace std;
 
         // set input/output paths
-        auto exp_settings = localWorkerSettings(true); // lambdaSettings(true);
+        auto exp_settings = localWorkerSettings(false); // localWorkerSettings(true); // lambdaSettings(true);
         auto input_pattern = exp_settings["input_path"];
         auto output_path = exp_settings["output_path"];
         SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));

@@ -793,7 +793,7 @@ namespace tuplex {
             return _outputLimit < std::numeric_limits<size_t>::max();
         }
 
-        void optimizeIRInCodePath(LLVMOptimizer &opt, StageCodePath &path);
+        void optimizeIRInCodePath(LLVMOptimizer &opt, StageCodePath &path) const;
 
         static void compileCodePathToObjectFile(StageCodePath& path, const std::string& target_triple, const std::string& cpu);
 

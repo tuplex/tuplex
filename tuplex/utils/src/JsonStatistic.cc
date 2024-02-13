@@ -504,7 +504,7 @@ namespace tuplex {
         if(0 == max_rows)
             return {};
 
-        // assert(buf[buf_size - 1] == '\0');
+        // assert(buf[buf_size - 1] == '\0');`
 
         // use simdjson as parser b.c. cJSON has issues with integers/floats.
         // https://simdjson.org/api/2.0.0/md_doc_iterate_many.html

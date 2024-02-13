@@ -176,6 +176,8 @@ namespace tuplex {
             Timer timer;
             std::string json_buf;
             google::protobuf::json::MessageToJsonString(req, &json_buf);
+
+            logger().info("Start processing request " + std::to_string(request_counter) + "/" + std::to_string(requests.size()) + "  current RSS: " + std::to_string(getCurrentRSS()) + " peak RSS: " + std::to_string(getPeakRSS()));
             auto rc = app->processJSONMessage(json_buf);
             // fetch result
             auto stats = app->jsonStats();
@@ -197,7 +199,7 @@ namespace tuplex {
             double remaining_estimate = ((double)requests.size() - (double)request_counter) * (agg_timer.time() / (double) request_counter);
 
             std::stringstream ss;
-            ss<<"Processed request "<<request_counter<<"/"<<requests.size()<<" in " + std::to_string(timer.time()) + "s, rc=" + std::to_string(rc)<<", elapsed="<<agg_timer.time()<<"s, est. remaining="<<remaining_estimate<<"s.";
+            ss<<"Processed request "<<request_counter<<"/"<<requests.size()<<" in " + std::to_string(timer.time()) + "s, rc=" + std::to_string(rc)<<", elapsed="<<agg_timer.time()<<"s, est. remaining="<<remaining_estimate<<"s, current rss="<<getCurrentRSS()<<".";
             logger().info(ss.str());
             request_counter++;
         }

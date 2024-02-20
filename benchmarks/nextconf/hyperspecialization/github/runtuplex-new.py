@@ -511,7 +511,7 @@ if __name__ == '__main__':
     parser.add_argument('--output-path', default=None, dest='output_path', help='where to store result of pipeline')
     parser.add_argument('--scratch-dir', default=None, dest='scratch_dir', help='where to store intermediate results')
     parser.add_argument('--log-path', default=None, dest='log_path', help='specify optional path where to store experiment log results.')
-    parser.add_argument('--result_path', default='results.ndjson', help='new-line delimited JSON formatted result file')
+    parser.add_argument('--result-path', dest='result_path', default='results.ndjson', help='new-line delimited JSON formatted result file')
     args = parser.parse_args()
 
     # set up logging, by default always render to console. If log path is present, store file as well
@@ -522,6 +522,15 @@ if __name__ == '__main__':
 
     if args.mode == 'tuplex':
         ans = run_with_tuplex(args)
+
+        # load worker_app_job.json and append to results
+        JOB_STATS_FILE = 'worker_app_job.json'
+        if os.path.exists(JOB_STATS_FILE):
+            with open(JOB_STATS_FILE, 'r') as fp:
+                ans['detailed_job_stats'] = json.load(fp)
+        else:
+            logging.error(f"Could not find worker app stats ({JOB_STATS_FILE})")
+
     elif args.mode == 'python':
         ans = run_with_python_baseline(args)
 

@@ -679,6 +679,15 @@ if __name__ == '__main__':
 
     if args.mode == 'tuplex':
         ans = run_with_tuplex(args, **kwargs)
+
+        # load worker_app_job.json and append to results
+        JOB_STATS_FILE='worker_app_job.json'
+        if os.path.exists(JOB_STATS_FILE):
+            with open(JOB_STATS_FILE, 'r') as fp:
+                ans['detailed_job_stats'] = json.load(fp)
+        else:
+            logging.error(f"Could not find worker app stats ({JOB_STATS_FILE})")
+
     elif args.mode == 'python':
         ans = run_with_python_baseline(args, **kwargs)
 

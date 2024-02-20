@@ -87,6 +87,10 @@ namespace tuplex {
         // before initializing compiler, make sure runtime has been loaded
         assert(runtime::loaded());
 
+        // reset compilers? (does this save space?)
+        _compiler.reset();
+        _fastCompiler.reset();
+
         if(!_compiler)
             _compiler = std::make_shared<JITCompiler>();
 
@@ -867,8 +871,22 @@ namespace tuplex {
 
         Timer resolveTimer;
         for(unsigned i = 0; i < _numThreads; ++i) {
+
+            {
+                std::stringstream ss;
+                ss<<"Resolving parts for thread "<<(i+1)<<"/"<<_numThreads<<" process RSS: " + sizeToMemString(getCurrentRSS()) + " peak RSS: " + sizeToMemString(getPeakRSS());
+                logger().info(ss.str());
+            }
+
             resolveOutOfOrder(i, tstage, syms); // note: this func is NOT thread-safe yet!!!
         }
+
+        {
+            std::stringstream ss;
+            ss<<"post-resolution process RSS: " + sizeToMemString(getCurrentRSS()) + " peak RSS: " + sizeToMemString(getPeakRSS());
+            logger().info(ss.str());
+        }
+
         logger().info("Exception resolution/slow path done. Took " + std::to_string(resolveTimer.time()) + "s");
         markTime("general_and_interpreter_time", resolveTimer.time());
         auto row_stats = get_row_stats(tstage);
@@ -3129,6 +3147,7 @@ namespace tuplex {
 
         std::tie(parse_cells, tuple) = decodeFallbackRow(i64ToEC(ecCode), buf, buf_size, normal_input_schema, general_input_schema);
 
+
         // compute
         // @TODO: we need to encode the hashmaps as these hybrid objects!
         // ==> for more efficiency we prob should store one per executor!
@@ -3161,6 +3180,11 @@ namespace tuplex {
         auto kwargs = PyDict_New();
         PyDict_SetItemString(kwargs, "parse_cells", python::boolToPython(parse_cells));
         auto pcr = python::callFunctionEx(func, args, kwargs);
+
+//        // decref tuple --> this will free the memory of the tuple.
+//        Py_XDECREF(tuple);
+        Py_XDECREF(args);
+        Py_XDECREF(kwargs);
 
         if(pcr.exceptionCode != ExceptionCode::SUCCESS) {
             // this should not happen, bad internal error. codegen'ed python should capture everything.
@@ -3271,6 +3295,7 @@ namespace tuplex {
                             // i64 but the given row type f64. We can cast up i64 to f64 but not the other way round.
                             if(outputAsNormalRow) {
                                 Row resRow = python::pythonToRow(rowObj).upcastedRow(specialized_target_schema.getRowType());
+                                Py_XDECREF(rowObj); // free memory.
                                 assert(resRow.getRowType() == specialized_target_schema.getRowType());
 
                                 // write to buffer & perform callback
@@ -3291,6 +3316,7 @@ namespace tuplex {
                                 res.bufRowCount++;
                             } else if(outputAsGeneralRow) {
                                 Row resRow = python::pythonToRow(rowObj).upcastedRow(general_target_schema.getRowType());
+                                Py_XDECREF(rowObj); // free memory
                                 assert(resRow.getRowType() == general_target_schema.getRowType());
 
                                 throw std::runtime_error("not yet supported");
@@ -3306,7 +3332,7 @@ namespace tuplex {
 //                                mergeRow(buf, serialized_length, BUF_FORMAT_GENERAL_OUTPUT);
 //                                delete [] buf;
                             } else {
-                                res.pyObjects.push_back(rowObj);
+                                res.pyObjects.push_back(rowObj); // keep object as is.
                             }
                             // Py_XDECREF(rowObj);
                         }

@@ -751,6 +751,10 @@ namespace tuplex {
                                code(ecToI64(ExceptionCode::SUCCESS)),
                                operatorID(0) {}
 
+       ~FallbackPathResult() {
+            assert(pyObjects.empty()); // ensure references of pyObjects are managed elsewhere.
+        }
+
        FallbackPathResult(FallbackPathResult&& other)  noexcept : code(other.code), operatorID(other.operatorID),
        buf(std::move(other.buf)), bufRowCount(other.bufRowCount),
        generalBuf(std::move(other.generalBuf)), generalBufCount(other.generalBufCount), pyObjects(std::move(other.pyObjects)) {}

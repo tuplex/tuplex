@@ -787,8 +787,13 @@ namespace tuplex {
         // debug single problematic request
         std::string path = "/home/leonhards/projects/tuplex-public/benchmarks/nextconf/hyperspecialization/github/request_1.json";
 
+        path = "/home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_200.json";
+        path = "/home/leonhards/projects/tuplex-public/benchmarks/nextconf/hyperspecialization/flights/request_200.json";
+
         auto json_message = fileToString(path);
         ASSERT_FALSE(json_message.empty());
+
+        Logger::init();
 
         python::initInterpreter();
         python::unlockGIL();
@@ -798,8 +803,44 @@ namespace tuplex {
         app->processJSONMessage(json_message);
         app->shutdown();
 
+        python::lockGIL();
         python::closeInterpreter();
     }
+
+    TEST(GithubQueryRequest, DebugMultiRequests) {
+        using namespace tuplex;
+
+        // debug single problematic request
+        std::string path = "/home/leonhards/projects/tuplex-public/benchmarks/nextconf/hyperspecialization/github/request_1.json";
+
+        path = "/home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_200.json";
+
+        auto json_message = fileToString(path);
+        ASSERT_FALSE(json_message.empty());
+
+        Logger::init();
+
+        python::initInterpreter();
+        python::unlockGIL();
+
+        // start worker within same process to easier debug...
+        auto app = std::make_unique<WorkerApp>(WorkerSettings());
+        for(unsigned i = 0; i < 410; ++i) {
+            path = "/home/leonhards/projects/tuplex-public/tuplex/cmake-build-debug-w-cereal/dist/bin/request_" + std::to_string(i) + ".json";
+            auto json_message = fileToString(path);
+
+            std::cout<<">>> current RSS "<<sizeToMemString(getCurrentRSS())<<" peak RSS "<<sizeToMemString(getPeakRSS())<<" before message "<<(i)<<std::endl;
+            app->processJSONMessage(json_message);
+            std::cout<<">>> current RSS "<<sizeToMemString(getCurrentRSS())<<" peak RSS "<<sizeToMemString(getPeakRSS())<<" after message "<<(i)<<std::endl;
+        }
+
+
+        app->shutdown();
+
+        python::lockGIL();
+        python::closeInterpreter();
+    }
+
 }
 
 

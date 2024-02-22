@@ -156,8 +156,10 @@ namespace tuplex {
         co.set("tuplex.resolveWithInterpreterOnly", "true");
 
         // let's iterate over a few split sizes
-        co.set("tuplex.inputSplitSize", "32M");
+        // co.set("tuplex.inputSplitSize", "32M");
 
+        co.set("tuplex.inputSplitSize", "20G");
+        co.set("tuplex.experimental.worker.workerBufferSize", "12G"); // each normal, exception buffer in worker get 3G before they start spilling to disk!
 
         // creater context according to settings
         Context ctx(co);

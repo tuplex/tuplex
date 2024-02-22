@@ -167,6 +167,10 @@ namespace tuplex {
         // reset display
         _numPythonExceptionsDisplayed = 0;
 
+        // reset spill counts
+        _spill_count = 0;
+        _total_spill_size_in_bytes = 0;
+
         // reset default compile policy based on worker settings...
         codegen::DEFAULT_COMPILE_POLICY.allowNumericTypeUnification = _settings.allowNumericTypeUnification;
         codegen::DEFAULT_COMPILE_POLICY.normalCaseThreshold = _settings.normalCaseThreshold;
@@ -2171,6 +2175,7 @@ namespace tuplex {
             _threadEnvs[threadNo].spillFiles.push_back(info);
 
             logger().info("Spilled " + sizeToMemString(info.file_size) + " to " + path.toString());
+            logSpill(info.file_size);
         }
 
         // reset
@@ -2227,6 +2232,7 @@ namespace tuplex {
             env->spillFiles.push_back(info);
             vf->close();
             logger().info("Spilled " + sizeToMemString(info.file_size) + " to " + path.toString());
+            logSpill(info.file_size);
         }
 
         // reset
@@ -2237,6 +2243,8 @@ namespace tuplex {
 
     void WorkerApp::spillHashMap(size_t threadNo) {
         throw std::runtime_error("spilling hashmap not yet supported");
+
+        // logSpill(...);
     }
 
     void WorkerApp::writeException(size_t threadNo, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t *input,
@@ -3442,6 +3450,11 @@ namespace tuplex {
             counter++;
         }
         ss<<"}";
+
+        // spills
+        ss<<",\"spills\":{";
+        ss<<"\"count\":"<<_spill_count<<",";
+        ss<<"\"size\":"<<_total_spill_size_in_bytes<<"}";
 
         // save whether hyper was active or not
         std::string hyper_active = useHyperSpecialization(req) ? "true" : "false";

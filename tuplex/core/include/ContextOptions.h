@@ -103,6 +103,7 @@ namespace tuplex {
         size_t USE_EXPERIMENTAL_S3_PRECACHE_SIZE() const { return memStringToSize(_store.at("tuplex.experimental.s3PreCacheSize")); }
         bool EXPERIMENTAL_INTERCHANGE_CODE_VIA_OBJECT_FILES() const { return stringToBool(_store.at("tuplex.experimental.interchangeWithObjectFiles"));}
         bool EXPERIMENTAL_FORCE_BAD_PARSE_EXCEPT_FORMAT() const { return stringToBool(_store.at("tuplex.experimental.forceBadParseExceptFormat")); }
+        size_t EXPERIMENTAL_WORKER_BUFFER_SIZE() const { return memStringToSize(_store.at( "tuplex.experimental.worker.workerBufferSize")); }
 
         size_t EXPERIMENTAL_WORKER_BACKEND_NUM_WORKERS() const {return std::stoi(_store.at("tuplex.experimental.worker.numWorkers")); }
         std::string EXPERIMENTAL_WORKER_PATH() const {return _store.at("tuplex.experimental.worker.workerPath"); }

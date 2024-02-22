@@ -656,6 +656,17 @@ namespace tuplex {
 
         int64_t _inputOperatorID;
 
+        // atomic counters for spilling
+        std::atomic_int64_t _spill_count;
+        std::atomic_int64_t _total_spill_size_in_bytes;
+
+        inline void logSpill(size_t spill_size) {
+            if(spill_size != 0) {
+                _spill_count++;
+                _total_spill_size_in_bytes += spill_size;
+            }
+        }
+
         static int64_t writeRowCallback(ThreadEnv* env, const uint8_t* buf, int64_t bufSize);
         static void writeHashCallback(ThreadEnv* env, const uint8_t* key, int64_t key_size, bool bucketize, uint8_t* bucket, int64_t bucket_size);
         static void exceptRowCallback(ThreadEnv* env, int64_t exceptionCode, int64_t exceptionOperatorID, int64_t rowNumber, uint8_t* input, int64_t dataLength);

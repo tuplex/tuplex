@@ -86,12 +86,15 @@ namespace tuplex {
         if(scratchDir.empty())
             scratchDir = _options.SCRATCH_DIR().toPath();
         auto spillURI = scratchDir + "/spill_folder";
-        // perhaps also use:  - 64 * numThreads ==> smarter buffer scaling necessary.
-        size_t buf_spill_size = (_options.AWS_LAMBDA_MEMORY() - 256) / numThreads * 1000 * 1024;
+//        // perhaps also use:  - 64 * numThreads ==> smarter buffer scaling necessary.
+//        size_t buf_spill_size = (_options.AWS_LAMBDA_MEMORY() - 256) / numThreads * 1000 * 1024;
+//
+//        // limit to 128mb each
+//        if (buf_spill_size > 128 * 1000 * 1024)
+//            buf_spill_size = 128 * 1000 * 1024;
 
-        // limit to 128mb each
-        if (buf_spill_size > 128 * 1000 * 1024)
-            buf_spill_size = 128 * 1000 * 1024;
+        // each buffer should have this size, above is for AWS Lambda only.
+        size_t buf_spill_size = _options.EXPERIMENTAL_WORKER_BUFFER_SIZE();
 
         logger().info("Setting buffer size for each thread to " + sizeToMemString(buf_spill_size));
 

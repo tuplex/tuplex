@@ -144,18 +144,21 @@ def run_with_python_baseline(args):
     # Process each file now using hand-written pipeline
     total_output_rows = 0
     total_input_rows = 0
+    path_stats = []
     for part_no, path in enumerate(input_paths):
         logging.info(f"Processing path {part_no+1}/{len(input_paths)}: {path} ({human_readable_size(os.path.getsize(path))})")
         ans = process_path_with_python(path, os.path.join(output_path, "part_{:04d}.csv".format(part_no)))
+        ans['input_path'] = path
+        path_stats.append(ans)
         total_output_rows += ans['num_output_rows']
         total_input_rows += ans['num_input_rows']
 
     job_time = time.time() - tstart
     logging.info(f'total output rows: {total_output_rows}')
-    stats = {"benchmark": "flights", "startup_time_in_s": startup_time, "job_time_in_s": job_time, 'mode': 'tuplex',
+    stats = {"benchmark": "github", "startup_time_in_s": startup_time, "job_time_in_s": job_time, 'mode': 'tuplex',
              'output_path': output_path,
              'input_path': input_pattern, 'scratch_path': scratch_dir, 'total_input_paths_size_in_bytes': total_input_size,
-             'total_output_rows': total_output_rows, 'total_input_rows': total_input_rows}
+             'total_output_rows': total_output_rows, 'total_input_rows': total_input_rows, 'per_file_stats': path_stats}
     return stats
 
 def github_pipeline(ctx, input_pattern, s3_output_path, sm):
@@ -215,12 +218,6 @@ def run_with_tuplex(args):
         sm = sm_map['D']
     else:
         sm = sm_map['D']
-    # manipulate output path
-
-    if use_hyper_specialization:
-        output_path += '/hyper'
-    else:
-        output_path += '/general'
 
     print('>>> running {} on {} -> {}'.format('tuplex', input_pattern, output_path))
     print('    running in interpreter mode: {}'.format(args.python_mode))
@@ -299,7 +296,7 @@ def run_with_tuplex(args):
     print(ctx.options())
     print(m.as_json())
     # print stats as last line
-    stats = {"startup_time_in_s": startup_time, "job_time_in_s": job_time, 'mode': 'tuplex', 'output_path': output_path,
+    stats = {"benchmark":"github", "startup_time_in_s": startup_time, "job_time_in_s": job_time, 'mode': 'tuplex', 'output_path': output_path,
              'input_path': input_pattern, 'scratch_path': scratch_dir, 'options': ctx.options(), 'metrics': json.loads(m.as_json())}
     return stats
 

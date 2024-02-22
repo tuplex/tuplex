@@ -188,6 +188,7 @@ namespace tuplex {
             }
 
             auto j_stats = nlohmann::json::parse(stats);
+            j_stats["request_total_time"] = timer.time();
             nlohmann::json j;
             auto j_req = nlohmann::json::parse(json_buf);
             j["request"] = req.inputuris();
@@ -479,9 +480,10 @@ namespace tuplex {
 
                     // parse stats as answer out
                     auto stats = nlohmann::json::parse(fileToString(stats_path));
+                    auto worker_invocation_duration = timer.time();
+                    stats["request_total_time"] = worker_invocation_duration;
                     responses.push_back(stats);
                     atomic_request_counter++;
-                    auto worker_invocation_duration = timer.time();
                     {
                         std::stringstream ss;
                         ss<<prefix<<"Process "<<process_id<<" request "<<request_no<<"/"<<requests.size()<<" took "<<worker_invocation_duration<<"s";

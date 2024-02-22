@@ -409,7 +409,7 @@ def run_with_python_baseline(args, **kwargs):
 
     job_time = time.time() - tstart
     logging.info(f'total output rows: {total_output_rows}')
-    stats = {"startup_time_in_s": startup_time, "job_time_in_s": job_time, 'mode': 'tuplex',
+    stats = {"startup_time_in_s": startup_time, "job_time_in_s": job_time, 'mode': 'python',
              'output_path': output_path,
              'input_path': input_pattern, 'scratch_path': scratch_dir, 'total_input_paths_size_in_bytes': total_input_size,
              'total_output_rows': total_output_rows, 'total_input_rows': total_input_rows, 'per_file_stats': path_stats}
@@ -538,6 +538,7 @@ def run_with_tuplex(args, **kwargs):
             'sample.strataSize': strata_size,
             'sample.samplesPerStrata': samples_per_strata,
             "aws.scratchDir": scratch_dir,
+            "scratchDir": scratch_dir,
             "autoUpcast": True,
             "experimental.hyperspecialization": use_hyper_specialization,
             "executorCount": 0,

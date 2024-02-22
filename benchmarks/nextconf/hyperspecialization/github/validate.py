@@ -95,9 +95,12 @@ if __name__ == '__main__':
 
     if len(df_A) != len(df_B):
         # count per year how many rows exist
-        print(df_B['year'].value_counts())
-        df_counts = pd.DataFrame({'counts_A': df_A['year'].value_counts(), 'counts_B': df_B['year'].value_counts()})
-        print(df_counts)
+        if 'year' in df_A.columns and 'year' in df_B.columns:
+            print(df_B['year'].value_counts())
+            df_counts = pd.DataFrame({'counts_A': df_A['year'].value_counts(), 'counts_B': df_B['year'].value_counts()})
+            print(df_counts)
+        else:
+            logging.error(f'Number of rows differ {len(df_A)} != {len(df_B)}')
     compare_dataframes_order_independent(df_A, df_B, check_exact=False) # use check_dtype to not check types exactly.
     logging.info(f"Validated successfully: results in {dirA} and {dirB} are identical.")
 

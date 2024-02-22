@@ -12,8 +12,8 @@ python3 runtuplex-new.py --mode tuplex --no-hyper --no-promo --no-cf --input-pat
 
 # --> to be run
 # Run Tuplex with hyperspecialization enabled (Viton), but disable filter-promotion and constant-folding
-python3 runtuplex-new.py --mode tuplex --no-promo --no-cf --input-pattern "/hot/data/flights_all/*.csv" --output-path "./local-exp/tuplex/flights/hyper-noopt/output" --scratch-dir "./local-exp/scratch" --result-path "./local-exp/tuplex/flights/results.ndjson"
+python3 runtuplex-new.py --mode tuplex --no-promo --no-cf --input-pattern "/hot/data/flights_all/*.csv" --output-path "./local-exp/tuplex/flights/hyper-noopt/output" --scratch-dir "./local-exp/scratch" --result-path "./local-exp/tuplex/flights/hyper-noopt/results.ndjson"
 
 # --> to be run
 # Run Tuplex with hyperspecializaiton enabled (Viton), and enable filter-promotion and constant-folding
-python3 runtuplex-new.py --mode tuplex --input-pattern "/hot/data/flights_all/*.csv" --output-path "./local-exp/tuplex/flights/hyper/output" --scratch-dir "./local-exp/scratch" --result-path "./local-exp/tuplex/flights/results.ndjson"
+python3 runtuplex-new.py --mode tuplex --input-pattern "/hot/data/flights_all/*.csv" --output-path "./local-exp/tuplex/flights/hyper/output" --scratch-dir "./local-exp/scratch" --result-path "./local-exp/tuplex/flights/hyper/results.ndjson"

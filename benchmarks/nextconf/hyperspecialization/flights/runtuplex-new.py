@@ -416,9 +416,28 @@ def run_with_python_baseline(args, **kwargs):
     return stats
 
 ## Lithops
+
+
+def lithops_flights_pipeline_per_file_with_custom_code(bucket_name, obj_key, out_bucket, out_suffix, storage, kwargs):
+    # bucket name is local path
+    # out_suffix is local path
+    input_path = bucket_name
+    output_path = out_suffix
+
+    assert input_path
+    assert output_path
+
+    # use custom function (shared with python baseline)
+    ans = process_path_with_python_flights(input_path, kwargs['year_lower'], kwargs['year_upper'],
+                                           output_path)
+
+    return ans
+
 def run_with_lithops(args, **kwargs):
     tstart = time.time()
     import lithops
+    version = lithops.__version__
+    logging.info(f'Running with Lithops v{version}')
     startup_time = time.time() - tstart
 
     tstart = time.time()
@@ -432,19 +451,35 @@ def run_with_lithops(args, **kwargs):
     if not input_pattern:
         raise ValueError('No input_pattern specified')
 
+
+    # configure local worker (use later cloud worker incl. S3)
+    # link: https://lithops-cloud.github.io/docs/source/compute_config/localhost.html
+    n_worker_processes = 1
+    logging.info(f"Configuring local host executor with {n_worker_processes} processes.")
+    # can set docker image as runtime
+    fexec = lithops.LocalhostExecutor(worker_processes=n_worker_processes, runtime='python3')
+
+
     # Step 1: glob files (lithops does not support globbing)
     input_paths = glob_paths(input_pattern)
     total_input_size = sum(map(lambda path: os.path.getsize(path), input_paths))
     logging.info(f"Found {len(input_paths)} input paths, total size: {human_readable_size(total_input_size)}")
 
-    # Process each file now using lithops executor
+    args = []
+    for part_no, path in enumerate(input_paths):
+        output_suffix = os.path.join(output_path, "part_{:04d}.csv".format(part_no))
+        args.append((path, None, None, output_suffix, kwargs))
+
+    logging.info("Starting processing of {len(args)} units.")
+    fexec.map(lithops_flights_pipeline_per_file_with_custom_code, args)
+
+    logging.info("Retrieving result.")
+    ret = fexec.get_result()
+
+    # Accumulate stats from Lithops result.
     total_output_rows = 0
     total_input_rows = 0
-    for part_no, path in enumerate(input_paths):
-        logging.info(
-            f"Processing path {part_no + 1}/{len(input_paths)}: {path} ({human_readable_size(os.path.getsize(path))})")
-        ans = process_path_with_python_flights(path, kwargs['year_lower'], kwargs['year_upper'],
-                                               os.path.join(output_path, "part_{:04d}.csv".format(part_no)))
+    for ans in ret:
         total_output_rows += ans['num_output_rows']
         total_input_rows += ans['num_input_rows']
 
@@ -456,7 +491,8 @@ def run_with_lithops(args, **kwargs):
              'output_path': output_path,
              'input_path': input_pattern, 'scratch_path': scratch_dir,
              'total_input_paths_size_in_bytes': total_input_size,
-             'total_output_rows': total_output_rows, 'total_input_rows': total_input_rows}
+             'total_output_rows': total_output_rows, 'total_input_rows': total_input_rows,
+             'lithops_version': str(version)}
     return stats
 
 def flights_pipeline(ctx, year_lower, year_upper, input_pattern, s3_output_path, sm):
@@ -650,8 +686,10 @@ if __name__ == '__main__':
     # experiment specific parameters
     parser.add_argument('--num-years', dest='num_years', action='store', choices=['auto'] + [str(year) for year in list(range(1, 2021-1987+2))], default='auto', help='if auto the range 2002-2005 will be used (equivalent to --num-years=4).')
 
+    AVAILABLE_MODES = ['tuplex', 'python', 'lithops']
+
     # general args
-    parser.add_argument('--m', '--mode', dest='mode', choices=['tuplex', 'python'], default='tuplex', help='select whether to run benchmark using python baseline or tuplex')
+    parser.add_argument('--m', '--mode', dest='mode', choices=AVAILABLE_MODES, default='tuplex', help='select whether to run benchmark using python baseline or tuplex')
     parser.add_argument('--input-pattern', default=None, dest='input_pattern', help='input files to read into github pipeline')
     parser.add_argument('--output-path', default=None, dest='output_path', help='where to store result of pipeline')
     parser.add_argument('--scratch-dir', default=None, dest='scratch_dir', help='where to store intermediate results')
@@ -691,6 +729,10 @@ if __name__ == '__main__':
 
     elif args.mode == 'python':
         ans = run_with_python_baseline(args, **kwargs)
+    elif args.mode == 'lithops':
+        ans = run_with_lithops(args, **kwargs)
+    else:
+        raise NotImplementedError(f'Mode {args.mode} not yet implemented')
 
     logging.info(f"pipeline in mode {args.mode} took {ans['job_time_in_s']:.2f} seconds")
     logging.info(f"Storing results in {args.result_path} via append")

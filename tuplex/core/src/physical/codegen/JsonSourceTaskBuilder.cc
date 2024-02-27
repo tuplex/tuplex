@@ -523,7 +523,7 @@ namespace tuplex {
                     BasicBlock *bNext = BasicBlock::Create(ctx, "pipeline_next", builder.GetInsertBlock()->getParent());
                     builder.CreateCondBr(bad_row_cond, bNotOK, bNext);
                     builder.SetInsertPoint(bNotOK);
-                    env().printValue(builder, ecCode, "pipeline returned ecCode: ");
+                    // env().printValue(builder, ecCode, "pipeline returned ecCode: ");
                     builder.CreateBr(bNext);
                     builder.SetInsertPoint(bNext);
 #endif

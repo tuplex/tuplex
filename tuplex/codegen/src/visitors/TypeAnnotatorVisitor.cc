@@ -1466,10 +1466,16 @@ namespace tuplex {
                 fatal_error("no support for dynamic row type expression indexing yet.");
             }
         } else {
-            std::stringstream errMessage;
-            errMessage<<"subscript operation [] is performed on unsupported type "<<type.desc();
-            error(errMessage.str());
-            sub->setInferredType(python::Type::UNKNOWN);
+
+            // check if annotation is available or not
+            if(sub->hasAnnotation() && sub->annotation().majorityType() != python::Type::UNKNOWN) {
+                sub->setInferredType(sub->annotation().majorityType());
+            } else {
+                std::stringstream errMessage;
+                errMessage<<"subscript operation [] is performed on unsupported type "<<type.desc();
+                error(errMessage.str());
+                sub->setInferredType(python::Type::UNKNOWN);
+            }
         }
     }
 

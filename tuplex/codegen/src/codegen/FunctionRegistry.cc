@@ -3230,6 +3230,25 @@ namespace tuplex {
 
             if(python::Type::I64 == retType) {
                 auto is_not_number = _env.i1neg(builder, call_cjson_isnumber(builder, item));
+
+#ifndef NDEBUG
+                //debug code
+                llvm::BasicBlock* bb_is_not = llvm::BasicBlock::Create(builder.getContext(), "is_not_number", builder.GetInsertBlock()->getParent());
+                llvm::BasicBlock* bb_done = llvm::BasicBlock::Create(builder.getContext(), "done", builder.GetInsertBlock()->getParent());
+
+                builder.CreateCondBr(is_not_number, bb_is_not, bb_done);
+                builder.SetInsertPoint(bb_is_not);
+
+                // debug print if not number
+                auto json_str = serialize_cjson_as_runtime_str(builder, item);
+                _env.printValue(builder, json_str.val, " expected i64, but got JSON: ");
+
+                builder.CreateBr(bb_done);
+                builder.SetInsertPoint(bb_done);
+                lfb.setLastBlock(bb_done);
+#endif
+
+
                 lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_number, "dict.get() expected i64");
 
                 return SerializableValue(get_cjson_as_integer(builder, item), _env.i64Const(sizeof(int64_t)), nullptr);
@@ -3279,6 +3298,7 @@ namespace tuplex {
 
             throw std::runtime_error("dict.get() for type " + retType.desc() + " not yet supported.");
 
+            _env.debugPrint(builder, "unsupported return type " + retType.desc() + " for dict.get(), normal-case violation.");
             lfb.exitNormalCase();
 
             return {};

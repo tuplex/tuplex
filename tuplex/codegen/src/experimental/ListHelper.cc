@@ -71,7 +71,8 @@ namespace tuplex {
                 }
 
             } else if(elementType == python::Type::STRING
-                      || elementType == python::Type::PYOBJECT) {
+                      || elementType == python::Type::PYOBJECT
+                      || elementType == python::Type::GENERICDICT) {
 
                 // string array/pyobject array is special. It contains 4 members! capacity, size and then arrays for the values and sizes
                 auto idx_capacity = CreateStructGEP(builder, list_ptr, 0); assert(idx_capacity->getType() == env.i64ptrType());
@@ -846,6 +847,7 @@ namespace tuplex {
                       || elementType == python::Type::BOOLEAN
                       || elementType == python::Type::STRING
                       || elementType == python::Type::PYOBJECT
+                      || elementType == python::Type::GENERICDICT
                       || elementType.isStructuredDictionaryType()
                       || elementType.isListType()
                       || elementType.isTupleType())) {

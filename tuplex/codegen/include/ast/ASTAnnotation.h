@@ -441,8 +441,9 @@ namespace tuplex {
             assert(specializedFunctionType.isFunctionType());
             assert(specializedFunctionType.getReturnType() != python::Type::PYOBJECT &&
                 specializedFunctionType.getReturnType() != python::Type::GENERICTUPLE &&
-                specializedFunctionType.getReturnType() != python::Type::GENERICLIST &&
-                specializedFunctionType.getReturnType() != python::Type::GENERICDICT);
+                specializedFunctionType.getReturnType() != python::Type::GENERICLIST
+                // && specializedFunctionType.getReturnType() != python::Type::GENERICDICT
+                );
         }
 
         /*!

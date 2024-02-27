@@ -620,7 +620,7 @@ namespace tuplex {
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
             } else if(elementType == python::Type::STRING
-                      || elementType == python::Type::PYOBJECT) {
+                      || elementType == python::Type::PYOBJECT || elementType == python::Type::GENERICDICT) {
                 std::vector<llvm::Type*> memberTypes;
                 memberTypes.push_back(i64Type()); // array capacity
                 memberTypes.push_back(i64Type()); // size

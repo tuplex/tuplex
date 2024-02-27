@@ -215,6 +215,7 @@ namespace tuplex {
                                                                      llvm::Value* obj,
                                                                      llvm::Value* key,
                                                                      llvm::BasicBlock* bbSchemaMismatch);
+            std::tuple<llvm::Value*, SerializableValue> decodeGenericDict(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key);
 
             // similarly, decoding functions (array)
             std::tuple<llvm::Value*, SerializableValue> decodeFromArray(llvm::IRBuilder<>& builder, llvm::Value* array, llvm::Value* index, const python::Type& element_type);

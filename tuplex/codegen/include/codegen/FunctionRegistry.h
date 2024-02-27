@@ -185,6 +185,14 @@ namespace tuplex {
                                                 const std::vector<python::Type>& argsTypes,
                                                 const python::Type& retType);
 
+            SerializableValue createGenericDictGetCall(LambdaFunctionBuilder& lfb,
+                                                llvm::IRBuilder<>& builder,
+                                                const SerializableValue& caller,
+                                                const python::Type& callerType,
+                                                const std::vector<tuplex::codegen::SerializableValue>& args,
+                                                const std::vector<python::Type>& argsTypes,
+                                                const python::Type& retType);
+
             SerializableValue createRowGetCall(LambdaFunctionBuilder& lfb,
                                                 llvm::IRBuilder<>& builder,
                                                 const SerializableValue& caller,

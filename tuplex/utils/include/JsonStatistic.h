@@ -45,7 +45,8 @@ namespace tuplex {
      * @return python type
      */
     extern python::Type jsonTypeToPythonTypeRecursive(simdjson::simdjson_result<simdjson::ondemand::value> obj,
-                                                      bool interpret_heterogenous_lists_as_tuples);
+                                                      bool interpret_heterogenous_lists_as_tuples,
+                                                      bool use_generic_dictionaries);
 
     /*!
      * parses rows from buf (newline delimited json) as tuplex rows,
@@ -65,7 +66,8 @@ namespace tuplex {
                                               std::vector<std::vector<std::string>>* outColumnNames=nullptr,
                                               bool unwrap_rows=true,
                                               bool interpret_heterogenous_lists_as_tuples=true,
-                                              size_t max_rows= std::numeric_limits<size_t>::max());
+                                              size_t max_rows= std::numeric_limits<size_t>::max(),
+                                              bool use_generic_dictionaries=false);
 
     extern std::vector<Row> parseRowsFromJSONStratified(const char* buf,
                                               size_t buf_size,
@@ -76,15 +78,17 @@ namespace tuplex {
                                               size_t strata_size,
                                               size_t samples_per_strata,
                                               int random_seed,
-                                              const std::set<unsigned int>& skip_rows);
+                                              const std::set<unsigned int>& skip_rows,
+                                              bool use_generic_dictionaries);
 
     inline std::vector<Row> parseRowsFromJSON(const std::string& s,
                                               std::vector<std::vector<std::string>>* outColumnNames=nullptr,
                                               bool unwrap_rows=true,
                                               bool interpret_heterogenous_lists_as_tuples=true,
-                                              size_t max_rows= std::numeric_limits<size_t>::max()) {
+                                              size_t max_rows= std::numeric_limits<size_t>::max(),
+                                              bool use_generic_dictionaries=false) {
         return parseRowsFromJSON(s.c_str(), s.size() + 1, outColumnNames, unwrap_rows,
-                                 interpret_heterogenous_lists_as_tuples, max_rows);
+                                 interpret_heterogenous_lists_as_tuples, max_rows, use_generic_dictionaries);
     }
 
     /*!

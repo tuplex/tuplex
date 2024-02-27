@@ -54,17 +54,17 @@ namespace tuplex {
     namespace codegen {
 
             // helper functions to enable llvm6 and llvm9 comaptibility // --> force onto llvm9+ for now.
-            inline llvm::CallInst *createCallHelper(llvm::Function *Callee, llvm::ArrayRef<llvm::Value*> Ops,
-                                              llvm::IRBuilder<>& builder,
-                                              const llvm::Twine &Name = "",
-                                                    llvm::Instruction *FMFSource = nullptr) {
-                llvm::CallInst *CI = llvm::CallInst::Create(Callee, Ops, Name);
-                if (FMFSource)
-                    CI->copyFastMathFlags(FMFSource);
-                builder.GetInsertBlock()->getInstList().insert(builder.GetInsertPoint(), CI);
-                builder.SetInstDebugLocation(CI);
-                return CI;
-            }
+//            inline llvm::CallInst *createCallHelper(llvm::Function *Callee, llvm::ArrayRef<llvm::Value*> Ops,
+//                                              llvm::IRBuilder<>& builder,
+//                                              const llvm::Twine &Name = "",
+//                                                    llvm::Instruction *FMFSource = nullptr) {
+//                llvm::CallInst *CI = llvm::CallInst::Create(Callee, Ops, Name);
+//                if (FMFSource)
+//                    CI->copyFastMathFlags(FMFSource);
+//                builder.GetInsertBlock()->getInstList().insert(builder.GetInsertPoint(), CI);
+//                builder.SetInstDebugLocation(CI);
+//                return CI;
+//            }
 
             inline llvm::CallInst* createBinaryIntrinsic(llvm::IRBuilder<>& builder,
                                                          llvm::Intrinsic::ID ID,
@@ -122,51 +122,51 @@ namespace tuplex {
 #endif
         }
 
-            inline llvm::Value* getOrInsertCallable(llvm::Module& mod, const std::string& name, llvm::FunctionType* FT) {
-#if LLVM_VERSION_MAJOR < 9
-                return mod.getOrInsertFunction(name, FT);
-#else
-                return mod.getOrInsertFunction(name, FT).getCallee();
-#endif
-            }
-
-            inline llvm::Value* getOrInsertCallable(llvm::Module* mod, const std::string& name, llvm::FunctionType* FT) {
-                assert(mod);
-                if(!mod)
-                    return nullptr;
-                return getOrInsertCallable(*mod, name, FT);
-            }
-
-
-            inline llvm::Function* getOrInsertFunction(llvm::Module& mod, const std::string& name, llvm::FunctionType* FT) {
-#if LLVM_VERSION_MAJOR < 9
-                llvm::Function* func = llvm::cast<llvm::Function>(mod.getOrInsertFunction(name, FT));
-#else
-                llvm::Function *func = llvm::cast<llvm::Function>(mod.getOrInsertFunction(name, FT).getCallee());
-#endif
-                return func;
-            }
-
-            inline llvm::Function* getOrInsertFunction(llvm::Module* mod, const std::string& name, llvm::FunctionType* FT) {
-                if(!mod)
-                    return nullptr;
-
-#if LLVM_VERSION_MAJOR < 9
-                llvm::Function* func = cast<Function>(mod->getOrInsertFunction(name, FT));
-#else
-                llvm::Function *func = llvm::cast<llvm::Function>(mod->getOrInsertFunction(name, FT).getCallee());
-#endif
-                return func;
-            }
-
-            template <typename... ArgsTy>
-            llvm::Function* getOrInsertFunction(llvm::Module* mod, const std::string& Name, llvm::Type *RetTy,
-                                          ArgsTy... Args) {
-                if(!mod)
-                    return nullptr;
-                llvm::SmallVector<llvm::Type*, sizeof...(ArgsTy)> ArgTys{Args...};
-                return getOrInsertFunction(mod, Name, llvm::FunctionType::get(RetTy, ArgTys, false));
-            }
+//            inline llvm::Value* getOrInsertCallable(llvm::Module& mod, const std::string& name, llvm::FunctionType* FT) {
+//#if LLVM_VERSION_MAJOR < 9
+//                return mod.getOrInsertFunction(name, FT);
+//#else
+//                return mod.getOrInsertFunction(name, FT).getCallee();
+//#endif
+//            }
+//
+//            inline llvm::Value* getOrInsertCallable(llvm::Module* mod, const std::string& name, llvm::FunctionType* FT) {
+//                assert(mod);
+//                if(!mod)
+//                    return nullptr;
+//                return getOrInsertCallable(*mod, name, FT);
+//            }
+//
+//
+//            inline llvm::Function* getOrInsertFunction(llvm::Module& mod, const std::string& name, llvm::FunctionType* FT) {
+//#if LLVM_VERSION_MAJOR < 9
+//                llvm::Function* func = llvm::cast<llvm::Function>(mod.getOrInsertFunction(name, FT));
+//#else
+//                llvm::Function *func = llvm::cast<llvm::Function>(mod.getOrInsertFunction(name, FT).getCallee());
+//#endif
+//                return func;
+//            }
+//
+//            inline llvm::Function* getOrInsertFunction(llvm::Module* mod, const std::string& name, llvm::FunctionType* FT) {
+//                if(!mod)
+//                    return nullptr;
+//
+//#if LLVM_VERSION_MAJOR < 9
+//                llvm::Function* func = cast<Function>(mod->getOrInsertFunction(name, FT));
+//#else
+//                llvm::Function *func = llvm::cast<llvm::Function>(mod->getOrInsertFunction(name, FT).getCallee());
+//#endif
+//                return func;
+//            }
+//
+//            template <typename... ArgsTy>
+//            llvm::Function* getOrInsertFunction(llvm::Module* mod, const std::string& Name, llvm::Type *RetTy,
+//                                          ArgsTy... Args) {
+//                if(!mod)
+//                    return nullptr;
+//                llvm::SmallVector<llvm::Type*, sizeof...(ArgsTy)> ArgTys{Args...};
+//                return getOrInsertFunction(mod, Name, llvm::FunctionType::get(RetTy, ArgTys, false));
+//            }
 
         /*!
          * get index for value, size and bitmapPosition

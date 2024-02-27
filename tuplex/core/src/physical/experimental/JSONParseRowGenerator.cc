@@ -165,6 +165,65 @@ namespace tuplex {
         }
 
         std::tuple<llvm::Value *, SerializableValue>
+        JSONParseRowGenerator::decodeGenericDict(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key) {
+            using namespace std;
+            using namespace llvm;
+
+            assert(obj && key);
+            assert(obj->getType() == _env.i8ptrType());
+            assert(key->getType() == _env.i8ptrType());
+
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = builder.getContext();
+
+            // make default empty dict for generic dict
+            auto dict_ptr = _env.CreateFirstBlockAlloca(builder, _env.i8ptrType());
+
+            // store now before calling parse default value
+            builder.CreateStore(call_cjson_create_empty(builder), dict_ptr);
+
+            // query subobject
+            auto F = getOrInsertFunction(mod, "JsonItem_getObject", _env.i64Type(), _env.i8ptrType(),
+                                         _env.i8ptrType(), _env.i8ptrType()->getPointerTo(0));
+            auto obj_var = addObjectVar(builder);
+            auto rc_var = _env.CreateFirstBlockAlloca(builder, _env.i64Type());
+
+            llvm::Value* rc = builder.CreateCall(F, {obj, key, obj_var});
+            auto is_object = builder.CreateICmpEQ(rc, _env.i64Const(ecToI64(ExceptionCode::SUCCESS)));
+            builder.CreateStore(rc, rc_var);
+            // create now some basic blocks to decode ON demand.
+            BasicBlock *bbDecodeItem = BasicBlock::Create(ctx, "decode_object_as_generic_dict", builder.GetInsertBlock()->getParent());
+            BasicBlock *bbDecodeDone = BasicBlock::Create(ctx, "deocode_object_as_generic_dict_done", builder.GetInsertBlock()->getParent());
+            // BasicBlock *bbSchemaMismatch = BasicBlock::Create(ctx, "decode_object_as_generic_dict_mismatch", builder.GetInsertBlock()->getParent());
+
+            builder.CreateCondBr(is_object, bbDecodeItem, bbDecodeDone);
+
+            {
+                builder.SetInsertPoint(bbDecodeItem);
+                // load item!
+                auto obj = builder.CreateLoad(obj_var);
+
+                // manipulation: transform to cJSON object! -> i.e. tree structure.
+                auto cjson_obj = call_simdjson_to_cjson_object(builder, obj);
+
+                builder.CreateStore(cjson_obj, dict_ptr);
+                
+                builder.CreateBr(bbDecodeDone); // whereever builder is, continue to decode done for this item.
+            }
+
+
+            builder.SetInsertPoint(bbDecodeDone); // continue from here...
+            rc = builder.CreateLoad(rc_var); // <-- error
+
+            SerializableValue v;
+            v.val = builder.CreateLoad(dict_ptr);
+
+            return make_tuple(rc, v);
+        }
+
+        std::tuple<llvm::Value *, SerializableValue>
         JSONParseRowGenerator::decodeEmptyList(llvm::IRBuilder<> &builder, llvm::Value *obj, llvm::Value *key) {
             // similar to empty dict
 
@@ -363,7 +422,7 @@ namespace tuplex {
                        dict_ptr,
                        dict_type,
                        item, bbSchemaMismatch, dict_type, {}, true, true);
-                builder.CreateBr(bbDecodeDone); // whererver builder is, continue to decode done for this item.
+                builder.CreateBr(bbDecodeDone); // whereever builder is, continue to decode done for this item.
             }
 
             {
@@ -1066,7 +1125,7 @@ namespace tuplex {
                        value_item_var,
                        entry.valueType,
                        sub_object, bbSchemaMismatch, entry.valueType, {}, true, true);
-                builder.CreateBr(bbDecodeDone); // whererver builder is, continue to decode done for this item.
+                builder.CreateBr(bbDecodeDone); // whereever builder is, continue to decode done for this item.
             }
 
             builder.SetInsertPoint(bbDecodeDone);
@@ -1239,6 +1298,8 @@ namespace tuplex {
                 } else if(v_type.isTupleType() || v_type == python::Type::EMPTYTUPLE) {
                     // for another nested object, utilize:
                     std::tie(rc, value) = decodeTuple(builder, obj, key, v_type);
+                } else if(v_type == python::Type::GENERICDICT) {
+                    std::tie(rc, value) = decodeGenericDict(builder, obj, key);
                 } else {
                     throw std::runtime_error("encountered unsupported value type " + value_type.desc());
                 }

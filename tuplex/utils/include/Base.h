@@ -134,6 +134,8 @@ typedef int32_t* ptr_t;
 // newer AWS SDK version shadowed symbols, hence need to add defines to fix this
 #if (AWS_SDK_VERSION_MAJOR >= 1 && AWS_SDK_VERSION_MINOR > 9) || (AWS_SDK_VERSION_MAJOR >= 1 && AWS_SDK_VERSION_MINOR == 9 && AWS_SDK_VERSION_PATCH >= 134)
 
+#define cJSON_bool cJSON_AS4CPP_bool
+
 #define cJSON_Hooks cJSON_AS4CPP_Hooks
 
 #define cJSON_AddArrayToObject cJSON_AS4CPP_AddArrayToObject

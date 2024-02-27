@@ -153,7 +153,7 @@ namespace tuplex {
 
         // --> slow path is SUPER SLOW to compile. need to improve, use this here to make testing faster.
         // make testing faster...
-        co.set("tuplex.resolveWithInterpreterOnly", "true");
+        // co.set("tuplex.resolveWithInterpreterOnly", "true");
 
         // let's iterate over a few split sizes
         // co.set("tuplex.inputSplitSize", "32M");

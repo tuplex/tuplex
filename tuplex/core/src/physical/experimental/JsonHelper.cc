@@ -835,6 +835,7 @@ namespace tuplex {
             jit.registerSymbol("JsonArray_getEmptyArray", JsonArray_getEmptyArray);
             jit.registerSymbol("Json_is_whitespace", Json_is_whitespace);
             jit.registerSymbol("JsonParser_TruncatedBytes", JsonParser_TruncatedBytes);
+            jit.registerSymbol("JsonItem_to_cJSON", JsonItem_to_cJSON);
         }
 
         bool JsonContainsAtLeastOneDocument(const char* buf, size_t buf_size) {
@@ -907,6 +908,15 @@ namespace tuplex {
                 pos++;
             }
             return 0 == brace_counter && 0 == bracket_counter;
+        }
+
+        cJSON* JsonItem_to_cJSON(JsonItem* item) {
+            // this basically stores the simdjson as cJSON tree (later, we'll modify the cJSON tree to actually hold the dict)
+            item->o;
+
+            std::cerr<<"conversion from simdjson to cJSON not yet implemented"<<std::endl;
+
+            return cJSON_CreateObject();
         }
     }
 }

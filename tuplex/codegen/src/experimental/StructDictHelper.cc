@@ -132,7 +132,7 @@ namespace tuplex {
                 if(value_type.isListType())
                     continue;
 
-                if (!value_type.isFixedSizeType()) {
+                if (!value_type.isFixedSizeType() && value_type != python::Type::GENERICDICT) {
                     // not fixes size but var length?
                     // add a size field!
                     member_types.push_back(i64Type);

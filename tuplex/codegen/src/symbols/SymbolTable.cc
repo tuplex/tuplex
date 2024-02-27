@@ -569,6 +569,12 @@ namespace tuplex {
 
             addBuiltinTypeAttribute(python::Type::GENERICDICT, "get", [](const python::Type& callerType,
                     const python::Type& parameterType) {
+
+                // handle generic dict type, requires always tracing.
+                if(python::Type::GENERICDICT == callerType)
+                    return python::Type::makeFunctionType(callerType, python::Type::UNKNOWN); // <-- unknown forces tracing.
+//                    return python::Type::makeFunctionType(callerType, python::Type::PYOBJECT);
+
                 assert(callerType.isDictionaryType() && callerType != python::Type::GENERICDICT);
 
                 assert(parameterType.isTupleType());

@@ -47,7 +47,8 @@ namespace tuplex {
 
 
     python::Type jsonTypeToPythonTypeRecursive(simdjson::dom::element obj,
-                                               bool interpret_heterogenous_lists_as_tuples) {
+                                               bool interpret_heterogenous_lists_as_tuples,
+                                               bool use_generic_dictionaries) {
         switch(obj.type()) {
             case simdjson::dom::element_type::STRING: {
                 return python::Type::STRING;
@@ -66,6 +67,12 @@ namespace tuplex {
                 return python::Type::F64;
             }
             case simdjson::dom::element_type::OBJECT: {
+
+                // if using generic dictionaries, keep it.
+                if(use_generic_dictionaries) {
+                    return python::Type::GENERICDICT;
+                }
+
                 // json is always string keys -> value
                 std::vector<python::StructEntry> kv_pairs;
                 auto object = obj.get_object().value();
@@ -78,7 +85,7 @@ namespace tuplex {
                     python::StructEntry entry;
                     entry.key = escape_to_python_str(key);
                     entry.keyType = python::Type::STRING;
-                    entry.valueType = jsonTypeToPythonTypeRecursive(field, interpret_heterogenous_lists_as_tuples); // recurse if necessary!
+                    entry.valueType = jsonTypeToPythonTypeRecursive(field, interpret_heterogenous_lists_as_tuples, use_generic_dictionaries); // recurse if necessary!
                     kv_pairs.push_back(entry);
                 }
 
@@ -94,7 +101,7 @@ namespace tuplex {
                 std::vector<python::Type> element_types;
                 unsigned arr_size = 0;
                 for(const auto& el : arr) {
-                    auto next_type = jsonTypeToPythonTypeRecursive(el, interpret_heterogenous_lists_as_tuples);
+                    auto next_type = jsonTypeToPythonTypeRecursive(el, interpret_heterogenous_lists_as_tuples, use_generic_dictionaries);
                     element_types.push_back(next_type);
                     if(first) {
                         element_type = next_type;
@@ -130,11 +137,15 @@ namespace tuplex {
     }
 
     python::Type jsonTypeToPythonTypeRecursive(simdjson::simdjson_result<simdjson::ondemand::value> obj,
-                                               bool interpret_heterogenous_lists_as_tuples) {
+                                               bool interpret_heterogenous_lists_as_tuples,
+                                               bool use_generic_dictionaries) {
         using namespace std;
 
         // is a nested field?
         if(obj.type() == simdjson::ondemand::json_type::object) {
+
+            if(use_generic_dictionaries)
+                return python::Type::GENERICDICT;
 
             // json is always string keys -> value
             vector<python::StructEntry> kv_pairs;
@@ -146,7 +157,7 @@ namespace tuplex {
                 python::StructEntry entry;
                 entry.key = escape_to_python_str(key);
                 entry.keyType = python::Type::STRING;
-                entry.valueType = jsonTypeToPythonTypeRecursive(field.value(), interpret_heterogenous_lists_as_tuples); // recurse if necessary!
+                entry.valueType = jsonTypeToPythonTypeRecursive(field.value(), interpret_heterogenous_lists_as_tuples, use_generic_dictionaries); // recurse if necessary!
                 kv_pairs.push_back(entry);
             }
 
@@ -165,7 +176,7 @@ namespace tuplex {
             bool first = true;
             std::vector<python::Type> element_types;
             for(auto el : arr) {
-                auto next_type = jsonTypeToPythonTypeRecursive(el, interpret_heterogenous_lists_as_tuples);
+                auto next_type = jsonTypeToPythonTypeRecursive(el, interpret_heterogenous_lists_as_tuples, use_generic_dictionaries);
                 element_types.push_back(next_type);
                 if(first) {
                     element_type = next_type;
@@ -465,7 +476,7 @@ namespace tuplex {
     /*!
      * parse into homogenous list. If failure, returns null
      */
-    Field json_array_to_list(const std::string& json_str, const python::Type& list_type, bool interpret_heterogenous_lists_as_tuples) {
+    Field json_array_to_list(const std::string& json_str, const python::Type& list_type, bool interpret_heterogenous_lists_as_tuples, bool use_generic_dictionaries) {
         auto& logger = Logger::instance().logger("json");
 
         assert(list_type.isListType());
@@ -482,7 +493,7 @@ namespace tuplex {
 
         for(auto field : arr) {
             auto raw_json_str = simdjson::minify(field);
-            auto py_type =  jsonTypeToPythonTypeRecursive(field, interpret_heterogenous_lists_as_tuples);
+            auto py_type =  jsonTypeToPythonTypeRecursive(field, interpret_heterogenous_lists_as_tuples, use_generic_dictionaries);
             if(py_type != list_type.elementType()) {
                 logger.error("type of element does not match homogenous list's element type");
                 return Field::null();
@@ -498,7 +509,8 @@ namespace tuplex {
                                        std::vector<std::vector<std::string>>* outColumnNames,
                                        bool unwrap_rows,
                                        bool interpret_heterogenous_lists_as_tuples,
-                                       size_t max_rows) {
+                                       size_t max_rows,
+                                       bool use_generic_dictionaries) {
         using namespace std;
 
         if(0 == max_rows)
@@ -588,7 +600,7 @@ namespace tuplex {
 
                         // generic types? -> recurse!
                         if(py_type == python::Type::GENERICDICT || py_type == python::Type::GENERICLIST) {
-                            py_type = jsonTypeToPythonTypeRecursive(field.value(), interpret_heterogenous_lists_as_tuples);
+                            py_type = jsonTypeToPythonTypeRecursive(field.value(), interpret_heterogenous_lists_as_tuples, use_generic_dictionaries);
                         }
 
                         // add to count array
@@ -622,7 +634,7 @@ namespace tuplex {
                             fields.push_back(Field::from_str_data(row_json_strings[i], row_field_types[i]));
                         } else if(row_field_types[i].isListType()) {
                             // list field -> need to parse into individual fields (homogenous) and then create proper List out of this.
-                            auto list_field = json_array_to_list(row_json_strings[i], row_field_types[i], interpret_heterogenous_lists_as_tuples);
+                            auto list_field = json_array_to_list(row_json_strings[i], row_field_types[i], interpret_heterogenous_lists_as_tuples, use_generic_dictionaries);
                             if(list_field.getType() == python::Type::NULLVALUE) {
                                 Logger::instance().defaultLogger().warn("Found non-conforming list, adding null as dummy-value.");
                             }
@@ -636,6 +648,10 @@ namespace tuplex {
                     if(unwrap_rows)
                         rows.push_back(Row::from_vector(fields));
                     else {
+
+                        if(use_generic_dictionaries)
+                            throw std::runtime_error("not yet implemented, need to add feature.");
+
                         // push back as struct type
                         std::string json_line = full_row;
                         std::vector<python::StructEntry> kv_pairs;
@@ -704,7 +720,8 @@ namespace tuplex {
                                                                     std::set<std::string>& column_names_set,
                                                                     std::unordered_map<simdjson::ondemand::json_type, size_t>& line_types,
                                                                     std::unordered_map<std::tuple<size_t, python::Type>, size_t>& type_counts,
-                                                                    bool is_first_row) {
+                                                                    bool is_first_row,
+                                                                    bool use_generic_dictionaries) {
         using namespace std;
 
         // result
@@ -744,7 +761,7 @@ namespace tuplex {
 
                     // generic types? -> recurse!
                     if(py_type == python::Type::GENERICDICT || py_type == python::Type::GENERICLIST) {
-                        py_type = jsonTypeToPythonTypeRecursive(field.value(), interpret_heterogenous_lists_as_tuples);
+                        py_type = jsonTypeToPythonTypeRecursive(field.value(), interpret_heterogenous_lists_as_tuples, use_generic_dictionaries);
                     }
 
                     // add to count array
@@ -776,7 +793,7 @@ namespace tuplex {
                         fields.push_back(Field::from_str_data(row_json_strings[i], row_field_types[i]));
                     } else if(row_field_types[i].isListType()) {
                         // list field -> need to parse into individual fields (homogenous) and then create proper List out of this.
-                        auto list_field = json_array_to_list(row_json_strings[i], row_field_types[i], interpret_heterogenous_lists_as_tuples);
+                        auto list_field = json_array_to_list(row_json_strings[i], row_field_types[i], interpret_heterogenous_lists_as_tuples, use_generic_dictionaries);
                         if(list_field.getType() == python::Type::NULLVALUE) {
                             Logger::instance().defaultLogger().warn("Found non-conforming list, adding null as dummy-value.");
                         }
@@ -790,6 +807,10 @@ namespace tuplex {
                 if(unwrap_rows)
                     ret_row = Row::from_vector(fields);
                 else {
+
+                    if(use_generic_dictionaries)
+                        throw std::runtime_error("not yet implemented, should push back as generic dictionary!");
+
                     // push back as struct type
                     std::string json_line = full_row;
                     std::vector<python::StructEntry> kv_pairs;
@@ -856,7 +877,8 @@ namespace tuplex {
                                                  size_t strata_size,
                                                  size_t samples_per_strata,
                                                  int random_seed,
-                                                 const std::set<unsigned int>& skip_rows) {
+                                                 const std::set<unsigned int>& skip_rows,
+                                                 bool use_generic_dictionaries) {
         using namespace std;
 
         if(0 == max_rows)
@@ -945,12 +967,17 @@ namespace tuplex {
                     full_row = ss.str();
                 }
                 auto first_row = 0 == pos;
-                auto t = json_parseRowAndNames(doc, full_row,
+                auto t = json_parseRowAndNames(doc,
+                                               full_row,
                                                interpret_heterogenous_lists_as_tuples,
-                                               unwrap_rows, column_names,
+                                               unwrap_rows,
+                                               column_names,
                                                column_index_lookup_table,
-                                               column_names_set, line_types,
-                                               type_counts, first_row);
+                                               column_names_set,
+                                               line_types,
+                                               type_counts,
+                                               first_row,
+                                               use_generic_dictionaries);
                 if(outColumnNames)
                     outColumnNames->push_back(std::get<1>(t));
                 rows.push_back(std::get<0>(t));
@@ -964,7 +991,7 @@ namespace tuplex {
 
         // sanity check: is file < than strata? parse up to samples_per_strata rows from start then!
         if(pos < strata_size && rows.empty()) {
-            return parseRowsFromJSON(buf, buf_size, outColumnNames, unwrap_rows, interpret_heterogenous_lists_as_tuples, std::min(max_rows, samples_per_strata));
+            return parseRowsFromJSON(buf, buf_size, outColumnNames, unwrap_rows, interpret_heterogenous_lists_as_tuples, std::min(max_rows, samples_per_strata), use_generic_dictionaries);
         }
 
         return rows;

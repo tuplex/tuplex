@@ -521,3 +521,14 @@ TEST_F(PythonHelperTest, DictTypeDeduction) {
 
     Py_XDECREF(d);
 }
+
+TEST_F(PythonHelperTest, JsonConversion) {
+    auto test_str = "{\"body\":\"In version \\\"Changed the srted.\\\"\\r\\n\\r\\nCould you add \",\"comments\":0}";
+
+    Field f = Field::from_str_data(test_str, python::Type::GENERICDICT);
+
+    auto d = fieldToPython(f);
+    ASSERT_TRUE(d);
+    EXPECT_TRUE(PyDict_Check(d));
+    Py_XDECREF(d);
+}

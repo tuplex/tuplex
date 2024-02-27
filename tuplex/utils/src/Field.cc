@@ -519,7 +519,7 @@ namespace tuplex {
             // @TODO: update with concrete/correct typing -> conversion to python!
             const char *dstr = reinterpret_cast<const char*>(_ptrValue);
             if(!t.isStructuredDictionaryType())
-                return PrintCJSONDict(cJSON_Parse(dstr));
+                return dstr; //PrintCJSONDict(cJSON_Parse(dstr));
             // should be JSON...
             return dstr;
         }
@@ -615,19 +615,31 @@ namespace tuplex {
                 ss<<"}";
                 return ss.str();
             } else if(t.isDictionaryType()) {
-                // trivial: key/value type
-                auto key_t = t.keyType();
-                auto val_t = t.valueType();
-                auto num_elements = j.size();
-                auto pos = 0;
-                ss<<"{";
-                for(const auto& el : j.items()) {
-                    ss<<jsonToPython(el.key(), key_t)<<": "<<jsonToPython(el.value(), val_t);
-                    if(pos != num_elements - 1)
-                        ss<<", ";
-                    pos++;
+                if(t == python::Type::GENERICDICT) {
+                    // JSON string and python dict are very similar.
+                    // differences are: JSON uses true/false
+                    // -> Python uses True/false.
+
+                    // HACK:
+                    ss<<j.dump();
+                    return ss.str();
+
+                    throw std::runtime_error("not yet supported");
+                } else {
+                    // trivial: key/value type
+                    auto key_t = t.keyType();
+                    auto val_t = t.valueType();
+                    auto num_elements = j.size();
+                    auto pos = 0;
+                    ss<<"{";
+                    for(const auto& el : j.items()) {
+                        ss<<jsonToPython(el.key(), key_t)<<": "<<jsonToPython(el.value(), val_t);
+                        if(pos != num_elements - 1)
+                            ss<<", ";
+                        pos++;
+                    }
+                    ss<<"}";
                 }
-                ss<<"}";
                 return ss.str();
             } else {
                 throw std::runtime_error("found json object, but can only decode as struct dict or homogenous dict - not as " + t.desc());
@@ -680,7 +692,7 @@ namespace tuplex {
                 return jsonToPython(j, _type);
             } catch (nlohmann::json::parse_error& ex) {
                 std::cerr << "JSON parse error at byte " << ex.byte << std::endl;
-                return "json.loads(" + escape_to_python_str(str) + ")";
+                return "json.loads(r'''" + str + "''')";
             }
         } else {
             throw std::runtime_error("internal error, what other struct is stored as JSON?");

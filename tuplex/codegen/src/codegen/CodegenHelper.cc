@@ -890,5 +890,166 @@ namespace tuplex {
 
             return j;
         }
+
+        llvm::Value* call_cjson_getitem(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj) {
+            assert(cjson_obj);
+            assert(builder.GetInsertBlock());
+            assert(builder.GetInsertBlock()->getParent());
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = mod->getContext();
+            auto func = getOrInsertFunction(mod, "cJSON_GetObjectItemCaseSensitive", llvm::Type::getInt8PtrTy(ctx, 0),
+                                            (llvm::Type*)llvm::Type::getInt8PtrTy(ctx, 0));
+
+            return builder.CreateCall(func, {cjson_obj});
+        }
+
+        llvm::Value* call_cjson_isnumber(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj) {
+            assert(cjson_obj);
+            assert(builder.GetInsertBlock());
+            assert(builder.GetInsertBlock()->getParent());
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = mod->getContext();
+            auto func = getOrInsertFunction(mod, "cJSON_IsNumber", ctypeToLLVM<cJSON_AS4CPP_bool>(ctx),
+                                            (llvm::Type*)llvm::Type::getInt8PtrTy(ctx, 0));
+
+            return builder.CreateZExtOrTrunc(builder.CreateCall(func, {cjson_obj}), llvm::Type::getInt1Ty(ctx));
+        }
+
+        llvm::Value* call_cjson_isnull(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj) {
+            assert(cjson_obj);
+            assert(builder.GetInsertBlock());
+            assert(builder.GetInsertBlock()->getParent());
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = mod->getContext();
+            auto func = getOrInsertFunction(mod, "cJSON_IsNull", ctypeToLLVM<cJSON_AS4CPP_bool>(ctx),
+                                            (llvm::Type*)llvm::Type::getInt8PtrTy(ctx, 0));
+
+            return builder.CreateZExtOrTrunc(builder.CreateCall(func, {cjson_obj}), llvm::Type::getInt1Ty(ctx));
+        }
+
+        llvm::Value* call_cjson_isobject(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj) {
+            assert(cjson_obj);
+            assert(builder.GetInsertBlock());
+            assert(builder.GetInsertBlock()->getParent());
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = mod->getContext();
+            auto func = getOrInsertFunction(mod, "cJSON_IsObject", ctypeToLLVM<cJSON_AS4CPP_bool>(ctx),
+                                            (llvm::Type*)llvm::Type::getInt8PtrTy(ctx, 0));
+
+            return builder.CreateZExtOrTrunc(builder.CreateCall(func, {cjson_obj}), llvm::Type::getInt1Ty(ctx));
+        }
+
+        llvm::Value* call_cjson_isstring(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj) {
+            assert(cjson_obj);
+            assert(builder.GetInsertBlock());
+            assert(builder.GetInsertBlock()->getParent());
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = mod->getContext();
+            auto func = getOrInsertFunction(mod, "cJSON_IsString", ctypeToLLVM<cJSON_AS4CPP_bool>(ctx),
+                                            (llvm::Type*)llvm::Type::getInt8PtrTy(ctx, 0));
+
+            return builder.CreateZExtOrTrunc(builder.CreateCall(func, {cjson_obj}), llvm::Type::getInt1Ty(ctx));
+        }
+
+        [[maybe_unused]] llvm::Value* call_cjson_is_list_of_generic_dicts(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj) {
+            // this calls a runtime function (linked in JITCompiler)
+            assert(cjson_obj);
+            assert(builder.GetInsertBlock());
+            assert(builder.GetInsertBlock()->getParent());
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = mod->getContext();
+            auto func = getOrInsertFunction(mod, "cJSON_IsArrayOfObjects", ctypeToLLVM<cJSON_AS4CPP_bool>(ctx),
+                                            (llvm::Type*)llvm::Type::getInt8PtrTy(ctx, 0));
+
+            return builder.CreateZExtOrTrunc(builder.CreateCall(func, {cjson_obj}), llvm::Type::getInt1Ty(ctx));
+        }
+
+        llvm::Value* get_cjson_as_integer(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj) {
+            auto float_val = get_cjson_as_float(builder, cjson_obj);
+            return builder.CreateFPToSI(float_val, llvm::Type::getInt64Ty(builder.getContext()));
+        }
+
+        llvm::Value* get_cjson_as_float(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj) {
+            assert(cjson_obj);
+            assert(builder.GetInsertBlock());
+            assert(builder.GetInsertBlock()->getParent());
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = mod->getContext();
+            auto func = getOrInsertFunction(mod, "cJSON_GetNumberValue", llvm::Type::getDoubleTy(ctx),
+                                            (llvm::Type*)llvm::Type::getInt8PtrTy(ctx, 0));
+
+            return builder.CreateCall(func, {cjson_obj});
+        }
+
+        SerializableValue get_cjson_as_string_value(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj) {
+            assert(cjson_obj);
+            assert(builder.GetInsertBlock());
+            assert(builder.GetInsertBlock()->getParent());
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = mod->getContext();
+            auto func = getOrInsertFunction(mod, "cJSON_GetStringValue", llvm::Type::getInt8PtrTy(ctx, 0),
+                                            (llvm::Type*)llvm::Type::getInt8PtrTy(ctx, 0));
+
+            auto str_pointer = builder.CreateCall(func, {cjson_obj});
+
+            auto str_len = builder.CreateCall(strlen_prototype(ctx, mod), {str_pointer});
+            auto str_size = builder.CreateAdd(str_len, llvm::ConstantInt::get(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, 1)));
+            return {str_pointer, str_size};
+        }
+
+        [[maybe_unused]] SerializableValue serialize_cjson_as_runtime_str(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj) {
+            assert(cjson_obj);
+            assert(builder.GetInsertBlock());
+            assert(builder.GetInsertBlock()->getParent());
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = mod->getContext();
+            auto func = getOrInsertFunction(mod, "cJSON_PrintUnformatted", llvm::Type::getInt8PtrTy(ctx, 0),
+                                            (llvm::Type*)llvm::Type::getInt8PtrTy(ctx, 0));
+
+            auto str_pointer = builder.CreateCall(func, {cjson_obj});
+
+            auto str_len = builder.CreateCall(strlen_prototype(ctx, mod), {str_pointer});
+            auto str_size = builder.CreateAdd(str_len, llvm::ConstantInt::get(llvm::Type::getInt64Ty(ctx), llvm::APInt(64, 1)));
+            return {str_pointer, str_size};
+        }
+
+        llvm::Value* call_cjson_create_empty(llvm::IRBuilder<>& builder) {
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = mod->getContext();
+            auto func = getOrInsertFunction(mod, "cJSON_CreateObject", llvm::Type::getInt8PtrTy(ctx, 0));
+
+            return builder.CreateCall(func, {});
+        }
+
+        extern llvm::Value* call_simdjson_to_cjson_object(llvm::IRBuilder<>& builder, llvm::Value* json_item) {
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = mod->getContext();
+            auto func = getOrInsertFunction(mod, "JsonItem_to_cJSON", llvm::Type::getInt8PtrTy(ctx, 0),
+                                            (llvm::Type*)llvm::Type::getInt8PtrTy(ctx, 0));
+
+            return builder.CreateCall(func, {json_item});
+        }
     }
 }

@@ -1781,6 +1781,11 @@ namespace tuplex {
                 } else if(t == python::Type::EMPTYTUPLE) {
                     Logger::instance().logger("codegen").warn("unsupported CSV type ()");
                     space_needed += 3;
+                } else if(t == python::Type::GENERICDICT) {
+                    // object is given as cJSON. --> print as string & retrieve length!
+                    // -- this is slow b.c. need to invoke twice.
+                    auto serialized_json_str = serialize_cjson_as_runtime_str(builder, row.get(i));
+                    varSizeRequired = builder.CreateAdd(varSizeRequired, builder.CreateSub(serialized_json_str.size, env.i64Const(1)));
                 } else {
                     throw std::runtime_error("unsupported type " + t.desc() + " in fast CSV writer");
                 }
@@ -1935,6 +1940,11 @@ namespace tuplex {
                     auto emptyTupleConst = env.strConst(builder, "()");
                     builder.CreateMemCpy(buf_ptr, 0, emptyTupleConst, 0, env.i64Const(2));
                     buf_ptr = builder.CreateGEP(buf_ptr, env.i32Const(2));
+                } else if(t.withoutOption() == python::Type::GENERICDICT) {
+                    auto json_str = serialize_cjson_as_runtime_str(builder, val);
+                    auto json_str_size = builder.CreateSub(json_str.size, env.i64Const(1));
+                    builder.CreateMemCpy(buf_ptr, 0, json_str.val, 0, json_str_size);
+                    buf_ptr = builder.CreateGEP(buf_ptr, json_str_size);
                 }
 
                 if(t.isOptionType()) {

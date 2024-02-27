@@ -115,6 +115,21 @@ namespace tuplex {
         return rc;
     }
 
+    extern "C" cJSON_bool cJSON_IsArrayOfObjects(cJSON* obj) {
+        if(!obj)
+            return false;
+
+        if(!cJSON_IsArray(obj))
+            return false;
+
+        auto arr_size = cJSON_GetArraySize(obj);
+        for(unsigned i = 0; i < arr_size; ++i) {
+            if(!cJSON_IsObject(cJSON_GetArrayItem(obj, i)))
+                return false;
+        }
+        return true;
+    }
+
     JITCompiler::JITCompiler(const llvm::CodeGenOpt::Level& codegen_opt_level) {
         codegen::initLLVM(); // lazy initialization of LLVM backend.
 
@@ -280,6 +295,9 @@ namespace tuplex {
         registerSymbol("cJSON_Parse", cJSON_Parse);
         registerSymbol("cJSON_CreateString", cJSON_CreateString);
 #endif
+
+        // extended functions
+        registerSymbol("cJSON_IsArrayOfObjects", cJSON_IsArrayOfObjects);
 
         registerSymbol("debug_printf", debug_printf);
 

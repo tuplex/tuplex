@@ -792,6 +792,88 @@ namespace tuplex {
          * return information about compiling for a target machine as JSON.
          */
         extern std::string compileEnvironmentAsJsonString();
+
+        // helper to enable llvm6 and llvm9 compatibility // --> force onto llvm9+ for now.
+        inline llvm::CallInst *createCallHelper(llvm::Function *Callee, llvm::ArrayRef<llvm::Value*> Ops,
+                                          llvm::IRBuilder<>& builder,
+                                          const llvm::Twine &Name = "",
+                                                llvm::Instruction *FMFSource = nullptr) {
+            llvm::CallInst *CI = llvm::CallInst::Create(Callee, Ops, Name);
+            if (FMFSource)
+                CI->copyFastMathFlags(FMFSource);
+#if (LLVM_VERSION_MAJOR <= 15)
+            builder.GetInsertBlock()->getInstList().insert(builder.GetInsertPoint(), CI);
+#else
+            CI->insertInto(builder.GetInsertBlock(), builder.GetInsertBlock()->begin());
+#endif
+            builder.SetInstDebugLocation(CI);
+            return CI;
+        }
+
+        inline llvm::Value* getOrInsertCallable(llvm::Module& mod, const std::string& name, llvm::FunctionType* FT) {
+#if LLVM_VERSION_MAJOR < 9
+            return mod.getOrInsertFunction(name, FT);
+#else
+            return mod.getOrInsertFunction(name, FT).getCallee();
+#endif
+        }
+
+        inline llvm::Value* getOrInsertCallable(llvm::Module* mod, const std::string& name, llvm::FunctionType* FT) {
+            assert(mod);
+            if(!mod)
+                return nullptr;
+            return getOrInsertCallable(*mod, name, FT);
+        }
+
+
+        inline llvm::Function* getOrInsertFunction(llvm::Module& mod, const std::string& name, llvm::FunctionType* FT) {
+#if LLVM_VERSION_MAJOR < 9
+            llvm::Function* func = cast<Function>(mod.getOrInsertFunction(name, FT));
+#else
+            llvm::Function *func = llvm::cast<llvm::Function>(mod.getOrInsertFunction(name, FT).getCallee());
+#endif
+            return func;
+        }
+
+        inline llvm::Function* getOrInsertFunction(llvm::Module* mod, const std::string& name, llvm::FunctionType* FT) {
+            if(!mod)
+                return nullptr;
+
+#if LLVM_VERSION_MAJOR < 9
+            llvm::Function* func = cast<Function>(mod->getOrInsertFunction(name, FT));
+#else
+            llvm::Function *func = llvm::cast<llvm::Function>(mod->getOrInsertFunction(name, FT).getCallee());
+#endif
+            return func;
+        }
+
+        template <typename... ArgsTy>
+        llvm::Function* getOrInsertFunction(llvm::Module* mod, const std::string& Name, llvm::Type *RetTy,
+                                      ArgsTy... Args) {
+            if(!mod)
+                return nullptr;
+            llvm::SmallVector<llvm::Type*, sizeof...(ArgsTy)> ArgTys{Args...};
+            return getOrInsertFunction(mod, Name, llvm::FunctionType::get(RetTy, ArgTys, false));
+        }
+
+        // cJSON helper functions (for easier access)
+        extern llvm::Value* call_cjson_getitem(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
+        extern llvm::Value* call_cjson_isnumber(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
+        extern llvm::Value* call_cjson_isnull(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
+        extern llvm::Value* call_cjson_isstring(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
+        extern llvm::Value* call_cjson_isobject(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
+        extern llvm::Value* get_cjson_as_integer(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
+        extern llvm::Value* get_cjson_as_float(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
+        extern SerializableValue get_cjson_as_string_value(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
+
+        extern llvm::Value* call_cjson_create_empty(llvm::IRBuilder<>& builder);
+
+        extern llvm::Value* call_simdjson_to_cjson_object(llvm::IRBuilder<>& builder, llvm::Value* json_item);
+
+        [[maybe_unused]] extern SerializableValue serialize_cjson_as_runtime_str(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
+
+        // extended cjson function to check homogeneity of list
+        [[maybe_unused]] extern llvm::Value* call_cjson_is_list_of_generic_dicts(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
     }
 }
 

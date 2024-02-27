@@ -3183,6 +3183,107 @@ namespace tuplex {
             return {};
         }
 
+        SerializableValue FunctionRegistry::createGenericDictGetCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
+                                                                     llvm::IRBuilder<> &builder,
+                                                                     const tuplex::codegen::SerializableValue &caller,
+                                                                     const python::Type &callerType,
+                                                                     const std::vector<tuplex::codegen::SerializableValue> &args,
+                                                                     const std::vector<python::Type> &argsTypes,
+                                                                     const python::Type &retType) {
+
+            // ret type must be non unknown and not pyobject
+            assert(retType != python::Type::UNKNOWN && retType != python::Type::PYOBJECT);
+
+            // caller is n i8* pointer holding a cJSON struct
+            assert(caller.val && caller.val->getType() == _env.i8ptrType());
+
+            // what is the key type?
+            // --> so far, only support string keys.
+            assert(!argsTypes.empty());
+            auto key_type = argsTypes.front();
+            auto default_value_type = argsTypes.size() == 2 ? argsTypes.back() : python::Type::NULLVALUE;
+
+            if(python::Type::STRING != key_type)
+                throw std::runtime_error("generic dict .get only supports key type str yet, but got " + key_type.desc());
+
+            // retrieve object for key
+            // call: c
+            auto item = call_cjson_getitem(builder, caller.val);
+
+            // check for all the possible JSON types and then map to python types
+            // Json string
+            // Json number
+            // Json object
+            // Json array
+            // Json boolean
+            // Json null
+
+            if(python::Type::NULLVALUE == retType) {
+                auto is_not_null = _env.i1neg(builder, call_cjson_isnull(builder, item));
+                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_null, "dict.get() expected null");
+                return SerializableValue(nullptr, nullptr, _env.i1Const(true));
+            }
+
+            if(python::Type::BOOLEAN == retType) {
+
+            }
+
+            if(python::Type::I64 == retType) {
+                auto is_not_number = _env.i1neg(builder, call_cjson_isnumber(builder, item));
+                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_number, "dict.get() expected i64");
+
+                return SerializableValue(get_cjson_as_integer(builder, item), _env.i64Const(sizeof(int64_t)), nullptr);
+            }
+
+            if(python::Type::F64 == retType) {
+                auto is_not_number = _env.i1neg(builder, call_cjson_isnumber(builder, item));
+                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_number, "dict.get() expected f64");
+
+                return SerializableValue(get_cjson_as_float(builder, item), _env.i64Const(sizeof(int64_t)), nullptr);
+            }
+
+            if(python::Type::STRING == retType) {
+                auto is_not_string = _env.i1neg(builder, call_cjson_isstring(builder, item));
+                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_string, "dict.get() expected str");
+
+                return get_cjson_as_string_value(builder, item);
+            }
+
+            // another generic dict?
+            if(python::Type::GENERICDICT == retType) {
+                auto is_not_object = _env.i1neg(builder, call_cjson_isobject(builder, item));
+                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_object, "dict.get() expected dict");
+
+                return SerializableValue(item, nullptr, nullptr);
+            }
+
+            // list-decode is more complex
+            if(retType.isListType()) {
+                if(python::Type::EMPTYLIST == retType) {
+                    // TODO: check here that it is empty array, and then return value. If not - exception.
+                }
+
+                auto list_element_type = retType.elementType();
+
+                // what is the element type?
+                if(list_element_type == python::Type::GENERICDICT) {
+                    // this is ok, can convert to proper list object!
+                    // --> should cache this function...
+
+
+                }
+            }
+
+            // struct-decode is more complex
+
+
+            throw std::runtime_error("dict.get() for type " + retType.desc() + " not yet supported.");
+
+            lfb.exitNormalCase();
+
+            return {};
+        }
+
         SerializableValue FunctionRegistry::createDictGetCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,
                                                               const SerializableValue &caller,
                                                               const python::Type& callerType,
@@ -3195,6 +3296,10 @@ namespace tuplex {
             // option?
             // -> emit AttributeError, should be handled in blockgen
             assert(!callerType.isOptionType());
+
+            if(callerType == python::Type::GENERICDICT) {
+                return createGenericDictGetCall(lfb, builder, caller, callerType, args, argsTypes, retType);
+            }
 
             // only certain dicts yet supported
             if(!callerType.isStructuredDictionaryType() && callerType != python::Type::EMPTYDICT)

@@ -314,8 +314,9 @@ namespace tuplex {
             // check what kind of value_type is
             if(!noNeedToSerializeType(value_type)) {
                 // need to serialize, so check
-                if(value_type.isFixedSizeType()) {
+                if(value_type.isFixedSizeType() || python::Type::GENERICDICT == value_type) {
                     // only value field necessary.
+                    // note: generic dict is stored as cJSON pointer. Can infer size etc. from there.
                     field_idx = current_idx++;
                 } else {
                     // both value and size necessary.

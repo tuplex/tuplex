@@ -1065,8 +1065,17 @@ namespace python {
                 return json_string_to_pyobject(json_data, f.getType());
             }
 
-            cJSON* dptr = cJSON_Parse((char*)f.getPtr());
-            return PyDict_FromCJSON(dptr);
+            // simply use json.loads
+            std::string json_str = (char*)f.getPtr();
+
+            // use strict=False to handle newline chars. Alternative was to escape them.
+            auto ret_obj = python::runAndGet("import json; x = json.loads(r'''" + json_str + "''', strict=False)", "x");
+
+            if(!ret_obj) {
+                throw std::runtime_error("failed to convert " + f.getType().desc() + " with content r'''" + json_str + "''' to python object.");
+            }
+
+            return ret_obj;
         } else if(t.isListType()) {
             auto list = (List*)f.getPtr();
             auto numElements = list->numElements();
@@ -2073,6 +2082,7 @@ namespace python {
             // fetch error, and throw runtime err
             handlePythonErrors();
 #warning "better python error formatting needed!"
+            return nullptr;
         }
         PyObject *obj = nullptr;
         if(!name.empty())

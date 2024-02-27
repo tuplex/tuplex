@@ -1476,6 +1476,34 @@ namespace tuplex {
         return counts;
     }
 
+    static python::Type replace_struct_dict_with_generic_dict(const python::Type& t) {
+
+        if(t.isStructuredDictionaryType())
+            return python::Type::GENERICDICT;
+
+        // compound types? -> replace!
+        if(t.isOptionType())
+            return python::Type::makeOptionType(replace_struct_dict_with_generic_dict(t.getReturnType()));
+        if(t != python::Type::EMPTYTUPLE && t != python::Type::GENERICTUPLE && t.isTupleType()) {
+            auto params = t.parameters();
+            for(auto& p : params)
+                p = replace_struct_dict_with_generic_dict(p);
+            return python::Type::makeTupleType(params);
+        }
+        if(t != python::Type::EMPTYLIST && t != python::Type::GENERICLIST && t.isListType())
+            return python::Type::makeListType(replace_struct_dict_with_generic_dict(t.elementType()));
+
+        if(t != python::Type::EMPTYROW && t.isRowType()) {
+            auto col_types = t.get_column_types();
+            for(auto& p : col_types)
+                p = replace_struct_dict_with_generic_dict(p);
+            auto col_names = t.get_column_names();
+            return python::Type::makeRowType(col_types, col_names);
+        }
+
+        return t;
+    }
+
     python::Type TraceVisitor::mapPythonToTuplexType(PyObject *obj, bool autoUpcast) {
 
         // special case, is TraceRowObject?
@@ -1483,6 +1511,13 @@ namespace tuplex {
             return ((TraceRowObject*)obj)->rowType(autoUpcast);
         }
 
-        return python::mapPythonClassToTuplexType(obj, autoUpcast);
+        // original: holds struct dict as well (always mapping to most specific types)
+        // return python::mapPythonClassToTuplexType(obj, autoUpcast);
+
+        auto specific_type = python::mapPythonClassToTuplexType(obj, autoUpcast);
+
+        // @TODO: use threshold for this function!
+        auto type = replace_struct_dict_with_generic_dict(specific_type);
+        return type;
     }
 }

@@ -115,6 +115,8 @@ namespace tuplex {
         extern "C" int64_t JsonParser_TruncatedBytes(JsonParser* parser);
 
         extern std::string JsonMalloc_Report();
+
+        extern "C" cJSON* JsonItem_to_cJSON(JsonItem* item);
     }
 }
 

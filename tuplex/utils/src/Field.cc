@@ -335,6 +335,17 @@ namespace tuplex {
                 List *lr = (List*)rhs.getPtr();
 
                 return *ll == *lr;
+            } else if(lhs._type == python::Type::GENERICDICT) {
+                // parse cJSON and compare
+                auto a = cJSON_Parse((const char*)lhs._ptrValue);
+                auto b = cJSON_Parse((const char*)rhs._ptrValue);
+
+                auto ans = cJSON_Compare(a, b, true);
+
+                cJSON_free(a);
+                cJSON_free(b);
+
+                return ans;
             } else {
                 Logger::instance().defaultLogger().error("trying to compare for Field equality of "
                                                          "Field with type " + lhs._type.desc()

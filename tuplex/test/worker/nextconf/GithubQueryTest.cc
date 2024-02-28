@@ -139,9 +139,13 @@ namespace tuplex {
 
         using namespace std;
 
+
+        // @TODO: non-hyper mode doesn't work yet ??
+        // hyper-moder returns empty files ??
+
         // set input/output paths
         // auto exp_settings = lambdaSettings(true);
-        auto exp_settings = localWorkerSettings(true); //
+        auto exp_settings = localWorkerSettings(false); //
         auto input_pattern = exp_settings["input_path"];
         auto output_path = exp_settings["output_path"];
         SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));

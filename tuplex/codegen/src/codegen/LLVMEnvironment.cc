@@ -631,7 +631,7 @@ namespace tuplex {
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
             } else if(elementType.isStructuredDictionaryType() || elementType == python::Type::GENERICDICT) {
-                auto llvm_element_type = getOrCreateStructuredDictType(elementType);
+                auto llvm_element_type = elementType.isStructuredDictionaryType() ? getOrCreateStructuredDictType(elementType) : i8ptrType();
 
                 // pointer to the structured dict type!
                 std::vector<llvm::Type*> memberTypes;

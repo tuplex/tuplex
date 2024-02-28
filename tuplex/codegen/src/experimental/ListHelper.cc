@@ -676,14 +676,13 @@ namespace tuplex {
 
                 builder.CreateStore(value.val, idx_value);
                 builder.CreateStore(value.size, idx_size);
-            } else if(elementType.isStructuredDictionaryType()) {
+            } else if(elementType.isStructuredDictionaryType() || elementType == python::Type::GENERICDICT) {
                 // pointer to the structured dict type!
 
                 // this is quite simple, store a HEAP allocated pointer.
                 auto idx_capacity = CreateStructGEP(builder, list_ptr, 0); assert(idx_capacity->getType() == env.i64ptrType());
                 builder.CreateStore(env.i64Const(0), idx_capacity);
 
-                auto llvm_element_type = env.getOrCreateStructuredDictType(elementType);
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
 
                 // store pointer
@@ -813,7 +812,7 @@ namespace tuplex {
                       || elementType == python::Type::PYOBJECT) {
                 auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
                 builder.CreateStore(size, idx_size);
-            } else if(elementType.isStructuredDictionaryType()) {
+            } else if(elementType.isStructuredDictionaryType() || elementType == python::Type::GENERICDICT) {
                 auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
                 builder.CreateStore(size, idx_size);
             } else if(elementType.isListType()) {

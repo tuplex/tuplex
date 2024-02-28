@@ -3183,6 +3183,199 @@ namespace tuplex {
             return {};
         }
 
+
+        SerializableValue decode_list_of_generic_dicts_from_cjson(LLVMEnvironment& env, tuplex::codegen::LambdaFunctionBuilder &lfb, llvm::IRBuilder<>& builder, llvm::Value* item, bool check_every_element) {
+            // fetch size
+            // auto n_elements = call_cjson_item_array(builder, item)
+
+            // create looo
+            // for (element : item)
+            // if !element.isobject()
+            //    exitWithNormalCaseViolation
+            // then:
+            // list_ptr = init(...)
+            // list_store(...)
+            // done
+
+            auto bbLoopHeader = llvm::BasicBlock::Create(builder.getContext(), "loop_header", builder.GetInsertBlock()->getParent());
+            auto bbLoopBody = llvm::BasicBlock::Create(builder.getContext(), "loop_body", builder.GetInsertBlock()->getParent());
+            auto bbLoopDone = llvm::BasicBlock::Create(builder.getContext(), "loop_done", builder.GetInsertBlock()->getParent());
+
+
+            auto n_elements = call_cjson_getarraysize(builder, item);
+
+            env.printValue(builder, n_elements, "decoding List[Dict[pyobject,pyobject]] with n elements: ");
+
+            auto i_var = env.CreateFirstBlockAlloca(builder, env.i64Type());
+
+            builder.CreateStore(env.i64Const(0), i_var);
+
+            auto list_type = python::Type::makeListType(python::Type::GENERICDICT);
+
+            auto llvm_list_type = env.getOrCreateListType(list_type);
+            auto list_ptr = env.CreateFirstBlockAlloca(builder, llvm_list_type);
+            list_reserve_capacity(env, builder, list_ptr, list_type, n_elements, false);
+            list_store_size(env, builder, list_ptr, list_type, n_elements);
+            builder.CreateBr(bbLoopHeader);
+
+
+            {
+                builder.SetInsertPoint(bbLoopHeader);
+                auto loop_cond = builder.CreateICmpSLT(builder.CreateLoad(builder.getInt64Ty(), i_var), n_elements);
+                builder.CreateCondBr(loop_cond, bbLoopBody, bbLoopDone);
+            }
+
+            {
+                builder.SetInsertPoint(bbLoopBody);
+                auto i = builder.CreateLoad(builder.getInt64Ty(), i_var);
+
+                env.printValue(builder, i, "loop i: ");
+
+                // fetch cJSON and store within list!
+                auto arr_item = get_cjson_array_item(builder, item, i);
+
+                env.printValue(builder, serialize_cjson_as_runtime_str(builder, arr_item.val).val, "decoded element: ");
+
+                // can invoke the check before and save this.
+                if(check_every_element) {
+                     // check if cjson, if not - normalcase violation!
+                     auto is_not_object = env.i1neg(builder, call_cjson_isobject(builder, arr_item.val));
+
+                     lfb.setLastBlock(builder.GetInsertBlock());
+                     lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_object, "array element is not object");
+                }
+
+                // all good -> store into list!
+                list_store_value(env, builder, list_ptr, list_type, i, arr_item);
+
+                builder.CreateStore(builder.CreateAdd(i, env.i64Const(1)), i_var);
+                builder.CreateBr(bbLoopHeader);
+            }
+
+            builder.SetInsertPoint(bbLoopDone);
+            lfb.setLastBlock(builder.GetInsertBlock());
+
+            return {list_ptr, n_elements, nullptr};
+        }
+
+
+        SerializableValue decode_cjson_item(LLVMEnvironment& env,
+                                            tuplex::codegen::LambdaFunctionBuilder &lfb,
+                                            llvm::IRBuilder<> &builder,
+                                            const python::Type &retType,
+                                            llvm::Value* item) {
+            env.debugPrint(builder, "performing dict.get() call on general dict with expected ret type " + retType.desc());
+
+            // check for all the possible JSON types and then map to python types
+            // Json string
+            // Json number
+            // Json object
+            // Json array
+            // Json boolean
+            // Json null
+
+            if(python::Type::NULLVALUE == retType) {
+                auto is_not_null = env.i1neg(builder, call_cjson_isnull(builder, item));
+                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_null, "dict.get() expected null");
+                return SerializableValue(nullptr, nullptr, env.i1Const(true));
+            }
+
+            if(python::Type::BOOLEAN == retType) {
+
+            }
+
+            if(python::Type::I64 == retType) {
+                auto is_not_number = env.i1neg(builder, call_cjson_isnumber(builder, item));
+
+                env.printValue(builder, is_not_number, "is i64 retrieval invalid: ");
+
+#ifndef NDEBUG
+                //debug code
+                llvm::BasicBlock* bb_is_not = llvm::BasicBlock::Create(builder.getContext(), "is_not_number", builder.GetInsertBlock()->getParent());
+                llvm::BasicBlock* bb_done = llvm::BasicBlock::Create(builder.getContext(), "done", builder.GetInsertBlock()->getParent());
+
+                builder.CreateCondBr(is_not_number, bb_is_not, bb_done);
+                builder.SetInsertPoint(bb_is_not);
+
+                env.debugPrint(builder, "is not valid, printing actual value");
+
+                // debug print if not number
+                auto json_str = serialize_cjson_as_runtime_str(builder, item);
+                env.printValue(builder, json_str.val, " expected i64, but got JSON: ");
+
+                builder.CreateBr(bb_done);
+                builder.SetInsertPoint(bb_done);
+                lfb.setLastBlock(bb_done);
+#endif
+
+
+                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_number, "dict.get() expected i64");
+                auto value = get_cjson_as_integer(builder, item);
+
+                env.printValue(builder, value, "retrieved i64 from cJSON: ");
+
+                return SerializableValue(value, env.i64Const(sizeof(int64_t)), nullptr);
+            }
+
+            if(python::Type::F64 == retType) {
+                auto is_not_number = env.i1neg(builder, call_cjson_isnumber(builder, item));
+                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_number, "dict.get() expected f64");
+
+                return SerializableValue(get_cjson_as_float(builder, item), env.i64Const(sizeof(int64_t)), nullptr);
+            }
+
+            if(python::Type::STRING == retType) {
+                auto is_not_string = env.i1neg(builder, call_cjson_isstring(builder, item));
+                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_string, "dict.get() expected str");
+
+                return get_cjson_as_string_value(builder, item);
+            }
+
+            // another generic dict?
+            if(python::Type::GENERICDICT == retType) {
+                auto is_not_object = env.i1neg(builder, call_cjson_isobject(builder, item));
+                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_object, "dict.get() expected dict");
+
+                return SerializableValue(item, nullptr, nullptr);
+            }
+
+            // list-decode is more complex
+            if(retType.isListType()) {
+
+                // check that item is an array
+                auto is_not_array = env.i1neg(builder, call_cjson_isarray(builder, item));
+                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_array, "dict.get() expected " + retType.desc());
+
+                if(python::Type::EMPTYLIST == retType) {
+                    // TODO: check here that it is empty array, and then return value. If not - exception.
+                }
+
+                auto list_element_type = retType.elementType();
+
+                // what is the element type?
+                if(list_element_type == python::Type::GENERICDICT) {
+                    // this is ok, can convert to proper list object!
+                    // --> should cache this function...
+
+                    auto is_not_array_of_objects = env.i1neg(builder, call_cjson_is_list_of_generic_dicts(builder, item));
+                    lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_array_of_objects, "item given is not array of objects, can't decode as List[Dict[pyobject,pyobject]]");
+
+                    auto ret = decode_list_of_generic_dicts_from_cjson(env, lfb, builder, item, false);
+                    lfb.setLastBlock(builder.GetInsertBlock());
+                    return ret;
+                }
+            }
+
+            // struct-decode is more complex
+
+            throw std::runtime_error("dict.get() for type " + retType.desc() + " not yet supported.");
+
+            // env.debugPrint(builder, "unsupported return type " + retType.desc() + " for dict.get(), normal-case violation.");
+            // lfb.exitNormalCase();
+
+            return {};
+        }
+
         SerializableValue FunctionRegistry::createGenericDictGetCall(tuplex::codegen::LambdaFunctionBuilder &lfb,
                                                                      llvm::IRBuilder<> &builder,
                                                                      const tuplex::codegen::SerializableValue &caller,
@@ -3206,102 +3399,84 @@ namespace tuplex {
             if(python::Type::STRING != key_type)
                 throw std::runtime_error("generic dict .get only supports key type str yet, but got " + key_type.desc());
 
+
             // retrieve object for key
             // call: c
             auto item = call_cjson_getitem(builder, caller.val);
 
-            // check for all the possible JSON types and then map to python types
-            // Json string
-            // Json number
-            // Json object
-            // Json array
-            // Json boolean
-            // Json null
 
-            if(python::Type::NULLVALUE == retType) {
-                auto is_not_null = _env.i1neg(builder, call_cjson_isnull(builder, item));
-                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_null, "dict.get() expected null");
-                return SerializableValue(nullptr, nullptr, _env.i1Const(true));
-            }
+            // handle cases of deoptimization (i.e., ret-type not considered option type)
+            if(argsTypes.size() == 1) {
 
-            if(python::Type::BOOLEAN == retType) {
+                // if retType is not given as option -> deoptimize.
+                auto require_deoptimization = !retType.isOptionType();
 
-            }
+                // check if item is valid, if nullptr -> normal-case violation basically.
+                auto item_not_found = builder.CreateICmpEQ(_env.i8nullptr(), item);
 
-            if(python::Type::I64 == retType) {
-                auto is_not_number = _env.i1neg(builder, call_cjson_isnumber(builder, item));
-
-#ifndef NDEBUG
-                //debug code
-                llvm::BasicBlock* bb_is_not = llvm::BasicBlock::Create(builder.getContext(), "is_not_number", builder.GetInsertBlock()->getParent());
-                llvm::BasicBlock* bb_done = llvm::BasicBlock::Create(builder.getContext(), "done", builder.GetInsertBlock()->getParent());
-
-                builder.CreateCondBr(is_not_number, bb_is_not, bb_done);
-                builder.SetInsertPoint(bb_is_not);
-
-                // debug print if not number
-                auto json_str = serialize_cjson_as_runtime_str(builder, item);
-                _env.printValue(builder, json_str.val, " expected i64, but got JSON: ");
-
-                builder.CreateBr(bb_done);
-                builder.SetInsertPoint(bb_done);
-                lfb.setLastBlock(bb_done);
-#endif
-
-
-                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_number, "dict.get() expected i64");
-
-                return SerializableValue(get_cjson_as_integer(builder, item), _env.i64Const(sizeof(int64_t)), nullptr);
-            }
-
-            if(python::Type::F64 == retType) {
-                auto is_not_number = _env.i1neg(builder, call_cjson_isnumber(builder, item));
-                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_number, "dict.get() expected f64");
-
-                return SerializableValue(get_cjson_as_float(builder, item), _env.i64Const(sizeof(int64_t)), nullptr);
-            }
-
-            if(python::Type::STRING == retType) {
-                auto is_not_string = _env.i1neg(builder, call_cjson_isstring(builder, item));
-                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_string, "dict.get() expected str");
-
-                return get_cjson_as_string_value(builder, item);
-            }
-
-            // another generic dict?
-            if(python::Type::GENERICDICT == retType) {
-                auto is_not_object = _env.i1neg(builder, call_cjson_isobject(builder, item));
-                lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_object, "dict.get() expected dict");
-
-                return SerializableValue(item, nullptr, nullptr);
-            }
-
-            // list-decode is more complex
-            if(retType.isListType()) {
-                if(python::Type::EMPTYLIST == retType) {
-                    // TODO: check here that it is empty array, and then return value. If not - exception.
+                if(require_deoptimization) {
+                    lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, item_not_found, "item not found, need to deoptimize because not typed as Option[" + retType.desc() + "] return type in dict.get call.");
                 }
 
-                auto list_element_type = retType.elementType();
+                // default value is None here. Create vars and decode then using if.
+                // use variable for result and store default value (here null!)
+                SerializableValue var;
+                var.val = _env.CreateFirstBlockAlloca(builder, _env.pythonToLLVMType(retType));
+                var.size = _env.CreateFirstBlockAlloca(builder, _env.i64Type());
+                var.is_null = _env.CreateFirstBlockAlloca(builder, _env.i1Type());
 
-                // what is the element type?
-                if(list_element_type == python::Type::GENERICDICT) {
-                    // this is ok, can convert to proper list object!
-                    // --> should cache this function...
+                // null variable and set to default (here anyways null)
+                builder.CreateStore(_env.nullConstant(var.val->getType()->getPointerElementType()), var.val);
+                builder.CreateStore(_env.i64Const(0), var.size);
+                builder.CreateStore(_env.i1Const(true), var.is_null); // indicate None!
 
 
+                auto bbDecodeItem = llvm::BasicBlock::Create(builder.getContext(), "decode_cjson_item", builder.GetInsertBlock()->getParent());
+                auto bbDecodeDone = llvm::BasicBlock::Create(builder.getContext(), "decode_done", builder.GetInsertBlock()->getParent());
+
+
+                // if item found -> decode!
+                builder.CreateCondBr(item_not_found, bbDecodeDone, bbDecodeItem);
+
+                {
+                    builder.SetInsertPoint(bbDecodeItem);
+                    lfb.setLastBlock(bbDecodeItem);
+                    auto v = decode_cjson_item(_env, lfb, builder, retType, item);
+
+
+                    if(v.val)
+                        builder.CreateStore(v.val, var.val);
+                    if(v.size)
+                    builder.CreateStore(v.size, var.size);
+                    if(v.is_null)
+                        builder.CreateStore(v.is_null, var.is_null);
+                    else
+                        builder.CreateStore(_env.i1Const(false), var.is_null);
+
+                    builder.CreateBr(bbDecodeDone);
                 }
+
+
+                builder.SetInsertPoint(bbDecodeDone);
+
+                // load variable!
+                auto ret_val = SerializableValue(builder.CreateLoad(var.val),
+                                                 builder.CreateLoad(var.size),
+                                                 builder.CreateLoad(var.is_null));
+                lfb.setLastBlock(builder.GetInsertBlock());
+                // _env.printValue(builder, ret_val.val, "value: ");
+                return ret_val; // test...
+
+            } else {
+                throw std::runtime_error("dict.get for 2 params not yet implemented");
             }
 
-            // struct-decode is more complex
+            // was item received?
+            // -> if not found and no default value is specified -> KeyError.
+            // else: return default value
 
 
-            throw std::runtime_error("dict.get() for type " + retType.desc() + " not yet supported.");
-
-            _env.debugPrint(builder, "unsupported return type " + retType.desc() + " for dict.get(), normal-case violation.");
-            lfb.exitNormalCase();
-
-            return {};
+           return {};
         }
 
         SerializableValue FunctionRegistry::createDictGetCall(LambdaFunctionBuilder &lfb, llvm::IRBuilder<> &builder,

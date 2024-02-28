@@ -620,7 +620,7 @@ namespace tuplex {
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
             } else if(elementType == python::Type::STRING
-                      || elementType == python::Type::PYOBJECT || elementType == python::Type::GENERICDICT) {
+                      || elementType == python::Type::PYOBJECT) {
                 std::vector<llvm::Type*> memberTypes;
                 memberTypes.push_back(i64Type()); // array capacity
                 memberTypes.push_back(i64Type()); // size
@@ -630,7 +630,7 @@ namespace tuplex {
                     memberTypes.push_back(i8ptrType()); // bool-array
                 llvm::ArrayRef<llvm::Type *> members(memberTypes);
                 retType = llvm::StructType::create(_context, members, "struct." + twine, false);
-            } else if(elementType.isStructuredDictionaryType()) {
+            } else if(elementType.isStructuredDictionaryType() || elementType == python::Type::GENERICDICT) {
                 auto llvm_element_type = getOrCreateStructuredDictType(elementType);
 
                 // pointer to the structured dict type!
@@ -1598,7 +1598,7 @@ namespace tuplex {
                 return Type::getInt8PtrTy(_context);
 
             // string type is a primitive, hence we can return it
-            if (t == python::Type::STRING || t == python::Type::GENERICDICT ||
+            if (t == python::Type::STRING ||
                 t == python::Type::PYOBJECT)
                 return Type::getInt8PtrTy(_context);
 

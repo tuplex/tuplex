@@ -947,6 +947,51 @@ namespace tuplex {
             return builder.CreateZExtOrTrunc(builder.CreateCall(func, {cjson_obj}), llvm::Type::getInt1Ty(ctx));
         }
 
+        llvm::Value* call_cjson_isarray(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj) {
+            assert(cjson_obj);
+            assert(builder.GetInsertBlock());
+            assert(builder.GetInsertBlock()->getParent());
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = mod->getContext();
+            auto func = getOrInsertFunction(mod, "cJSON_IsArray", ctypeToLLVM<cJSON_AS4CPP_bool>(ctx),
+                                            (llvm::Type*)llvm::Type::getInt8PtrTy(ctx, 0));
+
+            return builder.CreateZExtOrTrunc(builder.CreateCall(func, {cjson_obj}), llvm::Type::getInt1Ty(ctx));
+        }
+
+        llvm::Value* call_cjson_getarraysize(llvm::IRBuilder<>& builder, llvm::Value* cjson_array) {
+            assert(cjson_array);
+            assert(builder.GetInsertBlock());
+            assert(builder.GetInsertBlock()->getParent());
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = mod->getContext();
+            auto func = getOrInsertFunction(mod, "cJSON_GetArraySize", ctypeToLLVM<int>(ctx),
+                                            (llvm::Type*)llvm::Type::getInt8PtrTy(ctx, 0));
+
+            return builder.CreateZExtOrTrunc(builder.CreateCall(func, {cjson_array}), llvm::Type::getInt64Ty(ctx));
+        }
+
+        SerializableValue get_cjson_array_item(llvm::IRBuilder<>& builder, llvm::Value* cjson_array, llvm::Value* idx) {
+
+            assert(cjson_array);
+            assert(builder.GetInsertBlock());
+            assert(builder.GetInsertBlock()->getParent());
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = mod->getContext();
+            auto func = getOrInsertFunction(mod, "cJSON_GetArrayItem", llvm::Type::getInt8PtrTy(ctx, 0),
+                                            (llvm::Type*)llvm::Type::getInt8PtrTy(ctx, 0), ctypeToLLVM<int>(ctx));
+
+            auto item = builder.CreateCall(func, {cjson_array, builder.CreateZExtOrTrunc(idx,
+                                                                                                              ctypeToLLVM<int>(ctx))});
+            return {item, nullptr, nullptr};
+        }
+
         llvm::Value* call_cjson_isstring(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj) {
             assert(cjson_obj);
             assert(builder.GetInsertBlock());

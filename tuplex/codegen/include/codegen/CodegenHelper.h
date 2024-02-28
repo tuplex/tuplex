@@ -862,6 +862,7 @@ namespace tuplex {
         extern llvm::Value* call_cjson_isnull(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
         extern llvm::Value* call_cjson_isstring(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
         extern llvm::Value* call_cjson_isobject(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
+        extern llvm::Value* call_cjson_isarray(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
         extern llvm::Value* get_cjson_as_integer(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
         extern llvm::Value* get_cjson_as_float(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
         extern SerializableValue get_cjson_as_string_value(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
@@ -871,6 +872,10 @@ namespace tuplex {
         extern llvm::Value* call_simdjson_to_cjson_object(llvm::IRBuilder<>& builder, llvm::Value* json_item);
 
         [[maybe_unused]] extern SerializableValue serialize_cjson_as_runtime_str(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
+
+
+        extern llvm::Value* call_cjson_getarraysize(llvm::IRBuilder<>& builder, llvm::Value* cjson_array);
+        extern SerializableValue get_cjson_array_item(llvm::IRBuilder<>& builder, llvm::Value* cjson_array, llvm::Value* idx);
 
         // extended cjson function to check homogeneity of list
         [[maybe_unused]] extern llvm::Value* call_cjson_is_list_of_generic_dicts(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);

@@ -130,6 +130,20 @@ namespace tuplex {
         return true;
     }
 
+    extern "C" char* cJSON_PrintUnformattedEx(cJSON* obj) {
+
+        auto ret = cJSON_PrintUnformatted(obj);
+
+        if(!ret) {
+            obj = cJSON_CreateString("nullptr");
+            ret = cJSON_PrintUnformatted(obj);
+
+            assert(ret);
+        }
+
+        return ret;
+    }
+
     JITCompiler::JITCompiler(const llvm::CodeGenOpt::Level& codegen_opt_level) {
         codegen::initLLVM(); // lazy initialization of LLVM backend.
 
@@ -282,7 +296,7 @@ namespace tuplex {
         // AWS SDK cJSON
 #ifdef BUILD_WITH_AWS
         // cJSON_PrintUnformatted, cJSON_AddItemToObject, cJSON_CreateObject, cJSON_DetachItemViaPointer, cJSON_CreateString
-        registerSymbol("cJSON_PrintUnformatted", cJSON_PrintUnformatted);
+        registerSymbol("cJSON_PrintUnformatted", cJSON_PrintUnformattedEx);
         registerSymbol("cJSON_AddItemToObject", cJSON_AddItemToObject);
         registerSymbol("cJSON_CreateObject", cJSON_CreateObject);
         registerSymbol("cJSON_DetachItemViaPointer", cJSON_DetachItemViaPointer);

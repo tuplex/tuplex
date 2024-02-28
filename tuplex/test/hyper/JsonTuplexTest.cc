@@ -379,7 +379,7 @@ namespace tuplex {
             // optimize
             LLVMOptimizer opt; opt.optimizeModule(*env.getModule());
 
-            //annotateModuleWithInstructionPrint(*env.getModule());
+            // annotateModuleWithInstructionPrint(*env.getModule());
 
             // --- gen done ---, compile...
             bool rc_compile = jit.compile(std::move(env.getModule()));

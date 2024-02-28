@@ -71,8 +71,7 @@ namespace tuplex {
                 }
 
             } else if(elementType == python::Type::STRING
-                      || elementType == python::Type::PYOBJECT
-                      || elementType == python::Type::GENERICDICT) {
+                      || elementType == python::Type::PYOBJECT) {
 
                 // string array/pyobject array is special. It contains 4 members! capacity, size and then arrays for the values and sizes
                 auto idx_capacity = CreateStructGEP(builder, list_ptr, 0); assert(idx_capacity->getType() == env.i64ptrType());
@@ -90,7 +89,7 @@ namespace tuplex {
                     auto idx_opt_values = CreateStructGEP(builder, list_ptr, 4);
                     builder.CreateStore(env.nullConstant(env.i8ptrType()), idx_opt_values);
                 }
-            } else if(elementType.isStructuredDictionaryType()) {
+            } else if(elementType.isStructuredDictionaryType() || elementType == python::Type::GENERICDICT) {
                 // pointer to the structured dict type!
 
                 // pointers to the list type!
@@ -101,10 +100,16 @@ namespace tuplex {
                 auto idx_size = CreateStructGEP(builder, list_ptr, 1); assert(idx_size->getType() == env.i64ptrType());
                 builder.CreateStore(env.i64Const(0), idx_size);
 
-                auto llvm_element_type = env.getOrCreateStructuredDictType(elementType);
+
 
                 auto idx_values = CreateStructGEP(builder, list_ptr, 2);
-                builder.CreateStore(env.nullConstant(llvm_element_type->getPointerTo()), idx_values);
+
+                if(elementType.isStructuredDictionaryType()) {
+                    auto llvm_element_type = env.getOrCreateStructuredDictType(elementType);
+                    builder.CreateStore(env.nullConstant(llvm_element_type->getPointerTo()), idx_values);
+                } else {
+                    builder.CreateStore(env.nullConstant(env.i8ptrType()), idx_values);
+                }
 
                 if(elements_optional) {
                     auto idx_opt_values = CreateStructGEP(builder, list_ptr, 3);
@@ -238,7 +243,7 @@ namespace tuplex {
                 list_init_array(env, builder, list_ptr, capacity, 3, initialize);
                 if(elements_optional)
                     list_init_array(env, builder, list_ptr, capacity, 4, initialize);
-            } else if(elementType.isStructuredDictionaryType()) {
+            } else if(elementType.isStructuredDictionaryType() || elementType == python::Type::GENERICDICT) {
 
                 // pointer to the structured dict type!
                 // similar to above - yet, keep it here extra for more control...

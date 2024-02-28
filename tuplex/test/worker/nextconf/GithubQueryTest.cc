@@ -151,6 +151,11 @@ namespace tuplex {
                 co.set(kv.first, kv.second);
 
 
+        // test: focus on single file
+        input_pattern = "/hot/data/github_daily/2011-10-15.json";
+        // correct data should be:
+        // "num_input_rows": 48899, "num_output_rows": 1418
+
         // --> slow path is SUPER SLOW to compile. need to improve, use this here to make testing faster.
         // make testing faster...
         // co.set("tuplex.resolveWithInterpreterOnly", "true");

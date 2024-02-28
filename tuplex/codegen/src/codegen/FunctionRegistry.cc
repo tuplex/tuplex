@@ -3402,7 +3402,7 @@ namespace tuplex {
 
             // retrieve object for key
             // call: c
-            auto item = call_cjson_getitem(builder, caller.val);
+            auto item = call_cjson_getitem(builder, caller.val, args.front().val);
 
 
             // handle cases of deoptimization (i.e., ret-type not considered option type)

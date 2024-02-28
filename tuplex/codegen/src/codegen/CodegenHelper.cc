@@ -891,8 +891,9 @@ namespace tuplex {
             return j;
         }
 
-        llvm::Value* call_cjson_getitem(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj) {
+        llvm::Value* call_cjson_getitem(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj, llvm::Value* key) {
             assert(cjson_obj);
+            assert(key);
             assert(builder.GetInsertBlock());
             assert(builder.GetInsertBlock()->getParent());
             auto mod = builder.GetInsertBlock()->getParent()->getParent();
@@ -900,9 +901,9 @@ namespace tuplex {
 
             auto& ctx = mod->getContext();
             auto func = getOrInsertFunction(mod, "cJSON_GetObjectItemCaseSensitive", llvm::Type::getInt8PtrTy(ctx, 0),
-                                            (llvm::Type*)llvm::Type::getInt8PtrTy(ctx, 0));
+                                            llvm::Type::getInt8PtrTy(ctx, 0), llvm::Type::getInt8PtrTy(ctx, 0));
 
-            return builder.CreateCall(func, {cjson_obj});
+            return builder.CreateCall(func, {cjson_obj, key});
         }
 
         llvm::Value* call_cjson_isnumber(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj) {

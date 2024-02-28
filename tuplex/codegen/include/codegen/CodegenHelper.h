@@ -171,6 +171,26 @@ namespace tuplex {
                 return _constantType;
             }
 
+            inline std::string to_string() const {
+                // format string nicely
+                std::stringstream ss;
+
+                switch(type) {
+                    case CheckType::CHECK_CONSTANT: {
+                        ss<<"constant check";
+                        break;
+                    }
+                    case CheckType::CHECK_FILTER: {
+                        ss<<"filter check";
+                        break;
+                    }
+                    default:
+                        ss<<"unknown check ("<<static_cast<int>(type)<<")";
+                }
+
+                return ss.str();
+            }
+
 #ifdef BUILD_WITH_CEREAL
             template<class Archive> void serialize(Archive & ar) {
                     ar(colNos, type, _constantType, _iMin, _iMax, _serializedCheck);

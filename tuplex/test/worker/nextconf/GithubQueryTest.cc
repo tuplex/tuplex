@@ -142,10 +142,11 @@ namespace tuplex {
 
         // @TODO: non-hyper mode doesn't work yet ??
         // hyper-moder returns empty files ??
+        auto use_hyper = false; // should work for both true/false.
 
         // set input/output paths
         // auto exp_settings = lambdaSettings(true);
-        auto exp_settings = localWorkerSettings(false); //
+        auto exp_settings = localWorkerSettings(use_hyper); //
         auto input_pattern = exp_settings["input_path"];
         auto output_path = exp_settings["output_path"];
         SamplingMode sm = static_cast<SamplingMode>(stoi(exp_settings["sampling_mode"]));
@@ -155,10 +156,10 @@ namespace tuplex {
                 co.set(kv.first, kv.second);
 
 
-        // test: focus on single file
-        input_pattern = "/hot/data/github_daily/2011-10-15.json";
-        // correct data should be:
-        // "num_input_rows": 48899, "num_output_rows": 1418
+            // test: focus on single file
+            input_pattern = "/hot/data/github_daily/2011-10-15.json";
+            // correct data should be:
+            // "num_input_rows": 48899, "num_output_rows": 1418
 
         // --> slow path is SUPER SLOW to compile. need to improve, use this here to make testing faster.
         // make testing faster...

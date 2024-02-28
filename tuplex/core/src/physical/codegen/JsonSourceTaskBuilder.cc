@@ -279,10 +279,9 @@ namespace tuplex {
                     // create reduced input type for quick parsing
                     assert(_inputRowType.isTupleType() || _inputRowType.isRowType());
                 } else {
-                    throw std::runtime_error("Check not supported for JsonSourceTaskBuilder");
+                    throw std::runtime_error("Check " + check.to_string() + " not supported for JsonSourceTaskBuilder");
                 }
             }
-
         }
 
         void JsonSourceTaskBuilder::initVars(llvm::IRBuilder<> &builder) {

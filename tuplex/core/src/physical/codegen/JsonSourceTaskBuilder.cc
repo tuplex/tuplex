@@ -613,7 +613,7 @@ namespace tuplex {
                         throw std::runtime_error("invalid function from pipeline builder in JsonSourceTaskBuilder");
                     auto row_no = rowNumber(builder);
                     auto intermediate = initIntermediate(builder);
-                    // _env->debugPrint(builder, "Calling pipeline on rowno: ", row_no);
+                     _env->debugPrint(builder, "Calling pipeline on rowno: ", row_no);
                     auto pip_res = PipelineBuilder::call(builder, processRowFunc, normal_case_row, userData, row_no, intermediate);
 
 #ifdef JSON_PARSER_TRACE_MEMORY
@@ -625,7 +625,7 @@ namespace tuplex {
                     auto ecOpID = builder.CreateZExtOrTrunc(pip_res.exceptionOperatorID, env().i64Type());
                     auto numRowsCreated = builder.CreateZExtOrTrunc(pip_res.numProducedRows, env().i64Type());
 
-                    // env().printValue(builder, ecCode, "pip ecCode= ");
+                     env().printValue(builder, ecCode, "pip ecCode= ");
 
                     // if ecCode != success -> inc bad normal count.
                     // do this here branchless
@@ -650,6 +650,8 @@ namespace tuplex {
                     builder.CreateBr(bNext);
                     builder.SetInsertPoint(bNext);
 #endif
+
+#error "exception handling for JSON not yet implemented???"
                 }
 
                 // serialized size (as is)

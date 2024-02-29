@@ -165,6 +165,9 @@ namespace tuplex {
             }
 
             llvm::Function *build(bool terminateEarlyOnLimitCode) override;
+
+            std::tuple<python::Type, std::string>
+            extract_type_and_value_from_constant_check(const NormalCaseCheck &check) const;
         };
 
 

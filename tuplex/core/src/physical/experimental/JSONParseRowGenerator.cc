@@ -1300,6 +1300,10 @@ namespace tuplex {
                     std::tie(rc, value) = decodeTuple(builder, obj, key, v_type);
                 } else if(v_type == python::Type::GENERICDICT) {
                     std::tie(rc, value) = decodeGenericDict(builder, obj, key);
+                } else if(v_type.isConstantValued()) {
+                    // create constant -> check needs to enforce this is correct. Always successful!
+                    rc = _env.i64Const(ecToI64(ExceptionCode::SUCCESS));
+                    value = constantValuedTypeToLLVM(builder, v_type);
                 } else {
                     throw std::runtime_error("encountered unsupported value type " + value_type.desc());
                 }

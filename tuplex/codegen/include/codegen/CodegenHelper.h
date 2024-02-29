@@ -230,6 +230,23 @@ namespace tuplex {
             std::string _serializedCheck;
         };
 
+        inline  std::tuple<python::Type, std::string> extract_type_and_value_from_constant_check(const NormalCaseCheck &check) {
+            assert(check.type == CheckType::CHECK_CONSTANT);
+            auto const_type = check.constant_type();
+            assert(const_type.isConstantValued());
+            auto elementType= const_type.underlying();
+            auto value = const_type.constant();// performing check against string constant
+            if(elementType.isOptionType()) {
+                // is the constant null? None?
+                if(value == "None" || value == "null")  {
+                    elementType = python::Type::NULLVALUE;
+                } else
+                    elementType = elementType.elementType();
+            }
+
+            return std::make_tuple(elementType, value);
+        }
+
         // helper function to determine number of predecessors
         inline size_t successorCount(llvm::BasicBlock* block) {
             assert(block);

@@ -90,6 +90,64 @@ namespace tuplex {
             return func;
         }
 
+        std::vector<int>
+        JsonSourceTaskBuilder::columns_required_for_checks(const std::vector<NormalCaseCheck> &checks) const {
+            std::set<int> columns;
+            for(const auto& check : checks) {
+                switch(check.type) {
+                    case CheckType::CHECK_CONSTANT: {
+                        if(!check.isSingleColCheck())
+                            throw std::runtime_error("only single col constant check yet supported.");
+
+                        std::stringstream ss;
+                        ss<<"Found normal case check (constant) for column "<<check.colNo();
+                        logger().debug(ss.str());
+                        columns.insert(check.colNo());
+                        break;
+                    }
+                    case CheckType::CHECK_FILTER: {
+                        throw std::runtime_error("not yet implemented");
+                        break;
+                    }
+                    default:
+                        throw std::runtime_error("Found check " + check.to_string() + " for which columns required can't be determined.");
+                }
+            }
+
+            auto ret = std::vector<int>{columns.begin(), columns.end()};
+            std::sort(ret.begin(), ret.end());
+            return ret;
+        }
+
+        std::tuple<FlattenedTuple, std::unordered_map<int, int>>
+        JsonSourceTaskBuilder::parse_selected_columns(llvm::IRBuilder<> &builder,
+                                                      const std::vector<int> &columns_to_parse, llvm::Value *parser,
+                                                      llvm::BasicBlock *bbBadParse) const {
+            using namespace llvm;
+            assert(parser);
+            assert(bbBadParse);
+
+            std::vector<python::Type> col_types_to_parse;
+            std::vector<std::string> col_names_to_parse;
+            std::tie(col_types_to_parse, col_names_to_parse) = get_column_types_and_names(std::vector<size_t>(columns_to_parse.begin(), columns_to_parse.end()));
+
+            for(auto& t: col_types_to_parse)
+                t = deoptimizedType(t);
+            auto row_type = python::Type::makeTupleType(col_types_to_parse);
+
+            auto tuple_row_type = row_type.isRowType() ? row_type.get_columns_as_tuple_type() : row_type;
+            assert(row_type_compatible_with_columns(tuple_row_type, col_names_to_parse));
+            auto ft = json_parseRow(*_env.get(), builder, tuple_row_type, col_names_to_parse, true, false, parser, bbBadParse);
+
+
+            std::unordered_map<int, int> m;
+            for(unsigned i = 0; i < columns_to_parse.size(); ++i) {
+                m[columns_to_parse[i]] = i;
+            }
+
+            return std::make_tuple(ft, m);
+        }
+
         void
         JsonSourceTaskBuilder::generateChecks(llvm::IRBuilder<> &builder,
                                               llvm::Value *userData,
@@ -106,6 +164,28 @@ namespace tuplex {
 
             // which checks are available?
             auto checks = this->checks();
+
+            // for all checks, determine which columns are required.
+            // then, parse once the required columns
+            auto required_cols_for_check = columns_required_for_checks(checks);
+
+            {
+                std::stringstream ss;
+                std::vector<std::string> required_column_names;
+                for(auto i : required_cols_for_check)
+                    if(_normal_case_columns.empty())
+                        required_column_names.push_back("<no name>");
+                    else {
+                        required_column_names.push_back(_normal_case_columns[i]);
+                    }
+                ss<<"Following columns are to be parsed for checks: "<<required_cols_for_check<<" ("<<required_column_names<<")";
+                logger().debug(ss.str());
+            }
+
+            // parse here into single flattened tuple & map
+            FlattenedTuple ft_for_checks(_env.get());
+            std::unordered_map<int, int> col_to_check_col_map;
+            std::tie(ft_for_checks, col_to_check_col_map) = parse_selected_columns(builder, required_cols_for_check, parser, bbBadRow);
 
             for(const auto& check : checks) {
                 if(check.type == CheckType::CHECK_FILTER) {
@@ -141,16 +221,7 @@ namespace tuplex {
 
                     std::vector<std::string> acc_column_names;
                     std::vector<python::Type> acc_col_types;
-                    for(auto idx : acc_cols) {
-                        if(_inputRowType.isRowType()) {
-                            assert(vec_equal(_normal_case_columns, _inputRowType.get_column_names()));
-                            acc_column_names.push_back(_inputRowType.get_column_name(idx));
-                            acc_col_types.push_back(_inputRowType.get_column_type(idx));
-                        } else {
-                            acc_column_names.push_back(_normal_case_columns[idx]);
-                            acc_col_types.push_back(_inputRowType.parameters()[idx]);
-                        }
-                    }
+                    std::tie(acc_col_types, acc_column_names) = get_column_types_and_names(acc_cols);
 
                     // however, these here should show correct columns/types.
                     ss<<"filter input columns: "<<acc_column_names<<"\n";
@@ -278,10 +349,63 @@ namespace tuplex {
 
                     // create reduced input type for quick parsing
                     assert(_inputRowType.isTupleType() || _inputRowType.isRowType());
+                } else if(check.type == CheckType::CHECK_CONSTANT && check.isSingleColCheck()) {
+                    // is column being serialized? If so - emit check.
+
+                    {
+                        std::stringstream ss;
+                        ss<<"general-case requires column, emit code for constant check == "
+                          <<check.constant_type().constant()
+                          <<" for column "<<check.colNo();
+                        logger().info(ss.str());
+                    }
+
+                    // retrieve corresponding column
+                    auto val = ft_for_checks.getLoad(builder, {col_to_check_col_map[check.colNo()]});
+
+                    python::Type elementType;
+                    std::string  constant_value;
+                    std::tie(elementType, constant_value) = extract_type_and_value_from_constant_check(check);
+                    llvm::Value* check_cond = nullptr;
+                    if(python::Type::BOOLEAN == elementType) {
+                        // compare value
+                        auto c_val = parseBoolString(constant_value);
+                        check_cond = builder.CreateICmpEQ(_env->boolConst(c_val), val.val);
+                    } else {
+                        throw std::runtime_error("Check with type " + check.constant_type().desc() + " not yet supported");
+                    }
+
+                    auto& ctx = builder.getContext();
+                    BasicBlock* bbCheckPassed = BasicBlock::Create(ctx, "constant_check_" + std::to_string(check.colNo()) + "_passed", builder.GetInsertBlock()->getParent());
+
+                    // if cond is met, proceed - else go to bad parse
+                    builder.CreateCondBr(check_cond, bbCheckPassed, bbBadRow);
+
+                    builder.SetInsertPoint(bbCheckPassed);
+
+                    _env->debugPrint(builder, "constant check passed.");
                 } else {
                     throw std::runtime_error("Check " + check.to_string() + " not supported for JsonSourceTaskBuilder");
                 }
             }
+        }
+
+        std::tuple<std::vector<python::Type>, std::vector<std::string>>
+        JsonSourceTaskBuilder::get_column_types_and_names(const std::vector<size_t> &acc_cols) const {
+            std::vector<std::string> acc_column_names;
+            std::vector<python::Type> acc_col_types;
+            for(auto idx : acc_cols) {
+                if(_inputRowType.isRowType()) {
+                    assert(vec_equal(_normal_case_columns, _inputRowType.get_column_names()));
+                    acc_column_names.push_back(_inputRowType.get_column_name(idx));
+                    acc_col_types.push_back(_inputRowType.get_column_type(idx));
+                } else {
+                    acc_column_names.push_back(_normal_case_columns[idx]);
+                    acc_col_types.push_back(_inputRowType.parameters()[idx]);
+                }
+            }
+
+            return std::make_tuple(acc_col_types, acc_column_names);
         }
 
         void JsonSourceTaskBuilder::initVars(llvm::IRBuilder<> &builder) {

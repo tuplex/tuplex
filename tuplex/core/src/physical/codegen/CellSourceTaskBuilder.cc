@@ -496,25 +496,14 @@ namespace tuplex {
                                         logger.info(ss.str());
                                     }
 
-                                    auto const_type = check.constant_type();
-                                    // performing check against string constant
-                                    assert(const_type.isConstantValued());
-                                    auto elementType = const_type.underlying();
-
-                                    auto value = const_type.constant();
-                                    if(elementType.isOptionType()) {
-                                        // is the constant null? None?
-                                        if(value == "None" || value == "null")  {
-                                            elementType = python::Type::NULLVALUE;
-                                        } else
-                                            elementType = elementType.elementType();
-                                    }
+                                    python::Type elementType;
+                                    std::string  constant_value;
+                                    std::tie(elementType, constant_value) = codegen::extract_type_and_value_from_constant_check(check);
 
                                     if(python::Type::STRING == elementType) {
                                         // direct compare
                                         auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
                                         // _env->debugPrint(builder, "Checking whether cellsize==", _env->i64Const(const_type.constant().size() + 1));
-                                        auto constant_value = const_type.constant(); // <-- constant has the actual value here!
                                         check_cond = builder.CreateICmpEQ(val.size, _env->i64Const(constant_value.size() + 1));
                                         check_cond = builder.CreateAnd(check_cond, _env->fixedSizeStringCompare(builder, val.val, constant_value));
                                     } else if(python::Type::NULLVALUE == elementType) {
@@ -526,7 +515,7 @@ namespace tuplex {
                                         auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
 
                                         // compare value
-                                        auto c_val = parseBoolString(const_type.constant());
+                                        auto c_val = parseBoolString(constant_value);
                                         check_cond = builder.CreateICmpEQ(_env->boolConst(c_val), val.val);
                                     } else if(python::Type::I64 == elementType) {
 
@@ -534,19 +523,17 @@ namespace tuplex {
                                         // i.e. use https://news.ycombinator.com/item?id=21019007 intrinsic.
                                         // can also use that intrinsic for string comparison!
 
-                                        auto const_string = value;
-
                                         auto sizePtr = builder.CreateGEP(sizesPtr, env().i64Const(i));
                                         auto str_size = builder.CreateLoad(sizePtr);
                                         // size correct?
-                                        auto size_ok = builder.CreateICmpEQ(str_size, env().i64Const(value.size() + 1));
+                                        auto size_ok = builder.CreateICmpEQ(str_size, env().i64Const(constant_value.size() + 1));
                                         auto ptr = builder.CreateLoad(builder.CreateGEP(cellsPtr, env().i64Const(i)));
                                         const auto& DL = env().getModule()->getDataLayout();
 
                                         // should be optimized to bcmp
                                         auto memcmpFunc = memcmp_prototype(env().getContext(), env().getModule().get());
-                                        auto n = env().i64Const(value.size());
-                                        auto cmp_ptr = env().strConst(builder, value);
+                                        auto n = env().i64Const(constant_value.size());
+                                        auto cmp_ptr = env().strConst(builder, constant_value);
                                         assert(ptr);
                                         assert(ptr->getType() == env().i8ptrType());
                                         assert(cmp_ptr->getType() == env().i8ptrType());
@@ -558,7 +545,7 @@ namespace tuplex {
                                         auto val = cachedParse(builder, elementType, i, cellsPtr, sizesPtr);
 
                                         // compare value
-                                        auto c_val = parseF64String(const_type.constant());
+                                        auto c_val = parseF64String(constant_value);
                                         // todo: compare maybe a with abs?
                                         check_cond = builder.CreateFCmpOEQ(_env->f64Const(c_val), val.val);
                                     } else {

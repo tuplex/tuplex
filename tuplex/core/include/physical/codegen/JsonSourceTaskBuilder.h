@@ -79,6 +79,13 @@ namespace tuplex {
                                 llvm::BasicBlock* bbSkipRow,
                                 llvm::BasicBlock* bbBadRow);
 
+            std::vector<int> columns_required_for_checks(const std::vector<NormalCaseCheck>& checks) const;
+
+            std::tuple<FlattenedTuple, std::unordered_map<int, int>> parse_selected_columns(llvm::IRBuilder<>& builder,
+                                                                                            const std::vector<int>& columns_to_parse,
+                                                                                            llvm::Value* parser,
+                                                                                            llvm::BasicBlock* bbBadParse) const;
+
             inline llvm::Value* incVar(llvm::IRBuilder<>& builder, llvm::Value* var, llvm::Value* what_to_add) {
                 llvm::Value* val = builder.CreateLoad(var);
                 val = builder.CreateAdd(val, what_to_add);
@@ -141,6 +148,9 @@ namespace tuplex {
                                                 int64_t operatorID,
                                                 llvm::Value* row_no,
                                                 const FlattenedTuple& general_case_row);
+
+            std::tuple<std::vector<python::Type>, std::vector<std::string>>
+            get_column_types_and_names(const std::vector<size_t> &acc_cols) const;
         };
 
 

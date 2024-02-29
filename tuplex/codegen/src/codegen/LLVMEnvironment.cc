@@ -2858,6 +2858,8 @@ namespace tuplex {
                 }
             } else if(python::Type::NULLVALUE == type) {
                 retVal.is_null = env.i1Const(true);
+            } else if(type.isConstantValued()) {
+                return CreateDummyValue(env, builder, type.underlying());
             } else {
                 throw std::runtime_error("no support to create dummy value for " + type.desc() + " yet.");
             }

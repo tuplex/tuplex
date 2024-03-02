@@ -651,7 +651,22 @@ namespace tuplex {
                     builder.SetInsertPoint(bNext);
 #endif
 
-#error "exception handling for JSON not yet implemented???"
+                    if(hasExceptionHandler()) {
+
+                        // normal case row is parsed - can it be converted to general case row?
+                        // if so emit directly, if not emit fallback row.
+                        auto normal_case_row_type = _normalCaseRowType;
+                        auto general_case_row_type = _generalCaseRowType;
+
+                        if(python::canUpcastType(normal_case_row_type, general_case_row_type)) {
+                            logger().debug("found exception handler in JSON source task builder, serializing exceptions in general case format.");
+
+
+                        } else {
+                            logger().debug("normal case row and general case row not compatible, emitting exceptions as fallback rows.");
+                        }
+                        throw std::runtime_error("need to implement exception handling here");
+                    }
                 }
 
                 // serialized size (as is)

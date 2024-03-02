@@ -404,3 +404,18 @@ TEST(TypeSys, RowTypeCreation) {
         }
     }
 }
+
+TEST(TypeSys, RowTypeUpcast) {
+    using namespace tuplex;
+
+    auto major_encoded="Row['type'->Option[str],'public'->Option[bool],'actor'->Option[Dict[pyobject,pyobject]],'created_at'->Option[str],'payload'->Option[Dict[pyobject,pyobject]],'id'->Option[str],'repo'->Option[Dict[pyobject,pyobject]],'org'->Option[Dict[pyobject,pyobject]]]";
+    auto minor_encoded = "Row['type'->str,'public'->_Constant[bool,value=\"True\"],'actor'->Dict[pyobject,pyobject],'created_at'->str,'payload'->Dict[pyobject,pyobject],'id'->str,'repo'->Dict[pyobject,pyobject],'org'->Option[Dict[pyobject,pyobject]]]";
+
+    auto major = python::Type::decode(major_encoded);
+    auto minor = python::Type::Type::decode(minor_encoded);
+
+    ASSERT_TRUE(major.isRowType());
+    ASSERT_TRUE(minor.isRowType());
+
+    EXPECT_TRUE(python::canUpcastType(minor, major));
+}

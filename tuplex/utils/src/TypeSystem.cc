@@ -1483,7 +1483,7 @@ namespace python {
             return true;
 
         // NOTE: optimizing types should come first...
-        // optimizing types -> i.e. deoptimized/optimized version should be interchangeabke
+        // optimizing types -> i.e. deoptimized/optimized version should be interchangeable
         // @TODO: hack. should have one set of things for all the opts
         if(from.isConstantValued())
             return canUpcastType(from.underlying(), to);
@@ -1615,6 +1615,39 @@ namespace python {
             }
         }
 
+        // row types
+        if(from.isRowType() && to.isRowType()) {
+            // check number of columns, if not equal -> false
+            if(from.get_column_count() != to.get_column_count())
+                return false;
+
+            // same column count, check names
+            auto from_names = from.get_column_names();
+            auto to_names = to.get_column_names();
+
+            if(from_names.size() != to_names.size())
+                return false;
+            // order may be different when names are present, so do in-check
+           std::vector<int> to_indices;
+           int pos = 0;
+            for(const auto& name : from_names) {
+                auto it = std::find(to_names.cbegin(), to_names.cend(), name);
+                if(it == to_names.end())
+                    return false;
+                to_indices.push_back(std::distance(to_names.cbegin(), it));
+                pos++;
+            }
+
+            // check whether types can be upcast
+            auto from_types = from.get_column_types();
+            for(unsigned i = 0; i < from_types.size(); ++i) {
+                if(!canUpcastType(from_types[i], to.get_column_type(to_indices[i])))
+                    return false;
+            }
+            return true;
+        }
+
+
         return false;
     }
 
@@ -1626,7 +1659,7 @@ namespace python {
      */
     bool canUpcastToRowType(const python::Type& minor, const python::Type& major) {
         if(!minor.isTupleType() || !major.isTupleType())
-            throw std::runtime_error("upcast check requies both types to be tuple types!");
+            throw std::runtime_error("upcast check requires both types to be tuple types!");
 
         auto num_cols = minor.parameters().size();
 

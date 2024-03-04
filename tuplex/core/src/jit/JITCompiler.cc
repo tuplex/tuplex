@@ -32,6 +32,7 @@
 #include <third_party/ryu/ryu.h>
 
 #include <physical/experimental/JsonHelper.h>
+#include "jit/RuntimeInterface.h"
 
 namespace tuplex {
 
@@ -142,6 +143,35 @@ namespace tuplex {
         }
 
         return ret;
+    }
+
+    extern "C" char* cJSON_TypeAsString(cJSON* obj) {
+
+        std::string s;
+
+        if(!obj)
+            s = "<nullptr>";
+        else {
+            if(cJSON_IsArray(obj))
+                s = "array";
+            if(cJSON_IsObject(obj))
+                s = "object";
+            if(cJSON_IsNull(obj))
+                s = "null";
+            if(cJSON_IsNumber(obj))
+                s = "number";
+            if(cJSON_IsBool(obj))
+                s = "bool";
+            if(cJSON_IsString(obj))
+                s = "string";
+            if(cJSON_IsInvalid(obj))
+                s = "invalid";
+        }
+
+        auto str = (char*)runtime::rtmalloc(s.size() + 1);
+        memset(str, 0, s.size() + 1);
+        strcpy(str, s.c_str());
+        return str;
     }
 
     JITCompiler::JITCompiler(const llvm::CodeGenOpt::Level& codegen_opt_level) {
@@ -312,6 +342,7 @@ namespace tuplex {
 
         // extended functions
         registerSymbol("cJSON_IsArrayOfObjects", cJSON_IsArrayOfObjects);
+        registerSymbol("cJSON_TypeAsString", cJSON_TypeAsString);
 
         registerSymbol("debug_printf", debug_printf);
 

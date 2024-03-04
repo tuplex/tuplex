@@ -1097,5 +1097,15 @@ namespace tuplex {
 
             return builder.CreateCall(func, {json_item});
         }
+
+        extern llvm::Value* call_cjson_type_as_str(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj) {
+            auto mod = builder.GetInsertBlock()->getParent()->getParent();
+            assert(mod);
+
+            auto& ctx = mod->getContext();
+            auto func = getOrInsertFunction(mod, "cJSON_TypeAsString", llvm::Type::getInt8PtrTy(ctx, 0), llvm::Type::getInt8PtrTy(ctx, 0));
+
+            return builder.CreateCall(func, {cjson_obj});
+        }
     }
 }

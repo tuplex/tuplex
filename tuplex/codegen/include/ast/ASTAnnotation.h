@@ -587,6 +587,32 @@ namespace tuplex {
             if(t != python::Type::NULLVALUE && counts.find(python::Type::NULLVALUE) != counts.end())
                 return python::Type::makeOptionType(t);
 
+            // similar logic if t is a function type, check then for alternative return type count!
+            if(t.isFunctionType()) {
+                auto t_ret_type = t.getReturnType();
+                if(t_ret_type == python::Type::NULLVALUE) {
+                    // check if non-null value ret type exists
+                    unsigned t_alt_count = 0;
+                    python::Type t_alt = python::Type::UNKNOWN;
+                    for(auto pair : counts) {
+                        if(pair.first.getParamsType() == t.getParamsType() &&
+                        pair.first.getReturnType() != python::Type::NULLVALUE && pair.second >= t_alt_count) {
+                            t_alt_count = pair.second;
+                            t_alt = pair.first;
+                        }
+                    }
+
+                    if(t_alt != python::Type::UNKNOWN) {
+                        return python::Type::makeFunctionType(t.getParamsType(), python::Type::makeOptionType(t_alt.getReturnType()));
+                    }
+                } else {
+                    // check if null value ret type exists
+                    auto t_alt = python::Type::makeFunctionType(t.getParamsType(), python::Type::NULLVALUE);
+                    if(counts.find(t_alt) != counts.end())
+                        return python::Type::makeFunctionType(t.getParamsType(), python::Type::makeOptionType(t_ret_type));
+                }
+            }
+
             return t;
         }
 

@@ -916,6 +916,8 @@ namespace tuplex {
 
         // extended cjson function to check homogeneity of list
         [[maybe_unused]] extern llvm::Value* call_cjson_is_list_of_generic_dicts(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
+
+        extern llvm::Value* call_cjson_type_as_str(llvm::IRBuilder<>& builder, llvm::Value* cjson_obj);
     }
 }
 

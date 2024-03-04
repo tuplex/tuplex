@@ -638,34 +638,61 @@ namespace tuplex {
                     if(terminateEarlyOnLimitCode)
                         generateTerminateEarlyOnCode(builder, ecCode, ExceptionCode::OUTPUT_LIMIT_REACHED);
 
-#ifndef NDEBUG
-                    // does pipeline have exception handler or not?
-                    // if not, then task needs to emit exception to process further down the line...
-                    // -> could short circuit and save "true" exception first here.
-                    BasicBlock *bNotOK = BasicBlock::Create(ctx, "pipeline_not_ok", builder.GetInsertBlock()->getParent());
-                    BasicBlock *bNext = BasicBlock::Create(ctx, "pipeline_next", builder.GetInsertBlock()->getParent());
-                    builder.CreateCondBr(bad_row_cond, bNotOK, bNext);
-                    builder.SetInsertPoint(bNotOK);
-                    // env().printValue(builder, ecCode, "pipeline returned ecCode: ");
-                    builder.CreateBr(bNext);
-                    builder.SetInsertPoint(bNext);
-#endif
-
+                    // if there's an exception handler, serialize
                     if(hasExceptionHandler()) {
+
+
+                        // does pipeline have exception handler or not?
+                        // if not, then task needs to emit exception to process further down the line...
+                        // -> could short circuit and save "true" exception first here.
+                        BasicBlock *bNotOK = BasicBlock::Create(ctx, "pipeline_not_ok", builder.GetInsertBlock()->getParent());
+                        BasicBlock *bNext = BasicBlock::Create(ctx, "pipeline_next", builder.GetInsertBlock()->getParent());
+                        builder.CreateCondBr(bad_row_cond, bNotOK, bNext);
+                        builder.SetInsertPoint(bNotOK);
+
+                        _env->debugPrint(builder, "found row to serialize as exception in normal-case handler");
 
                         // normal case row is parsed - can it be converted to general case row?
                         // if so emit directly, if not emit fallback row.
                         auto normal_case_row_type = _normalCaseRowType;
                         auto general_case_row_type = _generalCaseRowType;
 
+
+//                        // following code snippet casts it up as general_case_row exception with general_case row type.
+//                        // Yet in decodeFallbackRow, the decode is done using normal-case schema?
+//                        serializeAsNormalCaseException(builder, userData, _inputOperatorID, rowNumber(builder), normal_case_row);
+
+
                         if(python::canUpcastType(normal_case_row_type, general_case_row_type)) {
                             logger().debug("found exception handler in JSON source task builder, serializing exceptions in general case format.");
 
+                            // if both are row type, check names are the same. Then because normal_case_row is given as
+                            // tuple type, convert general case to tuple type.
+                            if(normal_case_row_type.isRowType() && general_case_row_type.isRowType()) {
+                                if(!vec_equal(normal_case_row_type.get_column_names(), general_case_row_type.get_column_names()))
+                                    throw std::runtime_error("need to fix ordering in upcast.");
+                                general_case_row_type = general_case_row_type.get_columns_as_tuple_type();
+                            }
 
+                            auto upcasted_row = normal_case_row.upcastTo(builder, general_case_row_type);
+
+                            // test: check size??
+                            auto serialized_size = upcasted_row.getSize(builder);
+                            _env->printValue(builder, serialized_size, "serialized size of exception row is: ");
+
+
+                            // serialize as exception --> this connects already to freeStart.
+                            serializeAsNormalCaseException(builder, userData, _inputOperatorID, rowNumber(builder), upcasted_row);
                         } else {
                             logger().debug("normal case row and general case row not compatible, emitting exceptions as fallback rows.");
+                            throw std::runtime_error("need to implement exception handling here");
                         }
-                        throw std::runtime_error("need to implement exception handling here");
+
+                        // connect to next row processing.
+                        builder.CreateBr(_freeStart);
+
+                        // pipeline ok, continue with normal processing
+                        builder.SetInsertPoint(bNext);
                     }
                 }
 

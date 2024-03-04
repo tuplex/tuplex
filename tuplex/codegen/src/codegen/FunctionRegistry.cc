@@ -3255,6 +3255,9 @@ namespace tuplex {
             builder.SetInsertPoint(bbLoopDone);
             lfb.setLastBlock(builder.GetInsertBlock());
 
+            // HACK?
+            list_ptr = builder.CreateLoad(list_ptr);
+
             return {list_ptr, n_elements, nullptr};
         }
 

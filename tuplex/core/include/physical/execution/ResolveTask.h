@@ -429,7 +429,11 @@ namespace tuplex {
             case ExceptionCode::NORMALCASEVIOLATION: {
                 // changed, why are these names so random here? makes no sense...
                 // std::cout<<"except schema: "<<exceptionsInputSchema().getRowType().desc()<<std::endl;
-                auto row = Row::fromMemory(normal_case_schema, ebuf, eSize);
+
+                // should this be encoded in normal case schema? I'd say rather in general case schema
+                //auto row = Row::fromMemory(normal_case_schema, ebuf, eSize);
+
+                auto row = Row::fromMemory(general_case_schema, ebuf, eSize);
 
                 tuple = python::rowToPython(row, true);
                 parse_cells = false;

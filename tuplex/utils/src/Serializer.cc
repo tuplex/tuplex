@@ -1317,6 +1317,7 @@ namespace tuplex {
         auto phys_col = logicalToPhysicalIndex(col);
         assert(phys_col >= 0);
         assert(phys_col < (inferLength(_buffer) - sizeof(int64_t)) / sizeof(int64_t)); // sharper bound because of varlen
+
         int64_t offset = *((int64_t *) ((uint8_t *) _buffer + sizeof(int64_t) * phys_col + calcBitmapSize(_requiresBitmap)));
 
         // new:

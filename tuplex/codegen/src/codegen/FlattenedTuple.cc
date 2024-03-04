@@ -694,7 +694,8 @@ namespace tuplex {
                         serialized_idx++;
                         continue; // field done.
                     } else {
-                        assert(!is_option_field); // --> need to implement if logic for this!
+                        // assert(!is_option_field); // --> need to implement if logic for this!
+
 
                         field = builder.CreateCall(
                                 cJSONPrintUnformatted_prototype(_env->getContext(), _env->getModule().get()),
@@ -702,6 +703,11 @@ namespace tuplex {
                         size = builder.CreateAdd(
                                 builder.CreateCall(strlen_prototype(_env->getContext(), _env->getModule().get()), {field}),
                                 _env->i64Const(1));
+
+                        // debug:
+                        _env->debugPrint(builder, "serializing generic dict: ");
+                        _env->printValue(builder, is_not_null, fieldType.desc() + " is not null: ");
+                        _env->printValue(builder, size, fieldType.desc() + " size is: ");
                     }
                 }
 
@@ -1059,6 +1065,15 @@ namespace tuplex {
                         auto l_size = list_serialized_size(*_env, builder, el.val, type);
                         assert(l_size && l_size->getType() == _env->i64Type());
                         s = builder.CreateAdd(s, l_size);
+                    } else if(type.isDictionaryType()) {
+                        // could store size explicitly to avoid the formatting call here...
+                        auto field = builder.CreateCall(
+                                cJSONPrintUnformatted_prototype(_env->getContext(), _env->getModule().get()),
+                                {el.val});
+                        auto size = builder.CreateAdd(
+                                builder.CreateCall(strlen_prototype(_env->getContext(), _env->getModule().get()), {field}),
+                                _env->i64Const(1));
+                        s = builder.CreateAdd(s, size);
                     } else {
                         // string etc.
                         assert(el.size && el.size->getType() == _env->i64Type());

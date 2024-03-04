@@ -3290,7 +3290,7 @@ namespace tuplex {
             if(python::Type::I64 == retType) {
                 auto is_not_number = env.i1neg(builder, call_cjson_isnumber(builder, item));
 
-                env.printValue(builder, is_not_number, "is i64 retrieval invalid: ");
+                // env.printValue(builder, is_not_number, "is i64 retrieval invalid: ");
 
 #ifndef NDEBUG
                 //debug code
@@ -3300,11 +3300,11 @@ namespace tuplex {
                 builder.CreateCondBr(is_not_number, bb_is_not, bb_done);
                 builder.SetInsertPoint(bb_is_not);
 
-                env.debugPrint(builder, "is not valid, printing actual value");
+                // env.debugPrint(builder, "is not valid, printing actual value");
 
                 // debug print if not number
                 auto json_str = serialize_cjson_as_runtime_str(builder, item);
-                env.printValue(builder, json_str.val, " expected i64, but got JSON: ");
+                // env.printValue(builder, json_str.val, " expected i64, but got JSON: ");
 
                 builder.CreateBr(bb_done);
                 builder.SetInsertPoint(bb_done);
@@ -3315,7 +3315,7 @@ namespace tuplex {
                 lfb.addException(builder, ExceptionCode::NORMALCASEVIOLATION, is_not_number, "dict.get() expected i64");
                 auto value = get_cjson_as_integer(builder, item);
 
-                env.printValue(builder, value, "retrieved i64 from cJSON: ");
+                // env.printValue(builder, value, "retrieved i64 from cJSON: ");
 
                 return SerializableValue(value, env.i64Const(sizeof(int64_t)), nullptr);
             }

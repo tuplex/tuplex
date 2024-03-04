@@ -383,7 +383,7 @@ namespace tuplex {
 
                     builder.SetInsertPoint(bbCheckPassed);
 
-                    _env->debugPrint(builder, "constant check passed.");
+                    // _env->debugPrint(builder, "constant check passed.");
                 } else {
                     throw std::runtime_error("Check " + check.to_string() + " not supported for JsonSourceTaskBuilder");
                 }
@@ -613,7 +613,7 @@ namespace tuplex {
                         throw std::runtime_error("invalid function from pipeline builder in JsonSourceTaskBuilder");
                     auto row_no = rowNumber(builder);
                     auto intermediate = initIntermediate(builder);
-                     _env->debugPrint(builder, "Calling pipeline on rowno: ", row_no);
+                    // _env->debugPrint(builder, "Calling pipeline on rowno: ", row_no);
                     auto pip_res = PipelineBuilder::call(builder, processRowFunc, normal_case_row, userData, row_no, intermediate);
 
 #ifdef JSON_PARSER_TRACE_MEMORY
@@ -625,7 +625,7 @@ namespace tuplex {
                     auto ecOpID = builder.CreateZExtOrTrunc(pip_res.exceptionOperatorID, env().i64Type());
                     auto numRowsCreated = builder.CreateZExtOrTrunc(pip_res.numProducedRows, env().i64Type());
 
-                     env().printValue(builder, ecCode, "pip ecCode= ");
+                    // env().printValue(builder, ecCode, "pip ecCode= ");
 
                     // if ecCode != success -> inc bad normal count.
                     // do this here branchless
@@ -675,11 +675,6 @@ namespace tuplex {
                             }
 
                             auto upcasted_row = normal_case_row.upcastTo(builder, general_case_row_type);
-
-                            // test: check size??
-                            auto serialized_size = upcasted_row.getSize(builder);
-                            _env->printValue(builder, serialized_size, "serialized size of exception row is: ");
-
 
                             // serialize as exception --> this connects already to freeStart.
                             serializeAsNormalCaseException(builder, userData, _inputOperatorID, rowNumber(builder), upcasted_row);

@@ -704,10 +704,10 @@ namespace tuplex {
                                 builder.CreateCall(strlen_prototype(_env->getContext(), _env->getModule().get()), {field}),
                                 _env->i64Const(1));
 
-                        // debug:
-                        _env->debugPrint(builder, "serializing generic dict: ");
-                        _env->printValue(builder, is_not_null, fieldType.desc() + " is not null: ");
-                        _env->printValue(builder, size, fieldType.desc() + " size is: ");
+                        // // debug:
+                        // _env->debugPrint(builder, "serializing generic dict: ");
+                        // _env->printValue(builder, is_not_null, fieldType.desc() + " is not null: ");
+                        // _env->printValue(builder, size, fieldType.desc() + " size is: ");
                     }
                 }
 

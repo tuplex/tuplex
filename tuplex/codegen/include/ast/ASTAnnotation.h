@@ -581,6 +581,12 @@ namespace tuplex {
                     t = kv.first;
                 }
             }
+
+            // special case:
+            // If t is not NULL-VALUE, but NULL-VALUE is present -> type as Option[...]
+            if(t != python::Type::NULLVALUE && counts.find(python::Type::NULLVALUE) != counts.end())
+                return python::Type::makeOptionType(t);
+
             return t;
         }
 

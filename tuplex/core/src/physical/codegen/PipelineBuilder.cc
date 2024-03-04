@@ -691,16 +691,11 @@ namespace tuplex {
             BasicBlock *keepBlock = BasicBlock::Create(env().getContext(),
                                                        "filter_keep", builder.GetInsertBlock()->getParent());
 
-
-            _env->printValue(builder, filterCond, "filter condition for ForkEvent: ");
-
             // if tuple is filtered away, simply go to destructor block
             builder.CreateCondBr(filterCond, keepBlock, leaveBlock());
             _lastBlock = keepBlock; // update this
 
             builder.SetInsertPoint(_lastBlock);
-
-            _env->debugPrint(builder, "in keep block");
 
             _lastOperatorType = LogicalOperatorType::FILTER;
             _lastOperatorColumnIndex = -1;

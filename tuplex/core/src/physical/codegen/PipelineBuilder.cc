@@ -1692,7 +1692,7 @@ namespace tuplex {
             string trueValue = "true";
             string falseValue = "false";
 
-            env.debugPrint(builder, "calling fast_csvwriter");
+            // env.debugPrint(builder, "calling fast_csvwriter");
 
             // optimized & fast writer using Ryu + branchlut for itoa
             auto num_columns = row.numElements();
@@ -2017,7 +2017,7 @@ namespace tuplex {
             // new: codegen writer with fast itoa, dtoa functions
             auto csv_row = fast_csvwriter(builder, env(), row, null_value, newLineDelimited, delimiter, quotechar);
 
-            _env->printValue(builder, csv_row.size, "Writing csv row of size=");
+            // _env->printValue(builder, csv_row.size, "Writing csv row of size=");
 
             // typedef int64_t(*write_row_f)(void*, uint8_t*, int64_t);
             auto& ctx = env().getContext();

@@ -3267,7 +3267,7 @@ namespace tuplex {
                                             llvm::IRBuilder<> &builder,
                                             const python::Type &retType,
                                             llvm::Value* item) {
-            env.debugPrint(builder, "performing dict.get() call on general dict with expected ret type " + retType.desc());
+            // env.debugPrint(builder, "performing dict.get() call on general dict with expected ret type " + retType.desc());
 
             // check for all the possible JSON types and then map to python types
             // Json string
@@ -3424,7 +3424,8 @@ namespace tuplex {
                 // default value is None here. Create vars and decode then using if.
                 // use variable for result and store default value (here null!)
                 SerializableValue var;
-                var.val = _env.CreateFirstBlockAlloca(builder, _env.pythonToLLVMType(retType));
+                auto llvm_val_type = _env.pythonToLLVMType(retType.withoutOption());
+                var.val = _env.CreateFirstBlockAlloca(builder, llvm_val_type);
                 var.size = _env.CreateFirstBlockAlloca(builder, _env.i64Type());
                 var.is_null = _env.CreateFirstBlockAlloca(builder, _env.i1Type());
 
@@ -3439,19 +3440,19 @@ namespace tuplex {
 
 
                 // if item found -> decode!
+                auto lastBlock = builder.GetInsertBlock();
                 builder.CreateCondBr(item_not_found, bbDecodeDone, bbDecodeItem);
 
                 {
                     builder.SetInsertPoint(bbDecodeItem);
                     lfb.setLastBlock(bbDecodeItem);
-                    auto v = decode_cjson_item(_env, lfb, builder, retType, item);
-
+                    auto v = decode_cjson_item(_env, lfb, builder, retType.withoutOption(), item);
 
                     if(v.val)
                         builder.CreateStore(v.val, var.val);
                     if(v.size)
-                    builder.CreateStore(v.size, var.size);
-                    if(v.is_null)
+                        builder.CreateStore(v.size, var.size);
+                    if(v.is_null) // <-- this is true for NULL.
                         builder.CreateStore(v.is_null, var.is_null);
                     else
                         builder.CreateStore(_env.i1Const(false), var.is_null);
@@ -3462,10 +3463,12 @@ namespace tuplex {
 
                 builder.SetInsertPoint(bbDecodeDone);
 
-                // load variable!
+                // load variable! (could use PHI node instead as well here)
                 auto ret_val = SerializableValue(builder.CreateLoad(var.val),
-                                                 builder.CreateLoad(var.size),
-                                                 builder.CreateLoad(var.is_null));
+                                            builder.CreateLoad(var.size),
+                                            builder.CreateLoad(var.is_null));
+
+
                 lfb.setLastBlock(builder.GetInsertBlock());
                 // _env.printValue(builder, ret_val.val, "value: ");
                 return ret_val; // test...

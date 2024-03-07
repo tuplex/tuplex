@@ -157,7 +157,7 @@ namespace tuplex {
 
 
             // test: focus on single file
-            input_pattern = "/hot/data/github_daily/2011-10-15.json";
+            // input_pattern = "/hot/data/github_daily/2011-10-15.json";
             // correct data should be:
             // "num_input_rows": 48899, "num_output_rows": 1418
 

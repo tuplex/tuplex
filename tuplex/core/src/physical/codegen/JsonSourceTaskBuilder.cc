@@ -650,7 +650,7 @@ namespace tuplex {
                         builder.CreateCondBr(bad_row_cond, bNotOK, bNext);
                         builder.SetInsertPoint(bNotOK);
 
-                        _env->debugPrint(builder, "found row to serialize as exception in normal-case handler");
+                        // _env->debugPrint(builder, "found row to serialize as exception in normal-case handler");
 
                         // normal case row is parsed - can it be converted to general case row?
                         // if so emit directly, if not emit fallback row.
@@ -681,13 +681,16 @@ namespace tuplex {
 
                             // serialize as exception --> this connects already to freeStart.
                             serializeAsNormalCaseException(builder, userData, _inputOperatorID, rowNumber(builder), upcasted_row);
-                        } else {
-                            logger().debug("normal case row and general case row not compatible, emitting exceptions as fallback rows.");
-                            throw std::runtime_error("need to implement exception handling here");
-                        }
 
-                        // connect to next row processing.
-                        builder.CreateBr(_freeStart);
+                            // connect to next row processing.
+                            builder.CreateBr(_freeStart);
+                        } else {
+                            logger().warn("normal case row and general case row not compatible, emitting exceptions as fallback rows.");
+
+                            // bbFallback
+                            builder.CreateBr(bbParseAsGeneralCaseRow);
+                            //throw std::runtime_error("need to implement exception handling here");
+                        }
 
                         // pipeline ok, continue with normal processing
                         builder.SetInsertPoint(bNext);

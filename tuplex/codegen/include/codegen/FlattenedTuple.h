@@ -147,6 +147,13 @@ namespace tuplex {
             llvm::Value *getSize(std::vector<int> index) const;
 
             /*!
+             * gets element as serializable value with val, size, is_null. nullptr if not available.
+             * @param index
+             * @return
+             */
+            SerializableValue getElement(std::vector<int> index) const;
+
+            /*!
              * returns the number of elements the tuple possesses
              * @return
              */
@@ -553,6 +560,10 @@ namespace tuplex {
             auto nested_index_vector = std::vector<int>{(int)idx};
             return ft.getLoad(builder, nested_index_vector);
         }
+
+        extern FlattenedTuple upcast_row_and_reorder(llvm::IRBuilder<> &builder, FlattenedTuple normal_case_row,
+                                                     python::Type normal_case_row_type,
+                                                     python::Type general_case_row_type);
     }
 }
 

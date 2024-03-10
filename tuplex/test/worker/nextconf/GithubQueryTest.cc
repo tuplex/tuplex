@@ -142,7 +142,7 @@ namespace tuplex {
 
         // @TODO: non-hyper mode doesn't work yet ??
         // hyper-moder returns empty files ??
-        auto use_hyper = false; // should work for both true/false.
+        auto use_hyper = true; // should work for both true/false.
 
         // set input/output paths
         // auto exp_settings = lambdaSettings(true);

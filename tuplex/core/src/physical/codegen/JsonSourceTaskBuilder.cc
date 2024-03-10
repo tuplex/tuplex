@@ -666,15 +666,18 @@ namespace tuplex {
                         if(python::canUpcastType(normal_case_row_type, general_case_row_type)) {
                             logger().debug("found exception handler in JSON source task builder, serializing exceptions in general case format.");
 
+                            FlattenedTuple upcasted_row(_env.get());
+
                             // if both are row type, check names are the same. Then because normal_case_row is given as
                             // tuple type, convert general case to tuple type.
                             if(normal_case_row_type.isRowType() && general_case_row_type.isRowType()) {
-                                if(!vec_equal(normal_case_row_type.get_column_names(), general_case_row_type.get_column_names()))
-                                    throw std::runtime_error("need to fix ordering in upcast.");
+                                if(!vec_equal(normal_case_row_type.get_column_names(), general_case_row_type.get_column_names())) {
+                                    upcasted_row = upcast_row_and_reorder(builder, normal_case_row, normal_case_row_type, general_case_row_type);
+                                }
                                 general_case_row_type = general_case_row_type.get_columns_as_tuple_type();
+                            } else {
+                                upcasted_row = normal_case_row.upcastTo(builder, general_case_row_type);
                             }
-
-                            auto upcasted_row = normal_case_row.upcastTo(builder, general_case_row_type);
 
                             // serialize as exception --> this connects already to freeStart.
                             serializeAsNormalCaseException(builder, userData, _inputOperatorID, rowNumber(builder), upcasted_row);

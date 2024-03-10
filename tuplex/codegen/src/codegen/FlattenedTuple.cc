@@ -1496,5 +1496,64 @@ namespace tuplex {
 
             return ptr;
         }
+
+        SerializableValue FlattenedTuple::getElement(std::vector<int> index) const {
+            auto element = _tree.get(index);
+
+            return element;
+        }
+
+        FlattenedTuple upcast_row_and_reorder(llvm::IRBuilder<> &builder, FlattenedTuple normal_case_row,
+                                                      python::Type normal_case_row_type,
+                                                      python::Type general_case_row_type) {
+
+            assert(normal_case_row_type.isRowType());
+            assert(general_case_row_type.isRowType());
+
+            auto normal_case_columns = normal_case_row_type.get_column_names();
+            auto general_case_columns = general_case_row_type.get_column_names();
+
+            if(normal_case_columns.size() != general_case_columns.size() || normal_case_columns.empty() || general_case_columns.empty())
+                throw std::runtime_error("can not upcast row type normal case row via upcast and reorder");
+
+            // check same columns are contained.
+            std::set<std::string> normal_case_columns_set(normal_case_columns.begin(), normal_case_columns.end());
+            std::vector<std::string> missing_columns;
+            for(const auto& name : general_case_columns) {
+                auto it = normal_case_columns_set.find(name);
+                if(it == normal_case_columns_set.end())
+                    missing_columns.push_back(name);
+            }
+
+            if(!missing_columns.empty()) {
+                std::stringstream ss;
+                ss<<"Missing columns "<<missing_columns<<" in normal case row, can not upcast.";
+                throw std::runtime_error(ss.str());
+            }
+
+            auto& env = *normal_case_row.getEnv();
+            FlattenedTuple upcasted_row(&env);
+            auto general_tuple_type = general_case_row_type.get_columns_as_tuple_type();
+            auto normal_tuple_type = normal_case_row_type.get_columns_as_tuple_type();
+            upcasted_row.init(general_tuple_type);
+            for(int i = 0; i < general_case_columns.size(); ++i) {
+
+                auto index_in_normal_case = indexInVector(general_case_columns[i], normal_case_columns);
+                assert(index_in_normal_case >= 0);
+
+                auto index_vector = std::vector<int>{index_in_normal_case};
+                auto v = normal_case_row.getElement(index_vector);
+
+                // upcast if necessary
+                auto normal_type = normal_tuple_type.parameters()[index_in_normal_case];
+                auto general_type = general_tuple_type.parameters()[i];
+                v = env.upcastValue(builder, v, normal_type, general_type);
+
+                upcasted_row.set(builder, {i}, v.val, v.size, v.is_null);
+            }
+
+            return upcasted_row;
+        }
+
     }
 }

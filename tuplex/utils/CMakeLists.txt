@@ -128,16 +128,6 @@ ExternalProject_Get_Property(cereal source_dir)
 set(cereal_INCLUDE_DIR ${source_dir}/include)
 endif()
 
-# include simdjson, tutorial here https://github.com/simdjson/cmake_demo_single_file/blob/master/CMakeLists.txt
-include(FetchContent)
-FetchContent_Declare(
-        simdjson
-        GIT_REPOSITORY https://github.com/simdjson/simdjson.git
-        GIT_SHALLOW TRUE
-        GIT_TAG tags/v3.0.0
-)
-FetchContent_MakeAvailable(simdjson)
-
 # ------
 # dependencies
 

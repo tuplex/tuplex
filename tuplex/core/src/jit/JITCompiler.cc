@@ -338,6 +338,10 @@ namespace tuplex {
         registerSymbol("cJSON_IsTrue", cJSON_IsTrue);
         registerSymbol("cJSON_Parse", cJSON_Parse);
         registerSymbol("cJSON_CreateString", cJSON_CreateString);
+        registerSymbol("cJSON_IsNumber",cJSON_IsNumber);
+        registerSymbol("cJSON_IsArray", cJSON_IsArray);
+        registerSymbol("cJSON_GetNumberValue", cJSON_GetNumberValue);
+        registerSymbol("cJSON_GetArrayItem", cJSON_GetArrayItem);
 #endif
 
         // extended functions

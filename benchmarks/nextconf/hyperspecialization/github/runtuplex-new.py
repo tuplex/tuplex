@@ -277,6 +277,12 @@ def run_with_tuplex(args):
 
     conf["inputSplitSize"] = input_split_size
 
+    # config for single-threaded processing to avoid spilling (requires machine with enough memory)
+    # co.set("tuplex.inputSplitSize", "20G");
+    # co.set("tuplex.experimental.worker.workerBufferSize", "12G");
+    conf["inputSplitSize"] = "20G"  # no splitting, process files as is with hyper & compare to single-threaded
+    conf["experimental.worker.workerBufferSize"] = "12G" # no spilling
+
     tstart = time.time()
 
     ctx = tuplex.Context(conf)

@@ -1318,11 +1318,13 @@ namespace tuplex {
         assert(phys_col >= 0);
         assert(phys_col < (inferLength(_buffer) - sizeof(int64_t)) / sizeof(int64_t)); // sharper bound because of varlen
 
+
         int64_t offset = *((int64_t *) ((uint8_t *) _buffer + sizeof(int64_t) * phys_col + calcBitmapSize(_requiresBitmap)));
 
         // new:
         // offset is in the lower 32bit, the upper are the size of the var entry
-        int64_t len = ((offset & (0xFFFFFFFFl << 32)) >> 32) - 1;
+        int64_t size = ((offset & (0xFFFFFFFFl << 32)) >> 32);
+        int64_t len = size - 1;
 
         assert(len > 0);
         offset = offset & 0xFFFFFFFF;
@@ -1335,7 +1337,18 @@ namespace tuplex {
 
         // check that string is properly terminated with '\0'
         if (dstr[len] != '\0') {
-            Logger::instance().logger("memory").error("corrupted memory found. could not extract cJSON object");
+            std::stringstream err;
+            err<<"Corrupted memory found, expected '\0' terminated JSON string. Could not extract cJSON object.\n";
+            err<<"type: "<<_schema.getRowType().parameters()[col].desc()<<"\n";
+            err<<"offset: "<<offset<<" size: "<<size<<"logical col"<<col<<" physical col: "<<phys_col<<"\n";
+#define SNIPPET_SIZE 256
+            char snippet[SNIPPET_SIZE];
+            memset(snippet, 0, SNIPPET_SIZE);
+            for(int i = 0; i < 3; ++i)
+                snippet[SNIPPET_SIZE - 2 - i] = '.';
+            memcpy(snippet, dstr, std::min((size_t)len + 1, (size_t)(SNIPPET_SIZE - 4)));
+            err<<"data: "<<snippet;
+            Logger::instance().logger("memory").error(err.str());
             return std::string("NULL");
         } else {
             return std::string((char *) dstr);

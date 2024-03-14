@@ -14,13 +14,13 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <sstream>
 
-Logger::Logger() : _initialized(false) {
+Logger::Logger() : _initialized(false), _default_handler(nullptr) {
 }
 
 void Logger::initDefault() {
     if(!_initialized) {
         try {
-            // add later here also an stderr sink...
+            // add later here also a stderr sink...
             _sinks.push_back(std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>());
 #ifndef NDEBUG
             // disable slow log in release mode
@@ -33,6 +33,15 @@ void Logger::initDefault() {
             std::cout<<"[FATAL] Initialization of logging system failed: "<<ex.what()<<std::endl;
             exit(1);
         }
+    }
+
+    // init default logger
+    try {
+        if(!_default_handler)
+            _default_handler = std::make_shared<MessageHandler>();
+    } catch(const spdlog::spdlog_ex& ex) {
+        std::cout<<"[FATAL] Could not add default logger, initialization of logging system failed: "<<ex.what()<<std::endl;
+        exit(1);
     }
 }
 
@@ -57,11 +66,16 @@ void Logger::init(const std::vector<spdlog::sink_ptr> &sinks) {
 
 MessageHandler& Logger::logger(const std::string &name) {
 
-    std::unique_lock<std::mutex> lock(_mutex);
-
     try {
+        std::unique_lock<std::mutex> lock(_mutex);
         // setup sinks if required
         initDefault();
+
+        if(name.empty()) {
+            if(!_default_handler)
+                throw spdlog::spdlog_ex("default logger not initialized");
+            return *_default_handler;
+        }
 
         // check if a message handler under this name is already registered
         // if not create, else return reference
@@ -82,8 +96,20 @@ MessageHandler& Logger::logger(const std::string &name) {
         }
     } catch(const spdlog::spdlog_ex& ex) {
         // error on default logger
-        std::cerr<<"exception while attempting to retrieve logger '"<<name<<"': "<<ex.what()<<std::endl;
-        exit(1);
+        std::stringstream ss;
+        ss<<"exception while attempting to retrieve logger '"<<name<<"': "<<ex.what();
+
+        if(_default_handler) {
+            ss<<", returning default handler instead";
+            _default_handler->error(ss.str());
+            return *_default_handler;
+        } else {
+            // not even default handler, shutdown program
+            ss<<"\nNo default handler found, shutting down program with exit code 1, FATAL ERROR.";
+            std::cerr<<ss.str()<<std::endl;
+            std::cerr.flush();
+            exit(1);
+        }
     }
 }
 

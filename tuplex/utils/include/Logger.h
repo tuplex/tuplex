@@ -52,6 +52,9 @@ private:
     // to avoid deadlocks with spdlog, use lazy initialization
     bool _initialized;
 
+    // default, global logger
+    std::shared_ptr<MessageHandler> _default_handler;
+
     void initDefault();
 public:
 
@@ -63,7 +66,7 @@ public:
     MessageHandler& logger(const std::string& name);
 
 
-    MessageHandler& defaultLogger() { return logger("global"); }
+    MessageHandler& defaultLogger() { return logger(""); }
 
 
     /*!

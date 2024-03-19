@@ -13,6 +13,11 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <lyra/lyra.hpp>
+
+// use AWS SDK bundled cjson
+#include <aws/core/external/cjson/cJSON.h>
+#include <fstream>
 
 int dirExists(const char *path)
 {
@@ -63,7 +68,310 @@ std::vector<std::string> glob_pattern(const std::string &pattern) {
     return uris;
 }
 
-void process_path(const std::string& input_path, const std::string& output_path) {
+std::string view_to_str(const std::string_view& v) {
+    return std::string(v.begin(), v.end());
+}
+
+
+namespace mode {
+
+    namespace cjson {
+
+        std::optional<int64_t> extract_repo_id(cJSON* row, int64_t year, std::string type) {
+            // modeled after
+            // def extract_repo_id(row):
+            //    if 2012 <= row['year'] <= 2014:
+            //
+            //        if row['type'] == 'FollowEvent':
+            //            return row['payload']['target']['id']
+            //
+            //        if row['type'] == 'GistEvent':
+            //            return row['payload']['id']
+            //
+            //        repo = row.get('repository')
+            //
+            //        if repo is None:
+            //            return None
+            //        return repo.get('id')
+            //    else:
+            //        return row['repo'].get('id')
+            if(2012 <= year && year <= 2014) {
+                if("FollowEvent" == type) {
+                    return (int64_t)cJSON_AS4CPP_GetNumberValue(cJSON_AS4CPP_GetObjectItem(cJSON_AS4CPP_GetObjectItem(cJSON_AS4CPP_GetObjectItem(row, "payload"), "target"), "id"));
+                }
+
+                if("GistEvent" == type) {
+                    return (int64_t)cJSON_AS4CPP_GetNumberValue(cJSON_AS4CPP_GetObjectItem(cJSON_AS4CPP_GetObjectItem(row, "payload"), "id"));
+                }
+
+                auto repo = cJSON_AS4CPP_GetObjectItem(row, "repository");
+                if(!repo) {
+                    return {};
+                }
+
+                auto id = cJSON_AS4CPP_GetObjectItem(repo, "id");
+                if(!id)
+                    return {};
+                else
+                    return (int64_t)cJSON_AS4CPP_GetNumberValue(id);
+            } else {
+
+                auto id = cJSON_AS4CPP_GetObjectItem(cJSON_AS4CPP_GetObjectItem(row, "repo"), "id");
+                if(!id)
+                    return {};
+                else
+                    return (int64_t)cJSON_AS4CPP_GetNumberValue(id);
+            }
+        }
+
+        int64_t extract_year(cJSON* row) {
+            std::string created_at = cJSON_AS4CPP_GetStringValue(cJSON_AS4CPP_GetObjectItem(row, "created_at"));
+
+            // extract to array
+            std::vector<std::string> arr;
+            std::string remaining = created_at;
+            std::string delimiter = "-";
+            auto pos = remaining.find(delimiter);
+            while(pos != std::string::npos) {
+                arr.push_back(remaining.substr(0, pos));
+                remaining = remaining.substr(pos + delimiter.size());
+                pos = remaining.find(delimiter);
+            }
+            arr.push_back(remaining);
+
+            // optimized access: --> this actually saves some time!!!
+            // auto year_str = created_at.substr(0, created_at.find("-"));
+
+
+            auto year_str = arr.front();
+            int64_t year = std::stoi(year_str);
+            return year;
+        }
+
+        std::optional<std::vector<cJSON*>> extract_commits(cJSON* row) {
+            // lambda row: row['payload'].get('commits')
+
+            auto commits = cJSON_AS4CPP_GetObjectItem(cJSON_AS4CPP_GetObjectItem(row, "payload"), "commits");
+            if(!commits)
+                return {};
+
+            std::vector<cJSON*> v;
+            for(unsigned i = 0; i < cJSON_AS4CPP_GetArraySize(commits); ++i)
+                v.push_back(cJSON_AS4CPP_GetArrayItem(commits, i));
+            return v;
+        }
+
+        int64_t process_pipeline(FILE **pFile, const std::string &output_path, const simdjson::dom::element& doc) {
+            using namespace std;
+
+            auto pf = *pFile;
+            if(!pf) {
+                cout<<"Opening file "<<output_path<<" for writing"<<endl;
+                pf = fopen(output_path.c_str(), "w");
+                if(!pf) {
+                    cerr<<"Could not open output file "<<output_path<<endl;
+                    throw std::runtime_error("error opening file " + output_path);
+                }
+
+                // write header
+                std::string header = "type,repo_id,year,number_of_commits\n";
+                fwrite(header.c_str(), header.size(), 1, pf);
+
+                *pFile = pf;
+            }
+
+            // process pipeline and write output to file as CSV
+            // this pipeline is equivalent to the python pipeline
+            //     ctx.json(input_pattern, True, True, sm) \
+            //       .withColumn('year', lambda x: int(x['created_at'].split('-')[0])) \
+            //       .withColumn('repo_id', extract_repo_id) \
+            //       .filter(lambda x: x['type'] == 'ForkEvent') \
+            //       .withColumn('commits', lambda row: row['payload'].get('commits')) \
+            //       .withColumn('number_of_commits', lambda row: len(row['commits']) if row['commits'] else 0) \
+            //       .selectColumns(['type', 'repo_id', 'year', 'number_of_commits']) \
+            //       .tocsv(s3_output_path)
+
+            // first step is to convert line to cJSON. --> could get rid off simdjson, by directly parsing to cjson.
+            std::stringstream json_ss;
+            json_ss<<doc;
+            std::string json_line = json_ss.str();
+            auto row = cJSON_AS4CPP_ParseWithLength(json_line.c_str(), json_line.size());
+
+            int64_t year = extract_year(row);
+
+            std::string type = cJSON_AS4CPP_GetStringValue(cJSON_AS4CPP_GetObjectItem(row, "type"));
+
+            auto repo_id = extract_repo_id(row, year, type);
+
+            if(type != "ForkEvent") {
+                cJSON_AS4CPP_Delete(row);
+                return 0;
+            }
+
+
+            auto commits = extract_commits(row);
+
+            int64_t number_of_commits = commits.has_value() ? commits.value().size() : 0;
+
+            std::stringstream ss;
+            auto repo_str = repo_id.has_value() ? std::to_string(repo_id.value()) : "";
+            ss<<type<<","<<repo_str<<","<<year<<","<<number_of_commits<<"\n";
+            auto line = ss.str();
+
+            // do not write '\0'
+            fwrite(line.c_str(), line.size(), 1, pf);
+
+            cJSON_AS4CPP_Delete(row);
+
+            // return how many line are written.
+            return 1;
+        }
+    }
+
+    namespace best {
+        std::optional<int64_t> extract_repo_id(const simdjson::dom::element& doc, int64_t year, std::string type) {
+            // modeled after
+            // def extract_repo_id(row):
+            //    if 2012 <= row['year'] <= 2014:
+            //
+            //        if row['type'] == 'FollowEvent':
+            //            return row['payload']['target']['id']
+            //
+            //        if row['type'] == 'GistEvent':
+            //            return row['payload']['id']
+            //
+            //        repo = row.get('repository')
+            //
+            //        if repo is None:
+            //            return None
+            //        return repo.get('id')
+            //    else:
+            //        return row['repo'].get('id')
+            if(2012 <= year && year <= 2014) {
+                if("FollowEvent" == type) {
+                    return doc["payload"]["target"]["id"].get_int64();
+                }
+
+                if("GistEvent" == type) {
+                    return doc["payload"]["id"].get_int64();
+                }
+
+                auto repo = doc["repository"];
+                if(repo.is_null()) {
+                    return {};
+                }
+
+                int64_t id;
+                auto error = repo["id"].get(id);
+                if(error)
+                    return {};
+                else
+                    return id;
+            } else {
+                int64_t id;
+                auto error = doc["repo"]["id"].get(id);
+                if(error)
+                    return {};
+                else
+                    return id;
+            }
+        }
+
+        int64_t extract_year(const simdjson::dom::element& doc) {
+            auto created_at = view_to_str(doc["created_at"].get_string().value());
+
+            // extract to array
+            std::vector<std::string> arr;
+            std::string remaining = created_at;
+            std::string delimiter = "-";
+            auto pos = remaining.find(delimiter);
+            while(pos != std::string::npos) {
+                arr.push_back(remaining.substr(0, pos));
+                remaining = remaining.substr(pos + delimiter.size());
+                pos = remaining.find(delimiter);
+            }
+            arr.push_back(remaining);
+
+            // optimized access: --> this actually saves some time!!!
+            // auto year_str = created_at.substr(0, created_at.find("-"));
+
+
+            auto year_str = arr.front();
+            int64_t year = std::stoi(year_str);
+            return year;
+        }
+
+        std::optional<std::vector<simdjson::dom::element>> extract_commits(const simdjson::dom::element& doc) {
+            // lambda row: row['payload'].get('commits')
+
+            auto ret = doc["payload"]["commits"].get_array();
+            if(ret.error()) {
+                return {};
+            } else {
+                auto val = ret.value();
+                return std::vector<simdjson::dom::element>(val.begin(), val.end());
+            }
+        }
+
+        int64_t process_pipeline(FILE **pFile, const std::string &output_path, const simdjson::dom::element& doc) {
+            using namespace std;
+
+            auto pf = *pFile;
+            if(!pf) {
+                cout<<"Opening file "<<output_path<<" for writing"<<endl;
+                pf = fopen(output_path.c_str(), "w");
+                if(!pf) {
+                    cerr<<"Could not open output file "<<output_path<<endl;
+                    throw std::runtime_error("error opening file " + output_path);
+                }
+
+                // write header
+                std::string header = "type,repo_id,year,number_of_commits\n";
+                fwrite(header.c_str(), header.size(), 1, pf);
+
+                *pFile = pf;
+            }
+
+            // process pipeline and write output to file as CSV
+            // this pipeline is equivalent to the python pipeline
+            //     ctx.json(input_pattern, True, True, sm) \
+            //       .withColumn('year', lambda x: int(x['created_at'].split('-')[0])) \
+            //       .withColumn('repo_id', extract_repo_id) \
+            //       .filter(lambda x: x['type'] == 'ForkEvent') \
+            //       .withColumn('commits', lambda row: row['payload'].get('commits')) \
+            //       .withColumn('number_of_commits', lambda row: len(row['commits']) if row['commits'] else 0) \
+            //       .selectColumns(['type', 'repo_id', 'year', 'number_of_commits']) \
+            //       .tocsv(s3_output_path)
+
+            int64_t year = extract_year(doc);
+
+            auto type = view_to_str(doc["type"].get_string().value());
+
+            auto repo_id = extract_repo_id(doc, year, type);
+
+            if(type != "ForkEvent")
+                return 0;
+
+
+            auto commits = extract_commits(doc);
+
+            int64_t number_of_commits = commits.has_value() ? commits.value().size() : 0;
+
+            std::stringstream ss;
+            auto repo_str = repo_id.has_value() ? std::to_string(repo_id.value()) : "";
+            ss<<type<<","<<repo_str<<","<<year<<","<<number_of_commits<<"\n";
+            auto line = ss.str();
+
+            // do not write '\0'
+            fwrite(line.c_str(), line.size(), 1, pf);
+
+            // return how many line are written.
+            return 1;
+        }
+    }
+}
+
+std::tuple<int,int> process_path(const std::string& input_path, const std::string& output_path, const std::string& mode) {
     using namespace std;
 
     // read file into memory
@@ -77,8 +385,26 @@ void process_path(const std::string& input_path, const std::string& output_path)
     fread(buffer, s.st_size, 1, pf);
     fclose(pf);
     pf = nullptr;
+
+
+    // select function to use
+    auto functor = mode::best::process_pipeline;
+
+    if(mode == "best") {
+        functor = mode::best::process_pipeline;
+    } else if(mode == "cjson") {
+        functor = mode::cjson::process_pipeline;
+    } else {
+        throw std::runtime_error("unsupported mode " + mode);
+    }
+
+    // output file
+    FILE *pfout = nullptr;
+
+    Timer timer;
     cout<<"Parsing file"<<endl;
     size_t row_count = 0;
+    size_t output_row_count = 0;
     simdjson::dom::parser parser;
     simdjson::dom::document_stream stream;
     auto error = parser.parse_many((const char*)buffer,
@@ -91,6 +417,11 @@ void process_path(const std::string& input_path, const std::string& output_path)
         if (!doc.error()) {
             // std::cout << "got full document at " << i.current_index() << std::endl;
             //std::cout << i.source() << std::endl;
+
+            // process pipeline here based on simdjson doc:
+            output_row_count += functor(&pfout, output_path, doc.value());
+
+
             row_count++;
         } else {
             std::cout << "got broken document at " << i.current_index() << std::endl;
@@ -98,16 +429,78 @@ void process_path(const std::string& input_path, const std::string& output_path)
         }
     }
     cout<<"Parsed "<<row_count<<" rows from file "<<input_path<<endl;
+    cout<<"Wrote "<<output_row_count<<" output rows to "<<output_path<<endl;
+    cout<<"Took "<<timer.time()<<"s to process"<<endl;
+
+    // lazy close file
+    if(pfout) {
+        fflush(pfout);
+        fclose(pfout);
+    }
 
     delete [] buffer;
+
+    return make_tuple(row_count, output_row_count);
+}
+
+std::string vec_to_string(const std::vector<std::string>& v) {
+    if(v.empty())
+        return "[]";
+    std::stringstream ss;
+    for(unsigned i = 0; i < v.size(); ++i) {
+        ss<<v[i];
+        if(i != v.size() - 1)
+            ss<<",";
+    }
+    return ss.str();
 }
 
 int main(int argc, char* argv[]) {
     using namespace std;
 
-    string input_pattern = "/Users/leonhards/projects/2nd-copy/tuplex/test/resources/hyperspecialization/github_daily/*.json.sample";
+//    static_assert(false == SIMDJSON_THREADS_ENABLED, "threads disabled");
+
+    // parse arguments
+    string input_pattern;
     string output_path = "local-output";
+    string mode = "cjson"; //"best";
+    string result_path;
+    std::vector<std::string> supported_modes{"best", "cjson"};
+    bool show_help = false;
+
+    // construct CLI
+    auto cli = lyra::cli();
+    cli.add_argument(lyra::help(show_help));
+    cli.add_argument(lyra::opt(input_pattern, "inputPattern").name("-i").name("--input-pattern").help("input pattern from which to read files."));
+    cli.add_argument(lyra::opt(output_path, "outputPath").name("-o").name("--output-path").help("output path where to store results, will be created as directory if not exists."));
+    cli.add_argument(lyra::opt(output_path, "resultPath").name("-r").name("--result-path").help("output path where to store timings."));
+    cli.add_argument(lyra::opt(mode, "mode").name("-m").name("--mode").help("C++ mode to use, supported modes are: " +
+                                                                                           vec_to_string(supported_modes)));
+    auto result = cli.parse({argc, argv});
+    if(!result) {
+        cerr<<"Error parsing command line: "<<result.errorMessage()<<std::endl;
+        return 1;
+    }
+
+    if(show_help) {
+        cout<<cli<<endl;
+        return 0;
+    }
+
+    if(input_pattern.empty()) {
+        cerr<<"Must specify input pattern via -i or --input-pattern."<<endl;
+        return 1;
+    }
+
+    if(supported_modes.end() == std::find(supported_modes.begin(), supported_modes.end(), mode)) {
+        cerr<<"Unknown mode "<<mode<<" found, supported are "<<vec_to_string(supported_modes)<<endl;
+        return 1;
+    }
+
+
     Timer timer;
+    cout<<"starting C++ baseline::"<<endl;
+    cout<<"Pipeline will process: "<<input_pattern<<" -> "<<output_path<<endl;
     cout<<timer.time()<<"s "<<"Globbing files from "<<input_pattern<<endl;
     auto paths = glob_pattern(input_pattern);
     cout<<timer.time()<<"s "<<"found "<<paths.size()<<" paths."<<endl;
@@ -122,12 +515,29 @@ int main(int argc, char* argv[]) {
     }
     cout<<timer.time()<<"s "<<"saving output to "<<output_path<<endl;
 
+
+    std::stringstream ss;
+
     for(unsigned i = 0; i < paths.size(); ++i) {
         auto path = paths[i];
         cout<<"Processing path "<<(i+1)<<"/"<<paths.size()<<endl;
-        process_path(path, output_path + "/part_" + std::to_string(i) + ".csv");
+        Timer path_timer;
+        auto part_path = output_path + "/part_" + std::to_string(i) + ".csv";
+        int input_row_count=0,output_row_count=0;
+        std::tie(input_row_count, output_row_count) = process_path(path, part_path, mode);
+        ss<<mode<<","<<path<<","<<part_path<<","<<path_timer.time()<<","<<input_row_count<<","<<output_row_count<<"\n";
     }
 
-    cout<<"Processing files in "<<timer.time()<<"s"<<endl;
+    auto csv = "mode,input_path,output_path,time_in_s,input_row_count,output_row_count\n" + ss.str();
+    cout<<"per-file stats in CSV format::\n"<<csv<<"\n"<<endl;
+
+    if(!result_path.empty()) {
+        cout<<"Saving timings to "<<result_path<<endl;
+        std::ofstream ofs(result_path);
+        ofs<<csv;
+        ofs.close();
+    }
+
+    cout<<"Processed files in "<<timer.time()<<"s"<<endl;
     return 0;
 }

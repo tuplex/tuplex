@@ -65,10 +65,24 @@ FetchContent_Declare(
         GIT_TAG tags/v3.8.0
 )
 
-FetchContent_MakeAvailable(simdjson)
+# FetchContent_MakeAvailable(simdjson)
+
+if(NOT simdjson_POPULATED)
+    FetchContent_Populate(simdjson)
+    # Disable threads for simdjson
+    set(SIMDJSON_ENABLE_THREADS OFF CACHE INTERNAL "Disable dimsjon threads")
+    add_subdirectory(${simdjson_SOURCE_DIR} ${simdjson_BINARY_DIR})
+endif()
+
+
+FetchContent_Declare(lyra
+GIT_REPOSITORY https://github.com/bfgroup/Lyra
+GIT_TAG 1.6.1
+)
+FetchContent_MakeAvailable(lyra)
 
 set(SRCS main.cc)
 
 # linking
 add_executable(cc_github ${SRCS})
-target_link_libraries(cc_github simdjson ${AWSSDK_LINK_LIBRARIES})
+target_link_libraries(cc_github simdjson lyra ${AWSSDK_LINK_LIBRARIES})

@@ -3,3 +3,7 @@ job/
 local-exp/
 *.ndjson
 request*.json
+*.txt
+python_code_pipeline_stage_*.py
+worker_app_job.json
+worker_interpreted_resolver.py

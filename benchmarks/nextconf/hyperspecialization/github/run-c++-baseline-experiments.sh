@@ -9,20 +9,20 @@
 
 set -e pipefail
 
-#cd c++_baseline && mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j$(nproc) && cd ../..
+cd c++_baseline && mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j$(nproc) && cd ../..
 
 PROG=./c++_baseline/build/cc_github
 INPUT_PATTERN='/hot/data/github_daily/*.json'
 ${PROG} --help
 
-#echo ">>> Running C++ baseline (best)"
-#${PROG} -m "best" --input-pattern "${INPUT_PATTERN}" --output-path "./local-exp/c++-baseline/github/best/output" --result-path "./local-exp/c++-baseline/github/best_results.csv"
-#
-#echo ">>> Running C++ baseline (condensed C-struct)"
-#${PROG} -m "cstruct" --input-pattern "${INPUT_PATTERN}" --output-path "./local-exp/c++-baseline/github/cstruct/output" --result-path "./local-exp/c++-baseline/github/cstruct_results.csv"
-#
-#echo ">>> Running C++ baseline (cJSON)"
-#${PROG} -m "cjson" --input-pattern "${INPUT_PATTERN}" --output-path "./local-exp/c++-baseline/github/cjson/output" --result-path "./local-exp/c++-baseline/github/cjson_results.csv"
+echo ">>> Running C++ baseline (best)"
+${PROG} -m "best" --input-pattern "${INPUT_PATTERN}" --output-path "./local-exp/c++-baseline/github/best/output" --result-path "./local-exp/c++-baseline/github/best_results.csv"
+
+echo ">>> Running C++ baseline (condensed C-struct)"
+${PROG} -m "cstruct" --input-pattern "${INPUT_PATTERN}" --output-path "./local-exp/c++-baseline/github/cstruct/output" --result-path "./local-exp/c++-baseline/github/cstruct_results.csv"
+
+echo ">>> Running C++ baseline (cJSON)"
+${PROG} -m "cjson" --input-pattern "${INPUT_PATTERN}" --output-path "./local-exp/c++-baseline/github/cjson/output" --result-path "./local-exp/c++-baseline/github/cjson_results.csv"
 
 ## Validating results
 echo ">>> Validating python baseline vs. C++ (best)"

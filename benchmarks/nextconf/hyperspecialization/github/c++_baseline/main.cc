@@ -662,6 +662,15 @@ std::string vec_to_string(const std::vector<std::string>& v) {
     return ss.str();
 }
 
+std::string replace_all(std::string str, const std::string &from, const std::string &to) {
+    size_t start_pos = 0;
+    while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
+    }
+    return str;
+}
+
 int main(int argc, char* argv[]) {
     using namespace std;
 
@@ -721,9 +730,8 @@ int main(int argc, char* argv[]) {
 //        }
         std::filesystem::create_directories(output_path);
     }
-    cout<<timer.time()<<"s "<<"saving output to "<<output_path<<endl;
 
-    double total_time_in_s = timer.time();
+    cout<<timer.time()<<"s "<<"saving output to "<<output_path<<endl;
 
     std::stringstream ss;
     for(unsigned i = 0; i < paths.size(); ++i) {
@@ -734,10 +742,14 @@ int main(int argc, char* argv[]) {
         int input_row_count=0,output_row_count=0;
         double loading_time = 0.0;
         std::tie(input_row_count, output_row_count, loading_time) = process_path(path, part_path, mode);
-        ss<<mode<<","<<path<<","<<part_path<<","<<path_timer.time()<<","<<loading_time<<","<<total_time_in_s<<","<<input_row_count<<","<<output_row_count<<"\n";
+        ss<<mode<<","<<path<<","<<part_path<<","<<path_timer.time()<<","<<loading_time<<",$$STUB$$,"<<input_row_count<<","<<output_row_count<<"\n";
     }
 
     auto csv = "mode,input_path,output_path,time_in_s,loading_time_in_s,total_time_in_s,input_row_count,output_row_count\n" + ss.str();
+
+    // replace $$STUB$$ with total time
+    double total_time_in_s = timer.time();
+    csv = replace_all(csv, "$$STUB$$", std::to_string(total_time_in_s));
     cout<<"per-file stats in CSV format::\n"<<csv<<"\n"<<endl;
 
     if(!result_path.empty()) {

@@ -21,6 +21,10 @@
 #include <any>
 #include <filesystem>
 
+// yyjson as faster lib?
+#include <yyjson.h>
+
+
 int dirExists(const char *path)
 {
     struct stat info;
@@ -432,6 +436,166 @@ namespace mode {
         }
     }
 
+    namespace yyjson {
+
+        std::optional<int64_t> extract_repo_id(yyjson_mut_val* row, int64_t year, std::string type) {
+            // modeled after
+            // def extract_repo_id(row):
+            //    if 2012 <= row['year'] <= 2014:
+            //
+            //        if row['type'] == 'FollowEvent':
+            //            return row['payload']['target']['id']
+            //
+            //        if row['type'] == 'GistEvent':
+            //            return row['payload']['id']
+            //
+            //        repo = row.get('repository')
+            //
+            //        if repo is None:
+            //            return None
+            //        return repo.get('id')
+            //    else:
+            //        return row['repo'].get('id')
+            if(2012 <= year && year <= 2014) {
+                if("FollowEvent" == type) {
+                    return (int64_t)yyjson_mut_get_sint(yyjson_mut_obj_get(yyjson_mut_obj_get(yyjson_mut_obj_get(row, "payload"), "target"), "id"));
+                }
+
+                if("GistEvent" == type) {
+                    return (int64_t)yyjson_mut_get_sint(yyjson_mut_obj_get(yyjson_mut_obj_get(row, "payload"), "id"));
+                }
+
+                auto repo = yyjson_mut_obj_get(row, "repository");
+                if(!repo) {
+                    return {};
+                }
+
+                auto id = yyjson_mut_obj_get(repo, "id");
+                if(!id)
+                    return {};
+                else
+                    return (int64_t)yyjson_mut_get_sint(id);
+            } else {
+
+                auto id = yyjson_mut_obj_get(yyjson_mut_obj_get(row, "repo"), "id");
+                if(!id)
+                    return {};
+                else
+                    return (int64_t)yyjson_mut_get_sint(id);
+            }
+        }
+
+        int64_t extract_year(yyjson_mut_val* row) {
+
+
+
+            std::string created_at = yyjson_mut_get_str(yyjson_mut_obj_get(row, "created_at"));
+
+            // extract to array
+            std::vector<std::string> arr;
+            std::string remaining = created_at;
+            std::string delimiter = "-";
+            auto pos = remaining.find(delimiter);
+            while(pos != std::string::npos) {
+                arr.push_back(remaining.substr(0, pos));
+                remaining = remaining.substr(pos + delimiter.size());
+                pos = remaining.find(delimiter);
+            }
+            arr.push_back(remaining);
+
+            // optimized access: --> this actually saves some time!!!
+            // auto year_str = created_at.substr(0, created_at.find("-"));
+
+
+            auto year_str = arr.front();
+            int64_t year = std::stoi(year_str);
+            return year;
+        }
+
+        std::optional<std::vector<yyjson_mut_val*>> extract_commits(yyjson_mut_val* row) {
+            // lambda row: row['payload'].get('commits')
+
+            auto commits = yyjson_mut_obj_get(yyjson_mut_obj_get(row, "payload"), "commits");
+            if(!commits)
+                return {};
+
+            std::vector<yyjson_mut_val*> v;
+            for(unsigned i = 0; i < yyjson_mut_arr_size(commits); ++i)
+                v.push_back(yyjson_mut_arr_get(commits, i));
+            return v;
+        }
+
+        int64_t process_pipeline(FILE **pFile, const std::string &output_path, const simdjson::dom::element& doc) {
+            using namespace std;
+
+            auto pf = *pFile;
+            if(!pf) {
+                cout<<"Opening file "<<output_path<<" for writing"<<endl;
+                pf = fopen(output_path.c_str(), "w");
+                if(!pf) {
+                    cerr<<"Could not open output file "<<output_path<<endl;
+                    throw std::runtime_error("error opening file " + output_path);
+                }
+
+                // write header
+                std::string header = "type,repo_id,year,number_of_commits\n";
+                fwrite(header.c_str(), header.size(), 1, pf);
+
+                *pFile = pf;
+            }
+
+            // process pipeline and write output to file as CSV
+            // this pipeline is equivalent to the python pipeline
+            //     ctx.json(input_pattern, True, True, sm) \
+            //       .withColumn('year', lambda x: int(x['created_at'].split('-')[0])) \
+            //       .withColumn('repo_id', extract_repo_id) \
+            //       .filter(lambda x: x['type'] == 'ForkEvent') \
+            //       .withColumn('commits', lambda row: row['payload'].get('commits')) \
+            //       .withColumn('number_of_commits', lambda row: len(row['commits']) if row['commits'] else 0) \
+            //       .selectColumns(['type', 'repo_id', 'year', 'number_of_commits']) \
+            //       .tocsv(s3_output_path)
+
+            // first step is to convert line to cJSON. --> could get rid off simdjson, by directly parsing to cjson.
+            std::stringstream json_ss;
+            json_ss<<doc;
+            std::string json_line = json_ss.str();
+
+            auto yy_doc = yyjson_read(json_line.c_str(), json_line.size(), 0);
+            auto yy_mut_doc = yyjson_doc_mut_copy(yy_doc, NULL);
+            yyjson_doc_free(yy_doc);
+            auto row = yyjson_mut_doc_get_root(yy_mut_doc);
+
+            int64_t year = extract_year(row);
+
+            std::string type = yyjson_mut_get_str(yyjson_mut_obj_get(row, "type"));
+
+            auto repo_id = extract_repo_id(row, year, type);
+
+            if(type != "ForkEvent") {
+                yyjson_mut_doc_free(yy_mut_doc);
+                return 0;
+            }
+
+
+            auto commits = extract_commits(row);
+
+            int64_t number_of_commits = commits.has_value() ? commits.value().size() : 0;
+
+            std::stringstream ss;
+            auto repo_str = repo_id.has_value() ? std::to_string(repo_id.value()) : "";
+            ss<<type<<","<<repo_str<<","<<year<<","<<number_of_commits<<"\n";
+            auto line = ss.str();
+
+            // do not write '\0'
+            fwrite(line.c_str(), line.size(), 1, pf);
+
+            yyjson_mut_doc_free(yy_mut_doc);
+
+            // return how many line are written.
+            return 1;
+        }
+    }
+
     namespace best {
         std::optional<int64_t> extract_repo_id(const simdjson::dom::element& doc, int64_t year, std::string type) {
             // modeled after
@@ -601,6 +765,8 @@ std::tuple<int,int,double> process_path(const std::string& input_path, const std
         functor = mode::cjson::process_pipeline;
     } else if(mode == "cstruct") {
         functor = mode::load_to_condensed_c_struct::process_pipeline;
+    } else if(mode == "yyjson") {
+        functor = mode::yyjson::process_pipeline;
     } else {
         throw std::runtime_error("unsupported mode " + mode);
     }
@@ -681,7 +847,7 @@ int main(int argc, char* argv[]) {
     string output_path = "local-output";
     string mode = "best";
     string result_path;
-    std::vector<std::string> supported_modes{"best", "cjson", "cstruct"};
+    std::vector<std::string> supported_modes{"best", "cjson", "cstruct", "yyjson"};
     bool show_help = false;
 
     // construct CLI

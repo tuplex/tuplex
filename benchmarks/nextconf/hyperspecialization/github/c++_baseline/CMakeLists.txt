@@ -81,8 +81,15 @@ GIT_TAG 1.6.1
 )
 FetchContent_MakeAvailable(lyra)
 
+
+FetchContent_Declare(yyjson
+GIT_REPOSITORY https://github.com/ibireme/yyjson
+GIT_TAG 0.8.0)
+FetchContent_MakeAvailable(yyjson)
+
+
 set(SRCS main.cc)
 
 # linking
 add_executable(cc_github ${SRCS})
-target_link_libraries(cc_github simdjson lyra ${AWSSDK_LINK_LIBRARIES})
+target_link_libraries(cc_github simdjson lyra yyjson ${AWSSDK_LINK_LIBRARIES})

@@ -673,8 +673,11 @@ namespace tuplex {
                             if(normal_case_row_type.isRowType() && general_case_row_type.isRowType()) {
                                 if(!vec_equal(normal_case_row_type.get_column_names(), general_case_row_type.get_column_names())) {
                                     upcasted_row = upcast_row_and_reorder(builder, normal_case_row, normal_case_row_type, general_case_row_type);
+                                    general_case_row_type = general_case_row_type.get_columns_as_tuple_type();
+                                } else {
+                                    general_case_row_type = general_case_row_type.get_columns_as_tuple_type();
+                                    upcasted_row = normal_case_row.upcastTo(builder, general_case_row_type);
                                 }
-                                general_case_row_type = general_case_row_type.get_columns_as_tuple_type();
                             } else {
                                 upcasted_row = normal_case_row.upcastTo(builder, general_case_row_type);
                             }

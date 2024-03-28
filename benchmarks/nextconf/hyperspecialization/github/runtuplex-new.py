@@ -175,7 +175,8 @@ def github_pipeline(ctx, input_pattern, s3_output_path, sm):
 # local worker version
 def run_with_tuplex(args):
 
-    LOCAL_WORKER_PATH='/home/leonhards/projects/tuplex-public/tuplex/cmake-build-release-w-cereal/dist/bin/tuplex-worker'
+    LOCAL_WORKER_PATH='/home/leonhards/projects/tuplex-public/tuplex/cmake-build-release-w-cereal/dist/bin/tuplex-worker' # llvm9 version
+    LOCAL_WORKER_PATH = '/home/leonhards/projects/2nd-copy/tuplex/build/dist/bin/tuplex-worker' # llvm16 version
 
     output_path = args.output_path
     input_pattern = args.input_pattern

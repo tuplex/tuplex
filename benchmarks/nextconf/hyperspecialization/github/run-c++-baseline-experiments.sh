@@ -54,7 +54,7 @@ echo "validation succeeded!"
 
 
 # run a couple runs here
-NUM_RUNS=3
+NUM_RUNS=5
 
 for ((r = 1; r <= NUM_RUNS; r++)); do
   echo "-- RUN ${r}/${NUM_RUNS}"

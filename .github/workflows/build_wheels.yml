@@ -54,8 +54,16 @@ jobs:
             /usr/local/opt
           key: macos-12-build-cache-${{ hashFiles('./scripts/macos/brew_dependencies.sh') }}-v2
 
-      - name: Build wheel
-        uses: pypa/cibuildwheel
+      - name: Setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' 
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.22.0
+        
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
         env:
           # configure cibuildwheel to build native archs ('auto'), and some
           # emulated ones

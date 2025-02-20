@@ -11,28 +11,28 @@ jobs:
         os: [ ubuntu-latest, macos-latest ]
         python-version: ["3.8", "3.9", "3.10", "3.11"]
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             python-version: "3.8"
             cibw-build: "cp38-manylinux_x86_64"
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             python-version: "3.9"
             cibw-build: "cp39-manylinux_x86_64"
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             python-version: "3.10"
             cibw-build: "cp310-manylinux_x86_64"
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             python-version: "3.11"
             cibw-build: "cp311-manylinux_x86_64"
-          - os: macos-12
+          - os: macos-latest
             python-version: "3.8"
             cibw-build: "cp38-macosx_x86_64"
-          - os: macos-12
+          - os: macos-latest
             python-version: "3.9"
             cibw-build: "cp39-macosx_x86_64"
-          - os: macos-12
+          - os: macos-latest
             python-version: "3.10"
             cibw-build: "cp310-macosx_x86_64"
-          - os: macos-12
+          - os: macos-latest
             python-version: "3.11"
             cibw-build: "cp311-macosx_x86_64"
     steps:
@@ -52,7 +52,7 @@ jobs:
             /usr/local/Frameworks
             /usr/local/bin
             /usr/local/opt
-          key: macos-12-build-cache-${{ hashFiles('./scripts/macos/brew_dependencies.sh') }}-v2
+          key: macos-latest-build-cache-${{ hashFiles('./scripts/macos/brew_dependencies.sh') }}-v2
 
       - name: Setup python
         uses: actions/setup-python@v5

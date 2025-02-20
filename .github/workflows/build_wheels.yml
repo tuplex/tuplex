@@ -2,6 +2,10 @@ name: Build
 
 on: [push, pull_request, workflow_dispatch]
 
+env:
+  # At least 10.13 is required, to avoid issues and since the runner is macos-13 -> use 13.0, which is Venture from 2022.
+  MACOSX_DEPLOYMENT_TARGET: 13.0
+
 jobs:
   build_wheels:
     name: Build wheel on ${{ matrix.os }} - py ${{ matrix.python-version }}
@@ -79,8 +83,10 @@ jobs:
           # the OpenSSL3 lib is stored under /usr/local/lib64.
           CIBW_ENVIRONMENT_LINUX: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64:/opt/lib"
 
-          # requires macOS 10.13 at least to build because of C++17 features.
-          CIBW_ENVIRONMENT_MACOS: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' JAVA_HOME=${JAVA_HOME_11_X64}"
+          # Requires macOS 10.13 at least to build because of C++17 features.
+          # To avoid issues, simply use 13.0 for now.
+          CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' JAVA_HOME=${JAVA_HOME_11_X64}"
+
           # run all python tests to make sure wheels are not defunct
           CIBW_TEST_REQUIRES: "pytest pytest-timeout numpy nbformat jupyter"
           # use 3min timeout per test and print top 25 slowest tests

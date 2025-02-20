@@ -8,7 +8,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest, macos-latest ]
+        # macos-14 (which is macos-latest) is ARM only. macos-13 is latest intel runner.
+        os: [ ubuntu-latest, macos-13 ]
         python-version: ["3.8", "3.9", "3.10", "3.11"]
         include:
           - os: ubuntu-latest
@@ -23,16 +24,16 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.11"
             cibw-build: "cp311-manylinux_x86_64"
-          - os: macos-latest
+          - os: macos-13
             python-version: "3.8"
             cibw-build: "cp38-macosx_x86_64"
-          - os: macos-latest
+          - os: macos-13
             python-version: "3.9"
             cibw-build: "cp39-macosx_x86_64"
-          - os: macos-latest
+          - os: macos-13
             python-version: "3.10"
             cibw-build: "cp310-macosx_x86_64"
-          - os: macos-latest
+          - os: macos-13
             python-version: "3.11"
             cibw-build: "cp311-macosx_x86_64"
     steps:
@@ -52,7 +53,7 @@ jobs:
             /usr/local/Frameworks
             /usr/local/bin
             /usr/local/opt
-          key: macos-latest-build-cache-${{ hashFiles('./scripts/macos/brew_dependencies.sh') }}-v2
+          key: macos-13-build-cache-${{ hashFiles('./scripts/macos/brew_dependencies.sh') }}-v2
 
       - name: Setup python
         uses: actions/setup-python@v5

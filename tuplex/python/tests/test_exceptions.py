@@ -100,8 +100,10 @@ class TestExceptions:
         # for larger partitions, there's a multi-threading issue for this.
         # need to fix.
         conf = self.conf_in_order
+
         # use this line to force single-threaded
-        # conf['executorCount'] = 0
+        conf['executorCount'] = 0
+
         c = Context(conf)
         output = c.parallelize(input).filter(filter_udf).map(map_udf).resolve(ZeroDivisionError, resolve_udf).collect()
 

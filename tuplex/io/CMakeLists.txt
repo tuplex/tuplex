@@ -38,13 +38,10 @@ if(BUILD_WITH_ORC)
                 set(SNAPPY_STATIC_LIB "${SNAPPY_HOME}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}snappy${CMAKE_STATIC_LIBRARY_SUFFIX}")
                 set(SNAPPY_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${SNAPPY_HOME}
                         -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DSNAPPY_BUILD_BENCHMARKS=OFF -DSNAPPY_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
-                
-                # set(PATCH_CMD_FOR_SNAPPY git apply "${CMAKE_CURRENT_LIST_DIR}/patches/snappy.diff")
-                
-                # cf. https://gitlab.kitware.com/cmake/cmake/-/issues/17287
-                set(PATCH_CMD_FOR_SNAPPY bash -c "echo test && ls ${SNAPPY_HOME}/src && cat \"${CMAKE_CURRENT_LIST_DIR}/patches/snappy.diff\" && patch -p1 < \"${CMAKE_CURRENT_LIST_DIR}/patches/snappy.diff\"")
 
-                # this here works.
+                # cf. https://gitlab.kitware.com/cmake/cmake/-/issues/17287
+                set(PATCH_CMD_FOR_SNAPPY bash -c "patch -p1 < \"${CMAKE_CURRENT_LIST_DIR}/patches/snappy.diff\"")
+                # To show what the patch looks like, use:
                 # set(PATCH_CMD_FOR_SNAPPY cat "${CMAKE_CURRENT_LIST_DIR}/patches/snappy.diff")
                 
                 ExternalProject_Add (snappy_ep

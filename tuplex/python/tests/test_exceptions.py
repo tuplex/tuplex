@@ -20,10 +20,13 @@ from helper import options_for_pytest
 class TestExceptions:
 
     def setup_method(self, method):
+
+        N_PROCESSES = 2
+
         self.conf = options_for_pytest()
-        self.conf.update({"tuplex.webui.enable": False, "executorCount": 8, "executorMemory": "256MB", "driverMemory": "256MB", "partitionSize": "256KB", "tuplex.optimizer.mergeExceptionsInOrder": False})
+        self.conf.update({"tuplex.webui.enable": False, "executorCount": N_PROCESSES, "executorMemory": "256MB", "driverMemory": "256MB", "partitionSize": "256KB", "tuplex.optimizer.mergeExceptionsInOrder": False})
         self.conf_in_order = options_for_pytest()
-        self.conf_in_order.update({"tuplex.webui.enable": False, "executorCount": 8, "executorMemory": "256MB", "driverMemory": "256MB", "partitionSize": "256KB", "tuplex.optimizer.mergeExceptionsInOrder": True})
+        self.conf_in_order.update({"tuplex.webui.enable": False, "executorCount": N_PROCESSES, "executorMemory": "256MB", "driverMemory": "256MB", "partitionSize": "256KB", "tuplex.optimizer.mergeExceptionsInOrder": True})
 
     def assertEqual(self, lhs, rhs):
         assert lhs == rhs
@@ -44,7 +47,7 @@ class TestExceptions:
         output = c.parallelize([-1.1, 1, 2, -2.2, 4, 5, -6.6]).filter(lambda x: x < 0 or x > 3).collect()
         self.compare_in_order([-1.1, -2.2, 4, 5, -6.6], output)
 
-    @pytest.mark.parametrize("n", [1000, 2500])
+    @pytest.mark.parametrize("n", [1000, 2500, 5000, 10000])
     def test_merge_with_filter(self, n):
         c = Context(self.conf_in_order)
         input = list(range(1, n + 1))
@@ -100,9 +103,6 @@ class TestExceptions:
         # for larger partitions, there's a multi-threading issue for this.
         # need to fix.
         conf = self.conf_in_order
-
-        # use this line to force single-threaded
-        conf['executorCount'] = 0
 
         c = Context(conf)
         output = c.parallelize(input).filter(filter_udf).map(map_udf).resolve(ZeroDivisionError, resolve_udf).collect()

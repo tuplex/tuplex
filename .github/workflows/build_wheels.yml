@@ -89,8 +89,13 @@ jobs:
 
           # run all python tests to make sure wheels are not defunct
           CIBW_TEST_REQUIRES: "pytest pytest-timeout numpy nbformat jupyter"
+
+          # Use following test command when segfaults happen to better pinpoint:
+          # python3 -X faulthandler -m pytest -p no:faulthandler
+          # else can use pytest ...
+
           # use 3min timeout per test and print top 25 slowest tests
-          CIBW_TEST_COMMAND: "cd {project} && pytest tuplex/python/tests -v --timeout 600 --durations 25"
+          CIBW_TEST_COMMAND: "cd {project} && python3 -X faulthandler -m pytest -p no:faulthandler tuplex/python/tests -v --timeout 600 --durations 25"
 
       - name: reorganize files
         run: touch ./scripts/dummy.version && cp ./scripts/*.version ./wheelhouse && cp ./.github/scripts/test_pypi.sh ./wheelhouse

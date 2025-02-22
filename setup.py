@@ -70,7 +70,7 @@ test_dependencies = [
 
 # Also requires to install MongoDB
 webui_dependencies = [
-    'Flask>=2.0.2',
+    'Flask>=3.0',
     'Werkzeug',
     'gunicorn',
     'eventlet==0.30.0', # newer versions of eventlet have a bug under MacOS

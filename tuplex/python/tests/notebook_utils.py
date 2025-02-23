@@ -47,8 +47,12 @@ def notebook_run(path):
         args = ['jupyter', "nbconvert", "--to", "notebook", "--execute",
                 "--ExecutePreprocessor.timeout=60",
                 "--output", fout.name, path]
-        subprocess.check_call(args, stderr=subprocess.DEVNULL)
-
+        try:
+            # use: subprocess.DEVNULL?
+            subprocess.check_call(args, stderr=subprocess.STDOUT, universal_newlines=True)
+        except subprocess.CalledProcessError as exc:
+            logging.error(f"FAIL notebook_run {path}:  {exc.returncode}  {exc.output}")
+            raise exc
         fout.seek(0)
         nb = nbformat.read(fout, nbformat.current_nbformat)
 

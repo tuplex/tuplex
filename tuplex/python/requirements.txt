@@ -1,6 +1,7 @@
 nbconvert<7.0
 jupyter<7.0
 nbformat<7.0
+lxml[html_clean]
 Werkzeug
 attrs>=19.2.0
 dill>=0.2.7.1

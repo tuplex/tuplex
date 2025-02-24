@@ -12,9 +12,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # macos-14 (which is macos-latest) is ARM only. macos-13 is latest intel runner.
+        # macos-14 (which is macos-latest) is ARM only. macos-13 is the latest intel runner.
         os: [ ubuntu-latest, macos-13 ]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
         include:
           - os: ubuntu-latest
             python-version: "3.9"
@@ -44,9 +44,9 @@ jobs:
           - os: macos-13
             python-version: "3.12"
             cibw-build: "cp310-macosx_x86_64"
-          - os: macos-13
-            python-version: "3.13"
-            cibw-build: "cp311-macosx_x86_64"
+#          - os: macos-13
+#            python-version: "3.13"
+#            cibw-build: "cp311-macosx_x86_64"
     steps:
       - uses: actions/checkout@v4
 

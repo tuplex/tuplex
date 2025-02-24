@@ -38,9 +38,16 @@ if(BUILD_WITH_ORC)
                 set(SNAPPY_STATIC_LIB "${SNAPPY_HOME}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}snappy${CMAKE_STATIC_LIBRARY_SUFFIX}")
                 set(SNAPPY_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${SNAPPY_HOME}
                         -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DSNAPPY_BUILD_BENCHMARKS=OFF -DSNAPPY_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
+
+                # cf. https://gitlab.kitware.com/cmake/cmake/-/issues/17287
+                set(PATCH_CMD_FOR_SNAPPY bash -c "patch -p1 < \"${CMAKE_CURRENT_LIST_DIR}/patches/snappy.diff\"")
+                # To show what the patch looks like, use:
+                # set(PATCH_CMD_FOR_SNAPPY cat "${CMAKE_CURRENT_LIST_DIR}/patches/snappy.diff")
+                
                 ExternalProject_Add (snappy_ep
                         URL "https://github.com/google/snappy/archive/${SNAPPY_VERSION}.tar.gz"
                         CMAKE_ARGS ${SNAPPY_CMAKE_ARGS}
+                        PATCH_COMMAND ${PATCH_CMD_FOR_SNAPPY}
                         BUILD_BYPRODUCTS "${SNAPPY_STATIC_LIB}")
 
                 set(SNAPPY_LIBRARIES ${SNAPPY_STATIC_LIB})

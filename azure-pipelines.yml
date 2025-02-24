@@ -22,7 +22,7 @@ jobs:
         displayName: 'Install MongoDB'
       - script: sudo bash scripts/azure/install_azure_ci_reqs.sh
         displayName: 'Install required packages'
-      - script: sudo apt-get install -y python3-setuptools ninja-build && python3 -m pip install pytest pygments>=2.4.1 MarkupSafe==2.0 pexpect setuptools astor PyYAML jupyter nbformat pymongo eventlet==0.30.0 gunicorn pymongo && jupyter --version
+      - script: sudo apt-get install -y python3-setuptools ninja-build && python3 -m pip install pytest pygments>=2.4.1 MarkupSafe==2.0 pexpect setuptools astor PyYAML jupyter nbformat pymongo eventlet==0.30.0 gunicorn pymongo "lxml[html_clean]" && jupyter --version
         displayName: 'Install python dependencies'
       - script: cd tuplex/python && python3 -m pip install -r requirements.txt && python3 mongodb_test.py && pkill mongod || true
         displayName: 'Test local MongoDB'
@@ -30,5 +30,5 @@ jobs:
         displayName: 'Build Tuplex'
       - script: cd build/temp.linux-x86_64-3.10 && ctest --timeout 180 --output-on-failure --repeat until-pass:3 -j 2
         displayName: 'C++ tests'
-      - script: cd build/temp.linux-x86_64-3.10/dist/python && python3.10 -m pytest -x --full-trace -l --log-cli-level=DEBUG --capture=tee-sys
+      - script: cd build/temp.linux-x86_64-3.10/dist/python && python3.10 -m pip install lxml_html_clean && python3.10 -m pytest -x --full-trace -l --log-cli-level=DEBUG --capture=tee-sys
         displayName: 'Python tests'

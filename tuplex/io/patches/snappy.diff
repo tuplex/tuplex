@@ -1,0 +1,13 @@
+diff --git a/snappy.cc b/snappy.cc
+index d4147185..955ff303 100644
+--- a/snappy.cc
++++ b/snappy.cc
+@@ -1290,7 +1290,7 @@ std::pair<const uint8_t*, ptrdiff_t> DecompressBranchless(
+         DeferMemCopy(&deferred_src, &deferred_length, from, len);
+       }
+     } while (ip < ip_limit_min_slop &&
+-             (op + deferred_length) < op_limit_min_slop);
++             (long)(op + deferred_length) < (long)op_limit_min_slop);
+   exit:
+     ip--;
+     assert(ip <= ip_limit);

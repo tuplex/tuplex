@@ -66,12 +66,13 @@ test_dependencies = [
 'nbformat<7.0',
 'prompt_toolkit>=2.0.7',
 'pytest>=5.3.2'
+'lxml[html_clean]'
 ]
 
 # Also requires to install MongoDB
 webui_dependencies = [
-    'Flask>=2.0.2,<2.2.0',
-    'Werkzeug<2.2.0',
+    'Flask>=3.0',
+    'Werkzeug',
     'gunicorn',
     'eventlet==0.30.0', # newer versions of eventlet have a bug under MacOS
     'flask-socketio',
@@ -117,8 +118,8 @@ if in_google_colab():
     logging.debug('Building dependencies for Google Colab environment')
 
     install_dependencies = [
-        'urllib3!=1.25.0,!=1.25.1,<1.26,>=1.21.1',
-        'folium==0.2.1'
+        'urllib3!=1.25.0,!=1.25.1,>=1.21.1',
+        'folium>=0.2.1'
         'requests',
         'attrs>=19.2.0',
         'dill>=0.2.7.1',
@@ -695,7 +696,7 @@ def tplx_package_data():
 # logic and declaration, and simpler if you include description/version in a file.
 setup(name="tuplex",
     python_requires='>=3.8.0',
-    version="0.3.6",
+    version="0.3.7",
     author="Leonhard Spiegelberg",
     author_email="tuplex@cs.brown.edu",
     description="Tuplex is a novel big data analytics framework incorporating a Python UDF compiler based on LLVM "

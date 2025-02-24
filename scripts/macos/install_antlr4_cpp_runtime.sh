@@ -12,6 +12,9 @@ if [ -d "${PREFIX}/include/antlr4-runtime" ]; then
   exit 0
 fi
 
+# use arm64 or x86_64.
+ARCH=x86_64
+
 # if macOS is 10.x -> use this as minimum
 MINIMUM_TARGET="-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"
 
@@ -35,6 +38,7 @@ git clone https://github.com/antlr/antlr4.git \
 && cd antlr4 && cd runtime &&  git fetch --all --tags \
 && git checkout tags/4.13.1 -b 4.13.1 && cd Cpp/ \
 && sed -i '' "s/cmake ./cmake . ${MINIMUM_TARGET}/g" deploy-macos.sh \
+&& sed -i '' "s/CMAKE_OSX_ARCHITECTURES=\"arm64; x86_64\"/CMAKE_OSX_ARCHITECTURES=\"${ARCH}\"/g" deploy-macos.sh \
 && cat deploy-macos.sh \
 && ./deploy-macos.sh \
 && unzip -l antlr4-cpp-runtime-macos.zip && unzip antlr4-cpp-runtime-macos.zip \

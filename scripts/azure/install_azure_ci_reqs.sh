@@ -86,7 +86,7 @@ mkdir -p /root/.ssh/ &&
 mkdir -p ${WORKDIR}/boost
 
 # build incl. boost python
-pushd ${WORKDIR}/boost && wget https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79_0.tar.gz && tar xf boost_1_79_0.tar.gz && cd ${WORKDIR}/boost/boost_1_79_0 \
+pushd ${WORKDIR}/boost && wget https://github.com/boostorg/boost/releases/download/boost-1.87.0/boost-1.87.0-b2-nodocs.tar.gz && tar xf boost-1.87.0-b2-nodocs.tar.gz && cd ${WORKDIR}/boost/boost-1.87.0 \
            && ./bootstrap.sh --with-python=${PYTHON_EXECUTABLE} --prefix=${PREFIX} --with-libraries="thread,iostreams,regex,system,filesystem,python,stacktrace,atomic,chrono,date_time" \
             && ./b2 cxxflags="-fPIC" link=static -j "$(nproc)" \
             && ./b2 cxxflags="-fPIC" link=static install && sed -i 's/#if PTHREAD_STACK_MIN > 0/#ifdef PTHREAD_STACK_MIN/g' ${PREFIX}/include/boost/thread/pthread/thread_data.hpp
@@ -138,5 +138,5 @@ mkdir -p ${WORKDIR}/pcre2 && cd ${WORKDIR}/pcre2 \
 && ./configure CFLAGS="-O2 -fPIC" --prefix=${PREFIX} --enable-jit=auto --disable-shared \
 && make -j$(nproc) && make install
 mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf && git clone -b v24.3 https://github.com/protocolbuffers/protobuf.git && cd protobuf && git submodule update --init --recursive && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_CXX_STANDARD=17 -Dprotobuf_BUILD_TESTS=OFF .. && make -j$(nproc) && make install && ldconfig
-pip3 install 'cloudpickle>2.0.0' cython numpy
+pip3 install 'cloudpickle>2.0.0' cython numpy 'lxml[html_clean]'
 echo ">>> installing reqs done."

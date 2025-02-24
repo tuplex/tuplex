@@ -32,8 +32,10 @@ find_path (DWARF_INCLUDE_DIR
         ${PkgConfig_LibDwarf_INCLUDE_DIRS}
         /usr/include
         /usr/include/libdwarf
+        /usr/include/libdwarf-0
         /usr/local/include
         /usr/local/include/libdwarf
+        /usr/local/include/libdwarf-0
         /opt/local/include
         /sw/include
         ENV CPATH) # PATH and INCLUDE will also work

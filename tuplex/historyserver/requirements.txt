@@ -4,12 +4,12 @@ jedi
 astor==0.7.1
 pandas>=0.23.4
 cloudpickle
-Werkzeug==2.0.1
+Werkzeug>=2.0.1
 flask>=2.0.1
-flask_socketio==4.3.1
-python-socketio==4.6.0
-python-engineio==3.13.2
-flask_pymongo==2.2.0
+flask_socketio>=4.3.1
+python-socketio>=4.6.0
+python-engineio>=3.13.2
+flask_pymongo>=2.2.0
 iso8601==0.1.12
 dill==0.2.8.2
 greenlet>=0.4.15

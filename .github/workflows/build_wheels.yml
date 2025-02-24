@@ -28,9 +28,10 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.12"
             cibw-build: "cp311-manylinux_x86_64"
-          - os: ubuntu-latest
-            python-version: "3.13"
-            cibw-build: "cp311-manylinux_x86_64"
+# Need to upload newer image first.
+#          - os: ubuntu-latest
+#            python-version: "3.13"
+#            cibw-build: "cp311-manylinux_x86_64"
           - os: macos-13
             python-version: "3.9"
             cibw-build: "cp39-macosx_x86_64"

@@ -83,7 +83,9 @@ namespace tuplex {
             // new version, directly interact with the interpreter
             Timer timer;
 
-            Logger::instance().logger("python").info("Converting result-set to CPython objects");
+            auto output_row_count = rs->rowCount();
+
+            Logger::instance().logger("python").info("Converting result-set to CPython objects (" + pluralize(output_row_count, "row") + ")");
 
             // build python list object from resultset
             auto listObj = resultSetToCPython(rs.get(), std::numeric_limits<size_t>::max());
@@ -102,7 +104,7 @@ namespace tuplex {
 #endif
 
             Logger::instance().logger("python").info("Data transfer back to Python took "
-                                                     + std::to_string(timer.time()) + " seconds");
+                                                     + std::to_string(timer.time()) + " seconds (" + pluralize(PyList_Size(listObj), "element") + ")");
 
             auto list = pybind_list_from_obj(listObj);
             // Logger::instance().flushAll();

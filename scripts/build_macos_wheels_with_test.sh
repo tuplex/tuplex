@@ -51,10 +51,10 @@ echo "-- Detected Xcode ${xcode_version_str}"
 # if no param is given, use defaults to build all
 if [ "${arch}" = "arm64" ]; then
   # build Python 3.9 - 3.11
-  CIBW_BUILD=${CIBW_BUILD-"cp3{9,10,11}-macosx_arm64"}
+  CIBW_BUILD=${CIBW_BUILD-"cp3{9,10,11,12,13}-macosx_arm64"}
 else
   # build Python 3.8 - 3.11
-  CIBW_BUILD=${CIBW_BUILD-"cp3{8,9,10,11}-macosx_x86_64"}
+  CIBW_BUILD=${CIBW_BUILD-"cp3{9,10,11,12,13}-macosx_x86_64"}
 fi
 
 echo "-- Building wheels for ${CIBW_BUILD}"
@@ -92,7 +92,7 @@ export CIBW_ENVIRONMENT_MACOS="MACOSX_DEPLOYMENT_TARGET=${MINIMUM_TARGET} CMAKE_
 #export CIBW_ENVIRONMENT_MACOS="MACOSX_DEPLOYMENT_TARGET=${MINIMUM_TARGET} CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' TUPLEX_BUILD_TYPE=Debug"
 
 export CIBW_BUILD="${CIBW_BUILD}"
-export CIBW_PROJECT_REQUIRES_PYTHON=">=3.8"
+export CIBW_PROJECT_REQUIRES_PYTHON=">=3.9"
 
 # uncomment to increase verbosity of cibuildwheel
 export CIBW_BUILD_VERBOSITY=3

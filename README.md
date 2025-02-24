@@ -2,18 +2,14 @@
 
 [![Build Status](https://dev.azure.com/leonhardspiegelberg/Tuplex%20-%20Open%20Source/_apis/build/status/tuplex.tuplex?branchName=master)](https://dev.azure.com/leonhardspiegelberg/Tuplex%20-%20Open%20Source/_build/latest?definitionId=2&branchName=master)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-![Supported python versions](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)
-[![PyPi Downloads](https://img.shields.io/pypi/dm/tuplex)](https://img.shields.io/pypi/dm/tuplex)
+![Supported python versions](https://img.shields.io/badge/3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)
 
 [Website](https://tuplex.cs.brown.edu/) [Documentation](https://tuplex.cs.brown.edu/python-api.html)
 
 Tuplex is a parallel big data processing framework that runs data science pipelines written in Python at the speed of compiled code.
 Tuplex has similar Python APIs to [Apache Spark](https://spark.apache.org/) or [Dask](https://dask.org/), but rather than invoking the Python interpreter, Tuplex generates optimized LLVM bytecode for the given pipeline and input data set. Under the hood, Tuplex is based on data-driven compilation and dual-mode processing, two key techniques that make it possible for Tuplex to provide speed comparable to a pipeline written in hand-optimized C++.
 
-You can join the discussion on Tuplex on our [Gitter community](https://gitter.im/tuplex/community) or read up more on the background of Tuplex in our [SIGMOD'21 paper](https://dl.acm.org/doi/abs/10.1145/3448016.3457244).
-
 Contributions welcome!
-
 
 ### Contents
 + [Example](#example)

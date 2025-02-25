@@ -256,7 +256,7 @@ namespace tuplex {
             check = check ? PyTuple_Size(obj) == numTupleElements : false;
             if(check) {
 
-                // it's a tuple with macthing size
+                // it's a tuple with matching size
                 // first get how many bytes are required
                 size_t requiredBytes = baseRequiredBytes;
                 if(varLenField) {
@@ -267,15 +267,15 @@ namespace tuplex {
                             if (PyUnicode_Check(tupleItem)) {
                                 // new:
                                 Py_ssize_t utf8str_size = -1;
-                                auto uft8str = PyUnicode_AsUTF8AndSize(tupleItem, &utf8str_size);
-                                requiredBytes += utf8ste_size + 1; // +1 for '\0'.
+                                auto utf8str = PyUnicode_AsUTF8AndSize(tupleItem, &utf8str_size);
+                                requiredBytes += utf8str_size + 1; // +1 for '\0'.
                                 if(utf8str_size == -1 || !utf8str) {
                                     // error happened, translate and create error dataset.
-                                    auto err= extract_and_reset_py_error();
+                                    auto err= python::extract_and_reset_py_error();
                                     if(err.empty()) {
                                         err = "PyUnicode_AsUTF8AndSize error, but not python error set.";
                                     }
-                                    return _context->makeError(err)
+                                    return _context->makeError(err);
                                 }
 
                                 // old:
@@ -346,23 +346,22 @@ namespace tuplex {
 
                             // new:
                             Py_ssize_t utf8str_size = -1;
-                            auto uft8str = PyUnicode_AsUTF8AndSize(tupleItem, &utf8str_size);
-                            requiredBytes += utf8ste_size + 1; // +1 for '\0'.
+                            auto utf8str = PyUnicode_AsUTF8AndSize(el, &utf8str_size);
                             if(utf8str_size == -1 || !utf8str) {
                                 // error happened, translate and create error dataset.
-                                auto err= extract_and_reset_py_error();
+                                auto err= python::extract_and_reset_py_error();
                                 if(err.empty()) {
                                     err = "PyUnicode_AsUTF8AndSize error, but not python error set.";
                                 }
-                                return _context->makeError(err)
+                                return _context->makeError(err);
                             }
 
                             // // old:
                             // auto utf8ptr = PyUnicode_AsUTF8(el);
                             // auto len = PyUnicode_GET_SIZE(el);
 
-                            assert(len == strlen(utf8ptr));
-                            size_t varFieldSize = len + 1; // + 1 for '\0' char!
+                            assert(utf8str_size == strlen(utf8str));
+                            size_t varFieldSize = utf8str_size + 1; // + 1 for '\0' char!
                             size_t varLenOffset = (numTupleElements + 1 - j) * sizeof(int64_t) + rowVarFieldSizes; // 16 bytes offset
                             int64_t info_field = varLenOffset | (varFieldSize << 32);
 
@@ -532,15 +531,14 @@ namespace tuplex {
 
                 // new:
                 Py_ssize_t utf8str_size = -1;
-                auto uft8str = PyUnicode_AsUTF8AndSize(tupleItem, &utf8str_size);
-                requiredBytes += utf8ste_size + 1; // +1 for '\0'.
+                auto utf8str = PyUnicode_AsUTF8AndSize(obj, &utf8str_size);
                 if(utf8str_size == -1 || !utf8str) {
                     // error happened, translate and create error dataset.
-                    auto err= extract_and_reset_py_error();
+                    auto err= python::extract_and_reset_py_error();
                     if(err.empty()) {
                         err = "PyUnicode_AsUTF8AndSize error, but not python error set.";
                     }
-                    return _context->makeError(err)
+                    return _context->makeError(err);
                 }
 
 
@@ -549,7 +547,7 @@ namespace tuplex {
                 // auto utf8ptr = PyUnicode_AsUTF8(obj);
 
 
-                size_t requiredBytes = sizeof(int64_t) * 2 + len + 1;
+                size_t requiredBytes = sizeof(int64_t) * 2 + utf8str_size + 1;
 
                 // check capacity and realloc if necessary get a new partition
                 if(partition->capacity() < numBytesSerialized + requiredBytes) {
@@ -568,7 +566,7 @@ namespace tuplex {
                     numBytesSerialized = 0;
                 }
 
-                assert(len == strlen(utf8ptr));
+                assert(utf8str_size == strlen(utf8str));
 
                 size_t varFieldSize = utf8str_size + 1; // + 1 for '\0' char!
                 size_t varLenOffset = 2 * sizeof(int64_t); // 16 bytes offset

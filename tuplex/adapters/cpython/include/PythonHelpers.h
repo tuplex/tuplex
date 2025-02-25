@@ -320,6 +320,13 @@ namespace python {
     extern void runGC();
 
     /*!
+     * checks whether python error is set, if so extracts error and traceback into string and resets
+     * interpreter's error flag.
+     * @return
+     */
+    extern std::string extract_and_reset_py_error();
+
+    /*!
      * check whether Python interpreter is running in/available to this process
      * @return bool when is running else false
      */

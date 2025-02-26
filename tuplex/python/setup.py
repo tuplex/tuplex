@@ -64,12 +64,4 @@ setup(
         'iso8601'
     ],
     url="https://tuplex.cs.brown.edu"
-    #,
-    # project_urls={
-    #     "Bug Tracker": "https://bugs.example.com/HelloWorld/",
-    #     "Documentation": "https://docs.example.com/HelloWorld/",
-    #     "Source Code": "https://code.example.com/HelloWorld/",
-    # }
-
-    # could also include long_description, download_url, classifiers, etc.
 )

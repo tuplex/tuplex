@@ -39,18 +39,14 @@ fi
 export CIBW_ENVIRONMENT="TUPLEX_LAMBDA_ZIP='./tuplex/other/tplxlam.zip' CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/opt/lib"
 
 # Use the following line to build only python3.7-3.9 wheel
-export CIBW_BUILD="cp3{8,9,10,11}-*"
+export CIBW_BUILD="cp3{9,10,11,12,13}-*"
 export CIBW_ARCHS_LINUX="x86_64"
 
 # do not build musllinux yet
 export CIBW_SKIP="*-musllinux_*"
 
-# to test the others from 3.7-3.9, use these two lines:
-#export CIBW_BUILD="cp3{7,8,9}-*"
-#export CIBW_SKIP="cp3{5,6,7,8}-macosx* pp*"
-
 export CIBW_BUILD_VERBOSITY=3
-export CIBW_PROJECT_REQUIRES_PYTHON=">=3.8"
+export CIBW_PROJECT_REQUIRES_PYTHON=">=3.9"
 
 # uncomment to increase verbosity of cibuildwheel
 # export CIBW_BUILD_VERBOSITY=3

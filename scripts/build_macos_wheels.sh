@@ -50,11 +50,11 @@ echo "-- Detected Xcode ${xcode_version_str}"
 
 # if no param is given, use defaults to build all
 if [ "${arch}" = "arm64" ]; then
-  # build Python 3.9 - 3.11
-  CIBW_BUILD=${CIBW_BUILD-"cp3{9,10,11}-macosx_arm64"}
+  # build Python 3.9 - 3.13
+  CIBW_BUILD=${CIBW_BUILD-"cp3{9,10,11,12,13}-macosx_arm64"}
 else
-  # build Python 3.8 - 3.11
-  CIBW_BUILD=${CIBW_BUILD-"cp3{8,9,10,11}-macosx_x86_64"}
+  # build Python 3.9 - 3.13
+  CIBW_BUILD=${CIBW_BUILD-"cp3{9,10,11,12,13}-macosx_x86_64"}
 fi
 
 echo "-- Building wheels for ${CIBW_BUILD}"
@@ -82,7 +82,7 @@ export CIBW_BEFORE_BUILD_MACOS="brew install protobuf coreutils zstd zlib libmag
 export CIBW_ENVIRONMENT_MACOS="MACOSX_DEPLOYMENT_TARGET=${MINIMUM_TARGET} CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DCMAKE_BUILD_TYPE=Release' CMAKE_BUILD_TYPE=Release"
 
 export CIBW_BUILD="${CIBW_BUILD}"
-export CIBW_PROJECT_REQUIRES_PYTHON=">=3.8"
+export CIBW_PROJECT_REQUIRES_PYTHON=">=3.9"
 
 # uncomment to increase verbosity of cibuildwheel
 export CIBW_BUILD_VERBOSITY=3

@@ -16,6 +16,12 @@
 #include <physical/TransformTask.h>
 #include <TypeSystem.h>
 
+// Python 3.13 moved internal APIs from modsupport.h to internal/pycore_modsupport.h
+#if PY_MAJOR_VERSION >=3 && PY_MINOR_VERSION >= 13
+#define Py_BUILD_CORE
+#include <internal/pycore_modsupport.h>
+#endif
+
 namespace tuplex {
 
     /*!

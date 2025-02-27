@@ -2,7 +2,7 @@
 
 [![Build Status](https://dev.azure.com/leonhardspiegelberg/Tuplex%20-%20Open%20Source/_apis/build/status/tuplex.tuplex?branchName=master)](https://dev.azure.com/leonhardspiegelberg/Tuplex%20-%20Open%20Source/_build/latest?definitionId=2&branchName=master)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-![Supported python versions](https://img.shields.io/badge/3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)
+![Supported python versions](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)
 
 [Website](https://tuplex.cs.brown.edu/) [Documentation](https://tuplex.cs.brown.edu/python-api.html)
 

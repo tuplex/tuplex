@@ -107,7 +107,8 @@ jobs:
 
           # Requires macOS 10.13 at least to build because of C++17 features.
           # To avoid issues, simply use 13.0 for now.
-          CIBW_ENVIRONMENT_MACOS: "PREFIX=${HOME}/.local MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON'" # JAVA_HOME=${JAVA_HOME_11_X64}"
+          # Fix for Java home from https://github.com/actions/runner-images/discussions/9266.
+          CIBW_ENVIRONMENT_MACOS: "PREFIX=${HOME}/.local MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' JAVA_HOME=${JAVA_HOME_11_X64:-$JAVA_HOME_11_arm64}"
 
           # run all python tests to make sure wheels are not defunct
           CIBW_TEST_REQUIRES: "pytest pytest-timeout numpy nbformat jupyter"

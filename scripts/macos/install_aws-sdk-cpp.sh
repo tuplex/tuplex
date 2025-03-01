@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 
+set -euxo pipefail
+
+PREFIX=${PREFIX:-/usr/local}
+AWSSDK_CPP_VERSION=1.11.164
+
 # check if dir exists (i.e. restored from cache, then skip)
-if [ -d "/usr/local/include/aws" ]; then
+if [ -d "${PREFIX}/include/aws" ]; then
   echo ">> Skip aws-sdk-cpp compile from source, already exists."
   exit 0
 fi
@@ -28,8 +33,8 @@ fi
 
 cd /tmp &&
   git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git &&
-  cd aws-sdk-cpp && git checkout tags/1.11.164 && mkdir build && pushd build &&
-  cmake ${MINIMUM_TARGET} -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=17 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" .. &&
+  cd aws-sdk-cpp && git checkout tags/${AWSSDK_CPP_VERSION} && mkdir build && pushd build &&
+  cmake ${MINIMUM_TARGET} -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=17 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" .. &&
   make -j${CPU_CORES} &&
   make install &&
   popd &&

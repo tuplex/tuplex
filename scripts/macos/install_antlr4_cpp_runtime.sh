@@ -2,7 +2,7 @@
 # this is a script to install the antlr4 runtime
 
 # specify here target location
-PREFIX=/usr/local
+PREFIX=${PREFIX:-/usr/local}
 
 # if antlr4 exists already, skip
 [ -d "antlr4" ] && exit 0
@@ -47,8 +47,8 @@ git clone https://github.com/antlr/antlr4.git \
 && echo "ANTLR4 Cpp runtime installed to $PREFIX"
 
 # execute copy command (fix for delocate wheel)
-ls -l /usr/local/include
-ls -l /usr/local/lib
+ls -l $PREFIX/include
+ls -l $PREFIX/lib
 
 cp lib/libantlr4-runtime.dylib /Users/runner/work/tuplex/tuplex/libantlr4-runtime.dylib
 

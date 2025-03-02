@@ -92,7 +92,7 @@ endif()
 # uncomment to get verbose cmake output
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
-message(STATUS "additional cmake module path is ${CMAKE_MODULE_PATH}")
+message(STATUS "Additional cmake module path is: ${CMAKE_MODULE_PATH}")
 include("${CMAKE_SOURCE_DIR}/cmake/ucm.cmake") #handy package to manipulate compiler flags
 include("${CMAKE_SOURCE_DIR}/cmake/CPM.cmake") # package manager from https://github.com/cpm-cmake/CPM.cmake
 # for debug mode export all symbols

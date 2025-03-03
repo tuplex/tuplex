@@ -109,7 +109,7 @@ jobs:
           # To avoid issues, simply use 13.0 for now.
           # Fix for Java home from https://github.com/actions/runner-images/discussions/9266.
           # For github actions, $HOME is /Users/runner/
-          CIBW_ENVIRONMENT_MACOS: "PREFIX=${HOME}/.local MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} CMAKE_ARGS='-DCMAKE_MODULE_PATH=/Users/runner/.local/cmake/ -DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' JAVA_HOME=${JAVA_HOME_11_X64:-$JAVA_HOME_11_arm64}"
+          CIBW_ENVIRONMENT_MACOS: "PREFIX=${HOME}/.local MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} CMAKE_ARGS='-DCMAKE_MODULE_PATH=/Users/runner/.local/lib/cmake/ -DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' JAVA_HOME=${JAVA_HOME_11_X64:-$JAVA_HOME_11_arm64}"
 
           # run all python tests to make sure wheels are not defunct
           CIBW_TEST_REQUIRES: "pytest pytest-timeout numpy nbformat jupyter"

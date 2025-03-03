@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# this is a script to install the antlr4 runtime
+# This is a script to install the antlr4 runtime.
 
-# specify here target location
+set -euxo pipefail
+
+# Specify here target location.
 PREFIX=${PREFIX:-/usr/local}
 
-# if antlr4 exists already, skip
+# If antlr4 exists already, skip.
 [ -d "antlr4" ] && exit 0
 
 if [ -d "${PREFIX}/include/antlr4-runtime" ]; then
@@ -33,6 +35,10 @@ else
     echo "defaulting build to use as minimum target ${MINIMUM_TARGET}"
 fi
 
+# Ensure $PREFIX/{lib,include} exist.
+mkdir -p $PREFIX/include
+mkdir -p $PREFIX/lib
+
 # with sed, modify deploy to add osx_deployment_target
 git clone https://github.com/antlr/antlr4.git \
 && cd antlr4 && cd runtime &&  git fetch --all --tags \
@@ -44,7 +50,7 @@ git clone https://github.com/antlr/antlr4.git \
 && unzip -l antlr4-cpp-runtime-macos.zip && unzip antlr4-cpp-runtime-macos.zip \
 && cd lib && cp -R * $PREFIX/lib/ && cd .. \
 && mv antlr4-runtime $PREFIX/include/ \
-&& echo "ANTLR4 Cpp runtime installed to $PREFIX"
+&& echo "ANTLR4 Cpp runtime installed to $PREFIX."
 
 # execute copy command (fix for delocate wheel)
 ls -l $PREFIX/include

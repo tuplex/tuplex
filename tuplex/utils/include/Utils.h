@@ -41,7 +41,44 @@ namespace std {
 }
 #endif
 
+#if (defined __x86_64__)
 #include "third_party/levenshtein-sse.h"
+#elif (defined __arm64__)
+namespace tuplex {
+    // native C++ implementation for now (ARM)
+    inline size_t levenshtein(const std::string& word1, const std::string& word2) {
+        int size1 = word1.size();
+        int size2 = word2.size();
+        int memo[size1 + 1][size2 + 1];
+
+        // If one of the words has zero length, the distance is equal to the size of the other word.
+        if (size1 == 0)
+            return size2;
+        if (size2 == 0)
+            return size1;
+
+        // Init step.
+        for (int i = 0; i <= size1; i++)
+            memo[i][0] = i;
+        for (int j = 0; j <= size2; j++)
+            memo[0][j] = j;
+
+        // DP step.
+        for (int i = 1; i <= size1; i++) {
+            for (int j = 1; j <= size2; j++) {
+                auto cost = (word2[j - 1] == word1[i - 1]) ? 0 : 1;
+
+                memo[i][j] = std::min(
+                        std::min(memo[i - 1][j] + 1, memo[i][j - 1] + 1),
+                        memo[i - 1][j - 1] + cost
+                );
+            }
+        }
+        return memo[size1][size2];
+    }
+}
+
+#endif
 
 // helper code to allow tuples in maps.
 #include <boost/functional/hash.hpp>
@@ -468,7 +505,9 @@ namespace tuplex {
      */
     inline int fuzzyMatch(const std::string& needle, const std::vector<std::string>& dictionary) {
         using namespace std;
+#if (defined __x86_64__)
         using namespace levenshteinSSE;
+#endif
 
         if(dictionary.empty())
             return -1;

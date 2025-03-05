@@ -2,9 +2,9 @@ name: Build
 
 on: [push, pull_request, workflow_dispatch]
 
-env:
-  # At least 10.13 is required, to avoid issues and since the runner is macos-13 -> use 13.0, which is Venture from 2022.
-  MACOSX_DEPLOYMENT_TARGET: 13.0
+# For macos, at least 10.13 is required
+# to avoid issues and since the runners are macos-13 and macos-14:
+#   -> use 13.0, which is Venture from 2022 and 14.0 on the arm runners.
 
 jobs:
   build_wheels:
@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         # macos-14 (which is macos-latest) is ARM only. macos-13 is the latest intel runner.
-        os: [ ubuntu-latest, macos-13 ]
+        os: [ ubuntu-latest, macos-13, macos-14 ]
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         include:
           - os: ubuntu-latest
@@ -34,18 +34,53 @@ jobs:
           - os: macos-13
             python-version: "3.9"
             cibw-build: "cp39-macosx_x86_64"
+            macos-target: "13.0"
+            arch: "x86_64"
           - os: macos-13
             python-version: "3.10"
             cibw-build: "cp310-macosx_x86_64"
+            macos-target: "13.0"
+            arch: "x86_64"
           - os: macos-13
             python-version: "3.11"
             cibw-build: "cp311-macosx_x86_64"
+            macos-target: "13.0"
+            arch: "x86_64"
           - os: macos-13
             python-version: "3.12"
             cibw-build: "cp312-macosx_x86_64"
+            macos-target: "13.0"
+            arch: "x86_64"
           - os: macos-13
             python-version: "3.13"
             cibw-build: "cp313-macosx_x86_64"
+            macos-target: "13.0"
+            arch: "x86_64"
+          - os: macos-14
+            python-version: "3.9"
+            cibw-build: "cp39-macosx_arm64"
+            macos-target: "14.0"
+            arch: "arm64"
+          - os: macos-14
+            python-version: "3.10"
+            cibw-build: "cp310-macosx_arm64"
+            macos-target: "14.0"
+            arch: "arm64"
+          - os: macos-14
+            python-version: "3.11"
+            cibw-build: "cp311-macosx_arm64"
+            macos-target: "14.0"
+            arch: "arm64"
+          - os: macos-14
+            python-version: "3.12"
+            cibw-build: "cp312-macosx_arm64"
+            macos-target: "14.0"
+            arch: "arm64"
+          - os: macos-14
+            python-version: "3.13"
+            cibw-build: "cp313-macosx_arm64"
+            macos-target: "14.0"
+            arch: "arm64"
     steps:
       - uses: actions/checkout@v4
 
@@ -63,7 +98,8 @@ jobs:
             /usr/local/Frameworks
             /usr/local/bin
             /usr/local/opt
-          key: macos-13-build-cache-${{ hashFiles('./scripts/macos/brew_dependencies.sh') }}-v2
+          # macos13 runners are x86, macos14 are arm. --> use os therefore as cache key.
+          key: ${{ matrix.os }}-build-cache-${{ hashFiles('./scripts/macos/brew_dependencies.sh') }}-v2
 
       - name: Setup python
         uses: actions/setup-python@v5
@@ -91,7 +127,9 @@ jobs:
 
           # Requires macOS 10.13 at least to build because of C++17 features.
           # To avoid issues, simply use 13.0 for now.
-          CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' JAVA_HOME=${JAVA_HOME_11_X64}"
+          # Fix for Java home from https://github.com/actions/runner-images/discussions/9266.
+          # For github actions, $HOME is /Users/runner/
+          CIBW_ENVIRONMENT_MACOS: "ARCH=${{ matrix.arch }} PREFIX=${HOME}/.local MACOSX_DEPLOYMENT_TARGET=${{ matrix.macos-target }} CMAKE_ARGS='-DCMAKE_PREFIX_PATH=/Users/runner/.local -DCMAKE_MODULE_PATH=/Users/runner/.local/cmake/ -DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' JAVA_HOME=${JAVA_HOME_11_X64:-$JAVA_HOME_11_arm64}"
 
           # run all python tests to make sure wheels are not defunct
           CIBW_TEST_REQUIRES: "pytest pytest-timeout numpy nbformat jupyter"

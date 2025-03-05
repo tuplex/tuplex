@@ -15,7 +15,9 @@ if [ -d "${PREFIX}/include/antlr4-runtime" ]; then
 fi
 
 # use arm64 or x86_64.
-ARCH=x86_64
+ARCH=${ARCH:-x86_64}
+
+echo ">>> Building for architecture: ${ARCH}"
 
 # if macOS is 10.x -> use this as minimum
 MINIMUM_TARGET="-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"

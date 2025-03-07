@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#----------------------------------------------------------------------------------------------------------------------#
+# ----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
 #                                       Tuplex: Blazing Fast Python Data Science                                       #
 #                                                                                                                      #
@@ -7,9 +7,10 @@
 #  (c) 2017 - 2021, Tuplex team                                                                                        #
 #  Created by Leonhard Spiegelberg first on 1/1/2021                                                                   #
 #  License: Apache 2.0                                                                                                 #
-#----------------------------------------------------------------------------------------------------------------------#
+# ----------------------------------------------------------------------------------------------------------------------#
 import logging
 import typing
+
 try:
     from .libexec.tuplex import _Context
     from .libexec.tuplex import _Metrics
@@ -18,6 +19,7 @@ except ModuleNotFoundError as e:
     _Metrics = typing.Any
 
 import json
+
 
 class Metrics:
     """

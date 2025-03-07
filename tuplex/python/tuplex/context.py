@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#----------------------------------------------------------------------------------------------------------------------#
+# ----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
 #                                       Tuplex: Blazing Fast Python Data Science                                       #
 #                                                                                                                      #
@@ -7,7 +7,7 @@
 #  (c) 2017 - 2021, Tuplex team                                                                                        #
 #  Created by Leonhard Spiegelberg first on 1/1/2021                                                                   #
 #  License: Apache 2.0                                                                                                 #
-#----------------------------------------------------------------------------------------------------------------------#
+# ----------------------------------------------------------------------------------------------------------------------#
 
 import logging
 
@@ -20,14 +20,29 @@ from .dataset import DataSet
 import os
 import glob
 import sys
-import cloudpickle
-from tuplex.utils.common import flatten_dict, load_conf_yaml, stringify_dict, unflatten_dict, save_conf_yaml, in_jupyter_notebook, in_google_colab, is_in_interactive_mode, current_user, is_shared_lib, host_name, ensure_webui, pythonize_options, logging_callback, registerLoggingCallback
+from tuplex.utils.common import (
+    flatten_dict,
+    load_conf_yaml,
+    stringify_dict,
+    unflatten_dict,
+    save_conf_yaml,
+    in_jupyter_notebook,
+    in_google_colab,
+    is_in_interactive_mode,
+    current_user,
+    is_shared_lib,
+    host_name,
+    ensure_webui,
+    pythonize_options,
+    logging_callback,
+    registerLoggingCallback,
+)
 import uuid
 import json
 from .metrics import Metrics
 
-class Context:
 
+class Context:
     def __init__(self, conf=None, name="", **kwargs):
         r"""creates new Context object, the main entry point for all operations with the Tuplex big data framework
 
@@ -81,8 +96,10 @@ class Context:
                                                    only serializes data that is required within the pipeline.
 
         """
-        runtime_path = os.path.join(os.path.dirname(__file__), 'libexec', 'tuplex_runtime')
-        paths = glob.glob(runtime_path + '*')
+        runtime_path = os.path.join(
+            os.path.dirname(__file__), "libexec", "tuplex_runtime"
+        )
+        paths = glob.glob(runtime_path + "*")
 
         if len(paths) != 1:
             # filter based on type (runtime must be shared object!)
@@ -90,9 +107,15 @@ class Context:
 
         if len(paths) != 1:
             if len(paths) == 0:
-                logging.error("found no tuplex runtime (tuplex_runtime.so). Faulty installation?")
+                logging.error(
+                    "found no tuplex runtime (tuplex_runtime.so). Faulty installation?"
+                )
             else:
-                logging.error('found following candidates for tuplex runtime:\n{}, please specify which to use.'.format(paths))
+                logging.error(
+                    "found following candidates for tuplex runtime:\n{}, please specify which to use.".format(
+                        paths
+                    )
+                )
             sys.exit(1)
 
         # pass configuration options
@@ -102,17 +125,17 @@ class Context:
         # put meaningful defaults for special environments...
 
         # per default disable webui
-        options['tuplex.webui.enable'] = False
+        options["tuplex.webui.enable"] = False
         if in_google_colab():
-            logging.debug('Detected Google Colab environment, adjusting options...')
+            logging.debug("Detected Google Colab environment, adjusting options...")
 
             # do not use a lot of memory, restrict...
-            options['tuplex.driverMemory'] = '64MB'
-            options['tuplex.executorMemory'] = '64MB'
-            options['tuplex.inputSplitSize'] = '16MB'
-            options['tuplex.partitionSize'] = '4MB'
-            options['tuplex.runTimeMemory'] = '16MB'
-            options['tuplex.webui.enable'] = False
+            options["tuplex.driverMemory"] = "64MB"
+            options["tuplex.executorMemory"] = "64MB"
+            options["tuplex.inputSplitSize"] = "16MB"
+            options["tuplex.partitionSize"] = "4MB"
+            options["tuplex.runTimeMemory"] = "16MB"
+            options["tuplex.webui.enable"] = False
 
         if conf:
             if isinstance(conf, str):
@@ -129,55 +152,59 @@ class Context:
         options = stringify_dict(options)
 
         user = current_user()
-        name = name if len(name) > 0 else 'context' + str(uuid.uuid4())[:8]
-        mode = 'file'
+        name = name if len(name) > 0 else "context" + str(uuid.uuid4())[:8]
+        mode = "file"
         if is_in_interactive_mode():
-            mode = 'shell'
+            mode = "shell"
         if in_jupyter_notebook():
-            mode = 'jupyter'
+            mode = "jupyter"
         if in_google_colab():
-            mode = 'colab'
+            mode = "colab"
         host = host_name()
 
         # pass above options as env.user, ...
         # also pass runtime path like that
-        options['tuplex.env.user'] = str(user)
-        options['tuplex.env.hostname'] = str(host)
-        options['tuplex.env.mode'] = str(mode)
+        options["tuplex.env.user"] = str(user)
+        options["tuplex.env.hostname"] = str(host)
+        options["tuplex.env.mode"] = str(mode)
 
         # update runtime path according to user
-        if 'tuplex.runTimeLibrary' in options:
-            runtime_path = options['tuplex.runTimeLibrary']
+        if "tuplex.runTimeLibrary" in options:
+            runtime_path = options["tuplex.runTimeLibrary"]
 
         # normalize keys to be of format tuplex.<key>
         supported_keys = json.loads(getDefaultOptionsAsJSON()).keys()
         key_set = set(options.keys())
         for k in key_set:
-            if k not in supported_keys and 'tuplex.' + k in supported_keys:
-                options['tuplex.' + k] = options[k]
+            if k not in supported_keys and "tuplex." + k in supported_keys:
+                options["tuplex." + k] = options[k]
 
         # check if redirect to python logging module should happen or not
-        if 'tuplex.redirectToPythonLogging' in options.keys():
+        if "tuplex.redirectToPythonLogging" in options.keys():
             py_opts = pythonize_options(options)
-            if py_opts['tuplex.redirectToPythonLogging']:
-                logging.info('Redirecting C++ logging to Python')
+            if py_opts["tuplex.redirectToPythonLogging"]:
+                logging.info("Redirecting C++ logging to Python")
                 registerLoggingCallback(logging_callback)
         else:
             # check what default options say
             defaults = pythonize_options(json.loads(getDefaultOptionsAsJSON()))
-            if defaults['tuplex.redirectToPythonLogging']:
-                logging.info('Redirecting C++ logging to Python')
+            if defaults["tuplex.redirectToPythonLogging"]:
+                logging.info("Redirecting C++ logging to Python")
                 registerLoggingCallback(logging_callback)
 
         # autostart mongodb & history server if they are not running yet...
         # deactivate webui for google colab per default
-        if 'tuplex.webui.enable' not in options:
+        if "tuplex.webui.enable" not in options:
             # for google colab env, disable webui per default.
             if in_google_colab():
-                options['tuplex.webui.enable'] = False
+                options["tuplex.webui.enable"] = False
 
         # fetch default options for webui ...
-        webui_options = {k: v for k, v in json.loads(getDefaultOptionsAsJSON()).items() if 'webui' in k or 'scratch' in k}
+        webui_options = {
+            k: v
+            for k, v in json.loads(getDefaultOptionsAsJSON()).items()
+            if "webui" in k or "scratch" in k
+        }
 
         # update only non-existing options!
         for k, v in webui_options.items():
@@ -187,27 +214,27 @@ class Context:
         # pythonize
         options = pythonize_options(options)
 
-        if options['tuplex.webui.enable']:
+        if options["tuplex.webui.enable"]:
             ensure_webui(options)
 
         # last arg are the options as json string serialized b.c. of boost python problems
         # because webui=False/True is convenient, pass it as well to tuplex options
-        if 'tuplex.webui' in options.keys():
-            options['tuplex.webui.enable'] = options['tuplex.webui']
-            del options['tuplex.webui']
-        if 'webui' in options.keys():
-            options['tuplex.webui.enable'] = options['webui']
-            del options['webui']
+        if "tuplex.webui" in options.keys():
+            options["tuplex.webui.enable"] = options["tuplex.webui"]
+            del options["tuplex.webui"]
+        if "webui" in options.keys():
+            options["tuplex.webui.enable"] = options["webui"]
+            del options["webui"]
 
         # last arg are the options as json string serialized b.c. of boost python problems
         self._context = _Context(name, runtime_path, json.dumps(options))
         python_metrics = self._context.getMetrics()
-        assert python_metrics, 'internal error: metrics object should be valid'
+        assert python_metrics, "internal error: metrics object should be valid"
         self.metrics = Metrics(python_metrics)
         assert self.metrics
 
     def parallelize(self, value_list, columns=None, schema=None, auto_unpack=True):
-        """ passes data to the Tuplex framework. Must be a list of primitive objects (e.g. of type bool, int, float, str) or
+        """passes data to the Tuplex framework. Must be a list of primitive objects (e.g. of type bool, int, float, str) or
         a list of (nested) tuples of these types.
 
         Args:
@@ -229,20 +256,30 @@ class Context:
                 num_cols = 1
                 if isinstance(value_list[0], (list, tuple)):
                     num_cols = len(value_list[0])
-                cols = ['column{}'.format(i) for i in range(num_cols)]
+                cols = ["column{}".format(i) for i in range(num_cols)]
         else:
             cols = columns
 
         for col in cols:
-            assert isinstance(col, str), 'element {} must be a string'.format(col)
-
+            assert isinstance(col, str), "element {} must be a string".format(col)
 
         ds = DataSet()
-        ds._dataSet = self._context.parallelize(value_list, columns, schema, auto_unpack)
+        ds._dataSet = self._context.parallelize(
+            value_list, columns, schema, auto_unpack
+        )
         return ds
 
-    def csv(self, pattern, columns=None, header=None, delimiter=None, quotechar='"', null_values=[''], type_hints={}):
-        """ reads csv (comma separated values) files. This function may either be provided with
+    def csv(
+        self,
+        pattern,
+        columns=None,
+        header=None,
+        delimiter=None,
+        quotechar='"',
+        null_values=[""],
+        type_hints={},
+    ):
+        """reads csv (comma separated values) files. This function may either be provided with
         parameters that help to determine the delimiter, whether a header present or what kind
         of quote char is used. Overall, CSV parsing is done according to the RFC-4180 standard
         (cf. https://tools.ietf.org/html/rfc4180)
@@ -274,27 +311,41 @@ class Context:
         if not null_values:
             null_values = []
 
-        assert isinstance(pattern, str), 'file pattern must be given as str'
-        assert isinstance(columns, list) or columns is None, 'columns must be a list or None'
-        assert isinstance(delimiter, str) or delimiter is None, 'delimiter must be given as , or None for auto detection'
-        assert isinstance(header, bool) or header is None, 'header must be given as bool or None for auto detection'
-        assert isinstance(quotechar, str), 'quote char must be given as str'
-        assert isinstance(null_values, list), 'null_values must be a list of strings representing null values'
-        assert isinstance(type_hints, dict), 'type_hints must be a dictionary mapping index to type hint' # TODO: update with other options
+        assert isinstance(pattern, str), "file pattern must be given as str"
+        assert isinstance(columns, list) or columns is None, (
+            "columns must be a list or None"
+        )
+        assert isinstance(delimiter, str) or delimiter is None, (
+            "delimiter must be given as , or None for auto detection"
+        )
+        assert isinstance(header, bool) or header is None, (
+            "header must be given as bool or None for auto detection"
+        )
+        assert isinstance(quotechar, str), "quote char must be given as str"
+        assert isinstance(null_values, list), (
+            "null_values must be a list of strings representing null values"
+        )
+        assert isinstance(type_hints, dict), (
+            "type_hints must be a dictionary mapping index to type hint"
+        )  # TODO: update with other options
 
         if delimiter:
-            assert len(delimiter) == 1, 'delimiter can only exist out of a single character'
-        assert len(quotechar) == 1, 'quotechar can only be a single character'
+            assert len(delimiter) == 1, (
+                "delimiter can only exist out of a single character"
+            )
+        assert len(quotechar) == 1, "quotechar can only be a single character"
 
         ds = DataSet()
-        ds._dataSet = self._context.csv(pattern,
-                                        columns,
-                                        header is None,
-                                        header if header is not None else False,
-                                        '' if delimiter is None else delimiter,
-                                        quotechar,
-                                        null_values,
-                                        type_hints)
+        ds._dataSet = self._context.csv(
+            pattern,
+            columns,
+            header is None,
+            header if header is not None else False,
+            "" if delimiter is None else delimiter,
+            quotechar,
+            null_values,
+            type_hints,
+        )
         return ds
 
     def text(self, pattern, null_values=None):
@@ -310,15 +361,17 @@ class Context:
         if not null_values:
             null_values = []
 
-        assert isinstance(pattern, str), 'file pattern must be given as str'
-        assert isinstance(null_values, list), 'null_values must be a list of strings representing null values'
+        assert isinstance(pattern, str), "file pattern must be given as str"
+        assert isinstance(null_values, list), (
+            "null_values must be a list of strings representing null values"
+        )
 
         ds = DataSet()
         ds._dataSet = self._context.text(pattern, null_values)
         return ds
 
     def orc(self, pattern, columns=None):
-        """ reads orc files.
+        """reads orc files.
         Args:
             pattern (str): a file glob pattern, e.g. /data/file.csv or /data/\*.csv or /\*/\*csv
             columns (list): optional list of columns, will be used as header for the CSV file.
@@ -326,15 +379,17 @@ class Context:
             tuplex.dataset.DataSet: A Tuplex Dataset object that allows further ETL operations
         """
 
-        assert isinstance(pattern, str), 'file pattern must be given as str'
-        assert isinstance(columns, list) or columns is None, 'columns must be a list or None'
+        assert isinstance(pattern, str), "file pattern must be given as str"
+        assert isinstance(columns, list) or columns is None, (
+            "columns must be a list or None"
+        )
 
         ds = DataSet()
         ds._dataSet = self._context.orc(pattern, columns)
         return ds
 
     def options(self, nested=False):
-        """ retrieves all framework parameters as dictionary
+        """retrieves all framework parameters as dictionary
 
         Args:
             nested (bool): When set to true, this will return a nested dictionary.
@@ -346,15 +401,15 @@ class Context:
         opt = self._context.options()
 
         # small hack because boost python has problems with nested dicts
-        opt['tuplex.csv.separators'] = eval(opt['tuplex.csv.separators'])
-        opt['tuplex.csv.comments'] = eval(opt['tuplex.csv.comments'])
+        opt["tuplex.csv.separators"] = eval(opt["tuplex.csv.separators"])
+        opt["tuplex.csv.comments"] = eval(opt["tuplex.csv.comments"])
 
         if nested:
             return unflatten_dict(opt)
         else:
             return opt
 
-    def optionsToYAML(self, file_path='config.yaml'):
+    def optionsToYAML(self, file_path="config.yaml"):
         """saves options as yaml file to (local) filepath
 
         Args:
@@ -413,12 +468,12 @@ class Context:
             None if webUI was disabled, else URL as string
         """
         options = self.options()
-        if not options['tuplex.webui.enable']:
+        if not options["tuplex.webui.enable"]:
             return None
 
-        hostname = options['tuplex.webui.url']
-        port = options['tuplex.webui.port']
-        url = '{}:{}'.format(hostname, port)
-        if not url.startswith('http://') or url.startswith('https://'):
-            url = 'http://' + url
+        hostname = options["tuplex.webui.url"]
+        port = options["tuplex.webui.port"]
+        url = "{}:{}".format(hostname, port)
+        if not url.startswith("http://") or url.startswith("https://"):
+            url = "http://" + url
         return url

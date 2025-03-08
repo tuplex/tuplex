@@ -17,10 +17,10 @@ except Exception:
     pass
     # raise Exception('To use distributed version, please install boto3')
 
-import logging
-import os
 import base64
 import datetime
+import logging
+import os
 import sys
 import threading
 import time

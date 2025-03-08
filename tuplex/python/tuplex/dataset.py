@@ -9,17 +9,19 @@
 #  License: Apache 2.0                                                                                                 #
 # ----------------------------------------------------------------------------------------------------------------------#
 
-import cloudpickle
 import logging
+
+import cloudpickle
 
 try:
     # Checks that compiled tuplex extension object is present and compatible.
     from .libexec.tuplex import _Context, _DataSet  # noqa: F401
 except ModuleNotFoundError as e:
     logging.error("need to compiled Tuplex first, details: {}".format(e))
-from tuplex.utils.reflection import get_source as get_udf_source
-from tuplex.utils.reflection import get_globals
 from tuplex.utils.framework import UDFCodeExtractionError
+from tuplex.utils.reflection import get_globals
+from tuplex.utils.reflection import get_source as get_udf_source
+
 from .exceptions import classToExceptionCode
 
 # signed 64bit limit

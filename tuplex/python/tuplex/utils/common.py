@@ -9,28 +9,26 @@
 #  License: Apache 2.0                                                                                                 #
 # ----------------------------------------------------------------------------------------------------------------------#
 import atexit
-import sys
 import collections
-
 import collections.abc
-import pathlib
-import signal
-
-import yaml
-from datetime import datetime
-
 import json
-import urllib.request
-import os
-import socket
-import shutil
-import psutil
-import subprocess
 import logging
-import iso8601
+import os
+import pathlib
 import re
+import shutil
+import signal
+import socket
+import subprocess
+import sys
 import tempfile
 import time
+import urllib.request
+from datetime import datetime
+
+import iso8601
+import psutil
+import yaml
 
 try:
     import pwd

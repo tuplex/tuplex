@@ -9,9 +9,8 @@
 #  License: Apache 2.0                                                                                                 #
 # ----------------------------------------------------------------------------------------------------------------------#
 
+from jedi import Interpreter, settings
 from prompt_toolkit.completion import Completer, Completion
-from jedi import Interpreter
-from jedi import settings
 
 
 class JediCompleter(Completer):

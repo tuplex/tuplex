@@ -13,8 +13,10 @@ import typing
 
 try:
     # Module import needed to initialize capture, should revisit.
-    from .libexec.tuplex import _Context  # noqa: F401
-    from .libexec.tuplex import _Metrics
+    from .libexec.tuplex import (
+        _Context,  # noqa: F401
+        _Metrics,
+    )
 except ModuleNotFoundError as e:
     logging.error("need to compiled Tuplex first, details: {}".format(e))
     _Metrics = typing.Any

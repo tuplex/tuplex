@@ -12,9 +12,10 @@
 import json
 import os.path
 import re
-import ipykernel
 import urllib.request
 from urllib.parse import urljoin
+
+import ipykernel
 from notebook.notebookapp import list_running_servers
 
 

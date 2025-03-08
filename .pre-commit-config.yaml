@@ -1,13 +1,13 @@
 repos:
-#- repo: https://github.com/pre-commit/pre-commit-hooks
-#  rev: v2.3.0
-#  hooks:
-#    - id: check-yaml
-#      exclude: ["tuplex/test/resources"]
-#    - id: end-of-file-fixer
-#      exclude: ["tuplex/test/resources"]
-#    - id: trailing-whitespace
-#      exclude: ["tuplex/test/resources"]
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v2.3.0
+  hooks:
+    - id: check-yaml
+      files: ^tuplex/python/tuplex.*\.py$
+    - id: end-of-file-fixer
+      files: ^tuplex/python/tuplex.*\.py$
+    - id: trailing-whitespace
+      files: ^tuplex/python/tuplex.*\.py$
 - repo: https://github.com/astral-sh/ruff-pre-commit
   # Ruff version.
   rev: v0.9.9
@@ -15,7 +15,7 @@ repos:
     # Run the linter.
     - id: ruff
       files: ^tuplex/python/tuplex.*\.py$
-      args: [ --fix ]
+      args: [ "--fix", "--select", "I" ]
       types_or: [ python, pyi ]
     # Run the formatter.
     - id: ruff-format

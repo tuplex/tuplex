@@ -16,29 +16,31 @@ try:
 except ModuleNotFoundError as e:
     logging.error("need to compiled Tuplex first, details: {}".format(e))
 
-from .dataset import DataSet
-import os
 import glob
+import json
+import os
 import sys
+import uuid
+
 from tuplex.utils.common import (
+    current_user,
+    ensure_webui,
     flatten_dict,
+    host_name,
+    in_google_colab,
+    in_jupyter_notebook,
+    is_in_interactive_mode,
+    is_shared_lib,
     load_conf_yaml,
+    logging_callback,
+    pythonize_options,
+    registerLoggingCallback,
+    save_conf_yaml,
     stringify_dict,
     unflatten_dict,
-    save_conf_yaml,
-    in_jupyter_notebook,
-    in_google_colab,
-    is_in_interactive_mode,
-    current_user,
-    is_shared_lib,
-    host_name,
-    ensure_webui,
-    pythonize_options,
-    logging_callback,
-    registerLoggingCallback,
 )
-import uuid
-import json
+
+from .dataset import DataSet
 from .metrics import Metrics
 
 

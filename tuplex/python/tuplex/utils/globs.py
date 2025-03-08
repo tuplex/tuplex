@@ -9,12 +9,12 @@
 #  License: Apache 2.0                                                                                                 #
 # ----------------------------------------------------------------------------------------------------------------------#
 
+import dis
+import itertools
+import opcode
+import sys
 import types
 import weakref
-import dis
-import opcode
-import itertools
-import sys
 
 # ALWAYS import cloudpickle before dill, b.c. of https://github.com/uqfoundation/dill/issues/383
 from cloudpickle.cloudpickle import _get_cell_contents

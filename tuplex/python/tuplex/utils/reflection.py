@@ -9,22 +9,22 @@
 #  License: Apache 2.0                                                                                                 #
 # ----------------------------------------------------------------------------------------------------------------------#
 
-import types
+import ast
 import inspect
 import re
+import types
 
 # ALWAYS import cloudpickle before dill, b.c. of https://github.com/uqfoundation/dill/issues/383
 import dill
-import ast
 
+from tuplex.utils.common import (
+    in_google_colab,
+    in_jupyter_notebook,
+    is_in_interactive_mode,
+)
 from tuplex.utils.errors import TuplexException
 from tuplex.utils.globs import get_globals
 from tuplex.utils.source_vault import SourceVault, supports_lambda_closure
-from tuplex.utils.common import (
-    in_jupyter_notebook,
-    in_google_colab,
-    is_in_interactive_mode,
-)
 
 # only export get_source function, rest shall be private.
 __all__ = ["get_source", "get_globals", "supports_lambda_closure"]

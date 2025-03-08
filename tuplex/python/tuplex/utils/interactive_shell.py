@@ -11,11 +11,13 @@
 
 from __future__ import unicode_literals
 
-import os
-import sys
-import re
 import logging
+import os
+import re
+import sys
 from code import InteractiveConsole
+from types import FunctionType, LambdaType
+
 from prompt_toolkit.history import InMemoryHistory
 
 # old version: 1.0
@@ -30,10 +32,10 @@ from prompt_toolkit.shortcuts import prompt as ptprompt
 from prompt_toolkit.styles.pygments import style_from_pygments_cls
 from pygments.lexers import Python3Lexer
 from pygments.styles import get_style_by_name
+
+from tuplex.utils.globs import get_globals
 from tuplex.utils.jedi_completer import JediCompleter
 from tuplex.utils.source_vault import SourceVault
-from types import LambdaType, FunctionType
-from tuplex.utils.globs import get_globals
 
 
 # this is a helper to allow for tuplex.Context syntax

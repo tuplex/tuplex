@@ -13,9 +13,9 @@ import os
 import sys
 
 from tuplex.utils.common import (
-    is_in_interactive_mode,
-    in_jupyter_notebook,
     in_google_colab,
+    in_jupyter_notebook,
+    is_in_interactive_mode,
 )
 
 try:

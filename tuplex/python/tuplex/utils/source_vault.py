@@ -10,11 +10,12 @@
 # ----------------------------------------------------------------------------------------------------------------------#
 
 import ast
-import astor
+import logging
 import os
 import sys
-from types import LambdaType, CodeType
-import logging
+from types import CodeType, LambdaType
+
+import astor
 
 
 def supports_lambda_closure():

@@ -9,9 +9,10 @@
 #  License: Apache 2.0                                                                                                 #
 # ----------------------------------------------------------------------------------------------------------------------#
 
-import traceback
 import linecache
 import re
+import traceback
+
 from .reflection import get_source
 
 __all__ = ["traceback_from_udf"]

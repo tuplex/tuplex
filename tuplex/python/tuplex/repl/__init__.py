@@ -20,7 +20,7 @@ from tuplex.utils.common import (
 
 try:
     from tuplex.utils.version import __version__
-except:
+except (ImportError, NameError):
     __version__ = "dev"
 
 
@@ -45,7 +45,8 @@ if is_in_interactive_mode() and not in_jupyter_notebook() and not in_google_cola
 
     os.system("clear")
 
-    from tuplex.context import Context
+    # Module import needed to initialize defaults, should revisit.
+    from tuplex.context import Context  # noqa:  F401
 
     _locals = locals()
     _locals = {key: _locals[key] for key in _locals if key in ["Context"]}

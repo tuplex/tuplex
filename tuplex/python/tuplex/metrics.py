@@ -12,7 +12,8 @@ import logging
 import typing
 
 try:
-    from .libexec.tuplex import _Context
+    # Module import needed to initialize capture, should revisit.
+    from .libexec.tuplex import _Context  # noqa: F401
     from .libexec.tuplex import _Metrics
 except ModuleNotFoundError as e:
     logging.error("need to compiled Tuplex first, details: {}".format(e))

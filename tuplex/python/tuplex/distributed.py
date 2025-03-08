@@ -132,11 +132,11 @@ def create_lambda_role(iam_client, lambda_role):
     )
     logging.info("Created Tuplex AWS Lambda runner role ({})".format(lambda_role))
 
-    # check it exists
+    # Check that role exists.
     try:
-        response = iam_client.get_role(RoleName=lambda_role)
-    except:
-        raise Exception("Failed to create AWS Lambda Role")
+        iam_client.get_role(RoleName=lambda_role)
+    except botocore.exceptions.ClientError:
+        raise Exception("Failed to create AWS Lambda Role.")
 
 
 def remove_lambda_role(iam_client, lambda_role):
@@ -248,7 +248,6 @@ def upload_lambda(
     # for runtime, choose https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html
     RUNTIME = "provided.al2"
     HANDLER = "tplxlam"  # this is how the executable is called...
-    ARCHITECTURES = ["x86_64"]
     DEFAULT_MEMORY_SIZE = 1536
     DEFAULT_TIMEOUT = 30  # 30s timeout
 

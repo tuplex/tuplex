@@ -521,7 +521,9 @@ class DataSet:
                 code = get_udf_source(part_name_generator)
             except UDFCodeExtractionError as e:
                 logging.warn(
-                    "Could not extract code for {}. Details:\n{}".format(ftor, e)
+                    "Could not extract code for {}. Details:\n{}".format(
+                        part_name_generator, e
+                    )
                 )
 
         # clamp max rows
@@ -564,7 +566,9 @@ class DataSet:
                 code = get_udf_source(part_name_generator)
             except UDFCodeExtractionError as e:
                 logging.warn(
-                    "Could not extract code for {}. Details:\n{}".format(ftor, e)
+                    "Could not extract code for {}. Details:\n{}".format(
+                        part_name_generator, e
+                    )
                 )
 
         if num_rows > max_rows:
@@ -649,9 +653,7 @@ class DataSet:
             comb_code_pickled = cloudpickle.dumps(combine)
         except UDFCodeExtractionError as e:
             logging.warn(
-                "Could not extract code for combine UDF {}. Details:\n{}".format(
-                    ftor, e
-                )
+                "Could not extract code for combine UDFs. Details:\n{}".format(e)
             )
 
         try:
@@ -660,9 +662,7 @@ class DataSet:
             agg_code_pickled = cloudpickle.dumps(aggregate)
         except UDFCodeExtractionError as e:
             logging.warn(
-                "Could not extract code for aggregate UDF {}. Details:\n{}".format(
-                    ftor, e
-                )
+                "Could not extract code for aggregate UDFs. Details:\n{}".format(e)
             )
 
         g_comb = get_globals(combine)

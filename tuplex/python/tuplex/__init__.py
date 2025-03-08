@@ -9,14 +9,17 @@
 #  License: Apache 2.0                                                                                                 #
 # ----------------------------------------------------------------------------------------------------------------------#
 
-from tuplex.repl import *
+from tuplex.repl import (
+    in_jupyter_notebook as in_jupyter_notebook,
+    in_google_colab as in_google_colab,
+)
 from .context import Context
-from .dataset import DataSet
+from .dataset import DataSet as DataSet
 
 # expose aws setup for better convenience
 import tuplex.distributed
 import logging
-from tuplex.distributed import setup_aws
+from tuplex.distributed import setup_aws as setup_aws
 
 from tuplex.utils.version import __version__ as __version__
 

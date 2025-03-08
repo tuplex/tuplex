@@ -13,7 +13,8 @@ import cloudpickle
 import logging
 
 try:
-    from .libexec.tuplex import _Context, _DataSet
+    # Checks that compiled tuplex extension object is present and compatible.
+    from .libexec.tuplex import _Context, _DataSet  # noqa: F401
 except ModuleNotFoundError as e:
     logging.error("need to compiled Tuplex first, details: {}".format(e))
 from tuplex.utils.reflection import get_source as get_udf_source
@@ -27,7 +28,7 @@ max_rows = 9223372036854775807
 
 class DataSet:
     def __init__(self):
-        self._dataSet = None
+        self._dataSet: _DataSet = None
 
     def unique(self):
         """removes duplicates from Dataset (out-of-order). Equivalent to a DISTINCT clause in a SQL-statement.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#----------------------------------------------------------------------------------------------------------------------#
+# ----------------------------------------------------------------------------------------------------------------------#
 #                                                                                                                      #
 #                                       Tuplex: Blazing Fast Python Data Science                                       #
 #                                                                                                                      #
@@ -7,16 +7,19 @@
 #  (c) 2017 - 2021, Tuplex team                                                                                        #
 #  Created by Leonhard Spiegelberg first on 1/1/2021                                                                   #
 #  License: Apache 2.0                                                                                                 #
-#----------------------------------------------------------------------------------------------------------------------#
+# ----------------------------------------------------------------------------------------------------------------------#
 
 from __future__ import unicode_literals
 
-import os
-import sys
-import re
 import logging
+import os
+import re
+import sys
 from code import InteractiveConsole
+from types import FunctionType, LambdaType
+
 from prompt_toolkit.history import InMemoryHistory
+
 # old version: 1.0
 # from prompt_toolkit.layout.lexers import PygmentsLexer
 # from prompt_toolkit.styles import style_from_pygments
@@ -29,10 +32,10 @@ from prompt_toolkit.shortcuts import prompt as ptprompt
 from prompt_toolkit.styles.pygments import style_from_pygments_cls
 from pygments.lexers import Python3Lexer
 from pygments.styles import get_style_by_name
+
+from tuplex.utils.globs import get_globals
 from tuplex.utils.jedi_completer import JediCompleter
 from tuplex.utils.source_vault import SourceVault
-from types import LambdaType, FunctionType
-from tuplex.utils.globs import get_globals
 
 
 # this is a helper to allow for tuplex.Context syntax
@@ -46,27 +49,31 @@ class TuplexModuleHelper:
     def Context(self):
         return self._context_cls
 
+
 # Interactive shell
 # check https://github.com/python/cpython/blob/master/Lib/code.py for overwriting this class
 class TuplexShell(InteractiveConsole):
-
     # use BORG design pattern to make class singleton alike
     __shared_state = {}
 
     def __init__(self):
         self.__dict__ = self.__shared_state
 
-    def init(self, locals=None, filename="<console>", histfile=os.path.expanduser("~/.console_history")):
-
+    def init(
+        self,
+        locals=None,
+        filename="<console>",
+        histfile=os.path.expanduser("~/.console_history"),
+    ):
         # add dummy helper for context
-        if locals is not None and 'Context' in locals.keys():
-            locals['tuplex'] = TuplexModuleHelper(locals['Context'])
+        if locals is not None and "Context" in locals.keys():
+            locals["tuplex"] = TuplexModuleHelper(locals["Context"])
 
         self.initialized = True
         self.filename = "console-0"
         self.lineno = 0
         InteractiveConsole.__init__(self, locals, self.filename)
-        self._lastLine = ''
+        self._lastLine = ""
         self.historyDict = {}
 
     def push(self, line):
@@ -81,7 +88,7 @@ class TuplexShell(InteractiveConsole):
         value is 1 if more input is required, 0 if the line was dealt
         with in some way (this is the same as runsource()).
         """
-        assert self.initialized, 'must call init on TuplexShell object first'
+        assert self.initialized, "must call init on TuplexShell object first"
 
         self.buffer.append(line)
         source = "\n".join(self.buffer)
@@ -99,18 +106,17 @@ class TuplexShell(InteractiveConsole):
             self.historyDict[self.filename] = self.buffer.copy()
 
             # new filename
-            self.filename = 'console-{}'.format(self.lineno)
+            self.filename = "console-{}".format(self.lineno)
             self.resetbuffer()
 
         return more
 
-
     def get_lambda_source(self, f):
         # Won't this work for functions as well?
 
-        assert self.initialized, 'must call init on TuplexShell object first'
+        assert self.initialized, "must call init on TuplexShell object first"
 
-        assert isinstance(f, LambdaType), 'object needs to be a lambda object'
+        assert isinstance(f, LambdaType), "object needs to be a lambda object"
 
         vault = SourceVault()
 
@@ -118,40 +124,48 @@ class TuplexShell(InteractiveConsole):
         f_globs = get_globals(f)
         f_filename = f.__code__.co_filename
         f_lineno = f.__code__.co_firstlineno
-        f_colno = f.__code__.co_firstcolno if hasattr(f.__code__, 'co_firstcolno') else None
+        f_colno = (
+            f.__code__.co_firstcolno if hasattr(f.__code__, "co_firstcolno") else None
+        )
 
         # get source from history
         # Note: because firstlineno is 1-indexed, add a dummy line so everything works.
-        src_info = (['dummy'] + self.historyDict[f_filename], 0)
+        src_info = (["dummy"] + self.historyDict[f_filename], 0)
 
         vault.extractAndPutAllLambdas(src_info, f_filename, f_lineno, f_colno, f_globs)
         return vault.get(f, f_filename, f_lineno, f_colno, f_globs)
 
     def get_function_source(self, f):
+        assert self.initialized, "must call init on TuplexShell object first"
 
-        assert self.initialized, 'must call init on TuplexShell object first'
+        assert isinstance(f, FunctionType) and f.__code__.co_name != "<lambda>", (
+            "object needs to be a function (non-lambda) object"
+        )
 
-        assert isinstance(f,
-                          FunctionType) and f.__code__.co_name != '<lambda>', 'object needs to be a function (non-lambda) object'
-
-        # fetch all data
-        f_globs = get_globals(f)
+        # Fetch all data:
         f_filename = f.__code__.co_filename
-        f_lineno = f.__code__.co_firstlineno
-        f_colno = f.__code__.co_firstcolno if hasattr(f.__code__, 'co_firstcolno') else None
+
+        # # TODO: Include lineno/colno information in AST.
+        # f_globs = get_globals(f)
+        # f_lineno = f.__code__.co_firstlineno
+        # f_colno = (
+        #     f.__code__.co_firstcolno if hasattr(f.__code__, "co_firstcolno") else None
+        # )
 
         # retrieve func source from historyDict
         lines = self.historyDict[f_filename]
 
         # check whether def <name> is found in here
-        source = '\n'.join(lines).strip()
+        source = "\n".join(lines).strip()
 
         function_name = f.__code__.co_name
         regex = r"def\s*{}\(.*\)\s*:[\t ]*\n".format(function_name)
         prog = re.compile(regex)
 
         if not prog.search(source):
-            logging.error('Could not find function "{}" in source'.format(function_name))
+            logging.error(
+                'Could not find function "{}" in source'.format(function_name)
+            )
             return None
 
         return source
@@ -178,7 +192,7 @@ class TuplexShell(InteractiveConsole):
         style_trafo = None
 
         # check if env TUPLEX_COLORSCHEME is set, then pygments style may be used.
-        scheme = os.environ.get('TUPLEX_COLORSCHEME', None)
+        scheme = os.environ.get("TUPLEX_COLORSCHEME", None)
 
         if scheme:
             # define here style for python prompt toolkit
@@ -199,9 +213,10 @@ class TuplexShell(InteractiveConsole):
             sys.ps2 = "... "
         cprt = 'Type "help", "copyright", "credits" or "license" for more information.'
         if banner is None:
-            self.write("Python %s on %s\n%s\n(%s)\n" %
-                       (sys.version, sys.platform, cprt,
-                        self.__class__.__name__))
+            self.write(
+                "Python %s on %s\n%s\n(%s)\n"
+                % (sys.version, sys.platform, cprt, self.__class__.__name__)
+            )
         elif banner:
             self.write("%s\n" % str(banner))
         more = 0
@@ -214,18 +229,22 @@ class TuplexShell(InteractiveConsole):
                 try:
                     # use prompt toolkit here for more stylish input & tab completion
                     # raw python prompt
-                    #line = self.raw_input(prompt)
-
+                    # line = self.raw_input(prompt)
 
                     # look here http://python-prompt-toolkit.readthedocs.io/en/stable/pages/asking_for_input.html#hello-world
                     # on how to style the prompt better
 
                     # use patch_stdout=True to output stuff above prompt
-                    line = ptprompt(prompt, lexer=PygmentsLexer(Python3Lexer), style=style,
-                                    style_transformation=style_trafo, history=history,
-                                    completer=JediCompleter(lambda: self.locals),
-                                    complete_style=CompleteStyle.READLINE_LIKE,
-                                    complete_while_typing=False)
+                    line = ptprompt(
+                        prompt,
+                        lexer=PygmentsLexer(Python3Lexer),
+                        style=style,
+                        style_transformation=style_trafo,
+                        history=history,
+                        completer=JediCompleter(lambda: self.locals),
+                        complete_style=CompleteStyle.READLINE_LIKE,
+                        complete_while_typing=False,
+                    )
 
                 except EOFError:
                     self.write("\n")
@@ -237,6 +256,6 @@ class TuplexShell(InteractiveConsole):
                 self.resetbuffer()
                 more = 0
         if exitmsg is None:
-            self.write('now exiting %s...\n' % self.__class__.__name__)
-        elif exitmsg != '':
-            self.write('%s\n' % exitmsg)
+            self.write("now exiting %s...\n" % self.__class__.__name__)
+        elif exitmsg != "":
+            self.write("%s\n" % exitmsg)

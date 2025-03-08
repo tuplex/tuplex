@@ -12,3 +12,7 @@ requires = [
     "requests"
 ]
 build-backend = "setuptools.build_meta"
+
+
+[tool.ruff]
+include = ["pyproject.toml", "tuplex/python/tuplex/**/*.py"]

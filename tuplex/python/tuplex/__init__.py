@@ -9,16 +9,18 @@
 #  License: Apache 2.0                                                                                                 #
 # ----------------------------------------------------------------------------------------------------------------------#
 
-from tuplex.repl import *
-from .context import Context
-from .dataset import DataSet
+import logging
 
 # expose aws setup for better convenience
 import tuplex.distributed
-import logging
-from tuplex.distributed import setup_aws
-
+from tuplex.distributed import setup_aws as setup_aws
+from tuplex.repl import in_google_colab as in_google_colab
+from tuplex.repl import in_jupyter_notebook as in_jupyter_notebook
 from tuplex.utils.version import __version__ as __version__
+
+from .context import Context
+from .dataset import DataSet as DataSet
+
 
 # for convenience create a dummy function to return a default-configured Lambda context
 def LambdaContext(conf=None, name=None, s3_scratch_dir=None, **kwargs):
@@ -26,12 +28,16 @@ def LambdaContext(conf=None, name=None, s3_scratch_dir=None, **kwargs):
 
     if s3_scratch_dir is None:
         s3_scratch_dir = tuplex.distributed.default_scratch_dir()
-        logging.debug('Detected default S3 scratch dir for this user as {}'.format(s3_scratch_dir))
+        logging.debug(
+            "Detected default S3 scratch dir for this user as {}".format(s3_scratch_dir)
+        )
 
-    lambda_conf = {'backend': 'lambda',
-                   'partitionSize': '1MB',
-                   'aws.scratchDir': s3_scratch_dir,
-                   'aws.requesterPay': True}
+    lambda_conf = {
+        "backend": "lambda",
+        "partitionSize": "1MB",
+        "aws.scratchDir": s3_scratch_dir,
+        "aws.requesterPay": True,
+    }
 
     if conf:
         lambda_conf.update(conf)
@@ -40,13 +46,13 @@ def LambdaContext(conf=None, name=None, s3_scratch_dir=None, **kwargs):
     for k, v in kwargs.items():
         if k in conf.keys():
             lambda_conf[k] = v
-        elif 'tuplex.' + k in conf.keys():
-            lambda_conf['tuplex.' + k] = v
+        elif "tuplex." + k in conf.keys():
+            lambda_conf["tuplex." + k] = v
         else:
             lambda_conf[k] = v
 
     if name is None:
-        name = 'AWSLambdaContext-' + str(uuid.uuid4())[:8]
+        name = "AWSLambdaContext-" + str(uuid.uuid4())[:8]
 
     # There's currently a bug in the Lambda backend when transferring local data to S3: The full partition
     # gets transferred, not just what is needed.

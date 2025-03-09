@@ -12,21 +12,23 @@
 import linecache
 import re
 import traceback
+from types import TracebackType
+from typing import Any, Callable
 
 from .reflection import get_source
 
 __all__ = ["traceback_from_udf"]
 
 
-def format_traceback(tb, function_name):
+def format_traceback(tb: TracebackType, function_name: str) -> str:
     """
     helper function to format a traceback object with line numbers relative to function definition
     Args:
-        tb:
-        function_name:
+        tb: traceback object
+        function_name: name of function to add to traceback
 
     Returns:
-
+        formatted traceback string
     """
 
     fnames = set()
@@ -67,7 +69,7 @@ def format_traceback(tb, function_name):
 
 
 # get traceback from sample
-def traceback_from_udf(udf, x):
+def traceback_from_udf(udf: Callable, x: Any) -> str:
     """
     get a formatted traceback as string by executing a udf over a sample
     Args:

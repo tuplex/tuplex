@@ -1,0 +1,9 @@
+#"--select", "I", "--select", "F"
+[lint]
+# Add "B", "Q" for flake8 checks.
+select = ["I", "E4", "E7", "E9", "F", "CPY001", "T201", "T203", "ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204", "ANN205", "ANN206"]
+ignore = []
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []

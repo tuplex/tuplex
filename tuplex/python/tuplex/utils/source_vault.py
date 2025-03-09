@@ -46,7 +46,7 @@ def extract_all_lambdas(tree):
 # extract for lambda incl. default values
 # annotations are not possible with the current syntax...
 def args_for_lambda_ast(lam):
-    return [getattr(n, "arg") for n in lam.args.args]
+    return [n.arg for n in lam.args.args]
 
 
 def gen_code_for_lambda(lam):

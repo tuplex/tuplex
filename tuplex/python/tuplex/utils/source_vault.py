@@ -14,11 +14,12 @@ import logging
 import os
 import sys
 from types import CodeType, LambdaType
+from typing import Callable, List, Optional, Tuple
 
 import astor
 
 
-def supports_lambda_closure():
+def supports_lambda_closure() -> bool:
     """
     source code of lambdas can't be extracted, because there's no column information available
     in code objects. This can be achieved by patching 4 lines in the cpython source code.
@@ -31,11 +32,11 @@ def supports_lambda_closure():
     return hasattr(f.__code__, "co_firstcolno")
 
 
-def extract_all_lambdas(tree):
+def extract_all_lambdas(tree: ast.AST) -> List[ast.Lambda]:
     lambdas = []
 
     class Visitor(ast.NodeVisitor):
-        def visit_Lambda(self, node):
+        def visit_Lambda(self, node: ast.Lambda) -> None:
             lambdas.append(node)
 
     Visitor().visit(tree)
@@ -45,11 +46,11 @@ def extract_all_lambdas(tree):
 
 # extract for lambda incl. default values
 # annotations are not possible with the current syntax...
-def args_for_lambda_ast(lam):
+def args_for_lambda_ast(lam: Callable) -> List[str]:
     return [n.arg for n in lam.args.args]
 
 
-def gen_code_for_lambda(lam):
+def gen_code_for_lambda(lam: Callable) -> str:
     # surround in try except if user provided malformed lambdas
     try:
         s = astor.to_source(lam)
@@ -80,7 +81,7 @@ def gen_code_for_lambda(lam):
         return ""
 
 
-def hash_code_object(code):
+def hash_code_object(code: CodeType) -> bytes:
     # can't take the full object because this includes memory addresses
     # need to hash contents
     # for this use bytecode, varnames & constants
@@ -97,8 +98,7 @@ def hash_code_object(code):
     return ret + b")"
 
 
-# join lines and remove stupid \\n
-def remove_line_breaks(source_lines):
+def remove_line_breaks(source_lines: List[str]) -> str:
     """
     expressions may be defined over multiple line using \ in python. This function removes this and joins lines.
     Args:
@@ -130,22 +130,21 @@ class SourceVault:
     # borg pattern
     __shared_state = {}
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.__dict__ = self.__shared_state
         self.lambdaDict = {}
 
         # new: lookup via filename, lineno and colno
         self.lambdaFileDict = {}
 
-    # def get(self, obj):
-    #     """
-    #     returns source code for given object
-    #     :param codeboj:
-    #     :return:
-    #     """
-    #     assert isinstance(obj, LambdaType), 'object needs to be a lambda object'
-    #     return self.lambdaDict[hash_code_object(obj.__code__)]
-    def get(self, ftor, filename, lineno, colno, globs):
+    def get(
+        self,
+        ftor: Callable,
+        filename: str,
+        lineno: int,
+        colno: Optional[int],
+        globs: dict,
+    ) -> str:
         assert isinstance(ftor, LambdaType), "object needs to be a lambda object"
 
         # perform multiway lookup for code
@@ -184,7 +183,14 @@ class SourceVault:
         else:
             raise KeyError("could not find lambda function")
 
-    def extractAndPutAllLambdas(self, src_info, filename, lineno, colno, globals):
+    def extractAndPutAllLambdas(
+        self,
+        src_info: Tuple[List[str], int],
+        filename: str,
+        lineno: int,
+        colno: Optional[int],
+        globals: dict,
+    ) -> None:
         """
         extracts the source code from all lambda functions and stores them in the source vault
         :param source:

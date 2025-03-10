@@ -13,6 +13,7 @@ import ast
 import inspect
 import re
 import types
+from typing import Callable
 
 # ALWAYS import cloudpickle before dill, b.c. of https://github.com/uqfoundation/dill/issues/383
 import dill
@@ -147,7 +148,7 @@ def extract_function_code(function_name, raw_code):
     return extractFunctionByName(out, function_name)
 
 
-def get_function_code(f):
+def get_function_code(f: Callable) -> str:
     """jupyter notebook, retrieve function history"""
     assert isinstance(f, types.FunctionType)
     function_name = f.__code__.co_name
@@ -175,7 +176,7 @@ def get_function_code(f):
 vault = SourceVault()
 
 
-def get_source(f):
+def get_source(f: Callable) -> str:
     """Jupyter notebook code reflection"""
 
     if isinstance(f, types.FunctionType):
